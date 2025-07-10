@@ -1,13 +1,13 @@
 import { ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/core'
 import { FormGroup } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { FormlyFormOptions } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
-import { ConfirmCodeEditorComponent } from '@metad/components/editor'
+import { pick } from '@metad/ocap-core'
+import { NgmConfirmCodeEditorComponent } from '@metad/ocap-angular/editor'
 import { cloneDeep } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { PreferencesSchema } from './schema'
-import { pick } from '@metad/ocap-core'
+import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 @Component({
   selector: 'ngm-settings-preferences',
@@ -16,7 +16,7 @@ import { pick } from '@metad/ocap-core'
 })
 export class PreferencesComponent implements OnInit {
   
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(Dialog)
   private readonly _cdr = inject(ChangeDetectorRef)
 
   menus = [
@@ -34,8 +34,8 @@ export class PreferencesComponent implements OnInit {
   echartsTheme: any
   constructor(
     private translateService: TranslateService,
-    @Inject(MAT_DIALOG_DATA) public data,
-    public dialogRef?: MatDialogRef<PreferencesComponent>
+    @Inject(DIALOG_DATA) public data,
+    public dialogRef?: DialogRef
   ) {}
 
   ngOnInit() {
@@ -93,14 +93,14 @@ export class PreferencesComponent implements OnInit {
   async openThemeEditor() {
     const result = await firstValueFrom(
       this._dialog
-        .open(ConfirmCodeEditorComponent, {
+        .open(NgmConfirmCodeEditorComponent, {
           panelClass: 'large',
           data: {
             language: 'json',
             model: this.echartsTheme
           }
         })
-        .afterClosed()
+        .closed
     )
     if (result) {
       this.echartsTheme = result

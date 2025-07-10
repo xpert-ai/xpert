@@ -4,7 +4,6 @@ import { ChangeDetectionStrategy, Component, ViewChild, computed, effect, inject
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Store } from '@metad/cloud/state'
-import { BaseEditorDirective } from '@metad/components/editor'
 import { convertQueryResultColumns, LeanRightEaseInAnimation } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { EntityCapacity, getErrorMessage } from '@metad/ocap-angular/core'
@@ -29,6 +28,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
 import { getSemanticModelKey } from '@metad/story/core'
+import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
 
 @Component({
   standalone: true,
@@ -62,7 +62,7 @@ export class EntityQueryComponent extends TranslationBaseComponent {
   readonly store = inject(Store)
   readonly #logger = inject(NGXLogger)
 
-  @ViewChild('editor') editor!: BaseEditorDirective
+  @ViewChild('editor') editor!: NgmBaseEditorDirective
   readonly dragHandler = viewChild('dragHandler', {read: CdkDrag})
 
   /**

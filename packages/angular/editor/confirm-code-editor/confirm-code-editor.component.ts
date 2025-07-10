@@ -1,9 +1,15 @@
-import { Component, HostBinding, Inject, effect, inject } from '@angular/core'
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { isBlank } from '@metad/ocap-core'
-import { BehaviorSubject } from 'rxjs'
-import { NgmThemeService } from '@metad/ocap-angular/core'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
+import { CommonModule } from '@angular/common'
+import { Component, HostBinding, effect, inject } from '@angular/core'
+import { FormsModule } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
+import { ButtonGroupDirective, NgmThemeService } from '@metad/ocap-angular/core'
 import { EditorThemeMap } from '@metad/ocap-angular/formula'
+import { isBlank } from '@metad/ocap-core'
+import { TranslateModule } from '@ngx-translate/core'
+import { MonacoEditorModule } from 'ngx-monaco-editor'
+import { BehaviorSubject } from 'rxjs'
 
 export interface ConfirmCodeEditorData {
   language?: string
@@ -12,12 +18,16 @@ export interface ConfirmCodeEditorData {
 }
 
 @Component({
+  standalone: true,
+  imports: [CommonModule, FormsModule, TranslateModule, DragDropModule, MatButtonModule, MonacoEditorModule, ButtonGroupDirective],
   selector: 'ngm-confirm-code-editor',
   templateUrl: './confirm-code-editor.component.html',
   styleUrls: ['./confirm-code-editor.component.scss']
 })
-export class ConfirmCodeEditorComponent {
+export class NgmConfirmCodeEditorComponent {
   readonly themeService = inject(NgmThemeService)
+  readonly data = inject<ConfirmCodeEditorData>(DIALOG_DATA)
+  readonly dialogRef = inject(DialogRef)
 
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
 
@@ -28,12 +38,9 @@ export class ConfirmCodeEditorComponent {
     automaticLayout: true
   }
 
-  statement = ''
+  statement: string | null = ''
 
-  constructor(
-    @Inject(MAT_DIALOG_DATA) public data: ConfirmCodeEditorData,
-    public dialogRef?: MatDialogRef<ConfirmCodeEditorComponent>
-  ) {
+  constructor() {
     effect(() => {
       this.editorOptions = {
         ...this.editorOptions,
@@ -43,7 +50,7 @@ export class ConfirmCodeEditorComponent {
 
     this.editorOptions = {
       ...this.editorOptions,
-      language: this.data?.language ?? this.editorOptions.language,
+      language: this.data?.language ?? this.editorOptions.language
     }
 
     this.onReset()
@@ -66,13 +73,16 @@ export class ConfirmCodeEditorComponent {
     this.dialogRef.close(this.parse())
   }
 
+  onCancel() {
+    this.dialogRef.close()
+  }
+
   parse() {
-    return this.editorOptions.language === 'json' ? parse(this.statement) : this.statement
+    return this.editorOptions.language === 'json' && this.statement ? parse(this.statement) : this.statement
   }
 }
 
 /**
- * 转换 JSON 格式
  */
 function parse(value: string) {
   return isBlank(value) ? null : JSON.parse(value)

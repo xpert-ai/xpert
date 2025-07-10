@@ -16,7 +16,6 @@ import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { BaseEditorDirective } from '@metad/components/editor'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { convertQueryResultColumns, linkedModel } from '@metad/core'
 import { NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
@@ -27,7 +26,7 @@ import {
   NgmFormulaEditorComponent,
   PropertyCapacity
 } from '@metad/ocap-angular/entity'
-import { NgmFormulaModule } from '@metad/ocap-angular/formula'
+import { NgmBaseEditorDirective, NgmFormulaModule } from '@metad/ocap-angular/formula'
 import { Dimension, measureFormatter, nonBlank, QueryReturn, stringifyProperty, Syntax } from '@metad/ocap-core'
 import { Crossjoin, Members } from '@metad/ocap-xmla'
 import { getSemanticModelKey } from '@metad/story/core'
@@ -98,7 +97,7 @@ export class ModelEntityCalculationComponent {
   readonly #toastr = inject(ToastrService)
   readonly #dialog = inject(MatDialog)
 
-  @ViewChild('editor') editor!: BaseEditorDirective
+  @ViewChild('editor') editor!: NgmBaseEditorDirective
 
   // Inputs
   readonly key = input<string>()

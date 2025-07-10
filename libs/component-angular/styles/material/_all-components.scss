@@ -8,54 +8,17 @@
 
 
 @mixin ngm-mat-theme($theme-or-color-config) {
-
-  // @include breadcrumb.theme($theme-or-color-config);
-  // @include entity.theme($theme-or-color-config);
-  // @include smart-filter.theme($theme-or-color-config);
-  // @include selection.theme($theme-or-color-config);
-  // @include ngm-scrollbar-theme($theme-or-color-config);
-  // @include mat-expansion-panel-ext-theme($theme-or-color-config);
   @include tab-theme.theme($theme-or-color-config);
-  
-  // @include property.theme($theme-or-color-config);
-  // @include calculation.theme($theme-or-color-config);
-  // @include menu.theme($theme-or-color-config);
-  // @include display-behaviour.theme($theme-or-color-config);
-  // @include value-help.theme($theme-or-color-config);
   @include button.theme($theme-or-color-config);
-  // @include density.theme($theme-or-color-config);
-  // @include advanced-filter.theme($theme-or-color-config);
   @include option.theme($theme-or-color-config);
   @include color.theme($theme-or-color-config);
-  // @include table.theme($theme-or-color-config);
   @include form-field.theme($theme-or-color-config);
-  // @include datepicker.theme($theme-or-color-config);
-  // @include time-filter.theme($theme-or-color-config);
 }
 
 @mixin all-component-colors($theme-or-color-config) {
-  // @include ngm-scrollbar-color($theme-or-color-config);
-  // @include mat-expansion-panel-ext-color($theme-or-color-config);
   @include tab-theme.color($theme-or-color-config);
-  // @include ngm-cdk-overlay-color($theme-or-color-config);
-  // @include ngm-color-color($theme-or-color-config);
-  // @include breadcrumb.color($theme-or-color-config);
-  // @include entity.color($theme-or-color-config);
-  // @include smart-filter.color($theme-or-color-config);
-  // @include selection.color($theme-or-color-config);
-  // @include property.color($theme-or-color-config);
-  // @include calculation.color($theme-or-color-config);
-  // @include menu.color($theme-or-color-config);
-  // @include display-behaviour.color($theme-or-color-config);
-  // @include value-help.color($theme-or-color-config);
   @include option.color($theme-or-color-config);
   @include color.color($theme-or-color-config);
-  
   @include button.color($theme-or-color-config);
-  // @include density.color($theme-or-color-config);
-  // @include advanced-filter.color($theme-or-color-config);
-  // @include table.color($theme-or-color-config);
   @include form-field.color($theme-or-color-config);
-  // @include datepicker.color($theme-or-color-config);
-  // @include time-filter.color($theme-or-color-config);
 }
