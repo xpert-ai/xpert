@@ -14,18 +14,18 @@ import {
   signal
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { FormControl } from '@angular/forms'
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CopilotChatMessageRoleEnum, CopilotEngine } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
-import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, ResizerModule, SplitterModule } from '@metad/ocap-angular/common'
 import { CommandDialogComponent, NgmCopilotChatComponent, provideCopilotDropAction } from '@metad/copilot-angular'
 import { DBTable, PropertyAttributes, TableEntity, pick } from '@metad/ocap-core'
 import { NX_STORY_STORE, NxStoryStore, StoryModel } from '@metad/story/core'
 import { NxSettingsPanelService } from '@metad/story/designer'
-import { sortBy, uniqBy } from 'lodash-es'
+import { lowerCase, snakeCase, sortBy, uniqBy } from 'lodash-es'
 import { nanoid } from 'nanoid'
 import { NGXLogger } from 'ngx-logger'
 import {
@@ -45,7 +45,7 @@ import {
   switchMap,
   tap
 } from 'rxjs'
-import { ISemanticModel, MenuCatalog, getErrorMessage, injectToastr, routeAnimations, uuid } from '../../../@core'
+import { DateRelativePipe, ISemanticModel, MenuCatalog, getErrorMessage, injectToastr, routeAnimations, uuid } from '../../../@core'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { ModelUploadComponent } from '../upload/upload.component'
@@ -61,6 +61,8 @@ import { ModelPreferencesComponent } from './preferences/preferences.component'
 import {
   CdkDragDropContainers,
   MODEL_TYPE,
+  ModelCubeState,
+  ModelDimensionState,
   SemanticModelEntity,
   SemanticModelEntityType,
   TOOLBAR_ACTION_CATEGORY
@@ -68,8 +70,44 @@ import {
 import { markdownTableData, stringifyTableType } from './utils'
 import { TranslationBaseComponent } from '../../../@shared/language/'
 import { Dialog } from '@angular/cdk/dialog'
+import { CommonModule } from '@angular/common'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { TranslateModule } from '@ngx-translate/core'
+import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
+import { MatSidenavModule } from '@angular/material/sidenav'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { ContentLoaderModule } from '@ngneat/content-loader'
+import { ScrollingModule } from '@angular/cdk/scrolling'
+import { MatProgressBarModule } from '@angular/material/progress-bar'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    CdkMenuModule,
+    TranslateModule,
+    ReactiveFormsModule,
+    ContentLoaderModule,
+    ScrollingModule,
+    MatIconModule,
+    MatButtonModule,
+    MatSidenavModule,
+    MatTooltipModule,
+    MatProgressBarModule,
+    MatProgressSpinnerModule,
+
+    // OCAP Modules
+    ResizerModule,
+    SplitterModule,
+    OcapCoreModule,
+    NgmCommonModule,
+    DateRelativePipe
+  ],
   selector: 'ngm-semanctic-model',
   templateUrl: './model.component.html',
   styleUrls: ['./model.component.scss'],
@@ -83,6 +121,7 @@ import { Dialog } from '@angular/cdk/dialog'
 export class ModelComponent extends TranslationBaseComponent {
   SemanticModelEntityType = SemanticModelEntityType
   TOOLBAR_ACTION_CATEGORY = TOOLBAR_ACTION_CATEGORY
+  eCdkDragDropContainers = CdkDragDropContainers
 
   public appService = inject(AppService)
   private modelService = inject(SemanticModelService)
@@ -132,6 +171,8 @@ export class ModelComponent extends TranslationBaseComponent {
   )
 
   readonly entities$ = this.modelService.entities$
+  readonly cubeStates$ = this.modelService.cubeStates$
+  readonly dimensionStates$ = this.modelService.dimensionStates$
   readonly cubes = this.modelService.cubes
 
   // For tables or cubes in data source
@@ -300,10 +341,6 @@ export class ModelComponent extends TranslationBaseComponent {
     this.modelService.initModel(this.model)
   }
 
-  // isDirty(id?: string) {
-  //   return id ? this.modelService.dirty()[id] : this.modelService.isDirty()
-  // }
-
   trackById(i: number, item: SemanticModelEntity) {
     return item.id
   }
@@ -312,22 +349,42 @@ export class ModelComponent extends TranslationBaseComponent {
     return event.dropContainer.id === CdkDragDropContainers.Tables
   }
 
-  drop(event: CdkDragDrop<Array<SemanticModelEntity>>) {
+  dropCube(event: CdkDragDrop<Array<ModelCubeState>>) {
     if (
       event.previousContainer.id === CdkDragDropContainers.Tables &&
-      event.container.id === CdkDragDropContainers.Entities
+      event.container.id === CdkDragDropContainers.Cubes
     ) {
-      this.createEntity(event.item.data)
+      this.createEntity(event.item.data, SemanticModelEntityType.CUBE)
     }
     // Move items in array
     if (event.previousContainer === event.container) {
-      if (event.item.data.type === SemanticModelEntityType.DIMENSION) {
-        this.modelService.moveItemInDimensions(event)
-      } else if (event.item.data.type === SemanticModelEntityType.CUBE) {
-        this.modelService.moveItemInCubes(event)
-      } else if (event.item.data.type === SemanticModelEntityType.VirtualCube) {
-        this.modelService.moveItemInVirtualCubes(event)
-      }
+      this.modelService.moveItemInCubes(event)
+    }
+  }
+
+  dropDimension(event: CdkDragDrop<Array<ModelDimensionState>>) {
+    if (
+      event.previousContainer.id === CdkDragDropContainers.Tables &&
+      event.container.id === CdkDragDropContainers.ShareDimensions
+    ) {
+      this.createEntity(event.item.data, SemanticModelEntityType.DIMENSION)
+    }
+    // Move items in array
+    if (event.previousContainer === event.container) {
+      this.modelService.moveItemInDimensions(event)
+    }
+  }
+
+  dropVirtualCube(event: CdkDragDrop<Array<SemanticModelEntity>>) {
+    if (
+      event.previousContainer.id === CdkDragDropContainers.Tables &&
+      event.container.id === CdkDragDropContainers.VirtualCubes
+    ) {
+      this.createEntity(event.item.data, SemanticModelEntityType.VirtualCube)
+    }
+    // Move items in array
+    if (event.previousContainer === event.container) {
+      this.modelService.moveItemInVirtualCubes(event)
     }
   }
 
@@ -335,7 +392,7 @@ export class ModelComponent extends TranslationBaseComponent {
     this.modelService.dragReleased$.next(event.source.dropContainer._dropListRef)
   }
 
-  async createEntity(entity?: SemanticModelEntity) {
+  createEntity(entity?: SemanticModelEntity, type?: SemanticModelEntityType) {
     const modelType = this.modelService.modelType()
     const entitySets = this.tables()
     if (modelType === MODEL_TYPE.XMLA) {
@@ -344,47 +401,61 @@ export class ModelComponent extends TranslationBaseComponent {
         this.#toastr.error('PAC.MODEL.Error_EntityExists', '', {Default: 'Entity already exists!'})
         return
       }
-      const result = await firstValueFrom(
-        this._dialog
-          .open<ModelCreateEntityComponent, CreateEntityDialogDataType, CreateEntityDialogRetType>(
-            ModelCreateEntityComponent,
-            {
-              viewContainerRef: this._viewContainerRef,
-              data: { model: { name: entity?.name, caption: entity?.caption }, entitySets, modelType }
-            }
-          )
-          .afterClosed()
-      )
-      if (result) {
-        const entity = this.modelService.createCube(result)
-        this.activeEntity(entity)
-      }
+      this.#dialog
+        .open<CreateEntityDialogRetType>(
+          ModelCreateEntityComponent,
+          {
+            viewContainerRef: this._viewContainerRef,
+            data: {
+              model: { name: entity?.name, caption: entity?.caption },
+              entitySets,
+              modelType,
+              type
+            },
+            backdropClass: 'xp-overlay-share-sheet',
+            panelClass: 'xp-overlay-pane-share-sheet',
+          }
+        )
+        .closed.subscribe((result) => {
+          if (result) {
+            const entity = this.modelService.createCube(result)
+            this.activeEntity(entity)
+          }
+        })
     } else {
-      const result = await firstValueFrom(
-        this._dialog
-          .open<ModelCreateEntityComponent, CreateEntityDialogDataType, CreateEntityDialogRetType>(
-            ModelCreateEntityComponent,
-            {
-              viewContainerRef: this._viewContainerRef,
-              data: { model: { table: entity?.name, caption: entity?.caption }, entitySets, modelType }
+     this.#dialog
+      .open<CreateEntityDialogRetType>(
+        ModelCreateEntityComponent,
+          {
+            viewContainerRef: this._viewContainerRef,
+            data: { 
+              model: { table: entity?.name, caption: entity?.caption }, 
+              entitySets, 
+              modelType,
+              type
+            },
+            backdropClass: 'xp-overlay-share-sheet',
+            panelClass: 'xp-overlay-pane-share-sheet',
+          }
+        )
+        .closed.subscribe((result) => {
+          if (result) {
+            let modelEntity: SemanticModelEntity
+            const id = uuid()
+            if (result?.type === SemanticModelEntityType.CUBE) {
+              modelEntity = this.modelService.createCube(result)
+            } else if (result?.type === SemanticModelEntityType.DIMENSION) {
+              modelEntity = this.modelService.createDimension(result)
+            } else if (result.type === SemanticModelEntityType.VirtualCube) {
+              this.modelService.createVirtualCube({ id, ...result })
+              this.router.navigate([`virtual-cube/${id}`], { relativeTo: this.route })
             }
-          )
-          .afterClosed()
-      )
-      let modelEntity: SemanticModelEntity
-      const id = uuid()
-      if (result?.type === SemanticModelEntityType.CUBE) {
-        modelEntity = this.modelService.createCube(result)
-      } else if (result?.type === SemanticModelEntityType.DIMENSION) {
-        modelEntity = this.modelService.createDimension(result)
-      } else if (result.type === SemanticModelEntityType.VirtualCube) {
-        this.modelService.createVirtualCube({ id, ...result })
-        this.router.navigate([`virtual-cube/${id}`], { relativeTo: this.route })
-      }
 
-      if (modelEntity) {
-        this.activeEntity(modelEntity)
-      }
+            if (modelEntity) {
+              this.activeEntity(modelEntity)
+            }
+          }
+        })
     }
   }
 
@@ -402,13 +473,13 @@ export class ModelComponent extends TranslationBaseComponent {
   }
 
   /**
-   * 打开实体编辑页面
+   * Open the entity edit page
    *
    * @param entity
    */
   activeEntity(entity: SemanticModelEntity) {
     if (entity.type === SemanticModelEntityType.CUBE) {
-      this.router.navigate([`entity/${entity.id}`], { relativeTo: this.route })
+      this.router.navigate([`cube/${entity.id}`], { relativeTo: this.route })
     } else {
       this.router.navigate([`dimension/${entity.id}`], { relativeTo: this.route })
     }
@@ -704,5 +775,12 @@ export class ModelComponent extends TranslationBaseComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  duplicateEntity(entity: SemanticModelEntity) {
+    const newKey = uuid()
+    this.modelService.duplicate({type: entity.type, id: entity.id, newKey})
+    const type = snakeCase(lowerCase(entity.type))
+    this.router.navigate([type, newKey], { relativeTo: this.route })
   }
 }

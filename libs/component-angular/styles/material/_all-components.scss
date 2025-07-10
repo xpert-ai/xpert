@@ -1,6 +1,4 @@
 @use '@angular/material' as mat;
-// @use '../../entity/entity-theme' as entity;
-@use '../../action-strip/action-strip-theme' as action-strip;
 @use '../../property/property-theme' as property;
 @use '../../form-field/form-field-theme' as form-field;
 @use '../components/button-theme' as button;
@@ -19,7 +17,6 @@
   // @include mat-expansion-panel-ext-theme($theme-or-color-config);
   @include tab-theme.theme($theme-or-color-config);
   
-  @include action-strip.theme($theme-or-color-config);
   // @include property.theme($theme-or-color-config);
   // @include calculation.theme($theme-or-color-config);
   // @include menu.theme($theme-or-color-config);
@@ -46,7 +43,6 @@
   // @include entity.color($theme-or-color-config);
   // @include smart-filter.color($theme-or-color-config);
   // @include selection.color($theme-or-color-config);
-  @include action-strip.color($theme-or-color-config);
   // @include property.color($theme-or-color-config);
   // @include calculation.color($theme-or-color-config);
   // @include menu.color($theme-or-color-config);

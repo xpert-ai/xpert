@@ -1,8 +1,7 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Component, Inject, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { AbstractControl, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
+import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
 import { nonNullable } from '@metad/core'
 import { AggregationRole, Cube, DBTable, isNil, omitBy, Property, PropertyDimension } from '@metad/ocap-core'
 import { of } from 'rxjs'
@@ -11,6 +10,20 @@ import { SemanticModelService } from '../model.service'
 import { MODEL_TYPE, SemanticModelEntityType } from '../types'
 import { uuid } from '@cloud/app/@core'
 import { ISelectOption } from '@metad/ocap-angular/core'
+import { CommonModule } from '@angular/common'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
+import { MatButtonToggleModule } from '@angular/material/button-toggle'
+import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatInputModule } from '@angular/material/input'
+import { MatAutocompleteModule } from '@angular/material/autocomplete'
+import { MatListModule } from '@angular/material/list'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { TranslateModule } from '@ngx-translate/core'
+import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { MatCheckboxModule } from '@angular/material/checkbox'
+import { MatSelectModule } from '@angular/material/select'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 export type CreateEntityColumnType = {
   name: string
@@ -61,6 +74,24 @@ export type CreateEntityDialogRetType = {
 }
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatIconModule,
+    MatButtonModule,
+    MatButtonToggleModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatAutocompleteModule,
+    MatListModule,
+    MatProgressSpinnerModule,
+    MatCheckboxModule,
+    MatSelectModule,
+    TranslateModule,
+    NgmCommonModule
+  ],
   selector: 'pac-model-create-entity',
   templateUrl: 'create-entity.component.html',
   styleUrls: ['create-entity.component.scss']
@@ -74,8 +105,9 @@ export class ModelCreateEntityComponent {
   modelType: MODEL_TYPE
   hiddenTable = false
 
-  primaryKey: string
-  columns: CreateEntityColumnType[] = []
+  readonly primaryKey = signal<string>(null)
+  readonly columns = signal<CreateEntityColumnType[]>([])
+  // columns: CreateEntityColumnType[] = []
   cubes: Cube[] = []
   table = new FormControl(null)
   type = new FormControl<SemanticModelEntityType>(null, [Validators.required])
@@ -90,8 +122,7 @@ export class ModelCreateEntityComponent {
   })
 
   expression: string
-  // 加载中
-  loading = false
+  readonly loading = signal(false)
 
   readonly types = signal(this.data.types ?? (this.data.modelType===MODEL_TYPE.OLAP ? [
     SemanticModelEntityType.CUBE,
@@ -125,9 +156,9 @@ export class ModelCreateEntityComponent {
 
   private readonly entityColumns = toSignal(
     this.tableName$.pipe(
-      tap(() => (this.loading = true)),
+      tap(() => (this.loading.set(true))),
       switchMap((tableName) => (tableName ? this.modelService.selectOriginalEntityProperties(tableName) : of([]))),
-      tap(() => (this.loading = false))
+      tap(() => (this.loading.set(false)))
     )
   )
 
@@ -135,8 +166,8 @@ export class ModelCreateEntityComponent {
   public readonly sharedDimensions = toSignal(this.modelService.sharedDimensions$)
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: CreateEntityDialogDataType,
-    public dialogRef: MatDialogRef<ModelCreateEntityComponent, CreateEntityDialogRetType>
+    @Inject(DIALOG_DATA) public data: CreateEntityDialogDataType,
+    public dialogRef: DialogRef<CreateEntityDialogRetType>
   ) {
     this.expression = this.data.model?.expression
     this.modelType = this.data.modelType
@@ -158,17 +189,18 @@ export class ModelCreateEntityComponent {
 
     effect(
       () => {
-        const columns = this.entityColumns()
+        let columns = this.entityColumns()
         if (!columns) {
           return
         }
-        this.columns = [...columns.map((item) => ({ ...item }))]
+        
+        // this.columns = [...columns.map((item) => ({ ...item }))]
         const type = this.entityType()
 
         // 自动判断实体类型
-        if (!nonNullable(type) && this.columns.length > 0) {
+        if (!nonNullable(type) && columns.length > 0) {
           this.type.setValue(
-            this.columns.find((item) => item.role === AggregationRole.measure)
+            columns.find((item) => item.role === AggregationRole.measure)
               ? SemanticModelEntityType.CUBE
               : SemanticModelEntityType.DIMENSION
           )
@@ -176,7 +208,7 @@ export class ModelCreateEntityComponent {
           // 自动设置关联维度和度量
           if (type === SemanticModelEntityType.CUBE) {
             const sharedDimensions = this.sharedDimensions()
-            this.columns.forEach((item) => {
+            columns.forEach((item) => {
               const dimension = sharedDimensions.find(
                 (dimension) => dimension.hierarchies?.[0]?.primaryKey === item.name
               )
@@ -187,13 +219,15 @@ export class ModelCreateEntityComponent {
               }
             })
           } else if (type) {
-            this.columns = this.columns.map((item) => ({
+            columns = columns.map((item) => ({
               ...item,
               dimension: null,
               isMeasure: null
             }))
           }
         }
+
+        this.columns.set([...columns.map((item) => ({ ...item }))])
       },
       { allowSignalWrites: true }
     )
@@ -220,7 +254,10 @@ export class ModelCreateEntityComponent {
   }
 
   drop(event: CdkDragDrop<Property[]>) {
-    moveItemInArray(this.columns, event.previousIndex, event.currentIndex)
+    this.columns.update((columns) => {
+      moveItemInArray(columns, event.previousIndex, event.currentIndex)
+      return [...columns]
+    })
   }
 
   toggleDimension(value: boolean, column: CreateEntityColumnType) {
@@ -241,12 +278,16 @@ export class ModelCreateEntityComponent {
     }
   }
 
+  cancel() {
+    this.dialogRef.close()
+  }
+
   apply() {
     this.dialogRef.close({
       ...this.formGroup.getRawValue(),
       expression: this.expression,
-      primaryKey: this.primaryKey,
-      columns: this.columns.filter((item) => item.visible || item.isMeasure || item.isDimension || item.dimension),
+      primaryKey: this.primaryKey(),
+      columns: this.columns().filter((item) => item.visible || item.isMeasure || item.isDimension || item.dimension),
       cubes: this.cubes
     })
   }

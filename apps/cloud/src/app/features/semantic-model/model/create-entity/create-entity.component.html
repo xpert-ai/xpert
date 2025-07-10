@@ -1,7 +1,7 @@
 <div class="ngm-modal-sidenav ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto p-4 group">
-  <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <div class="w-full flex justify-start items-center my-2 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
-    <span class="text-lg pointer-events-none">
+    <span class="text-xl pointer-events-none">
       {{ 'PAC.MODEL.CREATE_ENTITY.CREATE_ENTITY' | translate: { Default: 'Create Entity' } }}
     </span>
   </div>
@@ -77,7 +77,7 @@
 
   <div class="w-full flex justify-end">
     <div ngmButtonGroup>
-      <button mat-flat-button mat-dialog-close>
+      <button mat-flat-button (click)="cancel()">
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
       <button mat-raised-button color="accent" [disabled]="formGroup.invalid" (click)="apply()">
@@ -88,10 +88,10 @@
   
 </div>
 
-<div class="min-w-[400px] p-4 relative flex flex-col">
+<div class="min-w-[400px] relative flex flex-col">
   @switch (type.value) {
     @case(SemanticModelEntityType.CUBE) {
-      <div class="px-4 flex gap-4">
+      <div class="p-4 flex gap-4">
         <div class="flex-1">
           {{ 'PAC.MODEL.CREATE_ENTITY.Field' | translate: { Default: 'Field' } }}
         </div>
@@ -106,7 +106,7 @@
         </div>
       </div>
       <mat-list role="list" class="block overflow-auto">
-        @for (column of columns; track column.name) {
+        @for (column of columns(); track column.name) {
           <mat-list-item role="listitem" class="group rounded-lg">
             <div class="flex items-center">
               <ngm-display-behaviour class="flex-1 ml-8" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId"></ngm-display-behaviour>
@@ -131,9 +131,11 @@
                   <mat-option [value]="null">
                     {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
                   </mat-option>
-                  <mat-option *ngFor="let dimension of sharedDimensions()" [value]="dimension">
-                    <ngm-display-behaviour class="flex-1" [option]="{key: dimension.name, caption: dimension.caption}"></ngm-display-behaviour>
-                  </mat-option>
+                  @for (dimension of sharedDimensions(); track dimension.name) {
+                    <mat-option [value]="dimension">
+                      <ngm-display-behaviour class="flex-1" [option]="{key: dimension.name, caption: dimension.caption}" />
+                    </mat-option>
+                  }
                 </mat-select>
               </div>
             </div>
@@ -147,7 +149,7 @@
         </div>
       }
     } @case(SemanticModelEntityType.DIMENSION) {
-      <div class="px-4 flex gap-4">
+      <div class="p-4 flex gap-4">
         <span class="w-12 text-center">
           {{ 'PAC.MODEL.CREATE_ENTITY.PrimaryKey' | translate: { Default: 'Key' } }}
         </span>
@@ -164,39 +166,47 @@
       </div>
       <div class="overflow-auto">
         <mat-list role="list" cdkDropList (cdkDropListDropped)="drop($event)">
-          <mat-list-item *ngFor="let column of columns" cdkDrag cdkDragLockAxis="y"
-            role="listitem" class="group rounded-lg">
-            <div class="w-full h-full flex items-center">
-              <mat-checkbox class="group-hover:opacity-100" style="line-height: 1;"
-                [class.opacity-0]="column.name !== primaryKey"
-                [checked]="column.name === primaryKey"
-                (change)="primaryKey = $event.checked ? column.name : null"
-              ></mat-checkbox>
-        
-              <mat-icon class="ml-6 cursor-pointer group-hover:opacity-100" [class.opacity-0]="!column.visible"
-                fontSet="material-icons-outlined"
-                (click)="column.visible=!column.visible"
-              >
-                {{column.visible ? 'visibility' : 'visibility_off'}}
-              </mat-icon>
-              <ngm-display-behaviour class="flex-1 ml-8" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId"></ngm-display-behaviour>
-            </div>
-          </mat-list-item>
+          @for (column of columns(); track column.name; let i = $index) {
+            <mat-list-item cdkDrag cdkDragLockAxis="y"
+              role="listitem" class="group rounded-lg">
+              <div class="w-full h-full flex items-center">
+                <div class="flex justify-center items-center w-12 h-full group-hover:opacity-100"
+                  [class.opacity-0]="column.name !== primaryKey()">
+                  <input id="default-radio-{{i}}" type="radio" class="w-5 h-5 cursor-pointer text-orange-600 bg-gray-100 border-gray-300 dark:focus:ring-orange-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600 outline-none"
+                    [checked]="column.name === primaryKey()"
+                    (change)="primaryKey.set($event ? column.name : null)"
+                  >
+                  <label for="default-radio-{{i}}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"></label>
+                </div>
+          
+                <mat-icon class="ml-6 cursor-pointer group-hover:opacity-100" [class.opacity-0]="!column.visible"
+                  fontSet="material-icons-outlined"
+                  (click)="column.visible=!column.visible"
+                >
+                  {{column.visible ? 'visibility' : 'visibility_off'}}
+                </mat-icon>
+                <ngm-display-behaviour class="flex-1 ml-8" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId" />
+              </div>
+            </mat-list-item>
+          }
         </mat-list>
       </div>
     } @case(SemanticModelEntityType.VirtualCube) {
-      <mat-selection-list class="overflow-auto" [compareWith]="compareWithCube" [(ngModel)]="cubes">
-        <mat-list-option *ngFor="let cube of cubes$ | async" class="rounded-lg" [value]="cube">
-          <ngm-display-behaviour class="flex-1" [option]="{key: cube.name, caption: cube.caption}" displayBehaviour="descriptionAndId"></ngm-display-behaviour>
-        </mat-list-option>
-      </mat-selection-list>
+      <div class="p-4 overflow-auto">
+        <mat-selection-list [compareWith]="compareWithCube" [(ngModel)]="cubes">
+          @for (cube of cubes$ | async; track cube.name) {
+            <mat-list-option class="rounded-lg" [value]="cube">
+              <ngm-display-behaviour class="flex-1" [option]="{key: cube.name, caption: cube.caption}" displayBehaviour="descriptionAndId" />
+            </mat-list-option>
+          }
+        </mat-selection-list>
+      </div>
     }
   }
 
-  @if (loading) {
+  @if (loading()) {
     <div class="absolute w-full h-full top-0 left-0 flex justify-center items-center cursor-none">
-      <mat-spinner strokeWidth="1" diameter="30"></mat-spinner>
+      <mat-spinner strokeWidth="1" diameter="30" />
     </div>
   }
-  
 </div>

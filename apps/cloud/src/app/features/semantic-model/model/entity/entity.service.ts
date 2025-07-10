@@ -28,7 +28,7 @@ import {
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { select, withProps } from '@ngneat/elf'
 import { uuid } from 'apps/cloud/src/app/@core'
-import { assign, isEqual, negate, omit, omitBy } from 'lodash-es'
+import { assign, cloneDeep, isEqual, negate, omit, omitBy } from 'lodash-es'
 import {
   EMPTY,
   Observable,
@@ -373,28 +373,6 @@ export class ModelEntityService {
     }
   )
 
-  /**
-   * 通过 ID 更新 EntityType 单个 property
-   */
-  // readonly updateEntityProperty = this.updater((state, { id, property }: { id: string; property: Property }) => {
-  //   state.entityType = state.entityType || { name: state.name, visible: true, properties: {} }
-  //   // step 1. 通过 id 查找
-  //   const keyValue = Object.entries(state.entityType.properties).find(([key, value]) => value.__id__ === id)
-  //   if (keyValue) {
-  //     delete state.entityType.properties[keyValue[0]]
-  //     state.entityType.properties[property.name] = {
-  //       ...keyValue[1],
-  //       ...property,
-  //       __id__: id
-  //     }
-  //   } else {
-  //     state.entityType.properties[property.name] = {
-  //       ...property,
-  //       __id__: id
-  //     }
-  //   }
-  // })
-
   // Crud for dimension measure and calculated measure
   /**
    * New dimension
@@ -534,6 +512,19 @@ export class ModelEntityService {
     }
   })
 
+  readonly duplicateMeasure = this.updater((state, value: {id: string; newKey: string}) => {
+    const { id, newKey } = value
+    const index = state.measures.findIndex((item) => item.__id__ === id)
+    if (index > -1) {
+      const newMeasure = cloneDeep(state.measures[index])
+      newMeasure.__id__ = newKey
+      newMeasure.name = newMeasure.name + '_copy'
+      newMeasure.caption = newMeasure.caption + ' (copy)'
+
+      state.measures.splice(index + 1, 0, newMeasure)
+    }
+  })
+
   readonly moveItemInMeasures = this.updater((state, event: CdkDragDrop<any[]>) => {
     moveItemInArray(state.measures, event.previousIndex, event.currentIndex)
   })
@@ -544,7 +535,7 @@ export class ModelEntityService {
   readonly newCalculatedMeasure = this.updater((state, event?: { index: number; column?: string }) => {
     state.calculatedMembers = state.calculatedMembers ?? []
     if (event) {
-      // 拖拽来的表字段
+      // Drag the table fields
       state.calculatedMembers.splice(event.index, 0, {
         __id__: uuid(),
         name: event.column,
@@ -553,7 +544,7 @@ export class ModelEntityService {
         visible: true // default visible
       })
     } else if (!state.calculatedMembers.find((item) => item.name === '')) {
-      // 插入到第一个
+      // Insert to first
       state.calculatedMembers.splice(0, 0, {
         __id__: uuid(),
         name: '',
@@ -579,6 +570,19 @@ export class ModelEntityService {
       state.calculatedMembers[index] = calculatedMember
     } else {
       state.calculatedMembers.push(calculatedMember)
+    }
+  })
+
+  readonly duplicateCalculatedMeasure = this.updater((state, value: {id: string; newKey: string}) => {
+    const { id, newKey } = value
+    const index = state.calculatedMembers.findIndex((item) => item.__id__ === id)
+    if (index > -1) {
+      const newMember = cloneDeep(state.calculatedMembers[index])
+      newMember.__id__ = newKey
+      newMember.name = newMember.name + '_copy'
+      newMember.caption = newMember.caption + ' (copy)'
+
+      state.calculatedMembers.splice(index + 1, 0, newMember)
     }
   })
 

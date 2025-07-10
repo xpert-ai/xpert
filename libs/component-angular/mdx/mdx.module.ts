@@ -9,7 +9,6 @@ import { MatInputModule } from '@angular/material/input'
 import { MatListModule } from '@angular/material/list'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTreeModule } from '@angular/material/tree'
-import { NxActionStripModule } from '@metad/components/action-strip'
 
 /**
  * @deprecated
@@ -27,7 +26,6 @@ import { NxActionStripModule } from '@metad/components/action-strip'
     MatInputModule,
     MatToolbarModule,
     MatListModule,
-    NxActionStripModule
   ],
   exports: [ ],
 })

@@ -538,7 +538,10 @@ ${calcEntityTypePrompt(entityType)}
           }
           break
         }
-        case CdkDragDropContainers.Entities: {
+        case CdkDragDropContainers.Cubes:
+        case CdkDragDropContainers.ShareDimensions:
+        case CdkDragDropContainers.VirtualCubes:
+        {
           if (this.isMDX()) {
             // Add original cube name into list
             this.queryLabService.addEntity({

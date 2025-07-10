@@ -76,7 +76,7 @@ export type TSemanticModelDraft<T = any> = TSemanticModel & {
 
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {
   /**
-   * 当前版本上的草稿
+   * Draft on current version
    */
   draft?: TSemanticModelDraft
 
