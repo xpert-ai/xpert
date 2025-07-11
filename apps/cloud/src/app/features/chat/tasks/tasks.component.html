@@ -1,21 +1,32 @@
-<div class="px-6 py-4 flex justify-between items-center">
-  <div class="text-lg font-semibold">{{ 'PAC.Xpert.Task' | translate: { Default: 'Task' } }}</div>
-</div>
+<div class="max-w-[50rem] px-2 pt-16 @sm:pt-18 mx-auto w-full flex flex-col h-full items-center pb-4"
+  style="mask-image: linear-gradient(black 85%, transparent 100%);">
+  <div class="w-full py-4 flex justify-between items-center">
+    <div>
+      <div class="text-2xl font-semibold">{{ 'PAC.Xpert.Task' | translate: { Default: 'Task' } }}</div>
 
-<div class="max-w-full md:max-w-lg lg:max-w-2xl mx-auto mt-16">
-  <div class="w-full mt-8 pb-2 border-b border-solid border-gray-300">
-    {{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
-  </div>
-  @for (task of scheduledTasks(); track task.id) {
-    <ng-container *ngTemplateOutlet="taskTempl; context: { task: task }"></ng-container>
-  }
+    </div>
 
-  <div class="w-full mt-8 pb-2 border-b border-solid border-gray-300">
-    {{ 'PAC.Xpert.Paused' | translate: { Default: 'Paused' } }}
+    <button type="button" class="btn btn-secondary btn-large p-5" (click)="newTask()">
+      <i class="ri-add-line text-lg"></i>
+      {{ 'PAC.Xpert.NewTask' | translate: { Default: 'New Task' } }}
+    </button>
   </div>
-  @for (task of pausedTasks(); track task.id) {
-    <ng-container *ngTemplateOutlet="taskTempl; context: { task: task }"></ng-container>
-  }
+
+  <div class="w-full">
+    <div class="w-full mt-8 pb-2 border-b border-solid border-gray-300">
+      {{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
+    </div>
+    @for (task of scheduledTasks(); track task.id) {
+      <ng-container *ngTemplateOutlet="taskTempl; context: { task: task }"></ng-container>
+    }
+
+    <div class="w-full mt-8 pb-2 border-b border-solid border-gray-300">
+      {{ 'PAC.Xpert.Paused' | translate: { Default: 'Paused' } }}
+    </div>
+    @for (task of pausedTasks(); track task.id) {
+      <ng-container *ngTemplateOutlet="taskTempl; context: { task: task }"></ng-container>
+    }
+  </div>
 </div>
 
 <ng-template #taskTempl let-task="task">
@@ -25,8 +36,8 @@
       (click)="editTask(task)"
     >
       <div class="flex-1 flex justify-start items-center gap-1 overflow-hidden">
-        <emoji-avatar [avatar]="task.xpert.avatar" xs class="overflow-hidden rounded-lg shadow-sm"
-          [matTooltip]="task.xpert.title||task.xpert.name"
+        <emoji-avatar [avatar]="task.xpert?.avatar" xs class="overflow-hidden rounded-lg shadow-sm"
+          [matTooltip]="task.xpert?.title || task.xpert?.name"
           matTooltipPosition="above"
         />
         @if (task.status === eXpertTaskStatus.PAUSED) {

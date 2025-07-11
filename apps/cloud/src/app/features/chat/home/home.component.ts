@@ -174,6 +174,11 @@ export class ChatHomeComponent {
     }, 200)
   }
 
+  newConversation() {
+    this.homeService.conversationId.set(null)
+    this.currentPage.set({ type: 'conversation' })
+  }
+
   newProject() {
     this.projectLoading.set(true)
     this.projectSercice.create({ name: 'New Project' }).subscribe({
