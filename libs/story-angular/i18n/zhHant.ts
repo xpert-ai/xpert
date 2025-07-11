@@ -2,8 +2,10 @@ export const ZhHant = {
   Story: {
     Common: {
       Apply: '應用',
+      Back: '返回',
       Cancel: '取消',
       Close: '關閉',
+      Download: '下載',
       Search: '搜索',
       Select: '選擇',
       Search_Placeholder: '請輸入關鍵詞',
@@ -31,6 +33,7 @@ export const ZhHant = {
       Description: '描述',
       Theme: {
         Title: '主題',
+        Default: '默認',
         System: '跟隨系統',
         Light: '淺色模式',
         Dark: '深色模式',
@@ -49,10 +52,11 @@ export const ZhHant = {
       Reset: '重置',
       Public: '公開',
       ReUpload: '重新上傳',
-      Widget: '部件',
+      Widget: '微件',
       ConfirmDeleteInfo: '在實際保存之前不會從服務器上刪除',
-      Back: '返回',
-      Confirm: '確認'
+      Confirm: '確認',
+      Slicers: '切片器',
+      Entity: "實體"
     },
     Shares: {
       VisibilityChanged: '可見性已更改',
@@ -78,7 +82,7 @@ export const ZhHant = {
     },
     Designer: {
       LookingEmpty: '這個故事看起來有些空洞',
-      LookingEmptyAddStoryPoint: '添加一個故事點來開始吧'
+      LookingEmptyAddStoryPoint: '添加一個故事點來開始吧',
     },
     Story: {
       Share: '分享',
@@ -101,13 +105,15 @@ export const ZhHant = {
       NewCanvasPage: '新畫布頁面',
       SaveSuccess: '保存成功',
       SaveFailed: '保存失敗',
-      Upload: '上傳'
+      Upload: '上傳',
+      CurrentPageNotExist: "當前頁面不存在",
+      NewPageName: '新頁面名稱'
     },
     StoryPoint: {
       SaveFailed: '故事頁面保存失敗',
       SaveSuccess: '故事頁面保存成功',
       LookingEmpty: '這個故事點看起來很空洞',
-      LookingEmptyAddWidget: '添加一個故事部件開始吧'
+      LookingEmptyAddWidget: '添加一個故事微件開始吧'
     },
     StoryDetails: {
       StoryName: '故事名稱',
@@ -138,6 +144,7 @@ export const ZhHant = {
       TextStyles: '文本樣式',
       TableStyles: '表格樣式',
       ControlStyles: '控製器樣式',
+      KpiStyles: 'KPI 樣式',
       TabBar: '選項卡欄',
       TabBar_Fixed: '固定',
       TabBar_Point: '浮點',
@@ -192,7 +199,7 @@ export const ZhHant = {
       Preview: '預覽',
       Scale: '縮放',
       Scale_Unset: '重置',
-      Widgets: '部件',
+      Widgets: '微件',
       Charts: '圖形',
       NewPage: '新頁面',
       GlobalStyles: '全局樣式',
@@ -219,6 +226,8 @@ export const ZhHant = {
       Height: '高度',
       EmulatedDevice_Unset: '重置',
       EmulatedDevice_Custom: '自定義',
+      OpenFloatingToolbar: '打開浮動工具欄',
+      PinToolbar: '固定工具欄',
       PREFERENCES: {
         TITLE: '首選項',
         PREFERENCES: '首選項',
@@ -275,10 +284,10 @@ export const ZhHant = {
       }
     },
     Widget: {
-      UpdateFailed: '部件更新失敗',
-      SaveSuccess: '部件保存成功',
-      PinSuccess: '部件固定成功',
-      PinFailed: '部件固定失敗',
+      UpdateFailed: '微件更新失敗',
+      SaveSuccess: '微件保存成功',
+      PinSuccess: '微件固定成功',
+      PinFailed: '微件固定失敗',
       MoveTo: '移動到',
       Explain: '解釋',
       AnalyticalCard: '圖形',
@@ -309,7 +318,7 @@ export const ZhHant = {
       AllWidgetsOnPage: '頁面中所有組件',
       OnlySelectedWidgets: '僅選中組件',
       SelectWidgets: '選擇組件',
-      ConnectNewly: '自動關聯新建部件'
+      ConnectNewly: '自動關聯新建微件'
     },
     GridOptions: {
       TITLE: '網格布局',
@@ -588,6 +597,7 @@ export const ZhHant = {
         UnitOfMeasure: '度量單位',
         ShowDeviation: '顯示偏差',
         DeviationText: '偏差文本',
+        NanPlaceholder: '非數字占位符',
         AdditionalDataPoints: '其他數據指標',
         MainKPI: '主關鍵指標'
       },
@@ -712,7 +722,8 @@ export const ZhHant = {
       ChartOptions: '圖形配置',
       Options: '配置',
       Data: '數據',
-      Slicers: '切片器'
+      Slicers: '切片器',
+      DataSettings: '數據配置',
     },
     Template: {
       TemplateDelete: '刪除模板',
@@ -848,6 +859,26 @@ export const ZhHant = {
       ChartAttributes: '圖形屬性',
       BarChart: '條形圖',
       Colors: '顏色'
+    },
+    Copilot: {
+      InstructionExecutionComplete: '指令執行完成',
+      InstructionExecutionError: '指令執行錯誤',
+      StoryStyleCommandDesc: '請描述想要的故事樣式',
+      StoryPageCommandDesc: '請描述新的故事頁面',
+      PleaseSelectWidget: '請先選擇一個微件',
+      CommandPageDesc: '描述你想要的頁面',
+      PredefinedPrompts: [
+        '/story 設置為暗色主題',
+        '/story-style 設置科技感漸變色背景顏色',
+        '/add-widget 客戶所在地區的銷售額',
+        '/widget-style Set widget transparent background',
+        '/chart Chart series set line smooth',
+        '/chart Chart series set bar max width 20, rounded, shadow',
+        '/chart Chart series add average mark line',
+        '/chart Chart category axis line width 2, show axis tick',
+        '/widget Data analysis',
+        '/clear'
+      ]
     },
     STYLING: {
       CSS: {
@@ -1616,5 +1647,8 @@ export const ZhHant = {
         }
       }
     }
+  },
+  Designer: {
+    IsEmpty: '空'
   }
 }

@@ -2,8 +2,10 @@ export const ZhHans = {
   Story: {
     Common: {
       Apply: '应用',
+      Back: '返回',
       Cancel: '取消',
       Close: '关闭',
+      Download: '下载',
       Search: '搜索',
       Select: '选择',
       Search_Placeholder: '请输入关键词',
@@ -52,7 +54,6 @@ export const ZhHans = {
       ReUpload: '重新上传',
       Widget: '微件',
       ConfirmDeleteInfo: '在实际保存之前不会从服务器上删除',
-      Back: '返回',
       Confirm: '确认',
       Slicers: '切片器',
       Entity: "实体"

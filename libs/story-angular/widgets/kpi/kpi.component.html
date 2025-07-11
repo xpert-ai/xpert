@@ -1,9 +1,27 @@
 @if (showToolbar()) {
   <div class="flex justify-between items-center">
-    <span class="title"></span>
+    <span class="title">
+      @if (drilling()) {
+        <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
+          [matTooltip]="'Story.Common.Back' | translate: {Default: 'Back'}"
+          matTooltipPosition="above"
+          (click)="drillDimensions.set([])">
+          <i class="ri-arrow-left-line"></i>
+        </button>
+      }
+    </span>
 
     <div class="flex items-center gap-1">
       <ng-content></ng-content>
+
+      @if (drilling()) {
+        <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
+          [matTooltip]="'Story.Common.Download' | translate: {Default: 'Download'}"
+          matTooltipPosition="above"
+          (click)="download()">
+          <i class="ri-download-line"></i>
+        </button>
+      }
 
       <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
         [cdkMenuTriggerFor]="filtersMenu"
@@ -45,7 +63,7 @@
     </div>
   </div>
 } @else {
-  <div class="w-full h-full flex flex-col justify-between items-stretch">
+  <div class="w-full h-full flex flex-col justify-between items-stretch" [class.hidden]="drilling()">
     <div class="ngm-kpi--kpi flex-1 flex justify-center items-center">
       @if (options?.icon) {
         <mat-icon>{{options.icon}}</mat-icon>
@@ -96,10 +114,7 @@
       }
 
       @if (isLoading()) {
-        <mat-spinner class="ngm-kpi--loading"
-          [diameter]="18"
-          [strokeWidth]="1"
-        ></mat-spinner>
+        <ngm-spin class="absolute top-0 left-0 w-full h-full" />
       }
       
     </div>
@@ -163,7 +178,7 @@
           </div>
         }
 
-        <ngm-object-number class="ngm-kpi--value" [ngStyle]="valueStyles()"
+        <ngm-object-number class="ngm-kpi--value cursor-pointer hover:underline" [ngStyle]="valueStyles()"
           [number]="kpiValue.value"
           [unit]="options?.unit || kpiValue.unit"
           [digitsInfo]="options?.digitsInfo"
@@ -171,7 +186,7 @@
           [unitSemantics]="options?.unitSemantics || kpiValue.unitSemantics"
           [nanPlaceholder]="options?.nanPlaceholder"
           [locale]="locale"
-          (click)="onClick($event)"
+          [cdkMenuTriggerFor]="drillMenu"
         />
 
       </div>
@@ -188,6 +203,22 @@
   </div>
 }
 
+@if (drilling()) {
+  <div class=" w-full top-0 left-0 z-10">
+    <ngm-analytical-grid #gridComponent class="inset-0 max-h-96"
+      [dataSettings]="drillDataSettings()"
+      [slicers]="selectOptions()"
+      [appearance]="{displayDensity: eDisplayDensity.compact}"
+      [options]="{
+        showToolbar: false,
+        sticky: true,
+        paging: true,
+        sortable: true
+      }"
+      (explain)="onExplain($event)"
+    />
+  </div>
+}
 
 <ng-template #filtersMenu let-trigger="trigger">
   <div class="relative p-3 rounded-2xl border-light shadow-md bg-components-card-bg">
@@ -205,5 +236,25 @@
       (click)="trigger.close()">
       <i class="ri-close-line"></i>
     </button>
+  </div>
+</ng-template>
+
+<ng-template #drillMenu>
+  <div cdkMenu class="cdk-menu__medium text-text-primary">
+    <div class="p-1">
+      {{ 'Ngm.AnalyticalCard.DrillDimension' | translate: {Default: "Drill Dimension"} }}
+    </div>
+    @for (item of dimensions(); track item.name) {
+      @if (item.hierarchies.length > 1) {
+        <div class="p-1 text-text-secondary text-sm">
+          {{ item.caption }}
+        </div>
+        @for (h of item.hierarchies; track h.name) {
+          <button cdkMenuItem class="ml-2 font-mono" (click)="drill(h)">{{h.caption}}</button>
+        }
+      } @else {
+        <button cdkMenuItem class="font-mono" (click)="drill(item.hierarchies[0])">{{item.hierarchies[0].caption}}</button>
+      }
+    }
   </div>
 </ng-template>
