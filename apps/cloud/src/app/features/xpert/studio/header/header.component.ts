@@ -1,10 +1,15 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
+import { FormsModule } from '@angular/forms'
+import { MatSliderModule } from '@angular/material/slider'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { OverlayAnimations } from '@metad/core'
-import { NgmTooltipDirective, nonBlank } from '@metad/ocap-angular/core'
+import { attrModel, OverlayAnimations } from '@metad/core'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { linkedModel, NgmTooltipDirective, nonBlank } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -14,20 +19,26 @@ import {
   ToastrService,
   XpertService
 } from 'apps/cloud/src/app/@core'
+import { XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { BehaviorSubject, distinctUntilChanged, filter, map, Observable, of, shareReplay, switchMap, startWith, combineLatestWith, tap, catchError } from 'rxjs'
-import { getDateLocale, TXpertAgentConfig } from '../../../../@core'
+import {
+  BehaviorSubject,
+  catchError,
+  combineLatestWith,
+  distinctUntilChanged,
+  filter,
+  map,
+  of,
+  shareReplay,
+  startWith,
+  switchMap,
+  tap
+} from 'rxjs'
+import { getDateLocale } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
-import { Dialog } from '@angular/cdk/dialog'
-import { XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatInputModule } from '@angular/material/input'
-import { MatSliderModule } from '@angular/material/slider'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { XpertPublishVersionComponent } from './publish/publish.component'
 
 @Component({
@@ -38,7 +49,6 @@ import { XpertPublishVersionComponent } from './publish/publish.component'
     FormsModule,
     CdkMenuModule,
     MatTooltipModule,
-    MatInputModule,
     MatSliderModule,
     TranslateModule,
     NgmTooltipDirective,
@@ -93,9 +103,15 @@ export class XpertStudioHeaderComponent {
   })
   readonly environment = this.apiService.environment
 
-  readonly agentConfig = computed(() => this.xpert()?.agentConfig)
-  readonly maxConcurrency = computed(() => this.agentConfig()?.maxConcurrency)
-  readonly recursionLimit = computed(() => this.agentConfig()?.recursionLimit)
+  readonly agentConfig = linkedModel({
+    initialValue: null,
+    compute: () => this.xpert()?.agentConfig,
+    update: (config) => {
+      this.apiService.updateXpertAgentConfig(config)
+    }
+  })
+  readonly maxConcurrency = attrModel(this.agentConfig, 'maxConcurrency')
+  readonly recursionLimit = attrModel(this.agentConfig, 'recursionLimit')
 
   // Executions
   readonly xpertId$ = toObservable(this.team).pipe(
@@ -119,10 +135,12 @@ export class XpertStudioHeaderComponent {
   // Diagram of agents
   readonly refreshDiagram$ = new BehaviorSubject<void>(null)
   readonly diagram$ = this.refreshDiagram$.pipe(
-    switchMap(() => this.xpertService.getDiagram(this.xpert().id).pipe(
-      map((imageBlob) => imageBlob ? {image: URL.createObjectURL(imageBlob), error: null} : null),
-      catchError((err) => of({image: null, error: getErrorMessage(err)})),
-      startWith(null))
+    switchMap(() =>
+      this.xpertService.getDiagram(this.xpert().id).pipe(
+        map((imageBlob) => (imageBlob ? { image: URL.createObjectURL(imageBlob), error: null } : null)),
+        catchError((err) => of({ image: null, error: getErrorMessage(err) })),
+        startWith(null)
+      )
     ),
     shareReplay(1)
   )
@@ -132,11 +150,9 @@ export class XpertStudioHeaderComponent {
   }
 
   publish() {
-    this.#dialog.open(XpertPublishVersionComponent,
-      {
-        viewContainerRef: this.#viewContainerRef
-      }
-    )
+    this.#dialog.open(XpertPublishVersionComponent, {
+      viewContainerRef: this.#viewContainerRef
+    })
   }
 
   resume() {
@@ -148,22 +164,18 @@ export class XpertStudioHeaderComponent {
   }
 
   togglePreview() {
-    this.sidePanel.update((state) => state === 'preview' ? null : 'preview')
+    this.sidePanel.update((state) => (state === 'preview' ? null : 'preview'))
   }
 
   toggleVariables() {
-    this.sidePanel.update((state) => state === 'variables' ? null : 'variables')
+    this.sidePanel.update((state) => (state === 'variables' ? null : 'variables'))
   }
   toggleEnvs() {
-    this.sidePanel.update((state) => state === 'environments' ? null : 'environments')
+    this.sidePanel.update((state) => (state === 'environments' ? null : 'environments'))
   }
 
   toggleFeatures() {
     this.showFeatures.update((state) => !state)
-  }
-
-  updateAgentConfig(config: Partial<TXpertAgentConfig>) {
-    this.apiService.updateXpertAgentConfig(config)
   }
 
   openConversation(item: IChatConversation) {
@@ -174,37 +186,35 @@ export class XpertStudioHeaderComponent {
   export(isDraft = false) {
     this.xpertService.exportDSL(this.team().id, isDraft).subscribe({
       next: (result) => {
-        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
+        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
         a.download = `xpert-${this.apiService.team().slug}.yaml`
-        a.click();
-        window.URL.revokeObjectURL(url);
+        a.click()
+        window.URL.revokeObjectURL(url)
       },
       error: (err) => {
-        this.#toastr.error(
-          `PAC.Xpert.ExportFailed`,
-          getErrorMessage(err)
-        )
+        this.#toastr.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
       }
     })
   }
 
   publishToIntegration() {
-    this.#dialog.open(XpertPublishComponent, {
-      data: {
-        xpert: this.xpert(),
-      }
-    }).closed.subscribe({})
+    this.#dialog
+      .open(XpertPublishComponent, {
+        data: {
+          xpert: this.xpert()
+        }
+      })
+      .closed.subscribe({})
   }
 
   @HostListener('window:keydown', ['$event'])
   handleCtrlS(event: KeyboardEvent) {
     if ((event.metaKey || event.ctrlKey) && event.key === 's') {
-      event.preventDefault(); // Prevent the default save dialog
+      event.preventDefault() // Prevent the default save dialog
       this.saveDraft()
     }
   }
-
 }

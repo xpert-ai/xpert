@@ -1,5 +1,4 @@
 import {
-	I18nObject,
 	IXpert,
 	IXpertAgentExecution,
 	TAgentExecutionMetadata,
@@ -32,8 +31,8 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@ApiPropertyOptional({ type: () => Object })
 	@IsObject()
 	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	title?: string | I18nObject
+	@Column({ nullable: true })
+	title?: string
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

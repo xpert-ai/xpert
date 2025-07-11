@@ -84,6 +84,9 @@ export class ChatConversationComponent {
   readonly suggesting = this.chatService.suggesting
   readonly suggestionQuestions = this.chatService.suggestionQuestions
 
+  // Task
+  readonly task = computed(() => this.conversation()?.task)
+  
   constructor() {
     effect(
       () => {

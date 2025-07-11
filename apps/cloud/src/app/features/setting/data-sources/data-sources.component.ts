@@ -1,20 +1,20 @@
+import { Dialog } from '@angular/cdk/dialog'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { FormControl } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { NgmConfirmDeleteComponent, NgmInputComponent, NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { DataSourceService } from '@metad/cloud/state'
-import { BehaviorSubject, firstValueFrom } from 'rxjs'
-import { combineLatestWith, debounceTime, startWith, switchMap, tap, map } from 'rxjs/operators'
+import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { ContentLoaderModule } from '@ngneat/content-loader'
+import { TranslateModule } from '@ngx-translate/core'
+import { BehaviorSubject } from 'rxjs'
+import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { IDataSource, injectHelpWebsite, ROUTE_ANIMATIONS_ELEMENTS } from '../../../@core/index'
+import { CardCreateComponent } from '../../../@shared/card'
 import { PACDataSourceCreationComponent } from './creation/creation.component'
 import { PACDataSourceEditComponent } from './edit/edit.component'
-import { FormControl } from '@angular/forms'
-import { CommonModule } from '@angular/common'
-import { TranslateModule } from '@ngx-translate/core'
-import { ContentLoaderModule } from '@ngneat/content-loader'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { CardCreateComponent } from '../../../@shared/card'
-import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
@@ -24,7 +24,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     TranslateModule,
     NgmSearchComponent,
     ContentLoaderModule,
-    DensityDirective,
     CardCreateComponent,
     NgmSpinComponent
   ],
@@ -37,6 +36,8 @@ export class PACDataSourcesComponent {
 
   private readonly dataSource = inject(DataSourceService)
   private readonly _dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
+  readonly confirmDelete = injectConfirmDelete()
   readonly helpWebsite = injectHelpWebsite()
 
   readonly loading = signal(false)
@@ -46,56 +47,76 @@ export class PACDataSourcesComponent {
     this.refresh$.pipe(
       tap(() => this.loading.set(true)),
       switchMap(() => this.dataSource.getAll(['type'])),
-      combineLatestWith(this.searchControl.valueChanges.pipe(
-        debounceTime(300),
-        map((text) => text?.toLowerCase()),
-        startWith('')
-      )),
-      map(([items, search]) => search ? items.filter((item) => item.name.toLowerCase().includes(search)) : items ),
+      combineLatestWith(
+        this.searchControl.valueChanges.pipe(
+          debounceTime(300),
+          map((text) => text?.toLowerCase()),
+          startWith('')
+        )
+      ),
+      map(([items, search]) => (search ? items.filter((item) => item.name.toLowerCase().includes(search)) : items)),
       tap(() => this.loading.set(false))
     )
   )
 
-  async create() {
-    const result = await firstValueFrom(this._dialog.open(PACDataSourceCreationComponent).afterClosed())
-
-    if (result) {
-      this.refresh$.next()
-    }
-  }
-
-  async edit(dataSource: IDataSource) {
-    const result = await firstValueFrom(
-      this._dialog
-        .open(PACDataSourceEditComponent, {
-          data: {
-            id: dataSource.id
+  create() {
+    this.#dialog
+      .open(PACDataSourceCreationComponent, {
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
+      })
+      .closed.subscribe({
+        next: (result) => {
+          if (result) {
+            this.refresh$.next()
           }
-        })
-        .afterClosed()
-    )
-
-    if (result) {
-      this.refresh$.next()
-    }
+        }
+      })
   }
 
-  async copy(data: IDataSource) {
-    const result = await firstValueFrom(this._dialog.open(PACDataSourceCreationComponent, { data }).afterClosed())
-
-    if (result) {
-      this.refresh$.next()
-    }
+  edit(dataSource: IDataSource) {
+    this.#dialog
+      .open(PACDataSourceEditComponent, {
+        data: {
+          id: dataSource.id
+        },
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
+      })
+      .closed.subscribe({
+        next: (result) => {
+          if (result) {
+            this.refresh$.next()
+          }
+        }
+      })
   }
 
-  async remove(data: IDataSource) {
-    const result = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: data.name } }).afterClosed()
-    )
+  copy(data: IDataSource) {
+    this.#dialog
+      .open(PACDataSourceCreationComponent, {
+        data,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
+      })
+      .closed.subscribe({
+        next: (result) => {
+          if (result) {
+            this.refresh$.next()
+          }
+        }
+      })
+  }
 
-    if (result) {
-      await firstValueFrom(this.dataSource.delete(data.id))
+  remove(data: IDataSource) {
+    this.confirmDelete(
+      {
+        value: data.name,
+        information: ''
+      },
+      this.dataSource.delete(data.id)
+    ).subscribe(() => {
       this.refresh$.next()
-    }
+    })
   }
 }

@@ -210,7 +210,7 @@ export abstract class ChatService {
 
   getConversation(id: string) {
     return this.conversationService.getById(id, {
-      relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages', 'messages.attachments']
+      relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages', 'messages.attachments', 'task']
     })
   }
 
@@ -552,8 +552,11 @@ export abstract class ChatService {
     })
   }
 
-  //
+  // Abstract methods
   abstract newConv(xpert?: IXpert): void
+  abstract gotoTask(taskId: string): void
+
+  // Attachments
   onAttachCreated(file: IStorageFile): void {}
   onAttachDeleted(fileId: string): void {}
   getRecentAttachmentsSignal() {

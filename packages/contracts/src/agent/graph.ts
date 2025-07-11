@@ -100,21 +100,22 @@ export function setStateVariable(state: Record<string, any>, varName: string, va
 	return state
 }
 
+/**
+ * Get agent variable group from graph.
+ * 
+ * @param key 
+ * @param graph 
+ * @returns 
+ */
 export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarGroup {
-	const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key) as TXpertTeamNode & {type: 'agent'}
+	const node = graph.nodes.find((_) => _.type === 'agent' && _.key === key) as TXpertTeamNode & {type: 'agent'}
 
 	const variables: TXpertParameter[] = []
 	const varGroup: TWorkflowVarGroup = {
-		// agent: {
-		// 	title: agent.entity.title,
-		// 	description: agent.entity.description,
-		// 	name: agent.entity.name || agent.entity.key,
-		// 	key: channelName(agent.key)
-		// },
 		group: {
-			name: channelName(agent.key),
+			name: channelName(node.key),
 			description: {
-				en_US: agentLabel(agent.entity)
+				en_US: agentLabel(node.entity)
 			},
 		},
 		variables
@@ -128,10 +129,11 @@ export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarG
 			en_US: `Output`
 		}
 	})
-	if ((<IXpertAgent>agent.entity).outputVariables) {
-		(<IXpertAgent>agent.entity).outputVariables.forEach((variable) => {
+	const agent = <IXpertAgent>node.entity
+	if (agent.options?.structuredOutputMethod && agent.outputVariables) {
+		agent.outputVariables.forEach((variable) => {
 			variables.push({
-				name: variable.name,
+				name: variable.name || '',
 				type: variable.type as TStateVariable['type'],
 				description: variable.description,
 				item: variable.item

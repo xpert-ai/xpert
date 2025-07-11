@@ -203,13 +203,14 @@ export class ModelDimensionService {
     assign(h, hierarchy)
   })
 
-  public readonly duplicateHierarchy = this.updater((state, key?: string) => {
+  readonly duplicateHierarchy = this.updater((state, value: {key: string; newKey: string}) => {
+    const {key, newKey} = value
     const h = state.hierarchies.find((item) => item.__id__ === key)
     const newHierarchy = cloneDeep(h)
     state.hierarchies.push({
       ...newHierarchy,
-      __id__: uuid(),
-      name: newHierarchy.name ? `${newHierarchy.name} copy` : 'Copy',
+      __id__: newKey,
+      name: newHierarchy.name ? `${newHierarchy.name}_copy` : 'copy',
       caption: `${newHierarchy.caption ?? ''} Copy`
     })
   })

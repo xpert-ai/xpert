@@ -1,34 +1,49 @@
 <div class="flex justify-start items-center">
     <div ngmButtonGroup displayDensity="cosy">
         <button mat-raised-button color="primary" displayDensity="cosy" (click)="addNew()">
-            <mat-icon fontSet="material-icons-outlined" nxDensity="cosy">add</mat-icon>{{ 'PAC.ACTIONS.ADD' | translate: {Default: "Add"} }}
+            <mat-icon fontSet="material-icons-outlined" nxDensity="cosy">add</mat-icon>
+            {{ 'PAC.ACTIONS.ADD' | translate: {Default: "Add"} }}
         </button>
     </div>
 </div>
 
 <ngm-table class="overflow-hidden rounded-lg mt-2"
-    displayDensity="comfortable"
-    paging
-    [data]="listOfData"
-    [columns]="[
-        {
-            name: 'name',
-            caption: 'PAC.KEY_WORDS.NAME' | translate: {Default: 'Name'},
-            cellTemplate: nameTempl
-        },
-        {
-            name: 'value',
-            caption: 'PAC.KEY_WORDS.VALUE' | translate: {Default: 'Value'},
-            cellTemplate: valueTempl
-        },
-        {
-            name: 'action',
-            caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
-            cellTemplate: actionTempl,
-            stickyEnd: true
-        }
-    ]"
+  displayDensity="comfortable"
+  paging
+  [data]="listOfData"
+  [columns]="[
+    {
+      name: 'name',
+      caption: 'PAC.KEY_WORDS.NAME' | translate: {Default: 'Name'},
+      cellTemplate: nameTempl
+    },
+    {
+      name: 'value',
+      caption: 'PAC.KEY_WORDS.VALUE' | translate: {Default: 'Value'},
+      cellTemplate: valueTempl
+    },
+    {
+      name: 'action',
+      caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
+      cellTemplate: actionTempl,
+      stickyEnd: true
+    }
+  ]"
 ></ngm-table>
+
+<div class="border-b border-solid border-divider-regular my-4"></div>
+<div class="text-lg font-semibold text-text-primary my-2 px-2">
+  {{ 'PAC.KEY_WORDS.DataSourceTypes' | translate: {Default: 'Data Source Types'} }}
+</div>
+<div class="flex justify-start items-center mt-2 px-4">
+  <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+    [disabled]="syncing()"
+    (click)="syncDataSourceTypes()"
+  >
+    <i class="ri-database-2-line mr-1"></i>
+    {{ 'PAC.ACTIONS.SyncDataSourceTypes' | translate: {Default: "Sync DataSource Types"} }}
+  </button>
+</div>
 
 <ng-template #nameTempl let-id="id" let-name="name">
   @if (!editCache[id]?.edit) {
@@ -47,35 +62,35 @@
 </ng-template>
 
 <ng-template #actionTempl let-id="id">
-    <div class="flex items-center gap-2">
-      @if (editCache[id]?.edit) {
-        <button mat-icon-button displayDensity="cosy" class="text-gray-500" (click)="saveEdit(id)">
-            <div class="flex justify-center items-center">
-                <mat-icon fontSet="material-icons-outlined">save</mat-icon>
-            </div>
-        </button>
-      } @else {
-        <button mat-icon-button displayDensity="cosy" class="text-gray-500" (click)="startEdit(id)">
-            <div class="flex justify-center items-center">
-                <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-            </div>
-        </button>
-      }
-        <mat-divider [vertical]="true" style="height: 20px;"></mat-divider>
-      @if (editCache[id]?.edit) {
-        <button mat-icon-button displayDensity="cosy" class="text-gray-500"
-            (click)="cancelEdit(id)">
-            <div class="flex justify-center items-center">
-                <mat-icon fontSet="material-icons-outlined">undo</mat-icon>
-            </div>
-        </button>
-      } @else {
-        <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="text-gray-500"
-            (click)="deleteRow(id)">
-            <div class="flex justify-center items-center">
-                <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
-            </div>
-        </button>
-      }
-    </div>
+  <div class="flex items-center gap-2">
+    @if (editCache[id]?.edit) {
+      <button mat-icon-button displayDensity="cosy" class="text-gray-500" (click)="saveEdit(id)">
+        <div class="flex justify-center items-center">
+          <mat-icon fontSet="material-icons-outlined">save</mat-icon>
+        </div>
+      </button>
+    } @else {
+      <button mat-icon-button displayDensity="cosy" class="text-gray-500" (click)="startEdit(id)">
+        <div class="flex justify-center items-center">
+          <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+        </div>
+      </button>
+    }
+      <mat-divider [vertical]="true" style="height: 20px;"></mat-divider>
+    @if (editCache[id]?.edit) {
+      <button mat-icon-button displayDensity="cosy" class="text-gray-500"
+        (click)="cancelEdit(id)">
+        <div class="flex justify-center items-center">
+          <mat-icon fontSet="material-icons-outlined">undo</mat-icon>
+        </div>
+      </button>
+    } @else {
+      <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="text-gray-500"
+        (click)="deleteRow(id)">
+        <div class="flex justify-center items-center">
+          <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+        </div>
+      </button>
+    }
+  </div>
 </ng-template>

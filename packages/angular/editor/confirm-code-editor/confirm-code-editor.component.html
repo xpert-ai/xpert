@@ -1,0 +1,36 @@
+<div class="cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h4 style="pointer-events: none;">
+    {{ 'COMPONENTS.EDITOR.EDIT' | translate: {Default: "Edit"} }}
+  </h4>
+</div>
+
+<div class="mat-typography flex flex-col">
+  <ngx-monaco-editor class="ngm-confirm__monaco-editor flex-1 h-full"
+    [options]="editorOptions"
+    [(ngModel)]="statement"
+    (onInit)="editor$.next($event)"
+  />
+</div>
+
+<div class="flex justify-between items-center">
+  <div ngmButtonGroup>
+    <button mat-button (click)="onReset()">
+      {{ 'COMPONENTS.COMMON.RESET' | translate: {Default: 'Reset'} }}
+    </button>
+    <button mat-button (click)="onClear()">
+      {{ 'COMPONENTS.COMMON.CLEAR' | translate: {Default: 'Clear'} }}
+    </button>
+  </div>
+    
+  <div ngmButtonGroup>
+    <button mat-button (click)="onCancel()">
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
+    </button>
+    <button mat-button color="accent" cdkFocusInitial (click)="onApply()">
+      {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
+    </button>
+    <button mat-raised-button color="accent" cdkFocusInitial (click)="onOk()">
+      {{ 'COMPONENTS.COMMON.CONFIRM' | translate: {Default: 'Confirm'} }}
+    </button>
+  </div>
+</div>

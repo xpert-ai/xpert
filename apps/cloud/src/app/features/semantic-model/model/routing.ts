@@ -38,6 +38,13 @@ export const routes: Routes = [
         }
       },
       {
+        path: 'cube',
+        loadChildren: () => import('./entity/routing').then((m) => m.routes),
+        data: {
+          title: 'Model / Cube'
+        }
+      },
+      {
         path: 'virtual-cube',
         loadChildren: () => import('./virtual-cube/routing').then((m) => m.routes),
         data: {

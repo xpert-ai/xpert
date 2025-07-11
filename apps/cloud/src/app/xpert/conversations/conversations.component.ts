@@ -18,7 +18,6 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSidenav } from '@angular/material/sidenav'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { I18nObject } from '@cloud/app/@core/types'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
@@ -99,7 +98,7 @@ export class ChatConversationsComponent {
   })
 
   readonly editingConversation = signal<string>(null)
-  readonly editingTitle = signal<string | I18nObject>(null)
+  readonly editingTitle = signal<string>(null)
 
   readonly loading = signal(false)
   readonly pageSize = 20

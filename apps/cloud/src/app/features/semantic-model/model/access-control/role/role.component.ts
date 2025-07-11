@@ -8,7 +8,7 @@ import { SplitterType } from '@metad/ocap-angular/common'
 import { EntityCapacity } from '@metad/ocap-angular/entity'
 import { combineLatestWith, distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 import { SemanticModelService } from '../../model.service'
-import { CdkDragDropContainers, SemanticModelEntity, SemanticModelEntityType } from '../../types'
+import { CdkDragDropContainers, SemanticModelEntity } from '../../types'
 import { AccessControlStateService } from '../access-control.service'
 import { RoleStateService } from './role.service'
 
@@ -105,22 +105,14 @@ export class RoleComponent {
   }
 
   dropCubeEnterPredicate(item: CdkDrag<SemanticModelEntity>) {
-    return (
-      item.dropContainer.id === CdkDragDropContainers.Entities &&
-      (item.data.type === SemanticModelEntityType.CUBE || item.data.type === SemanticModelEntityType.VirtualCube)
-    )
+    return item.dropContainer.id === CdkDragDropContainers.Cubes || item.dropContainer.id === CdkDragDropContainers.VirtualCubes
   }
 
   dropCube(event: CdkDragDrop<{ name: string }[]>) {
     if (event.previousContainer === event.container) {
       this.roleState.moveItemInCubes(event)
-    } else if (event.previousContainer.id === CdkDragDropContainers.Entities) {
-      if (
-        event.item.data.type === SemanticModelEntityType.CUBE ||
-        event.item.data.type === SemanticModelEntityType.VirtualCube
-      ) {
-        this.roleState.addCube(event.item.data.name)
-      }
+    } else if (event.previousContainer.id === CdkDragDropContainers.Cubes || event.previousContainer.id === CdkDragDropContainers.VirtualCubes) {
+      this.roleState.addCube(event.item.data.name)
     }
   }
 

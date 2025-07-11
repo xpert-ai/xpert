@@ -5,6 +5,7 @@ import {
 	IStorageFile,
 	IXpert,
 	IXpertProject,
+	IXpertTask,
 	TChatConversationOptions,
 	TChatConversationStatus,
 	TChatFrom,
@@ -14,7 +15,7 @@ import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
-import { ChatMessage, Xpert, XpertProject } from '../core/entities/internal'
+import { ChatMessage, Xpert, XpertProject, XpertTask } from '../core/entities/internal'
 
 @Entity('chat_conversation')
 export class ChatConversation extends TenantOrganizationBaseEntity implements IChatConversation {
@@ -26,8 +27,8 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@ApiPropertyOptional({ type: () => Object })
 	@IsObject()
 	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	title?: string | I18nObject
+	@Column({ nullable: true })
+	title?: string
 
 	@ApiProperty({ type: () => String })
 	@IsString()
@@ -119,4 +120,17 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@IsString()
 	@Column({ nullable: true })
 	projectId?: string
+
+	@ApiProperty({ type: () => XpertTask })
+	@ManyToOne(() => XpertTask, {
+		onDelete: "SET NULL"
+	})
+	@JoinColumn()
+	task?: IXpertTask
+
+	@ApiProperty({ type: () => String })
+	@RelationId((it: ChatConversation) => it.task)
+	@IsString()
+	@Column({ nullable: true })
+	taskId?: string
 }

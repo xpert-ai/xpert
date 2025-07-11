@@ -13,11 +13,9 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { NxEditorModule } from '@metad/components/editor'
 import { NxCoreService, nonBlank } from '@metad/core'
 import { NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
-import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import {
   AggregationRole,
   Join,
@@ -33,6 +31,7 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService, uuid } from 'apps/cloud/src/app/@core'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { isEmpty, values } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -43,8 +42,6 @@ import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { ModelEntityService } from '../entity.service'
 import { ERComponent } from '../er'
 import { newDimensionFromColumn } from '../types'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,
@@ -52,17 +49,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
   selector: 'pac-model-structure',
   templateUrl: './structure.component.html',
   styleUrls: ['./structure.component.scss'],
-  imports: [
-    CommonModule,
-    FormsModule,
-    TranslateModule,
-    MaterialModule,
-    NxEditorModule,
-    NgmCommonModule,
-    NgmEntityPropertyComponent,
-
-    ERComponent
-  ]
+  imports: [CommonModule, FormsModule, TranslateModule, NgmCommonModule, ERComponent]
 })
 export class ModelEntityStructureComponent extends TranslationBaseComponent {
   @HostBinding('class.pac-model-cube-structure') _isModelCubeStructure = true
@@ -91,9 +78,7 @@ export class ModelEntityStructureComponent extends TranslationBaseComponent {
       filter(nonBlank),
       switchMap((tableName) => {
         this.loading.set(true)
-        return this.modelService.selectOriginalEntityProperties(tableName).pipe(
-          tap(() => this.loading.set(false))
-        )
+        return this.modelService.selectOriginalEntityProperties(tableName).pipe(tap(() => this.loading.set(false)))
       })
     )
   })
@@ -133,21 +118,23 @@ export class ModelEntityStructureComponent extends TranslationBaseComponent {
   private _tableTypes = {}
 
   // Subscribers
-  private _originEntityTypeSub$ = this.isXmla$.pipe(
-    switchMap(() => {
-      this.loading.set(true)
-      return this.entityService.originalEntityType$.pipe(
-        tap(() => this.loading.set(false)),
-      )
-    }),
-    filter(() => isEmpty(this.dimensions()) && isEmpty(this.measures())),
-    takeUntilDestroyed()
-  ).subscribe((entityType) => {
-    this.dimensions.set(
-      structuredClone(getEntityDimensions(entityType).map((item) => ({ ...item, dataType: 'dimension' })))
+  private _originEntityTypeSub$ = this.isXmla$
+    .pipe(
+      switchMap(() => {
+        this.loading.set(true)
+        return this.entityService.originalEntityType$.pipe(tap(() => this.loading.set(false)))
+      }),
+      filter(() => isEmpty(this.dimensions()) && isEmpty(this.measures())),
+      takeUntilDestroyed()
     )
-    this.measures.set(structuredClone(getEntityMeasures(entityType).map((item) => ({ ...item, dataType: 'measure' }))))
-  })
+    .subscribe((entityType) => {
+      this.dimensions.set(
+        structuredClone(getEntityDimensions(entityType).map((item) => ({ ...item, dataType: 'dimension' })))
+      )
+      this.measures.set(
+        structuredClone(getEntityMeasures(entityType).map((item) => ({ ...item, dataType: 'measure' })))
+      )
+    })
 
   constructor() {
     super()
@@ -238,7 +225,7 @@ export class ModelEntityStructureComponent extends TranslationBaseComponent {
   }
 
   /**
-   * 由数据库表字段生成 Schema cube 定义
+   * Generate Schema cube definition from database table fields
    */
   async generate() {
     if (!(await this.confirmOverwriteCube())) {
@@ -249,7 +236,7 @@ export class ModelEntityStructureComponent extends TranslationBaseComponent {
 
     const dimensions = this.dimensions()
       .filter((item) => item.visible)
-      // Xmla 数据源的直接同步，sql 数据源的 1 生成 olap 维度 2 生成 sql 维度
+      // Direct synchronization of Xmla data source, 1 Generate olap dimension 2 Generate sql dimension for sql data source
       .map((item) =>
         modelType === MODEL_TYPE.XMLA
           ? { ...item, __id__: uuid() }
@@ -306,7 +293,7 @@ export class ModelEntityStructureComponent extends TranslationBaseComponent {
   }
 
   /**
-   * 从 XMLA 数据源同步 Cube 定义到本地 Schema 以便进行增强
+   * Synchronize Cube definitions from XMLA data sources to local schema for enhancement
    */
   async sync() {
     if (!(await this.confirmOverwriteCube())) {
@@ -339,7 +326,7 @@ export class ModelEntityStructureComponent extends TranslationBaseComponent {
           ({
             ...pick(measure, 'name', 'caption'),
             __id__: uuid()
-          } as PropertyMeasure)
+          }) as PropertyMeasure
       )
 
     // Set cube defination

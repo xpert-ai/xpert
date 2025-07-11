@@ -1,6 +1,5 @@
 import { OrganizationModule, RedisModule, TenantModule } from '@metad/server-core'
-import { Module, forwardRef, CacheModule } from '@nestjs/common'
-import { ConfigModule } from '@nestjs/config'
+import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AgentModule } from './agent/index'
 import { AppController } from './app.controller'
@@ -39,29 +38,10 @@ import { ChatBIConversationModule } from './chatbi-conversation/conversation.mod
 import { ChatBIModule } from './chatbi'
 import { ChatBIModelModule } from './chatbi-model'
 import { ModelQueryLogModule } from './model-query-log'
+import { AiBiModule } from './ai/aibi.module'
 
 @Module({
 	imports: [
-		ConfigModule.forRoot({
-			isGlobal: true
-		}),
-		// BullModule.forRootAsync({
-		// 	imports: [ConfigModule],
-		// 	useFactory: async (configService: ConfigService) => {
-		// 		const host = configService.get('REDIS_HOST') || 'localhost'
-		// 		const port = configService.get('REDIS_PORT') || 6379
-		// 		const password = configService.get('REDIS_PASSWORD') || ''
-		// 		return {
-		// 			redis: {
-		// 				host,
-		// 				port,
-		// 				password
-		// 			},
-		// 		}
-		// 	},
-		// 	inject: [ConfigService],
-		//   }),
-		// CacheModule.register(),
 		CqrsModule,
 		forwardRef(() => TenantModule),
 		forwardRef(() => OrganizationModule),
@@ -99,7 +79,8 @@ import { ModelQueryLogModule } from './model-query-log'
 		RedisModule,
 		ChatBIConversationModule,
 		ChatBIModule,
-		ChatBIModelModule
+		ChatBIModelModule,
+		AiBiModule
 	],
 	controllers: [AppController],
 	providers: [AnalyticsService, ...EventHandlers, ...CommandHandlers]

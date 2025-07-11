@@ -211,7 +211,7 @@ ${calcEntityTypePrompt(this.entityType())}
   dropCube(event: CdkDragDrop<{ name: string }[]>) {
     if (event.container === event.previousContainer) {
       this.virtualCubeState.moveItemInCubes(event)
-    } else if (event.previousContainer.id === CdkDragDropContainers.Entities) {
+    } else if (event.previousContainer.id === CdkDragDropContainers.Cubes) {
       if (event.item.data.type === SemanticModelEntityType.CUBE) {
         this.virtualCubeState.addCube({ index: event.currentIndex, cubeName: event.item.data.name })
       }

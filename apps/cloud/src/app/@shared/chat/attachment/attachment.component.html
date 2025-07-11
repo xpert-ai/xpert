@@ -31,7 +31,7 @@
 }
 
 @if (!storageFile() && progress() !== 100) {
-  <ngm-progress-spinner class="absolute top-0 left-0 w-12 h-12 flex justify-center items-center p-2" mode="determinate"
+  <ngm-progress-spinner class="absolute top-0 left-0 w-12 h-12 flex justify-center items-center p-2 text-orange-600 dark:text-orange-500"
     [value]="progress()"
   />
 }

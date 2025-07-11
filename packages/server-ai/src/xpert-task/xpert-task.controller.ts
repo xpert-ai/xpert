@@ -1,12 +1,30 @@
-import { IXpertTask, XpertTaskStatus } from '@metad/contracts'
-import { CrudController, RequestContext, TransformInterceptor } from '@metad/server-core'
-import { BadRequestException, Body, Controller, Delete, Get, Logger, Param, Put, Query, UseInterceptors } from '@nestjs/common'
+import { LanguagesEnum, XpertTaskStatus } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
+import { CrudController, PaginationParams, ParseJsonPipe, RequestContext, TimeZone, TransformInterceptor } from '@metad/server-core'
+import {
+	BadRequestException,
+	Body,
+	ClassSerializerInterceptor,
+	Controller,
+	Delete,
+	Get,
+	Logger,
+	Param,
+	Post,
+	Put,
+	Query,
+	UseInterceptors,
+	UsePipes,
+	ValidationPipe
+} from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { I18nLang } from 'nestjs-i18n'
 import { In } from 'typeorm'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskService } from './xpert-task.service'
-import { getErrorMessage } from '@metad/server-common'
+import { CreateXpertTaskCommand } from './commands'
+import { SimpleXpertTask } from './dto/simple.dto'
 
 @ApiTags('XpertTask')
 @ApiBearerAuth()
@@ -22,6 +40,27 @@ export class XpertTaskController extends CrudController<XpertTask> {
 		super(service)
 	}
 
+	@Post()
+	async create(@Body() entity: XpertTask) {
+		const task = await this.commandBus.execute(new CreateXpertTaskCommand(entity))
+		return task
+	}
+
+	@Get('my')
+	async getAllMy(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>,) {
+		const result = await super.findMyAll(params)
+		return {
+			...result,
+			items: result.items.map((item) => new SimpleXpertTask(item)),
+		}
+	}
+
+	@Get('total')
+	async getMyTotal(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>,) {
+		const result = await super.findMyAll(params)
+		return result.total
+	}
+
 	@Get('by-ids')
 	async getAllByIds(@Query('ids') ids: string) {
 		const _ids = ids.split(',')
@@ -34,23 +73,27 @@ export class XpertTaskController extends CrudController<XpertTask> {
 		})
 	}
 
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true, skipMissingProperties: true }))
+	@UseInterceptors(ClassSerializerInterceptor)
 	@Put(':id')
-	async update(@Param('id') id: string, @Body() entity: Partial<IXpertTask>) {
+	async update(@Param('id') id: string, @Body() entity: XpertTask) {
 		try {
 			return await this.service.updateTask(id, entity)
-		} catch(err) {
+		} catch (err) {
 			throw new BadRequestException(getErrorMessage(err))
 		}
 	}
 
+	@UsePipes(new ValidationPipe({ whitelist: true, transform: true, skipMissingProperties: true }))
+	@UseInterceptors(ClassSerializerInterceptor)
 	@Put(':id/schedule')
-	async schedule(@Param('id') id: string, @Body() entity: Partial<IXpertTask>) {
+	async schedule(@Param('id') id: string, @Body() entity: XpertTask) {
 		try {
 			if (entity) {
-				return await this.service.updateTask(id, {...entity, status:  XpertTaskStatus.RUNNING})
+				return await this.service.updateTask(id, { ...entity, status: XpertTaskStatus.SCHEDULED })
 			}
 			return await this.service.schedule(id)
-		} catch(err) {
+		} catch (err) {
 			throw new BadRequestException(getErrorMessage(err))
 		}
 	}
@@ -58,6 +101,22 @@ export class XpertTaskController extends CrudController<XpertTask> {
 	@Put(':id/pause')
 	async pause(@Param('id') id: string) {
 		return this.service.pause(id)
+	}
+
+	@Put(':id/archive')
+	async archive(@Param('id') id: string) {
+		return this.service.archive(id)
+	}
+
+	@Post(':id/test')
+	async test(@Param('id') id: string,
+		@I18nLang() language: LanguagesEnum,
+		@TimeZone() timeZone: string,
+	) {
+		await this.service.test(id, {
+			language,
+			timeZone,
+		})
 	}
 
 	@Delete(':id/soft')

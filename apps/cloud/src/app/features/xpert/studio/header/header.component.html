@@ -362,19 +362,14 @@
         <div class="leading-6">{{ 'PAC.Xpert.AgentSettings' | translate: {Default: 'Agent Settings'} }}</div>
       </div>
       <div class="flex items-center">
-        <div class="flex justify-center items-center w-6 h-6 cursor-pointer">
-          <button
-            type="button"
-            class="pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
-            (click)="trigger.close()"
-          >
-            <i class="ri-close-circle-line w-6 h-6 block"></i>
-          </button>
-        </div>
+        <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 ml-2 cursor-pointer z-20"
+          (click)="trigger.close()">
+          <i class="ri-close-line"></i>
+        </button>  
       </div>
     </div>
 
-    <div class="grow p-6 pt-5 border-b pb-[68px]">
+    <div class="grow p-6 pt-5 pb-[68px]">
       <div class="mb-4 flex justify-between items-center h-12 px-3 rounded-lg bg-gray-50">
         <div class="flex items-center">
           <i class="ri-git-merge-line text-xl text-fuchsia-600"></i>
@@ -391,16 +386,15 @@
             min="1"
             max="10"
             step="1" >
-            <input matSliderThumb [value]="maxConcurrency()" (dragEnd)="updateAgentConfig({maxConcurrency: $event.value})">
+            <input matSliderThumb [value]="maxConcurrency()" (dragEnd)="maxConcurrency.set($event.value)">
           </mat-slider>
-          <input matInput
+          <input
             min="1"
             max="10"
             step="1"
             class="block w-12 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
             type="number"
-            [ngModel]="maxConcurrency()"
-            (ngModelChange)="updateAgentConfig({maxConcurrency: $event})"
+            [(ngModel)]="maxConcurrency"
           />
         </div>
       </div>
@@ -423,16 +417,15 @@
             min="1"
             max="99"
             step="1" >
-            <input matSliderThumb [value]="recursionLimit()" (dragEnd)="updateAgentConfig({recursionLimit: $event.value})">
+            <input matSliderThumb [value]="recursionLimit()" (dragEnd)="recursionLimit.set($event.value)">
           </mat-slider>
-          <input matInput
+          <input
             min="1"
             max="99"
             step="1"
             class="block w-12 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
             type="number"
-            [ngModel]="recursionLimit()"
-            (ngModelChange)="updateAgentConfig({recursionLimit: $event})"
+            [(ngModel)]="recursionLimit"
           />
         </div>
       </div>

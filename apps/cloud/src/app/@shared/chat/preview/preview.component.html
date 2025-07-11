@@ -29,38 +29,7 @@
     @for (message of messages(); track message.id) {
       @switch (message.role) {
         @case ('human') {
-          <div class="flex justify-end mb-2 last:mb-0 pl-10">
-            <div class="group relative mr-4">
-              <svg width="8" height="12" viewBox="0 0 8 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="absolute -right-2 top-0 w-2 h-3 text-[#D1E9FF]/50" data-icon="QuestionTriangle" aria-hidden="true">
-                <g id="Rectangle 2">
-                  <path d="M6.96353 1.5547C7.40657 0.890144 6.93018 0 6.13148 0H0V12L6.96353 1.5547Z" fill="currentColor"></path>
-                  <path d="M6.96353 1.5547C7.40657 0.890144 6.93018 0 6.13148 0H0V12L6.96353 1.5547Z" fill="currentColor" fill-opacity="0.5"></path>
-                </g>
-              </svg>
-              <div class="px-4 py-3 bg-[#D1E9FF]/50 rounded-b-2xl rounded-tl-2xl text-sm text-gray-900">
-                <div class="markdown-body">
-                  <p>{{message.content}}</p>
-                </div>
-              </div>
-              <div class="mt-1 h-[18px]"></div>
-            </div>
-            <div class="shrink-0 w-10 h-10">
-              <div class="w-full h-full rounded-full border-[0.5px] border-black/5">
-                <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full" data-icon="User" aria-hidden="true">
-                  <g clip-path="url(#clip0_5968_39205)">
-                    <rect width="512" height="512" rx="256" fill="#B2DDFF"></rect>
-                    <circle opacity="0.68" cx="256" cy="196" r="84" fill="white"></circle>
-                    <ellipse opacity="0.68" cx="256" cy="583.5" rx="266" ry="274.5" fill="white"></ellipse>
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_5968_39205">
-                      <rect width="512" height="512" rx="256" fill="white"></rect>
-                    </clipPath>
-                  </defs>
-                </svg>
-              </div>
-            </div>
-          </div>
+          <chat-preview-human-message class="w-full" [message]="message" />
         }
 
         @case ('ai') {
@@ -257,22 +226,33 @@
     <div class="pt-6 w-full max-w-full mx-auto"></div>
   </div>
   
+  <input id="dropzone-file" #fileDropRef class="hidden" [accept]="attachment_accept()" multiple type="file" name="files"
+    (change)="fileBrowseHandler($event.target)"
+    (click)="fileDropRef.value=null;"/>
 
   @if(!readonly()) {
     <div class="sticky bottom-0 px-4 rounded-bl-2xl" style="background: linear-gradient(0deg, rgb(239, 247, 255) 40%, rgba(255, 255, 255, 0) 100%);">
       <div class="pb-4 w-full max-w-full mx-auto">
-        <div class="relative">
-          <div class="p-[5.5px] max-h-[150px] bg-white border-[1.5px] border-gray-200 rounded-xl mb-2">
-            <textarea class="outline-none w-full pl-2 pr-16"
+        <div class="relative bg-white border border-gray-200 rounded-xl mb-2">
+          @if (attachments()?.length) {
+            <chat-attachments class="w-full p-1" editable [(attachments)]="attachments" 
+              (onCreated)="onAttachCreated($event)"
+            />
+          }
+          <div class="p-[5.5px] max-h-[150px]">
+            <textarea class="outline-none w-full pl-2 pr-16 disabled:cursor-not-allowed"
+              [disabled]="loading()"
               [(ngModel)]="input"
               (keydown)="onKeydown($event)"
             ></textarea>
+
             <div class="absolute bottom-[7px] flex items-center h-8 right-2 z-10">
               <div class="flex items-center px-1 h-5 rounded-md bg-gray-100 text-xs font-medium text-gray-500">{{inputLength()}}</div>
               <div class="mx-2 w-[1px] h-4 bg-black opacity-5"></div>
 
               @if (attachment_enabled()) {
-                <button type="button" class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg" >
+                <button type="button" class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg"
+                  [cdkMenuTriggerFor]="attachMenu">
                   <i class="ri-attachment-line text-lg"></i>
                 </button>
               }
@@ -338,3 +318,12 @@
     </div>
   }
 </div>
+
+<ng-template #attachMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="fileDropRef.click()">
+      <i class="ri-folder-line text-lg mr-2"></i>
+      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: {Default: 'Upload a file'} }}</div>
+    </div>
+  </div>
+</ng-template>

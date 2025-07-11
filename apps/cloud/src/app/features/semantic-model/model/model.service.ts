@@ -363,7 +363,7 @@ export class SemanticModelService {
   }
 
   updater<ProvidedType = void, OriginType = ProvidedType>(
-    fn: (state: TSemanticModelDraft, ...params: OriginType[]) => TSemanticModelDraft | void
+    fn: (state: TSemanticModelDraft<Schema>, ...params: OriginType[]) => TSemanticModelDraft | void
   ) {
     return (...params: OriginType[]) => {
       this.store.update(
@@ -613,8 +613,46 @@ export class SemanticModelService {
     }
   })
 
+  readonly duplicate = this.updater((state, value: {type: SemanticModelEntityType; id: string; newKey: string}) => {
+    const { type, id, newKey } = value
+    if (type === SemanticModelEntityType.CUBE) {
+      const cube = state.schema.cubes?.find((item) => item.__id__ === id)
+      if (cube) {
+        const newCube = cloneDeep(cube)
+        newCube.__id__ = newKey
+        newCube.name = `${newCube.name}_copy`
+        newCube.caption = `${newCube.caption} (Copy)`
+        this.newCube(newCube)
+      }
+    } else if (type === SemanticModelEntityType.DIMENSION) {
+      const dimension = state.schema.dimensions?.find((item) => item.__id__ === id)
+      if (dimension) {
+        const newDimension = cloneDeep(dimension)
+        newDimension.__id__ = newKey
+        newDimension.name = `${newDimension.name}_copy`
+        newDimension.caption = `${newDimension.caption} (Copy)`
+        newDimension.hierarchies?.forEach((hierarchy) => {
+          hierarchy.__id__ = uuid()
+          hierarchy.levels?.forEach((level) => {
+            level.__id__ = uuid()
+          })
+        })
+        this.newDimension(newDimension)
+      }
+    } else if (type === SemanticModelEntityType.VirtualCube) {
+      const virtualCube = state.schema.virtualCubes?.find((item) => item.__id__ === id)
+      if (virtualCube) {
+        const newVirtualCube = cloneDeep(virtualCube)
+        newVirtualCube.__id__ = newKey
+        newVirtualCube.name = `${newVirtualCube.name}_copy`
+        newVirtualCube.caption = `${newVirtualCube.caption} (Copy)`
+        state.schema.virtualCubes.push(newVirtualCube)
+      }
+    }
+  })
+
   /**
-   * 删除实体数据: Cube, Dimension, VirtualCube
+   * Delete entity data: Cube, Dimension, VirtualCube
    */
   readonly deleteEntity = this.updater((state, id: string) => {
     state.schema.cubes = state.schema.cubes?.filter((item) => item.__id__ !== id)
@@ -824,11 +862,11 @@ export class SemanticModelService {
   }
 
   moveItemInDimensions = this.updater((state, event: { previousIndex: number; currentIndex: number }) => {
-    // moveItemInArray(state.dimensions, event.previousIndex, event.currentIndex)
+    moveItemInArray(state.schema.dimensions, event.previousIndex, event.currentIndex)
   })
 
   moveItemInCubes = this.updater((state, event: { previousIndex: number; currentIndex: number }) => {
-    // moveItemInArray(state.cubes, event.previousIndex, event.currentIndex)
+    moveItemInArray(state.schema.cubes, event.previousIndex, event.currentIndex)
   })
 
   moveItemInVirtualCubes = this.updater((state, event: { previousIndex: number; currentIndex: number }) => {

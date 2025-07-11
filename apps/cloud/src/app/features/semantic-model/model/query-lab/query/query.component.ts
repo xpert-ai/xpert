@@ -16,12 +16,11 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
-import { BaseEditorDirective } from '@metad/components/editor'
 import { calcEntityTypePrompt, convertQueryResultColumns, getErrorMessage } from '@metad/core'
 import { CopilotChatMessageRoleEnum, CopilotEngine, nanoid } from '@metad/copilot'
 import { NgmCopilotService, provideCopilotDropAction } from '@metad/copilot-angular'
 import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@metad/ocap-angular/entity'
-import { C_MEASURES, Cube, EntityType, nonNullable, PropertyAttributes, uniqBy, VariableProperty, wrapBrackets } from '@metad/ocap-core'
+import { C_MEASURES, nonNullable, uniqBy, VariableProperty, wrapBrackets } from '@metad/ocap-core'
 import { limitSelect, serializeName } from '@metad/ocap-sql'
 import { ModelQuery, Store } from 'apps/cloud/src/app/@core'
 import { cloneDeep, isEqual, isPlainObject } from 'lodash-es'
@@ -38,6 +37,7 @@ import { QueryService } from './query.service'
 import { QueryCopilotEngineService } from './copilot.service'
 import { injectQueryCommand } from '../../copilot'
 import { TranslateService } from '@ngx-translate/core'
+import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,7 +63,7 @@ export class QueryComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly translateService = inject(TranslateService)
 
-  @ViewChild('editor') editor!: BaseEditorDirective
+  @ViewChild('editor') editor!: NgmBaseEditorDirective
   readonly tableTemplate = viewChild<TemplateRef<any>>('tableTemplate')
 
   themeName = toSignal(this.store.preferredTheme$.pipe(map((theme) => theme?.split('-')[0])))
@@ -538,7 +538,10 @@ ${calcEntityTypePrompt(entityType)}
           }
           break
         }
-        case CdkDragDropContainers.Entities: {
+        case CdkDragDropContainers.Cubes:
+        case CdkDragDropContainers.ShareDimensions:
+        case CdkDragDropContainers.VirtualCubes:
+        {
           if (this.isMDX()) {
             // Add original cube name into list
             this.queryLabService.addEntity({

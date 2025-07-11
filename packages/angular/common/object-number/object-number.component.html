@@ -2,12 +2,14 @@
   @if (shortNumber()) {
     @if (_number() | shortNumber:_locale(); as values) {
       <span class="ngm-object-number--value">
-        {{values[0] | number:digitsInfo()}}
+        <span class="font-mono">
+          {{values[0] | number:digitsInfo()}}
+        </span>
         <span class="ngm-object-number--short-unit">{{values[1]||''}}</span>
       </span>
     }
   } @else {
-    <span class="ngm-object-number--value" >
+    <span class="ngm-object-number--value font-mono" >
       {{_number() | number:digitsInfo()}}
     </span>
   }

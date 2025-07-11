@@ -169,6 +169,11 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
     return this.httpClient.post(C_URI_API_MODELS, convertNewSemanticModel(data))
   }
 
+  /**
+   * Update a semantic model, convert the input to the correct format, for example, convert the options field
+   * 
+   * @deprecated use `updateModel`
+   */
   update(id: string, input: Partial<ISemanticModel>, options?: { relations: string[] }) {
     let params = new HttpParams()
     if (options?.relations) {
@@ -177,6 +182,9 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
     return this.httpClient.put<ISemanticModel>(C_URI_API_MODELS + `/${id}`, convertNewSemanticModel(input), { params })
   }
 
+  /**
+   * Direct update without format conversion
+   */
   updateModel(id: string, input: Partial<ISemanticModel>) {
     return this.httpClient.put<ISemanticModel>(C_URI_API_MODELS + `/${id}`, input)
   }
@@ -297,9 +305,10 @@ export function convertNewSemanticModel(model: Partial<OcapSemanticModel | ISema
       'createdBy',
       'updatedById',
       'updatedBy',
-      'queries'
+      'queries',
+      'draft',
     ]),
-    ...pick(model, ...systemFields)
+    ...pick(model, ...systemFields, 'draft')
   }
 
   return updateModel

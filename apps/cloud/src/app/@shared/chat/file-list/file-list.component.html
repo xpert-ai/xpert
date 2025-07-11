@@ -1,10 +1,10 @@
 <div class="flex justify-between items-center p-1 border-b border-solid border-divider-deep">
   <div>
-
+    <ng-content></ng-content>
   </div>
 
   <div>
-    <button type="button" class="btn btn-secondary btn-sm" (click)="emptyFiles()">
+    <button type="button" class="btn btn-secondary btn-sm bg-transparent" (click)="emptyFiles()">
       {{'PAC.Chat.Empty' | translate: {Default: 'Empty'} }}
     </button>
   </div>

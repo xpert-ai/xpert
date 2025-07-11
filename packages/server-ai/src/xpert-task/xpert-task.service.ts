@@ -1,28 +1,15 @@
-import {
-	IUser,
-	IXpert,
-	IXpertTask,
-	RolesEnum,
-	TChatAgentParams,
-	TChatOptions,
-	XpertAgentExecutionStatusEnum,
-	XpertTaskStatus
-} from '@metad/contracts'
+import { generateCronExpression, IUser, IXpertTask, RolesEnum, TChatOptions, XpertTaskStatus } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { getErrorMessage } from '@metad/server-common'
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
 import chalk from 'chalk'
 import { CronJob } from 'cron'
-import { from, Observable, switchMap } from 'rxjs'
 import { Repository } from 'typeorm'
-import { XpertAgentChatCommand } from '../xpert-agent'
-import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
-import { XpertAgentService } from '../xpert-agent/xpert-agent.service'
-import { FindXpertQuery } from '../xpert/queries'
+import { XpertChatCommand } from '../xpert/commands'
 import { XpertTask } from './xpert-task.entity'
 
 @Injectable()
@@ -37,8 +24,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 		repository: Repository<XpertTask>,
 		private readonly schedulerRegistry: SchedulerRegistry,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		private readonly agentService: XpertAgentService
+		private readonly queryBus: QueryBus
 	) {
 		super(repository)
 	}
@@ -48,54 +34,49 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 		jobs.forEach((job) => {
 			try {
 				this.scheduleCronJob(job, job.createdBy)
-			} catch(err) {
+			} catch (err) {
 				console.error(chalk.red('Schedule "' + job.name + '" error:' + getErrorMessage(err)))
 			}
 		})
 		console.log(chalk.magenta(`Scheduled ${total} tasks for xpert`))
 	}
 
-	async chatAgentJob(id: string, params: TChatAgentParams, options: TChatOptions) {
-		const xpertId = params.xpertId
-		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, {relations: ['agent']}))
-		// New execution (Run) in thread
-		const execution = await this.commandBus.execute(
-			new XpertAgentExecutionUpsertCommand({
-				xpert: { id: xpert.id } as IXpert,
-				agentKey: xpert.agent.key,
-				inputs: params.input,
-				status: XpertAgentExecutionStatusEnum.RUNNING
-			})
-		)
-		// Record execution in task
-		const task = await this.findOne(id)
-		task.executions ??= []
-		task.executions.push(execution)
-		this.repository.save(task)
-
-		// Execute chat
-		const executionId = execution.id
-		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
-			new XpertAgentChatCommand(params.input, params.agentKey, xpert, {
-				...options,
-				isDraft: false,
-				execution: {
-					id: executionId
+	async executeTask(id: string, options: TChatOptions) {
+		const task = await this.findOne(id, { relations: ['xpert'] })
+		const observable = await this.commandBus.execute(
+			new XpertChatCommand(
+				{
+					input: {
+						input: task.prompt
+					},
+					xpertId: task.xpertId
 				},
-				operation: params.operation,
-				reject: params.reject,
-				from: 'job'
-			})
+				{
+					...options,
+					timeZone: task.timeZone || options.timeZone,
+					from: 'job',
+					taskId: task.id
+				}
+			)
 		)
+		observable.subscribe({
+			next: (message) => {
+				// console.log('Test message:', message)
+			},
+			error: (err) => {
+				this.#logger.error('Test error:', getErrorMessage(err))
+			}
+		})
 	}
 
 	scheduleCronJob(task: IXpertTask, user: IUser) {
 		const MaximumRuns = 10
 		let runs = 0
 
+		const cronTime = task.schedule || generateCronExpression(task.options)
 		const scheduleJob = () => {
 			const job = CronJob.from({
-				cronTime: task.schedule,
+				cronTime: cronTime,
 				timeZone: task.timeZone,
 				onTick: () => {
 					runs += 1
@@ -108,23 +89,10 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 							})
 							return
 						}
-						from(
-							this.chatAgentJob(task.id, {
-								input: {
-									input: task.prompt
-								},
-								xpertId: task.xpertId,
-								agentKey: task.agentKey
-							}, {
-								timeZone: task.timeZone
-							})
-						)
-							.pipe(switchMap((obsv) => obsv))
-							.subscribe({
-								error: (err) => {
-									this.#logger.error(err)
-								}
-							})
+
+						this.executeTask(task.id, { timeZone: task.timeZone }).catch((err) => {
+							this.#logger.error(err)
+						})
 					}
 				}
 			})
@@ -132,20 +100,20 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 			this.schedulerRegistry.addCronJob(task.id, job)
 			job.start()
 		}
-		
+
 		if (RequestContext.currentUser()) {
 			scheduleJob()
 		} else {
 			runWithRequestContext({ user: user, headers: { ['organization-id']: task.organizationId } }, () => {
 				try {
 					scheduleJob()
-				} catch(err) {
+				} catch (err) {
 					console.error(chalk.red('Schedule "' + task.name + '" error: ' + getErrorMessage(err)))
 				}
 			})
 		}
 
-		this.#logger.warn(`job ${task.name} added for '${task.schedule}'!`)
+		this.#logger.warn(`job ${task.name} added for '${cronTime}' and timezone '${task.timeZone}'!`)
 	}
 
 	async removeTasks(tasks: XpertTask[]) {
@@ -159,7 +127,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 	async getActiveJobs() {
 		return this.findAll({
 			where: {
-				status: XpertTaskStatus.RUNNING
+				status: XpertTaskStatus.SCHEDULED
 			},
 			relations: ['createdBy', 'createdBy.role']
 		})
@@ -189,10 +157,13 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 		}
 	}
 
+	/**
+	 * Update task and reschedule if necessary
+	 */
 	async updateTask(id: string, entity: Partial<IXpertTask>) {
 		await super.update(id, entity)
-		const task = await this.findOne(id, {relations: ['executions', 'xpert']})
-		if (task.status === XpertTaskStatus.RUNNING) {
+		const task = await this.findOne(id, { relations: ['xpert'] })
+		if (task.status === XpertTaskStatus.SCHEDULED) {
 			this.rescheduleTask(task, RequestContext.currentUser())
 		} else {
 			this.deleteJob(task.id)
@@ -203,12 +174,22 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 	async schedule(id: string) {
 		const task = await this.findOne(id, { relations: ['createdBy', 'createdBy.role'] })
 		this.rescheduleTask(task, RequestContext.currentUser() ?? task.createdBy)
-		return await this.update(id, { status: XpertTaskStatus.RUNNING })
+		return await this.update(id, { status: XpertTaskStatus.SCHEDULED })
 	}
 
 	async pause(id: string) {
 		const task = await this.findOne(id)
 		this.deleteJob(task.id)
 		return await this.update(id, { status: XpertTaskStatus.PAUSED })
+	}
+
+	async archive(id: string) {
+		const task = await this.findOne(id)
+		this.deleteJob(task.id)
+		return await this.update(id, { status: XpertTaskStatus.ARCHIVED })
+	}
+
+	async test(id: string, options: TChatOptions) {
+		await this.executeTask(id, options)
 	}
 }

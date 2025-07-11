@@ -228,7 +228,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 								? {
 										...(input ?? {}),
 										messages: [
-											await createHumanMessage(this.commandBus, input, {enabled: true, resolution: 'low'})
+											await createHumanMessage(this.commandBus, this.queryBus, input, {enabled: true, resolution: 'low'})
 										],
 										[STATE_VARIABLE_SYS]: {
 											language: languageCode,
@@ -952,13 +952,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					await finalize()
 				}
 			}
-		})
+		}).withConfig({tags: [xpert.id]})
 		runnable.name = name
 		
 		if (xpert.agentConfig?.mute?.length) {
 			mute.push(...xpert.agentConfig.mute.map((_) => [xpert.id, ..._]))
 		}
-		return runnable.withConfig({tags: [xpert.id]})
+		return runnable
 	}
 }
 

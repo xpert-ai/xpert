@@ -67,23 +67,18 @@
           [class.selected]="isSelected(ModelDesignerType.measure, member.__id__)"
           [class.bg-orange-100]="!member.name"
           cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
-          (click)="onSelect(ModelDesignerType.measure, member)"
+          
         >
           <ngm-entity-property class="flex-1" [property]="member" [role]="AGGREGATION_ROLE.measure" />
 
-          <div class="absolute right-1 flex items-center gap-0.5 p-0.5 rounded-lg bg-components-card-bg opacity-0 group-hover/item:opacity-100">
-            <!-- <button type="button" class="btn btn-small w-6 h-6 justify-center"
-              (click)="onSelect(ModelDesignerType.measure, member)">
-              <i class="ri-equalizer-2-line"></i>
-            </button> -->
-            @if (!member.rt) {
-              <button type="button" class="btn btn-small danger w-6 h-6 justify-center"
-                (click)="onDeleteMeasure($event, member)">
-                <i class="ri-delete-bin-line"></i>
-              </button>
-            }
-          </div>
-          
+          <button class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
+            [cdkMenuTriggerFor]="measureMenu"
+            [cdkMenuTriggerData]="{member: member}"
+            #mt="cdkMenuTriggerFor"
+            [class.opacity-100]="mt.isOpen()"
+            (click)="$event.stopPropagation();$event.preventDefault()">
+            <i class="ri-more-2-line"></i>
+          </button>
           <div class="pac-cdk-drop__placeholder" *cdkDragPlaceholder></div>
         </li>
       }
@@ -110,34 +105,29 @@
     </button>
   </div>
         
-  <div id="list-calculated-members" class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
+  <div [id]="eCdkDragDropContainers.CalculatedMembers" class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
     cdkDropList
     [cdkDropListData]="calculatedMembers()"
     [cdkDropListEnterPredicate]="calculatedEnterPredicate"
     (cdkDropListDropped)="dropCalcMembers($event)">
     <ul>
       @for (member of calculatedMembers(); track member) {
-        <li class="row group/item flex items-center px-2 py-1.5 text-sm cursor-pointer hover:bg-hover-bg"
+        <li class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
           [class.bg-orange-100]="!member.name"
           [class.selected]="isSelected(ModelDesignerType.calculatedMember, member.__id__)"
           cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
-          (click)="onCalculatedMemberEdit(member)"
         >
           <div class="w-full flex items-center">
             <ngm-entity-property class="flex-1" [property]="$any(member)" />
-    
-            <div class="absolute right-1 flex items-center gap-0.5 p-0.5 rounded-lg bg-components-card-bg opacity-0 group-hover/item:opacity-100">
-              <!-- <button type="button" class="btn btn-small w-6 h-6 justify-center"
-                (click)="onCalculatedMemberEdit(member)"
-              >
-                <i class="ri-equalizer-2-line"></i>
-              </button> -->
 
-              <button type="button" class="btn btn-small danger w-6 h-6 justify-center"
-                (click)="onDeleteCalculatedMember($event, member)">
-                <i class="ri-delete-bin-line"></i>
-              </button>
-            </div>
+            <button class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
+              [cdkMenuTriggerFor]="calcMenu"
+              [cdkMenuTriggerData]="{member: member}"
+              #mt="cdkMenuTriggerFor"
+              [class.opacity-100]="mt.isOpen()"
+              (click)="$event.stopPropagation();$event.preventDefault()">
+              <i class="ri-more-2-line"></i>
+            </button>
           </div>
 
           <div class="pac-cdk-drop__placeholder" *cdkDragPlaceholder></div>
@@ -185,3 +175,51 @@
     </div>
   </div>
 }
+
+<ng-template #measureMenu let-member="member">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+      (click)="onSelect(ModelDesignerType.measure, member)"
+    >
+      <i class="ri-edit-line"></i>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
+    </button>
+
+     <button cdkMenuItem class="" (click)="duplicateMeasure(member)">
+      <i class="ri-file-copy-line"></i>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+    </button>
+
+    @if (!member.rt) {
+      <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
+        (click)="onDeleteMeasure($event, member)"
+      >
+        <i class="ri-delete-bin-line"></i>
+        <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #calcMenu let-member="member">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+      (click)="onCalculatedMemberEdit(member)"
+    >
+      <i class="ri-edit-line"></i>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
+    </button>
+
+     <button cdkMenuItem class="" (click)="duplicateCalculatedMember(member)">
+      <i class="ri-file-copy-line"></i>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+    </button>
+
+    <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
+      (click)="onDeleteCalculatedMember($event, member)"
+    >
+      <i class="ri-delete-bin-line"></i>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+    </button>
+  </div>
+</ng-template>

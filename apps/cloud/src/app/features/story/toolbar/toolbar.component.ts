@@ -22,13 +22,13 @@ import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { StoriesService, convertNewSemanticModelResult } from '@metad/cloud/state'
-import { ConfirmCodeEditorComponent } from '@metad/components/editor'
 import { CopilotChatMessage } from '@metad/copilot'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { IsNilPipe } from '@metad/core'
 import { NgmConfirmUniqueComponent, NgmInputComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { CHARTS, cloneDeep, DeepPartial, omit } from '@metad/ocap-core'
+import { NgmConfirmCodeEditorComponent } from '@metad/ocap-angular/editor'
 import { PreferencesComponent, QuerySettingComponent, ThemeBuilderComponent } from '@metad/story'
 import {
   EmulatedDevice,
@@ -400,7 +400,7 @@ export class StoryToolbarComponent implements OnInit {
 
     const advancedStyle = await firstValueFrom(
       this._dialog
-        .open(ConfirmCodeEditorComponent, {
+        .open(NgmConfirmCodeEditorComponent, {
           panelClass: 'medium',
           data: {
             language: 'css',

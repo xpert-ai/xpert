@@ -5,7 +5,6 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
-import { NxEditorModule } from '@metad/components/editor'
 import { PACFormlyCodeEditorComponent } from './code-editor.component'
 
 @NgModule({
@@ -16,7 +15,6 @@ import { PACFormlyCodeEditorComponent } from './code-editor.component'
     ReactiveFormsModule,
     MatIconModule,
     MatButtonModule,
-    NxEditorModule,
     AppearanceDirective,
     
     FormlyModule.forChild({

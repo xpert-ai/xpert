@@ -9,7 +9,7 @@ import { nonNullable } from '@metad/core'
 import { injectParams } from 'ngxtension/inject-params'
 
 /**
- * Chat context for webapp
+ * Chat context for public webapp
  */
 @Injectable()
 export class ChatAppService extends ChatService {
@@ -95,5 +95,9 @@ export class ChatAppService extends ChatService {
     } else {
       this.#router.navigate(['/x'])
     }
+  }
+
+  gotoTask(taskId: string): void {
+    throw new Error('Task not supported in webapp')
   }
 }

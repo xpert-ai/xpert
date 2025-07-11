@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common'
-import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm'
-import { AdapterBaseOptions, DBQueryRunner, QUERY_RUNNERS } from '@metad/adapter'
-import { DataSourceProtocolEnum, DataSourceSyntaxEnum, ITenant } from '@metad/contracts'
-import { Tenant, TenantAwareCrudService, TenantCreatedEvent, TenantService } from '@metad/server-core'
+import { DBQueryRunner } from '@metad/adapter'
+import { DataSourceProtocolEnum, DataSourceSyntaxEnum } from '@metad/contracts'
 import { environment as env } from '@metad/server-config'
+import { RequestContext, Tenant, TenantAwareCrudService, TenantCreatedEvent } from '@metad/server-core'
+import { Injectable, Logger } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm'
+import { AdapterBaseOptions, QUERY_RUNNERS } from '@metad/adapter'
 import chalk from 'chalk'
 import { EntityManager, Repository } from 'typeorm'
 import { DataSourceType } from './data-source-type.entity'
@@ -20,51 +21,8 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 		dsTypeRepository: Repository<DataSourceType>,
 		@InjectEntityManager()
 		private entityManager: EntityManager,
-		private tenantService: TenantService
 	) {
 		super(dsTypeRepository)
-	}
-
-	async seed() {
-		this.log(
-			chalk.magenta(
-				`🌱 SEEDING DATA SOURCE TYPES ${
-					env.production ? 'PRODUCTION' : ''
-				} DATABASE...`
-			)
-		)
-
-		const { items = [] } = await this.tenantService.findAll()
-
-		return items.map((tenant) => {
-			return Promise.all(
-				Object.entries(QUERY_RUNNERS).map(([type, QueryRunner]) => {
-					const queryRunner = new QueryRunner({} as AdapterBaseOptions)
-					return this.seedDataSourceType(tenant, queryRunner)
-				})
-			)
-		})
-	}
-
-	async seedDataSourceType(tenant: ITenant, queryRunner: DBQueryRunner) {
-		const dataSourceType = await this.repository.findOne({
-			where: {
-				tenantId: tenant.id,
-				name: queryRunner.name,
-			},
-		})
-		if (!dataSourceType) {
-			return this.create({
-				tenantId: tenant.id,
-				name: queryRunner.name,
-				type: queryRunner.type,
-				syntax: queryRunner.syntax as unknown as DataSourceSyntaxEnum,
-				protocol: queryRunner.protocol as unknown as DataSourceProtocolEnum,
-				configuration: queryRunner.configurationSchema,
-			})
-		} else {
-			return Promise.resolve()
-		}
 	}
 
 	@OnEvent('tenant.created')
@@ -73,5 +31,47 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 		const { tenantId } = event
 		const tenant = await this.entityManager.findOne(Tenant, tenantId)
 		await seedDefaultDataSourceTypes(this.entityManager.connection, tenant)
+	}
+
+	async sync() {
+		const tenantId = RequestContext.currentTenantId()
+		this.log(
+			chalk.magenta(
+				`🌱 SEEDING DATA SOURCE TYPES ${
+					env.production ? 'PRODUCTION' : ''
+				} DATABASE FOR TANANT: '${tenantId}'...`
+			)
+		)
+		const queryRunnerClasses = Object.values(QUERY_RUNNERS)
+		for (const QueryRunner of queryRunnerClasses) {
+			const queryRunner = new QueryRunner({} as AdapterBaseOptions)
+			try {
+				await this.upsertDataSourceType(tenantId, queryRunner)
+			} catch (error) {
+				this.log(chalk.red(`❌ Failed to seed ${queryRunner.name} data source type: ${error.message}`))
+			}
+		}
+		this.log(chalk.green(`✅ All data source types seeded successfully for tenant: ${tenantId}`))
+	}
+
+	async upsertDataSourceType(tenantId: string, queryRunner: DBQueryRunner) {
+		const dataSourceType = await this.repository.findOne({
+			where: {
+				tenantId,
+				name: queryRunner.name
+			}
+		})
+		if (!dataSourceType) {
+			return this.create({
+				tenantId,
+				name: queryRunner.name,
+				type: queryRunner.type,
+				syntax: queryRunner.syntax as unknown as DataSourceSyntaxEnum,
+				protocol: queryRunner.protocol as unknown as DataSourceProtocolEnum,
+				configuration: queryRunner.configurationSchema
+			})
+		} else {
+			await this.update(dataSourceType.id, { configuration: queryRunner.configurationSchema } as DataSourceType)
+		}
 	}
 }
