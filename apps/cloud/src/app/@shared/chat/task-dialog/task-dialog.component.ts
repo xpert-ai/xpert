@@ -6,9 +6,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
-import { TranslateModule } from '@ngx-translate/core'
 import {
   injectXperts,
   IXpert,
@@ -16,9 +13,14 @@ import {
   TaskFrequency,
   ToastrService,
   XpertTaskService,
-  XpertTaskStatus,
+  XpertTaskStatus
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { attrModel, linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
+import { isNil } from 'lodash-es'
+import { of } from 'rxjs'
 
 @Component({
   selector: 'xpert-task-new-blank',
@@ -43,13 +45,19 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 export class XpertTaskDialogComponent {
   eTaskFrequency = TaskFrequency
 
-  readonly #data = inject<{task: IXpertTask; total: number}>(DIALOG_DATA)
+  readonly #data = inject<{ task: IXpertTask; total: number }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef<IXpertTask | undefined>)
   readonly #toastr = inject(ToastrService)
   readonly taskAPI = inject(XpertTaskService)
   readonly myXperts = injectXperts()
 
-  readonly total = signal(this.#data.total ?? 0)
+  readonly #myTasks = myRxResource({
+    request: () => this.#data.total,
+    loader: ({ request }) => {
+      return isNil(request) ? this.taskAPI.total({ where: { status: XpertTaskStatus.SCHEDULED } }) : of(request)
+    }
+  })
+  readonly total = this.#myTasks.value
   readonly task = model<Partial<IXpertTask>>(this.#data.task ?? {})
   readonly name = attrModel(this.task, 'name')
   readonly xpertId = attrModel(this.task, 'xpertId')
@@ -132,10 +140,10 @@ export class XpertTaskDialogComponent {
         ...this.task(),
         options: {
           ...this.options(),
-          frequency: this.frequency() || TaskFrequency.Once,
+          frequency: this.frequency() || TaskFrequency.Once
         },
         status: XpertTaskStatus.SCHEDULED,
-        xpertId: this.xpertId(),
+        xpertId: this.xpertId()
       })
       .subscribe({
         next: (task) => {

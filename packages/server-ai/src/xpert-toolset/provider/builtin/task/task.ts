@@ -1,6 +1,4 @@
-import { ChatMessageTypeEnum, IXpertTask, IXpertToolset, JSONValue, TToolCredentials } from '@metad/contracts'
-import { shortuuid } from '@metad/server-common'
-import { Subscriber } from 'rxjs'
+import { IXpertToolset, TToolCredentials } from '@metad/contracts'
 import { BuiltinTool } from '../builtin-tool'
 import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 import { TaskCreateTool } from './tools/create'
@@ -40,21 +38,5 @@ export class TaskToolset extends BuiltinToolset {
 
 	async _validateCredentials(credentials: TToolCredentials) {
 		//
-	}
-
-	async sendTasks(subscriber: Subscriber<MessageEvent>, tasks: IXpertTask[], language: string) {
-		subscriber.next({
-			data: {
-				type: ChatMessageTypeEnum.MESSAGE,
-				data: {
-					id: shortuuid(),
-					type: 'component',
-					data: {
-						type: 'Tasks',
-						tasks
-					} as unknown as JSONValue
-				}
-			}
-		} as MessageEvent)
 	}
 }

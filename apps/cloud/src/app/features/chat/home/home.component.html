@@ -112,6 +112,7 @@
                   class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&amp;_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary hover:bg-button-ghost-hover disabled:hover:text-fg-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-fg-primary h-7 w-7 rounded-full ms-auto opacity-0 group-hover/menu-item:opacity-100 transition-opacity duration-200"
                   type="button"
                   aria-label="Create task"
+                  (click)="newTask()"
                 >
                   <i class="ri-add-line"></i>
                 </button>
@@ -377,15 +378,25 @@
         class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed select-none h-7 w-7 rounded-full ms-auto hover:bg-hover-bg"
         type="button"
         aria-label="Create task"
+        (click)="newTask()"
       >
         <i class="ri-add-line"></i>
       </button>
     </div>
 
     <div class="w-80 min-h-[200px] overflow-auto flex flex-col justify-start">
-      <div class="grow w-full flex flex-col justify-center items-center text-text-secondary text-3xl">
-        <i class="ri-calendar-schedule-line"></i>
-      </div>
+      @for (conv of taskConversations(); track conv.id) {
+        <a class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active aria-expanded:bg-button-ghost-hover group/task-item pl-3 pr-4 py-1 text-sm w-full text-fg-primary"
+          [routerLink]="['/chat/c', conv.id]">
+          <span class="flex-1 select-none text-nowrap max-w-full overflow-hidden inline-block" 
+            style="mask-image: linear-gradient(to right, black 85%, transparent 100%);">{{conv.title || conv.options?.parameters?.input}}</span>
+          <!-- <div class="rounded-full bg-blue-400 h-1.5 w-1.5"></div> -->
+        </a>
+      } @empty {
+        <div class="grow w-full flex flex-col justify-center items-center text-text-secondary text-3xl">
+          <i class="ri-calendar-schedule-line"></i>
+        </div>
+      }
     </div>
   </div>
 </ng-template>

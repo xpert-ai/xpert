@@ -55,6 +55,12 @@ export class XpertTaskController extends CrudController<XpertTask> {
 		}
 	}
 
+	@Get('total')
+	async getMyTotal(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>,) {
+		const result = await super.findMyAll(params)
+		return result.total
+	}
+
 	@Get('by-ids')
 	async getAllByIds(@Query('ids') ids: string) {
 		const _ids = ids.split(',')

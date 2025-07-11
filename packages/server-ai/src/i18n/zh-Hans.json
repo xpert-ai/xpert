@@ -57,6 +57,9 @@
         },
         "BrowserUse": {
             "ExecutionStep": "执行步骤"
+        },
+        "Task": {
+            "ScheduledTask": "定时任务"
         }
     }
 }

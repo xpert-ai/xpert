@@ -8,7 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { groupConversations } from '@cloud/app/xpert/types'
-import { I18nObject, IChatConversation, injectUserPreferences, IXpertProject, PaginationParams, PersistState } from '@metad/cloud/state'
+import { I18nObject, IChatConversation, injectUserPreferences, IXpertProject, IXpertTask, PaginationParams, PersistState } from '@metad/cloud/state'
 import { OverlayAnimations, routeAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -27,6 +27,7 @@ import {
 import { AppService } from '../../../app.service'
 import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
 import { ChatHomeService } from '../home.service'
+import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
 
@@ -139,6 +140,7 @@ export class ChatHomeComponent {
     compute: () => this.#conversations.value(),
     update: (conversations) => {}
   })
+  readonly taskConversations = computed(() => this.#conversations.value()?.filter((conv) => conv.taskId).slice(0, 10))
 
   readonly groups = computed(() => {
     const conversations = this.conversations()
@@ -268,6 +270,23 @@ export class ChatHomeComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  newTask() {
+    this.#dialog
+      .open<IXpertTask>(XpertTaskDialogComponent, {
+        data: {},
+        disableClose: true,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
+      })
+      .closed.subscribe({
+        next: (task) => {
+          if (task?.id) {
+            this.#router.navigate(['/chat', 'tasks', task.id])
+          }
+        }
+      })
   }
 
   // Input method composition started

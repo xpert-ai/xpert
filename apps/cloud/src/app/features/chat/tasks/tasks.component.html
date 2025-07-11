@@ -91,7 +91,7 @@
           class="w-full flex flex-col p-3 rounded-2xl border bg-components-card-bg gap-1 shrink-0 overflow-auto h-full max-h-[20vh]"
         >
           <h1 class="font-medium text-fg-secondary">{{ 'PAC.Xpert.Instruction' | translate: {Default: 'Instruction'} }}</h1>
-          <p class="flex items-center gap-1 text-sm font-body whitespace-normal break-all line-clamp-3" [title]="task.prompt">
+          <p class="flex items-center gap-1 text-sm font-body whitespace-normal break-all text-text-secondary line-clamp-3" [title]="task.prompt">
             {{ task.prompt }}
           </p>
         </div>
@@ -105,14 +105,25 @@
               <i class="ri-pencil-line"></i>
               <p class="">{{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }}</p>
             </button>
-            <button
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
-              type="button"
-              (click)="pauseTask(task)"
-            >
-              <i class="ri-pause-circle-line"></i>
-              <p class="">{{ 'PAC.ACTIONS.Pause' | translate: {Default: 'Pause'} }}</p>
-            </button>
+            @if (task.status === eXpertTaskStatus.SCHEDULED) {
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
+                type="button"
+                (click)="pauseTask(task)"
+              >
+                <i class="ri-pause-circle-line"></i>
+                <p class="">{{ 'PAC.ACTIONS.Pause' | translate: {Default: 'Pause'} }}</p>
+              </button>
+            } @else {
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
+                type="button"
+                (click)="scheduleTask(task)"
+              >
+                <i class="ri-calendar-check-line"></i>
+                <p class="">{{ 'PAC.Xpert.Schedule' | translate: {Default: 'Schedule'} }}</p>
+              </button>
+            }
             <button
               class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
               type="button"

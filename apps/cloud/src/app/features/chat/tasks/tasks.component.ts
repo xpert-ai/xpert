@@ -151,6 +151,20 @@ export class ChatTasksComponent {
     })
   }
 
+  scheduleTask(task: IXpertTask) {
+    this.loading.set(true)
+    this.taskService.schedule(task.id).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this._refresh.set({})
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
   archiveTask(task: IXpertTask) {
     this.loading.set(true)
     this.taskService.archive(task.id).subscribe({

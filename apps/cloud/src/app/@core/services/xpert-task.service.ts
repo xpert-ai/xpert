@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
+import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { IXpertTask } from '../types'
 
@@ -17,6 +17,10 @@ export class XpertTaskService extends OrganizationBaseCrudService<IXpertTask> {
         ids: ids.join(',')
       }
     })
+  }
+
+  total(options?: PaginationParams<IXpertTask>) {
+    return this.httpClient.get<number>(this.apiBaseUrl + `/total`, { params: toHttpParams(options) })
   }
 
   schedule(id: string, entity?: Partial<IXpertTask>) {
