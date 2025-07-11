@@ -27,8 +27,8 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@ApiPropertyOptional({ type: () => Object })
 	@IsObject()
 	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	title?: string | I18nObject
+	@Column({ nullable: true })
+	title?: string
 
 	@ApiProperty({ type: () => String })
 	@IsString()

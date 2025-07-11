@@ -64,7 +64,7 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
   /**
    * A short title summarizing the session
    */
-  title?: string | I18nObject
+  title?: string
   /**
    * Current status of conversation
    */

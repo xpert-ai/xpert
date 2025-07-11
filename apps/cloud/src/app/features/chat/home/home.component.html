@@ -446,7 +446,7 @@
               <span
                 class="flex-1 select-none whitespace-nowrap max-w-full overflow-hidden inline-block"
                 style="mask-image: linear-gradient(to right, black 85%, transparent 100%)"
-                >{{conv.title || conv.id}}</span
+                >{{conv.title || conv.options?.parameters?.input || conv.id }}</span
               >
               @if (conv.xpert) {
                 <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">

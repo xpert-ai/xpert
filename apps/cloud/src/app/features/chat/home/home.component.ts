@@ -8,7 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { groupConversations } from '@cloud/app/xpert/types'
-import { I18nObject, IChatConversation, injectUserPreferences, IXpertProject, IXpertTask, PaginationParams, PersistState } from '@metad/cloud/state'
+import { IChatConversation, injectUserPreferences, IXpertProject, IXpertTask, PaginationParams, PersistState } from '@metad/cloud/state'
 import { OverlayAnimations, routeAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -119,7 +119,7 @@ export class ChatHomeComponent {
   readonly conversationService = inject(ChatConversationService)
   readonly #conversations = myRxResource({
     request: () => ({
-        select: ['id', 'threadId', 'title', 'updatedAt', 'from', 'projectId', 'taskId'],
+        select: ['id', 'threadId', 'title', 'options', 'updatedAt', 'from', 'projectId', 'taskId'],
         order: { updatedAt: OrderTypeEnum.DESC },
         take: 20,
         where: {
@@ -148,7 +148,7 @@ export class ChatHomeComponent {
   })
   readonly historyExpanded = signal(false)
   readonly editingConversation = signal<string>(null)
-  readonly editingTitle = signal<string | I18nObject>(null)
+  readonly editingTitle = signal<string>(null)
   readonly convLoading = linkedModel({
     initialValue: false,
     compute: () => this.#conversations.status() === 'loading',
@@ -234,7 +234,6 @@ export class ChatHomeComponent {
     if (this.isComposing()) return
     this.conversationService.update(this.editingConversation(), { title: this.editingTitle() }).subscribe({
       next: () => {
-        this.logger.debug('Updated conversation title')
         conv.title = this.editingTitle()
         this.editingConversation.set(null)
         this.editingTitle.set('')

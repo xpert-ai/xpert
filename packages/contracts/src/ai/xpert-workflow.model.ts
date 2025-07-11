@@ -30,7 +30,7 @@ export enum WorkflowNodeTypeEnum {
 export interface IWorkflowNode {
   id: string
   key: string
-  title?: string | I18nObject
+  title?: string
   description?: string | I18nObject
   type: WorkflowNodeTypeEnum
 }
