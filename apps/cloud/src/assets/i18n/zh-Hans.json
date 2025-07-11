@@ -1844,6 +1844,7 @@
       }
     },
     "Chat": {
+      "UploadFile": "上传文件",
       "GoToTask": "前往任务",
       "Empty": "清空",
       "Histories": "历史记录",
