@@ -1,4 +1,3 @@
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import {
@@ -37,6 +36,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,

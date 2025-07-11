@@ -1,7 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@metad/cloud/state'
 import { AuthenticationEnum, IDataSource, IDataSourceType } from '@cloud/app/@core/types'
 import { isEmpty, omit } from '@metad/ocap-core'
@@ -26,6 +25,7 @@ import { FormlyModule } from '@ngx-formly/core'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
@@ -59,8 +59,8 @@ export class PACDataSourceCreationComponent implements OnInit {
   private dataSourceService = inject(DataSourceService)
   private toastrService = inject(ToastrService)
   private translateService = inject(TranslateService)
-  private data: IDataSource = inject(MAT_DIALOG_DATA, { optional: true })
-  public dialogRef = inject(MatDialogRef<PACDataSourceCreationComponent>)
+  private data: IDataSource = inject(DIALOG_DATA, { optional: true })
+  public dialogRef = inject(DialogRef<Partial<IDataSource>>)
   private localAgent? = inject(LocalAgent, { optional: true })
   private serverAgent = inject(ServerAgent)
 

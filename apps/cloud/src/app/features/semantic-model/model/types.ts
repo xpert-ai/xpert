@@ -66,7 +66,7 @@ export interface QueryResult {
 
 export type SemanticModelState = {
   model: NgmSemanticModel & ISemanticModel
-  draft?: TSemanticModelDraft
+  draft?: TSemanticModelDraft<Schema>
 }
 
 export interface ModelQueryState {
@@ -251,7 +251,9 @@ export type ModelSchemaValueTypes = {
 
 export enum CdkDragDropContainers {
   Tables = 'pac-model-entitysets',
-  Entities = 'pac-model-entities',
+  Cubes = 'pac-model-cubes',
+  ShareDimensions = 'pac-model-dimensions',
+  VirtualCubes = 'pac-model-virtual-cubes',
   HierarchyTable = 'pac-model-dimension__hierarchy-tables',
   QueryEntity = 'pac-model__query-entities',
   Dimensions = 'list-dimensions',

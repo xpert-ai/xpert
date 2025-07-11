@@ -528,6 +528,10 @@ export type TChatOptions = {
    */
   projectId?: string
   /**
+   * Schedule task ID
+   */
+  taskId?: string
+  /**
    * Specify environment with variables to run
    */
   environment?: IEnvironment

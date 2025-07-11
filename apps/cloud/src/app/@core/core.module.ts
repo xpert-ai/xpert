@@ -12,7 +12,6 @@ import {
   TranslateLoader,
   TranslateModule
 } from '@ngx-translate/core'
-import { PACStateModule } from '@metad/cloud/state'
 import { AuthModule } from './auth/auth.module'
 import { throwIfAlreadyLoaded } from './module-import-guard'
 import { HttpLoaderFactory } from './theme'
@@ -42,7 +41,6 @@ import { zhCN } from 'date-fns/locale'
     }),
 
     AuthModule,
-    PACStateModule.forRoot()
   ],
   exports: [
     // 3rd party
@@ -61,7 +59,7 @@ export class CoreModule {
     return {
       ngModule: CoreModule,
       providers: [
-        { provide: MAT_DATE_LOCALE, useValue: zhCN }, // 设置正确的语言环境
+        { provide: MAT_DATE_LOCALE, useValue: zhCN },
       ]
     }
   }

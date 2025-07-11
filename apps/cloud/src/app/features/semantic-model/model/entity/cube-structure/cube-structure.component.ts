@@ -38,7 +38,7 @@ import {
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { injectToastr, uuid } from '@cloud/app/@core'
 import { NGXLogger } from 'ngx-logger'
-import { combineLatest, combineLatestWith, filter, firstValueFrom, map, switchMap, withLatestFrom } from 'rxjs'
+import { combineLatest, combineLatestWith, filter, map, switchMap, withLatestFrom } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
 import {
   CdkDragDropContainers,
@@ -59,13 +59,14 @@ import { MatListModule } from '@angular/material/list'
 import { SQLTableSchema } from '@metad/ocap-sql'
 import { CreateEntityDialogDataType, CreateEntityDialogRetType, ModelCreateEntityComponent, toDimension } from '../../create-entity/create-entity.component'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 /**
- * 展示和编辑多维分析模型的字段列表
+ * Display and edit the field list of the multidimensional analysis model
  *
- * @param @readonly entityType 目标系统中的字段, 只读
- * @param cube 本系统多维分析模型的配置或者对目标系统多维模型的增强信息
- * @returns cube 双向绑定的输出类型
+ * @param @readonly entityType Field in the target system, read-only
+ * @param cube Configuration of the multidimensional analysis model of this system or enhancement information of the multidimensional model of the target system
+ * @returns cube Output type of two-way binding
  */
 @Component({
   standalone: true,
@@ -82,6 +83,7 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
     MatIconModule,
     MatListModule,
     NgmCommonModule,
+    CdkMenuModule,
 
     InlineDimensionComponent,
     UsageDimensionComponent,
@@ -89,6 +91,7 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
   ]
 })
 export class ModelCubeStructureComponent {
+  eCdkDragDropContainers = CdkDragDropContainers
   ModelDesignerType = ModelDesignerType
   AGGREGATION_ROLE = AggregationRole
   CALCULATION_TYPE = CalculationType
@@ -99,6 +102,9 @@ export class ModelCubeStructureComponent {
   private readonly modelService = inject(SemanticModelService)
   public readonly entityService = inject(ModelEntityService)
   private readonly _cdr = inject(ChangeDetectorRef)
+  /**
+   * @deprecated use `#dialog`
+   */
   readonly _dialog = inject(MatDialog)
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
@@ -312,17 +318,22 @@ export class ModelCubeStructureComponent {
   }
 
   onSelect(type: ModelDesignerType, node: Partial<CalculatedMember>) {
-    // this.checklistSelection.toggle(`${type}#${node.__id__}`)
     if (type === ModelDesignerType.calculatedMember) {
       this.onCalculatedMemberEdit(node as CalculatedProperty)
     } else {
-      this.entityService.toggleSelectedProperty(type, node.__id__)
+      this.entityService.setSelectedProperty(ModelDesignerType.measure, node.__id__)
     }
   }
 
   onAddMeasure(event) {
     event.stopPropagation()
     this.entityService.newMeasure(null)
+  }
+
+  duplicateMeasure(member: PropertyMeasure) {
+    const newKey = uuid()
+    this.entityService.duplicateMeasure({id: member.__id__, newKey})
+    this.onSelect(ModelDesignerType.measure, {__id__: newKey})
   }
 
   onAddCalculatedMember(event) {
@@ -335,7 +346,13 @@ export class ModelCubeStructureComponent {
     this.editChange.emit(member)
   }
 
-  onDeleteCalculatedMember(event, member: Partial<CalculatedMember>) {
+  duplicateCalculatedMember(member: Partial<CalculatedMember>) {
+    const newKey = uuid()
+    this.entityService.duplicateCalculatedMeasure({id: member.__id__, newKey})
+    this.onCalculatedMemberEdit({__id__: newKey})
+  }
+
+  onDeleteCalculatedMember(event: Event, member: Partial<CalculatedMember>) {
     event.stopPropagation()
     this.entityService.deleteCalculatedMember(member.__id__)
   }
@@ -415,7 +432,7 @@ export class ModelCubeStructureComponent {
 
     // Add shared dimension into this cube
     if (
-      event.previousContainer.id === CdkDragDropContainers.Entities &&
+      event.previousContainer.id === CdkDragDropContainers.ShareDimensions &&
       previousItem.type === SemanticModelEntityType.DIMENSION &&
       event.container.id === CdkDragDropContainers.Dimensions
     ) {
@@ -501,8 +518,8 @@ export class ModelCubeStructureComponent {
 
   createDimensionByTable(index: number, table: SQLTableSchema) {
     const factFields = this.factFields()
-    this._dialog
-      .open<ModelCreateEntityComponent, CreateEntityDialogDataType, CreateEntityDialogRetType>(
+    this.#dialog
+      .open<CreateEntityDialogRetType>(
         ModelCreateEntityComponent,
         {
           viewContainerRef: this.#vcr,
@@ -521,10 +538,12 @@ export class ModelCubeStructureComponent {
               SemanticModelEntityType.DIMENSION,
             ],
             factFields
-          }
+          },
+          backdropClass: 'xp-overlay-share-sheet',
+          panelClass: 'xp-overlay-pane-share-sheet',
         }
       )
-      .afterClosed()
+      .closed
       .subscribe({
         next: (value) => {
           this.entityService.insertDimension({index, dimension: toDimension(value)})

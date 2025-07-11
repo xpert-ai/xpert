@@ -28,11 +28,12 @@ import { XpertParametersCardComponent } from '../../@shared/xpert'
 import { ChatCanvasComponent } from '../canvas/canvas.component'
 import { ChatInputComponent } from '../chat-input/chat-input.component'
 import { IXpert, Store } from '@metad/cloud/state'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { UserPipe } from '../../@shared/pipes'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 import { ChatConversationComponent } from '../conversation/conversation.component'
+import { debounceTime, fromEvent } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -171,9 +172,11 @@ export class XpertChatAppComponent {
       this.homeService.canvasOpened.set(null)
     })
 
-    this.#elementRef.nativeElement.addEventListener('scroll', (event: Event) => {
-      this.onScroll(event)
-    })
+    fromEvent(this.#elementRef.nativeElement, 'scroll')
+      .pipe(debounceTime(2000), takeUntilDestroyed())
+      .subscribe((event) => {
+        this.onScroll(event as Event)
+      })
   }
 
   newConv() {
@@ -208,7 +211,7 @@ export class XpertChatAppComponent {
   onScroll(event: Event) {
     // Handle the scroll event
     const container = this.#elementRef.nativeElement
-    this.isBottom.set(container.scrollTop + container.clientHeight >= container.scrollHeight - 10)
+    this.isBottom.set(container.scrollTop + container.clientHeight >= container.scrollHeight - 20)
   }
 
   @HostListener('window:keydown', ['$event'])

@@ -1,3 +1,24 @@
+@if (task(); as task) {
+  <div class="max-w-3xl @md:px-4 mb-4 mx-auto rounded-2xl bg-components-card-bg p-4 border flex flex-col gap-1 w-full whitespace-normal break-all">
+    <div class="flex flex-col gap-0.5">
+      <h1 class="font-semibold">{{ task.name }}</h1>
+    </div>
+    <div class="flex items-center justify-between w-full text-fg-secondary">
+      <div class="flex items-center gap-1">
+        <i class="ri-repeat-2-line"></i>
+        <h1 class="text-sm font-mono">{{ task.scheduleDescription }}</h1>
+      </div>
+      <button
+        class="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl px-3.5 py-2 text-sm font-semibold"
+        type="button"
+        (click)="chatService.gotoTask(task.id)"
+      >{{'PAC.Chat.GoToTask' | translate: {Default: 'Go to Task'} }}
+      </button>
+    </div>
+  </div>
+
+}
+
 @if (conversation()) {
   @if (parameters()?.length) {
     <xpert-parameters-card class="w-full mb-4" [parameters]="parameters()"

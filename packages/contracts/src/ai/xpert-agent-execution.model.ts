@@ -3,13 +3,12 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IXpert, TXpertTeamNodeType } from './xpert.model'
 import { IXpertAgent } from './xpert-agent.model'
 import { TSensitiveOperation } from './chat.model'
-import { I18nObject } from '../types'
 import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
 
 export type TXpertExecution = {
   category?: TXpertTeamNodeType
   type?: WorkflowNodeTypeEnum | string
-  title?: string | I18nObject
+  title?: string
   inputs?: any
   outputs?: any
   status?: XpertAgentExecutionStatusEnum

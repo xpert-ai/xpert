@@ -19,7 +19,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
   readonly syntax = DBSyntaxEnum.SQL
   readonly protocol = DBProtocolEnum.SQL
 
-  readonly jdbcDriver = 'com.mysql.jdbc.Driver'
+  readonly jdbcDriver: string = 'com.mysql.jdbc.Driver'
   jdbcUrl(schema?: string) {
     return `jdbc:mysql://${this.options.host}:${this.options.port}/${schema}?${this.options.serverTimezone ? `serverTimezone=${this.options.serverTimezone}&` : ''}user=${encodeURIComponent(
       this.options.username as string

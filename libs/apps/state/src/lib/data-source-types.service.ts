@@ -18,4 +18,8 @@ export class DataSourceTypesService {
     return this.#httpClient.get<{ items: Array<IDataSourceType>; total: number; }>(API_DATA_SOURCE_TYPE)
       .pipe(map(({ items }) => items))
   }
+
+  sync() {
+    return this.#httpClient.post(API_DATA_SOURCE_TYPE + '/sync', {})
+  }
 }

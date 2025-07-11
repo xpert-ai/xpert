@@ -1,17 +1,29 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { PromptTemplate } from '@langchain/core/prompts'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
-import { ChatMessageEventTypeEnum, IXpertToolset, MCPServerType, TChatEventMessage, TMCPSchema, TMCPServer } from '@metad/contracts'
+import {
+	ChatMessageEventTypeEnum,
+	IXpertToolset,
+	MCPServerType,
+	TChatEventMessage,
+	TMCPSchema,
+	TMCPServer
+} from '@metad/contracts'
 import { t } from 'i18next'
+import { isNil, omitBy } from 'lodash'
 
-export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: TMCPSchema, envState: Record<string, unknown>) {
+export async function createMCPClient(
+	toolset: Partial<IXpertToolset>,
+	schema: TMCPSchema,
+	envState: Record<string, unknown>
+) {
 	const mcpServers = {}
 	let server: TMCPServer = null
 	const servers = schema.servers ?? schema.mcpServers
 	// Connect to a remote server via SSE
 	for await (const serverName of Object.keys(servers)) {
 		server = servers[serverName]
-		const name = serverName || toolset.name
+		const name = serverName || toolset.name || 'default'
 		const transport = server.type?.toLowerCase()
 		if (transport === MCPServerType.SSE || (!transport && server.url)) {
 			let headers = server.headers
@@ -24,11 +36,14 @@ export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: T
 					}).format(envState)
 				}
 			}
-			mcpServers[name] = {
-				...server,
-				headers,
-				useNodeEventSource: true
-			}
+			mcpServers[name] = omitBy(
+				{
+					...server,
+					headers,
+					useNodeEventSource: true
+				},
+				isNil
+			)
 		} else if (transport === MCPServerType.STDIO || (!transport && server.command)) {
 			// Starting event
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
@@ -36,7 +51,7 @@ export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: T
 				title: t('server-ai:Tools.MCP.Starting'),
 				message: toolset.name,
 				status: 'running',
-				created_date: new Date().toISOString(),
+				created_date: new Date().toISOString()
 			} as TChatEventMessage)
 			let args = null
 			if (server.args?.length) {
@@ -80,7 +95,7 @@ export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: T
 		id: toolset.id,
 		title: t('server-ai:Tools.MCP.Ready'),
 		status: 'success',
-		end_date: new Date().toISOString(),
+		end_date: new Date().toISOString()
 	} as TChatEventMessage)
 
 	return { client, destroy: null }

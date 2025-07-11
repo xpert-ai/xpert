@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-config",
-  "version": "3.3.3",
+  "version": "3.3.4",
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {

@@ -1,10 +1,11 @@
-<header class="p-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header class="p-6 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 class="text-xl font-semibold">
     {{ 'PAC.KEY_WORDS.MODIFY' | translate: {Default: 'Modify'} }} {{ 'PAC.KEY_WORDS.DataSource' | translate: {Default: 'Data Source'} }}
+    {{nameCtrl.value}}
   </h4>
 </header>
 
-<div class="p-4 min-w-[400px] overflow-y-auto">
+<div class="p-6 min-w-[500px] overflow-y-auto">
   @if(dataSource?.type) {
     <div class="flex justify-center items-center text-lg">
       <img src="assets/images/db-logos/{{dataSource.type.type}}.png" width="64" height="64">

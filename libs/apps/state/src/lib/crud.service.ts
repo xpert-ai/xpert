@@ -32,6 +32,14 @@ export class CrudService<T> {
     return this.httpClient.put(`${this.apiBaseUrl}/${id}`, entity)
   }
 
+  upsert(entity: Partial<T>) {
+    if (entity['id']) {
+      return this.update(entity['id'], entity)
+    } else {
+      return this.create(entity)
+    }
+  }
+
   delete(id: string) {
     return this.httpClient.delete(`${this.apiBaseUrl}/${id}`)
   }

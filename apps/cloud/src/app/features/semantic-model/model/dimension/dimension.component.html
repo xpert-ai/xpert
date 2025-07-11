@@ -8,9 +8,9 @@
   <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple class="flex-1" mat-stretch-tabs="false" mat-align-tabs="start">
     @for (tab of hierarchies(); track tab.__id__; let i = $index) {
       <span mat-tab-link class="relative"
-          [routerLink]="['hierarchy', tab.__id__]"
-          routerLinkActive #rla="routerLinkActive"
-          [active]="rla.isActive"
+        [routerLink]="['hierarchy', tab.__id__]"
+        routerLinkActive #rla="routerLinkActive"
+        [active]="rla.isActive"
       >
         <span>{{tab.caption}}</span>
 

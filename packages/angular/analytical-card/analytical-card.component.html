@@ -182,7 +182,7 @@
 <ng-template #drillLevelsMenu let-levels="levels" let-slicer="slicer">
   <div cdkMenu class="cdk-menu__medium">
     @for (item of levels; track item) {
-      <button cdkMenuItem
+      <button cdkMenuItem [class.text-text-secondary]="item.disabled"
         [disabled]="item.disabled"
         (click)="drillLevel({property: item.property, slicer})">
         <ngm-entity-property class="w-full" [property]="item.property"></ngm-entity-property>
@@ -194,7 +194,7 @@
 <ng-template #drillDimensionsMenu let-slicer="slicer">
   <div cdkMenu class="cdk-menu__medium">
     @for (item of drillDimensions$ | async; track item) {
-      <button cdkMenuItem 
+      <button cdkMenuItem [class.text-text-secondary]="item.disabled"
         [disabled]="item.disabled"
         (click)="drill({parent: slicer.dimension, dimension: item.dimension, slicer})">
         <ngm-entity-property class="w-full" [property]="item.property"></ngm-entity-property>

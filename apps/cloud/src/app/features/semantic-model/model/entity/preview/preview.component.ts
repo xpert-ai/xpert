@@ -340,7 +340,7 @@ export class ModelEntityPreviewComponent {
         }
       } else if (
         event.previousContainer.id === 'list-measures' ||
-        event.previousContainer.id === 'list-calculated-members'
+        event.previousContainer.id === CdkDragDropContainers.CalculatedMembers
       ) {
         let rows = null
         if (event.container.id === 'property-modeling-rows') {

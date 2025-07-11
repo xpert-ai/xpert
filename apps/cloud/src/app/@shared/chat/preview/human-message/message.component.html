@@ -1,0 +1,32 @@
+<div class="group relative mr-4">
+  <svg width="8" height="12" viewBox="0 0 8 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="absolute -right-2 top-0 w-2 h-3 text-[#D1E9FF]/50" data-icon="QuestionTriangle" aria-hidden="true">
+    <g id="Rectangle 2">
+      <path d="M6.96353 1.5547C7.40657 0.890144 6.93018 0 6.13148 0H0V12L6.96353 1.5547Z" fill="currentColor"></path>
+      <path d="M6.96353 1.5547C7.40657 0.890144 6.93018 0 6.13148 0H0V12L6.96353 1.5547Z" fill="currentColor" fill-opacity="0.5"></path>
+    </g>
+  </svg>
+  <div class="px-4 py-3 bg-[#D1E9FF]/50 rounded-b-2xl rounded-tl-2xl text-sm text-gray-900">
+    <div class="markdown-body">
+      <p>{{message().content}}</p>
+    </div>
+  </div>
+  <chat-attachments class="mt-2" ngm-density large [attachments]="attachments()" />
+  <div class="mt-1 h-[18px]"></div>
+</div>
+
+<div class="shrink-0 w-10 h-10">
+  <div class="w-full h-full rounded-full border-[0.5px] border-black/5">
+    <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full" data-icon="User" aria-hidden="true">
+      <g clip-path="url(#clip0_5968_39205)">
+        <rect width="512" height="512" rx="256" fill="#B2DDFF"></rect>
+        <circle opacity="0.68" cx="256" cy="196" r="84" fill="white"></circle>
+        <ellipse opacity="0.68" cx="256" cy="583.5" rx="266" ry="274.5" fill="white"></ellipse>
+      </g>
+      <defs>
+        <clipPath id="clip0_5968_39205">
+          <rect width="512" height="512" rx="256" fill="white"></rect>
+        </clipPath>
+      </defs>
+    </svg>
+  </div>
+</div>

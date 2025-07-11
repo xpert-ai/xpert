@@ -36,7 +36,7 @@
 
 .cdk-overlay-pane.xp-overlay-pane-share-sheet {
   .cdk-dialog-container {
-    @apply rounded-[36px] shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)] border-[0.5px] border-solid border-neutral-300 bg-components-card-bg;
+    @apply overflow-hidden rounded-[36px] shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)] border-[0.5px] border-solid border-neutral-200 bg-components-card-bg;
     animation: custom-dialog-enter-bounce 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   }
 }

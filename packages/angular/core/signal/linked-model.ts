@@ -32,9 +32,9 @@ export function linkedModel<T>(options: LinkedModelOptions<T>): WritableSignal<T
   return derived
 }
 
-export function attrModel<T, K extends keyof T>(model: WritableSignal<T>, name: K) {
+export function attrModel<T, K extends keyof T>(model: WritableSignal<T>, name: K, initialValue: T[K] | null = null) {
   return linkedModel<T[K]>({
-    initialValue: null,
+    initialValue,
     compute: () => model()?.[name],
     update: (value) => {
       model.update((state) => ({ ...(state ?? {}), [name]: value } as T))

@@ -90,4 +90,8 @@ export class ChatPlatformService extends ChatService {
       this.#router.navigate(['/chat'])
     }
   }
+
+  gotoTask(taskId: string) {
+    this.#router.navigate(['/chat/tasks', taskId])
+  }
 }

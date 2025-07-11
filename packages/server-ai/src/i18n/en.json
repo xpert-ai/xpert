@@ -57,6 +57,9 @@
         },
         "BrowserUse": {
             "ExecutionStep": "Execution Step"
+        },
+        "Task": {
+            "ScheduledTask": "Scheduled Task"
         }
     }
 }

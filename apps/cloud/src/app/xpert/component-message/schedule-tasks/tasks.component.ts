@@ -112,7 +112,7 @@ export class ChatComponentScheduleTasksComponent {
       next: () => {
         this.loading.set(false)
         this.taskDetails.update((tasks) => [
-          { ...task, status: XpertTaskStatus.RUNNING },
+          { ...task, status: XpertTaskStatus.SCHEDULED },
           ...(tasks?.filter((_) => _.id !== task.id) ?? [])
         ])
       },

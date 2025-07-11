@@ -63,12 +63,15 @@
               @if (column.name === rowTreeProperty()) {
                 <button mat-icon-button [displayDensity]="appearance?.displayDensity"
                   (click)="toggleRowUnfold($event)">
-                  <mat-icon *ngIf="!rowUnfold">unfold_more</mat-icon>
-                  <mat-icon *ngIf="rowUnfold">unfold_less</mat-icon>
+                  @if (rowUnfold) {
+                    <mat-icon>unfold_less</mat-icon>
+                  } @else {
+                    <mat-icon>unfold_more</mat-icon>
+                  }
                 </button>
               }
       
-              {{column.caption || column.name}}
+              <span>{{column.caption || column.name}}</span>
       
               <button mat-icon-button displayDensity="compact" [color]="column.selections?.length ? 'accent' : ''"
                 cdkOverlayOrigin #trigger="cdkOverlayOrigin"
@@ -242,11 +245,13 @@
                   {{column.caption || column.name}}
                 </div>
 
-                <div *ngIf="last" mat-sort-header [disabled]="!options()?.sortable"></div>
+                @if (last) {
+                  <div mat-sort-header [disabled]="!options()?.sortable"></div>
+                }
               </div>
             </th>
 
-            <ng-container *ngIf="last">
+            @if (last) {
               <td mat-cell *matCellDef="let element;" class="ngm-analytical-grid__measure"
                 [class.selected-cell]="selected.column?.name === column.name"
                 [class.ngm-analytical-grid__cell-empty]="isNil(element[column.name]?.value)"
@@ -282,7 +287,7 @@
                   </span>
                 </ng-template>
               </td>
-            </ng-container>
+            }
           </ng-container>
         }
         

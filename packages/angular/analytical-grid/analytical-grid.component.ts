@@ -44,10 +44,12 @@ import {
   getDimensionMemberCaption,
   getEntityHierarchy,
   getEntityProperty,
+  getEntityProperty2,
   getHierarchyProperty,
   getPropertyHierarchy,
   hierarchize,
   IMember,
+  isDimension,
   isEqual,
   ISlicer,
   isMeasure,
@@ -311,6 +313,8 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
     })
   )
 
+  readonly analytics = toSignal(this.analyticsService.analytics$)
+
   private querySchemaColumns = []
   public readonly querySchemaColumns$ = new BehaviorSubject([])
 
@@ -553,9 +557,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
   private _pivotColumnsSub = this._pivotColumns$
     .pipe(withLatestFrom(this.rowAxes$, this.columnAxes$))
     .subscribe(([levels, rowAxes, columnAxes]) => {
-
-      console.log(levels, rowAxes, columnAxes)
-
       this.rowAxes = rowAxes
       this.columnAxes = columnAxes
       const pivotColumnNames = levels.map((item) => item.map((column) => column.name))
@@ -651,9 +652,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
       this.flatDataSource.data = data
     })
     
-  private rowAxesSub = this.rowAxes$.subscribe((value) => {
-    console.log(value)
-  })
   constructor(
     private translateService: TranslateService,
     private cdr: ChangeDetectorRef,
@@ -1156,7 +1154,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
 
   async downloadData() {
     const result = await firstValueFrom(this.analyticsService.selectResult())
-    csvDownload(result.data, (this.title || 'data') + '.csv', ',')
+    downloadData(this.title || 'data', this.analytics(), this.entityType(), result.data)
   }
 
   treeData = toSignal(this.rowDataSource.connect({ viewChange: of({ start: 0, end: Number.MAX_SAFE_INTEGER }) }))
@@ -1225,4 +1223,36 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
   ngOnDestroy() {
     this._focusMonitor.stopMonitoring(this.elementRef)
   }
+}
+
+
+function downloadData(fileName: string, analytics: DataSettings['analytics'], entityType: EntityType, data: any[]) {
+  const fields = [...analytics.rows, ...analytics.columns].map((item) => {
+    const property = getEntityProperty2(entityType, item)
+    if (isDimension(item)) {
+      return {
+          key: property.name,
+          label: property.caption,
+          caption: getDimensionMemberCaption(item, entityType)
+        } 
+    }
+    return {
+      key: property.name,
+      label: property.caption,
+    }
+  })
+  const items = []
+  for (const item of data) {
+    const row = {}
+    for (const field of fields) {
+      if (field.caption) {
+        row[field.label] = item[field.caption]
+      } else {
+        row[field.label] = item[field.key]
+      }
+    }
+    items.push(row)
+  }
+
+  csvDownload(items, fileName + '.csv', ',')
 }

@@ -1,21 +1,22 @@
 import {
+	generateCronExpression,
+	IChatConversation,
 	IXpert,
-	IXpertAgentExecution,
 	IXpertTask,
 	LanguagesEnum,
-	XpertAgentExecutionStatusEnum,
+	TTaskOptions,
 	XpertTaskStatus
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { Exclude, Expose, Transform } from 'class-transformer'
-import { IsEnum, IsOptional, IsString } from 'class-validator'
+import { Expose, Transform } from 'class-transformer'
+import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator'
 import cronstrue from 'cronstrue'
 import 'cronstrue/locales/en'
 import 'cronstrue/locales/zh_CN'
-import { Column, DeleteDateColumn, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
-import { Xpert, XpertAgentExecution } from '../core/entities/internal'
+import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
+import { ChatConversation, Xpert } from '../core/entities/internal'
 import { XpertIdentiDto } from '../xpert/dto'
 
 @Entity('xpert_task')
@@ -31,6 +32,12 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	@IsOptional()
 	@Column({ nullable: true, length: 50 })
 	schedule?: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsObject()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	options?: TTaskOptions
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsOptional()
@@ -77,23 +84,17 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	@DeleteDateColumn({ nullable: true })
 	deletedAt?: Date
 
-	@ApiProperty({ type: () => [XpertAgentExecution] })
-	@Exclude()
-	@ManyToMany(() => XpertAgentExecution, {
-		eager: true,
-		onUpdate: 'CASCADE',
-		onDelete: 'CASCADE'
-	})
-	@JoinTable({
-		name: 'xpert_task_to_execution'
-	})
-	executions?: IXpertAgentExecution[]
+	@ApiPropertyOptional({ type: () => ChatConversation, isArray: true })
+	@IsOptional()
+	@OneToMany(() => ChatConversation, (_) => _.task)
+	conversations?: IChatConversation[]
 
 	// Temporary properties
 	@Expose()
 	get scheduleDescription(): string {
 		try {
-			return cronstrue.toString(this.schedule, {
+			const schedule = this.schedule || generateCronExpression(this.options)
+			return cronstrue.toString(schedule, {
 				locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode()
 			})
 		} catch (err) {
@@ -103,17 +104,17 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 
 	@Expose()
 	get executionCount(): number {
-		return this.executions?.length
+		return this.conversations?.length
 	}
 
 	@Expose()
 	get errorCount(): number {
-		return this.executions?.filter((_) => _.status === XpertAgentExecutionStatusEnum.ERROR).length
+		return this.conversations?.filter((_) => _.status === 'error').length
 	}
 
 	@Expose()
 	get successCount(): number {
-		return this.executions?.filter((_) => _.status !== XpertAgentExecutionStatusEnum.ERROR).length
+		return this.conversations?.filter((_) => _.status !== 'error').length
 	}
 }
 

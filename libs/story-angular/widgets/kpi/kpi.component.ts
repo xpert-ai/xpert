@@ -1,15 +1,14 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatIconModule } from '@angular/material/icon'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { AbstractStoryWidget, StoryWidgetState, StoryWidgetStyling, WidgetMenuType, nonNullable } from '@metad/core'
-import { NgmObjectNumberComponent } from '@metad/ocap-angular/common'
+import { NgmObjectNumberComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
-import { TrendType, assignDeepOmitBlank, isEmpty, isEqual, isNil } from '@metad/ocap-core'
+import { DataSettings, Dimension, PropertyHierarchy, TrendType, assignDeepOmitBlank, getEntityDimensions, isEmpty, isEqual, isNil } from '@metad/ocap-core'
 import { ComponentStyling, NxStoryService, componentStyling } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -17,6 +16,8 @@ import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { KeyPerformanceIndicatorService } from './key-performance-indicator.service'
 import { KPIPlaceholderComponent } from './placeholder/placeholder.component'
 import { NxWidgetKPIOptions } from './types'
+import { AnalyticalGridComponent, AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
+import { DisplayDensity } from '@metad/ocap-angular/core'
 
 export interface PacWidgetKPIStyling extends StoryWidgetStyling {
   title: ComponentStyling
@@ -36,12 +37,13 @@ export interface PacWidgetKPIStyling extends StoryWidgetStyling {
     TranslateModule,
     CdkMenuModule,
     MatIconModule,
-    MatProgressSpinnerModule,
     MatTooltipModule,
 
+    AnalyticalGridModule,
     NgmObjectNumberComponent,
     KPIPlaceholderComponent,
     NgmSelectionModule,
+    NgmSpinComponent,
   ]
 })
 export class NxWidgetKpiComponent extends AbstractStoryWidget<
@@ -51,10 +53,14 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
 > {
   TrendType = TrendType
   SlicersCapacity = SlicersCapacity
+  eDisplayDensity = DisplayDensity
 
   readonly dataService = inject(KeyPerformanceIndicatorService)
   readonly storyService = inject(NxStoryService, { optional: true })
   readonly #logger = inject(NGXLogger)
+  
+  // Chirldren
+  readonly gridComponent = viewChild('gridComponent', { read: AnalyticalGridComponent })
 
   readonly intent = computed(() => this.optionsSignal()?.intent)
   readonly showPlaceholder = computed(
@@ -125,6 +131,27 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
 
   readonly selectOptions = toSignal(this.selectOptions$)
 
+  // Drilldown
+  readonly dimensions = computed(() => getEntityDimensions(this.entityType()))
+  readonly drillDimensions = signal<Dimension[]>([])
+  readonly drilling = computed(() => this.drillDimensions().length > 0)
+  readonly drillDataSettings = computed(() => {
+    const dataSettings = this.dataSettingsSignal()
+    return {
+      ...dataSettings,
+      KPIAnnotation: null,
+      analytics: {
+        rows: this.drillDimensions().map((dimension) => ({
+          ...dimension,
+          zeroSuppression: true
+        })),
+        columns: [
+          dataSettings.KPIAnnotation.DataPoint.Value
+        ]
+      }
+    } as DataSettings
+  })
+
   /**
   |--------------------------------------------------------------------------
   | Subscriptions (effect)
@@ -157,7 +184,6 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
     .selectResult()
     .pipe(takeUntilDestroyed())
     .subscribe((result) => {
-      // this.#logger.debug(`Result from dataService in NxWidgetKpiComponent is:`, result)
       this.setExplains([result, this.dataSettings])
     })
 
@@ -179,19 +205,6 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
     this.dataService.refresh(force)
   }
 
-  onClick(evt) {
-    // const selectOptions = getSelectOptions(this.dataSettings)
-    // const dataPoint = this.kpiService.getDataPoint()
-    // if (selectOptions) {
-    //   this.filterChange.emit([
-    //     {
-    //       filteringLogic: FilteringLogic.And,
-    //       children: selectOptions
-    //     } as IAdvancedFilter
-    //   ])
-    // }
-  }
-
   onIntentClick() {
     if (this.intent()) {
       this.coreService.sendIntent(this.intent())
@@ -202,6 +215,26 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
     this.widgetService?.clickMenu({
       key: 'open_designer',
       type: WidgetMenuType.Action
+    })
+  }
+
+  drill(h: PropertyHierarchy) {
+    this.drillDimensions.update((dimensions) => {
+      dimensions.push({
+        dimension: h.dimension,
+        hierarchy: h.name
+      })
+      return [...dimensions]
+    })
+  }
+
+  onExplain(event) {
+    this.explain.emit(event)
+  }
+
+  download() {
+    this.gridComponent()?.downloadData().catch((error) => {
+      this.#logger.error('Download data failed', error)
     })
   }
 }

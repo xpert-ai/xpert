@@ -22,12 +22,12 @@ export interface PostgresAdapterOptions extends SQLAdapterOptions {
 }
 
 export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
-  readonly name = 'Postgres'
-  readonly type = POSTGRES_TYPE
+  readonly name: string = 'Postgres'
+  readonly type: string = POSTGRES_TYPE
   readonly syntax = DBSyntaxEnum.SQL
   readonly protocol = DBProtocolEnum.SQL
 
-  readonly jdbcDriver = 'org.postgresql.Driver'
+  readonly jdbcDriver: string = 'org.postgresql.Driver'
 
   jdbcUrl(schema?: string) {
     return `jdbc:postgresql://${this.host}:${this.port}/${this.options.database}?`+
@@ -43,7 +43,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         port: { type: 'number', default: 5432 },
         username: { type: 'string', default: '' },
         password: { type: 'string' },
-        database: { type: 'string', title: 'Database Name' },
+        database: { type: 'string', title: 'Database Name', default: 'postgres' },
         sslmode: {
           "type": "string",
           "title": "SSL Mode",

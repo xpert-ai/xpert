@@ -1,10 +1,24 @@
 import { Component, inject } from '@angular/core'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { map } from 'rxjs/operators'
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
+import { CommonModule } from '@angular/common'
+import { MatButtonModule } from '@angular/material/button'
+import { NgmTableComponent } from '@metad/ocap-angular/common'
+import { TranslateModule } from '@ngx-translate/core'
+import { UserPipe } from '@cloud/app/@shared/pipes'
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    TranslateModule,
+    MatButtonModule,
+    NgmTableComponent,
+    UserPipe
+  ],
   selector: 'pac-model-overview',
   templateUrl: 'overview.component.html',
   styleUrls: ['overview.component.scss']

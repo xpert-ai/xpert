@@ -1,28 +1,7 @@
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { ScrollingModule } from '@angular/cdk/scrolling'
-import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NxActionStripModule } from '@metad/components/action-strip'
-import { NxEditorModule } from '@metad/components/editor'
-import {
-  NgmCommonModule,
-  NgmDrawerTriggerComponent,
-  NgmTableComponent,
-  ResizerModule,
-  SplitterModule
-} from '@metad/ocap-angular/common'
-import { NgmCopilotChatComponent } from '@metad/copilot-angular'
-import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
-import { NgmDesignerFormComponent, NxDesignerModule, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
-import { ContentLoaderModule } from '@ngneat/content-loader'
-import { FormlyModule } from '@ngx-formly/core'
-import { TranslateModule } from '@ngx-translate/core'
+import { provideOcapCore } from '@metad/ocap-angular/core'
+import { NgmDesignerFormComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { ModelUploadComponent } from '../upload/upload.component'
-import { ModelCreateEntityComponent } from './create-entity/create-entity.component'
-import { ModelComponent } from './model.component'
-import { ModelOverviewComponent } from './overview/overview.component'
 import { ModelRoutingModule } from './routing'
 import {
   CalculatedMemberAttributesSchema,
@@ -40,49 +19,16 @@ import {
   MeasureSchemaService
 } from './schema/index'
 import { ModelDesignerType } from './types'
-import { DirtyBadgeComponent } from '../../../@shared/badge'
-import { MaterialModule } from '../../../@shared/material.module'
-import { CreatedByPipe, UserPipe } from '../../../@shared/pipes'
-import { DateRelativePipe } from '@cloud/app/@core'
-import { NgmFormlyFactModule } from '../formly/fact'
+import { NgmFormlyFactModule } from '../formly/'
 
 @NgModule({
-  declarations: [ModelComponent, ModelOverviewComponent, ModelCreateEntityComponent],
+  declarations: [],
   imports: [
     ModelRoutingModule,
-    CommonModule,
-    FormsModule,
-    MaterialModule,
-    CdkMenuModule,
-    TranslateModule,
-    ReactiveFormsModule,
-    ScrollingModule,
-
-    NxEditorModule,
-    CreatedByPipe,
-    UserPipe,
-    NxActionStripModule,
-    NxDesignerModule,
-    ModelUploadComponent,
-    DirtyBadgeComponent,
-
-    // OCAP Modules
-    ResizerModule,
-    SplitterModule,
-    OcapCoreModule,
-    NgmCommonModule,
-    NgmCopilotChatComponent,
-    NgmTableComponent,
-    NgmDrawerTriggerComponent,
-
     // Thirdparty
     MonacoEditorModule.forRoot(),
-    ContentLoaderModule,
-    FormlyModule,
-    NgmFormlyFactModule,
 
-    // 
-    DateRelativePipe
+    NgmFormlyFactModule
   ],
   providers: [
     provideOcapCore(),

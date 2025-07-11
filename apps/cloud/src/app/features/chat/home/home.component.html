@@ -46,9 +46,12 @@
             [matTooltipDisabled]="sidebarState() === 'expanded'"
           >
             <a
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full flex flex-row gap-2 p-[.5rem] text-sm text-text-secondary hover:text-text-primary cursor-pointer"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 
+                h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem]
+                text-zinc-600 hover:text-text-primary cursor-pointer"
               tabindex="-1"
               routerLink="/chat"
+              (click)="newConversation()"
               >
               <div data-sidebar="icon" class="w-5 h-5 flex items-center justify-center shrink-0 ms-[2px]">
                 <i class="ri-chat-new-line text-lg"></i>
@@ -72,11 +75,12 @@
             (mouseover)="enterMenuOverlay('task')"
             (mouseleave)="leaveMenuOverlay('task')">
             <a
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full flex flex-row gap-2 p-[.5rem] text-sm text-text-secondary hover:text-text-primary"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem]
+               text-zinc-600 hover:text-text-primary"
               data-sidebar="menu-button"
-              data-active="false"
               tabindex="-1"
               routerLink="/chat/tasks"
+              routerLinkActive="bg-hover-bg"
               >
               <div data-sidebar="icon" class="size-5 flex items-center justify-center shrink-0 ms-[2px]">
                 <svg
@@ -89,7 +93,6 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="lucide lucide-alarm-clock-check"
                 >
                   <circle cx="12" cy="13" r="8"></circle>
                   <path d="M5 3 2 6"></path>
@@ -109,6 +112,7 @@
                   class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&amp;_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary hover:bg-button-ghost-hover disabled:hover:text-fg-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-fg-primary h-7 w-7 rounded-full ms-auto opacity-0 group-hover/menu-item:opacity-100 transition-opacity duration-200"
                   type="button"
                   aria-label="Create task"
+                  (click)="newTask()"
                 >
                   <i class="ri-add-line"></i>
                 </button>
@@ -131,8 +135,11 @@
             >
             <button
               aria-label="Projects"
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-secondary hover:text-text-primary p-[.5rem]"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background
+                text-zinc-600 hover:text-text-primary p-[.5rem]"
               tabindex="-1"
+              routerLink="/chat/p"
+              routerLinkActive="bg-hover-bg"
               (click)="projectsExpanded() ? projectsExpanded.set(false) : projectsExpanded.set(true)"
             >
               @if (projectLoading()) {
@@ -218,7 +225,9 @@
           >
             <button
               aria-label="History"
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full flex flex-row gap-2 bg-background text-text-secondary hover:text-text-primary text-sm rounded-xl p-[.5rem]"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8
+                h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background
+                text-zinc-600 hover:text-text-primary p-[.5rem]"
               data-sidebar="menu-button"
               tabindex="-1"
               (click)="historyExpanded() ? historyExpanded.set(false) : historyExpanded.set(true)"
@@ -369,15 +378,25 @@
         class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed select-none h-7 w-7 rounded-full ms-auto hover:bg-hover-bg"
         type="button"
         aria-label="Create task"
+        (click)="newTask()"
       >
         <i class="ri-add-line"></i>
       </button>
     </div>
 
     <div class="w-80 min-h-[200px] overflow-auto flex flex-col justify-start">
-      <div class="grow w-full flex flex-col justify-center items-center text-text-secondary text-3xl">
-        <i class="ri-calendar-schedule-line"></i>
-      </div>
+      @for (conv of taskConversations(); track conv.id) {
+        <a class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active aria-expanded:bg-button-ghost-hover group/task-item pl-3 pr-4 py-1 text-sm w-full text-fg-primary"
+          [routerLink]="['/chat/c', conv.id]">
+          <span class="flex-1 select-none text-nowrap max-w-full overflow-hidden inline-block" 
+            style="mask-image: linear-gradient(to right, black 85%, transparent 100%);">{{conv.title || conv.options?.parameters?.input}}</span>
+          <!-- <div class="rounded-full bg-blue-400 h-1.5 w-1.5"></div> -->
+        </a>
+      } @empty {
+        <div class="grow w-full flex flex-col justify-center items-center text-text-secondary text-3xl">
+          <i class="ri-calendar-schedule-line"></i>
+        </div>
+      }
     </div>
   </div>
 </ng-template>
@@ -417,7 +436,7 @@
         } @else {
           <div style="opacity: 1" class="relative group/conversation-item">
             <a
-              class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active pl-3 pr-1 py-1 w-full flex flex-row gap-2 text-primary"
+              class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active pl-3 pr-1 py-1 w-full flex flex-row text-primary"
               [class.bg-hover-bg]="currentPage().type === 'conversation' && currentPage().id === conv.id"
               tabindex="-1"
               [routerLink]="['/chat/c', conv.id]"
@@ -427,14 +446,18 @@
               <span
                 class="flex-1 select-none whitespace-nowrap max-w-full overflow-hidden inline-block"
                 style="mask-image: linear-gradient(to right, black 85%, transparent 100%)"
-                >{{conv.title || conv.id}}</span
+                >{{conv.title || conv.options?.parameters?.input || conv.id }}</span
               >
               @if (conv.xpert) {
-                <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                  @if (conv.taskId) {
+                    <i class="ri-timer-line"></i>
+                  }
                   {{conv.xpert.title || conv.xpert.name}}
                 </span>
+              } @else if (conv.taskId) {
+                <i class="ri-timer-line"></i>
               }
-              
             </a>
 
             @if (sidebarState() === 'expanded') {
