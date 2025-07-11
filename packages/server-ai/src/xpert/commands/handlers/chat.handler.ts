@@ -52,7 +52,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 	public async execute(command: XpertChatCommand): Promise<Observable<MessageEvent>> {
 		const { options } = command
 		const { projectId, xpertId, input, conversationId, confirm, reject, operation: _operation } = command.request
-		const { from, fromEndUserId } = options ?? {}
+		const { taskId, from, fromEndUserId } = options ?? {}
 		const userId = RequestContext.currentUserId()
 
 		const timeStart = Date.now()
@@ -93,7 +93,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				// New conversation
 				conversation = await this.commandBus.execute(
 					new ChatConversationUpsertCommand({
-						projectId: projectId,
+						status: 'busy',
+						projectId,
+						taskId,
 						xpert,
 						options: {
 							parameters: input,
@@ -155,6 +157,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					data: {
 						id: conversation.id,
 						title: conversation.title || shortTitle(input?.input),
+						status: conversation.status,
 						createdAt: conversation.createdAt,
 						updatedAt: conversation.updatedAt
 					}

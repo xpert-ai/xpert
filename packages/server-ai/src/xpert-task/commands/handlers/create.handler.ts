@@ -1,13 +1,13 @@
 import { IXpertAgent, RolesEnum, XpertTaskStatus } from '@metad/contracts'
+import { RequestContext } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
+import { I18nService } from 'nestjs-i18n'
 import { GetXpertWorkflowQuery } from '../../../xpert/queries'
 import { XpertTaskService } from '../../xpert-task.service'
 import { CreateXpertTaskCommand } from '../create.command'
-import { RequestContext } from '@metad/server-core'
-import { I18nService } from 'nestjs-i18n'
 
 @CommandHandler(CreateXpertTaskCommand)
 export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCommand> {
@@ -18,7 +18,7 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		@InjectQueue('xpert-task-scheduler') private scheduler: Queue,
-		private readonly i18n: I18nService,
+		private readonly i18n: I18nService
 	) {}
 
 	public async execute(command: CreateXpertTaskCommand) {
@@ -34,7 +34,7 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 
 		// Check agentKey
 		if (xpertId && agentKey) {
-			const {agent} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent}>(
+			const { agent } = await this.queryBus.execute<GetXpertWorkflowQuery, { agent: IXpertAgent }>(
 				new GetXpertWorkflowQuery(xpertId, agentKey, false)
 			)
 			if (!agent) {
@@ -47,12 +47,12 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 		const task = await this.taskService.create({
 			...command.task,
 			timeZone,
-			status: XpertTaskStatus.RUNNING
+			status: XpertTaskStatus.SCHEDULED
 		})
 
 		// Start task not in current context
 		await this.scheduler.add({ taskId: task.id })
 
-		return [task]
+		return task
 	}
 }

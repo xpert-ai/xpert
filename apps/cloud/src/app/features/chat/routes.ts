@@ -90,7 +90,14 @@ export const routes: Routes = [
         component: ChatTasksComponent,
         data: {
           title: 'Chat Tasks',
-        }
+        },
+      },
+      {
+        path: 'tasks/:id',
+        component: ChatTasksComponent,
+        data: {
+          title: 'Chat Task',
+        },
       },
       {
         path: '**',

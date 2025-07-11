@@ -661,6 +661,7 @@
       "BatchImport": "批量导入"
     },
     "ACTIONS": {
+      "Pause": "暂停",
       "Add": "添加",
       "Apply": "应用",
       "Cancel": "取消",
@@ -1843,6 +1844,7 @@
       }
     },
     "Chat": {
+      "GoToTask": "前往任务",
       "Empty": "清空",
       "Histories": "历史记录",
       "ShowMore": "显示更多",
@@ -2311,6 +2313,28 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "Archive": "归档",
+      "Time": "时间",
+      "NameOfTask": "任务名称",
+      "DayinMonth": "每月运行的日期",
+      "WillRunClosestDay": "将在最近一天运行",
+      "EnterPromptHere": "在这里输入提示词",
+      "TasksRemaining": "剩余任务",
+      "TasksActive": "活动任务",
+      "Current": "当前",
+      "SelectExpert": "选择数字专家",
+      "NoRecordsYet": "暂无记录",
+      "NewTask": "新建任务",
+      "History": "历史",
+      "Record": "记录",
+      "Archived": "已归档",
+      "CreateTask": "创建任务",
+      "UpdateTask": "更新任务",
+      "Frequency_Daily": "每天",
+      "Frequency_Weekly": "每周",
+      "Frequency_Monthly": "每月",
+      "Frequency_Yearly": "每年",
+      "Frequency_Once": "一次",
       "OrCreateBuiltinToolset": "或创建内置工具集",
       "Profile": "个人档案",
       "EnterProfile": "请输入个人档案",

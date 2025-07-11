@@ -1,7 +1,8 @@
 <svg class="size-full -rotate-90" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
     <!-- Background Circle -->
-    <circle cx="18" cy="18" r="16" fill="none" class="stroke-current text-gray-200 dark:text-neutral-700" stroke-width="2"></circle>
+    <circle cx="18" cy="18" r="16" fill="none" class="stroke-current text-gray-200 dark:text-neutral-700" stroke-width="3"></circle>
     <!-- Progress Circle -->
-    <circle cx="18" cy="18" r="16" fill="none" class="stroke-current text-orange-600 dark:text-orange-500" stroke-width="2" stroke-dasharray="100" 
-        [attr.stroke-dashoffset]="value()" stroke-linecap="round"></circle>
+    <circle cx="18" cy="18" r="16" fill="none" class="stroke-current" color="currentColor" stroke-width="3" stroke-dasharray="100" 
+        [attr.stroke-dashoffset]="progress()" stroke-linecap="round">
+    </circle>
 </svg>

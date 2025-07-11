@@ -7,9 +7,9 @@ import { ChatService } from '@cloud/app/xpert'
 import { nonNullable } from '@metad/ocap-core'
 import { injectParams } from 'ngxtension/inject-params'
 import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
+import { injectProjectService } from '@cloud/app/@core'
 import { ChatHomeService } from '../home.service'
 import { ProjectService } from './project.service'
-import { injectProjectService } from '@cloud/app/@core'
 
 @Injectable()
 export class ChatProjectService extends ChatService {
@@ -99,5 +99,9 @@ export class ChatProjectService extends ChatService {
   }
   getRecentAttachmentsSignal() {
     return this.projectService.project_attachments
+  }
+
+  gotoTask(taskId: string): void {
+    throw new Error('Task not supported in project')
   }
 }

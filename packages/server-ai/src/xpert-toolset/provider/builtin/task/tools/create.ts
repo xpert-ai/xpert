@@ -48,12 +48,12 @@ export class TaskCreateTool extends BuiltinTool {
 			throw new ToolParameterValidationError(`Invalid schedule (cron expression) format`)
 		}
 
-		const tasks = await this.toolset.commandBus.execute(new CreateXpertTaskCommand({
+		const task = await this.toolset.commandBus.execute(new CreateXpertTaskCommand({
 			...parameters,
 			xpertId: this.toolset.xpertId,
 		}))
 
-		this.toolset.sendTasks(subscriber, tasks, 'en-US')
+		this.toolset.sendTasks(subscriber, [task], 'en-US')
 
 		return 'Task creation completed!'
 	}

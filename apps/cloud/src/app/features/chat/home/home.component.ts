@@ -118,11 +118,11 @@ export class ChatHomeComponent {
   readonly conversationService = inject(ChatConversationService)
   readonly #conversations = myRxResource({
     request: () => ({
-        select: ['id', 'threadId', 'title', 'updatedAt', 'from', 'projectId'],
+        select: ['id', 'threadId', 'title', 'updatedAt', 'from', 'projectId', 'taskId'],
         order: { updatedAt: OrderTypeEnum.DESC },
         take: 20,
         where: {
-          from: 'platform',
+          from: { '$in': ['platform', 'job']},
           projectId: {'$isNull': true}
         },
         relations: ['xpert', 'project']

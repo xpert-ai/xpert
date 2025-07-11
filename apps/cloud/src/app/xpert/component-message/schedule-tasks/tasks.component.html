@@ -12,7 +12,7 @@
     </div>
 
     @if (!task.deletedAt) {
-      @if (task.status === eXpertTaskStatus.RUNNING) {
+      @if (task.status === eXpertTaskStatus.SCHEDULED) {
         <button type="button" class="w-8 h-8 flex justify-center items-center rounded-lg opacity-50 hover:bg-gray-50 hover:opacity-100"
           [matTooltip]="'PAC.Chat.PauseTask' | translate: {Default: 'Pause the Task'}"
           matTooltipPosition="above"
@@ -51,7 +51,7 @@
         <i class="ri-edit-line mr-1"></i>
         {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
       </div>
-      @if (task.status === eXpertTaskStatus.RUNNING) {
+      @if (task.status === eXpertTaskStatus.SCHEDULED) {
         <div cdkMenuItem (click)="pause(task)">
           <i class="ri-pause-circle-line mr-1"></i>
           {{ 'PAC.Chat.Pause' | translate: { Default: 'Pause' } }}
