@@ -30,7 +30,6 @@ import { Screenshot } from '../../screenshot/screenshot.entity'
 import { Certification } from '../../certification/certification.entity'
 import { IndicatorApp } from '../../indicator-app/indicator-app.entity'
 import { SemanticModelEntity } from '../../model-entity/entity.entity'
-import { ChatBIConversation } from '../../chatbi-conversation/conversation.entity'
 import { ChatBIModel } from '../../chatbi-model/chatbi-model.entity'
 import { SemanticModelQueryLog } from './internal'
 
@@ -69,6 +68,5 @@ export const ALL_ENTITIES = [
 	Comment,
 	Screenshot,
 	Certification,
-	ChatBIConversation,
 	ChatBIModel
 ]

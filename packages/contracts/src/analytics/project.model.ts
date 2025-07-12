@@ -20,32 +20,32 @@ export interface IProject extends IBasePerTenantAndOrganizationEntityModel {
   stories?: IStory[]
   indicators?: IIndicator[]
   /**
-   * 项目中有权限的用户
+   * Project Members
    */
   members?: IUser[]
   /**
-   * 项目中可用的语义模型
+   * Semantic model bound in the project
    */
   models?: ISemanticModel[]
   /**
-   * 项目中可用的认证
+   * Certifications available in the project
    */
   certifications?: ICertification[]
 
   /**
-   * 项目中的文件素材
+   * Files in the project
    */
   files?: IStorageFile[]
 }
 
 export enum ProjectStatusEnum {
   /**
-   * 使用中
+   * In use
    */
   Progressing = 'Progressing',
 
   /**
-   * 存档
+   * Archived
    */
   Archived = 'Archived'
 }

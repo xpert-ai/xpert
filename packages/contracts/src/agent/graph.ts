@@ -78,6 +78,10 @@ export function getToolCallFromConfig(config): TToolCall {
 	return config?.toolCall	|| config?.configurable?.toolCall
 }
 
+export function getToolCallIdFromConfig(config): string {
+	return config.metadata?.tool_call_id || config?.configurable?.tool_call_id || getToolCallFromConfig(config)?.id 
+}
+
 /**
  * Set value into variable of state.
  * 

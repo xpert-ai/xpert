@@ -22,16 +22,15 @@ credentials_for_provider:
       zh_Hans: 请选择你的对话模型
     selectUrl: /api/chatbi-model/model-select-options
     multi: true
-  projects:
+  project:
     type: remote-select
     label:
-      en_US: BI Projects
+      en_US: BI Project
       zh_Hans: BI 项目
     placeholder:
-      en_US: Please select your BI projects
+      en_US: Please select your BI project
       zh_Hans: 请选择你的 BI 项目
     selectUrl: /api/project/select-options
-    multi: true
   dataPermission:
     type: boolean
     label:

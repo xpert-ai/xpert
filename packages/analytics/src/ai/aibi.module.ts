@@ -1,10 +1,11 @@
 import { CopilotCheckpointModule, CopilotKnowledgeModule, CopilotModule, MCPModule, XpertToolsetModule } from '@metad/server-ai'
-import { CacheModule, Module } from '@nestjs/common'
+import { CacheModule, forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ChatBIModelModule } from '../chatbi-model'
-import { SemanticModelMemberModule } from '../model-member/index'
 import { provideOcap } from '../model/ocap/'
 import { CalculatorService } from './toolset/mcp/chatbi'
+import { QueryHandlers } from './queries/handlers'
+import { SemanticModelModule } from '../model'
 
 /**
  */
@@ -13,11 +14,11 @@ import { CalculatorService } from './toolset/mcp/chatbi'
 		CacheModule.register(),
 		CqrsModule,
 		CopilotModule,
-		SemanticModelMemberModule,
-		ChatBIModelModule,
 		CopilotCheckpointModule,
 		CopilotKnowledgeModule,
 		XpertToolsetModule,
+		forwardRef(() => SemanticModelModule),
+		forwardRef(() => ChatBIModelModule),
 
 		MCPModule.register({
 			name: 'MyMCPServer',
@@ -32,7 +33,7 @@ import { CalculatorService } from './toolset/mcp/chatbi'
 		})
 	],
 	controllers: [],
-	providers: [...provideOcap(), CalculatorService],
+	providers: [...provideOcap(), ...QueryHandlers, CalculatorService],
 	exports: []
 })
 export class AiBiModule {}

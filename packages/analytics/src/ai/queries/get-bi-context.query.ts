@@ -3,7 +3,7 @@ import { IQuery } from '@nestjs/cqrs'
 /**
  */
 export class GetBIContextQuery implements IQuery {
-	static readonly type = '[ChatBI] Get BI Context'
+	static readonly type = '[AiBi] Get BI Context'
 
-	constructor() {}
+	constructor(public readonly models?: string[]) {}
 }

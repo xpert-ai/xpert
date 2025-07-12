@@ -8,7 +8,6 @@ import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { AuthModule } from './auth/auth.module'
 import { CoreModule } from './core/core.module'
-import { RedisModule } from './core/redis.module'
 import { CountryModule } from './country/country.module'
 import { CurrencyModule } from './currency/currency.module'
 import { CustomSmtpModule } from './custom-smtp/custom-smtp.module'
@@ -53,18 +52,8 @@ import { HealthModule } from './health'
 				children: [{ path: '/', module: HomeModule }]
 			}
 		]),
-		// I18nModule.forRoot({
-		// 	fallbackLanguage: LanguagesEnum.English,
-		// 	parser: I18nJsonParser,
-		// 	parserOptions: {
-		// 		path: path.resolve(__dirname, 'i18n/'),
-		// 		watch: !environment.production
-		// 	},
-		// 	resolvers: [new HeaderResolver(['language'])]
-		// }),
 		HealthModule,
 		CqrsModule,
-		RedisModule,
 		CoreModule,
 		AuthModule,
 		ApiKeyModule,

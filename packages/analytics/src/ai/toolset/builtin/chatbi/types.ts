@@ -38,6 +38,7 @@ import { upperFirst } from 'lodash'
 import { z } from 'zod'
 import { AbstractChatBIToolset } from './chatbi-toolset'
 import { LanguagesEnum } from '@metad/contracts'
+import { LanguageSchema } from '../../types'
 
 export enum ChatBIToolsEnum {
 	GET_AVAILABLE_CUBES = 'get_available_cubes',
@@ -61,6 +62,9 @@ export type TChatBICredentials = {
 	dataLimit?: number
 }
 
+/**
+ * @deprecated use TBIContext instead
+ */
 export type ChatBIContext = {
 	chatbi: AbstractChatBIToolset
 	dsCoreService: DSCoreService
@@ -83,7 +87,6 @@ export type ChatAnswer = {
 	timeSlicers: TTimeSlicerParam[]
 }
 
-const LanguageSchema = z.enum(['en', 'zh', 'zh-Hans']).describe('Language ​​used by user')
 
 export type TTimeSlicerParam = {
 	dimension: string
@@ -134,26 +137,6 @@ export const ChatAnswerSchema = z.object({
 	variables: z.array(VariableSchema).optional().nullable().describe('The variables to the query of cube')
 })
 
-export const IndicatorSchema = z.object({
-	language: LanguageSchema,
-	modelId: z.string().describe('The id of model'),
-	cube: z.string().describe('The cube name'),
-	code: z.string().describe('The unique code of indicator'),
-	name: z.string().describe(`The caption of indicator in user's language`),
-	formula: z.string().describe('The MDX formula for calculated measure'),
-	unit: z.string().optional().nullable().describe(`The unit of measure, '%' or orthers`),
-	description: z
-		.string()
-		.describe(
-			'The detail description of calculated measure, business logic and cube info for example: the time dimensions, measures or dimension members involved'
-		),
-	query: z
-		.string()
-		.describe(
-			`A query statement to test this indicator can correctly query the results, you cannot use 'WITH MEMBER' capability. You need include indicator code as measure name in statement like: \n`
-			+ `SELECT { [Measures].[The unique code of indicator] } ON COLUMNS, { <dimensions> } ON ROWS FROM [cube]`
-		)
-})
 
 export const CHART_TYPES = [
 	{
@@ -330,21 +313,6 @@ export function mapTimeSlicer(param: TTimeSlicerParam[]): TimeRangesSlicer[] {
 		]
 	}
   })
-}
-
-/**
- * Try to fix the formula given by AI
- * 
- * - `WITH MEMBER [Measures].[NewCode] AS '<formula>'` to `'<formula>'`
- * 
- * @param formula 
- */
-export function tryFixFormula(formula: string, code: string) {
-	const prefix = `WITH MEMBER [Measures].[${code}] AS `
-	if (formula.startsWith(prefix)) {
-		return formula.slice(prefix.length)
-	}
-	return formula
 }
 
 /**

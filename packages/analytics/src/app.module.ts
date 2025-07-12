@@ -34,8 +34,6 @@ import { SubscriptionModule } from './subscription/subscription.module'
 import { VisitModule } from './visit/visit.module'
 import { SemanticModelEntityModule } from './model-entity'
 import { SemanticModelMemberModule } from './model-member'
-import { ChatBIConversationModule } from './chatbi-conversation/conversation.module'
-import { ChatBIModule } from './chatbi'
 import { ChatBIModelModule } from './chatbi-model'
 import { ModelQueryLogModule } from './model-query-log'
 import { AiBiModule } from './ai/aibi.module'
@@ -77,8 +75,6 @@ import { AiBiModule } from './ai/aibi.module'
 		ScreenshotModule,
 		CertificationModule,
 		RedisModule,
-		ChatBIConversationModule,
-		ChatBIModule,
 		ChatBIModelModule,
 		AiBiModule
 	],

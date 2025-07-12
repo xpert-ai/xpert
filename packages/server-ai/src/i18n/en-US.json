@@ -1,6 +1,6 @@
 {
     "Error": {
-        "AgentNotFound": "Agent '{key}' not found.",
+        "AgentNotFound": "Agent '{{key}}' not found.",
         "PrimaryAgentNotFound": "Primary agent node not found"
     },
     "tools": {

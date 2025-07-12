@@ -1,4 +1,4 @@
-import { RedisModule, UserModule } from '@metad/server-core'
+import { UserModule } from '@metad/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AIModule } from './ai'
@@ -37,7 +37,6 @@ import { CommandHandlers } from './shared'
 	imports: [
 		forwardRef(() => CqrsModule),
 		forwardRef(() => UserModule),
-		RedisModule,
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
 		ChatModule,

@@ -1,0 +1,8 @@
+{
+    "Error": {
+        "IndicatorNotFound": "Indicator '{{indicator}}' not found."
+    },
+    "Tools": {
+        
+    }
+}
