@@ -1,4 +1,5 @@
 import { BaseMessage } from '@langchain/core/messages'
+import { RunnableConfig } from '@langchain/core/runnables'
 import { Subscriber } from 'rxjs'
 import { TMessageContentComplex } from '../ai/chat-message.model'
 import { agentLabel, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai'
@@ -50,12 +51,25 @@ export type TAgentRunnableConfigurable = {
 }
 
 export type TToolCall = {
-	args: Record<string, any>
-	id: string
+	id?: string
 	name: string
-	type: 'tool_call'
+	type?: 'tool_call'
+	args: Record<string, any>
 }
 
+export type TInterruptMessage = {
+	category: 'BI'
+	type: string
+	title: string
+	message: string
+}
+
+export type TInterruptCommand = {
+  resume?: any
+  update?: any
+  toolCalls?: TToolCall[]
+  agentKey?: string
+}
 
 // Helpers
 export function channelName(name: string) {
@@ -80,6 +94,11 @@ export function getToolCallFromConfig(config): TToolCall {
 
 export function getToolCallIdFromConfig(config): string {
 	return config.metadata?.tool_call_id || config?.configurable?.tool_call_id || getToolCallFromConfig(config)?.id 
+}
+
+export function getStoreNamespace(config: RunnableConfig): string[] {
+	const configurable = config.configurable as TAgentRunnableConfigurable
+	return configurable?.projectId ? [configurable?.projectId] : configurable?.userId ? [configurable.userId] : []
 }
 
 /**

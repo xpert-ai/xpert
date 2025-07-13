@@ -21,8 +21,8 @@ import {
   TChatMessageStep,
   TChatOptions,
   TChatRequest,
+  TInterruptCommand,
   TMessageContent,
-  TSensitiveOperation,
   uuid,
   XpertAgentExecutionStatusEnum
 } from '../@core'
@@ -252,7 +252,7 @@ export abstract class ChatService {
        */
       files: Partial<IStorageFile>[]
       confirm: boolean
-      operation: TSensitiveOperation
+      command: TInterruptCommand
       reject: boolean
       retry: boolean
     }>
@@ -288,7 +288,7 @@ export abstract class ChatService {
         xpertId: this.xpert()?.id,
         conversationId: this.conversation()?.id,
         id: options.id,
-        operation: options.operation,
+        command: options.command,
         confirm: options.confirm,
         reject: options.reject,
         retry: options.retry

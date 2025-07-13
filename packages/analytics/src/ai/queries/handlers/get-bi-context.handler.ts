@@ -37,6 +37,7 @@ export class GetBIContextHandler implements IQueryHandler<GetBIContextQuery> {
 		const result = {
 			dsCoreService,
 			modelService: this.modelService,
+			semanticModelService: this.semanticModelService,
 			cacheManager: this.cacheManager
 		} as TBIContext
 

@@ -100,6 +100,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 				new CompileGraphCommand(agentKey, {id: _xpertId}, {
 					isDraft,
 					mute: command.options.mute,
+					store: command.options.store,
 					execution: _execution,
 					rootController: abortController,
 					signal: abortController.signal,
@@ -118,6 +119,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 					{
 						isDraft,
 						mute: command.options.mute,
+						store: command.options.store,
 						isStart: true,
 						rootController: abortController,
 						signal: abortController.signal,

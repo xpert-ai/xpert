@@ -51,7 +51,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 		)
 
 		// i18n prepare
-		const i18nError = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(language)})
+		// const i18nError = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(language)})
 
 		const thread_id = execution.threadId
 		let operation: TSensitiveOperation = null
@@ -74,6 +74,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 				const agentStream = await this.commandBus.execute<XpertAgentInvokeCommand, Observable<string | TMessageContentComplex>>(
 							new XpertAgentInvokeCommand(input, agentKey, xpert, {
 								...(options ?? {}),
+								store: options.store,
 								rootExecutionId: execution.id,
 								thread_id,
 								execution,
@@ -104,13 +105,13 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 							return EMPTY
 						})
 					),
-					// Then do the final async work after the agent stream
+					// Then do the final async work after the agent stream: record execution and send agent end event
 					of(true).pipe(
 						switchMap(async () => {
 							try {
 								const timeEnd = Date.now()
 
-								// Record End time
+								// Record Execution End time
 								await this.commandBus.execute(
 									new XpertAgentExecutionUpsertCommand({
 										...execution,
@@ -147,7 +148,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 					.pipe(
 						tap({
 							/**
-							 * This function is triggered when the stream is unsubscribed
+							 * This function is triggered when the stream is unsubscribed: record execution
 							 */
 							unsubscribe: async () => {
 								this.#logger.debug(`Canceled by client!`)

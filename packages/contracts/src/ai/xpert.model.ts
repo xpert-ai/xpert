@@ -14,6 +14,7 @@ import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { IStorageFile } from '../storage-file.model'
+import { TInterruptCommand } from '../agent'
 
 export type ToolCall = LToolCall
 
@@ -498,8 +499,10 @@ export type TChatRequest = {
   reject?: boolean
   /**
    * Message to update parameters of last tool call message
+   * @deprecated use `command` instead
    */
   operation?: TSensitiveOperation
+  command?: TInterruptCommand
   retry?: boolean
 }
 

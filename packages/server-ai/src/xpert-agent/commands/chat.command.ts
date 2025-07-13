@@ -1,5 +1,5 @@
-import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { IXpert, IXpertAgentExecution, TChatOptions, TSensitiveOperation } from '@metad/contracts'
+import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
+import { IXpert, IXpertAgentExecution, TChatOptions, TInterruptCommand } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -19,11 +19,15 @@ export class XpertAgentChatCommand implements ICommand {
 			// Use xpert's draft
 			isDraft?: boolean
 			/**
+			 * Long-term memory store
+			 */
+			store: BaseStore
+			/**
 			 * Use this execution or create a new record
 			 */
 			execution?: IXpertAgentExecution
 
-			operation?: TSensitiveOperation
+			command?: TInterruptCommand
 			reject?: boolean
 
 			memories?: SearchItem[]

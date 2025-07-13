@@ -582,6 +582,4 @@ export type TAgentSubgraphResult = {
 	mute?: TXpertAgentConfig['mute']
 }
 
-export type TAgentSubgraphParams = {
-	mute: TXpertAgentConfig['mute']
-}
+export { TAgentSubgraphParams } from '../shared'

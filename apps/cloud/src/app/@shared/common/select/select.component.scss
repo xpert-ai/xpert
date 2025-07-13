@@ -1,6 +1,6 @@
 :host {
   .select-trigger {
-    @apply px-2 py-1.5 border-[0.5px] border-solid border-neutral-300 bg-gray-100;
+    @apply px-2 py-1.5 border-[0.5px] border-solid border-transparent bg-gray-100 hover:border-neutral-300;
   }
   &.inline {
     .select-trigger {

@@ -1,5 +1,5 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { CompiledStateGraph, END, Send } from '@langchain/langgraph'
+import { CompiledStateGraph } from '@langchain/langgraph'
 import {
 	channelName,
 	IteratingIndexParameterName,
@@ -98,6 +98,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 				new CompileGraphCommand(agentKey, {id: _xpertId}, {
 					isDraft,
 					mute: command.options.mute,
+					store: command.options.store,
 					execution,
 					rootController: abortController,
 					signal: abortController.signal,
@@ -116,6 +117,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					{
 						isDraft,
 						mute: command.options.mute,
+						store: command.options.store,
 						isStart: true,
 						rootController: abortController,
 						signal: abortController.signal,

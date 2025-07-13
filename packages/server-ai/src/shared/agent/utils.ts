@@ -6,6 +6,8 @@ import {
   RunnableConfig,
 } from "@langchain/core/runnables";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
+import { AsyncBatchedStore, BaseStore } from "@langchain/langgraph";
+import { IXpertAgent } from "@metad/contracts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface RunnableCallableArgs extends Partial<any> {
@@ -96,4 +98,32 @@ export class RunnableCallable<I = unknown, O = unknown> extends Runnable<I, O> {
 
     return returnValue;
   }
+}
+
+export function identifyAgent(agent: IXpertAgent) {
+	return {
+		id: agent.id,
+		key: agent.key,
+		name: agent.name,
+		title: agent.title,
+		description: agent.description,
+		avatar: agent.avatar
+	}
+}
+
+export function isKeyEqual(a: string, b: string): boolean {
+  return a?.toLowerCase() === b?.toLowerCase()
+}
+
+/**
+ * Recursively extracts and returns the underlying store from an `AsyncBatchedStore`,
+ * until a non-`AsyncBatchedStore` is found.
+ */
+export const extractStore = (input: BaseStore | AsyncBatchedStore): BaseStore => {
+  let current = input;
+  while (current instanceof AsyncBatchedStore) {
+    // @ts-expect-error is a protected property
+    current = current.store;
+  }
+  return current;
 }

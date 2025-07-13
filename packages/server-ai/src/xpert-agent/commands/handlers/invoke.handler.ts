@@ -1,15 +1,10 @@
 import {
 	isAIMessage,
-	isAIMessageChunk,
-	isBaseMessage,
-	isBaseMessageChunk,
-	isToolMessage,
 	MessageContent,
 	ToolMessage
 } from '@langchain/core/messages'
-import { CompiledStateGraph, GraphRecursionError, NodeInterrupt } from '@langchain/langgraph'
+import { Command, CompiledStateGraph, GraphRecursionError, NodeInterrupt } from '@langchain/langgraph'
 import {
-	agentLabel,
 	channelName,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
@@ -19,6 +14,7 @@ import {
 	mapTranslationLanguage,
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
+	TInterruptCommand,
 	TSensitiveOperation,
 	TXpertAgentConfig,
 	XpertAgentExecutionStatusEnum
@@ -54,7 +50,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
 		const { input, agentKeyOrName, xpert, options } = command
-		const { execution, subscriber, operation, reject, memories } = options
+		const { execution, subscriber, reject, memories } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
@@ -93,17 +89,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			thread_id,
 			checkpoint_ns: ''
 		}
-		if (reject) {
-			await this.reject(graph, config, operation)
-		} else if (operation?.toolCalls) {
-			await this.updateToolCalls(graph, config, operation)
-		}
-		const languageCode = options.language || user.preferredLanguage || 'en-US'
-
-		// i18n prepare
-		// const i18nError = await this.i18nService.t('xpert.Error', {
-		// 	lang: mapTranslationLanguage(languageCode as LanguagesEnum)
-		// })
 
 		const recordLastState = async () => {
 			const state = await graph.getState({
@@ -139,11 +124,19 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			return state
 		}
 
-		const recursionLimit = team.agentConfig?.recursionLimit ?? AgentRecursionLimit
-		const contentStream = from(
-			graph.streamEvents(
-				input?.input
-					? {
+		const languageCode = options.language || user.preferredLanguage || 'en-US'
+		let graphInput = null
+		if (reject) {
+			await this.reject(graph, config, options.command)
+		} else if (options.command) {
+			if (options.command.toolCalls?.length) {
+				await this.updateToolCalls(graph, config, options.command)
+			}
+			if (options.command.resume) {
+				graphInput = new Command(pick(options.command, 'resume', 'update'))
+			}
+		} else if(input?.input) {
+			graphInput = {
 							input: input.input,
 							[STATE_VARIABLE_SYS]: {
 								language: languageCode,
@@ -158,7 +151,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 							},
 							memories
 						}
-					: null,
+		}
+		
+		const recursionLimit = team.agentConfig?.recursionLimit ?? AgentRecursionLimit
+		const contentStream = from(
+			graph.streamEvents(graphInput,
 				{
 					version: 'v2',
 					configurable: {
@@ -224,32 +221,37 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					// record last state when finish
 					const state = await recordLastState()
 
-					const messages = state.values.messages
-					const lastMessage = messages[messages.length - 1]
-					if (state.next?.[0]) {
-						const nextAgents = state.next
-							.filter((_) => _ !== GRAPH_NODE_TITLE_CONVERSATION)
-							.map((key) => state.values[channelName(key)]?.agent)
-							.filter((_) => !!_)
-						if (isBaseMessageChunk(lastMessage) && isAIMessageChunk(lastMessage)) {
-							this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
-							const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
-								new CompleteToolCallsQuery(xpert.id, agent.key, lastMessage, options.isDraft)
+					// Interrupted event
+					// Print the pending tasks
+					// console.log(state)
+					// console.log(JSON.stringify(state.tasks, null, 2))
+					// const messages = state.values.messages
+					// const lastMessage = messages[messages.length - 1]
+					if (state.tasks?.length) {
+						const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
+								new CompleteToolCallsQuery(xpert.id, state.tasks, state.values, options.isDraft)
 							)
-							subscriber.next({
-								data: {
-									type: ChatMessageTypeEnum.EVENT,
-									event: ChatMessageEventTypeEnum.ON_INTERRUPT,
-									data: { ...operation, nextAgents }
-								}
-							} as MessageEvent)
-							throw new NodeInterrupt(`Confirm tool calls`)
-						}
-					} else if (isBaseMessage(lastMessage) && isToolMessage(lastMessage)) {
-						// return lastMessage.content
-					} else {
-						this.#logger.debug(`End chat [${agentLabel(agent)}].`)
+						subscriber.next({
+							data: {
+								type: ChatMessageTypeEnum.EVENT,
+								event: ChatMessageEventTypeEnum.ON_INTERRUPT,
+								data: operation
+							}
+						} as MessageEvent)
+						throw new NodeInterrupt(`Confirm tool calls`)
 					}
+					
+					// if (state.next?.[0]) {
+					// 	const nextAgents = state.next
+					// 		.filter((_) => _ !== GRAPH_NODE_TITLE_CONVERSATION)
+					// 		.map((key) => state.values[channelName(key)]?.agent)
+					// 		.filter((_) => !!_)
+						
+					// } else if (isBaseMessage(lastMessage) && isToolMessage(lastMessage)) {
+					// 	// return lastMessage.content
+					// } else {
+					// 	this.#logger.debug(`End chat [${agentLabel(agent)}].`)
+					// }
 					return null
 				})
 			)
@@ -302,12 +304,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		)
 	}
 
-	async reject(graph: CompiledStateGraph<any, any, any>, config: any, operation: TSensitiveOperation) {
+	async reject(graph: CompiledStateGraph<any, any, any>, config: any, command: TInterruptCommand) {
 		const state = await graph.getState({ configurable: config })
-		if (!operation?.agent) {
-			throw new XpertSensitiveOperationException(`Can't found Agent for operation '${operation.messageId}'`)
-		}
-		const channel = channelName(operation.agent.key)
+		const channel = channelName(command.agentKey)
 		const messages = state.values[channel].messages
 		if (messages) {
 			const lastMessage = messages[messages.length - 1]
@@ -325,19 +324,16 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 							})
 						}
 					},
-					operation.agent.key
+					command.agentKey
 				)
 			}
 		}
 	}
 
-	async updateToolCalls(graph: CompiledStateGraph<any, any, any>, config: any, operation: TSensitiveOperation) {
+	async updateToolCalls(graph: CompiledStateGraph<any, any, any>, config: any, command: TInterruptCommand) {
 		// Update parameters of the last tool call message
 		const state = await graph.getState({ configurable: config })
-		if (!operation?.agent) {
-			throw new XpertSensitiveOperationException(`Can't found Agent for operation '${operation.messageId}'`)
-		}
-		const channel = channelName(operation.agent.key)
+		const channel = channelName(command.agentKey)
 		const messages = state.values[channel].messages
 		const lastMessage = messages[messages.length - 1]
 		if (lastMessage.id) {
@@ -345,15 +341,15 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				role: 'assistant',
 				content: lastMessage.content,
 				tool_calls: lastMessage.tool_calls.map((toolCall) => {
-					const newToolCall = operation.toolCalls.find(({ call }) => call.id === toolCall.id)
-					return { ...toolCall, args: { ...toolCall.args, ...(newToolCall?.call.args ?? {}) } }
+					const newToolCall = command.toolCalls.find((call) => call.id === toolCall.id)
+					return { ...toolCall, args: { ...toolCall.args, ...(newToolCall?.args ?? {}) } }
 				}),
 				id: lastMessage.id
 			}
 			await graph.updateState(
 				{ configurable: config },
 				{ [channel]: { messages: [newMessage] } },
-				operation.agent.key
+				command.agentKey
 			)
 		}
 	}

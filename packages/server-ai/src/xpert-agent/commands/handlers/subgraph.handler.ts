@@ -3,9 +3,9 @@ import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializa
 import { AIMessage, BaseMessage, HumanMessage, isAIMessage, isBaseMessage, isBaseMessageChunk, isToolMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import {
 	Annotation,
-	BaseStore,
 	Command,
 	END,
 	LangGraphRunnableConfig,
@@ -32,18 +32,18 @@ import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
-import { identifyAgent, parseXmlString, TGraphTool, TSubAgent } from './types'
+import { parseXmlString, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { XpertConfigException } from '../../../core/errors'
-import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphResult, TStateChannel } from '../../agent'
+import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphParams, TAgentSubgraphResult, TStateChannel } from '../../agent'
 import { createParameters } from '../../workflow/parameter'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
-import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
+
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -60,14 +60,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 	public async execute(command: XpertAgentSubgraphCommand): Promise<TAgentSubgraphResult> {
 		const { agentKeyOrName, xpert, options } = command
 		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools, environment, tools: additionalTools, mute } = options
-		const userId = RequestContext.currentUserId()
+		// const userId = RequestContext.currentUserId()
 
 		// Signal controller in this subgraph
 		const abortController = new AbortController()
 		signal?.addEventListener('abort', () => abortController.abort())
 
 		// I8n
-		const i18n = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(RequestContext.getLanguageCode())})
+		// const i18n = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(RequestContext.getLanguageCode())})
 
 		const {agent, graph, next, fail} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent; graph: TXpertGraph; next: TXpertTeamNode[]; fail: TXpertTeamNode[]}>(
 			new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
@@ -105,9 +105,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
 		}
 
-		// Create memory store
-		const store = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(xpert, userId))
-
 		// Create tools
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds, {
@@ -140,7 +137,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const availableTools = agent.options?.availableTools?.[toolset.getName()] ?? []
 			items.filter((tool) => availableTools.length ? availableTools.includes(tool.name) : true)
 			  .forEach((tool) => {
-				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
+				const lc_name = tool instanceof DynamicStructuredTool ? tool.name : get_lc_unique_name(tool.constructor as typeof Serializable)
 				tools.push({
 					toolset: {
 						provider: toolset.providerName,
@@ -168,7 +165,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		// Memory tools
 		if (team.memory?.enabled && team.memory?.qa?.enabled) {
-			tools.push(...initializeMemoryTools(store, xpert.id).map((tool) => ({
+			tools.push(...initializeMemoryTools(options.store, xpert.id).map((tool) => ({
 				toolset: {
 					provider: 'memories',
 					title: translate({en_US: 'Memory', zh_Hans: '记忆' })
@@ -218,7 +215,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					continue
 				}
 				const item = await this.createAgentSubgraph(follower, {
-					mute,
+					mute: options.mute,
+					store: options.store,
 					xpert,
 					options: {
 						leaderKey: agent.key,
@@ -245,7 +243,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			for await (const collaborator of agent.collaborators) {
 				const {agent} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent}>(new GetXpertWorkflowQuery(collaborator.id,))
 				const item = await this.createAgentSubgraph(agent, {
-					mute,
+					mute: options.mute,
+					store: options.store,
 					xpert: collaborator,
 					options: {
 						leaderKey: agentKey,
@@ -313,7 +312,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						interruptBefore.push(node.key)
 					}
 					const {stateGraph, nextNodes, failNode} = await this.createAgentSubgraph(node.entity, {
-						mute,
+						mute: options.mute,
+						store: options.store,
 						xpert,
 						options: {
 							leaderKey: parentKey,
@@ -356,7 +356,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					}
 					const { workflowNode, navigator, nextNodes, channel } = await this.commandBus.execute(
 						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
-							mute,
+							mute: options.mute,
+							store: options.store,
 							isDraft: options.isDraft,
 							subscriber,
 							environment,
@@ -381,7 +382,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (fail && !agentKeys.has(fail.key) && fail.type === 'agent') {
 					agentKeys.add(fail.key)
 					const {stateGraph, nextNodes, failNode} = await this.createAgentSubgraph(fail.entity, {
-						mute,
+						mute: options.mute,
+						store: options.store,
 						xpert,
 						options: {
 							leaderKey: parentKey,
@@ -767,7 +769,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,
 			interruptBefore,
 			name: agentKey,
-			store
+			store: options.store
 		})
 
 		return {
@@ -790,8 +792,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 	 */
 	async createAgentSubgraph(
 		agent: IXpertAgent,
-		config: {
-			mute: TXpertAgentConfig['mute']
+		config: TAgentSubgraphParams & {
 			xpert: Partial<IXpert>
 			options: {
 				leaderKey: string
@@ -809,7 +810,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			partners: string[]
 		}
 	) {
-		const { mute, xpert, options, isTool, thread_id, rootController, signal, variables, partners } = config
+		const { xpert, options, isTool, thread_id, rootController, signal, variables, partners } = config
 		const { subscriber, leaderKey } = options
 		const execution: IXpertAgentExecution = {}
 
@@ -819,7 +820,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 		const {graph, nextNodes, failNode} = await this.commandBus.execute<XpertAgentSubgraphCommand, TAgentSubgraphResult>(
 			new XpertAgentSubgraphCommand(agent.key, xpert, {
-				mute,
+				mute: config.mute,
+				store: config.store,
 				thread_id,
 				rootController,
 				signal,

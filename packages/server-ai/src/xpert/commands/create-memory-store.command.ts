@@ -3,6 +3,8 @@ import { ICommand } from '@nestjs/cqrs'
 
 /**
  * Create memory store
+ * 
+ * @deprecated use `CreateMemoryStoreCommand` in shared/commands instead
  */
 export class CreateMemoryStoreCommand implements ICommand {
 	static readonly type = '[Xpert] Create memory store'

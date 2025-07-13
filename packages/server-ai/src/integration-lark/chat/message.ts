@@ -313,7 +313,7 @@ function createConfirmMessage(operation: TSensitiveOperation) {
 	const resolveI18n = (i18n: I18nObject | string): string =>
 		typeof i18n === 'string' ? i18n : i18n?.zh_Hans || i18n?.en_US || ''
 
-	const toolElements = operation.toolCalls.map((toolCall, index) => {
+	const toolElements = operation.tasks?.map((toolCall, index) => {
 		const { call, parameters } = toolCall
 		const paramsElements = []
 		parameters?.map((param) => {

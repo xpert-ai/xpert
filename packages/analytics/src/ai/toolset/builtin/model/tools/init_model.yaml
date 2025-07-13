@@ -1,0 +1,25 @@
+identity:
+  name: init_model
+  author: Xpert AI
+  label:
+    en_US: Init Semantic Model
+    zh_Hans: 初始化语义模型
+description:
+  human:
+    en_US: Initialize a semantic model
+    zh_Hans: 初始化语义模型
+  llm: A tool to initialize a semantic model.
+parameters:
+  - name: modelId
+    type: string
+    required: true
+    label:
+      en_US: Semantic Model ID
+      zh_Hans: 语义模型 ID
+    human_description:
+      en_US: The id of semantic model to query
+      zh_Hans: 要查询的语义模型的 ID
+    llm_description: Semantic Model ID
+    form: llm
+    schema:
+      type: string

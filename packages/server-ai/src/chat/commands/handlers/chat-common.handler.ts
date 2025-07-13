@@ -4,6 +4,7 @@ import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
 import {
 	Annotation,
+	BaseStore,
 	CompiledStateGraph,
 	END,
 	isCommand,
@@ -78,7 +79,7 @@ import {
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
-import { _BaseToolset, AgentStateAnnotation, BaseTool, createHumanMessage, stateToParameters, stateVariable, ToolNode, translate } from '../../../shared'
+import { _BaseToolset, AgentStateAnnotation, BaseTool, createHumanMessage, CreateMemoryStoreCommand, stateToParameters, stateVariable, TAgentSubgraphParams, ToolNode, translate } from '../../../shared'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -607,6 +608,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			})
 		)
 
+		const memoryStore: BaseStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(
+			new CreateMemoryStoreCommand(tenantId, organizationId, null, {
+				abortController,
+				tokenCallback: (token) => {
+					// execution.embedTokens += token ?? 0
+				}
+			}))
 		const supervisorName = 'general_agent'
 		// Custom Xperts
 		const xperts: {name: string; agent; tool: DynamicStructuredTool}[] = []
@@ -621,7 +629,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					outputMode: 'last_message', 
 					addHandoffBackMessages: false, 
 					supervisorName,
-					mute
+					mute,
+					store: memoryStore
 				})
 				const tool = createHandoffTool({ agentName: agent.name, title: xpert.title, description: xpert.description })
 				xperts.push({name: agent.name, agent, tool })
@@ -775,7 +784,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 	/**
 	 * Create agent graph for xpert
 	 */
-	async createXpertAgent(params: {
+	async createXpertAgent(params: TAgentSubgraphParams & {
 		project: IXpertProject,
 		xpert: IXpert,
 		abortController: AbortController,
@@ -784,7 +793,6 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		outputMode: OutputMode,
 		addHandoffBackMessages: boolean,
 		supervisorName: string,
-		mute: TXpertAgentConfig['mute']
 	}) {
 		const { project, xpert, abortController, execution, subscriber, outputMode, addHandoffBackMessages, supervisorName, mute } = params
 		const name = `xpert_` + xpert.slug
@@ -795,7 +803,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
 		>(
 			new CompileGraphCommand(xpert.agent.key, xpert, {
-				mute,
+				mute: params.mute,
+				store: params.store,
 				execution: _execution,
 				rootExecutionId: execution.id,
 				rootController: abortController,

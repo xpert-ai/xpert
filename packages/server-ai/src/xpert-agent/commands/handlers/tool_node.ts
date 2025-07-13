@@ -140,7 +140,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
           if (!this.handleToolErrors) {
             throw e;
           }
-          if (isGraphInterrupt(e.name)) {
+          if (isGraphInterrupt(e)) {
             // `NodeInterrupt` errors are a breakpoint to bring a human into the loop.
             // As such, they are not recoverable by the agent and shouldn't be fed
             // back. Instead, re-throw these errors even when `handleToolErrors = true`.

@@ -1,6 +1,7 @@
-import { IEnvironment, TXpertAgentConfig, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { IEnvironment, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
+import { TAgentSubgraphParams } from '../agent'
 
 export class CreateWNIteratingCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Create workflow node iterating'
@@ -9,9 +10,8 @@ export class CreateWNIteratingCommand implements ICommand {
         public readonly xpertId: string,
         public readonly graph: TXpertGraph,
         public readonly node: TXpertTeamNode & { type: 'workflow' },
-        public readonly options: {
+        public readonly options: TAgentSubgraphParams & {
             isDraft: boolean
-            mute: TXpertAgentConfig['mute']
             // The subscriber response to client
 			subscriber: Subscriber<MessageEvent>
             environment: IEnvironment

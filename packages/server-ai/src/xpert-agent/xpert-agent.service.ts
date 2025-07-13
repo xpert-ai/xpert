@@ -36,11 +36,12 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 			new XpertAgentChatCommand(params.input, params.agentKey, xpert, {
 				...options,
 				isDraft: true,
+				store: null,
 				execution: {
 					id: params.executionId,
 					category: 'agent'
 				},
-				operation: params.operation,
+				command: params.command,
 				reject: params.reject,
 				from: 'debugger'
 			})

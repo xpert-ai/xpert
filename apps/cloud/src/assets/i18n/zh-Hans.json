@@ -931,6 +931,7 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "SelectASemanticModel": "选择一个语义模型",
       "ModelOverview": "模型概览",
       "DeleteSementicModel": "删除语义模型",
       "DeleteSementicModelDesc": "删除此语义模型及其关联数据",

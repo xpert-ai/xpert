@@ -1,3 +1,6 @@
 export * from './state-variable-select/select.component'
 export * from './variable-input/input.component'
 export * from './variable-panel/variable.component'
+export * from './operation/operation.component'
+export * from './agent-identity/agent-identity.component'
+export * from './types'

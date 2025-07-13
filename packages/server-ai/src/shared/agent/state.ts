@@ -1,7 +1,7 @@
 import { ToolCall } from '@langchain/core/dist/messages/tool'
-import { BaseMessage } from '@langchain/core/messages'
+import { BaseMessage, isAIMessageChunk, isBaseMessageChunk } from '@langchain/core/messages'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
-import { SearchItem } from '@langchain/langgraph-checkpoint'
+import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
 import {
 	IEnvironment,
 	STATE_VARIABLE_HUMAN,
@@ -10,6 +10,7 @@ import {
 	TChatRequestHuman,
 	TMessageChannel,
 	TStateVariable,
+	TXpertAgentConfig,
 	VariableOperationEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
@@ -174,4 +175,28 @@ export function stateVariable(variable: TStateVariable) {
 			}
 		}
 	}
+}
+
+export type TAgentSubgraphParams = {
+	/**
+	 * Collect mute nodes tag
+	 */
+	mute: TXpertAgentConfig['mute']
+	/**
+	 * Long-term memory store
+	 */
+	store: BaseStore
+}
+
+export function findChannelByTool(values: typeof AgentStateAnnotation.State, toolName: string): [string, TMessageChannel] {
+	const name = Object.keys(values).find((key) => {
+		if (key.startsWith('agent_')) {
+			const channel = values[key] as TMessageChannel
+			if (channel.messages?.find((message) => isBaseMessageChunk(message) && isAIMessageChunk(message) && message.tool_calls?.find((_) => _.name === toolName))) {
+				return true
+			}
+		}
+	})
+
+	return name ? [name, values[name] as TMessageChannel] : [null, null]
 }

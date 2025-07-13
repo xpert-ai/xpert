@@ -4,7 +4,9 @@ import { Subscriber } from 'rxjs'
 import { TAgentSubgraphParams } from '../agent'
 
 /**
- * Compile graph for agent
+ * Compile graph for agent:
+ * - swarm mode
+ * - supervisor mode
  */
 export class CompileGraphCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Compile graph'

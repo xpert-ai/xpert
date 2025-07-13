@@ -5,6 +5,7 @@ import { IQueryHandler, QueryHandler, QueryBus } from '@nestjs/cqrs'
 import { XpertService } from '../../xpert.service'
 import { GetXpertAgentQuery } from '../get-xpert-agent.query'
 import { CopilotGetOneQuery } from '../../../copilot'
+import { isKeyEqual } from '../../../shared'
 
 
 @QueryHandler(GetXpertAgentQuery)
@@ -25,7 +26,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 			const draft = xpert.draft
 			const nodes = draft.nodes ?? xpert.graph.nodes
 			const connections = draft.connections ?? xpert.graph.connections
-			const agentNode = nodes?.find((_) => _.type === 'agent' && (_.key === keyOrName || _.entity.name === keyOrName))
+			const agentNode = nodes?.find((_) => _.type === 'agent' && (isKeyEqual(_.key, keyOrName) || isKeyEqual(_.entity.name, keyOrName)))
 			if (!agentNode) {
 				return null
 			}
@@ -61,7 +62,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 			} as IXpertAgent
 		} else {
 			const agents = [xpert.agent, ...xpert.agents]
-			const agent = keyOrName ? agents.find((_) => _.key === keyOrName || _.name === keyOrName) : xpert.agent
+			const agent = keyOrName ? agents.find((_) => isKeyEqual(_.key, keyOrName) || isKeyEqual(_.name, keyOrName)) : xpert.agent
 			if (agent) {
 				await this.fillCopilot(tenantId, agent.copilotModel)
 				return {

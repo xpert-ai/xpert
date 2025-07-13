@@ -22,7 +22,6 @@ import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { I18nService } from 'nestjs-i18n'
 import { catchError, concat, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
 import {
 	CancelSummaryJobCommand,
@@ -46,12 +45,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		private readonly xpertService: XpertService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService
 	) {}
 
-	public async execute(command: XpertChatCommand): Promise<Observable<MessageEvent>> {
-		const { options } = command
-		const { projectId, xpertId, input, conversationId, confirm, reject, operation: _operation } = command.request
+	public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
+		const { options } = c
+		const { projectId, xpertId, input, conversationId, confirm, command, reject } = c.request
 		const { taskId, from, fromEndUserId } = options ?? {}
 		const userId = RequestContext.currentUserId()
 
@@ -60,7 +58,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
 		const latestXpert = figureOutXpert(xpert, options?.isDraft)
 		const memory = latestXpert.memory
-		let memoryStore: BaseStore = null
+		const memoryStore: BaseStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(latestXpert, userId))
 		
 		let memories = null
 
@@ -72,6 +70,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			conversation = await this.queryBus.execute(
 				new GetChatConversationQuery({ id: conversationId }, ['messages'])
 			)
+			conversation.status = 'busy'
 			aiMessage = conversation.messages[conversation.messages.length - 1] as CopilotChatMessage
 			executionId = aiMessage.executionId
 
@@ -109,7 +108,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 				// Remember
 				if (memory?.enabled && memory.profile?.enabled) {
-					memoryStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(latestXpert, userId))
 					memories = await getLongTermMemory(memoryStore, xpertId, input.input)
 				}
 			}
@@ -182,9 +180,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				// Memory Reply
 				const memoryReply = latestXpert.features?.memoryReply
 				if (memoryReply?.enabled) {
-					if (!memoryStore) {
-						memoryStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(latestXpert, userId))
-					}
 					const items = await memoryStore.search([xpertId, LongTermMemoryTypeEnum.QA], { query: input.input })
 					const memoryReplies = items.filter((item) => item.score >= (memoryReply.scoreThreshold ?? 0.8))
 					if (memoryReplies.length > 0) {
@@ -206,12 +201,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					agentObservable = await this.commandBus.execute<XpertAgentChatCommand, Promise<Observable<MessageEvent>>>(
 						new XpertAgentChatCommand(input, xpert.agent.key, xpert, {
 							...(options ?? {}),
+							store: memoryStore,
 							conversationId: conversation.id,
 							toolsets: null, // Does not support customizing whether to use tools
 							knowledgebases: null, // Does not support customizing whether to use knowledgebases
 							isDraft: options?.isDraft,
 							execution: { id: executionId, category: 'agent' },
-							operation: _operation,
+							command,
 							reject,
 							memories,
 							summarizeTitle: !latestXpert.agentConfig?.summarizeTitle?.disable

@@ -1,0 +1,6 @@
+<ngm-select icon="ri-instance-line" [selectOptions]="models()" [placeholder]="'PAC.MODEL.SelectASemanticModel' | translate: {Default: 'Select a semantic model'}"
+  [(ngModel)]="modelId" />
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+}

@@ -1,4 +1,4 @@
-import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnables'
+import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import {
 	IXpertAgent,
@@ -6,7 +6,6 @@ import {
 	TXpertGraph,
 	TXpertTeamNode,
 } from '@metad/contracts'
-import { AgentStateAnnotation } from '../../../shared'
 
 export type TSubAgent = {
 	name: string
@@ -34,15 +33,4 @@ export type TGraphTool = {
 
 export function allAgentsKey(graph: TXpertGraph): IXpertAgent[] {
 	return graph.nodes.filter((n) => n.type === 'agent').map((_) => _.entity as IXpertAgent)
-}
-
-export function identifyAgent(agent: IXpertAgent) {
-	return {
-		id: agent.id,
-		key: agent.key,
-		name: agent.name,
-		title: agent.title,
-		description: agent.description,
-		avatar: agent.avatar
-	}
 }
