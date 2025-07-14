@@ -1,4 +1,4 @@
-import { mapChatMessagesToStoredMessages } from '@langchain/core/messages'
+import { BaseMessage, mapChatMessagesToStoredMessages, SystemMessage } from '@langchain/core/messages'
 import { channelName, IXpertAgent, IXpertAgentExecution, OrderTypeEnum } from '@metad/contracts'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
@@ -68,14 +68,17 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 			})
 		)
 
-		const channel = execution.channelName || (execution.agentKey ? channelName(execution.agentKey) : null)
-		const messages =
-			tuple?.checkpoint?.channel_values?.[channel]?.messages ?? tuple?.checkpoint?.channel_values?.messages
+		const channel_name = execution.channelName || (execution.agentKey ? channelName(execution.agentKey) : null)
+		const channel = tuple?.checkpoint?.channel_values?.[channel_name]
+		const _messages: BaseMessage[] = channel?.messages ?? tuple?.checkpoint?.channel_values?.messages
+		if (_messages && channel.system) {
+			_messages.unshift(new SystemMessage(channel.system))
+		}
 		return new XpertAgentExecutionDTO({
 			...execution,
-			messages: messages ? mapChatMessagesToStoredMessages(messages) : execution.messages,
+			messages: _messages ? mapChatMessagesToStoredMessages(_messages) : execution.messages,
 			totalTokens: execution.totalTokens,
-			summary: tuple?.checkpoint?.channel_values?.[channel]?.summary,
+			summary: tuple?.checkpoint?.channel_values?.[channel_name]?.summary,
 			agent
 		})
 	}

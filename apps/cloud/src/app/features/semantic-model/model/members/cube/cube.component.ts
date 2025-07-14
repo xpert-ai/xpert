@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
+import { Component, computed, effect, inject, model, signal, viewChild, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
@@ -22,10 +22,10 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { uniq } from 'lodash-es'
 import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from 'rxjs'
-import { SemanticModelService } from '../../model.service'
 import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+import { SemanticModelService } from '../../model.service'
 
 @Component({
   standalone: true,
@@ -54,6 +54,7 @@ export class ModelMembersCubeComponent {
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly translate = inject(TranslateService)
+  readonly viewContainerRef = inject(ViewContainerRef)
 
   readonly semanticModelKey = toSignal(this.modelService.semanticModelKey$)
 
@@ -273,7 +274,9 @@ export class ModelMembersCubeComponent {
   openValueHelp(dimension: string, hierarchy: string) {
     this.dialog
       .open(NgmValueHelpComponent, {
-        // viewContainerRef: this.viewContainerRef,
+        viewContainerRef: this.viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
         data: {
           dataSettings: {
             dataSource: this.semanticModelKey(),

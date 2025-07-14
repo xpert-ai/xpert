@@ -478,6 +478,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 							},
 							default: () => ({
 								agent: identifyAgent(agent),
+								system: '',
 								messages: []
 							})
 						})
@@ -610,7 +611,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				const messages = [...deleteMessages, ...humanMessages]
 				const nState: Record<string, any> = {
 					messages: [...messages],
-					[channelName(agentKey)]: {messages}
+					[channelName(agentKey)]: {
+						system: systemMessage.content,
+						messages
+					}
 				}
 				if (isBaseMessage(message) || isBaseMessageChunk(message)) {
 					nState.messages.push(message)
@@ -644,7 +648,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						goto: failNodeKey,
 						update: {
 							messages: [...deleteMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
-							[channelName(agentKey)]: {messages: [...deleteMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]}
+							[channelName(agentKey)]: {
+								system: systemMessage.content,
+								messages: [...deleteMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
+							}
 						}
 					})
 				}

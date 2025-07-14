@@ -165,6 +165,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						language: languageCode,
 						userId,
 						executionId: execution.id,
+						xpertId: xpert.id,
 						agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
 						subscriber
 					},

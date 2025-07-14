@@ -22,6 +22,7 @@ import { ExplainComponent } from '@metad/story/story'
 import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
 import { compact, uniq } from 'lodash-es'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { XpertHomeService } from '../../home.service'
 import { XpertOcapService } from '../../ocap.service'
 import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
@@ -36,6 +37,7 @@ import { ChatComponentIndicatorsComponent } from './indicators/indicators.compon
     CommonModule,
     TranslateModule,
     MatTooltipModule,
+    NgxJsonViewerModule,
     AnalyticalCardModule,
     NxWidgetKpiComponent,
     ChatComponentIndicatorsComponent,

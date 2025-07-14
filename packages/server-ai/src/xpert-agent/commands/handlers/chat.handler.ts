@@ -15,7 +15,6 @@ import { getErrorMessage, omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
-import { I18nService } from 'nestjs-i18n'
 import { catchError, concat, EMPTY, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
@@ -30,7 +29,6 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService,
 	) {}
 
 	public async execute(command: XpertAgentChatCommand): Promise<Observable<MessageEvent>> {
@@ -49,9 +47,6 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 				// title: input.input
 			})
 		)
-
-		// i18n prepare
-		// const i18nError = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(language)})
 
 		const thread_id = execution.threadId
 		let operation: TSensitiveOperation = null
@@ -209,6 +204,19 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 					],
 				}).catch((err) => {
 					console.error(err)
+					subscriber.next({
+							data: {
+								type: ChatMessageTypeEnum.EVENT,
+								event: ChatMessageEventTypeEnum.ON_AGENT_END,
+								data: {
+									id: execution.id,
+									agentKey: execution.agentKey,
+									status: XpertAgentExecutionStatusEnum.ERROR,
+									error: getErrorMessage(err),
+								}
+							}
+						} as MessageEvent)
+					subscriber.error(err)
 				})
 
 			// When this TeardownLogic is called, the subscriber is already in the 'closed' state.

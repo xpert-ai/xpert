@@ -318,7 +318,7 @@ export class XpertController extends CrudController<Xpert> {
 	@Get(':id/memory')
 	async getAllMemory(@Param('id') id: string, @Query('types') types: string) {
 		const where = {} as FindConditions<ICopilotStore>
-		const _types = types?.split(':')
+		const _types = types?.split(':').filter((_) => !!_)
 		if (_types?.length > 1) {
 			where.prefix = In(_types.map((type) => `${id}${type ? `:${type}` : ''}`))
 		} else if(_types?.length === 1) {

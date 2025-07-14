@@ -34,7 +34,7 @@ import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution
 import { XpertAgentChatCommand } from '../../../xpert-agent/'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
-import { CreateMemoryStoreCommand } from '../create-memory-store.command'
+import { CreateMemoryStoreCommand } from '../../../shared'
 
 
 @CommandHandler(XpertChatCommand)
@@ -57,8 +57,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
 		const latestXpert = figureOutXpert(xpert, options?.isDraft)
+		const abortController = new AbortController()
 		const memory = latestXpert.memory
-		const memoryStore: BaseStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(latestXpert, userId))
+		const memoryStore: BaseStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(
+			new CreateMemoryStoreCommand(
+				RequestContext.currentTenantId(),
+				RequestContext.getOrganizationId(),
+				latestXpert.memory?.copilotModel,
+				{
+					abortController,
+					tokenCallback: (tokens: number) => {
+						//
+					}
+				}
+			)
+		)
 		
 		let memories = null
 

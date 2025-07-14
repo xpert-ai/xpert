@@ -81,7 +81,7 @@ export const AgentStateAnnotation = Annotation.Root({
 					}
 				: a
 		},
-		default: () => ({ messages: [] })
+		default: () => ({ system: '', messages: [] })
 	}),
 	/**
 	 * Summarizing past conversations if it's too long

@@ -46,7 +46,7 @@ import {
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
-import { CommandBus, EventBus } from '@nestjs/cqrs'
+import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import { Between, FindOneOptions } from 'typeorm'
@@ -55,7 +55,6 @@ import { SemanticModelCacheDeleteCommand, SemanticModelCreateCommand, SemanticMo
 import { CreateSemanticModelDTO, SemanticModelDTO, SemanticModelPublicDTO, UpdateSemanticModelDTO } from './dto/index'
 import { SemanticModel } from './model.entity'
 import { SemanticModelService } from './model.service'
-import { SemanticModelUpdatedEvent } from './events'
 import { SemanticModelQueryLog } from '../core/entities/internal'
 
 
@@ -67,7 +66,6 @@ export class ModelController extends CrudController<SemanticModel> {
 	constructor(
 		private readonly modelService: SemanticModelService,
 		private readonly commandBus: CommandBus,
-		private readonly eventBus: EventBus
 	) {
 		super(modelService)
 	}
@@ -180,11 +178,8 @@ export class ModelController extends CrudController<SemanticModel> {
 	@Post(':id/draft')
 	async saveDraft(@Param('id') id: string, @Body() draft: TSemanticModelDraft) {
 		// todo 检查有权限编辑此 model
-		draft.savedAt = new Date()
 		// Save draft
-		const result = await this.modelService.saveDraft(id, draft)
-		this.eventBus.publish(new SemanticModelUpdatedEvent(id))
-		return result
+		return await this.modelService.saveDraft(id, draft)
 	}
 
 	@Post(':id/publish')

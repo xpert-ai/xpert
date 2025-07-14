@@ -168,7 +168,7 @@ export type TVirtualCube = {
   calculatedMembers: MDX.CalculatedMember[]
 }
 
-export function extractSemanticModelDraft(model: TSemanticModel): TSemanticModelDraft {
+export function extractSemanticModelDraft<S>(model: TSemanticModel): TSemanticModelDraft<S> {
   return {
     key: model.key,
     name: model.name,
@@ -183,7 +183,7 @@ export function extractSemanticModelDraft(model: TSemanticModel): TSemanticModel
     cube: model.cube,
     // 存放语义元数据
     // options: model.options,
-    schema: model.options?.schema,
+    schema: model.options?.schema as S,
     settings: model.options?.settings,
     roles: model.roles,
   }

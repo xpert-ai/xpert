@@ -67,4 +67,9 @@
   @case ('NewIndicator') {
     <chat-component-indicator [indicator]="indicator()" class="dark"/>
   }
+  @default {
+    <div class="flex-1 px-3 text-sm rounded-lg whitespace-normal max-h-96 overflow-auto">
+      <ngx-json-viewer [json]="data()" [depth]="1" />
+    </div>
+  }
 }

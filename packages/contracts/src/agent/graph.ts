@@ -14,6 +14,7 @@ export const STATE_VARIABLE_INPUT = 'input'
 export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
 export type TMessageChannel = {
+  system: string
   messages: BaseMessage[]
   summary?: string
 }
@@ -36,6 +37,7 @@ export type TAgentRunnableConfigurable = {
    * Xpert project id
    */
   projectId?: string
+  xpertId?: string
   // Caller
   agentKey: string
   xpertName?: string
@@ -96,9 +98,17 @@ export function getToolCallIdFromConfig(config): string {
 	return config.metadata?.tool_call_id || config?.configurable?.tool_call_id || getToolCallFromConfig(config)?.id 
 }
 
+/**
+ * Compute long-term memory namespace:
+ * 1. When a user talks to a digital expert individually, use `ExpertId` + `UserId` to store memory
+ * 2. When talking to a digital expert in a project, all users and digital experts share `ProjectId` to store memory
+ * 
+ * @param config 
+ * @returns 
+ */
 export function getStoreNamespace(config: RunnableConfig): string[] {
 	const configurable = config.configurable as TAgentRunnableConfigurable
-	return configurable?.projectId ? [configurable?.projectId] : configurable?.userId ? [configurable.userId] : []
+	return configurable?.projectId ? [configurable?.projectId] : configurable?.userId ? [configurable.xpertId, configurable.userId] : []
 }
 
 /**
