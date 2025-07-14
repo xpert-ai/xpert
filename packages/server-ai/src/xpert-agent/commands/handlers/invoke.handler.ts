@@ -222,11 +222,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					const state = await recordLastState()
 
 					// Interrupted event
-					// Print the pending tasks
-					// console.log(state)
-					// console.log(JSON.stringify(state.tasks, null, 2))
-					// const messages = state.values.messages
-					// const lastMessage = messages[messages.length - 1]
 					if (state.tasks?.length) {
 						const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
 								new CompleteToolCallsQuery(xpert.id, state.tasks, state.values, options.isDraft)
@@ -240,18 +235,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						} as MessageEvent)
 						throw new NodeInterrupt(`Confirm tool calls`)
 					}
-					
-					// if (state.next?.[0]) {
-					// 	const nextAgents = state.next
-					// 		.filter((_) => _ !== GRAPH_NODE_TITLE_CONVERSATION)
-					// 		.map((key) => state.values[channelName(key)]?.agent)
-					// 		.filter((_) => !!_)
-						
-					// } else if (isBaseMessage(lastMessage) && isToolMessage(lastMessage)) {
-					// 	// return lastMessage.content
-					// } else {
-					// 	this.#logger.debug(`End chat [${agentLabel(agent)}].`)
-					// }
 					return null
 				})
 			)
@@ -304,6 +287,12 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		)
 	}
 
+	/**
+	 * @deprecated use `rejectGraph` instead
+	 * @param graph 
+	 * @param config 
+	 * @param command 
+	 */
 	async reject(graph: CompiledStateGraph<any, any, any>, config: any, command: TInterruptCommand) {
 		const state = await graph.getState({ configurable: config })
 		const channel = channelName(command.agentKey)
@@ -330,6 +319,12 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		}
 	}
 
+	/**
+	 * @deprecated use `updateToolCalls` instead
+	 * @param graph 
+	 * @param config 
+	 * @param command 
+	 */
 	async updateToolCalls(graph: CompiledStateGraph<any, any, any>, config: any, command: TInterruptCommand) {
 		// Update parameters of the last tool call message
 		const state = await graph.getState({ configurable: config })

@@ -30,6 +30,9 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
 		const _tasks = await Promise.all(
 			tasks.map(async (task) => {
 				const [channelName, channel] = findChannelByTool(values, task.name)
+				if (!channel) {
+					return task
+				}
 				const lastMessage = channel?.messages?.[channel.messages.length - 1]
 				let aiMessage = null
 				if (isBaseMessageChunk(lastMessage) && isAIMessageChunk(lastMessage)) {
@@ -38,6 +41,10 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
 					throw new Error(`Message with ID ${task.id} is not an AI message.`)
 				}
 				const toolCall = aiMessage.tool_calls?.find((call) => call.name === task.name)
+
+				if (!xpertId) {
+					return task
+				}
 
 				const agentKey = channelName.replace('_channel', '')
 				const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(

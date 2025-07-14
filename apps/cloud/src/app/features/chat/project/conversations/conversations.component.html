@@ -10,7 +10,7 @@
         <div class="flex cursor-pointer items-center gap-2 col-start-1 col-end-2 row-start-1 row-end-2 p-4 rounded-2xl">
           <div class="flex-grow min-w-0">
             <div class="flex items-center gap-2 w-full">
-              <div class="truncate text-primary">{{ conversation.title || (conversation.createdBy | user) }}</div>
+              <div class="truncate text-primary">{{ conversation.title || conversation.options?.parameters?.input || (conversation.createdBy | user) }}</div>
             </div>
           </div>
           <div class="">

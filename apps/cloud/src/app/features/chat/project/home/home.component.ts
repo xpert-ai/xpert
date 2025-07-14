@@ -321,6 +321,8 @@ export class ChatProjectHomeComponent {
   manage() {
     this.#dialog
       .open(ChatProjectManageComponent, {
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
         data: {
           id: this.project().id
         }

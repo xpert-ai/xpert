@@ -219,6 +219,9 @@ export class CopilotProviderComponent {
     const copilot = this.copilotProvider().copilot
     this.#dialog
       .open(CopilotAiProviderAuthComponent, {
+        disableClose: true,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
         data: {
           providerId: this.copilotProvider().id,
           provider,

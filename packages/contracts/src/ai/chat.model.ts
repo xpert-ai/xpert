@@ -28,36 +28,6 @@ export type TChatFrom = 'platform' | 'webapp' | 'debugger' | 'job' | 'api' | 'fe
  */
 export type TSensitiveOperation = {
   messageId?: string
-  // /**
-  //  * @deprecated Unable to locate agent node
-  //  */
-  // agent?: {
-  //   id: string
-  //   key: string
-  //   name: string
-  //   title?: string
-  //   description: string
-  // },
-
-  // toolCalls?: {
-  //   call: TToolCall
-  //   type?: TToolCallType
-  //   info?: {
-  //     name: string
-  //     title?: string
-  //     description: string
-  //   }
-  //   parameters?: {
-  //     name: string;
-  //     title: I18nObject | string
-  //     type: string;
-  //     description: I18nObject | string
-  //     placeholder?: I18nObject | string
-  //   }[]
-  // }[]
-
-  // nextAgents?: Partial<IXpertAgent>[]
-
   tasks?: {
     name: string;
     interrupts: {
@@ -66,7 +36,7 @@ export type TSensitiveOperation = {
       resumable?: boolean;
       ns?: string[];
     }[];
-    type: TToolCallType;
+    type?: TToolCallType;
     info?: {
       name: string
       title?: string
@@ -79,7 +49,7 @@ export type TSensitiveOperation = {
       description: I18nObject | string
       placeholder?: I18nObject | string
     }[],
-    call: TToolCall
+    call?: TToolCall
     agent?: IXpertAgent
   }[]
 }
