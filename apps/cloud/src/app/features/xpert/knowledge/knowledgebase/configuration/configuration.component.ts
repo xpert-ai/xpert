@@ -24,6 +24,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatInputModule } from '@angular/material/input'
 import { MatButtonModule } from '@angular/material/button'
+import { XpertKBAPIComponent } from '../api/api.component'
 
 @Component({
   standalone: true,
@@ -40,7 +41,8 @@ import { MatButtonModule } from '@angular/material/button'
     MatButtonModule,
     NgmCommonModule,
     EmojiAvatarComponent,
-    CopilotModelSelectComponent
+    CopilotModelSelectComponent,
+    XpertKBAPIComponent
 ],
   animations: [routeAnimations]
 })

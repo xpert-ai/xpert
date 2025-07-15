@@ -42,10 +42,8 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	knowledgebaseId?: string
 
 	@ApiProperty({ type: () => StorageFile, readOnly: true })
-	@OneToOne(() => StorageFile, {
+	@ManyToOne(() => StorageFile, {
 		nullable: true,
-		onUpdate: 'CASCADE',
-		onDelete: 'CASCADE'
 	})
 	@JoinColumn()
 	@IsOptional()

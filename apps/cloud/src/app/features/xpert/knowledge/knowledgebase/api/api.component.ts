@@ -14,11 +14,9 @@ import {
   injectApiBaseUrl,
   injectToastr,
   routeAnimations,
-  TChatApi,
   XpertService
-} from '../../../../@core'
-import { XpertDevelopApiKeyComponent } from '../develop'
-import { XpertComponent } from '../xpert.component'
+} from '../../../../../@core'
+import { XpertDevelopApiKeyComponent } from '../../../xpert/develop'
 
 @Component({
   standalone: true,
@@ -32,48 +30,32 @@ import { XpertComponent } from '../xpert.component'
     MatTooltipModule,
     NgmSpinComponent
   ],
-  selector: 'xpert-api',
+  selector: 'xpert-knowledgebase-api',
   templateUrl: './api.component.html',
   styleUrl: 'api.component.scss',
   animations: [routeAnimations, ...OverlayAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertAPIComponent {
+export class XpertKBAPIComponent {
   readonly xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
-  readonly xpertComponent = inject(XpertComponent)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(Dialog)
   readonly apiBaseUrl = injectApiBaseUrl()
 
-  readonly xpert = this.xpertComponent.latestXpert
+  // Inputs
+  readonly id = input<string>('')
 
-  readonly avatar = computed(() => this.xpert()?.avatar)
   readonly apiUrl = computed(() => this.apiBaseUrl + '/api/ai/')
-  readonly api = computed(() => this.xpert()?.api)
-  readonly enabledApi = computed(() => !this.api()?.disabled)
   readonly small = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
 
   readonly loading = signal(false)
 
-  updateApi(value: Partial<TChatApi>) {
-    this.loading.set(true)
-    const api = { ...(this.api() ?? {}), ...value }
-    this.xpertService.updateChatApi(this.xpert().id, api).subscribe({
-      next: () => {
-        this.loading.set(false)
-        this.xpertComponent.latestXpert.update((state) => ({ ...state, api }))
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
-  }
+  
 
   copy(content: string) {
     this.#clipboard.copy(content)
@@ -81,15 +63,15 @@ export class XpertAPIComponent {
   }
 
   openApiReference() {
-    this.#router.navigate(['xpert', this.xpert().id, 'develop'])
+    window.open(this.apiBaseUrl + '/swg', '_blank')
   }
 
   openApiKey() {
     this.#dialog
       .open(XpertDevelopApiKeyComponent, {
         data: {
-          type: 'xpert',
-          id: this.xpert().id
+          id: this.id(),
+          type: 'knowledgebase'
         }
       })
       .closed.subscribe({
