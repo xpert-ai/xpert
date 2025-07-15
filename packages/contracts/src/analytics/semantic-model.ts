@@ -1,5 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ITag } from '../tag-entity.model'
+import { ChecklistItem } from '../types'
 import { IUser } from '../user.model'
 import { Visibility } from '../visibility.model'
 import { IBusinessArea } from './business-area'
@@ -72,6 +73,7 @@ export type TSemanticModelDraft<T = any> = TSemanticModel & {
    * @legacy DB Initialization for wasm database
    */
   dbInitialization?: string
+  checklist?: ChecklistItem[]
 }
 
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {
@@ -168,7 +170,7 @@ export type TVirtualCube = {
   calculatedMembers: MDX.CalculatedMember[]
 }
 
-export function extractSemanticModelDraft(model: TSemanticModel): TSemanticModelDraft {
+export function extractSemanticModelDraft<S>(model: TSemanticModel): TSemanticModelDraft<S> {
   return {
     key: model.key,
     name: model.name,
@@ -183,7 +185,7 @@ export function extractSemanticModelDraft(model: TSemanticModel): TSemanticModel
     cube: model.cube,
     // 存放语义元数据
     // options: model.options,
-    schema: model.options?.schema,
+    schema: model.options?.schema as S,
     settings: model.options?.settings,
     roles: model.roles,
   }

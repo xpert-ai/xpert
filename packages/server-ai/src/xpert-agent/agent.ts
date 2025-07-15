@@ -291,7 +291,6 @@ export function createMapStreamEvents(
 								type: ChatMessageStepCategory.Knowledges,
 								toolset: rest.metadata.toolset,
 								toolset_id: rest.metadata.toolsetId,
-								tool: rest.name,
 								title: rest.metadata.toolName || rest.metadata[rest.name] || rest.name,
 								created_date: new Date(),
 								status: 'running',

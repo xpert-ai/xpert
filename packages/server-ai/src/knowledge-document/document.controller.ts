@@ -59,28 +59,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
 	@Post('process')
 	async start(@Body() body: { ids: string[] }) {
-		const userId = RequestContext.currentUserId()
-		const { items } = await this.service.findAll({
-			where: {
-				id: In(body.ids)
-			}
-		})
-
-		const docs = items.filter((doc) => doc.status !== 'running')
-
-		const job = await this.docQueue.add({
-			userId,
-			docs
-		})
-
-		docs.forEach((item) => {
-			item.jobId = job.id as string
-			item.status = 'running'
-			item.processMsg = ''
-			item.progress = 0
-		})
-
-		return await this.service.save(docs)
+		return await this.service.startProcessing(body.ids)
 	}
 
 	@Get('preview-file/:id') 

@@ -8,12 +8,13 @@ import { assign, sortBy } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Pool } from 'pg'
 import { In, IsNull, Not, Repository } from 'typeorm'
-import { CopilotModelGetEmbeddingsQuery } from '../copilot-model/queries/index'
+import { CopilotModelGetEmbeddingsQuery, CopilotModelGetRerankQuery } from '../copilot-model/queries/index'
 import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgeSearchQuery } from './queries'
 import { KnowledgeDocumentVectorStore } from './vector-store'
+import { IRerank } from '../ai-model/types/rerank'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -82,7 +83,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		if (typeof knowledgebaseId === 'string') {
 			if (requiredEmbeddings) {
 				knowledgebase = await this.findOne(knowledgebaseId, {
-					relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider', 'documents']
+					relations: [
+						'rerankModel',
+						'rerankModel.copilot',
+						'rerankModel.copilot.modelProvider',
+						'copilotModel',
+						'copilotModel.copilot',
+						'copilotModel.copilot.modelProvider',
+						'documents'
+					]
 				})
 			} else {
 				knowledgebase = await this.findOne(knowledgebaseId, { relations: ['copilotModel'] })
@@ -124,7 +133,23 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			)
 		}
 
-		const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings)
+		let rerankModel: IRerank = null
+		if (knowledgebase.rerankModel) {
+			rerankModel = await this.queryBus.execute<CopilotModelGetRerankQuery, IRerank>(
+				new CopilotModelGetRerankQuery(knowledgebase.rerankModel.copilot, knowledgebase.rerankModel, {
+					tokenCallback: (token) => {
+						// execution.tokens += (token ?? 0)
+					}
+				})
+			)
+			if (!rerankModel) {
+				throw new AiModelNotFoundException(
+					`Rerank model '${knowledgebase.rerankModel.model || knowledgebase.rerankModel.copilot?.copilotModel?.model}' not found for knowledgebase '${knowledgebase.name}'`
+				)
+			}
+		}
+
+		const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings, rerankModel)
 
 		// Create table for vector store if not exist
 		await vectorStore.ensureTableInDatabase()
@@ -188,4 +213,5 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	) {
 		//
 	}
+
 }

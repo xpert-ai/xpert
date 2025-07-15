@@ -73,7 +73,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TranslateModule } from '@ngx-translate/core'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmI18nPipe, OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
 import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
 import { MatSidenavModule } from '@angular/material/sidenav'
@@ -106,12 +106,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
     SplitterModule,
     OcapCoreModule,
     NgmCommonModule,
-    DateRelativePipe
+    DateRelativePipe,
+    NgmI18nPipe
   ],
   selector: 'ngm-semanctic-model',
   templateUrl: './model.component.html',
   styleUrls: ['./model.component.scss'],
-  providers: [NxSettingsPanelService, SemanticModelService],
+  providers: [NxSettingsPanelService, SemanticModelService, ...provideOcapCore(),],
   host: {
     class: 'ngm-semanctic-model'
   },
@@ -258,6 +259,7 @@ export class ModelComponent extends TranslationBaseComponent {
   readonly latestPublishDate = this.modelService.latestPublishDate
   readonly publishing = signal(false)
   readonly canPublish = this.modelService.canPublish
+  readonly checklist = this.modelService.checklist
 
   /**
   |--------------------------------------------------------------------------
@@ -615,7 +617,7 @@ export class ModelComponent extends TranslationBaseComponent {
     })
   }
 
-  async openPreferences() {
+  openPreferences() {
     const preferences = ['id', 'key', 'name', 'description', 'dataSourceId', 'catalog', 'visibility', 'preferences']
     const model = this.modelService.modelSignal()
     this.#dialog

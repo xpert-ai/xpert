@@ -1,5 +1,4 @@
 import { NgModule } from '@angular/core'
-import { provideOcapCore } from '@metad/ocap-angular/core'
 import { NgmDesignerFormComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { ModelRoutingModule } from './routing'
@@ -31,7 +30,6 @@ import { NgmFormlyFactModule } from '../formly/'
     NgmFormlyFactModule
   ],
   providers: [
-    provideOcapCore(),
     {
       provide: STORY_DESIGNER_COMPONENT,
       useValue: {

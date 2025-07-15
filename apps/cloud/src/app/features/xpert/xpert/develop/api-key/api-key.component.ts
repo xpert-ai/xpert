@@ -33,7 +33,7 @@ import { map, switchMap } from 'rxjs/operators'
 export class XpertDevelopApiKeyComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly #dialog = inject(Dialog)
-  readonly #data = inject<{ xpertId: string }>(DIALOG_DATA)
+  readonly #data = inject<{ type: 'xpert' | 'knowledgebase'; id: string }>(DIALOG_DATA)
   readonly apiKeyService = inject(ApiKeyService)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
@@ -42,7 +42,7 @@ export class XpertDevelopApiKeyComponent {
   readonly refresh$ = new BehaviorSubject<void>(null)
   readonly keys = toSignal<Array<IApiKey & { copied?: boolean }>>(
     this.refresh$.pipe(
-      switchMap(() => this.apiKeyService.getAll({ where: { type: 'xpert', entityId: this.#data.xpertId } })),
+      switchMap(() => this.apiKeyService.getAll({ where: { type: this.#data.type, entityId: this.#data.id } })),
       map(({ items }) => items)
     )
   )
@@ -51,7 +51,7 @@ export class XpertDevelopApiKeyComponent {
 
   createApiKey() {
     this.loading.set(true)
-    this.apiKeyService.create({ type: 'xpert', entityId: this.#data.xpertId }).subscribe({
+    this.apiKeyService.create({ type: this.#data.type, entityId: this.#data.id }).subscribe({
       next: (result) => {
         this.loading.set(false)
         this.refresh$.next()

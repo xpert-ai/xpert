@@ -31,7 +31,7 @@ export class KnowledgebaseComponent extends TranslationBaseComponent {
       switchMap(([id]) =>
         id
           ? this.refresh$.pipe(
-              switchMap(() => this.knowledgebaseService.getOneById(id, { relations: ['copilotModel', 'xperts'] }))
+              switchMap(() => this.knowledgebaseService.getOneById(id, { relations: ['copilotModel', 'rerankModel', 'xperts'] }))
             )
           : of(null)
       )

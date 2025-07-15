@@ -84,7 +84,7 @@ export function newDimensionFromColumn(column: Property, isOlap: boolean) {
 }
 
 /**
- * 计算来自于 'list-dimensions' 组件的数据项至可用的 Dimension ｜ Measure
+ * Calculates items from the 'list-dimensions' component into available Dimension | Measure
  * 
  * @param event 
  * @param modelType 
@@ -101,7 +101,7 @@ export function getDropProperty(event: CdkDragDrop<unknown[]>, modelType: MODEL_
   } as Dimension
   if (property.role === AggregationRole.dimension) {
     item.dimension = modelType !== MODEL_TYPE.XMLA ? serializeUniqueName(dialect, property.name) : property.name
-    // 取默认 hierarchy 或者默认与 dimension 同名的
+    // Take the default hierarchy or the same name as the dimension as hierarchy
     item.hierarchy = property.defaultHierarchy || item.dimension
   } else if (property.role === AggregationRole.hierarchy) {
     item.dimension =

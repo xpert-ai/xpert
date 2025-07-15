@@ -2,15 +2,24 @@
   <mat-expansion-panel-header class="whitespace-nowrap">
     <mat-panel-title> {{cube().caption}} <span class="text-sm italic ml-2">({{cube().name}})</span> </mat-panel-title>
     <mat-panel-description>
+
+      <button mat-icon-button [disabled]="loading()"
+        [matTooltip]="'PAC.MODEL.RetrievalTesting' | translate: {Default: 'Retrieval Testing'}"
+        matTooltipPosition="above"
+        (click)="$event.stopPropagation();retrievalTesting()"
+      >
+        <i class="ri-focus-2-line"></i>
+      </button>
+
       @if (entity()?.job?.status === 'processing' || entity()?.job?.status === 'completed') {
-        <div class="flex items-center gap-1" [matTooltip]="'PAC.MODEL.EmbeddingProgress' | translate: {Default: 'Embedding progress'}" matTooltipPosition="above">
+        <div class="flex justify-center items-center gap-1" [matTooltip]="'PAC.MODEL.EmbeddingProgress' | translate: {Default: 'Embedding progress'}" matTooltipPosition="above">
           @if (entity().job.progress < 100) {
             <mat-progress-spinner
               mode="determinate" diameter="24" color="accent"
               [value]="entity()?.job.progress" 
             />
           } @else {
-            <i class="ri-check-double-line text-lg text-text-success"></i>
+            <i class="ri-checkbox-circle-line text-xl text-text-success"></i>
           }
 
           <span>{{entity()?.job.progress}}%</span>
@@ -18,44 +27,45 @@
       }
       @if (entity()?.job) {
         @if (entity().job?.error) {
-          <mat-icon fontSet="material-icons-outlined" class="text-text-destructive"
-            [matTooltip]="entity().job.error" matTooltipPosition="above"
-          >error</mat-icon>
+          <i class="ri-error-warning-fill text-xl text-text-destructive"+
+            [matTooltip]="entity().job.error" matTooltipPosition="above"></i>
         } @else if (job()?.status === 'processing') {
           <button mat-icon-button [disabled]="loading()" ngmAppearance="danger"
             [matTooltip]="'PAC.MODEL.StopSyncJob' | translate: {Default: 'Stop the synchronization job'}"
             matTooltipPosition="above"
             (click)="$event.stopPropagation();stopJob()"
           >
-            <mat-icon class="material-icons-outlined" >stop_circle</mat-icon>
+            <i class="ri-stop-circle-line"></i>
           </button>
         }
       }
 
       @if (entity()?.id && job()?.status !== 'processing') {
         <button mat-icon-button [disabled]="loading()" ngmAppearance="danger"
-          [matTooltip]="'PAC.MODEL.DeleteDimensionMembers' | translate: {Default: 'Delete Dimension Members'}"
+          [matTooltip]="'PAC.MODEL.DeleteEmbeddedDimensionMembers' | translate: {Default: 'Delete Embedded Dimension Members'}"
           matTooltipPosition="above"
           (click)="$event.stopPropagation();deleteMembers(entity().id)"
         >
-          <mat-icon class="material-icons-outlined" >delete_outline</mat-icon>
+          <i class="ri-delete-bin-7-line"></i>
         </button>
       }
       
-        <button mat-icon-button [disabled]="loading()"
-          [matTooltip]="'PAC.KEY_WORDS.Refresh' | translate: {Default: 'Refresh'}"
+        <button mat-icon-button class="flex justify-center items-center"
+          [disabled]="loading() || !selectedDims()?.length"
+          [matTooltip]="'PAC.MODEL.RefreshMembers' | translate: {Default: 'Refresh members'}"
           matTooltipPosition="above"
           (click)="$event.stopPropagation();refresh()"
         >
-            <mat-icon class="material-icons-outlined" >sync</mat-icon>
+          <i class="ri-refresh-line" [class.animate-spin]="refreshing()"></i>
         </button>
 
-        <button mat-icon-button [disabled]="loading() || !loaded() || entity()?.job?.status === 'processing'"
+        <button mat-icon-button class="flex justify-center items-center"
+          [disabled]="loading() || !loaded() || entity()?.job?.status === 'processing' || !selectedDims()?.length"
           [matTooltip]="'PAC.MODEL.UploadDimensionMembers' | translate: {Default: 'Upload Dimension Members'}"
           matTooltipPosition="above"
           (click)="$event.stopPropagation();createModelEntity(selectedDims())"
         >
-            <mat-icon class="material-icons-outlined" >file_upload</mat-icon>
+          <i class="ri-git-repository-commits-line"></i>
         </button>
     </mat-panel-description>
   </mat-expansion-panel-header>
