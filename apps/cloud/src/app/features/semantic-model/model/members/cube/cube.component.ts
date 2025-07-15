@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
+import { Component, computed, effect, inject, model, signal, viewChild, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
@@ -22,10 +22,11 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { uniq } from 'lodash-es'
 import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from 'rxjs'
-import { SemanticModelService } from '../../model.service'
 import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+import { SemanticModelService } from '../../model.service'
+import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 
 @Component({
   standalone: true,
@@ -54,6 +55,7 @@ export class ModelMembersCubeComponent {
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly translate = inject(TranslateService)
+  readonly viewContainerRef = inject(ViewContainerRef)
 
   readonly semanticModelKey = toSignal(this.modelService.semanticModelKey$)
 
@@ -67,11 +69,12 @@ export class ModelMembersCubeComponent {
   readonly dimensions = computed<Array<Property & { expand?: boolean }>>(() =>
     this.cube() ? getEntityDimensions(this.cube().entityType) : []
   )
-  readonly selectedDims = model(null)
+  readonly selectedDims = model<string[]>(null)
   readonly allSelected = signal(false)
 
   readonly loaded = signal(false)
   readonly loading = signal(false)
+  readonly refreshing = signal(false)
 
   readonly members = signal({})
 
@@ -149,11 +152,7 @@ export class ModelMembersCubeComponent {
   async refresh() {
     const cube = this.cube().name
 
-    this.loading.set(true)
-    // if (this.entity()?.id) {
-    //   const entity = await firstValueFrom(this.modelEntityService.getOne(this.entity().id))
-    //   this.cube.update((cube) => ({ ...cube, __entity__: entity }))
-    // }
+    this.refreshing.set(true)
 
     if (this.selectedDims()) {
       for (const name of this.selectedDims()) {
@@ -172,6 +171,7 @@ export class ModelMembersCubeComponent {
             }),
             this.#toastr
           )
+          
           if (members) {
             storeMembers = storeMembers.concat(members)
           }
@@ -185,7 +185,7 @@ export class ModelMembersCubeComponent {
       this.loaded.set(true)
     }
 
-    this.loading.set(false)
+    this.refreshing.set(false)
   }
 
   refreshStatus() {
@@ -273,7 +273,9 @@ export class ModelMembersCubeComponent {
   openValueHelp(dimension: string, hierarchy: string) {
     this.dialog
       .open(NgmValueHelpComponent, {
-        // viewContainerRef: this.viewContainerRef,
+        viewContainerRef: this.viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
         data: {
           dataSettings: {
             dataSource: this.semanticModelKey(),
@@ -291,5 +293,20 @@ export class ModelMembersCubeComponent {
         }
       })
       .afterClosed()
+  }
+
+  retrievalTesting() {
+    this.#dialog.open(ModelMembersRetrievalTestingComponent, {
+      viewContainerRef: this.viewContainerRef,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet',
+      data: {
+        modelId: this.modelService.modelSignal().id,
+        cube: this.cube()
+      }
+    }).closed.subscribe((result) => {
+      if (result) {
+      }
+    })
   }
 }

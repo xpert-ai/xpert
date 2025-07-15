@@ -1,5 +1,5 @@
 import { tool } from '@langchain/core/tools'
-import { getEntityProperty2, wrapBrackets } from '@metad/ocap-core'
+import { AggregationRole, getEntityProperty2, PropertyLevel, wrapBrackets } from '@metad/ocap-core'
 import { formatDocumentsAsString } from 'langchain/util/document'
 import { firstValueFrom } from 'rxjs'
 import { z } from 'zod'
@@ -36,6 +36,9 @@ export function createDimensionMemberRetrieverTool(
 						})
 					)
 				}
+				if (property.role === AggregationRole.hierarchy || property.role === AggregationRole.level) {
+					dimension = property.dimension
+				}
 			}
 			if (hierarchy) {
 				const property = getEntityProperty2(entityType, wrapBrackets(hierarchy))
@@ -47,6 +50,9 @@ export function createDimensionMemberRetrieverTool(
 							name: hierarchy
 						})
 					)
+				}
+				if (property.role === AggregationRole.level) {
+					hierarchy = (<PropertyLevel>property).hierarchy
 				}
 			}
 			if (level) {
