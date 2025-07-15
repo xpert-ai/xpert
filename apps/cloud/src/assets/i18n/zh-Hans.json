@@ -1015,6 +1015,8 @@
       "Publish": "发布",
       "LatestPublished": "最新发布",
       "PublishUpdate": "发布更新",
+      "Checklist": "检查清单",
+      "ChecklistTip": "确保发布前所有问题都已解决",
       "AutoArrange": "自动对齐",
       "EditSharedDimension": "编辑共享维度",
       "UnlinkSharedDimension": "解除关联共享维度",

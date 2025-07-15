@@ -1,9 +1,9 @@
-import { BusinessAreaRole, IUser, mapTranslationLanguage, SemanticModelStatusEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
+import { BusinessAreaRole, ChecklistItem, extractSemanticModelDraft, ISemanticModel, IUser, mapTranslationLanguage, RuleValidator, SemanticModelStatusEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
 import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, EventBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
 import chalk from 'chalk'
@@ -21,6 +21,9 @@ import { SemanticModel } from './model.entity'
 import { NgmDSCoreService, registerSemanticModel } from './ocap'
 import { ModelQueryLogService } from '../model-query-log'
 import { SemanticModelQueryLog } from '../core/entities/internal'
+import { SemanticModelUpdatedEvent } from './events'
+import { DimensionValidator, RoleValidator } from './mdx/validators'
+import { Schema } from '@metad/ocap-core'
 
 const axios = _axios.default
 
@@ -37,7 +40,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		private readonly businessAreaService: BusinessAreaService,
 		private readonly logService: ModelQueryLogService,
 		private readonly i18nService: I18nService,
-		readonly commandBus: CommandBus,
+		commandBus: CommandBus,
+		private readonly eventBus: EventBus,
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType,
 		/**
@@ -49,7 +53,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	/**
-	 * Semantic model 涉及到通常是使用 id 直接访问接口而没有使用 orgnizationId 所以这里去掉了 orgnizationId 强制过滤
+	 * Semantic model usually uses id to directly access the interface instead of organizationId, so the organizationId forced filtering is removed here
 	 *
 	 * @param user
 	 * @returns
@@ -166,13 +170,12 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	/**
-	 * 针对 Semantic Model 的单个 Xmla 请求
+	 * Single XmlA request for Semantic Model
 	 *
 	 * @deprecated use {@link ModelOlapQuery} instead
 	 *
-	 * @param modelId 模型 ID
-	 * @param query 查询 XML Body 数据
-	 * @param options 选项
+	 * @param modelId Model ID
+	 * @param query Query XML Body Data
 	 * @returns
 	 */
 	async olap(modelId: string, query: string, options?: { acceptLanguage?: string; forceRefresh?: boolean }) {
@@ -225,6 +228,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			}
 
 			// Proccess ASCII "\u0000", don't know how generated in olap service
+			// eslint-disable-next-line no-control-regex
 			const queryData = queryResult.data.replace(/\u0000/g, '-')
 
 			if (model.preferences?.enableCache) {
@@ -392,12 +396,35 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async saveDraft(id: string, draft: TSemanticModelDraft) {
 		const model = await this.findOne(id)
+		draft.savedAt = new Date()
 		model.draft = {
 			...draft,
 		} as TSemanticModelDraft
 
+		model.draft.checklist = await this.validate(model.draft)
+
 		await this.repository.save(model)
-		return model.draft
+
+		this.eventBus.publish(new SemanticModelUpdatedEvent(id))
+		return model
+	}
+
+	async validate(draft: TSemanticModelDraft) {
+		const dimensionValidator = new DimensionValidator()
+		const roleValidator = new RoleValidator()
+
+		const results: ChecklistItem[] = [];
+
+		for await (const dimension of draft.schema?.dimensions ?? []) {
+			const res = await dimensionValidator.validate(dimension, {schema: draft.schema})
+			results.push(...res)
+		}
+		for await (const role of draft.roles ?? []) {
+			const res = await roleValidator.validate(role, {schema: draft.schema})
+			results.push(...res)
+		}
+
+		return results
 	}
 
 	/*

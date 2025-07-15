@@ -657,6 +657,9 @@ export function allocateAxesFilter(
 
 export function serializeHierarchyDefaultLevel(entityType: EntityType, {dimension, hierarchy}: Dimension) {
   const property = getEntityHierarchy(entityType, {dimension, hierarchy})
+  if (!property) {
+    throw new Error(t('Error.NoHierarchyFoundFor', {ns: 'xmla', dimension, hierarchy, cube: entityType.name}))
+  }
   const levels = property.levels.filter((level) => level.levelType !== RuntimeLevelType.ALL)
   const level = levels[0]
   if (!level) {

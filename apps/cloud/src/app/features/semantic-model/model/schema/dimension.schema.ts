@@ -171,7 +171,7 @@ export function DimensionModeling(
           ...(isCube
             ? [
                 {
-                  // 只有内联维度且有独立维度表的才需要设置此属性
+                  // This property needs to be set only for inline dimensions with independent dimension tables.
                   key: 'foreignKey',
                   type: 'ngm-select',
                   className,
@@ -229,12 +229,20 @@ export function DimensionModeling(
               label: DIMENSION?.DefaultHierarchy ?? 'Default Hierarchy',
               options: hierarchies$.pipe(
                 map(
-                  (hierarchies) =>
-                    hierarchies?.map((hierarchy) => ({
+                  (hierarchies) => {
+                    const options = hierarchies?.map((hierarchy) => ({
                       key: hierarchy.name || '',
                       value: hierarchy.name || '',
                       caption: hierarchy.caption
                     })) ?? []
+
+                    options.unshift({
+                      key: null,
+                      value: null,
+                      caption: COMMON?.None ?? 'None'
+                    })
+                    return options
+                  }
                 ),
               )
             }

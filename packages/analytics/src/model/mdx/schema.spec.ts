@@ -1,5 +1,5 @@
 import { buildSchema, convertSchemaToXmla } from './helper'
-import * as MDX from './schema'
+import { MDX } from '@metad/contracts'
 
 const SCHEMA = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Schema name="Sales Schema">
