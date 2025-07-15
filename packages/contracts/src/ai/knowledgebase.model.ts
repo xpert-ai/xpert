@@ -55,6 +55,9 @@ export type TKnowledgebase = {
   copilotModel?: ICopilotModel
   copilotModelId?: string
 
+  rerankModel?: ICopilotModel
+  rerankModelId?: string
+
   documentNum?: number | null
   tokenNum?: number | null
   chunkNum?: number | null

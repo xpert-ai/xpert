@@ -1,13 +1,15 @@
 import { IDocumentChunk, IKnowledgeDocument } from '@metad/contracts'
-import { StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Document } from 'langchain/document'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
+import { InjectQueue } from '@nestjs/bull'
+import { Queue } from 'bull'
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
@@ -18,7 +20,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		repository: Repository<KnowledgeDocument>,
 		private readonly storageFileService: StorageFileService,
 		private readonly knowledgebaseService: KnowledgebaseService,
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		@InjectQueue('embedding-document') private docQueue: Queue
 	) {
 		super(repository)
 	}
@@ -40,6 +43,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	}
 
 	async createBulk(documents: Partial<IKnowledgeDocument>[]): Promise<KnowledgeDocument[]> {
+		if (!documents?.length) {
+			return []
+		}
 		return await Promise.all(documents.map((document) => this.createDocument(document)))
 	}
 
@@ -116,5 +122,29 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		} catch (err) {
 			throw new BadRequestException(err.message)
 		}
+	}
+
+	async startProcessing(ids: string[], kbId?: string) {
+		const userId = RequestContext.currentUserId()
+		const where = kbId ? { knowledgebaseId: kbId, id: In(ids) } : {id: In(ids)}
+		const { items } = await this.findAll({
+			where
+		})
+
+		const docs = items.filter((doc) => doc.status !== 'running')
+
+		const job = await this.docQueue.add({
+			userId,
+			docs
+		})
+
+		docs.forEach((item) => {
+			item.jobId = job.id as string
+			item.status = 'running'
+			item.processMsg = ''
+			item.progress = 0
+		})
+
+		return await this.save(docs)
 	}
 }

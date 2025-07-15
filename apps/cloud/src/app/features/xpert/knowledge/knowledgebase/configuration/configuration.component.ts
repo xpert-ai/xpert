@@ -18,9 +18,13 @@ import {
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { EmojiAvatarComponent } from "../../../../../@shared/avatar/emoji-avatar/avatar.component";
 import { PACCopilotService } from '../../../../services'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatRadioModule } from '@angular/material/radio'
+import { MatInputModule } from '@angular/material/input'
+import { MatButtonModule } from '@angular/material/button'
+import { XpertKBAPIComponent } from '../api/api.component'
 
 @Component({
   standalone: true,
@@ -31,10 +35,14 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     RouterModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    MatTooltipModule,
+    MatRadioModule,
+    MatInputModule,
+    MatButtonModule,
     NgmCommonModule,
     EmojiAvatarComponent,
-    CopilotModelSelectComponent
+    CopilotModelSelectComponent,
+    XpertKBAPIComponent
 ],
   animations: [routeAnimations]
 })
@@ -74,56 +82,10 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
 
     copilotModel: new FormControl(null),
     copilotModelId: new FormControl(null),
+
+    rerankModel: new FormControl(null),
+    rerankModelId: new FormControl(null),
   })
-
-
-  // readonly copilots = computed(() =>
-  //   this.copilotService.copilots()?.filter((item) => item.enabled && item.organizationId === this.organizationId())
-  // )
-  // readonly copilotOptions = computed(() =>
-  //   this.copilots()?.map((copilot) => {
-  //     const provider = AI_PROVIDERS[copilot.provider]
-  //     const roleName = upperFirst(copilot.role || AiProviderRole.Primary)
-  //     return {
-  //       key: copilot.id,
-  //       caption:
-  //         this.getTranslation('PAC.Copilot.Provider_' + provider?.caption, { Default: provider?.caption }) +
-  //         `(${this.getTranslation('PAC.KEY_WORDS.' + roleName, { Default: roleName })})`
-  //     }
-  //   })
-  // )
-
-  // readonly copilotId = toSignal(
-  //   this.formGroup.get('copilotId').valueChanges.pipe(startWith(this.formGroup.value.copilotId))
-  // )
-
-  // readonly copilot = computed(() => this.copilots()?.find((item) => item.id === this.copilotId()))
-  // readonly provider = computed(() => this.copilot()?.provider)
-
-  // readonly models = computed(() => {
-  //   const copilot = this.copilot()
-  //   const models = AI_PROVIDERS[this.copilot()?.provider]?.models || []
-  //   const items = []
-  //   if (copilot) {
-  //     items.push({
-  //       key: copilot.defaultModel,
-  //       caption: models.find((_) => _.id === copilot.defaultModel)?.name
-  //     })
-  //     items.push(
-  //       ...models
-  //         .filter(
-  //           (_) =>
-  //             _.id !== copilot.defaultModel &&
-  //             (isNil(_.capabilities) || _.capabilities.includes(AiModelCapability.Embed))
-  //         )
-  //         .map((item) => ({
-  //           key: item.id,
-  //           caption: item.name
-  //         }))
-  //     )
-  //   }
-  //   return items
-  // })
 
   readonly loading = signal(false)
 

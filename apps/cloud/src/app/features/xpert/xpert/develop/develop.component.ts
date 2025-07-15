@@ -69,7 +69,8 @@ export class XpertDevelopComponent {
     this.#dialog
       .open(XpertDevelopApiKeyComponent, {
         data: {
-          xpertId: this.xpertId()
+          type: 'xpert',
+          id: this.xpertId()
         }
       })
       .closed.subscribe({

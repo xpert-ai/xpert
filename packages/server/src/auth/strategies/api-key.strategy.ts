@@ -24,7 +24,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 					return this.fail(new UnauthorizedException('Invalid token'))
 				}
 				req.headers['organization-id'] = apiKey.organizationId
-				this.success(apiKey.createdBy)
+				this.success({...apiKey.createdBy, apiKey})
 			})
 			.catch((err) => {
 				// console.error(err)

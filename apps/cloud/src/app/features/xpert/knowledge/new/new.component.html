@@ -21,9 +21,15 @@
         [(ngModel)]="name">
     </div>
   </div>
-  <copilot-model-select class="" [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'}"
+
+  <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'}"
     [modelType]="eAiModelTypeEnum.TEXT_EMBEDDING"
     [(ngModel)]="copilotModel"
+  />
+
+  <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.RerankModel' | translate: {Default: 'Rerank Model'}"
+    [modelType]="eAiModelTypeEnum.RERANK"
+    [(ngModel)]="rerankModel"
   />
 </div>
 

@@ -27,7 +27,7 @@ export class KnowledgeTestComponent extends TranslationBaseComponent {
   readonly score = model<number>(null)
   readonly topK = model<number>(null)
   readonly query = model<string>('')
-  readonly results = signal<{ doc: DocumentInterface; score: number }[]>([])
+  readonly results = signal<{ doc: DocumentInterface; score: number; relevanceScore?: number }[]>([])
 
   readonly loading = signal<boolean>(false)
 
