@@ -122,3 +122,15 @@ export type DeepPartial<T> = {
       ? Readonly<DeepPartial<U>>[]
       : DeepPartial<T[P]>
 }
+
+export interface ChecklistItem {
+	field?: string // Incorrect field name, such as role, hierarchy
+  value?: string // Optional: value of the field, such as role name
+	message: I18nObject
+	level: 'error' | 'warning'
+	ruleCode?: string // Optional: unique internal rule number (such as DIM_ROLE_INVALID)
+}
+
+export interface RuleValidator {
+	validate(input: any, params?: any): Promise<ChecklistItem[]>
+}

@@ -1,5 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ITag } from '../tag-entity.model'
+import { ChecklistItem } from '../types'
 import { IUser } from '../user.model'
 import { Visibility } from '../visibility.model'
 import { IBusinessArea } from './business-area'
@@ -72,6 +73,7 @@ export type TSemanticModelDraft<T = any> = TSemanticModel & {
    * @legacy DB Initialization for wasm database
    */
   dbInitialization?: string
+  checklist?: ChecklistItem[]
 }
 
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {

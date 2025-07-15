@@ -63,11 +63,10 @@
   >
     <ul>
       @for (member of measures(); track member.__id__) {
-        <li class="row group/item flex items-center px-2 py-1.5 text-sm cursor-pointer hover:bg-hover-bg"
+        <li class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
           [class.selected]="isSelected(ModelDesignerType.measure, member.__id__)"
           [class.bg-orange-100]="!member.name"
           cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
-          
         >
           <ngm-entity-property class="flex-1" [property]="member" [role]="AGGREGATION_ROLE.measure" />
 

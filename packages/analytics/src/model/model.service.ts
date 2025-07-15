@@ -1,4 +1,4 @@
-import { BusinessAreaRole, IUser, mapTranslationLanguage, SemanticModelStatusEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
+import { BusinessAreaRole, ChecklistItem, extractSemanticModelDraft, ISemanticModel, IUser, mapTranslationLanguage, RuleValidator, SemanticModelStatusEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
 import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
@@ -22,6 +22,8 @@ import { NgmDSCoreService, registerSemanticModel } from './ocap'
 import { ModelQueryLogService } from '../model-query-log'
 import { SemanticModelQueryLog } from '../core/entities/internal'
 import { SemanticModelUpdatedEvent } from './events'
+import { DimensionValidator, RoleValidator } from './mdx/validators'
+import { Schema } from '@metad/ocap-core'
 
 const axios = _axios.default
 
@@ -399,10 +401,30 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			...draft,
 		} as TSemanticModelDraft
 
+		model.draft.checklist = await this.validate(model.draft)
+
 		await this.repository.save(model)
 
 		this.eventBus.publish(new SemanticModelUpdatedEvent(id))
-		return model.draft
+		return model
+	}
+
+	async validate(draft: TSemanticModelDraft) {
+		const dimensionValidator = new DimensionValidator()
+		const roleValidator = new RoleValidator()
+
+		const results: ChecklistItem[] = [];
+
+		for await (const dimension of draft.schema?.dimensions ?? []) {
+			const res = await dimensionValidator.validate(dimension, {schema: draft.schema})
+			results.push(...res)
+		}
+		for await (const role of draft.roles ?? []) {
+			const res = await roleValidator.validate(role, {schema: draft.schema})
+			results.push(...res)
+		}
+
+		return results
 	}
 
 	/*

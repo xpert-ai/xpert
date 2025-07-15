@@ -179,7 +179,8 @@ export class ModelController extends CrudController<SemanticModel> {
 	async saveDraft(@Param('id') id: string, @Body() draft: TSemanticModelDraft) {
 		// todo 检查有权限编辑此 model
 		// Save draft
-		return await this.modelService.saveDraft(id, draft)
+		const model = await this.modelService.saveDraft(id, draft)
+		return model.draft
 	}
 
 	@Post(':id/publish')

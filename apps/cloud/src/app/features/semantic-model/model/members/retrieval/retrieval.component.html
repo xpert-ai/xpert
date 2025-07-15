@@ -1,0 +1,101 @@
+<div class="flex flex-col gap-4 p-4">
+  <div class="mb-4 flex flex-col justify-center px-2">
+    <h1 class="py-2 text-2xl font-semibold text-text-primary cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+      {{'PAC.MODEL.RetrievalTest' | translate: {Default: 'Retrieval Test'} }}</h1>
+    <p class="mt-0.5 text-[13px] font-normal leading-4 text-text-tertiary">
+      {{'PAC.MODEL.RetrievalTestDesc' | translate: {Default: 'Test the hitting effect of the Knowledge based on the given query text.'} }}
+    </p>
+  </div>
+
+  <div class="flex flex-wrap gap-2">
+    <ngm-select class="min-w-[140px]" [placeholder]="'PAC.MODEL.SelectaDimension' | translate: {Default: 'Select a dimension'}"
+      [selectOptions]="dimensionsOptions()" [(ngModel)]="dimension" (ngModelChange)="hierarchy.set(null);level.set(null)" />
+    <ngm-select class="min-w-[140px]" [placeholder]="'PAC.MODEL.SelectaHierarchy' | translate: {Default: 'Select a hierarchy'}"
+      [selectOptions]="hierachyOptions()" [(ngModel)]="hierarchy" (ngModelChange)="level.set(null)"/>
+    <ngm-select class="min-w-[140px]" [placeholder]="'PAC.MODEL.SelectaLevel' | translate: {Default: 'Select a level'}"
+      [selectOptions]="levelOptions()" [(ngModel)]="level" />
+  </div>
+
+  <div class="relative bg-gradient-to-r from-blue-500 to-orange-500 rounded-[12px] p-[2px] mb-4 shadow-xs">
+    <div class="relative rounded-t-xl bg-neutral-100 pt-1.5">
+      <div class="flex h-6 items-center justify-between pb-1 pl-4 pr-1.5">
+        <span class="text-sm font-semibold uppercase leading-4 text-text-secondary">
+          {{'PAC.MODEL.SourceText' | translate: {Default: 'Source Text'} }}
+        </span>
+      </div>
+    </div>
+
+    <div class="rounded-b-xl bg-white px-4 py-2 pb-11">
+      <textarea class="h-[160px] w-full resize-none border-none bg-transparent text-sm font-normal text-text-secondary caret-[#295EFF]
+        placeholder:text-sm placeholder:font-normal placeholder:text-components-input-text-placeholder focus-visible:outline-none"
+        [(ngModel)]="queryText"
+      ></textarea>
+      <div class="absolute inset-x-0 bottom-0 mx-4 mb-2 mt-2 flex items-center justify-between">
+        <div class="flex h-5 items-center rounded-md bg-background-section-burn px-1 text-xs font-medium text-text-tertiary">
+          {{queryText().length}}<span class="mx-0.5 text-divider-deep">/</span>200
+        </div>
+        <div>
+          <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-[88px]"
+            [disabled]="!queryText()"
+            (click)="test()">{{'PAC.MODEL.Test' | translate: {Default: 'Test'} }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="p-4 w-[500px]">
+  <div class="relative flex h-full flex-col rounded-3xl bg-neutral-100">
+    <div class="shrink-0 p-4 font-semibold leading-6 text-text-primary">
+      @if (retrieving()) {
+        <i class="ri-crosshair-2-line font-normal inline-block animate-spin"></i>
+      } @else {
+        {{members()?.length ?? 0}}
+      } {{'PAC.MODEL.RetrievedMembers' |translate: {Default: 'Retrieved Members'} }}</div>
+    <div class="grow space-y-2 p-4 overflow-y-auto">
+      @for (item of members(); track $index) {
+        <div class="group cursor-pointer rounded-xl bg-components-card-bg pt-3 hover:shadow-lg">
+          <div class="flex items-center justify-between px-3">
+            <div class="flex items-center space-x-2 truncate">
+              <div class="flex items-center w-fit opacity-50 group-hover:opacity-100">
+                <i class="ri-hashtag"></i>
+                <div class="system-xs-medium truncate">{{item[0].metadata.member}}</div>
+              </div>
+              <div class="system-xs-medium text-text-quaternary">·</div>
+              <div class="text-xs text-text-tertiary truncate font-mono">{{item[0].metadata.key}}</div>
+            </div>
+            <div class="relative shrink-0 items-center overflow-hidden border border-components-progress-bar-border px-[5px] h-[20px] rounded-md">
+              <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
+                  border-primary-500 bg-primary-200/50"
+                [ngStyle]="{width: (item[1] * 100) + '%'}"
+              ></div>
+              <div class="relative flex h-full items-center space-x-0.5 text-util-colors-blue-brand-blue-brand-700">
+                <div class="text-xs font-medium uppercase">score</div>
+                <div class="text-xs font-semibold">{{item[1] | number:'0.0-2'}}</div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-1 px-3">
+            <div class="markdown-body !text-text-primary line-clamp-2">
+              {{item[0].pageContent}}            
+            </div>
+          </div>
+          <div class="mt-3 flex h-10 items-center justify-between border-t border-divider-subtle pl-3 pr-2">
+            <div class="flex grow items-center space-x-1">
+              <span class="w-0 grow truncate text-[13px] font-normal text-text-secondary">{{item[0].metadata.id}}</span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (!members()?.length) {
+      <div class="absolute left-0 top-0 w-full h-full flex flex-col justify-center items-center gap-2 rounded-3xl bg-neutral-100 text-text-tertiary">
+        <i class="ri-crosshair-2-line text-6xl" [class.animate-spin]="retrieving()"></i>
+        <div class="">{{'PAC.MODEL.RetrievalTestingResultsHere' | translate: {Default: 'Retrieval Testing results will show here'} }}
+        </div>
+      </div>
+    }
+  </div>
+</div>

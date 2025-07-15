@@ -243,6 +243,7 @@ export class SemanticModelService {
   readonly #savedAt = signal<Date>(null)
   readonly latestPublishDate = computed(() => this.model().publishAt)
   readonly draftSavedDate = computed(() => this.#savedAt() ?? this.draftSignal().savedAt)
+  readonly checklist = computed(() => this.draftSignal().checklist)
 
   readonly canPublish = computed(() => !!(this.model().draft || this.#savedAt()))
 
@@ -259,8 +260,8 @@ export class SemanticModelService {
       return EMPTY
     })
   ).subscribe({
-    next: () => {
-
+    next: ({checklist}) => {
+      this.updateDraft({checklist})
     }
   })
 
@@ -335,9 +336,9 @@ export class SemanticModelService {
   saveDraft() {
     const draft = this.store.value.draft
     return this.#modelsService.saveDraft(this.modelSignal().id, draft).pipe(
-      tap((draft) => {
+      tap((result) => {
         this.unsaved.set(false)
-        this.#savedAt.set(draft.savedAt)
+        this.#savedAt.set(result.savedAt)
         this.dataSource$.value?.clearCache()
         // Register model after saved to refresh metadata of entity
         this.registerModel()
