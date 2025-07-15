@@ -4,6 +4,7 @@ import { Document, DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
 import { IKnowledgebase, IKnowledgeDocument } from '@metad/contracts'
 import { Pool } from 'pg'
+import { IRerank } from '../ai-model/types/rerank'
 
 export type TVectorSearchParams = {
 	take: number;
@@ -23,6 +24,7 @@ export class KnowledgeDocumentVectorStore extends PGVectorStore {
 		public pgPool: Pool,
 
 		embeddings?: Embeddings,
+		protected rerankModel?: IRerank
 	) {
 		const model = getCopilotModel(knowledgebase)
 
@@ -153,6 +155,15 @@ export class KnowledgeDocumentVectorStore extends PGVectorStore {
 		}
 
 		return super.similaritySearchWithScore(query, k, _filter, _callbacks)
+	}
+
+	async rerank(docs: Document[], query: string, options: {
+  		topN: number
+	}) {
+		return this.rerankModel.rerank(docs,
+			query,
+			options
+		)
 	}
 }
 

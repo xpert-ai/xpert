@@ -13,6 +13,7 @@ import { ModelProvidersFolderPath, TChatModelOptions } from './types/types'
 import { AiModelNotFoundException } from '../core/errors'
 import { TextToSpeechModel } from './tts'
 import { SpeechToTextModel } from './speech2text'
+import { IRerank, RerankModel } from './types/rerank'
 
 @Injectable()
 export abstract class ModelProvider {
@@ -123,7 +124,7 @@ export abstract class ModelProvider {
 		type: AiModelTypeEnum,
 		copilotModel: ICopilotModel,
 		options?: TChatModelOptions
-	): Promise<BaseLanguageModel | BaseChatModel | Embeddings> {
+	): Promise<BaseLanguageModel | BaseChatModel | Embeddings | IRerank> {
 		switch (type) {
 			case AiModelTypeEnum.LLM:
 				return this.getModelManager(type)?.getChatModel(copilotModel, options)
@@ -138,6 +139,8 @@ export abstract class ModelProvider {
 				return this.getModelManager<TextToSpeechModel>(type)?.getChatModel(copilotModel, options)
 			case AiModelTypeEnum.SPEECH2TEXT:
 				return this.getModelManager<SpeechToTextModel>(type)?.getChatModel(copilotModel, options)
+			case AiModelTypeEnum.RERANK:
+				return this.getModelManager<RerankModel>(type)?.getDocumentCompressor(copilotModel, options)
 		}
 		
 		return null

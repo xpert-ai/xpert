@@ -35,6 +35,7 @@ export class XpertNewKnowledgeComponent {
   readonly workspaceId = signal(this.#dialogData?.workspaceId)
   readonly name = model<string>()
   readonly copilotModel = model<ICopilotModel>()
+  readonly rerankModel = model<ICopilotModel>()
 
   readonly loading = signal(false)
 
@@ -43,7 +44,8 @@ export class XpertNewKnowledgeComponent {
       .create({
         name: this.name(),
         workspaceId: this.workspaceId(),
-        copilotModel: this.copilotModel()
+        copilotModel: this.copilotModel(),
+        rerankModel: this.rerankModel(),
       })
       .subscribe({
         next: (knowledgebase) => {

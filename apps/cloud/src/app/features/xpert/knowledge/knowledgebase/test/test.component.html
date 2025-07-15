@@ -37,9 +37,15 @@
       @for (item of results(); track item.doc.id) {
         <mat-list-item lines="5" class="p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
           <span matListItemTitle>
-            <div class="flex justify-between items-center" >
-              <span></span>
-              <ngm-tags class="text-sm" [tags]="[{caption: 'Score: '+(1 - item.score).toFixed(2)}]" color="green" />
+            <div class="flex justify-end items-center gap-2" >
+              <ngm-tags class="text-sm" [tags]="[
+                {caption: 'Score: '+(1 - item.score).toFixed(2)}
+                ]" color="green" />
+              @if (item.relevanceScore) {
+                <ngm-tags class="text-sm" [tags]="[
+                  {caption: 'RelevanceScore: '+item.relevanceScore.toFixed(2)}
+                  ]" color="blue" />
+              }
             </div>
           </span>
           <span>{{item.doc.pageContent}}</span>
@@ -48,9 +54,17 @@
     </mat-list>
   </div>
 
-@if (loading()) {
-  <div class="absolute left-0 top-0 w-full h-full flex justify-center items-center">
-    <mat-progress-spinner [mode]="'indeterminate'" [diameter]="22" color="accent" />
-  </div>
-}
+  @if (!results()?.length) {
+    <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center gap-2 text-text-tertiary">
+      <i class="ri-crosshair-2-line text-6xl" [class.animate-spin]="loading()"></i>
+      <div class="">{{'PAC.Knowledgebase.RetrievalTestingResultsHere' | translate: {Default: 'Retrieval Testing results will show here'} }}
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="absolute left-0 top-0 w-full h-full flex justify-center items-center">
+      <mat-progress-spinner [mode]="'indeterminate'" [diameter]="22" color="accent" />
+    </div>
+  }
 </div>

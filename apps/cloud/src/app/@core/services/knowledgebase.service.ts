@@ -38,7 +38,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   test(id: string, options: { query: string; k: number; score: number; filter?: Record<string, unknown> }) {
-    return this.httpClient.post<{ doc: DocumentInterface; score: number }[]>(
+    return this.httpClient.post<{ doc: DocumentInterface; score: number; relevanceScore?: number }[]>(
       this.apiBaseUrl + '/' + id + '/test',
       options
     )

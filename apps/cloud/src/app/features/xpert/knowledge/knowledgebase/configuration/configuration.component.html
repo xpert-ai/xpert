@@ -37,24 +37,15 @@
       </mat-radio-group>
     </div>
 
-    <copilot-model-select class=""
+    <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'}"
       [modelType]="eModelType.TEXT_EMBEDDING"
       formControlName="copilotModel"
     />
 
-    <!-- <ngm-select [label]=" 'PAC.KEY_WORDS.Copilot' | translate: {Default: 'Copilot'} " 
-      formControlName="copilotId"
-      valueKey="key"
-      [displayBehaviour]="DisplayBehaviour.descriptionOnly"
-      [selectOptions]="copilotOptions()"
+    <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.RerankModel' | translate: {Default: 'Rerank Model'}"
+      [modelType]="eModelType.RERANK"
+      formControlName="rerankModel"
     />
-
-    <ngm-select [label]=" 'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'} " formControlName="embeddingModelId"
-      valueKey="key"
-      searchable
-      allowInput
-      [selectOptions]="models()"
-    /> -->
 
     <div formGroupName="parserConfig">
       <ngm-input [label]=" 'PAC.Knowledgebase.EmbeddingBatchSize' | translate: {Default: 'Embedding Batch Size'} " formControlName="embeddingBatchSize" />

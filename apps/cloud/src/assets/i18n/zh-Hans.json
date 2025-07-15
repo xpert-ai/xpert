@@ -2209,6 +2209,7 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "RetrievalTestingResultsHere": "检索测试结果将在此处显示",
       "Index": "索引",
       "CreateKnowledgebase": "创建知识库",
       "CreateKnowledgebaseDesc": "空知识库中还没有文档，你可以在今后任何时候上传文档至该知识库。",
@@ -2220,6 +2221,7 @@
       "NewFiles": "新增文件",
       "NewDocuments": "新增文档",
       "EmbeddingModel": "嵌入模型",
+      "RerankModel": "重新排序模型",
       "Chunks": "分块",
       "DeleteChunk": "删除块",
       "ConfirmDeleteKnowledgebase": "确定删除知识库及其所有内容？",
