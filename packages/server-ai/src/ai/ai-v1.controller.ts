@@ -78,14 +78,12 @@ export class AIV1Controller {
 	@UseGuards(KnowledgebaseOwnerGuard)
 	@Put('kb/:id')
 	async updateKnowledgebase(@Param('id') id: string, @Body() body: Partial<IKnowledgebase>, @ApiKeyDecorator() apiKey: IApiKey) {
-		console.log(apiKey)
 		return this.kbService.update(id, body)
 	}
 
 	@UseGuards(KnowledgebaseOwnerGuard)
 	@Post('kb/:id/bulk')
 	async createDocBulk(@Param('id') id: string, @Body() entities: Partial<IKnowledgeDocument>[], @ApiKeyDecorator() apiKey: IApiKey) {
-		console.log(apiKey)
 		return await this.docService.createBulk(entities?.map((entity) => ({...entity, knowledgebaseId: id})))
 	}
 
