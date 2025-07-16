@@ -39,7 +39,7 @@ import {
 } from '../core/entities/internal'
 
 /**
- * 语义模型
+ * Semantic Model Entity
  */
 @Entity('semantic_model')
 export class SemanticModel extends TenantOrganizationBaseEntity implements ISemanticModel {
@@ -211,10 +211,6 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	@ApiProperty({ type: () => Favorite, isArray: true })
 	@OneToMany(() => Favorite, (m) => m.model)
 	favorites?: IFavorite[]
-
-	// @ApiProperty({ type: () => InsightModel, isArray: true })
-	// @OneToMany(() => InsightModel, (m) => m.model)
-	// insights?: IInsightModel[]
 
 	/**
 	 * Queries

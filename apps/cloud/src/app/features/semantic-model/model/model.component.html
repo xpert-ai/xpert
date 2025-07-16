@@ -25,9 +25,11 @@
       </button>
     }
       <div [routerLink]="['./access']" routerLinkActive #rla="routerLinkActive">
-        <button *ngIf="rla.isActive" mat-button [color]="'accent'">
-          <span class="font-notoColorEmoji">🔏</span>{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}
-        </button>
+        @if (rla.isActive) {
+          <button mat-button [color]="'accent'">
+            <span class="font-notoColorEmoji">🔏</span>{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}
+          </button>
+        }
       </div>
   
       <div [routerLink]="['./query']" routerLinkActive #rla2="routerLinkActive">

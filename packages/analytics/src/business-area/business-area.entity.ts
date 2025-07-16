@@ -3,7 +3,6 @@ import {
 	BusinessType,
 	IBusinessArea,
 	IIndicator,
-	IInsightModel,
 	ISemanticModel,
 	IStory,
 	IUser,
@@ -19,7 +18,7 @@ import {
 	TreeChildren,
 	TreeParent,
 } from 'typeorm'
-import { BusinessAreaUser, Indicator, InsightModel, SemanticModel, Story } from '../core/entities/internal'
+import { BusinessAreaUser, Indicator, SemanticModel, Story } from '../core/entities/internal'
 
 
 @Entity('business_area')
@@ -86,14 +85,4 @@ export class BusinessArea extends TenantOrganizationBaseEntity implements IBusin
 		cascade: true,
 	})
 	users?: IUser[]
-
-	/**
-	 * Insight Model
-	 */
-	@ApiProperty({ type: () => InsightModel, isArray: true })
-	@OneToMany(() => InsightModel, (item) => item.businessArea, {
-		cascade: true,
-	})
-	insightModels?: IInsightModel[]
-
 }

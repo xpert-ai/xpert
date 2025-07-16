@@ -5,7 +5,7 @@ import { ITag } from '../tag-entity.model'
 import { IUser, LanguagesEnum } from '../user.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
-import { I18nObject, TAvatar } from '../types'
+import { ChecklistItem, I18nObject, TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
@@ -368,6 +368,7 @@ export type TXpertGraph = {
 export type TXpertTeamDraft = TXpertGraph & {
   team: Partial<IXpert>
   savedAt?: Date
+  checklist?: ChecklistItem[]
 }
 
 export type TXpertTeamNodeType = 'agent' | 'knowledge' | 'toolset' | 'xpert' | 'workflow'

@@ -23,7 +23,6 @@ import { ModelQueryLogService } from '../model-query-log'
 import { SemanticModelQueryLog } from '../core/entities/internal'
 import { SemanticModelUpdatedEvent } from './events'
 import { DimensionValidator, RoleValidator } from './mdx/validators'
-import { Schema } from '@metad/ocap-core'
 
 const axios = _axios.default
 
