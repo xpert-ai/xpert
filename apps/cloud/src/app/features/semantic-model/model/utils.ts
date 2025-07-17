@@ -113,22 +113,7 @@ export function markdownTableData({data, columns}: {data: any[], columns: PivotC
   return `${header}\n${divider}\n${rows}`
 }
 
-export function upsertHierarchy(dimension: PropertyDimension, hierarchy: Partial<PropertyHierarchy>) {
-  let key = null
-  const index = dimension.hierarchies.findIndex((item) => item.name === hierarchy.name)
-  if (index > -1) {
-    dimension.hierarchies.splice(index, 1, {
-      ...dimension.hierarchies[index],
-      ...hierarchy
-    })
-    key = dimension.hierarchies[index].__id__
-  } else {
-    dimension.hierarchies.push({ ...hierarchy, __id__: hierarchy.__id__ ?? uuid() } as PropertyHierarchy)
-    key = dimension.hierarchies[dimension.hierarchies.length - 1].__id__
-  }
 
-  return key
-}
 
 /**
  * 根据 SQL 查询结果对象分析出字段类型

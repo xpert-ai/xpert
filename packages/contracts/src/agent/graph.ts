@@ -3,6 +3,7 @@ import { RunnableConfig } from '@langchain/core/runnables'
 import { Subscriber } from 'rxjs'
 import { TMessageContentComplex } from '../ai/chat-message.model'
 import { agentLabel, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai'
+import { I18nObject } from '../types'
 
 export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
 export const STATE_VARIABLE_SYS = 'sys'
@@ -59,11 +60,12 @@ export type TToolCall = {
 	args: Record<string, any>
 }
 
-export type TInterruptMessage = {
+export type TInterruptMessage<T = unknown> = {
 	category: 'BI'
 	type: string
-	title: string
-	message: string
+	title: string | I18nObject
+	message: string | I18nObject
+	data: T
 }
 
 export type TInterruptCommand = {
@@ -108,6 +110,10 @@ export function getToolCallIdFromConfig(config): string {
  */
 export function getStoreNamespace(config: RunnableConfig): string[] {
 	const configurable = config.configurable as TAgentRunnableConfigurable
+	return configurableStoreNamespace(configurable)
+}
+
+export function configurableStoreNamespace(configurable: Partial<TAgentRunnableConfigurable>): string[] {
 	return configurable?.projectId ? [configurable?.projectId] : configurable?.userId ? [configurable.xpertId, configurable.userId] : []
 }
 

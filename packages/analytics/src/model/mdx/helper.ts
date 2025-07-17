@@ -1,4 +1,4 @@
-import { Cube, Join, nonBlank, Property, PropertyDimension, Schema, SQLExpression } from '@metad/ocap-core'
+import { nonBlank, Property, Schema, SQLExpression } from '@metad/ocap-core'
 import { IModelRole, ISemanticModel, MDX, RoleTypeEnum } from '@metad/contracts'
 import { camelCase, cloneDeep, cloneDeepWith, forIn, isArray, isNil, isObject, isString, omit, pick } from 'lodash'
 import { Observable } from 'rxjs'
@@ -195,9 +195,9 @@ export function convertCalculatedMemberToXmla(calculatedMember: any): MDX.Calcul
 
 	calculatedMember.calculatedProperties?.forEach((property) => CalculatedMemberProperty.push(property))
 	return {
-		...omit(calculatedMember, ['calculatedProperties']),
+		...omit(calculatedMember, ['calculatedProperties', 'formatting']),
 		dimension: calculatedMember.dimension === 'Measures' ? 'Measures' : 
-			calculatedMember.hierarchy ? null : calculatedMember.dimension,
+			calculatedMember.hierarchy ? null : (calculatedMember.dimension || 'Measures'),
 		hierarchy: calculatedMember.dimension === 'Measures' ? null : calculatedMember.hierarchy,
 		CalculatedMemberProperty
 	} as MDX.CalculatedMember

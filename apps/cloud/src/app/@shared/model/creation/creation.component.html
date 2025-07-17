@@ -1,7 +1,7 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
-  <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
-    <span class="text-lg pointer-events-none">
+  <div class="w-full flex justify-start items-center my-4 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <i class="ri-draggable opacity-0 group-hover:opacity-100"></i>
+    <span class="text-xl pointer-events-none">
       {{ 'PAC.MENU.MODEL.CREATE_MODEL' | translate: { Default: 'Create Model' } }}
     </span>
   </div>
@@ -38,9 +38,11 @@
       searchable
     ></ngm-tree-select>
 
-    <mat-checkbox *ngIf="enableMDX" class="m-2" formControlName="mdx">
-      {{ 'PAC.MENU.MODEL.USE_MDX' | translate: { Default: 'Use MDX' } }}
-    </mat-checkbox>
+    @if (enableMDX) {
+      <mat-checkbox class="m-2" formControlName="mdx">
+        {{ 'PAC.MENU.MODEL.USE_MDX' | translate: { Default: 'Use MDX' } }}
+      </mat-checkbox>
+    }
   </form>
 
   <div class="flex justify-start">
@@ -54,7 +56,7 @@
   </div>
 </div>
 
-<div mat-dialog-content class="pac-dialog-content w-[400px] max-h-full overflow-auto">
+<div class="pac-dialog-content w-[400px] max-h-full overflow-auto">
   <form [formGroup]="formGroup" class="flex flex-col items-stretch p-4 overflow-auto">
     <label class="text-lg">
       <span class="text-red-500">*</span>{{ 'PAC.MODEL.DataSource' | translate: { Default: 'Data Source' } }}
@@ -71,8 +73,7 @@
       [columns]="dataSourceColumns()"
       key="id"
       formControlName="dataSource"
-    >
-    </ngm-selection-table>
+    />
 
     <label class="text-lg mt-4">
       <span class="text-red-500">*</span>{{ 'PAC.MENU.MODEL.SELECT_CATALOG' | translate: { Default: 'Select Catalog' } }}
@@ -89,8 +90,7 @@
         [columns]="catalogColumns$ | async"
         key="name"
         formControlName="catalog"
-      >
-      </ngm-selection-table>
+      />
       @if (discoverDBCatalogsError()) {
         <div class="absolute top-0 left-0 w-full h-full flex justify-center items-center overflow-hidden text-ellipsis bg-slate-500/20 backdrop-blur-lg">
           {{discoverDBCatalogsError()}}

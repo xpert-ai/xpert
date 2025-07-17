@@ -17,8 +17,12 @@ export class ChatToolCallChunkComponent {
   readonly conversationStatus = input()
 
   readonly duration = computed(() => {
-    const start = this.chunk()?.created_date ? new Date(this.chunk()?.created_date) : new Date()
+    const start = this.chunk()?.created_date ? new Date(this.chunk()?.created_date) : null
     const end = this.chunk()?.end_date ? new Date(this.chunk()?.end_date) : new Date()
-    return (end.getTime() - start.getTime()) / 1000
+    return start ? (end.getTime() - start.getTime()) / 1000 : null
   })
+
+  onClick() {
+    console.log(this.chunk())
+  }
 }

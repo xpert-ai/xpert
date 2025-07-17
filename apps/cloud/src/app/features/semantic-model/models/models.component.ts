@@ -7,7 +7,7 @@ import { Router } from '@angular/router'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { DataSourceService, SemanticModelServerService } from '@metad/cloud/state'
 import { uploadYamlFile } from '@metad/core'
-import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, NgmSpinComponent, TreeTableColumn, TreeTableModule } from '@metad/ocap-angular/common'
+import { NgmConfirmUniqueComponent, NgmSpinComponent, TreeTableColumn, TreeTableModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { ButtonGroupDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { AgentType, Property, Syntax } from '@metad/ocap-core'
@@ -30,11 +30,11 @@ import {
 } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { AppService } from '../../../app.service'
-import { ModelCreationComponent } from '../creation/creation.component'
 import { exportSemanticModel } from '../types'
 import { SharedModule } from '../../../@shared/shared.module'
 import { MaterialModule } from '../../../@shared/material.module'
 import { CreatedByPipe } from '../../../@shared/pipes'
+import { ModelCreationComponent } from '@cloud/app/@shared/model'
 
 @Component({
   standalone: true,
@@ -234,7 +234,10 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
   }
 
   onNewModel(businessAreaId?: string, type?: string) {
-    this._dialog.open(ModelCreationComponent, { data: { businessAreaId, type } }).afterClosed().pipe(
+    this._dialog.open(ModelCreationComponent, { 
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet',
+      data: { businessAreaId, type } }).afterClosed().pipe(
       switchMap((model) => {
         if (model) {
           return this.store.create({

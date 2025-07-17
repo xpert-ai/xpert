@@ -368,7 +368,8 @@ export function createMapStreamEvents(
 									type: 'component',
 									data: {
 										...data,
-										// category: 'Computer',
+										toolset: rest.metadata.toolset,
+										toolset_id: rest.metadata.toolsetId,
 										status: 'fail',
 										end_date: new Date(),
 									} as TMessageComponent<TMessageComponentStep>

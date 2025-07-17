@@ -1,11 +1,11 @@
 import { Semantics } from '../../annotations'
-import { DimensionType, PropertyDimension, Schema } from '../../models'
+import { DimensionType, PropertyDimension, PropertyHierarchy, Schema } from '../../models'
 import { suuid } from '../../utils'
 
 export function upsertSchemaDimension(schema: Partial<Schema>, dimension: Partial<PropertyDimension>) {
-  const dimensions = schema.dimensions || []
+  const dimensions = [...(schema.dimensions || [])]
   let key = null
-  const index = schema.dimensions.findIndex((d) => d.name === dimension.name)
+  const index = dimensions.findIndex((d) => d.name === dimension.name)
   if (index > -1) {
     key = dimensions[index].__id__
   } else {
@@ -36,7 +36,27 @@ export function upsertSchemaDimension(schema: Partial<Schema>, dimension: Partia
   }
 
   return {
-    ...schema,
-    dimensions: [...dimensions]
-  } as Schema
+    schema: {
+      ...schema,
+      dimensions
+    } as Schema,
+    dimension: _dimension
+  }
+}
+
+export function upsertHierarchy(dimension: PropertyDimension, hierarchy: Partial<PropertyHierarchy>) {
+  let key = null
+  const index = dimension.hierarchies.findIndex((item) => item.name === hierarchy.name)
+  if (index > -1) {
+    dimension.hierarchies.splice(index, 1, {
+      ...dimension.hierarchies[index],
+      ...hierarchy
+    })
+    key = dimension.hierarchies[index].__id__
+  } else {
+    dimension.hierarchies.push({ ...hierarchy, __id__: hierarchy.__id__ ?? suuid() } as PropertyHierarchy)
+    key = dimension.hierarchies[dimension.hierarchies.length - 1].__id__
+  }
+
+  return key
 }

@@ -27,6 +27,10 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
  */
 export enum ChatMessageStepCategory {
   /**
+   * List of items: urls, files, etc.
+   */
+  List = 'list',
+  /**
    * Websearch results
    */
   WebSearch = 'web_search',
@@ -183,7 +187,7 @@ export type TMessageContentComponent<T extends object = object> = {
 export type TMessageComponent<T extends object = object> = T & {
   id?: string
   category: 'Dashboard' | 'Computer' | 'Tool'
-  type: string
+  type?: string
   created_date?: Date | string
 }
 

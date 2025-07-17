@@ -14,7 +14,7 @@ import { EntityProperty } from './property'
 import { ParameterProperty, Property, PropertyMeasure } from './sdl'
 
 /**
- * 计算字段类型
+ * Calculated property types
  */
 export enum CalculationType {
   Restricted = 'Restricted',

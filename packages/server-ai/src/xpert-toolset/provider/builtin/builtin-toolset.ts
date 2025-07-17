@@ -1,3 +1,4 @@
+import { BaseStore } from '@langchain/langgraph'
 import { I18nObject, IBuiltinTool, IXpertToolset, TranslateOptions, TToolCredentials, TToolsetParams, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -12,6 +13,7 @@ export type TBuiltinToolsetParams = TToolsetParams & {
 	toolsetService?: XpertToolsetService
 	commandBus: CommandBus
 	queryBus: QueryBus
+	store?: BaseStore
 }
 
 export interface IBuiltinToolset {

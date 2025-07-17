@@ -20,6 +20,7 @@ import {
   isEntityType,
   nonNullable,
   omit,
+  upsertHierarchy,
   wrapHierarchyValue
 } from '@metad/ocap-core'
 import { getSemanticModelKey } from '@metad/story/core'
@@ -54,7 +55,6 @@ import {
   initDimensionSubState,
   initEntitySubState
 } from './types'
-import { upsertHierarchy } from './utils'
 import { limitSelect } from '@metad/ocap-sql'
 import { calculateHash } from '@cloud/app/@shared/utils'
 

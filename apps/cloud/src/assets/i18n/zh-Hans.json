@@ -931,6 +931,9 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "Type_Select": "选择",
+      "Type_New": "新建",
+      "NewModelWorkspace": "新建模型工作空间",
       "SelectASemanticModel": "选择一个语义模型",
       "ModelOverview": "模型概览",
       "DeleteSementicModel": "删除语义模型",

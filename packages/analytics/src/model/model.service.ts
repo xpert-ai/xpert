@@ -1,4 +1,4 @@
-import { BusinessAreaRole, ChecklistItem, extractSemanticModelDraft, ISemanticModel, IUser, mapTranslationLanguage, RuleValidator, SemanticModelStatusEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
+import { BusinessAreaRole, ChecklistItem, IUser, mapTranslationLanguage, SemanticModelStatusEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
 import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
@@ -22,7 +22,7 @@ import { NgmDSCoreService, registerSemanticModel } from './ocap'
 import { ModelQueryLogService } from '../model-query-log'
 import { SemanticModelQueryLog } from '../core/entities/internal'
 import { SemanticModelUpdatedEvent } from './events'
-import { DimensionValidator, RoleValidator } from './mdx/validators'
+import { DimensionValidator, RoleValidator } from './validators'
 
 const axios = _axios.default
 

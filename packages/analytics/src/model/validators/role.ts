@@ -1,28 +1,5 @@
 import { ChecklistItem, IModelRole, RuleValidator } from "@metad/contracts";
-import { Cube, PropertyDimension, Schema, serializeUniqueName } from "@metad/ocap-core";
-
-export class DimensionValidator implements RuleValidator {
-  async validate(dimension: PropertyDimension, params: {schema: Schema}): Promise<ChecklistItem[]> {
-    const issues: ChecklistItem[] = [
-    ]
-
-    if (dimension.hierarchies?.length) {
-      if (!dimension.hierarchies.some(h => !h.name) && !dimension.defaultHierarchy) {
-        issues.push({
-          ruleCode: 'DIMENSION_MISSING_DEFAULT_HIERARCHY',
-          field: 'dimension',
-          value: dimension.name,
-          message: {
-            en_US: `Dimension "${dimension.name}" must have a default hierarchy or one hierarchy has no name`,
-            zh_Hans: `维度 "${dimension.name}" 必须有默认层次结构或至少一个层次结构名称为空`
-          },
-          level: 'error'
-        })
-      }
-    }
-    return issues
-  }
-}
+import { Schema, serializeUniqueName } from "@metad/ocap-core";
 
 export class RoleValidator implements RuleValidator {
   async validate(role: IModelRole, params: {schema: Schema}): Promise<ChecklistItem[]> {

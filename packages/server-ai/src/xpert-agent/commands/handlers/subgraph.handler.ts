@@ -113,7 +113,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				xpertId: xpert.id,
 				agentKey,
 				signal: abortController.signal,
-				env: toEnvState(environment)
+				env: toEnvState(environment),
+				store: options.store,
 			})
 		)
 		// Clean all toolsets when aborted

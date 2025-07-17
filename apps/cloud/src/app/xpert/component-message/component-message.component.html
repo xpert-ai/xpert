@@ -1,4 +1,4 @@
-@switch (data().category) {
+@switch (category()) {
   @case ('Computer') {
     @switch (data().type) {
       @case ('Files') {
@@ -36,6 +36,6 @@
     } 
   }
   @default {
-    <div class="text-text-secondary text-sm">Unsupported category: {{data().category}}</div>
+    <div class="text-text-secondary text-sm">Unsupported category: {{data().category}} from message: {{data() | json}}</div>
   }
 }

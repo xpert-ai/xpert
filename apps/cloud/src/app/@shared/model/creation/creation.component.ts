@@ -1,3 +1,5 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, forwardRef, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
@@ -10,8 +12,13 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { BusinessAreasService, DataSourceService } from '@metad/cloud/state'
+import { MatButtonModule } from '@angular/material/button'
+import { MatCheckboxModule } from '@angular/material/checkbox'
+import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatInputModule } from '@angular/material/input'
+import { MatProgressBarModule } from '@angular/material/progress-bar'
+import { RouterModule } from '@angular/router'
+import { BusinessAreasService, DataSourceService, ISemanticModel } from '@metad/cloud/state'
 import { nonBlank } from '@metad/core'
 import { NgmSelectionTableComponent, NgmTreeSelectComponent, SelectionTableColumn } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
@@ -20,8 +27,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, Subject, catchError, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { IDataSource, getErrorMessage } from '../../../@core'
-import { MaterialModule } from '../../../@shared/material.module'
-import { RouterModule } from '@angular/router'
 
 @Component({
   standalone: true,
@@ -34,8 +39,13 @@ import { RouterModule } from '@angular/router'
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-    MaterialModule,
     TranslateModule,
+    DragDropModule,
+    MatFormFieldModule,
+    MatProgressBarModule,
+    MatButtonModule,
+    MatInputModule,
+    MatCheckboxModule,
     DensityDirective,
     ButtonGroupDirective,
     NgmTreeSelectComponent,
@@ -59,9 +69,9 @@ export class ModelCreationComponent implements ControlValueAccessor {
   private businessAreaService = inject(BusinessAreasService)
   private dsCoreService = inject(NgmDSCoreService)
   private data = inject<{ name: string; description: string; businessAreaId: string; type: 'mdx' | 'sql' | null }>(
-    MAT_DIALOG_DATA
+    DIALOG_DATA
   )
-  private dialogRef = inject(MatDialogRef<ModelCreationComponent>)
+  private dialogRef = inject(DialogRef<ISemanticModel>)
 
   formGroup = new FormGroup({
     name: new FormControl('', [Validators.required]),
@@ -153,7 +163,7 @@ export class ModelCreationComponent implements ControlValueAccessor {
       this.discoverDBCatalogsError.set(null)
     }),
     switchMap((dataSource) =>
-      dataSource.discoverDBCatalogs({throwError: true}).pipe(
+      dataSource.discoverDBCatalogs({ throwError: true }).pipe(
         catchError((err) => {
           this.catalogsLoading.set(false)
           this.discoverDBCatalogsError.set(getErrorMessage(err))

@@ -9,8 +9,8 @@
   <div class="mb-2">
     @for (interrupt of task.interrupts; track interrupt) {
       <div class="mb-2">
-        <div class="font-semibold">{{interrupt.value.title}}</div>
-        <div class="text-sm line-clamp-2 font-body text-text-secondary">{{interrupt.value.message}}</div>
+        <div class="text-lg font-semibold">{{interrupt.value.title | i18n }}</div>
+        <div class="text-sm line-clamp-2 font-body text-text-secondary">{{interrupt.value.message | i18n }}</div>
       </div>
       <xpert-agent-interrupt [interrupt]="interrupt" [(value)]="resume" />
     } @empty {

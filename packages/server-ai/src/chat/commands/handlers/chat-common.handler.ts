@@ -536,6 +536,14 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		if (project?.workspace?.environments?.length > 0) {
 			environment = project.workspace.environments.find((_) => _.isDefault)
 		}
+		// Long-term memory store
+		const memoryStore: BaseStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(
+			new CreateMemoryStoreCommand(tenantId, organizationId, null, {
+				abortController,
+				tokenCallback: (token) => {
+					// execution.embedTokens += token ?? 0
+				}
+			}))
 
 		// Create tools
 		const stateVariables: TStateVariable[] = []
@@ -574,7 +582,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					conversationId,
 					xpertId: null,
 					signal: abortController.signal,
-					env: toEnvState(environment)
+					env: toEnvState(environment),
+					store: memoryStore
 				})
 			)
 			abortController.signal.addEventListener('abort', () => {
@@ -640,13 +649,6 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			})
 		)
 
-		const memoryStore: BaseStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(
-			new CreateMemoryStoreCommand(tenantId, organizationId, null, {
-				abortController,
-				tokenCallback: (token) => {
-					// execution.embedTokens += token ?? 0
-				}
-			}))
 		const supervisorName = 'general_agent'
 		// Custom Xperts
 		const xperts: {name: string; agent; tool: DynamicStructuredTool}[] = []

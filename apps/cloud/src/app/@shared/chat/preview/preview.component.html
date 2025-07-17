@@ -201,7 +201,7 @@
     }
     
     @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
-      <xpert-agent-operation class="w-full bg-components-card-bg"
+      <xpert-agent-operation class="w-full mb-8 bg-components-card-bg"
         [readonly]="readonly()"
         [operation]="operation()"
         [(command)]="command"

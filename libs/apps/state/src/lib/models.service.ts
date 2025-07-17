@@ -164,7 +164,7 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
     return this.httpClient.post(C_URI_API_MODELS, data)
   }
 
-  create(data: Partial<StoryModel>) {
+  create(data: Partial<StoryModel | ISemanticModel>) {
     return this.httpClient.post<ISemanticModel>(C_URI_API_MODELS, convertStoryModel(data))
   }
 
