@@ -5,6 +5,7 @@
         "NoPropertyFoundFor": "No properties found for '{{name}}' in cube '{{cube}}'.",
         "NoDimensionFoundFor": "No dimension found for '{{name}}' in cube '{{cube}}'.",
         "NoHierarchyFoundFor": "No hierarchy found for '{{name}}' in dimension '{{dimension}}'.",
+        "PropertyNotFoundInLevel": "Property '{{property}}' not found in level '{{level}}' of cube '{{cube}}'.",
         "CalendarDimensionNotFound": "Can't find calendar dimension in cube '{{cube}}'",
         "CalendarHierarchyNotFound": "Can't find calendar herarchy in dimension '{{dimension}}'"
     }

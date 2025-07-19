@@ -315,11 +315,11 @@ export class NgmValueHelpComponent implements OnInit {
       }
     }
 
+    if (this.dialogRef) {
+      this.dialogRef.close(result)
+    }
     if (this.#dialogRef) {
       this.#dialogRef.close(result)
-    }
-     if (this.dialogRef) {
-      this.dialogRef.close(result)
     }
   }
 
