@@ -1,4 +1,4 @@
-import { LanguagesEnum, XpertTaskStatus } from '@metad/contracts'
+import { LanguagesEnum, ScheduleTaskStatus } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CrudController, PaginationParams, ParseJsonPipe, RequestContext, TimeZone, TransformInterceptor } from '@metad/server-core'
 import {
@@ -90,7 +90,7 @@ export class XpertTaskController extends CrudController<XpertTask> {
 	async schedule(@Param('id') id: string, @Body() entity: XpertTask) {
 		try {
 			if (entity) {
-				return await this.service.updateTask(id, { ...entity, status: XpertTaskStatus.SCHEDULED })
+				return await this.service.updateTask(id, { ...entity, status: ScheduleTaskStatus.SCHEDULED })
 			}
 			return await this.service.schedule(id)
 		} catch (err) {

@@ -386,11 +386,19 @@
 
     <div class="w-80 min-h-[200px] overflow-auto flex flex-col justify-start">
       @for (conv of taskConversations(); track conv.id) {
-        <a class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active aria-expanded:bg-button-ghost-hover group/task-item pl-3 pr-4 py-1 text-sm w-full text-fg-primary"
+        <a class="peer/menu-button flex flex-col overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0
+            hover:text-primary border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active aria-expanded:bg-button-ghost-hover group/task-item pl-3 pr-4 py-1 text-sm w-full"
           [routerLink]="['/chat/c', conv.id]">
-          <span class="flex-1 select-none text-nowrap max-w-full overflow-hidden inline-block" 
+          <span class="flex-1 select-none truncate max-w-full overflow-hidden inline-block text-text-primary" 
             style="mask-image: linear-gradient(to right, black 85%, transparent 100%);">{{conv.title || conv.options?.parameters?.input}}</span>
-          <!-- <div class="rounded-full bg-blue-400 h-1.5 w-1.5"></div> -->
+          <div class="flex justify-start items-center gap-2 text-xs text-text-secondary">
+            <span class="font-mono">{{conv.updatedAt | date:'short'}}</span>
+            @if (conv.xpert) {
+              <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                {{conv.xpert.title || conv.xpert.name}}
+              </span>
+            }
+          </div>
         </a>
       } @empty {
         <div class="grow w-full flex flex-col justify-center items-center text-text-secondary text-3xl">

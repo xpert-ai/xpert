@@ -48,11 +48,12 @@
         </span>
       }
       @if (draftSavedDate()) {
-        <span class="truncate">{{ 'PAC.MODEL.AutoSave' | translate: {Default: 'Auto save'} }} {{draftSavedDate() | relative}}</span>
+        <span class="truncate">{{ 'PAC.MODEL.AutoSave' | translate: {Default: 'Auto save'} }}</span>
+        <span class="font-mono">{{draftSavedDate() | relative}}</span>
       }
       @if (latestPublishDate()) {
         <span class="flex items-center mx-1">·</span>
-        {{ 'PAC.MODEL.Published' | translate: {Default: 'Published'} }} {{latestPublishDate() | relative}}
+        {{ 'PAC.MODEL.Published' | translate: {Default: 'Published'} }} <span class="font-mono">{{latestPublishDate() | relative}}</span>
       }
     </div>
     <div class="flex items-center gap-2">

@@ -4,8 +4,8 @@ import {
 	IXpert,
 	IXpertTask,
 	LanguagesEnum,
-	TTaskOptions,
-	XpertTaskStatus
+	TScheduleOptions,
+	ScheduleTaskStatus
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -32,7 +32,7 @@ export class SimpleXpertTask implements IXpertTask {
 	@ApiPropertyOptional({ type: () => Object })
 	@IsObject()
 	@IsOptional()
-	options?: TTaskOptions
+	options?: TScheduleOptions
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsOptional()
@@ -44,10 +44,10 @@ export class SimpleXpertTask implements IXpertTask {
 	@IsOptional()
 	prompt?: string
 
-	@ApiPropertyOptional({ enum: XpertTaskStatus })
-	@IsEnum(XpertTaskStatus)
+	@ApiPropertyOptional({ enum: ScheduleTaskStatus })
+	@IsEnum(ScheduleTaskStatus)
 	@IsOptional()
-	status?: XpertTaskStatus
+	status?: ScheduleTaskStatus
 
 	@ApiProperty({ type: () => Xpert })
 	@Transform(({ value }) => value && new XpertIdentiDto(value))

@@ -1,4 +1,4 @@
-import { generateCronExpression, IUser, IXpertTask, RolesEnum, TChatOptions, XpertTaskStatus } from '@metad/contracts'
+import { generateCronExpression, IUser, IXpertTask, RolesEnum, TChatOptions, ScheduleTaskStatus } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
@@ -127,7 +127,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 	async getActiveJobs() {
 		return this.findAll({
 			where: {
-				status: XpertTaskStatus.SCHEDULED
+				status: ScheduleTaskStatus.SCHEDULED
 			},
 			relations: ['createdBy', 'createdBy.role']
 		})
@@ -163,7 +163,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 	async updateTask(id: string, entity: Partial<IXpertTask>) {
 		await super.update(id, entity)
 		const task = await this.findOne(id, { relations: ['xpert'] })
-		if (task.status === XpertTaskStatus.SCHEDULED) {
+		if (task.status === ScheduleTaskStatus.SCHEDULED) {
 			this.rescheduleTask(task, RequestContext.currentUser())
 		} else {
 			this.deleteJob(task.id)
@@ -174,19 +174,19 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 	async schedule(id: string) {
 		const task = await this.findOne(id, { relations: ['createdBy', 'createdBy.role'] })
 		this.rescheduleTask(task, RequestContext.currentUser() ?? task.createdBy)
-		return await this.update(id, { status: XpertTaskStatus.SCHEDULED })
+		return await this.update(id, { status: ScheduleTaskStatus.SCHEDULED })
 	}
 
 	async pause(id: string) {
 		const task = await this.findOne(id)
 		this.deleteJob(task.id)
-		return await this.update(id, { status: XpertTaskStatus.PAUSED })
+		return await this.update(id, { status: ScheduleTaskStatus.PAUSED })
 	}
 
 	async archive(id: string) {
 		const task = await this.findOne(id)
 		this.deleteJob(task.id)
-		return await this.update(id, { status: XpertTaskStatus.ARCHIVED })
+		return await this.update(id, { status: ScheduleTaskStatus.ARCHIVED })
 	}
 
 	async test(id: string, options: TChatOptions) {

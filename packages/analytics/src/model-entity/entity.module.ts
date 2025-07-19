@@ -11,6 +11,7 @@ import { SemanticModelEntity } from './entity.entity'
 import { SemanticModelEntityService } from './entity.service'
 import { EntityMemberProcessor } from './entity-job.processor'
 import { SemanticModelModule } from '../model/model.module'
+import { JOB_ENTITY_SYNC } from './types'
 
 @Module({
 	imports: [
@@ -24,7 +25,7 @@ import { SemanticModelModule } from '../model/model.module'
 		forwardRef(() => SemanticModelMemberModule),
 
 		BullModule.registerQueue({
-			name: 'entity'
+			name: JOB_ENTITY_SYNC
 		})
 	],
 	controllers: [ModelEntityController],

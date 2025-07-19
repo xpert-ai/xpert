@@ -1,4 +1,4 @@
-import { XpertTaskStatus } from '@metad/contracts'
+import { ScheduleTaskStatus } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -47,7 +47,7 @@ export class QueryXpertTaskHandler implements ICommandHandler<QueryXpertTaskComm
 			} catch (err) {
 				return {
 					..._task,
-					status: XpertTaskStatus.PAUSED,
+					status: ScheduleTaskStatus.PAUSED,
 					job: null
 				}
 			}

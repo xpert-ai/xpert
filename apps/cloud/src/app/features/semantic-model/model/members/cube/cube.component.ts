@@ -27,6 +27,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
+import { ModelTaskDialogComponent } from '../task/task.component'
 
 @Component({
   standalone: true,
@@ -306,6 +307,21 @@ export class ModelMembersCubeComponent {
       }
     }).closed.subscribe((result) => {
       if (result) {
+      }
+    })
+  }
+
+  scheduledSyncTask() {
+    this.#dialog.open(ModelTaskDialogComponent, {
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet',
+      data: {
+        task: this.entity()
+      }
+    }).closed.subscribe((task) => {
+      if (task) {
+        this.cube.update((cube) => ({ ...cube, __entity__: task }))
+        this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', { Default: 'Synchronization job created successfully!' })
       }
     })
   }

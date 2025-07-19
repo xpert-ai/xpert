@@ -4,11 +4,13 @@ import {
 	ISemanticModelMember,
 	ModelEntityType,
 	SemanticModelEntityOptions,
-	SemanticModelEntityJob
+	SemanticModelEntityJob,
+	TScheduleOptions,
+	ScheduleTaskStatus
 } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsEnum, IsJSON, IsOptional, IsString } from 'class-validator'
+import { IsEnum, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
 import { SemanticModel, SemanticModelMember } from '../core/entities/internal'
 
@@ -47,6 +49,24 @@ export class SemanticModelEntity extends TenantOrganizationBaseEntity implements
 	@Column({ type: 'json', nullable: true })
 	job?: SemanticModelEntityJob
 
+	@ApiPropertyOptional({ type: () => Object })
+	@IsObject()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	schedule?: TScheduleOptions
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsOptional()
+	@IsString()
+	@Column({ nullable: true })
+	timeZone?: string
+
+	@ApiPropertyOptional({ enum: ScheduleTaskStatus })
+	@IsEnum(ScheduleTaskStatus)
+	@IsOptional()
+	@Column({ nullable: true, length: 20 })
+	status?: ScheduleTaskStatus
+
 	/**
 	 * Model
 	 */
@@ -63,7 +83,6 @@ export class SemanticModelEntity extends TenantOrganizationBaseEntity implements
 	@IsString()
 	@Column({ nullable: true })
 	modelId?: string
-
 
 	/**
 	 * Dimension Members

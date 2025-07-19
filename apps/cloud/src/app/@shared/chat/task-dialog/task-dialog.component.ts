@@ -13,7 +13,7 @@ import {
   TaskFrequency,
   ToastrService,
   XpertTaskService,
-  XpertTaskStatus
+  ScheduleTaskStatus
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { NgmProgressSpinnerComponent, NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -54,7 +54,7 @@ export class XpertTaskDialogComponent {
   readonly #myTasks = myRxResource({
     request: () => this.#data.total,
     loader: ({ request }) => {
-      return isNil(request) ? this.taskAPI.total({ where: { status: XpertTaskStatus.SCHEDULED } }) : of(request)
+      return isNil(request) ? this.taskAPI.total({ where: { status: ScheduleTaskStatus.SCHEDULED } }) : of(request)
     }
   })
   readonly total = this.#myTasks.value
@@ -142,7 +142,7 @@ export class XpertTaskDialogComponent {
           ...this.options(),
           frequency: this.frequency() || TaskFrequency.Once
         },
-        status: XpertTaskStatus.SCHEDULED,
+        status: ScheduleTaskStatus.SCHEDULED,
         xpertId: this.xpertId()
       })
       .subscribe({
