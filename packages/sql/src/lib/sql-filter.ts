@@ -164,11 +164,11 @@ export function compileSlicer(slicer: IFilter, cube: CubeContext, dialect: strin
         case FilterOperator.NE:
           return Not(serializeEQMembers(members))
         case FilterOperator.EQ:
-        case null:
-        case undefined:
-        case '':
           return serializeEQMembers(members)
         default:
+          if (!operator) {
+            return serializeEQMembers(members)
+          }
           throw new Error(`Not implement operator '${operator}'`)
       }
     })

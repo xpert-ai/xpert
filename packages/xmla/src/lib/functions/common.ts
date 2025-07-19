@@ -10,7 +10,7 @@ import { uniq } from 'lodash'
  * @param Numeric_Expression 
  * @returns 
  */
-export function Aggregate(Set_Expression, Numeric_Expression?: string) {
+export function Aggregate(Set_Expression: string, Numeric_Expression?: string) {
     return `Aggregate( ${Set_Expression}${Numeric_Expression ? `, ${Numeric_Expression}` : ''} )`
 }
 
@@ -96,9 +96,17 @@ export function CurrentMember(MemberOrSet_Expression: string) {
 export function PrevMember(Member_Expression: string) {
     return `${Member_Expression}.PrevMember`
 }
-
 export function Children(Set_Expression: string) {
     return `${Set_Expression}.Children`
+}
+export function CurrentMemberCaption(MemberOrSet_Expression: string) {
+    return `${MemberOrSet_Expression}.CurrentMember.Caption`
+}
+export function CurrentMemberName(MemberOrSet_Expression: string) {
+    return `${MemberOrSet_Expression}.CurrentMember.Name`
+}
+export function CurrentMemberUniqueName(MemberOrSet_Expression: string) {
+    return `${MemberOrSet_Expression}.CurrentMember.UniqueName`
 }
 
 /**
@@ -179,7 +187,7 @@ export function IIf(Logical_Expression: string, Expression1: string, Expression2
  * 
  * @param Value_Expression A valid Multidimensional Expressions (MDX) expression that typically returns the cell coordinates of a member or a tuple.
  */
-export function IsEmpty(Value_Expression) {
+export function IsEmpty(Value_Expression: string) {
     return `IsEmpty( ${Value_Expression} )`
 }
 
@@ -194,7 +202,7 @@ export function IsEmpty(Value_Expression) {
  * @returns 
  */
 export function InStr(...Value_Expression: string[]) {
-    return `InStr( ${Value_Expression.join(', ')} )`
+    return `InStr(${Value_Expression.join(', ')})`
 }
 
 /**
@@ -235,7 +243,7 @@ export function Lead(Member_Expression: string, Index = 0) {
  * 
  * @param Expression 
  */
-export function Not(Expression) {
+export function Not(Expression: string) {
     return `NOT ${Expression}`
 }
 
@@ -248,7 +256,7 @@ export function Not(Expression) {
  * @param Expression 
  * @returns 
  */
-export function NonEmptyCrossjoin(...Set_Expression) {
+export function NonEmptyCrossjoin(...Set_Expression: string[]) {
     return `NonEmptyCrossjoin( ${Set_Expression.join(', ')} )`
 }
 
@@ -263,7 +271,7 @@ export function NonEmptyCrossjoin(...Set_Expression) {
  * @param Desc_Flag 
  * @returns 
  */
-export function Descendants(MemberOrSet_Expression, LevelOrDistance?, Desc_Flag?: DescendantsFlag) {
+export function Descendants(MemberOrSet_Expression: string, LevelOrDistance?: string | number, Desc_Flag?: DescendantsFlag) {
     return `Descendants( ${MemberOrSet_Expression}${LevelOrDistance ? `, ${LevelOrDistance}` : ''}${Desc_Flag ? `, ${Desc_Flag}` : ''} )`
 }
 
@@ -428,4 +436,11 @@ export function NOT(expression: string) {
 
 export function IS(expression1: string, expression2?: string) {
     return `${expression1} IS ${expression2 ? expression2 : 'NULL'}`
+}
+
+export function Left(expression: string, length: number) {
+    return `Left(${expression}, ${length})`
+}
+export function Right(expression: string, length: number) {
+    return `Right(${expression}, ${length})`
 }

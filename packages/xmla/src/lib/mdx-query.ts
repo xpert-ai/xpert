@@ -32,13 +32,14 @@ import {
   Property,
   QueryOptions,
   RuntimeLevelType,
-  Semantics
+  Semantics,
+  wrapHierarchyValue
 } from '@metad/ocap-core'
 import { t } from 'i18next'
 import { findIndex, flatten, groupBy, isEmpty, merge, negate, omit, padStart, uniq } from 'lodash'
 import { WithMemberType } from './calculation'
 import { flattenAdvancedFilter, mapMDXFilterToStatement, MDXHierarchyFilter, MDXProperty } from './filter'
-import { Ascendants, Descendants, DescendantsFlag, Distinct, Except, Members, MemberSet } from './functions'
+import { Ascendants, Children, Descendants, DescendantsFlag, Distinct, Except, Members, MemberSet } from './functions'
 import { IntrinsicMemberProperties } from './reference/index'
 import {
   C_MDX_FIELD_NAME_REGEX,
@@ -312,7 +313,7 @@ export function uniteMDXProperty(dimensions: Array<MDXProperty>): Array<MDXPrope
 }
 
 /**
- * 将 Filter 转换成 MDX 结构化数据
+ * Convert Filter to MDX structured data
  */
 export function convertFilter2Hierarchy(entityType: EntityType, ftr: ISlicer): MDXHierarchyFilter {
   const dim: MDXHierarchyFilter = getMDXProperty(entityType, ftr.dimension)
@@ -321,7 +322,7 @@ export function convertFilter2Hierarchy(entityType: EntityType, ftr: ISlicer): M
     dim.drill = ftr.drill
     dim.distance = ftr.distance
     if (isFilter(ftr)) {
-      // TODO 需要更好的方式
+      // TODO The need for a better way
       dim.operator = ftr.operator
     }
     if (ftr.exclude) {
@@ -392,11 +393,11 @@ export function getHierarchyName(fHierarchy) {
 }
 
 /**
- * 将 Filters 分配到行或者列维度, 剩余的到 Slicers 轴上
+ * Assign Filters to row or column dimensions, and the rest to Slicers axes
  *
- * @param rows    行
- * @param columns 列
- * @param filters 过滤器
+ * @param rows    Rows
+ * @param columns Columns
+ * @param filters Slicers
  */
 export function allocateFilters(
   rows: Array<MDXProperty>,
@@ -418,7 +419,7 @@ export function allocateFilters(
   rows = allocateAxesFilter(rows, [...filtersWithoutLevel], entityType, withMembers, dialect)
   columns = allocateAxesFilter(columns, [...filtersWithoutLevel], entityType, withMembers, dialect)
 
-  // 是否 SAP MDX 根本不支持使用同一 DIMENSION 的多个 Hierarchy 进行 Slicer 查询 ?
+  // Does SAP MDX simply not support Slicer queries with multiple hierarchies using the same DIMENSION?
   const selects = [...(rows || []), ...(columns || [])]
   const slicerFilters = parameterGroup['false']
     ?.filter((ftr) => !(findIndex(selects, { hierarchy: ftr.hierarchy }) > -1 || isEmpty(ftr.members)))
@@ -440,9 +441,9 @@ export function allocateFilters(
 }
 
 /**
- * 将维度属性与过滤器合并
+ * Combining dimension attributes with filters
  *
- * @param calculatedMembers 用于存储计算 calculated slicers 过程中产生的 with member
+ * @param calculatedMembers Used to store with member generated during calculation of calculated slicers
  */
 export function allocateAxesFilter(
   dimensions: Array<MDXProperty>,
@@ -486,9 +487,9 @@ export function allocateAxesFilter(
       // _filters.push(serializeDimension(item))
     }
 
-    // 排除的条件不同于等于的条件，要单独处理
+    // The exclusion condition is different from the equality condition and should be handled separately.
     const excludeSlicers = []
-    // Dimension 的 members 应该作为优先级低的 slicer，所以要合并到 filters 中
+    // Dimension members should be treated as low-priority slicers, so they should be merged into filters.
     if (members?.length) {
       if (exclude) {
         excludeSlicers.push({
@@ -498,7 +499,7 @@ export function allocateAxesFilter(
           members
         })
       } else if (!filters.some((ftr) => ftr.hierarchy === hierarchy)) {
-        // Include 的 Members 当作低优先级的 slicer
+        // Include's Members are treated as low-priority slicers
         filters.push({
           dimension,
           hierarchy,
@@ -509,7 +510,7 @@ export function allocateAxesFilter(
 
     let statement = ''
 
-    // 有指定层级的情况
+    // When there is a level
     if (level) {
       const slicers = filters
         .filter((ftr) => ftr?.hierarchy === hierarchy)
@@ -520,7 +521,7 @@ export function allocateAxesFilter(
               IntrinsicMemberProperties[IntrinsicMemberProperties.PARENT_UNIQUE_NAME]
             ]
           }
-          // TODO: 有没有除了 members 之外其他情况 ???
+          // TODO: Are there any other cases besides members ???
           if (!isEmpty(item.members)) {
             // Slicer as drill down parent member in flat mode
             // if (isNil(item.drill)) {
@@ -535,13 +536,12 @@ export function allocateAxesFilter(
           }
           return null
         }).filter(nonNullable)
-        
 
       let dimensionStatement = ''
       if (isEmpty(_filters)) {
         dimensionStatement = Members(level)
       } else {
-        // 放在了 serializeDimension 函数里，要和 Except 一起处理
+        // Put it in the `serializeDimension` function and process it together with Except
         if (exclude) {
           dimensionStatement = MemberSet(..._filters)
         } else {
@@ -549,14 +549,14 @@ export function allocateAxesFilter(
         }
       }
 
-      // level 和 members 同时存在意味这什么? 下钻上钻还是只取 members 成员
+      // What does it mean when both level and members exist? Drill down or drill up or only get members.
       if (!isEmpty(slicers)) {
         if (displayHierarchy) {
           // Hierarchy data union drill down data then distinct
           // statement = Distinct(MemberSet(...slicers, dimensionStatement))
-          statement = MemberSet(...slicers.map((item) => mapMDXFilterToStatement({...item, drill: Drill.SelfAndDescendants}, entityType.cube, withMembers, dialect)))
+          statement = MemberSet(...slicers.map((item) => mapMDXFilterToStatement({...item, level, drill: Drill.SelfAndDescendants}, entityType.cube, withMembers, dialect)))
         } else {
-          // 下钻时只用下钻成员？ 下钻到指定层级, 例如：去年每个月的销售额
+          // When drilling down, only drill down members? Drill down to a specific level, for example: sales for each month last year
           if (isNil(slicers[0].drill)) {
             if (currentHierarchy.levels.filter((level) => level.levelType !== RuntimeLevelType.ALL).length > 1) {
               statement = Descendants(MemberSet(...slicers.map((item) => mapMDXFilterToStatement(item, entityType.cube, withMembers, dialect))), level)
@@ -579,7 +579,7 @@ export function allocateAxesFilter(
         }
       }
     } else {
-      // 如果 selects 中的 DIMENSION 没有 LEVEL 信息则认为全部是 EQ filters (目前认识情况下)
+      // If the DIMENSION in selects does not have LEVEL information, then all are considered EQ filters (based on current understanding)
       const ftrs = flatten(
         filters
           .filter((ftr) => ftr?.hierarchy === hierarchy)
@@ -590,9 +590,9 @@ export function allocateAxesFilter(
       }
 
       if (!isEmpty(_filters)) {
-        // 先在这里进行去重, 后续可以提前到结构化部分去重
+        // De-duplicate data here first, and then you can go to the structured part to de-duplicate data.
         statement = MemberSet(...uniq(_filters))
-        // TODO: 有 filters 并且没有 level，则获取 member level 和 children cardinality 信息
+        // TODO: If there are filters and no level, get member level and children cardinality information
         mdxProperty.properties = [
           ...mdxProperty.properties,
           IntrinsicMemberProperties[IntrinsicMemberProperties.LEVEL_NUMBER],
@@ -600,13 +600,15 @@ export function allocateAxesFilter(
         ]
       } else {
         /**
-         * `[hierarchy].Members` 取所有 Members 如果是 `[hierarchy]` 则只取一个默认 Member
-         * 改成 Children 默认就都不取 Flat 结构的 All 成员， 但是 Children 只需 defaultMember 的子成员
+         * MDX operation rules:
+         * - `[hierarchy].Members` takes all Members include the allMember. If it is `[hierarchy]`, only take the default Member.
+         * - By default, `Children` will not take allMember of the Flat structure, but only take the sub-members of defaultMember.
+         * 
          */
         // if (!unbookedData) {
         //   statement = `Except(${hierarchy}.Children, {${hierarchy}.[#]})`
         // } else {
-        // 使用其他方式(dimension属性,level设置...)排除 AllMember 成员
+        //   使用其他方式(dimension属性,level设置...)排除 AllMember 成员
         // }
 
         // statement = defaultMember ? wrapHierarchyValue(hierarchy, defaultMember) : Members(hierarchy)
@@ -616,7 +618,6 @@ export function allocateAxesFilter(
     }
 
     if (item.displayHierarchy) {
-      
       mdxProperty.properties.push(
         IntrinsicMemberProperties[IntrinsicMemberProperties.PARENT_UNIQUE_NAME],
         IntrinsicMemberProperties[IntrinsicMemberProperties.CHILDREN_CARDINALITY]
@@ -642,7 +643,7 @@ export function allocateAxesFilter(
       }
     }
 
-    // 最终排除 Exclude 的 Members
+    // Finally exclude the Members of exclude = true
     if (excludeSlicers.length > 0) {
       statement = Except(
         statement,

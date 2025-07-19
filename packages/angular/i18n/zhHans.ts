@@ -72,7 +72,19 @@ export const ZhHans = {
         SelectionType: '选择类型',
         Presentation: '展现形式',
         HierarchySelectionMode: '层级选择模式',
-        Hierarchy: '层次结构'
+        Hierarchy: '层次结构',
+        Property: '属性',
+        UniqueName: '唯一键',
+        Caption: '标签',
+        Contains: '包含',
+        StartsWith: '以...开始',
+        EndsWith: '以...结束',
+        NotContains: '不包含',
+        NotStartsWith: '不以...开始',
+        NotEndsWith: '不以...结束',
+        Condition: '条件',
+        Value: '值',
+        Add: '添加',
       }
     },
     Entity: {

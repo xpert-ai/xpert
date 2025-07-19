@@ -7,6 +7,7 @@ export const ZhHant = {
       Reset: '重置',
       Search: '搜索',
       Select: '選擇',
+      Clear: '清空',
       Search_Placeholder: '請輸入關鍵詞',
       DisplayBehaviour_Description: '描述',
       DisplayBehaviour_DescriptionID: '描述 ID',
@@ -15,6 +16,7 @@ export const ZhHant = {
       DisplayBehaviour_Auto: '自動',
       SelectionType_Single: '單選',
       SelectionType_Multiple: '多選',
+      SelectionType_SingleRange: '單區間',
       Presentation_Flat: '平鋪',
       Presentation_Hierarchy: '層級',
       HierarchySelectionMode_Individual: '單個',
@@ -27,7 +29,12 @@ export const ZhHant = {
       Default: '默認',
       Hierarchy: '層次結構',
       DisplayBehaviour: '顯示行為',
-      DisplayBehaviour_IDOnly: '編碼'
+      DisplayBehaviour_IDOnly: '編碼',
+      ClearDrillDown: "清空下鉆",
+      Description: "描述",
+      Step: '步驟',
+      Presentation: '展示',
+      Custom: '自定義'
     },
     AnalyticalCard: {
       Screenshot: '截圖',
@@ -65,7 +72,19 @@ export const ZhHant = {
         SelectionType: '選擇類型',
         Presentation: '展現形式',
         HierarchySelectionMode: '層級選擇模式',
-        Hierarchy: '層次結構'
+        Hierarchy: '層次結構',
+        Property: '屬性',
+        UniqueName: '唯一鍵',
+        Caption: '標簽',
+        Contains: '包含',
+        StartsWith: '以...開始',
+        EndsWith: '以...結束',
+        NotContains: '不包含',
+        NotStartsWith: '不以...開始',
+        NotEndsWith: '不以...結束',
+        Condition: '條件',
+        Value: '值',
+        Add: '添加',
       }
     },
     Entity: {
@@ -149,7 +168,8 @@ export const ZhHant = {
       Quarter: '季度',
       Month: '月',
       Week: '周',
-      Day: '日'
+      Day: '日',
+      Today: '今天'
     },
     AdvancedSlicer: {
       TITLE: '高級切片器',
@@ -235,7 +255,19 @@ export const ZhHant = {
       Order_DESC: '倒序',
       Dimension: '維度',
       AvailableMembers: '可用成員',
-      DimensionNotFound: '在數據集『{{cube}}』中未找到維度『{{dimension}}』'
+      DimensionNotFound: '在數據集『{{cube}}』中未找到維度『{{dimension}}』',
+      DIMENSION_MEASURE: '維度/度量',
+      Parameter: '參數',
+      'Measure Control': '度量控製',
+      Measure: '度量',
+      Calculation: '計算',
+      Hierarchy: '層次結構',
+      Level: '層級',
+      'Measure Group': '度量組',
+      Indicator: '指標',
+      Calendar: '日歷',
+      'Address.Country': '國家',
+      Variable: '參數變量',
     },
     MeasureSelect: {
       EditCalculationMeasure: '編輯計算度量',
@@ -288,7 +320,8 @@ export const ZhHant = {
       ConditionalAggregation: '條件聚合',
       Unit: '單位',
       Formulas: '公式',
-      MeasureSelectPlaceholder: '選擇或新建一個度量'
+      MeasureSelectPlaceholder: '選擇或新建一個度量',
+      MeasureIsRequired: '度量必選'
     },
     AdvancedFilter: {
       Title: '組合切片器',
@@ -323,6 +356,16 @@ export const ZhHant = {
         SYSTEMTIME: '系統時間',
         TODAY: '今天'
       }
+    },
+    Indicator: {
+      Description: '指標描述'
+    },
+    Messages: {
+      NotFoundValue: '未找到值：'
+    },
+    RemoteSelect: {
+      OptionNotFound: '選項『{{option}}』未找到請清空後重新選擇'
     }
   }
 }
+

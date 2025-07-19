@@ -11,7 +11,7 @@ import {
   signal
 } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { FormsModule } from '@angular/forms'
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
@@ -26,7 +26,9 @@ import {
   DataSettings,
   Dimension,
   DisplayBehaviour,
+  FilterOperator,
   FilterSelectionType,
+  IMember,
   ISlicer,
   PresentationEnum,
   PropertyHierarchy,
@@ -39,6 +41,8 @@ import { filter, map, switchMap } from 'rxjs'
 import { NgmMemberListComponent } from '../member-list/member-list.component'
 import { NgmMemberTreeComponent } from '../member-tree/member-tree.component'
 import { ControlOptions, TreeControlOptions } from '../types'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
@@ -52,7 +56,9 @@ import { ControlOptions, TreeControlOptions } from '../types'
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     TranslateModule,
+    CdkMenuModule,
     MatDialogModule,
     MatIconModule,
     MatSlideToggleModule,
@@ -72,8 +78,18 @@ export class NgmValueHelpComponent implements OnInit {
   FilterSelectionType = FilterSelectionType
   TreeSelectionMode = TreeSelectionMode
   PresentationEnum = PresentationEnum
+  eFilterOperator = FilterOperator
+  eDisplayBehaviour = DisplayBehaviour
 
   private dsCoreService? = inject(NgmDSCoreService, { optional: true })
+  readonly #data = inject<{
+      dsCoreService: NgmDSCoreService
+      dataSettings: DataSettings
+      dimension: Dimension
+      options: ControlOptions
+      slicer: ISlicer
+    }>(DIALOG_DATA, { optional: true })
+  readonly #dialogRef = inject(DialogRef, { optional: true })
 
   @Input() get dataSettings(): DataSettings {
     return this.dataSettings$()
@@ -102,7 +118,7 @@ export class NgmValueHelpComponent implements OnInit {
   slicer: ISlicer = {}
 
   /**
-   * 绑定 Slicer 只取其 members 属性
+   * Bind Slicer to only take its members attribute
    */
   get slicerModel() {
     return this.slicer
@@ -202,11 +218,22 @@ export class NgmValueHelpComponent implements OnInit {
     return this.slicer?.members
   }
 
+  get data() {
+    return this._data ?? this.#data
+  }
+
+  // Condition members
+  readonly memberForm = new FormGroup({
+    type: new FormControl<'Caption' | 'UniqueName'>('Caption', [Validators.required]),
+    value: new FormControl<string>(''),
+    operator: new FormControl<FilterOperator>(FilterOperator.Contains, [Validators.required])
+  })
+
   constructor(
     @Optional() public dialogRef?: MatDialogRef<NgmValueHelpComponent>,
     @Optional()
     @Inject(MAT_DIALOG_DATA)
-    public data?: {
+    public _data?: {
       dsCoreService: NgmDSCoreService
       dataSettings: DataSettings
       dimension: Dimension
@@ -214,8 +241,8 @@ export class NgmValueHelpComponent implements OnInit {
       slicer: ISlicer
     }
   ) {
-    if (data?.dsCoreService) {
-      this.dsCoreService = data.dsCoreService
+    if (this.data?.dsCoreService) {
+      this.dsCoreService = this.data.dsCoreService
     }
   }
 
@@ -262,14 +289,38 @@ export class NgmValueHelpComponent implements OnInit {
     }
   }
 
+  addMember() {
+    const members = this.slicer.members ? [...this.slicer.members] : []
+    const member: IMember = {key: null, operator: this.memberForm.value.operator,}
+    if (this.memberForm.value.type === 'Caption') {
+      member.caption = this.memberForm.value.value
+    } else if (this.memberForm.value.type === 'UniqueName') {
+      member.key = this.memberForm.value.value
+    }
+    members.push(member)
+    this.slicer = {
+      ...this.slicer,
+      members
+    }
+    this.memberForm.reset({type: 'Caption', operator: FilterOperator.Contains, value: ''})
+  }
+
   close() {
-    this.dialogRef.close({
+    const result = {
       ...this.slicer,
       dimension: {
         ...this.dimension,
         // Default to descriptionOnly
         // displayBehaviour: this.dimension.displayBehaviour ?? DisplayBehaviour.descriptionOnly
       }
-    })
+    }
+
+    if (this.#dialogRef) {
+      this.#dialogRef.close(result)
+    }
+     if (this.dialogRef) {
+      this.dialogRef.close(result)
+    }
   }
+
 }
