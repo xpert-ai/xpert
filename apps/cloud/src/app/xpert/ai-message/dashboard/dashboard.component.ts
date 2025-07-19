@@ -27,6 +27,8 @@ import { XpertHomeService } from '../../home.service'
 import { XpertOcapService } from '../../ocap.service'
 import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
+import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
+import { ChatService } from '../../chat.service'
 
 /**
  * A component that uniformly displays different types of component messages for category: `Dashboard`.
@@ -41,7 +43,8 @@ import { ChatComponentIndicatorsComponent } from './indicators/indicators.compon
     AnalyticalCardModule,
     NxWidgetKpiComponent,
     ChatComponentIndicatorsComponent,
-    ChatComponentIndicatorComponent
+    ChatComponentIndicatorComponent,
+    ChatToolCallChunkComponent
   ],
   selector: 'chat-message-dashboard',
   templateUrl: './dashboard.component.html',
@@ -55,6 +58,7 @@ export class ChatMessageDashboardComponent {
   readonly dsCore = inject(NgmDSCoreService)
   readonly #viewContainerRef = inject(ViewContainerRef)
   readonly homeService = inject(XpertHomeService)
+  readonly chatService = inject(ChatService)
   readonly xpertOcapService = inject(XpertOcapService)
 
   // Inputs
@@ -65,6 +69,7 @@ export class ChatMessageDashboardComponent {
 
   // States
   readonly data = computed(() => this.message()?.data as any)
+  readonly conversationStatus = computed(() => this.chatService.conversation()?.status)
 
   readonly primaryTheme = toSignal(this.#store.primaryTheme$)
 
@@ -80,6 +85,7 @@ export class ChatMessageDashboardComponent {
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
   readonly indicators = computed(() => this.data()?.indicators)
   readonly slicers = computed(() => this.data()?.slicers)
+  readonly isDraft = computed(() => this.data()?.isDraft)
   readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
   readonly explains = signal<any[]>([])
 
@@ -90,7 +96,8 @@ export class ChatMessageDashboardComponent {
           this.onRegister([
             {
               id: this.dataSource(),
-              indicators: this.indicators()
+              indicators: this.indicators(),
+              isDraft: this.isDraft()
             }
           ])
         }
@@ -105,7 +112,8 @@ export class ChatMessageDashboardComponent {
           this.onRegister([
             {
               id: newIndicator.modelId,
-              indicators: [newIndicator]
+              indicators: [newIndicator],
+              isDraft: this.isDraft()
             }
           ])
         }
@@ -116,7 +124,7 @@ export class ChatMessageDashboardComponent {
     effect(
       () => {
         if (this.dataSources()) {
-          this.onRegister(this.dataSources().map((id) => ({ id })))
+          this.onRegister(this.dataSources().map((id) => ({ id, isDraft: this.isDraft() })))
         }
       },
       { allowSignalWrites: true }
@@ -163,7 +171,7 @@ export class ChatMessageDashboardComponent {
     })
   }
 
-  onRegister(models: { id: string; indicators?: Indicator[] }[]) {
+  onRegister(models: { id: string; isDraft: boolean; indicators?: Indicator[] }[]) {
     this.xpertOcapService.registerSemanticModel(models)
   }
 }

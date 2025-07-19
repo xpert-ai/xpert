@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -8,10 +8,12 @@ import { DataSettings } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertHomeService } from '@cloud/app/xpert/'
 import {
+  ChatDashboardMessageType,
   injectFormatRelative,
   TMessageComponent,
   TMessageContentComponent
 } from '@cloud/app/@core'
+import { ModelCubeComponent, ModelMembersComponent } from '@cloud/app/@shared/model'
 import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashboard.component'
 
 @Component({
@@ -24,7 +26,9 @@ import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashbo
     RouterModule,
     TranslateModule,
     MatTooltipModule,
-    ChatMessageDashboardComponent
+    ChatMessageDashboardComponent,
+    ModelCubeComponent,
+    ModelMembersComponent
   ],
   selector: 'chat-canvas-dashboard',
   templateUrl: './dashboard.component.html',
@@ -35,9 +39,13 @@ import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashbo
   }
 })
 export class ChatCanvasDashboardComponent {
+  eChatDashboardMessageType = ChatDashboardMessageType
 
   readonly homeService = inject(XpertHomeService)
   readonly #formatRelative = injectFormatRelative()
+
+  // Inputs
+  readonly componentId = input<string>()
 
   // States
   readonly expand = signal(false)
@@ -48,9 +56,6 @@ export class ChatCanvasDashboardComponent {
    */
   readonly messageId = computed(
     () => this.homeService.canvasOpened()?.type === 'Dashboard' && this.homeService.canvasOpened()?.messageId
-  )
-  readonly componentId = computed(
-    () => this.homeService.canvasOpened()?.type === 'Dashboard' && this.homeService.canvasOpened()?.componentId
   )
 
   readonly #messages = computed(() => {

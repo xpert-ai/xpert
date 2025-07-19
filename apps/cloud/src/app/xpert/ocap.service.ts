@@ -32,6 +32,7 @@ export class XpertOcapService {
       {
         model?: ISemanticModel // Semantic model details from the server
         indicators?: Indicator[] // Runtime indicators to be registered
+        isDraft?: boolean // Whether use the model draft
         dirty?: boolean // Whether the model or indicators is dirty and needs to be registered
       }
     >
@@ -94,13 +95,13 @@ export class XpertOcapService {
         const models = Object.values(semanticModels).filter((model) => model.dirty && model.model)
         if (models.length) {
           console.log(`Step 2.`, models)
-          models.forEach(({ model, indicators }) => {
+          models.forEach(({ model, isDraft, indicators }) => {
             const _model = convertNewSemanticModelResult({
               ...model,
               key: model.id
             })
 
-            this.registerModel(_model, indicators)
+            this.registerModel(_model, isDraft, indicators)
           })
 
           this.#semanticModels.update((state) => {
@@ -115,9 +116,9 @@ export class XpertOcapService {
     )
   }
 
-  private registerModel(model: NgmSemanticModel, indicators: IIndicator[]) {
+  private registerModel(model: NgmSemanticModel, isDraft: boolean, indicators: IIndicator[]) {
     console.log(`Step 3.`, model, indicators)
-    registerModel(model, false, this.#dsCoreService, this.#wasmAgent, indicators)
+    registerModel(model, isDraft, this.#dsCoreService, this.#wasmAgent, indicators)
   }
 
   /**
@@ -125,9 +126,9 @@ export class XpertOcapService {
    *
    * @param models Model id and runtime indicators
    */
-  registerSemanticModel(models: { id: string; indicators?: Indicator[] }[]) {
+  registerSemanticModel(models: { id: string; isDraft: boolean; indicators?: Indicator[] }[]) {
     this.#semanticModels.update((state) => {
-      models.forEach(({ id, indicators }) => {
+      models.forEach(({ id, isDraft, indicators }) => {
         state[id] ??= {}
         if (indicators) {
           state[id].indicators ??= []
@@ -135,6 +136,9 @@ export class XpertOcapService {
             ...state[id].indicators.filter((_) => !indicators.some((i) => i.code === _.code)),
             ...indicators
           ]
+        }
+        if (isDraft != null) {
+          state[id].isDraft = isDraft
         }
 
         state[id] = {

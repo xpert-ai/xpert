@@ -1,5 +1,6 @@
 import * as MDX from './schema'
 
+export * from './ai'
 export * from './business-area'
 export * from './business-area-user.model'
 export * from './collection.model'

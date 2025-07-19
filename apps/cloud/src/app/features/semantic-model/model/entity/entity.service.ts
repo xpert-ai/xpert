@@ -45,9 +45,10 @@ import {
 } from 'rxjs'
 import { createSubStore, dirtyCheckWith, write } from '../../store'
 import { SemanticModelService } from '../model.service'
-import { DEBOUNCE_TIME, EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
+import { EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
 import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable } from './types'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
+import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model/studio/types'
 
 /**
  * State servcie for Cube
@@ -235,7 +236,7 @@ export class ModelEntityService {
   | Subscriptions (effect)
   |--------------------------------------------------------------------------
   */
-  private _cubeSub = this.cube$.pipe(filter(Boolean), debounceTime(DEBOUNCE_TIME), takeUntilDestroyed()).subscribe((cube) => {
+  private _cubeSub = this.cube$.pipe(filter(Boolean), debounceTime(MODEL_DEBOUNCE_TIME), takeUntilDestroyed()).subscribe((cube) => {
     this.#modelService.updateDataSourceSchemaCube(cube)
   })
 

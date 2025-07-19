@@ -1,5 +1,5 @@
+import { LanguagesEnum } from '@metad/contracts'
 import {
-	assignDeepOmitBlank,
 	C_MEASURES,
 	ChartAnnotation,
 	ChartDimension,
@@ -9,13 +9,11 @@ import {
 	ChartMeasureSchema,
 	ChartOrient,
 	ChartTypeEnum,
-	cloneDeep,
 	DataSettings,
 	DataSettingsSchema,
 	Dimension,
 	DSCoreService,
 	EntityType,
-	getChartType,
 	getPropertyHierarchy,
 	ISlicer,
 	Measure,
@@ -26,7 +24,6 @@ import {
 	TimeGranularity,
 	TimeRangesSlicer,
 	TimeRangeType,
-	tryFixDimension,
 	VariableSchema,
 	wrapLevelNumber,
 	wrapLevelUniqueName,
@@ -34,11 +31,10 @@ import {
 } from '@metad/ocap-core'
 import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
-import { upperFirst } from 'lodash'
 import { z } from 'zod'
 import { AbstractChatBIToolset } from './chatbi-toolset'
-import { LanguagesEnum } from '@metad/contracts'
-import { LanguageSchema } from '../../types'
+import { LanguageSchema } from '../../schema'
+
 
 export enum ChatBIToolsEnum {
 	GET_AVAILABLE_CUBES = 'get_available_cubes',
@@ -211,38 +207,6 @@ export const CHART_TYPES = [
 		}
 	}
 ]
-
-/**
- * Try to fix Chart options.
- * 
- * @param chartType 
- * @returns 
- */
-export function tryFixChartType(chartType: string) {
-	if (chartType?.endsWith('Chart')) {
-		chartType = chartType.replace(/Chart$/, '')
-		return assignDeepOmitBlank(cloneDeep(getChartType(upperFirst(chartType))?.value.chartType), {}, 5)
-	}
-	return null
-}
-
-/**
- * Try to fix the formatting issues:
- * - `[Sales Amount]`
- * - `[Measures].[Sales Amount]`
- */
-export function fixMeasure(measure: ChartMeasure, entityType: EntityType) {
-	return {
-		...tryFixDimension(measure, entityType),
-		dimension: C_MEASURES,
-		formatting: {
-			shortNumber: true
-		},
-		palette: {
-			name: 'Viridis'
-		}
-	}
-}
 
 /**
  * Try to fix dimensions for chart:

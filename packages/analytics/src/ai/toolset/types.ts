@@ -1,28 +1,6 @@
 import { IChatBIModel, ISemanticModel } from '@metad/contracts'
-import { nonNullable } from '@metad/ocap-core'
-import { z } from 'zod'
-
-export const LanguageSchema = z.enum(['en', 'zh', 'zh-Hans']).describe('Language ​​used by user')
-export const IndicatorSchema = z.object({
-    language: LanguageSchema,
-    modelId: z.string().describe('The id of model'),
-    cube: z.string().describe('The cube name'),
-    code: z.string().describe('The unique code of indicator'),
-    name: z.string().describe(`The caption of indicator in user's language`),
-    formula: z.string().describe('The MDX formula for calculated measure'),
-    unit: z.string().optional().nullable().describe(`The unit of measure, '%' or orthers`),
-    description: z
-        .string()
-        .describe(
-            'The detail description of calculated measure, business logic and cube info for example: the time dimensions, measures or dimension members involved'
-        ),
-    query: z
-        .string()
-        .describe(
-            `A query statement to test this indicator can correctly query the results, you cannot use 'WITH MEMBER' capability. You need include indicator code as measure name in statement like: \n`
-            + `SELECT { [Measures].[The unique code of indicator] } ON COLUMNS, { <dimensions> } ON ROWS FROM [cube]`
-        )
-})
+import { assignDeepOmitBlank, C_MEASURES, ChartMeasure, cloneDeep, EntityType, getChartType, nonNullable, tryFixDimension } from '@metad/ocap-core'
+import { upperFirst } from 'lodash'
 
 /**
  * Try to fix the formula given by AI
@@ -37,6 +15,38 @@ export function tryFixFormula(formula: string, code: string) {
         return formula.slice(prefix.length)
     }
     return formula
+}
+
+/**
+ * Try to fix Chart options.
+ * 
+ * @param chartType 
+ * @returns 
+ */
+export function tryFixChartType(chartType: string) {
+  if (chartType?.endsWith('Chart')) {
+    chartType = chartType.replace(/Chart$/, '')
+    return assignDeepOmitBlank(cloneDeep(getChartType(upperFirst(chartType))?.value.chartType), {}, 5)
+  }
+  return null
+}
+
+/**
+ * Try to fix the formatting issues:
+ * - `[Sales Amount]`
+ * - `[Measures].[Sales Amount]`
+ */
+export function fixMeasure(measure: ChartMeasure, entityType: EntityType) {
+  return {
+    ...tryFixDimension(measure, entityType),
+    dimension: C_MEASURES,
+    formatting: {
+      shortNumber: true
+    },
+    palette: {
+      name: 'Viridis'
+    }
+  }
 }
 
 export function markdownCubes(models: IChatBIModel[]) {

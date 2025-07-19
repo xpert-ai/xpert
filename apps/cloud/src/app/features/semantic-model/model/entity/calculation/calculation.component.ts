@@ -42,10 +42,10 @@ import { AppService } from '../../../../../app.service'
 import { injectFormulaCommand } from '../../copilot/'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE, ModelDesignerType } from '../../types'
-import { typeOfObj } from '../../utils'
 import { ModelEntityService } from '../entity.service'
 import { getDropProperty } from '../types'
 import { animate, style, transition, trigger } from '@angular/animations'
+import { typeOfObj } from '@cloud/app/@shared/model/types'
 
 @Component({
   standalone: true,

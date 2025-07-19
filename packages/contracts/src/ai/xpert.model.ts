@@ -5,7 +5,7 @@ import { ITag } from '../tag-entity.model'
 import { IUser, LanguagesEnum } from '../user.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
-import { ChecklistItem, I18nObject, TAvatar } from '../types'
+import { ChecklistItem, I18nObject, IPoint, ISize, TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
@@ -405,16 +405,6 @@ export type TXpertTeamNode = {
       entity: IWorkflowNode
     }
 )
-
-export interface IPoint {
-  x: number
-  y: number
-}
-
-export interface ISize {
-  width: number
-  height: number
-}
 
 export interface IRect extends IPoint, Partial<ISize> {
   gravityCenter?: IPoint

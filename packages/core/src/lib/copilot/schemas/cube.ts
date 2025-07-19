@@ -2,10 +2,7 @@ import { z } from 'zod'
 import { DimensionType, TimeLevelType } from '../../models'
 import { Semantics } from '../../annotations'
 
-/**
- * Calculated measure schema for defining a calculated measure in cube
- */
-export const CalculatedMeasureSchema = z.object({
+export const BaseCalculatedMeasureSchema = {
   name: z.string().describe('Name of the calculated measure; Name cannot be repeated.'),
   caption: z.string().describe('Caption (short description)'),
   description: z.string().optional().nullable().describe('Long description'),
@@ -18,7 +15,12 @@ export const CalculatedMeasureSchema = z.object({
     .optional()
     .nullable()
     .describe('The formatting config of this measure')
-})
+}
+
+/**
+ * Calculated measure schema for defining a calculated measure in cube
+ */
+export const CalculatedMeasureSchema = z.object(BaseCalculatedMeasureSchema)
 
 const BaseHierarchySchema = {
   name: z.string().describe('The name of the hierarchy'),
@@ -192,10 +194,10 @@ export const CubeSchema = z.object({
     .optional().nullable()
     .describe('An array of shared dimensions ref used in this cube'),
 
-  calculatedMembers: z
-    .array(CalculatedMeasureSchema)
-    .optional().nullable()
-    .describe('An array of calculated measures in this cube')
+  // calculatedMembers: z
+  //   .array(CalculatedMeasureSchema)
+  //   .optional().nullable()
+  //   .describe('An array of calculated measures in this cube')
 })
 
 /**

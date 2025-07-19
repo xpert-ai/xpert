@@ -1,0 +1,170 @@
+<div class="p-1.5 m-1 flex justify-between items-center cursor-move rounded-lg bg-neutral-50">
+  <div class="px-1 font-semibold truncate">
+    {{ caption() }}
+  </div>
+
+  <div class="flex items-center gap-0.5">
+    <button type="button" class="w-6 h-6 p-1 flex justify-center items-center rounded-lg hover:bg-hover-bg"
+      [cdkMenuTriggerFor]="contextMenu">
+      <i class="ri-add-line"></i>
+    </button>
+    <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+      [cdkMenuTriggerFor]="settingMenu"
+      #triggerMenu="cdkMenuTriggerFor"
+      [class.opacity-100]="triggerMenu.isOpen()"
+      >
+      <i class="ri-settings-3-line"></i>
+    </div>
+  </div>
+</div>
+
+<div fNodeInput [fInputId]="node().key" fInputConnectableSide="left"></div>
+
+<div class="flex flex-col py-2">
+  @for (item of dimensionUsages(); track item.__id__; let i = $index) {
+    <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
+      <i class="ri-hashtag mr-1"></i>{{ item.caption || 'Select a column'}}
+
+      <div class="absolute right-0.5 flex justify-start items-center gap-0.5">
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="upDimensionUsage(i)">
+          <i class="ri-arrow-up-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="downDimensionUsage(i)">
+          <i class="ri-arrow-down-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          [cdkMenuTriggerFor]="usageMenu"
+          #triggerMenu="cdkMenuTriggerFor"
+          [class.opacity-100]="triggerMenu.isOpen()"
+          >
+          <i class="ri-settings-3-line"></i>
+        </div>
+      </div>
+      <div class="absolute -right-1" fNodeOutput [fOutputId]="node().key + '/' + item.__id__" fOutputConnectableSide="right" [isSelfConnectable]="false">
+        <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectToolsets' | translate: {Default: 'Connect Toolsets'}" matTooltipPosition="above">
+          <i class="ri-add-line text-white"></i>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #usageMenu>
+      <xp-cube-studio-dimension-usage class="shadow-md border-[0.5px] border-solid border-divider-deep max-h-[80vh]"
+        cdkDrag
+        [usage]="item"
+        (usageChange)="onUsageChange($event)"
+        (close)="triggerMenu.close()"
+      />
+    </ng-template>
+  }
+  @for (item of dimensions(); track item.__id__; let i = $index) {
+    <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
+      <i class="ri-hashtag mr-1"></i>{{ item.caption || 'Select a column' }}
+
+      <div class="absolute right-0.5 flex justify-start items-center gap-0.5">
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="upDimension(i)">
+          <i class="ri-arrow-up-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="downDimension(i)">
+          <i class="ri-arrow-down-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          [cdkMenuTriggerFor]="dimMenu"
+          #triggerMenu="cdkMenuTriggerFor"
+          [class.opacity-100]="triggerMenu.isOpen()"
+          >
+          <i class="ri-settings-3-line"></i>
+        </div>
+      </div>
+      <div class="absolute right-0" fNodeOutput [fOutputId]="node().key + '/' + item.__id__" fOutputConnectableSide="right" [isSelfConnectable]="false"></div>
+    </div>
+
+    <ng-template #dimMenu>
+      <xp-cube-studio-dimension-settings class="shadow-md border-[0.5px] border-solid border-divider-deep max-h-[80vh]"
+        cdkDrag
+        [dimension]="item"
+        (dimensionChange)="onDimensionChange($event)"
+        (close)="triggerMenu.close()"
+      />
+    </ng-template>
+  }
+  @for (item of measures(); track item.__id__; let i = $index) {
+    <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
+      <i class="ri-ruler-line mr-1"></i>{{ item.caption || 'Select a column' }}
+
+      <div class="absolute right-0.5 flex justify-start items-center gap-0.5">
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="upMeasure(i)">
+          <i class="ri-arrow-up-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="downMeasure(i)">
+          <i class="ri-arrow-down-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          [cdkMenuTriggerFor]="measureMenu"
+          #triggerMenu="cdkMenuTriggerFor"
+          [class.opacity-100]="triggerMenu.isOpen()"
+          >
+          <i class="ri-settings-3-line"></i>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #measureMenu>
+      <xp-cube-studio-measure-settings class="shadow-md border-[0.5px] border-solid border-divider-deep max-h-[80vh]"
+        cdkDrag
+        [measure]="item"
+        (measureChange)="onMeasureChange($event)"
+        (close)="triggerMenu.close()"
+      />
+    </ng-template>
+  }
+  @for (item of calculatedMembers(); track item.__id__; let i = $index) {
+    <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
+      <i class="ri-formula mr-1"></i>{{ item.caption || 'Select a column' }}
+
+      <div class="absolute right-0.5 flex justify-start items-center gap-0.5">
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="upCalculated(i)">
+          <i class="ri-arrow-up-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="downCalculated(i)">
+          <i class="ri-arrow-down-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          [cdkMenuTriggerFor]="calMenu"
+          #triggerMenu="cdkMenuTriggerFor"
+          [class.opacity-100]="triggerMenu.isOpen()"
+          >
+          <i class="ri-settings-3-line"></i>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #calMenu>
+      <xp-cube-studio-calculated-settings class="shadow-md border-[0.5px] border-solid border-divider-deep max-h-[80vh]"
+        cdkDrag
+        [calculated]="item"
+        (calculatedChange)="onCalculatedChange($event)"
+        (close)="triggerMenu.close()"
+      />
+    </ng-template>
+  }
+</div>
+
+<ng-template #settingMenu>
+   <xp-cube-studio-cube-settings class="shadow-md border-[0.5px] border-solid border-divider-deep max-h-[80vh]"
+    cdkDrag
+    [(cube)]="_cube"
+    (close)="triggerMenu.close()"
+  />
+</ng-template>
+
+<ng-template #contextMenu>
+  <xp-cube-studio-context-menu />
+</ng-template>

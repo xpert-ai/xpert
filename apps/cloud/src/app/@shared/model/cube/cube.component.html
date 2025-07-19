@@ -1,0 +1,22 @@
+<xp-cube-studio [cubeName]="cubeName()" [(draft)]="draft" />
+
+<div class="absolute top-2 right-2 p-1 flex justify-end items-center bg-components-card-bg rounded-lg shadow-sm">
+  
+  <button class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+    [disabled]="!dirty() || saving()"
+    (click)="save()">
+    <i class="ri-save-line"></i>
+    @if (dirty()) {
+      <span class="absolute top-1 end-1 inline-flex items-center transform -translate-y-1/2 translate-x-1/2">
+        @if (saving()) {
+          <i class="ri-loader-line text-xs animate-spin"></i>
+        } @else {
+          <span class="w-3 h-3 rounded-full border-2 border-white text-xs font-medium bg-text-warning text-white dark:border-neutral-900">
+            <span class="sr-only">Is dirty</span>
+          </span>
+        }
+      </span>
+    }
+  </button>
+</div>

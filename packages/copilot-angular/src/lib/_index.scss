@@ -5,9 +5,10 @@ markdown.ngm-copilot-markdown {
   --hot-red: oklch(61.42% 0.238 15.34);
   --orange-red: oklch(63.32% 0.24 31.68);
   --red-to-orange-horizontal-gradient: linear-gradient(90deg, var(--hot-pink) 0%, var(--orange-red) 100%);
-  --subtle-purple: color-mix(in srgb, var(--bright-blue) 5%, white 10%);
+  --subtle-purple: color-mix(in srgb, var(--bright-blue) 5%, lightgrey 10%);
   --full-contrast: white;
   --bright-blue: color-mix(in srgb, oklch(51.01% 0.274 263.83), var(--full-contrast) 60%);
+  --code-font: "Geist Mono", monospace;
   line-height: 2;
 
   > * {
@@ -64,6 +65,7 @@ markdown.ngm-copilot-markdown {
     border-radius: 0.25rem;
     font-weight: 400;
     isolation: isolate;
+    font-size: 0.8em;
   }
 
   code:not(pre *):before {

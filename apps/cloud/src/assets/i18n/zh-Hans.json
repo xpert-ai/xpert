@@ -931,6 +931,18 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "Dimension": "维度",
+      "Hierarchy": "层次结构",
+      "Level": "层级",
+      "Measure": "度量",
+      "CalculatedMember": "计算成员",
+      "DimensionUsage": "使用公共维度",
+      "AddCalculatedMember": "添加计算成员",
+      "AddDimension": "添加维度",
+      "AddMeasure": "添加度量",
+      "AddSharedDimension": "添加公共维度",
+      "AddDimensionUsage": "添加公共维度",
+      "AddInlineDimension": "添加内联维度",
       "Type_Select": "选择",
       "Type_New": "新建",
       "NewModelWorkspace": "新建模型工作空间",

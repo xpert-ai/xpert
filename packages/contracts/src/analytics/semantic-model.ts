@@ -1,6 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ITag } from '../tag-entity.model'
-import { ChecklistItem } from '../types'
+import { ChecklistItem, IPoint, ISize } from '../types'
 import { IUser } from '../user.model'
 import { Visibility } from '../visibility.model'
 import { IBusinessArea } from './business-area'
@@ -38,7 +38,7 @@ export interface ISemanticModelPreferences {
  */
 export type TSemanticModelOptions<T> = {
   schema?: T
-  settings?: any
+  settings?: TSemanticModelSettings
 }
 
 export type TSemanticModel = {
@@ -53,16 +53,29 @@ export type TSemanticModel = {
 
   catalog?: string
   cube?: string
-  // 存放语义元数据
+  // Storing semantic metadata
   options?: TSemanticModelOptions<any>
 
   // Roles
   roles?: Array<IModelRole>
 }
 
+export type TSemanticModelSettings = {
+  canvas?: {
+    position: IPoint
+    scale: number
+  };
+  nodes?: {key: string; position?: IPoint; size?: ISize}[]
+
+  /**
+   * Ignore unknown property when query model in story
+   */
+  ignoreUnknownProperty?: boolean
+}
+
 export type TSemanticModelDraft<T = any> = TSemanticModel & {
   schema?: T
-  settings?: any
+  settings?: TSemanticModelSettings
   savedAt?: Date
 
   /**
@@ -74,6 +87,8 @@ export type TSemanticModelDraft<T = any> = TSemanticModel & {
    */
   dbInitialization?: string
   checklist?: ChecklistItem[]
+
+  version?: number
 }
 
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {
@@ -94,7 +109,7 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   
   businessArea?: IBusinessArea
   
-  // 存放模型配置
+  // Storing model configuration
   preferences?: ISemanticModelPreferences
 
   visibility?: Visibility
@@ -113,6 +128,8 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   indicators?: Array<IIndicator>
   // Query
   queries?: Array<IModelQuery>
+
+  version?: number
 }
 
 /**
@@ -183,8 +200,6 @@ export function extractSemanticModelDraft<S>(model: TSemanticModel): TSemanticMo
 
     catalog: model.catalog,
     cube: model.cube,
-    // 存放语义元数据
-    // options: model.options,
     schema: model.options?.schema as S,
     settings: model.options?.settings,
     roles: model.roles,

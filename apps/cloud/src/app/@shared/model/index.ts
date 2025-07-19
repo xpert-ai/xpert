@@ -1,3 +1,5 @@
 export * from './variable-form/variable.component'
 export * from './init-model/init-model.component'
 export * from './creation/creation.component'
+export * from './cube/cube.component'
+export * from './members/members.component'

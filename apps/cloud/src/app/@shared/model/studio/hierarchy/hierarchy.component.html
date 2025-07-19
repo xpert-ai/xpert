@@ -1,0 +1,64 @@
+<div class="relative p-1 m-1 flex justify-between items-center cursor-move rounded-lg bg-neutral-50">
+  <div class="px-1 font-semibold truncate">
+    {{ caption() }}
+  </div>
+
+  <div class="flex items-center">
+    <button type="button" class="w-6 h-6 p-1 flex justify-center items-center rounded-lg hover:bg-hover-bg" (click)="addLevel()">
+      <i class="ri-add-line"></i>
+    </button>
+    <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+      [cdkMenuTriggerFor]="settingMenu"
+      [cdkMenuTriggerData]="{trigger: trigger}"
+      #trigger="cdkMenuTriggerFor"
+      [class.opacity-100]="trigger.isOpen()"
+    >
+      <i class="ri-settings-3-line"></i>
+    </div>
+  </div>
+</div>
+
+<div class="level-boundary flex flex-col">
+  @for (level of levels(); track level.__id__; let i = $index) {
+    <div class="group/item relative flex justify-start items-center p-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
+      <i class="ri-sort-number-asc mr-1"></i><span>{{ level.caption || 'Select a column' }}</span>
+
+      <div class="absolute right-0.5 flex justify-start items-center gap-0.5">
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="upLevel(i)">
+          <i class="ri-arrow-up-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="downLevel(i)">
+          <i class="ri-arrow-down-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          [cdkMenuTriggerFor]="levelMenu"
+          #triggerMenu="cdkMenuTriggerFor"
+          [class.opacity-100]="triggerMenu.isOpen()"
+          >
+          <i class="ri-settings-3-line"></i>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #levelMenu>
+      <xp-cube-studio-dimension-level class="shadow-md border-[0.5px] border-solid border-divider-deep max-h-[80vh]"
+        cdkDrag
+        [dimension]="dimension()"
+        [hierarchy]="hierarchy()"
+        [level]="level"
+        (levelChange)="onLevelChange($event)"
+        (close)="triggerMenu.close()"
+      />
+    </ng-template>
+  }
+</div>
+
+<ng-template #settingMenu let-trigger="trigger">
+  <xp-cube-studio-dimension-settings class="shadow-md border-[0.5px] border-solid border-divider-deep max-h-[80vh]"
+    cdkDrag
+    [(dimension)]="dimension"
+    [(hierarchy)]="hierarchy"
+    (close)="trigger.close()" />
+</ng-template>

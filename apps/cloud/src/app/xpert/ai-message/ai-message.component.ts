@@ -129,9 +129,7 @@ export class ChatAiMessageComponent {
   readonly contents = computed(() => {
     const contents = this.message()?.content
     if (Array.isArray(contents)) {
-      return this.canvasType() === 'Dashboard'
-        ? contents.filter((data) => !(data.type === 'component' && data.data?.category === 'Dashboard'))
-        : contents
+      return contents
     }
     return null
   })

@@ -23,7 +23,7 @@ import { Schema } from '@metad/ocap-core'
 import { Tag, TenantOrganizationBaseEntity, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId, VersionColumn } from 'typeorm'
 import {
 	BusinessArea,
 	DataSource,
@@ -254,4 +254,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 		cascade: true,
 	})
 	entities?: ISemanticModelEntity[]
+
+	@VersionColumn({nullable: true, default: 1})
+  	version?: number
 }

@@ -137,9 +137,10 @@ export class ModelController extends CrudController<SemanticModel> {
 	@Get(':id')
 	async getById(
 		@Param('id', UUIDValidationPipe) id: string,
-		@Query('$query', ParseJsonPipe) options: FindOneOptions<SemanticModel>
+		@Query('$query', ParseJsonPipe) options: FindOneOptions<SemanticModel>,
+		@Query('data', ParseJsonPipe) params: PaginationParams<SemanticModel>
 	): Promise<ISemanticModel> {
-		return this.modelService.findOne(id, options).then((model) => {
+		return this.modelService.findOne(id, params ?? options).then((model) => {
 			this.commandBus.execute(
 				new VisitCreateCommand({
 					type: VisitTypeEnum.View,

@@ -59,7 +59,7 @@ export interface DataSourceSettings {
   language?: string
 
   // ignoreUnknownProperty
-  ignoreUnknownProperty: boolean
+  ignoreUnknownProperty?: boolean
 }
 
 export interface DataSources {

@@ -1,0 +1,32 @@
+<div cdkMenu class="cdk-menu__large">
+  <button type="button" cdkMenuItem [cdkMenuTriggerFor]="dimsMenu">
+    <i class="ri-add-line mr-1"></i>
+    {{ 'PAC.MODEL.AddSharedDimension' | translate: {Default: 'Add Shared Dimension'} }}
+  </button>
+  <button type="button" cdkMenuItem (click)="addInlineDimension()">
+    <i class="ri-add-line mr-1"></i>
+    {{ 'PAC.MODEL.AddInlineDimension' | translate: {Default: 'Add Inline Dimension'} }}
+  </button>
+  <button type="button" cdkMenuItem 
+    (click)="addMeasure()">
+    <i class="ri-add-line mr-1"></i>
+    {{ 'PAC.MODEL.AddMeasure' | translate: {Default: 'Add Measure'} }}
+  </button>
+
+  <button type="button" cdkMenuItem 
+    (click)="addCalculatedMember()">
+    <i class="ri-add-line mr-1"></i>
+    {{ 'PAC.MODEL.AddCalculatedMember' | translate: {Default: 'Add Calculated Member'} }}
+  </button>
+</div>
+
+<ng-template #dimsMenu>
+  <div cdkMenu class="cdk-menu__large">
+    @for (item of sharedDimensions(); track item.__id__) {
+      <button type="button" cdkMenuItem (click)="addSharedDimension(item)">
+        <i class="ri-hashtag mr-1"></i>
+        <span>{{item.caption || item.name}}</span>
+      </button>
+    }
+  </div>
+</ng-template>

@@ -1,4 +1,12 @@
-import { BusinessAreaRole, ChecklistItem, IUser, mapTranslationLanguage, SemanticModelStatusEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
+import {
+	BusinessAreaRole,
+	ChecklistItem,
+	IUser,
+	mapTranslationLanguage,
+	SemanticModelStatusEnum,
+	TSemanticModelDraft,
+	Visibility
+} from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
 import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
@@ -7,21 +15,21 @@ import { CommandBus, EventBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
 import chalk from 'chalk'
+import { I18nService } from 'nestjs-i18n'
 import { RedisClientType } from 'redis'
 import { FindManyOptions, FindOneOptions, ILike, Repository } from 'typeorm'
-import { I18nService } from 'nestjs-i18n'
 import { BusinessArea, BusinessAreaService } from '../business-area'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
+import { SemanticModelQueryLog } from '../core/entities/internal'
 import { Md5 } from '../core/helper'
 import { DataSourceService } from '../data-source/data-source.service'
+import { ModelQueryLogService } from '../model-query-log'
 import { SemanticModelCacheService } from './cache/cache.service'
 import { SemanticModelPublicDTO, SemanticModelQueryDTO } from './dto'
+import { SemanticModelUpdatedEvent } from './events'
 import { updateXmlaCatalogContent } from './helper'
 import { SemanticModel } from './model.entity'
 import { NgmDSCoreService, registerSemanticModel } from './ocap'
-import { ModelQueryLogService } from '../model-query-log'
-import { SemanticModelQueryLog } from '../core/entities/internal'
-import { SemanticModelUpdatedEvent } from './events'
 import { DimensionValidator, RoleValidator } from './validators'
 
 const axios = _axios.default
@@ -88,7 +96,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		for await (const model of items) {
 			try {
 				await this.updateCatalogContent(model.id)
-			} catch(error) {
+			} catch (error) {
 				seeds--
 				console.log(chalk.red(`When update model '${model.id}' xmla schema: ${getErrorMessage(error)}`))
 			}
@@ -102,7 +110,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 		/**
 		 * Register semantic models
-		 * 
+		 *
 		 * @deprecated use in query
 		 */
 		items.forEach((model) => {
@@ -116,7 +124,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	/**
 	 * Update the xmla catalog content for olap engine
-	 * 
+	 *
 	 * @deprecated use SemanticModelUpdatedEvent
 	 *
 	 * @param id Model id
@@ -131,11 +139,16 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		await updateXmlaCatalogContent(this.redisClient, model)
 
 		// Update draft
-		await updateXmlaCatalogContent(this.redisClient, {...model, ...(model.draft ?? {}), options: {
-			schema: model.draft?.schema ?? model.options?.schema,
-			settings: model.draft?.settings ?? model.options?.settings,
-		}, id: `${model.id}/draft`})
-		
+		await updateXmlaCatalogContent(this.redisClient, {
+			...model,
+			...(model.draft ?? {}),
+			options: {
+				schema: model.draft?.schema ?? model.options?.schema,
+				settings: model.draft?.settings ?? model.options?.settings
+			},
+			id: `${model.id}/draft`
+		})
+
 		// Clear cache for model
 		try {
 			await this.cacheService.delete({ modelId: model.id })
@@ -267,9 +280,9 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		const headers = {
 			Accept: 'text/xml; application/xml; application/soap+xml; charset=UTF-8',
 			'Accept-Language': language || '',
-			'Content-Type': 'text/xml; charset=UTF-8',
+			'Content-Type': 'text/xml; charset=UTF-8'
 		}
-		
+
 		if (roleNames?.length) {
 			headers['mondrian-role'] = roleNames.map((_) => encodeURIComponent(_)).join(',')
 		}
@@ -395,9 +408,9 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async saveDraft(id: string, draft: TSemanticModelDraft) {
 		const model = await this.findOne(id)
-		draft.savedAt = new Date()
 		model.draft = {
 			...draft,
+			savedAt: new Date()
 		} as TSemanticModelDraft
 
 		model.draft.checklist = await this.validate(model.draft)
@@ -412,14 +425,14 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		const dimensionValidator = new DimensionValidator()
 		const roleValidator = new RoleValidator()
 
-		const results: ChecklistItem[] = [];
+		const results: ChecklistItem[] = []
 
 		for await (const dimension of draft.schema?.dimensions ?? []) {
-			const res = await dimensionValidator.validate(dimension, {schema: draft.schema})
+			const res = await dimensionValidator.validate(dimension, { schema: draft.schema })
 			results.push(...res)
 		}
 		for await (const role of draft.roles ?? []) {
-			const res = await roleValidator.validate(role, {schema: draft.schema})
+			const res = await roleValidator.validate(role, { schema: draft.schema })
 			results.push(...res)
 		}
 
@@ -435,7 +448,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		const model = await this.repository.findOne(id, {
 			relations: options?.relations,
 			where: {
-				visibility: Visibility.Public,
+				visibility: Visibility.Public
 			}
 		})
 

@@ -50,11 +50,12 @@ import { In } from 'typeorm'
 import { z } from 'zod'
 import { DimensionMemberServiceQuery } from '../../../../model-member/'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, extractDataValue, fixMeasure, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions } from './types'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, extractDataValue, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixDimensions } from './types'
 import { createDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
-import { IndicatorSchema, markdownCubes, tryFixFormula } from '../../types'
+import { fixMeasure, markdownCubes, tryFixChartType, tryFixFormula } from '../../types'
 import { TBIContext } from '../../../types'
 import { GetBIContextQuery } from '../../../queries'
+import { IndicatorSchema } from '../../schema'
 
 function cubesReducer(a, b) {
 	return [...a.filter((_) => !b?.some((item) => item.cubeName === _.cubeName)), ...(b ?? [])]
