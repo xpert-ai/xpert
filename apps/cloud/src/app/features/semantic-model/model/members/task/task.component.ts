@@ -61,10 +61,10 @@ export class ModelTaskDialogComponent {
         schedule: {...this.schedule(), frequency: this.schedule().frequency || TaskFrequency.Once}
       })
       .subscribe({
-        next: (task) => {
+        next: () => {
           this.loading.set(false)
           this.#toastr.success('PAC.MODEL.TaskCreatedSuccessfully', {Default: 'Task created successfully'})
-          this.close(task)
+          this.close({...this.task(), schedule: this.schedule()})
         },
         error: (error) => {
           this.loading.set(false)

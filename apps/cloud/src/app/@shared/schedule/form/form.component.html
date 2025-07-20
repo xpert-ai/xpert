@@ -1,4 +1,4 @@
-<div class="relative gap-3 flex flex-col px-6">
+<div class="relative gap-3 flex flex-col">
   <h1 class="text-sm text-text-secondary font-semibold">{{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}</h1>
   <div
     role="group"
@@ -29,7 +29,7 @@
 
     @if (!frequency() || frequency() === eTaskFrequency.Once || frequency() === eTaskFrequency.Yearly) {
       <div class="border rounded-xl flex justify-between items-center pl-3 grow min-h-11">
-        <input matInput class="text-base text-text-secondary font-medium grow outline-none" [matDatepicker]="dp" [(ngModel)]="date" >
+        <input class="text-base text-text-secondary font-medium grow outline-none" [matDatepicker]="dp" [(ngModel)]="date" >
 
         <mat-datepicker-toggle [for]="dp" class="inline-flex scale-75" type="button" />
         <mat-datepicker #dp></mat-datepicker>
@@ -39,7 +39,7 @@
     @if (frequency() === eTaskFrequency.Weekly) {
       <button class="gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent rounded-xl px-3.5 py-2 flex items-center justify-center h-full w-32 border" type="button"
         [cdkMenuTriggerFor]="weeklyMenu"
-      >{{dayLabel()}}</button>
+      >{{ 'PAC.SHARED.Schedule.Weekly_' + dayLabel() | translate: {Default: dayLabel()} }}</button>
     }
 
     @if (frequency() === eTaskFrequency.Monthly) {
@@ -60,8 +60,8 @@
 <ng-template #weeklyMenu>
   <div cdkMenu class="cdk-menu__large">
     @for (option of WEEKLY_OPTIONS; track option.value) {
-      <div cdkMenuItem (click)="selectDay(option.value)" >
-        {{option.label | translate: { Default: option.label } }}
+      <div cdkMenuItem (click)="selectDay(option.value)">
+        {{ 'PAC.SHARED.Schedule.Weekly_' + option.label | translate: {Default: option.label} }}
       </div>
     }
   </div>

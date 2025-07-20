@@ -1,5 +1,5 @@
 import { IPagination } from '@metad/contracts'
-import { CrudController, PaginationParams, ParseJsonPipe, UUIDValidationPipe } from '@metad/server-core'
+import { CrudController, PaginationParams, ParseJsonPipe, TimeZone, UUIDValidationPipe } from '@metad/server-core'
 import { Body, Controller, Delete, Get, HttpStatus, Param, Post, Put, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { SemanticModelEntity } from './entity.entity'
@@ -29,9 +29,11 @@ export class ModelEntityController extends CrudController<SemanticModelEntity> {
 	@Post(':id')
 	async createByModel(
 		@Param('id', UUIDValidationPipe) modelId: string,
+		@TimeZone() timeZone: string,
 		@Body() entity: SemanticModelEntity
 	): Promise<SemanticModelEntity> {
 		entity.modelId = modelId
+		entity.timeZone ??= timeZone
 		const result = await this.entityService.create(entity)
 
 		if (entity.options?.vector?.hierarchies?.length) {
@@ -43,7 +45,8 @@ export class ModelEntityController extends CrudController<SemanticModelEntity> {
 	}
 
 	@Put(':id/start')
-	async startSchedule(@Param('id') id: string, @Body() body: Partial<SemanticModelEntity>) {
+	async startSchedule(@Param('id') id: string, @TimeZone() timeZone: string, @Body() body: Partial<SemanticModelEntity>) {
+		body.timeZone ??= timeZone
 		return this.entityService.schedule(id, body)
 	}
 

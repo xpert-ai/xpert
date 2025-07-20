@@ -387,7 +387,7 @@
     <div class="w-80 min-h-[200px] overflow-auto flex flex-col justify-start">
       @for (conv of taskConversations(); track conv.id) {
         <a class="peer/menu-button flex flex-col overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0
-            hover:text-primary border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active aria-expanded:bg-button-ghost-hover group/task-item pl-3 pr-4 py-1 text-sm w-full"
+            hover:text-primary border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active aria-expanded:bg-button-ghost-hover group/task-item pl-3 pr-4 py-1 w-full"
           [routerLink]="['/chat/c', conv.id]">
           <span class="flex-1 select-none truncate max-w-full overflow-hidden inline-block text-text-primary" 
             style="mask-image: linear-gradient(to right, black 85%, transparent 100%);">{{conv.title || conv.options?.parameters?.input}}</span>

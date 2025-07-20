@@ -6,7 +6,7 @@
         <span class="text-sm">{{ 'PAC.MODEL.LastSyncTime' | translate: {Default: 'Last sync time'} }}:</span>
         <span class="text-sm font-mono">{{entity().job.endAt | date:'short'}}</span>
       }
-      <button mat-icon-button class="ml-2" [disabled]="loading()"
+      <button mat-icon-button class="ml-2" [disabled]="loading() || !entity()?.id"
         [matTooltip]="'PAC.MODEL.RetrievalTesting' | translate: {Default: 'Retrieval Testing'}"
         matTooltipPosition="above"
         (click)="$event.stopPropagation();retrievalTesting()"
@@ -14,12 +14,16 @@
         <i class="ri-focus-2-line"></i>
       </button>
 
-      <button mat-icon-button [disabled]="loading()"
+      <button mat-icon-button [disabled]="loading() || !entity()?.id"
         [matTooltip]="'PAC.MODEL.ScheduledSyncTask' | translate: {Default: 'Scheduled synchronization task'}"
         matTooltipPosition="above"
         (click)="$event.stopPropagation();scheduledSyncTask()"
       >
-        <i class="ri-calendar-schedule-line"></i>
+        @if (entity()?.schedule) {
+          <i class="ri-calendar-schedule-fill text-accent-700"></i>
+        } @else {
+          <i class="ri-calendar-schedule-line"></i>
+        }
       </button>
 
       @if (entity()?.job?.status === 'processing' || entity()?.job?.status === 'completed') {

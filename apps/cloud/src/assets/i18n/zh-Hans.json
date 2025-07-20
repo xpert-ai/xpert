@@ -1502,6 +1502,16 @@
       },
       "Notification": {
         "NoNotificationYet": "暂无通知"
+      },
+      "Schedule": {
+        "Weekly_Select Day": "选择周几",
+        "Weekly_Monday": "周一",
+        "Weekly_Tuesday": "周二",
+        "Weekly_Wednesday": "周三",
+        "Weekly_Thursday": "周四",
+        "Weekly_Friday": "周五",
+        "Weekly_Saturday": "周六",
+        "Weekly_Sunday": "周日"
       }
     },
     "INVITE_PAGE": {
@@ -2335,6 +2345,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "TaskCreatedSuccessfully": "任务创建成功",
       "Archive": "归档",
       "Time": "时间",
       "NameOfTask": "任务名称",

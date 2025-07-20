@@ -2,7 +2,7 @@ import { generateCronExpression, ISemanticModelEntity, IUser, ScheduleTaskStatus
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext, runWithRequestContext } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -15,7 +15,7 @@ import { SemanticModelEntity } from './entity.entity'
 import { JOB_ENTITY_SYNC, MEMBERS_SYNC_NAME } from './types'
 
 @Injectable()
-export class SemanticModelEntityService extends BusinessAreaAwareCrudService<SemanticModelEntity> {
+export class SemanticModelEntityService extends BusinessAreaAwareCrudService<SemanticModelEntity> implements OnModuleInit {
 	readonly #logger = new Logger(SemanticModelEntityService.name)
 
 	constructor(
@@ -27,6 +27,35 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 		private readonly jobQueue: Queue
 	) {
 		super(entityRepository, commandBus)
+	}
+
+	async onModuleInit() {
+		const { items: jobs, total } = await this.getActiveJobs()
+		jobs.filter((job) => job.schedule).forEach((job) => {
+			try {
+				this.scheduleCronJob(job, job.createdBy)
+			} catch (err) {
+				console.error(chalk.red('Schedule "' + job.name + '" error:' + getErrorMessage(err)))
+			}
+		})
+		console.log(chalk.magenta(`Scheduled ${total} tasks for semantic model members sync`))
+	}
+
+	async getActiveJobs() {
+		const {items, total} = await this.findAll({
+			where: {
+				status: ScheduleTaskStatus.SCHEDULED
+			},
+			relations: ['createdBy', 'createdBy.role']
+		})
+		// Processing previously running tasks, mark as cancelled.
+		for await (const entity of items) {
+			if (entity.job?.status === 'processing') {
+				this.update(entity.id, {job: {...entity.job, status: 'cancel', error: 'Job stopped' }})
+			}
+		}
+
+		return { items, total }
 	}
 
 	public async create(entity: DeepPartial<SemanticModelEntity>, ...options: any[]): Promise<SemanticModelEntity> {
@@ -99,7 +128,7 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 				cronTime: cronTime,
 				timeZone: task.timeZone,
 				onTick: () => {
-					this.#logger.warn(`Job ${task.name} to run!`)
+					this.#logger.debug(`Job ${task.name} to run!`)
 					this.startSync(task).catch((err) => {
 						this.#logger.error(`Error starting sync for entity ${task.name}: ${getErrorMessage(err)}`)
 					})

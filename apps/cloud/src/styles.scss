@@ -37,9 +37,7 @@ body {
   --mat-table-row-item-label-text-font: $text-font;
   --mat-table-header-headline-font: $text-font;
 
-  color: var(--ngm-text-primary-color);
-  display: flex;
-  margin: 0;
+  @apply flex m-0 text-text-primary;
 
   &.mobile {
     .cdk-overlay-pane {

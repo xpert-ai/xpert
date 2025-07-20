@@ -1,11 +1,11 @@
-import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal } from '@angular/core'
+import { Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatDateFnsModule, provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { TaskFrequency, ToastrService, TScheduleOptions } from '@cloud/app/@core'
+import { TaskFrequency, TScheduleOptions } from '@cloud/app/@core'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -16,22 +16,34 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
   imports: [
     CommonModule,
     TranslateModule,
-    DragDropModule,
     FormsModule,
     ReactiveFormsModule,
     CdkListboxModule,
     CdkMenuModule,
-    MatDatepickerModule
+    MatDatepickerModule,
+    MatDateFnsModule
   ],
   templateUrl: './form.component.html',
   styleUrl: './form.component.scss',
-  hostDirectives: [ NgxControlValueAccessor ]
+  hostDirectives: [NgxControlValueAccessor],
+  providers: [
+    provideDateFnsAdapter({
+      parse: {
+        dateInput: 'MM-dd'
+      },
+      display: {
+        dateInput: 'MM-dd',
+        monthYearLabel: 'LLL',
+        dateA11yLabel: 'MMMM d',
+        monthYearA11yLabel: 'MMMM'
+      }
+    })
+  ]
 })
 export class ScheduleFormComponent {
   eTaskFrequency = TaskFrequency
 
   protected cva = inject<NgxControlValueAccessor<TScheduleOptions>>(NgxControlValueAccessor)
-  readonly #toastr = inject(ToastrService)
 
   readonly options = this.cva.value$
   readonly frequency = attrModel(this.options, 'frequency', TaskFrequency.Once)
@@ -82,12 +94,10 @@ export class ScheduleFormComponent {
       label: 'Saturday'
     },
     {
-      value: 7,
+      value: 0,
       label: 'Sunday'
     }
   ]
-
-  readonly loading = signal(false)
 
   selectDay(day: number) {
     this.dayOfWeek.set(day)

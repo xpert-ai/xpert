@@ -1,4 +1,4 @@
-import { generateCronExpression, IUser, IXpertTask, RolesEnum, TChatOptions, ScheduleTaskStatus } from '@metad/contracts'
+import { generateCronExpression, IUser, IXpertTask, RolesEnum, TChatOptions, ScheduleTaskStatus, TaskFrequency } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
@@ -31,7 +31,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
 	async onModuleInit() {
 		const { items: jobs, total } = await this.getActiveJobs()
-		jobs.forEach((job) => {
+		jobs.filter((job) => job.options).forEach((job) => {
 			try {
 				this.scheduleCronJob(job, job.createdBy)
 			} catch (err) {
@@ -73,11 +73,12 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 		const MaximumRuns = 10
 		let runs = 0
 
-		const cronTime = task.schedule || generateCronExpression(task.options)
+		const cronTime = generateCronExpression(task.options)
 		const scheduleJob = () => {
 			const job = CronJob.from({
 				cronTime: cronTime,
 				timeZone: task.timeZone,
+				
 				onTick: () => {
 					runs += 1
 					this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
@@ -96,7 +97,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 					}
 				}
 			})
-
+			if (task.options.frequency === TaskFrequency.Once) {
+				job.runOnce = true
+			}
 			this.schedulerRegistry.addCronJob(task.id, job)
 			job.start()
 		}
