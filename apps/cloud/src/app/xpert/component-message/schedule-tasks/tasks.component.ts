@@ -12,7 +12,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, isNil } from 'lodash-es'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs'
 import { injectToastr, XpertTaskService } from '../../../@core'
-import { getErrorMessage, IXpertTask, XpertTaskStatus } from '../../../@core/types'
+import { getErrorMessage, IXpertTask, ScheduleTaskStatus } from '../../../@core/types'
 import { XpertTaskDialogComponent } from '../../../@shared/chat'
 
 @Component({
@@ -35,7 +35,7 @@ import { XpertTaskDialogComponent } from '../../../@shared/chat'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatComponentScheduleTasksComponent {
-  eXpertTaskStatus = XpertTaskStatus
+  eXpertTaskStatus = ScheduleTaskStatus
 
   readonly dialog = inject(Dialog)
   readonly taskService = inject(XpertTaskService)
@@ -81,7 +81,7 @@ export class ChatComponentScheduleTasksComponent {
         next: (task) => {
           if (task) {
             this.taskDetails.update((tasks) => [
-              { ...task, status: XpertTaskStatus.PAUSED },
+              { ...task, status: ScheduleTaskStatus.PAUSED },
               ...(tasks?.filter((_) => _.id !== task.id) ?? [])
             ])
           }
@@ -95,7 +95,7 @@ export class ChatComponentScheduleTasksComponent {
       next: () => {
         this.loading.set(false)
         this.taskDetails.update((tasks) => [
-          { ...task, status: XpertTaskStatus.PAUSED },
+          { ...task, status: ScheduleTaskStatus.PAUSED },
           ...(tasks?.filter((_) => _.id !== task.id) ?? [])
         ])
       },
@@ -112,7 +112,7 @@ export class ChatComponentScheduleTasksComponent {
       next: () => {
         this.loading.set(false)
         this.taskDetails.update((tasks) => [
-          { ...task, status: XpertTaskStatus.SCHEDULED },
+          { ...task, status: ScheduleTaskStatus.SCHEDULED },
           ...(tasks?.filter((_) => _.id !== task.id) ?? [])
         ])
       },

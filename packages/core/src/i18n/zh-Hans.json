@@ -5,6 +5,7 @@
         "NoPropertyFoundFor": "在数据集‘{{cube}}’中未找到维度或度量‘{{name}}’。",
         "NoDimensionFoundFor": "在数据集‘{{cube}}’中未找到维度‘{{name}}’。",
         "NoHierarchyFoundFor": "在维度‘{{dimension}}’中未找到层次结构‘{{name}}’。",
+        "PropertyNotFoundInLevel": "在数据集‘{{cube}}’的层级‘{{level}}’中未找到属性‘{{property}}’。",
         "CalendarDimensionNotFound": "在模型‘{{cube}}’中找不到日历维度",
         "CalendarHierarchyNotFound": "在维度‘{{dimension}}’中找不到日历层次结构"
     }

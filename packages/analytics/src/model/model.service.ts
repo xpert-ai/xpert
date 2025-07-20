@@ -399,7 +399,23 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async getCubes(id: string) {
 		const model = await this.findOne(id)
-		return model.options?.schema?.cubes
+
+		const items = []
+		model.options?.schema?.cubes?.forEach((cube) => {
+			items.push({
+				name: cube.name,
+				caption: cube.caption,
+				description: cube.description,
+			})
+		})
+		model.options?.schema?.virtualCubes?.forEach((cube) => {
+			items.push({
+				name: cube.name,
+				caption: cube.caption,
+				description: cube.description,
+			})
+		})
+		return items
 	}
 
 	async getLogs(data: PaginationParams<SemanticModelQueryLog>) {

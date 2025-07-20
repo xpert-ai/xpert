@@ -409,6 +409,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					},
 				],
 			}).catch((err) => {
+				console.error(err)
+				subscriber.next({
+						data: {
+							type: ChatMessageTypeEnum.EVENT,
+							event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
+							data: {
+								id: conversation.id,
+								status: 'error',
+								error: getErrorMessage(err)
+							}
+						}
+					} as MessageEvent)
 				subscriber.error(err)
 			})
 

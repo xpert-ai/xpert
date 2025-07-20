@@ -41,6 +41,7 @@ import {
   isPropertyHierarchy,
   isPropertyLevel,
   isDimension,
+  ISlicer,
 } from '@metad/ocap-core'
 import { cloneDeep, includes, isEmpty, isEqual, isNil, isString, negate, pick, uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'
@@ -68,6 +69,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { PropertyCapacity } from '../types'
 import { NgmEntityPropertyComponent, propertyIcon } from '../property/property.component'
 import { NgmFormattingComponent } from '../formatting/formatting.component'
+import { Dialog } from '@angular/cdk/dialog'
 
 
 @Component({
@@ -115,6 +117,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   @HostBinding('class.ngm-property-select') isPropertySelect = true
 
   readonly _dialog? = inject(MatDialog, {optional: true})
+  readonly #dialog = inject(Dialog, {optional: true})
   readonly _viewContainerRef = inject(ViewContainerRef, {skipSelf: true})
   readonly _destroyRef = inject(DestroyRef)
   readonly #translate = inject(TranslateService)
@@ -807,11 +810,14 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     }
   }
 
-  async selectMembers(event) {
+  selectMembers(event: Event) {
     event.stopPropagation()
 
-    const result = await firstValueFrom(this._dialog.open(NgmValueHelpComponent, {
+    this.#dialog.open<ISlicer>(NgmValueHelpComponent, {
       viewContainerRef: this._viewContainerRef,
+      disableClose: true,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-card',
       data: {
         dsCoreService: this.dsCoreService(),
         dataSettings: this.dataSettings(),
@@ -826,12 +832,12 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
           initialLevel: 1,
         } as ControlOptions
       }
-    }).afterClosed())
-
-    if (result) {
-      this.members = result.members
-      this.exclude = result.exclude
-    }
+    }).closed.subscribe((result) => {
+      if (result) {
+        this.members = result.members
+        this.exclude = result.exclude
+      }
+    })
   }
 
   async onCreateCalculation(event, calculationType?: CalculationType) {

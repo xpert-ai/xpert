@@ -21,62 +21,7 @@
 </div>
 
 <div class="relative gap-3 flex flex-col px-6">
-  <h1 class="text-sm text-text-secondary font-semibold">{{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}</h1>
-  <div
-    role="group"
-    class="border rounded-xl p-1 flex gap-1"
-    cdkListbox
-    [(ngModel)]="_frequency"
-  >
-    @for (option of FREQUENCY_OPTIONS; track option) {
-      <button
-        class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none hover:bg-button-ghost-hover disabled:hover:bg-transparent border h-8 rounded-xl px-3 text-sm grow shrink"
-        type="button"
-        role="radio"
-        [ngClass]="option.value === _frequency()[0] ? 'bg-neutral-100 text-text-primary border-divider-deep' : 'border-transparent text-zinc-500'"
-        [cdkOption]="option.value"
-      >
-        <span class="font-semibold">{{ 'PAC.Xpert.Frequency_' + option.label | translate: {Default: option.label} }}</span>
-      </button>
-    }
-  </div>
-  <div class="flex gap-3 h-12">
-    <div class="border rounded-xl flex items-center pl-3 pr-1 grow justify-between stretch">
-      <h1 class="text-sm text-fg-secondary font-medium">{{ 'PAC.Xpert.Time' | translate: { Default: 'Time' } }}</h1>
-
-      <div class="relative">
-        <input type="time" [(ngModel)]="time" class="inline-flex items-center justify-center gap-2 px-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 text-sm rounded-lg" min="00:00" max="24:00" value="00:00" required/>
-      </div>
-    </div>
-
-    @if (!frequency() || frequency() === eTaskFrequency.Once || frequency() === eTaskFrequency.Yearly) {
-      <div class="border rounded-xl flex justify-between items-center pl-3 grow min-h-11">
-        <input matInput class="text-base text-text-secondary font-medium grow outline-none" [matDatepicker]="dp" [(ngModel)]="date" >
-
-        <mat-datepicker-toggle [for]="dp" class="inline-flex scale-75" type="button" />
-        <mat-datepicker #dp></mat-datepicker>
-      </div>
-    }
-
-    @if (frequency() === eTaskFrequency.Weekly) {
-      <button class="gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent rounded-xl px-3.5 py-2 flex items-center justify-center h-full w-32 border" type="button"
-        [cdkMenuTriggerFor]="weeklyMenu"
-      >{{dayLabel()}}</button>
-    }
-
-    @if (frequency() === eTaskFrequency.Monthly) {
-      <div class="flex items-center gap-3 font-medium">
-        <div class="flex flex-col">
-          <label class="text-sm">{{ 'PAC.Xpert.DayinMonth' | translate: { Default: 'Day in month to run' } }}:</label>
-          <label class="text-xs text-fg-secondary">{{ 'PAC.Xpert.WillRunClosestDay' | translate: { Default: 'Will run on closest day' } }}</label>
-        </div>
-        <input class="grow py-1 px-4 rounded-xl bg-transparent border stretch h-full" min="1" max="31" 
-          aria-label="Day in month to run:" type="number"
-          [(ngModel)]="dayOfMonth"
-          placeholder="1-31">
-      </div>
-    }
-  </div>
+  <xp-schedule-form [(ngModel)]="options" />
 
   <button class="flex justify-start items-center gap-2 border-solid border-[0.5px] border-neutral-300 rounded-xl p-2 disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
     [cdkMenuTriggerFor]="xpertsMenu">
@@ -117,7 +62,7 @@
     </button>
 
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" cdkFocusInitial
-      [disabled]="!frequency() || !prompt() || !xpertId() || loading()"
+      [disabled]="!prompt() || !xpertId() || loading()"
       (click)="createTask()"
     >
       @if (task()?.id) {
@@ -128,16 +73,6 @@
     </button>
   </div>
 </div>
-
-<ng-template #weeklyMenu>
-  <div cdkMenu class="cdk-menu__large">
-    @for (option of WEEKLY_OPTIONS; track option.value) {
-      <div cdkMenuItem (click)="selectDay(option.value)" >
-        {{option.label | translate: { Default: option.label } }}
-      </div>
-    }
-  </div>
-</ng-template>
 
 <ng-template #xpertsMenu>
   <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary relative p-0">

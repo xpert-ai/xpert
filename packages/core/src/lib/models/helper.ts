@@ -610,7 +610,7 @@ export function mergeSDLSchema(a: Schema, b: Schema) {
 }
 
 /**
- * @deprecated 看哪里还有用到?
+ * @deprecated See where else it can be used?
  *
  * @param entityType
  * @param cube
@@ -618,7 +618,7 @@ export function mergeSDLSchema(a: Schema, b: Schema) {
  */
 export function mergeEntityTypeCube(entityType: EntityType, cube: Cube) {
   const properties = { ...entityType.properties }
-  // 暂时无法统一 XMLA dimension name
+  // XMLA dimension name cannot be unified yet
   cube?.dimensions?.forEach((dim) => {
     properties[dim.name] = {
       ...(properties[dim.name] ?? {}),

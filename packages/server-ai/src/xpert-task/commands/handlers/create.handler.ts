@@ -1,4 +1,4 @@
-import { IXpertAgent, RolesEnum, TaskFrequency, TTaskOptions, XpertTaskStatus } from '@metad/contracts'
+import { IXpertAgent, RolesEnum, TaskFrequency, TScheduleOptions, ScheduleTaskStatus } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
@@ -51,7 +51,7 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 			...command.task,
 			schedule: null, // Clear schedule to avoid confusion
 			timeZone,
-			status: XpertTaskStatus.SCHEDULED
+			status: ScheduleTaskStatus.SCHEDULED
 		})
 
 		// Start task not in current context
@@ -61,7 +61,7 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 	}
 }
 
-function parseCronExpression(cron: string): TTaskOptions {
+function parseCronExpression(cron: string): TScheduleOptions {
 	const [minuteStr, hourStr, dayStr, monthStr, weekStr] = cron.trim().split(' ')
 
 	const minute = parseInt(minuteStr, 10)
@@ -73,7 +73,7 @@ function parseCronExpression(cron: string): TTaskOptions {
 	const dayOfWeek = weekStr === '*' ? undefined : parseInt(weekStr, 10)
 
 	// Determine frequency
-	let frequency: TTaskOptions['frequency']
+	let frequency: TScheduleOptions['frequency']
 
 	if (dayOfWeek !== undefined) {
 		frequency = TaskFrequency.Weekly
@@ -88,7 +88,7 @@ function parseCronExpression(cron: string): TTaskOptions {
 		frequency = TaskFrequency.Once
 	}
 
-	const result: TTaskOptions = {
+	const result: TScheduleOptions = {
 		frequency,
 		time
 	}

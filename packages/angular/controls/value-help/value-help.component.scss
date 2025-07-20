@@ -1,17 +1,9 @@
 :host {
-  max-width: 100%;
+  @apply max-w-full text-text-primary;
 }
 
 .mat-divider.mat-divider-vertical {
   margin: 0 10px;
-}
-
-.ngm-value-help__available {
-  .sub-title {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
 }
 
 .ngm-value-help__available-members {

@@ -1,20 +1,24 @@
-<div mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    {{ 'Ngm.Controls.ValueHelp.Title' | translate: {Default: 'Set Filters for ' + dimension?.dimension, value: dimension?.dimension} }}
+<div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="text-xl font-semibold p-3">
+  {{ 'Ngm.Controls.ValueHelp.Title' | translate: {Default: 'Set Filters for ' + dimension?.dimension, value: dimension?.dimension} }}
 </div>
 
 <div class="flex px-4">
     <div class="ngm-value-help__available-members">
         <div class="ngm-value-help__available">
-            <div class="sub-title">
+            <div class="flex justify-between items-center">
+              <span class="text-base">
                 {{ 'Ngm.Controls.ValueHelp.AvailableMembers' | translate: {Default: "Available Members"} }}
-                <button mat-icon-button (click)="expandAvailables=!expandAvailables">
-                    <mat-icon *ngIf="expandAvailables">keyboard_arrow_up</mat-icon>
-                    <mat-icon *ngIf="!expandAvailables">keyboard_arrow_down</mat-icon>
-                </button>
+              </span>
+              <button mat-icon-button (click)="expandAvailables=!expandAvailables">
+                @if (expandAvailables) {
+                  <mat-icon>keyboard_arrow_up</mat-icon>
+                } @else {
+                  <mat-icon>keyboard_arrow_down</mat-icon>
+                }
+              </button>
             </div>
 
             <div [ngStyle]="{height: expandAvailables ? '120px' : '0' }" class="ngm-value-help__options flex flex-col justify-start items-start gap-2">
-
                 <div class="flex flex-wrap justify-start items-center gap-2">
                     <mat-form-field appearance="fill">
                         <mat-label>
@@ -53,18 +57,18 @@
                 </div>
 
                 <div class="flex flex-wrap justify-start items-center gap-2 mx-2">
-                    <!-- <mat-slide-toggle>
-                        {{ 'Ngm.Controls.ValueHelp.ShowUnbookedMembers' | translate: {Default: "Show Unbooked"} }}
-                    </mat-slide-toggle> -->
-                    <mat-slide-toggle [(ngModel)]="showAllMember">
-                        {{ 'Ngm.Controls.ValueHelp.ShowAllMember' | translate: {Default: "Show 'All' Member"} }}
-                    </mat-slide-toggle>
-                    <mat-slide-toggle [(ngModel)]="onlyLeaves">
-                        {{ 'Ngm.Controls.ValueHelp.ShowOnlyLeaves' | translate: {Default: "Only Leaves"} }}
-                    </mat-slide-toggle>
-                    <mat-slide-toggle [(ngModel)]="excludeSelected">
-                        {{ 'Ngm.Controls.ValueHelp.ExcludeSelectedMembers' | translate: {Default: "Exclude Selected"} }}
-                    </mat-slide-toggle>
+                  <!-- <mat-slide-toggle>
+                    {{ 'Ngm.Controls.ValueHelp.ShowUnbookedMembers' | translate: {Default: "Show Unbooked"} }}
+                  </mat-slide-toggle> -->
+                  <mat-slide-toggle [(ngModel)]="showAllMember">
+                    {{ 'Ngm.Controls.ValueHelp.ShowAllMember' | translate: {Default: "Show 'All' Member"} }}
+                  </mat-slide-toggle>
+                  <mat-slide-toggle [(ngModel)]="onlyLeaves">
+                    {{ 'Ngm.Controls.ValueHelp.ShowOnlyLeaves' | translate: {Default: "Only Leaves"} }}
+                  </mat-slide-toggle>
+                  <mat-slide-toggle [(ngModel)]="excludeSelected">
+                    {{ 'Ngm.Controls.ValueHelp.ExcludeSelectedMembers' | translate: {Default: "Exclude Selected"} }}
+                  </mat-slide-toggle>
                 </div>
 
             </div>
@@ -99,22 +103,38 @@
 
     <div class="ngm-value-help__selected">
         <div class="ngm-value-help__selected-members flex flex-col gap-2">
-            <div class="sub-title">
-                {{ 'Ngm.Controls.ValueHelp.SelectedMembers' | translate: {Default: "Selected Members"} }}
+            <div class="w-full flex justify-between items-center">
+              <div>{{ 'Ngm.Controls.ValueHelp.SelectedMembers' | translate: {Default: "Selected Members"} }}</div>
+              <div>
+                <button type="button" class="btn btn-secondary btn-sm w-7 h-7 rounded-full flex justify-center items-center"
+                  [cdkMenuTriggerFor]="filterMember"
+                  #conditionMemberTrigger="cdkMenuTriggerFor"
+                ><i class="ri-add-line transition-transform"
+                  [class.rotate-45]="conditionMemberTrigger.isOpen()"></i></button>
+              </div>
             </div>
 
             <div class="ngm-value-help__selected-members-list" displayDensity="compact">
                 <mat-list class="ngm-list">
                   @for (member of selectedMembers; track member.key; let i = $index) {
                     <mat-list-item class="group">
-                        <div class="flex items-center overflow-hidden">
-                            <ngm-display-behaviour class="flex-1 overflow-hidden"
-                                [displayBehaviour]="displayBehaviour()"
-                                [option]="member"
-                                [excludeSelected]="excludeSelected">
-                            </ngm-display-behaviour>
-                            <mat-icon class="cursor-pointer shrink-0 opacity-0 group-hover:opacity-100" color="warn"
-                                (click)="deleteMember(i)">remove_circle_outline</mat-icon>
+                      <div class="flex items-center overflow-hidden">
+                        @if (member.operator) {
+                          <span class="border-[0.5px] border-solid border-divider-regular rounded-md mr-1 text-xs leading-3 p-1 font-mono bg-neutral-50"
+                            [class.line-through]="excludeSelected">
+                            {{ 'Ngm.Controls.ValueHelp.' + member.operator | translate: {Default: member.operator} }}
+                          </span>
+                        }
+                        <ngm-display-behaviour class="flex-1 overflow-hidden"
+                          [displayBehaviour]="displayBehaviour()"
+                          [option]="member"
+                          [excludeSelected]="excludeSelected"
+                        />
+
+                          <button type="button" class="w-6 h-6 flex justify-center items-center rounded-full cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 text-text-warning hover:bg-hover-bg"
+                            (click)="deleteMember(i)">
+                            <i class="ri-close-line"></i>
+                          </button>
                         </div>
                         <mat-divider></mat-divider>
                     </mat-list-item>
@@ -158,11 +178,8 @@
                     </mat-option>
                 </mat-select>
             </mat-form-field>
-
-            <mat-form-field *ngIf="presentation === PresentationEnum.Hierarchy && selectionType === FilterSelectionType.Multiple"
-                class="col-span-2"
-                appearance="fill"
-                >
+          @if (presentation === PresentationEnum.Hierarchy && selectionType === FilterSelectionType.Multiple) {
+            <mat-form-field class="col-span-2" appearance="fill">
                 <mat-label>
                     {{ 'Ngm.Controls.ValueHelp.HierarchySelectionMode' | translate: {Default: "Hierarchy Selection Mode"} }}
                 </mat-label>
@@ -184,17 +201,81 @@
                     </mat-option>
                 </mat-select>
             </mat-form-field>
+          }
         </div>
     </div>
 </div>
 
-<div matDialogActions align="end" class="flex justify-end">
-    <div ngmButtonGroup>
-        <button mat-button mat-dialog-close>
-            {{ 'Ngm.Common.Cancel' | translate: {Default: "Cancel"} }}
-          </button>
-          <button mat-raised-button color="accent" (click)="close()">
-            {{ 'Ngm.Common.Apply' | translate: {Default: "Apply"} }}
-          </button>
-    </div>
+<div class="flex justify-end p-2 border-t border-dashed border-divider-deep">
+  <div ngmButtonGroup>
+    <button mat-button (click)="close()">
+      {{ 'Ngm.Common.Cancel' | translate: {Default: "Cancel"} }}
+    </button>
+    <button mat-raised-button color="accent" (click)="close()">
+      {{ 'Ngm.Common.Apply' | translate: {Default: "Apply"} }}
+    </button>
+  </div>
 </div>
+
+<ng-template #filterMember>
+  <div class="w-[360px] flex flex-col gap-2 p-4 border border-solid border-divider-regular rounded-2xl shadow-md bg-components-card-bg">
+    <form [formGroup]="memberForm" class="contents">
+      <div class="w-full flex items-center gap-4">
+        <div class="grow">
+          <label>{{ 'Ngm.Controls.ValueHelp.Property' | translate: {Default: 'Property'} }}</label>
+          <ngm-select formControlName="type" [selectOptions]="[
+            {
+              value: 'UniqueName',
+              label: ('Ngm.Controls.ValueHelp.UniqueName' | translate: {Default: 'Unique Name'}),
+            },
+            {
+              value: 'Caption',
+              label: ('Ngm.Controls.ValueHelp.Caption' | translate: {Default: 'Caption'}),
+            }
+          ]" [displayBehaviour]="eDisplayBehaviour.descriptionOnly" />
+        </div>
+
+        <div class="grow">
+          <label>{{ 'Ngm.Controls.ValueHelp.Condition' | translate: {Default: 'Condition'} }}</label>
+          <ngm-select formControlName="operator" [selectOptions]="[
+            {
+              value: eFilterOperator.Contains,
+              label: ('Ngm.Controls.ValueHelp.Contains' | translate: {Default: 'Contains'}),
+            },
+            {
+              value: eFilterOperator.StartsWith,
+              label: ('Ngm.Controls.ValueHelp.StartsWith' | translate: {Default: 'Starts With'}),
+            },
+            {
+              value: eFilterOperator.EndsWith,
+              label: ('Ngm.Controls.ValueHelp.EndsWith' | translate: {Default: 'Ends With'}),
+            },
+            {
+              value: eFilterOperator.NotContains,
+              label: ('Ngm.Controls.ValueHelp.NotContains' | translate: {Default: 'Not Contains'}),
+            },
+            {
+              value: eFilterOperator.NotStartsWith,
+              label: ('Ngm.Controls.ValueHelp.NotStartsWith' | translate: {Default: 'Not Starts With'}),
+            },
+            {
+              value: eFilterOperator.NotEndsWith,
+              label: ('Ngm.Controls.ValueHelp.NotEndsWith' | translate: {Default: 'Not Ends With'}),
+            }
+          ]" />
+        </div>
+      </div>
+
+      <div class="w-full flex flex-col items-start mt-2">
+        <label>{{ 'Ngm.Controls.ValueHelp.Value' | translate: {Default: 'Value'} }}</label>
+        <input type="text" formControlName="value" class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular" />
+      </div>
+    
+      <div class="w-full flex justify-end">
+        <button type="button" class="btn btn-primary btn-large" (click)="addMember();conditionMemberTrigger.close();">
+          {{ 'Ngm.Controls.ValueHelp.Add' | translate: {Default: 'Add'} }}
+        </button>
+      </div>
+    </form>
+  </div>
+</ng-template>

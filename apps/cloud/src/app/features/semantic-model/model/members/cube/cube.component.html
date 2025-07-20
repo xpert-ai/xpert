@@ -2,13 +2,28 @@
   <mat-expansion-panel-header class="whitespace-nowrap">
     <mat-panel-title> {{cube().caption}} <span class="text-sm italic ml-2">({{cube().name}})</span> </mat-panel-title>
     <mat-panel-description>
-
-      <button mat-icon-button [disabled]="loading()"
+      @if (entity()?.job?.endAt) {
+        <span class="text-sm">{{ 'PAC.MODEL.LastSyncTime' | translate: {Default: 'Last sync time'} }}:</span>
+        <span class="text-sm font-mono">{{entity().job.endAt | date:'short'}}</span>
+      }
+      <button mat-icon-button class="ml-2" [disabled]="loading() || !entity()?.id"
         [matTooltip]="'PAC.MODEL.RetrievalTesting' | translate: {Default: 'Retrieval Testing'}"
         matTooltipPosition="above"
         (click)="$event.stopPropagation();retrievalTesting()"
       >
         <i class="ri-focus-2-line"></i>
+      </button>
+
+      <button mat-icon-button [disabled]="loading() || !entity()?.id"
+        [matTooltip]="'PAC.MODEL.ScheduledSyncTask' | translate: {Default: 'Scheduled synchronization task'}"
+        matTooltipPosition="above"
+        (click)="$event.stopPropagation();scheduledSyncTask()"
+      >
+        @if (entity()?.schedule) {
+          <i class="ri-calendar-schedule-fill text-accent-700"></i>
+        } @else {
+          <i class="ri-calendar-schedule-line"></i>
+        }
       </button>
 
       @if (entity()?.job?.status === 'processing' || entity()?.job?.status === 'completed') {
@@ -177,7 +192,9 @@
                 </td>
                 <td class="px-6 py-4 text-end">
                   @if (syncMembers()[hierarchy.name]) {
-                    <span class='inline-flex items-center bg-emerald-50 text-emerald-600 font-medium mr-2 pl-1.5 pr-2 rounded-lg py-1'>
+                    <span class='inline-flex items-center bg-emerald-50 text-emerald-600 font-medium mr-2 pl-1.5 pr-2 rounded-lg py-1'
+                      [matTooltip]="'PAC.MODEL.SynchronizedMembers' | translate: {Default: 'Synchronized members'}"
+                      matTooltipPosition="above">
                       <i class="ri-ai-generate-text mr-1"></i>
                       <span class="italic text-sm overflow-hidden text-ellipsis">
                         {{ syncMembers()[hierarchy.name] | number: '0.0-0' }}

@@ -23,6 +23,7 @@ import { BaseSlicersComponent } from '../base-slicers'
 export class SlicerComponent extends BaseSlicersComponent {
   private translate = inject(TranslateService)
 
+  // Inputs
   readonly slicer = input<ISlicer>()
   readonly disabled = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
@@ -59,6 +60,7 @@ export class SlicerComponent extends BaseSlicersComponent {
     })
   )
 
+  readonly exclude = computed(() => this.slicer()?.exclude)
   public readonly members = computed(
     () =>
       this.slicer()

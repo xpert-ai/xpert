@@ -1,8 +1,8 @@
 import { t } from 'i18next'
 import { z } from 'zod'
 import { OrderBy, OrderDirection } from '../../orderby'
-import { C_MEASURES, Dimension, isDimension, isMeasure, isMeasureName, Measure } from '../../types'
-import { AggregationRole, EntityType, getEntityProperty2, unwrapBrackets } from '../../models'
+import { C_MEASURES, Dimension, FilterOperator, isDimension, isMeasure, isMeasureName, Measure } from '../../types'
+import { AggregationRole, EntityType, getEntityProperty2, PropertyDimension, PropertyHierarchy, PropertyLevel, unwrapBrackets } from '../../models'
 import { omit } from '../../utils'
 
 export const DataSettingsSchema = z.object({
@@ -21,7 +21,9 @@ export const baseDimensionSchema = {
     .string()
     .optional()
     .describe('The name of the level in the hierarchy using pattern `[Hierarchy Name].[Level Name]`'),
-  properties: z.array(z.string().describe('The name of property in level, using pattern `[Hierarchy name].[Property name]`')).optional().nullable()
+  properties: z.array(
+    z.string().describe('The name of property in level, using pattern `[Hierarchy name].[Property name]`')
+  ).optional().nullable().describe('Show properties of level, this parameter is not required unless explicitly specified.')
 }
 
 export const DimensionSchema = z.object(baseDimensionSchema)
@@ -38,7 +40,10 @@ export const MeasureSchema = z.object({
 
 export const MemberSchema = z.object({
   key: z.string().describe('the UniqueName of dimension member, for example: `[MemberKey]`'),
-  caption: z.string().optional().describe('the caption of dimension member')
+  caption: z.string().optional().describe('the caption of dimension member'),
+  operator: z.enum([FilterOperator.EQ, FilterOperator.Contains, FilterOperator.NotContains, FilterOperator.StartsWith, FilterOperator.NotStartsWith, FilterOperator.EndsWith, FilterOperator.NotEndsWith])
+              .optional().nullable()
+              .describe('The operator of the member, such as `Contains`, `StartsWith`, etc. If not specified, it defaults to `EQ` (equals).') 
 })
 
 export const DimensionMemberSchema = z.object({
@@ -97,12 +102,20 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
   let property = null
   if (isDimension(dimension)) {
     if (dimension.level) {
-      property = getEntityProperty2(entityType, dimension.level)
+      property = getEntityProperty2<PropertyLevel>(entityType, dimension.level)
     } else if (dimension.hierarchy) {
-      property = getEntityProperty2(entityType, dimension.hierarchy)
+      property = getEntityProperty2<PropertyHierarchy>(entityType, dimension.hierarchy)
     } else if (dimension.dimension) {
-      property = getEntityProperty2(entityType, dimension.dimension)
+      property = getEntityProperty2<PropertyDimension>(entityType, dimension.dimension)
     }
+    // Check properties validation
+    dimension.properties?.forEach(prop => {
+      if (property?.role === AggregationRole.level) {
+        if (!(<PropertyLevel>property).properties.some(p => p.name === prop)) {
+          throw new Error(t('Error.PropertyNotFoundInLevel', {ns: 'core', cube: entityType.name, level: property.name, property: prop}))
+        }
+      }
+    })
   } else {
     property = getEntityProperty2(entityType, dimension)
     // Fix meausure name format

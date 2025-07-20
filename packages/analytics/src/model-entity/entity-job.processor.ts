@@ -1,29 +1,35 @@
+import { AiProviderRole } from '@metad/contracts'
+import { estimateTokenUsage } from '@metad/copilot'
+import {
+	CopilotNotFoundException,
+	CopilotOneByRoleQuery,
+	CopilotTokenRecordCommand,
+	getCopilotModel
+} from '@metad/server-ai'
 import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Job } from 'bull'
+import { GetDimensionMembersCommand } from '../model-member/commands'
 import { SemanticModelMemberService } from '../model-member/member.service'
+import { SemanticModelService } from '../model/model.service'
 import { ModelEntityUpdateCommand } from './commands'
 import { SemanticModelEntityService } from './entity.service'
-import { SemanticModelService } from '../model/model.service'
-import { estimateTokenUsage } from '@metad/copilot'
-import { CopilotNotFoundException, CopilotOneByRoleQuery, CopilotTokenRecordCommand, getCopilotModel } from '@metad/server-ai'
-import { AiProviderRole } from '@metad/contracts'
-import { GetDimensionMembersCommand } from '../model-member/commands'
+import { JOB_ENTITY_SYNC, MEMBERS_SYNC_NAME } from './types'
 
 const batchSize = 50
 
 type TDimensionMembersSyncJob = {
-	tenantId: string;
-	organizationId: string;
-	createdById: string;
-	modelId: string;
-	entityId: string;
-	cube: string;
-	hierarchies: string[];
+	tenantId: string
+	organizationId: string
+	createdById: string
+	modelId: string
+	entityId: string
+	cube: string
+	hierarchies: string[]
 }
 
-@Processor('entity')
+@Processor(JOB_ENTITY_SYNC)
 export class EntityMemberProcessor {
 	private readonly logger = new Logger(EntityMemberProcessor.name)
 
@@ -32,29 +38,30 @@ export class EntityMemberProcessor {
 		private readonly memberService: SemanticModelMemberService,
 		private readonly modelService: SemanticModelService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
+		private readonly queryBus: QueryBus
 	) {}
 
-	@Process('syncMembers')
-	async handleSyncMembers(
-		job: Job<TDimensionMembersSyncJob>
-	) {
+	@Process(MEMBERS_SYNC_NAME)
+	async handleSyncMembers(job: Job<TDimensionMembersSyncJob>) {
 		const { tenantId, organizationId, createdById, modelId, entityId, cube, hierarchies } = job.data
 		this.logger.debug(
 			`[Job: entity '${job.id}'] Start sync dimension memebrs for model '${modelId}' and cube '${cube}' ...`
 		)
 
 		try {
-			const model = await this.modelService.findOne(modelId, { where: {tenantId, organizationId}, relations: ['dataSource', 'dataSource.type', 'roles'] })
-			const {
-					entityType,
-					members,
-					statistics
-				} = await this.commandBus.execute(new GetDimensionMembersCommand(model, cube, hierarchies, entityId))
-				// await this.memberService.syncMembers(model, cube, hierarchies, {id: entityId, createdById})
+			const entity = await this.entityService.findOne(entityId)
+			const model = await this.modelService.findOne(modelId, {
+				where: { tenantId, organizationId },
+				relations: ['dataSource', 'dataSource.type', 'roles']
+			})
+			const { entityType, members, statistics } = await this.commandBus.execute(
+				new GetDimensionMembersCommand(model, cube, hierarchies, entityId)
+			)
 
 			// the copilot of the organization where the semantic model is located
-			const copilot = await this.queryBus.execute(new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding))
+			const copilot = await this.queryBus.execute(
+				new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding)
+			)
 
 			if (!copilot) {
 				throw new CopilotNotFoundException(`Copilot not found for role '${AiProviderRole.Embedding}'`)
@@ -90,21 +97,18 @@ export class EntityMemberProcessor {
 					batchSize * count >= members.length
 						? 100
 						: (((batchSize * count) / members.length) * 100).toFixed(1)
-				this.logger.debug(
-					`Embeddings members for dimensions '${hierarchies}' progress: ${progress}%`
-				)
+				this.logger.debug(`Embeddings members for dimensions '${hierarchies}' progress: ${progress}%`)
 
 				// Check the job status
 				if (await this.checkIfJobCancelled(job)) {
-					this.logger.debug(
-						`[Job: entity '${job.id}'] Cancelled`
-					)
+					this.logger.debug(`[Job: entity '${job.id}'] Cancelled`)
 					return
 				}
 				await this.commandBus.execute(
 					new ModelEntityUpdateCommand({
 						id: entityId,
 						job: {
+							...entity.job,
 							id: job.id,
 							status: 'processing',
 							progress: Number(progress)
@@ -112,7 +116,6 @@ export class EntityMemberProcessor {
 					})
 				)
 			}
-
 
 			// Update job status and sync status of model entity
 			await this.commandBus.execute(
@@ -125,9 +128,11 @@ export class EntityMemberProcessor {
 						members: statistics
 					},
 					job: {
+						...entity.job,
 						id: job.id,
 						status: 'completed',
-						progress: 100
+						progress: 100,
+						endAt: new Date()
 					}
 				})
 			)
@@ -136,12 +141,12 @@ export class EntityMemberProcessor {
 		} catch (err) {
 			this.logger.debug(`[Job: entity '${job.id}'] Error!`)
 			console.error(err)
-
-			this.entityService.update(entityId, {
+			await this.entityService.update(entityId, {
 				job: {
 					id: job.id,
 					status: 'failed',
-					error: err.message
+					error: err.message,
+					endAt: new Date()
 				}
 			})
 			await job.moveToFailed(err)

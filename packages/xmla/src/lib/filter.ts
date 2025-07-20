@@ -24,16 +24,22 @@ import {
   AND,
   Children,
   CurrentMember,
+  CurrentMemberCaption,
+  CurrentMemberUniqueName,
   Descendants,
   DescendantsFlag,
   Except,
   Filter,
   InStr,
   IS,
+  Left,
+  Members,
   MemberSet,
+  Not,
   NOT,
   OR,
-  Parenthesis
+  Parenthesis,
+  Right
 } from './functions'
 import { serializeSlicer } from './slicer'
 import { MDXDialect, wrapHierarchyValue } from './types/index'
@@ -60,10 +66,12 @@ export function convertMDXQueryHierarchyToString(hierarchy: MDXProperty) {
 }
 
 /**
- * 将 Hierarchy filter 拼接成 MDX 语句中使用的形式
+ * Concatenate Hierarchy filters into the form used in MDX statements
  */
 export function mapMDXFilterToStatement(oFilter: MDXHierarchyFilter, cube: Cube, withMembers: Record<string, WithMemberType>, dialect?: MDXDialect): string {
-  // SAP BW 系统格式为 `[hierarchy].[value]` 而 Mondrian 中格式为 `[hierarchy].[level].[value]`, 不知道有没有其他设置可以消除差异?
+  /**
+   * @todo SAP BW 系统格式为 `[hierarchy].[value]` 而 Mondrian 中格式为 `[hierarchy].[level].[value]`, 不知道有没有其他设置可以消除差异?
+   */
   const path = dialect === MDXDialect.SAPBW ? oFilter.hierarchy : /*oFilter.level ||*/ oFilter.hierarchy
   switch (oFilter.operator) {
     case FilterOperator.BT:
@@ -72,8 +80,10 @@ export function mapMDXFilterToStatement(oFilter: MDXHierarchyFilter, cube: Cube,
       }
       break
     case FilterOperator.NE:
-      // 会不会出现 hierarchy 没有 [All] 成员的情况
-      // 用 Children 和 Members 的区别
+      /**
+       * @todo Will there be a situation where the hierarchy does not have an `[All]` member?
+       * @todo The difference between using `Children` and `Members`
+       */
       return Except(Children(oFilter.hierarchy), MemberSet(...oFilter.members.map((member) => wrapHierarchyValue(path, getMemberKey(member)))))
     case FilterOperator.Contains:
       if (includes(oFilter.properties, 'MEMBER_CAPTION')) {
@@ -82,11 +92,10 @@ export function mapMDXFilterToStatement(oFilter: MDXHierarchyFilter, cube: Cube,
           `${InStr(`${oFilter.hierarchy}.CURRENTMEMBER.MEMBER_CAPTION`, `"${getMemberKey(oFilter.members[0])}"`)} > 0`
         )
       }
-      // 默认也是取 Caption 符合搜索条件
+      // By default, the Caption that meets the search criteria is also taken
       return Filter(
         oFilter.hierarchy,
         `${InStr(`${oFilter.hierarchy}.CURRENTMEMBER.MEMBER_CAPTION`, `"${getMemberKey(oFilter.members[0])}"`)} > 0`
-        // `InStr(${oFilter.hierarchy}.CURRENTMEMBER.MEMBER_CAPTION, "${oFilter.members}") > 0`
       )
     case FilterOperator.StartsWith: {
       const values = isArray(oFilter.members) ? oFilter.members : [oFilter.members]
@@ -100,9 +109,88 @@ export function mapMDXFilterToStatement(oFilter: MDXHierarchyFilter, cube: Cube,
         .join(' or ')
     }
     default: {
-      // filter value 中有带有 hierarchy 的情况
+      // When the filter value contains hierarchy
       let statement = MemberSet(...oFilter.members.map((member) => {
         const memberKey = getMemberKey(member)
+        if (member && typeof member !== 'string' && member.operator) {
+          switch(member.operator) {
+            case FilterOperator.Contains: {
+              if (member.caption) {
+                return Filter(Children(oFilter.hierarchy),
+                  `${InStr(CurrentMemberCaption(oFilter.hierarchy), `"${member.caption}"`)} > 0`
+                )
+              } else if (member.key) {
+                return Filter(Children(oFilter.hierarchy),
+                  `${InStr(CurrentMemberUniqueName(oFilter.hierarchy), `"${member.key}"`)} > 0`
+                )
+              }
+              break
+            }
+            case FilterOperator.NotContains: {
+              if (member.caption) {
+                return Filter(Children(oFilter.hierarchy),
+                  Not(`${InStr(CurrentMemberCaption(oFilter.hierarchy), `"${member.caption}"`)} > 0`)
+                )
+              } else if (member.key) {
+                return Filter(Children(oFilter.hierarchy),
+                  Not(`${InStr(CurrentMemberUniqueName(oFilter.hierarchy), `"${member.key}"`)} > 0`)
+                )
+              }
+              break
+            }
+            case FilterOperator.StartsWith: {
+              if (member.caption) {
+                return Filter(Children(oFilter.hierarchy),
+                  `${Left(CurrentMemberCaption(oFilter.hierarchy), member.caption.length)} = "${member.caption}"`
+                )
+              } else if (member.key) {
+                return Filter(Children(oFilter.hierarchy),
+                  `${Left(CurrentMemberUniqueName(oFilter.hierarchy), `${member.key}`.length)} = "${member.key}"`
+                )
+              }
+              break
+            }
+            case FilterOperator.NotStartsWith: {
+              if (member.caption) {
+                return Filter(Children(oFilter.hierarchy),
+                  Not(`${Left(CurrentMemberCaption(oFilter.hierarchy), member.caption.length)} = "${member.caption}"`)
+                )
+              } else if (member.key) {
+                return Filter(Children(oFilter.hierarchy),
+                  Not(`${Left(CurrentMemberUniqueName(oFilter.hierarchy), `${member.key}`.length)} = "${member.key}"`)
+                )
+              }
+              break
+            }
+            case FilterOperator.EndsWith: {
+              if (member.caption) {
+                return Filter(Children(oFilter.hierarchy),
+                  `${Right(CurrentMemberCaption(oFilter.hierarchy), member.caption.length)} = "${member.caption}"`
+                )
+              }
+              else if (member.key) {
+                return Filter(Children(oFilter.hierarchy),
+                  `${Right(CurrentMemberUniqueName(oFilter.hierarchy), `${member.key}`.length)} = "${member.key}"`
+                )
+              }
+              break
+            }
+            case FilterOperator.NotEndsWith: {
+              if (member.caption) {
+                return Filter(Children(oFilter.hierarchy),
+                  Not(`${Right(CurrentMemberCaption(oFilter.hierarchy), member.caption.length)} = "${member.caption}"`)
+                )
+              }
+              else if (member.key) {
+                return Filter(Children(oFilter.hierarchy),
+                  Not(`${Right(CurrentMemberUniqueName(oFilter.hierarchy), `${member.key}`.length)} = "${member.key}"`)
+                )
+              }
+              break
+            }
+          }
+        }
+
         const hierarchyValue = wrapHierarchyValue(path, memberKey)
         const calculatedMember = cube?.calculatedMembers?.find((item) => item.name === memberKey && item.hierarchy === oFilter.hierarchy)
         if (calculatedMember) {
@@ -120,7 +208,7 @@ export function mapMDXFilterToStatement(oFilter: MDXHierarchyFilter, cube: Cube,
         case Drill.Children:
           statement = Descendants(
             statement,
-            // 为什么要用 distance
+            // Why use distance?
             oFilter.distance ?? 1
           )
           break
@@ -134,8 +222,9 @@ export function mapMDXFilterToStatement(oFilter: MDXHierarchyFilter, cube: Cube,
         case Drill.SelfAndDescendants:
           statement = Descendants(
             statement,
-            // 要不要默认到最底层？
-            isNil(oFilter.distance) ? '1' : oFilter.distance,
+            // Do you want to default to the bottom layer?
+            oFilter.level ||
+              (isNil(oFilter.distance) ? '1' : oFilter.distance),
             DescendantsFlag.SELF_AND_BEFORE
           )
           break
@@ -149,7 +238,7 @@ export function mapMDXFilterToStatement(oFilter: MDXHierarchyFilter, cube: Cube,
 }
 
 /**
- * 由于目前没有找到如何书写 IAdvancedFilter 对应的 MDX 语句的方法, 所以将 IAdvancedFilter 展开成明细的 ISlicer
+ * Since there is no method to write the MDX statement corresponding to IAdvancedFilter, IAdvancedFilter is expanded into a detailed ISlicer
  * 
  * @param entityType 
  * @param advancedFilter 
@@ -189,12 +278,12 @@ function _generateAdvancedFilterStatement(entityType: EntityType, slicer: IAdvan
         statement = NOT(statement)
         break
       default:
-        throw new Error(`暂不支持操作符: ${slicer.operator}`)
+        throw new Error(`Operators are not supported: ${slicer.operator}`)
     }
     return statement
   } else if(isSlicer(slicer)) {
     return serializeSlicer(slicer)
   }
 
-  throw new Error(`暂不支持切片器: ${JSON.stringify(slicer)}`)
+  throw new Error(`Slicers are not supported: ${JSON.stringify(slicer)}`)
 }
