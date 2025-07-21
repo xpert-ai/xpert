@@ -135,11 +135,11 @@
       
     @if (typeControl.value === IndicatorType.DERIVE && showFormula()) {
       <ngm-calculated-measure class="col-span-1 sm:col-span-2 h-96 rounded-lg overflow-hidden border border-solid border-neutral-100 dark:border-neutral-800"
-          [syntax]="Syntax.MDX"
-          [dataSettings]="dataSettings()"
-          [entityType]="entityType()"
-          formControlName="formula"
-        >
+        [syntax]="Syntax.MDX"
+        [dataSettings]="dataSettings()"
+        [entityType]="entityType()"
+        formControlName="formula"
+      >
         <button mat-icon-button displayDensity="compact" class="ngm-copilot-command-button ngm-calculated-measure__action"
           [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
           (click)="aiFormula()">

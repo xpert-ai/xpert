@@ -28,13 +28,15 @@
             [cdkDropListData]="calculations"
             (cdkDropListDropped)="drop($event)"
             >
-            <mat-list-item role="listitem" *ngFor="let property of calculations$ | async" class="hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              cdkDrag
-              [cdkDragData]="property"
-            >
-              <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property> <!-- [highlight]="calculatedMemberHighlight" -->
+            @for (property of calculations$ | async; track property.name) {
+              <mat-list-item role="listitem" class="hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                cdkDrag
+                [cdkDragData]="property"
+              >
+                <ngm-entity-property class="flex-1" [property]="property" [highlight]="calculatedMemberHighlight" />
                 <div *cdkDragPlaceholder></div>
-            </mat-list-item>
+              </mat-list-item>
+            }
           </mat-list>
         </div>
 
