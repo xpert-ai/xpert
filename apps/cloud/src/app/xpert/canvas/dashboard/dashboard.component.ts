@@ -4,16 +4,15 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { DataSettings } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertHomeService } from '@cloud/app/xpert/'
 import {
   ChatDashboardMessageType,
-  injectFormatRelative,
   TMessageComponent,
   TMessageContentComponent
 } from '@cloud/app/@core'
-import { ModelCubeComponent, ModelMembersComponent } from '@cloud/app/@shared/model'
+import { uniq } from 'lodash-es'
+import { ModelCubeComponent, ModelMembersComponent, ModelVirtualCubeComponent } from '@cloud/app/@shared/model'
 import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashboard.component'
 
 @Component({
@@ -28,7 +27,8 @@ import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashbo
     MatTooltipModule,
     ChatMessageDashboardComponent,
     ModelCubeComponent,
-    ModelMembersComponent
+    ModelMembersComponent,
+    ModelVirtualCubeComponent
   ],
   selector: 'chat-canvas-dashboard',
   templateUrl: './dashboard.component.html',
@@ -42,7 +42,6 @@ export class ChatCanvasDashboardComponent {
   eChatDashboardMessageType = ChatDashboardMessageType
 
   readonly homeService = inject(XpertHomeService)
-  readonly #formatRelative = injectFormatRelative()
 
   // Inputs
   readonly componentId = input<string>()
@@ -67,8 +66,8 @@ export class ChatCanvasDashboardComponent {
     return null
   })
 
-  readonly contents = computed(() => {
-    const messages = this.#messages()
+  readonly _contents = computed(() => {
+    const messages = this.homeService.conversation()?.messages
     if (!messages?.length) {
       return []
     }
@@ -79,37 +78,27 @@ export class ChatCanvasDashboardComponent {
           ...(contents.filter(
             (content) =>
               content.type === 'component' &&
-              (<TMessageComponent>content.data)?.category === 'Dashboard' &&
-              (this.componentId() ? content.id === this.componentId() : true)
+              (<TMessageComponent>content.data)?.category === 'Dashboard'
           ) as TMessageContentComponent[])
         )
       }
       return acc
     }, [])
 
-    return contents.slice(contents.length - 1)
+    return contents
   })
 
-  readonly #componentData = computed(
-    () => this.contents()?.[0]?.data as TMessageComponent<{ dataSettings: DataSettings }>
-  )
+  readonly contents = computed(() => {
+    return this._contents().filter((_) => this.componentId() ? _.id === this.componentId() : true)
+  })
 
-  // Todo add more components in bi dashboard
+  readonly types = computed(() => {
+    return uniq(this._contents()?.map((content) => content.data.type) || [])
+  })
 
   constructor() {
     effect(() => {
-      console.log(this.componentId(), this.contents())
     })
-
-    // Update to last component
-    // effect(
-    //   () => {
-    //     if (this.messages()) {
-    //       this.homeService.canvasOpened.update((state) => ({ opened: true, type: 'Dashboard' }))
-    //     }
-    //   },
-    //   { allowSignalWrites: true }
-    // )
   }
 
   toggleExpand() {

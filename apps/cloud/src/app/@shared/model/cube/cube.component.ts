@@ -1,16 +1,16 @@
-import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { RouterModule } from '@angular/router'
-import { getErrorMessage, injectToastr, TMessageContentCube } from '@cloud/app/@core'
-import { extractSemanticModelDraft, SemanticModelServerService } from '@metad/cloud/state'
-import { linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { isEqual, Schema } from '@metad/ocap-core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
+import { FormsModule } from '@angular/forms'
+import { injectToastr, TMessageContentCube } from '@cloud/app/@core'
+import { SemanticModelServerService } from '@metad/cloud/state'
+import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { derivedAsync } from 'ngxtension/derived-async'
+import { ModelDraftBaseComponent } from '../draft-base'
+import { ModelStudioService } from '../model.service'
 import { CubeStudioComponent } from '../studio/studio.component'
-import { ModelStudioService } from '../studio/studio.service'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { ModelChecklistComponent } from '../checklist/checklist.component'
 
 @Component({
   standalone: true,
@@ -18,21 +18,13 @@ import { ModelStudioService } from '../studio/studio.service'
   selector: 'xp-model-cube',
   templateUrl: 'cube.component.html',
   styleUrls: ['cube.component.scss'],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    RouterModule,
-    TranslateModule,
-    DragDropModule,
-    CubeStudioComponent
-  ],
+  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule, MatTooltipModule, ModelChecklistComponent, CubeStudioComponent],
   host: {
     class: 'xp-model-cube'
   },
   providers: [NgmDSCoreService, ModelStudioService]
 })
-export class ModelCubeComponent {
+export class ModelCubeComponent extends ModelDraftBaseComponent {
   readonly modelAPI = inject(SemanticModelServerService)
   readonly studioService = inject(ModelStudioService)
   readonly #toastr = injectToastr()
@@ -41,57 +33,30 @@ export class ModelCubeComponent {
   readonly data = input<TMessageContentCube>()
 
   // States
-  readonly modelId = computed(() => this.data()?.data?.modelId)
-  readonly cubeName = computed(() => this.data()?.data?.cubeName)
-  readonly semanticModel = derivedAsync(() => {
-    return this.modelId() ? this.modelAPI.getOneById(this.modelId(), { relations: ['dataSource', 'dataSource.type'] }) : null
-  })
+  readonly #modelId = computed(() => this.data()?.data?.modelId)
+  readonly #cubeName = computed(() => this.data()?.data?.cubeName)
 
-  readonly #draft = linkedModel({
-    initialValue: null,
-    compute: () => {
-      const model = this.semanticModel()
-      return model ? (model.draft ?? extractSemanticModelDraft<Schema>(model)) : null
-    },
-    update: (draft) => {
-      //
-    }
-  })
-
-  readonly draft = linkedModel({
-    initialValue: null,
-    compute: () => {
-      const model = this.semanticModel()
-      return structuredClone(model ? (model.draft ?? extractSemanticModelDraft<Schema>(model)) : null)
-    },
-    update: (draft) => {
-      //
-    }
-  })
-  readonly dirty = computed(() => !isEqual(this.#draft(), this.draft()))
-
-  readonly saving = signal(false)
+  readonly cube = computed(() => this.draft()?.schema?.cubes?.find((cube) => cube.name === this.cubeName()))
 
   constructor() {
-    effect(() => {
-      if (this.semanticModel()) {
-        this.studioService.initModel(this.semanticModel())
-      }
-    }, { allowSignalWrites: true })
-  }
+    super()
 
-  save() {
-    this.saving.set(true)
-    const draft = this.draft()
-    this.modelAPI.saveDraft(this.modelId(), draft).subscribe({
-      next: (res) => {
-        this.saving.set(false)
-        this.#draft.set(structuredClone(draft))
+    effect(
+      () => {
+        if (this.#modelId()) {
+          this.modelId.set(this.#modelId())
+        }
       },
-      error: (err) => {
-        this.saving.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
+        if (this.#cubeName()) {
+          this.cubeName.set(this.#cubeName())
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 }

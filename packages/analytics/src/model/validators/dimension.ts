@@ -1,5 +1,6 @@
 import { ChecklistItem, RuleValidator } from '@metad/contracts'
 import { DimensionType, PropertyDimension, Schema } from '@metad/ocap-core'
+import { HierarchyValidator } from './hierarchy'
 
 export class DimensionValidator implements RuleValidator {
 	async validate(dimension: PropertyDimension, params: { schema: Schema }): Promise<ChecklistItem[]> {
@@ -17,6 +18,31 @@ export class DimensionValidator implements RuleValidator {
 					},
 					level: 'error'
 				})
+			}
+
+			// Check for duplicate hierarchy names
+			const hierarchyNames = new Set<string>()
+			for (const hierarchy of dimension.hierarchies) {
+				if (hierarchyNames.has(hierarchy.name)) {
+					issues.push({
+						ruleCode: 'DIMENSION_HIERARCHY_NAME_DUPLICATE',
+						field: 'dimension',
+						value: dimension.name,
+						message: {
+							en_US: `Dimension "${dimension.name}" has duplicate hierarchy name "${hierarchy.name}"`,
+							zh_Hans: `维度 "${dimension.name}" 有重复的层次结构名称 "${hierarchy.name}"`
+						},
+						level: 'error'
+					})
+				} else {
+					hierarchyNames.add(hierarchy.name)
+				}
+
+				const hierarchyIssues = await new HierarchyValidator().validate(hierarchy, {
+					schema: params.schema,
+					dimensionName: dimension.name
+				})
+				issues.push(...hierarchyIssues)
 			}
 		}
 

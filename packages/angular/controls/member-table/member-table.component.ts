@@ -163,7 +163,7 @@ export class NgmMemberTableComponent<T> implements ControlValueAccessor {
   private searchSub = this.searchControl.valueChanges
     .pipe(debounceTime(500), takeUntilDestroyed())
     .subscribe((text) => {
-      this.dataSource.filter = text.trim().toLowerCase()
+      this.dataSource.filter = text?.trim().toLowerCase()
     })
   constructor() {
     effect(() => {

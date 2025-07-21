@@ -11,9 +11,6 @@
   @include flow-common.minimap;
 
   .f-component.f-node-output {
-    border-radius: 0;
-    width: 3px;
-    height: var(--output-size);
-    @apply bg-blue-500;
+    @apply w-1 h-1 flex justify-center items-center cursor-crosshair opacity-0 hover:opacity-100;
   }
 }

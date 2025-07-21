@@ -43,7 +43,6 @@ import {
   TSemanticModelDraft
 } from '../../../@core'
 import { dirtyCheckWith, write } from '../store'
-import { CreateEntityDialogRetType, toDimension } from './create-entity/create-entity.component'
 import {
   MODEL_TYPE,
   ModelCubeState,
@@ -56,7 +55,8 @@ import {
 } from './types'
 import { limitSelect } from '@metad/ocap-sql'
 import { calculateHash } from '@cloud/app/@shared/utils'
-import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model/studio/types'
+import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model'
+import { CreateEntityDialogRetType, toDimension } from './create-entity/create-entity.component'
 
 const SaveDraftDebounceTime = 2 // s
 
@@ -560,8 +560,11 @@ export class SemanticModelService {
           cubes?.map((cube: Cube) => ({
             cubeName: cube.name,
             ignoreUnrelatedDimensions: true
-          })) ?? []
-      } as Partial<MDX.VirtualCube>)
+          })) ?? [],
+        virtualCubeDimensions: [],
+        virtualCubeMeasures: [],
+        calculatedMembers: []
+      })
     }
   )
 

@@ -7,14 +7,16 @@ import { suuid } from '@cloud/app/@core'
 import { EFConnectionType, EFMarkerType, FFlowModule } from '@foblex/flow'
 import { CalculatedMember, Cube, DimensionUsage, PropertyDimension, PropertyMeasure } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { CubeStudioComponent, TCubeNode } from '../studio.component'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { CubeStudioComponent } from '../studio.component'
 import { CubeStudioDimensionUsageComponent } from './usage/usage.component'
 import { CubeStudioDimensionSettingsComponent } from './dimension/dimension.component'
 import { CubeStudioMeasureSettingsComponent } from './measure/measure.component'
 import { CubeStudioCubeSettingsComponent } from './settings/settings.component'
 import { CubeStudioCalculatedSettingsComponent } from './calculated/calculated.component'
 import { CubeStudioContextManuComponent } from '../context-menu/menu.component'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { TCubeNode } from '../types'
+
 
 @Component({
   standalone: true,
@@ -107,6 +109,13 @@ export class CubeStudioCubeComponent {
     })
   }
 
+  removeDimensionUsage(usage: DimensionUsage) {
+    this._cube.update((cube) => {
+      const dimensionUsages = cube.dimensionUsages.filter(d => d.__id__ !== usage.__id__)
+      return { ...cube, dimensionUsages }
+    })
+  }
+
   upDimension(index: number) {
     this._cube.update((cube) => {
       const dimensions = [...(cube.dimensions || [])]
@@ -132,6 +141,13 @@ export class CubeStudioCubeComponent {
       } else {
         dimensions.push(dimension)
       }
+      return { ...cube, dimensions }
+    })
+  }
+
+  removeDimension(dimension: PropertyDimension) {
+    this._cube.update((cube) => {
+      const dimensions = cube.dimensions.filter(d => d.__id__ !== dimension.__id__)
       return { ...cube, dimensions }
     })
   }
@@ -165,6 +181,13 @@ export class CubeStudioCubeComponent {
     })
   }
 
+  removeMeasure(measure: PropertyMeasure) {
+    this._cube.update((cube) => {
+      const measures = cube.measures.filter(m => m.__id__ !== measure.__id__)
+      return { ...cube, measures }
+    })
+  }
+
   upCalculated(index: number) {
     this._cube.update((cube) => {
       const calculatedMembers = [...(cube.calculatedMembers || [])]
@@ -189,6 +212,13 @@ export class CubeStudioCubeComponent {
       } else {
         calculatedMembers.push(calculated)
       }
+      return { ...cube, calculatedMembers }
+    })
+  }
+
+  removeCalculated(calculated: CalculatedMember) {
+    this._cube.update((cube) => {
+      const calculatedMembers = cube.calculatedMembers.filter(c => c.__id__ !== calculated.__id__)
       return { ...cube, calculatedMembers }
     })
   }

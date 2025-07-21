@@ -21,7 +21,7 @@ import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter, map, switchMap } from 'rxjs/operators'
 import { CubeStudioComponent } from '../../studio.component'
-import { ModelStudioService } from '../../studio.service'
+import { ModelStudioService } from '../../../model.service'
 
 @Component({
   standalone: true,
@@ -46,6 +46,7 @@ export class CubeStudioDimensionUsageComponent {
 
   // Outputs
   readonly close = output<void>()
+  readonly remove = output<void>()
 
   readonly formGroup = new FormGroup({})
   readonly fields = computed(() => this.getFields())

@@ -1,3 +1,6 @@
+import { ISemanticModel, NgmSemanticModel, TSemanticModelDraft } from '@metad/cloud/state'
+import { Schema } from '@metad/ocap-core'
+
 export enum MODEL_TYPE {
   /**
    * Multidimensional analysis model
@@ -26,4 +29,11 @@ export function typeOfObj(obj) {
     name: key,
     type: value === null || value === undefined ? null : typeof value
   }))
+}
+
+export const MODEL_DEBOUNCE_TIME = 100
+
+export type SemanticModelState = {
+  model: NgmSemanticModel & ISemanticModel
+  draft?: TSemanticModelDraft<Schema>
 }

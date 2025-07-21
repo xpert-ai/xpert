@@ -22,7 +22,7 @@ import { CopilotChatMessageRoleEnum, CopilotEngine } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
 import { NgmCommonModule, NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, ResizerModule, SplitterModule } from '@metad/ocap-angular/common'
 import { CommandDialogComponent, NgmCopilotChatComponent, provideCopilotDropAction } from '@metad/copilot-angular'
-import { DBTable, PropertyAttributes, TableEntity, pick } from '@metad/ocap-core'
+import { DBTable, PropertyAttributes, TableEntity, VirtualCube, pick } from '@metad/ocap-core'
 import { NX_STORY_STORE, NxStoryStore, StoryModel } from '@metad/story/core'
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { lowerCase, snakeCase, sortBy, uniqBy } from 'lodash-es'
@@ -82,6 +82,7 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { ModelChecklistComponent } from '@cloud/app/@shared/model'
 
 @Component({
   standalone: true,
@@ -107,7 +108,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
     OcapCoreModule,
     NgmCommonModule,
     DateRelativePipe,
-    NgmI18nPipe
+
+    ModelChecklistComponent
   ],
   selector: 'ngm-semanctic-model',
   templateUrl: './model.component.html',
@@ -377,7 +379,7 @@ export class ModelComponent extends TranslationBaseComponent {
     }
   }
 
-  dropVirtualCube(event: CdkDragDrop<Array<SemanticModelEntity>>) {
+  dropVirtualCube(event: CdkDragDrop<Array<VirtualCube>>) {
     if (
       event.previousContainer.id === CdkDragDropContainers.Tables &&
       event.container.id === CdkDragDropContainers.VirtualCubes

@@ -7,13 +7,12 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSlideToggleChange } from '@angular/material/slide-toggle'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute } from '@angular/router'
-import { MDX, TVirtualCube } from '@cloud/app/@core/types'
 import { calcEntityTypePrompt, nonBlank } from '@metad/core'
 import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
 import { injectCopilotCommand } from '@metad/copilot-angular'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
-import { AggregationRole, C_MEASURES, Syntax } from '@metad/ocap-core'
+import { AggregationRole, C_MEASURES, CalculatedMember, CubeUsage, Syntax, VirtualCube, VirtualCubeDimension } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { NgmNotificationComponent } from 'apps/cloud/src/app/@theme'
 import { NGXLogger } from 'ngx-logger'
@@ -68,7 +67,7 @@ export class VirtualCubeComponent {
   public readonly calculatedMembers$ = this.virtualCubeState.calculatedMembers$
 
   selectedCube: string
-  readonly virtualCube = signal<TVirtualCube>(null)
+  readonly virtualCube = signal<VirtualCube>(null)
   calcMemberFormGroup = new FormGroup({
     name: new FormControl('', [Validators.required]),
     caption: new FormControl(),
@@ -185,11 +184,11 @@ ${calcEntityTypePrompt(this.entityType())}
     })
   }
 
-  trackByName(index: number, item: MDX.CubeUsage) {
+  trackByName(index: number, item: CubeUsage) {
     return item.cubeName
   }
 
-  editVirtualCube(cube: TVirtualCube) {
+  editVirtualCube(cube: VirtualCube) {
     this.virtualCube.set({ ...cube })
   }
 
@@ -224,7 +223,7 @@ ${calcEntityTypePrompt(this.entityType())}
 
   selectCube(cube) {}
 
-  changeIgnoreUnrelatedDimensions(event: MatSlideToggleChange, cube: MDX.CubeUsage) {
+  changeIgnoreUnrelatedDimensions(event: MatSlideToggleChange, cube: CubeUsage) {
     this.virtualCubeState.updateCube({
       cubeName: cube.cubeName,
       ignoreUnrelatedDimensions: event.checked
@@ -239,7 +238,7 @@ ${calcEntityTypePrompt(this.entityType())}
     return item.data?.role === AggregationRole.dimension
   }
 
-  dropDimension(event: CdkDragDrop<MDX.VirtualCubeDimension[]>) {
+  dropDimension(event: CdkDragDrop<VirtualCubeDimension[]>) {
     if (event.container === event.previousContainer) {
       this.virtualCubeState.moveItemInDimensions(event)
     } else if (event.item.data.role === AggregationRole.dimension) {
@@ -279,13 +278,13 @@ ${calcEntityTypePrompt(this.entityType())}
     this.calcMemberFormGroup.reset({ dimension: C_MEASURES })
   }
 
-  editCalculatedMember(member: MDX.CalculatedMember) {
+  editCalculatedMember(member: CalculatedMember) {
     this.showCalculatedMember.set(true)
     this.calcMemberFormGroup.setValue(member as any)
   }
 
   applyCalculatedMember() {
-    this.virtualCubeState.applyCalculatedMember(this.calcMemberFormGroup.value as MDX.CalculatedMember)
+    this.virtualCubeState.applyCalculatedMember(this.calcMemberFormGroup.value as CalculatedMember)
     this.showCalculatedMember.set(null)
   }
 

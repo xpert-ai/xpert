@@ -10,6 +10,8 @@ import { IModelQuery } from './model-query'
 import * as MDX from './schema'
 import { IStory } from './story'
 
+export type PropertyHierarchy = any
+
 /**
  * Data agent types
  */
@@ -66,6 +68,7 @@ export type TSemanticModelSettings = {
     scale: number
   };
   nodes?: {key: string; position?: IPoint; size?: ISize}[]
+  hierarchies?: PropertyHierarchy[]
 
   /**
    * Ignore unknown property when query model in story
@@ -77,6 +80,8 @@ export type TSemanticModelDraft<T = any> = TSemanticModel & {
   schema?: T
   settings?: TSemanticModelSettings
   savedAt?: Date
+  checklist?: ChecklistItem[]
+  version?: number
 
   /**
    * @legacy Table defination for wasm database
@@ -86,9 +91,6 @@ export type TSemanticModelDraft<T = any> = TSemanticModel & {
    * @legacy DB Initialization for wasm database
    */
   dbInitialization?: string
-  checklist?: ChecklistItem[]
-
-  version?: number
 }
 
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {
@@ -177,6 +179,9 @@ export enum SemanticModelStatusEnum {
   Archived = 'archived'
 }
 
+/**
+ * @deprecated Equivalent to `VirtualCube` in the ocap framework
+ */
 export type TVirtualCube = {
   name: string
   caption?: string

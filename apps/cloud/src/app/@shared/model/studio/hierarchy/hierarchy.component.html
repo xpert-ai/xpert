@@ -19,10 +19,15 @@
 </div>
 
 <div class="level-boundary flex flex-col">
-  @for (level of levels(); track level.__id__; let i = $index) {
+  @for (level of levels(); track level?.__id__; let i = $index) {
     <div class="group/item relative flex justify-start items-center p-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
-      <i class="ri-sort-number-asc mr-1"></i><span>{{ level.caption || 'Select a column' }}</span>
-
+      <i class="ri-sort-number-asc mr-1"></i>
+      <span class="">{{level.caption}}</span>
+      @if (level.name) {
+        <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ level.name }}</span>
+      } @else {
+        <span class="ml-1 text-sm text-text-destructive">{{'PAC.MODEL.NameEmpty' | translate: {Default: 'Name empty'} }}</span>
+      }
       <div class="absolute right-0.5 flex justify-start items-center gap-0.5">
         <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
           (click)="upLevel(i)">
@@ -50,6 +55,7 @@
         [level]="level"
         (levelChange)="onLevelChange($event)"
         (close)="triggerMenu.close()"
+        (remove)="removeLevel(level)"
       />
     </ng-template>
   }
@@ -60,5 +66,7 @@
     cdkDrag
     [(dimension)]="dimension"
     [(hierarchy)]="hierarchy"
-    (close)="trigger.close()" />
+    (close)="trigger.close()"
+    (remove)="remove.emit()"
+  />
 </ng-template>

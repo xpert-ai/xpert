@@ -6,8 +6,9 @@ import { EFConnectionType, EFMarkerType, FFlowModule } from '@foblex/flow'
 import { linkedModel } from '@metad/ocap-angular/core'
 import { DimensionUsage, Schema } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { CubeStudioComponent, TCubeNode } from '../studio.component'
+import { CubeStudioComponent } from '../studio.component'
 import { CubeStudioHierarchyComponent } from '../hierarchy/hierarchy.component'
+import { TCubeNode, THierarchyNode } from '../types'
 
 @Component({
   standalone: true,
@@ -27,33 +28,34 @@ export class CubeStudioSharedDimensionComponent {
   readonly studio = inject(CubeStudioComponent)
 
   // Inputs
-  readonly node = input<TCubeNode<DimensionUsage>>()
+  readonly node = input<TCubeNode<THierarchyNode>>()
 
   // Global states
   readonly schema = this.studio.schema
 
   // States
-  readonly dimensionUsage = computed(() => this.node()?.data as DimensionUsage)
-  readonly sourceName = computed(() => this.dimensionUsage()?.source)
-  readonly caption = computed(() => this.dimensionUsage()?.caption || this.dimensionUsage()?.name || '')
+  readonly hierarchyKey = computed(() => this.node()?.key)
+  readonly dimensionKey = computed(() => this.node()?.data?.dimension)
+  // readonly dimensionUsage = computed(() => this.node()?.data.hierarchy as DimensionUsage)
+  // readonly sourceName = computed(() => this.dimensionUsage()?.source)
+  // readonly caption = computed(() => this.dimensionUsage()?.caption || this.dimensionUsage()?.name || '')
 
   readonly dimension = linkedModel({
     initialValue: null,
     compute: () => {
-      return this.studio.draft()?.schema?.dimensions?.find((_) => _.name === this.sourceName())
+      return this.studio.schema()?.dimensions?.find((_) => _.name === this.dimensionKey())
     },
     update: (dimension) => {
       if (dimension) {
-        this.studio.draft.update((draft) => {
-          const schema = draft.schema || ({ cubes: [] } as Schema)
-          schema.dimensions = schema.dimensions ? [...schema.dimensions] : []
-          const index = schema.dimensions.findIndex((c) => c.__id__ === dimension.__id__)
+        this.studio.schema.update((schema) => {
+          const dimensions = schema.dimensions ? [...schema.dimensions] : []
+          const index = dimensions.findIndex((c) => c.__id__ === dimension.__id__)
           if (index > -1) {
-            schema.dimensions[index] = dimension
+            dimensions[index] = dimension
           } else {
-            schema.dimensions.push(dimension)
+            dimensions.push(dimension)
           }
-          return { ...draft, schema: { ...schema } }
+          return { ...schema, dimensions }
         })
       }
     }
@@ -61,7 +63,7 @@ export class CubeStudioSharedDimensionComponent {
 
   readonly hierarchy = linkedModel({
     initialValue: null,
-    compute: () => this.dimension()?.hierarchies[0],
+    compute: () => this.dimension()?.hierarchies?.find((h) => h.__id__ === this.hierarchyKey()),
     update: (hierarchy) => {
       if (hierarchy) {
         this.dimension.update((dimension) => {
@@ -81,6 +83,13 @@ export class CubeStudioSharedDimensionComponent {
   constructor() {
     effect(() => {
       // console.log(this.dimension(), this.dimensionUsage(), this.hierarchies(), this.levels())
+    })
+  }
+
+  remove() {
+    this.dimension.update((dimension) => {
+      const hierarchies = dimension.hierarchies.filter((h) => h.__id__ !== this.hierarchyKey())
+      return { ...dimension, hierarchies }
     })
   }
 }

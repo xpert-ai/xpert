@@ -13,7 +13,7 @@ import {
   OrdinalExpressionAccordion,
   ParentExpressionAccordion,
   SemanticsAccordionWrapper
-} from '@cloud/app/@shared/model/studio/types'
+} from '@cloud/app/@shared/model'
 import { CubeSchemaService } from './cube.schema'
 
 

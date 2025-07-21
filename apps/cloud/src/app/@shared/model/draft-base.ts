@@ -1,15 +1,18 @@
 import { computed, Directive, effect, inject, signal } from '@angular/core'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { extractSemanticModelDraft, SemanticModelServerService, TSemanticModelDraft } from '@metad/cloud/state'
-import { linkedModel } from '@metad/ocap-angular/core'
-import { isEqual, Schema } from '@metad/ocap-core'
+import { linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
+import { isEntitySet, Schema } from '@metad/ocap-core'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { ModelStudioService } from './studio/studio.service'
+import { getSemanticModelKey } from '@metad/story/core'
+import { ModelStudioService } from './model.service'
+import { map } from 'rxjs/operators'
 
 @Directive()
 export class ModelDraftBaseComponent {
   readonly modelAPI = inject(SemanticModelServerService)
   readonly studioService = inject(ModelStudioService)
+  readonly dsCoreService = inject(NgmDSCoreService)
   readonly #toastr = injectToastr()
 
   // States
@@ -20,7 +23,11 @@ export class ModelDraftBaseComponent {
       ? this.modelAPI.getOneById(this.modelId(), { relations: ['dataSource', 'dataSource.type'] })
       : null
   })
+  readonly checklist = this.studioService.checklist
 
+  /**
+   * After persistence draft
+   */
   readonly #draft = linkedModel({
     initialValue: null,
     compute: () => {
@@ -32,6 +39,9 @@ export class ModelDraftBaseComponent {
     }
   })
 
+  /**
+   * Real-time changes draft
+   */
   readonly draft = linkedModel<TSemanticModelDraft<Schema>>({
     initialValue: null,
     compute: () => {
@@ -42,32 +52,29 @@ export class ModelDraftBaseComponent {
       //
     }
   })
-  readonly cube = linkedModel({
-    initialValue: null,
-    compute: () =>
-      this.draft()?.schema?.cubes?.find((cube) => cube.name === this.cubeName())
-    ,
-    update: (cube) => {
-      this.draft.update((draft) => {
-        if (draft.schema && cube) {
-          const cubes = draft.schema.cubes ? [...draft.schema.cubes] : []
-          const index = cubes.findIndex((c) => c.__id__ === cube.__id__)
-          if (index > -1) {
-            cubes[index] = cube
-          } else {
-            cubes.push(cube)
-          }
-          return {...draft, schema: { ...draft.schema, cubes } }
-        }
 
-        return draft
-      })
-    }
-  })
-
-  readonly dirty = computed(() => !isEqual(this.#draft(), this.draft()))
-
+  readonly dataSource = computed(() => getSemanticModelKey(this.semanticModel()))
+  readonly dirty = computed(() => JSON.stringify(this.#draft()) !== JSON.stringify(this.draft()))
   readonly saving = signal(false)
+
+  readonly dataSettings = computed(() => ({
+    dataSource: this.dataSource(),
+    entitySet: this.cubeName()
+  }))
+  readonly #entityType = derivedAsync(() => {
+    const request = this.dataSettings()
+    return this.dsCoreService.selectEntitySetOrFail(request.dataSource, request.entitySet).pipe(
+        map((entitySet) => {
+          if (isEntitySet(entitySet)) {
+            return {...entitySet, error: null}
+          }
+          return {error: entitySet, entityType: null}
+        }),
+      )
+  })
+  
+  readonly entityType = computed(() => this.#entityType()?.entityType)
+  readonly error = computed(() => this.#entityType()?.error)
 
   constructor() {
     effect(() => {
@@ -84,6 +91,10 @@ export class ModelDraftBaseComponent {
       next: (res) => {
         this.saving.set(false)
         this.#draft.set(structuredClone(draft))
+        this.studioService.store.update((state) => ({
+          ...state,
+          draft: {...structuredClone(draft), ...res}
+        }))
       },
       error: (err) => {
         this.saving.set(false)

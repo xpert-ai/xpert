@@ -3,7 +3,7 @@ import { EntityProperty, PropertyDimension } from '@metad/ocap-core'
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { combineLatestWith, map } from 'rxjs/operators'
 import { CubeSchemaService } from './cube.schema'
-import { SemanticsAccordionWrapper } from '@cloud/app/@shared/model/studio/types'
+import { SemanticsAccordionWrapper } from '@cloud/app/@shared/model'
 
 @Injectable()
 export class DimensionAttributesSchema<T extends EntityProperty = PropertyDimension> extends CubeSchemaService<T> {

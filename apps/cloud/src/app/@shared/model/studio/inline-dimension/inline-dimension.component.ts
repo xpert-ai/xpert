@@ -1,13 +1,13 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { EFConnectionType, EFMarkerType, FFlowModule } from '@foblex/flow'
 import { linkedModel } from '@metad/ocap-angular/core'
-import { PropertyDimension } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { CubeStudioComponent, TCubeNode } from '../studio.component'
+import { CubeStudioComponent } from '../studio.component'
 import { CubeStudioHierarchyComponent } from '../hierarchy/hierarchy.component'
+import { TCubeNode, THierarchyNode } from '../types'
 
 
 @Component({
@@ -28,19 +28,18 @@ export class CubeStudioInlineDimensionComponent {
   readonly studio = inject(CubeStudioComponent)
 
   // Inputs
-  readonly node = input<TCubeNode<PropertyDimension>>()
+  readonly node = input<TCubeNode<THierarchyNode>>()
 
   // Global states
   readonly schema = this.studio.schema
 
   // States
-  readonly dimensionKey = computed(() => this.node()?.key)
+  readonly hierarchyKey = computed(() => this.node()?.key)
+  readonly dimensionKey = computed(() => this.node()?.data?.dimension)
 
   readonly dimension = linkedModel({
     initialValue: null,
-    compute: () => {
-      return this.studio.cube()?.dimensions?.find((_) => _.__id__ === this.dimensionKey())
-    },
+    compute: () => this.studio.cube()?.dimensions?.find((_) => _.__id__ === this.dimensionKey()),
     update: (dimension) => {
       if (dimension) {
         this.studio.cube.update((cube) => {
@@ -59,7 +58,7 @@ export class CubeStudioInlineDimensionComponent {
 
   readonly hierarchy = linkedModel({
     initialValue: null,
-    compute: () => this.dimension()?.hierarchies[0],
+    compute: () => this.dimension()?.hierarchies?.find((h) => h.__id__ === this.hierarchyKey()),
     update: (hierarchy) => {
       if (hierarchy) {
         this.dimension.update((dimension) => {
@@ -75,4 +74,17 @@ export class CubeStudioInlineDimensionComponent {
       }
     }
   })
+
+  constructor() {
+    effect(() => {
+      // console.log('Inline Dimension', this.hierarchyKey(), this.dimension(), this.hierarchy())
+    })
+  }
+
+  remove() {
+    this.dimension.update((dimension) => {
+      const hierarchies = dimension.hierarchies.filter((h) => h.__id__ !== this.hierarchyKey())
+      return { ...dimension, hierarchies }
+    })
+  }
 }

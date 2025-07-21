@@ -1,5 +1,6 @@
 <f-flow class="w-full h-full" fDraggable [vCellSize]="20" [hCellSize]="20"
   (fLoaded)="onLoaded()"
+  (fCreateConnection)="onConnectionDropped($event)"
   [cdkContextMenuTriggerFor]="contextMenu">
   <f-background>
     <f-circle-pattern />

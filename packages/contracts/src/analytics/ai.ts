@@ -8,6 +8,10 @@ export enum ChatDashboardMessageType {
      */
     Cube = 'Cube',
     /**
+     * Edit a virtual cube event
+     */
+    VirtualCube = 'VirtualCube',
+    /**
      * Create or edit members (calculated members or dimension sets) event
      */
     Members = 'Members',
@@ -15,6 +19,14 @@ export enum ChatDashboardMessageType {
 
 export type TMessageContentCube = {
     type: ChatDashboardMessageType.Cube,
+    data: {
+        modelId: string
+        cubeName: string
+    }
+}
+
+export type TMessageContentVirtualCube = {
+    type: ChatDashboardMessageType.VirtualCube,
     data: {
         modelId: string
         cubeName: string

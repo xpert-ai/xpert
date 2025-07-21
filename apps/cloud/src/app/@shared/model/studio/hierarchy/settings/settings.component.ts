@@ -20,10 +20,10 @@ import { injectHelpWebsite } from '@cloud/app/@core'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { map, shareReplay, switchMap } from 'rxjs/operators'
 import { AccordionWrappers } from '@metad/story/designer'
-import { ModelStudioService } from '../../studio.service'
 import { CubeStudioComponent } from '../../studio.component'
 import { take, pipe, combineLatest } from 'rxjs'
-import { HiddenLLM } from '../../types'
+import { ModelStudioService } from '../../../model.service'
+import { HiddenLLM } from '../../../schema'
 
 @Component({
   standalone: true,
@@ -49,6 +49,7 @@ export class CubeStudioDimensionSettingsComponent {
 
   // Outputs
   readonly close = output<void>()
+  readonly remove = output<void>()
 
   readonly formGroup = new FormGroup({})
   readonly fields = computed(() => this.getHierarchyFields())

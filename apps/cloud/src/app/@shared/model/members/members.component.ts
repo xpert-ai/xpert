@@ -7,10 +7,11 @@ import { linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Syntax } from '@metad/ocap-core'
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { OverlayAnimation1 } from '@metad/core'
 import { getSemanticModelKey } from '@metad/story/core'
 import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelMemberEditComponent } from './edit/edit.component'
-import { ModelStudioService } from '../studio/studio.service'
+import { ModelStudioService } from '../model.service'
 
 
 @Component({
@@ -23,6 +24,7 @@ import { ModelStudioService } from '../studio/studio.service'
   host: {
     class: 'xp-model-members'
   },
+  animations: [ OverlayAnimation1 ],
   providers: [NgmDSCoreService, ModelStudioService]
 })
 export class ModelMembersComponent extends ModelDraftBaseComponent {
@@ -40,10 +42,29 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
   readonly memberKey = signal<string>(null)
 
   readonly modelKey = computed(() => this.semanticModel() ? getSemanticModelKey(this.semanticModel()) : null)
-  readonly dataSettings = computed(() => ({
-    dataSource: this.modelId(),
-    entitySet: this.cubeName()
-  }))
+
+  readonly cube = linkedModel({
+      initialValue: null,
+      compute: () =>
+        this.draft()?.schema?.cubes?.find((cube) => cube.name === this.cubeName())
+      ,
+      update: (cube) => {
+        this.draft.update((draft) => {
+          if (draft.schema && cube) {
+            const cubes = draft.schema.cubes ? [...draft.schema.cubes] : []
+            const index = cubes.findIndex((c) => c.__id__ === cube.__id__)
+            if (index > -1) {
+              cubes[index] = cube
+            } else {
+              cubes.push(cube)
+            }
+            return {...draft, schema: { ...draft.schema, cubes } }
+          }
+  
+          return draft
+        })
+      }
+    })
 
   readonly member = linkedModel({
     initialValue: null,

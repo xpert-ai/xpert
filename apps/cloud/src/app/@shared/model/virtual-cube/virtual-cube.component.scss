@@ -1,0 +1,9 @@
+:host {
+  --mat-expansion-container-background-color: var(--ngm-color-surface-container-low);
+  --mat-sidenav-content-background-color: var(--color-components-panel-bg);
+  @apply flex flex-col h-full overflow-hidden bg-components-panel-bg;
+}
+
+.mat-drawer-content {
+  padding: 1rem;
+}

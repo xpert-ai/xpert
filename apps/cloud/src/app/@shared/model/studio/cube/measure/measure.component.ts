@@ -21,8 +21,8 @@ import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter, map, switchMap } from 'rxjs/operators'
 import { CubeStudioComponent } from '../../studio.component'
-import { ModelStudioService } from '../../studio.service'
-import { HiddenLLM, MeasureExpressionAccordion } from '../../types'
+import { ModelStudioService } from '../../../model.service'
+import { HiddenLLM, MeasureExpressionAccordion } from '../../../schema'
 
 @Component({
   standalone: true,
@@ -47,6 +47,7 @@ export class CubeStudioMeasureSettingsComponent {
 
   // Outputs
   readonly close = output<void>()
+  readonly remove = output<void>()
 
   readonly formGroup = new FormGroup({})
   readonly fields = computed(() => this.getFields())
@@ -96,10 +97,6 @@ export class CubeStudioMeasureSettingsComponent {
     const className = FORMLY_W_1_2
     return [
       {
-        wrappers: ['panel'],
-        props: {
-          padding: true
-        },
         fieldGroupClassName: FORMLY_ROW,
         fieldGroup: [
           {

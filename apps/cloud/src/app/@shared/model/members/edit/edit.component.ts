@@ -33,9 +33,9 @@ import { TranslateModule } from '@ngx-translate/core'
 import { isPlainObject } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, map, of, startWith } from 'rxjs'
-import { ModelStudioService } from '../../studio/studio.service'
 import { typeOfObj } from '../../types'
 import { animate, style, transition, trigger } from '@angular/animations'
+import { ModelStudioService } from '../../model.service'
 
 @Component({
   standalone: true,

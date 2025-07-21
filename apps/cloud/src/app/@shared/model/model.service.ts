@@ -1,11 +1,11 @@
 import { computed, DestroyRef, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { getSQLSourceName, getXmlaSourceName, ISemanticModel, registerModel } from '@cloud/app/@core'
-import { convertNewSemanticModelResult, extractSemanticModelDraft, NgmSemanticModel } from '@metad/cloud/state'
+import { convertNewSemanticModelResult, extractSemanticModelDraft, NgmSemanticModel, TSemanticModel } from '@metad/cloud/state'
 import { dirtyCheckWith, nonNullable } from '@metad/core'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { DataSource, Dimension, EntityType, isEntityType, wrapHierarchyValue } from '@metad/ocap-core'
+import { DataSource, Dimension, EntityType, isEntityType, PropertyHierarchy, wrapHierarchyValue } from '@metad/ocap-core'
 import { getSemanticModelKey } from '@metad/story/core'
 import { createStore, select, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
@@ -22,9 +22,8 @@ import {
   take,
   tap
 } from 'rxjs/operators'
-import { injectI18nService } from '../../i18n'
-import { MODEL_DEBOUNCE_TIME, SemanticModelState } from './types'
-import { MODEL_TYPE } from '../types'
+import { injectI18nService } from '../i18n'
+import { MODEL_TYPE, MODEL_DEBOUNCE_TIME, SemanticModelState } from './types'
 
 @Injectable()
 export class ModelStudioService {
@@ -65,7 +64,7 @@ export class ModelStudioService {
     select((state) => state.model),
     filter(nonNullable)
   )
-   readonly semanticModelKey$ = this.model$.pipe(
+  readonly semanticModelKey$ = this.model$.pipe(
     filter(nonNullable),
     map(getSemanticModelKey),
     filter(nonNullable),
@@ -89,6 +88,9 @@ export class ModelStudioService {
     return MODEL_TYPE.SQL
   })
   
+  readonly draft = toSignal(this.store.pipe(select((state) => state.draft)), { initialValue: null })
+  readonly checklist = computed(() => this.draft()?.checklist)
+  readonly hierarchies = computed<PropertyHierarchy[]>(() => this.draft()?.settings?.hierarchies)
 
   constructor() {
     this.semanticModelKey$
@@ -118,17 +120,15 @@ export class ModelStudioService {
           }
           return this.dsCoreService.getDataSource(modelKey)
         }),
-        tap((dataSource) => {
-          console.log(dataSource)
-        }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(this.originalDataSource$)
     // @todo There are unnecessary registration actions, which need to be refactored
-    this.model$
+    this.draft$
       .pipe(filter(nonNullable), debounceTime(MODEL_DEBOUNCE_TIME), takeUntilDestroyed(this.destroyRef))
-      .subscribe((model) => {
-        this.registerModel(model)
+      .subscribe((draft) => {
+        console.log('Draft Updated:', draft)
+        this.registerModel(draft)
       })
   }
 
@@ -146,9 +146,11 @@ export class ModelStudioService {
   /**
    * Register current model into ocap framwork
    */
-  registerModel(draftModel: NgmSemanticModel) {
+  registerModel(draft: any) {
+    const model = this.model()
+    const draftModel = {...model, ...draft}
     // Not contain indicators when building model
-    registerModel(omit(draftModel, 'indicators'), true, this.dsCoreService, this.wasmAgent)
+    registerModel(omit(draftModel, 'indicators') as any, true, this.dsCoreService, this.wasmAgent)
   }
 
   selectDBTables(refresh = null) {

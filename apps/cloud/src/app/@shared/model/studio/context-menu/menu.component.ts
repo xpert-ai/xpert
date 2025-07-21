@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { CubeStudioComponent } from '../studio.component'
 import { PropertyDimension } from '@metad/ocap-core'
 import { suuid } from '@cloud/app/@core'
+import { CubeStudioComponent } from '../studio.component'
 
 @Component({
   standalone: true,

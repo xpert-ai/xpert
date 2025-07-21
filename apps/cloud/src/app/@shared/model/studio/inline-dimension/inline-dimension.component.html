@@ -4,4 +4,4 @@
 
 <div fNodeOutput [fOutputId]="node().key" fOutputConnectableSide="right" [isSelfConnectable]="false"></div>
 
-<xp-cube-studio-hierarchy [dimension]="dimension()" [(hierarchy)]="hierarchy" />
+<xp-cube-studio-hierarchy [dimension]="dimension()" [(hierarchy)]="hierarchy" (remove)="remove()"/>

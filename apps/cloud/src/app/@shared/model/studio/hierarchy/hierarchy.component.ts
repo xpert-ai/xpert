@@ -1,11 +1,11 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, model, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { suuid } from '@cloud/app/@core/types'
 import { EFConnectionType, EFMarkerType, FFlowModule } from '@foblex/flow'
-import { PropertyDimension, PropertyHierarchy, PropertyLevel } from '@metad/ocap-core'
+import { nonNullable, PropertyDimension, PropertyHierarchy, PropertyLevel } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CubeStudioComponent } from '../studio.component'
 import { CubeStudioDimensionSettingsComponent } from './settings/settings.component'
@@ -41,14 +41,17 @@ export class CubeStudioHierarchyComponent {
   readonly dimension = model<PropertyDimension>()
   readonly hierarchy = model<PropertyHierarchy>()
 
+  // Outputs
+  readonly remove = output<void>()
+
   // Global states
   readonly schema = this.studio.schema
   // States
-  readonly caption = computed(() => this.hierarchy()?.caption || this.hierarchy()?.name || '')
-  readonly hierarchies = computed(() => this.dimension()?.hierarchies)
-
-  readonly levels = computed(() => this.hierarchies()?.flatMap((h) => h.levels) || [])
-
+  readonly dimensionName = computed(() => this.dimension()?.name)
+  readonly caption = computed(() => this.hierarchy()?.caption || this.hierarchy()?.name || this.dimensionName())
+  readonly levels = computed(() => this.hierarchy()?.levels?.filter(nonNullable) || [])
+  readonly hierarchyTable = computed(() => this.hierarchy()?.primaryKeyTable ?? this.hierarchy()?.tables?.[0]?.name)
+  
   // constructor() {
   //   effect(() => {
   //     console.log(this.node())
@@ -89,6 +92,13 @@ export class CubeStudioHierarchyComponent {
       if (index !== -1) {
         levels[index] = level
       }
+      return { ...hierarchy, levels }
+    })
+  }
+
+  removeLevel(level: PropertyLevel) {
+    this.hierarchy.update((hierarchy) => {
+      const levels = hierarchy.levels.filter((l) => l.__id__ !== level.__id__)
       return { ...hierarchy, levels }
     })
   }

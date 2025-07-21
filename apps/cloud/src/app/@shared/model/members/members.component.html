@@ -1,5 +1,5 @@
-<div class="p-1 flex justify-between items-center bg-components-card-bg rounded-xl">
-  <div>
+<div class="p-2 flex justify-between items-center bg-components-card-bg rounded-xl">
+  <div class="text-lg font-semibold text-text-primary">
     {{ 'PAC.MODEL.CalculatedMembers' | translate: {Default: 'Calculated Members'} }}
   </div>
 
@@ -37,7 +37,7 @@
 </ul>
 
 @if (memberKey()) {
-  <xp-model-member-edit class="absolute top-0 left-0 w-full h-full rounded-2xl bg-white hover:bg-neutral-100 border border-solid border-divider-regular shadow-sm"
+  <xp-model-member-edit @overlayAnimation1 class="absolute top-0 left-0 w-full h-full rounded-2xl bg-white hover:bg-neutral-100 border border-solid border-divider-regular shadow-sm"
     [(member)]="member"
     [modelKey]="modelKey()"
     [cubeName]="cubeName()"

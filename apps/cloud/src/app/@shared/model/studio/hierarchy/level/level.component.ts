@@ -22,7 +22,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { Observable } from 'rxjs'
 import { filter, map, shareReplay, startWith, switchMap } from 'rxjs/operators'
 import { CubeStudioComponent } from '../../studio.component'
-import { ModelStudioService } from '../../studio.service'
 import {
   CaptionExpressionAccordion,
   KeyExpressionAccordion,
@@ -30,7 +29,9 @@ import {
   OrdinalExpressionAccordion,
   ParentExpressionAccordion,
   SemanticsAccordionWrapper
-} from '../../types'
+} from '../../../schema'
+import { ModelStudioService } from '../../../model.service'
+import { CubeStudioHierarchyComponent } from '../hierarchy.component'
 
 @Component({
   standalone: true,
@@ -45,6 +46,7 @@ import {
 })
 export class CubeStudioDimensionLevelComponent {
   readonly studio = inject(CubeStudioComponent)
+  readonly hierarchyComponent = inject(CubeStudioHierarchyComponent)
   readonly studioService = inject(ModelStudioService)
   readonly elementRef = inject(ElementRef)
   readonly i18n = inject(I18nService)
@@ -58,6 +60,7 @@ export class CubeStudioDimensionLevelComponent {
 
   // Outputs
   readonly close = output<void>()
+  readonly remove = output<void>()
 
   readonly formGroup = new FormGroup({})
   readonly fields = computed(() => this.getFields())
@@ -71,19 +74,9 @@ export class CubeStudioDimensionLevelComponent {
   readonly dimensionName = computed(() => this.dimension()?.name)
   readonly dimensionType = computed(() => this.dimension()?.type)
   readonly hierarchyName = computed(() => this.hierarchy()?.name)
-  readonly hierarchyTable = computed(() => this.hierarchy()?.primaryKeyTable ?? this.hierarchy()?.tables?.[0]?.name)
+  readonly hierarchyTable = this.hierarchyComponent.hierarchyTable
   // Fact name (table or sql alias)
-  readonly factName = computed(() => {
-    const cube = this.studio.cube()
-    if (!cube) return null
-    if (cube.fact?.type === 'table') {
-      return cube.fact.table?.name
-    } else if (cube.fact?.type === 'view') {
-      return cube.fact.view?.alias
-    } else {
-      return cube?.tables?.[0]?.name
-    }
-  })
+  readonly factName = this.studio.factName
   readonly levelTable = computed(() => this.level()?.table)
 
   // Take the Level's own Table, otherwise take the Hierarchy's Table
@@ -91,7 +84,10 @@ export class CubeStudioDimensionLevelComponent {
 
   readonly columnOptions$: Observable<ISelectOption[]> = toObservable(this.table).pipe(
     filter((table) => !!table),
-    switchMap((table) => this.studioService.selectOriginalEntityProperties(table)),
+    switchMap((table) => {
+      console.log('columnOptions$', table)
+      return this.studioService.selectOriginalEntityProperties(table)
+    }),
     map((properties) => {
       const options = [
         {
@@ -118,7 +114,7 @@ export class CubeStudioDimensionLevelComponent {
           caption: this.getTranslation('PAC.KEY_WORDS.Default', { Default: 'Default' })
         }
       ]
-      hierarchy?.tables.forEach((table) => {
+      hierarchy?.tables?.forEach((table) => {
         options.push({
           value: table.name,
           key: table.name,
@@ -173,11 +169,6 @@ export class CubeStudioDimensionLevelComponent {
     const className = FORMLY_W_1_2
     return [
       {
-        wrappers: ['panel'],
-        props: {
-          label: LEVEL?.Modeling ?? 'Modeling',
-          padding: true
-        },
         fieldGroupClassName: FORMLY_ROW,
         fieldGroup: [
           {

@@ -1,5 +1,5 @@
 :host {
-  @apply block w-[535px] sm:w-[360px] md:w-[400px] lg:w-[535px] transition-all;
+  @apply block w-[535px] sm:w-[360px] md:w-[400px] lg:w-[535px] max-h-full transition-all;
   &.expand {
     @apply sm:w-[400px] md:w-[500px] lg:w-[700px] xl:w-[900px];
   }

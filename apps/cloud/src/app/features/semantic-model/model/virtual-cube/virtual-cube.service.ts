@@ -2,7 +2,7 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Injectable, inject } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { MDX, TVirtualCube } from '@cloud/app/@core/types'
-import { Property, PropertyMeasure } from '@metad/ocap-core'
+import { Property, PropertyMeasure, VirtualCube } from '@metad/ocap-core'
 import { select, withProps } from '@ngneat/elf'
 import { ToastrService } from 'apps/cloud/src/app/@core'
 import { isEqual, negate, remove } from 'lodash-es'
@@ -21,12 +21,12 @@ export class VirtualCubeStateService {
   readonly store = createSubStore(
     this.modelService.store,
     { name: 'semantic_model_virtual_cube', arrayKey: '__id__' },
-    withProps<TVirtualCube>(null)
+    withProps<VirtualCube>(null)
   )
   readonly pristineStore = createSubStore(
     this.modelService.pristineStore,
     { name: 'semantic_model_virtual_cube_pristine', arrayKey: '__id__' },
-    withProps<TVirtualCube>(null)
+    withProps<VirtualCube>(null)
   )
   readonly dirtyCheckResult = dirtyCheckWith(this.store, this.pristineStore, { comparator: negate(isEqual) })
   readonly dirty$ = toObservable(this.dirtyCheckResult.dirty)
@@ -57,7 +57,7 @@ export class VirtualCubeStateService {
     }
   }
 
-  patchState(vCube: TVirtualCube) {
+  patchState(vCube: VirtualCube) {
     this.store.update((state) => ({
       ...state,
       ...vCube

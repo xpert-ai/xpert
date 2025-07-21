@@ -39,7 +39,7 @@ export interface Schema {
   /**
    * Virtual Cubes
    */
-  virtualCubes?: any[]
+  virtualCubes?: VirtualCube[]
   /**
    * Semantic Model Dimensions
    */
@@ -410,6 +410,47 @@ export interface Closure {
   parentColumn: string
   childColumn: string
   table: Table
+}
+
+export interface CubeUsage {
+  cubeName: string
+  ignoreUnrelatedDimensions?: boolean
+}
+
+export interface VirtualCubeDimension {
+  cubeName: string
+  cubeCaption?: string
+  __shared__?: boolean
+  name: string
+  /**
+   * @deprecated use caption
+   */
+  label?: string
+  caption?: string
+}
+
+export interface VirtualCubeMeasure {
+  cubeName: string
+  cubeCaption?: string
+  name: string
+  /**
+   * @deprecated use caption
+   */
+  label?: string
+  caption?: string
+  visible: boolean
+}
+
+
+export interface VirtualCube {
+  __id__?: string
+  name: string
+  caption?: string
+  description?: string
+  cubeUsages: CubeUsage[]
+  virtualCubeDimensions: VirtualCubeDimension[]
+  virtualCubeMeasures: VirtualCubeMeasure[]
+  calculatedMembers: CalculatedMember[]
 }
 
 // type Guards

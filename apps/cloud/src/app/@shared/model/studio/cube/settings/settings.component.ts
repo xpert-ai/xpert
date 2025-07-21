@@ -15,12 +15,12 @@ import { injectHelpWebsite } from '@cloud/app/@core'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/formly'
 import { DensityDirective } from '@metad/ocap-angular/core'
-import { Cube, nonBlank } from '@metad/ocap-core'
+import { Cube } from '@metad/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { filter, map, switchMap } from 'rxjs/operators'
+import { map } from 'rxjs/operators'
+import { ModelStudioService } from '../../../model.service'
 import { CubeStudioComponent } from '../../studio.component'
-import { ModelStudioService } from '../../studio.service'
 
 @Component({
   standalone: true,

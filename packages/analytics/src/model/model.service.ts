@@ -18,11 +18,11 @@ import chalk from 'chalk'
 import { I18nService } from 'nestjs-i18n'
 import { RedisClientType } from 'redis'
 import { FindManyOptions, FindOneOptions, ILike, Repository } from 'typeorm'
-import { BusinessArea, BusinessAreaService } from '../business-area'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
 import { SemanticModelQueryLog } from '../core/entities/internal'
 import { Md5 } from '../core/helper'
-import { DataSourceService } from '../data-source/data-source.service'
+import { BusinessArea, BusinessAreaService } from '../business-area'
+import { DataSourceService } from '../data-source'
 import { ModelQueryLogService } from '../model-query-log'
 import { SemanticModelCacheService } from './cache/cache.service'
 import { SemanticModelPublicDTO, SemanticModelQueryDTO } from './dto'
@@ -30,7 +30,7 @@ import { SemanticModelUpdatedEvent } from './events'
 import { updateXmlaCatalogContent } from './helper'
 import { SemanticModel } from './model.entity'
 import { NgmDSCoreService, registerSemanticModel } from './ocap'
-import { DimensionValidator, RoleValidator } from './validators'
+import { CubeValidator, DimensionValidator, RoleValidator, VirtualCubeValidator } from './validators'
 
 const axios = _axios.default
 
@@ -439,12 +439,22 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async validate(draft: TSemanticModelDraft) {
 		const dimensionValidator = new DimensionValidator()
+		const cubeValidator = new CubeValidator()
+		const virtualCubeValidator = new VirtualCubeValidator()
 		const roleValidator = new RoleValidator()
 
 		const results: ChecklistItem[] = []
 
 		for await (const dimension of draft.schema?.dimensions ?? []) {
 			const res = await dimensionValidator.validate(dimension, { schema: draft.schema })
+			results.push(...res)
+		}
+		for await (const cube of draft.schema?.cubes ?? []) {
+			const res = await cubeValidator.validate(cube, { schema: draft.schema })
+			results.push(...res)
+		}
+		for await (const cube of draft.schema?.virtualCubes ?? []) {
+			const res = await virtualCubeValidator.validate(cube, { schema: draft.schema })
 			results.push(...res)
 		}
 		for await (const role of draft.roles ?? []) {

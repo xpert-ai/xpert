@@ -5,6 +5,7 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
+  effect,
   inject,
   input,
   model,
@@ -12,12 +13,14 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { IRect } from '@foblex/2d/rect'
 import {
   EFConnectionType,
   EFMarkerType,
   FCanvasChangeEvent,
   FCanvasComponent,
+  FCreateConnectionEvent,
   FFlowComponent,
   FFlowModule,
   FZoomDirective
@@ -29,8 +32,10 @@ import { TranslateModule } from '@ngx-translate/core'
 import { CubeStudioCubeComponent } from './cube/cube.component'
 import { CubeStudioInlineDimensionComponent } from './inline-dimension/inline-dimension.component'
 import { CubeStudioSharedDimensionComponent } from './shared-dimension/shared-dimension.component'
-import { CdkMenuModule } from '@angular/cdk/menu'
 import { CubeStudioContextManuComponent } from './context-menu/menu.component'
+import { TCubeConnection, TCubeNode } from './types'
+import { IPoint } from '@foblex/2d'
+import { suuid } from '@cloud/app/@core'
 
 @Component({
   standalone: true,
@@ -72,27 +77,28 @@ export class CubeStudioComponent {
   readonly fZoom = viewChild(FZoomDirective)
 
   // States
+  readonly schema = attrModel(this.draft, 'schema')
   readonly cube = linkedModel({
     initialValue: null,
     compute: () => {
-      return this.draft()?.schema?.cubes?.find((cube) => cube.name === this.cubeName())
+      return this.schema()?.cubes?.find((cube) => cube.name === this.cubeName())
     },
     update: (cube) => {
       if (cube) {
-        this.draft.update((draft) => {
-          const schema = draft.schema || ({ cubes: [] } as Schema)
-          const existingCubeIndex = schema.cubes.findIndex((c) => c.name === cube.name)
+        this.schema.update((schema) => {
+          const cubes = schema?.cubes ? [...schema.cubes] : []
+          const existingCubeIndex = cubes?.findIndex((c) => c.name === cube.name)
           if (existingCubeIndex > -1) {
-            schema.cubes[existingCubeIndex] = cube
+            cubes[existingCubeIndex] = cube
           } else {
-            schema.cubes.push(cube)
+            cubes.push(cube)
           }
-          return { ...draft, schema }
+          return { ...(schema ?? {}), cubes } as Schema
         })
       }
     }
   })
-  readonly schema = computed(() => this.draft()?.schema)
+  
   readonly settings = attrModel(this.draft, 'settings')
   readonly dimensions = computed(() => this.cube()?.dimensions)
   readonly dimensionUsages = computed(() => this.cube()?.dimensionUsages)
@@ -140,23 +146,25 @@ export class CubeStudioComponent {
       }
     ]
     this.dimensionUsages()?.forEach((_) => {
-      const dimension = schema?.dimensions?.find((d) => d.__id__ === _.source)
-      if (dimension) {
+      const dimension = schema?.dimensions?.find((d) => d.name === _.source)
+      dimension?.hierarchies?.forEach((h) => {
         nodes.push({
-          key: _.__id__,
+          key: h.__id__,
           type: 'shared-dimension',
-          data: _,
-          ...this.getPosition(_.__id__)
+          data: {dimension: _.__id__, hierarchy: h},
+          ...this.getPosition(h.__id__)
         })
-      }
+      })
     })
 
     this.dimensions()?.forEach((dimension) => {
-      nodes.push({
-        key: dimension.__id__,
-        type: 'inline-dimension',
-        data: dimension,
-        ...this.getPosition(dimension.__id__)
+      dimension.hierarchies?.forEach((hierarchy) => {
+        nodes.push({
+          key: hierarchy.__id__,
+          type: 'inline-dimension',
+          data: { dimension: dimension.__id__, hierarchy },
+          ...this.getPosition(hierarchy.__id__)
+        })
       })
     })
     return nodes
@@ -170,22 +178,24 @@ export class CubeStudioComponent {
     }
     const connections: TCubeConnection[] = []
     this.dimensionUsages()?.forEach((_) => {
-      const dimension = schema?.dimensions?.find((d) => d.__id__ === _.source)
-      if (dimension) {
+      const dimension = schema?.dimensions?.find((d) => d.name === _.source)
+      dimension?.hierarchies?.forEach((h) => {
         connections.push({
-          key: `${cube.__id__}-${_.__id__}`,
+          key: `${cube.__id__}-${h.__id__}`,
           source: cube.__id__ + '/' + _.__id__,
-          target: _.__id__,
+          target: h.__id__,
           type: 'cube-dimension-usage'
         })
-      }
+      })
     })
     this.dimensions()?.forEach((dimension) => {
-      connections.push({
-        key: `${cube.__id__}-${dimension.__id__}`,
-        source: cube.__id__ + '/' + dimension.__id__,
-        target: dimension.__id__,
-        type: 'cube-dimension'
+      dimension.hierarchies?.forEach((hierarchy) => {
+        connections.push({
+          key: `${cube.__id__}-${hierarchy.__id__}`,
+          source: cube.__id__ + '/' + dimension.__id__,
+          target: hierarchy.__id__,
+          type: 'cube-dimension'
+        })
       })
     })
 
@@ -196,14 +206,14 @@ export class CubeStudioComponent {
   readonly position = computed(() => this.settings()?.canvas?.position || { x: 0, y: 0 })
 
   readonly canvasLoaded = signal(false)
-  // constructor() {
-  //   effect(() => {
-  //     console.log(this.dimensions(), this.measures())
-  //   })
-  // }
+
+  constructor() {
+    effect(() => {
+      // console.log(this.dimensions(), this.cube())
+    })
+  }
 
   public onLoaded(): void {
-    console.log('Canvas loaded')
     setTimeout(() => {
       this.fCanvasComponent().resetScaleAndCenter(false)
       setTimeout(() => {
@@ -264,19 +274,41 @@ export class CubeStudioComponent {
     // })
   }
 
-}
+  public onConnectionDropped(event: FCreateConnectionEvent): void {
+    if(!event.fInputId) {
+      this.createNode(event.fOutputId, event.fDropPosition);
+    } else {
+      // this.createConnection(event.fOutputId, event.fInputId);
+    }
+    this.#cdr.detectChanges()
+  }
 
-export type TCubeNode<T = any> = {
-  key: string
-  type: 'shared-dimension' | 'inline-dimension' | 'cube'
-  data: T
-  position?: { x: number; y: number }
-  size?: { width: number; height: number }
-}
+  private createNode(outputId: string, position: IPoint): void {
+    // console.log('createNode', outputId, position);
+    const [cubeId, dimensionId] = outputId.split('/')
+    const key = suuid()
+    this.cube.update((cube) => {
+      const dimension = cube.dimensions.find((d) => d.__id__ === dimensionId)
+      if (dimension) {
+        const hierarchies = dimension.hierarchies ? [...dimension.hierarchies] : []
+        const hierarchy = {
+          __id__: key,
+          name: '',
+          caption: `New Hierarchy ${hierarchies.length + 1}`,
+          levels: [],
+        }
+        hierarchies.push(hierarchy)
+        return { ...cube, dimensions: [...cube.dimensions.map((d) => d.__id__ === dimension.__id__ ? { ...d, hierarchies } : d)] }
+      }
+      return cube
+    })
 
-export type TCubeConnection = {
-  key: string
-  source: string
-  target: string
-  type: 'cube-dimension' | 'cube-dimension-usage' | 'cube-measure'
+    this.settings.update((settings) => {
+      const nodes = settings?.nodes ? [...settings.nodes] : []
+      nodes.push({key, position: this.fFlowComponent().getPositionInFlow(position) })
+      return { ...settings, nodes }
+    })
+    // this.nodes.push({ id: generateGuid(), position: this.fFlowComponent.getPositionInFlow(position) });
+    // this.createConnection(outputId, this.nodes[this.nodes.length - 1].id);
+  }
 }

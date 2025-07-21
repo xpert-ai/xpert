@@ -48,7 +48,7 @@ import { SemanticModelService } from '../model.service'
 import { EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
 import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable } from './types'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model/studio/types'
+import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model'
 
 /**
  * State servcie for Cube

@@ -931,6 +931,7 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "CubeNotFound": "未找到多维数据集",
       "Dimension": "维度",
       "Hierarchy": "层次结构",
       "Level": "层级",

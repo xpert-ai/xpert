@@ -20,9 +20,9 @@ import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter, map, switchMap } from 'rxjs/operators'
 import { CubeStudioComponent } from '../../studio.component'
-import { ModelStudioService } from '../../studio.service'
-import { SemanticsAccordionWrapper } from '../../types'
 import { isEqual } from 'lodash-es'
+import { ModelStudioService } from '../../../model.service'
+import { SemanticsAccordionWrapper } from '../../../schema'
 
 @Component({
   standalone: true,
@@ -47,6 +47,7 @@ export class CubeStudioDimensionSettingsComponent {
 
   // Outputs
   readonly close = output<void>()
+  readonly remove = output<void>()
 
   readonly formGroup = new FormGroup({})
   readonly fields = computed(() => this.getFields(this.otherDimensionNames()))
@@ -101,11 +102,6 @@ export class CubeStudioDimensionSettingsComponent {
     const className = FORMLY_W_1_2
     return [
       {
-        wrappers: ['panel'],
-        props: {
-          label: DIMENSION?.Modeling ?? 'Modeling',
-          padding: true
-        },
         fieldGroupClassName: FORMLY_ROW,
         fieldGroup: [
           {

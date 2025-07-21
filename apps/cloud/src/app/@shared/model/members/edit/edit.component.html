@@ -12,9 +12,9 @@
 
 <!-- Test formula -->
 @if (showTest()) {
-  <div class="absolute top-2 right-2 bottom-14 flex flex-col w-[500px] rounded-xl shadow-lg z-10 bg-components-panel-bg">
+  <div class="absolute top-2 right-2 bottom-14 flex flex-col w-[500px] border border-solid border-divider-deep rounded-2xl shadow-lg z-10 bg-components-panel-bg">
     <div class="shrink-0 p-2 flex justify-between items-center">
-      <span>{{ 'PAC.MODEL.ENTITY.TestFormula' | translate: {Default: "Test formula"} }}</span>
+      <span class="text-lg">{{ 'PAC.MODEL.ENTITY.TestFormula' | translate: {Default: "Test formula"} }}</span>
     </div>
     <div id="formula-test-rows" class="pac-cdk-drop__list flex flex-col px-4 py-2" 
       [ngClass]="{'ngm-property-modeling__empty': !testDimensions()?.length}"
