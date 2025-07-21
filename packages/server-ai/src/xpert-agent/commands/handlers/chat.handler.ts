@@ -208,6 +208,19 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 					],
 				}).catch((err) => {
 					console.error(err)
+                    subscriber.next({
+                            data: {
+                                type: ChatMessageTypeEnum.EVENT,
+                                event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                                data: {
+                                    id: execution.id,
+                                    agentKey: execution.agentKey,
+                                    status: XpertAgentExecutionStatusEnum.ERROR,
+                                    error: getErrorMessage(err),
+                                }
+                            }
+                        } as MessageEvent)
+                    subscriber.error(err)
 				})
 
 			// When this TeardownLogic is called, the subscriber is already in the 'closed' state.

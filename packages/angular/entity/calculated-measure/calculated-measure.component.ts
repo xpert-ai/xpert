@@ -142,7 +142,7 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
     map((values) => [
       ...sortBy(values.filter(negate(isIndicatorMeasureProperty)), 'calculationType'),
       ...values.filter(isIndicatorMeasureProperty)
-    ]),
+    ].filter((v) => v.visible)),
     combineLatestWith(this.calculatedMemberSearch.valueChanges.pipe(startWith(''))),
     map(([values, search]) =>
       values.filter(

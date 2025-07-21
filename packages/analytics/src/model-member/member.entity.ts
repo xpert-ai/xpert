@@ -6,7 +6,7 @@ import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { SemanticModel, SemanticModelEntity } from '../core/entities/internal'
 
 /**
- * 维度成员表
+ * Dimension member table
  */
 @Entity('model_member')
 export class SemanticModelMember extends TenantOrganizationBaseEntity implements ISemanticModelMember {

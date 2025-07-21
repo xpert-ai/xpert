@@ -15,16 +15,25 @@
 @if (slicer()) {
   <mat-chip-listbox [selectable]="false">
     @for (member of members(); track member.key; let i = $index) {
-      <mat-chip-option [value]="member"
+      <mat-chip-option class="flex justify-start items-center" [value]="member"
         [removable]="editable()"
         [matTooltip]="(member.key || member.value) + ':\n' + (member.caption || member.label || '')"
         (removed)="removeMember(i)">
-        <ngm-display-behaviour class="ngm-slicer__label" [class.ngm-slicer__exclude]="slicer().exclude"
-          [displayBehaviour]="displayBehaviour$ | async"
-          [option]="member"
-        >
-        </ngm-display-behaviour>
-        <mat-icon *ngIf="editable()" matChipRemove>cancel</mat-icon>
+        <div class="flex justify-start items-center">
+          @if (member.operator) {
+            <span class="inline-block border-[0.5px] border-solid border-divider-deep rounded-md mr-1 text-xs leading-3 px-1 py-0.5 font-mono bg-neutral-50"
+              [class.line-through]="exclude()">
+              {{ 'Ngm.Controls.ValueHelp.' + member.operator | translate: {Default: member.operator} }}
+            </span>
+          }
+          <ngm-display-behaviour class="ngm-slicer__label inline-flex" [class.ngm-slicer__exclude]="exclude()"
+            [displayBehaviour]="displayBehaviour$ | async"
+            [option]="member"
+          />
+        </div>
+        @if (editable()) {
+          <mat-icon matChipRemove>cancel</mat-icon>
+        }
       </mat-chip-option>
     }
 

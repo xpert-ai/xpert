@@ -929,6 +929,11 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "SynchronizedMembers": "已同步成员",
+      "TaskCreatedSuccessfully": "任务创建成功",
+      "MemberSync": "成员同步",
+      "MemberSyncSchedule": "成员同步计划",
+      "LastSyncTime": "上次同步时间",
       "ModelOverview": "模型概览",
       "DeleteSementicModel": "删除语义模型",
       "DeleteSementicModelDesc": "删除此语义模型及其关联数据",
@@ -969,7 +974,8 @@
       "RefreshMembers": "刷新成员",
       "RetrievalTest": "检索测试",
       "RetrievalTesting": "检索测试",
-      "RetrievalTestDesc": "根据给定的查询文本测试该知识的命中效果。",
+      "RetrievalTestDesc": "根据给定的查询文本测试维度成员的命中效果。",
+      "ScheduledSyncTask": "计划同步任务",
       "SelectaDimension": "选择一个维度",
       "SelectaHierarchy": "选择一个层次结构",
       "SelectaLevel": "选择一个层级",
@@ -1496,6 +1502,16 @@
       },
       "Notification": {
         "NoNotificationYet": "暂无通知"
+      },
+      "Schedule": {
+        "Weekly_Select Day": "选择周几",
+        "Weekly_Monday": "周一",
+        "Weekly_Tuesday": "周二",
+        "Weekly_Wednesday": "周三",
+        "Weekly_Thursday": "周四",
+        "Weekly_Friday": "周五",
+        "Weekly_Saturday": "周六",
+        "Weekly_Sunday": "周日"
       }
     },
     "INVITE_PAGE": {
@@ -2329,6 +2345,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "TaskCreatedSuccessfully": "任务创建成功",
       "Archive": "归档",
       "Time": "时间",
       "NameOfTask": "任务名称",

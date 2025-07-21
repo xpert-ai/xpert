@@ -118,9 +118,9 @@ export function generateTopCount(dimensions: Array<MDXProperty>, condition: Adva
 }
 
 /**
- * 将运行时的查询维度划分为
- * * A: 不在 AdvancedSlicer 限制维度内的;
- * * B: 在 AdvancedSlicer 限制维度内的
+ * Divide the query dimensions at runtime into
+ * - A: Not within the AdvancedSlicer restricted dimensions;
+ * - B: In AdvancedSlicer restricted dimensions
  *
  * @param dimensions
  * @param condition
@@ -233,7 +233,7 @@ export function generateSlicersStatement(slicers: Array<MDXHierarchyFilter>, cub
       log(`slicers: `, dimSlicerFilters[dimension])
       const slicerStatements = dimSlicerFilters[dimension].map((item) => mapMDXFilterToStatement(item, cube, withMembers, dialect))
       log(`slicerStatements: `, slicerStatements)
-      // 先简单去重
+      //@todo Just simply remove the duplicate
       return uniq(slicerStatements).join(',')
     })
     .map((item) => `{${item}}`)

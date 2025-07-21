@@ -19,7 +19,7 @@ import {
   IXpertTask,
   OrderTypeEnum,
   XpertTaskService,
-  XpertTaskStatus
+  ScheduleTaskStatus
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { sortBy } from 'lodash-es'
@@ -46,7 +46,7 @@ import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatTasksComponent {
-  eXpertTaskStatus = XpertTaskStatus
+  eXpertTaskStatus = ScheduleTaskStatus
 
   readonly taskService = inject(XpertTaskService)
   readonly #toastr = injectToastr()
@@ -67,9 +67,9 @@ export class ChatTasksComponent {
     )
   )
 
-  readonly scheduledTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === XpertTaskStatus.SCHEDULED))
-  readonly pausedTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === XpertTaskStatus.PAUSED))
-  readonly archivedTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === XpertTaskStatus.ARCHIVED))
+  readonly scheduledTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.SCHEDULED))
+  readonly pausedTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.PAUSED))
+  readonly archivedTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.ARCHIVED))
 
   // Details
   readonly taskId = signal<string>(null)
@@ -108,7 +108,7 @@ export class ChatTasksComponent {
     })
 
     effect(() => {
-      if (this.tasks()?.filter((_) => _.status === XpertTaskStatus.SCHEDULED).length > 0) {
+      if (this.tasks()?.filter((_) => _.status === ScheduleTaskStatus.SCHEDULED).length > 0) {
         this.#refresh$.next()
       }
     })

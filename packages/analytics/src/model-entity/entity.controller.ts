@@ -1,24 +1,7 @@
 import { IPagination } from '@metad/contracts'
-import {
-	CrudController,
-	PaginationParams,
-	ParseJsonPipe,
-	RequestContext,
-	UUIDValidationPipe
-} from '@metad/server-core'
-import { InjectQueue } from '@nestjs/bull'
-import {
-	Body,
-	Controller,
-	Delete,
-	Get,
-	HttpStatus,
-	Param,
-	Post,
-	Query
-} from '@nestjs/common'
+import { CrudController, PaginationParams, ParseJsonPipe, TimeZone, UUIDValidationPipe } from '@metad/server-core'
+import { Body, Controller, Delete, Get, HttpStatus, Param, Post, Put, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { Queue } from 'bull'
 import { SemanticModelEntity } from './entity.entity'
 import { SemanticModelEntityService } from './entity.service'
 
@@ -26,11 +9,7 @@ import { SemanticModelEntityService } from './entity.service'
 @ApiBearerAuth()
 @Controller()
 export class ModelEntityController extends CrudController<SemanticModelEntity> {
-	constructor(
-		private readonly entityService: SemanticModelEntityService,
-		@InjectQueue('entity')
-		private readonly entityQueue: Queue
-	) {
+	constructor(private readonly entityService: SemanticModelEntityService) {
 		super(entityService)
 	}
 
@@ -50,57 +29,47 @@ export class ModelEntityController extends CrudController<SemanticModelEntity> {
 	@Post(':id')
 	async createByModel(
 		@Param('id', UUIDValidationPipe) modelId: string,
+		@TimeZone() timeZone: string,
 		@Body() entity: SemanticModelEntity
 	): Promise<SemanticModelEntity> {
 		entity.modelId = modelId
+		entity.timeZone ??= timeZone
 		const result = await this.entityService.create(entity)
 
-		const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
-		const userId = RequestContext.currentUserId()
-
 		if (entity.options?.vector?.hierarchies?.length) {
-			const job = await this.entityQueue.add('syncMembers', {
-				tenantId,
-				organizationId,
-				createdById: userId,
-				modelId,
-				entityId: result.id,
-				cube: entity.name,
-				hierarchies: entity.options?.vector.hierarchies,
-			})
-
-			await this.entityService.update(result.id, {
-				job: {
-					id: job.id,
-					status: 'processing',
-					progress: 0
-				}
-			})
-
+			await this.entityService.startSync(result)
 			return await this.entityService.findOne(result.id)
 		}
 
 		return result
 	}
 
+	@Put(':id/start')
+	async startSchedule(@Param('id') id: string, @TimeZone() timeZone: string, @Body() body: Partial<SemanticModelEntity>) {
+		body.timeZone ??= timeZone
+		return this.entityService.schedule(id, body)
+	}
+
+	@Put(':id/pause')
+	async pauseSchedule(@Param('id') id: string) {
+		return this.entityService.pauseSchedule(id)
+	}
+
 	@Delete(':id/job')
 	async stopJob(@Param('id') id: string) {
-		const entity = await this.entityService.findOne(id)
-		try {
-			if (entity.job?.id) {
-				const job = await this.entityQueue.getJob(entity.job.id)
-				// cancel job
-				// const lockKey = job.lockKey()
-				if (job) {
-					await job.discard()
-					await job.moveToFailed({ message: 'Job stopped by user' }, true)
-				}
-			}
-		} catch(err) {}
+		await this.entityService.stopSyncJob(id)
+		return await this.entityService.findOne(id)
+	}
 
-		await this.entityService.update(entity.id, {job: {...entity.job, progress: null, status: 'cancel'}})
-
-		return await this.entityService.findOne(entity.id)
+	@Delete(':id/schedule')
+	async removeSchedule(@Param('id') id: string) {
+		await this.entityService.pauseSchedule(id)
+		await this.entityService.update(id, { schedule: null })
+	}
+	
+	@Delete(':id')
+	async remove(@Param('id') id: string) {
+		await this.entityService.pauseSchedule(id)
+		await this.entityService.delete(id)
 	}
 }

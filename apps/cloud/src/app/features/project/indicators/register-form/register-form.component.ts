@@ -11,12 +11,12 @@ import {
   Validators
 } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { MatFormFieldAppearance } from '@angular/material/form-field'
+import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { NgmSemanticModel } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
-import { IsNilPipe, nonBlank, nonNullable } from '@metad/core'
+import { nonBlank, nonNullable } from '@metad/core'
 import { NgmHierarchySelectComponent, NgmMatSelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
-import { ISelectOption, NgmDSCoreService } from '@metad/ocap-angular/core'
+import { DensityDirective, ISelectOption, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
@@ -53,7 +53,14 @@ import { ProjectService } from '../../project.service'
 import { injectFetchModelDetails } from '../../types'
 import { injectIndicatorFormulaCommand } from '../../copilot'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatRadioModule } from '@angular/material/radio'
+import { MatDatepickerModule } from '@angular/material/datepicker'
+import { MatInputModule } from '@angular/material/input'
+import { MatSelectModule } from '@angular/material/select'
+import { MatCheckboxModule } from '@angular/material/checkbox'
 
 @Component({
   standalone: true,
@@ -62,15 +69,23 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
   styleUrls: ['register-form.component.scss'],
   imports: [
     CommonModule,
-    MaterialModule,
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatRadioModule,
+    MatFormFieldModule,
+    MatDatepickerModule,
+    MatInputModule,
+    MatSelectModule,
+    MatCheckboxModule,
+    DensityDirective,
     NgmMatSelectComponent,
     NgmTreeSelectComponent,
     TagEditorComponent,
     NgmHierarchySelectComponent,
-    IsNilPipe,
     NgmCalculatedMeasureComponent,
     NgmSelectionModule
   ],
@@ -94,8 +109,9 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly wasmAgent = inject(WasmAgentService)
   readonly fetchModelDetails = injectFetchModelDetails()
-  readonly #logger = inject(NGXLogger)
-  readonly #translate = inject(TranslateService)
+  /**
+   * @default use Dialog in cdk
+   */
   readonly _dialog = inject(MatDialog)
 
   @Input() certifications: ISelectOption[]
@@ -256,55 +272,6 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
   */
   #formulaCommand = injectIndicatorFormulaCommand()
 
-//   #formula = injectCopilotCommand({
-//     name: 'formula',
-//     description: this.#translate.instant('PAC.INDICATOR.Copilot_CreateFormula', {
-//       Default: 'Create a formula for the indicator'
-//     }),
-//     systemPrompt: async () => {
-//       let prompt = `你是一名 BI 指标体系管理的业务专家，你现在需要根据用户需求用 Multidimensional Expressions (MDX) 创建指标公式。`
-//       if (this.entityType()) {
-//         prompt += `当前选择的 Cube 信息为:
-// \`\`\`
-// ${calcEntityTypePrompt(this.entityType())}
-// \`\`\`
-// `
-//       }
-//       return prompt
-//     },
-//     actions: [
-//       injectMakeCopilotActionable({
-//         name: 'new_formula',
-//         description: 'Create a new formula for the indicator',
-//         argumentAnnotations: [
-//           {
-//             name: 'formula',
-//             type: 'string',
-//             description: 'Provide the new formula',
-//             required: true
-//           },
-//           {
-//             name: 'unit',
-//             type: 'string',
-//             description: 'unit of the formula',
-//             required: true
-//           }
-//         ],
-//         implementation: async (formula: string, unit: string) => {
-//           this.#logger.debug(`Copilot command 'formula' params: formula is`, formula, `unit is`, unit)
-
-//           this.formGroup.patchValue({
-//             formula,
-//             unit,
-//             type: IndicatorType.DERIVE
-//           })
-
-//           return `✅`
-//         }
-//       })
-//     ]
-//   })
-
   /**
   |--------------------------------------------------------------------------
   | Subscriptions (effect)
@@ -320,14 +287,13 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
         const indicator = this.indicator()
         const semanticModel = this.semanticModel()
         if (semanticModel && indicator) {
-          // 指标公式编辑时需要用到现有 Indicators
-          // const dataSource = registerModel(omit(storyModel, 'indicators'), this.dsCoreService, this.wasmAgent)
+          const _indicator = {...indicator, visible: false, name: indicator.name?.trim() || '', code: indicator.code?.trim() || ''}
           const indicators = [...semanticModel.indicators]
-          const index = indicators.findIndex((item) => item.id === indicator.id)
+          const index = indicators.findIndex((item) => item.id === _indicator.id)
           if (index >= 0) {
-            indicators.splice(index, 1, indicator as Indicator)
+            indicators.splice(index, 1, _indicator as Indicator)
           } else {
-            indicators.push(indicator as Indicator)
+            indicators.push(_indicator as Indicator)
           }
           const dataSource = registerModel(
             {
@@ -343,7 +309,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
         }
       },
       { allowSignalWrites: true }
-    )
+    )      
   }
 
   writeValue(obj: any): void {

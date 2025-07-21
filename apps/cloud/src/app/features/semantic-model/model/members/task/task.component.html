@@ -1,0 +1,45 @@
+<div class="flex flex-col space-y-1.5 text-center sm:text-left p-4">
+  <h2 class="text-lg font-semibold leading-none tracking-tight cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <div class="flex w-full items-center justify-between">
+      <div class="px-2">{{ 'PAC.MODEL.MemberSyncSchedule' | translate: { Default: 'Member Sync Schedule' } }}</div>
+      <div class="flex items-center gap-1">
+        <button
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl"
+          type="button"
+          (click)="close()"
+        >
+          <i class="ri-close-large-line"></i>
+        </button>
+      </div>
+    </div>
+  </h2>
+</div>
+
+<div class="relative gap-3 flex flex-col px-6">
+  <xp-schedule-form [(ngModel)]="schedule" />
+  @if (loading()) {
+    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  }
+</div>
+
+<div class="w-full flex justify-between p-6">
+  <button type="button" class="btn disabled:btn-disabled btn-large danger" [disabled]="!schedule()" (click)="remove()">
+    {{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+  </button>
+  <div class="flex items-center gap-2">
+    <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
+      {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+    </button>
+
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" cdkFocusInitial
+      [disabled]="loading()"
+      (click)="createTask()"
+    >
+      @if (schedule()) {
+        {{ 'PAC.Xpert.UpdateTask' | translate: { Default: 'Update Task' } }}
+      } @else {
+        {{ 'PAC.Xpert.CreateTask' | translate: { Default: 'Create Task' } }}
+      }
+    </button>
+  </div>
+</div>

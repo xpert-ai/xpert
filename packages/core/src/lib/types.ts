@@ -18,9 +18,14 @@ export enum Syntax {
   MDX = 'MDX'
 }
 
+/**
+ * Type of Member: dimension member
+ * operator: member contains, starts with, ends with, etc.
+ */
 export interface IMember {
   key: string
   caption?: string
+  operator?: FilterOperator
   /**
    * @deprecated use caption
    */
@@ -44,8 +49,8 @@ export type Member = PropertyName | IMember
 export type BaseProperty = {
   dimension?: PropertyName
   /**
-   * 如当 Dimension = "Measures" 时可以设置 members 为 ["Gross Margin", "Discount"] 等度量字段名
-   * 也可以为 dimension 设置固定的成员
+   * For example, when Dimension = "Measures", you can set members to measure field names such as ["Gross Margin", "Discount"]
+   *  or you can set fixed members for the dimension.
    */
   members?: Member[]
   /**
@@ -166,51 +171,42 @@ export interface ISlicer {
   members?: IMember[]
   // drill
   drill?: Drill
-  // 下钻到的层级距离本节点级数, 默认为 1 即下一级, drill distance of the member
+  /**
+   * drill distance of the member:
+   * The level to drill down to is the distance from the current node.
+   * The default value is 1, which means the next level.
+   */
   distance?: number
   selectionType?: FilterSelectionType
 }
 
 export enum FilterOperator {
-  // All = 'All',
-  // Any = 'Any',
   BT = 'BT',
   EQ = 'EQ', //
   GE = 'GE', //
   GT = 'GT', //
   LE = 'LE', //
   LT = 'LT', //
-  /**
-   * FilterOperator "Not Between"
-   * Used to filter all entries, which are not between the given boundaries.
-   * The filter result does not contains the boundaries,
-   * but only entries outside of the boundaries.
-   * The order of the entries in the filter results is based on their occurence in the input list.
-   * Note, when used on strings: The String comparison is based on lexicographical ordering.
-   * Characters are ranked in their alphabetical order. Words with the same preceding
-   * substring are ordered based on their length e.g. "Chris" comes before "Christian".
-   */
-  // NB = 'NB',
   NE = 'NE', // not equals
   Contains = 'Contains',
   EndsWith = 'EndsWith',
-  // NotContains = 'NotContains',    // not contains
-  // NotEndsWith = 'NotEndsWith',    // not ends with
-  // NotStartsWith = 'NotStartsWith',  // not starts with
-  StartsWith = 'StartsWith' // starts with
+  StartsWith = 'StartsWith',
+  NotContains = 'NotContains',
+  NotEndsWith = 'NotEndsWith',
+  NotStartsWith = 'NotStartsWith'
 }
 
 /**
- * 所有过滤条件的接口类型
+ * Interface type for all filter conditions
  */
 export interface IFilter extends ISlicer {
-  // 过滤条件的类别, 如 name = 'time' for date or week or month or year
+  // The type of filter condition, such as name = 'time' for date or week or month or year
   name?: string
 
-  operator?: FilterOperator | any
+  operator?: FilterOperator
 
   /**
-   * @deprecated 替换成 {FilteringLogic} 类型的字段
+   * @deprecated Replace with a field of type {FilteringLogic}
    */
   and?: boolean
 }
@@ -242,7 +238,7 @@ export enum AdvancedSlicerOperator {
   BottomSum = 'BottomSum'
 }
 
-export interface AdvancedSlicer extends IFilter {
+export interface AdvancedSlicer extends ISlicer {
   context?: Array<Dimension>
   operator: AdvancedSlicerOperator
   measure: PropertyName
