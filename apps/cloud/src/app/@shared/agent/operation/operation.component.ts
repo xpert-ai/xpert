@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { SlashSvgComponent } from '@metad/ocap-angular/common'
 import { attrModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { agentLabel, TInterruptCommand, TSensitiveOperation, TToolCall } from '../../../@core'
+import { agentLabel, BIInterruptMessageType, TInterruptCommand, TSensitiveOperation, TToolCall } from '../../../@core'
 import { XpertAgentIdentityComponent } from '../agent-identity/agent-identity.component'
 import { XpertAgentInterruptComponent } from '../interrupt/interrupt.component'
 
@@ -47,6 +47,7 @@ export class XpertAgentOperationComponent {
   readonly tasks = computed(() => this.operation()?.tasks)
   readonly resume = attrModel(this.command, 'resume')
   readonly agentKey = attrModel(this.command, 'agentKey')
+  readonly interrupts = computed(() => this.operation()?.tasks?.flatMap(task => task.interrupts) || [])
 
   readonly #toolCalls = signal<TToolCall[]>(null)
 
@@ -67,10 +68,25 @@ export class XpertAgentOperationComponent {
   }
 
   onConfirm() {
-    this.confirm.emit()
+    if (this.interrupts()[0]?.value?.type === BIInterruptMessageType.DeleteArtifact) {
+      this.resume.set({confirm: true})
+      setTimeout(() => {
+        this.confirm.emit()
+      })
+    } else {
+      this.confirm.emit()
+    }
   }
+  
   onReject() {
-    this.reject.emit()
+    if (this.interrupts()[0]?.value?.type === BIInterruptMessageType.DeleteArtifact) {
+      this.resume.set({confirm: false})
+      setTimeout(() => {
+        this.confirm.emit()
+      })
+    } else {
+      this.reject.emit()
+    }
   }
 
   updateParam(index: number, key: string, value: string) {

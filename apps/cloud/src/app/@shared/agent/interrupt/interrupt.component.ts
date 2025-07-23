@@ -1,8 +1,21 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, ComponentRef, computed, effect, inject, input, model, viewChild, ViewContainerRef } from '@angular/core'
+import {
+  ChangeDetectorRef,
+  Component,
+  ComponentRef,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  Type,
+  viewChild,
+  ViewContainerRef
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { TInterruptMessage, TSensitiveOperation } from '../../../@core'
+import { BIInterruptMessageType, TInterruptMessage, TSensitiveOperation } from '../../../@core'
+import { AbstractInterruptComponent } from '../types'
 
 /**
  */
@@ -11,13 +24,13 @@ import { TInterruptMessage, TSensitiveOperation } from '../../../@core'
   imports: [CommonModule, FormsModule, TranslateModule],
   selector: 'xpert-agent-interrupt',
   templateUrl: 'interrupt.component.html',
-  styleUrls: ['interrupt.component.scss'],
+  styleUrls: ['interrupt.component.scss']
 })
 export class XpertAgentInterruptComponent {
   readonly #cdr = inject(ChangeDetectorRef)
 
   // Inputs
-  readonly interrupt = input<TSensitiveOperation['tasks'][0]['interrupts'][0]>()
+  readonly interrupt = input<TSensitiveOperation['tasks'][number]['interrupts'][number]>()
 
   // Outputs
   readonly value = model<any>()
@@ -33,22 +46,33 @@ export class XpertAgentInterruptComponent {
   private componentRef!: ComponentRef<any>
 
   constructor() {
-    effect(() => {
-      const message = this.message()
-      if (message) {
-        this.loadComponent(message).catch((error) => {
-          console.error('Error loading component:', error)
-        })
-      }
-    }, { allowSignalWrites: true})
+    effect(
+      () => {
+        const message = this.message()
+        if (message) {
+          this.loadComponent(message).catch((error) => {
+            console.error('Error loading component:', error)
+          })
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   async loadComponent(message: TInterruptMessage) {
-    const InitModelComponent = (await import('../../model/index')).InitModelComponent
+    let component: Type<AbstractInterruptComponent>
+    if (message.type === BIInterruptMessageType.SwitchProject) {
+      const { ProjectInterruptSwitchComponent } = await import('../../project/index')
+      component = ProjectInterruptSwitchComponent
+    } else if (message.type === BIInterruptMessageType.SwitchSemanticModel) {
+      const { InitModelComponent } = await import('../../model/index')
+      component = InitModelComponent
+    }
+    if (!component) return
 
     this.container().clear()
 
-    this.componentRef = this.container().createComponent(InitModelComponent)
+    this.componentRef = this.container().createComponent(component)
 
     this.componentRef.instance.value.subscribe((value: any) => {
       this.value.set(value)
