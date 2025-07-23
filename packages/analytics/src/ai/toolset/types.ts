@@ -1,4 +1,4 @@
-import { IChatBIModel, ISemanticModel } from '@metad/contracts'
+import { IChatBIModel, IIndicator, ISemanticModel } from '@metad/contracts'
 import { assignDeepOmitBlank, C_MEASURES, ChartMeasure, cloneDeep, EntityType, getChartType, nonNullable, tryFixDimension } from '@metad/ocap-core'
 import { upperFirst } from 'lodash'
 
@@ -85,4 +85,12 @@ export function markdownModelCubes(models: ISemanticModel[]) {
     }
 
     return markdown || 'No semantic models with cubes found'
+}
+
+export function markdownIndicators(indicators: IIndicator[]) {
+    return indicators.filter(nonNullable).map((item) => `- code: ${item.code}
+  name: ${item.name}
+  description: ${item.business}
+  cube: ${item.entity}
+  modelId: ${item.modelId}`).join('\n')
 }

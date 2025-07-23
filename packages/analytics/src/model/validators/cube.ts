@@ -16,9 +16,19 @@ export class CubeValidator implements RuleValidator {
 		}
 
         const measureValidator = new MeasureValidator()
-        for await (const measure of cube.measures ?? []) {
-            const res = await measureValidator.validate(measure, { schema: params.schema, cubeName: cube.name })
-            issues.push(...res)
+        if (!cube.measures?.length) {
+            issues.push({
+                message: { en_US: 'At least one measure is required', zh_Hans: '至少需要一个度量' },
+                level: 'error',
+                field: 'measures',
+                ruleCode: 'CUBE_MEASURES_REQUIRED',
+                value: cube.name
+            })
+        } else {
+            for await (const measure of cube.measures ?? []) {
+                const res = await measureValidator.validate(measure, { schema: params.schema, cubeName: cube.name })
+                issues.push(...res)
+            }
         }
 
         const memberValidator = new CalculatedMeasureValidator()

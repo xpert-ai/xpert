@@ -15,6 +15,22 @@ export enum ChatDashboardMessageType {
      * Create or edit members (calculated members or dimension sets) event
      */
     Members = 'Members',
+    /**
+     * List indicators event
+     */
+    ListIndicators = 'ListIndicators',
+    /**
+     * Create or edit an indicator event
+     */
+    Indicator = 'Indicator',
+
+    Indicators = 'Indicators',
+}
+
+export enum BIInterruptMessageType {
+    SwitchProject = 'switch_project',
+    SwitchSemanticModel = 'switch_semantic_model',
+    DeleteArtifact = 'delete_artifact',
 }
 
 export type TMessageContentCube = {
@@ -39,7 +55,7 @@ export type TMessageContentMembers = {
         modelId: string
         cubeName: string
         members: {
-            key: string
+            __id__: string
             name: string
             label?: string
             caption?: string
@@ -50,5 +66,14 @@ export type TMessageContentMembers = {
                 decimal?: number;
             }
         }[]
+    }
+}
+
+export type TMessageContentIndicator = {
+    type: ChatDashboardMessageType.Indicator,
+    data: {
+        modelId?: string
+        cubeName?: string
+        indicatorId: string
     }
 }

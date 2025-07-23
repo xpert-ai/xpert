@@ -15,11 +15,6 @@
         <i class="ri-bug-line text-text-destructive" [matTooltip]="error()" matTooltipPosition="above"></i>
       </div>
     }
-
-    <!-- <button type="button" class="btn btn-secondary btn-medium w-7 h-7 flex justify-center items-center" (click)="testVirtualCube()">
-      <i class="ri-exchange-2-line"></i>
-    </button> -->
-
     <button type="button" class="relative btn disabled:btn-disabled btn-secondary btn-medium w-7 h-7"
       [cdkMenuTriggerFor]="checklistMenu">
       <i class="ri-list-check-3"></i>
@@ -48,10 +43,10 @@
   </div>
 </div>
 
-<mat-drawer-container class="flex-1" [hasBackdrop]="false" [autosize]="true">
+<mat-drawer-container class="flex-1 rounded-lg" [hasBackdrop]="false" [autosize]="true">
   <mat-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230" class="flex flex-col">
     <div class="h-full flex-1 flex flex-col justify-start items-stretch overflow-y-auto">
-      <mat-toolbar class="pac-sub-toolbar flex justify-between items-center gap-2" displayDensity="compact">
+      <div class="flex justify-between items-center p-1 gap-2" displayDensity="compact">
         <span>{{ 'PAC.MODEL.VirtualCube.CubeUsages' | translate: {Default: "Cube Usages"} }}</span>
         <span class="flex-1 flex"></span>
         <button mat-icon-button color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin"
@@ -61,7 +56,7 @@
         >
           <mat-icon color="warn" fontSet="material-icons-round">delete</mat-icon>
         </button>
-      </mat-toolbar>
+      </div>
 
       <div class="pac-model-access__cubes pac-cdk-drop__list flex-1 flex flex-col overflow-y-auto"
         cdkDropList>

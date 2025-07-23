@@ -1,5 +1,5 @@
 @for (indicator of showIndicators(); track indicator.indicatorCode; let last = $last) {
-  <ngm-indicator class="indicator min-h-[75px] border-t border-solid dark:border-neutral-800 border-transparent bg-components-card-bg p-4 cursor-pointer hover:bg-components-panel-bg first:rounded-t-xl"
+  <ngm-indicator class="indicator group min-h-[75px] border-t border-solid dark:border-neutral-800 border-transparent bg-components-card-bg p-4 cursor-pointer hover:bg-components-panel-bg first:rounded-t-xl"
     [class.active]="indicatorExplorer() === indicator.indicatorCode"
     [class.last]="last"
     [class.has-more]="hasMore()"
@@ -10,7 +10,12 @@
     [tagType]="indicatorTagType()"
     (click)="toggleIndicator(indicator.indicatorCode)"
     (toggleTag)="toggleIndicatorTagType()"
-  />
+  >
+    <div action class="w-7 h-7 justify-center items-center mr-1 rounded-lg hover:bg-hover-bg hidden group-hover:flex"
+      (click)="editIndicator(indicator.id);$event.stopPropagation()">
+      <i class="ri-edit-line"></i>
+    </div>
+  </ngm-indicator>
   @if (indicatorExplorer() === indicator.indicatorCode) {
     <ngm-indicator-explorer class="ngm-indicator-explorer last:rounded-b-xl"
       [dataSettings]="indicator"

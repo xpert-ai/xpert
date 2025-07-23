@@ -2,7 +2,6 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { convertNewSemanticModelResult, NgmSemanticModel } from '@metad/cloud/state'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { Indicator } from '@metad/ocap-core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { combineLatest, of, tap } from 'rxjs'
 import { injectToastr, registerModel, ServerSocketAgent } from '../@core'
@@ -31,9 +30,10 @@ export class XpertOcapService {
       string,
       {
         model?: ISemanticModel // Semantic model details from the server
-        indicators?: Indicator[] // Runtime indicators to be registered
+        indicators?: IIndicator[] // Runtime indicators to be registered
         isDraft?: boolean // Whether use the model draft
         dirty?: boolean // Whether the model or indicators is dirty and needs to be registered
+        isDraftIndicators?: string[] // Indicate which indicators use draft
       }
     >
   >({})
@@ -95,13 +95,24 @@ export class XpertOcapService {
         const models = Object.values(semanticModels).filter((model) => model.dirty && model.model)
         if (models.length) {
           console.log(`Step 2.`, models)
-          models.forEach(({ model, isDraft, indicators }) => {
+          models.forEach(({ model, isDraft, indicators, isDraftIndicators }) => {
+            // Use the draft indicator
+            model.indicators = model.indicators?.map((_) => {
+              if (isDraftIndicators?.includes(_.code) && _.draft) {
+                return {
+                  ..._,
+                  ..._.draft
+                }
+              }
+              return _
+            })
+
             const _model = convertNewSemanticModelResult({
               ...model,
               key: model.id
             })
 
-            this.registerModel(_model, isDraft, indicators)
+            this.registerModel(_model, isDraft, indicators, isDraftIndicators)
           })
 
           this.#semanticModels.update((state) => {
@@ -116,9 +127,9 @@ export class XpertOcapService {
     )
   }
 
-  private registerModel(model: NgmSemanticModel, isDraft: boolean, indicators: IIndicator[]) {
+  private registerModel(model: NgmSemanticModel, isDraft: boolean, indicators: IIndicator[], isDraftIndicators?: string[]) {
     console.log(`Step 3.`, model, indicators)
-    registerModel(model, isDraft, this.#dsCoreService, this.#wasmAgent, indicators)
+    registerModel({...model, isDraftIndicators}, isDraft, this.#dsCoreService, this.#wasmAgent, indicators)
   }
 
   /**
@@ -126,9 +137,9 @@ export class XpertOcapService {
    *
    * @param models Model id and runtime indicators
    */
-  registerSemanticModel(models: { id: string; isDraft: boolean; indicators?: Indicator[] }[]) {
+  registerSemanticModel(models: { id: string; isDraft: boolean; indicators?: IIndicator[]; isDraftIndicators?: string[] }[]) {
     this.#semanticModels.update((state) => {
-      models.forEach(({ id, isDraft, indicators }) => {
+      models.forEach(({ id, isDraft, indicators, isDraftIndicators }) => {
         state[id] ??= {}
         if (indicators) {
           state[id].indicators ??= []
@@ -143,7 +154,8 @@ export class XpertOcapService {
 
         state[id] = {
           ...state[id],
-          dirty: true
+          dirty: true,
+          isDraftIndicators
         }
       })
       return { ...state }

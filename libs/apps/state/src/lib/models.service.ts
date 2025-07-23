@@ -327,7 +327,6 @@ export interface NgmSemanticModel extends OcapSemanticModel, Pick<ISemanticModel
   businessAreaId?: string
   indicators?: Indicator[]
   draft?: TSemanticModelDraft
-  isDraft: boolean
 }
 
 /**

@@ -30,3 +30,10 @@ export function pickEmbeddingIndicator(indicator: IIndicator) {
         'tags'
     ])
 }
+
+export function applyIndicatorDraft(indicator: IIndicator) {
+    return indicator.draft ? {
+        ...indicator,
+        ...indicator.draft,
+    } : indicator
+}

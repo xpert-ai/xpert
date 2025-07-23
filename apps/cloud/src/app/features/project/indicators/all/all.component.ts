@@ -13,16 +13,16 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { MatButtonModule } from '@angular/material/button'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { RouterModule } from '@angular/router'
-import { convertIndicatorResult, EmbeddingStatusEnum, IndicatorsService } from '@metad/cloud/state'
+import { convertIndicatorResult, EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
 import { saveAsYaml } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { catchError, debounceTime, filter, map, merge, of, Subject, switchMap } from 'rxjs'
-import { getErrorMessage, IIndicator, isUUID, ToastrService } from '../../../../@core/index'
+import { DateRelativePipe, getErrorMessage, IIndicator, isUUID, ToastrService } from '../../../../@core/index'
 import { ProjectService } from '../../project.service'
-import { exportIndicator } from '../../types'
 import { ProjectIndicatorsComponent } from '../indicators.component'
+import { exportIndicator } from '@cloud/app/@shared/indicator'
 
 @Component({
   standalone: true,
@@ -35,7 +35,8 @@ import { ProjectIndicatorsComponent } from '../indicators.component'
     DensityDirective,
     AppearanceDirective,
     NgmTableComponent,
-    NgmSpinComponent
+    NgmSpinComponent,
+    DateRelativePipe
   ],
   selector: 'pac-indicator-all',
   templateUrl: './all.component.html',
@@ -44,7 +45,9 @@ import { ProjectIndicatorsComponent } from '../indicators.component'
 })
 export class AllIndicatorComponent {
   eEmbeddingStatusEnum = EmbeddingStatusEnum
+  eIndicatorStatusEnum = IndicatorStatusEnum
   isUUID = isUUID
+  
   private indicatorsComponent = inject(ProjectIndicatorsComponent)
   private projectService = inject(ProjectService)
   private indicatorAPI = inject(IndicatorsService)
@@ -122,7 +125,7 @@ export class AllIndicatorComponent {
             item.embeddingStatus === EmbeddingStatusEnum.REQUIRED
         )
       ) {
-        this.delayRefresh$.next(true)
+        // this.delayRefresh$.next(true)
       }
     })
   }

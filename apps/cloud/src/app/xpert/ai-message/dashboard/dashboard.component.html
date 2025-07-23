@@ -64,9 +64,9 @@
   @case ('Indicators') {
     <chat-component-indicators [indicators]="indicators()" class="dark"/>
   }
-  @case ('NewIndicator') {
+  <!-- @case ('NewIndicator') {
     <chat-component-indicator [indicator]="indicator()" class="dark"/>
-  }
+  } -->
   @default {
     <chat-tool-call-chunk [chunk]="data()" [conversationStatus]="conversationStatus()"
       openable

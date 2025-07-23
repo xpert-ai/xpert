@@ -41,7 +41,8 @@ import {
   isUUID,
   registerModel
 } from '../../@core'
-import { NewIndicatorCodePlaceholder, ProjectIndicatorsState, injectFetchModelDetails } from './types'
+import { NewIndicatorCodePlaceholder, ProjectIndicatorsState } from './types'
+import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
 
 @Injectable()
 export class ProjectService {

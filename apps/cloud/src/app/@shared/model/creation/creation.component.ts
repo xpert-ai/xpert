@@ -242,11 +242,11 @@ export class ModelCreationComponent implements ControlValueAccessor {
   registerOnTouched(fn: any): void {}
   setDisabledState?(isDisabled: boolean): void {}
 
-  async create() {
+  create() {
     const catalog: Catalog = this.formGroup.value.catalog
     this.dialogRef.close({
-      name: this.formGroup.value.name,
-      description: this.formGroup.value.description,
+      name: this.formGroup.value.name?.trim(),
+      description: this.formGroup.value.description?.trim(),
       type: this.formGroup.value.mdx ? 'XMLA' : this.formGroup.value.dataSource.type.protocol.toUpperCase(),
       dataSourceId: this.formGroup.value.dataSource.id,
       catalog: catalog?.name,

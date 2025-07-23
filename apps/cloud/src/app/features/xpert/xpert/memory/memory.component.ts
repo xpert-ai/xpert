@@ -122,6 +122,10 @@ export class XpertMemoryComponent {
 
   readonly memoryTypesOptions = [
     {
+      value: null,
+      label: this.#translate.instant('PAC.Xpert.LongTermMemoryTypeEnum.All', { Default: 'All' })
+    },
+    {
       value: LongTermMemoryTypeEnum.QA,
       label: this.#translate.instant('PAC.Xpert.LongTermMemoryTypeEnum.QuestionAnswer', { Default: 'Q&A' })
     },

@@ -1,6 +1,7 @@
 import {
 	BusinessAreaRole,
 	ChecklistItem,
+	ISemanticModel,
 	IUser,
 	mapTranslationLanguage,
 	SemanticModelStatusEnum,
@@ -9,7 +10,7 @@ import {
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
-import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import { CACHE_MANAGER, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { CommandBus, EventBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -18,6 +19,7 @@ import chalk from 'chalk'
 import { I18nService } from 'nestjs-i18n'
 import { RedisClientType } from 'redis'
 import { FindManyOptions, FindOneOptions, ILike, Repository } from 'typeorm'
+import { Cache } from 'cache-manager'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
 import { SemanticModelQueryLog } from '../core/entities/internal'
 import { Md5 } from '../core/helper'
@@ -51,6 +53,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		private readonly eventBus: EventBus,
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType,
+		@Inject(CACHE_MANAGER)
+		private readonly cacheManager: Cache,
 		/**
 		 * Core service of ocap framework
 		 */
@@ -349,6 +353,24 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		return this.findAll({
 			where: this.findConditionsWithUser(me)
 		})
+	}
+
+	/**
+	 * Find one semantic model by id for OCAP with cache.
+	 */
+	async findOne4Ocap(id: string, params: {withIndicators?: boolean} = {}) {
+		const { withIndicators } = params ?? {}
+		const cacheKey = `analytics:semantic-model:${id}`
+		
+		let model: ISemanticModel = await this.cacheManager.get(cacheKey)
+		if (!model) {
+			model = await this.findOne(id, {
+				relations: ['dataSource', 'dataSource.type', 'roles', 'roles.users',].concat(withIndicators ? ['indicators'] : [])
+			})
+			await this.cacheManager.set(cacheKey, model, 1000 * 60) // 1 minute cache
+		}
+
+		return model
 	}
 
 	public async checkViewerAuthorization(id: string | number) {

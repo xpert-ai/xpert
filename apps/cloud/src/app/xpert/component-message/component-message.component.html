@@ -7,9 +7,9 @@
       @case (eChatMessageStepCategory.Tasks) {
         <chat-component-message-tasks [data]="data()" />
       }
-      @case ('iframe') {
+      <!-- @case ('iframe') {
         <chat-component-message-iframe [data]="data().data" />
-      }
+      } -->
       @case ('Iframe') {
         <chat-component-message-iframe [data]="data()" />
       }
@@ -18,7 +18,7 @@
       }
       @default {
         @if (step(); as step) {
-          <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()" (click)="openComponentMessage()" />
+          <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()" (click)="openComponentMessage()" openable />
         }
       }
     }

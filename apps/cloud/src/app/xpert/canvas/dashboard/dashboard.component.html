@@ -43,6 +43,12 @@
             @case (eChatDashboardMessageType.Members) {
               <xp-model-members class="w-full grow p-1 rounded-2xl overflow-hidden hover:bg-neutral-50" [data]="message.data"/>
             }
+            @case (eChatDashboardMessageType.ListIndicators) {
+              <xp-list-indicators class="w-full grow rounded-2xl overflow-hidden hover:bg-neutral-50" [data]="message.data" (close)="close()" />
+            }
+            @case (eChatDashboardMessageType.Indicator) {
+              <xp-indicator-form class="w-full grow rounded-2xl overflow-hidden hover:bg-neutral-50" [data]="message.data" (close)="close()" />
+            }
             @default {
               <chat-message-dashboard class="w-full grow p-2 rounded-2xl hover:bg-neutral-50"
                 [messageId]="message.id"

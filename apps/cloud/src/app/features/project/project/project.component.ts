@@ -59,11 +59,12 @@ import { AppService } from '../../../app.service'
 import { injectIndicatorArchitectCommand, injectIndicatorCommand, provideCopilotCubes } from '../copilot/'
 import { ReleaseStoryDialog } from '../release-story.component'
 import { SelectModelDialog } from '../select-model.component'
-import { collectionId, injectFetchModelDetails, treeDataSourceFactory } from '../types'
+import { collectionId, treeDataSourceFactory } from '../types'
 import { ProjectService } from '../project.service'
 import { MaterialModule } from '../../../@shared/material.module'
 import { StoryCreationComponent } from '../../../@shared/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
 
 @Component({
   standalone: true,

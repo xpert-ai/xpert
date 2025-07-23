@@ -8,22 +8,20 @@ import { IPermissionApproval } from './permission-approval.model'
 import { IBasePerProjectEntityModel } from './project.model'
 import { ISemanticModel } from './semantic-model'
 
-export interface IIndicator extends IBasePerProjectEntityModel {
-  // 业务编码
+/**
+ * Common fields of Indicator (draft and entity)
+ */
+export type TIndicator = {
+  // Indicator business code
   code?: string
-  // 名称
+  // Name of the indicator
   name?: string
-
   /**
-   * 指标类型
+   * Indicator Type
    */
   type?: IndicatorType
   /**
-   * Is active: 激活 / 停用
-   */
-  isActive?: boolean
-  /**
-   * 是否可见
+   * Visible in model
    */
   visible?: boolean
 
@@ -31,13 +29,9 @@ export interface IIndicator extends IBasePerProjectEntityModel {
    * Available in indicator market app
    */
   isApplication?: boolean
-  /**
-   * Visibilty in public or secret or private
-   */
-  visibility?: Visibility
 
   modelId?: string
-  model?: ISemanticModel
+  
   entity?: string
   unit?: string
   principal?: string
@@ -45,16 +39,11 @@ export interface IIndicator extends IBasePerProjectEntityModel {
    * @deprecated use certificationId
    */
   authentication?: string
-  /**
-   * 认证
-   */
-  certification?: ICertification
+  
   certificationId?: string
+
   validity?: string
   business?: string
-  status?: IndicatorStatusEnum
-  embeddingStatus?: EmbeddingStatusEnum
-  error?: string
 
   options?: {
     dimensions?: Array<string>
@@ -66,6 +55,34 @@ export interface IIndicator extends IBasePerProjectEntityModel {
   }
 
   businessAreaId?: string
+}
+
+export type TIndicatorDraft = TIndicator
+
+export interface IIndicator extends IBasePerProjectEntityModel, TIndicator {
+  draft?: TIndicatorDraft
+  /**
+   * Is active: Activate / Deactivate
+   * 
+   * @deprecated use status instead
+   */
+  isActive?: boolean
+  
+  /**
+   * Visibilty in public or secret or private
+   */
+  visibility?: Visibility
+
+  model?: ISemanticModel
+  /**
+   * Quality Certification
+   */
+  certification?: ICertification
+  
+  status?: IndicatorStatusEnum
+  embeddingStatus?: EmbeddingStatusEnum
+  error?: string
+  
   businessArea?: IBusinessArea
 
   permissionApprovals?: IPermissionApproval[]
@@ -76,27 +93,30 @@ export interface IIndicator extends IBasePerProjectEntityModel {
 export const IndicatorOptionFields = ['dimensions', 'filters', 'formula', 'measure', 'aggregator', 'calendar']
 
 /**
- * 指标类型:
- * * 基础指标
- * * 衍生指标
+ * Indicator Type:
+ * * Basic indicators
+ * * Derivative Indicators
  */
 export enum IndicatorType {
   BASIC = 'BASIC',
   DERIVE = 'DERIVE'
 }
 
+/**
+ * Status of the indicator
+ */
 export enum IndicatorStatusEnum {
   /**
-   * 草稿
+   * draft
    */
   DRAFT = 'DRAFT',
 
   /**
-   * 已发布
+   * Published
    */
   RELEASED = 'RELEASED',
   /**
-   * 下线存档
+   * Offline Archive
    */
   ARCHIVED = 'ARCHIVED'
 }

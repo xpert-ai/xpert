@@ -151,7 +151,7 @@ export class CubeStudioComponent {
         nodes.push({
           key: h.__id__,
           type: 'shared-dimension',
-          data: {dimension: _.__id__, hierarchy: h},
+          data: {dimension: dimension.__id__, hierarchy: h},
           ...this.getPosition(h.__id__)
         })
       })

@@ -3,6 +3,7 @@
     [class.text-gray-500]="loading()"
   >
     <div class="pac-item-meta-title text-lg flex justify-start items-center overflow-hidden">
+      <ng-content select="[action]"></ng-content>
       <span class="flex-1 font-semibold whitespace-nowrap text-ellipsis overflow-hidden">{{ indicator.code }}</span>
     </div>
     <div class="pac-item-meta-description text-base">

@@ -804,6 +804,8 @@
     },
     "INDICATOR": {
       "REGISTER": {
+        "Draft": "草稿",
+        "Status": "状态",
         "Code": "编码",
         "CODE": "编码",
         "CODE_PLACEHOLDER": "指标唯一编码",
@@ -882,6 +884,17 @@
         "BASIC_INFORMATION": "基础信息",
         "MODEL_INFORMATION": "模型信息"
       },
+      "EmbeddingIndicatorIntoMemory": "将指标嵌入到记忆中",
+      "Publish": "发布",
+      "Published": "已发布",
+      "Draft": "草稿",
+      "Archived": "已归档",
+      "Unknown": "未知",
+      "Delete": "删除",
+      "DeleteIndicatorSuccessfuly": "指标 '{{name}}' 删除成功",
+      "SaveDraftSuccessfuly": "指标草稿保存成功",
+      "IndicatorNotFound": "未找到指标",
+      "EditIndicator": "编辑指标",
       "Indicator Name": "指标名称",
       "Indicator Code": "指标编码",
       "Business Area": "业务域",
@@ -931,6 +944,7 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "NotIndexed": "未索引",
       "CubeNotFound": "未找到多维数据集",
       "Dimension": "维度",
       "Hierarchy": "层次结构",
@@ -1657,6 +1671,8 @@
     },
     "Project": {
       "Project": "项目",
+      "SelectAProject": "选择一个项目",
+      "CreatedProject": "已创建项目",
       "NewProject": "新建项目",
       "Certifications": "认证",
       "AddCertification": "添加认证",
@@ -1892,6 +1908,7 @@
       }
     },
     "Chat": {
+      "NoResults": "未找到结果",
       "UploadFile": "上传文件",
       "GoToTask": "前往任务",
       "Empty": "清空",
@@ -2780,6 +2797,7 @@
       "MemoryType": "记忆类型",
       "AfterSeconds": "几秒后",
       "LongTermMemoryTypeEnum": {
+        "All": "全部",
         "UserProfile": "用户档案",
         "Profile": "档案",
         "QuestionAnswer": "问题/回答",

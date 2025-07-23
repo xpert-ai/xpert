@@ -5,5 +5,5 @@ import { IQuery } from '@nestjs/cqrs'
 export class GetBIContextQuery implements IQuery {
 	static readonly type = '[AiBi] Get BI Context'
 
-	constructor(public readonly models?: string[]) {}
+	constructor(public readonly models?: string[], public readonly params?: {indicatorDraft?: boolean; semanticModelDraft?: boolean}) {}
 }

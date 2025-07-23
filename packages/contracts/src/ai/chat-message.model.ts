@@ -231,8 +231,11 @@ export type TMessageContent = string | TMessageContentComplex[];
 
 export type TMessageComponentIframe = {
   type: 'iframe'
-  url: string
   title: string
+  url?: string
+  data?: {
+    url?: string
+  }
 }
 
 export type TMessageComponentStep<T = JSONValue> = {

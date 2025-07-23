@@ -1,8 +1,8 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { Subscriber } from 'rxjs'
-import { TMessageContentComplex } from '../ai/chat-message.model'
 import { agentLabel, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai'
+import { TMessageContentComplex } from '../ai/chat-message.model'
 import { I18nObject } from '../types'
 
 export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
@@ -60,12 +60,47 @@ export type TToolCall = {
 	args: Record<string, any>
 }
 
+/**
+ * 
+ * Example:
+ * 
+ * ```typescript
+ *  const result = interrupt<TInterruptMessage<{ name: string }>, { projectId: string }>({
+ *		category: 'BI',
+ *		type: 'switch_project',
+ *		title: {
+ *			en_US: 'Switch project',
+ *			zh_Hans: '切换项目'
+ *		},
+ *		message: {
+ *			en_US: 'Please select a project or create a new one',
+ *			zh_Hans: '请选择或创建一个新的项目'
+ *		},
+ *		data: { name: '' }
+ *	})
+ * ```
+ */
 export type TInterruptMessage<T = unknown> = {
+	/**
+	 * Major categories of interrupt components
+	 */
 	category: 'BI'
+	/**
+	 * The specific type of interactive component
+	 */
 	type: string
+	/**
+	 * Title of the interrupt component
+	 */
 	title: string | I18nObject
+	/**
+	 * Message content of the interrupt component
+	 */
 	message: string | I18nObject
-	data: T
+	/**
+	 * Additional data
+	 */
+	data?: T
 }
 
 export type TInterruptCommand = {

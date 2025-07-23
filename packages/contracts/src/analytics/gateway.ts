@@ -13,6 +13,10 @@ export type TGatewayQueryEvent = {
     mdx?: string
     statement?: string
     query?: TQueryOptions
+    /**
+     * Which indicators should use draft, corresponding to `DataSourceOptions['isDraftIndicators']` in the ocap framework.
+     */
+    isDraftIndicators?: string[]
   }
   acceptLanguage?: string
   forceRefresh: boolean

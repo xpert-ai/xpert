@@ -83,27 +83,34 @@ export class ChatMessageDashboardComponent {
   readonly dataSettings = computed(() => this.data()?.dataSettings as DataSettings)
   readonly indicator = computed<Indicator>(() => this.data()?.indicator)
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
-  readonly indicators = computed(() => this.data()?.indicators)
+  readonly indicators = computed<{ dataSource: string; entitySet: string; cube: string; id: string; indicatorCode: string; isDraft: boolean}[]>(() => this.data()?.indicators)
   readonly slicers = computed(() => this.data()?.slicers)
   readonly isDraft = computed(() => this.data()?.isDraft)
-  readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
+  readonly dataSources = computed(() => this.indicators()?.reduce((acc, indicator) => {
+    acc[indicator.dataSource] ??= []
+    if (indicator.isDraft) {
+      acc[indicator.dataSource].push(indicator.indicatorCode)
+    }
+    return acc
+  }, {}))
+    
   readonly explains = signal<any[]>([])
 
   constructor() {
-    effect(
-      () => {
-        if (this.dataSource()) {
-          this.onRegister([
-            {
-              id: this.dataSource(),
-              indicators: this.indicators(),
-              isDraft: this.isDraft()
-            }
-          ])
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    // effect(
+    //   () => {
+    //     if (this.dataSource()) {
+    //       this.onRegister([
+    //         {
+    //           id: this.dataSource(),
+    //           indicators: this.indicators(),
+    //           isDraft: this.isDraft()
+    //         }
+    //       ])
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
 
     effect(
       () => {
@@ -124,7 +131,7 @@ export class ChatMessageDashboardComponent {
     effect(
       () => {
         if (this.dataSources()) {
-          this.onRegister(this.dataSources().map((id) => ({ id, isDraft: this.isDraft() })))
+          this.onRegister(Object.keys(this.dataSources()).map((id) => ({ id, isDraftIndicators: this.dataSources()[id], isDraft: this.isDraft() })))
         }
       },
       { allowSignalWrites: true }
@@ -171,7 +178,7 @@ export class ChatMessageDashboardComponent {
     })
   }
 
-  onRegister(models: { id: string; isDraft: boolean; indicators?: Indicator[] }[]) {
+  onRegister(models: { id: string; isDraft: boolean; indicators?: Indicator[]; isDraftIndicators?: string[] }[]) {
     this.xpertOcapService.registerSemanticModel(models)
   }
 }

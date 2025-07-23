@@ -13,7 +13,7 @@ import { NGXLogger } from 'ngx-logger'
 import { EMPTY, firstValueFrom, switchMap } from 'rxjs'
 import { IIndicator, IndicatorType, ProjectAPIService, ToastrService, getErrorMessage, isUUID, routeAnimations } from '../../../@core'
 import { ProjectService } from '../project.service'
-import { NewIndicatorCodePlaceholder, exportIndicator, injectFetchModelDetails } from '../types'
+import { NewIndicatorCodePlaceholder } from '../types'
 import { IndicatorImportComponent } from './indicator-import/indicator-import.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Dialog } from '@angular/cdk/dialog'
@@ -23,6 +23,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTabsModule } from '@angular/material/tabs'
 import { MatDividerModule } from '@angular/material/divider'
+import { exportIndicator, injectFetchModelDetails } from '@cloud/app/@shared/indicator'
 
 
 @Component({

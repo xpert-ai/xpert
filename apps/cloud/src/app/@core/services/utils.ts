@@ -15,7 +15,7 @@ import { IIndicator } from '../types'
  * @returns
  */
 export function registerModel(
-  model: NgmSemanticModel,
+  model: NgmSemanticModel & { isDraft?: boolean; isDraftIndicators?: string[] },
   isDraft: boolean,
   dsCoreService: NgmDSCoreService,
   wasmAgent: WasmAgentService,
@@ -133,7 +133,7 @@ export function registerModel(
   }
 
   if (semanticModel.agentType === AgentType.Wasm) {
-    // 先初始化 wasm 服务
+    // Initialize the wasm service first
     wasmAgent.registerModel({
       ...semanticModel,
     })

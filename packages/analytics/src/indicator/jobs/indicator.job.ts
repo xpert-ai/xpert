@@ -1,5 +1,5 @@
 import { BaseStore } from '@langchain/langgraph'
-import { EmbeddingStatusEnum } from '@metad/contracts'
+import { EmbeddingStatusEnum, IndicatorStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { runWithRequestContext, UserService } from '@metad/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
@@ -37,6 +37,8 @@ export class EmbeddingIndicatorsConsumer {
 		const { items, total } = await this.indicatorService.findAll({
 			where: {
 				projectId: projectId,
+				visible: true,
+				status: IndicatorStatusEnum.RELEASED,
 				embeddingStatus: EmbeddingStatusEnum.REQUIRED
 			},
 			relations: ['tags', 'certification']
@@ -49,11 +51,18 @@ export class EmbeddingIndicatorsConsumer {
 			const store = await this.commandBus.execute<CreateProjectStoreCommand, BaseStore>(
 				new CreateProjectStoreCommand({ index: { fields: EMBEDDING_INDICATOR_FIELDS } })
 			)
-			const indicators = items.map(pickEmbeddingIndicator)
+			const namespace = createIndicatorNamespace(projectId)
+			// Clear existing indicators in the namespace
+			const items = await store.search(namespace)
+			for await (const item of items) {
+				await store.delete(namespace, item.key)
+			}
 
+			// Put new indicators into the namespace
+			const indicators = items.map(pickEmbeddingIndicator)
 			for await (const indicator of indicators) {
 				try {
-					await store.put(createIndicatorNamespace(projectId), indicator.code, indicator)
+					await store.put(namespace, indicator.code, indicator)
 					await this.indicatorService.update(indicator.id, {
 						embeddingStatus: EmbeddingStatusEnum.SUCCESS,
 						error: null

@@ -6,6 +6,7 @@ import { provideOcap } from '../model/ocap/'
 import { CalculatorService } from './toolset/mcp/chatbi'
 import { QueryHandlers } from './queries/handlers'
 import { SemanticModelModule } from '../model'
+import { IndicatorModule } from '../indicator'
 
 /**
  */
@@ -18,6 +19,7 @@ import { SemanticModelModule } from '../model'
 		CopilotKnowledgeModule,
 		XpertToolsetModule,
 		forwardRef(() => SemanticModelModule),
+		forwardRef(() => IndicatorModule),
 		forwardRef(() => ChatBIModelModule),
 
 		MCPModule.register({

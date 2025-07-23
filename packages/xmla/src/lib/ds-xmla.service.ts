@@ -55,7 +55,8 @@ import {
   map,
   shareReplay,
   switchMap,
-  takeUntil
+  takeUntil,
+  timeout
 } from 'rxjs/operators'
 import { XmlaEntityService } from './entity.service'
 import {
@@ -228,12 +229,10 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     // throw new Error(`@deprecated use selectMembers`)
   }
 
-  override query({
-    statement,
-    forceRefresh
-  }: {
+  override query({statement, forceRefresh, timeout: _timeout}: {
     statement: string
     forceRefresh?: boolean
+    timeout?: number
   }): Observable<QueryReturn<unknown>> {
     const language = this.options.settings?.language || ''
     const headers: HttpHeaders = {}
@@ -253,7 +252,8 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
           rows: dataset.rows,
           columns: dataset.columns
         }
-      }))
+      })),
+      timeout(_timeout)
     )
   }
 

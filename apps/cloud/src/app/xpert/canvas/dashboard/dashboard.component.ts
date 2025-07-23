@@ -13,6 +13,7 @@ import {
 } from '@cloud/app/@core'
 import { uniq } from 'lodash-es'
 import { ModelCubeComponent, ModelMembersComponent, ModelVirtualCubeComponent } from '@cloud/app/@shared/model'
+import { XpIndicatorFormComponent, XpListIndicatorsComponent } from '@cloud/app/@shared/indicator'
 import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashboard.component'
 
 @Component({
@@ -28,7 +29,9 @@ import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashbo
     ChatMessageDashboardComponent,
     ModelCubeComponent,
     ModelMembersComponent,
-    ModelVirtualCubeComponent
+    ModelVirtualCubeComponent,
+    XpListIndicatorsComponent,
+    XpIndicatorFormComponent
   ],
   selector: 'chat-canvas-dashboard',
   templateUrl: './dashboard.component.html',
@@ -96,16 +99,12 @@ export class ChatCanvasDashboardComponent {
     return uniq(this._contents()?.map((content) => content.data.type) || [])
   })
 
-  constructor() {
-    effect(() => {
-    })
-  }
 
   toggleExpand() {
     this.expand.update((state) => !state)
   }
 
   close() {
-    this.homeService.canvasOpened.set(null)
+    this.homeService.canvasOpened.set({opened: false, type: 'Dashboard'})
   }
 }

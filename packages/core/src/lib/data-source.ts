@@ -11,7 +11,7 @@ import {
   switchMap,
   takeUntil
 } from 'rxjs'
-import { Agent, OcapCache } from './agent'
+import { Agent } from './agent'
 import { EntityService } from './entity'
 import {
   AggregationRole,
@@ -55,7 +55,7 @@ export interface DataSourceSettings {
   // modelId?: string
   // catalog
   database?: string
-  // 语言
+  // Language
   language?: string
 
   // ignoreUnknownProperty
@@ -93,7 +93,11 @@ export interface DataSourceOptions extends SemanticModel {
   /**
    * Is draft semantic model
    */
-  isDraft: boolean
+  isDraft?: boolean
+  /**
+   * Which indicators should use draft
+   */
+  isDraftIndicators?: string[]
 }
 
 /**
@@ -109,15 +113,16 @@ export interface DataSource {
 
   refresh(): void
   /**
-   *
+   * Update options of DataSource
+   */
+  updateOptions(fn: (options: DataSourceOptions) => DataSourceOptions): void
+  /**
    * @deprecated use discoverDBCatalogs
-   *
-   * 获取数据源的数据服务目录, 数据服务目录用于区分不同的数据实体类别, 如 ODataService 的 Catalog, XMLA 的 CATALOG_NAME 等
    */
   getCatalogs(): Observable<Array<Catalog>>
 
   /**
-   * Discover catalogs or schemas from DataSource's Database
+   * Discover catalogs or schemas from DataSource's Database: The data service catalog is used to distinguish different data entity categories, such as Catalog of ODataService, CATALOG_NAME of XMLA, etc.
    */
   discoverDBCatalogs(options?: {throwError?: boolean}): Observable<Array<DBCatalog>>
   /**
@@ -140,9 +145,6 @@ export interface DataSource {
 
   /**
    * @deprecated use selectEntitySets
-   * 获取源实体集合
-   *
-   * @param refresh 是否跳过缓存进行重新获取数据
    */
   getEntitySets(refresh?: boolean): Observable<Array<EntitySet>>
   /**
@@ -153,18 +155,12 @@ export interface DataSource {
   selectEntitySets(refresh?: boolean): Observable<Array<EntitySet>>
 
   /**
-   * @deprecated 运行时 EntityType 接口不应该直接暴露, 使用 selectEntitySet 方法
-   *
-   * 获取运行时 EntityType
+   * @deprecated The EntityType interface should not be exposed directly at runtime, use the selectEntitySet method
    */
   getEntityType(entity: string): Observable<EntityType | Error>
 
   /**
    * @deprecated use selectMembers
-   * 获取维度成员
-   *
-   * @param entity 实体
-   * @param dimension 维度
    */
   getMembers(entity: string, dimension: Dimension): Observable<IDimensionMember[]>
   /**
@@ -260,7 +256,7 @@ export interface DataSource {
    *
    * @param statement
    */
-  query(options: { statement: string; forceRefresh?: boolean }): Observable<any>
+  query(options: { statement: string; forceRefresh?: boolean; timeout?: number; }): Observable<any>
 
   /**
    * Observe to runtime calculated measures
@@ -320,10 +316,19 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   abstract selectMembers(entity: string, dimension: Dimension): Observable<IDimensionMember[]>
   abstract createEntity(name: string, columns: any[], data?: any[]): Observable<string>
   abstract dropEntity(name: string): Promise<void>
-  abstract query(options: { statement: string; forceRefresh?: boolean }): Observable<any>
+  abstract query(options: { statement: string; forceRefresh?: boolean; timeout?: number; }): Observable<any>
 
   refresh() {
     this.refresh$.next()
+  }
+
+  updateOptions(fn: (options: T) => T): void {
+    const options = this.options$.value
+    if (options) {
+      this.options$.next(fn(options))
+    } else {
+      console.warn('DataSource options is not initialized yet.')
+    }
   }
 
   setSchema(schema: Schema): void {

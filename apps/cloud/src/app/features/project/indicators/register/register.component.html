@@ -37,10 +37,7 @@
   ></pac-indicator-register-form>
     
   @if (loading()) {
-    <div class="absolute top-1/2 left-1/2 -mt-4 -ml-4 z-10">
-      <mat-spinner diameter="30" strokeWidth="2">
-      </mat-spinner>
-    </div>
+    <ngm-spin class="absolute w-full h-full top-0 left-0" />
   }
 
   <div class="w-full flex flex-col items-center">

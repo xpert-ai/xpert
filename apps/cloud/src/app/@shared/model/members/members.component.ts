@@ -107,7 +107,7 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
     )
   }
 
-  onMemberClick(member) {
-    this.memberKey.set(member.key)
+  onMemberClick(member: TMessageContentMembers['data']['members'][number]) {
+    this.memberKey.set(member.__id__)
   }
 }

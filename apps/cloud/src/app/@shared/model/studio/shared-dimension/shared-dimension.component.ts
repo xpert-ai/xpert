@@ -4,7 +4,6 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input } f
 import { FormsModule } from '@angular/forms'
 import { EFConnectionType, EFMarkerType, FFlowModule } from '@foblex/flow'
 import { linkedModel } from '@metad/ocap-angular/core'
-import { DimensionUsage, Schema } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CubeStudioComponent } from '../studio.component'
 import { CubeStudioHierarchyComponent } from '../hierarchy/hierarchy.component'
@@ -36,14 +35,11 @@ export class CubeStudioSharedDimensionComponent {
   // States
   readonly hierarchyKey = computed(() => this.node()?.key)
   readonly dimensionKey = computed(() => this.node()?.data?.dimension)
-  // readonly dimensionUsage = computed(() => this.node()?.data.hierarchy as DimensionUsage)
-  // readonly sourceName = computed(() => this.dimensionUsage()?.source)
-  // readonly caption = computed(() => this.dimensionUsage()?.caption || this.dimensionUsage()?.name || '')
 
   readonly dimension = linkedModel({
     initialValue: null,
     compute: () => {
-      return this.studio.schema()?.dimensions?.find((_) => _.name === this.dimensionKey())
+      return this.studio.schema()?.dimensions?.find((_) => _.__id__ === this.dimensionKey())
     },
     update: (dimension) => {
       if (dimension) {
@@ -82,7 +78,7 @@ export class CubeStudioSharedDimensionComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.dimension(), this.dimensionUsage(), this.hierarchies(), this.levels())
+      // console.log(this.dimensionKey(), this.hierarchyKey())
     })
   }
 

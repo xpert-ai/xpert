@@ -16,7 +16,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { convertIndicatorResult, Indicator, IndicatorsService, Store } from '@metad/cloud/state'
-import { createSubStore, dirtyCheckWith, IsDirty, IsNilPipe, nonBlank, saveAsYaml } from '@metad/core'
+import { createSubStore, dirtyCheckWith, IsDirty, nonBlank, saveAsYaml } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { CdkConfirmDeleteComponent, NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective, PERIODS } from '@metad/ocap-angular/core'
@@ -45,14 +45,16 @@ import { EMPTY, firstValueFrom } from 'rxjs'
 import { catchError, delayWhen, distinctUntilChanged, filter, map, startWith, tap } from 'rxjs/operators'
 import { IIndicator, isUUID, ToastrService } from '../../../../@core/index'
 import { ProjectService } from '../../project.service'
-import { exportIndicator, NewIndicatorCodePlaceholder } from '../../types'
+import { NewIndicatorCodePlaceholder } from '../../types'
 import { ProjectIndicatorsComponent } from '../indicators.component'
 import { IndicatorRegisterFormComponent } from '../register-form/register-form.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Dialog } from '@angular/cdk/dialog'
 import { ExplainComponent } from '@metad/story/story'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { exportIndicator } from '@cloud/app/@shared/indicator'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
 
 
 // AOA : array of array
@@ -66,9 +68,9 @@ type AOA = any[][]
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
     CdkMenuModule,
-    IsNilPipe,
+    MatIconModule,
+    MatButtonModule,
 
     ButtonGroupDirective,
     DensityDirective,
@@ -131,14 +133,6 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
       return null
     }
 
-    // const calendar = getEntityCalendar(entityType, indicator.calendar, timeGranularity)
-    // if (!calendar) {
-    //   return {
-    //     error: this.translateService.instant(`PAC.INDICATOR.REGISTER.CalendarDimensionNotSet`, {
-    //       Default: 'Calendar dimension not set'
-    //     })
-    //   } as undefined as DataSettings & { error?: string }
-    // }
     const { dimension, hierarchy, level } = getIndicatorEntityCalendar(
       indicator as OCAPIndicator,
       entityType,

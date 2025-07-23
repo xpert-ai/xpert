@@ -7,6 +7,9 @@ import { SemanticModelService } from '../../model.service'
 import { NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN, registerSemanticModel } from '../../ocap'
 import { ModelCubeQuery } from '../cube.query'
 
+/**
+ * Maximum query waiting time 10 minutes
+ */
 const QUERY_MAX_WAIT_TIME = 10 * 60 * 1000
 
 @QueryHandler(ModelCubeQuery)
@@ -26,17 +29,27 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 
 	async execute(params: ModelCubeQuery) {
 		const { id, sessionId, modelId, body, acceptLanguage, forceRefresh, isDraft } = params.input
-		const { mdx, query } = body ?? {}
+		const { mdx, query, isDraftIndicators } = body ?? {}
 
 		this.logger.verbose(`Executing OLAP query [${id}] for model: ${modelId}`)
 
-		const model = await this.semanticModelService.findOne(modelId, {
-			relations: ['dataSource', 'dataSource.type', 'roles', 'roles.users', 'indicators']
-		})
+		const model = await this.semanticModelService.findOne4Ocap(modelId, {withIndicators: true})
 
 		// New Ocap context for every chatbi conversation
 		const dsCoreService = new NgmDSCoreService(this.agent, this.dataSourceFactory)
 
+		// Indicators to use draft
+		if (isDraftIndicators?.length) {
+			model.indicators = model.indicators.map((indicator) => {
+				if (isDraftIndicators.includes(indicator.code) && indicator.draft) {
+					return {
+						...indicator,
+						...indicator.draft
+					}
+				}
+				return indicator
+			})
+		}
 		registerSemanticModel(isDraft ? {...model, ...(model.draft ?? {}), isDraft: true} : model, isDraft, dsCoreService, { language: acceptLanguage })
 
 		const entityService = await firstValueFrom(dsCoreService.getEntityService(modelId, query.cube))
@@ -45,6 +58,7 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 			entityService.registerMeasure(measure.name, measure)
 		})
 
+		// 10 minute query timeout
 		const result = await race(
 			QUERY_MAX_WAIT_TIME,
 			firstValueFrom(entityService.selectEntityType().pipe(switchMap(() => entityService.selectQuery(query))))

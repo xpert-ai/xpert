@@ -29,10 +29,8 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
-import { map } from 'rxjs/operators'
 import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
-import { derivedAsync } from 'ngxtension/derived-async'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ModelChecklistComponent } from '../checklist/checklist.component'
 
@@ -58,7 +56,6 @@ import { ModelChecklistComponent } from '../checklist/checklist.component'
     MatSlideToggleModule,
     MatInputModule,
     TranslateModule,
-    NgmI18nPipe,
     OcapCoreModule,
     NgmEntitySchemaComponent,
     ResizerModule,

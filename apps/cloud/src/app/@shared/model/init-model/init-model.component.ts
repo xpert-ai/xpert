@@ -21,7 +21,7 @@ import { ModelCreationComponent } from '../creation/creation.component'
   templateUrl: 'init-model.component.html',
   styleUrls: ['init-model.component.scss']
 })
-export class InitModelComponent extends AbstractInterruptComponent<{name: string}> {
+export class InitModelComponent extends AbstractInterruptComponent<{name?: string}, {modelId?: string}> {
   readonly modelsAPI = inject(SemanticModelServerService)
   readonly #dialog = inject(Dialog)
 

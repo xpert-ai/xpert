@@ -11,6 +11,7 @@ import {
   ICertification,
   IndicatorStatusEnum,
   EmbeddingStatusEnum,
+  TIndicatorDraft,
 } from '@metad/contracts'
 import { Tag } from '@metad/server-core'
 import { IsEnum, IsJSON, IsOptional, IsString } from 'class-validator'
@@ -30,6 +31,13 @@ import { ProjectBaseEntity } from '../core/entities/project-base.entity'
 
 @Entity('indicator')
 export class Indicator extends ProjectBaseEntity implements IIndicator {
+  
+  @ApiPropertyOptional({ type: () => Object })
+  @IsJSON()
+  @IsOptional()
+  @Column({ type: 'json', nullable: true })
+  draft?: TIndicatorDraft
+  
   @ApiPropertyOptional({ type: () => String })
   @IsString()
   @IsOptional()

@@ -98,7 +98,7 @@ export class MarketComponent {
   // 所有的公开指标
   private readonly publicIndicators$ = this.store
     .selectOrganizationId()
-    .pipe(switchMap(() => this.indicatorStore.getAll(['createdBy', 'businessArea', 'certification'])))
+    .pipe(switchMap(() => this.indicatorStore.getAllView(['createdBy', 'businessArea', 'certification'])))
 
   private readonly indicatorsWithPermission$ = combineLatest([this.publicIndicators$, this.permissionApprovals$]).pipe(
     map(([indicators, permissionApprovals]) => {
