@@ -199,7 +199,7 @@ export const prodEnvironment: IEnvironment = {
 
 	demo: process.env.DEMO === 'true' ? true : false,
 	
-	vectorStore: process.env.VECTOR_STORE || VectorTypeEnum.PGVECTOR,
+	vectorStore: (process.env.VECTOR_STORE as VectorTypeEnum) || VectorTypeEnum.PGVECTOR,
 };
 
 export const prodToggleFeatures: IPACFeatures = {

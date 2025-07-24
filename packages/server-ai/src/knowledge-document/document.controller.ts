@@ -3,7 +3,6 @@ import {
 	CrudController,
 	IntegrationService,
 	ParseJsonPipe,
-	RequestContext,
 	TransformInterceptor
 } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
@@ -30,11 +29,11 @@ import { Queue } from 'bull'
 import { In } from 'typeorm'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeDocumentService } from './document.service'
-import { DocumentChunkDTO } from './dto'
 import { KnowledgeDocLoadCommand } from './commands'
 import { GetRagWebOptionsQuery } from '../rag-web/queries/'
 import { RagWebLoadCommand } from '../rag-web/commands'
 import { TVectorSearchParams } from '../knowledgebase'
+import { DocumentChunkDTO } from './dto'
 
 @ApiTags('KnowledgeDocument')
 @ApiBearerAuth()
@@ -132,7 +131,11 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
 	@Delete(':id/page/:pageId')
 	async deletePage(@Param('id') docId: string, @Param('pageId') id: string) {
-		await this.service.deletePage(docId, id)
+		try {
+			await this.service.deletePage(docId, id)
+		} catch (err) {
+			throw new InternalServerErrorException(getErrorMessage(err))
+		}
 	}
 
 	@UseInterceptors(ClassSerializerInterceptor)
@@ -141,26 +144,41 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		@Param('id') id: string,
 		@Query('data', ParseJsonPipe) params: TVectorSearchParams
 	) {
-		const result = await this.service.getChunks(id, params)
-		return {
-			...result,
-			items: result.items.map((item) => new DocumentChunkDTO(item))
+		try {
+			const result = await this.service.getChunks(id, params)
+			return {
+				...result,
+				items: result.items.map((item) => new DocumentChunkDTO(item))
+			}
+		} catch (err) {
+			throw new InternalServerErrorException(getErrorMessage(err))
 		}
 	}
 
 	@Post(':id/chunk')
 	async createChunk(@Param('id') docId: string, @Body() entity: IDocumentChunk) {
-		return await this.service.createChunk(docId, entity)
+		try {
+			return await this.service.createChunk(docId, entity)
+		} catch (err) {
+			throw new InternalServerErrorException(getErrorMessage(err))
+		}
 	}
 
 	@Put(':docId/chunk/:id')
 	async updateChunk(@Param('docId') docId: string, @Param('id') id: string, @Body() entity: IDocumentChunk) {
-		await this.service.updateChunk(docId, id, entity)
+		try {
+			await this.service.updateChunk(docId, id, entity)
+		} catch (err) {
+			throw new InternalServerErrorException(getErrorMessage(err))
+		}
 	}
 
 	@Delete(':docId/chunk/:id')
 	async deleteChunk(@Param('docId') docId: string, @Param('id') id: string) {
-		await this.service.deleteChunk(docId, id)
+		try {
+			await this.service.deleteChunk(docId, id)
+		} catch (err) {
+			throw new InternalServerErrorException(getErrorMessage(err))
+		}
 	}
-	
 }

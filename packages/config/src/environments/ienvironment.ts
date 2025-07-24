@@ -100,5 +100,5 @@ export interface IEnvironment {
 	demo: boolean;
 
 	// Rag
-	vectorStore?: VectorTypeEnum | string
+	vectorStore?: VectorTypeEnum
 }

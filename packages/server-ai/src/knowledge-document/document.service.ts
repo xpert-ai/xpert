@@ -79,7 +79,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		await vectorStore.addKnowledgeDocument(document, [
 			{
 				metadata: entity.metadata ?? {},
-				pageContent: entity.content
+				pageContent: entity.pageContent
 			}
 		])
 	}
@@ -89,8 +89,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 			const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
 			return await vectorStore.updateChunk(id, {
 				metadata: entity.metadata,
-				pageContent: entity.content
-			})
+				pageContent: entity.pageContent
+			}, document)
 		} catch (err) {
 			throw new BadRequestException(err.message)
 		}

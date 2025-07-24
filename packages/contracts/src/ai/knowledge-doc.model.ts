@@ -137,7 +137,7 @@ export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAn
 
 export interface IDocumentChunk {
   id: string
-  content: string
+  pageContent: string
   metadata: {
     knowledgeId?: string
     [key: string]: any | null

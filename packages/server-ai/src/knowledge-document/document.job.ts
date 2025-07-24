@@ -6,7 +6,7 @@ import { Inject, Logger, Scope } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { Job } from 'bull'
 import { estimateTokenUsage } from '@metad/copilot'
-import { KnowledgebaseService, KnowledgeDocumentVectorStore } from '../knowledgebase/index'
+import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
 import { KnowledgeDocumentService } from './document.service'
 import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgeDocLoadCommand } from './commands'
@@ -31,7 +31,7 @@ export class KnowledgeDocumentConsumer {
 		const knowledgebaseId = job.data.docs[0]?.knowledgebaseId
 		const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, { relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider'] })
 		const copilot = knowledgebase?.copilotModel?.copilot
-		let vectorStore: KnowledgeDocumentVectorStore
+		let vectorStore: KnowledgeDocumentStore
 		try {
 			const doc = job.data.docs[0]
 

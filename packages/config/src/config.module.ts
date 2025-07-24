@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { ConfigService } from './config.service';
+import configs from './config';
 
 @Global()
 @Module({
@@ -12,7 +13,7 @@ import { ConfigService } from './config.service';
 		NestConfigModule.forRoot({
 			isGlobal: true,
 			cache: true,
-			load: []
+			load: [ ...configs ]
 		})
 	],
 	providers: [ConfigService],

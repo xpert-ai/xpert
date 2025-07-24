@@ -13,8 +13,10 @@ import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoun
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgeSearchQuery } from './queries'
-import { KnowledgeDocumentVectorStore } from './vector-store'
+import { KnowledgeDocumentStore } from './vector-store'
 import { IRerank } from '../ai-model/types/rerank'
+import { RagCreateVStoreCommand } from '../rag-vstore'
+import { VectorStore } from '@langchain/core/vectorstores'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -149,19 +151,24 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			}
 		}
 
-		const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings, rerankModel)
+		const store = await this.commandBus.execute(new RagCreateVStoreCommand(embeddings, {
+			collectionName: knowledgebase.id,
+		}))
+		const vStore = new KnowledgeDocumentStore(knowledgebase, store, rerankModel)
 
-		// Create table for vector store if not exist
-		await vectorStore.ensureTableInDatabase()
+		// const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings, rerankModel)
 
-		return vectorStore
+		// // Create table for vector store if not exist
+		// await vectorStore.ensureTableInDatabase()
+
+		return vStore
 	}
 
 	async similaritySearch(
 		query: string,
 		options?: {
 			k?: number
-			filter?: KnowledgeDocumentVectorStore['filter']
+			filter?: VectorStore['FilterType']
 			score?: number
 			tenantId?: string
 			organizationId?: string

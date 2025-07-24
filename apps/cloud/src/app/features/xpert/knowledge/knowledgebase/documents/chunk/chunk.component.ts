@@ -136,6 +136,7 @@ export class KnowledgeDocumentChunkComponent {
         },
         error: (err) => {
           this.loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
         }
       })
     )
@@ -151,7 +152,7 @@ export class KnowledgeDocumentChunkComponent {
     this.editChunk.update((state) => {
       return {
         ...state,
-        content: event
+        pageContent: event
       } as IDocumentChunk
     })
   }
@@ -163,7 +164,10 @@ export class KnowledgeDocumentChunkComponent {
   saveEdit() {
     this.loading.set(true)
     if (this.editChunk().id) {
-      this.knowledgeDocumentService.updateChunk(this.documentId(), this.editChunk().id, {content: this.editChunk().content}).subscribe({
+      this.knowledgeDocumentService.updateChunk(this.documentId(), this.editChunk().id, {
+        metadata: this.editChunk().metadata,
+        pageContent: this.editChunk().pageContent
+      }).subscribe({
         next: () => {
           this.loading.set(false)
           this.chunks.update((chunks) => {
@@ -201,7 +205,7 @@ export class KnowledgeDocumentChunkComponent {
 
   enableChunk(chunk: IDocumentChunk, event: boolean) {
     this.loading.set(true)
-    this.knowledgeDocumentService.updateChunk(this.documentId(), chunk.id, {metadata: {enabled: event}}).subscribe({
+    this.knowledgeDocumentService.updateChunk(this.documentId(), chunk.id, { metadata: {enabled: event}}).subscribe({
       next: () => {
         this.loading.set(false)
         this.chunks.update((chunks) => {

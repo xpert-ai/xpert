@@ -1,40 +1,12 @@
 name: xpert-ai
 
+include:
+  - ./docker-compose.dev.yml
+
 volumes:
   api_data:
 
 services:
-  db:
-    image: pgvector/pgvector:pg12
-    restart: always
-    environment:
-      POSTGRES_DB: ${DB_NAME:-postgres}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASS:-root}
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'psql postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@localhost:5432/$${POSTGRES_DB} || exit 1'
-        ]
-    volumes:
-      - ./volumes/db/data:/var/lib/postgresql/data
-      - ./.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
-    networks:
-      - overlay
-
-  redis:
-    image: redis/redis-stack:latest
-    restart: unless-stopped
-    healthcheck:
-      test: ['CMD-SHELL', 'redis-cli -h localhost -p 6379 PING']
-      interval: 1s
-      timeout: 30s
-    command: ["sh", "-c", "redis-server --requirepass $${REDIS_PASSWORD}"]
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-    networks:
-      - overlay
 
   # OLAP Services
   olap:
@@ -126,7 +98,3 @@ services:
       - ./volumes/webapp/:/webapp/
     networks:
       - overlay
-
-networks:
-  overlay:
-    driver: bridge
