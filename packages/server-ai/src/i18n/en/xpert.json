@@ -2,7 +2,7 @@
     "Error": {
         "NameInvalid": "Xpert name is invalid or already in use",
         "EmbeddingCopilotNotFound": "Not found the copilot for role 'embedding'",
-        "EmbeddingModelForMemory": "Need to configure embedding model for long-term memory",
+        "EmbeddingModelForMemory": "Need to configure 'embedding' model for memory, please add it in 'Settings' -> 'AI Copilot'",
         "AgentOutdated": "Agent '{agentKey}' record has been updated, please resynchronize",
         "FallbackModelNotFound": "Fallback model not found for agent '{agent}'",
         "NoContent4DefaultValue": "Default value for '{agent}' exception handling is not configured",

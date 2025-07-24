@@ -195,6 +195,8 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 									}, {}) ?? {}
 									const output = retState[channelName(agentKey)]?.output
 
+									execution.outputs = outputState
+									
 									return {
 										state: {
 											[channelName(node.key)]: outputState
