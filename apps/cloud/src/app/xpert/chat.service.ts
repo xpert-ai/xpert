@@ -203,6 +203,12 @@ export abstract class ChatService {
       { allowSignalWrites: true }
     )
 
+    effect(() => {
+      if (!this.conversationId()) {
+        this.suggestionQuestions.set([])
+      }
+    }, { allowSignalWrites: true })
+
     // effect(() => {
     //   console.log('ChatService: conversation changed', this.conversation(), this.#messages())
     // })

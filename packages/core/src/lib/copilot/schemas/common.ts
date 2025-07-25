@@ -120,7 +120,7 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
     property = getEntityProperty2(entityType, dimension)
     // Fix meausure name format
     if (!property && dimension.measure) {
-      const name = unwrapBrackets(dimension.measure.replace('[Measures].', ''))
+      const name = tryFixMeasureName(dimension.measure)
       property = getEntityProperty2(entityType, name)
     }
   }
@@ -173,6 +173,9 @@ export function tryFixOrder(orderBy: OrderBy) {
   return {...orderBy, by}
 }
 
+/**
+ * Try to fix: `[Measures].[Sales Amount]` to `Sales Amount`
+ */
 export function tryFixMeasureName(measure: string) {
   const name = unwrapBrackets(measure?.replace(`[${C_MEASURES}].`, ''))
   return name

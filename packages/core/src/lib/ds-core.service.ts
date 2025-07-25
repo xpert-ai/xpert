@@ -1,5 +1,5 @@
 import { ComponentStore } from '@metad/store'
-import { combineLatest, filter, map, Observable, shareReplay, switchMap } from 'rxjs'
+import { combineLatest, filter, firstValueFrom, map, Observable, shareReplay, switchMap } from 'rxjs'
 import { Agent, AgentType, OcapCache } from './agent'
 import { DataSource, DataSourceFactory, DataSourceOptions } from './data-source'
 import { EntitySet, isEntitySet } from './models'
@@ -85,16 +85,17 @@ export class DSCoreService extends ComponentStore<DSState> {
    * @returns 
    */
   async _getDataSource(key: string): Promise<DataSource> {
-    if (!this.#dataSources.has(key)) {
-      const options = this.get((state) => state.dataSources?.find((item) => item.key === key))
-      if (!options) {
-        throw new Error(`Can't found dataSource for: '${key}'`)
-      }
+    return await firstValueFrom(this.getDataSource(key))
+    // if (!this.#dataSources.has(key)) {
+    //   const options = this.get((state) => state.dataSources?.find((item) => item.key === key))
+    //   if (!options) {
+    //     throw new Error(`Can't found dataSource for: '${key}'`)
+    //   }
       
-      this.#dataSources.set(key, await this.createDataSource(options))
-    }
+    //   this.#dataSources.set(key, await this.createDataSource(options))
+    // }
     
-    return this.#dataSources.get(key)
+    // return this.#dataSources.get(key)
   }
 
   private async createDataSource(options: DataSourceOptions) {

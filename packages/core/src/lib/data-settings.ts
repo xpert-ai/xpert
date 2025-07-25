@@ -9,6 +9,7 @@ import {
 } from './annotations'
 import { ChartAnnotation } from './annotations/chart'
 import { KPIType } from './annotations/kpi'
+import { CalculatedMember } from './models'
 import { Dimension } from './types'
 import { isNil } from './utils'
 
@@ -33,12 +34,30 @@ export interface DataSettings {
   selectionPresentationVariant?: Array<SelectionPresentationVariant>
 
   analytics?: AnalyticsAnnotation
+  /**
+   * @deprecated unused
+   */
   selectionFieldsAnnotation?: SelectionFieldsAnnotation
+  /**
+   * @deprecated unused
+   */
   valueListAnnotation?: ValueListAnnotation
   KPIAnnotation?: KPIType
+  /**
+   * @deprecated unused
+   */
   identificationAnnotation?: IdentificationAnnotation
 
+  /**
+   * @deprecated unused
+   */
   lazyInit?: boolean
+
+  /**
+   * @experimental
+   * Runtime calculated members to be used in the data settings
+   */
+  calculatedMembers?: CalculatedMember[]
 }
 
 // type Guards

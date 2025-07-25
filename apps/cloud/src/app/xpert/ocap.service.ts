@@ -2,10 +2,11 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { convertNewSemanticModelResult, NgmSemanticModel } from '@metad/cloud/state'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
+import { PropertyMeasure } from '@metad/ocap-core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { combineLatest, of, tap } from 'rxjs'
 import { injectToastr, registerModel, ServerSocketAgent } from '../@core'
-import { getErrorMessage, IIndicator, ISemanticModel } from '../@core/types'
+import { getErrorMessage, ISemanticModel } from '../@core/types'
 import { XpertHomeService } from './home.service'
 import { ChatService } from './chat.service'
 
@@ -30,10 +31,11 @@ export class XpertOcapService {
       string,
       {
         model?: ISemanticModel // Semantic model details from the server
-        indicators?: IIndicator[] // Runtime indicators to be registered
+        // indicators?: IIndicator[] // Runtime indicators to be registered
         isDraft?: boolean // Whether use the model draft
         dirty?: boolean // Whether the model or indicators is dirty and needs to be registered
         isDraftIndicators?: string[] // Indicate which indicators use draft
+        calculatedMeasures?: Record<string, PropertyMeasure[]> // Runtime calculated measures to be registered
       }
     >
   >({})
@@ -95,7 +97,7 @@ export class XpertOcapService {
         const models = Object.values(semanticModels).filter((model) => model.dirty && model.model)
         if (models.length) {
           console.log(`Step 2.`, models)
-          models.forEach(({ model, isDraft, indicators, isDraftIndicators }) => {
+          models.forEach(({ model, isDraft, isDraftIndicators, calculatedMeasures }) => {
             // Use the draft indicator
             model.indicators = model.indicators?.map((_) => {
               if (isDraftIndicators?.includes(_.code) && _.draft) {
@@ -112,7 +114,7 @@ export class XpertOcapService {
               key: model.id
             })
 
-            this.registerModel(_model, isDraft, indicators, isDraftIndicators)
+            this.registerModel({..._model}, isDraft, isDraftIndicators, calculatedMeasures)
           })
 
           this.#semanticModels.update((state) => {
@@ -127,9 +129,10 @@ export class XpertOcapService {
     )
   }
 
-  private registerModel(model: NgmSemanticModel, isDraft: boolean, indicators: IIndicator[], isDraftIndicators?: string[]) {
-    console.log(`Step 3.`, model, indicators)
-    registerModel({...model, isDraftIndicators}, isDraft, this.#dsCoreService, this.#wasmAgent, indicators)
+  private registerModel(model: NgmSemanticModel, isDraft: boolean, isDraftIndicators?: string[], calculatedMeasures?: Record<string, PropertyMeasure[]>) {
+    console.log(`Step 3.`, model, calculatedMeasures)
+
+    registerModel({...model, isDraftIndicators}, isDraft, this.#dsCoreService, this.#wasmAgent, calculatedMeasures)
   }
 
   /**
@@ -137,17 +140,13 @@ export class XpertOcapService {
    *
    * @param models Model id and runtime indicators
    */
-  registerSemanticModel(models: { id: string; isDraft: boolean; indicators?: IIndicator[]; isDraftIndicators?: string[] }[]) {
+  registerSemanticModel(models: { id: string; isDraft: boolean; isDraftIndicators?: string[];
+    calculatedMeasures?: Record<string, PropertyMeasure[]>
+   }[]) {
     this.#semanticModels.update((state) => {
-      models.forEach(({ id, isDraft, indicators, isDraftIndicators }) => {
+      models.forEach(({ id, isDraft, isDraftIndicators, calculatedMeasures }) => {
         state[id] ??= {}
-        if (indicators) {
-          state[id].indicators ??= []
-          state[id].indicators = [
-            ...state[id].indicators.filter((_) => !indicators.some((i) => i.code === _.code)),
-            ...indicators
-          ]
-        }
+
         if (isDraft != null) {
           state[id].isDraft = isDraft
         }
@@ -155,7 +154,8 @@ export class XpertOcapService {
         state[id] = {
           ...state[id],
           dirty: true,
-          isDraftIndicators
+          isDraftIndicators,
+          calculatedMeasures: mergeCalculatedMeasures(state[id].calculatedMeasures ?? {}, calculatedMeasures ?? {}),
         }
       })
       return { ...state }
@@ -163,4 +163,26 @@ export class XpertOcapService {
 
     console.log(`Step 1.`, models)
   }
+}
+
+// Create a function to merege two calculatedMeasures by name
+export function mergeCalculatedMeasures(
+  measures1: Record<string, PropertyMeasure[]>,
+  measures2: Record<string, PropertyMeasure[]>
+): Record<string, PropertyMeasure[]> {
+  const merged: Record<string, PropertyMeasure[]> = { ...measures1 }
+
+  Object.keys(measures2).forEach((entity) => {
+    merged[entity] = merged[entity] ? [...merged[entity]] : []
+    measures2[entity].forEach((measure) => {
+      const existingIndex = merged[entity].findIndex((m) => m.name === measure.name)
+      if (existingIndex > -1) {
+        merged[entity][existingIndex] = { ...merged[entity][existingIndex], ...measure }
+      } else {
+        merged[entity].push(measure)
+      }
+    })
+  })
+
+  return merged
 }

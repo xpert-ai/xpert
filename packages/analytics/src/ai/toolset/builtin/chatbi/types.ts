@@ -1,11 +1,11 @@
 import { LanguagesEnum } from '@metad/contracts'
 import {
-	C_MEASURES,
+	CalculatedMeasureSchema,
+	CalculatedMember,
 	ChartAnnotation,
 	ChartDimension,
 	ChartDimensionRoleType,
 	ChartDimensionSchema,
-	ChartMeasure,
 	ChartMeasureSchema,
 	ChartOrient,
 	ChartTypeEnum,
@@ -81,6 +81,7 @@ export type ChatAnswer = {
 	variables: ISlicer[]
 	slicers: ISlicer[]
 	timeSlicers: TTimeSlicerParam[]
+	calculated_members: CalculatedMember[]
 }
 
 
@@ -125,12 +126,13 @@ export const ChatAnswerSchema = z.object({
 		.describe('Visual type of result'),
 	dataSettings: DataSettingsSchema.optional().nullable().describe('The data settings of the widget'),
 	dimensions: z.array(ChartDimensionSchema).optional().nullable().describe('The dimensions used by the chart'),
-	measures: z.array(ChartMeasureSchema).optional().nullable().describe('The measures used by the chart'),
+	measures: z.array(ChartMeasureSchema).optional().nullable().describe('The measures or calculated members used by the chart'),
 	orders: z.array(OrderBySchema).optional().nullable().describe('The orders used by the chart'),
 	top: z.number().optional().nullable().describe('The number of top members'),
 	slicers: z.array(SlicerSchema).optional().nullable().describe('The slicers to filter data'),
 	timeSlicers: z.array(TimeSlicerSchema).optional().nullable().describe('The time slicers to filter data'),
-	variables: z.array(VariableSchema).optional().nullable().describe('The variables to the query of cube')
+	variables: z.array(VariableSchema).optional().nullable().describe('The variables to the query of cube'),
+	calculated_members: z.array(CalculatedMeasureSchema).optional().nullable().describe('Temporary calculated members are used to supplement situations that cannot be met by current measures and indicators in cube.'),
 })
 
 

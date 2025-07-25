@@ -12,20 +12,18 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { Store } from '@metad/cloud/state'
+import { convertIndicatorResult, Store } from '@metad/cloud/state'
 import { listEnterAnimation } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { DataSettings, Indicator } from '@metad/ocap-core'
+import { AggregationRole, CalculationType, DataSettings, Indicator, mapIndicatorToMeasures, tryFixMeasureName } from '@metad/ocap-core'
 import { StoryExplorerComponent } from '@metad/story'
 import { ExplainComponent } from '@metad/story/story'
 import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
-import { compact, uniq } from 'lodash-es'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { XpertHomeService } from '../../home.service'
 import { XpertOcapService } from '../../ocap.service'
-import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
 import { ChatService } from '../../chat.service'
@@ -43,7 +41,6 @@ import { ChatService } from '../../chat.service'
     AnalyticalCardModule,
     NxWidgetKpiComponent,
     ChatComponentIndicatorsComponent,
-    ChatComponentIndicatorComponent,
     ChatToolCallChunkComponent
   ],
   selector: 'chat-message-dashboard',
@@ -83,6 +80,7 @@ export class ChatMessageDashboardComponent {
   readonly dataSettings = computed(() => this.data()?.dataSettings as DataSettings)
   readonly indicator = computed<Indicator>(() => this.data()?.indicator)
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
+  readonly entity = computed(() => this.dataSettings()?.entitySet)
   readonly indicators = computed<{ dataSource: string; entitySet: string; cube: string; id: string; indicatorCode: string; isDraft: boolean}[]>(() => this.data()?.indicators)
   readonly slicers = computed(() => this.data()?.slicers)
   readonly isDraft = computed(() => this.data()?.isDraft)
@@ -93,34 +91,63 @@ export class ChatMessageDashboardComponent {
     }
     return acc
   }, {}))
+
+  readonly calculatedMembers = computed(() => this.dataSettings()?.calculatedMembers)
     
   readonly explains = signal<any[]>([])
 
   constructor() {
-    // effect(
-    //   () => {
-    //     if (this.dataSource()) {
-    //       this.onRegister([
-    //         {
-    //           id: this.dataSource(),
-    //           indicators: this.indicators(),
-    //           isDraft: this.isDraft()
-    //         }
-    //       ])
-    //     }
-    //   },
-    //   { allowSignalWrites: true }
-    // )
+    // effect(() => {
+    //   console.log(this.data())
+    // })
+    effect(
+      () => {
+        if (this.dataSource()) {
+          const calculatedMeasures = []
+          if (this.calculatedMembers()?.length) {
+            calculatedMeasures.push(...this.calculatedMembers().map((member) => {
+                              return {
+                                ...member,
+                                name: tryFixMeasureName(member.name),
+                                role: AggregationRole.measure,
+                                calculationType: CalculationType.Calculated,
+                                visible: true
+                              }
+                            }))
+          }
+          if (this.indicators()?.length) {
+            this.indicators().forEach((indicator) => {
+              calculatedMeasures.push(...mapIndicatorToMeasures(convertIndicatorResult(indicator)))
+            })
+          }
+
+          this.xpertOcapService.registerSemanticModel([
+            {
+              id: this.dataSource(),
+              // indicators: this.indicators(),
+              isDraft: this.isDraft(),
+              calculatedMeasures: {
+                [this.entity()]: calculatedMeasures
+              }
+            }
+          ])
+        }
+      },
+      { allowSignalWrites: true }
+    )
 
     effect(
       () => {
         const newIndicator = this.indicator()
         if (newIndicator) {
-          this.onRegister([
+          this.xpertOcapService.registerSemanticModel([
             {
               id: newIndicator.modelId,
-              indicators: [newIndicator],
-              isDraft: this.isDraft()
+              // indicators: [newIndicator],
+              isDraft: this.isDraft(),
+              calculatedMeasures: {
+                [this.entity()]: mapIndicatorToMeasures(convertIndicatorResult(newIndicator))
+              }
             }
           ])
         }
@@ -131,7 +158,7 @@ export class ChatMessageDashboardComponent {
     effect(
       () => {
         if (this.dataSources()) {
-          this.onRegister(Object.keys(this.dataSources()).map((id) => ({ id, isDraftIndicators: this.dataSources()[id], isDraft: this.isDraft() })))
+          this.xpertOcapService.registerSemanticModel(Object.keys(this.dataSources()).map((id) => ({ id, isDraftIndicators: this.dataSources()[id], isDraft: this.isDraft() })))
         }
       },
       { allowSignalWrites: true }
@@ -176,9 +203,5 @@ export class ChatMessageDashboardComponent {
       messageId: this.messageId(),
       componentId: this.message().id
     })
-  }
-
-  onRegister(models: { id: string; isDraft: boolean; indicators?: Indicator[]; isDraftIndicators?: string[] }[]) {
-    this.xpertOcapService.registerSemanticModel(models)
   }
 }

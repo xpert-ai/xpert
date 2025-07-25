@@ -1,5 +1,6 @@
 import {
   BehaviorSubject,
+  combineLatest,
   distinctUntilChanged,
   EMPTY,
   filter,
@@ -86,7 +87,7 @@ export interface DataSourceOptions extends SemanticModel {
    */
   mode?: 'client' | 'server'
   /**
-   * Runtime calculated measures
+   * Runtime calculated measures, indexed by cube name
    */
   calculatedMeasures?: Record<string, CalculatedProperty[]>
 
@@ -158,7 +159,6 @@ export interface DataSource {
    * @deprecated The EntityType interface should not be exposed directly at runtime, use the selectEntitySet method
    */
   getEntityType(entity: string): Observable<EntityType | Error>
-
   /**
    * @deprecated use selectMembers
    */
@@ -195,7 +195,7 @@ export interface DataSource {
    */
   updateCube(cube: Cube): void
   /**
-   * Insert or update a indicator by code
+   * Insert or update a indicator by `code`
    */
   upsertIndicator(indicator: Indicator): void
 
@@ -258,12 +258,12 @@ export interface DataSource {
    */
   query(options: { statement: string; forceRefresh?: boolean; timeout?: number; }): Observable<any>
 
-  /**
-   * Observe to runtime calculated measures
-   * 
-   * @param cube 
-   */
-  selectCalculatedMeasures(cube: string): Observable<CalculatedProperty[]>
+  // /**
+  //  * Observe to runtime calculated measures
+  //  * 
+  //  * @param cube 
+  //  */
+  // selectCalculatedMeasures(cube: string): Observable<CalculatedProperty[]>
 
   /**
    * Clear the browser cache
@@ -403,33 +403,38 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
    */
   selectEntitySet(entity: string): Observable<EntitySet | Error> {
     if (!this._entitySets[entity]) {
-      this._entitySets[entity] = this.getEntityType(entity).pipe(
-        switchMap((rtEntityType) => {
-          return isEntityType(rtEntityType)
-            ? this.selectSchema().pipe(
+      // Merge runtime types, temporary calculation measures, indicator lists, and type enhancement definitions in the schema: Can temporary calculated measures be merged with type enhancement definitions in the schema?
+      this._entitySets[entity] = combineLatest([this.getEntityType(entity), this.options$.pipe(map((options) => options?.calculatedMeasures?.[entity]))]).pipe(
+        switchMap(([rtEntityType, calculatedMeasures]) => {
+          if (isEntityType(rtEntityType)) {
+            return this.selectSchema().pipe(
                 distinctUntilChanged(),
                 map((schema) => {
+                  const properties = {...rtEntityType.properties}
                   const indicators = schema?.indicators?.filter((indicator) => indicator.entity === entity)
-
                   indicators?.forEach((indicator) => {
                     mapIndicatorToMeasures(indicator).forEach((measure) => {
-                      rtEntityType.properties[measure.name] = {
+                      properties[measure.name] = {
                         ...measure,
                         role: AggregationRole.measure
                       }
                     })
                   })
+                  calculatedMeasures?.forEach((measure) => {
+                    properties[measure.name] = measure
+                  })
+                  rtEntityType.properties = properties
 
                   const customEntityType = schema?.entitySets?.[entity]?.entityType
                   let entityType = rtEntityType
 
                   if (!isNil(customEntityType)) {
-                    // TODO merge 函数有风险
+                    // TODO merge functions are risky
                     entityType = mergeEntityType(assign({}, rtEntityType), customEntityType)
                   }
 
                   if (entityType) {
-                    // 将数据源方言同步到 EntityType
+                    // Synchronize Data Source and Dialect into EntityType
                     entityType.dialect = this.options.dialect
                     entityType.syntax = this.options.syntax
                   }
@@ -442,7 +447,9 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
                   } as EntitySet
                 })
               )
-            : of(rtEntityType)
+          }
+            
+          return of(rtEntityType)
         }),
         takeUntil(this.destroy$),
         shareReplay(1)

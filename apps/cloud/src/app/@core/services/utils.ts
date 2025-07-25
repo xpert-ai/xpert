@@ -1,9 +1,8 @@
-import { convertIndicatorResult, NgmSemanticModel } from '@metad/cloud/state'
+import { NgmSemanticModel } from '@metad/cloud/state'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { AgentType, DataSourceOptions, isNil, mapIndicatorToMeasures, omit, Syntax } from '@metad/ocap-core'
+import { AgentType, DataSourceOptions, isNil, omit, PropertyMeasure, Syntax } from '@metad/ocap-core'
 import { getSemanticModelKey } from '@metad/story/core'
-import { IIndicator } from '../types'
 
 /**
  * Register semantic model into data soruce.
@@ -19,7 +18,7 @@ export function registerModel(
   isDraft: boolean,
   dsCoreService: NgmDSCoreService,
   wasmAgent: WasmAgentService,
-  indicators?: IIndicator[]
+  calculatedMeasures?: Record<string, PropertyMeasure[]> // Runtime measures to be registered
 ) {
   const modelKey = getSemanticModelKey(model)
   const agentType = isNil(model.dataSource)
@@ -48,14 +47,7 @@ export function registerModel(
       ...(model.schema ?? {}),
       indicators: model.indicators
     },
-    calculatedMeasures: indicators?.reduce((measures, indicator) => {
-      if (indicator.entity) {
-        measures[indicator.entity] ??= []
-        measures[indicator.entity].push(...mapIndicatorToMeasures(convertIndicatorResult(indicator)))
-      }
-
-      return measures
-    }, {})
+    calculatedMeasures
   } as DataSourceOptions
 
   if (model.dataSource?.type?.protocol?.toUpperCase() === 'SQL') {

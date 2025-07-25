@@ -19,7 +19,9 @@ import {
 	TToolCredentials
 } from '@metad/contracts'
 import {
+	AggregationRole,
 	BarVariant,
+	CalculationType,
 	ChartAnnotation,
 	ChartBusinessService,
 	ChartOrient,
@@ -37,6 +39,7 @@ import {
 	Schema,
 	toAdvancedFilter,
 	tryFixDimension,
+	tryFixMeasureName,
 	tryFixOrder,
 	tryFixSlicer,
 	tryFixVariableSlicer,
@@ -56,6 +59,7 @@ import { fixMeasure, markdownCubes, tryFixChartType, tryFixFormula } from '../..
 import { TBIContext } from '../../../types'
 import { GetBIContextQuery } from '../../../queries'
 import { IndicatorSchema } from '../../schema'
+
 
 function cubesReducer(a, b) {
 	return [...a.filter((_) => !b?.some((item) => item.cubeName === _.cubeName)), ...(b ?? [])]
@@ -142,13 +146,15 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		await this.initModels()
 
 		this.tools = []
-		if (tools.find((_) => _.name === ChatBIToolsEnum.GET_AVAILABLE_CUBES)) {
+		const allAllowed = !this.toolset.tools?.length
+		
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.GET_AVAILABLE_CUBES)) {
 			this.tools.push(this.createGetAvailableCubes() as unknown as Tool)
 		}
-		if (tools.find((_) => _.name === ChatBIToolsEnum.GET_CUBE_CONTEXT)) {
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.GET_CUBE_CONTEXT)) {
 			this.tools.push(this.createCubeContextTool(this.dsCoreService) as unknown as Tool)
 		}
-		if (tools.find((_) => _.name === ChatBIToolsEnum.MEMBER_RETRIEVER)) {
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.MEMBER_RETRIEVER)) {
 			const dimensionMemberRetrieverTool = createDimensionMemberRetrieverTool(
 				{
 					chatbi: this,
@@ -165,9 +171,9 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			this.tools.push(dimensionMemberRetrieverTool)
 		}
 
-		if (tools.find((_) => _.name === ChatBIToolsEnum.CREATE_INDICATOR)) {
-			this.tools.push(this.createIndicatorTool(this.dsCoreService))
-		}
+		// if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.CREATE_INDICATOR)) {
+		// 	this.tools.push(this.createIndicatorTool(this.dsCoreService))
+		// }
 
 		return this.tools
 	}
@@ -415,12 +421,41 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					// Make sure datasource exists
 					const _dataSource = await dsCoreService._getDataSource(answer.dataSettings.dataSource)
 					const entity = await firstValueFrom(
-						dsCoreService.selectEntitySetOrFail(answer.dataSettings.dataSource, answer.dataSettings.entitySet)
+						_dataSource.selectEntitySet(answer.dataSettings.entitySet)
 					)
 					if (isEntitySet(entity)) {
 					    entityType = entity.entityType
 					} else {
 						throw entity
+					}
+
+					if (answer.calculated_members?.length) {
+						_dataSource.updateOptions((options) => {
+							return {
+								...options,
+								calculatedMeasures: {
+									...(options.calculatedMeasures ?? {}),
+									[answer.dataSettings.entitySet]: answer.calculated_members.map((member) => {
+										return {
+											...member,
+											name: tryFixMeasureName(member.name),
+											role: AggregationRole.measure,
+											calculationType: CalculationType.Calculated,
+											visible: true
+										}
+									})
+								}
+							}
+						})
+						// Get the entityType after updating the calculated member
+						const entity = await firstValueFrom(
+							_dataSource.selectEntitySet(answer.dataSettings.entitySet)
+						)
+						if (isEntitySet(entity)) {
+							entityType = entity.entityType
+						} else {
+							throw entity
+						}
 					}
 				}
 
@@ -525,10 +560,11 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			}
 		}
 
-		const dataSettings = {
+		const dataSettings: DataSettings = {
 				...answer.dataSettings,
 				chartAnnotation,
-				presentationVariant
+				presentationVariant,
+				calculatedMembers: answer.calculated_members,
 			}
 		// In parallel: return to the front-end display and back-end data retrieval
 		if (answer.visualType === 'KPI') {
@@ -551,7 +587,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							} as DataSettings,
 							slicers,
 							title: answer.preface,
-							// indicator
 						} as TMessageComponent,
 						xpertName,
 						agentKey
@@ -567,7 +602,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				chartSettings,
 				slicers,
 				title: answer.preface,
-				indicators
+				indicators,
 			} as TMessageComponent)
 			// subscriber.next({
 			// 	data: {
