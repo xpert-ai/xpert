@@ -1,7 +1,7 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
   <div class="w-full flex justify-start items-center cursor-pointer mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
-    <span class="text-lg pointer-events-none">
+    <span class="text-xl font-medium pointer-events-none">
       {{ 'Story.Explain.Title' | translate: {Default: "Execute Explain"} }}
     </span>
   </div>
@@ -52,10 +52,16 @@
       <h5 class="px-4 py-2 text-lg sticky top-0 z-10 bg-components-card-bg">
         {{ 'Story.Explain.DataSettings' | translate: {Default: 'Data Settings'} }}:
       </h5>
-      <ngm-prism-highlight class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
-        [code]="explain.data | omitBlank | json"
-        language="json"
-      />
+      <div class="flex justify-start px-4 py-1">
+        <ngm-copy #copy class="copy"
+          [content]="explain.data"
+          [matTooltip]="copy.copied() ? ('Story.Common.Copied' | translate: {Default: 'Copied'}) : ('Story.Common.Copy' | translate: {Default: 'Copy'})"
+          matTooltipPosition="above" 
+        />
+      </div>
+      @if (explain.data | omitBlank; as data) {
+        <ngx-json-viewer class="text-sm p-4" [json]="data" [depth]="2" />
+      }
     }
     @case ('statements') {
       <div>
@@ -65,8 +71,7 @@
           <ngm-prism-highlight class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
             [code]="statement"
             language="sql"
-            >
-          </ngm-prism-highlight>
+          />
         </div>
         }
       </div>
@@ -91,22 +96,36 @@
       <div>
         <h5 class="px-4 py-2 text-lg sticky top-0 z-10 bg-components-card-bg">
           {{ 'Story.Explain.Options' | translate: {Default: 'Options'} }}:</h5>
-        <ngm-prism-highlight class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
-          [code]="explain.options | json"
-          language="json"
-          maximum="10000">
-        </ngm-prism-highlight>
+        <div class="flex justify-start px-4 py-1">
+          <ngm-copy #copy class="copy"
+            [content]="explain.options"
+            [matTooltip]="copy.copied() ? ('Story.Common.Copied' | translate: {Default: 'Copied'}) : ('Story.Common.Copy' | translate: {Default: 'Copy'})"
+            matTooltipPosition="above" 
+          />
+        </div>
+        <div class="p-4">
+          @if (explain.options; as data) {
+            <ngx-json-viewer class="text-sm" [json]="data" [depth]="2" />
+          }
+        </div>
       </div>
     }
     @case ('slicers') {
       <div>
         <h5 class="px-4 py-2 text-lg sticky top-0 z-10 bg-components-card-bg">
           {{ 'Story.Explain.Slicers' | translate: {Default: 'Slicers'} }}:</h5>
-        <ngm-prism-highlight class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
-          [code]="explain.options | json"
-          language="json"
-          maximum="10000">
-        </ngm-prism-highlight>
+        <div class="flex justify-start px-4 py-1">
+          <ngm-copy #copy class="copy"
+            [content]="explain.options"
+            [matTooltip]="copy.copied() ? ('Story.Common.Copied' | translate: {Default: 'Copied'}) : ('Story.Common.Copy' | translate: {Default: 'Copy'})"
+            matTooltipPosition="above" 
+          />
+        </div>
+        <div class="p-4">
+          @if (explain.options; as data) {
+            <ngx-json-viewer class="text-sm" [json]="data" [depth]="2" />
+          }
+        </div>
       </div>
     }
   }

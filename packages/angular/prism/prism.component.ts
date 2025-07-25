@@ -1,32 +1,19 @@
-import { ClipboardModule } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import { Component, effect, input, numberAttribute, signal } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
+import { NgmCopyComponent } from '../common'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ClipboardModule, MatIconModule, MatButtonModule],
+  imports: [CommonModule, NgmCopyComponent],
   selector: 'ngm-prism-highlight',
   template: `<pre class="m-0 overflow-auto"><code [innerHTML]="highlightedCode()" class="m-0"></code></pre>
-<button mat-icon-button (click)="copy()" [cdkCopyToClipboard]="code()">
-  @if (copied()) {
-    <mat-icon fontSet="material-icons-outlined">done</mat-icon>
-  } @else {
-    <mat-icon fontSet="material-icons-outlined">content_copy</mat-icon>
-  }
-</button>
+<ngm-copy class="absolute right-1 top-1 text-lg !text-white rounded-md w-6 h-6 flex justify-center items-center bg-white/30 backdrop-blur-sm" [content]="code()" />
 `,
   styles: [
     `
       :host {
         display: block;
         position: relative;
-      }
-      .mdc-icon-button.mat-mdc-icon-button {
-        position: absolute;
-        top: 0;
-        right: 0;
       }
     `
   ],
@@ -42,7 +29,6 @@ export class NgmPrismHighlightComponent {
   })
 
   readonly highlightedCode = signal('')
-  readonly copied = signal(false)
 
   #effRef = effect(
     async () => {
@@ -68,11 +54,4 @@ export class NgmPrismHighlightComponent {
     },
     { allowSignalWrites: true }
   )
-
-  copy() {
-    this.copied.set(true)
-    setTimeout(() => {
-      this.copied.set(false)
-    }, 3000)
-  }
 }
