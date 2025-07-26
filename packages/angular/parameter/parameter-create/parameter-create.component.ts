@@ -23,7 +23,7 @@ import { MatInputModule } from '@angular/material/input'
 import { MatRadioModule } from '@angular/material/radio'
 import { NgmInputModule, NgmHierarchySelectComponent } from '@metad/ocap-angular/common'
 import { NgmControlsModule, TreeControlOptions } from '@metad/ocap-angular/controls'
-import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { EntityUpdateEvent, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -33,7 +33,7 @@ import {
   getEntityDimensions,
   getEntityHierarchy,
   isNil,
-  uuid
+  suuid,
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter, map, startWith } from 'rxjs'
@@ -75,7 +75,7 @@ export class NgmParameterCreateComponent {
   readonly entityType = model<EntityType>()
 
   /**
-   * 编辑模式, 否则为创建模式
+   * Edit mode, otherwise create mode
    */
   readonly edit = signal(false)
 
@@ -86,7 +86,7 @@ export class NgmParameterCreateComponent {
   }
 
   formGroup: FormGroup = this._formBuilder.group({
-    __id__: uuid(),
+    __id__: suuid(),
     name: ['', [Validators.required, this.forbiddenNameValidator()]],
     caption: null,
     dimension: null,
@@ -177,16 +177,16 @@ export class NgmParameterCreateComponent {
   }
 
   onApply() {
-    this.#coreService.updateEntity({
+    const event: EntityUpdateEvent = {
       type: 'Parameter',
       dataSettings: this.dataSettings(),
       parameter: {
         ...this.formGroup.value,
         members: this.formGroup.value.availableMembers.filter((member) => member.isDefault)
       }
-    })
-
-    this._dialogRef.close()
+    }
+    this.#coreService.updateEntity(event)
+    this._dialogRef.close(event)
   }
 
   create(item?): FormGroup {

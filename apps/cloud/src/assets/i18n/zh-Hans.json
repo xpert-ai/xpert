@@ -494,6 +494,8 @@
       "Attributes": "属性",
       "CALCULATION": "计算",
       "CALCULATED_MEMBERS": "计算成员",
+      "Calculations": "计算度量",
+      "Parameters": "参数",
       "DIMENSIONS": "维度",
       "ENTITY": "实体",
       "MANUAL_REFRESH": "手动刷新",
@@ -1190,6 +1192,8 @@
         "NewDimension": "新建维度",
         "NewMeasure": "新建度量",
         "NewCalculatedMember": "新建计算成员",
+        "NewCalculation": "新建计算度量",
+        "NewParameter": "新建参数",
         "CALCULATION": {
           "ROWS": "行",
           "COLUMNS": "列",

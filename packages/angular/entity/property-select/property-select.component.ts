@@ -66,10 +66,11 @@ import { MatBadgeModule } from '@angular/material/badge'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { Dialog } from '@angular/cdk/dialog'
 import { PropertyCapacity } from '../types'
 import { NgmEntityPropertyComponent, propertyIcon } from '../property/property.component'
 import { NgmFormattingComponent } from '../formatting/formatting.component'
-import { Dialog } from '@angular/cdk/dialog'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 
 @Component({
@@ -89,6 +90,7 @@ import { Dialog } from '@angular/cdk/dialog'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    CdkMenuModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -840,7 +842,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     })
   }
 
-  async onCreateCalculation(event, calculationType?: CalculationType) {
+  async onCreateCalculation(event: Event, calculationType?: CalculationType) {
     event.preventDefault()
     event.stopPropagation()
 

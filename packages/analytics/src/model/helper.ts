@@ -9,6 +9,7 @@ import {
   isNil,
   isObject,
   isString,
+  assign, omit, omitBy
 } from 'lodash'
 import { Observable } from 'rxjs'
 import { RedisClientType } from 'redis'
@@ -111,4 +112,19 @@ export async function updateXmlaCatalogContent(redisClient: RedisClientType, mod
       catalogContent
     })
   }
+}
+
+export function applySemanticModelDraft(model: ISemanticModel) {
+	if (model.draft) {
+		assign(model, omit(model.draft, 'savedAt', 'schema', 'settings', 'dbInitialization', 'tables'))
+		model.options = omitBy({
+			schema: model.draft.schema,
+			settings: model.draft.settings,
+			dbInitialization: model.draft.dbInitialization,
+			tables: model.draft.tables,
+		}, isNil)
+	}
+	model.draft = null
+
+  return model
 }

@@ -182,13 +182,13 @@ export class ModelEntityStructureComponent extends TranslationBaseComponent {
   }
 
   dropEnterPredicate(item: CdkDrag<any>) {
-    return item.dropContainer.id === 'list-table-measures' || item.dropContainer.id === 'list-table-dimensions'
+    return item.dropContainer.id === CdkDragDropContainers.FactTableMeasures || item.dropContainer.id === CdkDragDropContainers.FactTableDimensions
   }
 
   async dropProperty(event: CdkDragDrop<Property[]>) {
     if (
-      (event.previousContainer.id === 'list-table-dimensions' && event.container.id === 'list-table-measures') ||
-      (event.previousContainer.id === 'list-table-measures' && event.container.id === 'list-table-dimensions')
+      (event.previousContainer.id === CdkDragDropContainers.FactTableDimensions && event.container.id === CdkDragDropContainers.FactTableMeasures) ||
+      (event.previousContainer.id === CdkDragDropContainers.FactTableMeasures && event.container.id === CdkDragDropContainers.FactTableDimensions)
     ) {
       transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex)
     } else if (event.previousContainer === event.container) {

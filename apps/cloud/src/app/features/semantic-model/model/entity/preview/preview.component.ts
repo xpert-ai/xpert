@@ -9,7 +9,7 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { DisplayDensity, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
-import { C_MEASURES, DataSettings, Dimension, FilterOperator, getEntityVariables, isEntitySet, ISlicer, Measure, PresentationVariant, Syntax } from '@metad/ocap-core'
+import { C_MEASURES, DataSettings, Dimension, FilterOperator, getEntityVariables, getEntityParameters, isEntitySet, ISlicer, Measure, PresentationVariant, Syntax, AggregationRole, ParameterProperty } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { differenceBy, isEmpty } from 'lodash-es'
@@ -28,6 +28,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { ExplainComponent } from '@metad/story/story'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmPresentationComponent } from '@metad/ocap-angular/selection'
+import { NgmParameterComponent } from '@metad/ocap-angular/parameter'
 
 @Component({
   standalone: true,
@@ -55,7 +56,8 @@ import { NgmPresentationComponent } from '@metad/ocap-angular/selection'
     NgmControlsModule,
     NgmEntityModule,
     NgmDensityDirective,
-    NgmPresentationComponent
+    NgmPresentationComponent,
+    NgmParameterComponent
   ]
 })
 export class ModelEntityPreviewComponent {
@@ -190,9 +192,8 @@ export class ModelEntityPreviewComponent {
   readonly entityType = computed(() => this.#entityType()?.entityType)
   readonly entityError = computed(() => this.#entityType()?.error)
 
-  readonly variableList = computed(() => {
-    return getEntityVariables(this.entityType())
-  })
+  readonly variableList = computed(() => getEntityVariables(this.entityType()))
+  readonly parameters = computed(() => getEntityParameters(this.entityType()).filter(({role}) => role !== AggregationRole.variable))
 
   readonly explains = signal<any[]>([])
 
@@ -296,7 +297,8 @@ export class ModelEntityPreviewComponent {
       // dimensions
       item.dropContainer.id === CdkDragDropContainers.Dimensions ||
       item.dropContainer.id === CdkDragDropContainers.Measures ||
-      item.dropContainer.id === CdkDragDropContainers.CalculatedMembers
+      item.dropContainer.id === CdkDragDropContainers.CalculatedMembers ||
+      item.dropContainer.id === CdkDragDropContainers.Calculations
     )
   }
 
@@ -339,8 +341,9 @@ export class ModelEntityPreviewComponent {
           ]
         }
       } else if (
-        event.previousContainer.id === 'list-measures' ||
-        event.previousContainer.id === CdkDragDropContainers.CalculatedMembers
+        event.previousContainer.id === CdkDragDropContainers.Measures ||
+        event.previousContainer.id === CdkDragDropContainers.CalculatedMembers ||
+        event.previousContainer.id === CdkDragDropContainers.Calculations
       ) {
         let rows = null
         if (event.container.id === 'property-modeling-rows') {
@@ -359,17 +362,6 @@ export class ModelEntityPreviewComponent {
               measure: data.name
             })
           }
-
-          // const item =
-          //   index > -1
-          //     ? { ...rows.splice(index, 1)[0] }
-          //     : {
-          //         dimension: C_MEASURES,
-          //         members: []
-          //       }
-          // item.members = [...item.members, serializeMeasureName(dialect, data.name)]
-          // item.members = uniq(item.members)
-          // rows.splice(event.currentIndex, 0, item)
         }
 
         if (event.container.id === 'property-modeling-rows') {

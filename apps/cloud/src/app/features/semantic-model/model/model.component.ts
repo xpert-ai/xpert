@@ -73,7 +73,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe, OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
+import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
 import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
 import { MatSidenavModule } from '@angular/material/sidenav'
@@ -338,6 +338,7 @@ export class ModelComponent extends TranslationBaseComponent {
   })
 
   #modelerCommand = injectModelerCommand()
+
 
   ngOnInit() {
     this.model = this.route.snapshot.data['storyModel']

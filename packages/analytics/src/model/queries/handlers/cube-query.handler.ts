@@ -6,6 +6,7 @@ import { firstValueFrom, switchMap } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
 import { NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN, registerSemanticModel } from '../../ocap'
 import { ModelCubeQuery } from '../cube.query'
+import { applySemanticModelDraft } from '../../helper'
 
 /**
  * Maximum query waiting time 10 minutes
@@ -50,7 +51,7 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 				return indicator
 			})
 		}
-		registerSemanticModel(isDraft ? {...model, ...(model.draft ?? {}), isDraft: true} : model, isDraft, dsCoreService, { language: acceptLanguage })
+		registerSemanticModel(isDraft ? {...applySemanticModelDraft(model), isDraft: true} : model, isDraft, dsCoreService, { language: acceptLanguage })
 
 		const entityService = await firstValueFrom(dsCoreService.getEntityService(modelId, query.cube))
 

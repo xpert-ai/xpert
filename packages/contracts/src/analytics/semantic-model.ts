@@ -1,3 +1,4 @@
+import { PropertyHierarchy, Schema } from '@metad/ocap-core'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ITag } from '../tag-entity.model'
 import { ChecklistItem, IPoint, ISize } from '../types'
@@ -9,8 +10,6 @@ import { IIndicator } from './indicator'
 import { IModelQuery } from './model-query'
 import * as MDX from './schema'
 import { IStory } from './story'
-
-export type PropertyHierarchy = any
 
 /**
  * Data agent types
@@ -38,7 +37,10 @@ export interface ISemanticModelPreferences {
 /**
  * Model Schema Structured Data
  */
-export type TSemanticModelOptions<T> = {
+export type TSemanticModelOptions<T = Schema> = {
+  /**
+   * The schema for MDX cube, dimension and virtual cube
+   */
   schema?: T
   settings?: TSemanticModelSettings
 }
@@ -62,12 +64,18 @@ export type TSemanticModel = {
   roles?: Array<IModelRole>
 }
 
+/**
+ * Common settings for semantic model space
+ */
 export type TSemanticModelSettings = {
   canvas?: {
     position: IPoint
     scale: number
   };
   nodes?: {key: string; position?: IPoint; size?: ISize}[]
+  /**
+   * @experimental A hierarchy of intermediate states that are not yet fixed
+   */
   hierarchies?: PropertyHierarchy[]
 
   /**

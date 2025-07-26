@@ -72,7 +72,7 @@ export interface NamedSet {
 }
 
 /**
- * 计算字段
+ * Calculation measures or member sets
  */
 export interface CalculationProperty extends EntityProperty {
   calculationType: CalculationType

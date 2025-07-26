@@ -15,8 +15,8 @@ export class NgmOcapCoreService {
   protected dateVariables = inject(NGM_DATE_VARIABLES)
 
   /**
-   * 接收各组件创建修改计算字段的事件, 发给组件进行实际更新
-   * 暂时使用这种间接的方式
+   * Receive events of creating and modifying calculated fields from each component, and send them to the component for actual update
+   * Temporarily use this indirect method
    */
   readonly #entityUpdateEvent$ = new Subject<EntityUpdateEvent>()
   readonly #openCalculation = signal<(params: any) => Observable<CalculationProperty>>((params: any) => EMPTY)

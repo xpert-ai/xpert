@@ -60,7 +60,7 @@
   <span class="leading-tight text-lg">{{ 'PAC.MENU.DIMENSIONS' | translate: {Default: "Dimensions"} }}</span>
 </div>
 
-<div id="list-table-dimensions" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col"
+<div [id]="eCdkDragDropContainers.FactTableDimensions" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col"
   cdkDropList
   [cdkDropListData]="dimensions()"
   [cdkDropListEnterPredicate]="dropEnterPredicate"
@@ -87,7 +87,7 @@
   <span class="leading-tight text-lg">{{ 'PAC.MENU.MEASURES' | translate: {Default: "Measures"} }}</span>
 </div>
 
-<div id="list-table-measures" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col"
+<div [id]="eCdkDragDropContainers.FactTableMeasures" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col"
   cdkDropList
   [cdkDropListData]="measures()"
   [cdkDropListEnterPredicate]="dropEnterPredicate"

@@ -2,6 +2,7 @@ import { ComponentStore } from '@metad/store'
 import {
   BehaviorSubject,
   catchError,
+  combineLatestWith,
   debounce,
   delayWhen,
   distinctUntilChanged,
@@ -131,10 +132,11 @@ export class EntityBusinessService<
       .pipe(
         delayWhen(() => this.initialise$),
         debounce(() => interval(100)),
+        combineLatestWith(this.dataSource$.pipe(switchMap((dataSource) => dataSource.selectOptions()), map((options) => options.parameters?.[this.dataSettings.entitySet]), distinctUntilChanged())),
         tap(() => this.loading$.next(true)),
-        switchMap((force) => {
+        switchMap(([force, parameters]) => {
           try {
-            return this.selectQuery({ force }).pipe(
+            return this.selectQuery({ force, parameters }).pipe(
               tap((result) => {
                 if (result.error) {
                   this.internalError$.next(result.error)
@@ -217,7 +219,7 @@ export class EntityBusinessService<
   }
 
   /**
-   * 如果先改变查询条件和逻辑，可以在子类中重写此方法
+   * If you change the query conditions and logic first, you can override this method in the subclass
    *
    * @param options `QueryOptions`
    */

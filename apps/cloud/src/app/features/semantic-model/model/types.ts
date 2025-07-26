@@ -246,5 +246,9 @@ export enum CdkDragDropContainers {
   Dimensions = 'list-dimensions',
   Measures = 'list-measures',
   CalculatedMembers = 'list-calculated-members',
+  Calculations = 'list-calculations',
+  Parameters = 'list-parameters',
   CubeSchema = 'pac-model-cube-schema',
+  FactTableMeasures = 'list-table-measures',
+  FactTableDimensions = 'list-table-dimensions',
 }

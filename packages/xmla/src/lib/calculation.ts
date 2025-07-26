@@ -95,19 +95,21 @@ export function calculationPropertyToFormula(property: CalculationProperty, slic
 }
 
 /**
- * 1. 从 EntityType 的 CalculationProperty 中计算出依赖的计算字段, 这些字段可能不是来自于 Model 的 MDX CalculatedMembers, 所以需要单独计算
- * 2. 替换公式中的参数成实际值
+ * 1. Calculate dependent calculated fields from the CalculationProperty of EntityType. These fields may not come from the MDX CalculatedMembers of the Model, so they need to be calculated separately.
+ * 2. Replace the parameters in the formula with actual values
  *
  * @param members
  * @param calculationProperties
  * @param formula
+ * @param values Actual values of parameters
  */
 export function addCalculatedMember(
   formula: string,
   members: Record<string, WithMemberType>,
   calculationProperties: Array<CalculationProperty>,
   parameters: Array<ParameterProperty>,
-  slicers?: MDXHierarchyFilter[]
+  slicers?: MDXHierarchyFilter[],
+  values?: Record<string, any>
 ) {
   calculationProperties.forEach((property) => {
     if (!members[property.name]) {
@@ -142,7 +144,8 @@ export function addCalculatedMember(
           members,
           calculationProperties,
           parameters,
-          slicers
+          slicers,
+          values
         )
       }
     }
@@ -150,7 +153,7 @@ export function addCalculatedMember(
 
   parameters?.forEach((property) => {
     if (formula.includes(`[@${property.name}]`)) {
-      const parameter = serializeParameter(property)
+      const parameter = serializeParameter(property, values)
       formula = formula.split(`[@${property.name}]`).join(parameter)
     }
   })
@@ -490,13 +493,27 @@ export function serializeDimensionMembers(dimension: Dimension): string {
   return Members(dimension.hierarchy || dimension.dimension)
 }
 
-export function serializeParameter(parameter: ParameterProperty) {
+/**
+ * Serialize parameter value based on parameter definitions and actual values
+ * 
+ * @param parameter 
+ * @param values 
+ * @returns value string
+ */
+export function serializeParameter(parameter: ParameterProperty, values: Record<string, any>) {
   switch (parameter.paramType) {
     case ParameterControlEnum.Input:
-      return `${parameter.value}`
-    case ParameterControlEnum.Select:
+      return values?.[parameter.name] ? `${values[parameter.name]}` : `${parameter.value}`
+    case ParameterControlEnum.Select: {
+      if (values?.[parameter.name]) {
+        return values[parameter.name].map((member) => getMemberValue(member)).join(',')
+      }
       return isNil(parameter.value) ? parameter.members.map((member) => getMemberValue(member)).join(',') : parameter.value as string
+    }
     default: {
+      if (values?.[parameter.name]) {
+        return values[parameter.name].map((member) => getMemberValue(member)).join(',')
+      }
       const hierarchy = getPropertyHierarchy(parameter)
       return isEmpty(parameter.members)
         ? serializeDimensionMembers(parameter)

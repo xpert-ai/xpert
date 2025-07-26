@@ -4,12 +4,12 @@ import {
   Component,
   EventEmitter,
   Input,
-  OnChanges,
   Output,
-  SimpleChanges,
-  inject
+  computed,
+  inject,
+  input
 } from '@angular/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ThemePalette } from '@angular/material/core'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -19,7 +19,7 @@ import { MatRadioModule } from '@angular/material/radio'
 import { MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { linkedModel, NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   DataSettings,
   DisplayBehaviour,
@@ -87,18 +87,14 @@ export interface ParameterOptions {
     class: 'ngm-parameter'
   }
 })
-export class NgmParameterComponent implements OnChanges {
+export class NgmParameterComponent {
   ParameterControlEnum = ParameterControlEnum
 
   private dsCoreService = inject(NgmDSCoreService)
 
-  @Input() get dataSettings(): DataSettings {
-    return this.dataSettings$.value
-  }
-  set dataSettings(value) {
-    this.dataSettings$.next(value)
-  }
-  private dataSettings$ = new BehaviorSubject<DataSettings>(null)
+  // Inputs
+  readonly dataSettings = input<DataSettings>()
+  private dataSettings$ = toObservable(this.dataSettings)
 
   @Input() get parameter(): ParameterProperty {
     return this.parameter$.value
@@ -143,6 +139,7 @@ export class NgmParameterComponent implements OnChanges {
     distinctUntilChanged(),
     switchMap((dataSource) => this.dsCoreService.getDataSource(dataSource))
   )
+  readonly dataSource = toSignal(this.dataSource$)
   public readonly dimension$ = this.parameter$.pipe(
     filter((value) => !!value?.dimension),
     map((parameter) => pick(parameter, 'dimension', 'hierarchy')),
@@ -178,19 +175,26 @@ export class NgmParameterComponent implements OnChanges {
 
   readonly variableProperty = toSignal(this.parameter$.pipe(map((parameter) => isVariableProperty(parameter) ? parameter : null)))
 
+  readonly entitySet = computed(() => this.dataSettings()?.entitySet)
+  readonly _parameters = toSignal(this.dataSource$.pipe(switchMap((dataSource) => dataSource.selectOptions()), map((options) => options.parameters?.[this.entitySet()])))
+  readonly parameterValue = linkedModel({
+    initialValue: null,
+    compute: () => this._parameters()?.[this.parameter.name] ?? this.parameter.value,
+    update: (value) => {
+      this.dataSource().updateParameters(this.entitySet(), (parameters) => {
+        return {...parameters, [this.parameter.name]: value}
+      })
+    }
+  })
+
   slicer = {}
-  parameterValue = null
 
   private changeParameter$ = new Subject<void>()
   private changeSub = this.changeParameter$
     .pipe(debounceTime(500), takeUntilDestroyed())
     .subscribe(() => this.parameterChange.emit(this.parameter))
 
-  ngOnChanges({ parameter }: SimpleChanges): void {
-    if (parameter) {
-      this.parameterValue = parameter.currentValue?.value
-    }
-  }
+
 
   compareWith(a: IMember, b: IMember) {
     return a.value === b.value
@@ -206,6 +210,7 @@ export class NgmParameterComponent implements OnChanges {
 
   changeParameter() {
     this.changeParameter$.next()
+    this.parameterValue.set(this.parameter.value)
   }
 
   onSlicerChange(slicer: ISlicer) {

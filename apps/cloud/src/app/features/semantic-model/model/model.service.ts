@@ -3,7 +3,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SemanticModelServerService as SemanticModelsService, NgmSemanticModel, convertNewSemanticModelResult } from '@metad/cloud/state'
-import { NgmDSCoreService, effectAction } from '@metad/ocap-angular/core'
+import { NgmDSCoreService, effectAction, linkedModel } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import {
   AgentType,
@@ -246,6 +246,15 @@ export class SemanticModelService {
   readonly checklist = computed(() => this.draftSignal().checklist)
 
   readonly canPublish = computed(() => !!(this.model().draft || this.#savedAt()))
+
+  // Schema
+  readonly schema = linkedModel({
+    initialValue: null,
+    compute: () => this.draftSignal()?.schema,
+    update: (schema) => {
+      this.updateDraft({schema})
+    }
+  })
 
   // Subscriptions
   private saveDraftSub = this.draft$.pipe(

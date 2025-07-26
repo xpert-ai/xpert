@@ -1,13 +1,11 @@
 <form [formGroup]="formGroup" class="w-full flex flex-col justify-start items-stretch" displayDensity="cosy">
-
   <div class="text-lg font-medium mb-4"> {{ 'Ngm.Calculation.RESTRICTED_MEASURE' | translate: {Default: "Restricted Measure"} }} </div>
   <ngm-measure-select searchable formControlName="measure" class="self-stretch" [label]="'Ngm.Calculation.Measure' | translate: {Default: 'Measure'}"
     [placeholder]=" 'Ngm.Calculation.MeasureSelectPlaceholder' | translate: {Default: 'select or create a measure'} "
     [dataSettings]="dataSettings"
     [filter]="filterMeasure"
     [error]="formGroup.get('measure').hasError('required') ? ('Ngm.Calculation.MeasureIsRequired' | translate: {Default: 'Measure is required'}) : null"
-  >
-  </ngm-measure-select>
+  />
 
   <div class="text-base font-medium my-4"> {{ 'Ngm.Calculation.RestrictiveConditions' | translate: {Default: "Restrictive Conditions"} }} </div>
   <ngm-property-array class="ngm-calculation__dimensions"
@@ -15,11 +13,10 @@
     [dataSettings]="dataSettings"
     [entityType]="entityType$ | async"
     [capacities]="[PropertyCapacity.Dimension]"
-  ></ngm-property-array>
+  />
   
   <mat-slide-toggle formControlName="enableConstantSelection" class="my-4"
     [matTooltip]=" 'Ngm.Calculation.ConstantSelectionTootip' | translate: {Default: 'Lock down restrictive conditions dimension members so that they will not be overwritten by the user\'s context slicers.'} ">
     {{ 'Ngm.Calculation.ENABLE_CONSTANT_SELECTION' | translate: {Default: "Enable Constant Selection"} }}
   </mat-slide-toggle>
-
 </form>

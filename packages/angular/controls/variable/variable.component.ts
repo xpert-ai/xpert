@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, forwardRef, inject, input, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, forwardRef, inject, input, model } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { DataSettings, IMember, ISlicer, VariableProperty } from '@metad/ocap-core'
+import { DataSettings, getMemberKey, IMember, isArray, ISlicer, VariableProperty } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSmartFilterService } from '../smart-filter.service'
 
@@ -56,6 +56,16 @@ export class NgmVariableComponent implements ControlValueAccessor {
 
   readonly selectOptions = toSignal(this.smartFilterService.selectOptions$)
 
+  readonly placeholder = computed(() => {
+    const value = this.variable()?.value ?? this.variable()?.defaultLow
+    if (isArray(value)) {
+      return value.map((item) => getMemberKey(item)).join(', ')
+    } else if (value) {
+      return `${value}`
+    }
+    return null
+  })
+
   private refreshSub = this.smartFilterService
     .onAfterServiceInit()
     .pipe(takeUntilDestroyed())
@@ -88,7 +98,7 @@ export class NgmVariableComponent implements ControlValueAccessor {
     effect(() => {
       const key = this.value()
       const variable = this.variable()
-      // 初始化完成后才可以发出空值，否则只能在有值情况下发出
+      // Empty values can be emitted only after initialization is complete, otherwise they can only be emitted if there is a value.
       if (variable && (this.slicer && !key || !!key)) {
         const member: IMember = {key}
         if (key) {

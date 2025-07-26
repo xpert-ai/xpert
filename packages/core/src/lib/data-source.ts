@@ -99,6 +99,11 @@ export interface DataSourceOptions extends SemanticModel {
    * Which indicators should use draft
    */
   isDraftIndicators?: string[]
+
+  /**
+   * Key-value pairs of parameters for cube
+   */
+  parameters?: Record<string, Record<string, any>>
 }
 
 /**
@@ -175,7 +180,10 @@ export interface DataSource {
    * Creates a corresponding entityService based on the specified entitySet name
    */
   createEntityService<T>(entity: string): EntityService<T>
-
+  /**
+   * Observe options
+   */
+  selectOptions(): Observable<DataSourceOptions>
   /**
    * Observe runtime schema
    */
@@ -189,11 +197,25 @@ export interface DataSource {
   setSchema(schema: Schema): void
 
   /**
+   * Update the schema
+   * 
+   * @param fn 
+   */
+  updateSchema(fn: (schema: Schema) => Schema): void
+
+  /**
    * Update a single cube definition
    *
    * @param cube
    */
   updateCube(cube: Cube): void
+  /**
+   * Update the value of parameters in cube
+   * 
+   * @param cube Cube name
+   * @param fn Update function
+   */
+  updateParameters(cube: string, fn: (state: Record<string, any>) => Record<string, any>): void
   /**
    * Insert or update a indicator by `code`
    */
@@ -335,6 +357,16 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
     this.options$.next({ ...this.options$.value, schema })
   }
 
+  updateSchema(fn: (schema: Schema) => Schema): void {
+    this.updateOptions((options) => {
+      const schema = options.schema ?? ({} as Schema)
+      return {
+        ...options,
+        schema: fn(schema)
+      }
+    })
+  }
+
   updateCube(cube: Cube) {
     const schema = this.options.schema ?? ({} as Schema)
     const cubes = schema.cubes ? [...schema.cubes] : []
@@ -350,6 +382,19 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
       schema: {
         ...schema,
         cubes
+      }
+    })
+  }
+
+  updateParameters(cube: string, fn: (state: Record<string, any>) => Record<string, any>): void {
+    this.updateOptions((options) => {
+      const parameters = options.parameters ? {...options.parameters} : ({} as Record<string, Record<string, any>>)
+      return {
+        ...options,
+        parameters: {
+          ...parameters,
+          [cube]: fn(parameters[cube] ?? {})
+        }
       }
     })
   }
@@ -370,9 +415,12 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
     this.setSchema(schema)
   }
 
+  selectOptions(): Observable<DataSourceOptions> {
+    return this.options$.pipe(distinctUntilChanged())
+  }
+
   selectSchema(): Observable<Schema> {
-    return this.options$.pipe(
-      distinctUntilChanged(),
+    return this.selectOptions().pipe(
       map((options) => options?.schema),
       distinctUntilChanged(isEqual)
     )
@@ -411,6 +459,9 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
                 distinctUntilChanged(),
                 map((schema) => {
                   const properties = {...rtEntityType.properties}
+                  const parameters = {...(rtEntityType.parameters ?? {})}
+                  const cube = schema?.cubes?.find((c) => c.name === entity)
+                  // Custom indicators
                   const indicators = schema?.indicators?.filter((indicator) => indicator.entity === entity)
                   indicators?.forEach((indicator) => {
                     mapIndicatorToMeasures(indicator).forEach((measure) => {
@@ -420,14 +471,32 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
                       }
                     })
                   })
+                  // Custom calculations
+                  cube?.calculations?.forEach((calculation) => {
+                    properties[calculation.name] = {
+                      ...calculation,
+                      role: AggregationRole.measure,
+                      visible: true,
+                    }
+                  })
+
+                  // Custom parameters
+                  cube?.parameters?.forEach((parameter) => {
+                    parameters[parameter.name] = {
+                      ...parameter,
+                    }
+                  })
+
+                  // Runtime calculated measures
                   calculatedMeasures?.forEach((measure) => {
                     properties[measure.name] = measure
                   })
                   rtEntityType.properties = properties
+                  rtEntityType.parameters = parameters
 
-                  const customEntityType = schema?.entitySets?.[entity]?.entityType
                   let entityType = rtEntityType
-
+                  // User custom entity type
+                  const customEntityType = schema?.entitySets?.[entity]?.entityType
                   if (!isNil(customEntityType)) {
                     // TODO merge functions are risky
                     entityType = mergeEntityType(assign({}, rtEntityType), customEntityType)

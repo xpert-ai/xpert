@@ -1,11 +1,12 @@
 import { ISemanticModel } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { assign, compact, isNil, omit, omitBy } from 'lodash'
+import { compact } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { SemanticModelService } from '../../model.service'
 import { SemanticModelPublishCommand } from '../publish.command'
 import { SemanticModelUpdateCommand } from '../semantic-model.update.command'
+import { applySemanticModelDraft } from '../../helper'
 
 @CommandHandler(SemanticModelPublishCommand)
 export class SemanticModelPublishHandler implements ICommandHandler<SemanticModelPublishCommand> {
@@ -21,20 +22,9 @@ export class SemanticModelPublishHandler implements ICommandHandler<SemanticMode
 		const { id, notes } = command
 
 		const model = await this.service.findOne(id)
-		if (model.draft) {
-			assign(model, omit(model.draft, 'savedAt', 'schema', 'settings', 'dbInitialization', 'tables'))
-			model.options = omitBy({
-				schema: model.draft.schema,
-				settings: model.draft.settings,
-				dbInitialization: model.draft.dbInitialization,
-				tables: model.draft.tables,
-			}, isNil)
-		}
-		
+		applySemanticModelDraft(model)
 		model.releaseNotes = compact([model.releaseNotes, notes]).join('\n')
 		model.publishAt = new Date()
-		model.draft = null
-
 		return await this.commandBus.execute(new SemanticModelUpdateCommand(model, ['roles']))
 	}
 }

@@ -104,6 +104,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
       }, options)
       
       mdxQuery.cube = cube
+      mdxQuery.parameters = options.parameters
       const mdx =
         options.statement || generateMDXStatement(mdxQuery, this.entityType, this.entityType.dialect as MDXDialect)
 

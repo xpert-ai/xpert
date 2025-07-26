@@ -84,7 +84,7 @@ export class NgmRestrictedMeasureComponent implements OnInit, ControlValueAccess
     return this.formGroup.get('measure') as FormControl
   }
 
-  // 排除指标度量后的度量列表
+  // List of measures after excluding indicators
   public readonly measures$ = this.entityType$.pipe(
     map(getEntityMeasures),
     map((measures) => measures.filter((property) => negate(isIndicatorMeasureProperty)(property))),
