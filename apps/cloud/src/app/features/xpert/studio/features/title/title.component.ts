@@ -22,7 +22,6 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
     MatTooltipModule,
     MatSlideToggleModule,
     NgmDensityDirective,
-
     CopilotPromptEditorComponent,
   ],
   templateUrl: './title.component.html',

@@ -1,32 +1,29 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import {
-  getErrorMessage,
   getVariableSchema,
   injectToastr,
   IteratingIndexParameterName,
   IteratingItemParameterName,
   IWFNIterating,
   IWorkflowNode,
+  TWorkflowVarGroup,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertService
 } from '@cloud/app/@core'
-import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
+import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { attrModel, linkedModel } from '@metad/core'
-import { isNil } from 'lodash-es'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-iterating',
@@ -113,40 +110,49 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   readonly subAgent = computed(() => {
     return this.draft()?.nodes.find((_) => _.type === 'agent' && _.key === this.subAgentKey())
   })
-  readonly subAgentVariables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    const nodeKey = this.subAgentKey()
-    return xpertId && nodeKey
-      ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
-          catchError((error) => {
-            this._toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
-  })
+  // readonly subAgentVariables = derivedAsync(() => {
+  //   const xpertId = this.xpertId()
+  //   const nodeKey = this.subAgentKey()
+  //   return xpertId && nodeKey
+  //     ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
+  //         catchError((error) => {
+  //           this._toastr.error(getErrorMessage(error))
+  //           return of([])
+  //         })
+  //       )
+  //     : of(null)
+  // })
 
+  readonly variables = model<TWorkflowVarGroup[]>()
   readonly inputVariableItem = computed(() => getVariableSchema(this.variables(), this.inputVariable()).variable?.item)
   readonly restInputParams = computed(() => this.inputParams()?.filter((p) => p.name !== IteratingIndexParameterName && p.name !== IteratingItemParameterName && !this.inputVariableItem()?.some((_) => _.name === p.name)))
 
   readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.iteratingEntity()?.key)?.to)
   readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
   readonly subXpertAgentKey = computed(() => this.subXpert()?.entity.agent?.key)
-  readonly extXpertVariables = derivedAsync(() => {
-    const xpertId = this.subXpertKey()
-    const nodeKey = this.subXpertAgentKey()
-    return xpertId && nodeKey
-      ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
-          catchError((error) => {
-            this._toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
+  // readonly extXpertVariables = derivedAsync(() => {
+  //   const xpertId = this.subXpertKey()
+  //   const nodeKey = this.subXpertAgentKey()
+  //   return xpertId && nodeKey
+  //     ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
+  //         catchError((error) => {
+  //           this._toastr.error(getErrorMessage(error))
+  //           return of([])
+  //         })
+  //       )
+  //     : of(null)
+  // })
+
+  // readonly subVariables = computed(() => this.extXpertVariables() ?? this.subAgentVariables())
+  readonly subVarOptions = computed<TXpertVariablesOptions>(() => {
+    return {
+      xpertId: this.subXpertKey() ?? this.xpertId(),
+      agentKey: this.subXpertAgentKey() ?? this.subAgentKey(),
+      type: 'output',
+      environmentId: this.studioService.environmentId(),
+    }
   })
-
-  readonly subVariables = computed(() => this.extXpertVariables() ?? this.subAgentVariables())
-
+  
   // System variables
   readonly SYSTEM_VARIABLES = [IteratingIndexParameterName, IteratingItemParameterName]
 

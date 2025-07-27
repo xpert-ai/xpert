@@ -10,10 +10,11 @@ import {
   injectToastr,
   TStateVariable,
   TWFCaseCondition,
-  TWorkflowVarGroup,
-  WorkflowComparisonOperator
+  WorkflowComparisonOperator,
+  XpertService
 } from 'apps/cloud/src/app/@core'
-import { XpertVariableInputComponent } from '../../agent'
+import { TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
+import { derivedAsync } from 'ngxtension/derived-async'
 
 @Component({
   standalone: true,
@@ -25,18 +26,23 @@ import { XpertVariableInputComponent } from '../../agent'
 export class XpertWorkflowConditionFormComponent {
   agentLabel = agentLabel
 
+  readonly xpertAPI = inject(XpertService)
   readonly elementRef = inject(ElementRef)
   readonly #toastr = injectToastr()
 
   // Inputs
   readonly condition = model<TWFCaseCondition>()
-  readonly variables = input<TWorkflowVarGroup[]>()
+  readonly varOptions = input.required<TXpertVariablesOptions>()
 
   // Outputs
   readonly deleted = output<void>()
 
   // States
   readonly loading = signal(false)
+
+  readonly variables = derivedAsync(() => {
+    return this.xpertAPI.getNodeVariables(this.varOptions())
+  })
 
   readonly variableSelector = computed(() => {
     const names = this.condition()?.variableSelector?.split('.')

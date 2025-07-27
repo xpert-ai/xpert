@@ -7,12 +7,11 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   TAgentOutputVariable,
   TVariableAssigner,
-  TWorkflowVarGroup,
   TXpertParameter,
   uuid,
   VariableOperations
 } from '../../../@core/types'
-import { StateVariableSelectComponent } from '../../agent'
+import { StateVariableSelectComponent, TXpertVariablesOptions } from '../../agent'
 import { NgmSelectComponent } from '../../common'
 
 /**
@@ -33,9 +32,11 @@ import { NgmSelectComponent } from '../../common'
   styleUrls: ['variables-assigner.component.scss']
 })
 export class XpertVariablesAssignerComponent {
+  // Inputs
   readonly title = input<string>()
   readonly tooltip = input<string>()
-  readonly variables = input<TWorkflowVarGroup[]>()
+  // readonly variables = input<TWorkflowVarGroup[]>()
+  readonly varOptions = input.required<TXpertVariablesOptions>()
   readonly parameters = input<TXpertParameter[]>()
   readonly memories = model<TVariableAssigner[]>()
   readonly type = input<'tool' | 'agent' | 'variable'>()

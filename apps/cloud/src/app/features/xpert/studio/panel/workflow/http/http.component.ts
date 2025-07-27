@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { Component, computed, ElementRef, inject, input, signal } from '@angular/core'
+import { Component, computed, ElementRef, inject, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpertVariableInputComponent } from '@cloud/app/@shared/agent'
@@ -17,6 +17,7 @@ import {
   IWFNHttp,
   IWorkflowNode,
   TSelectOption,
+  TWorkflowVarGroup,
   TXpertParameter,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
@@ -63,6 +64,7 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
   readonly wfNode = input<IWorkflowNode>()
 
   // States
+  readonly variables = model<TWorkflowVarGroup[]>()
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly entity = computed(() => this.wfNode() as IWFNHttp)
 
@@ -357,7 +359,7 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
       .open(XpertWorkflowAuthorizationComponent, {
         data: {
           authorization: this.authorization(),
-          variables: this.variables()
+          varOptions: this.varOptions()
         }
       })
       .closed.subscribe({

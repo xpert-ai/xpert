@@ -1,6 +1,6 @@
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, inject, input, viewChild } from '@angular/core'
+import { booleanAttribute, Component, computed, inject, input, model, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,7 +12,7 @@ import {
   TWorkflowVarGroup,
   XpertParameterTypeEnum
 } from '../../../@core/types'
-import { XpertVariablePanelComponent } from '../variable-panel/variable.component'
+import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
 
 
 /**
@@ -37,7 +37,7 @@ export class StateVariableSelectComponent {
   protected cva = inject<NgxControlValueAccessor<string>>(NgxControlValueAccessor)
 
   // Inputs
-  readonly variables = input<TWorkflowVarGroup[]>()
+  readonly varOptions = input<TXpertVariablesOptions>()
   readonly type = input<TStateVariableType>()
   readonly inline = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
@@ -46,6 +46,7 @@ export class StateVariableSelectComponent {
   readonly trigger = viewChild('trigger', { read: CdkMenuTrigger })
 
   // States
+  readonly variables = model<TWorkflowVarGroup[]>()
   readonly value$ = this.cva.value$
   readonly selected = computed(() => getVariableSchema(this.variables(), this.value$()))
   readonly group = computed(() => this.selected().group)

@@ -30,6 +30,15 @@ import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { derivedFrom } from 'ngxtension/derived-from'
 
+export type TXpertVariablesOptions = {
+  environmentId: string;
+  xpertId: string;
+  workflowKey?: string;
+  agentKey?: string;
+  type: 'input' | 'output';
+}
+
+
 @Injectable({ providedIn: 'root' })
 export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   readonly #logger = inject(NGXLogger)
@@ -200,6 +209,14 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
       params = params.append('environment', environmentId)
     }
     return this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/workflow/${nodeKey}/variables`, {params})
+  }
+
+  getNodeVariables(options: TXpertVariablesOptions) {
+    if (options.workflowKey) {
+      return this.getWorkflowVariables(options.xpertId, options.workflowKey, options.environmentId)
+    } else {
+      return this.getVariables(options.xpertId, options.type, options.agentKey, options.environmentId)
+    }
   }
 
   getChatApp(slug: string) {

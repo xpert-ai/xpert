@@ -6,6 +6,7 @@ import {
   Component,
   inject,
   input,
+  model,
   signal,
   TemplateRef,
   viewChild,
@@ -18,7 +19,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TWorkflowVarGroup } from '../../../@core/types'
 import { StateVariableSelectComponent } from '../state-variable-select/select.component'
-import { XpertVariablePanelComponent } from '../variable-panel/variable.component'
+import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
 
 @Component({
   standalone: true,
@@ -42,10 +43,11 @@ export class XpertVariableInputComponent {
   readonly #vcr = inject(ViewContainerRef)
 
   // Inputs
-  readonly variables = input<TWorkflowVarGroup[]>()
+  readonly variables = model<TWorkflowVarGroup[]>()
   readonly placeholder = input<string>()
   readonly type = input<string>()
   readonly autocomplete = input<string>()
+  readonly varOptions = input<TXpertVariablesOptions>()
 
   // Children
   readonly suggestionsTemplate = viewChild('suggestionsTemplate', { read: TemplateRef<any> })
@@ -119,9 +121,6 @@ export class XpertVariableInputComponent {
   }
 
   showSuggestions() {
-    if (!this.variables()?.length) {
-      return
-    }
     const caretCoords = this.getCursorPosition()
     const positionStrategy = this.overlay
       .position()

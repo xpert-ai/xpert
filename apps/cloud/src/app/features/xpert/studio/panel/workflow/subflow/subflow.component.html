@@ -19,7 +19,7 @@
       @for (item of inputParams(); track i; let i = $index) {
         <li class="group/item relative px-1 py-0.5 flex justify-between items-center text-text-secondary hover:bg-hover-bg">
           <xpert-state-variable-select class="truncate opacity-90 hover:opacity-100"
-            [variables]="variables()"
+            [varOptions]="varOptions()"
             [ngModel]="item.name"
             (ngModelChange)="updateInputParamName(item.name, $event)"
           />
@@ -28,7 +28,7 @@
           <i class="ri-arrow-right-circle-line mx-1"></i>
 
           <xpert-state-variable-select class="truncate opacity-90 hover:opacity-100"
-            [variables]="subVariables()"
+            [varOptions]="subVarOptions()"
             [ngModel]="item.variable"
             (ngModelChange)="updateInput(i, 'variable', $event)"
           />
@@ -80,7 +80,11 @@
           <div class="grow"></div>
           <i class="ri-arrow-left-circle-line mx-1"></i>
 
-          <xpert-state-variable-select [variables]="subVariables()" [ngModel]="param.variable" (ngModelChange)="updateOutput(i, 'variable', $event)"/>
+          <xpert-state-variable-select 
+            [varOptions]="subVarOptions()" 
+            [ngModel]="param.variable" 
+            (ngModelChange)="updateOutput(i, 'variable', $event)"
+          />
           <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center group p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
             (click)="removeOutput(i)">
             <i class="ri-delete-bin-line"></i>
