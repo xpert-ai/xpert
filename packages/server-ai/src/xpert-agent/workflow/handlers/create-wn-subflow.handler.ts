@@ -104,6 +104,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 					rootController: abortController,
 					signal: abortController.signal,
 					subscriber,
+					environment
 				})
 			)
 			subgraph = compiled.graph
@@ -125,7 +126,8 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 						subscriber,
 						disableCheckpointer: true,
 						channel: channelName(agentKey),
-						partners: []
+						partners: [],
+						environment
 					}
 				)
 			)
