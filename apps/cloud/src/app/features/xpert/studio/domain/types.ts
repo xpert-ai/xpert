@@ -1,4 +1,4 @@
-import { IXpert, letterStartSUID, TXpertTeamDraft } from 'apps/cloud/src/app/@core'
+import { IXpert, TXpertTeamDraft } from 'apps/cloud/src/app/@core'
 
 export interface IStudioStore {
   draft: TXpertTeamDraft

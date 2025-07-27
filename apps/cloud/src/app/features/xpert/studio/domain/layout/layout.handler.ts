@@ -1,43 +1,24 @@
 import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
-import { layout, graphlib } from '@dagrejs/dagre'
-import Graph = graphlib.Graph
-import { LayoutRequest } from './layout.request'
+import { TXpertGraph } from 'apps/cloud/src/app/@core'
 import { IStudioStore } from '../types'
-import { uuid } from 'apps/cloud/src/app/@core'
+import { layoutGraphWithMixedDirection } from './layout'
+import { LayoutRequest } from './layout.request'
 
 export class LayoutHandler implements IHandler<LayoutRequest> {
   constructor(private store: Store<StoreDef, IStudioStore>) {}
 
-  public handle(request: LayoutRequest): void {
+  async handle(request: LayoutRequest) {
+    const draft: TXpertGraph = await layoutGraphWithMixedDirection(structuredClone(this.store.getValue().draft))
     this.store.update((state) => {
-      const draft = structuredClone(state.draft)
-
-      // Create a new directed graph 
-      const g = new Graph()
-      g.setGraph({ rankdir: request.rankdir })
-      draft.nodes.filter((_) => _.type === 'agent').forEach((node) => {
-        g.setNode(node.key, { width: 300, height: 100, ...(node.position ?? {}) })
-      })
-      draft.connections.forEach((conn) => {
-        g.setEdge(conn.from, conn.to, {})
-      })
-      layout(g)
-
-      g.nodes().forEach((x) => {
-        let node = g.node(x)
-        const index = draft.nodes.findIndex((_) => _.key === x)
-        if (index > -1) {
-          draft.nodes[index] = {
-            ...draft.nodes[index],
-            position: {...node},
-            hash: uuid()
-          }
-        }
-      })
-      
       return {
-        draft
+        draft: {
+          ...state.draft,
+          nodes: state.draft.nodes.map((n) => {
+            const updatedNode = draft.nodes.find((m) => m.key === n.key)
+            return updatedNode ? { ...n, position: updatedNode.position } : n
+          })
+        }
       }
     })
   }
