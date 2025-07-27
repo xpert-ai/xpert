@@ -8,10 +8,10 @@ import { environment } from '@metad/server-config'
 import { IMilvusConfig, IPGVectorConfig } from '@metad/server-common'
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector'
 import { EmbeddingsInterface } from '@langchain/core/embeddings'
-import { Milvus } from "@langchain/community/vectorstores/milvus";
 import { Callbacks } from '@langchain/core/callbacks/manager'
 import { Pool } from 'pg'
 import { RagCreateVStoreCommand } from '../create.command'
+import { Milvus } from '../../milvus'
 
 const MilvusTextFieldMaxLength = 10000
 

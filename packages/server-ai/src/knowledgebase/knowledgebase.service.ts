@@ -1,5 +1,6 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
+import { VectorStore } from '@langchain/core/vectorstores'
 import { AiBusinessRole, IKnowledgebase, mapTranslationLanguage, Metadata } from '@metad/contracts'
 import { DATABASE_POOL_TOKEN, RequestContext } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
@@ -16,7 +17,6 @@ import { KnowledgeSearchQuery } from './queries'
 import { KnowledgeDocumentStore } from './vector-store'
 import { IRerank } from '../ai-model/types/rerank'
 import { RagCreateVStoreCommand } from '../rag-vstore'
-import { VectorStore } from '@langchain/core/vectorstores'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -78,8 +78,6 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	async getVectorStore(
 		knowledgebaseId: IKnowledgebase | string,
 		requiredEmbeddings = false,
-		tenantId?: string,
-		organizationId?: string
 	) {
 		let knowledgebase: IKnowledgebase
 		if (typeof knowledgebaseId === 'string') {
@@ -190,7 +188,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const documents: { doc: DocumentInterface<Record<string, any>>; score: number }[] = []
 		const kbs = await Promise.all(
 			_knowledgebases.map((kb) => {
-				return this.getVectorStore(kb.id, true, tenantId, organizationId).then((vectorStore) => {
+				return this.getVectorStore(kb.id, true,).then((vectorStore) => {
 					return vectorStore.similaritySearchWithScore(query, k, filter)
 				})
 			})

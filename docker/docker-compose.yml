@@ -1,7 +1,5 @@
-name: xpert-ai
-
 include:
-  - ./docker-compose.dev.yml
+  - ./docker-compose.infra.yml
 
 volumes:
   api_data:

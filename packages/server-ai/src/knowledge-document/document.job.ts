@@ -35,12 +35,7 @@ export class KnowledgeDocumentConsumer {
 		try {
 			const doc = job.data.docs[0]
 
-			vectorStore = await this.knowledgebaseService.getVectorStore(
-				knowledgebase,
-				true,
-				doc.tenantId,
-				doc.organizationId
-			)
+			vectorStore = await this.knowledgebaseService.getVectorStore(knowledgebase, true)
 		} catch (err) {
 			await Promise.all(
 				job.data.docs.map((doc) =>

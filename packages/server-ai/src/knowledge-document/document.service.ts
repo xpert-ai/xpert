@@ -3,13 +3,13 @@ import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService 
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
+import { InjectQueue } from '@nestjs/bull'
+import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { In, Repository } from 'typeorm'
 import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
-import { InjectQueue } from '@nestjs/bull'
-import { Queue } from 'bull'
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
@@ -146,5 +146,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		})
 
 		return await this.save(docs)
+	}
+
+	async delete(id: string) {
+		const document = await this.findOne(id, { relations: ['knowledgebase',] })
+		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase, false)
+		await vectorStore.deleteKnowledgeDocument(document)
+		const result = await super.delete(id)
+		return result
 	}
 }
