@@ -1,0 +1,18 @@
+<pac-upload class="w-full flex-1 min-h-[240px]"
+  [files]="fileList"
+  (filesChange)="onFileListChange($event)"
+  (removeFileChange)="removeFiles($event)"
+  />
+
+@if (file() || value()?.filePath) {
+  <div class="w-full flex justify-center p-2">{{file() || value()?.filePath}}</div>
+}
+<button type="button" class="btn btn-secondary btn-large mx-auto mt-4"
+  [disabled]="!fileList.length || loading() || value()?.filePath"
+  (click)="upload()" >
+  <i class="ri-add-line mr-1"></i> {{ 'PAC.ACTIONS.Upload' | translate: {Default: 'Upload'} }}
+</button>
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+}

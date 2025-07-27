@@ -64,6 +64,7 @@ export class XpertToolBuiltinCredentialComponent {
   })
 
   readonly options = computed(() => this.credential()?.options)
+  readonly config = computed(() => this.credential()?.config)
 
   readonly error = signal<string>(null)
 

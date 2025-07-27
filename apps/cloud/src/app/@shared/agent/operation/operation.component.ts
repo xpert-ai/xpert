@@ -30,6 +30,7 @@ export class XpertAgentOperationComponent {
   agentLabel = agentLabel
 
   // Inputs
+  readonly conversationId = input<string>()
   readonly operation = input<TSensitiveOperation>()
   readonly tools = input<{ name: string; title: string; parameters: any }[]>()
   readonly readonly = input<boolean, boolean | string>(false, {

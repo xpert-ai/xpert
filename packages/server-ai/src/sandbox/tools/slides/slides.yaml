@@ -1,0 +1,61 @@
+identity:
+  pro: true
+  author: XpertAI
+  name: slides
+  label:
+    en_US: Slides
+    zh_Hans: 幻灯片
+  description:
+    en_US: Slides tool.
+    zh_Hans: 幻灯片工具。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+    - sandbox
+  help_url: /docs/ai/tool/sandbox/slides/
+credentials_for_provider:
+  copilotModel:
+    type: copilot-model
+    required: true
+    config:
+      modelType: llm
+    label:
+      en_US: AI Model
+      zh_Hans: LLM 模型
+    placeholder:
+      en_US: Please select a ai model
+      zh_Hans: 请选择一个大语言模型
+    url: /settings/copilot/basic
+  visionModel:
+    type: copilot-model
+    required: true
+    config:
+      modelType: llm
+    label:
+      en_US: Vision Model
+      zh_Hans: 视觉模型
+    placeholder:
+      en_US: Please select a vision model
+      zh_Hans: 请选择一个视觉模型
+    url: /settings/copilot/basic
+  embeddingModel:
+    type: copilot-model
+    required: true
+    config:
+      modelType: text-embedding
+    label:
+      en_US: Embedding Model
+      zh_Hans: 嵌入模型
+    placeholder:
+      en_US: Please select a embedding model
+      zh_Hans: 请选择一个嵌入模型
+    url: /settings/copilot/basic
+  timeout:
+    type: number
+    label:
+      en_US: Timeout
+      zh_Hans: 超时时间
+    placeholder:
+      en_US: Timeout in seconds (Default 60)
+      zh_Hans: 超时时间（秒）（默认 60）

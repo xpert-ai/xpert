@@ -14,7 +14,12 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { BIInterruptMessageType, TInterruptMessage, TSensitiveOperation } from '../../../@core'
+import {
+  BIInterruptMessageType,
+  SandboxInterruptMessageType,
+  TInterruptMessage,
+  TSensitiveOperation
+} from '../../../@core'
 import { AbstractInterruptComponent } from '../types'
 
 /**
@@ -30,6 +35,7 @@ export class XpertAgentInterruptComponent {
   readonly #cdr = inject(ChangeDetectorRef)
 
   // Inputs
+  readonly conversationId = input<string>()
   readonly interrupt = input<TSensitiveOperation['tasks'][number]['interrupts'][number]>()
 
   // Outputs
@@ -41,9 +47,7 @@ export class XpertAgentInterruptComponent {
   // States
   readonly message = computed(() => this.interrupt()?.value)
 
-  // readonly instance = derivedAsync(() => this.message() ? this.loadComponent(this.message()) : null)
-
-  private componentRef!: ComponentRef<any>
+  private componentRef!: ComponentRef<AbstractInterruptComponent>
 
   constructor() {
     effect(
@@ -67,6 +71,9 @@ export class XpertAgentInterruptComponent {
     } else if (message.type === BIInterruptMessageType.SwitchSemanticModel) {
       const { InitModelComponent } = await import('../../model/index')
       component = InitModelComponent
+    } else if (message.type === SandboxInterruptMessageType.SlidesTemplate) {
+      const { InterruptSlideComponent } = await import('../../files/interrupt-slide/interrupt-slide.component')
+      component = InterruptSlideComponent
     }
     if (!component) return
 
@@ -77,6 +84,7 @@ export class XpertAgentInterruptComponent {
     this.componentRef.instance.value.subscribe((value: any) => {
       this.value.set(value)
     })
+    this.componentRef.instance.conversationId.set(this.conversationId())
     this.componentRef.instance.message.set(message)
 
     this.#cdr.detectChanges()

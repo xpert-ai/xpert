@@ -129,6 +129,7 @@ export interface ToolProviderCredentials {
   url?: string
   placeholder?: I18nObject
   max?: number
+  config?: Record<string, any>
 }
 
 export enum ApiProviderSchemaType {

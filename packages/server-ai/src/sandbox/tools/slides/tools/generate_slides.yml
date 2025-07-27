@@ -1,0 +1,23 @@
+identity:
+  name: generate_slides
+  author: XpertAI
+  label:
+    en_US: Generate slides
+    zh_Hans: 生成幻灯片
+description:
+  human:
+    en_US: Generate slides from a given text.
+    zh_Hans: 从给定文本生成幻灯片。
+  llm: A tool to generate slides from a given text.
+parameters:
+  - name: code
+    type: string
+    required: true
+    label:
+      en_US: Code
+      zh_Hans: 代码
+    human_description:
+      en_US: Python code.
+      zh_Hans: Python 代码。
+    llm_description: The python code.
+    form: llm

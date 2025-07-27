@@ -4,6 +4,7 @@ import { TInterruptMessage } from '@cloud/app/@core/types'
 @Directive()
 export class AbstractInterruptComponent<T = unknown, O = unknown> {
   // Inputs
+  readonly conversationId = model<string>()
   readonly message = model<TInterruptMessage<T>>()
 
   // Outputs
