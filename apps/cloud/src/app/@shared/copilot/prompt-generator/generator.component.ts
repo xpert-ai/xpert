@@ -48,9 +48,14 @@ export class CopilotPromptGeneratorComponent {
   readonly show = signal(false)
 
   async generate() {
+    const promptGenerator = this.promptGenerator()
+    if (!promptGenerator) {
+      this.#toastr.error(this.#translate.instant('PAC.Copilot.NoSupportedAIModelFound', {Default: 'No supported AI Model found'}))
+      return
+    }
     this.loading.set(true)
     try {
-      const result = await this.promptGenerator().invoke({
+      const result = await promptGenerator.invoke({
         TASK_DESCRIPTION: this.instructions()
       })
 

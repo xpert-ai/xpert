@@ -1759,6 +1759,7 @@
       "Models": "模型",
       "PromptGenerator": "提示词生成器",
       "PromptGeneratorDesc": "提示生成器使用配置的模型来优化提示，以获得更高的质量和更好的结构。请写出清晰详细的说明。",
+      "NoSupportedAIModelFound": "未找到支持的 AI 模型",
       "TryIt": "试一试",
       "Instructions": "指令",
       "WriteClearInstructions": "写下清晰、具体的说明。",
