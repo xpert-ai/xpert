@@ -1,8 +1,8 @@
-# this model corresponds to qwen-max, for more details
-# please refer to (https://help.aliyun.com/zh/model-studio/getting-started/models#cf6cc4aa2aokf)
-model: qwen-max-1201
+# this model corresponds to qwen-plus-1125, for more details
+# please refer to (https://help.aliyun.com/zh/model-studio/getting-started/models#bb0ffee88bwnk)
+model: qwen-plus-1125
 label:
-  en_US: qwen-max-1201
+  en_US: qwen-plus-1125
 model_type: llm
 features:
   - multi-tool-call
@@ -10,7 +10,7 @@ features:
   - stream-tool-call
 model_properties:
   mode: chat
-  context_size: 8192
+  context_size: 131072
 parameter_rules:
   - name: temperature
     use_template: temperature
@@ -24,9 +24,9 @@ parameter_rules:
   - name: max_tokens
     use_template: max_tokens
     type: int
-    default: 2000
+    default: 8192
     min: 1
-    max: 2000
+    max: 8192
     help:
       zh_Hans: 用于指定模型在生成内容时token的最大数量，它定义了生成的上限，但不保证每次都会生成到这个数量。
       en_US: It is used to specify the maximum number of tokens when the model generates content. It defines the upper limit of generation, but does not guarantee that this number will be generated every time.
@@ -64,6 +64,7 @@ parameter_rules:
     type: float
     default: 1.1
     label:
+      zh_Hans: 重复惩罚
       en_US: Repetition penalty
     help:
       zh_Hans: 用于控制模型生成时的重复度。提高repetition_penalty时可以降低模型生成的重复度。1.0表示不做惩罚。
@@ -80,8 +81,7 @@ parameter_rules:
   - name: response_format
     use_template: response_format
 pricing:
-  input: '0.04'
-  output: '0.12'
+  input: '0.0008'
+  output: '0.002'
   unit: '0.001'
   currency: RMB
-deprecated: true
