@@ -15,6 +15,7 @@ export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 export type TMessageChannel = {
   messages: BaseMessage[]
   summary?: string
+  error?: string | null
 }
 
 export type TAgentRunnableConfigurable = {
@@ -127,6 +128,14 @@ export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarG
 		description: {
 			zh_Hans: `输出`,
 			en_US: `Output`
+		}
+	})
+	variables.push({
+		name: `error`,
+		type: XpertParameterTypeEnum.STRING,
+		description: {
+			zh_Hans: `错误`,
+			en_US: `Error`
 		}
 	})
 	const agent = <IXpertAgent>node.entity
