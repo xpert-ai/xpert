@@ -4,6 +4,8 @@ import { TemplatePortal } from '@angular/cdk/portal'
 import { CommonModule } from '@angular/common'
 import {
   Component,
+  computed,
+  effect,
   inject,
   input,
   model,
@@ -20,6 +22,9 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TWorkflowVarGroup } from '../../../@core/types'
 import { StateVariableSelectComponent } from '../state-variable-select/select.component'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
+import { myRxResource } from '@metad/ocap-angular/core'
+import { XpertService } from '@cloud/app/@core'
+import { of } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -41,6 +46,7 @@ export class XpertVariableInputComponent {
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly overlay = inject(Overlay)
   readonly #vcr = inject(ViewContainerRef)
+  readonly xpertAPI = inject(XpertService)
 
   // Inputs
   readonly variables = model<TWorkflowVarGroup[]>()
@@ -70,10 +76,21 @@ export class XpertVariableInputComponent {
     }
   })
 
+  readonly #variables = myRxResource({
+    request: () => this.variables() ? null : this.varOptions(),
+    loader: ({request}) => {
+      return request ? this.xpertAPI.getNodeVariables(request) : of(null)
+    }
+  })
+  readonly loading = computed(() => this.#variables.status() === 'loading')
+
+
   constructor() {
-    // effect(() => {
-    //   console.log(this.cva.value$(), this.currentIndex(), this.cursorIndex())
-    // })
+    effect(() => {
+      if (this.#variables.value()) {
+        this.variables.set(this.#variables.value())
+      }
+    }, { allowSignalWrites: true })
   }
 
   update(index: number, value: string) {
