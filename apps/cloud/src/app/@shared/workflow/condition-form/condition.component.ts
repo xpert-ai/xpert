@@ -3,30 +3,37 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, computed, effect, ElementRef, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   agentLabel,
   injectToastr,
   TStateVariable,
   TWFCaseCondition,
+  TWorkflowVarGroup,
   WorkflowComparisonOperator,
-  XpertService
 } from 'apps/cloud/src/app/@core'
-import { TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
-import { derivedAsync } from 'ngxtension/derived-async'
+import { TXpertVariablesOptions, XpertVariableInputComponent, XpertVariablePanelComponent } from '../../agent'
 
 @Component({
   standalone: true,
   selector: 'xpert-workflow-condition-form',
   templateUrl: './condition.component.html',
   styleUrls: ['./condition.component.scss'],
-  imports: [FormsModule, CdkMenuModule, TranslateModule, MatTooltipModule, TextFieldModule, NgmI18nPipe, XpertVariableInputComponent]
+  imports: [
+    FormsModule,
+    CdkMenuModule,
+    TranslateModule,
+    MatTooltipModule,
+    TextFieldModule,
+    NgmI18nPipe,
+    XpertVariableInputComponent,
+    XpertVariablePanelComponent
+  ]
 })
 export class XpertWorkflowConditionFormComponent {
   agentLabel = agentLabel
 
-  readonly xpertAPI = inject(XpertService)
   readonly elementRef = inject(ElementRef)
   readonly #toastr = injectToastr()
 
@@ -39,10 +46,8 @@ export class XpertWorkflowConditionFormComponent {
 
   // States
   readonly loading = signal(false)
-
-  readonly variables = derivedAsync(() => {
-    return this.xpertAPI.getNodeVariables(this.varOptions())
-  })
+  readonly variables = model<TWorkflowVarGroup[]>(null)
+  readonly _variableSelector = attrModel(this.condition, 'variableSelector')
 
   readonly variableSelector = computed(() => {
     const names = this.condition()?.variableSelector?.split('.')
@@ -79,7 +84,7 @@ export class XpertWorkflowConditionFormComponent {
   }
 
   readonly variable = computed<TStateVariable>(() => {
-    const {group, name} = this.variableSelector() ?? {}
+    const { group, name } = this.variableSelector() ?? {}
     let variable = null
     this.variables()?.some((g) => {
       if ((group && g.agent?.key === group) || (!group && !g.agent?.key)) {
