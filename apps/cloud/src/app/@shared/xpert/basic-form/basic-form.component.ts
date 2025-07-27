@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
-import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import {
@@ -19,6 +18,7 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { nonBlank } from '@metad/copilot'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { debounceTime, filter, switchMap } from 'rxjs/operators'
+import { BehaviorSubject } from 'rxjs'
 import { CopilotModelSelectComponent } from '../../copilot'
 
 @Component({
@@ -58,9 +58,9 @@ export class XpertBasicFormComponent {
   readonly checking = signal(false)
   readonly error = signal<string>('')
 
-  readonly preliminary = signal<string>(null)
+  readonly name$ = new BehaviorSubject<string>(null)
 
-  private nameSub = toObservable(this.preliminary)
+  private nameSub = this.name$
     .pipe(
       filter(nonBlank),
       debounceTime(500),
@@ -85,6 +85,7 @@ export class XpertBasicFormComponent {
   constructor() {
     effect(() => {
       const name = this.name()
+      this.checking.set(true)
       this.error.set(null)
       if (/[^a-zA-Z0-9-\s]/.test(name)) {
         this.error.set(
@@ -101,7 +102,7 @@ export class XpertBasicFormComponent {
         return
       }
 
-      this.preliminary.set(name)
+      this.name$.next(name)
     }, { allowSignalWrites: true })
   }
 }
