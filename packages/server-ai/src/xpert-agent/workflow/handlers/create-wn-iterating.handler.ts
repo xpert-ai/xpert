@@ -157,7 +157,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 						const itemExecution: IXpertAgentExecution = {
 							category: 'workflow',
 							type: WorkflowNodeTypeEnum.ITERATING,
-							xpert: { id: xpertId } as IXpert,
+							// xpert: { id: xpertId } as IXpert,
 							agentKey: node.key,
 							inputs: item,
 							title: entity.title,
