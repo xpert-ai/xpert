@@ -2347,6 +2347,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "OutputVariablesInfo": "按照预定义格式组织数据，便于程序自动解析和使用。",
       "TaskCreatedSuccessfully": "任务创建成功",
       "Archive": "归档",
       "Time": "时间",
