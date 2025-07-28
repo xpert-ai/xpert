@@ -183,6 +183,59 @@
       />
     </ng-template>
   }
+  @for (item of calculations(); track item.__id__; let i = $index) {
+    <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
+      <i class="ri-functions mr-1"></i>
+      <span class="">{{item.caption}}</span>
+      @if (item.name) {
+        <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ item.name }}</span>
+      } @else {
+        <span class="ml-1 text-sm text-text-destructive">{{'PAC.MODEL.NameEmpty' | translate: {Default: 'Name empty'} }}</span>
+      }
+
+      <div class="absolute right-0.5 flex justify-start items-center gap-0.5">
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="upCalculation(i)">
+          <i class="ri-arrow-up-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="downCalculation(i)">
+          <i class="ri-arrow-down-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="openCalculation(item)"
+          >
+          <i class="ri-settings-3-line"></i>
+        </div>
+      </div>
+    </div>
+  }
+  @for (item of parameters(); track item.__id__; let i = $index) {
+    <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
+      <i class="ri-at-line mr-1"></i>
+      <span class="">{{item.caption}}</span>
+      @if (item.name) {
+        <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ item.name }}</span>
+      } @else {
+        <span class="ml-1 text-sm text-text-destructive">{{'PAC.MODEL.NameEmpty' | translate: {Default: 'Name empty'} }}</span>
+      }
+
+      <div class="absolute right-0.5 flex justify-start items-center gap-0.5">
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="upParameter(i)">
+          <i class="ri-arrow-up-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="downParameter(i)">
+          <i class="ri-arrow-down-s-fill"></i>
+        </div>
+        <div class="flex justify-center items-center w-6 h-6 rounded-lg border-0 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-0 group-hover/item:opacity-100"
+          (click)="onEditParameter(item)">
+          <i class="ri-settings-3-line"></i>
+        </div>
+      </div>
+    </div>
+  }
 </div>
 
 <ng-template #settingMenu>

@@ -36,6 +36,8 @@ import { CubeStudioContextManuComponent } from './context-menu/menu.component'
 import { TCubeConnection, TCubeNode } from './types'
 import { IPoint } from '@foblex/2d'
 import { suuid } from '@cloud/app/@core'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { layoutCubeGraph } from './layout'
 
 @Component({
   standalone: true,
@@ -100,6 +102,7 @@ export class CubeStudioComponent {
   })
   
   readonly settings = attrModel(this.draft, 'settings')
+  readonly settingsNodes = attrModel(this.settings, 'nodes')
   readonly dimensions = computed(() => this.cube()?.dimensions)
   readonly dimensionUsages = computed(() => this.cube()?.dimensionUsages)
   readonly measures = computed(() => this.cube()?.measures)
@@ -118,19 +121,19 @@ export class CubeStudioComponent {
   })
 
   // Graph
-  readonly _nodes = computed(() => {
+  readonly nodesPosition = computed(() => {
     return (
-      this.settings()?.nodes.reduce((acc, node) => {
+      this.settingsNodes()?.reduce((acc, node) => {
         acc[node.key] = {
           position: node.position,
           size: node.size
         }
         return acc
-      }, {}) ?? {}
+      }, {})
     )
   })
 
-  readonly nodes = computed<TCubeNode[]>(() => {
+  readonly #nodes = computed<TCubeNode[]>(() => {
     const schema = this.schema()
     const cube = this.cube()
     if (!cube) {
@@ -167,6 +170,7 @@ export class CubeStudioComponent {
         })
       })
     })
+    
     return nodes
   })
 
@@ -202,16 +206,29 @@ export class CubeStudioComponent {
     return connections
   })
 
+  readonly nodes = derivedAsync(() => {
+    return this.nodesPosition() ? Promise.resolve(this.#nodes()) : layoutCubeGraph(this.#nodes(), this.connections())
+  })
+  
   readonly scale = computed(() => this.settings()?.canvas?.scale || 1)
   readonly position = computed(() => this.settings()?.canvas?.position || { x: 0, y: 0 })
 
   readonly canvasLoaded = signal(false)
 
-  constructor() {
-    effect(() => {
-      // console.log(this.dimensions(), this.cube())
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log(this.cube())
+  //   })
+  //   effect(() => {
+  //     console.log(this.schema())
+  //   })
+  //   effect(() => {
+  //     console.log(this.dimensionUsages())
+  //   })
+  //   effect(() => {
+  //     console.log(this.dimensions())
+  //   })
+  // }
 
   public onLoaded(): void {
     setTimeout(() => {
@@ -224,8 +241,8 @@ export class CubeStudioComponent {
 
   getPosition(key: string) {
     return {
-      position: this._nodes()[key]?.position || { x: 0, y: 0 },
-      size: this._nodes()[key]?.size || { width: 200, height: 100 }
+      position: this.nodesPosition()[key]?.position || { x: 0, y: 0 },
+      size: this.nodesPosition()[key]?.size || { width: 200, height: 100 }
     }
   }
 
