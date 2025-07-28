@@ -60,24 +60,15 @@ export function createCodeNode(
 				}
 				return await wrapAgentExecution(
 					async () => {
+						let results = null
 						let tryCount = 0
 						const maxRetry = entity.retry?.enabled ? (entity.retry.stopAfterAttempt ?? 1) : 0
 						while (tryCount <= maxRetry) {
 							tryCount++
 							try {
-								const results = await commandBus.execute(
+								results = await commandBus.execute(
 									new SandboxVMCommand(entity.code, inputs, null, entity.language)
 								)
-
-								return {
-									state: {
-										[channelName(node.key)]: {
-											...(typeof results?.result === 'object' ? results.result : { result: results?.result }),
-											[LogsChannelName]: results?.logs
-										}
-									},
-									output: results?.result
-								}
 							} catch (err) {
 								if (tryCount > maxRetry) {
 									if (entity.errorHandling?.type === 'defaultValue') {
@@ -108,8 +99,72 @@ export function createCodeNode(
 								)
 							}
 						}
+
+						// Check the result type
+						const result = results.result
+						if (typeof result === 'object' && entity.outputs) {
+							entity.outputs.forEach((output) => {
+								switch (output.type) {
+									case XpertParameterTypeEnum.STRING: {
+										if (typeof result[output.name] !== 'string') {
+											throw new Error(
+												`Output variable "${output.name}" expects a string, but received: ${typeof results?.result}`
+											)
+										}
+										break
+									}
+									case XpertParameterTypeEnum.NUMBER: {
+										if (typeof result[output.name] !== 'number') {
+											throw new Error(
+												`Output variable "${output.name}" expects a number, but received: ${typeof results?.result}`
+											)
+										}
+										break
+									}
+									case XpertParameterTypeEnum.BOOLEAN: {
+										if (typeof result[output.name] !== 'boolean') {
+											throw new Error(
+												`Output variable "${output.name}" expects a boolean, but received: ${typeof results?.result}`
+											)
+										}
+										break
+									}
+									case XpertParameterTypeEnum.OBJECT: {
+										if (typeof result[output.name] !== 'object') {
+											throw new Error(
+												`Output variable "${output.name}" expects an object, but received: ${typeof results?.result}`
+											)
+										}
+										break
+									}
+									case XpertParameterTypeEnum.ARRAY_STRING: {
+										if (!Array.isArray(result[output.name]) || !result[output.name].every((item) => typeof item === 'string')) {
+											throw new Error(
+												`Output variable "${output.name}" expects an array of strings, but received: ${typeof results?.result}`
+											)
+										}
+										break
+									}
+									case XpertParameterTypeEnum.ARRAY: {
+										if (!Array.isArray(result[output.name])) {
+											throw new Error(
+												`Output variable "${output.name}" expects an array of objects, but received: ${typeof results?.result}`
+											)
+										}
+										break
+									}
+								}
+							})
+						}
+
 						return {
-							state: {}
+							state: {
+								[channelName(node.key)]: {
+									...(typeof results?.result === 'object' ? results.result : { result: results?.result }),
+									[LogsChannelName]: results?.logs
+								}
+							},
+							output: results?.result
 						}
 					},
 					{
