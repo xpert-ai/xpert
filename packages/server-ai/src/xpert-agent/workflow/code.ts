@@ -20,6 +20,7 @@ import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../.
 import { wrapAgentExecution } from '../../shared/agent/execution'
 
 const ErrorChannelName = 'error'
+const LogsChannelName = 'logs'
 
 export function createCodeNode(
 	graph: TXpertGraph,
@@ -67,11 +68,15 @@ export function createCodeNode(
 								const results = await commandBus.execute(
 									new SandboxVMCommand(entity.code, inputs, null, entity.language)
 								)
+
 								return {
 									state: {
-										[channelName(node.key)]: results ?? {}
+										[channelName(node.key)]: {
+											...(typeof results?.result === 'object' ? results.result : { result: results?.result }),
+											[LogsChannelName]: results?.logs
+										}
 									},
-									output: results
+									output: results?.result
 								}
 							} catch (err) {
 								if (tryCount > maxRetry) {
@@ -135,11 +140,20 @@ export function codeOutputVariables(entity: IWorkflowNode) {
 		...((<IWFNCode>entity).outputs ?? []),
 		{
 			type: XpertParameterTypeEnum.STRING,
-			name: 'error',
+			name: ErrorChannelName,
 			title: 'Error',
 			description: {
 				en_US: 'Error info',
 				zh_Hans: '错误信息'
+			}
+		},
+		{
+			type: XpertParameterTypeEnum.STRING,
+			name: LogsChannelName,
+			title: 'Logs',
+			description: {
+				en_US: 'Logs info',
+				zh_Hans: '日志信息'
 			}
 		}
 	]

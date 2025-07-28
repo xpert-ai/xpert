@@ -40,7 +40,7 @@
 @if (error()) {
   <div class="flex flex-col rounded-lg bg-gray-50">
     <div class="px-3 py-1 flex justify-between items-center">
-      ERROR
+      <span class="uppercase">{{ 'PAC.KEY_WORDS.Error' | translate: {Default: 'Error'} }}</span>
       <copy [content]="error()"></copy>
     </div>
     <div class="p-4 text-sm text-text-destructive whitespace-pre-line break-all">
