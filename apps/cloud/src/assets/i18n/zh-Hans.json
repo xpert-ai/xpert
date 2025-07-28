@@ -664,6 +664,8 @@
       "BatchImport": "批量导入"
     },
     "ACTIONS": {
+      "Disable": "禁用",
+      "Enable": "启用",
       "Pause": "暂停",
       "Add": "添加",
       "Apply": "应用",

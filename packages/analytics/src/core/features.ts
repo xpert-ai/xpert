@@ -1,7 +1,5 @@
-import { AnalyticsFeatures, FeatureEnum, AiFeatureEnum, IFeatureCreateInput } from '@metad/contracts'
-import { toggleFeatures } from '@metad/server-config'
+import { AnalyticsFeatures, FeatureEnum, IFeatureCreateInput } from '@metad/contracts'
 
-const features = toggleFeatures
 
 export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 	{
@@ -110,29 +108,14 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 		icon: 'project-outline',
 		status: 'success',
 	},
-	{
-		name: 'Data Factory',
-		code: AnalyticsFeatures.FEATURE_DATA_FACTORY,
-		description: 'Go to data factory to manage data',
-		image: 'data-factory.png',
-		link: 'data',
-		isEnabled: true,
-		icon: 'data-factory',
-		status: 'success',
-	},
-	{
-		code: AiFeatureEnum.FEATURE_COPILOT,
-		children: [
-			{
-				name: 'Copilot ChatBI',
-				code: AnalyticsFeatures.FEATURE_COPILOT_CHATBI,
-				description: 'Manage ChatBI of Copilot',
-				image: 'file-storage.png',
-				link: 'settings/chatbi',
-				isEnabled: features.FEATURE_COPILOT_CHATBI,
-				icon: 'file-text-outline',
-				status: 'info'
-			},
-		]
-	}
+	// {
+	// 	name: 'Data Factory',
+	// 	code: AnalyticsFeatures.FEATURE_DATA_FACTORY,
+	// 	description: 'Go to data factory to manage data',
+	// 	image: 'data-factory.png',
+	// 	link: 'data',
+	// 	isEnabled: true,
+	// 	icon: 'data-factory',
+	// 	status: 'success',
+	// }
 ]

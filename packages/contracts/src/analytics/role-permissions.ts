@@ -28,12 +28,9 @@ export enum AnalyticsPermissionsEnum {
     // Data Factory
     DATA_FACTORY_VIEW = 'DATA_FACTORY_VIEW',
     DATA_FACTORY_EDIT = 'DATA_FACTORY_EDIT',
-    // ChatBI
-    CHATBI_VIEW = 'CHATBI_VIEW',
-    CHATBI_EDIT = 'CHATBI_EDIT',
 
-    // 权限申请审批视图, 可以浏览所有有权限的申请
+    // Permission application approval view, you can browse all permission applications
     PERMISSION_APPROVAL_VIEW = 'PERMISSION_APPROVAL_VIEW',
-    // 权限申请的创建权限, 不能浏览其他的申请
+    // Permission application creation permission, cannot browse other applications
 	PERMISSION_APPROVAL_EDIT = 'PERMISSION_APPROVAL_EDIT',
 }

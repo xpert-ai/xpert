@@ -105,12 +105,6 @@ export const PermissionGroups = {
     // Data Factory
     AnalyticsPermissionsEnum.DATA_FACTORY_VIEW,
     AnalyticsPermissionsEnum.DATA_FACTORY_EDIT,
-    // ChatBI
-    AnalyticsPermissionsEnum.CHATBI_VIEW,
-    AnalyticsPermissionsEnum.CHATBI_EDIT,
-    // Subscription
-    // AnalyticsPermissionsEnum.SUBSCRIPTION_VIEW,
-    // AnalyticsPermissionsEnum.SUBSCRIPTION_EDIT
   ],
 
   //Readonly permissions, are only enabled for admin role

@@ -1,16 +1,25 @@
 <mat-accordion>
   @for (feature of features$ | async; track feature.code) {
-	<mat-expansion-panel hideToggle class="mat-elevation-z"
+	<mat-expansion-panel hideToggle class="mat-elevation-z group/item"
 		[disabled]="!enabledFeature(feature)">
 	  <mat-expansion-panel-header>
 		<mat-panel-title>
-		  {{ 'PAC.Feature.Features.' + feature.code + '.Name' | translate: {Default: feature.name } }}
+		  <span>
+			{{ 'PAC.Feature.Features.' + feature.code + '.Name' | translate: {Default: feature.name } }}
+		  </span>
 		</mat-panel-title>
+
 		<mat-panel-description class="flex justify-end items-center">
 		  {{ 'PAC.Feature.Features.' + feature.code + '.Description' | translate: {Default: feature.description } }}
 		</mat-panel-description>
-		
-		<mat-slide-toggle class="inline-flex" [checked]="enabledFeature(feature)" (change)="featureChanged($event.checked, feature)"></mat-slide-toggle>
+
+		<button type="button" class="btn btn-secondary w-7 h-7 rounded-full flex justify-center items-center
+		   text-text-secondary hover:text-text-primary shadow-none hover:shadow-sm border-transparent group-hover/item:border-neutral-200"
+		  [cdkMenuTriggerFor]="menu"
+		  [cdkMenuTriggerData]="{feature: feature}"
+		  (click)="$event.stopPropagation()">
+		  <i class="ri-more-line"></i>
+		</button>
 	  </mat-expansion-panel-header>
 	
 	@if (feature.children?.length > 0) {
@@ -28,6 +37,22 @@
 	  </mat-list>
 	}
 	</mat-expansion-panel>
+
+	<ng-template #menu >
+	  <div cdkMenu class="cdk-menu__large">
+		@if (enabledFeature(feature)) {
+		  <button type="button" cdkMenuItem class="" (click)="featureChanged(false, feature)">
+			<i class="ri-toggle-fill mr-1"></i>
+			<span>{{ 'PAC.ACTIONS.Disable' | translate: {Default: 'Disable'} }}</span>
+		  </button>
+		} @else {
+		  <button type="button" cdkMenuItem class="" (click)="featureChanged(true, feature)">
+			<i class="ri-toggle-line mr-1"></i>
+			<span>{{ 'PAC.ACTIONS.Enable' | translate: {Default: 'Enable'} }}</span>
+		  </button>
+		}
+	  </div>
+	</ng-template>
   }
 </mat-accordion>
 
