@@ -11,12 +11,12 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, map, of, startWith } from 'rxjs'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { XpertStudioApiService } from '../../domain'
+import { FormsModule } from '@angular/forms'
 import { omit } from 'lodash-es'
 import { Router } from '@angular/router'
 import { MatSliderModule } from '@angular/material/slider'
 import { KnowledgeRecallParamsComponent } from 'apps/cloud/src/app/@shared/knowledge'
-import { FormsModule } from '@angular/forms'
+import { XpertStudioApiService } from '../../domain'
 
 @Component({
   selector: 'xpert-studio-panel-knowledge',

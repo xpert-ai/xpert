@@ -25,6 +25,7 @@ import {
 } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
+import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
@@ -144,20 +145,24 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			graph.streamEvents(
 				input?.input
 					? {
+						...omit(input, 'input', 'files'),
+						/**
+						 * @deprecated use `human.input` instead
+						 */
+						input: input.input,
+						[STATE_VARIABLE_SYS]: {
+							language: languageCode,
+							user_email: user.email,
+							timezone: user.timeZone || options.timeZone,
+							date: format(new Date(), 'yyyy-MM-dd'),
+							datetime: new Date().toLocaleString()
+						},
+						[STATE_VARIABLE_HUMAN]: {
 							input: input.input,
-							[STATE_VARIABLE_SYS]: {
-								language: languageCode,
-								user_email: user.email,
-								timezone: user.timeZone || options.timeZone,
-								date: format(new Date(), 'yyyy-MM-dd'),
-								datetime: new Date().toLocaleString()
-							},
-							[STATE_VARIABLE_HUMAN]: {
-								input: input.input,
-								files: input.files
-							},
-							memories
-						}
+							files: input.files
+						},
+						memories
+					}
 					: null,
 				{
 					version: 'v2',

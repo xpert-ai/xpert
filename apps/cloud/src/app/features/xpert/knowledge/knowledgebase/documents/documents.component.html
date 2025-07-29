@@ -41,7 +41,7 @@
               </div>
             }
             @case ('processMsg') {
-              <div class="max-w-sm truncate text-sm" [matTooltip]="element.processMsg">{{element.processMsg}}</div>
+              <div class="max-w-sm truncate text-sm text-text-destructive" [title]="element.processMsg">{{element.processMsg}}</div>
             }
             @default {
               {{getValue(element, column.name)}}

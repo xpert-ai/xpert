@@ -33,6 +33,7 @@ import { injectConfigureBuiltin, XpertToolConfigureBuiltinComponent, XpertToolTe
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
+import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -113,16 +114,24 @@ export class XpertStudioPanelToolsetComponent {
 
   readonly expandTools = signal<Record<string, boolean>>({})
 
-  readonly variables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    return xpertId
-      ? this.studioService.getVariables({xpertId, type: 'output'}).pipe(
-          catchError((error) => {
-            this.#toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
+  // readonly variables = derivedAsync(() => {
+  //   const xpertId = this.xpertId()
+  //   return xpertId
+  //     ? this.studioService.getVariables({xpertId, type: 'output'}).pipe(
+  //         catchError((error) => {
+  //           this.#toastr.error(getErrorMessage(error))
+  //           return of([])
+  //         })
+  //       )
+  //     : of(null)
+  // })
+
+  readonly varOptions = computed<TXpertVariablesOptions>(() => {
+    return {
+      xpertId: this.xpertId(),
+      type: 'output',
+      environmentId: this.studioService.environmentId(),
+    }
   })
 
   readonly loading = signal(false)

@@ -5,7 +5,7 @@ import { Component, computed, effect, inject, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { attrModel, write } from '@metad/core'
-import { linkedModel } from '@metad/ocap-angular/core'
+import { linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { assign, cloneDeep } from 'lodash-es'
@@ -32,7 +32,7 @@ type TXpertParameterAttr = {
     CdkMenuModule,
     DragDropModule,
     MatTooltipModule,
-
+    NgmI18nPipe,
     XpertParameterIconComponent,
     XpertParameterFormComponent
   ],

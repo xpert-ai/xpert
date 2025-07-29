@@ -21,7 +21,8 @@
       />
       <div class="border-gray-100 bg-gray-100 w-0 grow rounded-lg border relative">
         <xpert-variable-input class="relative w-full min-h-[24px] text-sm px-2 py-1" 
-          [variables]="variables()" 
+          [varOptions]="varOptions()"
+          [(variables)]="variables"
           [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
           [(ngModel)]="url" />
       </div>
@@ -53,7 +54,7 @@
             <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
               <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
                 [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                [variables]="variables()" 
+                [varOptions]="varOptions()"
                 [ngModel]="header.name"
                 (ngModelChange)="updateHeader(i, {name: $event})"
               />
@@ -63,7 +64,7 @@
             <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
               <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
                 [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                [variables]="variables()" 
+                [varOptions]="varOptions()"  
                 [ngModel]="header.value" 
                 (ngModelChange)="updateHeaderVal(i, $event)"
               />
@@ -106,7 +107,7 @@
             <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
               <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
                 [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                [variables]="variables()" 
+                [varOptions]="varOptions()"  
                 [ngModel]="param.key"
                 (ngModelChange)="updateParam(i, {key: $event})"
               />
@@ -116,7 +117,7 @@
             <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
               <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
                 [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                [variables]="variables()" 
+                [varOptions]="varOptions()"  
                 [ngModel]="param.value" 
                 (ngModelChange)="updateParamVal(i, $event)"
               />
@@ -163,7 +164,7 @@
                 <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
                   <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
                     [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                    [variables]="variables()" 
+                    [varOptions]="varOptions()"  
                     [ngModel]="param.key"
                     (ngModelChange)="updateEncodedForm(i, {key: $event})"
                   />
@@ -173,7 +174,7 @@
                 <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
                   <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
                     [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
-                    [variables]="variables()" 
+                    [varOptions]="varOptions()"  
                     [ngModel]="param.value" 
                     (ngModelChange)="updateEncodedFormVal(i, $event)"
                   />
@@ -193,7 +194,7 @@
       <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
         [role]="'json'"
         language="json"
-        [variables]="variables()"
+        [varOptions]="varOptions()" 
         enableAi="false"
         [(prompt)]="body"
       />
@@ -202,7 +203,7 @@
       <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
         [role]="'raw text'"
         language="text"
-        [variables]="variables()"
+        [varOptions]="varOptions()" 
         enableAi="false"
         [(prompt)]="body"
       />

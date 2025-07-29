@@ -1,15 +1,20 @@
 import { Overlay } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
-import { afterNextRender, Component, computed, ElementRef, HostListener, inject, input, output, signal } from '@angular/core'
+import { afterNextRender, Component, computed, effect, ElementRef, HostListener, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { debouncedSignal, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { debouncedSignal, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { getVariableSchema, TStateVariable, TWorkflowVarGroup } from '../../../@core/types'
+import { TXpertVariablesOptions, XpertService } from '@cloud/app/@core'
+import { of } from 'rxjs'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
+export { TXpertVariablesOptions } from '@cloud/app/@core/services'
+
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe],
+  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, NgmSpinComponent],
   selector: 'xpert-variable-panel',
   templateUrl: './variable.component.html',
   styleUrls: ['./variable.component.scss'],
@@ -22,9 +27,14 @@ export class XpertVariablePanelComponent {
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly overlay = inject(Overlay)
   readonly elementRef = inject(ElementRef)
+  readonly xpertAPI = inject(XpertService)
   
   // Inputs
-  readonly variables = input<TWorkflowVarGroup[]>()
+  readonly options = input.required<TXpertVariablesOptions>()
+  /**
+   * Use as variables cache, if not provided, will fetch variables from API by options
+   */
+  readonly variables = model<TWorkflowVarGroup[]>(null)
 
   // Outputs
   readonly close = output<void>()
@@ -33,6 +43,15 @@ export class XpertVariablePanelComponent {
   readonly value$ = this.cva.value$
   readonly selected = computed(() => getVariableSchema(this.variables(), this.value$()))
   readonly variable = computed(() => this.selected().variable)
+
+  readonly #variables = myRxResource({
+    request: () => this.variables() ? null : this.options(),
+    loader: ({request}) => {
+      return request ? this.xpertAPI.getNodeVariables(request) : of(null)
+    }
+  })
+  readonly loading = computed(() => this.#variables.status() === 'loading')
+
 
   readonly searchTerm = signal('')
   readonly #searchTerm = debouncedSignal(this.searchTerm, 300)
@@ -59,6 +78,12 @@ export class XpertVariablePanelComponent {
         this.isListening.set(true)
       }, 1000)
     })
+
+    effect(() => {
+      if (this.#variables.value()) {
+        this.variables.set(this.#variables.value())
+      }
+    }, { allowSignalWrites: true })
   }
 
   focus() {

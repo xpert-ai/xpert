@@ -6,6 +6,8 @@
       <div class="inline-block" [matTooltip]="variable()?.description | i18n" matTooltipPosition="above">
         <div class="inline-flex items-center px-1.5 max-w-full h-6 cursor-pointer text-sm rounded-md border-[0.5px] border-[rgba(16, 2440,0.08)] text-text-secondary bg-white shadow-sm"
           [cdkMenuTriggerFor]="varMenu"
+          #tm="cdkMenuTriggerFor"
+          [cdkMenuTriggerData]="{trigger: tm}"
         >
           <i class="ri-chat-thread-line"></i>
           <div class="max-w-[60px] truncate font-medium"
@@ -45,25 +47,14 @@
   <i class="ri-delete-bin-5-fill"></i>
 </div>
 
-
-
-<ng-template #varMenu>
-  <div cdkMenu class="cdk-menu__medium">
-    @for (g of groupVariables(); track g) {
-      @if (g.group) {
-        <div class="p-1 mt-2 text-sm text-text-secondary uppercase">{{g.group.description | i18n}}</div>
-      } @else {
-        <div class="p-1 mt-2 text-sm text-text-secondary">{{'PAC.Copilot.SystemVariables' | translate: {Default: 'System Variables'} }}</div>
-      }
-      @for (variable of g.variables; track variable.name) {
-        <div cdkMenuItem class="flex items-center" (click)="selectVariable(g.group?.name, variable)">
-          <span class="text-sm mr-1">{{ variable.name }}</span>
-          <span class="flex-1 text-xs leading-3 italic truncate text-text-secondary">{{variable.description | i18n}}</span>
-          <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>
-        </div>
-      }
-    }
-  </div>
+<ng-template #varMenu let-trigger="trigger">
+  <xpert-variable-panel #varPanel class="border-[0.5px] border-solid border-slate-200 rounded-xl shadow-lg bg-components-card-bg" (click)="$event.stopPropagation()" 
+    [options]="varOptions()"
+    [(variables)]="variables"
+    [(ngModel)]="_variableSelector"
+    (ngModelChange)="trigger.close()"
+    (close)="trigger.close()"
+  />
 </ng-template>
 
 <ng-template #opMenu>

@@ -32,7 +32,7 @@ import { timer } from 'rxjs'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
-import { XpertVariablePanelComponent } from '../../agent'
+import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../../agent'
 
 
 declare var monaco: any
@@ -72,7 +72,7 @@ export class CopilotPromptEditorComponent {
     transform: numberAttribute
   })
   readonly tooltip = input<string>()
-  readonly variables = input<TWorkflowVarGroup[]>()
+  readonly varOptions = input<TXpertVariablesOptions>()
   readonly role = input<'system' | 'ai' | 'human' | string>()
   readonly fullscreen = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
@@ -93,6 +93,7 @@ export class CopilotPromptEditorComponent {
   overlayRef: OverlayRef | null = null
   
   // States
+  readonly variables = model<TWorkflowVarGroup[]>()
   readonly promptLength = computed(() => this.prompt()?.length)
 
   height = this.initHeight()
@@ -202,9 +203,6 @@ export class CopilotPromptEditorComponent {
   }
 
   showSuggestions() {
-    if (!this.variables()?.length) {
-      return
-    }
     const caretCoords = this.getCursorPagePosition()
     const positionStrategy = this.overlay
       .position()

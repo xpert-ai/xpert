@@ -100,7 +100,11 @@ export function createHttpNode(
 					if (entity.body?.body) {
 						body = await PromptTemplate.fromTemplate(entity.body.body, {templateFormat: 'mustache'}).format(stateEnv)
 						if (entity.body?.type === 'json') {
-							body = JSON.parse(body)
+							try {
+								body = JSON.parse(body)
+							} catch (error) {
+								throw new Error(`Invalid JSON body in HTTP node '${node.key}', formatted body:\n${body}`)
+							}
 						}
 					}
 					if (entity.body?.type === 'x-www-form-urlencoded') {

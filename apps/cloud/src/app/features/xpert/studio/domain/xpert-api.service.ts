@@ -590,9 +590,9 @@ export class XpertStudioApiService {
     }
   }
 
-  public autoLayout() {
-    new LayoutHandler(this.store).handle(new LayoutRequest('TB'))
-    // this.#reload.next(EReloadReason.AUTO_LAYOUT)
+  public async autoLayout() {
+    await new LayoutHandler(this.store).handle(new LayoutRequest('TB'))
+    this.#reload.next(EReloadReason.AUTO_LAYOUT)
   }
 
   gotoWorkspace() {

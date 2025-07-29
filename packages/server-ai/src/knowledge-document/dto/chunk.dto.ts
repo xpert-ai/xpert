@@ -19,7 +19,7 @@ export class DocumentChunkDTO implements IDocumentChunk {
 	@ApiProperty({ type: () => String })
 	@IsNotEmpty()
 	@IsString()
-	content: string
+	pageContent: string
 
 	@Expose()
 	@ApiProperty({ type: () => Object })
@@ -38,5 +38,6 @@ export class DocumentChunkDTO implements IDocumentChunk {
 
 	constructor(partial: Partial<DocumentChunkDTO>) {
 		Object.assign(this, partial)
+		this.id = partial.id || partial.metadata.chunk_id
 	}
 }

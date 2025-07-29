@@ -11,7 +11,7 @@
   </div>
 }
 
-<div class="container flex items-center px-1 h-8 rounded-lg border border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600">
+<div class="container group/container flex items-center px-1 h-8 rounded-lg border border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600">
   <div class="flex-1 relative flex items-center overflow-hidden"
     #menuTrigger
     #mt="cdkMenuTriggerFor"
@@ -75,7 +75,7 @@
           </g>
         </svg>
       </div>
-      <div>{{'PAC.Copilot.SelectModel' | translate: {Default: 'Select model'} }}</div>
+      <div class="text-text-secondary group-hover/container:text-text-primary">{{'PAC.Copilot.SelectModel' | translate: {Default: 'Select model'} }}</div>
     }
     
   @if (!readonly()) {

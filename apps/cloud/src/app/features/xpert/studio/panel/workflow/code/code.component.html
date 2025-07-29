@@ -30,7 +30,11 @@
             <div class="!flex group/picker-trigger-wrap relative">
               <div class="border-gray-100 relative group/wrap flex items-center gap-1 w-full h-9 p-1 rounded-lg bg-components-input-bg-normal">
                 <div class="grow h-full mr-1">
-                  <xpert-state-variable-select [variables]="variables()" [ngModel]="param.variable" (ngModelChange)="updateInput(i, 'variable', $event)"/>
+                  <xpert-state-variable-select
+                    [varOptions]="varOptions()"
+                    [ngModel]="param.variable"
+                    (ngModelChange)="updateInput(i, 'variable', $event)"
+                  />
                 </div>
                 <button type="button" class="btn invisible group-hover/wrap:visible group-hover/wrap:relative absolute w-6 h-6 justify-center right-1 group p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
                   (click)="removeInput(param)">

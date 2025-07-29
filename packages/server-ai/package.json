@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-ai",
-  "version": "3.3.6",
+  "version": "3.3.7",
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {
@@ -27,6 +27,7 @@
     "@notionhq/client": "2.2.15",
     "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.0",
     "@sap_oss/odata-library": "2.4.0",
+    "@zilliz/milvus2-sdk-node": "2.6.0",
     "duck-duck-scrape": "^2.2.5",
     "cache-manager": "^4.1.0",
     "cache-manager-redis-yet": "5.1.5",

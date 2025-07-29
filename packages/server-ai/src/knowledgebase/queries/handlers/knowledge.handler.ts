@@ -1,6 +1,7 @@
 import { DocumentInterface } from '@langchain/core/documents'
+import { getPythonErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
-import { Logger } from '@nestjs/common'
+import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { sortBy } from 'lodash'
 import { In, IsNull, Not } from 'typeorm'
@@ -17,6 +18,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		const { knowledgebases, query, k, score, filter } = command.input
 		const tenantId = command.input.tenantId ?? RequestContext.currentTenantId()
 		const organizationId = command.input.organizationId ?? RequestContext.getOrganizationId()
+		const topK = k ?? 1000
 		const result = await this.knowledgebaseService.findAll({
 			where: {
 				tenantId,
@@ -29,42 +31,44 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		const documents: { doc: DocumentInterface<Record<string, any>>; score: number }[] = []
 		const kbs = await Promise.all(
 			_knowledgebases.map(async (kb) => {
-				const vectorStore = await this.knowledgebaseService.getVectorStore(
-					kb.id,
-					true,
-					tenantId,
-					organizationId
-				)
+				const vectorStore = await this.knowledgebaseService.getVectorStore(kb.id, true,)
 				this.logger.debug(
 					`SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.modelProvider?.providerName}' and model='${vectorStore.embeddingModel}'`
 				)
 				const items = await vectorStore.similaritySearchWithScore(query, k, filter)
 				// Rerank the documents if a rerank model is set
-				if (kb.rerankModelId) {
+				if (kb.rerankModelId && items.length > topK) {
 					const docs = items.map(([doc, score]) => doc)
-					const rerankedDocs = await vectorStore.rerank(docs, query, { topN: k || 1000 })
-					return rerankedDocs.map(({ index, relevanceScore }) => {
+					try {
+						const rerankedDocs = await vectorStore.rerank(docs, query, { topN: k || 1000 })
 						return {
-							doc: docs[index],
-							score: items[index][1],
-							relevanceScore
+							kb,
+							docs: rerankedDocs.map(({ index, relevanceScore }) => {
+								return {
+									doc: docs[index],
+									score: items[index][1],
+									relevanceScore
+								}
+							})
 						}
-					})
+					} catch (error) {
+						throw new InternalServerErrorException(getPythonErrorMessage(error))
+					}
 				}
 
-				return items.map(([doc, score]) => ({doc, score}))
-					.filter(({ score: _score }) => 1 - _score >= (score ?? kb.similarityThreshold ?? 0.5))
+				return {
+					kb,
+					docs: items.map(([doc, score]) => ({ doc, score }))
+				}
 			})
 		)
 
-		kbs.forEach((items) => {
-			items.forEach((item) => {
-				if (item.score > (score ?? 0.5)) {
-					documents.push(item)
-				}
+		kbs.forEach(({kb, docs}) => {
+			docs.filter(({ score: _score }) => 1 - _score >= (score ?? kb.similarityThreshold ?? 0.5)).forEach((item) => {
+				documents.push(item)
 			})
 		})
 
-		return sortBy(documents, 'score', 'desc').slice(0, k || 1000)
+		return sortBy(documents, 'score', 'asc').slice(0, topK)
 	}
 }

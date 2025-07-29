@@ -56,9 +56,9 @@ export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { typ
 					case WorkflowComparisonOperator.ENDS_WITH:
 						return stateValue.endsWith(condition.value)
 					case WorkflowComparisonOperator.EMPTY:
-						return stateValue == null
+						return isEmpty(stateValue)
 					case WorkflowComparisonOperator.NOT_EMPTY:
-						return stateValue != null
+						return !isEmpty(stateValue)
 					default:
 						return false
 				}

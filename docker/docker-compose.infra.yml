@@ -1,0 +1,163 @@
+networks:
+  overlay:
+    driver: bridge
+  milvus:
+    driver: bridge
+
+services:
+  db:
+    image: pgvector/pgvector:pg12
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-root}
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'psql postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@localhost:5432/$${POSTGRES_DB} || exit 1'
+        ]
+    volumes:
+      - ./volumes/db/data:/var/lib/postgresql/data
+      - ./.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
+    ports:
+      - ${DB_PORT:-5432}:5432
+    networks:
+      - overlay
+
+  redis:
+    image: redis/redis-stack:latest
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+      - 8001:8001
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -h localhost -p 6379 PING']
+      interval: 1s
+      timeout: 30s
+    command: ["sh", "-c", "redis-server --requirepass $${REDIS_PASSWORD}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    networks:
+      - overlay
+
+  # Milvus vector database services
+  etcd:
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.5
+    profiles:
+      - milvus
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: ${ETCD_AUTO_COMPACTION_MODE:-revision}
+      ETCD_AUTO_COMPACTION_RETENTION: ${ETCD_AUTO_COMPACTION_RETENTION:-1000}
+      ETCD_QUOTA_BACKEND_BYTES: ${ETCD_QUOTA_BACKEND_BYTES:-4294967296}
+      ETCD_SNAPSHOT_COUNT: ${ETCD_SNAPSHOT_COUNT:-50000}
+    volumes:
+      - ./volumes/milvus/etcd:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: [ 'CMD', 'etcdctl', 'endpoint', 'health' ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+
+  minio:
+    container_name: milvus-minio
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    profiles:
+      - milvus
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - ./volumes/milvus/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: [ 'CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live' ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+
+  milvus-standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v2.5.0-beta
+    profiles:
+      - milvus
+    command: [ 'milvus', 'run', 'standalone' ]
+    environment:
+      ETCD_ENDPOINTS: ${ETCD_ENDPOINTS:-etcd:2379}
+      MINIO_ADDRESS: ${MINIO_ADDRESS:-minio:9000}
+      common.security.authorizationEnabled: ${MILVUS_AUTHORIZATION_ENABLED:-true}
+    volumes:
+      - ./volumes/milvus/milvus:/var/lib/milvus
+    healthcheck:
+      test: [ 'CMD', 'curl', '-f', 'http://localhost:9091/healthz' ]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    depends_on:
+      - etcd
+      - minio
+    ports:
+      - 19530:19530
+      - 9091:9091
+    networks:
+      - milvus
+
+  # Databases services
+
+  # mysqldb:
+  #   image: mysql:8
+  #   restart: always
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: example
+  #   ports:
+  #     - 3306:3306
+  #   networks:
+  #     - overlay
+
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:24.3.6
+    profiles:
+      - clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - ./volumes/clickhouse/data:/var/lib/clickhouse
+      - ./volumes/clickhouse/logs:/var/log/clickhouse-server
+    networks:
+      - overlay
+    cap_add:
+      - SYS_NICE
+      - NET_ADMIN
+      - IPC_LOCK
+      - SYS_PTRACE
+
+  pgweb:
+    image: sosedoff/pgweb
+    container_name: pgweb
+    restart: always
+    depends_on:
+      - db
+    links:
+      - db:${DB_HOST:-db}
+    environment:
+      POSTGRES_DB: ${DB_NAME:-gauzy}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-gauzy_password}
+      PGWEB_DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASS:-gauzy_password}@${DB_HOST:-db}:${DB_PORT:-5432}/${DB_NAME:-gauzy}?sslmode=disable
+    ports:
+      - '8081:8081'
+    networks:
+      - overlay

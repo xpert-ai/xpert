@@ -56,7 +56,8 @@
 
 <ng-template #varsMenu>
   <xpert-variable-panel class="border-[0.5px] border-solid border-slate-200 rounded-xl shadow-lg bg-components-card-bg" (click)="$event.stopPropagation()" 
-    [variables]="variables()"
+    [options]="varOptions()"
+    [(variables)]="variables"
     [ngModel]="value$()"
     (ngModelChange)="setVariable($event);trigger.close()"
     (close)="trigger.close()"

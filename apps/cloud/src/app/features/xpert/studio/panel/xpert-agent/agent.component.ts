@@ -62,6 +62,7 @@ import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@metad/c
 import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
 import { VISION_DEFAULT_VARIABLE } from '../../types'
+import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -284,17 +285,23 @@ export class XpertStudioPanelAgentComponent {
   })
 
   // Fetch avaiable variables for this agent from server
-  readonly variables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    const agentKey = this.key()
-    return xpertId && agentKey ? this.apiService.getVariables({
-      xpertId, agentKey, type: 'input'}).pipe(
-      catchError((error) => {
-        this.#toastr.error(getErrorMessage(error))
-        return of([])
-      })
-    ) : of(null)
-  })
+  readonly varOptions = computed<TXpertVariablesOptions>(() => ({
+    xpertId: this.xpertId(),
+    agentKey: this.key(),
+    type: 'input',
+    environmentId: this.apiService.environmentId()
+  }))
+  // readonly variables = derivedAsync(() => {
+  //   const xpertId = this.xpertId()
+  //   const agentKey = this.key()
+  //   return xpertId && agentKey ? this.apiService.getVariables({
+  //     xpertId, agentKey, type: 'input'}).pipe(
+  //     catchError((error) => {
+  //       this.#toastr.error(getErrorMessage(error))
+  //       return of([])
+  //     })
+  //   ) : of(null)
+  // })
 
   readonly promptTemplateFullscreen = signal<string>(null)
 
