@@ -77,5 +77,5 @@ export async function createHumanMessage(
 		})
 	}
 
-	return new HumanMessage(input ?? '')
+	return new HumanMessage(typeof input === 'string' ? input : JSON.stringify(input ?? ''))
 }

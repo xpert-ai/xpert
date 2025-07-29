@@ -24,7 +24,7 @@
       <div class="w-full flex-1 flex flex-col items-start gap-2 overflow-hidden">
 
         <xpert-state-variable-select class="w-full opacity-90 hover:opacity-100"
-          [variables]="variables()"
+          [varOptions]="varOptions()"
           [ngModel]="memory.variableSelector"
           [ngModelOptions]="{standalone: true}"
           (ngModelChange)="updateMemory(i, 'variableSelector', $event)"
@@ -46,7 +46,7 @@
               (ngModelChange)="updateMemory(i, 'value', $event)">
           } @else if (type() === 'variable') {
             <xpert-state-variable-select class="grow border-0 opacity-90 hover:opacity-100"
-              [variables]="variables()"
+              [varOptions]="varOptions()"
               [ngModel]="memory.value"
               [ngModelOptions]="{standalone: true}"
               (ngModelChange)="updateMemory(i, 'value', $event)"

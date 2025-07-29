@@ -9,7 +9,7 @@
     {{ 'PAC.Xpert.InputVariables' | translate: {Default: 'Input Variables'} }}
   </div>
   <xpert-state-variable-select
-    [variables]="variables()" 
+    [varOptions]="varOptions()"
     [(ngModel)]="inputVariable" 
   />
 </div>
@@ -26,7 +26,7 @@
     <copilot-prompt-editor class="relative self-stretch mb-4 rounded-xl border border-solid border-neutral-100 hover:border-neutral-200 hover:shadow-sm"
       [initHeight]="160"
       [role]="('PAC.Xpert.Category' | translate: {Default: 'Category'}) + ' ' + (i+1)"
-      [variables]="variables()"
+      [varOptions]="varOptions()"
       [prompt]="item.description"
       (promptChange)="updateClass(i, $event)"
       (deleted)="removeClass(i)"
@@ -55,7 +55,7 @@
     <copilot-prompt-editor class="relative self-stretch mb-4 rounded-xl border border-solid border-neutral-100 hover:border-neutral-200 hover:shadow-sm"
       [initHeight]="160"
       [role]="'PAC.Xpert.Instruction' | translate: {Default: 'Instruction'}"
-      [variables]="variables()"
+      [varOptions]="varOptions()"
       [(prompt)]="instruction"
     />
   }

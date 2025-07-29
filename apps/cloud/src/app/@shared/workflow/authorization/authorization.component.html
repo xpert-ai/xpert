@@ -20,7 +20,7 @@
         <xpert-variable-input class="w-full p-2 text-sm font-normal rounded-lg grow bg-gray-50" 
           type="text" autocomplete="username" 
           [placeholder]="'PAC.KEY_WORDS.EnterUsername' | translate: {Default: 'Enter username'}"
-          [variables]="variables()" 
+          [varOptions]="varOptions()"  
           [(ngModel)]="username"
         />
 
@@ -30,7 +30,7 @@
         <xpert-variable-input class="w-full p-2 text-sm font-normal rounded-lg grow bg-gray-50" 
           type="password" autocomplete="current-passwor" 
           [placeholder]="'PAC.KEY_WORDS.EnterPassword' | translate: {Default: 'Enter password'}"
-          [variables]="variables()" 
+          [varOptions]="varOptions()"  
           [(ngModel)]="password"
         />
       </div>
@@ -65,7 +65,7 @@
 
         <xpert-variable-input class="w-full p-2 text-sm font-normal rounded-lg grow bg-gray-50" 
           type="password" autocomplete="current-password" [placeholder]="'PAC.Xpert.EnterAPIKey' | translate: {Default: 'Enter API Key'}"
-          [variables]="variables()" 
+          [varOptions]="varOptions()"  
           [(ngModel)]="api_key_value"
         />
       </div>

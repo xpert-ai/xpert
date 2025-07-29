@@ -138,7 +138,10 @@ export function stateVariable(variable: TStateVariable) {
 
 	return {
 		default: () => defaultValue,
-		reducer: (left, right) => {
+		reducer: (left: any, right: any) => {
+			if (!variable.type) {
+				return right
+			}
 			if (variable.type.startsWith('array')) {
 				left ??= []
 				switch (variable.operation) {

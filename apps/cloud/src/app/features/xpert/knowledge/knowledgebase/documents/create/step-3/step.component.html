@@ -40,8 +40,8 @@
               } @else if (item.status === 'finish') {
                 <i class="ri-checkbox-circle-fill text-text-success"></i>
               } @else if (item.status === 'error') {
-                <i class="ri-close-circle-fill text-text-waring"
-                  [matTooltip]="item.processMsg"
+                <i class="ri-close-circle-fill text-text-destructive"
+                  [matTooltip]="item.processMsg" matTooltipPosition="above"
                 ></i>
               }
             </div>

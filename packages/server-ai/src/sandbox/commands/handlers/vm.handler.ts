@@ -2,9 +2,9 @@ import { CACHE_MANAGER, Inject, Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
 import { spawn } from 'child_process'
-import { ExternalCopy, Isolate } from 'isolated-vm'
+import { ExternalCopy, Isolate, Reference } from 'isolated-vm'
 import { I18nService } from 'nestjs-i18n'
-import { Options, PythonShell } from 'python-shell'
+import { PythonShell } from 'python-shell'
 import { SandboxVMCommand } from '../vm.command'
 
 @CommandHandler(SandboxVMCommand)
@@ -18,14 +18,14 @@ export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand> {
 	) {}
 
 	public async execute(command: SandboxVMCommand) {
-		const { code, parameters, language, userId } = command
+		const { code, parameters, language } = command
 		if (language === 'javascript') {
 			return await this.runJavaScriptCode(parameters, code)
 		} else if (language === 'python') {
 			return await this.runPythonFunction(parameters, code)
 		}
 
-		throw new Error(`不支持的语言 ${language}`)
+		throw new Error(`Unsupported language ${language}`)
 	}
 
 	async runJavaScriptCode(parameters: any, code: string): Promise<any> {
@@ -33,36 +33,30 @@ export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand> {
 		const contextified = await isolate.createContext()
 		const jail = contextified.global
 
-		// 绑定 console.log 到沙盒
-		await jail.set(
-			'console',
-			{
-				log: (...args: any[]) => console.log('[Sandbox]', ...args)
-			},
-			{ reference: true }
-		)
 
-		// 绑定用户变量到沙盒
+		// Bind user variables to sandbox
 		for (const [key, value] of Object.entries(parameters)) {
 			await jail.set(key, new ExternalCopy(value).copyInto())
 		}
 
-		// 执行代码 (好像只能返回字符串)
+		// Execute code (seems to only return strings)
 		const wrappedCode = `JSON.stringify((() => { \n${code}\n })())`
 
 		const script = await isolate.compileScript(wrappedCode)
 		const result = await script.run(contextified)
 
-		return JSON.parse(result)
+		return {
+			result: JSON.parse(result),
+		}
 	}
 
 	async runPythonFunction(inputs: any, code: string): Promise<any> {
-		// 将 input 对象的 key value 对转换成 Python 变量定义
+		// Convert the key value pairs of the input object into Python variable definitions
 		const inputVariables = Object.entries(inputs)
 			.map(([key, value]) => `${key} = ${JSON.stringify(value)}`)
 			.join('\n')
 
-		// 将变量定义拼接到 Python 代码前面
+		// Splice the variable definition before the Python code
 		const inputParams = Object.keys(inputs).map(key => `${key}: str`).join(', ')
 		const wrappedCode = `import json
 ${inputVariables}
@@ -72,35 +66,38 @@ result = main(${Object.keys(inputs).join(', ')})
 print(json.dumps(result))
 `
 
-		const result = await PythonShell.runString(wrappedCode, null)
-		console.log(result)
-		return JSON.parse(result[0])
+		const output = await PythonShell.runString(wrappedCode, null)
+		const result = JSON.parse(output[output.length - 1]) // Get the output of the last line print(json.dumps(result))
+		return {
+			result,
+			logs: output.slice(0, -1).join('\n') // All lines except the last one
+		}
 	}
 
 	async runPythonCode(input: any, pythonCode: string): Promise<any> {
 		return new Promise((resolve, reject) => {
-			// 将 input 对象的 key value 对转换成 Python 变量定义
+			// Convert the key value pairs of the input object into Python variable definitions
 			const inputVariables = Object.entries(input)
 				.map(([key, value]) => `${key} = ${JSON.stringify(value)}`)
 				.join('\n')
 
-			// 将变量定义拼接到 Python 代码前面
+			// Splice the variable definition before the Python code
 			const fullPythonCode = `${inputVariables}\n${pythonCode}`
 
-			// 使用 -c 参数直接执行 Python 代码字符串
+			// Use the -c parameter to directly execute a Python code string
 			const pythonProcess = spawn('python3', ['-c', fullPythonCode], {
-				stdio: ['pipe', 'pipe', 'pipe'] // 配置 stdin, stdout, stderr
+				stdio: ['pipe', 'pipe', 'pipe'] // Configure stdin, stdout, stderr
 			})
 
 			let output = ''
 			let errorOutput = ''
 
-			// 收集 Python 脚本的输出
+			// Collect the output of the Python script
 			pythonProcess.stdout.on('data', (data) => {
 				output += data.toString()
 			})
 
-			// 收集错误信息
+			// Collect error messages
 			pythonProcess.stderr.on('data', (data) => {
 				errorOutput += data.toString()
 			})
@@ -108,16 +105,16 @@ print(json.dumps(result))
 			const timeout = setTimeout(() => {
 				pythonProcess.kill()
 				reject(new Error('Python execution timeout'))
-			}, 5000) // 5秒超时
+			}, 5000) // 5 seconds timeout
 
-			// 脚本执行完成
+			// Script execution completed
 			pythonProcess.on('close', (code) => {
 				clearTimeout(timeout)
 				if (code === 0) {
 					try {
-						resolve(JSON.parse(output)) // 假设返回 JSON 格式
+						resolve(JSON.parse(output)) // Assume the return is in JSON format
 					} catch (e) {
-						resolve(output) // 如果不是 JSON，返回原始输出
+						resolve(output) // If not JSON, return original output
 					}
 				} else {
 					reject(new Error(errorOutput))

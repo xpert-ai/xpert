@@ -61,7 +61,7 @@
         <i class="ri-text-wrap"></i>
       </button>
       
-      @if (variables()?.length) {
+      @if (varOptions()) {
         <button type="button" class="action-btn action-btn-m w-7 h-7"
           (click)="showSuggestions()"
         >
@@ -113,7 +113,8 @@
 
 <ng-template #suggestionsTemplate>
   <xpert-variable-panel class="border-[0.5px] border-solid border-slate-200 rounded-xl shadow-lg bg-components-card-bg" (click)="$event.stopPropagation()" 
-    [variables]="variables()"
+    [options]="varOptions()"
+    [(variables)]="variables"
     [ngModel]="null"
     (ngModelChange)="setVariable($event);hideSuggestions()"
     (close)="hideSuggestions()"

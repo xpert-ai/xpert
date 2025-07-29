@@ -25,7 +25,7 @@ import { XpertToolsetToolTestComponent } from '../test/tool.component'
     XpertToolsetToolTestComponent,
     XpertToolAuthorizationInputComponent
   ],
-  selector: 'xpert-tool-test',
+  selector: 'xpert-tool-test-dialog',
   templateUrl: './tool.component.html',
   styleUrl: 'tool.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

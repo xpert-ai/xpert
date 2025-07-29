@@ -4,9 +4,9 @@
       <i class="ri-draggable hidden absolute top-1 left-1 group-hover:inline-block cursor-pointer"></i>
 
       <xpert-workflow-case-form class="mb-2"
+        [varOptions]="varOptions()"
         [first]="first"
         [index]="i + 1"
-        [variables]="variables()"
         [case]="case"
         (caseChange)="updateCase(i, $event)"
         (deleted)="remove(i)"

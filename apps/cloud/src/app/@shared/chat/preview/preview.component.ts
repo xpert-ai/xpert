@@ -600,13 +600,17 @@ export class ChatConversationPreviewComponent {
   onFileDropped(event: FileList) {
     const filesArray = Array.from(event)
     this.attachments.update((state) => {
-      while (state.length < this.attachment_maxNum() && filesArray.length > 0) {
-        const file = filesArray.shift()
-        state.push({ file })
-        if (state.length >= this.attachment_maxNum() && filesArray.length > 0) {
+      while (state.length <= this.attachment_maxNum() && filesArray.length > 0) {
+        if (state.length >= this.attachment_maxNum()) {
           this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {Default: 'Attachments exceed the maximum number allowed.'})
           return [...state]
         }
+        const file = filesArray.shift()
+        if (state.some((_) => _.file.name === file.name)) {
+          this.#toastr.error('PAC.Chat.AttachmentsAlreadyExists', '', {Default: 'Attachment already exists.'})
+          continue
+        }
+        state.push({ file })
       }
       return [...state]
     })

@@ -9,8 +9,8 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { linkedModel } from '@metad/core'
 import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { ApiAuthType, TSelectOption, TWorkflowAuthorization, TWorkflowVarGroup } from '../../../@core/types'
-import { XpertVariableInputComponent } from '../../agent'
+import { ApiAuthType, TSelectOption, TWorkflowAuthorization } from '../../../@core/types'
+import { TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
 
 @Component({
   selector: 'xpert-workflow-authorization',
@@ -33,12 +33,12 @@ import { XpertVariableInputComponent } from '../../agent'
 export class XpertWorkflowAuthorizationComponent {
   eApiProviderAuthType = ApiAuthType
 
-  readonly data = inject<{ authorization: TWorkflowAuthorization; variables: TWorkflowVarGroup[] }>(DIALOG_DATA)
+  readonly data = inject<{ authorization: TWorkflowAuthorization; varOptions: TXpertVariablesOptions }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
 
   // States
   readonly authorization = signal<TWorkflowAuthorization>(this.data.authorization)
-  readonly variables = signal<TWorkflowVarGroup[]>(this.data.variables)
+  readonly varOptions = signal<TXpertVariablesOptions>(this.data.varOptions)
 
   readonly authType = linkedModel({
     initialValue: null,

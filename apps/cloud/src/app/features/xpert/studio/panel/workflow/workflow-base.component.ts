@@ -4,6 +4,7 @@ import { derivedAsync } from "ngxtension/derived-async"
 import { catchError, of } from "rxjs"
 import { XpertStudioApiService } from "../../domain"
 import { XpertStudioComponent } from "../../studio.component"
+import { TXpertVariablesOptions } from "@cloud/app/@shared/agent"
 
 @Component({
   selector: '',
@@ -24,16 +25,23 @@ export class XpertWorkflowBaseComponent {
   /**
    * The state variables of the subgraph where the `key` is located
    */
-  readonly variables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    const nodeKey = this.key()
-    return xpertId && nodeKey
-      ? this.studioService.getVariables({xpertId, workflowKey: nodeKey, type: 'input'}).pipe(
-          catchError((error) => {
-            this._toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
-  })
+  // readonly variables = derivedAsync(() => {
+  //   const xpertId = this.xpertId()
+  //   const nodeKey = this.key()
+  //   return xpertId && nodeKey
+  //     ? this.studioService.getVariables({xpertId, workflowKey: nodeKey, type: 'input'}).pipe(
+  //         catchError((error) => {
+  //           this._toastr.error(getErrorMessage(error))
+  //           return of([])
+  //         })
+  //       )
+  //     : of(null)
+  // })
+
+  readonly varOptions = computed<TXpertVariablesOptions>(() => ({
+    xpertId: this.xpertId(),
+    workflowKey: this.key(),
+    type: 'input',
+    environmentId: this.studioService.environmentId()
+  }))
 }

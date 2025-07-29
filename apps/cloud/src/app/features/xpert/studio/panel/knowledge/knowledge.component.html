@@ -86,6 +86,7 @@
     (click)="closeTest()">
     <xpert-knowledge-test class="absolute top-14 left-0 bottom-0 w-full rounded-t-xl bg-components-panel-bg"
       [knowledgebase]="knowledgebase()"
+      [recall]="recall()"
       (click)="$event.stopPropagation()"
       (close)="closeTest()"
     />

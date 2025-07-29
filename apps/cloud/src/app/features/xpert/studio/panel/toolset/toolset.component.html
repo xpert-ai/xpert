@@ -138,7 +138,7 @@
           [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
           [tooltip]="'PAC.Xpert.WriteToolResultToMemoryTooltip' | translate: {Default: 'Write tool output to global memory of the digital expert'}"
           type="tool"
-          [variables]="variables()"
+          [varOptions]="varOptions()"
           [memories]="toolMemory(item.tool.name)"
           (memoriesChange)="updateToolMemory(item.tool.name, $event)"
         />

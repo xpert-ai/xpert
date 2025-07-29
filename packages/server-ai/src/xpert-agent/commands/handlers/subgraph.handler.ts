@@ -380,35 +380,39 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					}
 				}
 
-				if (fail && !agentKeys.has(fail.key) && fail.type === 'agent') {
-					agentKeys.add(fail.key)
-					const {stateGraph, nextNodes, failNode} = await this.createAgentSubgraph(fail.entity, {
-						mute: options.mute,
-						store: options.store,
-						xpert,
-						options: {
-							leaderKey: parentKey,
-							isDraft: command.options.isDraft,
-							subscriber
-						},
-						thread_id,
-						rootController,
-						signal,
-						isTool: false,
-						variables: toolsetVarirables,
-						partners
-					})
+				// if (fail && !agentKeys.has(fail.key) && fail.type === 'agent') {
+				// 	agentKeys.add(fail.key)
+				// 	const {stateGraph, nextNodes, failNode} = await this.createAgentSubgraph(fail.entity, {
+				// 		mute,
+				// 		xpert,
+				// 		options: {
+				// 			leaderKey: parentKey,
+				// 			isDraft: command.options.isDraft,
+				// 			subscriber
+				// 		},
+				// 		thread_id,
+				// 		rootController,
+				// 		signal,
+				// 		isTool: false,
+				// 		variables: toolsetVarirables,
+				// 		partners
+				// 	})
 	
-					nodes[fail.key] = {graph: stateGraph, ends: []}
-					if (nextNodes?.length || failNode) {
-						await createSubgraph(nextNodes?.[0], failNode)
-					}
-				}
+				// 	nodes[fail.key] = {graph: stateGraph, ends: []}
+				// 	if (nextNodes?.length || failNode) {
+				// 		await createSubgraph(nextNodes?.[0], failNode)
+				// 	}
+				// }
 			}
 
 			if (agentHasNextNodes) {
 				for await (const nextNode of next) {
-					await createSubgraph(nextNode, fail?.[0], agentKey)
+					await createSubgraph(nextNode, null, agentKey)
+					pathMap.push(nextNode.key)
+				}
+				for await (const nextNode of fail) {
+					failNodeKey = nextNode.key
+					await createSubgraph(nextNode, null, agentKey)
 					pathMap.push(nextNode.key)
 				}
 				
@@ -416,12 +420,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (nextNodeKey?.some((_) => !_)) {
 					console.error(`There is an empty nextNodeKey in Agent`)
 				}
-				if (fail?.length) {
-					failNodeKey = fail?.[0]?.key
-				}
-				if (fail?.length) {
-					pathMap.push(fail?.[0]?.key)
-				}
+				// if (fail?.length) {
+				// 	failNodeKey = fail?.[0]?.key
+				// }
+				// if (fail?.length) {
+				// 	pathMap.push(fail?.[0]?.key)
+				// }
 				// conditionalEdges[agentKey] = [
 				// 	createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, nextNodeKey),
 				// 	pathMap
@@ -614,6 +618,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					messages: [...messages],
 					[channelName(agentKey)]: {
 						system: systemMessage.content,
+						error: null,
 						messages
 					}
 				}
@@ -648,10 +653,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					return new Command({
 						goto: failNodeKey,
 						update: {
-							messages: [...deleteMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
+							messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
 							[channelName(agentKey)]: {
 								system: systemMessage.content,
-								messages: [...deleteMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
+								error: getErrorMessage(err),
+								messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
 							}
 						}
 					})
@@ -1110,7 +1116,8 @@ function ensureSummarize(summarize?: TSummarize) {
 function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string))) {
 	return (state: typeof AgentStateAnnotation.State, config) => {
 		const { title } = state
-		const messages = getChannelState(state, agentChannel)?.messages ?? []
+		const subState = getChannelState(state, agentChannel)
+		const messages = subState?.messages ?? []
 		const lastMessage = messages[messages.length - 1]
 		if (isBaseMessage(lastMessage) && isAIMessage(lastMessage)) {
 			if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
@@ -1122,7 +1129,7 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 					nexts.push(new Send(GRAPH_NODE_TITLE_CONVERSATION, state))
 				}
 
-				if (nextNodes) {
+				if (nextNodes && !subState?.error) {
 					if (Array.isArray(nextNodes)) {
 						if (nextNodes.some((_) => !_)) {
 							throw new InternalServerErrorException(`There is an empty nextNodes in createAgentNavigator`)

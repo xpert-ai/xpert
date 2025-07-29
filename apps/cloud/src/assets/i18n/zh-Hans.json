@@ -1800,6 +1800,7 @@
       "Models": "模型",
       "PromptGenerator": "提示词生成器",
       "PromptGeneratorDesc": "提示生成器使用配置的模型来优化提示，以获得更高的质量和更好的结构。请写出清晰详细的说明。",
+      "NoSupportedAIModelFound": "未找到支持的 AI 模型",
       "TryIt": "试一试",
       "Instructions": "指令",
       "WriteClearInstructions": "写下清晰、具体的说明。",
@@ -2001,7 +2002,8 @@
       "FileDeleted": "文件已删除",
       "FileDeleteError": "文件删除失败",
       "Delete": "删除",
-      "AttachmentsMaxNumExceeded": "附件数量超过限制"
+      "AttachmentsMaxNumExceeded": "附件数量超过限制",
+      "AttachmentsAlreadyExists": "附件已存在"
     },
     "ChatBI": {
       "DeprecationNotes": "ChatBI 功能请使用数字专家智能体中的 ChatBI 工具集！",
@@ -2387,6 +2389,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "OutputVariablesInfo": "按照预定义格式组织数据，便于程序自动解析和使用。",
       "TaskCreatedSuccessfully": "任务创建成功",
       "Archive": "归档",
       "Time": "时间",
@@ -2729,6 +2732,7 @@
       "Undo": "撤销",
       "Redo": "重做",
       "ArrangeNodes": "整理节点",
+      "AdaptiveView": "自适应视图",
       "Actions": "操作",
       "Optional": "可选",
       "SelectOptions": "可选项",

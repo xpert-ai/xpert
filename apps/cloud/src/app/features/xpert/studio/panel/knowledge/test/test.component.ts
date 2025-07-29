@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, model, output, signal } from '@angular/core'
-import { getErrorMessage, IKnowledgebase, KnowledgebaseService, ToastrService } from 'apps/cloud/src/app/@core'
+import { getErrorMessage, IKnowledgebase, KnowledgebaseService, TKBRecallParams, ToastrService } from 'apps/cloud/src/app/@core'
 import { CommonModule } from '@angular/common'
 import { Subscription } from 'rxjs'
 import { FormsModule } from '@angular/forms'
@@ -24,6 +24,7 @@ export class XpertKnowledgeTestComponent {
 
   // Inputs
   readonly knowledgebase = input<IKnowledgebase>()
+  readonly recall = input<TKBRecallParams>()
 
   // Outputs
   readonly close = output<void>()
@@ -39,8 +40,8 @@ export class XpertKnowledgeTestComponent {
     this.running.set(true)
     this.#runSubscription = this.knowledgebaseService.test(this.knowledgebase().id, {
       query: this.query(),
-      k: 10,
-      score: 0.2
+      k: this.recall()?.topK ?? 10,
+      score: this.recall()?.score ?? 0.2,
     }).subscribe({
       next: (result) => {
         this.docs.set(result)

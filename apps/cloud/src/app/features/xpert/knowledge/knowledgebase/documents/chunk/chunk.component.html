@@ -99,7 +99,7 @@
                   <div class="system-xs-medium">{{'PAC.Knowledgebase.Chunk' | translate: {Default: 'Chunk'} }}-{{i + 1}}</div>
                 </div>
                 <div class="text-text-quaternary system-xs-medium">·</div>
-                <div class="text-text-tertiary system-xs-medium">{{chunk.content.length}} {{'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</div>
+                <div class="text-text-tertiary system-xs-medium">{{chunk.pageContent?.length}} {{'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</div>
                 <div class="text-text-quaternary system-xs-medium">·</div>
                 <!-- <div class="text-text-tertiary system-xs-medium">0 召回次数</div> -->
               </div>
@@ -136,7 +136,7 @@
               </div>
             </div>
           
-            <span class="text-sm line-clamp-3 text-zinc-500" [class.opacity-50]="chunk.metadata?.disabled">{{chunk.content}}</span>
+            <span class="text-sm line-clamp-3 text-zinc-500" [class.opacity-50]="chunk.metadata?.disabled">{{chunk.pageContent}}</span>
           </li>
           @if (!last) {
             <div class="w-full px-3"><div class="w-full h-[0.5px] bg-divider-subtle my-1"></div></div>
@@ -176,7 +176,7 @@
           <textarea
             class="text-sm disabled:bg-transparent inset-0 outline-none border-none appearance-none resize-none overflow-y-auto h-full w-full pb-6 body-md-regular text-text-secondary tracking-[-0.07px] caret-[#295EFF]"
             placeholder="{{ 'PAC.Knowledgebase.AddContentHere' | translate: {Default: 'Add content here'} }}"
-            [ngModel]="editChunk().content"
+            [ngModel]="editChunk().pageContent"
             (ngModelChange)="updateChunk($event)"
           ></textarea>
         </div>

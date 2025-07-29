@@ -10,7 +10,8 @@
       <div class="flex"></div>
     </div>
     <div class="mt-1">
-      <xpert-state-variable-select [variables]="variables()" class="w-full focus:bg-white" 
+      <xpert-state-variable-select class="w-full focus:bg-white" 
+        [varOptions]="varOptions()"
         [(ngModel)]="queryVariable" 
         (focus)="onFocus($event)"
       />

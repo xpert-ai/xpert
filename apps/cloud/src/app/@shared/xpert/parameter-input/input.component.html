@@ -2,6 +2,8 @@
   <div class="flex items-center gap-0.5 bg-gray-100 rounded-lg p-1 border-[0.5px] border-solid border-transparent z-10"
     [style.margin-left.px]="(item.path.length - 1) * 10"
     [class.!border-orange-500]="!item.param.name"
+    [matTooltip]="(item.param.title || item.param.description) | i18n"
+    matTooltipPosition="before"
   >
     <xpert-parameter-icon [type]="item.param.type"/>
     <input maxlength="30"

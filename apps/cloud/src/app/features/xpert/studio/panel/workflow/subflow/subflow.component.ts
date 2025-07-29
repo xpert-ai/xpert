@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
+import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { attrModel, linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -65,33 +65,42 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
   readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
   readonly subXpertAgentKey = computed(() => this.subXpert()?.entity.agent?.key)
 
-  readonly subAgentVariables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    const nodeKey = this.subAgentKey()
-    return xpertId && nodeKey
-      ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
-          catchError((error) => {
-            this._toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
-  })
+  // readonly subAgentVariables = derivedAsync(() => {
+  //   const xpertId = this.xpertId()
+  //   const nodeKey = this.subAgentKey()
+  //   return xpertId && nodeKey
+  //     ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
+  //         catchError((error) => {
+  //           this._toastr.error(getErrorMessage(error))
+  //           return of([])
+  //         })
+  //       )
+  //     : of(null)
+  // })
 
-  readonly extXpertVariables = derivedAsync(() => {
-    const xpertId = this.subXpertKey()
-    const nodeKey = this.subXpertAgentKey()
-    return xpertId && nodeKey
-      ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
-          catchError((error) => {
-            this._toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
-  })
+  // readonly extXpertVariables = derivedAsync(() => {
+  //   const xpertId = this.subXpertKey()
+  //   const nodeKey = this.subXpertAgentKey()
+  //   return xpertId && nodeKey
+  //     ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
+  //         catchError((error) => {
+  //           this._toastr.error(getErrorMessage(error))
+  //           return of([])
+  //         })
+  //       )
+  //     : of(null)
+  // })
 
-  readonly subVariables = computed(() => this.extXpertVariables() ?? this.subAgentVariables())
+  // readonly subVariables = computed(() => this.extXpertVariables() ?? this.subAgentVariables())
+
+  readonly subVarOptions = computed<TXpertVariablesOptions>(() => {
+    return {
+      xpertId: this.subXpertKey() ?? this.xpertId(),
+      agentKey: this.subXpertAgentKey() ?? this.subAgentKey(),
+      type: 'output',
+      environmentId: this.studioService.environmentId(),
+    }
+  })
 
   // constructor() {
   //   super()

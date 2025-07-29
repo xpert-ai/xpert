@@ -26,6 +26,7 @@ import { CompileGraphCommand } from '../../commands'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 
+const PARALLEL_MAXIMUM = 2
 
 @CommandHandler(CreateWNIteratingCommand)
 export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIteratingCommand> {
@@ -103,6 +104,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					rootController: abortController,
 					signal: abortController.signal,
 					subscriber,
+					environment
 				})
 			)
 			subgraph = compiled.graph
@@ -125,7 +127,8 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 						subscriber,
 						disableCheckpointer: true,
 						channel: channelName(agentKey),
-						partners: []
+						partners: [],
+						environment
 					}
 				)
 			)
@@ -141,7 +144,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					const parameterValue = get(state, inputVariable)
 
 					const parallel = entity.parallel
-					const maximum = entity.maximum
+					const maximum = entity.maximum ?? PARALLEL_MAXIMUM
 					const errorMode = entity.errorMode
 					const invokeSubgraph = async (item, index: number) => {
 						const originalState = isString(item) ? {[IteratingIndexParameterName]: index, [IteratingItemParameterName]: item}
@@ -156,7 +159,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 						const itemExecution: IXpertAgentExecution = {
 							category: 'workflow',
 							type: WorkflowNodeTypeEnum.ITERATING,
-							xpert: { id: xpertId } as IXpert,
+							// xpert: { id: xpertId } as IXpert,
 							agentKey: node.key,
 							inputs: item,
 							title: entity.title,
