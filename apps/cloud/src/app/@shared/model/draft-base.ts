@@ -1,12 +1,13 @@
 import { computed, Directive, effect, inject, signal } from '@angular/core'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { extractSemanticModelDraft, SemanticModelServerService, TSemanticModelDraft } from '@metad/cloud/state'
-import { linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
+import { getSemanticModelKey } from '@metad/story/core'
+import { linkedModel, myRxResource, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { isEntitySet, Schema } from '@metad/ocap-core'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { getSemanticModelKey } from '@metad/story/core'
-import { ModelStudioService } from './model.service'
 import { map } from 'rxjs/operators'
+import { of } from 'rxjs'
+import { ModelStudioService } from './model.service'
 
 @Directive()
 export class ModelDraftBaseComponent {
@@ -18,11 +19,18 @@ export class ModelDraftBaseComponent {
   // States
   readonly modelId = signal<string>(null)
   readonly cubeName = signal<string>(null)
-  readonly semanticModel = derivedAsync(() => {
-    return this.modelId()
-      ? this.modelAPI.getOneById(this.modelId(), { relations: ['dataSource', 'dataSource.type'] })
-      : null
+  readonly #sModelResource = myRxResource({
+    request: () => this.modelId(),
+    loader: ({ request }) => {
+      if (request) {
+        return this.modelAPI.getOneById(request, { relations: ['dataSource', 'dataSource.type'] })
+      }
+      return of(null)
+    }
   })
+  readonly semanticModel = this.#sModelResource.value
+  readonly loading = computed(() => this.#sModelResource.status() === 'loading')
+
   readonly checklist = this.studioService.checklist
 
   /**

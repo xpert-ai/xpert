@@ -5,3 +5,5 @@ export * from './hierarchy'
 export * from './measure';
 export * from './calculated-member';
 export * from './virtual-cube';
+export * from './parameter'
+export * from './calculation';

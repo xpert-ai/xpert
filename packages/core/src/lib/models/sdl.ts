@@ -1,5 +1,5 @@
 import { Annotation, IMember, Measure, PrimitiveType, PropertyName, Syntax } from '../types'
-import { CalculatedMember, CalculationProperty, ParameterControlEnum } from './calculated'
+import { CalculatedMember, CalculationProperty, CubeParameterEnum, ParameterControlEnum } from './calculated'
 import { Indicator } from './indicator'
 import { AggregationRole, EntityProperty, PropertyAttributes } from './property'
 
@@ -344,7 +344,7 @@ export interface LevelProperty extends PropertyAttributes {
 }
 
 export interface ParameterProperty extends EntityProperty {
-  paramType: ParameterControlEnum
+  paramType: CubeParameterEnum | ParameterControlEnum
   value?: PrimitiveType | IMember[]
 
   // Candidate Members

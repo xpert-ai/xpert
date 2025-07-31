@@ -1,6 +1,4 @@
-<xp-cube-studio [cubeName]="cubeName()" [(draft)]="draft" />
-
-<div class="absolute top-2 right-2 p-1 flex justify-end items-center bg-components-card-bg rounded-lg shadow-sm">
+<xp-cube-studio [cubeName]="cubeName()" [(draft)]="draft">
   @if (error()) {
     <div class="w-7 h-7 flex justify-center items-center">
       <i class="ri-bug-line text-text-destructive" [matTooltip]="error()" matTooltipPosition="above"></i>
@@ -33,9 +31,11 @@
       </span>
     }
   </button>
-</div>
+</xp-cube-studio>
 
-@if (!cube()) {
+@if (loading()) {
+  <ngm-spin class="absolute w-full h-full top-0 left-0" />
+} @else if (!cube()) {
   <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
     <div class="pac-result">
       <div class="bug font-notoColorEmoji">🐞</div>

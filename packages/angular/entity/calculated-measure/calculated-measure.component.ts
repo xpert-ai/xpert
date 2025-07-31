@@ -3,8 +3,6 @@ import { CdkDrag, CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import {
   Component,
-  Input,
-  ViewChild,
   ViewContainerRef,
   booleanAttribute,
   effect,
@@ -12,7 +10,8 @@ import {
   inject,
   input,
   model,
-  signal
+  signal,
+  viewChild
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -47,6 +46,7 @@ import { combineLatestWith, firstValueFrom, map, of, startWith, switchMap } from
 import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.component'
 import { EntityCapacity } from '../entity-schema/types'
 import { NgmEntityPropertyComponent } from '../property/property.component'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
@@ -93,20 +93,18 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   FUNCTIONS = []
 
   private readonly _dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog, { optional: true })
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
+  // Inputs
   readonly dsCoreService = input<NgmDSCoreService>()
   readonly dataSettings = input<DataSettings>()
   readonly entityType = input<EntityType>()
   readonly syntax = input<Syntax>()
-
-  @Input() get story() {
-    return this._story
-  }
-  set story(value: boolean | string) {
-    this._story = coerceBooleanProperty(value)
-  }
-  private _story = false
+  readonly key = input<string>()
+  readonly story = input<boolean, boolean | string>(false, {
+    transform: coerceBooleanProperty
+  })
 
   readonly disabled = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
@@ -116,8 +114,10 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
     transform: booleanAttribute
   })
 
-  @ViewChild('editor') editor!: NgmBaseEditorDirective
+  // Children
+  readonly editor = viewChild('editor', {read: NgmBaseEditorDirective})
 
+  // Models
   readonly drawerOpened = model(false)
 
   calculatedMemberSearch = new FormControl<string>('')
@@ -135,6 +135,7 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   calculations = []
   private _onChange: any
 
+  // Signals
   readonly editorOptions = signal({wordWrap: false})
 
   readonly calculations$ = toObservable(this.entityType).pipe(
@@ -142,7 +143,7 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
     map((values) => [
       ...sortBy(values.filter(negate(isIndicatorMeasureProperty)), 'calculationType'),
       ...values.filter(isIndicatorMeasureProperty)
-    ].filter((v) => v.visible)),
+    ].filter((v) => v.visible && v.__id__ !== this.key())),
     combineLatestWith(this.calculatedMemberSearch.valueChanges.pipe(startWith(''))),
     map(([values, search]) =>
       values.filter(
@@ -199,7 +200,7 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
 
   async openCreateParameter(parameter?: ParameterProperty) {
     const result = await firstValueFrom(
-      this._dialog
+      this.#dialog
         .open(NgmParameterCreateComponent, {
           viewContainerRef: this._viewContainerRef,
           data: {
@@ -210,11 +211,11 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
             name: parameter?.name
           }
         })
-        .afterClosed()
+        .closed
     )
 
     if (result) {
-      // 参数创建成功
+      // Parameters created successfully
       console.debug(result)
     }
   }
@@ -226,17 +227,17 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   drop(event: CdkDragDrop<Array<{ name: string }>>) {
     if (event.container.id === 'ngm-calculated-editor') {
       if (event.previousContainer.id === 'ngm-calculated-calculations') {
-        this.editor.insert(`[${C_MEASURES}].[${event.item.data.name}]`)
+        this.editor().insert(`[${C_MEASURES}].[${event.item.data.name}]`)
       } else if (event.previousContainer.id === 'ngm-calculated-parameters') {
-        this.editor.insert(`[@${event.item.data.name}]`)
+        this.editor().insert(`[@${event.item.data.name}]`)
       } else if (event.previousContainer.id === 'ngm-calculated-measure__entity-schema') {
         if (isPropertyMeasure(event.item.data)) {
-          this.editor.insert(`[${C_MEASURES}].[${event.item.data.name}]`)
+          this.editor().insert(`[${C_MEASURES}].[${event.item.data.name}]`)
         } else {
-          this.editor.insert(event.item.data.name)
+          this.editor().insert(event.item.data.name)
         }
       } else if (typeof event.item.data === 'string') {
-        this.editor.insert(event.item.data)
+        this.editor().insert(event.item.data)
       }
     }
   }

@@ -11,6 +11,7 @@ import {
 import { nanoid as _nanoid } from 'nanoid'
 import { ZodType, ZodTypeDef } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
+import omitBy from 'lodash/omitBy'
 import { CopilotChatMessage } from './types'
 
 export function zodToAnnotations(obj: ZodType<any, ZodTypeDef, any>) {
@@ -189,7 +190,7 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: str
               ...content,
               data: {
                 ...(<TMessageContentComponent>_content[index]).data,
-                ...(<TMessageContentComponent>content).data,
+                ...omitBy((<TMessageContentComponent>content).data, isNil),
                 created_date:
                   (<TMessageContentComponent>_content[index]).data.created_date ||
                   (<TMessageContentComponent>content).data.created_date

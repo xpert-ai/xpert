@@ -130,10 +130,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const toolsetVarirables: TStateVariable[] = []
 		const stateVariables: TStateVariable[] = Array.from(team.agentConfig?.stateVariables ?? [])
 		for await (const toolset of toolsets) {
+			// Initialize toolset and it's state
+			const items = await toolset.initTools()
 			const _variables = await toolset.getVariables()
 			toolsetVarirables.push(...(_variables ?? []))
 			stateVariables.push(...toolsetVarirables)
-			const items = await toolset.initTools()
 			// Filter available tools by agent
 			const availableTools = agent.options?.availableTools?.[toolset.getName()] ?? []
 			items.filter((tool) => availableTools.length ? availableTools.includes(tool.name) : true)

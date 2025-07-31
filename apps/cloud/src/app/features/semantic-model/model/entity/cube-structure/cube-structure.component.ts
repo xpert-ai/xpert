@@ -11,6 +11,7 @@ import {
   ViewContainerRef,
   booleanAttribute,
   computed,
+  effect,
   inject,
   input,
   model
@@ -64,6 +65,7 @@ import { CreateEntityDialogRetType, ModelCreateEntityComponent, toDimension } fr
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+import { ModelEntityComponent } from '../entity.component'
 
 /**
  * Display and edit the field list of the multidimensional analysis model
@@ -103,6 +105,7 @@ export class ModelCubeStructureComponent {
   MODEL_TYPE = MODEL_TYPE
   isVisible = isVisible
 
+  readonly cubeComponent = inject(ModelEntityComponent)
   private readonly modelService = inject(SemanticModelService)
   public readonly entityService = inject(ModelEntityService)
   private readonly _cdr = inject(ChangeDetectorRef)
@@ -295,6 +298,12 @@ export class ModelCubeStructureComponent {
     this._cdr.detectChanges()
   })
 
+  constructor() {
+    // effect(() => {
+    //   console.log(this.calculations())
+    // })
+  }
+
   trackById(index: number, el: any) {
     return el.name
   }
@@ -330,6 +339,7 @@ export class ModelCubeStructureComponent {
     } else {
       this.entityService.setSelectedProperty(ModelDesignerType.measure, node.__id__)
     }
+    this.cubeComponent.drawerOpened.set(true)
   }
 
   onAddMeasure(event) {
@@ -663,7 +673,7 @@ export class ModelCubeStructureComponent {
   }
 
   onEditParameter(member?: Partial<ParameterProperty>) {
-    this._dialog
+    this.#dialog
       .open(NgmParameterCreateComponent, {
         viewContainerRef: this.#vcr,
         data: {
@@ -674,7 +684,7 @@ export class ModelCubeStructureComponent {
           name: member?.name
         }
       })
-      .afterClosed().subscribe((result: DeepPartial<ParameterProperty>) => {
+      .closed.subscribe((result: DeepPartial<ParameterProperty>) => {
         console.log(result)
       })
   }

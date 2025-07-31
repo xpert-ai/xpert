@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
@@ -58,6 +59,7 @@ export class StoryCalculationsComponent {
 
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
+  readonly #dialog = inject(Dialog)
   // readonly dsCoreService = inject(NgmDSCacheService)
 
   readonly activeLink = signal<{ dataSource: string; modelId: string; entity: string }>(null)
@@ -208,7 +210,7 @@ export class StoryCalculationsComponent {
   async openCreateParameter(name?: string) {
     const dataSettings = this.dataSettings()
     const entityType = await firstValueFrom(this.storyService.selectEntityType(dataSettings))
-    this._dialog
+    this.#dialog
       .open(NgmParameterCreateComponent, {
         viewContainerRef: this._viewContainerRef,
         data: {
@@ -217,7 +219,7 @@ export class StoryCalculationsComponent {
           name: name
         }
       })
-      .afterClosed()
+      .closed
       .subscribe((result) => {
         if (result) {
           // 参数创建成功

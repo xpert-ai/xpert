@@ -1,20 +1,10 @@
 :host {
-  @apply overflow-hidden p-1;
+  @apply p-1;
 }
 
-.mat-mdc-radio-group {
-  .mat-mdc-radio-button {
-    margin: 0.5rem 0;
-  }
-  &.ngm-density__cosy {
-    .mat-mdc-radio-button {
-      margin: .3rem 0;
-    }
-  }
-  &.ngm-density__compact {
-    .mat-mdc-radio-button {
-      margin: 0;
-    }
+.radio-item[aria-selected='true'] {
+  input {
+    @apply text-blue-600;
   }
 }
 
@@ -35,8 +25,4 @@
     margin-top: 1rem;
     margin-bottom: 1rem;
   }
-}
-
-.mat-mdc-radio-group {
-  margin-left: 1rem;
 }

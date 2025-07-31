@@ -2,13 +2,14 @@ import { SemanticModelStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { REDIS_CLIENT } from '@metad/server-core'
 import { Inject, Logger } from '@nestjs/common'
-import { EventsHandler, IEventHandler } from '@nestjs/cqrs'
+import { CommandBus, EventsHandler, IEventHandler } from '@nestjs/cqrs'
 import { RedisClientType } from 'redis'
 import { SemanticModelCacheService } from '../../cache/cache.service'
 import { updateXmlaCatalogContent } from '../../helper'
 import { SemanticModelService } from '../../model.service'
 import { NgmDSCoreService, registerSemanticModel } from '../../ocap'
 import { SemanticModelUpdatedEvent } from '../updated.event'
+import { UpdateXmlaCatalogContentCommand } from '../../commands'
 
 @EventsHandler(SemanticModelUpdatedEvent)
 export class SemanticModelUpdatedHandler implements IEventHandler<SemanticModelUpdatedEvent> {
@@ -22,7 +23,8 @@ export class SemanticModelUpdatedHandler implements IEventHandler<SemanticModelU
 		 */
 		private readonly dsCoreService: NgmDSCoreService,
 		@Inject(REDIS_CLIENT)
-		private readonly redisClient: RedisClientType
+		private readonly redisClient: RedisClientType,
+		private readonly commandBus: CommandBus
 	) {}
 
 	async handle(event: SemanticModelUpdatedEvent) {
@@ -35,22 +37,11 @@ export class SemanticModelUpdatedHandler implements IEventHandler<SemanticModelU
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 
+		await this.commandBus.execute(new UpdateXmlaCatalogContentCommand(model))
+
 		try {
 			// Update Xmla Schema into Redis for model
 			await updateXmlaCatalogContent(this.redisClient, model)
-
-			// Update draft
-			await updateXmlaCatalogContent(this.redisClient, {...model, ...(model.draft ?? {}), options: {
-				schema: model.draft?.schema ?? model.options?.schema,
-				settings: model.draft?.settings ?? model.options?.settings,
-			}, id: `${model.id}/draft`})
-
-			// Clear cache for model
-			try {
-				await this.cacheService.delete({ modelId: model.id })
-			} catch (err) {
-				//
-			}
 
 			/**
 			 * @deprecated use in dependent query

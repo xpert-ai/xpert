@@ -1,6 +1,6 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, HostBinding, OnInit, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, OnInit, effect, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, UrlSegment } from '@angular/router'
@@ -142,20 +142,6 @@ export class ModelEntityComponent implements OnInit {
   })
 
   /**
-   * When selected property first time to open the attributes panel
-   */
-  readonly #selectedPropertySub = toObservable(this.entityService.selectedProperty)
-    .pipe(
-      map((selected) => !!selected),
-      distinctUntilChanged(),
-      filter(Boolean),
-      takeUntilDestroyed()
-    )
-    .subscribe((selected) => {
-      this.detailsOpen.set(true)
-    })
-
-  /**
    * Monitor the current entity type changes and print out the error information;
    * SQL Model / Olap Model: Used to verify whether the Schema is correct
    */
@@ -174,6 +160,17 @@ export class ModelEntityComponent implements OnInit {
         })
       }
     })
+  
+  constructor() {
+    /**
+     * When selected property first time to open the attributes panel
+     */
+    effect(() => {
+      if (this.entityService.selectedProperty()) {
+        this.detailsOpen.set(true)
+      }
+    }, { allowSignalWrites: true })
+  }
 
   ngOnInit() {
     this.settingsService.setEditable(true)

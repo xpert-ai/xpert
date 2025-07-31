@@ -127,7 +127,7 @@ export class ModelStudioService {
     this.draft$
       .pipe(filter(nonNullable), debounceTime(MODEL_DEBOUNCE_TIME), takeUntilDestroyed(this.destroyRef))
       .subscribe((draft) => {
-        console.log('Draft Updated:', draft)
+        // console.log('Draft Updated:', draft)
         this.registerModel(draft)
       })
   }

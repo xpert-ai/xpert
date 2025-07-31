@@ -24,10 +24,10 @@
 
 <ul class="p-1 overflow-auto">
   @for (item of members(); track item.__id__) {
-    <li (click)="onMemberClick(item)" class="group/item relative cursor-pointer hover:bg-hover-bg p-2 rounded-lg border-b border-solid border-divider-regular">
-      <div class="text-base text-text-secondary">{{item.caption}} [{{item.name}}]</div>
+    <li (click)="onMemberClick(item)" class="group/item relative space-y-1 cursor-pointer hover:bg-hover-bg p-2 rounded-lg border-b border-solid border-divider-regular">
+      <div class="text-base text-text-primary">{{item.caption}} [{{item.name}}]</div>
       <div class="text-sm text-text-secondary line-clamp-2">{{item.description}}</div>
-      <div class="text-sm text-text-secondary font-mono">{{item.formula}}</div>
+      <div class="text-xs text-text-secondary font-mono line-clamp-3">{{item.formula}}</div>
 
       <button type="button" class="absolute right-1 top-1 w-7 h-7 flex justify-center items-center opacity-0 group-hover/item:opacity-100">
         <i class="ri-edit-line"></i>

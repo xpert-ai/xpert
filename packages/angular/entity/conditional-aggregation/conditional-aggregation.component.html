@@ -6,55 +6,71 @@
       displayDensity="cosy"
       formControlName="operation"
       [selectOptions]="OPERATIONS"
-    ></ngm-select>
+    />
 
-    @if (HAS_VALUE_OPERATIONS.includes(formGroup.value.operation)) {
+    @if (HAS_VALUE_OPERATIONS.includes(formGroup.value?.operation)) {
       <ngm-parameter-select class="flex-1" displayDensity="cosy"
         [label]=" 'Ngm.Calculation.VALUE' | translate: {Default: 'Value'} "
-        [dataSettings]="dataSettings"
-        [entityType]="entityType"
+        [dataSettings]="dataSettings()"
+        [entityType]="entityType()"
         formControlName="value"
-      >
-      </ngm-parameter-select>
+      />
     }
   </div>
 
-  <ngm-measure-select class="" formControlName="measure" label="{{ 'Ngm.Calculation.Measure' | translate: {Default: 'Measure'} }}"
-    [dataSettings]="dataSettings"
-    [filter]="filterMeasure"
-    [error]="formGroup.get('measure').hasError('required') ? ('Ngm.Calculation.MeasureIsRequired' | translate: {Default: 'Measure is required'}) : null"
-  />
+  <div class="flex items-start gap-4">
+    <ngm-measure-select class="grow" formControlName="measure" label="{{ 'Ngm.Calculation.Measure' | translate: {Default: 'Measure'} }}"
+      [dataSettings]="dataSettings()"
+      [filter]="filterMeasure"
+      [error]="operation !== eAggregationOperation.COUNT && formGroup.get('measure').hasError('required') ? ('Ngm.Calculation.MeasureIsRequired' | translate: {Default: 'Measure is required'}) : null"
+    />
+    @if (COMPARE_VALUE_OPERATIONS.includes(formGroup.value?.operation)) {
+      <ngm-select class="ngm-calculation__form-field flex-1" [label]="'Ngm.Calculation.Compare' | translate: {Default: 'Compare'}"
+        displayDensity="cosy"
+        formControlName="compare"
+        [selectOptions]="COMPARES"
+      />
+
+      <ngm-parameter-select class="flex-1" displayDensity="cosy"
+        [label]=" 'Ngm.Calculation.VALUE' | translate: {Default: 'Value'} "
+        [dataSettings]="dataSettings()"
+        [entityType]="entityType()"
+        formControlName="value"
+      />
+    }
+  </div>
 
   <div class="text-base my-4">{{ 'Ngm.Calculation.AGGREGATION_DIMENSIONS' | translate: {Default: "Aggregation Dimensions"} }}</div>
   <ngm-property-array class="ngm-conditional-aggregation__dimensions"
     formControlName="aggregationDimensions"
-    [dataSettings]="dataSettings"
-    [entityType]="entityType"
+    [dataSettings]="dataSettings()"
+    [entityType]="entityType()"
     [capacities]="[PropertyCapacity.Dimension]"
-  ></ngm-property-array>
+  />
 
   <mat-checkbox formControlName="useConditionalAggregation" class="my-2">
     {{ 'Ngm.Calculation.UseConditionalAggregation' | translate: {Default: "Use Conditional Aggregation"} }}
   </mat-checkbox>
 
-  <div *ngIf="formGroup.value.useConditionalAggregation" class="ngm-conditional-aggregation__conditions flex flex-col justify-start items-stretch">
-    <div class="ngm-calculation__form-row">
-        <mat-checkbox formControlName="excludeConditions">
-          {{ 'Ngm.Calculation.ExcludeConditions' | translate: {Default: "Exclude Conditions"} }}
-        </mat-checkbox>
-    </div>
+  @if (formGroup.value.useConditionalAggregation) {
+    <div class="ngm-conditional-aggregation__conditions flex flex-col justify-start items-stretch">
+      <div class="ngm-calculation__form-row">
+          <mat-checkbox formControlName="excludeConditions">
+            {{ 'Ngm.Calculation.ExcludeConditions' | translate: {Default: "Exclude Conditions"} }}
+          </mat-checkbox>
+      </div>
 
-    <div class="text-base my-4">
-      {{ 'Ngm.Calculation.ConditionalDimensions' | translate: {Default: "Conditional Dimensions"} }}
+      <div class="text-base my-4">
+        {{ 'Ngm.Calculation.ConditionalDimensions' | translate: {Default: "Conditional Dimensions"} }}
+      </div>
+      <ngm-property-array class="w-full"
+        formControlName="conditionalDimensions"
+        [dataSettings]="dataSettings()"
+        [entityType]="entityType()"
+        [dsCoreService]="dsCoreService()"
+        [capacities]="[PropertyCapacity.Dimension]"
+      />
     </div>
-    <ngm-property-array class="w-full"
-      formControlName="conditionalDimensions"
-      [dataSettings]="dataSettings"
-      [entityType]="entityType"
-      [dsCoreService]="dsCoreService"
-      [capacities]="[PropertyCapacity.Dimension]"
-    ></ngm-property-array>
-
-  </div>
+  }
     
 </form>

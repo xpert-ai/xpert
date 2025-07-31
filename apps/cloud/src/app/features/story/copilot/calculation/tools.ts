@@ -4,7 +4,6 @@ import {
   AggregationProperty,
   C_MEASURES,
   CalculatedProperty,
-  CalculationSchema,
   CalculationType,
   CompareToEnum,
   DataSettings,
@@ -18,6 +17,7 @@ import { z } from 'zod'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom } from 'rxjs'
 import { ConditionalAggregationSchema, VarianceMeasureSchema } from '../schema'
+import { CalculationSchema } from '@cloud/app/@core/copilot'
 
 export function injectCreateFormulaMeasureTool(
   defaultDataSettings: Signal<DataSettings>,

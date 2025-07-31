@@ -23,6 +23,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ModelDesignerType } from '../../../types'
 import { ModelEntityService } from '../../entity.service'
 import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../types'
+import { ModelEntityComponent } from '../../entity.component'
 
 @Component({
   standalone: true,
@@ -49,6 +50,7 @@ export class UsageDimensionComponent {
   isVisible = isVisible
 
   readonly cubeState = inject(ModelEntityService)
+  readonly cubeComponent = inject(ModelEntityComponent)
 
   readonly dimension = input<PropertyDimension>()
   readonly displayBehaviour = input<DisplayBehaviour>()
@@ -110,6 +112,7 @@ export class UsageDimensionComponent {
   onSelect(node: PropertyAttributes) {
     if (node.role === AggregationRole.dimension) {
       this.cubeState.setSelectedProperty(ModelDesignerType.dimensionUsage, this.usage().__id__)
+      this.cubeComponent.drawerOpened.set(true)
     }
   }
 

@@ -24,7 +24,7 @@
   @for (item of dimensionUsages(); track item.__id__; let i = $index) {
     <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
       <i class="ri-gallery-view mr-1"></i>
-      <span class="">{{item.caption}}</span>
+      <span class="truncate">{{item.caption}}</span>
       @if (item.name) {
         <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ item.name }}</span>
       } @else {
@@ -54,7 +54,7 @@
     </div>
 
     <ng-template #usageMenu>
-      <xp-cube-studio-dimension-usage class="shadow-md border-[0.5px] border-solid border-divider-deep max-h-[80vh]"
+      <xp-cube-studio-dimension-usage @overlayAnimation1 class="shadow-md border-[0.5px] border-solid border-divider-deep max-h-[80vh]"
         cdkDrag
         [usage]="item"
         (usageChange)="onUsageChange($event)"
@@ -66,7 +66,7 @@
   @for (item of dimensions(); track item.__id__; let i = $index) {
     <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
       <i class="ri-hashtag mr-1"></i>
-      <span class="">{{item.caption}}</span>
+      <span class="truncate">{{item.caption}}</span>
       @if (item.name) {
         <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ item.name }}</span>
       } @else {
@@ -108,7 +108,7 @@
   @for (item of measures(); track item.__id__; let i = $index) {
     <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
       <i class="ri-ruler-line mr-1"></i>
-      <span class="">{{item.caption}}</span>
+      <span class="truncate">{{item.caption}}</span>
       @if (item.name) {
         <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ item.name }}</span>
       } @else {
@@ -147,7 +147,7 @@
   @for (item of calculatedMembers(); track item.__id__; let i = $index) {
     <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
       <i class="ri-formula mr-1"></i>
-      <span class="">{{item.caption}}</span>
+      <span class="truncate">{{item.caption}}</span>
       @if (item.name) {
         <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ item.name }}</span>
       } @else {
@@ -186,7 +186,7 @@
   @for (item of calculations(); track item.__id__; let i = $index) {
     <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
       <i class="ri-functions mr-1"></i>
-      <span class="">{{item.caption}}</span>
+      <span class="truncate">{{item.caption}}</span>
       @if (item.name) {
         <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ item.name }}</span>
       } @else {
@@ -213,7 +213,7 @@
   @for (item of parameters(); track item.__id__; let i = $index) {
     <div class="relative group/item flex justify-start items-center px-2 py-1 text-text-secondary hover:text-text-primary hover:bg-hover-bg">
       <i class="ri-at-line mr-1"></i>
-      <span class="">{{item.caption}}</span>
+      <span class="truncate">{{item.caption}}</span>
       @if (item.name) {
         <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ item.name }}</span>
       } @else {

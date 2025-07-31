@@ -4,7 +4,7 @@
         "NoTextEmbeddingModel": "未正确配置嵌入模型或默认嵌入模型",
         "NoRerankModel": "未正确配置重排序模型或默认重排序模型",
         "AIModelNotFound": "未配置 AI 模型",
-        "TokenExceedsLimit": "Token 使用量超出限制",
-        "TokenExceedsOrgLimit": "Token 使用量超出组织限制"
+        "TokenExceedsLimit": "模型 '{model}' 的 Token 使用量超出限制",
+        "TokenExceedsOrgLimit": "模型 '{model}' 的 Token 使用量超出组织限制"
     }
 }

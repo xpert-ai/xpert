@@ -15,7 +15,8 @@ export class DimensionMemberRetriever extends BaseRetriever {
 	constructor(
 		private readonly memberService: SemanticModelMemberService,
 		public tenantId?: string,
-		public organizationId?: string
+		public organizationId?: string,
+		public isDraft?: boolean
 	) {
 		super()
 	}
@@ -52,7 +53,7 @@ export class DimensionMemberRetriever extends BaseRetriever {
 			const docs = await this.memberService.retrieveMembers(
 				this.tenantId,
 				this.organizationId,
-				{ modelId, cube, dimension, hierarchy, level },
+				{ modelId, cube, dimension, hierarchy, level, isDraft: this.isDraft },
 				query,
 				topK ?? 10
 			)

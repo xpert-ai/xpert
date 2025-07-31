@@ -948,6 +948,9 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "OpenModel": "打开模型",
+      "ArrangeNodes": "排列节点",
+      "CalculatedMembers": "计算成员",
       "NotIndexed": "未索引",
       "CubeNotFound": "未找到多维数据集",
       "Dimension": "维度",

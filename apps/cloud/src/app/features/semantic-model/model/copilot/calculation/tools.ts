@@ -1,12 +1,13 @@
 import { Signal, inject } from '@angular/core'
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import { C_MEASURES, CalculatedMember, CalculationSchema, FormulaSchema } from '@metad/ocap-core'
+import { C_MEASURES, CalculatedMember, FormulaSchema } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { nanoid } from 'nanoid'
 import { NGXLogger } from 'ngx-logger'
 import { z } from 'zod'
 import { ModelEntityService } from '../../entity/entity.service'
 import { ModelDesignerType } from '../../types'
+import { CalculationSchema } from '@cloud/app/@core/copilot'
 
 export function injectCreateCalculatedTool() {
   const logger = inject(NGXLogger)

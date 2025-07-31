@@ -94,6 +94,7 @@ export const XMLA_TEXT_FIELD_SUFFIX = CAPTION_FIELD_SUFFIX
 
 export interface XmlaDataSourceSettings extends DataSourceSettings {
   dataSourceInfo: string
+  timeout?: number // ms
 }
 export interface XmlaDataSourceOptions extends DataSourceOptions {
   dialect: MDXDialect
@@ -253,7 +254,7 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
           columns: dataset.columns
         }
       })),
-      timeout(_timeout)
+      timeout(_timeout ?? this.options.settings?.timeout ?? 1000 * 60 * 60)
     )
   }
 

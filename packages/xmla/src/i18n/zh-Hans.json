@@ -6,6 +6,9 @@
         "NoHierarchyFoundFor": "在数据集‘{{cube}}’的维度‘{{dimension}}’中未找到层次结构‘{{hierarchy}}’",
         "NoCubeMetadata": "无法获取数据集‘{{cube}}’的元数据",
         "UnCalculationType": "计算度量‘{{name}}’的计算类型‘{{calculationType}}’未实现。",
-        "FormulaEmpty": "计算度量‘{{name}}’的公式为空！"
+        "FormulaEmpty": "计算度量‘{{name}}’的公式为空！",
+        "AggregationDimensionsEmpty": "计算度量‘{{name}}’的聚合维度为空！",
+        "AggregationCompareEmpty": "计算度量‘{{name}}’的比较操作符为空！",
+        "AggregationValueEmpty": "计算度量‘{{name}}’的值为空！"
     }
 }

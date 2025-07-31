@@ -129,6 +129,7 @@ export class NgmCalculationEditorComponent implements OnInit {
       decimal: [null]
     })
   })
+  readonly key = this.formGroup.get('__id__') as FormControl
   readonly calculationType = this.formGroup.get('calculationType') as FormControl
   readonly name = this.formGroup.get('name') as FormControl
   readonly caption = this.formGroup.get('caption') as FormControl

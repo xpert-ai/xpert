@@ -29,15 +29,18 @@ import { SemanticModelServerService, TSemanticModelDraft } from '@metad/cloud/st
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { Schema } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { CubeStudioCubeComponent } from './cube/cube.component'
-import { CubeStudioInlineDimensionComponent } from './inline-dimension/inline-dimension.component'
-import { CubeStudioSharedDimensionComponent } from './shared-dimension/shared-dimension.component'
-import { CubeStudioContextManuComponent } from './context-menu/menu.component'
-import { TCubeConnection, TCubeNode } from './types'
 import { IPoint } from '@foblex/2d'
 import { suuid } from '@cloud/app/@core'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { Router } from '@angular/router'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { CubeStudioCubeComponent } from './cube/cube.component'
+import { CubeStudioInlineDimensionComponent } from './inline-dimension/inline-dimension.component'
+import { CubeStudioContextManuComponent } from './context-menu/menu.component'
+import { CubeStudioSharedDimensionComponent } from './shared-dimension/shared-dimension.component'
+import { TCubeConnection, TCubeNode } from './types'
 import { layoutCubeGraph } from './layout'
+import { ModelStudioService } from '../model.service'
 
 @Component({
   standalone: true,
@@ -52,6 +55,7 @@ import { layoutCubeGraph } from './layout'
     FFlowModule,
     TranslateModule,
     DragDropModule,
+    MatTooltipModule,
     CubeStudioCubeComponent,
     CubeStudioSharedDimensionComponent,
     CubeStudioInlineDimensionComponent,
@@ -66,8 +70,10 @@ export class CubeStudioComponent {
   eEFConnectionType = EFConnectionType
   eMarkerType = EFMarkerType
 
+  readonly #studioService = inject(ModelStudioService)
   readonly modelAPI = inject(SemanticModelServerService)
   readonly #cdr = inject(ChangeDetectorRef)
+  readonly #router = inject(Router)
 
   // Inputs
   readonly draft = model<TSemanticModelDraft<Schema>>()
@@ -174,7 +180,7 @@ export class CubeStudioComponent {
     return nodes
   })
 
-  readonly connections = computed(() => {
+  readonly #connections = computed(() => {
     const schema = this.schema()
     const cube = this.cube()
     if (!cube) {
@@ -206,8 +212,13 @@ export class CubeStudioComponent {
     return connections
   })
 
-  readonly nodes = derivedAsync(() => {
-    return this.nodesPosition() ? Promise.resolve(this.#nodes()) : layoutCubeGraph(this.#nodes(), this.connections())
+  readonly graph = derivedAsync(() => {
+    const nodesPosition = this.nodesPosition()
+    const nodes = this.#nodes()
+    const connections = this.#connections()
+    return nodesPosition ? Promise.resolve({nodes, connections}) : layoutCubeGraph(nodes, connections).then((nodes) => {
+      return {nodes, connections}
+    })
   })
   
   readonly scale = computed(() => this.settings()?.canvas?.scale || 1)
@@ -218,15 +229,6 @@ export class CubeStudioComponent {
   // constructor() {
   //   effect(() => {
   //     console.log(this.cube())
-  //   })
-  //   effect(() => {
-  //     console.log(this.schema())
-  //   })
-  //   effect(() => {
-  //     console.log(this.dimensionUsages())
-  //   })
-  //   effect(() => {
-  //     console.log(this.dimensions())
   //   })
   // }
 
@@ -241,8 +243,8 @@ export class CubeStudioComponent {
 
   getPosition(key: string) {
     return {
-      position: this.nodesPosition()[key]?.position || { x: 0, y: 0 },
-      size: this.nodesPosition()[key]?.size || { width: 200, height: 100 }
+      position: this.nodesPosition()?.[key]?.position || { x: 0, y: 0 },
+      size: this.nodesPosition()?.[key]?.size || { width: 200, height: 100 }
     }
   }
 
@@ -325,7 +327,14 @@ export class CubeStudioComponent {
       nodes.push({key, position: this.fFlowComponent().getPositionInFlow(position) })
       return { ...settings, nodes }
     })
-    // this.nodes.push({ id: generateGuid(), position: this.fFlowComponent.getPositionInFlow(position) });
-    // this.createConnection(outputId, this.nodes[this.nodes.length - 1].id);
+  }
+
+  autoLayout() {
+    this.settingsNodes.set(null)
+  }
+
+  openModelInNewTab() {
+    const url = this.#router.createUrlTree(['/models', this.#studioService.model().id, 'cube', this.cube().__id__]).toString()
+    window.open(url, '_blank')
   }
 }

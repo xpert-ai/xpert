@@ -1,11 +1,4 @@
-import { AiProviderRole } from '@metad/contracts'
 import { estimateTokenUsage } from '@metad/copilot'
-import {
-	CopilotNotFoundException,
-	CopilotOneByRoleQuery,
-	CopilotTokenRecordCommand,
-	getCopilotModel
-} from '@metad/server-ai'
 import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -16,6 +9,7 @@ import { SemanticModelService } from '../model/model.service'
 import { ModelEntityUpdateCommand } from './commands'
 import { SemanticModelEntityService } from './entity.service'
 import { JOB_ENTITY_SYNC, MEMBERS_SYNC_NAME } from './types'
+import { CreateVectorStoreCommand } from '../model-member/commands/'
 
 const batchSize = 50
 
@@ -59,14 +53,16 @@ export class EntityMemberProcessor {
 			)
 
 			// the copilot of the organization where the semantic model is located
-			const copilot = await this.queryBus.execute(
-				new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding)
-			)
+			// const copilot = await this.queryBus.execute(
+			// 	new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding)
+			// )
 
-			if (!copilot) {
-				throw new CopilotNotFoundException(`Copilot not found for role '${AiProviderRole.Embedding}'`)
-			}
-			const vectorStore = await this.memberService.getVectorStore(copilot, model.id, entityType.name)
+			// if (!copilot) {
+			// 	throw new CopilotNotFoundException(`Copilot not found for role '${AiProviderRole.Embedding}'`)
+			// }
+			// const vectorStore = await this.memberService.getVectorStore(copilot, model.id, entityType.name)
+			const id = model.id ? `${model.id}${entityType.name ? ':' + entityType.name : ''}` : 'default'
+			const vectorStore = await this.commandBus.execute(new CreateVectorStoreCommand(id))
 			await vectorStore?.clear()
 
 			let count = 0
@@ -75,16 +71,16 @@ export class EntityMemberProcessor {
 				// Record token usage
 				const tokenUsed = batch.reduce((total, doc) => total + estimateTokenUsage(doc.pageContent), 0)
 
-				await this.commandBus.execute(
-					new CopilotTokenRecordCommand({
-						tenantId,
-						organizationId,
-						userId: createdById,
-						copilotId: copilot.id,
-						tokenUsed,
-						model: getCopilotModel(copilot)
-					})
-				)
+				// await this.commandBus.execute(
+				// 	new CopilotTokenRecordCommand({
+				// 		tenantId,
+				// 		organizationId,
+				// 		userId: createdById,
+				// 		copilotId: copilot.id,
+				// 		tokenUsed,
+				// 		model: getCopilotModel(copilot)
+				// 	})
+				// )
 
 				const entities = await this.memberService.bulkCreate(model, cube, batch)
 				if (vectorStore) {

@@ -4,6 +4,10 @@
   align-items: center;
   white-space: nowrap;
 
+  .ngm-display-behaviour__option-value {
+    @apply font-mono;
+  }
+
   &.ngm-display-behaviour__exclude-selected {
     text-decoration-line: line-through;
   }
@@ -91,7 +95,7 @@
       /* value is displayed smaller as auxiliary information */
       font-size: 0.85em;
       opacity: .6;
-      font-style: oblique;
+      // font-style: oblique;
       margin-left: 0.25em;
       overflow: hidden;
       text-overflow: ellipsis;

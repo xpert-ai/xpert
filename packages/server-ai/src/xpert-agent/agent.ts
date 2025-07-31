@@ -370,6 +370,7 @@ export function createMapStreamEvents(
 										...data,
 										toolset: rest.metadata.toolset,
 										toolset_id: rest.metadata.toolsetId,
+										tool: data.toolCall?.name,
 										status: 'fail',
 										end_date: new Date(),
 									} as TMessageComponent<TMessageComponentStep>

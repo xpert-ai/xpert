@@ -20,7 +20,6 @@ import {
   isRestrictedMeasureProperty,
   isVarianceMeasureProperty,
   NamedSet,
-  ParameterControlEnum,
   parameterFormatter,
   ParameterProperty,
   RestrictedMeasureProperty,
@@ -28,7 +27,8 @@ import {
   compact, isEmpty, pick, isNil,
   measureFormatter,
   isVariableSlicer,
-  convertSlicerToDimension
+  convertSlicerToDimension,
+  CubeParameterEnum
 } from '@metad/ocap-core'
 import { MDXHierarchyFilter, MDXProperty } from './filter'
 import {
@@ -43,6 +43,7 @@ import {
   Distinct,
   Divide,
   Except,
+  Filter,
   Lag,
   Lead,
   Max,
@@ -130,7 +131,7 @@ export function addCalculatedMember(
       // }
       // else if (formula.includes(measureFormatter(property.name))) {
       // Measure control property 目前属于 calculation measure 应该使用 measureFormatter 来匹配为什么要用参数的 [@name] 来匹配 ？
-      // 这里先都去匹配一下
+      // Let’s match them here first.
       if (formula.includes(measureFormatter(property.name))) {
         const member = {
           name: property.name,
@@ -162,7 +163,7 @@ export function addCalculatedMember(
 }
 
 /**
- * 从 MDX CalculatedMembers 中计算出依赖的计算成员
+ * Calculate dependent calculated members from MDX CalculatedMembers
  *
  * @param members
  * @param calculatedMembers
@@ -185,11 +186,11 @@ export function addDependCalculatedMember(
 }
 
 /**
- * 对度量和含有成员的维度进行计算依赖的计算成员
+ * Calculated members that make calculations dependent on measures and dimensions that contain members
  *
  * @param dimensions Measures or has members dimensions
  * @param entityType EntityType
- * @param filters 过滤器
+ * @param filters Filters
  */
 export function withCalculationMembers(
   members: Record<string, WithMemberType>,
@@ -205,7 +206,7 @@ export function withCalculationMembers(
       if (isCalculationProperty(property)) {
         const formula = calculationPropertyToFormula(property, filters)
 
-        // 其他的 CalculationProperty 非 MDX 计算成员
+        // Other CalculationProperty non-MDX calculated members
         if (formula) {
           const withMember = {
             name: getMemberValue(member),
@@ -230,7 +231,7 @@ export function withCalculationMembers(
     })
   })
 
-  // 添加依赖的计算成员
+  // Adding dependent calculated members
   const calculationProperties = Object.values(entityType.properties).filter(isCalculationProperty)
 
   Object.values(members).forEach((member) => {
@@ -282,7 +283,7 @@ export function withCalculationMembers(
 }
 
 export function sortWithMembers(members: Record<string, WithMemberType>): Array<WithMemberType> {
-  // 成员排序
+  // Member Sorting
   const sortMembers = []
   Object.keys(members).forEach((key) => {
     const index = sortMembers.findIndex((item) => item.formula.includes(key))
@@ -297,16 +298,19 @@ export function sortWithMembers(members: Record<string, WithMemberType>): Array<
 }
 
 /**
- * 序列化条件聚合度量
+ * Serialized Conditional Aggregation Metrics
  * 
  * @param property
  * @returns
  */
 export function serializeAggregationProperty(property: AggregationProperty) {
+  if (isEmpty(property.aggregationDimensions)) {
+    throw new Error(t('Error.AggregationDimensionsEmpty', {ns: 'xmla', name: property.name}))
+  }
   const aggregationDimensions = property.aggregationDimensions.map((dimension) => serializeMemberSet(dimension))
 
   let measure = measureFormatter(property.measure)
-  // 限定条件?
+  // Conditional filters?
   if (property.useConditionalAggregation && !isEmpty(property.conditionalDimensions)) {
     measure = Aggregate(
       CrossjoinOperator(
@@ -325,12 +329,19 @@ export function serializeAggregationProperty(property: AggregationProperty) {
   switch (property.operation) {
     case AggregationOperation.SUM:
       return Sum(CrossjoinOperator(...aggregationDimensions), measure)
-    case AggregationOperation.COUNT:
+    case AggregationOperation.COUNT: {
+      let memberSet = CrossjoinOperator(...aggregationDimensions)
       if (property.measure) {
-        aggregationDimensions.push(`{${measureFormatter(property.measure)}}`)
+        if (!property.compare) {
+          throw new Error(t('Error.AggregationCompareEmpty', {ns: 'xmla', name: property.name}))
+        }
+        if (isNil(property.value)) {
+          throw new Error(t('Error.AggregationValueEmpty', {ns: 'xmla', name: property.name}))
+        }
+        memberSet = Filter(memberSet, `${measureFormatter(property.measure)} ${property.compare} ${property.value}`)
       }
-      
-      return Count(Distinct(CrossjoinOperator(...aggregationDimensions)), true)
+      return Count(Distinct(memberSet), true)
+    }
     case AggregationOperation.MIN:
       return Min(CrossjoinOperator(...aggregationDimensions), measure)
     case AggregationOperation.MAX:
@@ -355,7 +366,7 @@ export function serializeAggregationProperty(property: AggregationProperty) {
 }
 
 /**
- * @todo 还需要实现 constantDimensions 条件
+ * @todo also need to implement the constantDimensions condition
  *
  * @param property
  * @param filters
@@ -366,7 +377,7 @@ export function serializeRestrictedMeasureProperty(property: RestrictedMeasurePr
     property.dimensions
   const contexts = dimensions?.map((item) => {
       const dimension = { ...item, members: item.members || [] }
-      // 非常量选择或者有 name? 则合并 Context 上下文的过滤器
+      // If it is not a constant selection or has a name?, the filter of the context context is merged.
       if (dimension.name || !property.enableConstantSelection) {
         filters
           ?.filter((item) => item.name === dimension.name || item.dimension === dimension.dimension)
@@ -384,7 +395,7 @@ export function serializeRestrictedMeasureProperty(property: RestrictedMeasurePr
 }
 
 /**
- * 序列化差值度量成计算公式
+ * Serializes the variance measure into a calculation formula
  *
  * @param property
  * @returns
@@ -471,7 +482,8 @@ export function serializeVarianceMeasureProperty(property: VarianceMeasureProper
 }
 
 /**
- * 将维度配置转换成 MDX 语句, 需要处理具有 `parameter` 参数的情况, 否则使用 `members` 固定值, 再否则使用维度的所有成员函数 {@link Members}
+ * Convert dimension configuration to MDX statements. You need to handle the case where `parameter` is used.
+ * Otherwise, use `members` fixed value. Otherwise, use all member functions of the dimension. {@link Members}
  *
  * @param dimension
  * @returns
@@ -496,17 +508,18 @@ export function serializeDimensionMembers(dimension: Dimension): string {
 /**
  * Serialize parameter value based on parameter definitions and actual values
  * 
- * @param parameter 
+ * @param parameter
  * @param values 
  * @returns value string
  */
 export function serializeParameter(parameter: ParameterProperty, values: Record<string, any>) {
   switch (parameter.paramType) {
-    case ParameterControlEnum.Input:
+    case CubeParameterEnum.Input:
       return values?.[parameter.name] ? `${values[parameter.name]}` : `${parameter.value}`
-    case ParameterControlEnum.Select: {
-      if (values?.[parameter.name]) {
-        return values[parameter.name].map((member) => getMemberValue(member)).join(',')
+    case CubeParameterEnum.Select: {
+      const value = values?.[parameter.name] ? values[parameter.name] : parameter.value
+      if (!isNil(value)) {
+        return Array.isArray(value) ? value.map((member) => getMemberValue(member)).join(',') : value
       }
       return isNil(parameter.value) ? parameter.members.map((member) => getMemberValue(member)).join(',') : parameter.value as string
     }

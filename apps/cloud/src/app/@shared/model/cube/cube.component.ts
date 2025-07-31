@@ -11,6 +11,7 @@ import { CubeStudioComponent } from '../studio/studio.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ModelChecklistComponent } from '../checklist/checklist.component'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: true,
@@ -18,7 +19,7 @@ import { ModelChecklistComponent } from '../checklist/checklist.component'
   selector: 'xp-model-cube',
   templateUrl: 'cube.component.html',
   styleUrls: ['cube.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule, MatTooltipModule, ModelChecklistComponent, CubeStudioComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule, MatTooltipModule, NgmSpinComponent, ModelChecklistComponent, CubeStudioComponent],
   host: {
     class: 'xp-model-cube'
   },

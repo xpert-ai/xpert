@@ -1,10 +1,7 @@
 import {
-  EntityProperty,
   FilterOperator,
   getMemberValue,
-  IMember,
-  ParameterControlEnum,
-  PrimitiveType,
+  ParameterProperty,
   VariableEntryType,
   wrapHierarchyValue
 } from '@metad/ocap-core'
@@ -21,13 +18,8 @@ export enum VariableSelectionType {
 }
 
 
-export interface SAPVariableParameter extends EntityProperty {
-  paramType: ParameterControlEnum
-  value?: PrimitiveType | IMember[]
-  availableMembers?: Array<IMember>
+export interface SAPVariableParameter extends ParameterProperty {
   variableName?: string
-  hierarchy?: string
-  dimension?: string
   variableEntryType?: VariableEntryType
   variableSelectionType?: VariableSelectionType
 }
@@ -43,7 +35,7 @@ export function serializeSAPVariables(parameters: SAPVariableParameter[]) {
         value = members.map((member) => wrapHierarchyValue(parameter.hierarchy, `${member.value}`)).join(',')
       } else if (parameter.variableSelectionType === VariableSelectionType.SingleRange) {
         if (members.length < 2) {
-          throw new Error(`参数 ${parameter.name} 需要设置为区间`)
+          throw new Error(`Parameter ${parameter.name} needs to be set to a range`)
         }
 
         value = `${wrapHierarchyValue(parameter.hierarchy, `${members[0].value}`)}:${wrapHierarchyValue(parameter.hierarchy, `${members[1].value}`)}`

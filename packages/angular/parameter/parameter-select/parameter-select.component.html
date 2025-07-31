@@ -4,7 +4,7 @@
   [(ngModel)]="model"
 >
   <div ngmSuffix class="ngm-input__suffix flex items-center">
-    <button mat-icon-button displayDensity="compact" [matMenuTriggerFor]="paramMenu"
+    <button mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="paramMenu"
       (click)="$event.stopPropagation(); $event.preventDefault()">
       <mat-icon>alternate_email</mat-icon>
     </button>
@@ -13,34 +13,32 @@
   </div>
 
   <ng-template ngmOptionContent let-option>
-    
     <button mat-icon-button displayDensity="cosy" (click)="openEditParameter(option.name)">
       <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
     </button>
   </ng-template>
 </ngm-input>
 
-<mat-radio-group [(ngModel)]="model">
-  <mat-menu #paramMenu="matMenu" class="ngm-density__compact">
-    @for (parameter of parameters$ | async; track $index) {
-      <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-        <div class="flex justify-between items-center relative">
-          <mat-radio-button class="flex-1 overflow-hidden" [value]="parameter.key">
-            <ngm-display-behaviour [option]="parameter" />
-          </mat-radio-button>
-  
-          <button mat-icon-button class="shrink-0" displayDensity="cosy" (click)="openEditParameter(parameter.value.name)">
-            <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-          </button>
-        </div>
-      </button>
+<ng-template #paramMenu>
+  <div cdkMenu class="cdk-menu__large">
+    @for (parameter of parameters$ | async; track parameter.key) {
+      <div cdkMenuItemRadio 
+        [cdkMenuItemChecked]="model() === parameter.key"
+        (cdkMenuItemTriggered)="model.set(parameter.key)"
+      >
+        <ngm-display-behaviour class="grow" [option]="parameter" />
+        <button type="button" class="shrink-0 w-7 h-7 flex justify-center items-center rounded-full text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          (click)="$event.stopPropagation(); openEditParameter(parameter.value.name)">
+          <i class="ri-edit-line"></i>
+        </button>
+      </div>
     }
 
-    <mat-divider></mat-divider>
+    <div class="w-full border-t border-solid border-divider-deep my-1"></div>
 
-    <button mat-menu-item ngmAppearance="dashed"
+    <button cdkMenuItem class="!border border-dashed border-divider-regular"
       (click)="$event.stopPropagation();openCreate()">
       {{ 'Ngm.Property.CreateParameter' | translate: {Default: "Create Parameter"} }}
     </button>
-  </mat-menu>
-</mat-radio-group>
+  </div>
+</ng-template>

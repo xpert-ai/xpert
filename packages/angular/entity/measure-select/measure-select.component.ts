@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, forwardRef, inject, input, Input, ViewContainerRef } from '@angular/core'
+import { booleanAttribute, Component, computed, forwardRef, inject, input, ViewContainerRef } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
@@ -7,7 +7,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSelectModule } from '@metad/ocap-angular/common'
-import { DensityDirective, NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
+import { NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
 import {
   DataSettings,
   getEntityMeasures,
@@ -33,7 +33,6 @@ import { NgmEntityPropertyComponent } from '../property/property.component'
     MatIconModule,
     MatTooltipModule,
     NgmSelectModule,
-    DensityDirective,
     NgmEntityPropertyComponent
   ],
   selector: 'ngm-measure-select',
@@ -57,15 +56,18 @@ export class NgmMeasureSelectComponent implements ControlValueAccessor {
   private readonly _dialog = inject(MatDialog)
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
-  @Input() label: string
-  @Input() placeholder: string
-
+  // Inputs
+  readonly label = input<string>(null)
+  readonly placeholder = input<string>(null)
   readonly dataSettings = input<DataSettings>(null)
   readonly filter = input<(param: PropertyMeasure) => boolean>(null)
   readonly error = input<string>(null)
+  readonly calculationable = input<boolean, string | boolean>(false, { transform: booleanAttribute })
 
+  // Forms
   formControl = new FormControl<string>(null)
 
+  // Signals
   private readonly value = toSignal(this.formControl.valueChanges)
   private readonly entityType = toSignal(
     toObservable(this.dataSettings).pipe(
@@ -83,7 +85,7 @@ export class NgmMeasureSelectComponent implements ControlValueAccessor {
     return [
       {
         name: null,
-        caption: ''
+        caption: 'Null'
       },
       ...orderBy(
         measures.filter((measure) => !isCalculationProperty(measure)),

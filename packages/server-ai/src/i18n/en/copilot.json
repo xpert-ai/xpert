@@ -4,7 +4,7 @@
         "NoTextEmbeddingModel": "The embedding model or the default embedding model is not configured correctly",
         "NoRerankModel": "The rerank model or the default rerank model is not configured correctly",
         "AIModelNotFound": "No AI model provided",
-        "TokenExceedsLimit": "Token usage exceeds limit",
-        "TokenExceedsOrgLimit": "Token usage exceeds organization limit"
+        "TokenExceedsLimit": "Token usage of model '{model}' exceeds limit",
+        "TokenExceedsOrgLimit": "Token usage of model '{model}' exceeds organization limit"
     }
 }

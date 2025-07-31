@@ -50,6 +50,7 @@ import {
   withLatestFrom
 } from 'rxjs/operators'
 import { InputControlOptions, determineControlType } from './types'
+import { Dialog } from '@angular/cdk/dialog'
 
 export interface InputControlStyling extends StoryWidgetStyling {
   widget: unknown
@@ -83,6 +84,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
   private readonly dsCoreService = inject(NgmDSCoreService)
   private readonly storyService = inject(NxStoryService)
   private readonly _dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   private readonly filterBarService = inject(NgmSmartFilterBarService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
   private readonly logger? = inject(NGXLogger, { optional: true })
@@ -472,7 +474,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
     const entityType = await firstValueFrom(this.entityType$)
 
     await firstValueFrom(
-      this._dialog
+      this.#dialog
         .open(NgmParameterCreateComponent, {
           viewContainerRef: this._viewContainerRef,
           data: {
@@ -482,7 +484,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
             name: property.name
           }
         })
-        .afterClosed()
+        .closed
     )
   }
 

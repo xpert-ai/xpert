@@ -99,6 +99,9 @@ export type TSemanticModelDraft<T = any> = TSemanticModel & {
    * @legacy DB Initialization for wasm database
    */
   dbInitialization?: string
+
+  // Is embedded every `cube:dimension`
+  embedded?: Record<string, Record<string, boolean>>
 }
 
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {

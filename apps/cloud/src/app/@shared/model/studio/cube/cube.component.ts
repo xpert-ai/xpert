@@ -36,6 +36,7 @@ import { CubeStudioCubeSettingsComponent } from './settings/settings.component'
 import { CubeStudioDimensionUsageComponent } from './usage/usage.component'
 import { MatDialog } from '@angular/material/dialog'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+import { OverlayAnimation1 } from '@metad/core'
 
 @Component({
   standalone: true,
@@ -60,7 +61,8 @@ import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
   ],
   host: {
     class: 'xp-cube-studio-cube'
-  }
+  },
+  animations: [ OverlayAnimation1 ]
 })
 export class CubeStudioCubeComponent {
   eEFConnectionType = EFConnectionType
@@ -326,7 +328,7 @@ export class CubeStudioCubeComponent {
 
   // Parameter methods
   onEditParameter(member?: Partial<ParameterProperty>) {
-    this._dialog
+    this.#dialog
       .open(NgmParameterCreateComponent, {
         viewContainerRef: this.#vcr,
         data: {
@@ -335,7 +337,7 @@ export class CubeStudioCubeComponent {
           name: member?.name
         }
       })
-      .afterClosed().subscribe((result: DeepPartial<ParameterProperty>) => {
+      .closed.subscribe((result: DeepPartial<ParameterProperty>) => {
         console.log(result)
       })
   }

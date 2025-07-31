@@ -136,7 +136,7 @@ export function convertSchemaToXmla(model: ISemanticModel, schema: Schema): MDX.
 
 export function convertDimensionToXmla(dimension: Property): MDX.Dimension {
 	return {
-		...omit(dimension, ['hierarchies']),
+		...omit(dimension, ['hierarchies', 'semantics']),
 		type: dimension.type as MDX.DimensionType,
 		Hierarchy: dimension.hierarchies?.map(
 			(hierarchy) =>

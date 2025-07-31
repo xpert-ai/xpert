@@ -1,10 +1,36 @@
 import { ChecklistItem, RuleValidator } from '@metad/contracts'
-import { DimensionType, PropertyDimension, Schema } from '@metad/ocap-core'
+import { Cube, DimensionType, PropertyDimension, Schema } from '@metad/ocap-core'
 import { HierarchyValidator } from './hierarchy'
 
 export class DimensionValidator implements RuleValidator {
-	async validate(dimension: PropertyDimension, params: { schema: Schema }): Promise<ChecklistItem[]> {
+	async validate(dimension: PropertyDimension, params: { schema: Schema; cube?: Cube }): Promise<ChecklistItem[]> {
 		const issues: ChecklistItem[] = []
+
+		if (params.cube?.dimensionUsages.some((du) => du.name === dimension.name && du.__id__ !== dimension.__id__)) {
+			issues.push({
+				ruleCode: 'DIMENSION_NAME_DUPLICATE',
+				field: 'dimension',
+				value: dimension.name,
+				message: {
+					en_US: `Dimension "${dimension.name}" name is already used by another dimension usage in the cube`,
+					zh_Hans: `维度 "${dimension.name}" 名称已被立方体中的另一个维度使用`,
+				},
+				level: 'error'
+			})
+		}
+
+		if (params.cube?.dimensions.some((d) => d.name === dimension.name && d.__id__ !== dimension.__id__)) {
+			issues.push({
+				ruleCode: 'DIMENSION_NAME_DUPLICATE',
+				field: 'dimension',
+				value: dimension.name,
+				message: {
+					en_US: `Dimension "${dimension.name}" name is already used by another dimension in the schema`,
+					zh_Hans: `维度 "${dimension.name}" 名称在模式中已被其他维度使用`
+				},
+				level: 'error'
+			})
+		}
 
 		if (dimension.hierarchies?.length) {
 			if (!dimension.hierarchies.some((h) => !h.name) && !dimension.defaultHierarchy) {
@@ -44,11 +70,25 @@ export class DimensionValidator implements RuleValidator {
 				})
 				issues.push(...hierarchyIssues)
 			}
+
+			// Must specify a foreign key, because the hierarchy table is different from the fact table.
+			if (params.cube && dimension.hierarchies.some((h) => h.tables?.length) && !dimension.foreignKey) {
+				issues.push({
+					ruleCode: 'DIMENSION_MISSING_FOREIGN_KEY',
+					field: 'dimension',
+					value: dimension.name,
+					message: {
+						en_US: `Dimension "${dimension.name}" must specify a foreign key because the hierarchy table is different from the fact table`,
+						zh_Hans: `维度 "${dimension.name}" 必须指定一个外键，因为层次结构表与事实表不同`
+					},
+					level: 'error'
+				})
+			}
 		}
 
 		if (
 			dimension.type === DimensionType.TimeDimension &&
-			!dimension.hierarchies?.some((h) => h.levels?.some((l) => l.type))
+				dimension.hierarchies?.some((h) => h.levels?.some((l) => !l.levelType))
 		) {
 			issues.push({
 				ruleCode: 'DIMENSION_TIME_LEVELS_MISSING_TYPE',
@@ -64,7 +104,7 @@ export class DimensionValidator implements RuleValidator {
 
 		if (
 			dimension.type !== DimensionType.TimeDimension &&
-			dimension.hierarchies?.some((h) => h.levels?.some((l) => l.type))
+			dimension.hierarchies?.some((h) => h.levels?.some((l) => l.levelType))
 		) {
 			issues.push({
 				ruleCode: 'DIMENSION_NON_TIME_LEVELS_WITH_TYPE',

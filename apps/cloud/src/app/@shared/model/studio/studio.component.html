@@ -13,7 +13,7 @@
     >
     <f-connection-for-create></f-connection-for-create>
     <f-snap-connection [fType]="eEFConnectionType.SEGMENT" [fSnapThreshold]="100"></f-snap-connection>
-    @for (connection of connections(); track connection.key) {
+    @for (connection of graph()?.connections; track connection.key) {
       <f-connection #connComp [fType]="eEFConnectionType.SEGMENT" [fOffset]="6" [fRadius]="6"
         [fReassignDisabled]="false"
         [fOutputId]="connection.source"
@@ -40,7 +40,7 @@
       </f-connection>
     }
 
-    @for (node of nodes(); track node.key) {
+    @for (node of graph()?.nodes; track node.key) {
       <div class="w-[240px] group relative pb-1 shadow-sm border border-divider-deep rounded-xl bg-components-card-bg hover:border-primary-500 hover:z-10"
         fNode [fNodeId]="node.key"
         fDragHandle
@@ -66,6 +66,22 @@
   <f-selection-area></f-selection-area>
   <f-minimap></f-minimap>
 </f-flow>
+
+<div class="absolute top-2 right-2 p-0.5 flex justify-end items-center bg-components-card-bg rounded-lg shadow-sm">
+  <button class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+    [matTooltip]="'PAC.MODEL.OpenModel' | translate: {Default: 'Open model'}"
+    (click)="openModelInNewTab()">
+    <i class="ri-external-link-line"></i>
+  </button>
+  <button class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+    [matTooltip]="'PAC.MODEL.ArrangeNodes' | translate: {Default: 'Arrange nodes'}"
+    (click)="autoLayout()">
+    <i class="ri-node-tree"></i>
+  </button>
+  <ng-content></ng-content>
+</div>
 
 <ng-template #contextMenu>
   <xp-cube-studio-context-menu />

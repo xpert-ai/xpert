@@ -167,7 +167,6 @@
 
             <button class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
               [cdkMenuTriggerFor]="calculationMenu"
-              [cdkMenuTriggerData]="{member: item}"
               #mt="cdkMenuTriggerFor"
               [class.opacity-100]="mt.isOpen()"
               (click)="$event.stopPropagation();$event.preventDefault()">
@@ -177,36 +176,36 @@
 
           <div class="pac-cdk-drop__placeholder" *cdkDragPlaceholder></div>
         </li>
+
+        <ng-template #calculationMenu >
+          <div cdkMenu class="cdk-menu__large">
+            <button cdkMenuItem class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+              (click)="onEditCalculation(item)"
+            >
+              <i class="ri-edit-line"></i>
+              <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
+            </button>
+
+            <button cdkMenuItem class="" (click)="duplicateCalculation(item)">
+              <i class="ri-file-copy-line"></i>
+              <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+            </button>
+
+            <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
+              (click)="onDeleteCalculation(item)"
+            >
+              <i class="ri-delete-bin-line"></i>
+              <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+            </button>
+          </div>
+        </ng-template>
       }
     </ul>
   </div>
-
-  <ng-template #calculationMenu let-member="member">
-    <div cdkMenu class="cdk-menu__large">
-      <button cdkMenuItem class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
-        (click)="onEditCalculation(member)"
-      >
-        <i class="ri-edit-line"></i>
-        <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
-      </button>
-
-      <button cdkMenuItem class="" (click)="duplicateCalculation(member)">
-        <i class="ri-file-copy-line"></i>
-        <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
-      </button>
-
-      <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
-        (click)="onDeleteCalculation(member)"
-      >
-        <i class="ri-delete-bin-line"></i>
-        <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
-      </button>
-    </div>
-  </ng-template>
 </div>
 
 
-<div class="flex flex-col mt-4 group">
+<div class="group flex flex-col my-4">
   <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
     <span>
       {{ 'PAC.MENU.Parameters' | translate: {Default: "Parameters"} }}

@@ -10,21 +10,21 @@ import { MatDividerModule } from '@angular/material/divider'
 import { MatFormFieldAppearance } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
 import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@metad/ocap-angular/common'
 import { DisplayDensity, ISelectOption, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
+  CubeParameterEnum,
   DataSettings,
   EntityType,
   nonNullable,
-  ParameterControlEnum,
   parameterFormatter,
   ParameterProperty
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { firstValueFrom, map } from 'rxjs'
 import { NgmParameterCreateComponent } from '../parameter-create/parameter-create.component'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
@@ -43,11 +43,10 @@ import { NgmParameterCreateComponent } from '../parameter-create/parameter-creat
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
+    CdkMenuModule,
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatMenuModule,
-    MatRadioModule,
     MatDividerModule,
     MatAutocompleteModule,
     TranslateModule,
@@ -58,9 +57,10 @@ import { NgmParameterCreateComponent } from '../parameter-create/parameter-creat
   ]
 })
 export class NgmParameterSelectComponent implements ControlValueAccessor {
-  ParameterControlEnum = ParameterControlEnum
+  eCubeParameterEnum = CubeParameterEnum
 
   private readonly _dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog, { optional: true })
   readonly #viewContainerRef = inject(ViewContainerRef)
 
   @Input() appearance: MatFormFieldAppearance = 'fill'
@@ -84,18 +84,6 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
       }))
     })
   )
-
-  // public selectOptions$ = combineLatest([this.parameters$, this.formControl.valueChanges.pipe(startWith(null))]).pipe(
-  //   map(([parameters, value]) => filterSearch(parameters, value))
-  // )
-
-  // get value() {
-  //   return this.formControl.value
-  // }
-  // set value(value) {
-  //   this.formControl.setValue(value)
-  //   this.onChange?.(value)
-  // }
 
   readonly model = model<string | number | null>(null)
 
@@ -134,8 +122,7 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
   }
 
   async openCreate() {
-    await firstValueFrom(
-      this._dialog
+    this.#dialog
         .open(NgmParameterCreateComponent, {
           viewContainerRef: this.#viewContainerRef,
           data: {
@@ -143,12 +130,14 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
             entityType: this.entityType()
           }
         })
-        .afterClosed()
-    )
+        .closed
+        .subscribe((result) => {
+          //
+        })
   }
 
   openEditParameter(key: string) {
-    this._dialog
+    this.#dialog
       .open(NgmParameterCreateComponent, {
         viewContainerRef: this.#viewContainerRef,
         data: {
@@ -157,7 +146,7 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
           name: key
         }
       })
-      .afterClosed()
+      .closed
       .subscribe((result) => {
         if (result) {
           console.log(result)

@@ -140,6 +140,7 @@ export const CubeSchema = z.object({
     .array(
       z.object({
         ...BaseDimensionSchema,
+        foreignKey: z.string().optional().nullable().describe('The foreign key of the fact table that join into the dimension'),
         hierarchies: z
           .array(
             z.object({
@@ -147,11 +148,11 @@ export const CubeSchema = z.object({
               tables: z
                 .array(
                   z.object({
-                    name: z.string().describe('The name of the dimension table')
+                    name: z.string().describe('The name of table used by hierarchy in the dimension')
                   })
                 )
                 .optional(),
-              primaryKey: z.string().optional().nullable().describe('The primary key of the dimension table'),
+              primaryKey: z.string().optional().nullable().describe(`The primary key of the hierarchy's table, it's required if the hierarchy has tables`),
             })
           )
           .describe('An array of hierarchies in this dimension')
