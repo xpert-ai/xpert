@@ -1,24 +1,23 @@
-@use '@angular/material' as mat;
-@use '../../property/property-theme' as property;
-@use '../../form-field/form-field-theme' as form-field;
-@use '../components/button-theme' as button;
-@use '../components/mat-option.theme' as option;
-@use '../components/tab-theme' as tab-theme;
-@use '../components/color-theme' as color;
+// @use '@angular/material' as mat;
+// @use '../../form-field/form-field-theme' as form-field;
+// @use '../components/button-theme' as button;
+// @use '../components/mat-option.theme' as option;
+// @use '../components/tab-theme' as tab-theme;
+// @use '../components/color-theme' as color;
 
 
-@mixin ngm-mat-theme($theme-or-color-config) {
-  @include tab-theme.theme($theme-or-color-config);
-  @include button.theme($theme-or-color-config);
-  @include option.theme($theme-or-color-config);
-  @include color.theme($theme-or-color-config);
-  @include form-field.theme($theme-or-color-config);
-}
+// @mixin ngm-mat-theme($theme-or-color-config) {
+//   @include tab-theme.theme($theme-or-color-config);
+//   @include button.theme($theme-or-color-config);
+//   @include option.theme($theme-or-color-config);
+//   @include color.theme($theme-or-color-config);
+//   @include form-field.theme($theme-or-color-config);
+// }
 
-@mixin all-component-colors($theme-or-color-config) {
-  @include tab-theme.color($theme-or-color-config);
-  @include option.color($theme-or-color-config);
-  @include color.color($theme-or-color-config);
-  @include button.color($theme-or-color-config);
-  @include form-field.color($theme-or-color-config);
-}
+// @mixin all-component-colors($theme-or-color-config) {
+//   @include tab-theme.color($theme-or-color-config);
+//   @include option.color($theme-or-color-config);
+//   @include color.color($theme-or-color-config);
+//   @include button.color($theme-or-color-config);
+//   @include form-field.color($theme-or-color-config);
+// }

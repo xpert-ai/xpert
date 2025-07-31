@@ -43,7 +43,6 @@ $foreground: map.get($config, foreground);
 
   // Include all theme styles for the mat components.
   @include mat.all-component-colors($dark-theme);
-  @include components.all-component-colors($dark-theme);
   @include formly.color($dark-theme);
   @include responsive.color($dark-theme);
   @include story.color($dark-theme);

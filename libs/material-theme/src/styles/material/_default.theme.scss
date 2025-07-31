@@ -1,7 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
 @use '@angular/material' as mat;
-@use 'libs/component-angular/styles/material/all-components' as components;
 @use 'libs/formly/formly-theme' as formly;
 @use 'libs/story-angular/responsive/responsive-theme' as responsive;
 @use 'libs/story-angular/story/story-theme' as story;
@@ -41,7 +40,6 @@ $custom-typography: mat.define-typography-config(
 
 // Include all theme styles for the mat components.
 @include mat.all-component-themes($mat-theme);
-@include components.ngm-mat-theme($mat-theme);
 @include formly.theme($mat-theme);
 @include responsive.theme($mat-theme);
 @include story.theme($mat-theme);
@@ -70,7 +68,6 @@ $foreground: map.get($config, foreground);
   --ngm-color-outline: #{map.get($foreground, divider)};
 
   @include mat.all-component-colors($mat-theme);
-  @include components.all-component-colors($mat-theme);
   @include formly.color($mat-theme);
   @include responsive.color($mat-theme);
   @include story.color($mat-theme);
