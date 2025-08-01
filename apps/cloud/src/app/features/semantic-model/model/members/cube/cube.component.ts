@@ -10,7 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { Cube, EntityType, FilterSelectionType, Property, getEntityDimensions, getEntityHierarchy } from '@metad/ocap-core'
+import { Cube, EntityType, FilterSelectionType, Property, getEntityDimensions, getEntityProperty } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ISemanticModelEntity,
@@ -20,7 +20,6 @@ import {
   injectToastr,
   tryHttp
 } from 'apps/cloud/src/app/@core'
-import { uniq } from 'lodash-es'
 import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from 'rxjs'
 import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
@@ -96,10 +95,19 @@ export class ModelMembersCubeComponent {
   readonly delayRefresh$ = new Subject<boolean>()
   
   constructor() {
+    // effect(
+    //   () => {
+    //     if (this.entity() && !this.selectedDims()) {
+    //       this.selectedDims.set(this.entity()?.options?.vector?.hierarchies ?? [])
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
+
     effect(
       () => {
         if (this.entity() && !this.selectedDims()) {
-          this.selectedDims.set(this.entity()?.options?.vector?.hierarchies ?? [])
+          this.selectedDims.set(this.entity()?.options?.vector?.dimensions ?? [])
         }
       },
       { allowSignalWrites: true }
@@ -137,13 +145,7 @@ export class ModelMembersCubeComponent {
   }
 
   selectAll() {
-    const names = []
-    this.dimensions().forEach((dim) => {
-      dim.hierarchies.forEach((h) => {
-        names.push(h.name)
-      })
-    })
-    this.selectedDims.set(names)
+    this.selectedDims.set(this.dimensions().map((dim) => dim.name))
   }
 
   deselectAll() {
@@ -157,30 +159,33 @@ export class ModelMembersCubeComponent {
 
     if (this.selectedDims()) {
       for (const name of this.selectedDims()) {
-        let storeMembers = []
-        const hierarchy = getEntityHierarchy(this.cube().entityType, name)
-        if (!hierarchy) {
-          this.#toastr.error('PAC.MODEL.CanntFoundHierarchy', null, {
-            Default: `Can't found hierarchy '${name}'`,
-            value: name
-          })
-        } else {
-          const members = await tryHttp(
-            this.modelService.selectHierarchyMembers(cube, {
-              dimension: hierarchy.dimension,
-              hierarchy: hierarchy.name
-            }),
-            this.#toastr
-          )
-          
-          if (members) {
-            storeMembers = storeMembers.concat(members)
-          }
+        const dimensionProperty = getEntityProperty(this.cube().entityType, name)
+        for await (const hierarchy of dimensionProperty.hierarchies ?? []) {
+          let storeMembers = []
+        // const hierarchy = getEntityHierarchy(this.cube().entityType, name)
+          if (!hierarchy) {
+            this.#toastr.error('PAC.MODEL.CanntFoundHierarchy', null, {
+              Default: `Can't found hierarchy '${name}'`,
+              value: name
+            })
+          } else {
+            const members = await tryHttp(
+              this.modelService.selectHierarchyMembers(cube, {
+                dimension: hierarchy.dimension,
+                hierarchy: hierarchy.name
+              }),
+              this.#toastr
+            )
+            
+            if (members) {
+              storeMembers = storeMembers.concat(members)
+            }
 
-          this.members.update((members) => ({
-            ...members,
-            [name]: storeMembers
-          }))
+            this.members.update((members) => ({
+              ...members,
+              [hierarchy.name]: storeMembers
+            }))
+          }
         }
       }
       this.loaded.set(true)
@@ -208,7 +213,8 @@ export class ModelMembersCubeComponent {
         type: ModelEntityType.Cube,
         options: {
           vector: {
-            hierarchies: uniq(dimensions)
+            dimensions,
+            // hierarchies: uniq(dimensions)
           }
         }
       })

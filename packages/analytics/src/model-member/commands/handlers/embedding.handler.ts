@@ -1,4 +1,5 @@
 import { getEntityProperty, isEntityType, uuid } from '@metad/ocap-core'
+import { embeddingCubeCollectionName } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { firstValueFrom } from 'rxjs'
@@ -7,7 +8,6 @@ import { EmbeddingMembersCommand } from '../embedding.command'
 import { PGMemberVectorStore } from '../../vector-store'
 
 const EMBEDDING_BATCH_SIZE = 50
-
 
 @CommandHandler(EmbeddingMembersCommand)
 export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembersCommand> {
@@ -48,8 +48,8 @@ export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembers
 			members = members.concat(_members.map((item) => ({ ...item, modelId: modelKey, cube })))
 		}
 
-		const id = `${modelKey}:${cube}` + (isDraft ? `:draft` : ``)
-		const vectorStore = await this.commandBus.execute<CreateVectorStoreCommand, PGMemberVectorStore>(new CreateVectorStoreCommand(id))
+		const collectionName = embeddingCubeCollectionName(modelKey, cube, isDraft)
+		const vectorStore = await this.commandBus.execute<CreateVectorStoreCommand, PGMemberVectorStore>(new CreateVectorStoreCommand(collectionName))
 		await vectorStore.deleteDimension(dimension)
 
 		let count = 0
@@ -57,7 +57,6 @@ export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembers
 			const batch = members.slice(EMBEDDING_BATCH_SIZE * count, EMBEDDING_BATCH_SIZE * (count + 1))
 			// Record token usage
 			// const tokenUsed = batch.reduce((total, doc) => total + estimateTokenUsage(doc.pageContent), 0)
-
 			// await this.commandBus.execute(
 			// 	new CopilotTokenRecordCommand({
 			// 		tenantId,
@@ -76,24 +75,8 @@ export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembers
 				EMBEDDING_BATCH_SIZE * count >= members.length
 					? 100
 					: (((EMBEDDING_BATCH_SIZE * count) / members.length) * 100).toFixed(1)
+			
 			this.logger.debug(`Progress: ${progress}% for dimension '${dimension}' in cube '${cube}'`)
-
-			// Check the job status
-			// if (await this.checkIfJobCancelled(job)) {
-			// 	this.logger.debug(`[Job: entity '${job.id}'] Cancelled`)
-			// 	return
-			// }
-			// await this.commandBus.execute(
-			// 	new ModelEntityUpdateCommand({
-			// 		id: entityId,
-			// 		job: {
-			// 			...entity.job,
-			// 			id: job.id,
-			// 			status: 'processing',
-			// 			progress: Number(progress)
-			// 		}
-			// 	})
-			// )
 		}
 
 		return

@@ -50,16 +50,14 @@ export class DimensionMemberRetriever extends BaseRetriever {
 			parsedConfig.runName
 		)
 		try {
-			const docs = await this.memberService.retrieveMembers(
-				this.tenantId,
+			const items = await this.memberService.retrieveMembersWithScore(this.tenantId,
 				this.organizationId,
 				{ modelId, cube, dimension, hierarchy, level, isDraft: this.isDraft },
 				query,
-				topK ?? 10
-			)
+				topK ?? 10)
 
-			this.#logger.debug(`Retrieved dimension members: ${docs.length}`)
-			const results = docs.map((item) => new Document(item))
+			this.#logger.debug(`Retrieved dimension members: ${items.length}`)
+			const results = items?.map((item) => new Document(item[0]))
 			await runManager?.handleRetrieverEnd(results)
 			return results
 		} catch (error) {

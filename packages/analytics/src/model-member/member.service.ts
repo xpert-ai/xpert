@@ -29,11 +29,11 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 
 	async bulkCreate(model: ISemanticModel, cube: string, members: DeepPartial<SemanticModelMember[]>) {
 		// Remove previous members
-		try {
-			await this.bulkDelete(model.id, cube, {})
-		} catch (err) {
-			//
-		}
+		// try {
+		// 	await this.bulkDelete(model.id, cube, {})
+		// } catch (err) {
+		// 	//
+		// }
 
 		members = members.map((member) => ({
 			...member,
@@ -60,13 +60,7 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 	}
 
 	/**
-	 * Retrieve members with their similarity scores.
-	 * 
-	 * @param tenantId 
-	 * @param organizationId 
-	 * @param options 
-	 * @param query 
-	 * @param k 
+	 * @deprecated use command
 	 * @returns 
 	 */
 	async retrieveMembersWithScore(
@@ -113,70 +107,4 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 
 		return []
 	}
-
-	/**
-	 * Retrieve dimension members (documents) with query string filter by top K.
-	 * 
-	 * @param tenantId 
-	 * @param organizationId 
-	 * @param options 
-	 * @param query 
-	 * @param k 
-	 * @returns 
-	 */
-	async retrieveMembers(
-		tenantId: string,
-		organizationId: string,
-		options: {
-			modelId: string | null
-			cube: string
-			dimension?: string
-			hierarchy?: string
-			level?: string
-			isDraft?: boolean
-		},
-		query: string,
-		k = 10
-	) {
-		const items = await this.retrieveMembersWithScore(tenantId, organizationId, options, query, k)
-		return items?.map((item) => item[0])
-	}
-
-	// async getVectorStore(copilot: ICopilot, modelId: string, cube: string) {
-	// 	const embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
-	// 		new CopilotModelGetEmbeddingsQuery(copilot, null, {
-	// 			tokenCallback: (token) => {
-	// 				console.log(`Embedding token usage:`, token)
-	// 				// execution.tokens += (token ?? 0)
-	// 			}
-	// 		})
-	// 	)
-
-	// 	if (embeddings) {
-	// 		const id = modelId ? `${modelId}${cube ? ':' + cube : ''}` : 'default'
-	// 		if (!this.vectorStores.has(id)) {
-	// 			const vectorStore = new PGMemberVectorStore(embeddings, {
-	// 				pool: this.pgPool,
-	// 				tableName: 'model_member_vector',
-	// 				collectionTableName: 'model_member_collection',
-	// 				collectionName: id,
-	// 				columns: {
-	// 					idColumnName: 'id',
-	// 					vectorColumnName: 'vector',
-	// 					contentColumnName: 'content',
-	// 					metadataColumnName: 'metadata'
-	// 				}
-	// 			})
-
-	// 			// Create table for vector store if not exist
-	// 			await vectorStore.ensureTableInDatabase()
-
-	// 			this.vectorStores.set(id, vectorStore)
-	// 		}
-
-	// 		return this.vectorStores.get(id)
-	// 	}
-
-	// 	return null
-	// }
 }

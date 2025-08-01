@@ -236,13 +236,15 @@ export const ENTITY_TYPE_SALESORDER: EntityType = {
             {
               name: '[Time].[Year]',
               semantics: {
-                semantic: Semantics['Calendar.Year']
+                semantic: Semantics['Calendar.Year'],
+                formatter: '[yyyy]'
               }
             },
             {
               name: '[Time].[Month]',
               semantics: {
-                semantic: Semantics['Calendar.Month']
+                semantic: Semantics['Calendar.Month'],
+                formatter: '[yyyy].[M]'
               }
             }
           ]

@@ -21,6 +21,7 @@ import {
 import {
 	AggregationRole,
 	BarVariant,
+	C_MEASURES,
 	CalculationType,
 	ChartAnnotation,
 	ChartBusinessService,
@@ -46,15 +47,14 @@ import {
 	workOutTimeRangeSlicers
 } from '@metad/ocap-core'
 import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
-import { getErrorMessage, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
+import { getErrorMessage, isEmpty, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { z } from 'zod'
-import { DimensionMemberServiceQuery } from '../../../../model-member/'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
 import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, extractDataValue, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixDimensions } from './types'
-import { createDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
+import { buildDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
 import { fixMeasure, markdownCubes, tryFixChartType, tryFixFormula } from '../../types'
 import { TBIContext } from '../../../types'
 import { GetBIContextQuery } from '../../../queries'
@@ -155,25 +155,21 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			this.tools.push(this.createCubeContextTool(this.dsCoreService) as unknown as Tool)
 		}
 		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.MEMBER_RETRIEVER)) {
-			const dimensionMemberRetrieverTool = createDimensionMemberRetrieverTool(
+			const dimensionMemberRetrieverTool = buildDimensionMemberRetrieverTool(
 				{
 					chatbi: this,
-					dsCoreService: this.dsCoreService
+					dsCoreService: this.dsCoreService,
+					commandBus: this.commandBus
 				},
 				ChatBIToolsEnum.MEMBER_RETRIEVER,
-				this.toolset.tenantId,
-				this.toolset.organizationId,
-				await this.queryBus.execute(
-					new DimensionMemberServiceQuery()
-				)
 			)
 			
 			this.tools.push(dimensionMemberRetrieverTool)
 		}
 
-		// if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.CREATE_INDICATOR)) {
-		// 	this.tools.push(this.createIndicatorTool(this.dsCoreService))
-		// }
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.CREATE_INDICATOR)) {
+			this.tools.push(this.createIndicatorTool(this.dsCoreService))
+		}
 
 		return this.tools
 	}
@@ -491,8 +487,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, configurable: TAgentRunnableConfigurable, credentials: TChatBICredentials): Promise<any> {
 		const { dsCoreService, entityType, chatbi, language } = context
 		const { subscriber, agentKey, xpertName, tool_call_id } = configurable ?? {}
-		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 
+		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 		const lang = currentState?.[STATE_VARIABLE_SYS]?.language
 		const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
 		const chartService = new ChartBusinessService(dsCoreService)
@@ -501,7 +497,18 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		const chartAnnotation: ChartAnnotation = {
 			chartType: tryFixChartType(answer.visualType),
 			dimensions: tryFixDimensions(answer.dimensions?.map((dimension) => tryFixDimension(dimension, entityType))),
-			measures: answer.measures?.map((measure) => fixMeasure(measure, entityType))
+			measures: answer.measures?.map((measure) => fixMeasure(measure, entityType)) ?? []
+		}
+		if (chartAnnotation.measures.length === 0 && entityType.defaultMeasure) {
+			chartAnnotation.measures.push({
+				dimension: C_MEASURES,
+				measure: entityType.defaultMeasure,
+			})
+		}
+
+		// Check validation
+		if (isEmpty(chartAnnotation.measures)) {
+			throw new Error('The measures of chart answer cannot be empty')
 		}
 
 		// Temporarily support Column to represent Table

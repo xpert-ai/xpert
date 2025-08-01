@@ -36,7 +36,7 @@ export class ModelEntityController extends CrudController<SemanticModelEntity> {
 		entity.timeZone ??= timeZone
 		const result = await this.entityService.create(entity)
 
-		if (entity.options?.vector?.hierarchies?.length) {
+		if (entity.options?.vector?.dimensions?.length) {
 			await this.entityService.startSync(result)
 			return await this.entityService.findOne(result.id)
 		}

@@ -3,7 +3,7 @@ identity:
   author: Xpert AI
   label:
     en_US: Get the context of cube
-    zh_Hans: 获取数据模型上下文信息
+    zh_Hans: 获取模型上下文信息
 entity: ChatBI
 description:
   human:

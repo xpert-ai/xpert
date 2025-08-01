@@ -3,7 +3,11 @@ import { ScheduleTaskStatus, TScheduleOptions } from '../schedule';
 
 export type SemanticModelEntityOptions = {
   vector: {
-    hierarchies: string[];
+    dimensions: string[];
+    // /**
+    //  * @deprecated use dimensions
+    //  */
+    // hierarchies?: string[];
   };
   members?: Record<string, number>;
 }

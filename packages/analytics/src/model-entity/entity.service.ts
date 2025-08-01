@@ -12,7 +12,7 @@ import { CronJob } from 'cron'
 import { DeepPartial, Repository } from 'typeorm'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
 import { SemanticModelEntity } from './entity.entity'
-import { JOB_ENTITY_SYNC, MEMBERS_SYNC_NAME } from './types'
+import { JOB_ENTITY_SYNC, MEMBERS_SYNC_NAME, TDimensionMembersSyncJob } from './types'
 
 @Injectable()
 export class SemanticModelEntityService extends BusinessAreaAwareCrudService<SemanticModelEntity> implements OnModuleInit {
@@ -24,7 +24,7 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 		readonly commandBus: CommandBus,
 		private readonly schedulerRegistry: SchedulerRegistry,
 		@InjectQueue(JOB_ENTITY_SYNC)
-		private readonly jobQueue: Queue
+		private readonly jobQueue: Queue<TDimensionMembersSyncJob>
 	) {
 		super(entityRepository, commandBus)
 	}
@@ -86,7 +86,7 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 			modelId: entity.modelId,
 			entityId: entity.id,
 			cube: entity.name,
-			hierarchies: entity.options?.vector.hierarchies
+			dimensions: entity.options?.vector.dimensions
 		})
 
 		await this.update(entity.id, {

@@ -487,6 +487,12 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		return results
 	}
 
+	async updateModelOptions(id: string, fn: (options: ISemanticModel['options']) => ISemanticModel['options']) {
+		const model = await this.findOne(id)
+		model.options = fn(model.options)
+		return await this.repository.save(model)
+	}
+
 	/*
     |--------------------------------------------------------------------------
     | Public API

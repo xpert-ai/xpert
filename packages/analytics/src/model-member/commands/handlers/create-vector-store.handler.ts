@@ -3,9 +3,10 @@ import { Inject, Logger } from '@nestjs/common'
 import { DATABASE_POOL_TOKEN, RequestContext } from '@metad/server-core'
 import { CreateVectorStoreCommand } from '../create-vector-store.command'
 import { CopilotModelGetEmbeddingsQuery, CopilotNotFoundException, CopilotOneByRoleQuery } from '@metad/server-ai'
-import { AiProviderRole } from '@metad/contracts'
+import { AiProviderRole, mapTranslationLanguage } from '@metad/contracts'
 import { Embeddings } from '@langchain/core/embeddings'
 import { Pool } from 'pg'
+import { I18nService } from 'nestjs-i18n'
 import { PGMemberVectorStore } from '../../vector-store'
 
 @CommandHandler(CreateVectorStoreCommand)
@@ -15,7 +16,8 @@ export class CreateVectorStoreHandler implements ICommandHandler<CreateVectorSto
 	private readonly vectorStores = new Map<string, PGMemberVectorStore>()
 	constructor(
 		private readonly queryBus: QueryBus,
-		@Inject(DATABASE_POOL_TOKEN) private pgPool: Pool
+		@Inject(DATABASE_POOL_TOKEN) private pgPool: Pool,
+		private readonly i18n: I18nService
 	) {}
 
 	public async execute(command: CreateVectorStoreCommand) {
@@ -33,7 +35,7 @@ export class CreateVectorStoreHandler implements ICommandHandler<CreateVectorSto
 			new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding)
 		)
 		if (!copilot) {
-			throw new CopilotNotFoundException(`Copilot not found for role '${AiProviderRole.Embedding}'`)
+			throw new CopilotNotFoundException(await this.i18n.t('xpert.Error.EmbeddingCopilotNotFound', {lang: mapTranslationLanguage(RequestContext.getLanguageCode())}))
 		}
 
 		const embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(

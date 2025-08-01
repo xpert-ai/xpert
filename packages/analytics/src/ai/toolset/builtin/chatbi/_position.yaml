@@ -2,5 +2,4 @@
 - get_cube_context
 - dimension_member_retriever
 - answer_question
-- create_indicator
 - show_indicators

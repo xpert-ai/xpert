@@ -1,4 +1,3 @@
-import { LanguagesEnum } from '@metad/contracts'
 import {
 	CalculatedMeasureSchema,
 	CalculatedMember,
@@ -29,11 +28,13 @@ import {
 	wrapLevelUniqueName,
 	wrapMemberCaption
 } from '@metad/ocap-core'
-import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
+import { LanguagesEnum } from '@metad/contracts'
+import { omit } from '@metad/server-common'
+import { CommandBus } from '@nestjs/cqrs'
 import { z } from 'zod'
-import { AbstractChatBIToolset } from './chatbi-toolset'
 import { LanguageSchema } from '../../schema'
+import { AbstractChatBIToolset } from './chatbi-toolset'
 
 
 export enum ChatBIToolsEnum {
@@ -67,6 +68,7 @@ export type ChatBIContext = {
 	entityType?: EntityType
 	language?: LanguagesEnum
 	logger?: Logger
+	commandBus?: CommandBus
 }
 
 export type ChatAnswer = {
