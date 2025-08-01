@@ -1,0 +1,201 @@
+team:
+  name: ChatBI with Sales Expert
+  type: agent
+  title: ChatBI 分析专家
+  description: 我是一名经验丰富的数据分析专家，擅长通过数据洞察优化销售策略、推动业务增长。熟悉多种数据分析工具和方法，能快速洞察市场趋势和客户需求，为企业提供高效、精准的销售解决方案。
+  avatar:
+    emoji:
+      id: blush
+      colons: ":blush:"
+      unified: 1F60A
+    background: rgba(213, 245, 246, 0.8)
+  starters:
+    - 去年每个月销售额走势
+    - 去年销售额前3个经销商业务类型
+    - null
+    - null
+  options:
+    position:
+      x: 246.27172759492277
+      y: 313.02178809957485
+    scale: 0.8199999999999998
+    agent:
+      Agent_qVd35XsFv3:
+        position:
+          x: 20
+          y: -219.875
+    toolset:
+      3999eeff-617d-4bb0-8ca8-b6101d75f6b3:
+        position:
+          x: 20.00000678168402
+          y: 60.24998530635128
+  agentConfig: null
+  memory: null
+  summarize: null
+  features: null
+  version: "1"
+  agent:
+    key: Agent_qVd35XsFv3
+  copilotModel:
+    modelType: llm
+    model: deepseek-chat
+    options: null
+  knowledgebases: []
+  toolsets:
+    - id: 3999eeff-617d-4bb0-8ca8-b6101d75f6b3
+      name: ChatBI工具集
+      type: chatbi
+      category: builtin
+      description: 对话数据分析工具集
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/chatbi/icon
+      options:
+        provider:
+          author: Xpert AI
+          name: chatbi
+          label:
+            en_US: ChatBI
+            zh_Hans: 对话 BI
+          description:
+            en_US: Chat with BI
+            zh_Hans: 对话式 BI
+          icon: icon.jpg
+          tags:
+            - analysis
+          help_url: /docs/ai/tool/chatbi/
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/chatbi/icon
+        toolPositions:
+          get_available_cubes: 0
+          get_cube_context: 1
+          dimension_member_retriever: 2
+          answer_question: 3
+          show_indicators: 4
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: d2686cc1-e195-48f2-a2a3-20dbd7f09be0
+          name: get_available_cubes
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: ca1d8459-30e9-47cf-9dc8-4a9bba80c83c
+          name: get_cube_context
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: 49fb8a73-01a4-4ca6-970f-1100c10bf5c7
+          name: dimension_member_retriever
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: f07ac1ad-467c-428a-9413-40e24427e095
+          name: answer_question
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: af8ca312-e669-439e-864f-9296b26bdca8
+          name: show_indicators
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_qVd35XsFv3
+    position:
+      x: 20
+      y: -219.875
+    entity:
+      key: Agent_qVd35XsFv3
+      name: null
+      title: 销售分析
+      description: 熟悉多种数据分析工具和方法，能够快速识别市场趋势和客户需求，为企业提供高效、精准的销售解决方案
+      avatar:
+        emoji:
+          id: blush
+          set:
+            unified: 1F60A
+        background: rgba(213, 245, 246, 0.8)
+        url: null
+      prompt: |
+        你是一名销售分析业务专家，请使用工具回复用户问题。
+        {{tool_chatbi_prompts_default}}
+
+        当前可用 Cubes 有以下：
+        <cubes>
+        {{chatbi_models}}
+        </cubes>
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options:
+        vision:
+          enabled: false
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds:
+        - 3999eeff-617d-4bb0-8ca8-b6101d75f6b3
+      knowledgebaseIds: []
+    hash: 44b62c97aa9407b931946989f8724202e2dba6c57ee200f5500facd925b8b7a0
+  - type: toolset
+    key: 3999eeff-617d-4bb0-8ca8-b6101d75f6b3
+    position:
+      x: 20.00000678168402
+      y: 60.24998530635128
+    entity:
+      id: 3999eeff-617d-4bb0-8ca8-b6101d75f6b3
+      name: ChatBI工具集
+      type: chatbi
+      category: builtin
+      description: 对话数据分析工具集
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/chatbi/icon
+      options:
+        provider:
+          author: Xpert AI
+          name: chatbi
+          label:
+            en_US: ChatBI
+            zh_Hans: 对话 BI
+          description:
+            en_US: Chat with BI
+            zh_Hans: 对话式 BI
+          icon: icon.jpg
+          tags:
+            - analysis
+          help_url: /docs/ai/tool/chatbi/
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/chatbi/icon
+        toolPositions:
+          get_available_cubes: 0
+          get_cube_context: 1
+          dimension_member_retriever: 2
+          answer_question: 3
+          show_indicators: 4
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+    hash: b40b83482b238c07c0c28c5c8e54b64d4a81fa8711d140c947f8306a17520dad
+connections:
+  - type: toolset
+    key: Agent_qVd35XsFv3/3999eeff-617d-4bb0-8ca8-b6101d75f6b3
+    from: Agent_qVd35XsFv3
+    to: 3999eeff-617d-4bb0-8ca8-b6101d75f6b3
