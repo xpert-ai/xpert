@@ -113,8 +113,8 @@ export const TimeSlicerSchema = z.object({
 			TimeGranularity.Day
 		])
 		.describe('The granularity of the time range'),
-	start: z.string().describe('The start period in granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
-	end: z.string().optional().nullable().describe('The end period in granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
+	start: z.string().describe('The start period of time range in time granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
+	end: z.string().optional().nullable().describe('The end period of time range in time granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
 	// lookBack: z.number().optional().nullable().describe('The look back period in granularity'),
 	// lookAhead: z.number().optional().nullable().describe('The look ahead period in granularity')
   })

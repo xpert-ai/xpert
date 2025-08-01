@@ -1,4 +1,4 @@
-import { AgentType, IIndicator, ISemanticModel } from '@metad/contracts'
+import { AgentType, IIndicator, IndicatorStatusEnum, ISemanticModel } from '@metad/contracts'
 import { DataSourceOptions, DSCoreService, Indicator, SemanticModel, Syntax } from '@metad/ocap-core'
 import { isNil, omit } from 'lodash'
 
@@ -37,7 +37,8 @@ export function registerSemanticModel(model: ISemanticModel & {isDraft?: boolean
 		} as any,
 		schema: {
 			...(model.options?.schema ?? {}),
-			indicators: model.indicators?.map(convertOcapIndicatorResult)
+			// Use only released indicators
+			indicators: model.indicators?.filter((_) => _.status === IndicatorStatusEnum.RELEASED).map(convertOcapIndicatorResult)
 		}
 	} as DataSourceOptions
 

@@ -1,4 +1,4 @@
-import { NgmSemanticModel } from '@metad/cloud/state'
+import { IndicatorStatusEnum, NgmSemanticModel } from '@metad/cloud/state'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { AgentType, DataSourceOptions, isNil, omit, PropertyMeasure, Syntax } from '@metad/ocap-core'
@@ -45,7 +45,8 @@ export function registerModel(
     } as any,
     schema: {
       ...(model.schema ?? {}),
-      indicators: model.indicators
+      // Use only released indicators
+      indicators: model.indicators?.filter((_: any) => _.status === IndicatorStatusEnum.RELEASED)
     },
     calculatedMeasures
   } as DataSourceOptions

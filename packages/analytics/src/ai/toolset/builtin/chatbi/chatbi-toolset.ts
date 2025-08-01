@@ -33,6 +33,7 @@ import {
 	EntityType,
 	FilteringLogic,
 	getEntityDimensions,
+	getEntityProperty,
 	Indicator,
 	isEntitySet,
 	markdownModelCube,
@@ -59,6 +60,7 @@ import { fixMeasure, markdownCubes, tryFixChartType, tryFixFormula } from '../..
 import { TBIContext } from '../../../types'
 import { GetBIContextQuery } from '../../../queries'
 import { IndicatorSchema } from '../../schema'
+import { TOOL_CHATBI_PROMPTS_DEFAULT } from './prompts'
 
 
 function cubesReducer(a, b) {
@@ -94,6 +96,17 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			await this.initModels()
 		}
 		return [
+			{
+				name: 'tool_chatbi_prompts_default',
+				type: 'string',
+				description: 'Default prompt for chatbi toolset',
+				reducer: (a: string, b: string) => {
+					return a || b
+				},
+				default: () => {
+					return TOOL_CHATBI_PROMPTS_DEFAULT
+				}
+			} as TStateVariable,
 			{
 				name: 'chatbi_models',
 				type: 'array[object]',
@@ -497,7 +510,14 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		const chartAnnotation: ChartAnnotation = {
 			chartType: tryFixChartType(answer.visualType),
 			dimensions: tryFixDimensions(answer.dimensions?.map((dimension) => tryFixDimension(dimension, entityType))),
-			measures: answer.measures?.map((measure) => fixMeasure(measure, entityType)) ?? []
+			measures: answer.measures?.map((measure) => {
+				measure = fixMeasure(measure, entityType)
+				const property = getEntityProperty(entityType, measure.measure)
+				if (!property) {
+					throw new Error(`Measure '${measure.measure}' not found in cube '${entityType.name}'`)
+				}
+				return measure
+			}) ?? []
 		}
 		if (chartAnnotation.measures.length === 0 && entityType.defaultMeasure) {
 			chartAnnotation.measures.push({

@@ -30,7 +30,7 @@ export const DimensionSchema = z.object(baseDimensionSchema)
 
 export const BaseMeasureSchema = {
   dimension: z.enum([C_MEASURES]),
-  measure: z.string().describe('The name of the measure'),
+  measure: z.string().describe('The name of the measure or indicator or calculated member'),
   // order: z.enum([OrderDirection.ASC, OrderDirection.DESC]).optional().describe('The order of the measure'),
   // chartOptions: z.any().optional().describe('The chart options of ECharts library')
 }

@@ -560,10 +560,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		// Project toolset for plan mode
 		if (project?.settings?.mode === 'plan') {
 			const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(new CreateProjectToolsetCommand(projectId))
+			const items = await projectToolset.initTools()
 			const _variables = await projectToolset.getVariables()
 			toolsetVarirables.push(...(_variables ?? []))
 			// stateVariables.push(...toolsetVarirables)
-			const items = await projectToolset.initTools()
 			items.forEach((tool) => {
 				toolsTitleMap[tool.name] = translate(projectToolset.getToolTitle(tool.name))
 				toolsetsMap[tool.name] = {
@@ -593,9 +593,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			})
 			// const interruptBefore: string[] = []
 			for await (const toolset of toolsets) {
+				const items = await toolset.initTools()
 				const _variables = await toolset.getVariables()
 				toolsetVarirables.push(...(_variables ?? []))
-				const items = await toolset.initTools()
 				items.forEach((tool) => {
 					// const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
 					toolsTitleMap[tool.name] = translate(toolset.getToolTitle(tool.name))
