@@ -17,7 +17,7 @@ import {
 import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { get } from 'lodash'
+import { assign, get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
@@ -89,6 +89,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 		const outputParams = entity.outputParams
 
 		let subgraph = null
+		// Execution for subagent
 		const _execution: IXpertAgentExecution = {}
 		const abortController = new AbortController()
 		// Create graph by command
@@ -144,6 +145,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 						return acc
 					}, {}) ?? {}
 
+					// Execution for subflow
 					const execution: IXpertAgentExecution = {
 						category: 'workflow',
 						type: WorkflowNodeTypeEnum.SUBFLOW,
@@ -158,23 +160,22 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 
 					return await wrapAgentExecution(
 						async () => {
-							const __execution: IXpertAgentExecution = {
-								..._execution,
+							assign(_execution, {
 								inputs: inputs,
 								parentId: execution.id,
 								threadId: thread_id,
 								checkpointNs: checkpoint_ns,
 								checkpointId: checkpoint_id,
-							}
+							})
 							if (extXpert) {
-								__execution.xpertId = extXpert.id
+								_execution.xpertId = extXpert.id
 							} else {
-								__execution.xpertId = xpertId
-								__execution.agentKey = agentKey
+								_execution.xpertId = xpertId
+								_execution.agentKey = agentKey
 							}
 
 							const _state = await wrapAgentExecution(
-								async () => {
+								async (execution) => {
 									const retState = await subgraph.invoke(
 										{
 											[STATE_VARIABLE_INPUT]: state[STATE_VARIABLE_INPUT],
@@ -186,7 +187,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 											signal: abortController.signal,
 											configurable: {
 												...config.configurable,
-												executionId: __execution.id
+												executionId: execution.id
 											}
 										}
 									)
@@ -210,7 +211,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 									commandBus: this.commandBus,
 									queryBus: this.queryBus,
 									subscriber: subscriber,
-									execution: __execution
+									execution: _execution
 								}
 							)()
 

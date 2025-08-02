@@ -2,16 +2,16 @@ import { ChatMessageEventTypeEnum, IXpertAgentExecution, XpertAgentExecutionStat
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
-import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands';
-import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto';
-import { messageEvent } from '../../xpert-agent/agent';
-import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries';
+import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
+import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto'
+import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
+import { messageEvent } from '../../xpert-agent/agent'
 
 export function wrapAgentExecution<T>(
-	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{output?: string; state: T}>,
+	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{ output?: string; state: T }>,
 	params: {
-		commandBus: CommandBus,
-		queryBus: QueryBus,
+		commandBus: CommandBus
+		queryBus: QueryBus
 		subscriber: Subscriber<MessageEvent>
 		execution: Partial<IXpertAgentExecution>
 	}
@@ -38,7 +38,7 @@ export function wrapAgentExecution<T>(
 			output = results?.output
 
 			return results?.state
-		} catch(err) {
+		} catch (err) {
 			status = XpertAgentExecutionStatusEnum.ERROR
 			error = getErrorMessage(err)
 			throw err
@@ -48,6 +48,7 @@ export function wrapAgentExecution<T>(
 			subexecution = await commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					...subexecution,
+					...execution,
 					elapsedTime: timeEnd - timeStart,
 					status,
 					error,
@@ -57,16 +58,11 @@ export function wrapAgentExecution<T>(
 				})
 			)
 
-			subexecution = await queryBus.execute(
-				new XpertAgentExecutionOneQuery(subexecution.id)
-			)
+			subexecution = await queryBus.execute(new XpertAgentExecutionOneQuery(subexecution.id))
 
 			// End agent execution event
 			subscriber.next(
-				messageEvent(
-					ChatMessageEventTypeEnum.ON_AGENT_END,
-					new XpertAgentExecutionDTO(subexecution)
-				)
+				messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, new XpertAgentExecutionDTO(subexecution))
 			)
 		}
 	}
