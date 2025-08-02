@@ -13,7 +13,7 @@ import {
   TWorkflowVarGroup,
   WorkflowComparisonOperator,
 } from 'apps/cloud/src/app/@core'
-import { TXpertVariablesOptions, XpertVariableInputComponent, XpertVariablePanelComponent } from '../../agent'
+import { StateVariableSelectComponent, TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
 
 @Component({
   standalone: true,
@@ -28,7 +28,7 @@ import { TXpertVariablesOptions, XpertVariableInputComponent, XpertVariablePanel
     TextFieldModule,
     NgmI18nPipe,
     XpertVariableInputComponent,
-    XpertVariablePanelComponent
+    StateVariableSelectComponent
   ]
 })
 export class XpertWorkflowConditionFormComponent {
