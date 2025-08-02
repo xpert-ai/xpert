@@ -210,7 +210,7 @@ export class XpertStudioContextMenuComponent {
       key: genXpertCodeKey(),
       title: await this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }),
       language: 'javascript',
-      code: `return {result: arg1 + arg2};`,
+      code: `return {"result": arg1 + arg2};`,
       inputs: [
         {
           name: 'arg1',

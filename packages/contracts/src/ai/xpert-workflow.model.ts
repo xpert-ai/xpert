@@ -306,3 +306,7 @@ export function isIteratingKey(key: string) {
 export function isWorkflowKey(key: string) {
   return isRouterKey(key) || isIteratingKey(key)
 }
+
+export function workflowNodeIdentifier(node: IWorkflowNode) {
+  return node.title || node.key
+}

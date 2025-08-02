@@ -1,6 +1,7 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
 import {
+	workflowNodeIdentifier,
 	channelName,
 	IEnvironment,
 	IWFNCode,
@@ -14,7 +15,7 @@ import {
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { get } from 'lodash'
+import { get, isNil } from 'lodash'
 import { SandboxVMCommand } from '../../sandbox'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../shared'
 import { wrapAgentExecution } from '../../shared/agent/execution'
@@ -43,6 +44,9 @@ export function createCodeNode(
 				const stateEnv = stateToParameters(state, environment)
 
 				const inputs = entity.inputs.reduce((acc, param) => {
+					if (!param.variable) {
+						throw new Error(`Input variable for "${param.name}" in Code node "${workflowNodeIdentifier(node.entity)}" is not defined`)
+					}
 					acc[param.name] = get(stateEnv, param.variable)
 					return acc
 				}, {})
@@ -104,35 +108,36 @@ export function createCodeNode(
 						const result = results.result
 						if (typeof result === 'object' && entity.outputs) {
 							entity.outputs.forEach((output) => {
+								const type = isNil(result[output.name]) ? 'nil' : typeof result[output.name]
 								switch (output.type) {
 									case XpertParameterTypeEnum.STRING: {
-										if (typeof result[output.name] !== 'string') {
+										if (type !== 'string') {
 											throw new Error(
-												`Output variable "${output.name}" expects a string, but received: ${typeof results?.result}`
+												`Output variable "${output.name}" expects a string, but received: ${type}`
 											)
 										}
 										break
 									}
 									case XpertParameterTypeEnum.NUMBER: {
-										if (typeof result[output.name] !== 'number') {
+										if (type !== 'number') {
 											throw new Error(
-												`Output variable "${output.name}" expects a number, but received: ${typeof results?.result}`
+												`Output variable "${output.name}" expects a number, but received: ${type}`
 											)
 										}
 										break
 									}
 									case XpertParameterTypeEnum.BOOLEAN: {
-										if (typeof result[output.name] !== 'boolean') {
+										if (type !== 'boolean') {
 											throw new Error(
-												`Output variable "${output.name}" expects a boolean, but received: ${typeof results?.result}`
+												`Output variable "${output.name}" expects a boolean, but received: ${type}`
 											)
 										}
 										break
 									}
 									case XpertParameterTypeEnum.OBJECT: {
-										if (typeof result[output.name] !== 'object') {
+										if (type !== 'object') {
 											throw new Error(
-												`Output variable "${output.name}" expects an object, but received: ${typeof results?.result}`
+												`Output variable "${output.name}" expects an object, but received: ${type}`
 											)
 										}
 										break
@@ -140,7 +145,7 @@ export function createCodeNode(
 									case XpertParameterTypeEnum.ARRAY_STRING: {
 										if (!Array.isArray(result[output.name]) || !result[output.name].every((item) => typeof item === 'string')) {
 											throw new Error(
-												`Output variable "${output.name}" expects an array of strings, but received: ${typeof results?.result}`
+												`Output variable "${output.name}" expects an array of strings`
 											)
 										}
 										break
@@ -148,7 +153,7 @@ export function createCodeNode(
 									case XpertParameterTypeEnum.ARRAY: {
 										if (!Array.isArray(result[output.name])) {
 											throw new Error(
-												`Output variable "${output.name}" expects an array of objects, but received: ${typeof results?.result}`
+												`Output variable "${output.name}" expects an array of objects, but received: ${type}`
 											)
 										}
 										break
