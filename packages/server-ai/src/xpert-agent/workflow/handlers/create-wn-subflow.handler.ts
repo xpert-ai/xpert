@@ -215,7 +215,8 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 							)()
 
 							return {
-								state: _state
+								state: _state,
+								output: execution.outputs
 							}
 						},
 						{
