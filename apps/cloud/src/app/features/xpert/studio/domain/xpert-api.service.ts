@@ -16,6 +16,7 @@ import {
   BehaviorSubject,
   catchError,
   combineLatest,
+  combineLatestWith,
   debounceTime,
   distinctUntilChanged,
   EMPTY,
@@ -165,9 +166,11 @@ export class XpertStudioApiService {
     shareReplay(1)
   )
 
+  readonly refreshEnvironments$ = new BehaviorSubject<void>(null)
   readonly environments$ = toObservable(this.workspaceId).pipe(
     filter(nonNullable),
-    switchMap((workspaceId) =>  this.environmentService.getAllInOrg({
+    combineLatestWith(this.refreshEnvironments$),
+    switchMap(([workspaceId]) =>  this.environmentService.getAllInOrg({
       where: {workspaceId}
     })),
     map(({items}) => items),
