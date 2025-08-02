@@ -1,3 +1,4 @@
+import { BaseMessage } from '@langchain/core/messages'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
@@ -16,7 +17,6 @@ import { createTemplateNode } from '../template'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
 import { createToolNode } from '../tool'
 import { createAssignerNode } from '../assigner'
-import { BaseMessage } from '@langchain/core/messages'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
