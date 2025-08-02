@@ -82,9 +82,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		} else {
 			// New message in conversation
 			if (conversationId) {
-				conversation = await this.queryBus.execute(
-					new GetChatConversationQuery({ id: conversationId }, ['messages'])
-				)
+				conversation = await await this.commandBus.execute(new ChatConversationUpsertCommand({
+					id: conversationId,
+					status: 'busy',
+					error: null
+				}, ['messages']))
+						
 				// Cancel summary job
 				if (memory?.enabled && memory.profile?.enabled) {
 					await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
