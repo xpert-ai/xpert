@@ -36,7 +36,7 @@ export function createAssignerNode(
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } =
 					configurable
-				const stateEnv = stateToParameters(state, environment)
+				const stateEnv = state // stateToParameters(state, environment)
 				const inputs = {}
 				// Write to memory
 				const nState = {}

@@ -37,12 +37,11 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { XpertConfigException } from '../../../core/errors'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphResult, TStateChannel } from '../../agent'
-import { createParameters } from '../../workflow/parameter'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, createParameters } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 
 
@@ -508,6 +507,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
+		const historyVariable = agent.options?.historyVariable
 		const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean, jsonSchema: string) => {
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
@@ -551,7 +551,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			return {
 				systemMessage,
-				messageHistory,
+				messageHistory: historyVariable ? get(state, historyVariable) as BaseMessage[] : messageHistory,
 				humanMessages
 			}
 		}
@@ -610,12 +610,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					systemMessage, ...((enableMessageHistory || !humanMessages.length) ? messageHistory : []), ...humanMessages
 				], {...config, signal: abortController.signal})
 
-				const messages = [...deleteMessages, ...humanMessages]
 				const nState: Record<string, any> = {
-					messages: [...messages],
+					messages: [...humanMessages],
 					[channelName(agentKey)]: {
 						error: null,
-						messages
+						messages: [...deleteMessages, ...humanMessages]
 					}
 				}
 				if (isBaseMessage(message) || isBaseMessageChunk(message)) {

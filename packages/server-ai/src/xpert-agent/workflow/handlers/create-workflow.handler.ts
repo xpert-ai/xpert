@@ -1,5 +1,4 @@
-import { BaseMessage } from '@langchain/core/messages'
-import { Annotation, messagesStateReducer } from '@langchain/langgraph'
+import { Annotation } from '@langchain/langgraph'
 import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -8,7 +7,7 @@ import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { TStateChannel } from '../../agent'
 import { createHttpNode } from '../http'
-import { createCasesNode } from '../cases'
+import { createRouterNode } from '../router'
 import { createCodeNode } from '../code'
 import { createSplitterNode } from '../splitter'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
@@ -44,7 +43,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				break
 			}
 			case WorkflowNodeTypeEnum.IF_ELSE: {
-				workflow = createCasesNode(graph, node, {environment: options.environment})
+				workflow = createRouterNode(graph, node, {environment: options.environment})
 				break
 			}
 			case WorkflowNodeTypeEnum.ITERATING: {
@@ -53,23 +52,6 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			}
 			case WorkflowNodeTypeEnum.ANSWER: {
 				workflow = await this.commandBus.execute(new CreateWNAnswerCommand(xpertId, graph, node, options))
-				channel = {
-					name: channelName(node.key),
-					annotation: Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b,
-										messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
-									}
-								: a
-						},
-						default: () => ({
-							messages: []
-						})
-					})
-				}
 				break
 			}
 			case WorkflowNodeTypeEnum.CLASSIFIER: {
@@ -184,8 +166,8 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 		}
 
 		return {
-			...workflow,
 			channel,
+			...workflow,
 			nextNodes: graph.connections
 				.filter((_) => _.type === 'edge' && _.from.startsWith(node.key))
 				.map((conn) =>

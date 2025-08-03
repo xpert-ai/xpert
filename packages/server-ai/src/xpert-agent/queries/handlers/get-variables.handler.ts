@@ -35,6 +35,7 @@ import {
 import { templateOutputVariables } from '../../workflow/template'
 import { toolOutputVariables } from '../../workflow/tool'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
+import { answerOutputVariables } from '../../workflow/answer'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -192,6 +193,8 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		if (nodeKey && node?.type === 'agent' && type === 'input') {
 			const _variables = await this.getAgentVariables(xpertId, nodeKey, isDraft)
 			variables.push(..._variables)
+			// Current agent variable group
+			varGroups.push(getAgentVarGroup(node.key, graph))
 		}
 
 		// Other agents
@@ -279,6 +282,11 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					}
 					case WorkflowNodeTypeEnum.TOOL: {
 						variables.push(...toolOutputVariables(entity))
+						varGroups.push(varGroup)
+						break
+					}
+					case WorkflowNodeTypeEnum.ANSWER: {
+						variables.push(...answerOutputVariables(entity))
 						varGroups.push(varGroup)
 						break
 					}

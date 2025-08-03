@@ -1,6 +1,7 @@
-import { AIMessage } from '@langchain/core/messages'
+import { AIMessage, BaseMessage } from '@langchain/core/messages'
 import { AIMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
+import { Annotation } from '@langchain/langgraph'
 import {
 	channelName,
 	IWFNAnswer,
@@ -10,10 +11,10 @@ import {
 } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { I18nService } from 'nestjs-i18n'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { FakeStreamingChatModel } from '../../agent'
+import { WORKFLOW_ANSWER_MESSAGES_CHANNEL } from '../answer'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 
 @CommandHandler(CreateWNAnswerCommand)
@@ -22,8 +23,7 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService
+		private readonly queryBus: QueryBus
 	) {}
 
 	public async execute(command: CreateWNAnswerCommand) {
@@ -58,7 +58,7 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 							return {
 								state: {
 									[channelName(node.key)]: {
-										messeges: [aiMessage]
+										[WORKFLOW_ANSWER_MESSAGES_CHANNEL]: [aiMessage]
 									},
 									// Append to main message channel
 									messages: [
@@ -78,7 +78,24 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 						}
 					)()
 				}),
-				ends: []
+				ends: [],
+				channel: {
+					name: channelName(node.key),
+					annotation: Annotation<{ [WORKFLOW_ANSWER_MESSAGES_CHANNEL]: BaseMessage[] } & Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b
+								? {
+										...a,
+										...b,
+										// messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+									}
+								: a
+						},
+						default: () => ({
+							[WORKFLOW_ANSWER_MESSAGES_CHANNEL]: []
+						})
+					})
+				}
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
 				return nextWorkflowNodes(graph, node.key, state)

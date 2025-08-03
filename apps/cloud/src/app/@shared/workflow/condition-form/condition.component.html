@@ -17,13 +17,15 @@
     </div>
   </div>
 
-  <div class="px-2 pt-1 max-h-[100px] border-t border-t-divider-deep overflow-y-auto">
-    <xpert-variable-input #input2 class="w-full text-sm leading-5 text-gray-700 bg-transparent focus:bg-white"
-      [placeholder]="'PAC.Workflow.InputValue' | translate: {Default: 'Input value'}"
-      [variables]="envVariables()"
-      [(ngModel)]="value"
-    />
-  </div>
+  @if (variableType() !== eXpertParameterTypeEnum.BOOLEAN) {
+    <div class="px-2 pt-1 max-h-[100px] border-t border-t-divider-deep overflow-y-auto">
+      <xpert-variable-input #input2 class="w-full text-sm leading-5 text-gray-700 bg-transparent focus:bg-white"
+        [placeholder]="'PAC.Workflow.InputValue' | translate: {Default: 'Input value'}"
+        [variables]="envVariables()"
+        [(ngModel)]="value"
+      />
+    </div>
+  }
 </div>
 
 <div class="shrink-0 flex items-center justify-center ml-1 mt-1 w-6 h-6 rounded-lg cursor-pointer hover:bg-state-destructive-hover text-text-tertiary hover:text-text-destructive"

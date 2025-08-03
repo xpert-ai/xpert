@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { debouncedSignal, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { getVariableSchema, TStateVariable, TWorkflowVarGroup } from '../../../@core/types'
+import { getVariableSchema, TStateVariable, TStateVariableType, TWorkflowVarGroup } from '../../../@core/types'
 import { TXpertVariablesOptions, XpertService } from '@cloud/app/@core'
 import { of } from 'rxjs'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -31,6 +31,8 @@ export class XpertVariablePanelComponent {
   
   // Inputs
   readonly options = input.required<TXpertVariablesOptions>()
+  readonly type = input<TStateVariableType>()
+
   /**
    * Use as variables cache, if not provided, will fetch variables from API by options
    */
@@ -43,6 +45,7 @@ export class XpertVariablePanelComponent {
   readonly value$ = this.cva.value$
   readonly selected = computed(() => getVariableSchema(this.variables(), this.value$()))
   readonly variable = computed(() => this.selected().variable)
+  readonly selectedGroupName = computed(() => this.selected()?.group?.group.name)
 
   readonly #variables = myRxResource({
     request: () => this.variables() ? null : this.options(),
@@ -57,10 +60,12 @@ export class XpertVariablePanelComponent {
   readonly #searchTerm = debouncedSignal(this.searchTerm, 300)
   readonly filteredVariables = computed(() => {
     const searchTerm = this.#searchTerm().toLowerCase()
+    const type = this.type()
     return this.variables()?.map((group) => ({
         ...group,
         variables: group.variables.filter((variable) => {
-          return variable.name.toLowerCase().includes(searchTerm) || variable.title?.toLowerCase().includes(searchTerm)
+          return type ? variable.type === type : true && 
+            (variable.name.toLowerCase().includes(searchTerm) || variable.title?.toLowerCase().includes(searchTerm))
         })
       }))
       .filter((group) => group.variables.length > 0)

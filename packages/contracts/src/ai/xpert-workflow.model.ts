@@ -2,7 +2,6 @@ import { I18nObject } from "../types"
 import { ICopilotModel } from "./copilot-model.model"
 import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
-import { IXpertAgent } from "./xpert-agent.model"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
 
 export enum WorkflowNodeTypeEnum {
@@ -44,7 +43,7 @@ export enum VariableOperationEnum {
 
 export type TVariableAssigner = {
   id: string
-  inputType: 'variable' | 'constant'
+  inputType: 'variable' | 'constant' | 'message'
   /**
    * value from variable
    */
@@ -57,6 +56,11 @@ export type TVariableAssigner = {
    * How to write value to variable
    */
   operation: VariableOperationEnum
+
+  /**
+   * The message template to write to messages variable
+   */
+  messages?: {role: string; content: string}[]
 }
 
 export interface IWFNAssigner extends IWorkflowNode {
@@ -127,6 +131,8 @@ export enum WorkflowComparisonOperator {
   ENDS_WITH = 'ends-with',
   EMPTY = 'empty',
   NOT_EMPTY = 'not-empty',
+  IS_TRUE = 'is-true',
+  IS_FALSE = 'is-false'
 }
 
 export type TWFCaseCondition = {
@@ -144,10 +150,10 @@ export type TWFCase = {
 }
 
 export type TWorkflowVarGroup = {
-  /**
-   * @deprecated use group
-   */
-  agent?: Partial<IXpertAgent>
+  // /**
+  //  * @deprecated use group
+  //  */
+  // agent?: Partial<IXpertAgent>
   group?: {
     name: string
     description: string | I18nObject

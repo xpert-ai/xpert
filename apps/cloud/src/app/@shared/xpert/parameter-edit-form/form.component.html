@@ -1,73 +1,76 @@
 <div class="space-y-4">
   <div>
     <div class="leading-8 text-sm font-medium">{{ 'PAC.Xpert.ParameterType' | translate: {Default: 'Parameter type'} }}</div>
-    <div>
-      <ul class="parameter-type-list flex space-x-1"
-        cdkListbox
-        [ngModel]="type()"
-        [ngModelOptions]="{standalone: true}"
-        (ngModelChange)="updateParameter('type', $event[0])"
-      >
-        <li class="space-y-1"
-          [cdkOption]="eXpertParameterTypeEnum.TEXT">
-          <div class="shrink-0">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" data-icon="LetterSpacing01" aria-hidden="true">
-              <g id="letter-spacing-01">
-                <path id="Icon" d="M9 13L15 13M7 17L11.2717 7.60225C11.5031 7.09323 11.6188 6.83872 11.7791 6.75976C11.9184 6.69115 12.0816 6.69115 12.2209 6.75976C12.3812 6.83872 12.4969 7.09323 12.7283 7.60225L17 17M21 3V21M3 3L3 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-              </g>
-            </svg>
-          </div>
-          <span class="">{{ 'PAC.Xpert.ParameterType_Text' | translate: {Default: 'Text'} }}</span>
-        </li>
+    <ul class="parameter-type-list flex space-x-1"
+      cdkListbox
+      [ngModel]="type()"
+      [ngModelOptions]="{standalone: true}"
+      (ngModelChange)="updateParameter('type', $event[0])"
+    >
+      <li class="space-y-1"
+        [cdkOption]="eXpertParameterTypeEnum.TEXT">
+        <div class="shrink-0">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" data-icon="LetterSpacing01" aria-hidden="true">
+            <g id="letter-spacing-01">
+              <path id="Icon" d="M9 13L15 13M7 17L11.2717 7.60225C11.5031 7.09323 11.6188 6.83872 11.7791 6.75976C11.9184 6.69115 12.0816 6.69115 12.2209 6.75976C12.3812 6.83872 12.4969 7.09323 12.7283 7.60225L17 17M21 3V21M3 3L3 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </g>
+          </svg>
+        </div>
+        <span class="">{{ 'PAC.Xpert.ParameterType_Text' | translate: {Default: 'Text'} }}</span>
+      </li>
 
-        <li class="space-y-1"
-          [cdkOption]="eXpertParameterTypeEnum.OBJECT">
-          <xpert-parameter-icon class="shrink-0 w-5 h-5 text-lg" [type]="eXpertParameterTypeEnum.OBJECT"/>
-          <span class="">{{ 'PAC.Xpert.ParameterType_Object' | translate: {Default: 'Object'} }}</span>
-        </li>
+      <li class="space-y-1"
+        [cdkOption]="eXpertParameterTypeEnum.BOOLEAN">
+        <xpert-parameter-icon class="shrink-0 w-5 h-5 text-lg" [type]="eXpertParameterTypeEnum.BOOLEAN"/>
+        <span class="">{{ 'PAC.Xpert.ParameterType_Boolean' | translate: {Default: 'Boolean'} }}</span>
+      </li>
 
-        <li class="space-y-1"
-          [cdkOption]="eXpertParameterTypeEnum.SELECT">
-          <div class="shrink-0">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" data-icon="CheckDone01" aria-hidden="true">
-              <g id="check-done-01">
-                <path id="Icon" d="M6 15L8 17L12.5 12.5M8 8V5.2C8 4.0799 8 3.51984 8.21799 3.09202C8.40973 2.71569 8.71569 2.40973 9.09202 2.21799C9.51984 2 10.0799 2 11.2 2H18.8C19.9201 2 20.4802 2 20.908 2.21799C21.2843 2.40973 21.5903 2.71569 21.782 3.09202C22 3.51984 22 4.0799 22 5.2V12.8C22 13.9201 22 14.4802 21.782 14.908C21.5903 15.2843 21.2843 15.5903 20.908 15.782C20.4802 16 19.9201 16 18.8 16H16M5.2 22H12.8C13.9201 22 14.4802 22 14.908 21.782C15.2843 21.5903 15.5903 21.2843 15.782 20.908C16 20.4802 16 19.9201 16 18.8V11.2C16 10.0799 16 9.51984 15.782 9.09202C15.5903 8.71569 15.2843 8.40973 14.908 8.21799C14.4802 8 13.9201 8 12.8 8H5.2C4.0799 8 3.51984 8 3.09202 8.21799C2.71569 8.40973 2.40973 8.71569 2.21799 9.09202C2 9.51984 2 10.0799 2 11.2V18.8C2 19.9201 2 20.4802 2.21799 20.908C2.40973 21.2843 2.71569 21.5903 3.09202 21.782C3.51984 22 4.07989 22 5.2 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-              </g>
-            </svg>
-          </div>
-          <span class="">{{ 'PAC.Xpert.ParameterType_Select' | translate: {Default: 'Select'} }}</span>
-        </li>
+      <li class="space-y-1"
+        [cdkOption]="eXpertParameterTypeEnum.OBJECT">
+        <xpert-parameter-icon class="shrink-0 w-5 h-5 text-lg" [type]="eXpertParameterTypeEnum.OBJECT"/>
+        <span class="">{{ 'PAC.Xpert.ParameterType_Object' | translate: {Default: 'Object'} }}</span>
+      </li>
 
-        <li class="space-y-1"
-          [cdkOption]="eXpertParameterTypeEnum.NUMBER">
-          <div class="shrink-0">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" data-icon="Hash02" aria-hidden="true">
-              <g id="hash-02">
-                <path id="Icon" d="M4.74999 1.5L3.24999 10.5M8.74998 1.5L7.24998 10.5M10.25 4H1.75M9.75 8H1.25" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path>
-              </g>
-            </svg>
-          </div>
-          <span class="">{{ 'PAC.Xpert.ParameterType_Number' | translate: {Default: 'Number'} }}</span>
-        </li>
+      <li class="space-y-1"
+        [cdkOption]="eXpertParameterTypeEnum.SELECT">
+        <div class="shrink-0">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" data-icon="CheckDone01" aria-hidden="true">
+            <g id="check-done-01">
+              <path id="Icon" d="M6 15L8 17L12.5 12.5M8 8V5.2C8 4.0799 8 3.51984 8.21799 3.09202C8.40973 2.71569 8.71569 2.40973 9.09202 2.21799C9.51984 2 10.0799 2 11.2 2H18.8C19.9201 2 20.4802 2 20.908 2.21799C21.2843 2.40973 21.5903 2.71569 21.782 3.09202C22 3.51984 22 4.0799 22 5.2V12.8C22 13.9201 22 14.4802 21.782 14.908C21.5903 15.2843 21.2843 15.5903 20.908 15.782C20.4802 16 19.9201 16 18.8 16H16M5.2 22H12.8C13.9201 22 14.4802 22 14.908 21.782C15.2843 21.5903 15.5903 21.2843 15.782 20.908C16 20.4802 16 19.9201 16 18.8V11.2C16 10.0799 16 9.51984 15.782 9.09202C15.5903 8.71569 15.2843 8.40973 14.908 8.21799C14.4802 8 13.9201 8 12.8 8H5.2C4.0799 8 3.51984 8 3.09202 8.21799C2.71569 8.40973 2.40973 8.71569 2.21799 9.09202C2 9.51984 2 10.0799 2 11.2V18.8C2 19.9201 2 20.4802 2.21799 20.908C2.40973 21.2843 2.71569 21.5903 3.09202 21.782C3.51984 22 4.07989 22 5.2 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </g>
+          </svg>
+        </div>
+        <span class="">{{ 'PAC.Xpert.ParameterType_Select' | translate: {Default: 'Select'} }}</span>
+      </li>
 
-        <li class="space-y-1"
-          [cdkOption]="eXpertParameterTypeEnum.ARRAY_STRING">
-          <xpert-parameter-icon class="shrink-0 w-5 h-5" [type]="eXpertParameterTypeEnum.ARRAY_STRING"/>
-          <span class="">{{ 'PAC.Xpert.ParameterType_ArrayString' | translate: {Default: 'String Array'} }}</span>
-        </li>
+      <li class="space-y-1"
+        [cdkOption]="eXpertParameterTypeEnum.NUMBER">
+        <div class="shrink-0">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" data-icon="Hash02" aria-hidden="true">
+            <g id="hash-02">
+              <path id="Icon" d="M4.74999 1.5L3.24999 10.5M8.74998 1.5L7.24998 10.5M10.25 4H1.75M9.75 8H1.25" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path>
+            </g>
+          </svg>
+        </div>
+        <span class="">{{ 'PAC.Xpert.ParameterType_Number' | translate: {Default: 'Number'} }}</span>
+      </li>
 
-        <li class="space-y-1"
-          [cdkOption]="eXpertParameterTypeEnum.ARRAY">
-          <div class="shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-5 h-5">
-              <path fill="#000000" d="M15 20v-1.5h3.5V5.5h-3.5V4h5v16H15ZM4 20V4h5v1.5h-3.5v13h3.5v1.5H4Z" stroke-width="0.5"></path>
-            </svg>
-          </div>
-          <span class="">{{ 'PAC.Xpert.ParameterType_Array' | translate: {Default: 'Array'} }}</span>
-        </li>
+      <li class="space-y-1"
+        [cdkOption]="eXpertParameterTypeEnum.ARRAY_STRING">
+        <xpert-parameter-icon class="shrink-0 w-5 h-5" [type]="eXpertParameterTypeEnum.ARRAY_STRING"/>
+        <span class="">{{ 'PAC.Xpert.ParameterType_ArrayString' | translate: {Default: 'String Array'} }}</span>
+      </li>
 
-      </ul>
-    </div>
+      <li class="space-y-1"
+        [cdkOption]="eXpertParameterTypeEnum.ARRAY">
+        <div class="shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-5 h-5">
+            <path fill="#000000" d="M15 20v-1.5h3.5V5.5h-3.5V4h5v16H15ZM4 20V4h5v1.5h-3.5v13h3.5v1.5H4Z" stroke-width="0.5"></path>
+          </svg>
+        </div>
+        <span class="">{{ 'PAC.Xpert.ParameterType_Array' | translate: {Default: 'Array'} }}</span>
+      </li>
+    </ul>
   </div>
 
   <div>
@@ -83,7 +86,7 @@
     </div>
   </div>
 
-  <div>
+  <!-- <div>
     <div class="leading-8 text-[13px] font-medium text-gray-700">{{ 'PAC.Xpert.ParameterTitle' | translate: {Default: 'Parameter title'} }}</div>
     <div>
       <input matInput class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
@@ -93,7 +96,7 @@
         (ngModelChange)="updateParameter('title', $event)"
       >
     </div>
-  </div>
+  </div> -->
 
   <div>
     <div class="leading-8 text-[13px] font-medium text-gray-700">{{ 'PAC.Xpert.ParameterDescription' | translate: {Default: 'Parameter description'} }}</div>
@@ -109,6 +112,8 @@
 
   @switch (type()) {
     @case (eXpertParameterTypeEnum.OBJECT) {
+    }
+    @case (eXpertParameterTypeEnum.BOOLEAN) {
     }
     @case (eXpertParameterTypeEnum.SELECT) {
       <div>

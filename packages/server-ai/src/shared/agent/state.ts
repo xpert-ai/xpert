@@ -1,5 +1,5 @@
 import { ToolCall } from '@langchain/core/dist/messages/tool'
-import { BaseMessage } from '@langchain/core/messages'
+import { BaseMessage, getBufferString } from '@langchain/core/messages'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
 import {
@@ -93,25 +93,52 @@ export const AgentStateAnnotation = Annotation.Root({
 	})
 })
 
+/**
+ * Convert agent state with environment to parameters for prompt.
+ * 
+ * - `getBufferString` for message list.
+ * - Convert other state variables to string or JSON.
+ *
+ * @param state
+ * @param environment
+ * @returns
+ */
 export function stateToParameters(state: typeof AgentStateAnnotation.State, environment?: IEnvironment) {
 	const initValue: Record<string, any> = {}
-	if (environment) {
+	if (environment?.variables) {
 		initValue.env = environment.variables.reduce((state, variable) => {
 			state[variable.name] = variable.value
 			return state
 		}, {})
 	}
+
 	return Object.keys(state).reduce((acc, key) => {
 		const value = state[key]
+		if (value == null) {
+			return acc
+		}
 		if (Array.isArray(value)) {
-			acc[key] = value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join('\n\n')
+			acc[key] = key === 'messages' ? getBufferString(value as BaseMessage[]) : value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join('\n\n')
+		} else if (typeof value === 'object') {
+			acc[key] = Object.keys(value).reduce((objAcc, objKey) => {
+				objAcc[objKey] = objKey === 'messages' ? getBufferString(value[objKey]) : value[objKey]
+				return objAcc
+			}, {})
 		} else {
 			acc[key] = value
 		}
+
 		return acc
 	}, initValue)
 }
 
+
+/**
+ * Convert a state variable definition to a state variable.
+ * 
+ * @param variable 
+ * @returns 
+ */
 export function stateVariable(variable: TStateVariable) {
 	let defaultValue = null
 	try {

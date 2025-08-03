@@ -341,6 +341,9 @@ export enum XpertParameterTypeEnum {
 export type TXpertParameter = {
   type: XpertParameterTypeEnum
   name: string
+  /**
+   * @deprecated use description and name only
+   */
   title?: string
   description?: string | I18nObject
   optional?: boolean

@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
+import { XpertParameterTypeEnum } from '../../../@core'
 
 @Component({
   standalone: true,

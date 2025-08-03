@@ -2498,6 +2498,7 @@
       "HelpDocumentation": "帮助文档",
       "ParametersInfo": "参数将以表单的形式让用户在对话前填写，用户填写的表单内容将替换提示词中的变量。",
       "ParameterType_Text": "文本",
+      "ParameterType_Boolean": "布尔值",
       "ParameterType_Object": "对象",
       "ParameterType_Paragraph": "段落",
       "ParameterType_Select": "下拉选项",
