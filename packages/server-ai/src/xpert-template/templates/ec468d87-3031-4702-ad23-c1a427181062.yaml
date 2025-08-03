@@ -1,0 +1,1291 @@
+team:
+  name: Open Deep Researcher
+  type: agent
+  title: 开放深度调研员
+  description: 深度研究已成为最受欢迎的智能体应用之一。这是一个简单、可配置、完全开源的深度研究智能体，可跨多种模型提供商、搜索工具和 MCP 服务器运行。
+  avatar:
+    emoji:
+      id: memo
+      set: ""
+      colons: ":memo:"
+      unified: 1F4DD
+    background: rgba(213, 245, 246, 0.8)
+  starters:
+    - null
+    - null
+    - null
+    - null
+  options:
+    position:
+      x: 23.60375734004606
+      y: 141.99064678743312
+    scale: 0.5799999999999991
+    agent:
+      Agent_7UZMWuonqQ:
+        position:
+          x: -20.00000070971106
+          y: 39.87499396745588
+      Agent_6aq2M25Jmd:
+        position:
+          x: 559.999988644622
+          y: 199.8749936126003
+      Agent_ZlZVUdeYOR:
+        position:
+          x: 880.0000482603559
+          y: 199.874983676645
+      Agent_4wi8GpjLZv:
+        position:
+          x: 599.999977424426
+          y: 459.8749608307066
+      Agent_8uzDg50r3p:
+        position:
+          x: 960.0000313517257
+          y: 459.8750247987832
+      Agent_db89LTNcQr:
+        position:
+          x: 1560.0000620138492
+          y: -20.124993774219142
+    workflow:
+      Router_iJpgrnO7ML:
+        position:
+          x: 280.0000028388445
+          y: 40.00000390341154
+      Answer_fA5VCUd8WR:
+        position:
+          x: 560
+          y: -19.84765625
+      Assigner_FxLx5cApZg:
+        position:
+          x: 879.9999673532885
+          y: -19.999994677166214
+      Note_NFQ6GYDlgR:
+        position:
+          x: 459.96878738378064
+          y: 779.9999982961001
+          width: 456.0689655172416
+          height: 213
+          gravityCenter:
+            x: 688.0344925649024
+            y: 946.5000149752339
+        size:
+          width: 456.0689655172416
+          height: 213
+      Note_GfFLR8xFFW:
+        position:
+          x: 960.0000352500524
+          y: 580.2499937048804
+      Code_gkWh2kuZLr:
+        position:
+          x: 1220.0000858384567
+          y: -20.042973251153413
+      AgentTool_qhVGje70fX:
+        position:
+          x: 1280.000048991507
+          y: 580.2500349497291
+    toolset:
+      cdb69b17-b863-4325-8dd8-be3d407b9585:
+        position:
+          x: 480.00004042986745
+          y: 640.2499867049886
+  agentConfig:
+    mute:
+      - - Agent_7UZMWuonqQ
+      - - Agent_6aq2M25Jmd
+      - - Agent_8uzDg50r3p
+      - - Agent_4wi8GpjLZv
+      - - Agent_ZlZVUdeYOR
+    stateVariables:
+      - name: max_concurrent_research_units
+        type: number
+        default: "2"
+        description: null
+        operation: overwrite
+      - name: research_iterations
+        type: number
+        default: "0"
+        description: null
+        operation: append
+  memory: null
+  summarize: null
+  features:
+    opener:
+      enabled: true
+      message: 我是一个最受欢迎的深度研究智能体应用。一个简单、可配置、完全开源的深度研究智能体，可跨多种模型提供商、搜索工具和 MCP 服务器运行。
+      questions:
+        - 新能源汽车自动驾驶发展现状
+        - AI 未来的技术方向
+  version: "1"
+  agent:
+    key: Agent_7UZMWuonqQ
+  copilotModel:
+    modelType: llm
+    model: gpt-4o
+    options: null
+  knowledgebases: []
+  toolsets:
+    - id: cdb69b17-b863-4325-8dd8-be3d407b9585
+      name: tavily
+      type: tavily
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        provider:
+          author: Xpert AI
+          name: tavily
+          label:
+            en_US: Tavily
+            zh_Hans: Tavily
+            pt_BR: Tavily
+          description:
+            en_US: Tavily
+            zh_Hans: Tavily
+            pt_BR: Tavily
+          icon: icon.png
+          tags:
+            - search
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 518c5c07-31f6-4551-a6e3-ab99a6c422e4
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_7UZMWuonqQ
+    position:
+      x: -20.00000070971106
+      y: 39.87499396745588
+    entity:
+      key: Agent_7UZMWuonqQ
+      name: clarify_with_user
+      title: null
+      description: null
+      avatar:
+        emoji:
+          id: clap
+          set: ""
+          colons: ":clap:"
+          unified: 1F44F
+        background: rgba(255, 234, 213, 0.8)
+      prompt: >-
+        Answer in language: '{{sys.language}}'.
+
+
+        These are the messages that have been exchanged so far from the user
+        asking for the report:
+
+        <Messages>
+
+        {{agent_7uzmwuonqq_channel.messages}}
+
+        </Messages>
+
+
+        Today's date is {{sys.date}}.
+
+
+        Assess whether you need to ask a clarifying question, or if the user has
+        already provided enough information for you to start research.
+
+        IMPORTANT: If you can see in the messages history that you have already
+        asked a clarifying question, you almost always do not need to ask
+        another one. Only ask another question if ABSOLUTELY NECESSARY.
+
+
+        If there are acronyms, abbreviations, or unknown terms, ask the user to
+        clarify.
+
+        If you need to ask a question, follow these guidelines:
+
+        - Be concise while gathering all necessary information
+
+        - Make sure to gather all the information needed to carry out the
+        research task in a concise, well-structured manner.
+
+        - Use bullet points or numbered lists if appropriate for clarity. Make
+        sure that this uses markdown formatting and will be rendered correctly
+        if the string output is passed to a markdown renderer.
+
+        - Don't ask for unnecessary information, or information that the user
+        has already provided. If you can see that the user has already provided
+        the information, do not ask for it again.
+
+
+        Respond in valid JSON format with these exact keys:
+
+        "need_clarification": boolean,
+
+        "question": "<question to ask the user to clarify the report scope>",
+
+        "verification": "<verification message that we will start research>"
+
+
+        If you need to ask a clarifying question, return:
+
+        "need_clarification": true,
+
+        "question": "<your clarifying question>",
+
+        "verification": ""
+
+
+        If you do not need to ask a clarifying question, return:
+
+        "need_clarification": false,
+
+        "question": "",
+
+        "verification": "<acknowledgement message that you will now start
+        research based on the provided information>"
+
+
+        For the verification message when no clarification is needed:
+
+        - Acknowledge that you have sufficient information to proceed
+
+        - Briefly summarize the key aspects of what you understand from their
+        request
+
+        - Confirm that you will now begin the research process
+
+        - Keep the message concise and professional
+      promptTemplates:
+        - id: EdGh0Jd06E
+          role: human
+          text: "{{human.input}}"
+      parameters: []
+      outputVariables:
+        - type: boolean
+          optional: false
+          name: need_clarification
+          options:
+            - "true"
+            - "false"
+        - type: text
+          optional: true
+          name: question
+          description: A question to ask the user to clarify the report scope
+        - type: text
+          optional: true
+          description: Verify message that we will start research after the user has
+            provided the necessary information.
+          name: verification
+      options:
+        vision:
+          enabled: true
+        structuredOutputMethod: jsonMode
+        memories: []
+        disableMessageHistory: true
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: 5dcb01d84804588be62a3cba5479bf0c7ca0cf7d129e6d6eef03ded0544a0f77
+  - type: workflow
+    key: Router_iJpgrnO7ML
+    position:
+      x: 280.0000028388445
+      y: 40.00000390341154
+    entity:
+      type: if-else
+      key: Router_iJpgrnO7ML
+      title: 路由
+      cases:
+        - caseId: 6a17vHxUNe
+          conditions:
+            - id: IyGa0qgqjc
+              comparisonOperator: is-true
+              variableSelector: agent_7uzmwuonqq_channel.need_clarification
+              value: "true"
+    hash: a17481849b4f51e9d82632bdbf2df7a0d615fcaa5e6b88da09aadf4b432861ec
+  - type: workflow
+    key: Answer_fA5VCUd8WR
+    position:
+      x: 560
+      y: -19.84765625
+    entity:
+      type: answer
+      key: Answer_fA5VCUd8WR
+      title: 回答
+      promptTemplate: "{{agent_7uzmwuonqq_channel.question}}"
+    hash: f820bb9ea72e5b856a7d6b895b498c7ffb25107e26f743978fdea55c9b79fba3
+  - type: agent
+    key: Agent_6aq2M25Jmd
+    position:
+      x: 559.999988644622
+      y: 199.8749936126003
+    entity:
+      key: Agent_6aq2M25Jmd
+      name: write_research_brief
+      title: ""
+      description: null
+      avatar: null
+      prompt: "Answer in language: '{{sys.language}}'."
+      promptTemplates:
+        - id: EEol1OmP5v
+          role: human
+          text: >-
+            You will be given a set of messages that have been exchanged so far
+            between yourself and the user. 
+
+            Your job is to translate these messages into a more detailed and
+            concrete research question that will be used to guide the research.
+
+
+            The messages that have been exchanged so far between yourself and
+            the user are:
+
+            <Messages>
+
+            {{agent_7uzmwuonqq_channel.messages}}
+
+            </Messages>
+
+
+            Today's date is {{sys.date}}.
+
+
+            You will return a single research question that will be used to
+            guide the research.
+
+
+            Guidelines:
+
+            1. Maximize Specificity and Detail
+
+            - Include all known user preferences and explicitly list key
+            attributes or dimensions to consider.
+
+            - It is important that all details from the user are included in the
+            instructions.
+
+
+            2. Fill in Unstated But Necessary Dimensions as Open-Ended
+
+            - If certain attributes are essential for a meaningful output but
+            the user has not provided them, explicitly state that they are
+            open-ended or default to no specific constraint.
+
+
+            3. Avoid Unwarranted Assumptions
+
+            - If the user has not provided a particular detail, do not invent
+            one.
+
+            - Instead, state the lack of specification and guide the researcher
+            to treat it as flexible or accept all possible options.
+
+
+            4. Use the First Person
+
+            - Phrase the request from the perspective of the user.
+
+
+            5. Sources
+
+            - If specific sources should be prioritized, specify them in the
+            research question.
+
+            - For product and travel research, prefer linking directly to
+            official or primary websites (e.g., official brand sites,
+            manufacturer pages, or reputable e-commerce platforms like Amazon
+            for user reviews) rather than aggregator sites or SEO-heavy blogs.
+
+            - For academic or scientific queries, prefer linking directly to the
+            original paper or official journal publication rather than survey
+            papers or secondary summaries.
+
+            - For people, try linking directly to their LinkedIn profile, or
+            their personal website if they have one.
+
+            - If the query is in a specific language, prioritize sources
+            published in that language.
+      parameters: null
+      outputVariables:
+        - type: text
+          optional: false
+          name: research_brief
+          description: A research question that will be used to guide the research.
+      options:
+        structuredOutputMethod: jsonMode
+        disableMessageHistory: true
+      copilotModel: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: d4f65e60e8115db5bddad9b110581de3b2c397ee3e82ca116377f8ed6ebc6d36
+  - type: agent
+    key: Agent_ZlZVUdeYOR
+    position:
+      x: 880.0000482603559
+      y: 199.874983676645
+    entity:
+      key: Agent_ZlZVUdeYOR
+      name: research_supervisor
+      title: ""
+      description: null
+      avatar:
+        emoji:
+          id: male-mechanic
+          set: ""
+          colons: ":male-mechanic:"
+          unified: 1F468-200D-1F527
+        background: rgba(209, 233, 255, 0.8)
+      prompt: >-
+        You are a research supervisor. Your job is to conduct research by
+        calling the "ConductResearch" tool. For context, today's date is
+        {{sys.date}}.
+
+
+        <Task>
+
+        Your focus is to call the "ConductResearch" tool to conduct research
+        against the overall research question passed in by the user. 
+
+        When you are completely satisfied with the research findings returned
+        from the tool calls, then you should call the "ResearchComplete" tool to
+        indicate that you are done with your research.
+
+        </Task>
+
+
+        <Instructions>
+
+        1. When you start, you will be provided a research question from a
+        user. 
+
+        2. You should immediately call the "ConductResearch" tool to conduct
+        research for the research question. You can call the tool up to
+        {{max_concurrent_research_units}} times in a single iteration.
+
+        3. Each ConductResearch tool call will spawn a research agent dedicated
+        to the specific topic that you pass in. You will get back a
+        comprehensive report of research findings on that topic.
+
+        4. Reason carefully about whether all of the returned research findings
+        together are comprehensive enough for a detailed report to answer the
+        overall research question.
+
+        5. If there are important and specific gaps in the research findings,
+        you can then call the "ConductResearch" tool again to conduct research
+        on the specific gap.
+
+        6. Iteratively call the "ConductResearch" tool until you are satisfied
+        with the research findings, then call the "ResearchComplete" tool to
+        indicate that you are done with your research.
+
+        7. Don't call "ConductResearch" to synthesize any information you've
+        gathered. Another agent will do that after you call "ResearchComplete".
+        You should only call "ConductResearch" to research net new topics and
+        get net new information.
+
+        </Instructions>
+
+
+
+        <Important Guidelines>
+
+        **The goal of conducting research is to get information, not to write
+        the final report. Don't worry about formatting!**
+
+        - A separate agent will be used to write the final report.
+
+        - Do not grade or worry about the format of the information that comes
+        back from the "ConductResearch" tool. It's expected to be raw and messy.
+        A separate agent will be used to synthesize the information once you
+        have completed your research.
+
+        - Only worry about if you have enough information, not about the format
+        of the information that comes back from the "ConductResearch" tool.
+
+        - Do not call the "ConductResearch" tool to synthesize information you
+        have already gathered.
+
+
+        **Parallel research saves the user time, but reason carefully about when
+        you should use it**
+
+        - Calling the "ConductResearch" tool multiple times in parallel can save
+        the user time. 
+
+        - You should only call the "ConductResearch" tool multiple times in
+        parallel if the different topics that you are researching can be
+        researched independently in parallel with respect to the user's overall
+        question.
+
+        - This can be particularly helpful if the user is asking for a
+        comparison of X and Y, if the user is asking for a list of entities that
+        each can be researched independently, or if the user is asking for
+        multiple perspectives on a topic.
+
+        - Each research agent needs to be provided all of the context that is
+        necessary to focus on a sub-topic.
+
+        - Do not call the "ConductResearch" tool more than
+        {{max_concurrent_research_units}} times at once. This limit is enforced
+        by the user. It is perfectly fine, and expected, that you return less
+        than this number of tool calls.
+
+        - If you are not confident in how you can parallelize research, you can
+        call the "ConductResearch" tool a single time on a more general topic in
+        order to gather more background information, so you have more context
+        later to reason about if it's necessary to parallelize research.
+
+        - Each parallel "ConductResearch" linearly scales cost. The benefit of
+        parallel research is that it can save the user time, but carefully think
+        about whether the additional cost is worth the benefit. 
+
+        - For example, if you could search three clear topics in parallel, or
+        break them each into two more subtopics to do six total in parallel, you
+        should think about whether splitting into smaller subtopics is worth the
+        cost. The researchers are quite comprehensive, so it's possible that you
+        could get the same information with less cost by only calling the
+        "ConductResearch" tool three times in this case.
+
+        - Also consider where there might be dependencies that cannot be
+        parallelized. For example, if asked for details about some entities, you
+        first need to find the entities before you can research them in detail
+        in parallel.
+
+
+        **Different questions require different levels of research depth**
+
+        - If a user is asking a broader question, your research can be more
+        shallow, and you may not need to iterate and call the "ConductResearch"
+        tool as many times.
+
+        - If a user uses terms like "detailed" or "comprehensive" in their
+        question, you may need to be more stingy about the depth of your
+        findings, and you may need to iterate and call the "ConductResearch"
+        tool more times to get a fully detailed answer.
+
+
+        **Research is expensive**
+
+        - Research is expensive, both from a monetary and time perspective.
+
+        - As you look at your history of tool calls, as you have conducted more
+        and more research, the theoretical "threshold" for additional research
+        should be higher.
+
+        - In other words, as the amount of research conducted grows, be more
+        stingy about making even more follow-up "ConductResearch" tool calls,
+        and more willing to call "ResearchComplete" if you are satisfied with
+        the research findings.
+
+        - You should only ask for topics that are ABSOLUTELY necessary to
+        research for a comprehensive answer.
+
+        - Before you ask about a topic, be sure that it is substantially
+        different from any topics that you have already researched. It needs to
+        be substantially different, not just rephrased or slightly different.
+        The researchers are quite comprehensive, so they will not miss anything.
+
+        - When you call the "ConductResearch" tool, make sure to explicitly
+        state how much effort you want the sub-agent to put into the research.
+        For background research, you may want it to be a shallow or small
+        effort. For critical topics, you may want it to be a deep or large
+        effort. Make the effort level explicit to the researcher.
+
+        </Important Guidelines>
+
+
+
+        <Crucial Reminders>
+
+        - If you are satisfied with the current state of research, call the
+        "ResearchComplete" tool to indicate that you are done with your
+        research.
+
+        - Calling ConductResearch in parallel will save the user time, but you
+        should only do this if you are confident that the different topics that
+        you are researching are independent and can be researched in parallel
+        with respect to the user's overall question.
+
+        - You should ONLY ask for topics that you need to help you answer the
+        overall research question. Reason about this carefully.
+
+        - When calling the "ConductResearch" tool, provide all context that is
+        necessary for the researcher to understand what you want them to
+        research. The independent researchers will not get any context besides
+        what you write to the tool each time, so make sure to provide all
+        context to it.
+
+        - This means that you should NOT reference prior tool call results or
+        the research brief when calling the "ConductResearch" tool. Each input
+        to the "ConductResearch" tool should be a standalone, fully explained
+        topic.
+
+        - Do NOT use acronyms or abbreviations in your research questions, be
+        very clear and specific.
+
+        </Crucial Reminders>
+
+
+        With all of the above in mind, call the ConductResearch tool to conduct
+        research on specific topics, OR call the "ResearchComplete" tool to
+        indicate that you are done with your research.
+      promptTemplates:
+        - id: OqavWmA0LB
+          role: human
+          text: "{{agent_6aq2m25jmd_channel.research_brief}}"
+      parameters: null
+      outputVariables: null
+      options:
+        disableMessageHistory: false
+        memories: []
+      copilotModel: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: db9c030adc053b02cf083772f2f7fdd1f99375140e808b3f3887529242916bee
+  - type: workflow
+    key: Assigner_FxLx5cApZg
+    position:
+      x: 879.9999673532885
+      y: -19.999994677166214
+    entity:
+      type: assigner
+      key: Assigner_FxLx5cApZg
+      title: 写入消息列表
+      assigners:
+        - value: answer_fa5vcud8wr_channel.messages
+          variableSelector: agent_7uzmwuonqq_channel.messages
+          inputType: variable
+    hash: 45b12e51ffc026c5ab3a1f357ce547523d76ac8d74faef9b617f47b8a36ed672
+  - type: agent
+    key: Agent_4wi8GpjLZv
+    position:
+      x: 599.999977424426
+      y: 459.8749608307066
+    entity:
+      key: Agent_4wi8GpjLZv
+      name: ConductResearch
+      title: ""
+      description: null
+      avatar:
+        emoji:
+          id: globe_with_meridians
+          set: ""
+          colons: ":globe_with_meridians:"
+          unified: 1F310
+        background: rgba(236, 233, 254, 0.8)
+      prompt: >-
+        You are a research assistant conducting deep research on the user's
+        input topic. Use the tools and search methods provided to research the
+        user's input topic. For context, today's date is {{sys.date}}.
+
+
+        <Task>
+
+        Your job is to use tools and search methods to find information that can
+        answer the question that a user asks.
+
+        You can use any of the tools provided to you to find resources that can
+        help answer the research question. You can call these tools in series or
+        in parallel, your research is conducted in a tool-calling loop.
+
+        </Task>
+
+
+        <Tool Calling Guidelines>
+
+        - Make sure you review all of the tools you have available to you, match
+        the tools to the user's request, and select the tool that is most likely
+        to be the best fit.
+
+        - In each iteration, select the BEST tool for the job, this may or may
+        not be general websearch.
+
+        - When selecting the next tool to call, make sure that you are calling
+        tools with arguments that you have not already tried.
+
+        - Tool calling is costly, so be sure to be very intentional about what
+        you look up. Some of the tools may have implicit limitations. As you
+        call tools, feel out what these limitations are, and adjust your tool
+        calls accordingly.
+
+        - This could mean that you need to call a different tool, or that you
+        should call "ResearchComplete", e.g. it's okay to recognize that a tool
+        has limitations and cannot do what you need it to.
+
+        - Don't mention any tool limitations in your output, but adjust your
+        tool calls accordingly.
+
+        - <mcp_prompt></mcp_prompt>
+
+        <Tool Calling Guidelines>
+
+
+        <Criteria for Finishing Research>
+
+        - In addition to tools for research, you will also be given a special
+        "ResearchComplete" tool. This tool is used to indicate that you are done
+        with your research.
+
+        - The user will give you a sense of how much effort you should put into
+        the research. This does not translate ~directly~ to the number of tool
+        calls you should make, but it does give you a sense of the depth of the
+        research you should conduct.
+
+        - DO NOT call "ResearchComplete" unless you are satisfied with your
+        research.
+
+        - One case where it's recommended to call this tool is if you see that
+        your previous tool calls have stopped yielding useful information.
+
+        </Criteria for Finishing Research>
+
+
+        <Helpful Tips>
+
+        1. If you haven't conducted any searches yet, start with broad searches
+        to get necessary context and background information. Once you have some
+        background, you can start to narrow down your searches to get more
+        specific information.
+
+        2. Different topics require different levels of research depth. If the
+        question is broad, your research can be more shallow, and you may not
+        need to iterate and call tools as many times.
+
+        3. If the question is detailed, you may need to be more stingy about the
+        depth of your findings, and you may need to iterate and call tools more
+        times to get a fully detailed answer.
+
+        </Helpful Tips>
+
+
+        <Critical Reminders>
+
+        - You MUST conduct research using web search or a different tool before
+        you are allowed tocall "ResearchComplete"! You cannot call
+        "ResearchComplete" without conducting research first!
+
+        - Do not repeat or summarize your research findings unless the user
+        explicitly asks you to do so. Your main job is to call tools. You should
+        call tools until you are satisfied with the research findings, and then
+        call "ResearchComplete".
+
+        </Critical Reminders>
+      promptTemplates:
+        - id: Oo4Zsxzwj0
+          role: human
+          text: |-
+            The research topic: {{research_topic}}
+
+            {{human.input}}
+      parameters:
+        - type: text
+          name: research_topic
+          title: null
+          description: null
+          optional: null
+          maximum: null
+          options: null
+      outputVariables: null
+      options:
+        disableMessageHistory: true
+      copilotModel: null
+      leaderKey: Agent_ZlZVUdeYOR
+      collaboratorNames: []
+      toolsetIds:
+        - cdb69b17-b863-4325-8dd8-be3d407b9585
+      knowledgebaseIds: []
+    hash: 9a4af34f8388cd63216dd989eec6fc2d782d39ee6dd7ccac8b5e83333cd24e3d
+  - type: toolset
+    key: cdb69b17-b863-4325-8dd8-be3d407b9585
+    position:
+      x: 480.00004042986745
+      y: 640.2499867049886
+    entity:
+      id: cdb69b17-b863-4325-8dd8-be3d407b9585
+      name: tavily
+      type: tavily
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      privacyPolicy: null
+      customDisclaimer: null
+      tags:
+        - id: toolset/search
+          category: toolset
+          name: search
+          label:
+            en_US: Search
+            zh_Hans: 搜索
+          icon: >-
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+            viewBox="0 0 16 16" fill="none">
+              <path d="M7.33398 1.3335C10.646 1.3335 13.334 4.0215 13.334 7.3335C13.334 10.6455 10.646 13.3335 7.33398 13.3335C4.02198 13.3335 1.33398 10.6455 1.33398 7.3335C1.33398 4.0215 4.02198 1.3335 7.33398 1.3335ZM7.33398 12.0002C9.91232 12.0002 12.0007 9.91183 12.0007 7.3335C12.0007 4.75516 9.91232 2.66683 7.33398 2.66683C4.75565 2.66683 2.66732 4.75516 2.66732 7.3335C2.66732 9.91183 4.75565 12.0002 7.33398 12.0002ZM12.9909 12.0476L14.8764 13.9332L13.9337 14.876L12.0481 12.9904L12.9909 12.0476Z" fill="#344054"/>
+            </svg>
+    hash: c8da288f7ce2c7f8d4fa63f4fc19a9bbdc492542838183e0bc24b9f519420042
+  - type: workflow
+    key: Note_NFQ6GYDlgR
+    position:
+      x: 459.96878738378064
+      y: 779.9999982961001
+      width: 456.0689655172416
+      height: 213
+      gravityCenter:
+        x: 688.0344925649024
+        y: 946.5000149752339
+    entity:
+      type: note
+      key: Note_NFQ6GYDlgR
+      title: 注释
+      content: |-
+        - ConductResearch 可以循环调用工具进行资料搜索调研。
+        - 为 ConductResearch 添加更多工具进行更深度调研。
+    hash: 27248d62d9a320ae688ddb0040768180c6641cc97eca26fe32e8ec12e70e4c71
+    size:
+      width: 456.0689655172416
+      height: 213
+  - type: agent
+    key: Agent_8uzDg50r3p
+    position:
+      x: 960.0000313517257
+      y: 459.8750247987832
+    entity:
+      key: Agent_8uzDg50r3p
+      name: compress_research
+      title: ""
+      description: null
+      avatar: null
+      prompt: >-
+        You are a research assistant that has conducted research on a topic by
+        calling several tools and web searches. Your job is now to clean up the
+        findings, but preserve all of the relevant statements and information
+        that the researcher has gathered. For context, today's date is
+        {{sys.date}}.
+
+
+        <Task>
+
+        You need to clean up information gathered from tool calls and web
+        searches in the existing messages.
+
+        All relevant information should be repeated and rewritten verbatim, but
+        in a cleaner format.
+
+        The purpose of this step is just to remove any obviously irrelevant or
+        duplicative information.
+
+        For example, if three sources all say "X", you could say "These three
+        sources all stated X".
+
+        Only these fully comprehensive cleaned findings are going to be returned
+        to the user, so it's crucial that you don't lose any information from
+        the raw messages.
+
+        </Task>
+
+
+        <Guidelines>
+
+        1. Your output findings should be fully comprehensive and include ALL of
+        the information and sources that the researcher has gathered from tool
+        calls and web searches. It is expected that you repeat key information
+        verbatim.
+
+        2. This report can be as long as necessary to return ALL of the
+        information that the researcher has gathered.
+
+        3. In your report, you should return inline citations for each source
+        that the researcher found.
+
+        4. You should include a "Sources" section at the end of the report that
+        lists all of the sources the researcher found with corresponding
+        citations, cited against statements in the report.
+
+        5. Make sure to include ALL of the sources that the researcher gathered
+        in the report, and how they were used to answer the question!
+
+        6. It's really important not to lose any sources. A later LLM will be
+        used to merge this report with others, so having all of the sources is
+        critical.
+
+        </Guidelines>
+
+
+        <Output Format>
+
+        The report should be structured like this:
+
+        **List of Queries and Tool Calls Made**
+
+        **Fully Comprehensive Findings**
+
+        **List of All Relevant Sources (with citations in the report)**
+
+        </Output Format>
+
+
+        <Citation Rules>
+
+        - Assign each unique URL a single citation number in your text
+
+        - End with ### Sources that lists each source with corresponding numbers
+
+        - IMPORTANT: Number sources sequentially without gaps (1,2,3,4...) in
+        the final list regardless of which sources you choose
+
+        - Example format:
+          [1] Source Title: URL
+          [2] Source Title: URL
+        </Citation Rules>
+
+
+        Critical Reminder: It is extremely important that any information that
+        is even remotely relevant to the user's research topic is preserved
+        verbatim (e.g. don't rewrite it, don't summarize it, don't paraphrase
+        it).
+      promptTemplates:
+        - id: Wwu7j7kuxP
+          role: human
+          text: >-
+            All above messages are about research conducted by an AI Researcher.
+            Please clean up these findings.
+
+
+            DO NOT summarize the information. I want the raw information
+            returned, just in a cleaner format. Make sure all relevant
+            information is preserved - you can rewrite findings verbatim.
+      parameters: null
+      outputVariables: null
+      options:
+        memories: []
+        historyVariable: agent_4wi8gpjlzv_channel.messages
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: 3605afbb5bdc6a56f03cdb7234600b14a9304c28457c8435782a12073e11218a
+  - type: agent
+    key: Agent_db89LTNcQr
+    position:
+      x: 1560.0000620138492
+      y: -20.124993774219142
+    entity:
+      key: Agent_db89LTNcQr
+      name: final_report_generation
+      title: ""
+      description: null
+      avatar:
+        emoji:
+          id: pencil2
+          set: ""
+          colons: ":pencil2:"
+          unified: 270F-FE0F
+        background: rgba(209, 224, 255, 0.8)
+      prompt: ""
+      promptTemplates:
+        - id: S44NPY9okY
+          role: human
+          text: >-
+            Based on all the research conducted, create a comprehensive,
+            well-structured answer to the overall research brief:
+
+            <Research Brief>
+
+            {{agent_6aq2m25jmd_channel.research_brief}}
+
+            </Research Brief>
+
+
+            For more context, here is all of the messages so far. Focus on the
+            research brief above, but consider these messages as well for more
+            context.
+
+            <Messages>
+
+            {{agent_7uzmwuonqq_channel.messages}}
+
+            </Messages>
+
+            CRITICAL: Make sure the answer is written in the same language as
+            the human messages!
+
+            For example, if the user's messages are in English, then MAKE SURE
+            you write your response in English. If the user's messages are in
+            Chinese, then MAKE SURE you write your entire response in Chinese.
+
+            This is critical. The user will only understand the answer if it is
+            written in the same language as their input message.
+
+
+            Today's date is {{sys.date}}.
+
+
+            Here are the findings from the research that you conducted:
+
+            <Findings>
+
+            {{code_gkwh2kuzlr_channel.notes}}
+
+            </Findings>
+
+
+            Please create a detailed answer to the overall research brief that:
+
+            1. Is well-organized with proper headings (# for title, ## for
+            sections, ### for subsections)
+
+            2. Includes specific facts and insights from the research
+
+            3. References relevant sources using [Title](URL) format
+
+            4. Provides a balanced, thorough analysis. Be as comprehensive as
+            possible, and include all information that is relevant to the
+            overall research question. People are using you for deep research
+            and will expect detailed, comprehensive answers.
+
+            5. Includes a "Sources" section at the end with all referenced links
+
+
+            You can structure your report in a number of different ways. Here
+            are some examples:
+
+
+            To answer a question that asks you to compare two things, you might
+            structure your report like this:
+
+            1/ intro
+
+            2/ overview of topic A
+
+            3/ overview of topic B
+
+            4/ comparison between A and B
+
+            5/ conclusion
+
+
+            To answer a question that asks you to return a list of things, you
+            might only need a single section which is the entire list.
+
+            1/ list of things or table of things
+
+            Or, you could choose to make each item in the list a separate
+            section in the report. When asked for lists, you don't need an
+            introduction or conclusion.
+
+            1/ item 1
+
+            2/ item 2
+
+            3/ item 3
+
+
+            To answer a question that asks you to summarize a topic, give a
+            report, or give an overview, you might structure your report like
+            this:
+
+            1/ overview of topic
+
+            2/ concept 1
+
+            3/ concept 2
+
+            4/ concept 3
+
+            5/ conclusion
+
+
+            If you think you can answer the question with a single section, you
+            can do that too!
+
+            1/ answer
+
+
+            REMEMBER: Section is a VERY fluid and loose concept. You can
+            structure your report however you think is best, including in ways
+            that are not listed above!
+
+            Make sure that your sections are cohesive, and make sense for the
+            reader.
+
+
+            For each section of the report, do the following:
+
+            - Use simple, clear language
+
+            - Use ## for section title (Markdown format) for each section of the
+            report
+
+            - Do NOT ever refer to yourself as the writer of the report. This
+            should be a professional report without any self-referential
+            language. 
+
+            - Do not say what you are doing in the report. Just write the report
+            without any commentary from yourself.
+
+            - Each section should be as long as necessary to deeply answer the
+            question with the information you have gathered. It is expected that
+            sections will be fairly long and verbose. You are writing a deep
+            research report, and users will expect a thorough answer.
+
+            - Use bullet points to list out information when appropriate, but by
+            default, write in paragraph form.
+
+
+            REMEMBER:
+
+            The brief and research may be in English, but you need to translate
+            this information to the right language when writing the final
+            answer.
+
+            Make sure the final answer report is in the SAME language as the
+            human messages in the message history.
+
+
+            Format the report in clear markdown with proper structure and
+            include source references where appropriate.
+
+
+            <Citation Rules>
+
+            - Assign each unique URL a single citation number in your text
+
+            - End with ### Sources that lists each source with corresponding
+            numbers
+
+            - IMPORTANT: Number sources sequentially without gaps (1,2,3,4...)
+            in the final list regardless of which sources you choose
+
+            - Each source should be a separate line item in a list, so that in
+            markdown it is rendered as a list.
+
+            - Example format:
+              [1] Source Title: URL
+              [2] Source Title: URL
+            - Citations are extremely important. Make sure to include these, and
+            pay a lot of attention to getting these right. Users will often use
+            these citations to look into more information.
+
+            </Citation Rules>
+      parameters: null
+      outputVariables: null
+      options:
+        disableMessageHistory: true
+      copilotModel: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: 5597afc21c36fe71639c794dbb936c423f3a15d70c1ea08be0290c2afd7ea595
+  - type: workflow
+    key: Note_GfFLR8xFFW
+    position:
+      x: 960.0000352500524
+      y: 580.2499937048804
+    entity:
+      type: note
+      key: Note_GfFLR8xFFW
+      title: 注释
+      content: 针对一个章节由 ConductResearch 调研完的资料进行压缩总结成完整的一章节内容。
+    hash: 8d20fdf58480cde8c052481d13ede5e3e68afdc513a29a1d161099db4042ff71
+  - type: workflow
+    key: Code_gkWh2kuZLr
+    position:
+      x: 1220.0000858384567
+      y: -20.042973251153413
+    entity:
+      type: code
+      key: Code_gkWh2kuZLr
+      title: 收集过滤资料
+      language: javascript
+      code: |-
+        const notes = arg1.filter((_) => !!_.tool_call_id)
+            .map((_) => _.content).join('\n');
+        return {
+            "notes": notes
+        };
+      inputs:
+        - name: arg1
+          variable: agent_zlzvudeyor_channel.messages
+      outputs:
+        - type: string
+          name: notes
+    hash: 691343cc97691d5a74a1082f711fd66a0962c456be989fda6aad0779acf9b1f9
+  - type: workflow
+    key: AgentTool_qhVGje70fX
+    position:
+      x: 1280.000048991507
+      y: 580.2500349497291
+    entity:
+      type: agent-tool
+      key: AgentTool_qhVGje70fX
+      title: 调研完成
+      parameters:
+        - type: text
+          optional: true
+      description: ""
+      toolParameters: []
+      toolName: ResearchComplete
+      toolDescription: Call this tool to indicate that the research is complete.
+      isEnd: true
+    hash: 48bc52031977b442e604d45c07b773a792b6744131fee8db05049a862adfd90e
+connections:
+  - type: edge
+    key: Agent_7UZMWuonqQ/Router_iJpgrnO7ML
+    from: Agent_7UZMWuonqQ
+    to: Router_iJpgrnO7ML
+  - type: edge
+    key: Router_iJpgrnO7ML/6a17vHxUNe/Answer_fA5VCUd8WR
+    from: Router_iJpgrnO7ML/6a17vHxUNe
+    to: Answer_fA5VCUd8WR
+  - type: edge
+    key: Router_iJpgrnO7ML/else/Agent_6aq2M25Jmd
+    from: Router_iJpgrnO7ML/else
+    to: Agent_6aq2M25Jmd
+  - type: edge
+    key: Agent_6aq2M25Jmd/Agent_ZlZVUdeYOR
+    from: Agent_6aq2M25Jmd
+    to: Agent_ZlZVUdeYOR
+  - type: edge
+    key: Answer_fA5VCUd8WR/Assigner_FxLx5cApZg
+    from: Answer_fA5VCUd8WR
+    to: Assigner_FxLx5cApZg
+  - type: agent
+    key: Agent_ZlZVUdeYOR/Agent_4wi8GpjLZv
+    from: Agent_ZlZVUdeYOR
+    to: Agent_4wi8GpjLZv
+  - type: toolset
+    key: Agent_4wi8GpjLZv/cdb69b17-b863-4325-8dd8-be3d407b9585
+    from: Agent_4wi8GpjLZv
+    to: cdb69b17-b863-4325-8dd8-be3d407b9585
+  - type: edge
+    key: Agent_4wi8GpjLZv/Agent_8uzDg50r3p
+    from: Agent_4wi8GpjLZv
+    to: Agent_8uzDg50r3p
+  - type: edge
+    key: Agent_ZlZVUdeYOR/Code_gkWh2kuZLr
+    from: Agent_ZlZVUdeYOR
+    to: Code_gkWh2kuZLr
+  - type: workflow
+    key: Agent_ZlZVUdeYOR/AgentTool_qhVGje70fX
+    from: Agent_ZlZVUdeYOR
+    to: AgentTool_qhVGje70fX
+  - type: edge
+    key: Code_gkWh2kuZLr/Agent_db89LTNcQr
+    from: Code_gkWh2kuZLr
+    to: Agent_db89LTNcQr
+  - type: workflow
+    key: Agent_4wi8GpjLZv/AgentTool_qhVGje70fX
+    from: Agent_4wi8GpjLZv
+    to: AgentTool_qhVGje70fX
