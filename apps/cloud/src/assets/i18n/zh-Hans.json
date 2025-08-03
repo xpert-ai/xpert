@@ -571,9 +571,6 @@
         "HaveIndicators": "拥有 {{quantity}} 个指标",
         "UpdateLayout": "更新布局"
       },
-      "USER": {
-        "BASIC": "基本属性"
-      },
       "TENANT": {
         "TITLE": "租户",
         "SETTINGS": "设置",
@@ -660,7 +657,10 @@
       "ConfirmDeleteInvite": "删除后，被邀请的用户将无法再确认邀请",
       "RemoveUserFromOrg": "从此组织内移除此用户",
       "RemoveDelUserFromOrg": "从此组织内移除并删除此用户",
-      "BatchImport": "批量导入"
+      "BatchImport": "批量导入",
+      "ChangePassword": "修改密码",
+      "BASIC": "基本属性",
+      "PasswordChangedSuccessfully": "密码修改成功"
     },
     "ACTIONS": {
       "Pause": "暂停",
