@@ -39,7 +39,8 @@ import {
   genXpertRouterKey,
   genXpertSubflowKey,
   genXpertTemplateKey,
-  genXpertToolKey
+  genXpertToolKey,
+  genXpertAgentToolKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
@@ -284,6 +285,14 @@ export class XpertStudioContextMenuComponent {
       key: genXpertSubflowKey(),
       title: await this.#translate.instant('PAC.Workflow.Subflow', { Default: 'Subflow' })
     } as IWFNSubflow)
+  }
+
+  addWorkflowAgentTool() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.AGENT_TOOL,
+      key: genXpertAgentToolKey(),
+      title: this.#translate.instant('PAC.Workflow.AgentTool', { Default: 'Agent Tool' })
+    } as IWorkflowNode)
   }
 
   onSelectToolset({toolset, provider}: {toolset?: IXpertToolset; provider?: IToolProvider}) {

@@ -1,0 +1,41 @@
+<div fNodeInput [fInputId]="node().key" fInputConnectableSide="top" class="top absolute"></div>
+
+<div class="space-y-1">
+  <div class="font-mono text-sm truncate flex justify-between items-center">
+    {{toolName()}}
+
+    @if (isEnd()) {
+      <i class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
+        [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'Terminal tool, the run of chat ends when tool completed'}"
+        matTooltipPosition="above"></i>
+    }
+  </div>
+
+  <div class="flex flex-wrap items-center gap-1">
+    @for (execution of executions(); track execution) {
+        @switch (execution.status) {
+          @case ('running') {
+            <ngm-spin class="shrink-0 scale-90 origin-center" small />
+          }
+          @case ('fail') {
+            <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+              [matTooltip]="execution.error"
+              matTooltipPosition="above"
+            ></div>
+          }
+          @case ('success') {
+            <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+              [matTooltip]="execution.message"
+              matTooltipPosition="above"
+            >
+            </div>
+          }
+        }
+      }
+  </div>
+
+  <div class="font-body text-sm text-left line-clamp-3">
+    {{toolDescription()}}
+  </div>
+
+</div>

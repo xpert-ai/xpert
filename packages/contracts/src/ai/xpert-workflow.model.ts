@@ -23,6 +23,7 @@ export enum WorkflowNodeTypeEnum {
   TEMPLATE = 'template',
   CLASSIFIER = 'classifier',
   TOOL = 'tool',
+  AGENT_TOOL = 'agent-tool',
   NOTE = 'note'
 }
 
@@ -295,6 +296,26 @@ export interface IWFNTool extends IWorkflowNode {
 
 export interface IWFNNote extends IWorkflowNode {
   content: string
+}
+
+export interface IWFNAgentTool extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.AGENT_TOOL,
+  // Tool name
+  toolName: string
+  // Tool description
+  toolDescription?: string
+  // Tool schema
+  toolParameters?: TXpertParameter[]
+
+  /**
+   * End point tool
+   */
+  isEnd?: boolean
+  
+  /**
+   * Error handling
+   */
+  errorHandling?: TErrorHandling
 }
 
 export function isAgentKey(key: string) {

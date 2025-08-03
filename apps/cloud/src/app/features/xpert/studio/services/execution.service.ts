@@ -67,7 +67,7 @@ export class XpertExecutionService {
     this.messages().forEach((message) => {
       if (message.role === 'ai' && Array.isArray(message.content)) {
         message.content?.forEach((content) => {
-          if (content.type === 'component' && content.data?.toolset_id) {
+          if (content.type === 'component' && content.data?.tool) {
             executions.push(content as TMessageContentComponent<TMessageComponentStep>)
           }
         })

@@ -93,6 +93,21 @@ export const AgentStateAnnotation = Annotation.Root({
 	})
 })
 
+
+export function stateWithEnvironment(state: typeof AgentStateAnnotation.State, environment?: IEnvironment) {
+	const initValue: Record<string, any> = {}
+	if (environment?.variables) {
+		initValue.env = environment.variables.reduce((state, variable) => {
+			state[variable.name] = variable.value
+			return state
+		}, {})
+	}
+	return {
+		...state,
+		...initValue,
+	}
+}
+
 /**
  * Convert agent state with environment to parameters for prompt.
  * 
@@ -104,32 +119,27 @@ export const AgentStateAnnotation = Annotation.Root({
  * @returns
  */
 export function stateToParameters(state: typeof AgentStateAnnotation.State, environment?: IEnvironment) {
-	const initValue: Record<string, any> = {}
-	if (environment?.variables) {
-		initValue.env = environment.variables.reduce((state, variable) => {
-			state[variable.name] = variable.value
-			return state
-		}, {})
-	}
+	return {
+		...stateWithEnvironment(state, environment),
+		...Object.keys(state).reduce((acc, key) => {
+			const value = state[key]
+			if (value == null) {
+				return acc
+			}
+			if (Array.isArray(value)) {
+				acc[key] = key === 'messages' ? getBufferString(value as BaseMessage[]) : value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join('\n\n')
+			} else if (typeof value === 'object') {
+				acc[key] = Object.keys(value).reduce((objAcc, objKey) => {
+					objAcc[objKey] = objKey === 'messages' ? getBufferString(value[objKey]) : value[objKey]
+					return objAcc
+				}, {})
+			} else {
+				acc[key] = value
+			}
 
-	return Object.keys(state).reduce((acc, key) => {
-		const value = state[key]
-		if (value == null) {
 			return acc
-		}
-		if (Array.isArray(value)) {
-			acc[key] = key === 'messages' ? getBufferString(value as BaseMessage[]) : value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join('\n\n')
-		} else if (typeof value === 'object') {
-			acc[key] = Object.keys(value).reduce((objAcc, objKey) => {
-				objAcc[objKey] = objKey === 'messages' ? getBufferString(value[objKey]) : value[objKey]
-				return objAcc
-			}, {})
-		} else {
-			acc[key] = value
-		}
-
-		return acc
-	}, initValue)
+		}, {}),
+  }
 }
 
 

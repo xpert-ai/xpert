@@ -1,4 +1,12 @@
+import { IXpertAgent, TXpertGraph, TXpertTeamNode } from '@metad/contracts';
 import { IQuery } from '@nestjs/cqrs'
+
+export type TXpertWorkflowQueryOutput = {
+    agent?: IXpertAgent;
+    graph: TXpertGraph;
+    next?: TXpertTeamNode[];
+    fail?: TXpertTeamNode[];
+}
 
 /**
  * Get agent workflow of xpert with team (xpert).

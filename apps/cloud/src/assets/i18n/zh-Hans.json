@@ -435,7 +435,9 @@
       "Note": "注释",
       "MCP": "MCP",
       "Tool": "工具",
-      "VariableAssigner": "变量赋值"
+      "ToolCall": "工具调用",
+      "VariableAssigner": "变量赋值",
+      "AgentTool": "智能体工具"
     },
     "Environment": {
       "Environment": "环境",
@@ -2347,6 +2349,9 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "ToolParameters": "工具参数",
+      "ToolName": "工具名称",
+      "ToolDescription": "工具描述",
       "OutputVariablesInfo": "按照预定义格式组织数据，便于程序自动解析和使用。",
       "TaskCreatedSuccessfully": "任务创建成功",
       "Archive": "归档",

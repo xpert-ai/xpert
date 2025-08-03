@@ -17,7 +17,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get, isNil } from 'lodash'
 import { SandboxVMCommand } from '../../sandbox'
-import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes, stateWithEnvironment } from '../../shared'
 import { wrapAgentExecution } from '../../shared/agent/execution'
 
 const ErrorChannelName = 'error'
@@ -41,7 +41,7 @@ export function createCodeNode(
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
-				const stateEnv = stateToParameters(state, environment)
+				const stateEnv = stateWithEnvironment(state, environment)
 
 				const inputs = entity.inputs.reduce((acc, param) => {
 					if (!param.variable) {

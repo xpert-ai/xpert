@@ -1,7 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, inject } from '@angular/core'
+import { Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { linkedModel, TSelectOption } from '@metad/ocap-angular/core'
@@ -38,6 +38,9 @@ export class XpertOutputVariablesEditComponent {
   protected cva = inject<NgxControlValueAccessor<Partial<TXpertParameter[]> | null>>(NgxControlValueAccessor)
 
   readonly value$ = this.cva.value$
+  // Inputs
+  readonly title = input<string>()
+  
   readonly parameters = linkedModel({
     initialValue: null,
     compute: () => this.value$() ?? [],
