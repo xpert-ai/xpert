@@ -1,6 +1,7 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import {Clipboard} from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -71,6 +72,7 @@ export class XpertMemoryComponent {
   readonly storeService = inject(CopilotStoreService)
   readonly xpertService = inject(XpertService)
   readonly xpertComponent = inject(XpertComponent)
+  readonly #clipboard = inject(Clipboard)
 
   readonly xpertId = this.xpertComponent.paramId
 
@@ -290,5 +292,10 @@ export class XpertMemoryComponent {
       this.input.set('')
       event.preventDefault()
     }
+  }
+
+  copyValue(id: string, value: any) {
+    this.#clipboard.copy(JSON.stringify(value))
+    this.#toastr.success('PAC.Messages.CopiedToClipboard', {Default: 'Copied to clipboard'})
   }
 }

@@ -167,12 +167,15 @@
 </ng-template>
 
 <ng-template #actionTemplate let-id="id" let-value="value">
-  <div class="flex items-center">
-    <button class="btn btn-ghost group px-2 py-1 rounded-md bg-transparent danger hover:bg-hover-bg" type="button"
+  <div class="flex items-center gap-1">
+    <button class="btn btn-ghost group px-2 py-1 rounded-lg bg-transparent danger hover:bg-hover-bg" type="button"
       (click)="delete(id, value)">
-      <div class="">
-        <i class="ri-delete-bin-line"></i>
-      </div>
+      <i class="ri-delete-bin-line"></i>
+    </button>
+
+    <button class="btn btn-ghost group px-2 py-1 rounded-lg bg-transparent hover:bg-hover-bg" type="button"
+      (click)="copyValue(id, value)">
+      <i class="ri-file-copy-line"></i>
     </button>
   </div>
 </ng-template>

@@ -764,7 +764,8 @@
       "UnsavedChanges": "未保存的更改",
       "SavedDraft": "草稿已保存！",
       "Successfully": "成功",
-      "NoPermissionOrNotExist": "没有权限访问或不存在"
+      "NoPermissionOrNotExist": "没有权限访问或不存在",
+      "CopiedToClipboard": "已复制到剪贴板"
     },
     "NOTES": {
       "ORGANIZATIONS": {
