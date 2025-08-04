@@ -73,7 +73,10 @@ import { ChatMessageAvatarComponent } from './avatar/avatar.component'
   styleUrl: 'ai-message.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [ListHeightStaggerAnimation],
-  providers: [SynthesizeService, TtsStreamPlayerService]
+  providers: [SynthesizeService, TtsStreamPlayerService],
+  host: {
+    '[class.busy]': 'busy()',
+  }
 })
 export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
@@ -103,6 +106,7 @@ export class ChatAiMessageComponent {
   readonly feedbacks = this.chatService.feedbacks
   readonly executionId = computed(() => this.message()?.executionId)
   readonly status = computed(() => this.message()?.status)
+  readonly busy = computed(() => this.chatService.answering() && ['thinking', 'reasoning', 'answering'].includes(this.status()))
   readonly answering = computed(() => this.chatService.answering() && ['thinking', 'answering'].includes(this.status()))
 
   readonly #contentStr = computed(() => {
@@ -184,11 +188,11 @@ export class ChatAiMessageComponent {
 
   readonly collapseMessages = model<Record<string, boolean>>({})
 
-  // constructor() {
-  //   effect(() => {
-  //     console.log(`Message status:`, this.status(), this.lastStep()?.status)
-  //   })
-  // }
+  constructor() {
+    effect(() => {
+      console.log(`Message status:`, this.status(), this.answering())
+    })
+  }
 
   updateCollapse(id: string, status: boolean) {
     this.collapseMessages.update((state) => ({...state, [id]: status}))

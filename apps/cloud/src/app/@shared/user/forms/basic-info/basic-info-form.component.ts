@@ -7,7 +7,6 @@ import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { firstValueFrom, map } from 'rxjs'
 import { LANGUAGES, RoleService, Store } from '../../../../@core'
-import { TranslationBaseComponent } from '../../../language/'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { FORMLY_W_FULL } from '@metad/formly'
 import { timezones } from 'apps/cloud/src/app/@core/constants'
@@ -25,7 +24,7 @@ import { TranslateService } from '@ngx-translate/core'
     }
   ]
 })
-export class BasicInfoFormComponent extends TranslationBaseComponent implements ControlValueAccessor {
+export class BasicInfoFormComponent implements ControlValueAccessor {
   eDisplayBehaviour = DisplayBehaviour
   
   readonly #store = inject(Store)
@@ -79,7 +78,7 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
   setDisabledState?(isDisabled: boolean): void {}
 
   ngOnInit() {
-    const TRANSLATES = this.getTranslation('PAC.SHARED.USER_BASIC')
+    const TRANSLATES = this.#translate.instant('PAC.SHARED.USER_BASIC')
 
     const password = this.password
       ? [
@@ -121,6 +120,7 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
           }
         ]
       : []
+    
     this.fields = [
       {
         fieldGroupClassName: FORMLY_ROW,
@@ -167,7 +167,7 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
               appearance: 'fill'
             }
           },
-          ...password,
+          // ...password,
           {
             className: FORMLY_W_1_2,
             key: 'roleId',
@@ -251,8 +251,8 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
       return await firstValueFrom(
         this.#authService.register({
           user,
-          password: this.model.password,
-          confirmPassword: this.model.confirmPassword,
+          // password: this.model.password,
+          // confirmPassword: this.model.confirmPassword,
           organizationId,
           createdById,
           timeZone: this.model.timeZone

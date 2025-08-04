@@ -258,7 +258,7 @@ export abstract class ChatService {
     }>
   ) {
     this.answering.set(true)
-    this.conversation.update((state) => ({ ...(state ?? {}), status: 'busy' }) as IChatConversation)
+    this.conversation.update((state) => ({ ...(state ?? {}), status: 'busy', error: null }) as IChatConversation)
 
     if (options.confirm) {
       this.updateLatestMessage((message) => {

@@ -9,6 +9,11 @@
         <div class="mt-1 text-sm font-normal text-text-secondary">
           {{ 'PAC.Copilot.PromptGeneratorDesc' | translate: {Default: 'The Prompt Generator uses the configured model to optimize prompts for higher quality and better structure. Please write clear and detailed instructions.'} }}
         </div>
+
+        <copilot-model-select class="w-full block mt-4"
+          [inheritModel]="inheritCopilotModel()" [modelType]="eModelType.LLM"
+          [(ngModel)]="copilotModel"
+        />
       </div>
       <div>
         <div class="flex items-center">
@@ -93,7 +98,7 @@
     </div>
 
     @if (loading()) {
-      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+      <ngm-spin class="absolute top-0 left-0 w-full h-full transition-all backdrop-blur-sm bg-white/5" />
     }
   </div>
 

@@ -12,7 +12,7 @@ import { isEmpty } from '@metad/server-common'
 import { get } from 'lodash'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../shared'
 
-export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }, params: { environment: IEnvironment }) {
+export function createRouterNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }, params: { environment: IEnvironment }) {
 	const { environment } = params
 	const entity = node.entity as IWFNIfElse
 	const evaluateCases = (state: typeof AgentStateAnnotation.State, config) => {
@@ -59,6 +59,10 @@ export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { typ
 						return isEmpty(stateValue)
 					case WorkflowComparisonOperator.NOT_EMPTY:
 						return !isEmpty(stateValue)
+					case WorkflowComparisonOperator.IS_TRUE:
+						return stateValue.toLowerCase() === 'true'
+					case WorkflowComparisonOperator.IS_FALSE:
+						return stateValue.toLowerCase() === 'false'
 					default:
 						return false
 				}
@@ -68,6 +72,10 @@ export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { typ
 						return isEmpty(stateValue)
 					case WorkflowComparisonOperator.NOT_EMPTY:
 						return !isEmpty(stateValue)
+					case WorkflowComparisonOperator.IS_TRUE:
+						return !!stateValue
+					case WorkflowComparisonOperator.IS_FALSE:
+						return !stateValue
 					default:
 						return false
 				}

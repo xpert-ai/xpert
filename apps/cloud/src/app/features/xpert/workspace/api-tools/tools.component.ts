@@ -82,7 +82,7 @@ export class XpertWorkspaceApiToolsComponent {
 
   readonly #toolsets = derivedAsync(() => {
     const where = {
-      category: XpertToolsetCategoryEnum.MCP
+      category: XpertToolsetCategoryEnum.API
     }
     const workspaceId = this.workspace()?.id
     if (!workspaceId) return EMPTY

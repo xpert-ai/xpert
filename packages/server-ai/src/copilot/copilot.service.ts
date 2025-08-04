@@ -72,10 +72,10 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	/**
 	 *
 	 */
-	async findOneByRole(role: AiProviderRole, tenantId: string, organizationId: string): Promise<Copilot> {
-		const items = await this.findAllAvailablesCopilots(tenantId, organizationId, { role })
-		return items.length ? items[0] : null
-	}
+	// async findOneByRole(role: AiProviderRole, tenantId: string, organizationId: string): Promise<Copilot> {
+	// 	const items = await this.findAllAvailablesCopilots(tenantId, organizationId, { role })
+	// 	return items.length ? items[0] : null
+	// }
 
 	/**
 	 * Find all copilots in organization or tenant globally

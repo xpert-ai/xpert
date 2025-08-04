@@ -1,4 +1,4 @@
-import { ICopilotModel, IXpertAgent, mapTranslationLanguage, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { ICopilotModel, IXpertAgent, mapTranslationLanguage } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { pick } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -6,7 +6,7 @@ import { IQueryHandler, QueryHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { XpertService } from '../../xpert.service'
 import { CopilotGetOneQuery } from '../../../copilot'
-import { GetXpertWorkflowQuery } from '../get-xpert-workflow.query'
+import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../get-xpert-workflow.query'
 
 
 @QueryHandler(GetXpertWorkflowQuery)
@@ -17,7 +17,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 		private readonly queryBus: QueryBus,
 	) {}
 
-	public async execute(command: GetXpertWorkflowQuery): Promise<{agent?: IXpertAgent; graph: TXpertGraph; next?: TXpertTeamNode[]; fail?: TXpertTeamNode[]}> {
+	public async execute(command: GetXpertWorkflowQuery): Promise<TXpertWorkflowQueryOutput> {
 		const { id, agentKey: keyOrName, draft } = command
 		const xpert = await this.service.findOne(id, {
 			relations: ['agent', 'agent.copilotModel', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']

@@ -138,6 +138,13 @@ export function createHttpNode(
 								maxRedirects: 5 // Example follow redirects, adjust as needed
 							})
 
+							execution.inputs = {
+								url,
+								method: entity.method,
+								params,
+								headers,
+								body
+							}
 							const data = response.headers['content-type']?.startsWith('application/json') ? JSON.stringify(response.data) : response.data
 							return {
 								state: {

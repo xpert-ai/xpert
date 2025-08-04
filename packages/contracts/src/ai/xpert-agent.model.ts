@@ -97,6 +97,11 @@ export type TXpertAgentOptions = {
   disableMessageHistory?: boolean
 
   /**
+   * The variable of message history to use
+   */
+  historyVariable?: string
+
+  /**
    * Write output variables to memory (state)
    */
   memories?: TVariableAssigner[]

@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, effect, inject, signal, ViewContainerRef } from '@angular/core'
+import { Component, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
@@ -14,19 +14,19 @@ import {
   IfAnimation,
   injectToastr,
   OrderTypeEnum,
-  TEnvironmentVariable,
+  TEnvironmentVariable
 } from '@cloud/app/@core'
 import { linkedModel } from '@metad/core'
 import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
-import { BehaviorSubject, EMPTY, Observable, pipe } from 'rxjs'
-import { catchError, combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
+import { BehaviorSubject, Observable, pipe } from 'rxjs'
+import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { NgmSelectComponent } from '../../common'
 import { VariableTypeOptions } from '../types'
 
-const AutoSaveDebounceTime = 2000
+const AutoSaveDebounceTime = 1000
 
 @Component({
   selector: 'xpert-environment-manage',
@@ -105,11 +105,17 @@ export class XpertEnvironmentManageComponent {
         }
         return [...state]
       })
+      this.dirty.set(true)
       this.saveEnvironment(value)
     }
   })
 
   readonly VariableTypeOptions = VariableTypeOptions
+
+  // Editing env
+  readonly editing = signal(false)
+  readonly dirty = signal(false)
+  readonly environmentName = model('')
 
   constructor() {
     effect(
@@ -125,8 +131,8 @@ export class XpertEnvironmentManageComponent {
   addEnvironment() {
     this.confirmName({}, (name: string) => {
       this.loading.set(true)
-      return this.environmentService.create({ 
-        workspaceId: this.workspaceId(), 
+      return this.environmentService.create({
+        workspaceId: this.workspaceId(),
         name,
         isDefault: !this.environments()?.length
       })
@@ -199,29 +205,53 @@ export class XpertEnvironmentManageComponent {
     })
   }
 
+  _saveEnvironment(entity: Partial<IEnvironment>) {
+    this.loading.set(true)
+    this.environmentService.update(this.environment().id, entity).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.dirty.set(false)
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
   saveEnvironment = effectAction((origin: Observable<IEnvironment>) => {
     return origin.pipe(
       debounceTime(AutoSaveDebounceTime),
-      tap(() => this.loading.set(true)),
-      switchMap((env) => this.environmentService.update(env.id, env)),
-      tap(() => this.loading.set(false)),
-      catchError(() => {
-        this.loading.set(false)
-        return EMPTY
-      })
+      tap((env) => this._saveEnvironment(env))
     )
   })
 
   async delete() {
-    this.confirmDelete({
-      value: this.environment().name,
-      information: await this.#translate.instant('PAC.Environment.DeleteEnv', {Default: 'Delete the environment and all its environment variables'})
-    }, this.environmentService.delete(this.environment().id)).subscribe({
+    this.confirmDelete(
+      {
+        value: this.environment().name,
+        information: await this.#translate.instant('PAC.Environment.DeleteEnv', {
+          Default: 'Delete the environment and all its environment variables'
+        })
+      },
+      this.environmentService.delete(this.environment().id)
+    ).subscribe({
       next: () => {
         this.environments.update((envs) => envs.filter((_) => _.id !== this.environment().id))
         this.environmentId.set(this.environments()[0]?.id)
       }
     })
+  }
+
+  onKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      this.editing.set(false)
+      this.environment.update((env) => ({ ...env, name: this.environmentName() }))
+    } else if (event.key === 'Escape') {
+      event.stopPropagation()
+      this.editing.set(false)
+      this.environmentName.set(this.environment().name)
+    }
   }
 
   close() {

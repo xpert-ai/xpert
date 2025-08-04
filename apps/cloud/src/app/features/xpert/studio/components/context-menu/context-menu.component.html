@@ -196,7 +196,13 @@
       (click)="addWorkflowTool()"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TOOL" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.Tool' | translate: {Default: 'Tool'} }}</div>
+      <div class="text-text-primary">{{'PAC.Workflow.ToolCall' | translate: {Default: 'Tool Call'} }}</div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowAgentTool()"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.AGENT_TOOL" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Workflow.AgentTool' | translate: {Default: 'Agent Tool'} }}</div>
     </div>
 
 

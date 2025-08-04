@@ -1,4 +1,4 @@
-<div class="container grow flex flex-col rounded-xl bg-gray-50 overflow-hidden">
+<div class="container grow flex flex-col rounded-xl bg-gray-50">
   <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-gray-50 rounded-t-xl">
     <div class="rounded-md p-1 leading-none uppercase font-medium cursor-pointer flex items-center text-text-secondary hover:bg-hover-bg hover:text-text-primary"
       [cdkMenuTriggerFor]="langMenu"
@@ -70,13 +70,13 @@
     </div>
   </div>
 
-  <div class="content gow relative overflow-auto">
+  <div class="content gow relative">
     @if (language() === 'javascript') {
       <div class="px-2 text-text-secondary">function main(&#123; <span class="font-semibold text-text-primary">{{argNames()}}</span> &#125;) &#123;</div>
     } @else if (language() === 'python') {
       <div class="px-2 text-text-secondary">def main( <span class="font-semibold text-text-primary">{{argsNameType()}}</span> ) -> dict:</div>
     }
-    <div class="edit-container pt-2 -ml-4 rounded-t-xl text-sm overflow-hidden text-gray-700"
+    <div class="edit-container pt-2 rounded-t-xl text-sm text-gray-700"
       [style.height.px]="height"
       >
       <ngx-monaco-editor class="!h-full w-full max-h-full"

@@ -2,7 +2,6 @@ import { I18nObject } from "../types"
 import { ICopilotModel } from "./copilot-model.model"
 import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
-import { IXpertAgent } from "./xpert-agent.model"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
 
 export enum WorkflowNodeTypeEnum {
@@ -24,6 +23,7 @@ export enum WorkflowNodeTypeEnum {
   TEMPLATE = 'template',
   CLASSIFIER = 'classifier',
   TOOL = 'tool',
+  AGENT_TOOL = 'agent-tool',
   NOTE = 'note'
 }
 
@@ -44,7 +44,7 @@ export enum VariableOperationEnum {
 
 export type TVariableAssigner = {
   id: string
-  inputType: 'variable' | 'constant'
+  inputType: 'variable' | 'constant' | 'message'
   /**
    * value from variable
    */
@@ -57,6 +57,11 @@ export type TVariableAssigner = {
    * How to write value to variable
    */
   operation: VariableOperationEnum
+
+  /**
+   * The message template to write to messages variable
+   */
+  messages?: {role: string; content: string}[]
 }
 
 export interface IWFNAssigner extends IWorkflowNode {
@@ -127,6 +132,8 @@ export enum WorkflowComparisonOperator {
   ENDS_WITH = 'ends-with',
   EMPTY = 'empty',
   NOT_EMPTY = 'not-empty',
+  IS_TRUE = 'is-true',
+  IS_FALSE = 'is-false'
 }
 
 export type TWFCaseCondition = {
@@ -144,10 +151,10 @@ export type TWFCase = {
 }
 
 export type TWorkflowVarGroup = {
-  /**
-   * @deprecated use group
-   */
-  agent?: Partial<IXpertAgent>
+  // /**
+  //  * @deprecated use group
+  //  */
+  // agent?: Partial<IXpertAgent>
   group?: {
     name: string
     description: string | I18nObject
@@ -291,6 +298,26 @@ export interface IWFNNote extends IWorkflowNode {
   content: string
 }
 
+export interface IWFNAgentTool extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.AGENT_TOOL,
+  // Tool name
+  toolName: string
+  // Tool description
+  toolDescription?: string
+  // Tool schema
+  toolParameters?: TXpertParameter[]
+
+  /**
+   * End point tool
+   */
+  isEnd?: boolean
+  
+  /**
+   * Error handling
+   */
+  errorHandling?: TErrorHandling
+}
+
 export function isAgentKey(key: string) {
   return key?.toLowerCase().startsWith('agent_')
 }
@@ -305,4 +332,8 @@ export function isIteratingKey(key: string) {
 
 export function isWorkflowKey(key: string) {
   return isRouterKey(key) || isIteratingKey(key)
+}
+
+export function workflowNodeIdentifier(node: IWorkflowNode) {
+  return node.title || node.key
 }

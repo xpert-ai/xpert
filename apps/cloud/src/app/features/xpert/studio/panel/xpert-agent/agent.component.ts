@@ -62,7 +62,7 @@ import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@metad/c
 import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
 import { VISION_DEFAULT_VARIABLE } from '../../types'
-import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
+import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -84,6 +84,7 @@ import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
     NgmDensityDirective,
     NgmSpinComponent,
     EmojiAvatarComponent,
+    StateVariableSelectComponent,
     XpertStudioPanelToolsetSectionComponent,
     CopilotModelSelectComponent,
     XpertStudioPanelAgentExecutionComponent,
@@ -150,7 +151,6 @@ export class XpertStudioPanelAgentComponent {
       const key = this.key()
       const mute = this.mute() ?? []
       const index = mute.findIndex((_) => _.length === 1 && _[0] === key)
-      console.log(index)
 
       if (value) {
         if (index === -1) {
@@ -182,6 +182,7 @@ export class XpertStudioPanelAgentComponent {
     }
   })
   readonly enableMessageHistory = computed(() => !this.agentOptions()?.disableMessageHistory)
+  readonly historyVariable = attrModel(this.agentOptions, 'historyVariable')
   readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
@@ -291,17 +292,12 @@ export class XpertStudioPanelAgentComponent {
     type: 'input',
     environmentId: this.apiService.environmentId()
   }))
-  // readonly variables = derivedAsync(() => {
-  //   const xpertId = this.xpertId()
-  //   const agentKey = this.key()
-  //   return xpertId && agentKey ? this.apiService.getVariables({
-  //     xpertId, agentKey, type: 'input'}).pipe(
-  //     catchError((error) => {
-  //       this.#toastr.error(getErrorMessage(error))
-  //       return of([])
-  //     })
-  //   ) : of(null)
-  // })
+  readonly varOutOptions = computed<TXpertVariablesOptions>(() => ({
+    xpertId: this.xpertId(),
+    agentKey: this.key(),
+    type: 'output',
+    environmentId: this.apiService.environmentId()
+  }))
 
   readonly promptTemplateFullscreen = signal<string>(null)
 

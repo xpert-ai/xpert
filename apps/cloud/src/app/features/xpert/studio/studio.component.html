@@ -24,7 +24,7 @@
         class="group/connection gradient-color cursor-pointer"
         [class.f-selected]="connection.from.startsWith(selectedNodeKey()) || connection.to.startsWith(selectedNodeKey())"
         [class.f-hover]="connection.from.startsWith(hoverNode()) || connection.to.startsWith(hoverNode())"
-        [ngClass]="connection.type"
+        [class.autonomous]="connection.type !== 'edge'"
         fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
         [cdkContextMenuTriggerFor]="connContextMenu"
         [cdkContextMenuTriggerData]="{connection: connection, connectionComponent: connComp}"
@@ -185,7 +185,7 @@
           </svg>
         </div>
 
-        <div fNodeInput [fInputId]="group.key" fInputConnectableSide="top" class="top"></div>
+        <div fNodeInput [fInputId]="group.key" fInputConnectableSide="top" class="top absolute"></div>
 
         <div class="node-toolbar absolute right-1 top-1 flex items-center gap-1 p-0.5 rounded-lg border-[0.5px]
           bg-white border-gray-100 shadow-xs text-gray-500">

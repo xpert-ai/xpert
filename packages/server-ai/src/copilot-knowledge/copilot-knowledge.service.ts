@@ -19,8 +19,8 @@ import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity
 import { CopilotService } from '../copilot/copilot.service'
 import { CopilotKnowledge } from './copilot-knowledge.entity'
 import { isEqual } from 'date-fns/isEqual'
-import { pick } from '@metad/server-common'
 import { CopilotModelGetEmbeddingsQuery } from '../copilot-model/queries'
+import { CopilotOneByRoleQuery } from '../copilot/queries'
 
 @Injectable()
 export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<CopilotKnowledge> {
@@ -204,7 +204,12 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 		const id = (organizationId || tenantId) + `:${role || 'default'}`
 
 		let collectionName = id
-		const copilot = await this.copilotService.findOneByRole(AiProviderRole.Embedding, tenantId, organizationId)
+		// const copilot = await this.copilotService.findOneByRole(AiProviderRole.Embedding, tenantId, organizationId)
+		const copilot = await this.queryBus.execute(new CopilotOneByRoleQuery(
+						tenantId,
+						organizationId,
+						AiProviderRole.Embedding
+					))
 		if (copilot) {
 			if (!copilot.organizationId) {
 				collectionName = tenantId + `:${role || 'default'}`

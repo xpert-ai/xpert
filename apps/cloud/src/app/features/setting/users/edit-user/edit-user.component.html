@@ -1,11 +1,32 @@
 <div class="px-8 py-4">
   <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.MENU.USER.BASIC' | translate: { Default: 'Basic' } }}
+    {{ 'PAC.USERS_PAGE.BASIC' | translate: { Default: 'Basic' } }}
   </div>
 
-  <pac-user-basic class="border border-solid border-divider-regular rounded-xl"
+  <pac-user-basic class="border border-solid border-divider-regular rounded-xl p-4"
     [allowRoleChange]="RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name"
   />
+</div>
+
+<div class="px-8 py-4">
+  <div class="text-xl font-semibold pb-2">
+    {{ 'PAC.USERS_PAGE.ChangePassword' | translate: { Default: 'Change Password' } }}
+  </div>
+
+  <div class="border border-solid border-divider-regular rounded-xl p-4">
+    <pac-user-change-password-form #password [(ngModel)]="newPassword" class="block max-w-lg m-auto ng-untouched ng-pristine ng-valid" />
+
+    <div class="w-full flex justify-end p-2">
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="changePassword()"
+        [disabled]="password.form.pristine || password.form.invalid"
+      >
+        {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+      </button>
+    </div>
+  </div>
 </div>
 
 <div class="px-8 py-4">

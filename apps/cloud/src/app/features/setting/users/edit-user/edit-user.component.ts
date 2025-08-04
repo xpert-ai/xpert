@@ -1,7 +1,10 @@
 import { CommonModule } from '@angular/common'
-import { Component, effect, inject, OnDestroy, signal } from '@angular/core'
+import { Component, effect, inject, model, OnDestroy, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { FormsModule } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
 import { ActivatedRoute, Router } from '@angular/router'
+import { UserChangePasswordFormComponent } from '@cloud/app/@shared/user/forms'
 import { Store, UsersService } from '@metad/cloud/state'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -19,7 +22,16 @@ import { PACUsersComponent } from '../users.component'
   templateUrl: './edit-user.component.html',
   styleUrls: ['./edit-user.component.scss'],
   animations: [routeAnimations],
-  imports: [CommonModule, TranslateModule, NgmSpinComponent, UserBasicComponent, PACUserOrganizationsComponent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    MatButtonModule,
+    NgmSpinComponent,
+    UserBasicComponent,
+    UserChangePasswordFormComponent,
+    PACUserOrganizationsComponent
+  ]
 })
 export class PACEditUserComponent implements OnDestroy {
   RolesEnum = RolesEnum
@@ -45,6 +57,8 @@ export class PACEditUserComponent implements OnDestroy {
   public readonly user = toSignal(this.userId$.pipe(switchMap((userId) => this.userService.getUserById(userId))))
 
   readonly loading = signal(false)
+
+  readonly newPassword = model<{ password: string; confirmPassword: string }>()
 
   constructor() {
     effect(
@@ -84,6 +98,23 @@ export class PACEditUserComponent implements OnDestroy {
         this.toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  async changePassword() {
+    if (this.newPassword().password && this.newPassword().confirmPassword === this.newPassword().password) {
+      this.loading.set(true)
+      try {
+        await this.userService.update(this.user().id, {hash: this.newPassword().password})
+        this.loading.set(false)
+        this.toastr.success('PAC.USERS_PAGE.PasswordChangedSuccessfully', {
+          Default: 'Password changed successfully'
+        })
+        this.newPassword.set({ password: '', confirmPassword: '' })
+      } catch (err) {
+        this.loading.set(false)
+        this.toastr.error(getErrorMessage(err))
+      }
+    }
   }
 
   ngOnDestroy(): void {

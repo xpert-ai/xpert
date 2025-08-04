@@ -11,9 +11,14 @@ export function createParameters(parameters: TXpertParameter[]) {
 	return parameters?.reduce((schema, parameter) => {
 		let value = null
 		switch (parameter.type) {
+			case XpertParameterTypeEnum.STRING:
 			case XpertParameterTypeEnum.TEXT:
 			case XpertParameterTypeEnum.PARAGRAPH: {
 				value = z.string()
+				break
+			}
+			case XpertParameterTypeEnum.BOOLEAN: {
+				value = z.boolean()
 				break
 			}
 			case XpertParameterTypeEnum.NUMBER: {
