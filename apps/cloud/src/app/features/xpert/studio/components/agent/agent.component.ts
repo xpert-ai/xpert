@@ -3,7 +3,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { agentLabel, agentUniqueName, AiModelTypeEnum, TXpertTeamNode } from 'apps/cloud/src/app/@core'
+import { agentLabel, agentUniqueName, AiModelTypeEnum, TXpertTeamNode, WorkflowNodeTypeEnum } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
@@ -72,7 +72,7 @@ export class XpertStudioNodeAgentComponent {
 
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
-      .filter((_) => _.type !== 'workflow')
+      .filter((_) => !(_.type === 'workflow' && _.entity.type !== WorkflowNodeTypeEnum.AGENT_TOOL))
       .map((_) => _.key)
   )
 

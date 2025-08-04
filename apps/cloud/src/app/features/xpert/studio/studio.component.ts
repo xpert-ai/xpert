@@ -383,6 +383,7 @@ export class XpertStudioComponent {
 
   copyNode(node: TXpertTeamNode) {
     this.#clipboard.copy(JSON.stringify(node))
+    this.#toastr.success('PAC.Messages.CopiedToClipboard', {Default: 'Copied to clipboard'})
   }
 
   duplicateNode(node: TXpertTeamNode) {

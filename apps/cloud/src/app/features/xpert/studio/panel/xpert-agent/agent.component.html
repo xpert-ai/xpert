@@ -111,18 +111,26 @@
       (promptChange)="onPromptChange($event)"
     />
 
-    <div class="w-full flex justify-between items-center px-4 pt-2 pb-4 rounded-xl bg-gray-50">
-      <div class="flex items-center h-6">
-        <div class="uppercase text-sm font-semibold text-text-secondary mr-2">
-          {{ 'PAC.Xpert.MessageHistory' | translate: {Default: 'Message History'} }}
+    <div class="w-full px-4 pt-2 pb-4 space-y-2 rounded-xl bg-gray-50">
+      <div class="w-full flex justify-between items-center">
+        <div class="flex items-center h-6">
+          <div class="uppercase text-sm font-semibold text-text-secondary mr-2">
+            {{ 'PAC.Xpert.MessageHistory' | translate: {Default: 'Message History'} }}
+          </div>
+          <i class="ri-question-line opacity-50 hover:opacity-90"
+            [matTooltip]="'PAC.Xpert.AgentMemoryTip' | translate: {Default: 'Agent short-term memory, inserting message history into the conversation'}"
+            matTooltipPosition="above"
+          ></i>
         </div>
-        <i class="ri-question-line opacity-50 hover:opacity-90"
-          [matTooltip]="'PAC.Xpert.AgentMemoryTip' | translate: {Default: 'Agent short-term memory, inserting message history into the conversation'}"
-          matTooltipPosition="above"
-        ></i>
+
+        <mat-slide-toggle ngm-density="xs" [ngModel]="enableMessageHistory()" (ngModelChange)="updateEnMessageHistory($event)" />
       </div>
 
-      <mat-slide-toggle ngm-density="xs" [ngModel]="enableMessageHistory()" (ngModelChange)="updateEnMessageHistory($event)" />
+      <div>
+        <xpert-state-variable-select nullable [varOptions]="varOptions()" [type]="eXpertParameterTypeEnum.ARRAY"
+          [(ngModel)]="historyVariable"
+        />
+      </div>
     </div>
 
     <!-- @if (!enableMessageHistory()) { -->
@@ -394,7 +402,7 @@
         [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
         [tooltip]="'PAC.Xpert.WritetoMemoryTooltip' | translate: {Default: 'Write output content or parameters of the agent into global memory of the digital expert'}"
         type="agent"
-        [varOptions]="varOptions()"
+        [varOptions]="varOutOptions()"
         [parameters]="outputVariables()"
         [memories]="memories()"
         (memoriesChange)="updateMemories($event)"

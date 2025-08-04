@@ -30,9 +30,9 @@ import { effectAction } from '@metad/ocap-angular/core'
 import { switchMap, tap } from 'rxjs/operators'
 import { timer } from 'rxjs'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core'
+import { agentLabel, TWorkflowVarGroup } from '../../../@core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
-import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../../agent'
+import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../../agent/variable-panel/variable.component'
 
 
 declare var monaco: any

@@ -1,0 +1,69 @@
+<xpert-state-variable-select class="w-full opacity-90 hover:opacity-100"
+  [varOptions]="varOptions()"
+  [(variables)]="variables"
+  [(ngModel)]="variableSelector"
+  [ngModelOptions]="{standalone: true}"
+/>
+
+<div class="w-full flex justify-between items-center gap-2">
+  <ngm-select class="w-28 border-0 opacity-70 hover:opacity-100"
+    [nullable]="false"
+    [selectOptions]="InputTypeOptions"
+    [placeholder]="'PAC.Xpert.InputType' | translate: {Default: 'InputType'}"
+    [(ngModel)]="inputType"
+    [ngModelOptions]="{standalone: true}"
+  />
+
+  @if (inputType() === 'constant') {
+    <input class="grow rounded-lg text-sm bg-gray-100 px-2 py-1 focus:bg-white opacity-70 hover:opacity-100 focus:opacity-100"
+      [(ngModel)]="value"
+    >
+  } @else if (inputType() === 'message') {
+    <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small" [cdkMenuTriggerFor]="roleMenu">
+      <i class="ri-add-line"></i>
+      <span class="mr-1">{{ 'PAC.Xpert.AddMessage' | translate: {Default: 'Add Message'} }}</span>
+    </button>
+  }
+  @else if (type() === 'variable') {
+    <xpert-state-variable-select class="grow border-0 opacity-90 hover:opacity-100"
+      [varOptions]="varOptions()"
+      [(variables)]="variables"
+      [(ngModel)]="value"
+      [ngModelOptions]="{standalone: true}"
+    />
+  } @else {
+    <ngm-select class="grow border-0 opacity-70 hover:opacity-100"
+      [selectOptions]="ValueOptions()"
+      [placeholder]="'PAC.Xpert.OutputVariable' | translate: {Default: 'Output variable'}"
+      [(ngModel)]="value"
+      [ngModelOptions]="{standalone: true}"
+    />
+  }
+</div>
+
+@if (inputType() === 'message') {
+  <div class="flex justify-end items-center gap-2">
+  </div>
+  @for (message of messages(); track j; let j = $index) {
+    <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch border border-solid border-gray-100"
+      [varOptions]="varOptions()"
+      [(variables)]="variables"
+      [role]="message.role"
+      [prompt]="message.content"
+      (promptChange)="updateMessageContent(j, $event)"
+      (deleted)="removeMessage(j)"
+    >
+    </copilot-prompt-editor>
+  }
+}
+
+<ng-template #roleMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="addMessage('human')">
+      Human
+    </div>
+    <div cdkMenuItem (click)="addMessage('ai')">
+      AI
+    </div>
+  </div>
+</ng-template>

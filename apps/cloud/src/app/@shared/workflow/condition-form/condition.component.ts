@@ -12,8 +12,9 @@ import {
   TWFCaseCondition,
   TWorkflowVarGroup,
   WorkflowComparisonOperator,
+  XpertParameterTypeEnum,
 } from 'apps/cloud/src/app/@core'
-import { TXpertVariablesOptions, XpertVariableInputComponent, XpertVariablePanelComponent } from '../../agent'
+import { StateVariableSelectComponent, TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
 
 @Component({
   standalone: true,
@@ -28,11 +29,12 @@ import { TXpertVariablesOptions, XpertVariableInputComponent, XpertVariablePanel
     TextFieldModule,
     NgmI18nPipe,
     XpertVariableInputComponent,
-    XpertVariablePanelComponent
+    StateVariableSelectComponent
   ]
 })
 export class XpertWorkflowConditionFormComponent {
   agentLabel = agentLabel
+  eXpertParameterTypeEnum = XpertParameterTypeEnum
 
   readonly elementRef = inject(ElementRef)
   readonly #toastr = injectToastr()
@@ -87,7 +89,7 @@ export class XpertWorkflowConditionFormComponent {
     const { group, name } = this.variableSelector() ?? {}
     let variable = null
     this.variables()?.some((g) => {
-      if ((group && g.agent?.key === group) || (!group && !g.agent?.key)) {
+      if ((group && g.group?.name === group) || (!group && !g.group?.name)) {
         variable = g.variables.find((_) => _.name === name)
       }
       return !!variable
@@ -95,9 +97,11 @@ export class XpertWorkflowConditionFormComponent {
     return variable
   })
 
+  readonly variableType = computed(() => this.variable()?.type)
+
   readonly operatorOptions = computed(() => {
-    switch (this.variable()?.type) {
-      case 'number': {
+    switch (this.variableType()) {
+      case XpertParameterTypeEnum.NUMBER: {
         return [
           {
             value: WorkflowComparisonOperator.EQUAL,
@@ -147,6 +151,24 @@ export class XpertWorkflowConditionFormComponent {
             label: {
               en_US: 'not empty',
               zh_Hans: '非空'
+            }
+          }
+        ]
+      }
+      case XpertParameterTypeEnum.BOOLEAN: {
+        return [
+          {
+            value: WorkflowComparisonOperator.IS_TRUE,
+            label: {
+              en_US: 'is true',
+              zh_Hans: '为真'
+            }
+          },
+          {
+            value: WorkflowComparisonOperator.IS_FALSE,
+            label: {
+              en_US: 'is false',
+              zh_Hans: '为假'
             }
           }
         ]
@@ -222,7 +244,7 @@ export class XpertWorkflowConditionFormComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.variable())
+      // console.log(this.variable(), this.variableSelector())
     })
   }
 

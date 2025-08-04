@@ -81,6 +81,10 @@ export function genXpertToolKey() {
   return letterStartSUID('Tool_')
 }
 
+export function genXpertAgentToolKey() {
+  return letterStartSUID('AgentTool_')
+}
+
 export function genXpertNoteKey() {
   return letterStartSUID('Note_')
 }

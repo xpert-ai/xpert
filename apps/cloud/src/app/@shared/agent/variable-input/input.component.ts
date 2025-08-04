@@ -113,14 +113,17 @@ export class XpertVariableInputComponent {
   }
 
   onKeydown(event: KeyboardEvent, input: HTMLInputElement) {
-    if (event.key === 'Backspace' && input.value === '') {
-      const currentIndex = this.currentIndex()
-      if (currentIndex > 0 && this.items()[currentIndex - 1].type === 'variable') {
-        this.items.update((state) => {
-          state.splice(currentIndex - 1, 1)
-          return [...state]
-        })
-        this.currentIndex.set(currentIndex - 1)
+    if (event.key === 'Backspace') {
+      const cursorPosition = input.selectionStart
+      if (cursorPosition === 0) {
+        const currentIndex = this.currentIndex()
+        if (currentIndex > 0 && this.items()[currentIndex - 1].type === 'variable') {
+          this.items.update((state) => {
+            state.splice(currentIndex - 1, 1)
+            return [...state]
+          })
+          this.currentIndex.set(currentIndex - 1)
+        }
       }
     }
   }

@@ -1,5 +1,9 @@
 :host {
   @apply relative flex flex-col items-stretch;
+
+  &.busy {
+    min-height: calc(100vh - 320px);
+  }
 }
 
 chat-thought.reasoning {

@@ -88,6 +88,7 @@ export class XpertStudioPanelEnvironmentComponent {
       })
       .closed.subscribe({
         next: () => {
+          this.studioService.refreshEnvironments$.next()
         }
       })
   }

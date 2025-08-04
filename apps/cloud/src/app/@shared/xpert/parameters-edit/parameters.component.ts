@@ -83,7 +83,7 @@ export class XpertParametersEditComponent {
       this.#fb.group({
         type: this.#fb.control(param.type),
         name: this.#fb.control(param.name),
-        title: this.#fb.control(param.title),
+        // title: this.#fb.control(param.title),
         description: this.#fb.control(param.description),
         optional: this.#fb.control(param.optional),
         maximum: this.#fb.control(param.maximum),

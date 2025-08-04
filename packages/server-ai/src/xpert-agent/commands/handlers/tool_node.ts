@@ -19,7 +19,7 @@ export type ToolNodeOptions = {
   handleToolErrors?: boolean;
   caller?: string
   variables?: TVariableAssigner[]
-  // toolset: string
+  toolName: string
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,7 +36,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   caller?: string
   variables: TVariableAssigner[]
   channel: string
-  // toolset: string
+  toolName: string
 
   constructor(
     tools: (StructuredToolInterface | RunnableToolLike)[],
@@ -48,6 +48,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     this.handleToolErrors = handleToolErrors ?? this.handleToolErrors;
     this.caller = options?.caller
     this.variables = options?.variables
+    this.toolName = options?.toolName
 
     this.channel = options?.caller ? channelName(options.caller) : null
     // this.toolset = options?.toolset
@@ -77,6 +78,9 @@ export class ToolNode<T = any> extends Runnable<T, T> {
             { ...call, type: "tool_call" },
             {
               ...config,
+              metadata: {
+                toolName: this.toolName
+              },
               configurable: {
                 ...config.configurable,
                 tool_call_id: call.id,

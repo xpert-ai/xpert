@@ -4,6 +4,7 @@ import {
 	AiProviderRole,
 	IAiProviderEntity,
 	ICopilot,
+	ICopilotModel,
 	RolesEnum
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
@@ -51,6 +52,7 @@ import { Copilot } from './copilot.entity'
 import { CopilotService } from './copilot.service'
 import { CopilotDto, CopilotWithProviderDto } from './dto'
 import { FindCopilotModelsQuery, ModelParameterRulesQuery } from './queries'
+import { GeneratePromptCommand } from './commands/'
 
 @ApiTags('Copilot')
 @ApiBearerAuth()
@@ -185,6 +187,15 @@ export class CopilotController extends CrudController<Copilot> {
 			} else {
 				throw new InternalServerErrorException(getErrorMessage(err))
 			}
+		}
+	}
+
+	@Post('generate-prompt')
+	async generatePrompt(@Body() body: { instruction: string; copilotModel: Partial<ICopilotModel> }) {
+		try {
+			return await this.commandBus.execute(new GeneratePromptCommand(body.instruction, body.copilotModel))
+		} catch (error) {
+			throw new InternalServerErrorException('Error generating prompt:' + getErrorMessage(error))
 		}
 	}
 

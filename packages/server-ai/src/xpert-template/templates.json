@@ -263,6 +263,22 @@
             ],
             "recommendedApps": [
                 {
+                    "name": "Open Deep Researcher",
+                    "type": "agent",
+                    "title": "开放深度调研员",
+                    "description": "1比1复刻 Langchain 的 Open Deep Research (https://github.com/langchain-ai/open_deep_research)。深度研究已成为最受欢迎的智能体应用之一。这是一个简单、可配置、完全开源的深度研究智能体，可跨多种模型提供商、搜索工具和 MCP 服务器运行。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "memo"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "ec468d87-3031-4702-ad23-c1a427181062",
+                    "category": "Writing",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
                     "name": "Demo - Workflow transform",
                     "type": "agent",
                     "title": "智能客服回答模版转换",

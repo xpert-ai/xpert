@@ -1,5 +1,5 @@
 @if (type() !== eWorkflowNodeTypeEnum.NOTE) {
-  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left"></div>
+  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left absolute"></div>
 }
 
 <div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
@@ -58,6 +58,9 @@
   }
   @case (eWorkflowNodeTypeEnum.TOOL) {
     <xpert-workflow-node-tool class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.AGENT_TOOL) {
+    <xpert-workflow-node-agent-tool class="px-3" [node]="node()" [entity]="entity()" />
   }
   @case (eWorkflowNodeTypeEnum.NOTE) {
     <xpert-workflow-node-note class="px-3" [node]="node()" [entity]="entity()" />

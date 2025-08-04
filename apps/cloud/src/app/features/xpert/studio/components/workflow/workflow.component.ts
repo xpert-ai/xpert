@@ -26,6 +26,7 @@ import { XpertWorkflowNodeTemplateComponent } from './template/template.componen
 import { XpertWorkflowNodeClassifierComponent } from './classifier/classifier.component'
 import { XpertWorkflowNodeToolComponent } from './tool/tool.component'
 import { XpertWorkflowNodeAssignerComponent } from './assigner/assigner.component'
+import { XpertWorkflowNodeAgentToolComponent } from './agent-tool/tool.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -51,7 +52,8 @@ import { XpertWorkflowNodeAssignerComponent } from './assigner/assigner.componen
     XpertWorkflowNodeNoteComponent,
     XpertWorkflowNodeClassifierComponent,
     XpertWorkflowNodeToolComponent,
-    XpertWorkflowNodeAssignerComponent
+    XpertWorkflowNodeAgentToolComponent,
+    XpertWorkflowNodeAssignerComponent,
   ],
   host: {
     '[class]': 'type()',

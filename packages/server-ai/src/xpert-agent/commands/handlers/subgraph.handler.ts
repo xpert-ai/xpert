@@ -29,19 +29,18 @@ import z from 'zod'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
+import { GetXpertWorkflowQuery, GetXpertChatModelQuery, TXpertWorkflowQueryOutput } from '../../../xpert/queries'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
-import { parseXmlString, TGraphTool, TSubAgent } from './types'
+import { parseXmlString, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { XpertConfigException } from '../../../core/errors'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphParams, TAgentSubgraphResult, TStateChannel } from '../../agent'
-import { createParameters } from '../../workflow/parameter'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, createWorkflowAgentTools, TGraphTool } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 
 
@@ -69,7 +68,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// I8n
 		// const i18n = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(RequestContext.getLanguageCode())})
 
-		const {agent, graph, next, fail} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent; graph: TXpertGraph; next: TXpertTeamNode[]; fail: TXpertTeamNode[]}>(
+		const {agent, graph, next, fail} = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
 			new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
 		)
 		if (!agent) {
@@ -157,6 +156,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 			})
 		}
+
+		// Workflow agent tools
+		const agentTools = createWorkflowAgentTools(agentKey, graph)
+		tools.push(...agentTools.tools)
+		endNodes.push(...agentTools.endNodes)
 
 		// Additional Tools
 		if (additionalTools) {
@@ -275,7 +279,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const summarize = ensureSummarize(team.summarize)
 		// Next agent
 		let nextNodeKey: string[] = []
-		let failNodeKey = END
+		// let failNodeKey = fail[0] ? fail[0].key : END
 		const agentKeys = new Set([agent.key])
 		const nodes: Record<string, {ends: string[]; graph: Runnable;}> = {}
 		// Conditional Edges
@@ -297,13 +301,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			 * The root node is responsible for the overall workflow
 			 * 
 			 * @param node next node
-			 * @param node fail node
 			 * @param parentKey The pre-node of this node
 			 * @param isPrimary is the root agent call
 			 * @param nexts Nexts nodes of primary agent call
 			 * @returns 
 			 */
-			const createSubgraph = async (node: TXpertTeamNode, fail: TXpertTeamNode, parentKey?: string) => {
+			const createSubgraph = async (node: TXpertTeamNode, parentKey?: string) => {
 				if (node?.type === 'agent') {
 					if (agentKeys.has(node.key)) {
 						return
@@ -332,9 +335,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					
 					// Conditional Edges
 					const ends = []
+					// The failure process of non-starting agents is created here
 					if (failNode) {
 						ends.push(failNode.key)
-						await createSubgraph(null, failNode)
+						await createSubgraph(failNode)
 					}
 					nodes[node.key] = {graph: stateGraph, ends}
 					if (nextNodes?.length) {
@@ -350,7 +354,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 							await createSubgraph(nextNode, null)
 						}
 					} else {
-						edges[node.key] = END
+						nodes[node.key].ends.push(END)
+						// edges[node.key] = END
 					}
 				} else if(node?.type === 'workflow') {
 					if (nodes[node.key]) {
@@ -380,40 +385,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						await createSubgraph(nNode, null)
 					}
 				}
-
-				// if (fail && !agentKeys.has(fail.key) && fail.type === 'agent') {
-				// 	agentKeys.add(fail.key)
-				// 	const {stateGraph, nextNodes, failNode} = await this.createAgentSubgraph(fail.entity, {
-				// 		mute,
-				// 		xpert,
-				// 		options: {
-				// 			leaderKey: parentKey,
-				// 			isDraft: command.options.isDraft,
-				// 			subscriber
-				// 		},
-				// 		thread_id,
-				// 		rootController,
-				// 		signal,
-				// 		isTool: false,
-				// 		variables: toolsetVarirables,
-				// 		partners
-				// 	})
-	
-				// 	nodes[fail.key] = {graph: stateGraph, ends: []}
-				// 	if (nextNodes?.length || failNode) {
-				// 		await createSubgraph(nextNodes?.[0], failNode)
-				// 	}
-				// }
 			}
 
 			if (agentHasNextNodes) {
 				for await (const nextNode of next) {
-					await createSubgraph(nextNode, null, agentKey)
+					await createSubgraph(nextNode, agentKey)
 					pathMap.push(nextNode.key)
 				}
+				// The failure process of the starting agent is created here
 				for await (const nextNode of fail) {
-					failNodeKey = nextNode.key
-					await createSubgraph(nextNode, null, agentKey)
+					// failNodeKey = nextNode.key
+					await createSubgraph(nextNode, agentKey)
 					pathMap.push(nextNode.key)
 				}
 				
@@ -512,6 +494,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
+		const historyVariable = agent.options?.historyVariable
 		const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean, jsonSchema: string) => {
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
@@ -555,7 +538,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			return {
 				systemMessage,
-				messageHistory,
+				messageHistory: historyVariable ? get(state, historyVariable) as BaseMessage[] : messageHistory,
 				humanMessages
 			}
 		}
@@ -614,13 +597,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					systemMessage, ...((enableMessageHistory || !humanMessages.length) ? messageHistory : []), ...humanMessages
 				], {...config, signal: abortController.signal})
 
-				const messages = [...deleteMessages, ...humanMessages]
 				const nState: Record<string, any> = {
-					messages: [...messages],
+					messages: [...humanMessages],
 					[channelName(agentKey)]: {
 						system: systemMessage.content,
 						error: null,
-						messages
+						messages: [...deleteMessages, ...humanMessages]
 					}
 				}
 				if (isBaseMessage(message) || isBaseMessageChunk(message)) {
@@ -652,7 +634,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			} catch(err) {
 				if(errorHandling?.type === 'failBranch') {
 					return new Command({
-						goto: failNodeKey,
+						goto: fail[0] ? fail[0].key : END,
+						graph: isStart ? null : Command.PARENT,
 						update: {
 							messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
 							[channelName(agentKey)]: {
@@ -687,26 +670,36 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Add nodes for tools
 		tools?.forEach(({ caller, tool, variables, toolset }) => {
 			const name = tool.name
-			subgraphBuilder
-				.addNode(
-					name, 
-					new ToolNode([tool], { caller, variables }).withConfig({signal: abortController.signal}),
-					{metadata: {toolset: toolset.provider, toolsetId: toolset.id, toolName: toolset.title}}
-				)
+			const ends = []
 			if (endNodes?.includes(tool.name)) {
+				// If it is end of the agent, connect the subsequent nodes of the agent
 				if (nextNodeKey?.length) {
-					if (nextNodeKey.some((_) => !_)) {
-						throw new InternalServerErrorException(`There is an empty nextNodeKey in tools`)
-					}
+					// if (nextNodeKey.some((_) => !_)) {
+					// 	throw new InternalServerErrorException(`There is an empty nextNodeKey in tools`)
+					// }
+					ends.push(...nextNodeKey)
 					subgraphBuilder.addConditionalEdges(name, (state, config) => {
 						return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
 					})
 				} else {
+					// No subsequent node, go to the end
 					subgraphBuilder.addEdge(name, END)
+					ends.push(END)
 				}
 			} else {
+				// Not the end of the agent, return to the agent node
 				subgraphBuilder.addEdge(name, agentKey)
+				// ends.push(agentKey)
 			}
+			subgraphBuilder
+				.addNode(
+					name, 
+					new ToolNode([tool], { caller, variables, toolName: toolset.title }).withConfig({signal: abortController.signal}),
+					{
+						ends,
+						metadata: {toolset: toolset.provider, toolsetId: toolset.id }
+					}
+				)
 		})
 
 		handoffTools?.forEach((tool) => {
@@ -714,7 +707,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			subgraphBuilder
 				.addNode(
 					name,
-					new ToolNode([tool], { caller: '' })
+					new ToolNode([tool], { caller: '', toolName: tool.description })
 						.withConfig({signal: abortController.signal}),
 					{metadata: {toolset: 'transfer_to'}}
 				)
@@ -972,7 +965,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					messages: [lastMessage],
 					[channelName(agent.key)]: {
 						...output[channelName(agent.key)],
-						messages: [lastMessage],
+						messages: output.messages, // Return full messages to parent graph
 						output: stringifyMessageContent(lastMessage.content)
 					}
 				}
@@ -1132,10 +1125,11 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 
 				if (nextNodes && !subState?.error) {
 					if (Array.isArray(nextNodes)) {
-						if (nextNodes.some((_) => !_)) {
-							throw new InternalServerErrorException(`There is an empty nextNodes in createAgentNavigator`)
-						}
-						nexts.push(...nextNodes.filter((_) => !!_).map((name) => new Send(name, state)))
+						// if (nextNodes.some((_) => !_)) {
+						// 	throw new InternalServerErrorException(`There is an empty nextNodes in createAgentNavigator`)
+						// }
+						if (nextNodes.length)
+							nexts.push(...nextNodes.filter((_) => !!_).map((name) => new Send(name, state)))
 					} else {
 						nexts.push(new Send(nextNodes(state, config), state))
 					}
@@ -1158,7 +1152,9 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 
 		if (nextNodes) {
 			if (Array.isArray(nextNodes)) {
-				return nextNodes.map((name) => new Send(name, state))
+				if (nextNodes.length) {
+					return nextNodes.map((name) => new Send(name, state))
+				}
 			} else {
 				return new Send(nextNodes(state, config), state)
 			}

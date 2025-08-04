@@ -284,7 +284,7 @@ export class ChatProjectHomeComponent {
 
   openInstruction() {
     this.#dialog
-      .open<string>(CopilotPromptGeneratorComponent, {
+      .open<{instruction: string}>(CopilotPromptGeneratorComponent, {
         panelClass: 'large',
         disableClose: true,
         data: {
@@ -292,13 +292,13 @@ export class ChatProjectHomeComponent {
         }
       })
       .closed.pipe(
-        switchMap((instruction) => {
-          if (instruction) {
+        switchMap((result) => {
+          if (result?.instruction) {
             this.loading.set(true)
-            return this.updateProject({ settings: { ...(this.settings() ?? {}), instruction } }).pipe(
+            return this.updateProject({ settings: { ...(this.settings() ?? {}), instruction: result.instruction } }).pipe(
               tap(() => {
                 this.loading.set(false)
-                this.instruction.set(instruction)
+                this.instruction.set(result.instruction)
               })
             )
           }

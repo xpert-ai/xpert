@@ -64,7 +64,8 @@ export class TongyiLargeLanguageModel extends LargeLanguageModel {
 					},
 					isNil
 				),
-				streamUsage: false
+				// include token usage in the stream. this will include an additional chunk at the end of the stream with the token usage.
+				streamUsage: true
 			},
 			isNil
 		)

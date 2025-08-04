@@ -6,7 +6,9 @@ import { NgmChatOllama } from './chat-ollama'
 import { TCopilotCredentials } from '../../types'
 import { NgmChatOpenAI } from './chat-openai'
 
-
+/**
+ * @deprecated Use backend Agent instead
+ */
 export function createLLM<T = BaseChatModel>(
   copilot: ICopilot,
   credentials: TCopilotCredentials,

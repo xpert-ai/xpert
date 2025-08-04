@@ -23,7 +23,7 @@ const postgreSQLConfig: ConnectionOptions = {
 	username: process.env.DB_USER || 'postgres',
 	password: process.env.DB_PASS || 'root',
 	ssl: ssl,
-	logging: true,
+	logging: false,
 	logger: 'file', //Removes console logging, instead logs all queries in a file ormlogs.log
 	synchronize: true,
 	uuidExtension: 'pgcrypto'

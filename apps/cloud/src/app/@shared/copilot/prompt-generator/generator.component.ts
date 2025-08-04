@@ -7,9 +7,10 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { getErrorMessage, ToastrService } from '../../../@core'
-import { injectPromptGenerator, PRESET_INSTRUCTIONS } from './agent'
+import { AiModelTypeEnum, AiProviderRole, CopilotServerService, getErrorMessage, ICopilotModel, injectCopilots, ToastrService } from '../../../@core'
+import { PRESET_INSTRUCTIONS } from './agent'
 import { CopilotInstructionEditorComponent } from '../instruction-editor/editor.component'
+import { CopilotModelSelectComponent } from '../copilot-model-select/select.component'
 
 @Component({
   standalone: true,
@@ -26,48 +27,46 @@ import { CopilotInstructionEditorComponent } from '../instruction-editor/editor.
     MatTooltipModule,
     NgmSpinComponent,
 
+    CopilotModelSelectComponent,
     CopilotInstructionEditorComponent
   ]
 })
 export class CopilotPromptGeneratorComponent {
+  eModelType = AiModelTypeEnum
+
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ instruction: string }>(DIALOG_DATA)
+  readonly #data = inject<{ instruction: string; variables: any[] }>(DIALOG_DATA)
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
+  readonly #copilotAPI = inject(CopilotServerService)
+  readonly #copilots = injectCopilots()
   readonly PRESET_INSTRUCTIONS = PRESET_INSTRUCTIONS
 
-  readonly promptGenerator = injectPromptGenerator()
-
   readonly instructions = model<string>('')
-
+  readonly copilotModel = model<Partial<ICopilotModel> | null>(null)
   readonly instruction = signal<string>(this.#data?.instruction)
+  readonly variables = signal<any[]>(this.#data?.variables)
 
   readonly promptLength = computed(() => this.instruction()?.length)
 
   readonly loading = signal(false)
   readonly show = signal(false)
 
-  async generate() {
-    const promptGenerator = this.promptGenerator()
-    if (!promptGenerator) {
-      this.#toastr.error(this.#translate.instant('PAC.Copilot.NoSupportedAIModelFound', {Default: 'No supported AI Model found'}))
-      return
-    }
-    this.loading.set(true)
-    try {
-      const result = await promptGenerator.invoke({
-        TASK_DESCRIPTION: this.instructions()
-      })
+  readonly inheritCopilotModel = computed(() => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)?.copilotModel)
 
-      let content = result.content as string
-      content = content.replace(/^```[a-zA-Z]*\n/, '')
-      content = content.replace(/```$/, '')
-      this.instruction.set(content)
-    } catch (err) {
-      this.#toastr.error(getErrorMessage(err))
-    } finally {
-      this.loading.set(false)
-    }
+  generate() {
+    this.loading.set(true)
+    this.#copilotAPI.generatePrompt(this.instructions(), this.copilotModel()).subscribe({
+      next: (result) => {
+        this.loading.set(false)
+        this.instruction.set(result.prompt)
+        this.variables.set(result.variables)
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 
   presetInstruction(name: string) {
@@ -86,6 +85,6 @@ export class CopilotPromptGeneratorComponent {
   }
 
   apply() {
-    this.#dialogRef.close(this.instruction())
+    this.#dialogRef.close({instruction: this.instruction(), variables: this.variables()})
   }
 }

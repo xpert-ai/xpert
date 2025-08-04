@@ -9,6 +9,7 @@ import { Copilot } from './copilot.entity'
 import { QueryHandlers } from './queries/handlers/index'
 import { CopilotService } from './copilot.service'
 import { AIModelModule } from '../ai-model'
+import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
@@ -20,7 +21,7 @@ import { AIModelModule } from '../ai-model'
 		AIModelModule
 	],
 	controllers: [CopilotController],
-	providers: [CopilotService, ...QueryHandlers],
+	providers: [CopilotService, ...QueryHandlers, ...CommandHandlers],
 	exports: [CopilotService]
 })
 export class CopilotModule {}
