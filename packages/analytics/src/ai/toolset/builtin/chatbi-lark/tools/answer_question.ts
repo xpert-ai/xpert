@@ -122,8 +122,8 @@ async function drawChartMessage(
 	}
 
 	const presentationVariant: PresentationVariant = {}
-	if (answer.top) {
-		presentationVariant.maxItems = answer.top
+	if (answer.limit) {
+		presentationVariant.maxItems = answer.limit
 	}
 	if (answer.orders) {
 		presentationVariant.sortOrder = answer.orders.map(tryFixOrder)

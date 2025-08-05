@@ -3,6 +3,10 @@
         "IndicatorNotFound": "指标‘{{indicator}}’未找到。"
     },
     "Tools": {
-        
+
+    },
+    "Model": {
+        "EmbeddingStart": "为维度‘{{dimension}}’嵌入成员已开始。",
+        "EmbeddingComplete": "为维度‘{{dimension}}’嵌入成员已完成。"
     }
 }

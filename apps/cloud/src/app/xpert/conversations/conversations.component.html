@@ -47,6 +47,14 @@
                       {{item.project.name}}
                     </span>
                   }
+                  @if (item.xpert) {
+                    <span class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                      @if (item.taskId) {
+                        <i class="ri-timer-line"></i>
+                      }
+                      {{item.xpert.title || item.xpert.name}}
+                    </span>
+                  }
                 }
 
                 <span class="grow"></span>

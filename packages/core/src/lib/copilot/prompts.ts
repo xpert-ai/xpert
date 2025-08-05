@@ -1,4 +1,4 @@
-import { EntityType, getDimensionHierarchies, getEntityDimensions, getEntityIndicators, getEntityMeasures, getEntityVariables, getHierarchyLevels, RuntimeLevelType, VariableEntryType } from "../models";
+import { AggregationRole, EntityType, getDimensionHierarchies, getEntityDimensions, getEntityIndicators, getEntityMeasures, getEntityParameters, getEntityProperty, getHierarchyLevels, isAggregationProperty, isCalculatedProperty, isRestrictedMeasureProperty, PropertyMeasure, RuntimeLevelType, VariableEntryType, VariableProperty } from "../models";
 import { nonBlank } from "../utils";
 import { MEMBER_RETRIEVER_TOOL_NAME } from "./constants"
 
@@ -6,6 +6,9 @@ export function prepend(prefix: string, text: string) {
   return text?.split('\n').map(line => prefix + line).join('\n') ?? ''
 }
 
+/**
+ * Convert cube (EntityType) to markdown format.
+ */
 export function markdownEntityType(entityType: EntityType) {
 
   let context = `The cube definition for (${entityType.name}) is as follows:
@@ -35,7 +38,7 @@ export function markdownEntityType(entityType: EntityType) {
   `        levels:
   ${getHierarchyLevels(item).filter((level) => level.levelType !== RuntimeLevelType.ALL && !level.semantics?.hidden).map((item) =>
   [
-  `        - name: "${item.name}"`,
+  `          - name: "${item.name}"`,
   `            caption: "${item.caption || ''}"`,
   item.description && item.description !== item.caption ?
   `            description: >
@@ -49,11 +52,18 @@ export function markdownEntityType(entityType: EntityType) {
     item.properties?.map((_) => 
   `              - name: ${_.name}\n                caption: ${_.caption}`
     ).join('\n')
-  ].filter(nonBlank).join('\n')).join('\n')}
-  `].join('\n')).join('\n')
+  ].filter(nonBlank).join('\n')).join('\n')}`].join('\n')).join('\n')
   ).join('\n')}
 `
 
+  context += markdownMeasures(entityType)
+  context += markdownParameters(entityType)
+
+  return context
+}
+
+function markdownMeasures(entityType: EntityType) {
+  let context = ''
   const indicators = getEntityIndicators(entityType).filter((_) => !_.semantics?.hidden)
   const measures = getEntityMeasures(entityType).filter((_) => !_.semantics?.hidden && !indicators.some((indicator) => indicator.name === _.name))
   if (measures.length) {
@@ -67,6 +77,7 @@ export function markdownEntityType(entityType: EntityType) {
     ${prepend('      ', item.description)}` : null,
         item.formatting?.unit ?
         `    unit: ${item.formatting.unit}` : null,
+        prepend('    ', markdownCalculationParams(entityType, item.name)),
       ].filter(nonBlank).join(`\n`)
     ).join('\n')
   }
@@ -86,7 +97,15 @@ export function markdownEntityType(entityType: EntityType) {
     ).join('\n')
   }
 
-  const variables = getEntityVariables(entityType).filter((_) => _.visible)
+  return context
+}
+
+export function markdownParameters(entityType: EntityType) {
+  const _paramerters = getEntityParameters(entityType)
+  const variables = _paramerters.filter((_) => _.role === AggregationRole.variable) as VariableProperty[]
+  const parameters = _paramerters.filter((_) => _.role !== AggregationRole.variable)
+
+  let context = ''
   if (variables.length) {
     context += `sap variables in this cube are:
     ${variables.map((variable) =>
@@ -106,9 +125,63 @@ export function markdownEntityType(entityType: EntityType) {
     ).join('\n')}`
   }
 
+  if (parameters.length) {
+    context += `\n  parameters:\n` +
+      parameters.map((item) =>
+        [
+          `  - name: "${item.name}"`,
+          `    caption: ${item.caption || ''}`,
+          item.description && item.description !== item.caption ? 
+          `    description: >
+    ${prepend('      ', item.description)}` : null,
+          `    type: ${item.dataType}`,
+        ].filter(nonBlank).join(`\n`)
+      ).join('\n')
+  }
   return context
 }
-  
+
+export function markdownCalculationParams(entityType: EntityType, name: string) {
+  const store = {}
+  const params = getPropertyDependParameters(entityType, name, store)
+  return params.length ? `depend_parameters: ${params.map((param) => `\`${param}\``).join(', ')}` : ''
+}
+
+function getPropertyDependParameters(entityType: EntityType, name: string, store: Record<string, string[]>) {
+  if (store[name]) {
+    return store[name]
+  }
+  const property = getEntityProperty(entityType, name)
+  const regex = /\[@([^\]]+)\]/g;
+  const params = []
+  if (isCalculatedProperty(property)) {
+    let match = null;
+    while ((match = regex.exec(property.formula)) !== null) {
+      params.push(match[1])
+    }
+  } else if (isAggregationProperty(property)) {
+    if (typeof property.value === 'string') {
+      let match = null;
+      while ((match = regex.exec(property.value)) !== null) {
+        params.push(match[1])
+      }
+    }
+    if (property.measure) {
+      params.push(...getPropertyDependParameters(entityType, property.measure, store))
+    }
+  } else if (isRestrictedMeasureProperty(property)) {
+    if (property.measure) {
+      params.push(...getPropertyDependParameters(entityType, property.measure, store))
+    }
+  }
+
+  store[name] = Array.from(new Set(params))
+  return store[name]
+}
+
+/**
+ * Convert cube to markdown format
+ */
 export function markdownModelCube({modelId, dataSource, cube}: {modelId: string; dataSource: string; cube: EntityType}) {
   return `The model id is: ${modelId || 'N\\A'}` + `\nThe dataSource is: ${dataSource || 'N\\A'}` +
       `\n` + (cube ? markdownEntityType(cube) : '')

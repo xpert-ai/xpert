@@ -197,7 +197,8 @@ export function withCalculationMembers(
   dimensions: Array<MDXProperty>,
   cube: Cube,
   entityType: EntityType,
-  filters?: MDXHierarchyFilter[]
+  filters?: MDXHierarchyFilter[],
+  values?: Record<string, any>
 ): Record<string, WithMemberType> {
   // 未来迁移到 schema cube CalculatedMember 中
   [...dimensions, ...(filters ?? [])].forEach((dimension) => {
@@ -240,7 +241,8 @@ export function withCalculationMembers(
       members,
       calculationProperties,
       Object.values(entityType.parameters || {}),
-      filters
+      filters,
+      values
     )
     /**
      * @todo calculatedMembers from cube

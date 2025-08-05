@@ -6,6 +6,7 @@ import { getSemanticModelKey } from '@metad/story/core'
 
 /**
  * Register semantic model into data soruce.
+ * Note: Keep the logic consistent with `registerSemanticModel` on the backend.
  *
  * @param model Semantic Model
  * @param dsCoreService
@@ -46,7 +47,7 @@ export function registerModel(
     schema: {
       ...(model.schema ?? {}),
       // Use only released indicators
-      indicators: model.indicators?.filter((_: any) => _.status === IndicatorStatusEnum.RELEASED)
+      indicators: model.indicators?.filter((_: any) => !_.status || _.status === IndicatorStatusEnum.RELEASED)
     },
     calculatedMeasures
   } as DataSourceOptions

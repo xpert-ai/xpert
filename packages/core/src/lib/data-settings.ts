@@ -58,6 +58,11 @@ export interface DataSettings {
    * Runtime calculated members to be used in the data settings
    */
   calculatedMembers?: CalculatedMember[]
+
+  /**
+   * @experimental Key-value pairs of parameters for query
+   */
+  parameters?: Record<string, any>
 }
 
 // type Guards

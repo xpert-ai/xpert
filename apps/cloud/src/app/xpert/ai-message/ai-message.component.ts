@@ -188,7 +188,7 @@ export class ChatAiMessageComponent {
 
   constructor() {
     effect(() => {
-      console.log(`Message status:`, this.status(), this.answering())
+      // console.log(`Message status:`, this.status(), this.answering())
     })
   }
 

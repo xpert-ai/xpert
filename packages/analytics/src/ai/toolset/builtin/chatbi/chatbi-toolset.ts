@@ -1,11 +1,13 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { getContextVariable } from '@langchain/core/context'
+import { ToolMessage } from '@langchain/core/messages'
 import { Tool, tool } from '@langchain/core/tools'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	CONTEXT_VARIABLE_CURRENTSTATE,
+	getToolCallIdFromConfig,
 	IChatBIModel,
 	IIndicator,
 	isEnableTool,
@@ -151,10 +153,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			throw new ToolNotSupportedError(`Toolset not provided for '${this.constructor.prototype.provider}'`)
 		}
 		const tools = this.toolset.tools.filter((_) => isEnableTool(_, this.toolset))
-
-		if (!tools.length) {
-			throw new ToolNotSupportedError(`Tools not be enabled for '${this.constructor.prototype.provider}'`)
-		}
 
 		await this.initModels()
 
@@ -316,7 +314,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		return tool(
 			async ({ modelId, name }, config: LangGraphRunnableConfig) => {
 				this.logger.debug(`Tool 'get_cube_context' params:`, modelId, name)
-				const toolCallId = config.metadata.tool_call_id
+				const toolCallId = getToolCallIdFromConfig(config)
 				// Tool message event
 				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 					id: toolCallId,
@@ -379,11 +377,11 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 									.join('\n\n'),
 								// update the message history
 								messages: [
-									{
-										role: 'tool',
+									new ToolMessage({
 										content: cubes.map(({ context }) => context).join('\n\n'),
-										tool_call_id: toolCallId
-									}
+										tool_call_id: toolCallId,
+										status: 'success',
+									})
 								]
 							}
 						})
@@ -555,8 +553,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		}
 
 		const presentationVariant: PresentationVariant = {}
-		if (answer.top) {
-			presentationVariant.maxItems = answer.top
+		if (answer.limit) {
+			presentationVariant.maxItems = answer.limit
 		}
 		if (answer.orders) {
 			presentationVariant.sortOrder = answer.orders.map(tryFixOrder)
@@ -592,6 +590,10 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				chartAnnotation,
 				presentationVariant,
 				calculatedMembers: answer.calculated_members,
+				parameters: answer.parameters?.reduce((acc, { name, value }) => {
+					acc[name] = value
+					return acc
+				}, {})
 			}
 		// In parallel: return to the front-end display and back-end data retrieval
 		if (answer.visualType === 'KPI') {

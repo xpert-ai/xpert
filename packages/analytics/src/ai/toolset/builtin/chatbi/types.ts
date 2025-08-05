@@ -79,10 +79,11 @@ export type ChatAnswer = {
 	dimensions: Dimension[]
 	measures: Measure[]
 	orders: OrderBy[]
-	top: number
+	limit: number
 	variables: ISlicer[]
 	slicers: ISlicer[]
 	timeSlicers: TTimeSlicerParam[]
+	parameters: { name: string; value: string | number }[]
 	calculated_members: CalculatedMember[]
 }
 
@@ -130,9 +131,13 @@ export const ChatAnswerSchema = z.object({
 	dimensions: z.array(ChartDimensionSchema).optional().nullable().describe('The dimensions used by the chart'),
 	measures: z.array(ChartMeasureSchema).optional().nullable().describe('The measures or calculated members used by the chart'),
 	orders: z.array(OrderBySchema).optional().nullable().describe('The orders used by the chart'),
-	top: z.number().optional().nullable().describe('The number of top members'),
+	limit: z.number().optional().nullable().describe('The number of rows in the returned result. Note the difference with Top N parameters.'),
 	slicers: z.array(SlicerSchema).optional().nullable().describe('The slicers to filter data'),
 	timeSlicers: z.array(TimeSlicerSchema).optional().nullable().describe('The time slicers to filter data'),
+	parameters: z.array(z.object({
+		name: z.string().describe('The name of the parameter'),
+		value: z.string().or(z.number()).describe('The value of the parameter')
+	})).optional().nullable().describe('The parameters to the query of cube'),
 	variables: z.array(VariableSchema).optional().nullable().describe('The variables to the query of cube'),
 	calculated_members: z.array(CalculatedMeasureSchema).optional().nullable().describe('Temporary calculated members are used to supplement situations that cannot be met by current measures and indicators in cube.'),
 })

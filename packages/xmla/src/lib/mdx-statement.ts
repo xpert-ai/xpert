@@ -54,7 +54,8 @@ export function generateMDXStatement(query: MDXQuery, entityType: EntityType, di
     [...query.rows, ...query.columns].filter((item) => !isEmpty(item.members)),
     query.cube,
     entityType,
-    query.slicers
+    query.slicers,
+    query.parameters
   )
 
   // Add order measure before add calculated members

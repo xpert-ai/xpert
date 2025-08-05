@@ -98,7 +98,7 @@ export function Median(Set_Expression: string, Numeric_Expression?: string) {
  * @param Numeric_Expression
  * @returns
  */
-export function TopCount(Set_Expression: string, count: number, Numeric_Expression?: string) {
+export function TopCount(Set_Expression: string, count: number | string, Numeric_Expression?: string) {
   return `TopCount( ${Set_Expression}, ${count}${Numeric_Expression ? `, ${Numeric_Expression}` : ''} )`
 }
 /**
@@ -111,10 +111,10 @@ export function TopCount(Set_Expression: string, count: number, Numeric_Expressi
  * @param Numeric_Expression
  * @returns
  */
-export function TopPercent(Set_Expression: string, percentage: number, Numeric_Expression: string) {
+export function TopPercent(Set_Expression: string, percentage: number | string, Numeric_Expression: string) {
   return `TopPercent( ${Set_Expression}, ${percentage}${Numeric_Expression ? `, ${Numeric_Expression}` : ''} )`
 }
-export function TopSum(Set_Expression: string, value: number, Numeric_Expression: string) {
+export function TopSum(Set_Expression: string, value: number | string, Numeric_Expression: string) {
   return `TopSum( ${Set_Expression}, ${value}${Numeric_Expression ? `, ${Numeric_Expression}` : ''} )`
 }
 

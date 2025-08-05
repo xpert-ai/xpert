@@ -116,7 +116,7 @@ export async function updateXmlaCatalogContent(redisClient: RedisClientType, mod
 
 export function applySemanticModelDraft(model: ISemanticModel) {
 	if (model.draft) {
-		assign(model, omit(model.draft, 'savedAt', 'schema', 'settings', 'dbInitialization', 'tables'))
+		assign(model, omit(model.draft, 'savedAt', 'schema', 'settings', 'dbInitialization', 'tables', 'embedded'))
 		model.options = omitBy({
 			schema: model.draft.schema,
 			settings: model.draft.settings,

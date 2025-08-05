@@ -4,5 +4,9 @@
     },
     "Tools": {
         
+    },
+    "Model": {
+        "EmbeddingStart": "Embedding members for dimension '{{dimension}}' started.",
+        "EmbeddingComplete": "Embedding members for dimension '{{dimension}}' completed."
     }
 }

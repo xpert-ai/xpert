@@ -214,7 +214,7 @@ export interface AggregationProperty extends CalculationProperty {
   /**
    * for TopPercent TopCount
    */
-  value?: number
+  value?: number | string
   /**
    * Filter members by compare aggregated measure to value:
    * ```sql

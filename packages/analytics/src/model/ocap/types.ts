@@ -10,6 +10,9 @@ export function getSemanticModelKey(model: ISemanticModel) {
 	return model.id
 }
 
+/**
+ * Note: Keep the logic consistent with `registerModel` on the front end.
+ */
 export function registerSemanticModel(model: ISemanticModel & {isDraft?: boolean}, isDraft: boolean, dsCoreService: DSCoreService, settings?: {language: string}) {
 	const modelKey = getSemanticModelKey(model)
 	const agentType = isNil(model.dataSource)
@@ -38,7 +41,7 @@ export function registerSemanticModel(model: ISemanticModel & {isDraft?: boolean
 		schema: {
 			...(model.options?.schema ?? {}),
 			// Use only released indicators
-			indicators: model.indicators?.filter((_) => _.status === IndicatorStatusEnum.RELEASED).map(convertOcapIndicatorResult)
+			indicators: model.indicators?.filter((_) => !_.status || _.status === IndicatorStatusEnum.RELEASED).map(convertOcapIndicatorResult)
 		}
 	} as DataSourceOptions
 

@@ -43,7 +43,10 @@ export type TSemanticModelOptions<T = Schema> = {
    */
   schema?: T
   settings?: TSemanticModelSettings
-  // Is embedded members of every `cube:dimension`
+  /**
+   * Is embedded members of every `cube:dimension`
+   * Be cleaned up when publish
+   */
   embedded?: Record<string, Record<string, boolean>>
 }
 

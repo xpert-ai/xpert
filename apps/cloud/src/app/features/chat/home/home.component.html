@@ -410,7 +410,7 @@
 </ng-template>
 
 <ng-template #histories let-panel="panel">
-  <div class="flex flex-col gap-1 w-full min-w-0 relative">
+  <div class="flex flex-col w-full min-w-0 relative">
     @for (g of groups(); track g) {
       <div class="py-2 pl-2 text-sm font-semibold text-secondary whitespace-nowrap sticky -top-3 z-20"
         [class.bg-components-card-bg]="panel">{{g.name}}</div>

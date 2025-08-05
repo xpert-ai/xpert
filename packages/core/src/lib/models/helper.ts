@@ -256,7 +256,7 @@ export function getEntityParameters<T extends ParameterProperty>(entityType: Ent
   if (isNil(entityType?.parameters)) {
     return []
   }
-  return Object.values(entityType.parameters) as T[]
+  return Object.values(entityType.parameters).filter(isVisible) as T[]
 }
 
 export function getEntityVariables(entityType: EntityType): VariableProperty[] {

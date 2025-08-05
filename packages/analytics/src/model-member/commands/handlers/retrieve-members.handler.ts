@@ -1,7 +1,9 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Document } from '@langchain/core/documents'
-import { embeddingCubeCollectionName } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, embeddingCubeCollectionName, TChatEventMessage } from '@metad/contracts'
+import { t } from 'i18next'
 import { RetrieveMembersCommand } from '../retrieve-members.command'
 import { SemanticModelMemberService } from '../../member.service'
 import { CreateVectorStoreCommand } from '../create-vector-store.command'
@@ -28,7 +30,13 @@ export class RetrieveMembersHandler implements ICommandHandler<RetrieveMembersCo
 		const model = await this.modelService.findOne(modelId, { select: ['id', 'key', 'options'] })
 		// Check if the model has embedded members for the specified cube and dimension
 		if (reEmbedding || !model.options?.embedded?.[cube]?.[dimension]) {
-			// Embedding dimension members is not enabled
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+				id: `semantic-model-${modelId}-${cube}-${dimension}`,
+				title: t('analytics:Model.EmbeddingStart', { dimension }),
+				status: 'running',
+				created_date: new Date().toISOString(),
+			} as TChatEventMessage)
+			
 			await this.commandBus.execute(new EmbeddingMembersCommand(dsCoreService, modelId, cube, {dimension, isDraft: false}))
 			// Update the status of embedded dimension
 			await this.modelService.updateModelOptions(modelId, (options) => {
@@ -43,6 +51,13 @@ export class RetrieveMembersHandler implements ICommandHandler<RetrieveMembersCo
 					}
 				}
 			})
+
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+				id: `semantic-model-${modelId}-${cube}-${dimension}`,
+				title: t('analytics:Model.EmbeddingComplete', { dimension }),
+				status: 'success',
+				end_date: new Date().toISOString(),
+			} as TChatEventMessage)
 		}
 
 		// Instantiate vector store with embeddings
