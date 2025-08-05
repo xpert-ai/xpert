@@ -35,6 +35,10 @@ import {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
       useExisting: forwardRef(() => NgmMDXEditorComponent)
+    },
+    {
+      provide: NgmBaseEditorDirective,
+      useExisting: NgmMDXEditorComponent
     }
   ]
 })

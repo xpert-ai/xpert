@@ -1,3 +1,7 @@
+:host {
+  @apply overflow-auto;
+}
+
 .mat-selection-list {
   max-height: 100%;
   overflow-y: auto;

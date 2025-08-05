@@ -2512,7 +2512,7 @@
       "Apply": "应用",
       "Executions": "执行记录",
       "Type": "类型",
-      "ShowDiagram": "显示图表",
+      "ShowDiagram": "显示结构图",
       "RefreshExternalXpert": "刷新，同步外部专家配置",
       "Reducer": "归约",
       "ParallelToolCalls": "并行工具调用",
