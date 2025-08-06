@@ -139,20 +139,21 @@ export class XpertChatAppComponent {
         if (conv?.id) {
           const xpertId = conv.xpertId ?? ''
           this.homeService.conversations.update((state) => {
-            state[xpertId] ??= []
-            const index = state[xpertId].findIndex((_) => _.id === conv.id)
+            const items = state[xpertId]?.items ?? []
+            const index = items.findIndex((_) => _.id === conv.id)
             if (index > -1) {
-              state[xpertId][index] = {
-                ...state[xpertId][index],
+              items[index] = {
+                ...items[index],
                 ...conv
               }
-              return {
-                ...state
-              }
             } else {
-              return {
-                ...state,
-                [xpertId]: [{ ...conv }, ...(state[xpertId] ?? [])]
+              items.push(conv)
+            }
+            return {
+              ...state,
+              [xpertId]: {
+                ...(state[xpertId] ?? {}),
+                items: [...items]
               }
             }
           })

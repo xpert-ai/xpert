@@ -52,8 +52,10 @@ export class XpertHomeService {
   readonly #models: Record<string, Observable<ISemanticModel>> = {}
   readonly #publicModels: Record<string, Observable<ISemanticModel>> = {}
 
-  // Conversations
-  readonly conversations = signal<Record<string, IChatConversation[]>>({})
+  /**
+   * Conversations cache for xperts
+   */
+  readonly conversations = signal<Record<string, {xpert?: IXpert; items: IChatConversation[]; search?: string}>>({})
 
   // Canvas
   private canvasEffect = effect(
@@ -112,7 +114,10 @@ export class XpertHomeService {
     this.conversations.update((state) => {
       return {
         ...state,
-        [xpertId]: state[xpertId]?.filter((item) => item.id !== id)
+        [xpertId]: {
+          ...(state[xpertId] ?? {}),
+          items: state[xpertId]?.items.filter((item) => item.id !== id)
+        }
       }
     })
     return this.conversationService.delete(id)

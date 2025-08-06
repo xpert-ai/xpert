@@ -18,6 +18,14 @@
 </div>
 
 <div class="container relative w-[600px] h-[600px]" [class.expand]="expand()">
+  @if (_filterXpert(); as xpert) {
+    <div class="p-1">
+      <span class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-2 py-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+        {{xpert.title || xpert.name}}
+        <i class="ri-close-circle-line cursor-pointer text-text-tertiary hover:text-text-primary" (click)="filterXpert(null)"></i>
+      </span>
+    </div>
+  }
   <div class="grid h-full relative grid-cols-2 xl:grid-cols-5">
     <div
       class="conversations col-span-2 xl:col-span-5 h-full overflow-auto space-y-3 p-3 border-r border-border"
@@ -28,8 +36,9 @@
         waIntersectionThreshold="0.5"
       >
         <ul>
-          @for (group of groups(); track groups.name) {
-            <div class="pt-8 text-sm font-semibold text-ellipsis overflow-hidden break-all text-token-text-primary">
+          @for (group of groups(); track groups.name; let first = $first) {
+            <div class="text-sm font-semibold text-ellipsis overflow-hidden break-all text-token-text-primary"
+              [class.pt-8]="!first">
               {{ 'PAC.KEY_WORDS.Date_' + group.name | translate: {Default: group.name} }}
             </div>
             @for (item of group.values; track item.id) {
@@ -48,11 +57,14 @@
                     </span>
                   }
                   @if (item.xpert) {
-                    <span class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                    <span class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono cursor-pointer text-gray-600 bg-slate-50"
+                      (click)="filterXpert(item.xpert);">
                       @if (item.taskId) {
                         <i class="ri-timer-line"></i>
                       }
-                      {{item.xpert.title || item.xpert.name}}
+                      <span>
+                        {{item.xpert.title || item.xpert.name}}
+                      </span>
                     </span>
                   }
                 }

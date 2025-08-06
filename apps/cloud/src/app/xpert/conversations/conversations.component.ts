@@ -8,6 +8,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   ElementRef,
   inject,
   model,
@@ -21,7 +22,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
-import { PaginationParams } from '@metad/cloud/state'
+import { IXpert, PaginationParams } from '@metad/cloud/state'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -92,9 +93,10 @@ export class ChatConversationsComponent {
   readonly xpertId = signal(this.#data.xpertId ?? '')
 
   readonly sidenavOpened = model(!this.isMobile())
+  readonly #cache = computed(() => this.homeService.conversations()[this.xpertId()]) 
   readonly groups = computed(() => {
-    const conversations = this.homeService.conversations()
-    return conversations[this.xpertId()] ? groupConversations(conversations[this.xpertId()]) : []
+    const cache = this.#cache()
+    return cache ? groupConversations(cache.items) : []
   })
 
   readonly editingConversation = signal<string>(null)
@@ -106,6 +108,7 @@ export class ChatConversationsComponent {
   readonly pagesCompleted = this.homeService.pagesCompleted
   
   readonly expand = signal(false)
+  readonly _filterXpert = signal<IXpert>(null)
   readonly searchControl = new FormControl()
   get searchValue() {
     return this.searchControl.value
@@ -121,6 +124,14 @@ export class ChatConversationsComponent {
 
   constructor() {
     this.onIntersection()
+
+    effect(() => {
+      const cache = this.#cache()
+      if (cache) {
+        this.searchControl.setValue(cache.search ?? null, { emitEvent: false })
+        this._filterXpert.set(cache.xpert ?? null)
+      }
+    }, { allowSignalWrites: true })
   }
 
   selectConversation(item: IChatConversation) {
@@ -171,7 +182,7 @@ export class ChatConversationsComponent {
     this.homeService.conversations.update((state) => {
       return {
         ...state,
-        [this.xpertId()]: []
+        [this.xpertId()]: {items: [], xpert: this._filterXpert(), search: this.searchControl.value}
       }
     })
     this.pagesCompleted.set(false)
@@ -199,8 +210,8 @@ export class ChatConversationsComponent {
           if (this.projectId()) {
             where.projectId = this.projectId()
           }
-          if (this.xpertId())  {
-            where.xpertId = this.xpertId()
+          if (this.xpertId() || this._filterXpert())  {
+            where.xpertId = this.xpertId() || this._filterXpert()?.id
           }
           return this.conversationService.getMyInOrg({
             select: ['id', 'threadId', 'title', 'updatedAt', 'from', 'projectId'],
@@ -218,14 +229,23 @@ export class ChatConversationsComponent {
             this.homeService.conversations.update((state) => {
               return {
                 ...state,
-                [this.xpertId()]: [...(state[this.xpertId()] ?? []), ...items]
+                [this.xpertId()]: {
+                  xpert: this._filterXpert(),
+                  search: this.searchControl.value,
+                  items: [...(state[this.xpertId()]?.items ?? []), ...items]
+                }
               }
             })
           } else {
             this.homeService.conversations.update((state) => {
               return {
                 ...state,
-                [this.xpertId()]: [...items]
+                [this.xpertId()]: 
+                {
+                  xpert: this._filterXpert(),
+                  search: this.searchControl.value,
+                  items: [...items]
+                }
               }
             })
           }
@@ -246,6 +266,13 @@ export class ChatConversationsComponent {
     if (!this.loading() && !this.pagesCompleted()) {
       this.loadConversations()
     }
+  }
+
+  filterXpert(value: IXpert) {
+    this._filterXpert.set(value)
+    this.currentPage.set(0)
+    this.pagesCompleted.set(false)
+    this.onIntersection()
   }
 
   openInTab(conv: IChatConversation) {
