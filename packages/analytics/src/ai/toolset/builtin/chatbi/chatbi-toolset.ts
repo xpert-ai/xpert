@@ -56,13 +56,14 @@ import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { z } from 'zod'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, extractDataValue, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixDimensions } from './types'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, extractDataValue, limitDataResults, TChatBICredentials, tryFixDimensions } from './types'
 import { buildDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
 import { fixMeasure, markdownCubes, tryFixChartType, tryFixFormula } from '../../types'
 import { TBIContext } from '../../../types'
 import { GetBIContextQuery } from '../../../queries'
 import { IndicatorSchema } from '../../schema'
 import { TOOL_CHATBI_PROMPTS_DEFAULT } from './prompts'
+import { BIVariableEnum, mapTimeSlicer } from '../bi-toolset'
 
 
 function cubesReducer(a, b) {
@@ -135,7 +136,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				description: 'Cubes contexts',
 			} as TStateVariable,
 			{
-				name: ChatBIVariableEnum.INDICATORS,
+				name: BIVariableEnum.INDICATORS,
 				type: 'array[object]',
 				description: 'Indicators in cube',
 				reducer: (a: IIndicator[], b: IIndicator[]) => {
@@ -334,7 +335,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							let entityType = await this.getCubeCache(item.modelId, item.name)
 							if (!entityType) {
 								// Update runtime indicators
-								const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]
+								const indicators = currentState?.[BIVariableEnum.INDICATORS]
 								if (indicators) {
 									await this.updateIndicators(dsCoreService, indicators)
 								}
@@ -418,7 +419,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				const answer = params as ChatAnswer
 
 				// Update runtime indicators
-				const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]
+				const indicators = currentState?.[BIVariableEnum.INDICATORS]
 				if (indicators) {
 					await this.updateIndicators(dsCoreService, indicators)
 				}
@@ -501,7 +502,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 		const lang = currentState?.[STATE_VARIABLE_SYS]?.language
-		const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
+		const indicators = currentState?.[BIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
 		const chartService = new ChartBusinessService(dsCoreService)
 		const destroy$ = new Subject<void>()
 
@@ -678,6 +679,9 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	}
 
 	/**
+	 * 
+	 * @deprecated use `calculated_members` in `ChatAnswer` instead.
+	 * 
 	 * Create a tool for creating indicator for cube in semantic model.
 	 * Responsible for checking the validity of the formula so that LLM can redo it on the spot.
 	 *
@@ -719,7 +723,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 				return new Command({
 					update: {
-						[ChatBIVariableEnum.INDICATORS]: [_indicator],
+						[BIVariableEnum.INDICATORS]: [_indicator],
 						// update the message history
 						messages: [
 							{

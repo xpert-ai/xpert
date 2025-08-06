@@ -3,7 +3,7 @@ import {
 	ChartMeasureSchema,
 	OrderBySchema,
 	SlicerSchema,
-	TimeSlicerSchema,
+	TimeGranularity,
 	VariableSchema
 } from '@metad/ocap-core'
 import { z } from 'zod'
@@ -62,6 +62,28 @@ export const IndicatorSchema = z.object({
 				`SELECT { [Measures].[The unique code of indicator] } ON COLUMNS, { <dimensions> } ON ROWS FROM [cube]`
 		)
 })
+
+export const TimeSlicerSchema = z.object({
+	// dimension: z
+	//   .object({
+	// 	dimension: z.string().describe('The name of the dimension'),
+	// 	hierarchy: z.string().optional().nullable().describe('The name of the hierarchy in the dimension')
+	//   })
+	//   .describe('the time dimension'),
+	dimension: z.string().describe('The name of time dimension'),
+	hierarchy: z.string().optional().nullable().describe('The name of selected hierarchy in time dimension'),
+	granularity: z
+		.enum([
+			TimeGranularity.Year,
+			TimeGranularity.Quarter,
+			TimeGranularity.Month,
+			TimeGranularity.Week,
+			TimeGranularity.Day
+		])
+		.describe('The granularity of the time range'),
+	start: z.string().describe('The start period of the time range, the format must conform to the time granularity, example: Day 20210101, Year 2022, Month 202101, Quarter 2022Q1, Week 2021W1'),
+	end: z.string().optional().nullable().describe('The end period of the time range, the format must conform to the time granularity'),
+  })
 
 export const PreviewCubeSchema = z.object({
 	preface: z.string().describe('preface of the answer'),

@@ -25,6 +25,9 @@ export const BaseSlicerSchema = {
 
 export const SlicerSchema = z.object({...BaseSlicerSchema})
 
+/**
+ * @deprecated 
+ */
 export const TimeSlicerSchema = z.object({
   dimension: z
     .object({

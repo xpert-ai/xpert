@@ -20,9 +20,6 @@ import {
 	OrderBySchema,
 	PieVariant,
 	SlicerSchema,
-	TimeGranularity,
-	TimeRangesSlicer,
-	TimeRangeType,
 	VariableSchema,
 	wrapLevelNumber,
 	wrapLevelUniqueName,
@@ -33,8 +30,9 @@ import { LanguagesEnum } from '@metad/contracts'
 import { omit } from '@metad/server-common'
 import { CommandBus } from '@nestjs/cqrs'
 import { z } from 'zod'
-import { LanguageSchema } from '../../schema'
+import { LanguageSchema, TimeSlicerSchema } from '../../schema'
 import { AbstractChatBIToolset } from './chatbi-toolset'
+import { TTimeSlicerParam } from '../bi-toolset'
 
 
 export enum ChatBIToolsEnum {
@@ -46,9 +44,7 @@ export enum ChatBIToolsEnum {
 	MEMBER_RETRIEVER = 'dimension_member_retriever'
 }
 
-export enum ChatBIVariableEnum {
-	INDICATORS = 'chatbi_indicators'
-}
+
 
 export type TChatBICredentials = {
 	models: string[]
@@ -86,39 +82,6 @@ export type ChatAnswer = {
 	parameters: { name: string; value: string | number }[]
 	calculated_members: CalculatedMember[]
 }
-
-
-export type TTimeSlicerParam = {
-	dimension: string
-	hierarchy: string
-	granularity: TimeGranularity
-	start: string
-	end: string
-}
-
-export const TimeSlicerSchema = z.object({
-	// dimension: z
-	//   .object({
-	// 	dimension: z.string().describe('The name of the dimension'),
-	// 	hierarchy: z.string().optional().nullable().describe('The name of the hierarchy in the dimension')
-	//   })
-	//   .describe('the time dimension'),
-	dimension: z.string().describe('The name of time dimension'),
-	hierarchy: z.string().optional().nullable().describe('The name of selected hierarchy in time dimension'),
-	granularity: z
-		.enum([
-			TimeGranularity.Year,
-			TimeGranularity.Quarter,
-			TimeGranularity.Month,
-			TimeGranularity.Week,
-			TimeGranularity.Day
-		])
-		.describe('The granularity of the time range'),
-	start: z.string().describe('The start period of time range in time granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
-	end: z.string().optional().nullable().describe('The end period of time range in time granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
-	// lookBack: z.number().optional().nullable().describe('The look back period in granularity'),
-	// lookAhead: z.number().optional().nullable().describe('The look ahead period in granularity')
-  })
 
 export const ChatAnswerSchema = z.object({
 	language: LanguageSchema.optional().nullable(),
@@ -268,24 +231,6 @@ export function tryFixDimensions(dimensions: ChartDimension[]) {
     }
 
 	return dimensions
-}
-
-export function mapTimeSlicer(param: TTimeSlicerParam[]): TimeRangesSlicer[] {
-  return param?.map((_) => {
-	return {
-		dimension: {
-			dimension: _.dimension,
-			hierarchy: _.hierarchy,
-		},
-		currentDate: 'TODAY',
-		ranges: [
-			{
-				...omit(_, 'dimension', 'hierarchy'),
-				type: TimeRangeType.Standard,
-			}
-		]
-	}
-  })
 }
 
 /**

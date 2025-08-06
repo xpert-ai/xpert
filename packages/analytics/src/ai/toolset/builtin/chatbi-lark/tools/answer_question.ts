@@ -9,8 +9,9 @@ import { getErrorMessage, race, shortuuid } from '@metad/server-common'
 import { ChatMessageTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { getContextVariable } from '@langchain/core/context'
-import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, extractDataValue, limitDataResults, mapTimeSlicer, TChatBICredentials } from '../../chatbi/types'
+import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, extractDataValue, limitDataResults, TChatBICredentials } from '../../chatbi/types'
 import { tryFixChartType } from '../../../types'
+import { BIVariableEnum, mapTimeSlicer } from '../../bi-toolset'
 
 
 export function createChatAnswerTool(
@@ -35,7 +36,7 @@ export function createChatAnswerTool(
 			const i18n = await chatbi.translate('toolset.ChatBI', {lang: language})
 			
 			// Update runtime indicators
-			const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]
+			const indicators = currentState?.[BIVariableEnum.INDICATORS]
 			if (indicators) {
 				await chatbi.updateIndicators(dsCoreService, indicators)
 			}
