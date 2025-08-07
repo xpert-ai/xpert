@@ -952,6 +952,7 @@
     },
     "MODEL": {
       "OpenModel": "打开模型",
+      "CreatedModelWorkspace": "已创建的模型工作空间",
       "ArrangeNodes": "排列节点",
       "CalculatedMembers": "计算成员",
       "NotIndexed": "未索引",
