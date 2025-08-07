@@ -10,7 +10,8 @@ import {
   input,
   model,
   signal,
-  viewChild
+  viewChild,
+  ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -26,8 +27,8 @@ import {
   FZoomDirective
 } from '@foblex/flow'
 import { SemanticModelServerService, TSemanticModelDraft } from '@metad/cloud/state'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
-import { Schema } from '@metad/ocap-core'
+import { attrModel, linkedModel, NgmOcapCoreService } from '@metad/ocap-angular/core'
+import { CalculationProperty, DeepPartial, isEntityType, ParameterProperty, Schema, Syntax } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IPoint } from '@foblex/2d'
 import { suuid } from '@cloud/app/@core'
@@ -36,11 +37,16 @@ import { Router } from '@angular/router'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { CubeStudioCubeComponent } from './cube/cube.component'
 import { CubeStudioInlineDimensionComponent } from './inline-dimension/inline-dimension.component'
-import { CubeStudioContextManuComponent } from './context-menu/menu.component'
+import { CubeStudioContextMenuComponent } from './context-menu/menu.component'
 import { CubeStudioSharedDimensionComponent } from './shared-dimension/shared-dimension.component'
 import { TCubeConnection, TCubeNode } from './types'
 import { layoutCubeGraph } from './layout'
 import { ModelStudioService } from '../model.service'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { filter, switchMap } from 'rxjs/operators'
+import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
+import { Dialog } from '@angular/cdk/dialog'
+import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 
 @Component({
   standalone: true,
@@ -59,7 +65,7 @@ import { ModelStudioService } from '../model.service'
     CubeStudioCubeComponent,
     CubeStudioSharedDimensionComponent,
     CubeStudioInlineDimensionComponent,
-    CubeStudioContextManuComponent
+    CubeStudioContextMenuComponent
   ],
   host: {
     class: 'xp-cube-studio'
@@ -72,8 +78,11 @@ export class CubeStudioComponent {
 
   readonly #studioService = inject(ModelStudioService)
   readonly modelAPI = inject(SemanticModelServerService)
+  readonly #coreService = inject(NgmOcapCoreService)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #router = inject(Router)
+  readonly #dialog = inject(Dialog)
+  readonly #vcr = inject(ViewContainerRef)
 
   // Inputs
   readonly draft = model<TSemanticModelDraft<Schema>>()
@@ -112,6 +121,8 @@ export class CubeStudioComponent {
   readonly dimensions = computed(() => this.cube()?.dimensions)
   readonly dimensionUsages = computed(() => this.cube()?.dimensionUsages)
   readonly measures = computed(() => this.cube()?.measures)
+  readonly calculations = attrModel(this.cube, 'calculations')
+  readonly parameters = attrModel(this.cube, 'parameters')
 
   // Fact name (table or sql alias)
   readonly factName = computed(() => {
@@ -226,6 +237,39 @@ export class CubeStudioComponent {
 
   readonly canvasLoaded = signal(false)
 
+  // Data Settings
+  readonly semanticModelKey = toSignal(this.#studioService.semanticModelKey$)
+  readonly entityType = derivedAsync(() => {
+    return this.cubeName()
+      ? this.#studioService.dataSource$.pipe(
+          filter((dataSource) => !!dataSource),
+          switchMap((dataSource) => dataSource.selectEntityType(this.cubeName())),
+          filter((entityType) => isEntityType(entityType))
+        )
+      : null
+  })
+  readonly dataSettings = computed(() => ({ dataSource: this.semanticModelKey(), entitySet: this.cubeName() }))
+
+  private entityUpdateEventSub = this.#coreService
+    ?.onEntityUpdate()
+    .pipe(takeUntilDestroyed())
+    .subscribe(({ type, dataSettings, parameter, property }) => {
+      if (type === 'Parameter') {
+        this.parameters.update((state) => {
+          const parameters = state ? [...state] : []
+          const index = parameters.findIndex((p) => p.__id__ === parameter.__id__)
+          if (index > -1) {
+            parameters[index] = {...parameter}
+          } else {
+            parameters.push({...parameter})
+          }
+          return parameters
+        })
+      } else {
+        // @todo
+      }
+    })
+
   // constructor() {
   //   effect(() => {
   //     console.log(this.cube())
@@ -336,5 +380,51 @@ export class CubeStudioComponent {
   openModelInNewTab() {
     const url = this.#router.createUrlTree(['/models', this.#studioService.model().id, 'cube', this.cube().__id__]).toString()
     window.open(url, '_blank')
+  }
+
+  onEditCalculation(member?: Partial<CalculationProperty>) {
+    this.#dialog.open<CalculationProperty>(
+      NgmCalculationEditorComponent,
+      {
+        viewContainerRef: this.#vcr,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          dataSettings: this.dataSettings(),
+          entityType: this.entityType(),
+          syntax: Syntax.MDX,
+          value: member
+        }
+      }).closed.subscribe({
+        next: (value) => {
+          if (value) {
+            this.calculations.update((state) => {
+              const calculations = [...(state ?? [])]
+              const index = calculations.findIndex((item) => item.__id__ === value.__id__)
+              if (index > -1) {
+                calculations[index] = {...value}
+              } else {
+                calculations.push({...value})
+              }
+              return calculations
+            })
+          }
+        }
+      })
+  }
+
+  onEditParameter(member?: Partial<ParameterProperty>) {
+    this.#dialog
+      .open(NgmParameterCreateComponent, {
+        viewContainerRef: this.#vcr,
+        data: {
+          dataSettings: this.dataSettings(),
+          entityType: this.entityType(),
+          name: member?.name
+        }
+      })
+      .closed.subscribe((result: DeepPartial<ParameterProperty>) => {
+        console.log(result)
+      })
   }
 }

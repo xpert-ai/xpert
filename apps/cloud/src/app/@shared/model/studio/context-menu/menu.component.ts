@@ -2,9 +2,10 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TranslateModule } from '@ngx-translate/core'
-import { PropertyDimension } from '@metad/ocap-core'
 import { suuid } from '@cloud/app/@core'
+import { attrModel } from '@metad/ocap-angular/core'
+import { PropertyDimension } from '@metad/ocap-core'
+import { TranslateModule } from '@ngx-translate/core'
 import { CubeStudioComponent } from '../studio.component'
 
 @Component({
@@ -18,12 +19,16 @@ import { CubeStudioComponent } from '../studio.component'
     class: 'xp-cube-studio-context-menu'
   }
 })
-export class CubeStudioContextManuComponent {
+export class CubeStudioContextMenuComponent {
   readonly studioComponent = inject(CubeStudioComponent)
 
   readonly cube = this.studioComponent.cube
   readonly schema = this.studioComponent.schema
   readonly sharedDimensions = computed(() => this.schema()?.dimensions)
+  readonly calculations = attrModel(this.studioComponent.cube, 'calculations')
+
+  readonly dataSettings = this.studioComponent.dataSettings
+  readonly entityType = this.studioComponent.entityType
 
   addSharedDimension(dimension: PropertyDimension) {
     this.cube.update((cube) => {
@@ -47,7 +52,7 @@ export class CubeStudioContextManuComponent {
         name: '',
         caption: '',
         description: '',
-        hierarchies: [],
+        hierarchies: []
       })
       return { ...cube, dimensions }
     })
@@ -60,7 +65,7 @@ export class CubeStudioContextManuComponent {
         __id__: suuid(),
         name: '',
         caption: '',
-        description: '',
+        description: ''
       })
       return { ...cube, measures }
     })
@@ -74,9 +79,17 @@ export class CubeStudioContextManuComponent {
         name: '',
         caption: '',
         description: '',
-        formula: '',
+        formula: ''
       })
       return { ...cube, calculatedMembers }
     })
+  }
+
+  onCreateCalculation() {
+    this.studioComponent.onEditCalculation()
+  }
+
+  onCreateParameter() {
+    this.studioComponent.onEditParameter()
   }
 }

@@ -14,6 +14,10 @@ export class EmbeddingMembersCommand implements ICommand {
         public readonly params: {
             dimension?: string
             isDraft?: boolean
+            /**
+             * Message ID for tracking the embedding process, useful for UI updates or logging
+             */
+            messageId?: string
         }
     ) {}
 }

@@ -615,7 +615,7 @@ export class ModelCubeStructureComponent {
     })
   }
 
-  onEditCalculation(member?: Partial<CalculatedMember>) {
+  onEditCalculation(member?: Partial<CalculationProperty>) {
      this.#dialog.open<CalculationProperty>(
         NgmCalculationEditorComponent,
         {

@@ -13,7 +13,7 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { TMessageContentMembers } from '@metad/cloud/state'
+import { ChatDashboardMessageType, TMessageContentCube, TMessageContentMembers } from '@metad/cloud/state'
 import { OverlayAnimation1 } from '@metad/core'
 import { attrModel, linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
@@ -24,7 +24,7 @@ import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
 import { ModelMemberEditComponent } from './edit/edit.component'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
-import { MatDialog } from '@angular/material/dialog'
+import { ModelCubeComponent } from '../cube/cube.component'
 
 @Component({
   standalone: true,
@@ -32,7 +32,7 @@ import { MatDialog } from '@angular/material/dialog'
   selector: 'xp-model-members',
   templateUrl: 'members.component.html',
   styleUrls: ['members.component.scss'],
-  imports: [CommonModule, FormsModule, DragDropModule, MatTooltipModule, TranslateModule, ModelMemberEditComponent],
+  imports: [CommonModule, FormsModule, DragDropModule, MatTooltipModule, TranslateModule, ModelCubeComponent, ModelMemberEditComponent],
   host: {
     class: 'xp-model-members'
   },
@@ -54,6 +54,7 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
 
   readonly #modelId = computed(() => this.data()?.data?.modelId)
   readonly #cubeName = computed(() => this.data()?.data?.cubeName)
+  readonly cubeData = computed(() => ({type: ChatDashboardMessageType.Cube, data: this.data().data} as TMessageContentCube))
 
   readonly memberKey = signal<string>(null)
 
@@ -101,6 +102,8 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
   })
 
   readonly calculations = attrModel(this.cube, 'calculations')
+
+  readonly openedCube = signal<boolean>(false)
 
   constructor() {
     super()
@@ -181,5 +184,13 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
       .closed.subscribe((result: DeepPartial<ParameterProperty>) => {
         console.log(result)
       })
+  }
+
+  openCube() {
+    this.openedCube.set(true)
+  }
+
+  closeCube() {
+    this.openedCube.set(false)
   }
 }

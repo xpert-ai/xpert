@@ -1,11 +1,12 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { ChatMessageEventTypeEnum, embeddingCubeCollectionName, TChatEventMessage } from '@metad/contracts'
 import { getEntityProperty, isEntityType, uuid } from '@metad/ocap-core'
-import { embeddingCubeCollectionName } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { firstValueFrom } from 'rxjs'
+import { PGMemberVectorStore } from '../../vector-store'
 import { CreateVectorStoreCommand } from '../create-vector-store.command'
 import { EmbeddingMembersCommand } from '../embedding.command'
-import { PGMemberVectorStore } from '../../vector-store'
 
 const EMBEDDING_BATCH_SIZE = 50
 
@@ -20,7 +21,7 @@ export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembers
 
 	public async execute(command: EmbeddingMembersCommand) {
 		const { dsCoreService, modelKey, cube } = command
-		const { dimension, isDraft } = command.params ?? {}
+		const { dimension, isDraft, messageId } = command.params ?? {}
 
 		const modelDataSource = await firstValueFrom(dsCoreService.getDataSource(modelKey))
 
@@ -33,9 +34,7 @@ export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembers
 
 		const dimensionProperty = getEntityProperty(entityType, dimension)
 		if (!dimensionProperty) {
-			throw new Error(
-				`No property found for cube '${entityType.name}' and dimension '${dimension}'`
-			)
+			throw new Error(`No property found for cube '${entityType.name}' and dimension '${dimension}'`)
 		}
 		let members = []
 		for (const hierarchy of dimensionProperty.hierarchies) {
@@ -49,7 +48,9 @@ export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembers
 		}
 
 		const collectionName = embeddingCubeCollectionName(modelKey, cube, isDraft)
-		const vectorStore = await this.commandBus.execute<CreateVectorStoreCommand, PGMemberVectorStore>(new CreateVectorStoreCommand(collectionName))
+		const vectorStore = await this.commandBus.execute<CreateVectorStoreCommand, PGMemberVectorStore>(
+			new CreateVectorStoreCommand(collectionName)
+		)
 		await vectorStore.deleteDimension(dimension)
 
 		let count = 0
@@ -68,15 +69,26 @@ export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembers
 			// 	})
 			// )
 
-			await vectorStore.addMembers(batch.map((item) => ({...item, id: uuid()})), entityType)
+			await vectorStore.addMembers(
+				batch.map((item) => ({ ...item, id: uuid() })),
+				entityType
+			)
 
 			count++
 			const progress =
 				EMBEDDING_BATCH_SIZE * count >= members.length
 					? 100
 					: (((EMBEDDING_BATCH_SIZE * count) / members.length) * 100).toFixed(1)
-			
+
 			this.logger.debug(`Progress: ${progress}% for dimension '${dimension}' in cube '${cube}'`)
+
+			if (messageId) {
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+					id: messageId,
+					message: `${progress}%`,
+					status: 'running'
+				} as TChatEventMessage)
+			}
 		}
 
 		return

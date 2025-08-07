@@ -1,17 +1,17 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectToastr, TMessageContentCube } from '@cloud/app/@core'
 import { SemanticModelServerService } from '@metad/cloud/state'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ModelChecklistComponent } from '../checklist/checklist.component'
 import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
 import { CubeStudioComponent } from '../studio/studio.component'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { ModelChecklistComponent } from '../checklist/checklist.component'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: true,
@@ -19,7 +19,16 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
   selector: 'xp-model-cube',
   templateUrl: 'cube.component.html',
   styleUrls: ['cube.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule, MatTooltipModule, NgmSpinComponent, ModelChecklistComponent, CubeStudioComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    CdkMenuModule,
+    MatTooltipModule,
+    NgmSpinComponent,
+    ModelChecklistComponent,
+    CubeStudioComponent
+  ],
   host: {
     class: 'xp-model-cube'
   },

@@ -11,6 +11,7 @@ identity:
   icon: icon.svg
   tags:
     - analysis
+  help_url: /docs/ai/tool/bi/indicators
 credentials_for_provider:
   models:
     type: remote-select

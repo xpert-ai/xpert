@@ -26,7 +26,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { filter, switchMap } from 'rxjs'
 import { ModelStudioService } from '../../model.service'
-import { CubeStudioContextManuComponent } from '../context-menu/menu.component'
+import { CubeStudioContextMenuComponent } from '../context-menu/menu.component'
 import { CubeStudioComponent } from '../studio.component'
 import { TCubeNode } from '../types'
 import { CubeStudioCalculatedSettingsComponent } from './calculated/calculated.component'
@@ -57,7 +57,7 @@ import { OverlayAnimation1 } from '@metad/core'
     CubeStudioDimensionSettingsComponent,
     CubeStudioMeasureSettingsComponent,
     CubeStudioCalculatedSettingsComponent,
-    CubeStudioContextManuComponent
+    CubeStudioContextMenuComponent
   ],
   host: {
     class: 'xp-cube-studio-cube'
@@ -334,7 +334,7 @@ export class CubeStudioCubeComponent {
         data: {
           dataSettings: this.dataSettings(),
           entityType: this.entityType(),
-          name: member?.name
+          parameter: member
         }
       })
       .closed.subscribe((result: DeepPartial<ParameterProperty>) => {

@@ -34,6 +34,7 @@ import {
   getEntityHierarchy,
   IMember,
   isNil,
+  ParameterProperty,
   suuid,
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -73,13 +74,12 @@ export class NgmParameterCreateComponent {
       dataSettings: DataSettings
       entityType: EntityType
       dimension: Dimension
+      parameter?: ParameterProperty
     }>(DIALOG_DATA, { optional: true })
+  readonly _formBuilder = inject(FormBuilder)
 
   // Inputs
   readonly appearance = input<MatFormFieldAppearance>('fill')
-  // readonly label = input<string>('Parameter')
-  // @Input() appearance: MatFormFieldAppearance = 'fill'
-  // @Input() label = 'Parameter'
   readonly dataSettings = model<DataSettings>()
   readonly entityType = model<EntityType>()
 
@@ -155,30 +155,18 @@ export class NgmParameterCreateComponent {
     map((type) => type === 'string' ? 'text' : type)
   ))
 
-  constructor(
-    private readonly _formBuilder: FormBuilder,
-    // @Optional()
-    // private readonly _dialogRef?: MatDialogRef<NgmParameterCreateComponent>,
-    // @Optional()
-    // @Inject(MAT_DIALOG_DATA)
-    // public data?: {
-    //   name: string
-    //   dataSettings: DataSettings
-    //   entityType: EntityType
-    //   dimension: Dimension
-    // }
-  ) {
+  constructor() {
     if (this.#data) {
       this.dataSettings.set(this.#data.dataSettings)
       this.entityType.set(this.#data.entityType)
 
-      if (this.#data.name) {
+      if (this.#data.name || this.#data.parameter) {
         this.edit.set(true)
-        const property = this.entityType()?.parameters?.[this.#data.name]
+        const property = this.#data.parameter || this.entityType()?.parameters?.[this.#data.name]
         this.formGroup.patchValue(property ?? {})
         this.slicer = {
           ...this.slicer,
-          members: [...(property.availableMembers ?? [])]
+          members: [...(property?.availableMembers ?? [])]
         }
       } else {
         this.formGroup.patchValue(this.#data.dimension)

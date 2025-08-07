@@ -1,22 +1,34 @@
 <div cdkMenu class="cdk-menu__large">
   <button type="button" cdkMenuItem [cdkMenuTriggerFor]="dimsMenu">
-    <i class="ri-add-line mr-1"></i>
+    <i class="ri-gallery-view mr-1"></i>
     {{ 'PAC.MODEL.AddSharedDimension' | translate: {Default: 'Add Shared Dimension'} }}
   </button>
   <button type="button" cdkMenuItem (click)="addInlineDimension()">
-    <i class="ri-add-line mr-1"></i>
+    <i class="ri-hashtag mr-1"></i>
     {{ 'PAC.MODEL.AddInlineDimension' | translate: {Default: 'Add Inline Dimension'} }}
   </button>
   <button type="button" cdkMenuItem 
     (click)="addMeasure()">
-    <i class="ri-add-line mr-1"></i>
+    <i class="ri-ruler-line mr-1"></i>
     {{ 'PAC.MODEL.AddMeasure' | translate: {Default: 'Add Measure'} }}
   </button>
 
-  <button type="button" cdkMenuItem 
+  <button type="button" cdkMenuItem
     (click)="addCalculatedMember()">
-    <i class="ri-add-line mr-1"></i>
+    <i class="ri-formula mr-1"></i>
     {{ 'PAC.MODEL.AddCalculatedMember' | translate: {Default: 'Add Calculated Member'} }}
+  </button>
+
+  <button type="button" cdkMenuItem
+    (click)="onCreateCalculation()">
+    <i class="ri-functions mr-1"></i>
+    {{ 'PAC.MODEL.AddCalculation' | translate: {Default: 'Add Calculation'} }}
+  </button>
+
+  <button type="button" cdkMenuItem
+    (click)="onCreateParameter()">
+    <i class="ri-at-line mr-1"></i>
+    {{ 'PAC.MODEL.AddParameter' | translate: {Default: 'Add Parameter'} }}
   </button>
 </div>
 

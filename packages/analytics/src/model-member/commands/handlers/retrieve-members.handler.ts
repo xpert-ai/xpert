@@ -30,14 +30,15 @@ export class RetrieveMembersHandler implements ICommandHandler<RetrieveMembersCo
 		const model = await this.modelService.findOne(modelId, { select: ['id', 'key', 'options'] })
 		// Check if the model has embedded members for the specified cube and dimension
 		if (reEmbedding || !model.options?.embedded?.[cube]?.[dimension]) {
+			const messageId = `semantic-model-${modelId}-${cube}-${dimension}`
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
-				id: `semantic-model-${modelId}-${cube}-${dimension}`,
+				id: messageId,
 				title: t('analytics:Model.EmbeddingStart', { dimension }),
 				status: 'running',
 				created_date: new Date().toISOString(),
 			} as TChatEventMessage)
 			
-			await this.commandBus.execute(new EmbeddingMembersCommand(dsCoreService, modelId, cube, {dimension, isDraft: false}))
+			await this.commandBus.execute(new EmbeddingMembersCommand(dsCoreService, modelId, cube, {dimension, isDraft: false, messageId}))
 			// Update the status of embedded dimension
 			await this.modelService.updateModelOptions(modelId, (options) => {
 				return {
@@ -53,7 +54,7 @@ export class RetrieveMembersHandler implements ICommandHandler<RetrieveMembersCo
 			})
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
-				id: `semantic-model-${modelId}-${cube}-${dimension}`,
+				id: messageId,
 				title: t('analytics:Model.EmbeddingComplete', { dimension }),
 				status: 'success',
 				end_date: new Date().toISOString(),

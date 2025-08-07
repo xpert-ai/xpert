@@ -3,23 +3,32 @@
     {{ 'PAC.MODEL.CalculatedMembers' | translate: {Default: 'Calculated Members'} }}
   </div>
 
-  <button class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+  <div class="flex items-center space-x-2">
+    <button class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
         bg-transparent hover:bg-hover-bg"
-    [disabled]="!dirty() || saving()"
-    (click)="save()">
-    <i class="ri-save-line"></i>
-    @if (dirty()) {
-      <span class="absolute top-1 end-1 inline-flex items-center transform -translate-y-1/2 translate-x-1/2">
-        @if (saving()) {
-          <i class="ri-loader-line text-xs animate-spin"></i>
-        } @else {
-          <span class="w-3 h-3 rounded-full border-2 border-white text-xs font-medium bg-text-warning text-white dark:border-neutral-900">
-            <span class="sr-only">Is dirty</span>
-          </span>
-        }
-      </span>
-    }
-  </button>
+      [matTooltip]="'PAC.MODEL.OpenCube' | translate: {Default: 'Open cube'}"
+      (click)="openCube()">
+      <i class="ri-instance-line"></i>
+    </button>
+ 
+    <button class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+          bg-transparent hover:bg-hover-bg"
+      [disabled]="!dirty() || saving()"
+      (click)="save()">
+      <i class="ri-save-line"></i>
+      @if (dirty()) {
+        <span class="absolute top-1 end-1 inline-flex items-center transform -translate-y-1/2 translate-x-1/2">
+          @if (saving()) {
+            <i class="ri-loader-line text-xs animate-spin"></i>
+          } @else {
+            <span class="w-3 h-3 rounded-full border-2 border-white text-xs font-medium bg-text-warning text-white dark:border-neutral-900">
+              <span class="sr-only">Is dirty</span>
+            </span>
+          }
+        </span>
+      }
+    </button>
+  </div>
 </div>
 
 <ul class="p-1 overflow-auto">
@@ -43,4 +52,15 @@
     [cubeName]="cubeName()"
     (close)="memberKey.set(null)"
   />
+}
+
+@if (openedCube()) {
+  <xp-model-cube class="!absolute top-0 left-0 w-full h-full rounded-2xl bg-white hover:bg-neutral-100 border border-solid border-divider-regular shadow-sm"
+    [data]="cubeData()">
+    <button action class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+      (click)="closeCube()">
+      <i class="ri-close-line"></i>
+    </button>
+  </xp-model-cube>
 }

@@ -1,4 +1,5 @@
 <xp-cube-studio [cubeName]="cubeName()" [(draft)]="draft">
+
   @if (error()) {
     <div class="w-7 h-7 flex justify-center items-center">
       <i class="ri-bug-line text-text-destructive" [matTooltip]="error()" matTooltipPosition="above"></i>
@@ -31,6 +32,8 @@
       </span>
     }
   </button>
+
+  <ng-content select="[action]"></ng-content>
 </xp-cube-studio>
 
 @if (loading()) {
