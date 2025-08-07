@@ -446,9 +446,21 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async saveDraft(id: string, draft: TSemanticModelDraft) {
 		const model = await this.findOne(id)
+		if (model.draft?.version && model.draft.version !== draft.version) {
+			throw new NotFoundException(
+				await this.i18nService.t('analytics.Error.SemanticModelDraftVersionNotFound', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						model: id,
+						version: draft.version
+					}
+				})
+			)
+		}
 		model.draft = {
 			...draft,
-			savedAt: new Date()
+			savedAt: new Date(),
+			version: model.draft?.version ? model.draft.version + 1 : 1
 		} as TSemanticModelDraft
 
 		model.draft.checklist = await this.validate(model.draft)

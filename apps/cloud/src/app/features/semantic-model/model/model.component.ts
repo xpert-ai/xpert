@@ -257,6 +257,7 @@ export class ModelComponent extends TranslationBaseComponent {
   readonly tables = toSignal(this.selectDBTables$)
 
   readonly unsaved = this.modelService.unsaved
+  readonly saveDraftError = this.modelService.saveDraftError
   readonly draftSavedDate = this.modelService.draftSavedDate
   readonly latestPublishDate = this.modelService.latestPublishDate
   readonly publishing = signal(false)

@@ -240,6 +240,7 @@ export class SemanticModelService {
   readonly dialect = toSignal(this.model$.pipe(map((model) => model?.dataSource?.type?.type)))
   readonly isDirty = this.dirtyCheckResult.dirty
   readonly unsaved = signal(false)
+  readonly saveDraftError = signal<string>(null)
   readonly #savedAt = signal<Date>(null)
   readonly latestPublishDate = computed(() => this.model().publishAt)
   readonly draftSavedDate = computed(() => this.#savedAt() ?? this.draftSignal().savedAt)
@@ -259,18 +260,19 @@ export class SemanticModelService {
   // Subscriptions
   private saveDraftSub = this.draft$.pipe(
     skip(1),
-    map(() => calculateHash(JSON.stringify(this.draftSignal()))),
+    map(() => calculateHash(JSON.stringify(omit(this.draftSignal(), 'version', 'checklist')))),
     distinctUntilChanged(),
     tap(() => this.unsaved.set(true)),
     debounceTime(SaveDraftDebounceTime * 1000),
     switchMap(() => this.saveDraft()),
     catchError((err) => {
       this.#toastr.error(getErrorMessage(err))
+      this.saveDraftError.set(getErrorMessage(err))
       return EMPTY
     })
   ).subscribe({
-    next: ({checklist}) => {
-      this.updateDraft({checklist})
+    next: ({checklist, version}) => {
+      this.updateDraft({checklist, version})
     }
   })
 

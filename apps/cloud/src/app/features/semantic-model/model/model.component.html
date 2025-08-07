@@ -41,8 +41,15 @@
 
   <div class="flex justify-between items-center">
     <div class="flex items-center gap-2 h-[2rem] text-sm truncate opacity-50 mr-2">
-      @if (unsaved()) {
-        <span class="w-2 h-2 shrink-0 rounded-full cursor-pointer bg-green-500 shadow-md shadow-green-400"
+      @if (saveDraftError()) {
+        <span class="w-2 h-2 shrink-0 rounded-[3px] cursor-pointer bg-red-600 border border-solid border-red-800 shadow-md shadow-red-400"
+          [matTooltip]="saveDraftError()"
+          matTooltipPosition="above"
+          (click)="saveDraft()"
+        >
+        </span>
+      } @else if (unsaved()) {
+        <span class="w-2 h-2 shrink-0 rounded-[3px] cursor-pointer bg-green-500 border border-solid border-green-800 shadow-md shadow-green-400"
           [matTooltip]=" 'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} "
           matTooltipPosition="above"
           (click)="saveDraft()"
@@ -51,11 +58,12 @@
       }
       @if (draftSavedDate()) {
         <span class="truncate">{{ 'PAC.MODEL.AutoSave' | translate: {Default: 'Auto save'} }}</span>
-        <span class="font-mono">{{draftSavedDate() | relative}}</span>
+        <span class="font-mono text-xs">{{draftSavedDate() | relative}}</span>
       }
       @if (latestPublishDate()) {
         <span class="flex items-center mx-1">·</span>
-        {{ 'PAC.MODEL.Published' | translate: {Default: 'Published'} }} <span class="font-mono">{{latestPublishDate() | relative}}</span>
+        {{ 'PAC.MODEL.Published' | translate: {Default: 'Published'} }}
+        <span class="font-mono text-xs">{{latestPublishDate() | relative}}</span>
       }
     </div>
     <div class="flex items-center gap-2">
