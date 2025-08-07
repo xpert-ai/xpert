@@ -103,7 +103,8 @@ export class XpertOcapService {
               if (isDraftIndicators?.includes(_.code) && _.draft) {
                 return {
                   ..._,
-                  ..._.draft
+                  ..._.draft,
+                  status: null
                 }
               }
               return _

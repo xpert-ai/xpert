@@ -124,6 +124,10 @@
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem class="disabled:text-text-tertiary" (click)="openProject()">
+      <i class="ri-external-link-line mr-1"></i>
+      {{ 'PAC.INDICATOR.OpenProject' | translate: {Default: "Open Project"} }}
+    </button>
     <button cdkMenuItem class="disabled:text-text-tertiary" [disabled]="!indicator()?.draft" (click)="publish()">
       <i class="ri-send-plane-line mr-1"></i>
       {{ 'PAC.INDICATOR.Publish' | translate: {Default: "Publish"} }}

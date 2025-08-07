@@ -45,7 +45,8 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 				if (isDraftIndicators.includes(indicator.code) && indicator.draft) {
 					return {
 						...indicator,
-						...indicator.draft
+						...indicator.draft,
+						status: null // Reset status to null to avoid filter when registerSemanticModel
 					}
 				}
 				return indicator

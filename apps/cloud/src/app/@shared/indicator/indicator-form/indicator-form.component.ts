@@ -419,4 +419,9 @@ export class XpIndicatorFormComponent {
       this.contentElement().nativeElement.scrollTop = this.contentElement().nativeElement.scrollHeight
     } catch (err) {}
   }
+
+  openProject() {
+    this.#store.selectedProject = this.project()
+    window.open(`/project/indicators`, '_blank')
+  }
 }

@@ -90,12 +90,6 @@
     />
 
     <mat-checkbox formControlName="visible" class="my-4">{{ 'PAC.INDICATOR.REGISTER.Visible' | translate: {Default: 'Visible'} }}</mat-checkbox>
-
-    <ngm-hierarchy-select formControlName="calendar"
-      [appearance]="appearance"
-      [label]=" 'PAC.INDICATOR.REGISTER.Calendar' | translate: {Default: 'Calendar'} "
-      [dimensions]="calendars$ | async"
-    />
   </div>
 
   <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
@@ -109,9 +103,14 @@
     </mat-radio-group>
   </div>
 
-  <div class="section col-span-1 sm:col-span-2" formGroupName="options">
+  <div class="section col-span-1 sm:col-span-2 grid grid-cols-2 gap-2" formGroupName="options">
+    <ngm-hierarchy-select class="col-span-2 sm:col-span-1 mb-4" formControlName="calendar"
+      [appearance]="appearance"
+      [label]=" 'PAC.INDICATOR.REGISTER.Calendar' | translate: {Default: 'Calendar'} "
+      [dimensions]="calendars$ | async"
+    />
     @if (typeControl.value===IndicatorType.BASIC) {
-      <ngm-mat-select [appearance]="appearance"
+      <ngm-mat-select class="col-span-2 sm:col-span-1" [appearance]="appearance"
         label="{{ 'PAC.INDICATOR.REGISTER.MEASURE' | translate: {Default: 'Measure'} }}"
         placeholder="{{ 'PAC.INDICATOR.REGISTER.MEASURE_PLACEHOLDER' | translate: {Default: 'Select Measure'} }}"
         [loading]="entityTypeLoading$ | async"
@@ -119,7 +118,7 @@
         formControlName="measure"
       />
     } @else if (typeControl.value === IndicatorType.DERIVE) {
-      <mat-form-field class="col-span-1 sm:col-span-2" [appearance]="appearance">
+      <mat-form-field class="col-span-2" [appearance]="appearance">
         <mat-label>
           {{ 'PAC.INDICATOR.REGISTER.FORMULA' | translate: {Default: 'Formula'} }}
         </mat-label>
@@ -142,32 +141,29 @@
       />
     }
 
-    <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3 mt-4">
-      @if (typeControl.value===IndicatorType.DERIVE && (syntax$ | async) === Syntax.SQL) {
-        <ngm-mat-select [appearance]="appearance"
-          [label]=" 'PAC.INDICATOR.REGISTER.Aggregator' | translate: {Default: 'Aggregator'} "
-          placeholder="{{ 'PAC.INDICATOR.REGISTER.Aggregator' | translate: {Default: 'Aggregator'} }}"
-          [selectOptions]="AGGREGATORS"
-          formControlName="aggregator"
-        />
-      }
-
-      <ngm-mat-select class="col-span-1 sm:col-span-2" [appearance]="appearance"
-        label="{{ 'PAC.INDICATOR.REGISTER.DIMENSIONS' | translate: {Default: 'Free Dimensions'} }}"
-        placeholder="{{ 'PAC.INDICATOR.REGISTER.DIMENSIONS_PLACEHOLDER' | translate: {Default: 'Select Free Dimensions'} }}"
-        [loading]="entityTypeLoading$ | async"
-        [selectOptions]="dimensions$ | async"
-        multiple
-        formControlName="dimensions"
+    @if (typeControl.value===IndicatorType.DERIVE && (syntax$ | async) === Syntax.SQL) {
+      <ngm-mat-select [appearance]="appearance"
+        [label]=" 'PAC.INDICATOR.REGISTER.Aggregator' | translate: {Default: 'Aggregator'} "
+        placeholder="{{ 'PAC.INDICATOR.REGISTER.Aggregator' | translate: {Default: 'Aggregator'} }}"
+        [selectOptions]="AGGREGATORS"
+        formControlName="aggregator"
       />
+    }
 
-      <div class="col-span-1 sm:col-span-2 text-base font-medium">{{ 'PAC.INDICATOR.REGISTER.RestrictiveCondition' | translate: {Default: 'Restrictive Condition'} }}</div>
-      <ngm-slicers class="col-span-1 sm:col-span-2" editable inline
-        [dataSettings]="dataSettings$ | async"
-        [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.Variable]"
-        formControlName="filters"
-      />
-    </div>
-  
+    <ngm-mat-select class="col-span-2" [appearance]="appearance"
+      label="{{ 'PAC.INDICATOR.REGISTER.DIMENSIONS' | translate: {Default: 'Free Dimensions'} }}"
+      placeholder="{{ 'PAC.INDICATOR.REGISTER.DIMENSIONS_PLACEHOLDER' | translate: {Default: 'Select Free Dimensions'} }}"
+      [loading]="entityTypeLoading$ | async"
+      [selectOptions]="dimensions$ | async"
+      multiple
+      formControlName="dimensions"
+    />
+
+    <div class="col-span-2 text-base font-medium">{{ 'PAC.INDICATOR.REGISTER.RestrictiveCondition' | translate: {Default: 'Restrictive Condition'} }}</div>
+    <ngm-slicers class="col-span-2" editable inline
+      [dataSettings]="dataSettings$ | async"
+      [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.Variable]"
+      formControlName="filters"
+    />
   </div>
 </form>
