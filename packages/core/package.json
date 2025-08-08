@@ -1,6 +1,6 @@
 {
   "name": "@metad/ocap-core",
-  "version": "3.3.8",
+  "version": "3.4.0",
   "license": "AGPL-3.0",
   "dependencies": {
     "tslib": "^2.3.0"
