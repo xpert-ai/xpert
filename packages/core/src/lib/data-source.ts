@@ -96,10 +96,9 @@ export interface DataSourceOptions extends SemanticModel {
    */
   isDraft?: boolean
   /**
-   * Which indicators should use draft
+   * Is use indicators draft
    */
-  isDraftIndicators?: string[]
-
+  isIndicatorsDraft?: boolean
   /**
    * Key-value pairs of parameters for cube
    */

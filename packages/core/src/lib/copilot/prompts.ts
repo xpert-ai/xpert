@@ -1,4 +1,4 @@
-import { AggregationRole, EntityType, getDimensionHierarchies, getEntityDimensions, getEntityIndicators, getEntityMeasures, getEntityParameters, getEntityProperty, getHierarchyLevels, isAggregationProperty, isCalculatedProperty, isRestrictedMeasureProperty, PropertyMeasure, RuntimeLevelType, VariableEntryType, VariableProperty } from "../models";
+import { AggregationRole, EntityType, getDimensionHierarchies, getEntityDimensions, getEntityIndicators, getEntityMeasures, getEntityParameters, getEntityProperty, getHierarchyLevels, isAggregationProperty, isCalculatedProperty, isRestrictedMeasureProperty, RuntimeLevelType, VariableEntryType, VariableProperty } from "../models";
 import { nonBlank } from "../utils";
 import { MEMBER_RETRIEVER_TOOL_NAME } from "./constants"
 
@@ -12,12 +12,12 @@ export function prepend(prefix: string, text: string) {
 export function markdownEntityType(entityType: EntityType) {
 
   let context = `The cube definition for (${entityType.name}) is as follows:
-  name: ${entityType.name}
-  caption: ${entityType.caption || ''}
-  description: >
-  ${prepend('  ', entityType.description || entityType.caption)}
-  dimensions:
-  ${getEntityDimensions(entityType).filter((_) => !_.semantics?.hidden)
+name: ${entityType.name}
+caption: ${entityType.caption || ''}
+description: >
+${prepend('  ', entityType.description || entityType.caption)}
+dimensions:
+${getEntityDimensions(entityType).filter((_) => !_.semantics?.hidden)
       .map((dimension) =>
   [
     `  - name: "${dimension.name}"`,
@@ -36,7 +36,7 @@ export function markdownEntityType(entityType: EntityType) {
   `        description: >
   ${prepend('          ', item.description)}` : null,
   `        levels:
-  ${getHierarchyLevels(item).filter((level) => level.levelType !== RuntimeLevelType.ALL && !level.semantics?.hidden).map((item) =>
+${getHierarchyLevels(item).filter((level) => level.levelType !== RuntimeLevelType.ALL && !level.semantics?.hidden).map((item) =>
   [
   `          - name: "${item.name}"`,
   `            caption: "${item.caption || ''}"`,

@@ -252,7 +252,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
       body: {
         mdx,
         query,
-        isDraftIndicators: this.dataSource.options.isDraftIndicators
+        isIndicatorsDraft: this.dataSource.options.isIndicatorsDraft,
       }})
   }
 

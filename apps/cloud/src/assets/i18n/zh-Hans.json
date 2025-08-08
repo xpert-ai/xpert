@@ -891,6 +891,7 @@
         "BASIC_INFORMATION": "基础信息",
         "MODEL_INFORMATION": "模型信息"
       },
+      "OpenProject": "打开项目",
       "EmbeddingIndicatorIntoMemory": "将指标嵌入到记忆中",
       "Publish": "发布",
       "Published": "已发布",

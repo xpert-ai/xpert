@@ -33,6 +33,7 @@ export class XpertOcapService {
         model?: ISemanticModel // Semantic model details from the server
         // indicators?: IIndicator[] // Runtime indicators to be registered
         isDraft?: boolean // Whether use the model draft
+        isIndicatorsDraft?: boolean // Whether use the indicators draft
         dirty?: boolean // Whether the model or indicators is dirty and needs to be registered
         isDraftIndicators?: string[] // Indicate which indicators use draft
         calculatedMeasures?: Record<string, PropertyMeasure[]> // Runtime calculated measures to be registered
@@ -97,10 +98,10 @@ export class XpertOcapService {
         const models = Object.values(semanticModels).filter((model) => model.dirty && model.model)
         if (models.length) {
           console.log(`Step 2.`, models)
-          models.forEach(({ model, isDraft, isDraftIndicators, calculatedMeasures }) => {
+          models.forEach(({ model, isDraft, isIndicatorsDraft, isDraftIndicators, calculatedMeasures }) => {
             // Use the draft indicator
             model.indicators = model.indicators?.map((_) => {
-              if (isDraftIndicators?.includes(_.code) && _.draft) {
+              if (isIndicatorsDraft || isDraftIndicators?.includes(_.code) && _.draft) {
                 return {
                   ..._,
                   ..._.draft,
@@ -115,7 +116,7 @@ export class XpertOcapService {
               key: model.id
             })
 
-            this.registerModel({..._model}, isDraft, isDraftIndicators, calculatedMeasures)
+            this.registerModel({..._model}, isDraft, isIndicatorsDraft, calculatedMeasures)
           })
 
           this.#semanticModels.update((state) => {
@@ -130,10 +131,10 @@ export class XpertOcapService {
     )
   }
 
-  private registerModel(model: NgmSemanticModel, isDraft: boolean, isDraftIndicators?: string[], calculatedMeasures?: Record<string, PropertyMeasure[]>) {
+  private registerModel(model: NgmSemanticModel, isDraft: boolean, isIndicatorsDraft?: boolean, calculatedMeasures?: Record<string, PropertyMeasure[]>) {
     console.log(`Step 3.`, model, calculatedMeasures)
 
-    registerModel({...model, isDraftIndicators}, isDraft, this.#dsCoreService, this.#wasmAgent, calculatedMeasures)
+    registerModel({...model, isIndicatorsDraft}, isDraft, this.#dsCoreService, this.#wasmAgent, calculatedMeasures)
   }
 
   /**
@@ -163,6 +164,20 @@ export class XpertOcapService {
     })
 
     console.log(`Step 1.`, models)
+  }
+
+  refreshModel(id: string, isIndicatorsDraft?: boolean) {
+    this.#semanticModels.update((state) => {
+      return { 
+        ...state,
+        [id]: {
+          ...state[id],
+          model: null, // Reset the model to fetch again
+          dirty: true,
+          isIndicatorsDraft
+        }
+      }
+    })
   }
 }
 

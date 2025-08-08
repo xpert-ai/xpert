@@ -285,18 +285,18 @@ export class XpIndicatorFormComponent {
   readonly saving = signal(false)
 
   constructor() {
-    effect(() => {
-      const indicator = this.indicator()
-      if (indicator && this.dataSource()) {
-        this.dataSource().updateOptions((options) => {
-          return {
-            ...options,
-            isDraftIndicators: uniq([...(options.isDraftIndicators ?? []), indicator.code]),
-          }
-        })
-        this.dataSource().upsertIndicator(convertIndicatorResult(indicator.draft ? {...indicator, ...indicator.draft} : indicator))
-      }
-    }, { allowSignalWrites: true })
+    // effect(() => {
+    //   const indicator = this.indicator()
+    //   if (indicator && this.dataSource()) {
+    //     this.dataSource().updateOptions((options) => {
+    //       return {
+    //         ...options,
+    //         isDraftIndicators: uniq([...(options.isDraftIndicators ?? []), indicator.code]),
+    //       }
+    //     })
+    //     this.dataSource().upsertIndicator(convertIndicatorResult(indicator.draft ? {...indicator, ...indicator.draft} : indicator))
+    //   }
+    // }, { allowSignalWrites: true })
   }
 
   isDirty(): boolean {

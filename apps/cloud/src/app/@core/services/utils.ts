@@ -15,7 +15,7 @@ import { getSemanticModelKey } from '@metad/story/core'
  * @returns
  */
 export function registerModel(
-  model: NgmSemanticModel & { isDraft?: boolean; isDraftIndicators?: string[] },
+  model: NgmSemanticModel & { isDraft?: boolean; isIndicatorsDraft?: boolean },
   isDraft: boolean,
   dsCoreService: NgmDSCoreService,
   wasmAgent: WasmAgentService,

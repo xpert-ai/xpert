@@ -12,7 +12,7 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { convertIndicatorResult, Store } from '@metad/cloud/state'
+import { ChatDashboardMessageType, convertIndicatorResult, Store, TMessageComponent, TMessageComponentStep } from '@metad/cloud/state'
 import { listEnterAnimation } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
@@ -65,7 +65,20 @@ export class ChatMessageDashboardComponent {
   readonly message = input<any>()
 
   // States
-  readonly data = computed(() => this.message()?.data as any)
+  readonly data = computed(() => this.message()?.data as TMessageComponent<Omit<TMessageComponentStep, 'type'> & {
+    type: any
+    dataSettings?: DataSettings;
+    indicator?: Indicator;
+    indicators?: Array<{ dataSource: string; entitySet: string; cube: string; id: string; indicatorCode: string; isDraft: boolean}>;
+    slicers?: any[];
+    isDraft?: boolean;
+    chartSettings?: any
+    data: {
+      indicatorId?: string
+      modelId?: string
+    }
+  }>)
+  readonly type = computed(() => this.data()?.type)
   readonly conversationStatus = computed(() => this.chatService.conversation()?.status)
 
   readonly primaryTheme = toSignal(this.#store.primaryTheme$)
@@ -100,6 +113,13 @@ export class ChatMessageDashboardComponent {
     // effect(() => {
     //   console.log(this.data())
     // })
+
+    effect(() => {
+      if (this.type() === ChatDashboardMessageType.Indicator && this.data()?.data?.modelId) {
+        this.xpertOcapService.refreshModel(this.data().data.modelId, true)
+      }
+    }, { allowSignalWrites: true })
+
     effect(
       () => {
         if (this.dataSource()) {
