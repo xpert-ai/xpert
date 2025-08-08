@@ -85,7 +85,7 @@
       <div class="group flex px-2 py-[5px] max-h-[60px] rounded-lg overflow-y-auto border border-transparent
         text-text-secondary hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs">
         <textarea
-          class="rc-textarea w-full text-sm leading-[18px] bg-transparent appearance-none outline-none resize-none placeholder:text-gray-400 caret-[#295EFF]"
+          class="rc-textarea w-full text-sm font-mono leading-[18px] bg-transparent appearance-none outline-none resize-none placeholder:text-gray-400 caret-[#295EFF]"
           [placeholder]=" ('PAC.Xpert.AddDescription' | translate: {Default: 'Add description'}) + '...'"
           [ngModel]="xpertAgent().description"
           (ngModelChange)="onDescChange($event)"

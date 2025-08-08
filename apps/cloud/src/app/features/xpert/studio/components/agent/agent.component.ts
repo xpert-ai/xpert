@@ -72,7 +72,11 @@ export class XpertStudioNodeAgentComponent {
 
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
-      .filter((_) => !(_.type === 'workflow' && _.entity.type !== WorkflowNodeTypeEnum.AGENT_TOOL))
+      .filter((_) => !(_.type === 'workflow' && ![
+          WorkflowNodeTypeEnum.AGENT_TOOL,
+          WorkflowNodeTypeEnum.TASK
+        ].includes(_.entity.type))
+      )
       .map((_) => _.key)
   )
 

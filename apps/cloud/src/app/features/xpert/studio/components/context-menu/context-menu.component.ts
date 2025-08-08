@@ -40,7 +40,8 @@ import {
   genXpertSubflowKey,
   genXpertTemplateKey,
   genXpertToolKey,
-  genXpertAgentToolKey
+  genXpertAgentToolKey,
+  genXpertTaskKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
@@ -292,6 +293,14 @@ export class XpertStudioContextMenuComponent {
       type: WorkflowNodeTypeEnum.AGENT_TOOL,
       key: genXpertAgentToolKey(),
       title: this.#translate.instant('PAC.Workflow.AgentTool', { Default: 'Agent Tool' })
+    } as IWorkflowNode)
+  }
+
+  addWorkflowTask() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.TASK,
+      key: genXpertTaskKey(),
+      title: this.#translate.instant('PAC.Workflow.Task', { Default: 'Task' })
     } as IWorkflowNode)
   }
 

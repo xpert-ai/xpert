@@ -71,7 +71,7 @@
 
   .f-node.f-component {
     .f-component.f-node-output {
-      svg {
+      svg, .ri-add-line {
         visibility: hidden;
       }
 
@@ -92,7 +92,7 @@
           width: var(--output-size);
           height: var(--output-size);
           @apply rounded-full border-[0.5px] border-primary-300;
-          svg {
+          svg, .ri-add-line {
             visibility: visible;
           }
           &:hover {
