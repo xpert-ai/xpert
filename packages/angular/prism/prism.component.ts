@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, effect, input, numberAttribute, signal } from '@angular/core'
-import { NgmCopyComponent } from '../common'
+import { NgmCopyComponent } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: true,
