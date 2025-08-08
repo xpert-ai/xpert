@@ -17,7 +17,11 @@ export class ClickHouseRunner extends BaseSQLQueryRunner<ClickHouseAdapterOption
   readonly jdbcDriver = 'ru.yandex.clickhouse.ClickHouseDriver'
 
   jdbcUrl(schema?: string) {
-    return `jdbc:clickhouse://${this.host}:${this.port}/${this.options.dbname}`
+    let query = ''
+    if (this.options.username) {
+      query = `user=${encodeURIComponent(this.options.username)}&password=${encodeURIComponent(this.options.password ?? '')}`
+    }
+    return `jdbc:clickhouse://${this.host}:${this.port}/${this.options.dbname}${query ? `?${query}` : ''}`
   }
 
   get configurationSchema() {
