@@ -1,65 +1,78 @@
+import { Dialog } from '@angular/cdk/dialog'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { CommonModule } from '@angular/common'
 import { HttpErrorResponse } from '@angular/common/http'
-import { AfterViewInit, Component, Inject, signal, TemplateRef, viewChild, ViewChild } from '@angular/core'
+import { AfterViewInit, Component, inject, Inject, signal, TemplateRef, viewChild, ViewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
-import { Router } from '@angular/router'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { MatIconModule } from '@angular/material/icon'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { Router, RouterModule } from '@angular/router'
+import { ModelCreationComponent } from '@cloud/app/@shared/model'
 import { DataSourceService, SemanticModelServerService } from '@metad/cloud/state'
 import { uploadYamlFile } from '@metad/core'
-import { NgmConfirmUniqueComponent, NgmSpinComponent, TreeTableColumn, TreeTableModule } from '@metad/ocap-angular/common'
+import {
+  NgmConfirmUniqueComponent,
+  NgmSpinComponent,
+  TreeTableColumn,
+  TreeTableModule
+} from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { ButtonGroupDirective, DisplayDensity } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective, DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { AgentType, Property, Syntax } from '@metad/ocap-core'
 import { NX_STORY_STORE, NxStoryStore, StoryModel, uuid } from '@metad/story/core'
-import { MtxPopoverModule } from '@ng-matero/extensions/popover'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { formatRelative } from 'date-fns'
 import { NgxPermissionsModule } from 'ngx-permissions'
 import { BehaviorSubject, EMPTY, firstValueFrom } from 'rxjs'
 import { combineLatestWith, distinctUntilChanged, shareReplay, switchMap, tap } from 'rxjs/operators'
 import {
   AnalyticsPermissionsEnum,
-  ISemanticModel,
-  MenuCatalog,
-  ToastrService,
-  WasmDBDefaultCatalog,
-  WasmDBDialect,
   getDateLocale,
   getErrorMessage,
-  injectToastr
+  injectToastr,
+  ISemanticModel,
+  MenuCatalog,
+  WasmDBDefaultCatalog,
+  WasmDBDialect
 } from '../../../@core'
-import { TranslationBaseComponent } from '../../../@shared/language'
+import { CreatedByPipe } from '../../../@shared/pipes'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
-import { SharedModule } from '../../../@shared/shared.module'
-import { MaterialModule } from '../../../@shared/material.module'
-import { CreatedByPipe } from '../../../@shared/pipes'
-import { ModelCreationComponent } from '@cloud/app/@shared/model'
 
 @Component({
   standalone: true,
   imports: [
-    SharedModule,
-    MaterialModule,
+    CommonModule,
     NgxPermissionsModule,
-    MtxPopoverModule,
     CdkMenuModule,
+    TranslateModule,
+    MatTooltipModule,
+    MatButtonModule,
+    MatIconModule,
+    RouterModule,
 
     // OCAP Modles
+    ButtonGroupDirective,
+    DensityDirective,
     NgmSpinComponent,
     TreeTableModule,
-    NgmControlsModule,
-    ButtonGroupDirective
+    NgmControlsModule
   ],
   selector: 'pac-models',
   templateUrl: './models.component.html',
   styleUrls: ['./models.component.scss']
 })
-export class ModelsComponent extends TranslationBaseComponent implements AfterViewInit {
+export class ModelsComponent implements AfterViewInit {
   DisplayDensity = DisplayDensity
   AnalyticsPermissionsEnum = AnalyticsPermissionsEnum
 
+  readonly modelsAPI = inject(SemanticModelServerService)
   readonly #toastr = injectToastr()
+  readonly translateService = inject(TranslateService)
+  readonly #dialog = inject(Dialog)
 
   displayedColumns = ['name', 'dataSource']
   columns: Array<
@@ -79,7 +92,7 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
 
   // Children
   @ViewChild('actions') actions: TemplateRef<any>
-  readonly descTempl = viewChild('descTempl', {read: TemplateRef})
+  readonly descTempl = viewChild('descTempl', { read: TemplateRef })
 
   uploadForm = new FormGroup({
     name: new FormControl(),
@@ -95,7 +108,7 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
     combineLatestWith(this.type$.pipe(distinctUntilChanged())),
     switchMap(([, component]) => {
       this.loading = true
-      return component === 'my' ? this.store.getMyModelsByAreaTree() : this.store.getModelsByAreaTree()
+      return component === 'my' ? this.modelsAPI.getMyModelsByAreaTree() : this.modelsAPI.getModelsByAreaTree()
     }),
     tap(() => (this.loading = false)),
     takeUntilDestroyed(),
@@ -108,18 +121,19 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
 
   constructor(
     public appService: AppService,
-    private store: SemanticModelServerService,
     private dataSourcesStore: DataSourceService,
     @Inject(NX_STORY_STORE) private storyStore: NxStoryStore,
     private router: Router,
-    private _dialog: MatDialog,
-    private toastrService: ToastrService
-  ) {
-    super()
-  }
+    private _dialog: MatDialog
+    // private toastrService: ToastrService
+  ) {}
 
   ngOnInit() {
     this.appService.setNavigation({ catalog: MenuCatalog.Models })
+  }
+
+  getTranslation(key: string, interpolateParams?: any): string {
+    return this.translateService.instant(key, interpolateParams)
   }
 
   ngAfterViewInit(): void {
@@ -182,7 +196,7 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
   //     this.loading = true
   //     await firstValueFrom(this.store.delete(model.id))
   //     this.loading = true
-  //     this.toastrService.success('PAC.MODEL.TOASTR.ModelDelete', { Default: 'Model delete' })
+  //     this.#toastr.success('PAC.MODEL.TOASTR.ModelDelete', { Default: 'Model delete' })
   //     this.refresh$.next()
   //   }
   // }
@@ -201,7 +215,7 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
         )
         this.openStory(story.id)
       } catch (err) {
-        this.toastrService.error(err, '创建故事')
+        this.#toastr.error(err, '创建故事')
       }
     }
   }
@@ -215,7 +229,7 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
     if (result) {
       try {
         await firstValueFrom(
-          this.store.createNew({
+          this.modelsAPI.createNew({
             key: uuid(),
             name: result,
             type: 'SQL',
@@ -225,38 +239,42 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
             catalog: WasmDBDefaultCatalog
           })
         )
-        this.toastrService.success('PAC.MODEL.TOASTR.ModelCreate', { Default: 'Model Create' })
+        this.#toastr.success('PAC.MODEL.TOASTR.ModelCreate', { Default: 'Model Create' })
         this.refresh$.next()
       } catch (err) {
-        this.toastrService.error(err)
+        this.#toastr.error(err)
       }
     }
   }
 
   onNewModel(businessAreaId?: string, type?: string) {
-    this._dialog.open(ModelCreationComponent, { 
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: { businessAreaId, type } }).afterClosed().pipe(
-      switchMap((model) => {
-        if (model) {
-          return this.store.create({
-            ...model,
-            key: uuid()
-          })
-        }
-        return EMPTY
+    this.#dialog
+      .open<Partial<ISemanticModel>>(ModelCreationComponent, {
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: { businessAreaId, type }
       })
-    ).subscribe((model) => {
-      this.refresh$.next()
-      this.router.navigate(['/models', model.id])
-    })
+      .closed.pipe(
+        switchMap((model) => {
+          if (model) {
+            return this.modelsAPI.create({
+              ...model,
+              key: uuid()
+            })
+          }
+          return EMPTY
+        })
+      )
+      .subscribe((model) => {
+        this.refresh$.next()
+        this.router.navigate(['/models', model.id])
+      })
   }
 
   async onDownload(id: string) {
     try {
-      await exportSemanticModel(this.store, id)
-    } catch(err) {
+      await exportSemanticModel(this.modelsAPI, id)
+    } catch (err) {
       this.#toastr.error(getErrorMessage(err))
     }
   }
@@ -265,7 +283,7 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
     const files = event.target.files[0]
     const fileType = files.name.split('.')
     if (!['yml', 'yaml'].includes(fileType[fileType.length - 1])) {
-      this.toastrService.error('PAC.NOTES.STORY.UPLOAD_FILETYPE_ERROR')
+      this.#toastr.error('PAC.NOTES.STORY.UPLOAD_FILETYPE_ERROR')
       return
     }
 
@@ -281,15 +299,15 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
     })
 
     const _model = await firstValueFrom(
-      this._dialog
-        .open(ModelCreationComponent, {
-          data: {
-            name: model.name,
-            description: model.description,
-            type: model.type === 'XMLA' ? 'mdx' : null
-          }
-        })
-        .afterClosed()
+      this.#dialog.open<Partial<ISemanticModel>>(ModelCreationComponent, {
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          name: model.name,
+          description: model.description,
+          type: model.type === 'XMLA' ? 'mdx' : null
+        }
+      }).closed
     )
 
     if (_model) {
@@ -311,13 +329,13 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
 
     this.modelUploading.set(true)
     try {
-      model = await firstValueFrom(this.store.upload(model))
+      model = await firstValueFrom(this.modelsAPI.upload(model))
       this.modelUploading.set(false)
-      this.toastrService.success('PAC.MODEL.TOASTR.ModelUpload', { Default: 'Model upload' })
+      this.#toastr.success('PAC.MODEL.TOASTR.ModelUpload', { Default: 'Model upload' })
       this.router.navigate(['/models', model.id])
     } catch (err) {
       this.modelUploading.set(false)
-      this.toastrService.error((<HttpErrorResponse>err).statusText)
+      this.#toastr.error((<HttpErrorResponse>err).statusText)
     }
   }
 }
