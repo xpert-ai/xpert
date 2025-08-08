@@ -9,7 +9,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { attrModel, OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, NgmTooltipDirective, nonBlank } from '@metad/ocap-angular/core'
+import { linkedModel, NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -20,7 +20,6 @@ import {
   XpertService
 } from 'apps/cloud/src/app/@core'
 import { XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
 import {
   BehaviorSubject,
@@ -51,9 +50,8 @@ import { XpertPublishVersionComponent } from './publish/publish.component'
     MatTooltipModule,
     MatSliderModule,
     TranslateModule,
-    NgmTooltipDirective,
     NgmSpinComponent,
-    InDevelopmentComponent
+    NgmI18nPipe
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
@@ -101,6 +99,7 @@ export class XpertStudioHeaderComponent {
     }
     return null
   })
+  readonly checklist = computed(() => this.draft()?.checklist)
   readonly environment = this.apiService.environment
 
   readonly agentConfig = linkedModel({

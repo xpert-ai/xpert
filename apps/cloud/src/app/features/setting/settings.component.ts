@@ -77,8 +77,8 @@ export class PACSettingComponent {
         label: 'Chat BI',
         icon: 'mms',
         data: {
-          featureKey: AnalyticsFeatures.FEATURE_COPILOT_CHATBI,
-          permissionKeys: [AnalyticsPermissionsEnum.CHATBI_EDIT]
+          permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
+          featureKey: AiFeatureEnum.FEATURE_XPERT
         }
       },
       {

@@ -8,10 +8,10 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { CopilotProviderService, getErrorMessage, IAiProviderEntity, ICopilot, ToastrService } from '../../../@core'
-import { CopilotCredentialFormComponent } from '../credential-form/form.component'
 import { isEqual } from 'lodash-es'
 import { Subscription } from 'rxjs'
+import { CopilotProviderService, getErrorMessage, IAiProviderEntity, ICopilot, ToastrService } from '../../../@core'
+import { CopilotCredentialFormComponent } from '../credential-form/form.component'
 
 @Component({
   standalone: true,

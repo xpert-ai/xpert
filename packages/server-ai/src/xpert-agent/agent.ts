@@ -368,7 +368,9 @@ export function createMapStreamEvents(
 									type: 'component',
 									data: {
 										...data,
-										// category: 'Computer',
+										toolset: rest.metadata.toolset,
+										toolset_id: rest.metadata.toolsetId,
+										tool: data.toolCall?.name,
 										status: 'fail',
 										end_date: new Date(),
 									} as TMessageComponent<TMessageComponentStep>
@@ -393,7 +395,7 @@ export function createMapStreamEvents(
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-						if (data.category === 'Computer' || data.category === 'Tool') {
+						if (data.category === 'Computer' || data.category === 'Tool' || data.category === 'Dashboard') {
 							/**
 							 * Tool messages from tool calling are displayed in component messages
 							 */
@@ -581,6 +583,4 @@ export type TAgentSubgraphResult = {
 	mute?: TXpertAgentConfig['mute']
 }
 
-export type TAgentSubgraphParams = {
-	mute: TXpertAgentConfig['mute']
-}
+export { TAgentSubgraphParams } from '../shared'

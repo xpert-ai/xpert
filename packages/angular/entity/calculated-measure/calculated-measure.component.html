@@ -15,13 +15,12 @@
           [capacities]="[
             EntityCapacity.Dimension,
             EntityCapacity.Measure
-          ]">
-        </ngm-entity-schema>
+          ]" />
       </mat-tab>
 
       <mat-tab [label]="'Ngm.Calculation.CALCULATED_MEMBERS' | translate: {Default: 'Calculated Members'}">
-        <div class="max-w-full w-full flex flex-col justify-start items-stretch overflow-hidden">
-          <ngm-search class="m-1" [formControl]="calculatedMemberSearch"></ngm-search>
+        <div class="max-w-full w-full flex flex-col justify-start items-stretch p-2 overflow-hidden">
+          <ngm-search class="" [formControl]="calculatedMemberSearch" />
           <mat-list role="list" class="flex-1 max-w-full w-full overflow-auto" displayDensity="cosy"
             id="ngm-calculated-calculations"
             cdkDropList
@@ -42,7 +41,7 @@
 
       </mat-tab>
 
-    @if (story) {
+    @if (story()) {
       <mat-tab [label]="'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'}">
         <ng-template matTabContent>
           <div class="w-full flex flex-col justify-start items-stretch p-4">
@@ -80,8 +79,7 @@
       <mat-tab [label]="'Ngm.Calculation.Formulas' | translate: {Default: 'Formulas'}">
         <ng-template matTabContent>
           <div class="flex-1 flex flex-col justify-start items-stretch overflow-auto">
-            <ngm-search class="p-2" [formControl]="fnSearchControl"></ngm-search>
-          
+            <ngm-search class="m-2" [formControl]="fnSearchControl" />
             <mat-accordion id="ngm-calculated-functions" cdkDropList
               [cdkDropListData]="FUNCTIONS">
               @for (f of functions$ | async; track f) {

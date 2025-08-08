@@ -7,7 +7,6 @@
 @use './style/mat-viewport-theme' as mat-viewport;
 @use './style/density-theme' as mat-density;
 @use './style/mat-tab-theme' as mat-tab;
-@use './style/mat-radio-group-theme' as mat-radio-group;
 @use './style/mat-paginator-theme' as mat-paginator;
 @use './style/mat-dialog-theme' as mat-dialog;
 @use './style/mat-checkbox-theme' as mat-checkbox;
@@ -21,7 +20,6 @@
   @include mat-list.color($config-or-theme);
   @include mat-formfield.color($config-or-theme);
   @include mat-button.color($config-or-theme);
-  @include mat-radio-group.color($config-or-theme);
   @include mat-paginator.color($config-or-theme);
   @include mat-dialog.color($config-or-theme);
   @include mat-checkbox.color($config-or-theme);
@@ -40,7 +38,6 @@
   @include mat-viewport.density($config-or-theme);
   @include mat-density.density($config-or-theme);
   @include mat-tab.density($config-or-theme);
-  @include mat-radio-group.density($config-or-theme);
   @include mat-paginator.density($config-or-theme);
   @include mat-dialog.density($config-or-theme);
   @include mat-checkbox.density($config-or-theme);

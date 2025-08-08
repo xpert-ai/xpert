@@ -15,6 +15,9 @@ export interface TableEntity {
   columns?: Array<{name: string, type: TableColumnType}>
 }
 
+/**
+ * @deprecated Relationship to `DataSourceOptions` ? DataSourceOptions inherited from me
+ */
 export interface SemanticModel {
   /**
    * System id in server
@@ -32,11 +35,11 @@ export interface SemanticModel {
   type: 'SQL' | 'XMLA' | 'OData'
   agentType?: AgentType
   /**
-   * 数据查询所使用的语言
+   * The language used for data query
    */
   syntax?: Syntax
   /**
-   * 数据源内的方言, 如 OData 中有 SAP, Microsoft 等, XMLA 中有 SAP BW, SQL 数据库有 Postgres Mysql Hive 等
+   * Dialects in data sources, such as SAP, Microsoft, etc. in OData, SAP BW in XMLA, Postgres, Mysql, Hive, etc. in SQL databases
    */
   dialect?: string
   /**
@@ -53,5 +56,8 @@ export interface SemanticModel {
    */
   dbInitialization?: string
 
+  /**
+   * Schema of semantic model cubes
+   */
   schema?: Schema
 }

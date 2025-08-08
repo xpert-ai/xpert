@@ -1,12 +1,12 @@
-import { convertIndicatorResult, NgmSemanticModel } from '@metad/cloud/state'
+import { IndicatorStatusEnum, NgmSemanticModel } from '@metad/cloud/state'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { AgentType, DataSourceOptions, isNil, mapIndicatorToMeasures, omit, Syntax } from '@metad/ocap-core'
+import { AgentType, DataSourceOptions, isNil, omit, PropertyMeasure, Syntax } from '@metad/ocap-core'
 import { getSemanticModelKey } from '@metad/story/core'
-import { IIndicator } from '../types'
 
 /**
  * Register semantic model into data soruce.
+ * Note: Keep the logic consistent with `registerSemanticModel` on the backend.
  *
  * @param model Semantic Model
  * @param dsCoreService
@@ -15,11 +15,11 @@ import { IIndicator } from '../types'
  * @returns
  */
 export function registerModel(
-  model: NgmSemanticModel,
+  model: NgmSemanticModel & { isDraft?: boolean; isIndicatorsDraft?: boolean },
   isDraft: boolean,
   dsCoreService: NgmDSCoreService,
   wasmAgent: WasmAgentService,
-  indicators?: IIndicator[]
+  calculatedMeasures?: Record<string, PropertyMeasure[]> // Runtime measures to be registered
 ) {
   const modelKey = getSemanticModelKey(model)
   const agentType = isNil(model.dataSource)
@@ -46,16 +46,10 @@ export function registerModel(
     } as any,
     schema: {
       ...(model.schema ?? {}),
-      indicators: model.indicators
+      // Use only released indicators
+      indicators: model.indicators?.filter((_: any) => !_.status || _.status === IndicatorStatusEnum.RELEASED)
     },
-    calculatedMeasures: indicators?.reduce((measures, indicator) => {
-      if (indicator.entity) {
-        measures[indicator.entity] ??= []
-        measures[indicator.entity].push(...mapIndicatorToMeasures(convertIndicatorResult(indicator)))
-      }
-
-      return measures
-    }, {})
+    calculatedMeasures
   } as DataSourceOptions
 
   if (model.dataSource?.type?.protocol?.toUpperCase() === 'SQL') {
@@ -133,7 +127,7 @@ export function registerModel(
   }
 
   if (semanticModel.agentType === AgentType.Wasm) {
-    // 先初始化 wasm 服务
+    // Initialize the wasm service first
     wasmAgent.registerModel({
       ...semanticModel,
     })

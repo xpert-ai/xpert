@@ -5,7 +5,7 @@ import { ITag } from '../tag-entity.model'
 import { IUser, LanguagesEnum } from '../user.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
-import { I18nObject, TAvatar } from '../types'
+import { ChecklistItem, I18nObject, IPoint, ISize, TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
@@ -14,6 +14,7 @@ import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { IStorageFile } from '../storage-file.model'
+import { TInterruptCommand } from '../agent'
 
 export type ToolCall = LToolCall
 
@@ -370,6 +371,7 @@ export type TXpertGraph = {
 export type TXpertTeamDraft = TXpertGraph & {
   team: Partial<IXpert>
   savedAt?: Date
+  checklist?: ChecklistItem[]
 }
 
 export type TXpertTeamNodeType = 'agent' | 'knowledge' | 'toolset' | 'xpert' | 'workflow'
@@ -406,16 +408,6 @@ export type TXpertTeamNode = {
       entity: IWorkflowNode
     }
 )
-
-export interface IPoint {
-  x: number
-  y: number
-}
-
-export interface ISize {
-  width: number
-  height: number
-}
 
 export interface IRect extends IPoint, Partial<ISize> {
   gravityCenter?: IPoint
@@ -501,8 +493,10 @@ export type TChatRequest = {
   reject?: boolean
   /**
    * Message to update parameters of last tool call message
+   * @deprecated use `command` instead
    */
   operation?: TSensitiveOperation
+  command?: TInterruptCommand
   retry?: boolean
 }
 

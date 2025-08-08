@@ -33,20 +33,20 @@ export abstract class AbstractEntityService<T> implements EntityService<T> {
     // Merge entity type with provisional indicators
     combineLatest([
       this.dataSource.selectEntityType(this.entitySet), 
-      this.dataSource.selectCalculatedMeasures(this.entitySet),
+      // this.dataSource.selectCalculatedMeasures(this.entitySet),
       this.registerMeasures$
     ])
       .pipe(
-        map(([entityType, calculatedMeasures, registerMeasures]) => {
+        map(([entityType, registerMeasures]) => {
           if (!isEntityType(entityType)) {
             console.error(entityType)
             return entityType
           }
 
           const properties = {...entityType.properties}
-          calculatedMeasures?.forEach((measure) => {
-            properties[measure.name] = measure
-          })
+          // calculatedMeasures?.forEach((measure) => {
+          //   properties[measure.name] = measure
+          // })
           
           return {
             ...entityType,

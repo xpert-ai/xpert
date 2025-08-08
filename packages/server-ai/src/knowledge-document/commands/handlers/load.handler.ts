@@ -7,7 +7,7 @@ import {
 import { pick } from '@metad/server-common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter'
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
 import { LoadStorageFileCommand, LoadStorageSheetCommand } from '../../../shared/'
 import { KnowledgeDocumentService } from '../../document.service'
@@ -65,6 +65,14 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		return await this.splitDocuments(doc, docs)
 	}
 
+	/**
+	 * Split documents into smaller chunks for processing by `parserConfig`.
+	 * 
+	 * @param document The original knowledge document entity.
+	 * @param data The document data to split.
+	 * @param parserConfig custom parser configuration.
+	 * @returns An array of split document chunks.
+	 */
 	async splitDocuments(document: IKnowledgeDocument, data: Document[], parserConfig?: DocumentTextParserConfig) {
 		// Text Preprocessing
 		if (document.parserConfig?.replaceWhitespace) {

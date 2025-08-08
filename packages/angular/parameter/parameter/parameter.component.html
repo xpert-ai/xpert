@@ -1,56 +1,60 @@
 @switch (paramType) {
-  @case(ParameterControlEnum.Input) {
-    @if (options?.slider) {
-        <mat-slider class="w-full"
-            [step]="options?.sliderStep || 1"
-            [min]="options?.sliderMin || 0"
-            [max]="options?.sliderMax || 100"
-            [discrete]="options?.showThumbLabel"
-            [showTickMarks]="options?.showTickMarks"
-            [color]="options?.sliderColor"
-            >
-            <input matSliderThumb [(ngModel)]="parameterValue" (dragEnd)="onSlicerEnd($event)">
-        </mat-slider>
+  @case(eCubeParameterEnum.Input) {
+    @if (options()?.slider) {
+      <mat-slider class="w-full"
+        [step]="options()?.sliderStep || 1"
+        [min]="options()?.sliderMin || 0"
+        [max]="options()?.sliderMax || 100"
+        [discrete]="options()?.showThumbLabel"
+        [showTickMarks]="options()?.showTickMarks"
+        [color]="options()?.sliderColor"
+        >
+        <input matSliderThumb [ngModel]="parameterValue()" (dragEnd)="onSlicerEnd($event)">
+      </mat-slider>
     } @else {
-        <ngm-input class="block w-full px-2" [(ngModel)]="parameterValue" [type]="parameter.dataType ?? 'string'"
+      <ngm-input class="block w-full px-2" [ngModel]="parameterValue()" [type]="parameter().dataType ?? 'string'"
         (blur)="onBlur($event)"
-        />
+      />
     }
   }
-  @case(ParameterControlEnum.Select) {
-    <mat-radio-group class="flex-1 flex flex-col justify-start items-start"
-        [displayDensity]="appearance?.displayDensity"
-        [ngModel]="$any(parameter.members?.[0])?.value"
-        (ngModelChange)="updateParameterValue($event)"
+  @case(eCubeParameterEnum.Select) {
+    <ul role="list" class="w-full flex-1 flex flex-col justify-start items-start" cdkListbox
+      [(ngModel)]="valueList"
     >
-        <mat-radio-button *ngFor="let option of parameter.availableMembers"
-            [value]="option.value">{{ option.label }}</mat-radio-button>
-    </mat-radio-group>
+      @for (option of availableMembers(); track option.key; let i = $index) {
+        <li role="listitem" class="radio-item w-full flex items-center px-2 py-1.5 rounded-lg cursor-pointer hover:bg-hover-bg" [cdkOption]="option.key">
+          <input id="default-radio-{{i}}" name="parameter-radio" type="radio" [checked]="option.key === valueList()?.[0]"
+            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+          >
+          <label for="default-radio-{{i}}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ option.caption }}</label>
+        </li>
+      }
+    </ul>
   }
-  @case(ParameterControlEnum.Dimensions) {
-    <!-- 暂时先用简易版:平铺展示维度成员 -->
+  @case(eCubeParameterEnum.Dimension) {
+    <!-- For now, use the simplified version: display dimension members in a flat format -->
     @if (multiple) {
-        <mat-selection-list class="flex-1"
-            [multiple]="true"
-            [displayDensity]="appearance?.displayDensity"
-            [compareWith]="compareWith"
-            [(ngModel)]="members"
-        >
-            <mat-list-option *ngFor="let availableMember of availableMembers$ | async" [value]="availableMember">
-                <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour"></ngm-display-behaviour>
-            </mat-list-option>
-        </mat-selection-list>
+      <mat-selection-list class="flex-1"
+        [multiple]="true"
+        [displayDensity]="appearance()?.displayDensity"
+        [compareWith]="compareWith"
+        [(ngModel)]="members"
+      >
+        <mat-list-option *ngFor="let availableMember of availableMembers$ | async" [value]="availableMember">
+          <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
+        </mat-list-option>
+      </mat-selection-list>
     }@else {
-        <mat-selection-list class="flex-1"
-            [multiple]="false"
-            [displayDensity]="appearance?.displayDensity"
-            [compareWith]="compareWith"
-            [(ngModel)]="members"
-        >
-            <mat-list-option *ngFor="let availableMember of availableMembers$ | async" [value]="availableMember">
-                <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour"></ngm-display-behaviour>
-            </mat-list-option>
-        </mat-selection-list>
+      <mat-selection-list class="flex-1"
+        [multiple]="false"
+        [displayDensity]="appearance()?.displayDensity"
+        [compareWith]="compareWith"
+        [(ngModel)]="members"
+      >
+        <mat-list-option *ngFor="let availableMember of availableMembers$ | async" [value]="availableMember">
+          <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
+        </mat-list-option>
+      </mat-selection-list>
     }
   }
 }
@@ -58,9 +62,9 @@
 <!-- todo dimension$ change to referenceDimension -->
 @if (variableProperty()?.referenceDimension) {
   <ngm-member-tree class="flex-1"
-    [dataSettings]="dataSettings"
+    [dataSettings]="dataSettings()"
     [dimension]="dimension$ | async"
-    [options]="options"
+    [options]="options()"
     [ngModel]="slicer"
     (ngModelChange)="onSlicerChange($event)"
   />

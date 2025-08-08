@@ -1,17 +1,19 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { DataSettings } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertHomeService } from '@cloud/app/xpert/'
 import {
-  injectFormatRelative,
+  ChatDashboardMessageType,
   TMessageComponent,
   TMessageContentComponent
 } from '@cloud/app/@core'
+import { uniq } from 'lodash-es'
+import { ModelCubeComponent, ModelMembersComponent, ModelVirtualCubeComponent } from '@cloud/app/@shared/model'
+import { XpIndicatorFormComponent, XpListIndicatorsComponent } from '@cloud/app/@shared/indicator'
 import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashboard.component'
 
 @Component({
@@ -24,7 +26,12 @@ import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashbo
     RouterModule,
     TranslateModule,
     MatTooltipModule,
-    ChatMessageDashboardComponent
+    ChatMessageDashboardComponent,
+    ModelCubeComponent,
+    ModelMembersComponent,
+    ModelVirtualCubeComponent,
+    XpListIndicatorsComponent,
+    XpIndicatorFormComponent
   ],
   selector: 'chat-canvas-dashboard',
   templateUrl: './dashboard.component.html',
@@ -35,9 +42,12 @@ import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashbo
   }
 })
 export class ChatCanvasDashboardComponent {
+  eChatDashboardMessageType = ChatDashboardMessageType
 
   readonly homeService = inject(XpertHomeService)
-  readonly #formatRelative = injectFormatRelative()
+
+  // Inputs
+  readonly componentId = input<string>()
 
   // States
   readonly expand = signal(false)
@@ -49,9 +59,6 @@ export class ChatCanvasDashboardComponent {
   readonly messageId = computed(
     () => this.homeService.canvasOpened()?.type === 'Dashboard' && this.homeService.canvasOpened()?.messageId
   )
-  readonly componentId = computed(
-    () => this.homeService.canvasOpened()?.type === 'Dashboard' && this.homeService.canvasOpened()?.componentId
-  )
 
   readonly #messages = computed(() => {
     const conversation = this.homeService.conversation()
@@ -62,8 +69,8 @@ export class ChatCanvasDashboardComponent {
     return null
   })
 
-  readonly contents = computed(() => {
-    const messages = this.#messages()
+  readonly _contents = computed(() => {
+    const messages = this.homeService.conversation()?.messages
     if (!messages?.length) {
       return []
     }
@@ -74,44 +81,30 @@ export class ChatCanvasDashboardComponent {
           ...(contents.filter(
             (content) =>
               content.type === 'component' &&
-              (<TMessageComponent>content.data)?.category === 'Dashboard' &&
-              (this.componentId() ? content.id === this.componentId() : true)
+              (<TMessageComponent>content.data)?.category === 'Dashboard'
           ) as TMessageContentComponent[])
         )
       }
       return acc
     }, [])
 
-    return contents.slice(contents.length - 1)
+    return contents
   })
 
-  readonly #componentData = computed(
-    () => this.contents()?.[0]?.data as TMessageComponent<{ dataSettings: DataSettings }>
-  )
+  readonly contents = computed(() => {
+    return this._contents().filter((_) => this.componentId() ? _.id === this.componentId() : true)
+  })
 
-  // Todo add more components in bi dashboard
+  readonly types = computed(() => {
+    return uniq(this._contents()?.map((content) => content.data.type) || [])
+  })
 
-  constructor() {
-    effect(() => {
-      console.log(this.componentId(), this.contents())
-    })
-
-    // Update to last component
-    // effect(
-    //   () => {
-    //     if (this.messages()) {
-    //       this.homeService.canvasOpened.update((state) => ({ opened: true, type: 'Dashboard' }))
-    //     }
-    //   },
-    //   { allowSignalWrites: true }
-    // )
-  }
 
   toggleExpand() {
     this.expand.update((state) => !state)
   }
 
   close() {
-    this.homeService.canvasOpened.set(null)
+    this.homeService.canvasOpened.set({opened: false, type: 'Dashboard'})
   }
 }

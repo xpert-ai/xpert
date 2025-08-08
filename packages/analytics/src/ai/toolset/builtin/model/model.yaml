@@ -1,0 +1,42 @@
+identity:
+  pro: true
+  author: Xpert AI
+  name: model
+  label:
+    en_US: Semantic Model Management
+    zh_Hans: 语义模型管理
+  description:
+    en_US: A toolset for managing and using semantic models in the system, including creation, editing, deletion, and usage of models.
+    zh_Hans: 语义模型管理工具集，用于在系统中创建、编辑、删除和使用语义模型。
+  icon: icon.svg
+  tags:
+    - analysis
+  help_url: /docs/ai/tool/bi/modeling
+credentials_for_provider:
+  models:
+    type: remote-select
+    label:
+      en_US: Chat Models
+      zh_Hans: 对话模型
+    placeholder:
+      en_US: Please select your chat models
+      zh_Hans: 请选择你的对话模型
+    selectUrl: /api/chatbi-model/model-select-options
+    multi: true
+  project:
+    type: remote-select
+    label:
+      en_US: BI Project
+      zh_Hans: BI 项目
+    placeholder:
+      en_US: Please select your BI project
+      zh_Hans: 请选择你的 BI 项目
+    selectUrl: /api/project/select-options
+  dataPermission:
+    type: boolean
+    label:
+      en_US: Data Permission
+      zh_Hans: 数据权限
+    placeholder:
+      en_US: Enable data access permission for AI models
+      zh_Hans: 启用 AI 模型的数据访问权限

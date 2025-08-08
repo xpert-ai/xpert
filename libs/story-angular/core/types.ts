@@ -425,7 +425,7 @@ export interface StoryComment extends StoryCommentKey, Partial<AdminData> {
 }
 
 /**
- * 如果和 ISemanticModel 没有差别, 则使用 ISemanticModel 接口代替
+ * @deprecated use `ISemanticModel` instead
  */
 export interface StoryModel
   extends DataSourceOptions,

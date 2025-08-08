@@ -15,7 +15,6 @@ import { getErrorMessage, omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
-import { I18nService } from 'nestjs-i18n'
 import { catchError, concat, EMPTY, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
@@ -30,7 +29,6 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService,
 	) {}
 
 	public async execute(command: XpertAgentChatCommand): Promise<Observable<MessageEvent>> {
@@ -49,9 +47,6 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 				// title: input.input
 			})
 		)
-
-		// i18n prepare
-		const i18nError = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(language)})
 
 		const thread_id = execution.threadId
 		let operation: TSensitiveOperation = null
@@ -74,6 +69,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 				const agentStream = await this.commandBus.execute<XpertAgentInvokeCommand, Observable<string | TMessageContentComplex>>(
 							new XpertAgentInvokeCommand(input, agentKey, xpert, {
 								...(options ?? {}),
+								store: options.store,
 								rootExecutionId: execution.id,
 								thread_id,
 								execution,
@@ -104,13 +100,13 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 							return EMPTY
 						})
 					),
-					// Then do the final async work after the agent stream
+					// Then do the final async work after the agent stream: record execution and send agent end event
 					of(true).pipe(
 						switchMap(async () => {
 							try {
 								const timeEnd = Date.now()
 
-								// Record End time
+								// Record Execution End time
 								await this.commandBus.execute(
 									new XpertAgentExecutionUpsertCommand({
 										...execution,
@@ -147,7 +143,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 					.pipe(
 						tap({
 							/**
-							 * This function is triggered when the stream is unsubscribed
+							 * This function is triggered when the stream is unsubscribed: record execution
 							 */
 							unsubscribe: async () => {
 								this.#logger.debug(`Canceled by client!`)
@@ -208,19 +204,19 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 					],
 				}).catch((err) => {
 					console.error(err)
-                    subscriber.next({
-                            data: {
-                                type: ChatMessageTypeEnum.EVENT,
-                                event: ChatMessageEventTypeEnum.ON_AGENT_END,
-                                data: {
-                                    id: execution.id,
-                                    agentKey: execution.agentKey,
-                                    status: XpertAgentExecutionStatusEnum.ERROR,
-                                    error: getErrorMessage(err),
-                                }
-                            }
-                        } as MessageEvent)
-                    subscriber.error(err)
+					subscriber.next({
+							data: {
+								type: ChatMessageTypeEnum.EVENT,
+								event: ChatMessageEventTypeEnum.ON_AGENT_END,
+								data: {
+									id: execution.id,
+									agentKey: execution.agentKey,
+									status: XpertAgentExecutionStatusEnum.ERROR,
+									error: getErrorMessage(err),
+								}
+							}
+						} as MessageEvent)
+					subscriber.error(err)
 				})
 
 			// When this TeardownLogic is called, the subscriber is already in the 'closed' state.

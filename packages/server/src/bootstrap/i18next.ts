@@ -1,4 +1,5 @@
 import i18next from 'i18next'
+import {t} from 'i18next'
 import FsBackend from 'i18next-fs-backend'
 import middleware from 'i18next-http-middleware'
 import path from 'path'
@@ -15,7 +16,7 @@ export async function initI18next(baseDir: string) {
 			fallbackNS: 'common',
 			defaultNS: 'common',
 			preload: ['en', 'en-US', 'zh-Hans'],
-			ns: ['core', 'sql', 'xmla', 'common', 'server-ai'], // list your namespaces
+			ns: ['core', 'sql', 'xmla', 'common', 'server-ai', 'analytics'], // list your namespaces
 			backend: {
 				loadPath: path.resolve(baseDir, '{{ns}}/src/i18n/{{lng}}.json')
 			},
@@ -43,5 +44,6 @@ export async function initI18next(baseDir: string) {
 		return originalT(key, finalOptions);
 	}) as any;
 
-	// console.log(chalk.bgCyan(i18n.t('Error.NoPropertyFoundFor', {ns: 'xmla'})))
+	console.log(chalk.bgCyan(i18next.t('Error.NoHierarchyFoundFor', {ns: 'core', dimension: 'dimension1', name: 'xxx'})))
+	console.log(chalk.bgBlue(t('Error.NoHierarchyFoundFor', {ns: 'core', dimension: 'dimension1', name: 'xxx'})))
 }

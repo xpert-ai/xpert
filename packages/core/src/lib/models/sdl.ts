@@ -1,5 +1,5 @@
 import { Annotation, IMember, Measure, PrimitiveType, PropertyName, Syntax } from '../types'
-import { CalculatedMember, ParameterControlEnum } from './calculated'
+import { CalculatedMember, CalculationProperty, CubeParameterEnum, ParameterControlEnum } from './calculated'
 import { Indicator } from './indicator'
 import { AggregationRole, EntityProperty, PropertyAttributes } from './property'
 
@@ -39,7 +39,7 @@ export interface Schema {
   /**
    * Virtual Cubes
    */
-  virtualCubes?: any[]
+  virtualCubes?: VirtualCube[]
   /**
    * Semantic Model Dimensions
    */
@@ -72,8 +72,20 @@ export interface Cube extends Entity {
   dimensions?: PropertyDimension[]
   measures?: PropertyMeasure[]
   calculatedMembers?: CalculatedMember[]
-  variables?: VariableProperty[]
   defaultMeasure?: string
+  
+  /**
+   * @experimental Enhanced calculation measures
+   */
+  calculations?: CalculationProperty[]
+  /**
+   * @experimental Cube variables from third-party systems
+   */
+  variables?: VariableProperty[]
+  /**
+   * @experimental Enhanced parameters
+   */
+  parameters?: ParameterProperty[]
 }
 
 export interface SQL {
@@ -137,17 +149,11 @@ export enum EntitySemantics {
 }
 
 /**
- * 未来将对接 Cube 定义
- *
- * Entity Type 类型接口
+ * Entity Type definition
  */
 export interface EntityType extends Entity {
-  // entity type 名称， 一般是 entity 名称加上 'Type' 如 MyEntityType
-  // 但复杂 entity 可能出现对应的多个 entityType 如 MyEntityParameters, MyEntityResult
-
   /**
-   * Entity 主键们
-   * 与 Parameters 的区别
+   * Entity primary keys
    */
   keys?: string[]
 
@@ -157,7 +163,7 @@ export interface EntityType extends Entity {
   }
 
   /**
-   * 要查询 Entity 的输入参数, 通常是必输字段
+   * the input parameters to query Entity, usually required fields
    */
   parameters?: {
     [name: string]: ParameterProperty
@@ -168,18 +174,22 @@ export interface EntityType extends Entity {
    */
   indicators?: Array<Indicator>
 
-  // 数据源方言
+  // Data Source Dialect
   dialect?: any // string
-
+  // Data Source query statement syntax
   syntax?: Syntax
 
   /**
    *
    */
   semantics?: EntitySemantics
-
+  /**
+   * Default measure for the cube
+   */
   defaultMeasure?: string
-
+  /**
+   * Original cube schema
+   */
   cube?: Cube
 }
 
@@ -334,10 +344,10 @@ export interface LevelProperty extends PropertyAttributes {
 }
 
 export interface ParameterProperty extends EntityProperty {
-  paramType: ParameterControlEnum
+  paramType: CubeParameterEnum | ParameterControlEnum
   value?: PrimitiveType | IMember[]
 
-  // 候选成员
+  // Candidate Members
   availableMembers?: Array<IMember>
   
   hierarchy?: string
@@ -410,6 +420,47 @@ export interface Closure {
   parentColumn: string
   childColumn: string
   table: Table
+}
+
+export interface CubeUsage {
+  cubeName: string
+  ignoreUnrelatedDimensions?: boolean
+}
+
+export interface VirtualCubeDimension {
+  cubeName: string
+  cubeCaption?: string
+  __shared__?: boolean
+  name: string
+  /**
+   * @deprecated use caption
+   */
+  label?: string
+  caption?: string
+}
+
+export interface VirtualCubeMeasure {
+  cubeName: string
+  cubeCaption?: string
+  name: string
+  /**
+   * @deprecated use caption
+   */
+  label?: string
+  caption?: string
+  visible: boolean
+}
+
+
+export interface VirtualCube {
+  __id__?: string
+  name: string
+  caption?: string
+  description?: string
+  cubeUsages: CubeUsage[]
+  virtualCubeDimensions: VirtualCubeDimension[]
+  virtualCubeMeasures: VirtualCubeMeasure[]
+  calculatedMembers: CalculatedMember[]
 }
 
 // type Guards

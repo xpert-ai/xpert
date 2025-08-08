@@ -5,7 +5,6 @@ import {
   AnnotationTerm,
   assignDeepOmitBlank,
   C_MEASURES,
-  CalculatedMember,
   CalculatedProperty,
   CalculationType,
   CAPTION_FIELD_SUFFIX,
@@ -40,10 +39,10 @@ import {
   RuntimeLevelType,
   Schema,
   Semantics,
-  serializeArgs,
   serializeUniqueName,
   Syntax,
-  VariableProperty
+  VariableProperty,
+  VirtualCube
 } from '@metad/ocap-core'
 import { t } from 'i18next'
 import { cloneDeep, groupBy, isArray, isEmpty, isNil, merge, mergeWith, sortBy } from 'lodash'
@@ -56,7 +55,8 @@ import {
   map,
   shareReplay,
   switchMap,
-  takeUntil
+  takeUntil,
+  timeout
 } from 'rxjs/operators'
 import { XmlaEntityService } from './entity.service'
 import {
@@ -94,6 +94,7 @@ export const XMLA_TEXT_FIELD_SUFFIX = CAPTION_FIELD_SUFFIX
 
 export interface XmlaDataSourceSettings extends DataSourceSettings {
   dataSourceInfo: string
+  timeout?: number // ms
 }
 export interface XmlaDataSourceOptions extends DataSourceOptions {
   dialect: MDXDialect
@@ -229,12 +230,10 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     // throw new Error(`@deprecated use selectMembers`)
   }
 
-  override query({
-    statement,
-    forceRefresh
-  }: {
+  override query({statement, forceRefresh, timeout: _timeout}: {
     statement: string
     forceRefresh?: boolean
+    timeout?: number
   }): Observable<QueryReturn<unknown>> {
     const language = this.options.settings?.language || ''
     const headers: HttpHeaders = {}
@@ -254,7 +253,8 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
           rows: dataset.rows,
           columns: dataset.columns
         }
-      }))
+      })),
+      timeout(_timeout ?? this.options.settings?.timeout ?? 1000 * 60 * 60)
     )
   }
 
@@ -448,6 +448,8 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     }
 
     try {
+      const errors: string[] = []
+
       const cubeEntity = await this.discoverMDCube(
         CATALOG_NAME,
         CUBE_NAME,
@@ -484,8 +486,13 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
             .pipe(
               map((rowset: Rowset) => rowset.fetchAllAsObject()),
               catchError((err) => {
-                // 由于后端原因查询 discoverMDHierarchies 有可能会出错, 所以不要崩溃
-                this.agent.error(err.exception.message)
+                // Due to backend reasons, querying discoverMDHierarchies may fail, so don't crash
+                const error = err.exception?.message
+                if (error && typeof error === 'string') {
+                  const _error = simplifyErrorMessage(error)
+                  errors.push(_error)
+                  this.agent.error(_error)
+                }
                 return of([])
               })
             ),
@@ -742,7 +749,7 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
       })
 
       if (isEmpty(entityProperties)) {
-        throw new Error(t('Error.NoCubeMetadata', {ns: 'xmla', cube}))
+        throw new Error(t('Error.NoCubeMetadata', {ns: 'xmla', cube}) + '\n' + errors.join('\n'))
       }
 
       return {
@@ -1093,36 +1100,36 @@ export function mergeEntityType(a: EntityType, b: EntityType): EntityType {
 }
 
 // 迁移至 ocap-core
-export interface CubeUsage {
-  cubeName: string
-  ignoreUnrelatedDimensions: boolean
-}
+// export interface CubeUsage {
+//   cubeName: string
+//   ignoreUnrelatedDimensions: boolean
+// }
 
-export interface VirtualCubeDimension {
-  cubeName: string
-  cubeCaption?: string
-  __shared__?: boolean
-  name: string
-  caption?: string
-}
+// export interface VirtualCubeDimension {
+//   cubeName: string
+//   cubeCaption?: string
+//   __shared__?: boolean
+//   name: string
+//   caption?: string
+// }
 
-export interface VirtualCubeMeasure {
-  cubeName: string
-  cubeCaption?: string
-  name: string
-  caption?: string
-  visible: boolean
-}
+// export interface VirtualCubeMeasure {
+//   cubeName: string
+//   cubeCaption?: string
+//   name: string
+//   caption?: string
+//   visible: boolean
+// }
 
-export interface VirtualCube {
-  name: string
-  caption?: string
-  description?: string
-  cubeUsages: CubeUsage[]
-  virtualCubeDimensions: VirtualCubeDimension[]
-  virtualCubeMeasures: VirtualCubeMeasure[]
-  calculatedMembers: CalculatedMember[]
-}
+// export interface VirtualCube {
+//   name: string
+//   caption?: string
+//   description?: string
+//   cubeUsages: CubeUsage[]
+//   virtualCubeDimensions: VirtualCubeDimension[]
+//   virtualCubeMeasures: VirtualCubeMeasure[]
+//   calculatedMembers: CalculatedMember[]
+// }
 
 function mergeVirtualCube(entityType: EntityType, schema: Schema) {
   const virtualCube = schema?.virtualCubes?.find((item) => item.name === entityType.name) as VirtualCube

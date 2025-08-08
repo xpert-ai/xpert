@@ -29,6 +29,16 @@ export type TXpertRefParameter = {
   variable?: string
 }
 
+/**
+ * Embedding status of an entity, such as an bi indicator or kb document.
+ */
+export enum EmbeddingStatusEnum {
+  PROCESSING = 'processing',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  REQUIRED = 'required',
+}
+
 export const Attachment_Type_Options: TSelectOption<string, TXpertAttachmentType>[] = [
     {
       key: 'document',

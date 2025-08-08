@@ -58,11 +58,11 @@
   </div>
 
   @if (status() === eExecutionStatusEnum.INTERRUPTED && operation()) {
-    <xpert-tool-call-confirm class="w-full"
+    <xpert-agent-operation class="w-full mb-8"
       [operation]="operation()"
+      [(command)]="command"
       (confirm)="onConfirm()"
       (reject)="onReject()"
-      (toolCallsChange)="onToolCalls($event)"
     />
   }
 

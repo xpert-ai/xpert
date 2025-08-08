@@ -8,8 +8,8 @@ import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { Observable, combineLatest, firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, filter, map, switchMap, tap } from 'rxjs/operators'
-import { SemanticsAccordionWrapper } from './common'
 import { CubeSchemaService } from './cube.schema'
+import { SemanticsAccordionWrapper } from '@cloud/app/@shared/model'
 
 @Injectable()
 export class DimensionSchemaService<T extends EntityProperty = PropertyDimension> extends CubeSchemaService<T> {

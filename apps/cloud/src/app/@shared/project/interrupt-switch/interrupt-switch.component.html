@@ -1,0 +1,42 @@
+<div
+  role="group"
+  class="border rounded-xl p-1 flex gap-1 mb-6 mx-auto"
+  cdkListbox
+  [(ngModel)]="types"
+>
+  @for (option of TYPES_OPTIONS; track option) {
+    <button
+      class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 shrink-0 select-none hover:bg-button-ghost-hover disabled:hover:bg-transparent border h-8 px-3 text-sm grow
+        rounded-[9px]"
+      type="button"
+      role="radio"
+      [ngClass]="option === types()[0] ? 'bg-neutral-100 text-text-primary border-divider-deep' : 'border-transparent text-zinc-500'"
+      [cdkOption]="option"
+    >
+      <span class="font-semibold uppercase">{{ 'PAC.MODEL.Type_' + option | translate: {Default: option} }}</span>
+    </button>
+  }
+</div>
+
+@if (types()[0] === 'Select') {
+  <ngm-select icon="ri-instance-line" [selectOptions]="projects()"
+    [placeholder]="'PAC.Project.SelectAProject' | translate: {Default: 'Select a project'}"
+    [(ngModel)]="projectId"
+  />
+} @else {
+
+  @if (createdProject(); as project) {
+    <label>{{ 'PAC.Project.CreatedProject' | translate: {Default: 'Created project'} }}</label>
+    <div class="p-4 font-semibold text-center">
+      {{ project.name || '...' }}
+    </div>
+  }
+
+  <button type="button" class="btn btn-secondary btn-large mx-auto mt-4" (click)="onNewModel()" >
+    <i class="ri-add-line mr-1"></i> {{ 'PAC.Project.NewProject' | translate: {Default: 'New project'} }}
+  </button>
+}
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+}

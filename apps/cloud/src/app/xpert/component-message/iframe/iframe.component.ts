@@ -23,7 +23,10 @@ export class ChatComponentMessageIframeComponent {
   // Inputs
   readonly data = input<TMessageComponent>()
 
-  readonly _url = computed(() => (<TMessageComponent<TMessageComponentIframe>>this.data())?.url)
+  // State
+  readonly event = computed(() => <TMessageComponent<TMessageComponentIframe>>this.data())
+
+  readonly _url = computed(() => this.event()?.url || this.event()?.data?.url || '')
   readonly title = computed(() => (<TMessageComponent<TMessageComponentIframe>>this.data())?.title)
 
   // Safe URL

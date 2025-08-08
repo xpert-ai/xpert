@@ -5,6 +5,7 @@ import {
 	provideEventEmitterModule,
 	provideI18nModule,
 	provideScheduleModule,
+	RedisModule,
 	SeederModule,
 	ServerAppModule
 } from '@metad/server-core'
@@ -19,6 +20,7 @@ const baseDir = path.join(__dirname, '../../../')
 @Module({
 	imports: [
 		ConfigModule,
+		RedisModule,
 		provideCacheModule(),
 		provideBullModule(),
 		provideI18nModule(baseDir),

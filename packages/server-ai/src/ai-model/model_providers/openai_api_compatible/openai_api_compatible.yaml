@@ -4,6 +4,8 @@ label:
 description:
   en_US: Model providers compatible with OpenAI's API standard, such as LM Studio.
   zh_Hans: 兼容 OpenAI API 的模型供应商，例如 LM Studio 。
+icon_small:
+  en_US: icon.svg
 supported_model_types:
   - llm
   - text-embedding

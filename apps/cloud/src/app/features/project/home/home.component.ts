@@ -10,7 +10,7 @@ import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core
 import { Story } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, switchMap, tap } from 'rxjs'
-import { DefaultCollection, IStory, IStoryTemplate, ProjectsService, ToastrService, tryHttp } from '../../../@core'
+import { DefaultCollection, IStory, IStoryTemplate, ProjectAPIService, ToastrService, tryHttp } from '../../../@core'
 import { ProjectComponent } from '../project/project.component'
 import { StoryCardComponent, StoryCreationComponent, StoryTemplateComponent } from '../../../@shared/story'
 
@@ -37,7 +37,7 @@ import { StoryCardComponent, StoryCreationComponent, StoryTemplateComponent } fr
   ]
 })
 export class ProjectHomeComponent {
-  private projectService = inject(ProjectsService)
+  private projectService = inject(ProjectAPIService)
   private storiesService = inject(StoriesService)
   private _router = inject(Router)
   private _viewContainerRef = inject(ViewContainerRef)

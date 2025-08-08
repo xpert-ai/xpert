@@ -1,17 +1,24 @@
-import { HttpClient, HttpParams } from '@angular/common/http'
-import { Injectable, inject } from '@angular/core'
-import { API_PREFIX } from '@metad/cloud/state'
+import { HttpParams } from '@angular/common/http'
+import { Injectable } from '@angular/core'
+import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { map, tap } from 'rxjs/operators'
 import { IProject } from '../types'
 
 const API_PROJECT = API_PREFIX + '/project'
 
+/**
+ * BI Project API Service
+ */
 @Injectable({ providedIn: 'root' })
-export class ProjectsService {
-  private httpClient = inject(HttpClient)
+export class ProjectAPIService extends OrganizationBaseCrudService<IProject> {
+  // private httpClient = inject(HttpClient)
   private refresh$ = new BehaviorSubject<void>(null)
   public deleted$ = new Subject<string>()
+
+  constructor() {
+    super(API_PROJECT)
+  }
 
   onRefresh() {
     return this.refresh$.asObservable()
@@ -21,9 +28,9 @@ export class ProjectsService {
     this.refresh$.next()
   }
 
-  getAll() {
-    return this.httpClient.get<{ items: IProject[] }>(API_PROJECT).pipe(map((result) => result.items))
-  }
+  // getAll() {
+  //   return this.httpClient.get<{ items: IProject[] }>(API_PROJECT).pipe(map((result) => result.items))
+  // }
 
   getMy(relations?: string[]) {
     return this.httpClient

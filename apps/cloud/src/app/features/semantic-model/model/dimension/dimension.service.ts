@@ -3,7 +3,7 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { ActivatedRoute, Router } from '@angular/router'
 import { nonBlank, nonNullable } from '@metad/core'
 import { effectAction } from '@metad/ocap-angular/core'
-import { PropertyDimension, PropertyHierarchy } from '@metad/ocap-core'
+import { PropertyDimension, PropertyHierarchy, upsertHierarchy } from '@metad/ocap-core'
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { select, withProps } from '@ngneat/elf'
 import { uuid } from 'apps/cloud/src/app/@core'
@@ -12,7 +12,6 @@ import { Observable, distinctUntilChanged, filter, map, shareReplay, switchMap, 
 import { createSubStore, dirtyCheckWith, write } from '../../store'
 import { SemanticModelService } from '../model.service'
 import { ModelDesignerType } from '../types'
-import { upsertHierarchy } from '../utils'
 
 @Injectable()
 export class ModelDimensionService {

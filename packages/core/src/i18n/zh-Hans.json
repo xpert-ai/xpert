@@ -2,6 +2,7 @@
     "Error": {
         "NoAnalyticsRowsOrColumns": "未提供分析行或列",
         "NoTimeLevelInDimension": "在维度‘{{dimension}}’中未找到时间粒度‘{{granularity}}’对应的层级",
+        "TargetFormatterNotSet": "未为时间维度‘{{dimension}}’的时间粒度‘{{granularity}}’设置目标格式化字符串",
         "NoPropertyFoundFor": "在数据集‘{{cube}}’中未找到维度或度量‘{{name}}’。",
         "NoDimensionFoundFor": "在数据集‘{{cube}}’中未找到维度‘{{name}}’。",
         "NoHierarchyFoundFor": "在维度‘{{dimension}}’中未找到层次结构‘{{name}}’。",

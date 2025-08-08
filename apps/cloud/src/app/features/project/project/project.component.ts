@@ -47,7 +47,7 @@ import {
   IFavorite,
   IProject,
   ISemanticModel,
-  ProjectsService,
+  ProjectAPIService,
   Store,
   StoryStatusEnum,
   ToastrService,
@@ -59,11 +59,12 @@ import { AppService } from '../../../app.service'
 import { injectIndicatorArchitectCommand, injectIndicatorCommand, provideCopilotCubes } from '../copilot/'
 import { ReleaseStoryDialog } from '../release-story.component'
 import { SelectModelDialog } from '../select-model.component'
-import { collectionId, injectFetchModelDetails, treeDataSourceFactory } from '../types'
+import { collectionId, treeDataSourceFactory } from '../types'
 import { ProjectService } from '../project.service'
 import { MaterialModule } from '../../../@shared/material.module'
 import { StoryCreationComponent } from '../../../@shared/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
 
 @Component({
   standalone: true,
@@ -247,7 +248,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   private _projectDetailSub = this.projectId$
     .pipe(
       switchMap((projectId) =>
-        this.projectsService.getOne(projectId ?? null, [
+        this.projectAPI.getOne(projectId ?? null, [
           'owner',
           'models',
           'indicators',
@@ -275,7 +276,7 @@ export class ProjectComponent extends TranslationBaseComponent {
     private store: Store,
     private storiesService: StoriesService,
     private favoritesService: FavoritesService,
-    private projectsService: ProjectsService,
+    private projectAPI: ProjectAPIService,
     private _dialog: MatDialog,
     private _toastrService: ToastrService,
     private _cdr: ChangeDetectorRef,
@@ -484,7 +485,7 @@ export class ProjectComponent extends TranslationBaseComponent {
       )
       if (models) {
         const newProject = await firstValueFrom(
-          this.projectsService.updateModels(project.id, uniq([...models, ...project.models].map(({ id }) => id)))
+          this.projectAPI.updateModels(project.id, uniq([...models, ...project.models].map(({ id }) => id)))
         )
         this.projectService.updateProject({
           models: newProject.models
@@ -506,7 +507,7 @@ export class ProjectComponent extends TranslationBaseComponent {
         this._dialog.open(NgmConfirmDeleteComponent, { data: { value: model.name } }).afterClosed()
       )
       if (confirm) {
-        await firstValueFrom(this.projectsService.deleteModel(project.id, model.id))
+        await firstValueFrom(this.projectAPI.deleteModel(project.id, model.id))
         this.project.models = this.project.models.filter((item) => item.id !== model.id)
         this.modelsExpand = true
         this._cdr.detectChanges()
@@ -517,7 +518,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   async onDropModels(event: CdkDragDrop<ISemanticModel[]>) {
     moveItemInArray(this.project.models, event.previousIndex, event.currentIndex)
     await firstValueFrom(
-      this.projectsService.updateModels(
+      this.projectAPI.updateModels(
         this.project.id,
         this.project.models.map(({ id }) => id)
       )

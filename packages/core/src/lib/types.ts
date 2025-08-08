@@ -258,7 +258,7 @@ export type EntityKey<T> =
  */
 export interface QueryOptions<T = any> {
   cube?: string
-  parameters?: EntityKey<T>
+  parameters?: Record<string, any>
   rows?: Array<Dimension | Measure>
   columns?: Array<Dimension | Measure>
   /**

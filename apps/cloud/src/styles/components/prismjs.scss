@@ -8,7 +8,7 @@ body.dark {
 }
 
 .ngm-prism-highlight {
-  @apply bg-gray-950;
+  @apply bg-gray-950 text-neutral-50;
 
   .mdc-icon-button {
     @apply text-gray-200;

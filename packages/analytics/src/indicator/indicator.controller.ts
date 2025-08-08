@@ -1,6 +1,6 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { CrudController, PaginationParams, ParseJsonPipe, UUIDValidationPipe } from '@metad/server-core';
+import { CrudController, PaginationParams, ParseJsonPipe, transformWhere, UUIDValidationPipe } from '@metad/server-core';
 import {
 	ApiTags,
 	ApiBearerAuth,
@@ -8,7 +8,7 @@ import {
 	ApiResponse
 } from '@nestjs/swagger';
 import { FindOneOptions, FindManyOptions, ObjectLiteral, DeepPartial } from 'typeorm'
-import { IPagination } from '@metad/contracts';
+import { IPagination, TIndicatorDraft } from '@metad/contracts';
 import { Indicator } from './indicator.entity';
 import { IndicatorService } from './indicator.service';
 import { IndicatorPublicDTO } from './dto';
@@ -27,18 +27,28 @@ export class IndicatorController extends CrudController<Indicator> {
 		super(indicatorService);
 	}
 
-	/**
-	 * Tenant 内账号查询公开指标 ?
-	 * 
-	 * @param data 
-	 * @returns 
-	 */
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get()
 	async findAllPublic(
+		@Query('data', ParseJsonPipe) params: PaginationParams<Indicator>,
+	): Promise<IPagination<IndicatorPublicDTO>> {
+		const where = transformWhere(params.where ?? {})
+
+		return await this.indicatorService.findAll({
+			...(params ?? {}),
+			where,
+		}).then((result) => ({
+			...result,
+			items: result.items.map((item) => new IndicatorPublicDTO(item))
+		}))
+	}
+
+	@UseInterceptors(ClassSerializerInterceptor)
+	@Get('view')
+	async findAllView(
 		@Query('$query', ParseJsonPipe) data: FindManyOptions
 	): Promise<IPagination<IndicatorPublicDTO>> {
-		const { relations, where } = data;
+		const { relations, where } = data ?? {};
 		return await this.indicatorService.findAll({
 			where: {
 				...((where ?? {}) as ObjectLiteral),
@@ -54,7 +64,7 @@ export class IndicatorController extends CrudController<Indicator> {
 	}
 
 	/**
-	 * 查询属于自己的指标: 自己创建和有权限编辑的
+	 * Query your own indicators: the ones you created and have permission to edit
 	 * 
 	 * @param options 
 	 * @returns 
@@ -73,19 +83,25 @@ export class IndicatorController extends CrudController<Indicator> {
 	 */
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get('project/:id')
-	async byProject(@Param('id', UUIDValidationPipe) id: string, @Query('$query', ParseJsonPipe) options?: FindManyOptions<Indicator>) {
-		const { where, relations, select } = options ?? {}
+	async byProject(@Param('id', UUIDValidationPipe) id: string, @Query('data', ParseJsonPipe) options?: PaginationParams<Indicator>) {
+		const { relations, select } = options ?? {}
+		const where = transformWhere(options?.where ?? {})
 		// Check the project permission
 		// todo
 		return await this.indicatorService.findAll({
 			select,
 			relations,
-			where: {projectId: id, ...(where as ObjectLiteral ?? {})}
+			where: {...where, projectId: id}
 		})
 	}
 
+	@Post('project/:id/embedding')
+	async startEmbedding(@Param('id') id: string, @Body() body: { ids: string[] }) {
+		await this.indicatorService.startEmbedding(id)
+	}
+
 	/**
-	 * 查询属于自己的指标应用指标
+	 * Query your own indicators application indicators
 	 * 
 	 * @param options 
 	 * @returns 
@@ -133,4 +149,23 @@ export class IndicatorController extends CrudController<Indicator> {
 		return this.indicatorService.findOne(id, {relations, ...options});
 	}
 
+	@Put(':id/draft')
+	async updateDraft(@Param('id', UUIDValidationPipe) id: string, @Body() draft: TIndicatorDraft) {
+		return this.indicatorService.updateDraft(id, draft)
+	}
+
+	@Post(':id/publish')
+	async publish(@Param('id', UUIDValidationPipe) id: string) {
+		return this.indicatorService.publish(id)
+	}
+
+	@Post(':id/embedding')
+	async embedding(@Param('id', UUIDValidationPipe) id: string) {
+		return this.indicatorService.embedding(id)
+	}
+
+	@Delete(':id')
+	async deleteById(@Param('id', UUIDValidationPipe) id: string,): Promise<void> {
+		await this.indicatorService.deleteById(id)
+	}
 }

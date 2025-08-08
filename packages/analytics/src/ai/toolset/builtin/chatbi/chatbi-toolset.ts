@@ -1,9 +1,13 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { getContextVariable } from '@langchain/core/context'
+import { ToolMessage } from '@langchain/core/messages'
 import { Tool, tool } from '@langchain/core/tools'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
 import {
+	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	CONTEXT_VARIABLE_CURRENTSTATE,
+	getToolCallIdFromConfig,
 	IChatBIModel,
 	IIndicator,
 	isEnableTool,
@@ -17,7 +21,11 @@ import {
 	TToolCredentials
 } from '@metad/contracts'
 import {
+	AggregationRole,
 	BarVariant,
+	C_MEASURES,
+	CalculationType,
+	ChartAnnotation,
 	ChartBusinessService,
 	ChartOrient,
 	ChartSettings,
@@ -27,30 +35,36 @@ import {
 	EntityType,
 	FilteringLogic,
 	getEntityDimensions,
+	getEntityProperty,
 	Indicator,
 	isEntitySet,
 	markdownModelCube,
-	nonNullable,
 	PresentationVariant,
 	Schema,
 	toAdvancedFilter,
 	tryFixDimension,
+	tryFixMeasureName,
 	tryFixOrder,
 	tryFixSlicer,
 	tryFixVariableSlicer,
 	workOutTimeRangeSlicers
 } from '@metad/ocap-core'
 import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
-import { getErrorMessage, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
+import { getErrorMessage, isEmpty, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { z } from 'zod'
-import { DimensionMemberServiceQuery } from '../../../../model-member/'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, extractDataValue, fixMeasure, IndicatorSchema, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions, tryFixFormula } from './types'
-import { GetBIContextQuery, TBIContext } from '../../../../chatbi'
-import { createDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, extractDataValue, limitDataResults, TChatBICredentials, tryFixDimensions } from './types'
+import { buildDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
+import { fixMeasure, markdownCubes, tryFixChartType, tryFixFormula } from '../../types'
+import { TBIContext } from '../../../types'
+import { GetBIContextQuery } from '../../../queries'
+import { IndicatorSchema } from '../../schema'
+import { TOOL_CHATBI_PROMPTS_DEFAULT } from './prompts'
+import { BIVariableEnum, mapTimeSlicer } from '../bi-toolset'
+
 
 function cubesReducer(a, b) {
 	return [...a.filter((_) => !b?.some((item) => item.cubeName === _.cubeName)), ...(b ?? [])]
@@ -86,6 +100,17 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		}
 		return [
 			{
+				name: 'tool_chatbi_prompts_default',
+				type: 'string',
+				description: 'Default prompt for chatbi toolset',
+				reducer: (a: string, b: string) => {
+					return a || b
+				},
+				default: () => {
+					return TOOL_CHATBI_PROMPTS_DEFAULT
+				}
+			} as TStateVariable,
+			{
 				name: 'chatbi_models',
 				type: 'array[object]',
 				description: 'Models for ChatBI',
@@ -111,7 +136,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				description: 'Cubes contexts',
 			} as TStateVariable,
 			{
-				name: ChatBIVariableEnum.INDICATORS,
+				name: BIVariableEnum.INDICATORS,
 				type: 'array[object]',
 				description: 'Indicators in cube',
 				reducer: (a: IIndicator[], b: IIndicator[]) => {
@@ -130,37 +155,31 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		}
 		const tools = this.toolset.tools.filter((_) => isEnableTool(_, this.toolset))
 
-		if (!tools.length) {
-			throw new ToolNotSupportedError(`Tools not be enabled for '${this.constructor.prototype.provider}'`)
-		}
-
 		await this.initModels()
 
 		this.tools = []
-		if (tools.find((_) => _.name === ChatBIToolsEnum.GET_AVAILABLE_CUBES)) {
+		const allAllowed = !this.toolset.tools?.length
+		
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.GET_AVAILABLE_CUBES)) {
 			this.tools.push(this.createGetAvailableCubes() as unknown as Tool)
 		}
-		if (tools.find((_) => _.name === ChatBIToolsEnum.GET_CUBE_CONTEXT)) {
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.GET_CUBE_CONTEXT)) {
 			this.tools.push(this.createCubeContextTool(this.dsCoreService) as unknown as Tool)
 		}
-		if (tools.find((_) => _.name === ChatBIToolsEnum.MEMBER_RETRIEVER)) {
-			const dimensionMemberRetrieverTool = createDimensionMemberRetrieverTool(
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.MEMBER_RETRIEVER)) {
+			const dimensionMemberRetrieverTool = buildDimensionMemberRetrieverTool(
 				{
 					chatbi: this,
-					dsCoreService: this.dsCoreService
+					dsCoreService: this.dsCoreService,
+					commandBus: this.commandBus
 				},
 				ChatBIToolsEnum.MEMBER_RETRIEVER,
-				this.toolset.tenantId,
-				this.toolset.organizationId,
-				await this.queryBus.execute(
-					new DimensionMemberServiceQuery()
-				)
 			)
 			
 			this.tools.push(dimensionMemberRetrieverTool)
 		}
 
-		if (tools.find((_) => _.name === ChatBIToolsEnum.CREATE_INDICATOR)) {
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.CREATE_INDICATOR)) {
 			this.tools.push(this.createIndicatorTool(this.dsCoreService))
 		}
 
@@ -296,6 +315,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		return tool(
 			async ({ modelId, name }, config: LangGraphRunnableConfig) => {
 				this.logger.debug(`Tool 'get_cube_context' params:`, modelId, name)
+				const toolCallId = getToolCallIdFromConfig(config)
+				// Tool message event
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+					id: toolCallId,
+					category: 'Tool',
+					message: name,
+				})
 				try {
 					// Fetch a context variable named "currentState".
 					// We have set this variable explicitly in each ToolNode invoke method that calls this tool.
@@ -309,7 +335,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							let entityType = await this.getCubeCache(item.modelId, item.name)
 							if (!entityType) {
 								// Update runtime indicators
-								const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]
+								const indicators = currentState?.[BIVariableEnum.INDICATORS]
 								if (indicators) {
 									await this.updateIndicators(dsCoreService, indicators)
 								}
@@ -344,7 +370,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 						}
 
 						// Populated when a tool is called with a tool call from a model as input
-						const toolCallId = config.metadata.tool_call_id
 						return new Command({
 							update: {
 								chatbi_cubes: cubes,
@@ -353,11 +378,11 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 									.join('\n\n'),
 								// update the message history
 								messages: [
-									{
-										role: 'tool',
+									new ToolMessage({
 										content: cubes.map(({ context }) => context).join('\n\n'),
-										tool_call_id: toolCallId
-									}
+										tool_call_id: toolCallId,
+										status: 'success',
+									})
 								]
 							}
 						})
@@ -394,7 +419,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				const answer = params as ChatAnswer
 
 				// Update runtime indicators
-				const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]
+				const indicators = currentState?.[BIVariableEnum.INDICATORS]
 				if (indicators) {
 					await this.updateIndicators(dsCoreService, indicators)
 				}
@@ -404,12 +429,41 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					// Make sure datasource exists
 					const _dataSource = await dsCoreService._getDataSource(answer.dataSettings.dataSource)
 					const entity = await firstValueFrom(
-						dsCoreService.selectEntitySetOrFail(answer.dataSettings.dataSource, answer.dataSettings.entitySet)
+						_dataSource.selectEntitySet(answer.dataSettings.entitySet)
 					)
 					if (isEntitySet(entity)) {
 					    entityType = entity.entityType
 					} else {
 						throw entity
+					}
+
+					if (answer.calculated_members?.length) {
+						_dataSource.updateOptions((options) => {
+							return {
+								...options,
+								calculatedMeasures: {
+									...(options.calculatedMeasures ?? {}),
+									[answer.dataSettings.entitySet]: answer.calculated_members.map((member) => {
+										return {
+											...member,
+											name: tryFixMeasureName(member.name),
+											role: AggregationRole.measure,
+											calculationType: CalculationType.Calculated,
+											visible: true
+										}
+									})
+								}
+							}
+						})
+						// Get the entityType after updating the calculated member
+						const entity = await firstValueFrom(
+							_dataSource.selectEntitySet(answer.dataSettings.entitySet)
+						)
+						if (isEntitySet(entity)) {
+							entityType = entity.entityType
+						} else {
+							throw entity
+						}
 					}
 				}
 
@@ -444,18 +498,36 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, configurable: TAgentRunnableConfigurable, credentials: TChatBICredentials): Promise<any> {
 		const { dsCoreService, entityType, chatbi, language } = context
-		const { subscriber, agentKey, xpertName } = configurable ?? {}
-		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+		const { subscriber, agentKey, xpertName, tool_call_id } = configurable ?? {}
 
+		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 		const lang = currentState?.[STATE_VARIABLE_SYS]?.language
-		const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
+		const indicators = currentState?.[BIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
 		const chartService = new ChartBusinessService(dsCoreService)
 		const destroy$ = new Subject<void>()
 
-		const chartAnnotation = {
+		const chartAnnotation: ChartAnnotation = {
 			chartType: tryFixChartType(answer.visualType),
 			dimensions: tryFixDimensions(answer.dimensions?.map((dimension) => tryFixDimension(dimension, entityType))),
-			measures: answer.measures?.map((measure) => fixMeasure(measure, entityType))
+			measures: answer.measures?.map((measure) => {
+				measure = fixMeasure(measure, entityType)
+				const property = getEntityProperty(entityType, measure.measure)
+				if (!property) {
+					throw new Error(`Measure '${measure.measure}' not found in cube '${entityType.name}'`)
+				}
+				return measure
+			}) ?? []
+		}
+		if (chartAnnotation.measures.length === 0 && entityType.defaultMeasure) {
+			chartAnnotation.measures.push({
+				dimension: C_MEASURES,
+				measure: entityType.defaultMeasure,
+			})
+		}
+
+		// Check validation
+		if (isEmpty(chartAnnotation.measures)) {
+			throw new Error('The measures of chart answer cannot be empty')
 		}
 
 		// Temporarily support Column to represent Table
@@ -482,8 +554,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		}
 
 		const presentationVariant: PresentationVariant = {}
-		if (answer.top) {
-			presentationVariant.maxItems = answer.top
+		if (answer.limit) {
+			presentationVariant.maxItems = answer.limit
 		}
 		if (answer.orders) {
 			presentationVariant.sortOrder = answer.orders.map(tryFixOrder)
@@ -514,64 +586,76 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			}
 		}
 
-		return new Promise((resolve, reject) => {
-			const dataSettings = {
+		const dataSettings: DataSettings = {
 				...answer.dataSettings,
 				chartAnnotation,
-				presentationVariant
+				presentationVariant,
+				calculatedMembers: answer.calculated_members,
+				parameters: answer.parameters?.reduce((acc, { name, value }) => {
+					acc[name] = value
+					return acc
+				}, {})
 			}
-
-			// In parallel: return to the front-end display and back-end data retrieval
-			if (answer.visualType === 'KPI') {
-				subscriber?.next({
+		// In parallel: return to the front-end display and back-end data retrieval
+		if (answer.visualType === 'KPI') {
+			subscriber?.next({
+				data: {
+					type: ChatMessageTypeEnum.MESSAGE,
 					data: {
-						type: ChatMessageTypeEnum.MESSAGE,
+						id: shortuuid(),
+						type: 'component',
 						data: {
-							id: shortuuid(),
-							type: 'component',
-							data: {
-								category: 'Dashboard',
-								type: 'KPI',
-								dataSettings: {
-									...omit(dataSettings, 'chartAnnotation'),
-									KPIAnnotation: {
-										DataPoint: {
-											Value: chartAnnotation.measures[0]
-										}
+							category: 'Dashboard',
+							type: 'KPI',
+							dataSettings: {
+								...omit(dataSettings, 'chartAnnotation'),
+								KPIAnnotation: {
+									DataPoint: {
+										Value: chartAnnotation.measures[0]
 									}
-								} as DataSettings,
-								slicers,
-								title: answer.preface,
-								// indicator
-							} as TMessageComponent,
-							xpertName,
-							agentKey
-						} as TMessageContentComponent
-					}
-				} as MessageEvent)
-			} else {
-				subscriber.next({
-					data: {
-						type: ChatMessageTypeEnum.MESSAGE,
-						data: {
-							id: shortuuid(),
-							type: 'component',
-							data: {
-								category: 'Dashboard',
-								type: 'AnalyticalCard',
-								dataSettings,
-								chartSettings,
-								slicers,
-								title: answer.preface,
-								indicators
-							} as TMessageComponent,
-							xpertName,
-							agentKey
-						} as TMessageContentComponent
-					}
-				} as MessageEvent)
-			}
-
+								}
+							} as DataSettings,
+							slicers,
+							title: answer.preface,
+						} as TMessageComponent,
+						xpertName,
+						agentKey
+					} as TMessageContentComponent
+				}
+			} as MessageEvent)
+		} else {
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: tool_call_id,
+				category: 'Dashboard',
+				type: 'AnalyticalCard',
+				dataSettings,
+				chartSettings,
+				slicers,
+				title: answer.preface,
+				indicators,
+			} as TMessageComponent)
+			// subscriber.next({
+			// 	data: {
+			// 		type: ChatMessageTypeEnum.MESSAGE,
+			// 		data: {
+			// 			id: shortuuid(),
+			// 			type: 'component',
+			// 			data: {
+			// 				category: 'Dashboard',
+			// 				type: 'AnalyticalCard',
+			// 				dataSettings,
+			// 				chartSettings,
+			// 				slicers,
+			// 				title: answer.preface,
+			// 				indicators
+			// 			} as TMessageComponent,
+			// 			xpertName,
+			// 			agentKey
+			// 		} as TMessageContentComponent
+			// 	}
+			// } as MessageEvent)
+		}
+		return new Promise((resolve, reject) => {
 			chartService.selectResult().subscribe((result) => {
 				if (result.error) {
 					reject(result.error)
@@ -595,6 +679,9 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	}
 
 	/**
+	 * 
+	 * @deprecated use `calculated_members` in `ChatAnswer` instead.
+	 * 
 	 * Create a tool for creating indicator for cube in semantic model.
 	 * Responsible for checking the validity of the formula so that LLM can redo it on the spot.
 	 *
@@ -604,10 +691,17 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		return tool(
 			async (indicator: Indicator & { cube: string; language: 'zh' | 'en'; query: string}, config: LangGraphRunnableConfig) => {
 				this.logger.debug(`[ChatBI] [create_indicator] new indicator: ${JSON.stringify(indicator)}`)
+				const toolCallId = config.metadata.tool_call_id
 
 				if (!indicator.formula) {
 					throw new Error(`The formula of indicator cannot be empty`)
 				}
+
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+					id: toolCallId,
+					category: 'Tool',
+					message: indicator.name || indicator.code,
+				})
 
 				const formula = tryFixFormula(indicator.formula, indicator.code)
 				// Checking the validity of formula
@@ -627,11 +721,9 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				// Created event
 				await this.onCreatedIndicator(_indicator, config?.configurable as TAgentRunnableConfigurable)
 
-				// Populated when a tool is called with a tool call from a model as input
-				const toolCallId = config.metadata.tool_call_id
 				return new Command({
 					update: {
-						[ChatBIVariableEnum.INDICATORS]: [_indicator],
+						[BIVariableEnum.INDICATORS]: [_indicator],
 						// update the message history
 						messages: [
 							{
@@ -678,11 +770,4 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			}
 		} as MessageEvent)
 	}
-}
-
-function markdownCubes(models: IChatBIModel[]) {
-    return models.filter(nonNullable).map((item) => `- dataSource: ${item.modelId}
-  cubeName: ${item.entity}
-  cubeCaption: ${item.entityCaption}
-  cubeDescription: ${item.entityDescription}`).join('\n')
 }

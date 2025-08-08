@@ -1,13 +1,8 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
-import {
-	ChatMessageTypeEnum,
-	mapTranslationLanguage,
-	TMessageComponent,
-	TMessageContentComponent
-} from '@metad/contracts'
+import { ChatMessageEventTypeEnum, getToolCallIdFromConfig, TMessageComponent } from '@metad/contracts'
 import { C_MEASURES, DataSettings, getEntityCalendar, getEntityProperty } from '@metad/ocap-core'
-import { shortuuid } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+import { t } from 'i18next'
 import { groupBy } from 'lodash'
 import { firstValueFrom } from 'rxjs'
 import { z } from 'zod'
@@ -19,13 +14,10 @@ export function createShowIndicatorsTool(context: ChatBIContext, credentials: TC
 
 	return tool(
 		async (
-			{ dataSource, indicators }: { dataSource: string; indicators: { indicator: string; cube: string }[] },
+			{ modelId, indicators }: { modelId: string; indicators: { indicator: string; cube: string }[] },
 			config
 		): Promise<string> => {
-			const { configurable } = config ?? {}
-			const { subscriber, xpertName, agentKey } = configurable ?? {}
-
-			const _dataSource = await dsCoreService._getDataSource(dataSource)
+			const _dataSource = await dsCoreService._getDataSource(modelId)
 			const cubes = groupBy(indicators, 'cube')
 			for await (const cube of Object.keys(cubes)) {
 				const entityType = await firstValueFrom(_dataSource.selectEntityType(cube))
@@ -38,83 +30,64 @@ export function createShowIndicatorsTool(context: ChatBIContext, credentials: TC
 					if (!_indicator) {
 						const property = getEntityProperty(entityType, indicator.indicator)
 						if (!property) {
-							throw new Error(
-								await chatbi.translate('analytics.Error.IndicatorNotFound', {
-									lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
-									args: { indicator: indicator.indicator }
-								})
-							)
+							if (!property) {
+								throw new Error(
+									t('analytics:Error.IndicatorNotFound', { indicator: indicator.indicator })
+								)
+							}
 						}
 					}
 				}
 
+				const toolCallId = getToolCallIdFromConfig(config)
 				try {
 					const { dimension, hierarchy, level } = getEntityCalendar(entityType)
-					subscriber.next({
-						data: {
-							type: ChatMessageTypeEnum.MESSAGE,
-							data: {
-								id: shortuuid(),
-								type: 'component',
-								data: {
-									category: 'Dashboard',
-									type: 'Indicators',
-									indicators: cubes[cube].map((indicator) => ({
-										...indicator,
-										dataSource,
-										entitySet: indicator.cube,
-										indicatorCode: indicator.indicator
-									}))
-								} as TMessageComponent,
-								xpertName,
-								agentKey
-							} as TMessageContentComponent
-						}
-					} as MessageEvent)
+					// Tool message event
+					await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+						id: toolCallId,
+						category: 'Dashboard',
+						type: 'Indicators',
+						indicators: cubes[cube].map((indicator) => ({
+							...indicator,
+							dataSource: modelId,
+							entitySet: indicator.cube,
+							indicatorCode: indicator.indicator
+						}))
+					} as TMessageComponent)
 				} catch (err) {
 					for await (const indicator of cubes[cube]) {
-						subscriber.next({
-							data: {
-								type: ChatMessageTypeEnum.MESSAGE,
-								data: {
-									id: shortuuid(),
-									type: 'component',
-									data: {
-										category: 'Dashboard',
-										type: 'KPI',
-										dataSettings: {
-											dataSource,
-											entitySet: cube,
-											KPIAnnotation: {
-												DataPoint: {
-													Value: {
-														dimension: C_MEASURES,
-														measure: indicator.indicator
-													}
-												}
-											}
-										} as DataSettings
-									} as TMessageComponent,
-									xpertName,
-									agentKey
-								} as TMessageContentComponent
-							}
-						} as MessageEvent)
+						await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+							id: toolCallId,
+							category: 'Dashboard',
+							type: 'KPI',
+							dataSettings: {
+								dataSource: modelId,
+								entitySet: cube,
+								KPIAnnotation: {
+									DataPoint: {
+										Value: {
+											dimension: C_MEASURES,
+											measure: indicator.indicator
+										}
+									}
+								}
+							} as DataSettings
+						} as TMessageComponent)
 					}
 				}
 			}
 
-			return JSON.stringify(indicators)
+			return `The detailed data of the indicator list has been visually presented to the user, and you do not need to repeat the indicator information.`
 		},
 		{
 			name: 'show_indicators',
-			description: `Show indicators list`,
+			description: `This tool can visually display detailed data of indicators to users, so you don’t have to repeat the indicator information.`,
 			schema: z.object({
-				dataSource: z.string().describe(`The dataSource of indicators`),
+				modelId: z.string().describe(`ModelId of the cube to which the indicator belongs`),
 				indicators: z.array(
 					z.object({
-						cube: z.string().describe(`Entity which is the indicator belong to`),
-						indicator: z.string().describe(`The name of indicator, or the name of measure`)
+						cube: z.string().describe(`Cube to which is the indicator belongs`),
+						indicator: z.string().describe(`The code of indicator, or the name of measure`)
 					})
 				)
 			})

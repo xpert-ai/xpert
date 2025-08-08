@@ -10,7 +10,7 @@ import {
 import { ISlicer } from '../../types'
 import { MemberSchema, tryFixDimension } from './common'
 
-export const SlicerSchema = z.object({
+export const BaseSlicerSchema = {
   dimension: z
     .object({
       dimension: z.string().describe('The name of the dimension'),
@@ -21,8 +21,13 @@ export const SlicerSchema = z.object({
     .describe('dimension of the slicer'),
   exclude: z.boolean().optional().describe('Exclude members'),
   members: z.array(MemberSchema).describe('Members in the slicer')
-})
+}
 
+export const SlicerSchema = z.object({...BaseSlicerSchema})
+
+/**
+ * @deprecated 
+ */
 export const TimeSlicerSchema = z.object({
   dimension: z
     .object({

@@ -1,4 +1,4 @@
-import { convertToUrlPath, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft } from '@metad/contracts'
+import { ChecklistItem, convertToUrlPath, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft } from '@metad/contracts'
 import {
 	OptionParams,
 	PaginationParams,
@@ -20,6 +20,7 @@ import { Xpert } from './xpert.entity'
 import { XpertIdentiDto } from './dto'
 import { GetXpertMemoryEmbeddingsQuery } from './queries'
 import { CopilotMemoryStore, CreateCopilotStoreCommand } from '../copilot-store'
+import { FreeNodeValidator } from './validators'
 
 @Injectable()
 export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
@@ -184,6 +185,8 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 			}
 		} as TXpertTeamDraft
 
+		xpert.draft.checklist = await this.validate(xpert.draft)
+
 		await this.repository.save(xpert)
 		return xpert.draft
 	}
@@ -201,8 +204,20 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 			}
 		} as TXpertTeamDraft
 
+		xpert.draft.checklist = await this.validate(xpert.draft)
+
 		await this.repository.save(xpert)
 		return xpert.draft
+	}
+
+	async validate(draft: TXpertTeamDraft) {
+		const freeNodeValidator = new FreeNodeValidator()
+
+		const results: ChecklistItem[] = []
+
+		const res = await freeNodeValidator.validate(draft)
+		results.push(...res)
+		return results
 	}
 
 	async publish(id: string, newVersion: boolean, environmentId: string, notes: string) {

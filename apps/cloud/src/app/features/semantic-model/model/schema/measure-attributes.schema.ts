@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core'
 import { map } from 'rxjs'
-import { CubeSchemaService } from './cube.schema'
-import { HiddenLLM, MeasureFormatting } from './common'
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
+import { HiddenLLM, MeasureFormatting } from '@cloud/app/@shared/model'
+import { CubeSchemaService } from './cube.schema'
 
 @Injectable()
 export class MeasureAttributesSchema extends CubeSchemaService {

@@ -68,3 +68,11 @@ credentials_for_provider:
     placeholder:
       en_US: Task Prefix Restrictions
       zh_Hans: 任务前缀限制条件
+  timeout:
+    type: number
+    label:
+      en_US: Timeout
+      zh_Hans: 超时时间
+    placeholder:
+      en_US: Timeout in seconds (Default 600)
+      zh_Hans: 超时时间（秒）（默认 600）

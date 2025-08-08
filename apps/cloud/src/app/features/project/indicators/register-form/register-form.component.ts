@@ -12,7 +12,7 @@ import {
 } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
-import { NgmSemanticModel } from '@metad/cloud/state'
+import { BusinessAreasService, NgmSemanticModel } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { nonBlank, nonNullable } from '@metad/core'
 import { NgmHierarchySelectComponent, NgmMatSelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
@@ -48,9 +48,7 @@ import {
   switchMap,
   tap
 } from 'rxjs'
-import { INDICATOR_AGGREGATORS } from '../../../indicator/types'
 import { ProjectService } from '../../project.service'
-import { injectFetchModelDetails } from '../../types'
 import { injectIndicatorFormulaCommand } from '../../copilot'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 import { MatIconModule } from '@angular/material/icon'
@@ -61,6 +59,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatInputModule } from '@angular/material/input'
 import { MatSelectModule } from '@angular/material/select'
 import { MatCheckboxModule } from '@angular/material/checkbox'
+import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shared/indicator/'
 
 @Component({
   standalone: true,

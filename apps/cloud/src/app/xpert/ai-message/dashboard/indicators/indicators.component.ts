@@ -1,10 +1,12 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, ViewContainerRef } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
+import { XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmIndicatorComponent, NgmIndicatorExplorerComponent } from '@metad/ocap-angular/indicator'
 import { DataSettings, IndicatorTagEnum, IndicatorType, TimeGranularity } from '@metad/ocap-core'
@@ -25,7 +27,7 @@ import { combineLatest, map, of } from 'rxjs'
     MatTooltipModule,
 
     NgmIndicatorComponent,
-    NgmIndicatorExplorerComponent
+    NgmIndicatorExplorerComponent,
   ],
   selector: 'chat-component-indicators',
   templateUrl: './indicators.component.html',
@@ -36,10 +38,12 @@ export class ChatComponentIndicatorsComponent {
   eTimeGranularity = TimeGranularity
 
   readonly dsCoreService = inject(NgmDSCoreService)
+  readonly #dialog = inject(Dialog)
+  readonly viewContainerRef = inject(ViewContainerRef)
 
   // Inputs
   readonly indicators =
-    input<Array<Pick<DataSettings, 'dataSource'> & Pick<DataSettings, 'entitySet'> & { indicatorCode: string }>>()
+    input<Array<Pick<DataSettings, 'dataSource'> & Pick<DataSettings, 'entitySet'> & { id: string; indicatorCode: string }>>()
 
   // States
   // Collect dataSources of indicators
@@ -127,5 +131,21 @@ export class ChatComponentIndicatorsComponent {
 
   showLess() {
     this.pageNo.update((currentPage) => currentPage - 1)
+  }
+
+  editIndicator(id: string) {
+    this.#dialog.open(XpIndicatorFormComponent, {
+      viewContainerRef: this.viewContainerRef,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet',
+      data: {
+        id
+      }
+    }).closed.subscribe((result) => {
+      if (result) {
+        // Handle the result of the dialog, e.g., refresh indicators or show a message
+        console.log('Indicator edited:', result)
+      }
+    })
   }
 }

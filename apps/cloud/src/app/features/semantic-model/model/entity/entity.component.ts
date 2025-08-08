@@ -1,6 +1,6 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, HostBinding, OnInit, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, OnInit, effect, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, UrlSegment } from '@angular/router'
@@ -25,8 +25,9 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTabsModule } from '@angular/material/tabs'
 import { ModelCubeFactComponent } from './fact/fact.component'
-import { isEntitySet } from '@metad/ocap-core'
+import { AggregationRole, isEntitySet } from '@metad/ocap-core'
 import { ModelEntityCalculationComponent } from './calculation/calculation.component'
+import { NgmOcapCoreService } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
@@ -64,6 +65,7 @@ export class ModelEntityComponent implements OnInit {
   readonly i18n = injectTranslate('PAC.MODEL')
   readonly #storyStore = inject<NxStoryStore>(NX_STORY_STORE)
   readonly #model = inject(ModelComponent)
+  readonly #coreService = inject(NgmOcapCoreService)
 
   @HostBinding('class.pac-model-entity') _isModelEntity = true
   @HostBinding('class.pac-fullscreen')
@@ -114,24 +116,30 @@ export class ModelEntityComponent implements OnInit {
   | Subscriptions (effect)
   |--------------------------------------------------------------------------
   */
+  private entityUpdateEventSub = this.#coreService
+    ?.onEntityUpdate()
+    .pipe(takeUntilDestroyed())
+    .subscribe(({ type, dataSettings, parameter, property }) => {
+      if (type === 'Parameter') {
+        this.entityService.parameters.update((state) => {
+          const parameters = state ? [...state] : []
+          const index = parameters.findIndex((p) => p.__id__ === parameter.__id__)
+          if (index > -1) {
+            parameters[index] = {...parameter}
+          } else {
+            parameters.push({...parameter})
+          }
+          return parameters
+        })
+      } else {
+        // @todo
+      }
+    })
+  
   private entitySub = this.entityId$.pipe(takeUntilDestroyed()).subscribe((id) => {
     this.entityService.init(id)
     this.modelService.setCrrentEntity(id)
   })
-
-  /**
-   * When selected property first time to open the attributes panel
-   */
-  readonly #selectedPropertySub = toObservable(this.entityService.selectedProperty)
-    .pipe(
-      map((selected) => !!selected),
-      distinctUntilChanged(),
-      filter(Boolean),
-      takeUntilDestroyed()
-    )
-    .subscribe((selected) => {
-      this.detailsOpen.set(true)
-    })
 
   /**
    * Monitor the current entity type changes and print out the error information;
@@ -152,6 +160,17 @@ export class ModelEntityComponent implements OnInit {
         })
       }
     })
+  
+  constructor() {
+    /**
+     * When selected property first time to open the attributes panel
+     */
+    effect(() => {
+      if (this.entityService.selectedProperty()) {
+        this.detailsOpen.set(true)
+      }
+    }, { allowSignalWrites: true })
+  }
 
   ngOnInit() {
     this.settingsService.setEditable(true)

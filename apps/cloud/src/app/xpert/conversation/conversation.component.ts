@@ -8,6 +8,7 @@ import {
   effect,
   inject,
   input,
+  model,
   output,
   signal
 } from '@angular/core'
@@ -15,14 +16,15 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { CopilotChatMessage, injectToastr, IXpert, ToolCall, XpertAgentExecutionStatusEnum } from '../../@core'
+import { CopilotChatMessage, injectToastr, IXpert, TInterruptCommand, TToolCall, XpertAgentExecutionStatusEnum } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
-import { ToolCallConfirmComponent, XpertParametersCardComponent } from '../../@shared/xpert'
+import { XpertParametersCardComponent } from '../../@shared/xpert'
 import { AppService } from '../../app.service'
 import { ChatAiMessageComponent } from '../ai-message/ai-message.component'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 import { ChatHumanMessageComponent } from './human-message/message.component'
+import { XpertAgentOperationComponent } from '@cloud/app/@shared/agent'
 
 @Component({
   standalone: true,
@@ -34,7 +36,7 @@ import { ChatHumanMessageComponent } from './human-message/message.component'
     TranslateModule,
     NgmCommonModule,
     EmojiAvatarComponent,
-    ToolCallConfirmComponent,
+    XpertAgentOperationComponent,
     ChatAiMessageComponent,
     ChatHumanMessageComponent,
     XpertParametersCardComponent
@@ -73,10 +75,11 @@ export class ChatConversationComponent {
   readonly conversationStatus = computed(() => this.conversation()?.status)
   readonly error = computed(() => this.conversation()?.error)
   readonly operation = computed(() => this.chatService.conversation()?.operation)
-  readonly toolCalls = signal<ToolCall[]>(null)
-  readonly #confirmOperation = computed(() =>
-    this.toolCalls() ? { ...this.operation(), toolCalls: this.toolCalls().map((call) => ({ call })) } : null
-  )
+  readonly command = model<TInterruptCommand>()
+  // readonly toolCalls = signal<TToolCall[]>(null)
+  // readonly #confirmOperation = computed(() =>
+  //   this.toolCalls() ? { ...this.operation(), toolCalls: this.toolCalls().map((call) => ({ call })) } : null
+  // )
   readonly parameters = computed(() => this.xpert()?.agent?.parameters)
 
   readonly parametersValue = this.chatService.parametersValue
@@ -108,12 +111,12 @@ export class ChatConversationComponent {
     this.chat.emit(statement)
   }
 
-  onToolCalls(toolCalls: ToolCall[]) {
-    this.toolCalls.set(toolCalls)
-  }
+  // onToolCalls(toolCalls: TToolCall[]) {
+  //   this.toolCalls.set(toolCalls)
+  // }
 
   onConfirm() {
-    this.chatService.chat({ confirm: true, operation: this.#confirmOperation() })
+    this.chatService.chat({ confirm: true, command: this.command() })
     this.chatService.updateConversation({
       status: 'busy',
       error: null
@@ -121,7 +124,7 @@ export class ChatConversationComponent {
   }
 
   onReject() {
-    this.chatService.chat({ reject: true, operation: this.operation() })
+    this.chatService.chat({ reject: true, command: this.command() })
     this.chatService.updateConversation({
       status: 'busy',
       error: null

@@ -12,20 +12,7 @@ import {
 } from '@metad/ocap-core'
 import { IStory, ModelQuery, TSemanticModelDraft, uuid } from '../../../@core'
 
-export enum MODEL_TYPE {
-  /**
-   * 自有多维分析模型
-   */
-  OLAP,
-  /**
-   * 第三方 XMLA 接口模型
-   */
-  XMLA,
-  /**
-   * SQL 模型
-   */
-  SQL
-}
+export { MODEL_TYPE } from '@cloud/app/@shared/model/types'
 
 export enum TOOLBAR_ACTION_CATEGORY {
   WORKSPACE,
@@ -259,7 +246,9 @@ export enum CdkDragDropContainers {
   Dimensions = 'list-dimensions',
   Measures = 'list-measures',
   CalculatedMembers = 'list-calculated-members',
+  Calculations = 'list-calculations',
+  Parameters = 'list-parameters',
   CubeSchema = 'pac-model-cube-schema',
+  FactTableMeasures = 'list-table-measures',
+  FactTableDimensions = 'list-table-dimensions',
 }
-
-export const DEBOUNCE_TIME = 100

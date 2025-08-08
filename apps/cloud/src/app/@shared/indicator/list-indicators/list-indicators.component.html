@@ -1,0 +1,143 @@
+<div class="w-full relative overflow-auto flex-1">
+  <table class="table-auto w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <thead class="text-base text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+      <tr class="text-left">
+        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3 truncate">
+          {{ 'PAC.KEY_WORDS.NAME' | translate: {Default: 'Name'} }}
+        </th>
+        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3">
+          {{ 'PAC.KEY_WORDS.CODE' | translate: {Default: 'Code'} }}
+        </th>
+        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3">
+          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
+        </th>
+        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3">
+          {{ 'PAC.INDICATOR.REGISTER.Status' | translate: {Default: 'Status'} }}
+        </th>
+        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3">
+          {{ 'PAC.INDICATOR.REGISTER.EmbeddingStatus' | translate: {Default: 'Embedding Status'} }}
+        </th>
+        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3">
+          {{ 'PAC.INDICATOR.REGISTER.Visible' | translate: {Default: 'Visible'} }}
+        </th>
+        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3">
+          {{ 'PAC.INDICATOR.REGISTER.AvailableInApplication' | translate: {Default: 'App Available'} }}
+        </th>
+        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3">
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of indicators(); track item.id) {
+        <tr class="group/row cursor-pointer bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-neutral-100"
+          (click)="editIndicator(item.id)">
+          <td class="px-4 py-2 whitespace-nowrap truncate">
+            {{item.name}}
+          </td>
+          <td class="px-4 py-2">
+            {{item.code}}
+          </td>
+          <td class="px-4 py-2">{{ item.updatedAt | relative }}</td>
+          <td class="px-4 py-2">
+            <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+              @switch (item.status) {
+                @case (eIndicatorStatusEnum.DRAFT) {
+                  <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-orange-500 border-orange-700 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                  <span class="">{{ 'PAC.INDICATOR.Draft' | translate: {Default: 'Draft'} }}</span>
+                }
+                @case (eIndicatorStatusEnum.RELEASED) {
+                  <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+                  <span >{{ 'PAC.INDICATOR.Published' | translate: {Default: 'Published'} }}</span>
+                }
+                @case (eIndicatorStatusEnum.ARCHIVED) {
+                  <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-neutral-600 flex'></span>
+                  <span >({{ 'PAC.INDICATOR.Archived' | translate: {Default: 'Archived'} }})</span>
+                }
+                @default {
+                  <span class="text-neutral-500">({{ 'PAC.INDICATOR.Unknown' | translate: {Default: 'Unknown'} }})</span>
+                }
+              }
+            </div>
+          </td>
+          <td class="px-4 py-2">
+            @switch (item.embeddingStatus) {
+              @case (eEmbeddingStatusEnum.SUCCESS) {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+                  <span class="">
+                    {{ 'PAC.MODEL.Success' | translate: {Default: 'Success'} }}
+                  </span>
+                </div>
+              }
+              @case (eEmbeddingStatusEnum.FAILED) {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                  <span class="text-red-500">
+                    {{ 'error' }}
+                  </span>
+                </div>
+              }
+              @case (eEmbeddingStatusEnum.PROCESSING) {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+                  <span class="">
+                    {{ 'PAC.MODEL.Running' | translate: {Default: 'Running'} }}
+                  </span>
+                </div>
+              }
+              @default {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                  <span class="">
+                    {{ 'PAC.MODEL.NotIndexed' | translate: {Default: 'Not indexed'} }}
+                  </span>
+                </div>
+              }
+            }
+          </td>
+          <td class="px-4 py-2" [class.text-emerald-500]="item.visible">
+            {{item.visible ? 'Yes' : 'No'}}
+          </td>
+          <td class="px-4 py-2" [class.text-emerald-500]="item.isApplication">
+            {{item.isApplication ? 'Yes' : 'No'}}
+          </td>
+          <td class="px-4 py-2 sticky right-0 bg-components-card-bg">
+            <div class="pac__table-actions flex gap-2 group" (click)="$event.stopPropagation()">
+              <button type="button" class="btn btn-secondary btn-sm w-7 h-7 flex justify-center items-center rounded-full text-slate-500 opacity-50 group-hover/row:opacity-100"
+                (click)="editIndicator(item.id)">
+                <i class="ri-pencil-line"></i>
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm w-7 h-7 flex justify-center items-center rounded-full text-slate-500 opacity-50 group-hover/row:opacity-100"
+                [matTooltip]="'PAC.INDICATOR.EmbeddingIndicatorIntoMemory' | translate: {Default: 'Embedding Indicator Into Memory'}"
+                matTooltipPosition="above"
+                (click)="embedding(item.id)">
+                @if (embeddingIndicators()[item.id]) {
+                  <i class="ri-loader-line animate-spin"></i>
+                } @else {
+                  <i class="ri-brain-line"></i>
+                }
+              </button>
+              <!-- <button type="button" class="btn btn-secondary btn-sm w-7 h-7 flex justify-center items-center rounded-full text-slate-500 opacity-50 group-hover/row:opacity-100 duration-300 hover:text-text-destructive"
+                >
+                <i class="ri-delete-bin-line"></i>
+              </button> -->
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (loading()) {
+  <div class="flex justify-center">
+    <ngm-spin />
+  </div>
+}
+
+@if (editingIndicatorId(); as indicatorId) {
+  <div class="absolute left-0 top-0 w-full h-full flex flex-col z-30 bg-black/10 backdrop-blur-[2px]">
+    <div class="shrink-0 w-full h-24" (click)="exitEdit()"></div>
+    <xp-indicator-form @ifAnimationTrigger class="rounded-t-3xl bg-gray-50" [data]="{data: {indicatorId}}"/>
+  </div>
+}

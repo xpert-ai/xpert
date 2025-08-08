@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core'
 import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { map } from 'rxjs'
-import { HiddenLLM, MeasureExpressionAccordion } from './common'
+import { HiddenLLM, MeasureExpressionAccordion } from '@cloud/app/@shared/model'
 import { CubeSchemaService } from './cube.schema'
 
 @Injectable()
@@ -140,7 +140,6 @@ export class MeasureSchemaService extends CubeSchemaService {
               }
             ]
           },
-
           ...AccordionWrappers([
             MeasureExpressionAccordion(COMMON, ''),
             {

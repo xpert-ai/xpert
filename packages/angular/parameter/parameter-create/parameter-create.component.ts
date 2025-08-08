@@ -1,6 +1,7 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { Component, Inject, Input, Optional, inject, model, signal } from '@angular/core'
+import { Component, inject, input, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import {
   AbstractControl,
@@ -16,24 +17,25 @@ import {
 import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatRadioModule } from '@angular/material/radio'
 import { NgmInputModule, NgmHierarchySelectComponent } from '@metad/ocap-angular/common'
 import { NgmControlsModule, TreeControlOptions } from '@metad/ocap-angular/controls'
-import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { EntityUpdateEvent, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
+  CubeParameterEnum,
   DataSettings,
   Dimension,
   EntityType,
   FilterSelectionType,
-  ParameterControlEnum,
   getEntityDimensions,
   getEntityHierarchy,
+  IMember,
   isNil,
-  uuid
+  ParameterProperty,
+  suuid,
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter, map, startWith } from 'rxjs'
@@ -54,7 +56,6 @@ import { filter, map, startWith } from 'rxjs'
     MatButtonToggleModule,
     MatIconModule,
     MatRadioModule,
-    MatDialogModule,
     MatCheckboxModule,
     TranslateModule,
     OcapCoreModule,
@@ -64,18 +65,27 @@ import { filter, map, startWith } from 'rxjs'
   ]
 })
 export class NgmParameterCreateComponent {
-  ParameterControlEnum = ParameterControlEnum
+  eCubeParameterEnum = CubeParameterEnum
 
   readonly #coreService = inject(NgmOcapCoreService)
+  readonly #dialogRef = inject(DialogRef, { optional: true })
+  readonly #data = inject<{
+      name: string
+      dataSettings: DataSettings
+      entityType: EntityType
+      dimension: Dimension
+      parameter?: ParameterProperty
+    }>(DIALOG_DATA, { optional: true })
+  readonly _formBuilder = inject(FormBuilder)
 
-  @Input() appearance: MatFormFieldAppearance = 'fill'
-  @Input() label = 'Parameter'
-
+  // Inputs
+  readonly appearance = input<MatFormFieldAppearance>('fill')
   readonly dataSettings = model<DataSettings>()
   readonly entityType = model<EntityType>()
 
+  // States
   /**
-   * 编辑模式, 否则为创建模式
+   * Edit mode, otherwise create mode
    */
   readonly edit = signal(false)
 
@@ -86,12 +96,12 @@ export class NgmParameterCreateComponent {
   }
 
   formGroup: FormGroup = this._formBuilder.group({
-    __id__: uuid(),
+    __id__: suuid(),
     name: ['', [Validators.required, this.forbiddenNameValidator()]],
     caption: null,
     dimension: null,
     hierarchy: null,
-    paramType: [ParameterControlEnum.Input, Validators.required],
+    paramType: [CubeParameterEnum.Input, Validators.required],
     value: null,
     dataType: null,
     members: [],
@@ -145,62 +155,50 @@ export class NgmParameterCreateComponent {
     map((type) => type === 'string' ? 'text' : type)
   ))
 
-  constructor(
-    private readonly _formBuilder: FormBuilder,
-    @Optional()
-    private readonly _dialogRef?: MatDialogRef<NgmParameterCreateComponent>,
-    @Optional()
-    @Inject(MAT_DIALOG_DATA)
-    public data?: {
-      name: string
-      dataSettings: DataSettings
-      entityType: EntityType
-      dimension: Dimension
-    }
-  ) {
-    if (this.data) {
-      this.dataSettings.set(this.data.dataSettings)
-      this.entityType.set(this.data.entityType)
+  constructor() {
+    if (this.#data) {
+      this.dataSettings.set(this.#data.dataSettings)
+      this.entityType.set(this.#data.entityType)
 
-      if (this.data.name) {
+      if (this.#data.name || this.#data.parameter) {
         this.edit.set(true)
-        const property = this.entityType()?.parameters?.[this.data.name]
+        const property = this.#data.parameter || this.entityType()?.parameters?.[this.#data.name]
         this.formGroup.patchValue(property ?? {})
         this.slicer = {
           ...this.slicer,
-          members: [...(property.availableMembers ?? [])]
+          members: [...(property?.availableMembers ?? [])]
         }
       } else {
-        this.formGroup.patchValue(this.data.dimension)
+        this.formGroup.patchValue(this.#data.dimension)
       }
     }
   }
 
   onApply() {
-    this.#coreService.updateEntity({
+    const event: EntityUpdateEvent = {
       type: 'Parameter',
       dataSettings: this.dataSettings(),
       parameter: {
         ...this.formGroup.value,
         members: this.formGroup.value.availableMembers.filter((member) => member.isDefault)
       }
+    }
+    this.#coreService.updateEntity(event)
+    this.#dialogRef?.close(event)
+  }
+
+  create(item?: Partial<IMember>): FormGroup {
+    const _group = this._formBuilder.group({
+      key: this._formBuilder.control(null, [Validators.required]),
+      caption: null,
+      isDefault: null
     })
-
-    this._dialogRef.close()
+    _group.patchValue(item ?? {})
+    return _group
   }
 
-  create(item?): FormGroup {
-    return this._formBuilder.group(
-      item ?? {
-        value: [null, Validators.required],
-        label: null,
-        isDefault: null
-      }
-    )
-  }
-
-  setAvailableMembers(members) {
-    this.availableMembers.clear() // .reset()
+  setAvailableMembers(members: Partial<IMember>[]) {
+    this.availableMembers.clear()
     members?.forEach((member) => {
       this.availableMembers.push(this.create(member))
     })
@@ -210,7 +208,7 @@ export class NgmParameterCreateComponent {
     this.availableMembers.push(this.create())
   }
 
-  remove(i) {
+  remove(i: number) {
     this.availableMembers.removeAt(i)
   }
 
@@ -229,5 +227,9 @@ export class NgmParameterCreateComponent {
       dimension: getEntityHierarchy(this.entityType(), hierarchy)?.dimension,
       hierarchy: hierarchy
     })
+  }
+
+  onCancel() {
+    this.#dialogRef?.close()
   }
 }

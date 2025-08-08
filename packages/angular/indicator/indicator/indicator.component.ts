@@ -84,10 +84,6 @@ export class NgmIndicatorComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.indicator(), this.data())
-    })
-
-    effect(() => {
       if (this.dataSettings()) {
         this.dataService.dataSettings = this.dataSettings()
       }

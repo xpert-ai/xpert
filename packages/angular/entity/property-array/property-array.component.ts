@@ -41,7 +41,6 @@ import { PropertyCapacity } from '../types'
     ReactiveFormsModule,
     MatIconModule,
     MatButtonModule,
-    DragDropModule,
     TranslateModule,
     NgmCommonModule,
 

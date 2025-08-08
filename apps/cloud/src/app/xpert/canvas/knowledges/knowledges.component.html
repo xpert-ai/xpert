@@ -22,5 +22,10 @@
         }
       </div>
     </div>
+  } @empty {
+    <div class="h-full p-4 flex flex-col justify-center items-center text-text-secondary">
+      <div><i class="ri-shopping-cart-line text-xl"></i></div>
+      <div>{{'PAC.Chat.NoResults' | translate: {Default: 'No results found'} }}</div>
+    </div>
   }
 </div>

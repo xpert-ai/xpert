@@ -74,6 +74,7 @@ export class ChatComponentMessageComponent {
 
   // States
   readonly data = computed(() => this.message()?.data as TMessageComponent<{ data?: any }>)
+  readonly category = computed(() => this.data()?.category || 'Tool')
 
   readonly tasks = computed(() => (<TMessageComponent<{ tasks: IXpertTask[] }>>this.data())?.tasks)
   readonly step = computed(() => <TMessageComponent<TMessageComponentStep>>this.data())

@@ -9,7 +9,6 @@ import { Favorite } from '../../favorite/favorite.entity'
 import { Feed } from '../../feed/feed.entity'
 import { IndicatorMarket } from '../../indicator-market/indicator-market.entity'
 import { Indicator } from '../../indicator/indicator.entity'
-import { InsightModel } from '../../insight/insight-model.entity'
 import { SemanticModelCache } from '../../model/cache/cache.entity'
 import { SemanticModelMember } from '../../model-member/member.entity'
 import { SemanticModel } from '../../model/model.entity'
@@ -30,7 +29,6 @@ import { Screenshot } from '../../screenshot/screenshot.entity'
 import { Certification } from '../../certification/certification.entity'
 import { IndicatorApp } from '../../indicator-app/indicator-app.entity'
 import { SemanticModelEntity } from '../../model-entity/entity.entity'
-import { ChatBIConversation } from '../../chatbi-conversation/conversation.entity'
 import { ChatBIModel } from '../../chatbi-model/chatbi-model.entity'
 import { SemanticModelQueryLog } from './internal'
 
@@ -56,7 +54,6 @@ export const ALL_ENTITIES = [
 	IndicatorMarket,
 	NotificationDestination,
 	Subscription,
-	InsightModel,
 	Favorite,
 	ModelQuery,
 	Visit,
@@ -69,6 +66,5 @@ export const ALL_ENTITIES = [
 	Comment,
 	Screenshot,
 	Certification,
-	ChatBIConversation,
 	ChatBIModel
 ]

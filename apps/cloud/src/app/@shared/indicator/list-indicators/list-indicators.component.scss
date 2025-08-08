@@ -1,0 +1,7 @@
+:host {
+  @apply relative flex flex-col h-full overflow-hidden;
+}
+
+th, td {
+  @apply whitespace-nowrap;
+}

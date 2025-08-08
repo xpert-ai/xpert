@@ -30,12 +30,12 @@ import {
 import { log } from './utils'
 
 /**
- * 将 MDXQuery 生成相应的 MDX 语句
+ * Generates the corresponding MDX statement from MDXQuery
  */
 export function generateMDXStatement(query: MDXQuery, entityType: EntityType, dialect?: MDXDialect) {
   let mdx = 'SELECT\n'
 
-  // 只针对图形情况, AdvancedSlicer AdvancedFilters 只放在行上, 其他情况暂未支持
+  // Only for charts, AdvancedSlicer AdvancedFilters are only placed on rows, other situations are not supported yet
   const cols = generateAxisStatement(query.columns)
   const rows = generateAxisStatement(query.rows, query.conditions, query.advancedFilters)
 
@@ -48,13 +48,14 @@ export function generateMDXStatement(query: MDXQuery, entityType: EntityType, di
   })
 
   // calculated members
-  // 对于 Measures 和有指定 members 的维度要检查其成员是否为计算成员, 需要加到 with member 里
+  // For Measures and dimensions with specified members, to check whether its members are calculated members, you need to add them to with member.
   const members = withCalculationMembers(
     calculationMembers,
     [...query.rows, ...query.columns].filter((item) => !isEmpty(item.members)),
     query.cube,
     entityType,
-    query.slicers
+    query.slicers,
+    query.parameters
   )
 
   // Add order measure before add calculated members
@@ -62,18 +63,18 @@ export function generateMDXStatement(query: MDXQuery, entityType: EntityType, di
     rows.statement = serializeOrderRank(rows, query.orderbys, query.rank, getQueryDefaultMeasure(query))
   }
 
-  // 添加依赖的计算成员
+  // Add dependent calculated members
   const calculationProperties = Object.values(entityType.properties).filter(isCalculationProperty)
   const parameters = Object.values(entityType.parameters || {})
-  rows.statement = addCalculatedMember(rows.statement, members, calculationProperties, parameters, query.slicers)
-  cols.statement = addCalculatedMember(cols.statement, members, calculationProperties, parameters, query.slicers)
+  rows.statement = addCalculatedMember(rows.statement, members, calculationProperties, parameters, query.slicers, query.parameters)
+  cols.statement = addCalculatedMember(cols.statement, members, calculationProperties, parameters, query.slicers, query.parameters)
 
   cols.statement = serializeDimensionProperties(query.columns, cols.statement, entityType)
 
   if (rows.statement) {
     // rows.statement = serializeOrderRank(rows, query.orderbys, query.rank, getQueryDefaultMeasure(query))
     rows.statement = serializeDimensionProperties(query.rows, rows.statement, entityType)
-    // COLUMNS 轴不能为空
+    // The COLUMNS axis cannot be empty
     mdx += `non empty ${cols.statement || '{}'} ON COLUMNS,\n${rows.zeroSuppression ? 'non empty ' : ''}${
       rows.statement
     }\nON ROWS`
@@ -123,7 +124,7 @@ export function generateMDXStatement(query: MDXQuery, entityType: EntityType, di
 }
 
 /**
- * 将行或者列轴上已生成的字段语句合并上高级切片器
+ * Merge the generated field statements on the row or column axis with the advanced slicer
  * 
  * @param dimensions 
  * @param conditions 

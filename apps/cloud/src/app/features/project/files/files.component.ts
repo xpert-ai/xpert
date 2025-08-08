@@ -6,7 +6,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, map, switchMap } from 'rxjs'
-import { IStorageFile, ProjectsService, Store, ToastrService } from '../../../@core'
+import { IStorageFile, ProjectAPIService, Store, ToastrService } from '../../../@core'
 import { MaterialModule } from '../../../@shared/material.module'
 import { userLabel } from '../../../@shared/pipes'
 import { ProjectFilesDialogComponent } from '../../../@shared/project'
@@ -30,7 +30,7 @@ export class ProjectFilesComponent {
   userLabel = userLabel
 
   // Injectors
-  private projectService = inject(ProjectsService)
+  private projectService = inject(ProjectAPIService)
   private projectComponent = inject(ProjectComponent)
   private store = inject(Store)
   private _dialog = inject(MatDialog)

@@ -110,7 +110,8 @@
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__medium">
-    <button cdkMenuItem [disabled]="!selectedIndicators()?.length" (click)="export()">
+    <button cdkMenuItem class="disabled:text-text-tertiary"
+      [disabled]="!selectedIndicators()?.length" (click)="export()">
       <div class="flex items-center">
         <i class="ri-download-2-line mr-1"></i>
         {{ 'PAC.INDICATOR.MY_INDICATORS.EXPORT' | translate: {Default: "Export"} }}
@@ -124,7 +125,17 @@
 
     <div class="border-b border-solid border-divider-deep my-1"></div>
 
-    <button cdkMenuItem class="danger" [disabled]="!selectedIndicators()?.length" (click)="deleteSelected()">
+    <button cdkMenuItem (click)="startEmbedding()">
+      <i class="ri-text-block mr-1"></i>
+      <span class="whitespace-nowrap">
+        {{ 'PAC.MENU.INDICATOR.Embedding' | translate: {Default: "Embedding"} }}
+      </span>
+    </button>
+
+    <div class="border-b border-solid border-divider-deep my-1"></div>
+
+    <button cdkMenuItem class="danger disabled:text-text-tertiary"
+      [disabled]="!selectedIndicators()?.length" (click)="deleteSelected()">
       <i class="ri-delete-bin-line mr-1"></i>
       {{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}
     </button>

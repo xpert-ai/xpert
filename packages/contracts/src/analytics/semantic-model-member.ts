@@ -39,3 +39,7 @@ export interface ISemanticModelMember extends IBasePerTenantAndOrganizationEntit
   // Has Vector
   vector?: boolean
 }
+
+export function embeddingCubeCollectionName(modelKey: string, cube: string, isDraft?: boolean): string {
+	return `${modelKey}:${cube}${isDraft ? ':draft' : ''}`
+}

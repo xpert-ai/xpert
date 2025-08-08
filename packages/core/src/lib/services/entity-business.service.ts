@@ -2,6 +2,7 @@ import { ComponentStore } from '@metad/store'
 import {
   BehaviorSubject,
   catchError,
+  combineLatestWith,
   debounce,
   delayWhen,
   distinctUntilChanged,
@@ -111,7 +112,7 @@ export class EntityBusinessService<
   }
   protected entityService$ = new BehaviorSubject<EntityService<T>>(null)
 
-  // 内部错误
+  // Internal Error
   public internalError$ = new ReplaySubject<any>()
   protected refresh$ = new ReplaySubject<void | boolean>()
 
@@ -125,22 +126,25 @@ export class EntityBusinessService<
 
     this.__id__ = uuid()
 
-    // 公用的刷新数据逻辑
-    // 如果想改变逻辑可以重写 query 方法
+    /**
+     * Common refresh data logic.
+     * If you want to change the logic, you can override the query method
+     */
     this.refresh$
       .pipe(
         delayWhen(() => this.initialise$),
         debounce(() => interval(100)),
+        combineLatestWith(this.dataSource$.pipe(switchMap((dataSource) => dataSource.selectOptions()), map((options) => options.parameters?.[this.dataSettings.entitySet]), distinctUntilChanged())),
         tap(() => this.loading$.next(true)),
-        switchMap((force) => {
+        switchMap(([force, parameters]) => {
           try {
-            return this.selectQuery({ force }).pipe(
+            return this.selectQuery({ force, parameters }).pipe(
               tap((result) => {
                 if (result.error) {
                   this.internalError$.next(result.error)
                 }
               }),
-              // 避免出错后 refresh$ 的订阅自动取消
+              // Avoid automatic cancellation of refresh$ subscription after error
               catchError((err) => {
                 console.error(err)
                 this.internalError$.next(err.message)
@@ -153,14 +157,8 @@ export class EntityBusinessService<
             return of({ error: err.message })
           }
         }),
-        // // 避免出错后 refresh$ 的订阅自动取消
-        // catchError((err) => {
-        //   this.internalError$.next(err)
-        //   return of({ error: err })
-        // }),
         tap(() => {
           this.loading$.next(false)
-          // this.internalError$.next('')
         }),
         takeUntil(this.destroySubject$)
       )
@@ -191,7 +189,8 @@ export class EntityBusinessService<
   }
 
   /**
-   * @experiment 使用 async await 方式作为 getXXX method 的异步处理方式; 用 Observable 作为 selectXXX method 的异步处理方式;
+   * @experiment Use async await as the asynchronous processing method for getXXX method;
+   *   use Observable as the asynchronous processing method for selectXXX method;
    * 
    * @returns 
    */
@@ -200,7 +199,7 @@ export class EntityBusinessService<
   }
 
   /**
-   * @experiment 使用 async await 方式作为 getXXX method 的异步处理方式
+   * @experiment Use async await as the asynchronous processing method of getXXX method
    * 
    * @returns 
    */
@@ -217,7 +216,7 @@ export class EntityBusinessService<
   }
 
   /**
-   * 如果先改变查询条件和逻辑，可以在子类中重写此方法
+   * If you change the query conditions and logic first, you can override this method in the subclass
    *
    * @param options `QueryOptions`
    */
@@ -262,6 +261,8 @@ export class EntityBusinessService<
     }
 
     options = this.calculateFilters(options)
+
+    options.parameters = {...(options.parameters ?? {}), ...(this.dataSettings.parameters ?? {})}
 
     return this.entityService.selectQuery(options)
   }

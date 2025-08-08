@@ -10,10 +10,16 @@
   <div class="flex flex-wrap gap-2">
     <ngm-select class="min-w-[140px]" [placeholder]="'PAC.MODEL.SelectaDimension' | translate: {Default: 'Select a dimension'}"
       [selectOptions]="dimensionsOptions()" [(ngModel)]="dimension" (ngModelChange)="hierarchy.set(null);level.set(null)" />
-    <ngm-select class="min-w-[140px]" [placeholder]="'PAC.MODEL.SelectaHierarchy' | translate: {Default: 'Select a hierarchy'}"
-      [selectOptions]="hierachyOptions()" [(ngModel)]="hierarchy" (ngModelChange)="level.set(null)"/>
-    <ngm-select class="min-w-[140px]" [placeholder]="'PAC.MODEL.SelectaLevel' | translate: {Default: 'Select a level'}"
-      [selectOptions]="levelOptions()" [(ngModel)]="level" />
+    @if (dimension()) {
+      <ngm-select class="min-w-[140px]" [placeholder]="'PAC.MODEL.SelectaHierarchy' | translate: {Default: 'Select a hierarchy'}"
+        [selectOptions]="hierachyOptions()" [(ngModel)]="hierarchy" (ngModelChange)="level.set(null)"
+      />
+    }
+    @if (hierarchy()) {
+      <ngm-select class="min-w-[140px]" [placeholder]="'PAC.MODEL.SelectaLevel' | translate: {Default: 'Select a level'}"
+        [selectOptions]="levelOptions()" [(ngModel)]="level"
+      />
+    }
   </div>
 
   <div class="relative bg-gradient-to-r from-blue-500 to-orange-500 rounded-[12px] p-[2px] mb-4 shadow-xs">

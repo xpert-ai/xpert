@@ -1,8 +1,5 @@
-:host, :host.mat-mdc-dialog-component-host {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  max-width: 100%;
+:host {
+  @apply flex rounded-3xl overflow-hidden bg-components-card-bg;
 }
 
 .mat-radio-button {

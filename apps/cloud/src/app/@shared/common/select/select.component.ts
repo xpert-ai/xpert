@@ -27,7 +27,7 @@ export class NgmSelectComponent {
   readonly i18n = new NgmI18nPipe()
 
   readonly placeholder = input<string>()
-  readonly selectOptions = input<TSelectOption[]>()
+  readonly selectOptions = input<TSelectOption<any>[]>()
   readonly multiple = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

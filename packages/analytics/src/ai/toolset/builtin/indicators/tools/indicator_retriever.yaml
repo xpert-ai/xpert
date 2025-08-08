@@ -1,0 +1,30 @@
+identity:
+  name: indicator_retriever
+  author: Xpert AI
+  label:
+    en_US: Indicator Retriever
+    zh_Hans: 指标检索器
+description:
+  human:
+    en_US: Indicator Retriever
+    zh_Hans: 指标检索器
+  llm: A tool to retrieve indicators from system.
+parameters:
+  - name: query
+    label:
+      en_US: Query
+      zh_Hans: 查询
+    description:
+      en_US: The query to retrieve indicators.
+      zh_Hans: 用于检索指标的查询。
+    type: string
+    required: true
+  - name: limit
+    label:
+      en_US: Limit
+      zh_Hans: 限制
+    description:
+      en_US: The maximum number of indicators to retrieve.
+      zh_Hans: 要检索的指标的最大数量。
+    type: integer
+    default: 10

@@ -155,26 +155,15 @@
         </svg>
       </div>
     </div>
-    <div class="inline-block" >
-      <div class="relative ml-0.5 flex items-center justify-center w-7 h-7 rounded-md">
-        <div
-          class="studio-action-btn group flex items-center justify-center w-full h-full rounded-md cursor-pointer"
-          [ngmTooltip]="checklistInDevelopment"
-          [hideDelay]="100"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="currentColor"
-            class="w-5 h-5"
-          >
-            <path
-              d="M8.00008 6V9H5.00008V6H8.00008ZM3.00008 4V11H10.0001V4H3.00008ZM13.0001 4H21.0001V6H13.0001V4ZM13.0001 11H21.0001V13H13.0001V11ZM13.0001 18H21.0001V20H13.0001V18ZM10.7072 16.2071L9.29297 14.7929L6.00008 18.0858L4.20718 16.2929L2.79297 17.7071L6.00008 20.9142L10.7072 16.2071Z"
-            ></path>
-          </svg>
-        </div>
+    <div class="relative ml-0.5 flex items-center justify-center w-7 h-7 rounded-md">
+      <div class="studio-action-btn group flex items-center justify-center w-full h-full rounded-md cursor-pointer"
+        [cdkMenuTriggerFor]="checklistMenu"
+      >
+        <i class="ri-list-check-3"></i>
+        @if (checklist()?.length) {
+          <div class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-gray-100 bg-[#F79009] text-[11px] font-semibold text-white">
+            {{checklist().length}}</div>
+        }
       </div>
     </div>
   </div>
@@ -454,6 +443,42 @@
   </div>
 </ng-template>
 
-<ng-template #checklistInDevelopment >
-  <pac-in-development @overlayAnimation1 feature="Checklist" class="w-80" />
+
+<ng-template #checklistMenu>
+  <div cdkMenu class="cdk-menu__large rounded-xl">
+    <div class="text-md sticky top-0 z-[1] flex p-2 items-center bg-components-panel-bg font-semibold text-text-primary">
+      <div class="grow">{{ 'PAC.MODEL.Checklist' | translate: {Default: 'Checklist'} }} ({{checklist()?.length ?? 0}})</div>
+    </div>
+
+    <div class="py-2">
+      <div class="p-2 text-sm text-text-tertiary">
+        {{ 'PAC.MODEL.ChecklistTip' | translate: {Default: 'Make sure all issues are resolved before publishing'} }}
+      </div>
+    
+      @for (item of checklist(); track item) {
+        <div class="mb-2 cursor-pointer rounded-lg border-[0.5px] border-components-panel-border bg-components-panel-bg shadow-xs last-of-type:mb-0">
+          <div class="flex justify-start h-9 items-center p-2 text-sm font-medium text-text-secondary">
+            <span class="truncate uppercase">{{ item.field }}:</span>
+            <span class="grow truncate">{{ item.value }}</span>
+          </div>
+          <div class="border-t-[0.5px] border-divider-regular">
+            <div class="px-3 py-2 last:rounded-b-lg">
+              <div class="flex items-start text-sm leading-[18px] text-text-tertiary">
+                @if (item.level === 'error') {
+                  <i class="ri-error-warning-fill text-lg mr-1 text-text-destructive"></i>
+                } @else if (item.level === 'warning') {
+                  <i class="ri-alert-line text-lg mr-1 text-text-warning"></i>
+                } @else {
+                  <i class="ri-information-line text-lg mr-1"></i>
+                }
+                <div>
+                  {{ item.message | i18n }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
 </ng-template>

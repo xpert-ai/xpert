@@ -10,7 +10,8 @@
     },
     {
       name: 'code',
-      caption: 'PAC.KEY_WORDS.CODE' | translate: {Default: 'Code'}
+      caption: 'PAC.KEY_WORDS.CODE' | translate: {Default: 'Code'},
+      cellTemplate: codeTempl
     },
     {
       name: 'businessArea',
@@ -20,6 +21,17 @@
     {
       name: 'createdAt',
       caption: 'PAC.KEY_WORDS.CreatedAt' | translate: {Default: 'Created At'},
+      cellTemplate: dateTempl
+    },
+    {
+      name: 'status',
+      caption: 'PAC.INDICATOR.REGISTER.Status' | translate: {Default: 'Status'},
+      cellTemplate: statusTempl
+    },
+    {
+      name: 'embeddingStatus',
+      caption: 'PAC.INDICATOR.REGISTER.EmbeddingStatus' | translate: {Default: 'Embedding Status'},
+      cellTemplate: embeddingTempl
     },
     {
       name: 'isActive',
@@ -50,7 +62,7 @@
 
 @if (hasSelected()) {
   <div class="absolute bottom-12 w-full px-16 py-2 z-10">
-    <div class="rounded-xl flex justify-center items-center gap-4 p-2 shadow-lg border-[0.5px] border-solid border-divider-deep bg-components-card-bg">
+    <div class="rounded-xl flex justify-center items-center gap-4 p-2 shadow-lg border-[0.5px] border-solid border-divider-deep bg-neutral-200">
       <div>
         {{selectedIndicators().length}} {{ 'PAC.Project.Indicators' | translate: {Default: 'Indicators'} }}
       </div>
@@ -83,11 +95,75 @@
   }
 </ng-template>
 
+<ng-template #codeTempl let-code>
+  <span class="font-mono italic">{{ code }}</span>
+</ng-template>
 <ng-template #businessAreaTempl let-businessArea="businessArea">
   {{ businessArea?.name }}
 </ng-template>
+<ng-template #dateTempl let-createdAt="createdAt">
+  {{ createdAt | relative }}
+</ng-template>
+<ng-template #statusTempl let-status="status">
+  <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+  @switch (status) {
+    @case (eIndicatorStatusEnum.DRAFT) {
+      <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-orange-500 border-orange-700 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+      <span class="">{{ 'PAC.INDICATOR.Draft' | translate: {Default: 'Draft'} }}</span>
+    }
+    @case (eIndicatorStatusEnum.RELEASED) {
+      <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+      <span >{{ 'PAC.INDICATOR.Published' | translate: {Default: 'Published'} }}</span>
+    }
+    @case (eIndicatorStatusEnum.ARCHIVED) {
+      <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-neutral-600 flex'></span>
+      <span >({{ 'PAC.INDICATOR.Archived' | translate: {Default: 'Archived'} }})</span>
+    }
+    @default {
+      <span class="text-neutral-500">({{ 'PAC.INDICATOR.Unknown' | translate: {Default: 'Unknown'} }})</span>
+    }
+  }
+  </div>
+</ng-template>
+
 <ng-template #visibleTempl let-visible>
   <mat-checkbox [disabled]="true" [checked]="visible"></mat-checkbox>
+</ng-template>
+<ng-template #embeddingTempl let-status="embeddingStatus" let-error="error">
+  @switch (status) {
+    @case (eEmbeddingStatusEnum.SUCCESS) {
+      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+        <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+        <span class="">
+          {{ 'PAC.MODEL.Success' | translate: {Default: 'Success'} }}
+        </span>
+      </div>
+    }
+    @case (eEmbeddingStatusEnum.FAILED) {
+      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+        <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+        <span class="text-red-500">
+          {{ error }}
+        </span>
+      </div>
+    }
+    @case (eEmbeddingStatusEnum.PROCESSING) {
+      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+        <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+        <span class="">
+          {{ 'PAC.MODEL.Running' | translate: {Default: 'Running'} }}
+        </span>
+      </div>
+    }
+    @default {
+      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+        <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+        <span class="">
+          {{ 'PAC.MODEL.NotIndexed' | translate: {Default: 'Not indexed'} }}
+        </span>
+      </div>
+    }
+  }
 </ng-template>
 
 <ng-template #actionTempl let-id="id" let-name="name">

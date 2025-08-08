@@ -13,20 +13,6 @@ import { isNil } from '../utils/index'
 import { EntityProperty } from './property'
 import { ParameterProperty, Property, PropertyMeasure } from './sdl'
 
-/**
- * 计算字段类型
- */
-export enum CalculationType {
-  Restricted = 'Restricted',
-  Calculated = 'Calculated',
-  Aggregation = 'Aggregation',
-  Variance = 'Variance',
-  D2Measure = 'D2Measure',
-  MeasureControl = 'MeasureControl',
-  Parameter = 'Parameter',
-  Indicator = 'Indicator'
-}
-
 export enum AggregationOperation {
   SUM = 'SUM',
   COUNT = 'COUNT',
@@ -39,6 +25,103 @@ export enum AggregationOperation {
   TOP_PERCENT = 'TOP_PERCENT',
   TOP_COUNT = 'TOP_COUNT',
   TOP_SUM = 'TOP_SUM',
+}
+
+export const AggregationOperations = [
+  {
+    value: AggregationOperation.SUM,
+    label: 'Sum'
+  },
+  {
+    value: AggregationOperation.COUNT,
+    label: 'Count'
+  },
+  {
+    value: AggregationOperation.MIN,
+    label: 'Min'
+  },
+  {
+    value: AggregationOperation.MAX,
+    label: 'Max'
+  },
+  {
+    value: AggregationOperation.AVERAGE,
+    label: 'Average'
+  },
+  {
+    value: AggregationOperation.STDEV,
+    label: 'Standard Deviation'
+  },
+  {
+    value: AggregationOperation.STDEVP,
+    label: 'Population Standard Deviation'
+  },
+  {
+    value: AggregationOperation.MEDIAN,
+    label: 'Median'
+  },
+  {
+    value: AggregationOperation.TOP_PERCENT,
+    label: 'Top Percent'
+  },
+  {
+    value: AggregationOperation.TOP_COUNT,
+    label: 'Top Count'
+  },
+  {
+    value: AggregationOperation.TOP_SUM,
+    label: 'Top Sum'
+  }
+]
+
+export const AggregationCompareOperations = [
+  {
+    value: '=',
+    label: 'Equal To'
+  },
+  {
+    value: '!=',
+    label: 'Not Equal To'
+  },
+  {
+    value: '>',
+    label: 'Greater Than'
+  },
+  {
+    value: '<',
+    label: 'Less Than'
+  },
+  {
+    value: '>=',
+    label: 'Greater or Equal'
+  },
+  {
+    value: '<=',
+    label: 'Less or Equal'
+  }
+]
+
+/**
+ * Calculated property types
+ */
+export enum CalculationType {
+  /**
+   * Restricted Measure
+   */
+  Restricted = 'Restricted',
+  /**
+   * Formula Measure
+   */
+  Calculated = 'Calculated',
+  /**
+   * Conditional Aggregation
+   */
+  Aggregation = 'Aggregation',
+  Variance = 'Variance',
+  D2Measure = 'D2Measure',
+  MeasureControl = 'MeasureControl',
+  Parameter = 'Parameter',
+  Indicator = 'Indicator'
 }
 
 export interface CalculatedMember {
@@ -72,7 +155,7 @@ export interface NamedSet {
 }
 
 /**
- * 计算字段
+ * Calculation measures or member sets
  */
 export interface CalculationProperty extends EntityProperty {
   calculationType: CalculationType
@@ -116,13 +199,47 @@ export interface RestrictedMeasureProperty extends CalculationProperty {
   }
 }
 
+/**
+ * Conditional aggregation property
+ */
 export interface AggregationProperty extends CalculationProperty {
+  /**
+   * The aggregate operation
+   */
   operation: AggregationOperation
+  /**
+   * The measure name for aggregation
+   */
   measure?: PropertyName
-  value?: number // for TopPercent TopCount
+  /**
+   * for TopPercent TopCount
+   */
+  value?: number | string
+  /**
+   * Filter members by compare aggregated measure to value:
+   * ```sql
+   * Filter(
+   *  [Region].[Province].Members,
+   *  [Measures].[Sales Amount] > 1000000
+   * )
+   *```
+   */
+  compare?: '>' | '<' | '=' | '<=' | '>=' | '!='
+  /**
+   * Aggregation dimensions of the calculation measure
+   */
   aggregationDimensions: Array<Dimension>
+  /**
+   * Is using conditional dimension slicers
+   */
   useConditionalAggregation?: boolean
+  /**
+   * Conditional slicers applied to aggregation
+   */
   conditionalDimensions?: Array<Dimension>
+  /**
+   * Using exclusion operations with conditionalDimensions slicers
+   */
   excludeConditions?: boolean
 }
 
@@ -143,11 +260,11 @@ export interface CompareToType {
 }
 
 /**
- * 计算成员与另外一个指定成员之间的度量差异
+ * Calculates the difference between a member and another specified member
  */
 export interface VarianceMeasureProperty extends CalculationProperty {
   /**
-   * 要比较的度量
+   * The measure to compare
    */
   measure: Measure
   baseDimension: Dimension
@@ -159,15 +276,15 @@ export interface VarianceMeasureProperty extends CalculationProperty {
    */
   asZero?: boolean
   /**
-   * 是否为比率
+   * Whether it is a ratio
    */
   asPercentage?: boolean
   /**
-   * 直接相除 A / B
+   * Directly divide A / B
    */
   directDivide?: boolean
   /**
-   * 对分母取绝对值
+   * Take the absolute value of the denominator
    * `(A - B) / abs(B)`
    */
   absBaseValue?: boolean
@@ -179,17 +296,24 @@ export interface VarianceMeasureProperty extends CalculationProperty {
   divideBy?: 'A' | 'B'
 }
 
+/**
+ * @deprecated use CubeParameterEnum
+ */
 export enum ParameterControlEnum {
   Input,
   Select,
   Dimensions
 }
 
+export enum CubeParameterEnum {
+  Input = 'input',
+  Select = 'select',
+  Dimension = 'dimension'
+}
+
 // export interface ParameterControlProperty extends CalculationProperty {
 //   paramType: ParameterControlEnum
 //   value: PrimitiveType
-
-//   // 候选成员
 //   availableMembers: Array<IMember>
 // }
 
@@ -198,7 +322,7 @@ export interface MeasureControlProperty extends CalculationProperty {
 
   allMeasures: boolean
 
-  // 候选成员
+  // Candidate members
   availableMembers: Array<IMember>
   displayBehaviour?: DisplayBehaviour
 }
@@ -255,50 +379,3 @@ export function formatCalculatedMemberName(member: CalculatedMember) {
   }
   return `${member.hierarchy || member.dimension}.[${member.name}]`
 }
-
-export const AggregationOperations = [
-  {
-    value: AggregationOperation.SUM,
-    label: 'Sum'
-  },
-  {
-    value: AggregationOperation.COUNT,
-    label: 'Count'
-  },
-  {
-    value: AggregationOperation.MIN,
-    label: 'Min'
-  },
-  {
-    value: AggregationOperation.MAX,
-    label: 'Max'
-  },
-  {
-    value: AggregationOperation.AVERAGE,
-    label: 'Average'
-  },
-  {
-    value: AggregationOperation.STDEV,
-    label: 'Standard Deviation'
-  },
-  {
-    value: AggregationOperation.STDEVP,
-    label: 'Population Standard Deviation'
-  },
-  {
-    value: AggregationOperation.MEDIAN,
-    label: 'Median'
-  },
-  {
-    value: AggregationOperation.TOP_PERCENT,
-    label: 'Top Percent'
-  },
-  {
-    value: AggregationOperation.TOP_COUNT,
-    label: 'Top Count'
-  },
-  {
-    value: AggregationOperation.TOP_SUM,
-    label: 'Top Sum'
-  }
-]

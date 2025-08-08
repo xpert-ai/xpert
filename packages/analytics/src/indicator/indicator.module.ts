@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SharedModule, TagModule, TenantModule } from '@metad/server-core';
+import { SharedModule, TagModule, TenantModule, UserModule } from '@metad/server-core';
 import { RouterModule } from 'nest-router';
 import { IndicatorController } from './indicator.controller';
 import { Indicator } from './indicator.entity';
@@ -9,6 +9,9 @@ import { IndicatorService } from './indicator.service';
 import { BusinessAreaUserModule } from '../business-area-user/index';
 import { QueryHandlers } from './queries/handlers';
 import { CommandHandlers } from './commands/handlers';
+import { BullModule } from '@nestjs/bull';
+import { JOB_EMBEDDING_INDICATORS } from './types';
+import { EmbeddingIndicatorsConsumer } from './jobs/indicator.job';
 
 @Module({
   imports: [
@@ -20,10 +23,14 @@ import { CommandHandlers } from './commands/handlers';
     SharedModule,
     CqrsModule,
     BusinessAreaUserModule,
-    TagModule
+    TagModule,
+    UserModule,
+    BullModule.registerQueue({
+				name: JOB_EMBEDDING_INDICATORS,
+				})
   ],
   controllers: [IndicatorController],
-  providers: [IndicatorService, ...QueryHandlers, ...CommandHandlers],
+  providers: [IndicatorService, EmbeddingIndicatorsConsumer, ...QueryHandlers, ...CommandHandlers],
   exports: [TypeOrmModule, IndicatorService]
 })
 export class IndicatorModule {}

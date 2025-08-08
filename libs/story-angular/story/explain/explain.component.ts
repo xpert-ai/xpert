@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core'
 import { NgmPrismHighlightComponent } from '@metad/ocap-angular/prism'
 import { convertQueryResultColumns, nonNullable } from '@metad/core'
-import { NgmTableComponent } from '@metad/ocap-angular/common'
+import { NgmCopyComponent, NgmTableComponent } from '@metad/ocap-angular/common'
 import { OcapCoreModule, OmitBlankPipe } from '@metad/ocap-angular/core'
 import { isDataSettings } from '@metad/ocap-core'
 import { uuid } from '@metad/story/core'
@@ -11,6 +11,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { MatButtonModule } from '@angular/material/button'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 
 @Component({
@@ -21,10 +23,13 @@ import { CommonModule } from '@angular/common'
     DragDropModule,
     MatIconModule,
     MatButtonModule,
+    MatTooltipModule,
     NgmTableComponent,
     NgmPrismHighlightComponent,
     OcapCoreModule,
-    OmitBlankPipe
+    OmitBlankPipe,
+    NgxJsonViewerModule,
+    NgmCopyComponent
   ],
   selector: 'pac-story-explain',
   templateUrl: 'explain.component.html',

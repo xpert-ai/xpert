@@ -37,6 +37,7 @@ export interface MDXQuery {
   conditions?: Array<AdvancedSlicer>
   advancedFilters?: Array<string>
   withMembers: Record<string, WithMemberType>
+  parameters?: Record<string, any>
 }
 
 export interface EngineAxis {

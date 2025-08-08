@@ -1,6 +1,7 @@
+import { PropertyHierarchy, Schema } from '@metad/ocap-core'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ITag } from '../tag-entity.model'
-import { ChecklistItem } from '../types'
+import { ChecklistItem, IPoint, ISize } from '../types'
 import { IUser } from '../user.model'
 import { Visibility } from '../visibility.model'
 import { IBusinessArea } from './business-area'
@@ -36,9 +37,17 @@ export interface ISemanticModelPreferences {
 /**
  * Model Schema Structured Data
  */
-export type TSemanticModelOptions<T> = {
+export type TSemanticModelOptions<T = Schema> = {
+  /**
+   * The schema for MDX cube, dimension and virtual cube
+   */
   schema?: T
-  settings?: any
+  settings?: TSemanticModelSettings
+  /**
+   * Is embedded members of every `cube:dimension`
+   * Be cleaned up when publish
+   */
+  embedded?: Record<string, Record<string, boolean>>
 }
 
 export type TSemanticModel = {
@@ -53,17 +62,39 @@ export type TSemanticModel = {
 
   catalog?: string
   cube?: string
-  // 存放语义元数据
+  // Storing semantic metadata
   options?: TSemanticModelOptions<any>
 
   // Roles
   roles?: Array<IModelRole>
 }
 
+/**
+ * Common settings for semantic model space
+ */
+export type TSemanticModelSettings = {
+  canvas?: {
+    position: IPoint
+    scale: number
+  };
+  nodes?: {key: string; position?: IPoint; size?: ISize}[]
+  /**
+   * @experimental A hierarchy of intermediate states that are not yet fixed
+   */
+  hierarchies?: PropertyHierarchy[]
+
+  /**
+   * Ignore unknown property when query model in story
+   */
+  ignoreUnknownProperty?: boolean
+}
+
 export type TSemanticModelDraft<T = any> = TSemanticModel & {
   schema?: T
-  settings?: any
+  settings?: TSemanticModelSettings
   savedAt?: Date
+  checklist?: ChecklistItem[]
+  version?: number
 
   /**
    * @legacy Table defination for wasm database
@@ -73,7 +104,9 @@ export type TSemanticModelDraft<T = any> = TSemanticModel & {
    * @legacy DB Initialization for wasm database
    */
   dbInitialization?: string
-  checklist?: ChecklistItem[]
+
+  // Is embedded every `cube:dimension`
+  embedded?: Record<string, Record<string, boolean>>
 }
 
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {
@@ -94,7 +127,7 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   
   businessArea?: IBusinessArea
   
-  // 存放模型配置
+  // Storing model configuration
   preferences?: ISemanticModelPreferences
 
   visibility?: Visibility
@@ -113,6 +146,8 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   indicators?: Array<IIndicator>
   // Query
   queries?: Array<IModelQuery>
+
+  version?: number
 }
 
 /**
@@ -160,6 +195,9 @@ export enum SemanticModelStatusEnum {
   Archived = 'archived'
 }
 
+/**
+ * @deprecated Equivalent to `VirtualCube` in the ocap framework
+ */
 export type TVirtualCube = {
   name: string
   caption?: string
@@ -183,8 +221,6 @@ export function extractSemanticModelDraft<S>(model: TSemanticModel): TSemanticMo
 
     catalog: model.catalog,
     cube: model.cube,
-    // 存放语义元数据
-    // options: model.options,
     schema: model.options?.schema as S,
     settings: model.options?.settings,
     roles: model.roles,

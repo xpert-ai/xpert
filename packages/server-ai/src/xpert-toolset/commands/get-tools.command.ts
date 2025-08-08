@@ -1,3 +1,4 @@
+import { BaseStore } from '@langchain/langgraph'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -15,6 +16,7 @@ export class ToolsetGetToolsCommand implements ICommand {
 			agentKey?: string
 			signal: AbortSignal
 			env: Record<string, unknown>
+			store?: BaseStore
 		}
 	) {}
 }

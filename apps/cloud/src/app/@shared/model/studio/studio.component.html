@@ -1,0 +1,88 @@
+<f-flow class="w-full h-full" fDraggable [vCellSize]="20" [hCellSize]="20"
+  (fLoaded)="onLoaded()"
+  (fCreateConnection)="onConnectionDropped($event)"
+  [cdkContextMenuTriggerFor]="contextMenu">
+  <f-background>
+    <f-circle-pattern />
+  </f-background>
+  <f-line-alignment></f-line-alignment>
+  <f-selection-area></f-selection-area>
+
+  <f-canvas fZoom [fZoomStep]="0.02" [fZoomDblClickStep]="0.1" 
+    (fCanvasChange)="onCanvasChange($event)"
+    >
+    <f-connection-for-create></f-connection-for-create>
+    <f-snap-connection [fType]="eEFConnectionType.SEGMENT" [fSnapThreshold]="100"></f-snap-connection>
+    @for (connection of graph()?.connections; track connection.key) {
+      <f-connection #connComp [fType]="eEFConnectionType.SEGMENT" [fOffset]="6" [fRadius]="6"
+        [fReassignDisabled]="false"
+        [fOutputId]="connection.source"
+        [fInputId]="connection.target"
+        class="group/connection gradient-color cursor-pointer"
+        [ngClass]="connection.type"
+        fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
+      >
+        <svg viewBox="0 0 10 10" fMarker [type]="eMarkerType.START" class="text-[--connection-color]" [height]="10" [width]="10" [refX]="5" [refY]="5">
+          <circle cx="5" cy="5" r="2" stroke="none"></circle>
+        </svg>
+        <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.END" class="text-[--connection-color]"
+          [height]="7" [width]="6"
+          [refX]="5.5" [refY]="3.5" markerUnits="strokeWidth" orient="auto">
+          <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
+        </svg>
+        <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.SELECTED_END" class="text-[--connection-color]"
+            [height]="7" [width]="6"
+            [refX]="5.5" [refY]="3.5" markerUnits="strokeWidth" orient="auto">
+            <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
+        </svg>
+        <div fConnectionCenter class="opacity-0 group-hover/connection:z-10 group-hover/connection:opacity-100">
+        </div>
+      </f-connection>
+    }
+
+    @for (node of graph()?.nodes; track node.key) {
+      <div class="w-[240px] group relative pb-1 shadow-sm border border-divider-deep rounded-xl bg-components-card-bg hover:border-primary-500 hover:z-10"
+        fNode [fNodeId]="node.key"
+        fDragHandle
+        [fNodePosition]="node.position"
+        [fConnectOnNode]="true"
+        (fNodePositionChange)="moveNode({key: node.key, point: $event})"
+      >
+        @switch (node.type) {
+          @case('shared-dimension') {
+            <xp-cube-studio-shared-dimension [node]="node" />
+          }
+          @case('inline-dimension') {
+            <xp-cube-studio-inline-dimension [node]="node" />
+          }
+          @case('cube') {
+            <xp-cube-studio-cube [node]="node" />
+          }
+        }
+      </div>
+    }
+  </f-canvas>
+
+  <f-selection-area></f-selection-area>
+  <f-minimap></f-minimap>
+</f-flow>
+
+<div class="absolute top-2 right-2 p-0.5 flex justify-end items-center bg-components-card-bg rounded-lg shadow-sm">
+  <button class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+    [matTooltip]="'PAC.MODEL.OpenModel' | translate: {Default: 'Open model'}"
+    (click)="openModelInNewTab()">
+    <i class="ri-external-link-line"></i>
+  </button>
+  <button class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+    [matTooltip]="'PAC.MODEL.ArrangeNodes' | translate: {Default: 'Arrange nodes'}"
+    (click)="autoLayout()">
+    <i class="ri-node-tree"></i>
+  </button>
+  <ng-content></ng-content>
+</div>
+
+<ng-template #contextMenu>
+  <xp-cube-studio-context-menu />
+</ng-template>

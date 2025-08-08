@@ -1,0 +1,169 @@
+<form [formGroup]="formGroup" class="pac-indicator-register__form pac-page__body flex flex-col w-full" >
+
+  <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
+    <mat-form-field [appearance]="appearance">
+      <mat-label>{{ 'PAC.INDICATOR.REGISTER.NAME' | translate: {Default: 'Name'} }}</mat-label>
+      <input matInput formControlName="name" placeholder="{{ 'PAC.INDICATOR.REGISTER.NAME_PLACEHOLDER' | translate: {Default: 'Indicator Name'} }}">
+    </mat-form-field>
+
+    <mat-form-field [appearance]="appearance">
+      <mat-label>{{ 'PAC.INDICATOR.REGISTER.CODE' | translate: {Default: 'Code'} }}</mat-label>
+      <input matInput formControlName="code" placeholder="{{ 'PAC.INDICATOR.REGISTER.CODE_PLACEHOLDER' | translate: {Default: 'Indicator Unique Code'} }}">
+    </mat-form-field>
+  </div>
+
+  <div class="section text-lg p-2 mb-4">
+    {{ 'PAC.INDICATOR.REGISTER.BASIC_INFO' | translate: {Default: 'Basic Info'} }}
+  </div>
+
+  <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
+    <ngm-tree-select formControlName="businessAreaId" [appearance]="appearance"
+      label="{{ 'PAC.INDICATOR.REGISTER.BUSINESS_AREA' | translate: {Default: 'Business Area'} }}"
+      [treeNodes]="businessAreasTree()"
+      displayBehaviour="descriptionOnly"
+      searchable
+    />
+
+    <ngm-mat-select [appearance]="appearance" displayBehaviour="descriptionOnly"
+      [label]=" 'PAC.INDICATOR.REGISTER.AUTHENTICATION' | translate: {Default: 'Authentication'} "
+      [selectOptions]="certifications()"
+      formControlName="certificationId"
+    />
+
+    <mat-form-field [appearance]="appearance">
+      <mat-label>{{ 'PAC.INDICATOR.REGISTER.CREATED_BY' | translate: {Default: 'Created By'} }}</mat-label>
+      <input matInput formControlName="createdByName">
+    </mat-form-field>
+
+    <mat-form-field [appearance]="appearance">
+      <mat-label>{{ 'PAC.INDICATOR.REGISTER.PRINCIPAL' | translate: {Default: 'Principal'} }}</mat-label>
+      <input matInput formControlName="principal" placeholder="{{ 'PAC.INDICATOR.REGISTER.PRINCIPAL_PLACEHOLDER' | translate: {Default: 'Business Principal'} }}">
+    </mat-form-field>
+
+    <mat-form-field [appearance]="appearance">
+      <mat-label>{{ 'PAC.INDICATOR.REGISTER.UNIT' | translate: {Default: 'Unit'} }}</mat-label>
+      <input matInput formControlName="unit" placeholder="{{ 'PAC.INDICATOR.REGISTER.UNIT_PLACEHOLDER' | translate: {Default: 'Measure Unit of Indicator'} }}">
+    </mat-form-field>
+
+    <mat-form-field [appearance]="appearance">
+      <mat-label>{{ 'PAC.INDICATOR.REGISTER.VALIDITY' | translate: {Default: 'Validity'} }}</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="validity">
+      <mat-hint>YYYY/MM/DD</mat-hint>
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-checkbox formControlName="isActive" class="my-4">{{ 'PAC.INDICATOR.REGISTER.IsActive' | translate: {Default: 'Is Active'} }}</mat-checkbox>
+    <mat-checkbox formControlName="isApplication" class="my-4">{{ 'PAC.INDICATOR.REGISTER.AvailableInApplication' | translate: {Default: 'Available in App'} }}</mat-checkbox>
+    
+    <mat-form-field [appearance]="appearance" class="col-span-1 sm:col-span-2">
+      <mat-label>
+        {{ 'PAC.INDICATOR.REGISTER.BUSINESS' | translate: {Default: 'Business'} }}
+      </mat-label>
+      <textarea matInput formControlName="business" placeholder="{{ 'PAC.INDICATOR.REGISTER.BUSINESS_PLACEHOLDER' | translate: {Default: 'Business Description'} }}"></textarea>
+    </mat-form-field>
+
+    <pac-tag-editor class="col-span-1 sm:col-span-2" formControlName="tags" [category]="eTagCategoryEnum.INDICATOR" />
+  </div>
+  
+  <div class="section text-lg p-2 mb-4 mt-8">
+    {{ 'PAC.INDICATOR.REGISTER.MODEL_INFO' | translate: {Default: 'Model Info'} }}
+  </div>
+
+  <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
+
+    <ngm-mat-select [appearance]="appearance" label="{{ 'PAC.INDICATOR.REGISTER.MODEL' | translate: {Default: 'Semantic Model'} }}"
+      [selectOptions]="modelsOptions()"
+      displayBehaviour="descriptionOnly"
+      virtualScroll
+      formControlName="modelId"
+    />
+
+    <ngm-mat-select [appearance]="appearance"
+      label="{{ 'PAC.INDICATOR.REGISTER.ENTITY' | translate: {Default: 'Entity'} }}"
+      placeholder="{{ 'PAC.INDICATOR.REGISTER.ENTITY_PLACEHOLDER' | translate: {Default: 'Select one Entity'} }}"
+      [loading]="entitiesLoading$ | async"
+      [selectOptions]="entities$ | async"
+      virtualScroll
+      displayBehaviour=""
+      formControlName="entity"
+    />
+
+    <mat-checkbox formControlName="visible" class="my-4">{{ 'PAC.INDICATOR.REGISTER.Visible' | translate: {Default: 'Visible'} }}</mat-checkbox>
+  </div>
+
+  <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
+    <mat-radio-group formControlName="type" class="my-4">
+      <mat-radio-button [value]="IndicatorType.BASIC">
+        {{ 'PAC.INDICATOR.REGISTER.TYPE_BASIC' | translate: {Default: 'Basic'} }}
+      </mat-radio-button>
+      <mat-radio-button [value]="IndicatorType.DERIVE">
+        {{ 'PAC.INDICATOR.REGISTER.TYPE_DERIVE' | translate: {Default: 'Derive'} }}
+      </mat-radio-button>
+    </mat-radio-group>
+  </div>
+
+  <div class="section col-span-1 sm:col-span-2 grid grid-cols-2 gap-2" formGroupName="options">
+    <ngm-hierarchy-select class="col-span-2 sm:col-span-1 mb-4" formControlName="calendar"
+      [appearance]="appearance"
+      [label]=" 'PAC.INDICATOR.REGISTER.Calendar' | translate: {Default: 'Calendar'} "
+      [dimensions]="calendars$ | async"
+    />
+    @if (typeControl.value===IndicatorType.BASIC) {
+      <ngm-mat-select class="col-span-2 sm:col-span-1" [appearance]="appearance"
+        label="{{ 'PAC.INDICATOR.REGISTER.MEASURE' | translate: {Default: 'Measure'} }}"
+        placeholder="{{ 'PAC.INDICATOR.REGISTER.MEASURE_PLACEHOLDER' | translate: {Default: 'Select Measure'} }}"
+        [loading]="entityTypeLoading$ | async"
+        [selectOptions]="measures$ | async"
+        formControlName="measure"
+      />
+    } @else if (typeControl.value === IndicatorType.DERIVE) {
+      <mat-form-field class="col-span-2" [appearance]="appearance">
+        <mat-label>
+          {{ 'PAC.INDICATOR.REGISTER.FORMULA' | translate: {Default: 'Formula'} }}
+        </mat-label>
+        <textarea matInput formControlName="formula" placeholder="{{ 'PAC.INDICATOR.REGISTER.FORMULA_PLACEHOLDER' | translate: {Default: 'Calculation Formula'} }}"
+          cdkTextareaAutosize
+        ></textarea>
+  
+        <button mat-icon-button matSuffix [disabled]="!entityType()" (click)="toggleFormula()">
+          <mat-icon>code</mat-icon>
+        </button>
+      </mat-form-field>
+    }
+
+    @if (typeControl.value === IndicatorType.DERIVE && showFormula()) {
+      <ngm-calculated-measure class="col-span-1 sm:col-span-2 h-96 rounded-lg overflow-hidden border border-solid border-neutral-100 dark:border-neutral-800"
+        [syntax]="Syntax.MDX"
+        [dataSettings]="dataSettings()"
+        [entityType]="entityType()"
+        formControlName="formula"
+      />
+    }
+
+    @if (typeControl.value===IndicatorType.DERIVE && (syntax$ | async) === Syntax.SQL) {
+      <ngm-mat-select [appearance]="appearance"
+        [label]=" 'PAC.INDICATOR.REGISTER.Aggregator' | translate: {Default: 'Aggregator'} "
+        placeholder="{{ 'PAC.INDICATOR.REGISTER.Aggregator' | translate: {Default: 'Aggregator'} }}"
+        [selectOptions]="AGGREGATORS"
+        formControlName="aggregator"
+      />
+    }
+
+    <ngm-mat-select class="col-span-2" [appearance]="appearance"
+      label="{{ 'PAC.INDICATOR.REGISTER.DIMENSIONS' | translate: {Default: 'Free Dimensions'} }}"
+      placeholder="{{ 'PAC.INDICATOR.REGISTER.DIMENSIONS_PLACEHOLDER' | translate: {Default: 'Select Free Dimensions'} }}"
+      [loading]="entityTypeLoading$ | async"
+      [selectOptions]="dimensions$ | async"
+      multiple
+      formControlName="dimensions"
+    />
+
+    <div class="col-span-2 text-base font-medium">{{ 'PAC.INDICATOR.REGISTER.RestrictiveCondition' | translate: {Default: 'Restrictive Condition'} }}</div>
+    <ngm-slicers class="col-span-2" editable inline
+      [dataSettings]="dataSettings$ | async"
+      [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.Variable]"
+      formControlName="filters"
+    />
+  </div>
+</form>

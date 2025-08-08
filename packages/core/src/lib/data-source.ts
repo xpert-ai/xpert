@@ -1,5 +1,6 @@
 import {
   BehaviorSubject,
+  combineLatest,
   distinctUntilChanged,
   EMPTY,
   filter,
@@ -11,7 +12,7 @@ import {
   switchMap,
   takeUntil
 } from 'rxjs'
-import { Agent, OcapCache } from './agent'
+import { Agent } from './agent'
 import { EntityService } from './entity'
 import {
   AggregationRole,
@@ -55,11 +56,11 @@ export interface DataSourceSettings {
   // modelId?: string
   // catalog
   database?: string
-  // 语言
+  // Language
   language?: string
 
   // ignoreUnknownProperty
-  ignoreUnknownProperty: boolean
+  ignoreUnknownProperty?: boolean
 }
 
 export interface DataSources {
@@ -86,14 +87,22 @@ export interface DataSourceOptions extends SemanticModel {
    */
   mode?: 'client' | 'server'
   /**
-   * Runtime calculated measures
+   * Runtime calculated measures, indexed by cube name
    */
   calculatedMeasures?: Record<string, CalculatedProperty[]>
 
   /**
    * Is draft semantic model
    */
-  isDraft: boolean
+  isDraft?: boolean
+  /**
+   * Is use indicators draft
+   */
+  isIndicatorsDraft?: boolean
+  /**
+   * Key-value pairs of parameters for cube
+   */
+  parameters?: Record<string, Record<string, any>>
 }
 
 /**
@@ -109,15 +118,16 @@ export interface DataSource {
 
   refresh(): void
   /**
-   *
+   * Update options of DataSource
+   */
+  updateOptions(fn: (options: DataSourceOptions) => DataSourceOptions): void
+  /**
    * @deprecated use discoverDBCatalogs
-   *
-   * 获取数据源的数据服务目录, 数据服务目录用于区分不同的数据实体类别, 如 ODataService 的 Catalog, XMLA 的 CATALOG_NAME 等
    */
   getCatalogs(): Observable<Array<Catalog>>
 
   /**
-   * Discover catalogs or schemas from DataSource's Database
+   * Discover catalogs or schemas from DataSource's Database: The data service catalog is used to distinguish different data entity categories, such as Catalog of ODataService, CATALOG_NAME of XMLA, etc.
    */
   discoverDBCatalogs(options?: {throwError?: boolean}): Observable<Array<DBCatalog>>
   /**
@@ -140,9 +150,6 @@ export interface DataSource {
 
   /**
    * @deprecated use selectEntitySets
-   * 获取源实体集合
-   *
-   * @param refresh 是否跳过缓存进行重新获取数据
    */
   getEntitySets(refresh?: boolean): Observable<Array<EntitySet>>
   /**
@@ -153,18 +160,11 @@ export interface DataSource {
   selectEntitySets(refresh?: boolean): Observable<Array<EntitySet>>
 
   /**
-   * @deprecated 运行时 EntityType 接口不应该直接暴露, 使用 selectEntitySet 方法
-   *
-   * 获取运行时 EntityType
+   * @deprecated The EntityType interface should not be exposed directly at runtime, use the selectEntitySet method
    */
   getEntityType(entity: string): Observable<EntityType | Error>
-
   /**
    * @deprecated use selectMembers
-   * 获取维度成员
-   *
-   * @param entity 实体
-   * @param dimension 维度
    */
   getMembers(entity: string, dimension: Dimension): Observable<IDimensionMember[]>
   /**
@@ -179,7 +179,10 @@ export interface DataSource {
    * Creates a corresponding entityService based on the specified entitySet name
    */
   createEntityService<T>(entity: string): EntityService<T>
-
+  /**
+   * Observe options
+   */
+  selectOptions(): Observable<DataSourceOptions>
   /**
    * Observe runtime schema
    */
@@ -193,13 +196,27 @@ export interface DataSource {
   setSchema(schema: Schema): void
 
   /**
+   * Update the schema
+   * 
+   * @param fn 
+   */
+  updateSchema(fn: (schema: Schema) => Schema): void
+
+  /**
    * Update a single cube definition
    *
    * @param cube
    */
   updateCube(cube: Cube): void
   /**
-   * Insert or update a indicator by code
+   * Update the value of parameters in cube
+   * 
+   * @param cube Cube name
+   * @param fn Update function
+   */
+  updateParameters(cube: string, fn: (state: Record<string, any>) => Record<string, any>): void
+  /**
+   * Insert or update a indicator by `code`
    */
   upsertIndicator(indicator: Indicator): void
 
@@ -260,14 +277,14 @@ export interface DataSource {
    *
    * @param statement
    */
-  query(options: { statement: string; forceRefresh?: boolean }): Observable<any>
+  query(options: { statement: string; forceRefresh?: boolean; timeout?: number; }): Observable<any>
 
-  /**
-   * Observe to runtime calculated measures
-   * 
-   * @param cube 
-   */
-  selectCalculatedMeasures(cube: string): Observable<CalculatedProperty[]>
+  // /**
+  //  * Observe to runtime calculated measures
+  //  * 
+  //  * @param cube 
+  //  */
+  // selectCalculatedMeasures(cube: string): Observable<CalculatedProperty[]>
 
   /**
    * Clear the browser cache
@@ -320,14 +337,33 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   abstract selectMembers(entity: string, dimension: Dimension): Observable<IDimensionMember[]>
   abstract createEntity(name: string, columns: any[], data?: any[]): Observable<string>
   abstract dropEntity(name: string): Promise<void>
-  abstract query(options: { statement: string; forceRefresh?: boolean }): Observable<any>
+  abstract query(options: { statement: string; forceRefresh?: boolean; timeout?: number; }): Observable<any>
 
   refresh() {
     this.refresh$.next()
   }
 
+  updateOptions(fn: (options: T) => T): void {
+    const options = this.options$.value
+    if (options) {
+      this.options$.next(fn(options))
+    } else {
+      console.warn('DataSource options is not initialized yet.')
+    }
+  }
+
   setSchema(schema: Schema): void {
     this.options$.next({ ...this.options$.value, schema })
+  }
+
+  updateSchema(fn: (schema: Schema) => Schema): void {
+    this.updateOptions((options) => {
+      const schema = options.schema ?? ({} as Schema)
+      return {
+        ...options,
+        schema: fn(schema)
+      }
+    })
   }
 
   updateCube(cube: Cube) {
@@ -349,6 +385,19 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
     })
   }
 
+  updateParameters(cube: string, fn: (state: Record<string, any>) => Record<string, any>): void {
+    this.updateOptions((options) => {
+      const parameters = options.parameters ? {...options.parameters} : ({} as Record<string, Record<string, any>>)
+      return {
+        ...options,
+        parameters: {
+          ...parameters,
+          [cube]: fn(parameters[cube] ?? {})
+        }
+      }
+    })
+  }
+
   upsertIndicator(indicator: Indicator) {
     const indicators = this.options.schema?.indicators ? [...this.options.schema.indicators] : []
     const index = indicators.findIndex((item) => item.code === indicator.code)
@@ -365,9 +414,12 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
     this.setSchema(schema)
   }
 
+  selectOptions(): Observable<DataSourceOptions> {
+    return this.options$.pipe(distinctUntilChanged())
+  }
+
   selectSchema(): Observable<Schema> {
-    return this.options$.pipe(
-      distinctUntilChanged(),
+    return this.selectOptions().pipe(
       map((options) => options?.schema),
       distinctUntilChanged(isEqual)
     )
@@ -398,33 +450,59 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
    */
   selectEntitySet(entity: string): Observable<EntitySet | Error> {
     if (!this._entitySets[entity]) {
-      this._entitySets[entity] = this.getEntityType(entity).pipe(
-        switchMap((rtEntityType) => {
-          return isEntityType(rtEntityType)
-            ? this.selectSchema().pipe(
+      // Merge runtime types, temporary calculation measures, indicator lists, and type enhancement definitions in the schema: Can temporary calculated measures be merged with type enhancement definitions in the schema?
+      this._entitySets[entity] = combineLatest([this.getEntityType(entity), this.options$.pipe(map((options) => options?.calculatedMeasures?.[entity]))]).pipe(
+        switchMap(([rtEntityType, calculatedMeasures]) => {
+          if (isEntityType(rtEntityType)) {
+            return this.selectSchema().pipe(
                 distinctUntilChanged(),
                 map((schema) => {
+                  const properties = {...rtEntityType.properties}
+                  const parameters = {...(rtEntityType.parameters ?? {})}
+                  const cube = schema?.cubes?.find((c) => c.name === entity)
+                  // Custom indicators
                   const indicators = schema?.indicators?.filter((indicator) => indicator.entity === entity)
-
                   indicators?.forEach((indicator) => {
                     mapIndicatorToMeasures(indicator).forEach((measure) => {
-                      rtEntityType.properties[measure.name] = {
+                      properties[measure.name] = {
                         ...measure,
                         role: AggregationRole.measure
                       }
                     })
                   })
+                  // Custom calculations
+                  cube?.calculations?.forEach((calculation) => {
+                    properties[calculation.name] = {
+                      ...calculation,
+                      role: AggregationRole.measure,
+                      visible: true,
+                    }
+                  })
 
-                  const customEntityType = schema?.entitySets?.[entity]?.entityType
+                  // Custom parameters
+                  cube?.parameters?.forEach((parameter) => {
+                    parameters[parameter.name] = {
+                      ...parameter,
+                    }
+                  })
+
+                  // Runtime calculated measures
+                  calculatedMeasures?.forEach((measure) => {
+                    properties[measure.name] = measure
+                  })
+                  rtEntityType.properties = properties
+                  rtEntityType.parameters = parameters
+
                   let entityType = rtEntityType
-
+                  // User custom entity type
+                  const customEntityType = schema?.entitySets?.[entity]?.entityType
                   if (!isNil(customEntityType)) {
-                    // TODO merge 函数有风险
+                    // TODO merge functions are risky
                     entityType = mergeEntityType(assign({}, rtEntityType), customEntityType)
                   }
 
                   if (entityType) {
-                    // 将数据源方言同步到 EntityType
+                    // Synchronize Data Source and Dialect into EntityType
                     entityType.dialect = this.options.dialect
                     entityType.syntax = this.options.syntax
                   }
@@ -437,7 +515,9 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
                   } as EntitySet
                 })
               )
-            : of(rtEntityType)
+          }
+            
+          return of(rtEntityType)
         }),
         takeUntil(this.destroy$),
         shareReplay(1)

@@ -180,24 +180,18 @@ export class CopilotMemoryStore extends BaseStore {
 			}
 			const [query, txtParams] = embeddingRequest
 			const vectors = await this.embeddings.embedDocuments(txtParams.map((param) => param[param.length - 1]))
-			queries.push([
-				query,
-				txtParams.map((params, index) => {
-					const [ns, k, pathname] = params
-					return [ns, k, pathname, `[${vectors[index].join(',')}]`]
-				})
-			])
+			txtParams.forEach((params, index) => {
+				const [ns, k, pathname] = params
+				const param = [ns, k, pathname, `[${vectors[index].join(',')}]`]
+				queries.push([
+					query,
+					param
+				])
+			})
 		}
 
 		for (const [query, params] of queries) {
-			if (Array.isArray(params?.[0])) {
-				for await (const param of params) {
-					await this.pgPool.query(query, param)
-				}
-			} else {
-        // console.log(query, params)
-				await this.pgPool.query(query, params)
-			}
+			await this.pgPool.query(query, params)
 		}
 	}
 
@@ -243,7 +237,7 @@ export class CopilotMemoryStore extends BaseStore {
 		if (inserts.length > 0) {
 			const values: string[] = []
 			const insertionParams: any[] = [];
-			const vectorValues: string[] = []
+			// const vectorValues: string[] = []
 			const embeddingRequestParams: Array<[string, string, string, string]> = []
 
 			// First handle main store insertions
@@ -275,7 +269,7 @@ export class CopilotMemoryStore extends BaseStore {
 						for (let i = 0; i < texts.length; i++) {
 							const text = texts[i]
 							const pathname = texts.length > 1 ? `${path}.${i}` : (path as string)
-							vectorValues.push(`($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
+							// vectorValues.push(`($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
 							embeddingRequestParams.push([ns, k, pathname, text])
 						}
 					}
@@ -291,11 +285,11 @@ export class CopilotMemoryStore extends BaseStore {
       `
 			queries.push([query, insertionParams])
 
-			if (vectorValues.length > 0) {
-				const vectorValuesStr = vectorValues.join(',')
+			if (embeddingRequestParams.length > 0) {
+				// const vectorValuesStr = vectorValues.join(',')
 				query = `
           INSERT INTO copilot_store_vectors (prefix, key, field_name, embedding, created_at, updated_at)
-          VALUES ${vectorValuesStr}
+          VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           ON CONFLICT (prefix, key, field_name) DO UPDATE
           SET embedding = EXCLUDED.embedding,
               updated_at = CURRENT_TIMESTAMP

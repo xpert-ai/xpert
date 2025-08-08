@@ -22,15 +22,15 @@ import {
   IXpertAgent,
   IXpertAgentExecution,
   messageContentText,
+  TInterruptCommand,
   ToastrService,
-  ToolCall,
+  TToolCall,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
   XpertAgentService
 } from '@cloud/app/@core'
 import { CopilotStoredMessageComponent } from '@cloud/app/@shared/copilot'
 import {
-  ToolCallConfirmComponent,
   XpertAgentExecutionStatusComponent,
   XpertParametersCardComponent
 } from '@cloud/app/@shared/xpert'
@@ -40,6 +40,7 @@ import { distinctUntilChanged, switchMap } from 'rxjs/operators'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
+import { XpertAgentOperationComponent } from '@cloud/app/@shared/agent'
 
 @Component({
   selector: 'xpert-studio-panel-agent-execution',
@@ -55,7 +56,7 @@ import { XpertStudioComponent } from '../../studio.component'
     CopilotStoredMessageComponent,
     XpertAgentExecutionStatusComponent,
     XpertParametersCardComponent,
-    ToolCallConfirmComponent
+    XpertAgentOperationComponent
   ],
   host: {
     tabindex: '-1',
@@ -113,7 +114,8 @@ export class XpertStudioPanelAgentExecutionComponent {
 
   readonly status = computed(() => this.execution()?.status)
   readonly operation = computed(() => this.execution()?.operation)
-  readonly #toolCalls = signal<ToolCall[]>(null)
+  readonly command = model<TInterruptCommand>()
+  readonly #toolCalls = signal<TToolCall[]>(null)
   readonly environment = this.apiService.environment
 
   readonly loading = signal(false)
@@ -177,10 +179,11 @@ export class XpertStudioPanelAgentExecutionComponent {
         xpertId: this.xpert().id,
         executionId,
         environmentId: this.environment()?.id,
-        operation: (options?.reject || this.#toolCalls()) ? {
-          ...this.operation(),
-          toolCalls: this.#toolCalls()?.map((call) => ({call}))
-        } : null,
+        command: this.command(),
+        // operation: (options?.reject || this.#toolCalls()) ? {
+        //   ...this.operation(),
+        //   toolCalls: this.#toolCalls()?.map((call) => ({call}))
+        // } : null,
         reject: options?.reject
       })
       .subscribe({
@@ -222,7 +225,7 @@ export class XpertStudioPanelAgentExecutionComponent {
     return this.apiService.getNode(key)?.entity as IXpertAgent
   }
 
-  onToolCalls(toolCalls: ToolCall[]) {
+  onToolCalls(toolCalls: TToolCall[]) {
     this.#toolCalls.set(toolCalls)
   }
 

@@ -6,7 +6,6 @@
         (avatarChange)="updateAvatar($event)" />
       <div class="flex flex-col items-start">
         <input
-          matInput
           class="ngm-input-inline ngm-input-sm min-w-[100px] mr-2 px-1 py-0.5 text-base field font-semibold rounded-lg border border-transparent appearance-none outline-none text-gray-900 hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]"
           [placeholder]="'PAC.Xpert.EnterTitle' | translate: {Default: 'Enter title'} "
           [ngModel]="title()"
@@ -47,7 +46,6 @@
         <div class="inline-block">
           <div class="float-menu-trigger flex items-center justify-center w-8 h-8 rounded-md cursor-pointer
             text-text-tertiary hover:text-base-content hover:bg-hover-bg"
-
             [cdkMenuTriggerFor]="moreMenu"
           >
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-5 h-5">
@@ -73,8 +71,8 @@
 
   <div class="px-4 pb-4 space-y-4 mt-2 w-full">
     <div class="py-2 flex flex-col">
-      <input matInput
-        class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 px-1 py-0.5 text-sm field rounded-lg border border-transparent appearance-none outline-none
+      <input
+        class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 px-1 py-0.5 text-sm font-mono rounded-lg border border-transparent appearance-none outline-none
           hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]"
         [ngClass]="{ 'ngm-error': nameError() }"
         [ngModel]="name()"
@@ -87,7 +85,6 @@
       <div class="group flex px-2 py-[5px] max-h-[60px] rounded-lg overflow-y-auto border border-transparent
         text-text-secondary hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs">
         <textarea
-          matInput
           class="rc-textarea w-full text-sm leading-[18px] bg-transparent appearance-none outline-none resize-none placeholder:text-gray-400 caret-[#295EFF]"
           [placeholder]=" ('PAC.Xpert.AddDescription' | translate: {Default: 'Add description'}) + '...'"
           [ngModel]="xpertAgent().description"

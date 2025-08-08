@@ -30,7 +30,7 @@ export const DimensionSchema = z.object(baseDimensionSchema)
 
 export const BaseMeasureSchema = {
   dimension: z.enum([C_MEASURES]),
-  measure: z.string().describe('The name of the measure'),
+  measure: z.string().describe('The name of the measure or indicator or calculated member'),
   // order: z.enum([OrderDirection.ASC, OrderDirection.DESC]).optional().describe('The order of the measure'),
   // chartOptions: z.any().optional().describe('The chart options of ECharts library')
 }
@@ -52,20 +52,7 @@ export const DimensionMemberSchema = z.object({
 })
 export const FormulaSchema = z.string().describe('MDX expression for the calculated measure in cube')
 
-export const CalculationSchema = z.object({
-  __id__: z.string().optional().describe(`Key of the calculation measure`),
-  name: z.string().optional().describe(`Name of the calculation measure, should be unique`),
-  caption: z.string().optional().describe('Caption (short description)'),
-  description: z.string().optional().describe('Long description'),
-  formula: FormulaSchema,
-  formatting: z
-    .object({
-      unit: z.string().optional().describe('Unit of the measure; if this is a ratio measurement, value is `%`'),
-      decimal: z.number().optional().describe('The decimal of value when formatting the measure')
-    })
-    .optional()
-    .describe('The formatting config of this measure')
-})
+
 
 export const OrderBySchema = z.object({
   by: z.string().describe('Field to order by'),
@@ -120,7 +107,7 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
     property = getEntityProperty2(entityType, dimension)
     // Fix meausure name format
     if (!property && dimension.measure) {
-      const name = unwrapBrackets(dimension.measure.replace('[Measures].', ''))
+      const name = tryFixMeasureName(dimension.measure)
       property = getEntityProperty2(entityType, name)
     }
   }
@@ -173,6 +160,9 @@ export function tryFixOrder(orderBy: OrderBy) {
   return {...orderBy, by}
 }
 
+/**
+ * Try to fix: `[Measures].[Sales Amount]` to `Sales Amount`
+ */
 export function tryFixMeasureName(measure: string) {
   const name = unwrapBrackets(measure?.replace(`[${C_MEASURES}].`, ''))
   return name

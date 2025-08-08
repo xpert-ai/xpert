@@ -120,10 +120,11 @@
 }
 
 @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
-  <xpert-tool-call-confirm class="w-full max-w-xl mx-auto bg-components-card-bg"
+  <xpert-agent-operation class="w-full max-w-xl mx-auto mb-8 bg-components-card-bg"
+    [conversationId]="conversation()?.id"
     [operation]="operation()"
+    [(command)]="command"
     (confirm)="onConfirm()"
     (reject)="onReject()"
-    (toolCallsChange)="onToolCalls($event)"
   />
 }

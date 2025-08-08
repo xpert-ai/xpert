@@ -3,15 +3,17 @@ import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angul
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { nonNullable } from '@metad/core'
-import { effectAction } from '@metad/ocap-angular/core'
+import { attrModel, effectAction, linkedModel } from '@metad/ocap-angular/core'
 import {
   AggregationRole,
   C_MEASURES,
   CalculatedMember,
+  CalculationProperty,
   Cube,
   DimensionUsage,
   EntityProperty,
   EntityType,
+  ParameterProperty,
   Property,
   PropertyAttributes,
   PropertyDimension,
@@ -45,9 +47,11 @@ import {
 } from 'rxjs'
 import { createSubStore, dirtyCheckWith, write } from '../../store'
 import { SemanticModelService } from '../model.service'
-import { DEBOUNCE_TIME, EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
+import { EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
 import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable } from './types'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
+import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model'
+import { getSemanticModelKey } from '@metad/story/core'
 
 /**
  * State servcie for Cube
@@ -184,10 +188,24 @@ export class ModelEntityService {
   | Signals
   |--------------------------------------------------------------------------
   */
+  readonly cubeSignal = toSignal(this.cube$)
+  readonly cube = linkedModel({
+    initialValue: {} as Cube,
+    compute: () => this.cubeSignal(),
+    update: (cube) => {
+      this.store.update(write((state) => {
+        return {
+          ...state,
+          ...cube
+        }
+      }))
+    }
+  })
   readonly statement$ = computed(() => this.queryLab().statement)
   readonly modelType = toSignal(this.#modelService.modelType$)
   readonly entityType = toSignal(this.entityType$)
-  readonly cube = toSignal(this.cube$)
+  
+  readonly cubeKey = computed(() => this.cube()?.__id__)
   readonly selectedProperty = signal<string>(null)
 
   readonly dimensionUsages = toSignal(this.cube$.pipe(map((cube) => cube?.dimensionUsages)))
@@ -220,6 +238,15 @@ export class ModelEntityService {
     }) ?? []), ...(dimensions ?? [])]
   })
 
+  readonly modelKey = toSignal(this.#modelService.model$.pipe(map(getSemanticModelKey)))
+  readonly dataSettings = computed(() => ({
+    dataSource: this.modelKey(),
+    entitySet: this.cubeName()
+  }))
+
+  readonly parameters = attrModel(this.cube, 'parameters')
+  readonly calculations = attrModel(this.cube, 'calculations')
+
   /**
   |--------------------------------------------------------------------------
   | Events
@@ -235,7 +262,7 @@ export class ModelEntityService {
   | Subscriptions (effect)
   |--------------------------------------------------------------------------
   */
-  private _cubeSub = this.cube$.pipe(filter(Boolean), debounceTime(DEBOUNCE_TIME), takeUntilDestroyed()).subscribe((cube) => {
+  private _cubeSub = this.cube$.pipe(filter(Boolean), debounceTime(MODEL_DEBOUNCE_TIME), takeUntilDestroyed()).subscribe((cube) => {
     this.#modelService.updateDataSourceSchemaCube(cube)
   })
 
@@ -661,7 +688,7 @@ export class ModelEntityService {
     }
   })
 
-  // 调整元素之间的顺序方法们
+  // Methods for adjusting the order of elements
   readonly moveItemInCalculatedMember = this.updater((state, event: CdkDragDrop<Partial<CalculatedMember>[]>) => {
     moveItemInArray(state.calculatedMembers, event.previousIndex, event.currentIndex)
   })
@@ -715,6 +742,20 @@ export class ModelEntityService {
       }
     }
   })
+  moveItemInCalculations(event: CdkDragDrop<CalculationProperty[]>) {
+    this.calculations.update((state) => {
+      const calculations = [...state]
+      moveItemInArray(calculations, event.previousIndex, event.currentIndex)
+      return calculations
+    })
+  }
+  moveItemInParameters(event: CdkDragDrop<ParameterProperty[]>) {
+    this.parameters.update((state) => {
+      const parameters = [...state]
+      moveItemInArray(parameters, event.previousIndex, event.currentIndex)
+      return parameters
+    })
+  }
 
   /**
    * Set selected property name to open designer panel

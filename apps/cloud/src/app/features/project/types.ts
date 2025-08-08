@@ -1,12 +1,8 @@
 import { FlatTreeControl } from '@angular/cdk/tree'
-import { inject } from '@angular/core'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
-import { Indicator, SemanticModelServerService, convertNewSemanticModelResult } from '@metad/cloud/state'
+import { Indicator } from '@metad/cloud/state'
 import { FlatTreeNode, TreeNodeInterface, isString, omitBlank } from '@metad/ocap-core'
-import { pick } from 'lodash-es'
-import { map } from 'rxjs/operators'
-import { DefaultCollection, ICollection, IIndicator } from '../../@core'
-import { INDICATOR_COLUMNS } from '../indicator/types'
+import { DefaultCollection, ICollection } from '../../@core'
 
 
 export type ProjectIndicatorsState = {
@@ -47,23 +43,5 @@ export function treeDataSourceFactory() {
   return {
     dataSource,
     treeControl
-  }
-}
-
-export function exportIndicator(indicator: IIndicator) {
-  const fieldNames = INDICATOR_COLUMNS.map(({ name }) => name)
-  return {
-    ...pick<IIndicator>(indicator, fieldNames),
-    // don't export system fields of tags
-    tags: indicator.tags?.map((tag) => omitBlank(pick(tag, 'name', 'description', 'category', 'color')))
-  }
-}
-
-export function injectFetchModelDetails() {
-  const modelsService = inject(SemanticModelServerService)
-  return (id: string) => {
-    return modelsService
-      .getById(id, {relations: ['dataSource', 'dataSource.type', 'indicators']})
-      .pipe(map((model) => convertNewSemanticModelResult(model)))
   }
 }

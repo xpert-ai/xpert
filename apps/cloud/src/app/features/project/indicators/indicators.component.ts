@@ -11,14 +11,19 @@ import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { EMPTY, firstValueFrom, switchMap } from 'rxjs'
-import { IIndicator, IndicatorType, ToastrService, getErrorMessage, isUUID, routeAnimations } from '../../../@core'
+import { IIndicator, IndicatorType, ProjectAPIService, ToastrService, getErrorMessage, isUUID, routeAnimations } from '../../../@core'
 import { ProjectService } from '../project.service'
-import { NewIndicatorCodePlaceholder, exportIndicator, injectFetchModelDetails } from '../types'
+import { NewIndicatorCodePlaceholder } from '../types'
 import { IndicatorImportComponent } from './indicator-import/indicator-import.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Dialog } from '@angular/cdk/dialog'
-import { MaterialModule } from '../../../@shared/material.module'
 import { ManageEntityBaseComponent } from '../../../@shared/directives'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatButtonModule } from '@angular/material/button'
+import { MatIconModule } from '@angular/material/icon'
+import { MatTabsModule } from '@angular/material/tabs'
+import { MatDividerModule } from '@angular/material/divider'
+import { exportIndicator, injectFetchModelDetails } from '@cloud/app/@shared/indicator'
 
 
 @Component({
@@ -28,7 +33,11 @@ import { ManageEntityBaseComponent } from '../../../@shared/directives'
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    MaterialModule,
+    MatTooltipModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTabsModule,
+    MatDividerModule,
 
     ButtonGroupDirective,
     DensityDirective
@@ -47,6 +56,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
   readonly #logger = inject(NGXLogger)
   readonly #translate = inject(TranslateService)
   readonly indicatorsService = inject(IndicatorsService)
+  readonly projectAPI = inject(ProjectAPIService)
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly wasmAgent = inject(WasmAgentService)
   readonly toastrService = inject(ToastrService)
@@ -222,5 +232,15 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
       })
       .afterClosed()
       .subscribe((result) => {})
+  }
+
+  // AI
+  startEmbedding() {
+    this.indicatorsService.startEmbedding(this.projectService.project().id).subscribe({
+      next: () => {
+        //
+        this.projectService.refreshEmbedding$.next(true)
+      }
+    })
   }
 }

@@ -6,6 +6,9 @@
         "NoHierarchyFoundFor": "Can't find hierarchy '{{hierarchy}}' in dimension '{{dimension}}' of cube '{{cube}}'.",
         "NoCubeMetadata": "Can't discover metadata for cube '{{cube}}'.",
         "UnCalculationType": "Calculation type '{{calculationType}}' for calculated indicator '{{name}}' is not implemented.",
-        "FormulaEmpty": "Formula of calculated measure '{{name}}' is empty!"
+        "FormulaEmpty": "Formula of calculated measure '{{name}}' is empty!",
+        "AggregationDimensionsEmpty": "Aggregation dimensions of calculation measure '{{name}}' are empty!",
+        "AggregationCompareEmpty": "Compare operator of calculation measure '{{name}}' is empty!",
+        "AggregationValueEmpty": "Value of calculation measure '{{name}}' is empty!"
     }
 }

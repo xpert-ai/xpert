@@ -48,7 +48,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 			xpertId: command.environment?.xpertId,
 			agentKey: command.environment?.agentKey,
 			signal: command.environment?.signal,
-			env: command.environment?.env
+			env: command.environment?.env,
+			store: command.environment?.store
 		}
 
 		return toolsets.map((toolset) => {

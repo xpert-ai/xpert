@@ -1,6 +1,7 @@
-import { IEnvironment, IXpert, TXpertAgentConfig, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { IEnvironment, IXpert, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
+import { TAgentSubgraphParams } from '../agent'
 
 /**
  * Create artifacts for workflow node in graph.
@@ -21,9 +22,8 @@ export class CreateWorkflowNodeCommand implements ICommand {
         public readonly graph: TXpertGraph,
         public readonly node: TXpertTeamNode & { type: 'workflow' },
         public readonly leaderKey: string,
-        public readonly options: {
+        public readonly options: TAgentSubgraphParams & {
             isDraft: boolean
-            mute: TXpertAgentConfig['mute']
             // The subscriber response to client
 			subscriber: Subscriber<MessageEvent>
             environment: IEnvironment

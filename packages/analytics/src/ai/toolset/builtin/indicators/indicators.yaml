@@ -1,0 +1,42 @@
+identity:
+  pro: true
+  author: Xpert AI
+  name: indicators
+  label:
+    en_US: Indicator Management
+    zh_Hans: 指标管理
+  description:
+    en_US: Indicator management system for semantic model
+    zh_Hans: 一套管理和使用指标系统中指标列表的工具集，包含指标的创建、编辑、删除与使用等功能工具。
+  icon: icon.svg
+  tags:
+    - analysis
+  help_url: /docs/ai/tool/bi/indicators
+credentials_for_provider:
+  models:
+    type: remote-select
+    label:
+      en_US: Chat Models
+      zh_Hans: 对话模型
+    placeholder:
+      en_US: Please select your chat models
+      zh_Hans: 请选择你的对话模型
+    selectUrl: /api/chatbi-model/model-select-options
+    multi: true
+  project:
+    type: remote-select
+    label:
+      en_US: BI Project
+      zh_Hans: BI 项目
+    placeholder:
+      en_US: Please select your BI project
+      zh_Hans: 请选择你的 BI 项目
+    selectUrl: /api/project/select-options
+  dataPermission:
+    type: boolean
+    label:
+      en_US: Data Permission
+      zh_Hans: 数据权限
+    placeholder:
+      en_US: Enable data access permission for AI models
+      zh_Hans: 启用 AI 模型的数据访问权限

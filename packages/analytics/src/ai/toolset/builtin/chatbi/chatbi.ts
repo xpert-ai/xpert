@@ -1,5 +1,5 @@
 import { Tool } from '@langchain/core/tools'
-import { IXpertToolset } from '@metad/contracts'
+import { isEnableTool, IXpertToolset } from '@metad/contracts'
 import { TBuiltinToolsetParams } from '@metad/server-ai'
 import { AbstractChatBIToolset } from './chatbi-toolset'
 import { createShowIndicatorsTool } from './tools/show_indicators'
@@ -18,9 +18,10 @@ export class ChatBIToolset extends AbstractChatBIToolset {
 	async initTools() {
 		await super.initTools()
 
-		const tools = this.toolset.tools.filter((_) => !(_.disabled ?? !_.enabled))
+		const tools = this.toolset.tools.filter((_) => isEnableTool(_, this.toolset))
+		const allAllowed = !this.toolset.tools?.length
 
-		if (tools.find((_) => _.name === ChatBIToolsEnum.SHOW_INDICATORS)) {
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.SHOW_INDICATORS)) {
 			this.tools.push(
 				createShowIndicatorsTool({
 					chatbi: this,
@@ -28,7 +29,7 @@ export class ChatBIToolset extends AbstractChatBIToolset {
 				}, this.toolsetCredentials) as unknown as Tool
 			)
 		}
-		if (tools.find((_) => _.name === ChatBIToolsEnum.ANSWER_QUESTION)) {
+		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.ANSWER_QUESTION)) {
 			this.tools.push(
 				this.createChatAnswerTool({
 					chatbi: this,

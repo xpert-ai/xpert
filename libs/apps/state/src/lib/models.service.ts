@@ -7,7 +7,7 @@ import { Observable, zip } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { BusinessAreasService } from './business-area.service'
 import { C_URI_API_MODELS, C_URI_API_MODEL_MEMBERS } from './constants'
-import { ChecklistItem, convertIndicatorResult, convertStoryModel, timeRangeToParams } from './types'
+import { convertIndicatorResult, convertStoryModel, timeRangeToParams } from './types'
 import { IDataSource, ISemanticModel, ISemanticModelQueryLog, TSemanticModelDraft } from './types'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
 import { PaginationParams, toHttpParams } from './crud.service'
@@ -24,10 +24,7 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
   }
 
   saveDraft(id: string, draft: TSemanticModelDraft) {
-    return this.httpClient.post<{
-      checklist: ChecklistItem[]
-      savedAt: Date
-    }>(this.apiBaseUrl + `/${id}/draft`, draft)
+    return this.httpClient.post<TSemanticModelDraft>(this.apiBaseUrl + `/${id}/draft`, draft)
   }
 
   publish(id: string, releaseNotes: string) {
@@ -164,7 +161,7 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
     return this.httpClient.post(C_URI_API_MODELS, data)
   }
 
-  create(data: Partial<StoryModel>) {
+  create(data: Partial<StoryModel | ISemanticModel>) {
     return this.httpClient.post<ISemanticModel>(C_URI_API_MODELS, convertStoryModel(data))
   }
 
@@ -327,7 +324,6 @@ export interface NgmSemanticModel extends OcapSemanticModel, Pick<ISemanticModel
   businessAreaId?: string
   indicators?: Indicator[]
   draft?: TSemanticModelDraft
-  isDraft: boolean
 }
 
 /**

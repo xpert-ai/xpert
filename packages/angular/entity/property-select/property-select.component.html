@@ -1,7 +1,11 @@
 <label class="flex item p-1 text-sm text-ellipsis whitespace-nowrap overflow-hidden">
-  <span *ngIf="label()" class="mr-1">{{label()}}</span>
+  @if (label()) {
+    <span class="mr-1">{{label()}}</span>
+  }
   @if (label$ | async; as label) {
-    <mat-icon *ngIf="label.icon" displayDensity="compact">{{ label.icon }}</mat-icon>
+    @if (label.icon) {
+      <mat-icon displayDensity="compact">{{ label.icon }}</mat-icon>
+    }
     <span>
       {{ 'Ngm.Property.'+(label?.label ?? 'DIMENSION_MEASURE') | translate: {Default: label?.label ?? 'Dimension/Measure'} }}
     </span>
@@ -17,42 +21,49 @@
     <mat-select #propertySelect [formControl]="keyControl" class="overflow-hidden flex-1"
       panelClass="ngm-property-select__panel ngm-select-panel ngm-density__cosy" 
       [required]="required()">
-      <mat-select-trigger *ngIf="selectTrigger()" class="flex items-center overflow-hidden pl-2">
-        <ngm-entity-property hiddenIcon [property]="selectTrigger()" class="flex-1" ></ngm-entity-property>
+      @if (selectTrigger()) {
+        <mat-select-trigger class="flex items-center overflow-hidden pl-2">
+          <ngm-entity-property hiddenIcon [property]="selectTrigger()" class="flex-1" />
 
-        <div class="flex items-center" displayDensity="compact">
+          <div class="flex items-center" displayDensity="compact">
 
-          <button matSuffix mat-icon-button (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
-            <mat-icon *ngIf="!showMore()">expand_more</mat-icon>
-            <mat-icon *ngIf="showMore()">expand_less</mat-icon>
-          </button>
-
-          <button mat-icon-button *ngIf="showAttributes()" [displayDensity]="displayDensity()"
-            [matMenuTriggerFor]="dimensionMenu"
-            #mt="matMenuTrigger"
-            [class.active]="mt.menuOpen"
-            (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>more_vert</mat-icon>
-          </button>
-    
-          <button mat-icon-button *ngIf="hierarchies$ | async" [displayDensity]="displayDensity()"
-            [matMenuTriggerFor]="hierarchyMenu"
-            #mt="matMenuTrigger"
-            [class.active]="mt.menuOpen"
-            (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
-          </button>
-    
-          <button mat-icon-button *ngIf="membersSignal()" [displayDensity]="displayDensity()"
-            [matMenuTriggerFor]="membersMenu"
-            #mt="matMenuTrigger"
-            [class.active]="mt.menuOpen"
-            (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>straighten</mat-icon>
-          </button>
-          
-        </div>
-      </mat-select-trigger>
+            <button matSuffix mat-icon-button (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
+              @if (showMore()) {
+                <mat-icon>expand_less</mat-icon>
+              } @else {
+                <mat-icon>expand_more</mat-icon>
+              }
+            </button>
+            @if (showAttributes()) {
+              <button mat-icon-button [displayDensity]="displayDensity()"
+                [matMenuTriggerFor]="dimensionMenu"
+                #mt="matMenuTrigger"
+                [class.active]="mt.menuOpen"
+                (click)="$event.stopPropagation();$event.preventDefault();">
+                  <mat-icon>more_vert</mat-icon>
+              </button>
+            }
+            @if (hierarchies$ | async) {
+              <button mat-icon-button [displayDensity]="displayDensity()"
+                [cdkMenuTriggerFor]="hierarchyMenu"
+                #mt="cdkMenuTriggerFor"
+                [class.active]="mt.isOpen()"
+                (click)="$event.stopPropagation();$event.preventDefault();">
+                  <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
+              </button>
+            }
+            @if (membersSignal()) {
+              <button mat-icon-button [displayDensity]="displayDensity()"
+                [matMenuTriggerFor]="membersMenu"
+                #mt="matMenuTrigger"
+                [class.active]="mt.menuOpen"
+                (click)="$event.stopPropagation();$event.preventDefault();">
+                  <mat-icon>straighten</mat-icon>
+              </button>
+            }
+          </div>
+        </mat-select-trigger>
+      }
 
       <ngm-search class="w-full px-1" displayDensity="cosy" [formControl]="searchControl"
         (keydown)="onSearchKeydown($event)"
@@ -60,7 +71,7 @@
 
     @if (showDimension()) {
       <mat-optgroup [label]=" 'Ngm.Property.DIMENSIONS' | translate: {Default: 'Dimensions'} ">
-        <ng-container *ngFor="let property of dimensions$ | async; trackBy trackByName">
+        @for (property of dimensions$ | async; track property.name) {
           <mat-option class="" [value]="property.name"
             [ngClass]="{
               'ngm-option__dimension': property.role === AggregationRole.dimension,
@@ -69,9 +80,9 @@
               'ngm-option__hidden': property.visible === false
             }"
           >
-            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [displayDensity]="DisplayDensity.cosy" [highlight]="search" ></ngm-entity-property>
+            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [displayDensity]="DisplayDensity.cosy" [highlight]="search" />
           </mat-option>
-        </ng-container>
+        }
       </mat-optgroup>
     }
 
@@ -79,58 +90,68 @@
       <mat-optgroup [label]=" 'Ngm.Property.CALCULATIONS' | translate: {Default: 'Calculations'} ">
         @for (property of calculations(); track property.name) {
           <mat-option class="ngm-option__measure" [value]="property.name">
-            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search"></ngm-entity-property>
+            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
           </mat-option>
         }
-        <mat-option *ngIf="editable()" class="ngm-property-select__action mt-2" [value]="null"
-          (click)="$event.stopPropagation();$event.preventDefault();">
-          <button mat-button color="primary" ngmAppearance="dashed" class="ngm-property-select__create-calculation w-full"
-            (click)="$event.stopPropagation();onCreateCalculation($event)">
-            <div class="flex justify-center items-center whitespace-nowrap text-ellipsis overflow-hidden">
-              <mat-icon>add</mat-icon>
-              <span>{{ 'Ngm.Property.CREATE_CALCULATION' | translate: {Default: 'Create Calculation'} }}</span>
-            </div>
-          </button>
-        </mat-option>
+        @if (editable()) {
+          <mat-option class="ngm-property-select__action mt-2" [value]="null"
+            (click)="$event.stopPropagation();$event.preventDefault();">
+            <button mat-button color="primary" ngmAppearance="dashed" class="ngm-property-select__create-calculation w-full"
+              (click)="$event.stopPropagation();onCreateCalculation($event)">
+              <div class="flex justify-center items-center whitespace-nowrap text-ellipsis overflow-hidden">
+                <mat-icon>add</mat-icon>
+                <span>{{ 'Ngm.Property.CREATE_CALCULATION' | translate: {Default: 'Create Calculation'} }}</span>
+              </div>
+            </button>
+          </mat-option>
+        }
       </mat-optgroup>
     }
     @if (showMeasureControl()) {
       <mat-optgroup [label]=" 'Ngm.Property.MEASURE_CONTROLS' | translate: {Default: 'Measure Controls'} ">
         @for (property of measureControls(); track property.name) {
           <mat-option [value]="property.name">
-            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search"></ngm-entity-property>
+            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
           </mat-option>
         }
 
-        <mat-option *ngIf="editable()" class="mt-2">
-          <button mat-button class="flex-1" color="primary" ngmAppearance="dashed" (click)="onCreateCalculation($event, CalculationType.MeasureControl)">
-            <mat-icon>add</mat-icon>
-            {{ 'Ngm.Property.CREATE_MEASURE_CONTROL' | translate: {Default: 'Create Measure Control'} }}
-          </button>
-        </mat-option>
+        @if (editable()) {
+          <mat-option class="mt-2">
+            <button mat-button class="flex-1" color="primary" ngmAppearance="dashed" (click)="onCreateCalculation($event, CalculationType.MeasureControl)">
+              <mat-icon>add</mat-icon>
+              {{ 'Ngm.Property.CREATE_MEASURE_CONTROL' | translate: {Default: 'Create Measure Control'} }}
+            </button>
+          </mat-option>
+        }
       </mat-optgroup>
     }
     
     @if (showMeasure()) {
       <mat-optgroup [label]=" 'Ngm.Property.MEASURES' | translate: {Default: 'Measures'} ">
-        <mat-option *ngFor="let property of notCalculations$ | async" class="ngm-option__measure" [value]="property.name">
-          <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search"></ngm-entity-property>
-        </mat-option>
+        @for (property of notCalculations$ | async; track property.name) {
+          <mat-option class="ngm-option__measure" [value]="property.name">
+            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
+          </mat-option>
+        }
       </mat-optgroup>
     }
     @if (showParameter()) {
       <mat-optgroup [label]=" 'Ngm.Property.PARAMETERS' | translate: {Default: 'Parameters'} ">
-        <mat-option *ngFor="let property of parameters$ | async" [value]="property.name">
-          <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search"></ngm-entity-property>
-        </mat-option>
+        @for (property of parameters$ | async; track property.name) {
+          <mat-option [value]="property.name">
+            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
+          </mat-option>
+        }
       </mat-optgroup>
     }
     
     @if (showMeasure()) {
       <mat-optgroup [label]=" 'Ngm.Property.INDICATORS' | translate: {Default: 'Indicators'} ">
-        <mat-option *ngFor="let property of indicators$ | async" class="ngm-option__measure" [value]="property.name">
-          <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search"></ngm-entity-property>
-        </mat-option>
+        @for (property of indicators$ | async; track property.name) {
+          <mat-option class="ngm-option__measure" [value]="property.name">
+            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
+          </mat-option>
+        }
       </mat-optgroup>
     }
     </mat-select>
@@ -150,22 +171,27 @@
 
     <ng-content select="[ngmSuffix]"></ng-content>
   </form>
-
-  <div *ngIf="showMore()" class="min-h-12 w-full flex justify-center items-center">
-    <ng-content></ng-content>
-  </div>
+  @if (showMore()) {
+    <div class="min-h-12 w-full flex justify-center items-center">
+      <ng-content></ng-content>
+    </div>
+  }
 </div>
 
 <mat-menu #dimensionMenu="matMenu" class="ngm-formly ngm-density__compact">
-  <button mat-menu-item *ngIf="showDisplayAs()" disableRipple [matMenuTriggerFor]="displayMenu">
-    <mat-icon class="shrink-0">dvr</mat-icon>
-    <span>{{ 'Ngm.Property.DisplayAs' | translate: {Default: "Display As"} }}...</span>
-  </button>
+  @if (showDisplayAs()) {
+    <button mat-menu-item disableRipple [matMenuTriggerFor]="displayMenu">
+      <mat-icon class="shrink-0">dvr</mat-icon>
+      <span>{{ 'Ngm.Property.DisplayAs' | translate: {Default: "Display As"} }}...</span>
+    </button>
+  }
 
-  <button mat-menu-item *ngIf="labels$ | async as labels" disableRipple [matMenuTriggerFor]="labelMenu">
-    <mat-icon class="shrink-0" fontSet="material-icons-outlined">label</mat-icon>
-    <span>{{ 'Ngm.Property.Label' | translate: {Default: "Label"} }}</span>
-  </button>
+  @if (labels$ | async; as labels) {
+    <button mat-menu-item disableRipple [matMenuTriggerFor]="labelMenu">
+      <mat-icon class="shrink-0" fontSet="material-icons-outlined">label</mat-icon>
+      <span>{{ 'Ngm.Property.Label' | translate: {Default: "Label"} }}</span>
+    </button>
+  }
 
   <button mat-menu-item (click)="$event.stopPropagation();$event.preventDefault();">
     <ngm-input class="w-full flex-row" style="flex-direction: row; align-items: center;"
@@ -201,17 +227,20 @@
     </button>
   }
 
-  <button mat-menu-item *ngIf="isDimension()" disableRipple (click)="$event.stopPropagation();">
-    <mat-checkbox [(ngModel)]="unbookedData">
-      {{ 'Ngm.Property.UnbookedData' | translate: {Default: "Unbooked Data"} }}
-    </mat-checkbox>
-  </button>
-
-  <button mat-menu-item *ngIf="isDimension() || showMeasureAttributes()" disableRipple (click)="$event.stopPropagation();">
-    <mat-checkbox [(ngModel)]="zeroSuppression">
-      {{ 'Ngm.Property.ZeroSuppression' | translate: {Default: "Zero Suppression"} }}
-    </mat-checkbox>
-  </button>
+  @if (isDimension()) {
+    <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
+      <mat-checkbox [(ngModel)]="unbookedData">
+        {{ 'Ngm.Property.UnbookedData' | translate: {Default: "Unbooked Data"} }}
+      </mat-checkbox>
+    </button>
+  }
+  @if (isDimension() || showMeasureAttributes()) {
+    <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
+      <mat-checkbox [(ngModel)]="zeroSuppression">
+        {{ 'Ngm.Property.ZeroSuppression' | translate: {Default: "Zero Suppression"} }}
+      </mat-checkbox>
+    </button>
+  }
 
   @if (showOrder()) {
     <button mat-menu-item disableRipple [matMenuTriggerFor]="orderMenu">
@@ -254,121 +283,134 @@
 </mat-radio-group>
 
 <mat-radio-group [(ngModel)]="level">
-  <mat-menu #hierarchyMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button mat-menu-item disableRipple [matMenuTriggerFor]="hierarchiesMenu">
-      <mat-icon class="shrink-0" fontSet="material-icons-outlined">account_tree</mat-icon>
-      <span>{{ 'Ngm.Property.HIERARCHY' | translate: {Default: "Hierarchy"} }}...</span>
-    </button>
-  
-    <mat-divider></mat-divider>
+  <ng-template #hierarchyMenu>
+    <div cdkMenu class="cdk-menu__large">
+      <button cdkMenuItem [cdkMenuTriggerFor]="hierarchiesMenu">
+        <mat-icon class="shrink-0 mr-1" fontSet="material-icons-outlined">account_tree</mat-icon>
+        <span>{{ 'Ngm.Property.HIERARCHY' | translate: {Default: "Hierarchy"} }}...</span>
+      </button>
+    
+      <hr class="my-1" />
 
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="null" class="ngm-radio-button__property">
-        {{ 'Ngm.Property.Default' | translate: {Default: "Default"} }}
-      </mat-radio-button>
+      <div cdkMenuGroup>
+        <button class="w-full" cdkMenuItemRadio
+          [cdkMenuItemChecked]="!level"
+          (cdkMenuItemTriggered)="level = null">
+          {{ 'Ngm.Property.Default' | translate: {Default: "Default"} }}
+        </button>
+        @for (property of levels$ | async; track property.name) {
+          <button class="w-full" cdkMenuItemRadio
+            [cdkMenuItemChecked]="level === property.name"
+            (cdkMenuItemTriggered)="level = property.name">
+            <ngm-entity-property class="w-full" hiddenIcon [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" />
+          </button>
+        }
+      </div>
+
+      <hr class="my-1" />
+    
+      <button cdkMenuItem disableRipple (click)="selectMembers($event)">
+        <mat-icon class="shrink-0 mr-1" fontSet="material-icons-outlined">people_outline</mat-icon>
+        <span [matBadgeHidden]="!members?.length" [matBadge]="members?.length" matBadgeColor="accent" matBadgeOverlap="false"
+          [class.line-through.decoration-pink-500]="exclude"
+        >
+          {{ 'Ngm.Property.MEMBERS' | translate: {Default: "Members"} }}
+        </span>
+      </button>
+
+      <button cdkMenuItem [cdkMenuTriggerFor]="memberMenu">
+        <mat-icon class="shrink-0 mr-1" fontSet="material-icons-outlined">alternate_email</mat-icon>
+        <span [matBadge]="parameter ? 1 : null" matBadgeColor="accent" matBadgeOverlap="false">
+          {{ 'Ngm.Property.PARAMETER' | translate: {Default: "Parameter"} }}
+        </span>
+      </button>
+      @if (showAttributes()) {
+        <button cdkMenuItem disableRipple [cdkMenuTriggerFor]="propertiesMenu">
+          <mat-icon class="shrink-0 mr-1" fontSet="material-icons-outlined">extension</mat-icon>
+          {{ 'Ngm.Property.PropertyList' | translate: {Default: "Property List"} }}
+          
+        </button>
+
+        <button cdkMenuItem disableRipple (click)="$event.stopPropagation();">
+          <mat-checkbox [(ngModel)]="displayHierarchy" style="width: 100%;">
+            {{ 'Ngm.Property.DisplayHierarchy' | translate: {Default: "Display as Hierarchy"} }}
+          </mat-checkbox>
+        </button>
+      }
+    </div>
+  </ng-template>
+</mat-radio-group>
+
+<ng-template #hierarchiesMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItemRadio
+      [cdkMenuItemChecked]="!hierarchy"
+      (cdkMenuItemTriggered)="hierarchy = null">
+      {{ 'Ngm.Property.Default' | translate: {Default: "Default"} }}
+    </div>
+    @for (property of hierarchies$ | async; track property.name) {
+      <div cdkMenuItemRadio 
+        [cdkMenuItemChecked]="hierarchy === property.name"
+        (cdkMenuItemTriggered)="hierarchy = property.name"
+      >
+        <ngm-entity-property class="w-full" hiddenIcon [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" />
+      </div>
+    }
+  </div>
+</ng-template>
+
+<mat-menu #membersMenu="matMenu" class="ngm-density__compact">
+  @for (property of membersSignal(); track property.name) {
+    <button mat-menu-item class="w-full" disableRipple
+      (click)="$event.stopPropagation();">
+      <mat-checkbox class="ngm-checkbox__property" [checked]="$any(property).selected" (change)="toggleMember(property.name, $event.checked)">
+        <ngm-entity-property class="w-full" hiddenIcon [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" />
+      </mat-checkbox>
     </button>
-    @for (property of levels$ | async; track property.name) {
-      <button mat-menu-item disableRipple
-        (click)="$event.stopPropagation();">
-        <mat-radio-button [value]="property.name" class="ngm-radio-button__property">
-          <ngm-entity-property class="w-full" hiddenIcon [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" />
-        </mat-radio-button>
+  }
+</mat-menu>
+
+<ng-template #propertiesMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <mat-selection-list [(ngModel)]="properties" displayDensity="compact">
+      @for (property of properties$ | async; track property.name) {
+        <mat-list-option [value]="property.name"
+          (click)="$event.stopPropagation();">
+          {{ property.caption }}
+        </mat-list-option>
+      }
+    </mat-selection-list>
+  </div>
+</ng-template>
+
+<ng-template #memberMenu >
+  <div cdkMenu class="cdk-menu__large">
+    <button class="w-full" cdkMenuItemRadio
+      [cdkMenuItemChecked]="!parameter"
+      (cdkMenuItemTriggered)="parameter = null">
+      {{ 'Ngm.Common.None' | translate: {Default: "None"} }}
+    </button>
+
+    @for (option of parameters$ | async; track option.name) {
+      <button class="w-full flex justify-between items-center"
+        cdkMenuItemRadio
+        [cdkMenuItemChecked]="parameter === option.name"
+        (cdkMenuItemTriggered)="parameter = option.name">
+        <span class="grow">{{ option.caption || option.name }}</span>
+        <button mat-icon-button displayDensity="cosy" (click)="openEditParameter(option.name)">
+          <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+        </button>
       </button>
     }
   
-    <mat-divider></mat-divider>
-  
-    <button mat-menu-item disableRipple (click)="selectMembers($event)">
-      <mat-icon class="shrink-0" fontSet="material-icons-outlined">people_outline</mat-icon>
-      <span [matBadgeHidden]="!members?.length" [matBadge]="members?.length" matBadgeColor="accent" matBadgeOverlap="false"
-        [class.line-through.decoration-pink-500]="exclude"
-      >
-        {{ 'Ngm.Property.MEMBERS' | translate: {Default: "Members"} }}
-      </span>
-    </button>
+    <hr class="my-1" />
 
-    <button mat-menu-item disableRipple [matMenuTriggerFor]="memberMenu">
-      <mat-icon class="shrink-0" fontSet="material-icons-outlined">alternate_email</mat-icon>
-      <span [matBadge]="parameter ? 1 : null" matBadgeColor="accent" matBadgeOverlap="false">
-        {{ 'Ngm.Property.PARAMETER' | translate: {Default: "Parameter"} }}
-      </span>
-    </button>
-
-    <button mat-menu-item *ngIf="showAttributes()" disableRipple [matMenuTriggerFor]="propertiesMenu">
-      <mat-icon class="shrink-0" fontSet="material-icons-outlined">extension</mat-icon>
-      {{ 'Ngm.Property.PropertyList' | translate: {Default: "Property List"} }}
-      
-    </button>
-
-    <button mat-menu-item *ngIf="showAttributes()" disableRipple (click)="$event.stopPropagation();">
-      <mat-checkbox [(ngModel)]="displayHierarchy" style="width: 100%;">
-        {{ 'Ngm.Property.DisplayHierarchy' | translate: {Default: "Display as Hierarchy"} }}
-      </mat-checkbox>
-    </button>
-  </mat-menu>
-</mat-radio-group>
-
-<mat-radio-group [(ngModel)]="hierarchy">
-  <mat-menu #hierarchiesMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-      <mat-radio-button class="ngm-radio-button__property" [value]="null">
-        {{ 'Ngm.Property.Default' | translate: {Default: "Default"} }}
-      </mat-radio-button>
-    </button>
-    <button mat-menu-item disableRipple *ngFor="let property of hierarchies$ | async; trackBy: trackByName"
-      (click)="$event.stopPropagation();">
-      <mat-radio-button class="ngm-radio-button__property" [value]="property.name">
-        <ngm-entity-property class="w-full" hiddenIcon [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto"></ngm-entity-property>
-      </mat-radio-button>
-    </button>
-  </mat-menu>
-</mat-radio-group>
-
-<mat-menu #membersMenu="matMenu" class="ngm-density__compact">
-  <button mat-menu-item class="w-full" disableRipple *ngFor="let property of membersSignal(); trackBy: trackByName"
-    (click)="$event.stopPropagation();">
-    <mat-checkbox class="ngm-checkbox__property" [checked]="$any(property).selected" (change)="toggleMember(property.name, $event.checked)">
-      <ngm-entity-property class="w-full" hiddenIcon [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto"></ngm-entity-property>
-    </mat-checkbox>
-  </button>
-</mat-menu>
-
-<mat-menu #propertiesMenu="matMenu" class="ngm-formly ngm-density__compact">
-  <mat-selection-list [(ngModel)]="properties" displayDensity="compact">
-    <mat-list-option *ngFor="let property of properties$ | async" [value]="property.name"
-      (click)="$event.stopPropagation();">
-      {{ property.caption }}
-    </mat-list-option>
-  </mat-selection-list>
-</mat-menu>
-
-<mat-radio-group [(ngModel)]="parameter">
-  <mat-menu #memberMenu="matMenu" class="ngm-property-select__parameter-menu ngm-density__compact">
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="null">
-        {{ 'Ngm.Common.None' | translate: {Default: "None"} }}
-      </mat-radio-button>
-    </button>
-
-    <button mat-menu-item disableRipple *ngFor="let option of parameters$ | async"
-      (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="option.name">
-        {{ option.caption || option.name }}
-      </mat-radio-button>
-
-      <button mat-icon-button displayDensity="cosy" (click)="openEditParameter(option.name)">
-        <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-      </button>
-    </button>
-  
-    <mat-divider></mat-divider>
-
-    <button mat-menu-item disableRipple ngmAppearance="dashed" (click)="$event.stopPropagation();openCreateParameter()">
+    <button cdkMenuItem ngmAppearance="dashed" (click)="$event.stopPropagation();openCreateParameter()">
       <mat-icon class="shrink-0" fontSet="material-icons-outlined">add</mat-icon>
       <span>{{ 'Ngm.Property.CreateParameter' | translate: {Default: "Create Parameter"} }}</span>
     </button>
-  </mat-menu>
-</mat-radio-group>
+  </div>
+</ng-template>
 
 <mat-radio-group [(ngModel)]="order">
   <mat-menu #orderMenu="matMenu" class="ngm-density__compact">

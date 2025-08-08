@@ -21,7 +21,7 @@ import { injectQueryCommand } from '../../copilot'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
-import { serializePropertyUniqueName, typeOfObj } from '../../utils'
+import { serializePropertyUniqueName } from '../../utils'
 import { ModelEntityService } from '../entity.service'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -29,6 +29,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
 import { getSemanticModelKey } from '@metad/story/core'
 import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
+import { typeOfObj } from '@cloud/app/@shared/model/types'
 
 @Component({
   standalone: true,

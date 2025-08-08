@@ -465,17 +465,17 @@ export class FeaturesComponent implements OnInit {
           },
         ]
       },
-      {
-        title: 'Chat BI',
-        matIcon: 'mms',
-        link: '/chatbi',
-        pathMatch: 'prefix',
-        data: {
-          translationKey: 'ChatBI',
-          featureKey: AnalyticsFeatures.FEATURE_COPILOT_CHATBI,
-          permissionKeys: [AnalyticsPermissionsEnum.CHATBI_VIEW]
-        }
-      },
+      // {
+      //   title: 'Chat BI',
+      //   matIcon: 'mms',
+      //   link: '/chatbi',
+      //   pathMatch: 'prefix',
+      //   data: {
+      //     translationKey: 'ChatBI',
+      //     featureKey: AnalyticsFeatures.FEATURE_COPILOT_CHATBI,
+      //     permissionKeys: [AnalyticsPermissionsEnum.CHATBI_VIEW]
+      //   }
+      // },
       // {
       //   title: 'Data Factory',
       //   matIcon: 'data_table',
@@ -609,8 +609,8 @@ export class FeaturesComponent implements OnInit {
             link: '/settings/chatbi',
             data: {
               translationKey: 'Chat BI',
-              permissionKeys: [AnalyticsPermissionsEnum.CHATBI_EDIT],
-              featureKey: AnalyticsFeatures.FEATURE_COPILOT_CHATBI
+              permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
+              featureKey: AiFeatureEnum.FEATURE_XPERT
             }
           },
           {
@@ -721,38 +721,6 @@ export class FeaturesComponent implements OnInit {
       }
     ]
   }
-
-  // async createQuery() {
-  //   const query = await firstValueFrom(this.dialog.open(QueryCreationDialogComponent).afterClosed())
-  //   if (query) {
-  //     this.router.navigate(['models', query.modelId, 'query', query.key])
-  //   }
-  // }
-
-  // async createStory() {
-  //   const story = await firstValueFrom(
-  //     this.dialog
-  //       .open(StoryCreationComponent, {
-  //         data: {}
-  //       })
-  //       .afterClosed()
-  //   )
-
-  //   if (story) {
-  //     this.router.navigate(['story', story.id, 'edit'])
-  //   }
-  // }
-
-  // async createModel() {
-  //   const model = await firstValueFrom(this.dialog.open(ModelCreationComponent, { data: {} }).afterClosed())
-  //   if (model) {
-  //     this.router.navigate(['models', model.id])
-  //   }
-  // }
-
-  // async createIndicator() {
-  //   this.router.navigate(['project', 'indicators', 'new'])
-  // }
 
   toEnableCopilot() {
     this.router.navigate(['settings', 'copilot'])

@@ -62,7 +62,7 @@ interface RxResourceOptions<TReq, TRes> {
  */
 export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>) {
   const valueSig = signal<TRes | null>(null)
-  const errorSig = signal<unknown | null>(null)
+  const errorSig = signal<string | null>(null)
   const statusSig = signal<ResourceStatus>('idle')
   const refreshTrigger = signal(0)
 

@@ -1,0 +1,110 @@
+<ngm-calculated-measure class="pac-cdk-drop__list flex-1 w-full h-full"
+  [opened]="false"
+  [syntax]="eSyntax.MDX"
+  [dataSettings]="dataSettings()"
+  [entityType]="entityType()"
+  [(ngModel)]="formula"
+>
+  <button type="button" icon class="w-7 h-7 cursor-pointer mx-1" cdkDrag cdkDragRootElement="pac-model-entity-calculation" cdkDragHandle>
+    <i class="ri-draggable"></i>
+  </button>
+</ngm-calculated-measure>
+
+<!-- Test formula -->
+@if (showTest()) {
+  <div class="absolute top-2 right-2 bottom-14 flex flex-col w-[500px] border border-solid border-divider-deep rounded-2xl shadow-lg z-10 bg-components-panel-bg">
+    <div class="shrink-0 p-2 flex justify-between items-center">
+      <span class="text-lg">{{ 'PAC.MODEL.ENTITY.TestFormula' | translate: {Default: "Test formula"} }}</span>
+    </div>
+    <div id="formula-test-rows" class="pac-cdk-drop__list flex flex-col px-4 py-2" 
+      [ngClass]="{'ngm-property-modeling__empty': !testDimensions()?.length}"
+      cdkDropList
+      [cdkDropListData]="testDimensions()"
+      (cdkDropListDropped)="dropTestDimensions($event)"
+    >
+      @for (property of testDimensions(); track i; let i = $index) {
+        <ngm-property-select displayDensity="compact"
+          [dataSettings]="dataSettings()"
+          [entityType]="entityType()"
+          [capacities]="propertyCapacities"
+          showAttributes
+          [ngModel]="property"
+          (ngModelChange)="onTestRowChange($event, i)"
+          cdkDrag
+        >
+          <button type="button" ngmPrefix class="w-7 h-7 cursor-pointer">
+            <i class="ri-draggable text-lg"></i>
+          </button>
+          <button type="button" ngmSuffix class="btn danger w-7 h-7 cursor-pointer ml-1" (click)="$event.stopPropagation();$event.preventDefault();removeTestRow(i)">
+            <i class="ri-delete-bin-line text-base"></i>
+          </button>
+
+          <div class="property-modeling-custom-placeholder" *cdkDragPlaceholder></div>
+        </ngm-property-select>
+      } @empty {
+        <div class="grow flex justify-center items-center text-sm text-text-secondary">
+          {{ 'PAC.MODEL.ENTITY.DragDimensionHere' | translate: {Default: "Drag dimension here"} }}
+        </div>
+      }
+    </div>
+    <div class="flex justify-end p-2">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+        (click)="addTestDimension()">
+        {{ 'PAC.MODEL.ENTITY.AddDimension' | translate: { Default: 'Add dimension' } }}
+      </button>
+    </div>
+    <div class="relative grow flex justify-center items-center overflow-hidden">
+      @if (testResult(); as testResult) {
+        @if (testResult.error) {
+          <div class="pac-result h-full w-full absolute top-0 left-0">
+            <div class="bug font-notoColorEmoji">🐞</div>
+            <div class="description">
+              {{testResult.error}}
+            </div>
+          </div>
+        } @else if (testResult.data) {
+          <ngm-table class="striped flex-1 h-full max-w-full overflow-hidden"
+            [columns]="testResult.columns"
+            [data]="testResult.data"
+            [paging]="true"
+          />
+        } @else if(testResult.loading) {
+          <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+        }
+      }
+    </div>
+  </div>
+}
+
+<div class="flex justify-between items-center p-2 border-t border-solid border-divider-regular">
+  <div class="flex items-center gap-2">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large"
+      (click)="cancel()">
+      @if (isDirty()) {
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      } @else {
+        {{ 'PAC.ACTIONS.Close' | translate: { Default: 'Close' } }}
+      }
+    </button>
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+      [disabled]="!isDirty()"
+      (click)="apply()">
+      <i class="ri-save-line mr-1"></i>
+      <span class="system-sm-medium">
+        {{'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
+      </span>
+    </button>
+  </div>
+
+  <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+    (click)="toggleTest()">
+    @if (showTest()) {
+      <i @rotateTrigger class="ri-close-line mr-1"></i>
+    } @else {
+      <i @rotateTrigger class="ri-formula mr-1"></i>
+    }
+    <span class="system-sm-medium">
+      {{'PAC.ACTIONS.Test' | translate: {Default: 'Test'} }}
+    </span>
+  </button>
+</div>

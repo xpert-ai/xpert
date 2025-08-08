@@ -5,6 +5,8 @@ export const ZhHans = {
       Back: '返回',
       Cancel: '取消',
       Close: '关闭',
+      Copy: '复制',
+      Copied: '已复制',
       Download: '下载',
       Search: '搜索',
       Select: '选择',

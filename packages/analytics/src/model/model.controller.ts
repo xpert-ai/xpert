@@ -46,7 +46,7 @@ import {
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
-import { CommandBus, EventBus } from '@nestjs/cqrs'
+import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import { Between, FindOneOptions } from 'typeorm'
@@ -55,7 +55,6 @@ import { SemanticModelCacheDeleteCommand, SemanticModelCreateCommand, SemanticMo
 import { CreateSemanticModelDTO, SemanticModelDTO, SemanticModelPublicDTO, UpdateSemanticModelDTO } from './dto/index'
 import { SemanticModel } from './model.entity'
 import { SemanticModelService } from './model.service'
-import { SemanticModelUpdatedEvent } from './events'
 import { SemanticModelQueryLog } from '../core/entities/internal'
 
 
@@ -67,7 +66,6 @@ export class ModelController extends CrudController<SemanticModel> {
 	constructor(
 		private readonly modelService: SemanticModelService,
 		private readonly commandBus: CommandBus,
-		private readonly eventBus: EventBus
 	) {
 		super(modelService)
 	}
@@ -139,9 +137,10 @@ export class ModelController extends CrudController<SemanticModel> {
 	@Get(':id')
 	async getById(
 		@Param('id', UUIDValidationPipe) id: string,
-		@Query('$query', ParseJsonPipe) options: FindOneOptions<SemanticModel>
+		@Query('$query', ParseJsonPipe) options: FindOneOptions<SemanticModel>,
+		@Query('data', ParseJsonPipe) params: PaginationParams<SemanticModel>
 	): Promise<ISemanticModel> {
-		return this.modelService.findOne(id, options).then((model) => {
+		return this.modelService.findOne(id, params ?? options).then((model) => {
 			this.commandBus.execute(
 				new VisitCreateCommand({
 					type: VisitTypeEnum.View,

@@ -1,0 +1,70 @@
+<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
+  <div class="w-full flex justify-start items-center mb-2 p-2 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <span class="text-xl font-semibold pointer-events-none">
+      {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+      {{ 'PAC.KEY_WORDS.Project' | translate: { Default: 'Project' } }}
+    </span>
+  </div>
+
+  <div class="flex-1">
+    <form class="flex flex-col justify-start items-stretch" [formGroup]="form">
+      <mat-form-field appearance="fill" floatLabel="always" color="accent">
+        <mat-label>{{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}</mat-label>
+        <input matInput formControlName="name" required
+          placeholder="{{ 'PAC.Project.WhatIsTheName' | translate: { Default: 'What is the name of your project' } }}?"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" floatLabel="always" color="accent">
+        <mat-label>
+          {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
+        </mat-label>
+        <textarea matInput formControlName="description"
+          placeholder="{{ 'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the project' } }}"
+        ></textarea>
+      </mat-form-field>
+
+      <button></button>
+    </form>
+  </div>
+
+  <div class="w-full flex justify-end">
+    <div ngmButtonGroup>
+      <button mat-button [disabled]="creating()" (click)="close()">
+        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+
+      <button
+        mat-raised-button
+        color="accent"
+        [disabled]="form.invalid || creating()"
+        (click)="apply()"
+      >
+        {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="w-[400px] flex flex-col">
+  <div class="px-4 pt-4 pb-2 flex justify-between items-center">
+    <span class="text-lg">{{ 'PAC.Project.AddSemanticModels' | translate: { Default: 'Add Semantic Models' } }}</span>
+    <pac-inline-search class="ml-2" displayDensity="compact"
+      [formControl]="searchControl" (click)="$event.stopPropagation()" />
+  </div>
+  <div class="flex-1 overflow-auto">
+    <mat-selection-list displayDensity="cosy" [formControl]="models"
+      [compareWith]="compareWith">
+      @for (model of models$ | async; track model.id;) {
+        <mat-list-option class="rounded-md overflow-hidden"
+          [value]="model">
+          <span matListItemTitle class="truncate" [ngmHighlight]="highlight" [content]="model.name">{{ model.name }}</span>
+          @if (model.description) {
+            <span matListItemLine class="line-clamp-2 text-sm text-text-secondary" [ngmHighlight]="highlight" [content]="model.description">{{ model.description }}</span>
+          }
+        </mat-list-option>
+      }
+    </mat-selection-list>
+  </div>
+</div>

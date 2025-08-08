@@ -1,0 +1,16 @@
+@use '../../../@theme/flow-common';
+
+:host {
+  @apply relative block w-full h-full;
+}
+
+:host::ng-deep {
+  @include flow-common.connection;
+  @include flow-common.background;
+  @include flow-common.line-alignment;
+  @include flow-common.minimap;
+
+  .f-component.f-node-output {
+    @apply w-1 h-1 flex justify-center items-center cursor-crosshair opacity-0 hover:opacity-100;
+  }
+}

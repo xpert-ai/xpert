@@ -43,7 +43,7 @@ export function convertConnectionResult(result: IDataSource): StoryConnection {
   return connection
 }
 
-export function convertStoryModel(model: Partial<StoryModel>): ISemanticModel {
+export function convertStoryModel(model: Partial<StoryModel | ISemanticModel | any>): ISemanticModel {
   const updateModel: ISemanticModel = {
     name: model.name,
     key: model.key,

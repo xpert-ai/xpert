@@ -1,5 +1,5 @@
-import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { IXpert, IXpertAgentExecution, TChatOptions, TChatRequestHuman, TSensitiveOperation} from '@metad/contracts'
+import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
+import { IXpert, IXpertAgentExecution, TChatOptions, TChatRequestHuman, TInterruptCommand} from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
@@ -27,8 +27,12 @@ export class XpertAgentInvokeCommand implements ICommand {
 			execution: IXpertAgentExecution
 			// The subscriber response to client
 			subscriber: Subscriber<MessageEvent>
+			/**
+			 * Long-term memory store
+			 */
+			store: BaseStore
 			
-			operation?: TSensitiveOperation
+			command?: TInterruptCommand
 			reject?: boolean
 
 			/**

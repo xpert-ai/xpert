@@ -1,0 +1,25 @@
+identity:
+  name: list_cubes
+  author: Xpert AI
+  label:
+    en_US: List cubes
+    zh_Hans: 列出立方体
+description:
+  human:
+    en_US: List cubes in semantic model
+    zh_Hans: 在语义模型中列出立方体
+  llm: A tool to list cubes in semantic model.
+parameters:
+  - name: modelId
+    type: string
+    required: true
+    label:
+      en_US: Semantic Model ID
+      zh_Hans: 语义模型 ID
+    human_description:
+      en_US: The id of semantic model to query
+      zh_Hans: 要查询的语义模型的 ID
+    llm_description: Semantic Model ID
+    form: llm
+    schema:
+      type: string

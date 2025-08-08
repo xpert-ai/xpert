@@ -1,0 +1,1 @@
+export const JOB_EMBEDDING_DOCUMENT = 'embedding-document'

@@ -3,8 +3,8 @@ import { C_MEASURES, CalculatedMember, compact, flatten, getEntityDimensions } f
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { combineLatestWith, firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
+import { HiddenLLM } from '@cloud/app/@shared/model'
 import { CubeSchemaService } from './cube.schema'
-import { HiddenLLM } from './common'
 
 @Injectable()
 export class CalculatedMemberAttributesSchema extends CubeSchemaService<CalculatedMember> {

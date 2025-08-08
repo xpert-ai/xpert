@@ -12,6 +12,7 @@ export {
   convertStoryWidgetResult
 } from '@metad/cloud/state'
 
+export const suuid = new ShortUniqueId({ length: 10 })
 export const uid10 = new ShortUniqueId({ length: 10 })
 export const uuid = new ShortUniqueId({ length: 10 })
 export function letterStartSUID(start: string) {

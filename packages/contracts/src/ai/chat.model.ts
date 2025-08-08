@@ -1,4 +1,3 @@
-import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IXpertAgentExecution } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
@@ -8,6 +7,7 @@ import { IXpertAgent } from './xpert-agent.model'
 import { IXpertProject } from './xpert-project.model'
 import { IStorageFile } from '../storage-file.model'
 import { IXpertTask } from './xpert-task.model'
+import { TInterruptMessage, TToolCall } from '../agent'
 
 
 export type TChatConversationOptions = {
@@ -23,18 +23,20 @@ export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"
 export type TToolCallType = 'agent' | 'tool'
 export type TChatFrom = 'platform' | 'webapp' | 'debugger' | 'job' | 'api' | 'feishu' | 'lark' | 'dingtalk' | 'wecom'
 
+/**
+ * Operation for interrupt
+ */
 export type TSensitiveOperation = {
   messageId?: string
-  agent: {
-    id: string
-    key: string
-    name: string
-    title?: string
-    description: string
-  },
-  toolCalls: {
-    call: ToolCall
-    type?: TToolCallType
+  tasks?: {
+    name: string;
+    interrupts: {
+      value: TInterruptMessage;
+      when: "during";
+      resumable?: boolean;
+      ns?: string[];
+    }[];
+    type?: TToolCallType;
     info?: {
       name: string
       title?: string
@@ -46,9 +48,10 @@ export type TSensitiveOperation = {
       type: string;
       description: I18nObject | string
       placeholder?: I18nObject | string
-    }[]
+    }[],
+    call?: TToolCall
+    agent?: IXpertAgent
   }[]
-  nextAgents?: Partial<IXpertAgent>[]
 }
 
 /**

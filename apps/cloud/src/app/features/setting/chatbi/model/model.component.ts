@@ -9,6 +9,7 @@ import { SemanticModelServerService } from '@metad/cloud/state'
 import { IsDirty } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
+import { HttpErrorResponse } from '@angular/common/http'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -16,7 +17,6 @@ import { injectParams } from 'ngxtension/inject-params'
 import { catchError, EMPTY, map, of, pipe, startWith, switchMap } from 'rxjs'
 import { ChatBIModelService, getErrorMessage, injectToastr, OrderTypeEnum, routeAnimations } from '../../../../@core'
 import { ChatBIModelsComponent } from '../models/models.component'
-import { HttpErrorResponse } from '@angular/common/http'
 
 @Component({
   standalone: true,

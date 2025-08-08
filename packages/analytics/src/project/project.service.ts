@@ -9,8 +9,7 @@ import { Project } from './project.entity'
 @Injectable()
 export class ProjectService extends TenantOrganizationAwareCrudService<Project> {
 	constructor(
-		@InjectRepository(Project)
-		repository: Repository<Project>,
+		@InjectRepository(Project) repository: Repository<Project>,
 		readonly commandBus: CommandBus
 	) {
 		super(repository)
@@ -32,7 +31,7 @@ export class ProjectService extends TenantOrganizationAwareCrudService<Project> 
 
 	async updateMembers(id: string, members: string[]) {
 		const project = await this.findOne(id)
-		project.members = members.map((id) => ({ id } as IUser))
+		project.members = members.map((id) => ({ id }) as IUser)
 		await this.repository.save(project)
 
 		return await this.findOne(id, { relations: ['members'] })
@@ -46,7 +45,7 @@ export class ProjectService extends TenantOrganizationAwareCrudService<Project> 
 
 	async updateCertifications(id: string, certifications: string[]) {
 		const project = await this.findOne(id)
-		project.certifications = certifications.map((id) => ({ id } as IUser))
+		project.certifications = certifications.map((id) => ({ id }) as IUser)
 		await this.repository.save(project)
 
 		return await this.findOne(id, { relations: ['certifications'] })
@@ -60,7 +59,7 @@ export class ProjectService extends TenantOrganizationAwareCrudService<Project> 
 
 	async updateFiles(id: string, files: string[]) {
 		const project = await this.findOne(id)
-		project.files = files.map((id) => ({ id } as IStorageFile))
+		project.files = files.map((id) => ({ id }) as IStorageFile)
 		await this.repository.save(project)
 
 		return await this.findOne(id, { relations: ['files'] })

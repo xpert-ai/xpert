@@ -1,15 +1,18 @@
-import { ToolCall } from '@langchain/core/dist/messages/tool'
-import { BaseMessage, getBufferString } from '@langchain/core/messages'
-import { Annotation, messagesStateReducer } from '@langchain/langgraph'
-import { SearchItem } from '@langchain/langgraph-checkpoint'
+import { BaseMessage, isAIMessage, isAIMessageChunk, isBaseMessageChunk, ToolMessage, getBufferString } from '@langchain/core/messages'
+import { Annotation, CompiledStateGraph, messagesStateReducer } from '@langchain/langgraph'
+import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
 import {
+	channelName,
 	IEnvironment,
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	STATE_VARIABLE_TITLE_CHANNEL,
 	TChatRequestHuman,
+	TInterruptCommand,
 	TMessageChannel,
 	TStateVariable,
+	TToolCall,
+	TXpertAgentConfig,
 	VariableOperationEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
@@ -54,7 +57,10 @@ export const AgentStateAnnotation = Annotation.Root({
 		},
 		default: () => ({} as TChatRequestHuman)
 	}),
-	toolCall: Annotation<ToolCall>({
+	/**
+	 * @deprecated Is it still in use?
+	 */
+	toolCall: Annotation<TToolCall>({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),
@@ -75,7 +81,7 @@ export const AgentStateAnnotation = Annotation.Root({
 					}
 				: a
 		},
-		default: () => ({ messages: [] })
+		default: () => ({ system: '', messages: [] })
 	}),
 	/**
 	 * Summarizing past conversations if it's too long
@@ -213,5 +219,79 @@ export function stateVariable(variable: TStateVariable) {
 				return right
 			}
 		}
+	}
+}
+
+export type TAgentSubgraphParams = {
+	/**
+	 * Collect mute nodes tag
+	 */
+	mute: TXpertAgentConfig['mute']
+	/**
+	 * Long-term memory store
+	 */
+	store: BaseStore
+}
+
+export function findChannelByTool(values: typeof AgentStateAnnotation.State, toolName: string): [string, TMessageChannel] {
+	const name = Object.keys(values).find((key) => {
+		if (key.startsWith('agent_')) {
+			const channel = values[key] as TMessageChannel
+			if (channel.messages?.find((message) => isBaseMessageChunk(message) && isAIMessageChunk(message) && message.tool_calls?.find((_) => _.name === toolName))) {
+				return true
+			}
+		}
+	})
+
+	return name ? [name, values[name] as TMessageChannel] : [null, null]
+}
+
+export async function rejectGraph(graph: CompiledStateGraph<any, any, any>, config: any, command: TInterruptCommand) {
+	const state = await graph.getState({ configurable: config })
+	const channel = channelName(command.agentKey)
+	const messages = state.values[channel].messages
+	if (messages) {
+		const lastMessage = messages[messages.length - 1]
+		if (isAIMessage(lastMessage)) {
+			await graph.updateState(
+				{ configurable: config },
+				{
+					[channel]: {
+						messages: lastMessage.tool_calls.map((call) => {
+							return new ToolMessage({
+								name: call.name,
+								content: `Error: Reject by user`,
+								tool_call_id: call.id
+							})
+						})
+					}
+				},
+				command.agentKey
+			)
+		}
+	}
+}
+
+export async function updateToolCalls(graph: CompiledStateGraph<any, any, any>, config: any, command: TInterruptCommand) {
+	// Update parameters of the last tool call message
+	const state = await graph.getState({ configurable: config })
+	const channel = channelName(command.agentKey)
+	const messages = state.values[channel].messages
+	const lastMessage = messages[messages.length - 1]
+	if (lastMessage.id) {
+		const newMessage = {
+			role: 'assistant',
+			content: lastMessage.content,
+			tool_calls: lastMessage.tool_calls.map((toolCall) => {
+				const newToolCall = command.toolCalls.find((call) => call.id === toolCall.id)
+				return { ...toolCall, args: { ...toolCall.args, ...(newToolCall?.args ?? {}) } }
+			}),
+			id: lastMessage.id
+		}
+		await graph.updateState(
+			{ configurable: config },
+			{ [channel]: { messages: [newMessage] } },
+			command.agentKey
+		)
 	}
 }

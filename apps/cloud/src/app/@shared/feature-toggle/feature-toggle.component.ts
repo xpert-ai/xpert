@@ -1,30 +1,41 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialog } from '@angular/material/dialog'
-import { ActivatedRoute } from '@angular/router'
+import { MatExpansionModule } from '@angular/material/expansion'
+import { MatListModule } from '@angular/material/list'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { IFeature, IFeatureOrganization } from '@metad/contracts'
 import { NgmCountdownConfirmationComponent } from '@metad/ocap-angular/common'
+import { TranslateModule } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectRouteData } from 'ngxtension/inject-route-data'
 import { of, pipe } from 'rxjs'
 import { map, switchMap, tap } from 'rxjs/operators'
 import { environment } from '../../../environments/environment'
 import { FeatureService, FeatureStoreService, Store } from '../../@core/services'
-import { TranslationBaseComponent } from '../language/translation-base.component'
-import { CommonModule } from '@angular/common'
-import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from '../material.module'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MaterialModule],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    CdkMenuModule,
+    MatExpansionModule,
+    MatSlideToggleModule,
+    MatListModule,
+    MatCheckboxModule,
+    MatProgressSpinnerModule
+  ],
   providers: [FeatureStoreService],
   selector: 'pac-feature-toggle',
   templateUrl: './feature-toggle.component.html',
   styleUrls: ['./feature-toggle.component.scss']
 })
-export class FeatureToggleComponent extends TranslationBaseComponent {
-  private readonly _activatedRoute = inject(ActivatedRoute)
+export class FeatureToggleComponent {
   private readonly _featureService = inject(FeatureService)
   private readonly _featureStoreService = inject(FeatureStoreService)
   private readonly _storeService = inject(Store)
@@ -36,21 +47,10 @@ export class FeatureToggleComponent extends TranslationBaseComponent {
   // loading = false
   readonly loading = signal(false)
   readonly featureToggles = signal([])
-  // featureTogglesDefinitions: IFeatureToggle[] = []
 
-  // public readonly isOrganization$ = this._activatedRoute.data.pipe(
-  //   startWith(this._activatedRoute.snapshot.data),
-  //   map((data) => data?.isOrganization),
-  //   distinctUntilChanged(),
-  //   takeUntilDestroyed(),
-  //   shareReplay(1)
-  // )
   readonly organization = toSignal(this._storeService.selectedOrganization$)
 
-  readonly features$ = this._featureService.getParentFeatures(['children']).pipe(
-    map(({ items }) => items),
-  )
-  // readonly features$ = this._featureService.getFeatureToggleDefinition()
+  readonly features$ = this._featureService.getParentFeatures(['children']).pipe(map(({ items }) => items))
 
   readonly featureTenant = toSignal(this._storeService.featureTenant$)
 
@@ -70,8 +70,6 @@ export class FeatureToggleComponent extends TranslationBaseComponent {
   )
 
   constructor() {
-    super()
-
     this.loading.set(true)
     effect(
       () => {
@@ -102,30 +100,11 @@ export class FeatureToggleComponent extends TranslationBaseComponent {
     )
   }
 
-  // ngOnInit(): void {
-
-  //   combineLatest([this.featureTenant$, this.featureOrganizations$])
-  //     .pipe(
-  //       withLatestFrom(combineLatest([this.isOrganization$, this.organization$])),
-  //       takeUntilDestroyed(this.destroyRef)
-  //     )
-  //     .subscribe(([[featureTenant, featureOrganizations], [isOrganization, organization]]) => {
-
-  //     })
-
-  //   this._storeService.featureToggles$
-  //     .pipe(
-  //       tap((toggles) => (this.featureTogglesDefinitions = toggles)),
-  //       takeUntilDestroyed(this.destroyRef)
-  //     )
-  //     .subscribe()
-  // }
-
   getFeatures() {
     this._featureStoreService.loadFeatures(['children']).pipe(takeUntilDestroyed(this.destroyRef)).subscribe()
   }
 
-  async featureChanged(isEnabled: boolean, feature: IFeature) {
+  featureChanged(isEnabled: boolean, feature: IFeature) {
     this._matDialog
       .open(NgmCountdownConfirmationComponent, {
         data: {

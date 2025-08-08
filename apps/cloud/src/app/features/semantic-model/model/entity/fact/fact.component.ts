@@ -37,7 +37,7 @@ import { ToastrService, uuid } from 'apps/cloud/src/app/@core'
 import { isEmpty, values } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { Observable, combineLatest, firstValueFrom } from 'rxjs'
+import { Observable, firstValueFrom } from 'rxjs'
 import { filter, map, shareReplay, switchMap, tap, withLatestFrom } from 'rxjs/operators'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
@@ -69,6 +69,7 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
 export class ModelCubeFactComponent {
   @HostBinding('class.pac-model-cube-structure') _isModelCubeStructure = true
   SplitterType = SplitterType
+  eCdkDragDropContainers = CdkDragDropContainers
 
   public modelService = inject(SemanticModelService)
   public entityService = inject(ModelEntityService)
@@ -201,13 +202,13 @@ export class ModelCubeFactComponent {
   }
 
   dropEnterPredicate(item: CdkDrag<any>) {
-    return item.dropContainer.id === 'list-table-measures' || item.dropContainer.id === 'list-table-dimensions'
+    return item.dropContainer.id === CdkDragDropContainers.FactTableMeasures || item.dropContainer.id === CdkDragDropContainers.FactTableDimensions
   }
 
   async dropProperty(event: CdkDragDrop<Property[]>) {
     if (
-      (event.previousContainer.id === 'list-table-dimensions' && event.container.id === 'list-table-measures') ||
-      (event.previousContainer.id === 'list-table-measures' && event.container.id === 'list-table-dimensions')
+      (event.previousContainer.id === CdkDragDropContainers.FactTableDimensions && event.container.id === CdkDragDropContainers.FactTableMeasures) ||
+      (event.previousContainer.id === CdkDragDropContainers.FactTableMeasures && event.container.id === CdkDragDropContainers.FactTableDimensions)
     ) {
       transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex)
     } else if (event.previousContainer === event.container) {

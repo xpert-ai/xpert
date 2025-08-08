@@ -1,7 +1,9 @@
 import { BaseMessage } from '@langchain/core/messages'
+import { RunnableConfig } from '@langchain/core/runnables'
 import { Subscriber } from 'rxjs'
-import { TMessageContentComplex } from '../ai/chat-message.model'
 import { agentLabel, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai'
+import { TMessageContentComplex } from '../ai/chat-message.model'
+import { I18nObject } from '../types'
 
 export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
 export const STATE_VARIABLE_SYS = 'sys'
@@ -13,6 +15,7 @@ export const STATE_VARIABLE_INPUT = 'input'
 export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
 export type TMessageChannel = {
+  system: string
   messages: BaseMessage[]
   summary?: string
   error?: string | null
@@ -36,6 +39,7 @@ export type TAgentRunnableConfigurable = {
    * Xpert project id
    */
   projectId?: string
+  xpertId?: string
   // Caller
   agentKey: string
   xpertName?: string
@@ -51,12 +55,61 @@ export type TAgentRunnableConfigurable = {
 }
 
 export type TToolCall = {
-	args: Record<string, any>
-	id: string
+	id?: string
 	name: string
-	type: 'tool_call'
+	type?: 'tool_call'
+	args: Record<string, any>
 }
 
+/**
+ * 
+ * Example:
+ * 
+ * ```typescript
+ *  const result = interrupt<TInterruptMessage<{ name: string }>, { projectId: string }>({
+ *		category: 'BI',
+ *		type: 'switch_project',
+ *		title: {
+ *			en_US: 'Switch project',
+ *			zh_Hans: '切换项目'
+ *		},
+ *		message: {
+ *			en_US: 'Please select a project or create a new one',
+ *			zh_Hans: '请选择或创建一个新的项目'
+ *		},
+ *		data: { name: '' }
+ *	})
+ * ```
+ */
+export type TInterruptMessage<T = unknown> = {
+	/**
+	 * Major categories of interrupt components
+	 */
+	category: 'BI'
+	/**
+	 * The specific type of interactive component
+	 */
+	type: string
+	/**
+	 * Title of the interrupt component
+	 */
+	title: string | I18nObject
+	/**
+	 * Message content of the interrupt component
+	 */
+	message: string | I18nObject
+	/**
+	 * Additional data
+	 */
+	data?: T
+}
+
+export type TInterruptCommand = {
+  resume?: any
+  update?: any
+  toolCalls?: TToolCall[]
+  agentKey?: string
+}
 
 // Helpers
 export function channelName(name: string) {
@@ -77,6 +130,27 @@ export function getWorkspaceFromRunnable(configurable: TAgentRunnableConfigurabl
 
 export function getToolCallFromConfig(config): TToolCall {
 	return config?.toolCall	|| config?.configurable?.toolCall
+}
+
+export function getToolCallIdFromConfig(config): string {
+	return config.metadata?.tool_call_id || config?.configurable?.tool_call_id || getToolCallFromConfig(config)?.id 
+}
+
+/**
+ * Compute long-term memory namespace:
+ * 1. When a user talks to a digital expert individually, use `ExpertId` + `UserId` to store memory
+ * 2. When talking to a digital expert in a project, all users and digital experts share `ProjectId` to store memory
+ * 
+ * @param config 
+ * @returns 
+ */
+export function getStoreNamespace(config: RunnableConfig): string[] {
+	const configurable = config.configurable as TAgentRunnableConfigurable
+	return configurableStoreNamespace(configurable)
+}
+
+export function configurableStoreNamespace(configurable: Partial<TAgentRunnableConfigurable>): string[] {
+	return configurable?.projectId ? [configurable?.projectId] : configurable?.userId ? [configurable.xpertId, configurable.userId] : []
 }
 
 /**

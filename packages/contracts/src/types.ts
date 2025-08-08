@@ -111,6 +111,16 @@ export type TParameterSchema = {
   parameters?: TParameter[]
 }
 
+export interface IPoint {
+  x: number
+  y: number
+}
+
+export interface ISize {
+  width: number
+  height: number
+}
+
 /**
  * A recursive implementation of the Partial<T> type.
  * Source: https://stackoverflow.com/a/49936686/772859

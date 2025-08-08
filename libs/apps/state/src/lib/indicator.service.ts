@@ -1,9 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IIndicator } from '@metad/contracts'
+import { IIndicator, PaginationParams, TIndicatorDraft } from '@metad/contracts'
 import { map } from 'rxjs/operators'
 import { C_URI_API_INDICATORS } from './constants'
 import { Indicator, convertIndicator, convertIndicatorResult } from './types'
+import { toHttpParams } from './crud.service'
 
 
 @Injectable({
@@ -12,10 +13,15 @@ import { Indicator, convertIndicator, convertIndicatorResult } from './types'
 export class IndicatorsService {
   constructor(private httpClient: HttpClient) {}
 
-  getAll(relations = []) {
+  getAll(params: PaginationParams<IIndicator>) {
+    return this.httpClient
+      .get<{ items: IIndicator[]; total: number }>(C_URI_API_INDICATORS, { params: toHttpParams(params) })
+  }
+
+  getAllView(relations = []) {
     const params = new HttpParams().append('$query', JSON.stringify({ relations }))
     return this.httpClient
-      .get<{ items: IIndicator[]; total: number }>(C_URI_API_INDICATORS, { params })
+      .get<{ items: IIndicator[]; total: number }>(C_URI_API_INDICATORS + `/view`, { params })
       .pipe(map(({ items }) => items))
   }
 
@@ -27,10 +33,8 @@ export class IndicatorsService {
       .pipe(map(({ items }) => items))
   }
 
-  getByProject(projectId: string, options: {relations, where}) {
-    const query = JSON.stringify(options)
-    const params = new HttpParams().append('$query', query)
-    return this.httpClient.get<{ items: IIndicator[] }>(C_URI_API_INDICATORS + `/project/${projectId}`, { params })
+  getByProject(projectId: string, params: PaginationParams<IIndicator> ) {
+    return this.httpClient.get<{ items: IIndicator[]; total: number }>(C_URI_API_INDICATORS + `/project/${projectId}`, { params: toHttpParams(params) })
   }
 
   getApp(relations = []) {
@@ -62,5 +66,25 @@ export class IndicatorsService {
   createBulk(input: Array<Partial<Indicator>>) {
     return this.httpClient.post<Indicator[]>(C_URI_API_INDICATORS + '/bulk', input.map(convertIndicator))
       .pipe(map((items) => items.map(convertIndicatorResult)))
+  }
+
+  saveDraft(id: string, draft: Partial<Indicator>) {
+    return this.httpClient.post<IIndicator>(C_URI_API_INDICATORS + `/${id}/draft`, convertIndicator(draft))
+  }
+
+  updateDraft(id: string, draft: TIndicatorDraft) {
+    return this.httpClient.put<IIndicator>(C_URI_API_INDICATORS + `/${id}/draft`, draft)
+  }
+
+  publish(id: string) {
+    return this.httpClient.post<void>(C_URI_API_INDICATORS + `/${id}/publish`, {})
+  }
+
+  embedding(id: string) {
+    return this.httpClient.post<IIndicator>(C_URI_API_INDICATORS + `/${id}/embedding`, {})
+  }
+
+  startEmbedding(projectId: string) {
+    return this.httpClient.post<void>(C_URI_API_INDICATORS + `/project/${projectId}/embedding`, {})
   }
 }

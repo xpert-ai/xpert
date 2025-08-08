@@ -22,7 +22,7 @@ import { CopilotChatMessageRoleEnum, CopilotEngine } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
 import { NgmCommonModule, NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, ResizerModule, SplitterModule } from '@metad/ocap-angular/common'
 import { CommandDialogComponent, NgmCopilotChatComponent, provideCopilotDropAction } from '@metad/copilot-angular'
-import { DBTable, PropertyAttributes, TableEntity, pick } from '@metad/ocap-core'
+import { DBTable, PropertyAttributes, TableEntity, VirtualCube, pick } from '@metad/ocap-core'
 import { NX_STORY_STORE, NxStoryStore, StoryModel } from '@metad/story/core'
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { lowerCase, snakeCase, sortBy, uniqBy } from 'lodash-es'
@@ -73,7 +73,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe, OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
+import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
 import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
 import { MatSidenavModule } from '@angular/material/sidenav'
@@ -82,6 +82,7 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { ModelChecklistComponent } from '@cloud/app/@shared/model'
 
 @Component({
   standalone: true,
@@ -107,7 +108,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
     OcapCoreModule,
     NgmCommonModule,
     DateRelativePipe,
-    NgmI18nPipe
+
+    ModelChecklistComponent
   ],
   selector: 'ngm-semanctic-model',
   templateUrl: './model.component.html',
@@ -255,6 +257,7 @@ export class ModelComponent extends TranslationBaseComponent {
   readonly tables = toSignal(this.selectDBTables$)
 
   readonly unsaved = this.modelService.unsaved
+  readonly saveDraftError = this.modelService.saveDraftError
   readonly draftSavedDate = this.modelService.draftSavedDate
   readonly latestPublishDate = this.modelService.latestPublishDate
   readonly publishing = signal(false)
@@ -337,6 +340,7 @@ export class ModelComponent extends TranslationBaseComponent {
 
   #modelerCommand = injectModelerCommand()
 
+
   ngOnInit() {
     this.model = this.route.snapshot.data['storyModel']
     this.appService.setNavigation({ catalog: MenuCatalog.Models, id: this.model.id, label: this.model.name })
@@ -377,7 +381,7 @@ export class ModelComponent extends TranslationBaseComponent {
     }
   }
 
-  dropVirtualCube(event: CdkDragDrop<Array<SemanticModelEntity>>) {
+  dropVirtualCube(event: CdkDragDrop<Array<VirtualCube>>) {
     if (
       event.previousContainer.id === CdkDragDropContainers.Tables &&
       event.container.id === CdkDragDropContainers.VirtualCubes

@@ -47,7 +47,7 @@ export interface PropertyAttributes {
 
 export interface EntityProperty extends BaseProperty, PropertyAttributes {
   /**
-   * 所属的 Entity
+   * The Entity it belongs to
    */
   entity?: string
   description?: string

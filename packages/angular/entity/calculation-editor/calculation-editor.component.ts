@@ -21,9 +21,10 @@ import {
   Syntax,
   isEntityType,
   nonNullable,
-  uuid
+  suuid,
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { EMPTY, filter, switchMap } from 'rxjs'
 import { NgmCalculatedMeasureComponent } from '../calculated-measure/calculated-measure.component'
 import { NgmCalculationVarianceComponent } from '../calculation-variance/variance.component'
@@ -33,7 +34,7 @@ import { NgmRestrictedMeasureComponent } from '../restricted-measure/restricted-
 
 export interface CalculationEditorData {
   dataSettings: DataSettings
-  dsCoreService: NgmDSCoreService
+  dsCoreService?: NgmDSCoreService
   entityType: EntityType
   syntax: Syntax
   value: CalculationProperty
@@ -80,8 +81,22 @@ export class NgmCalculationEditorComponent implements OnInit {
   readonly destroyRef = inject(DestroyRef)
   readonly fb = inject(FormBuilder)
   public dsCoreService? = inject(NgmDSCoreService, { optional: true })
-  readonly dialogRef? = inject(MatDialogRef<NgmCalculationEditorComponent>, { optional: true })
-  readonly data? = inject<CalculationEditorData>(MAT_DIALOG_DATA, { optional: true })
+  /**
+   * @deprecated use #dialogRef
+   */
+  readonly _dialogRef? = inject(MatDialogRef<NgmCalculationEditorComponent>, { optional: true })
+  /**
+   * @deprecated use #data
+   */
+  readonly _data? = inject<CalculationEditorData>(MAT_DIALOG_DATA, { optional: true })
+  readonly #dialogRef = inject(DialogRef, { optional: true })
+  readonly #data = inject(DIALOG_DATA, { optional: true })
+  get dialogRef() {
+    return this.#dialogRef || this._dialogRef
+  }
+  get data() {
+    return this.#data || this._data
+  }
 
   /**
   |--------------------------------------------------------------------------
@@ -105,7 +120,7 @@ export class NgmCalculationEditorComponent implements OnInit {
   readonly entitySyntax = computed(() => this.#syntax() ?? this.entityType()?.syntax)
 
   readonly formGroup = this.fb.group({
-    __id__: uuid(),
+    __id__: suuid(),
     calculationType: [CalculationType.Calculated, Validators.required],
     name: ['', [Validators.required, this.forbiddenNameValidator()]],
     caption: [''],
@@ -114,6 +129,7 @@ export class NgmCalculationEditorComponent implements OnInit {
       decimal: [null]
     })
   })
+  readonly key = this.formGroup.get('__id__') as FormControl
   readonly calculationType = this.formGroup.get('calculationType') as FormControl
   readonly name = this.formGroup.get('name') as FormControl
   readonly caption = this.formGroup.get('caption') as FormControl
@@ -123,7 +139,7 @@ export class NgmCalculationEditorComponent implements OnInit {
   readonly formula = new FormControl()
 
   /**
-   * 当作为修改状态时 disable calculationType 的选择 和 name 的输入
+   * When in modification state, disable the selection of calculationType and the input of name
    */
   disableSelect: boolean
 
@@ -182,7 +198,7 @@ export class NgmCalculationEditorComponent implements OnInit {
   initValue(value: CalculationProperty) {
     this.disableSelect = true
     this.formGroup.get('calculationType').disable()
-    this.formGroup.get('name').disable()
+    // this.formGroup.get('name').disable()
     this.formGroup.patchValue(value)
     this.formGroup.markAsPristine()
     this.calculation.setValue({
@@ -203,13 +219,13 @@ export class NgmCalculationEditorComponent implements OnInit {
       visible: true
     } as CalculationProperty
 
-    this.dialogRef?.close(property)
     this.apply.emit(property)
+    this.dialogRef?.close(property)
   }
 
   onCancel() {
-    this.dialogRef?.close()
     this.apply.emit(null)
+    this.dialogRef?.close()
   }
 
   forbiddenNameValidator(): ValidatorFn {

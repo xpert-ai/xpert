@@ -1,0 +1,54 @@
+<xp-cube-studio [cubeName]="cubeName()" [(draft)]="draft">
+
+  @if (error()) {
+    <div class="w-7 h-7 flex justify-center items-center">
+      <i class="ri-bug-line text-text-destructive" [matTooltip]="error()" matTooltipPosition="above"></i>
+    </div>
+  }
+
+  <button type="button" class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+    [cdkMenuTriggerFor]="checklistMenu">
+    <i class="ri-list-check-3"></i>
+    @if (checklist()?.length) {
+      <div class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-gray-100 bg-[#F79009] text-[11px] font-semibold text-white">
+        {{checklist()?.length ?? 0}}</div>
+    }
+  </button>
+  <button class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+    [disabled]="!dirty() || saving()"
+    (click)="save()">
+    <i class="ri-save-line"></i>
+    @if (dirty()) {
+      <span class="absolute top-1 end-1 inline-flex items-center transform -translate-y-1/2 translate-x-1/2">
+        @if (saving()) {
+          <i class="ri-loader-line text-xs animate-spin"></i>
+        } @else {
+          <span class="w-3 h-3 rounded-full border-2 border-white text-xs font-medium bg-text-warning text-white dark:border-neutral-900">
+            <span class="sr-only">Is dirty</span>
+          </span>
+        }
+      </span>
+    }
+  </button>
+
+  <ng-content select="[action]"></ng-content>
+</xp-cube-studio>
+
+@if (loading()) {
+  <ngm-spin class="absolute w-full h-full top-0 left-0" />
+} @else if (!cube()) {
+  <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+    <div class="pac-result">
+      <div class="bug font-notoColorEmoji">🐞</div>
+      <div class="description text-text-secondary">
+        {{ 'PAC.MODEL.CubeNotFound' | translate: {Default: 'Cube not found'} }}: {{cubeName()}}
+      </div>
+    </div>
+  </div>
+}
+
+<ng-template #checklistMenu>
+  <xp-model-checklist cdkMenu class="cdk-menu__large rounded-xl" [checklist]="checklist()" />
+</ng-template>

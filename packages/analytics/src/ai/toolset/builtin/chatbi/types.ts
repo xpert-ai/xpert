@@ -1,21 +1,18 @@
 import {
-	assignDeepOmitBlank,
-	C_MEASURES,
+	CalculatedMeasureSchema,
+	CalculatedMember,
 	ChartAnnotation,
 	ChartDimension,
 	ChartDimensionRoleType,
 	ChartDimensionSchema,
-	ChartMeasure,
 	ChartMeasureSchema,
 	ChartOrient,
 	ChartTypeEnum,
-	cloneDeep,
 	DataSettings,
 	DataSettingsSchema,
 	Dimension,
 	DSCoreService,
 	EntityType,
-	getChartType,
 	getPropertyHierarchy,
 	ISlicer,
 	Measure,
@@ -23,21 +20,20 @@ import {
 	OrderBySchema,
 	PieVariant,
 	SlicerSchema,
-	TimeGranularity,
-	TimeRangesSlicer,
-	TimeRangeType,
-	tryFixDimension,
 	VariableSchema,
 	wrapLevelNumber,
 	wrapLevelUniqueName,
 	wrapMemberCaption
 } from '@metad/ocap-core'
-import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
-import { upperFirst } from 'lodash'
-import { z } from 'zod'
-import { AbstractChatBIToolset } from './chatbi-toolset'
 import { LanguagesEnum } from '@metad/contracts'
+import { omit } from '@metad/server-common'
+import { CommandBus } from '@nestjs/cqrs'
+import { z } from 'zod'
+import { LanguageSchema, TimeSlicerSchema } from '../../schema'
+import { AbstractChatBIToolset } from './chatbi-toolset'
+import { TTimeSlicerParam } from '../bi-toolset'
+
 
 export enum ChatBIToolsEnum {
 	GET_AVAILABLE_CUBES = 'get_available_cubes',
@@ -48,9 +44,7 @@ export enum ChatBIToolsEnum {
 	MEMBER_RETRIEVER = 'dimension_member_retriever'
 }
 
-export enum ChatBIVariableEnum {
-	INDICATORS = 'chatbi_indicators'
-}
+
 
 export type TChatBICredentials = {
 	models: string[]
@@ -61,12 +55,16 @@ export type TChatBICredentials = {
 	dataLimit?: number
 }
 
+/**
+ * @deprecated use TBIContext instead
+ */
 export type ChatBIContext = {
 	chatbi: AbstractChatBIToolset
 	dsCoreService: DSCoreService
 	entityType?: EntityType
 	language?: LanguagesEnum
 	logger?: Logger
+	commandBus?: CommandBus
 }
 
 export type ChatAnswer = {
@@ -77,45 +75,13 @@ export type ChatAnswer = {
 	dimensions: Dimension[]
 	measures: Measure[]
 	orders: OrderBy[]
-	top: number
+	limit: number
 	variables: ISlicer[]
 	slicers: ISlicer[]
 	timeSlicers: TTimeSlicerParam[]
+	parameters: { name: string; value: string | number }[]
+	calculated_members: CalculatedMember[]
 }
-
-const LanguageSchema = z.enum(['en', 'zh', 'zh-Hans']).describe('Language ​​used by user')
-
-export type TTimeSlicerParam = {
-	dimension: string
-	hierarchy: string
-	granularity: TimeGranularity
-	start: string
-	end: string
-}
-
-export const TimeSlicerSchema = z.object({
-	// dimension: z
-	//   .object({
-	// 	dimension: z.string().describe('The name of the dimension'),
-	// 	hierarchy: z.string().optional().nullable().describe('The name of the hierarchy in the dimension')
-	//   })
-	//   .describe('the time dimension'),
-	dimension: z.string().describe('The name of time dimension'),
-	hierarchy: z.string().optional().nullable().describe('The name of selected hierarchy in time dimension'),
-	granularity: z
-		.enum([
-			TimeGranularity.Year,
-			TimeGranularity.Quarter,
-			TimeGranularity.Month,
-			TimeGranularity.Week,
-			TimeGranularity.Day
-		])
-		.describe('The granularity of the time range'),
-	start: z.string().describe('The start period in granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
-	end: z.string().optional().nullable().describe('The end period in granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
-	// lookBack: z.number().optional().nullable().describe('The look back period in granularity'),
-	// lookAhead: z.number().optional().nullable().describe('The look ahead period in granularity')
-  })
 
 export const ChatAnswerSchema = z.object({
 	language: LanguageSchema.optional().nullable(),
@@ -126,34 +92,19 @@ export const ChatAnswerSchema = z.object({
 		.describe('Visual type of result'),
 	dataSettings: DataSettingsSchema.optional().nullable().describe('The data settings of the widget'),
 	dimensions: z.array(ChartDimensionSchema).optional().nullable().describe('The dimensions used by the chart'),
-	measures: z.array(ChartMeasureSchema).optional().nullable().describe('The measures used by the chart'),
+	measures: z.array(ChartMeasureSchema).optional().nullable().describe('The measures or calculated members used by the chart'),
 	orders: z.array(OrderBySchema).optional().nullable().describe('The orders used by the chart'),
-	top: z.number().optional().nullable().describe('The number of top members'),
+	limit: z.number().optional().nullable().describe('The number of rows in the returned result. Note the difference with Top N parameters.'),
 	slicers: z.array(SlicerSchema).optional().nullable().describe('The slicers to filter data'),
 	timeSlicers: z.array(TimeSlicerSchema).optional().nullable().describe('The time slicers to filter data'),
-	variables: z.array(VariableSchema).optional().nullable().describe('The variables to the query of cube')
+	parameters: z.array(z.object({
+		name: z.string().describe('The name of the parameter'),
+		value: z.string().or(z.number()).describe('The value of the parameter')
+	})).optional().nullable().describe('The parameters to the query of cube'),
+	variables: z.array(VariableSchema).optional().nullable().describe('The variables to the query of cube'),
+	calculated_members: z.array(CalculatedMeasureSchema).optional().nullable().describe('Temporary calculated members are used to supplement situations that cannot be met by current measures and indicators in cube.'),
 })
 
-export const IndicatorSchema = z.object({
-	language: LanguageSchema,
-	modelId: z.string().describe('The id of model'),
-	cube: z.string().describe('The cube name'),
-	code: z.string().describe('The unique code of indicator'),
-	name: z.string().describe(`The caption of indicator in user's language`),
-	formula: z.string().describe('The MDX formula for calculated measure'),
-	unit: z.string().optional().nullable().describe(`The unit of measure, '%' or orthers`),
-	description: z
-		.string()
-		.describe(
-			'The detail description of calculated measure, business logic and cube info for example: the time dimensions, measures or dimension members involved'
-		),
-	query: z
-		.string()
-		.describe(
-			`A query statement to test this indicator can correctly query the results, you cannot use 'WITH MEMBER' capability. You need include indicator code as measure name in statement like: \n`
-			+ `SELECT { [Measures].[The unique code of indicator] } ON COLUMNS, { <dimensions> } ON ROWS FROM [cube]`
-		)
-})
 
 export const CHART_TYPES = [
 	{
@@ -230,38 +181,6 @@ export const CHART_TYPES = [
 ]
 
 /**
- * Try to fix Chart options.
- * 
- * @param chartType 
- * @returns 
- */
-export function tryFixChartType(chartType: string) {
-	if (chartType?.endsWith('Chart')) {
-		chartType = chartType.replace(/Chart$/, '')
-		return assignDeepOmitBlank(cloneDeep(getChartType(upperFirst(chartType))?.value.chartType), {}, 5)
-	}
-	return null
-}
-
-/**
- * Try to fix the formatting issues:
- * - `[Sales Amount]`
- * - `[Measures].[Sales Amount]`
- */
-export function fixMeasure(measure: ChartMeasure, entityType: EntityType) {
-	return {
-		...tryFixDimension(measure, entityType),
-		dimension: C_MEASURES,
-		formatting: {
-			shortNumber: true
-		},
-		palette: {
-			name: 'Viridis'
-		}
-	}
-}
-
-/**
  * Try to fix dimensions for chart:
  * - Multi-dimensions: How to assign roles of different dimensions;
  * 
@@ -312,39 +231,6 @@ export function tryFixDimensions(dimensions: ChartDimension[]) {
     }
 
 	return dimensions
-}
-
-export function mapTimeSlicer(param: TTimeSlicerParam[]): TimeRangesSlicer[] {
-  return param?.map((_) => {
-	return {
-		dimension: {
-			dimension: _.dimension,
-			hierarchy: _.hierarchy,
-		},
-		currentDate: 'TODAY',
-		ranges: [
-			{
-				...omit(_, 'dimension', 'hierarchy'),
-				type: TimeRangeType.Standard,
-			}
-		]
-	}
-  })
-}
-
-/**
- * Try to fix the formula given by AI
- * 
- * - `WITH MEMBER [Measures].[NewCode] AS '<formula>'` to `'<formula>'`
- * 
- * @param formula 
- */
-export function tryFixFormula(formula: string, code: string) {
-	const prefix = `WITH MEMBER [Measures].[${code}] AS `
-	if (formula.startsWith(prefix)) {
-		return formula.slice(prefix.length)
-	}
-	return formula
 }
 
 /**

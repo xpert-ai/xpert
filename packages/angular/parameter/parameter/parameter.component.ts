@@ -1,15 +1,16 @@
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  OnChanges,
-  Output,
-  SimpleChanges,
-  inject
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  output
 } from '@angular/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ThemePalette } from '@angular/material/core'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -19,21 +20,20 @@ import { MatRadioModule } from '@angular/material/radio'
 import { MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
+  CubeParameterEnum,
   DataSettings,
   DisplayBehaviour,
   FilterSelectionType,
   IMember,
   ISlicer,
-  ParameterControlEnum,
   ParameterProperty,
   isEqual,
   isVariableProperty,
   pick
 } from '@metad/ocap-core'
 import {
-  BehaviorSubject,
   Subject,
   combineLatestWith,
   debounceTime,
@@ -68,7 +68,7 @@ export interface ParameterOptions {
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-
+    CdkListboxModule,
     MatFormFieldModule,
     MatInputModule,
     MatRadioModule,
@@ -87,55 +87,60 @@ export interface ParameterOptions {
     class: 'ngm-parameter'
   }
 })
-export class NgmParameterComponent implements OnChanges {
-  ParameterControlEnum = ParameterControlEnum
+export class NgmParameterComponent {
+  eCubeParameterEnum = CubeParameterEnum
 
   private dsCoreService = inject(NgmDSCoreService)
 
-  @Input() get dataSettings(): DataSettings {
-    return this.dataSettings$.value
-  }
-  set dataSettings(value) {
-    this.dataSettings$.next(value)
-  }
-  private dataSettings$ = new BehaviorSubject<DataSettings>(null)
+  // Inputs
+  readonly dataSettings = input<DataSettings>()
+  private dataSettings$ = toObservable(this.dataSettings)
 
-  @Input() get parameter(): ParameterProperty {
-    return this.parameter$.value
-  }
-  set parameter(value) {
-    this.parameter$.next(value)
-  }
-  private parameter$ = new BehaviorSubject<ParameterProperty>(null)
+  readonly parameter = model<ParameterProperty>()
+  readonly parameter$ = toObservable(this.parameter)
+  // @Input() get parameter(): ParameterProperty {
+  //   return this.parameter$.value
+  // }
+  // set parameter(value) {
+  //   this.parameter$.next(value)
+  // }
+  // private parameter$ = new BehaviorSubject<ParameterProperty>(null)
 
-  @Input() displayBehaviour: DisplayBehaviour
+  // @Input() displayBehaviour: DisplayBehaviour
+  readonly displayBehaviour = input<DisplayBehaviour>(DisplayBehaviour.auto)
 
-  @Input() options: ParameterOptions
-  @Input() appearance: NgmAppearance
+  // @Input() options: ParameterOptions
+  readonly options = input<ParameterOptions>()
+  // @Input() appearance: NgmAppearance
+  readonly appearance = input<NgmAppearance>()
 
-  @Output() parameterChange = new EventEmitter<ParameterProperty>()
+  // Outputs
+  readonly parameterChange = output<ParameterProperty>()
+
+  // @Output() parameterChange = new EventEmitter<ParameterProperty>()
 
   get multiple() {
-    return this.options?.selectionType === FilterSelectionType.Multiple
+    return this.options()?.selectionType === FilterSelectionType.Multiple
   }
   get paramType() {
-    return this.parameter?.paramType
+    return this.parameter()?.paramType
   }
-  get availableMembers() {
-    return this.parameter?.availableMembers ?? []
-  }
-  get members() {
-    return this.parameter.members
-  }
-  set members(members) {
-    if (!isEqual(members, this.parameter.members)) {
-      this.parameter = {
-        ...this.parameter,
-        members
-      }
-      this.changeParameter()
-    }
-  }
+  // get availableMembers() {
+  //   return this.parameter()?.availableMembers ?? []
+  // }
+  // get members() {
+  //   return this.parameter()?.members
+  // }
+  // set members(members) {
+  //   if (!isEqual(members, this.parameter()?.members)) {
+  //     this.parameter = {
+  //       ...this.parameter,
+  //       members
+  //     }
+  //     this.changeParameter()
+  //   }
+  // }
+  readonly members = attrModel(this.parameter, 'members')
 
   private readonly dataSource$ = this.dataSettings$.pipe(
     map((dataSettings) => dataSettings?.dataSource),
@@ -143,6 +148,7 @@ export class NgmParameterComponent implements OnChanges {
     distinctUntilChanged(),
     switchMap((dataSource) => this.dsCoreService.getDataSource(dataSource))
   )
+  readonly dataSource = toSignal(this.dataSource$)
   public readonly dimension$ = this.parameter$.pipe(
     filter((value) => !!value?.dimension),
     map((parameter) => pick(parameter, 'dimension', 'hierarchy')),
@@ -178,35 +184,68 @@ export class NgmParameterComponent implements OnChanges {
 
   readonly variableProperty = toSignal(this.parameter$.pipe(map((parameter) => isVariableProperty(parameter) ? parameter : null)))
 
-  slicer = {}
-  parameterValue = null
-
-  private changeParameter$ = new Subject<void>()
-  private changeSub = this.changeParameter$
-    .pipe(debounceTime(500), takeUntilDestroyed())
-    .subscribe(() => this.parameterChange.emit(this.parameter))
-
-  ngOnChanges({ parameter }: SimpleChanges): void {
-    if (parameter) {
-      this.parameterValue = parameter.currentValue?.value
+  readonly entitySet = computed(() => this.dataSettings()?.entitySet)
+  readonly _parameters = toSignal(this.dataSource$.pipe(switchMap((dataSource) => dataSource.selectOptions()), map((options) => options.parameters?.[this.entitySet()])))
+  readonly parameterValue = linkedModel({
+    initialValue: null,
+    compute: () => this._parameters()?.[this.parameter().name] ?? this.parameter().value,
+    update: (value) => {
+      this.dataSource().updateParameters(this.entitySet(), (parameters) => {
+        return {...parameters, [this.parameter().name]: value}
+      })
     }
-  }
+  })
+
+  readonly valueList = linkedModel({
+    initialValue: [],
+    compute: () => this.parameterValue() == null ? [] : [ this.parameterValue() ],
+    update: (value) => {
+      this.parameterValue.set(value[0] ?? null)
+    }
+  })
+
+  readonly availableMembers = computed(() => {
+    const availableMembers = this.parameter()?.availableMembers ?? []
+    const value = this.parameter()?.value
+    if (typeof value === 'string' && !availableMembers.some((member) => member.key === value)) {
+      availableMembers.push({
+        key: value,
+        caption: value,
+      })
+    }
+    return availableMembers
+  })
+
+  slicer = {}
+
+  // private changeParameter$ = new Subject<void>()
+  // private changeSub = this.changeParameter$
+  //   .pipe(debounceTime(500), takeUntilDestroyed())
+  //   .subscribe(() => this.parameterChange.emit(this.parameter()))
+
+  // constructor() {
+  //   effect(() => {
+  //     console.log('parameter', this.parameter(), this.availableMembers(), this.valueList())
+  //   })
+  // }
 
   compareWith(a: IMember, b: IMember) {
-    return a.value === b.value
+    return a.key === b.key
   }
 
   updateParameterValue(event) {
-    this.parameter = {
-      ...this.parameter,
-      value: event
-    }
-    this.changeParameter()
+    this.parameterValue.set(event)
+  //   this.parameter = {
+  //     ...this.parameter,
+  //     value: event
+  //   }
+  //   this.changeParameter()
   }
 
-  changeParameter() {
-    this.changeParameter$.next()
-  }
+  // changeParameter() {
+  //   // this.changeParameter$.next()
+  //   this.parameterValue.set(this.parameter().value)
+  // }
 
   onSlicerChange(slicer: ISlicer) {
     this.updateParameterValue(slicer.members)

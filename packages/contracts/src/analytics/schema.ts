@@ -161,8 +161,8 @@ export interface CalculatedMember {
   description?: string
   dimension?: string
   hierarchy?: string
-  formula: string
-  Formula?: string[]
+  // formula: string
+  Formula?: string | string[]
   parent?: string
   visible?: boolean
   CalculatedMemberProperty?: CalculatedMemberProperty[]

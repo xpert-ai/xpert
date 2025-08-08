@@ -15,6 +15,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NxCoreService } from '@metad/core'
 import { NxStoryService } from '@metad/story/core'
 import { firstValueFrom } from 'rxjs'
+import { Dialog } from '@angular/cdk/dialog'
 
 /**
  * @deprecated
@@ -38,6 +39,7 @@ import { firstValueFrom } from 'rxjs'
 })
 export class ParametersComponent {
   public readonly dsCoreService = inject(NgmDSCacheService)
+  readonly #dialog = inject(Dialog)
 
   entities: ISelectOption<string>[] = []
   activeLink: { dataSource: string; entity: string }
@@ -92,7 +94,7 @@ export class ParametersComponent {
     }
     const entityType = await firstValueFrom(this.storyService.selectEntityType(dataSettings))
     const result = await firstValueFrom(
-      this._dialog
+      this.#dialog
         .open(NgmParameterCreateComponent, {
           viewContainerRef: this._viewContainerRef,
           data: {
@@ -102,7 +104,7 @@ export class ParametersComponent {
             name: name
           }
         })
-        .afterClosed()
+        .closed
     )
 
     if (result) {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, forwardRef, inject, Input, OnInit, signal } from '@angular/core'
+import { Component, computed, forwardRef, inject, input, OnInit } from '@angular/core'
 import {
   ControlValueAccessor,
   FormBuilder,
@@ -14,6 +14,7 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmParameterSelectComponent } from '@metad/ocap-angular/parameter'
 import {
+  AggregationCompareOperations,
   AggregationOperation,
   AggregationOperations,
   DataSettings,
@@ -26,7 +27,7 @@ import {
   Property,
   PropertyMeasure
 } from '@metad/ocap-core'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { sortBy } from 'lodash-es'
 import { PropertyCapacity } from '../types'
 import { NgmMeasureSelectComponent } from '../measure-select/measure-select.component'
@@ -59,51 +60,54 @@ import { NgmPropertyArrayComponent } from '../property-array/property-array.comp
 })
 export class NgmConditionalAggregationComponent implements ControlValueAccessor, OnInit {
   DISPLAY_BEHAVIOUR = DisplayBehaviour
-  AggregationOperation = AggregationOperation
+  eAggregationOperation = AggregationOperation
   PropertyCapacity = PropertyCapacity
 
   private formBuilder = inject(FormBuilder)
+  readonly #translate = inject(TranslateService)
 
-  OPERATIONS = AggregationOperations
+  OPERATIONS = AggregationOperations.map((operation) => ({...operation, label: this.#translate.instant(`Ngm.Calculation.${operation.label.split(' ').join('')}`, {Default: operation.label}) }))
+  COMPARES = AggregationCompareOperations.map((operation) => ({...operation, label: this.#translate.instant(`Ngm.Calculation.${operation.label.split(' ').join('')}`, {Default: operation.label}) }))
   HAS_VALUE_OPERATIONS = [AggregationOperation.TOP_COUNT, AggregationOperation.TOP_PERCENT, AggregationOperation.TOP_SUM]
+  COMPARE_VALUE_OPERATIONS = [AggregationOperation.COUNT]
 
-  @Input() dataSettings: DataSettings
-  @Input()
-  get entityType() {
-    return this.entityType$()
-  }
-  set entityType(value) {
-    this.entityType$.set(value)
-  }
-  private entityType$ = signal<EntityType>(null)
+  // Inputs
+  readonly dataSettings = input<DataSettings>(null)
+  readonly entityType = input<EntityType>(null)
+  readonly dsCoreService = input<NgmDSCoreService>(null)
 
-  // @Input() coreService: NxCoreService
-  @Input() dsCoreService: NgmDSCoreService
-
+  // States
   measures: Array<Property>
   useConditional = false
 
+  // Forms
   formGroup: FormGroup
+
+  get operation() {
+    return this.formGroup?.value?.operation
+  }
 
   filterMeasure: (measure: PropertyMeasure) => boolean = (measure) => isNil(this.formGroup?.value?.name) ? true :
     measure.name !== this.formGroup.value.name
   
   private _onChange: any
+  private _onTouched: any
 
-  // 排除指标度量后的度量列表
+  // The list of metrics after excluding indicator metrics
   public readonly measures$ = computed(() => {
     return sortBy(
-      getEntityMeasures(this.entityType).filter((property) => negate(isIndicatorMeasureProperty)(property)),
+      getEntityMeasures(this.entityType()).filter((property) => negate(isIndicatorMeasureProperty)(property)),
       'calculationType'
     ).reverse()
   })
 
   ngOnInit(): void {
-    this.measures = getEntityMeasures(this.entityType)
+    this.measures = getEntityMeasures(this.entityType())
 
     this.formGroup = this.formBuilder.group({
       name: null,
-      operation: null,
+      operation: this.formBuilder.control(null, [Validators.required]),
+      compare: null,
       value: null,
       measure: this.formBuilder.control(null, [Validators.required]),
       aggregationDimensions: null, //this.formBuilder.array([ ]),
@@ -122,6 +126,14 @@ export class NgmConditionalAggregationComponent implements ControlValueAccessor,
   registerOnChange(fn: any): void {
     this._onChange = fn
   }
-  registerOnTouched(fn: any): void {}
-  setDisabledState?(isDisabled: boolean): void {}
+  registerOnTouched(fn: any): void {
+    this._onTouched = fn
+  }
+  setDisabledState?(isDisabled: boolean): void {
+    if (isDisabled) {
+      this.formGroup.disable()
+    } else {
+      this.formGroup.enable()
+    }
+  }
 }

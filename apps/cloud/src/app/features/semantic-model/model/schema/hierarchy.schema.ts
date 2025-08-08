@@ -9,7 +9,7 @@ import { combineLatest } from 'rxjs'
 import { distinctUntilChanged, filter, map, startWith, switchMap, take } from 'rxjs/operators'
 import { DimensionModeling } from './dimension.schema'
 import { CubeSchemaService } from './cube.schema'
-import { HiddenLLM } from './common'
+import { HiddenLLM } from '@cloud/app/@shared/model'
 
 @Injectable()
 export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dimension: EntityProperty} = {

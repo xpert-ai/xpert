@@ -386,12 +386,12 @@
 
     <div class="w-80 min-h-[200px] overflow-auto flex flex-col justify-start">
       @for (conv of taskConversations(); track conv.id) {
-        <a class="peer/menu-button flex flex-col overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0
+        <a class="group/item flex flex-col overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0
             hover:text-primary border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active aria-expanded:bg-button-ghost-hover group/task-item pl-3 pr-4 py-1 w-full"
           [routerLink]="['/chat/c', conv.id]">
-          <span class="flex-1 select-none truncate max-w-full overflow-hidden inline-block text-text-primary" 
+          <span class="flex-1 select-none truncate max-w-full overflow-hidden inline-block text-sm text-text-primary" 
             style="mask-image: linear-gradient(to right, black 85%, transparent 100%);">{{conv.title || conv.options?.parameters?.input}}</span>
-          <div class="flex justify-start items-center gap-2 text-xs text-text-secondary">
+          <div class="flex justify-start items-center gap-2 text-xs text-text-secondary opacity-60 group-hover/item:opacity-100">
             <span class="font-mono">{{conv.updatedAt | date:'short'}}</span>
             @if (conv.xpert) {
               <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
@@ -410,7 +410,7 @@
 </ng-template>
 
 <ng-template #histories let-panel="panel">
-  <div class="flex flex-col gap-1 w-full min-w-0 relative">
+  <div class="flex flex-col w-full min-w-0 relative">
     @for (g of groups(); track g) {
       <div class="py-2 pl-2 text-sm font-semibold text-secondary whitespace-nowrap sticky -top-3 z-20"
         [class.bg-components-card-bg]="panel">{{g.name}}</div>
@@ -444,28 +444,32 @@
         } @else {
           <div style="opacity: 1" class="relative group/conversation-item">
             <a
-              class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active pl-3 pr-1 py-1 w-full flex flex-row text-primary"
+              class="group/item flex flex-col overflow-hidden relative items-start rounded-xl text-left outline-none transition-[width,height,padding] focus-visible:ring-1 hover:text-primary text-sm border-transparent hover:bg-button-ghost-hover active:bg-button-ghost-active pl-3 pr-1 py-1 w-full"
               [class.bg-hover-bg]="currentPage().type === 'conversation' && currentPage().id === conv.id"
               tabindex="-1"
               [routerLink]="['/chat/c', conv.id]"
               [matTooltip]="conv.title | i18n"
-              matTooltipPosition="above"
+              matTooltipPosition="after"
               >
               <span
-                class="flex-1 select-none whitespace-nowrap max-w-full overflow-hidden inline-block"
+                class="flex-1 select-none whitespace-nowrap w-full overflow-hidden inline-block"
                 style="mask-image: linear-gradient(to right, black 85%, transparent 100%)"
                 >{{conv.title || conv.options?.parameters?.input || conv.id }}</span
               >
-              @if (conv.xpert) {
-                <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
-                  @if (conv.taskId) {
-                    <i class="ri-timer-line"></i>
-                  }
-                  {{conv.xpert.title || conv.xpert.name}}
-                </span>
-              } @else if (conv.taskId) {
-                <i class="ri-timer-line"></i>
-              }
+
+              <div class="w-full flex justify-between items-center text-xs text-text-secondary opacity-60 group-hover/item:opacity-100">
+                <span class="truncate font-mono">{{conv.updatedAt | date:'H:mm M/d'}}</span>
+                @if (conv.xpert) {
+                  <span class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                    @if (conv.taskId) {
+                      <i class="ri-timer-line"></i>
+                    }
+                    {{conv.xpert.title || conv.xpert.name}}
+                  </span>
+                } @else if (conv.taskId) {
+                  <i class="ri-timer-line"></i>
+                }
+              </div>
             </a>
 
             @if (sidebarState() === 'expanded') {

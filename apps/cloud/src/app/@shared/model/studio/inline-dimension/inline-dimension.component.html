@@ -1,0 +1,7 @@
+<div class="absolute top-1/2 left-0 transform -translate-y-1/2">
+  <div fNodeInput [fInputId]="node().key" fInputConnectableSide="left"></div>
+</div>
+
+<!-- <div fNodeOutput [fOutputId]="node().key" fOutputConnectableSide="right" [isSelfConnectable]="false"></div> -->
+
+<xp-cube-studio-hierarchy [dimension]="dimension()" [(hierarchy)]="hierarchy" (remove)="remove()"/>

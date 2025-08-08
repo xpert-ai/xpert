@@ -35,8 +35,9 @@ import {
   IStorageFile,
   IXpert,
   SynthesizeService,
+  TInterruptCommand,
   ToastrService,
-  ToolCall,
+  TToolCall,
   TtsStreamPlayerService,
   TXpertParameter,
   uuid,
@@ -45,17 +46,18 @@ import {
   XpertService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { ToolCallConfirmComponent, XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
+import { XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, Observable, of, timer, switchMap, tap, Subscription, EMPTY, pipe, filter } from 'rxjs'
-import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
+import { map, Observable, of, timer, switchMap, tap, Subscription } from 'rxjs'
 import { effectAction } from '@metad/ocap-angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { ChatAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatHumanMessageComponent } from './human-message/message.component'
+import { XpertAgentOperationComponent } from '../../agent'
 
 @Component({
   standalone: true,
@@ -70,7 +72,7 @@ import { ChatHumanMessageComponent } from './human-message/message.component'
     EmojiAvatarComponent,
     XpertParametersCardComponent,
     XpertPreviewAiMessageComponent,
-    ToolCallConfirmComponent,
+    XpertAgentOperationComponent,
     ChatAttachmentsComponent,
     ChatHumanMessageComponent
   ],
@@ -151,9 +153,9 @@ export class ChatConversationPreviewComponent {
 
   readonly conversationStatus = computed(() => this.conversation()?.status)
   readonly error = computed(() => this.conversation()?.error)
+  // Interrupt operation
   readonly operation = computed(() => this.conversation()?.operation)
-
-  readonly toolCalls = signal<ToolCall[]>(null)
+  readonly command = model<TInterruptCommand>()
 
   readonly lastMessage = computed(() => {
     const messages = this._messages()
@@ -162,7 +164,6 @@ export class ChatConversationPreviewComponent {
     }
     return null
   })
-  
   readonly messages = computed(() => {
     if (this.currentMessage()) {
       const messages = this._messages()
@@ -240,11 +241,6 @@ export class ChatConversationPreviewComponent {
   chat(options?: { input?: string; confirm?: boolean; reject?: boolean; retry?: boolean }) {
     this.suggestionQuestions.set([]) // Clear suggestions after selection
     this.loading.set(true)
-    this.conversation.update((state) => ({
-      ...(state ?? {}),
-      status: 'busy',
-      error: null
-    }))
 
     if (options?.input) {
       // Add to user message
@@ -267,6 +263,11 @@ export class ChatConversationPreviewComponent {
         status: 'thinking'
       })
     }
+    this.conversation.update((state) => ({
+      ...(state ?? {}),
+      status: 'busy',
+      error: null
+    }))
 
     // Send to server chat
     if (this.chatSubscription && !this.chatSubscription?.closed) {
@@ -284,10 +285,8 @@ export class ChatConversationPreviewComponent {
           conversationId: this.conversation()?.id,
           xpertId: this.xpert().id,
           environmentId: this.environmentId(),
-          operation: (options?.reject || this.toolCalls()) ? {
-            ...this.operation(),
-            toolCalls: this.toolCalls()?.map((call) => ({call}))
-          } : null,
+          // operation: options?.confirm ? this.command() : null,
+          command: options?.confirm ? this.command() : null,
           reject: options?.reject,
           confirm: options?.confirm,
           retry: options?.retry,
@@ -452,9 +451,9 @@ export class ChatConversationPreviewComponent {
     this.execution.emit(message.executionId)
   }
 
-  onToolCalls(toolCalls: ToolCall[]) {
-    this.toolCalls.set(toolCalls)
-  }
+  // onToolCalls(toolCalls: TToolCall[]) {
+  //   this.toolCalls.set(toolCalls)
+  // }
 
   feedback(message: Partial<IChatMessage>, rating: ChatMessageFeedbackRatingEnum) {
     this.messageFeedbackService

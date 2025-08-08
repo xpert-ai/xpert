@@ -9,14 +9,12 @@ import {
   getEntityHierarchy,
   getEntityProperty,
   HttpHeaders,
-  isCalculatedProperty,
   PeriodFunctions,
   Property,
   QueryOptions,
   QueryReturn,
   RecursiveHierarchyType,
   Semantics,
-  serializeArgs,
 } from '@metad/ocap-core'
 import { t } from 'i18next'
 import { BehaviorSubject, EMPTY, from, Observable, of } from 'rxjs'
@@ -48,7 +46,6 @@ import { escapeBWSlash, LANGUAGE_CODES_SAPBW, MDXDialect, wrapHierarchyValue } f
 import { getErrorMessage, getExceptionMessage, simplifyErrorMessage } from './utils'
 import { fetchDataFromMultidimensionalTuple } from './xmla/multidimensional'
 
-// throw new Error(t('Error.NoPropertyFoundFor', {ns: 'xmla',}))
 
 export class XmlaEntityService<T> extends AbstractEntityService<T> implements EntityService<T> {
 
@@ -85,7 +82,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
 
   override selectQuery(options?: QueryOptions<any>): Observable<QueryReturn<T>> {
     /**
-     * @todo 放在这里过滤不合适
+     * @todo It is not appropriate to filter here
      */
     if (!options?.columns?.length && !options?.rows?.length) {
       // console.error(`Please use rows or columns in entity query fields`, options)
@@ -107,6 +104,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
       }, options)
       
       mdxQuery.cube = cube
+      mdxQuery.parameters = options.parameters
       const mdx =
         options.statement || generateMDXStatement(mdxQuery, this.entityType, this.entityType.dialect as MDXDialect)
 
@@ -235,16 +233,15 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
       headers['Accept-Language'] = language
     }
 
+    // No caching on the client side, difficult to manage. Should be managed uniformly on the server side.
     // const cacheOptions = {
     //   key: serializeArgs('xmla-mdx:', modelName, mdx, language),
     //   version: '1',
     //   maxAge: 1000 * 60 * 60,
     //   level: 3
     // }
-
     // cache
     // const cache = await this.dataSource.cacheService?.getCache(cacheOptions, options)
-
     // if (cache) {
     //   return cache
     // }
@@ -255,6 +252,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
       body: {
         mdx,
         query,
+        isIndicatorsDraft: this.dataSource.options.isIndicatorsDraft,
       }})
   }
 

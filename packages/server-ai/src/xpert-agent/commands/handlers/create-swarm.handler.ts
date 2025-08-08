@@ -198,7 +198,8 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 		return {
 			agent,
 			graph: builder.compile({
-				checkpointer: this.checkpointer
+				checkpointer: this.checkpointer,
+				store: options.store,
 			})
 		}
 	}

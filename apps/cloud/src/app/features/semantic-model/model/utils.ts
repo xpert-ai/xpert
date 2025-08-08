@@ -112,35 +112,3 @@ export function markdownTableData({data, columns}: {data: any[], columns: PivotC
   const rows = data.map((row) => columns.map((column) => row[column.name]).join(' | ')).join('\n')
   return `${header}\n${divider}\n${rows}`
 }
-
-export function upsertHierarchy(dimension: PropertyDimension, hierarchy: Partial<PropertyHierarchy>) {
-  let key = null
-  const index = dimension.hierarchies.findIndex((item) => item.name === hierarchy.name)
-  if (index > -1) {
-    dimension.hierarchies.splice(index, 1, {
-      ...dimension.hierarchies[index],
-      ...hierarchy
-    })
-    key = dimension.hierarchies[index].__id__
-  } else {
-    dimension.hierarchies.push({ ...hierarchy, __id__: hierarchy.__id__ ?? uuid() } as PropertyHierarchy)
-    key = dimension.hierarchies[dimension.hierarchies.length - 1].__id__
-  }
-
-  return key
-}
-
-/**
- * 根据 SQL 查询结果对象分析出字段类型
- *
- * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof
- *
- * @param obj
- * @returns
- */
-export function typeOfObj(obj) {
-  return Object.entries(obj).map(([key, value]) => ({
-    name: key,
-    type: value === null || value === undefined ? null : typeof value
-  }))
-}

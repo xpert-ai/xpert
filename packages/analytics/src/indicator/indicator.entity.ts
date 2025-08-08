@@ -10,6 +10,8 @@ import {
   IComment,
   ICertification,
   IndicatorStatusEnum,
+  EmbeddingStatusEnum,
+  TIndicatorDraft,
 } from '@metad/contracts'
 import { Tag } from '@metad/server-core'
 import { IsEnum, IsJSON, IsOptional, IsString } from 'class-validator'
@@ -29,6 +31,13 @@ import { ProjectBaseEntity } from '../core/entities/project-base.entity'
 
 @Entity('indicator')
 export class Indicator extends ProjectBaseEntity implements IIndicator {
+  
+  @ApiPropertyOptional({ type: () => Object })
+  @IsJSON()
+  @IsOptional()
+  @Column({ type: 'json', nullable: true })
+  draft?: TIndicatorDraft
+  
   @ApiPropertyOptional({ type: () => String })
   @IsString()
   @IsOptional()
@@ -148,6 +157,18 @@ export class Indicator extends ProjectBaseEntity implements IIndicator {
   @IsOptional()
   @Column({ nullable: true })
   status?: IndicatorStatusEnum
+
+  @ApiProperty({ type: () => String, enum: EmbeddingStatusEnum })
+  @IsEnum(EmbeddingStatusEnum)
+  @IsOptional()
+  @Column({ nullable: true })
+  embeddingStatus?: EmbeddingStatusEnum
+
+  @ApiProperty({ type: () => String })
+  @IsString()
+  @IsOptional()
+  @Column({ nullable: true })
+  error?: string
 
   @ApiPropertyOptional({ type: () => Object })
   @IsJSON()

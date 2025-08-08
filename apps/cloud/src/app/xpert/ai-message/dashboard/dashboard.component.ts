@@ -12,20 +12,21 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { Store } from '@metad/cloud/state'
+import { ChatDashboardMessageType, convertIndicatorResult, Store, TMessageComponent, TMessageComponentStep } from '@metad/cloud/state'
 import { listEnterAnimation } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { DataSettings, Indicator } from '@metad/ocap-core'
+import { AggregationRole, CalculationType, DataSettings, Indicator, mapIndicatorToMeasures, tryFixMeasureName } from '@metad/ocap-core'
 import { StoryExplorerComponent } from '@metad/story'
 import { ExplainComponent } from '@metad/story/story'
 import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
-import { compact, uniq } from 'lodash-es'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { XpertHomeService } from '../../home.service'
 import { XpertOcapService } from '../../ocap.service'
-import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
+import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
+import { ChatService } from '../../chat.service'
 
 /**
  * A component that uniformly displays different types of component messages for category: `Dashboard`.
@@ -36,10 +37,11 @@ import { ChatComponentIndicatorsComponent } from './indicators/indicators.compon
     CommonModule,
     TranslateModule,
     MatTooltipModule,
+    NgxJsonViewerModule,
     AnalyticalCardModule,
     NxWidgetKpiComponent,
     ChatComponentIndicatorsComponent,
-    ChatComponentIndicatorComponent
+    ChatToolCallChunkComponent
   ],
   selector: 'chat-message-dashboard',
   templateUrl: './dashboard.component.html',
@@ -53,6 +55,7 @@ export class ChatMessageDashboardComponent {
   readonly dsCore = inject(NgmDSCoreService)
   readonly #viewContainerRef = inject(ViewContainerRef)
   readonly homeService = inject(XpertHomeService)
+  readonly chatService = inject(ChatService)
   readonly xpertOcapService = inject(XpertOcapService)
 
   // Inputs
@@ -62,7 +65,21 @@ export class ChatMessageDashboardComponent {
   readonly message = input<any>()
 
   // States
-  readonly data = computed(() => this.message()?.data as any)
+  readonly data = computed(() => this.message()?.data as TMessageComponent<Omit<TMessageComponentStep, 'type'> & {
+    type: any
+    dataSettings?: DataSettings;
+    indicator?: Indicator;
+    indicators?: Array<{ dataSource: string; entitySet: string; cube: string; id: string; indicatorCode: string; isDraft: boolean}>;
+    slicers?: any[];
+    isDraft?: boolean;
+    chartSettings?: any
+    data: {
+      indicatorId?: string
+      modelId?: string
+    }
+  }>)
+  readonly type = computed(() => this.data()?.type)
+  readonly conversationStatus = computed(() => this.chatService.conversation()?.status)
 
   readonly primaryTheme = toSignal(this.#store.primaryTheme$)
 
@@ -76,19 +93,62 @@ export class ChatMessageDashboardComponent {
   readonly dataSettings = computed(() => this.data()?.dataSettings as DataSettings)
   readonly indicator = computed<Indicator>(() => this.data()?.indicator)
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
-  readonly indicators = computed(() => this.data()?.indicators)
+  readonly entity = computed(() => this.dataSettings()?.entitySet)
+  readonly indicators = computed<{ dataSource: string; entitySet: string; cube: string; id: string; indicatorCode: string; isDraft: boolean}[]>(() => this.data()?.indicators)
   readonly slicers = computed(() => this.data()?.slicers)
-  readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
+  readonly isDraft = computed(() => this.data()?.isDraft)
+  readonly dataSources = computed(() => this.indicators()?.reduce((acc, indicator) => {
+    acc[indicator.dataSource] ??= []
+    if (indicator.isDraft) {
+      acc[indicator.dataSource].push(indicator.indicatorCode)
+    }
+    return acc
+  }, {}))
+
+  readonly calculatedMembers = computed(() => this.dataSettings()?.calculatedMembers)
+    
   readonly explains = signal<any[]>([])
 
   constructor() {
+    // effect(() => {
+    //   console.log(this.data())
+    // })
+
+    effect(() => {
+      if (this.type() === ChatDashboardMessageType.Indicator && this.data()?.data?.modelId) {
+        this.xpertOcapService.refreshModel(this.data().data.modelId, true)
+      }
+    }, { allowSignalWrites: true })
+
     effect(
       () => {
         if (this.dataSource()) {
-          this.onRegister([
+          const calculatedMeasures = []
+          if (this.calculatedMembers()?.length) {
+            calculatedMeasures.push(...this.calculatedMembers().map((member) => {
+                              return {
+                                ...member,
+                                name: tryFixMeasureName(member.name),
+                                role: AggregationRole.measure,
+                                calculationType: CalculationType.Calculated,
+                                visible: true
+                              }
+                            }))
+          }
+          if (this.indicators()?.length) {
+            this.indicators().forEach((indicator) => {
+              calculatedMeasures.push(...mapIndicatorToMeasures(convertIndicatorResult(indicator)))
+            })
+          }
+
+          this.xpertOcapService.registerSemanticModel([
             {
               id: this.dataSource(),
-              indicators: this.indicators()
+              // indicators: this.indicators(),
+              isDraft: this.isDraft(),
+              calculatedMeasures: {
+                [this.entity()]: calculatedMeasures
+              }
             }
           ])
         }
@@ -100,10 +160,14 @@ export class ChatMessageDashboardComponent {
       () => {
         const newIndicator = this.indicator()
         if (newIndicator) {
-          this.onRegister([
+          this.xpertOcapService.registerSemanticModel([
             {
               id: newIndicator.modelId,
-              indicators: [newIndicator]
+              // indicators: [newIndicator],
+              isDraft: this.isDraft(),
+              calculatedMeasures: {
+                [this.entity()]: mapIndicatorToMeasures(convertIndicatorResult(newIndicator))
+              }
             }
           ])
         }
@@ -114,7 +178,7 @@ export class ChatMessageDashboardComponent {
     effect(
       () => {
         if (this.dataSources()) {
-          this.onRegister(this.dataSources().map((id) => ({ id })))
+          this.xpertOcapService.registerSemanticModel(Object.keys(this.dataSources()).map((id) => ({ id, isDraftIndicators: this.dataSources()[id], isDraft: this.isDraft() })))
         }
       },
       { allowSignalWrites: true }
@@ -159,9 +223,5 @@ export class ChatMessageDashboardComponent {
       messageId: this.messageId(),
       componentId: this.message().id
     })
-  }
-
-  onRegister(models: { id: string; indicators?: Indicator[] }[]) {
-    this.xpertOcapService.registerSemanticModel(models)
   }
 }

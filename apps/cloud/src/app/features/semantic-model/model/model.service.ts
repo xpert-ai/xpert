@@ -3,7 +3,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SemanticModelServerService as SemanticModelsService, NgmSemanticModel, convertNewSemanticModelResult } from '@metad/cloud/state'
-import { NgmDSCoreService, effectAction } from '@metad/ocap-angular/core'
+import { NgmDSCoreService, effectAction, linkedModel } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import {
   AgentType,
@@ -20,6 +20,7 @@ import {
   isEntityType,
   nonNullable,
   omit,
+  upsertHierarchy,
   wrapHierarchyValue
 } from '@metad/ocap-core'
 import { getSemanticModelKey } from '@metad/story/core'
@@ -42,9 +43,7 @@ import {
   TSemanticModelDraft
 } from '../../../@core'
 import { dirtyCheckWith, write } from '../store'
-import { CreateEntityDialogRetType, toDimension } from './create-entity/create-entity.component'
 import {
-  DEBOUNCE_TIME,
   MODEL_TYPE,
   ModelCubeState,
   ModelDimensionState,
@@ -54,9 +53,10 @@ import {
   initDimensionSubState,
   initEntitySubState
 } from './types'
-import { upsertHierarchy } from './utils'
 import { limitSelect } from '@metad/ocap-sql'
 import { calculateHash } from '@cloud/app/@shared/utils'
+import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model'
+import { CreateEntityDialogRetType, toDimension } from './create-entity/create-entity.component'
 
 const SaveDraftDebounceTime = 2 // s
 
@@ -240,6 +240,7 @@ export class SemanticModelService {
   readonly dialect = toSignal(this.model$.pipe(map((model) => model?.dataSource?.type?.type)))
   readonly isDirty = this.dirtyCheckResult.dirty
   readonly unsaved = signal(false)
+  readonly saveDraftError = signal<string>(null)
   readonly #savedAt = signal<Date>(null)
   readonly latestPublishDate = computed(() => this.model().publishAt)
   readonly draftSavedDate = computed(() => this.#savedAt() ?? this.draftSignal().savedAt)
@@ -247,21 +248,31 @@ export class SemanticModelService {
 
   readonly canPublish = computed(() => !!(this.model().draft || this.#savedAt()))
 
+  // Schema
+  readonly schema = linkedModel({
+    initialValue: null,
+    compute: () => this.draftSignal()?.schema,
+    update: (schema) => {
+      this.updateDraft({schema})
+    }
+  })
+
   // Subscriptions
   private saveDraftSub = this.draft$.pipe(
     skip(1),
-    map(() => calculateHash(JSON.stringify(this.draftSignal()))),
+    map(() => calculateHash(JSON.stringify(omit(this.draftSignal(), 'version', 'checklist')))),
     distinctUntilChanged(),
     tap(() => this.unsaved.set(true)),
     debounceTime(SaveDraftDebounceTime * 1000),
     switchMap(() => this.saveDraft()),
     catchError((err) => {
       this.#toastr.error(getErrorMessage(err))
+      this.saveDraftError.set(getErrorMessage(err))
       return EMPTY
     })
   ).subscribe({
-    next: ({checklist}) => {
-      this.updateDraft({checklist})
+    next: ({checklist, version}) => {
+      this.updateDraft({checklist, version})
     }
   })
 
@@ -307,7 +318,7 @@ export class SemanticModelService {
       .subscribe(this.originalDataSource$)
 
     // @todo 存在不必要的注册动作，需要重构
-    this.model$.pipe(filter(nonNullable), debounceTime(DEBOUNCE_TIME), takeUntilDestroyed(this.destroyRef)).subscribe((model) => {
+    this.model$.pipe(filter(nonNullable), debounceTime(MODEL_DEBOUNCE_TIME), takeUntilDestroyed(this.destroyRef)).subscribe((model) => {
       this.registerModel()
     })
 
@@ -560,8 +571,11 @@ export class SemanticModelService {
           cubes?.map((cube: Cube) => ({
             cubeName: cube.name,
             ignoreUnrelatedDimensions: true
-          })) ?? []
-      } as Partial<MDX.VirtualCube>)
+          })) ?? [],
+        virtualCubeDimensions: [],
+        virtualCubeMeasures: [],
+        calculatedMembers: []
+      })
     }
   )
 
