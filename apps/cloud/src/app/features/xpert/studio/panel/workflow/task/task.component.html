@@ -1,21 +1,21 @@
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
-<div class="px-2 font-semibold">工具描述</div>
+<div class="px-2 font-semibold">{{ 'PAC.Xpert.ToolDescription' | translate: {Default: 'Tool Description'} }}</div>
 <div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0 font-mono">
   <textarea class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none
   placeholder:text-gray-400 caret-[#295EFF]" 
-    placeholder="{{'PAC.Xpert.AddDescription' | translate: {Default: 'Add description'} }}..."
+    placeholder="{{'PAC.Xpert.AddDescriptionPrefix' | translate: {Default: 'Add description prefix'} }}..."
     [(ngModel)]="descriptionPrefix"
   ></textarea>
 </div>
 
 <div class="px-2 font-mono text-sm whitespace-pre-line">
-  {{ other_agents_string() }}
+  {{ subAgentsDesc() }}
 </div>
 
 <div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0 font-mono">
   <textarea class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none
   placeholder:text-gray-400 caret-[#295EFF]" 
-    placeholder="{{'PAC.Xpert.AddDescription' | translate: {Default: 'Add description'} }}..."
+    placeholder="{{'PAC.Xpert.AddDescriptionSuffix' | translate: {Default: 'Add description suffix'} }}..."
     [(ngModel)]="descriptionSuffix"
   ></textarea>
 </div>

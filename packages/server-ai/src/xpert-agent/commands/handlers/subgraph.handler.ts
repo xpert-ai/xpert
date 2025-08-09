@@ -38,7 +38,7 @@ import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { XpertConfigException } from '../../../core/errors'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphParams, TAgentSubgraphResult, TStateChannel } from '../../agent'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
-import { CreateWorkflowNodeCommand } from '../../workflow'
+import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
 import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, createWorkflowAgentTools, TGraphTool } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
@@ -161,6 +161,19 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const agentTools = createWorkflowAgentTools(agentKey, graph)
 		tools.push(...agentTools.tools)
 		endNodes.push(...agentTools.endNodes)
+
+		// Workflow Task tool
+		const taskTools = await createWorkflowTaskTools(agentKey, graph, {
+			environment,
+			subscriber,
+			isDraft: command.options.isDraft,
+			mute: command.options.mute,
+			store: command.options.store,
+			commandBus: this.commandBus,
+			queryBus: this.queryBus,
+		})
+		tools.push(...taskTools.tools)
+		endNodes.push(...taskTools.endNodes)
 
 		// Additional Tools
 		if (additionalTools) {
@@ -530,7 +543,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						}).format(parameters))
 					}
 				}
-				if (!humanMessages.length && state.input) {
+				if (!humanMessages.length && state.human) {
 					// Add attachments
 					humanMessages.push(await createHumanMessage(this.commandBus, this.queryBus, state.human, agent.options?.vision))
 				}

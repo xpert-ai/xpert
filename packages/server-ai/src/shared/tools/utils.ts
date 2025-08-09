@@ -1,6 +1,6 @@
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { z } from 'zod'
-import { IWFNAgentTool, TVariableAssigner, TXpertGraph } from '@metad/contracts'
+import { IWFNAgentTool, TVariableAssigner, TXpertGraph, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { StructuredToolInterface, tool } from '@langchain/core/tools'
 import { RunnableToolLike } from '@langchain/core/runnables'
 import { createParameters } from '../agent/parameter'
@@ -40,7 +40,7 @@ export function createWorkflowAgentTools(agentKey: string, graph: TXpertGraph) {
 	const node = graph.nodes.find((n) => n.type === 'agent' && n.key === agentKey)
 
 	const connections = graph.connections.filter((c) => c.from === node.key && c.type === 'workflow')
-	graph.nodes.filter((_) => _.type === 'workflow' && connections.some((c) => c.to === _.key)).forEach((workflowNode) => {
+	graph.nodes.filter((_) => _.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL && connections.some((c) => c.to === _.key)).forEach((workflowNode) => {
 		const entity = workflowNode.entity as IWFNAgentTool
 
 		const zodSchema = z.object({

@@ -217,10 +217,6 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     options?: Partial<RunnableConfig> | undefined
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
-
-    // We set a context variable before invoking the tool node and running our tool.
-    setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input);
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let returnValue: any;
     // const config = ensureLangGraphConfig(options);
@@ -242,8 +238,10 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     if (Runnable.isRunnable(returnValue) && this.recurse) {
       return await AsyncLocalStorageProviderSingleton.runWithConfig(
         mergedConfig,
-        async () => returnValue.invoke(input, mergedConfig)
-      );
+        async () => {
+          setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input);
+          return returnValue.invoke(input, mergedConfig);
+      });
     }
 
     return returnValue;

@@ -9,3 +9,34 @@
   </div>
 </div>
   
+<div>
+  @for (execution of executions(); track execution) {
+    @switch (execution.status) {
+      @case ('running') {
+        <ngm-spin class="shrink-0 scale-90 origin-center" small />
+      }
+      @case ('fail') {
+        <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+          [matTooltip]="execution.error"
+          matTooltipPosition="above"
+        ></div>
+      }
+      @case ('success') {
+        <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+          [floatUi]="popperContent"
+          [showTrigger]="eNgxFloatUiTriggers.hover"
+          hideOnClickOutside
+          [hideOnScroll]="true"
+        >
+        </div>
+      }
+    }
+
+    <float-ui-content #popperContent>
+      <div class="text-sm text-left w-96 max-h-80 overflow-auto">
+        <div class="px-2 py-1 font-semibold">{{ 'PAC.KEY_WORDS.Input' | translate: {Default: 'Input'} }}:</div>
+        <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-nowrap"/>
+      </div>
+    </float-ui-content>
+  }
+</div>

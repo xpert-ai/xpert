@@ -250,6 +250,7 @@ export type TMessageComponentStep<T = JSONValue> = {
   end_date: Date | string
   error?: string
   data?: T
+  input?: any
 }
 
 /**

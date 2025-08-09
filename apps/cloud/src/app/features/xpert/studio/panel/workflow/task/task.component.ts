@@ -71,7 +71,7 @@ export class XpertWorkflowTaskComponent extends XpertWorkflowBaseComponent {
       .map((_) => this.draft()?.nodes.find((node) => node.key === _.to) as { type: 'agent'; entity: IXpertAgent })
   )
 
-  readonly other_agents_string = computed(() =>
+  readonly subAgentsDesc = computed(() =>
     this.subAgentNodes()
       ?.map(({ entity }: { entity: IXpertAgent }) => {
         return `- ${entity.name || entity.key}: ${entity.description || 'No description'}`

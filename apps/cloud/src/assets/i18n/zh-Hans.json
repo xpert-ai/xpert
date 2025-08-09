@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Input": "输入",
       "OR": "或",
       "Changelog": "更新日志",
       "PleaseInput": "请输入",
@@ -437,7 +438,8 @@
       "Tool": "工具",
       "ToolCall": "工具调用",
       "VariableAssigner": "变量赋值",
-      "AgentTool": "智能体工具"
+      "AgentTool": "智能体工具",
+      "TaskHandover": "任务移交"
     },
     "Environment": {
       "Environment": "环境",
@@ -3017,7 +3019,9 @@
       "AfterPublish": "发布后",
       "KnowledgeRetrieval": "知识检索",
       "Subflow": "子流程",
-      "LocalUpload": "本地上传"
+      "LocalUpload": "本地上传",
+      "AddDescriptionPrefix": "添加描述前缀",
+      "AddDescriptionSuffix": "添加描述后缀"
     },
     "MCP": {
       "Connect": "连接",

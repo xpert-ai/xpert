@@ -124,7 +124,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 									new XpertAgentExecutionOneQuery(execution.id)
 								)))
 
-								this.#logger.verbose(fullExecution)
+								// this.#logger.verbose(fullExecution)
 
 								return {
 									data: {
