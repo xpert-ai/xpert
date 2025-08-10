@@ -1,19 +1,4 @@
-import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
-import { StructuredToolInterface } from '@langchain/core/tools'
-import {
-	IXpertAgent,
-	TXpertGraph,
-	TXpertTeamNode,
-} from '@metad/contracts'
-
-export type TSubAgent = {
-	name: string
-	tool: StructuredToolInterface | RunnableToolLike
-	// node?: RunnableLike<typeof AgentStateAnnotation> | Runnable
-	stateGraph?: Runnable
-	nextNodes?: TXpertTeamNode[]
-	failNode?: TXpertTeamNode
-}
+import { IXpertAgent, TXpertGraph } from '@metad/contracts'
 
 export function parseXmlString(content: string) {
 	return content?.replace(/&lt;/g, '<').replace(/&gt;/g, '>')

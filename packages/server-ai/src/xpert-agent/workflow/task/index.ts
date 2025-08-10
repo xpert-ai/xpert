@@ -6,7 +6,6 @@ import { CompiledStateGraph } from '@langchain/langgraph'
 import {
 	channelName,
 	ChatMessageEventTypeEnum,
-	IEnvironment,
 	IWFNTask,
 	IXpertAgent,
 	IXpertAgentExecution,
@@ -21,7 +20,6 @@ import {
 } from '@metad/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
-import { Subscriber } from 'rxjs'
 import { z } from 'zod'
 import { AgentStateAnnotation, TAgentSubgraphParams, TGraphTool } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
@@ -36,9 +34,6 @@ export async function createWorkflowTaskTools(
 	agentKey: string,
 	graph: TXpertGraph,
 	params: TAgentSubgraphParams & {
-		environment: IEnvironment
-		subscriber: Subscriber<any>
-		isDraft: boolean
 		commandBus: CommandBus
 		queryBus: QueryBus
 	}
@@ -70,9 +65,6 @@ function createTaskTool(
 	taskEntity: IWFNTask,
 	graph: TXpertGraph,
 	params: TAgentSubgraphParams & {
-		environment: IEnvironment
-		subscriber: Subscriber<any>
-		isDraft: boolean
 		commandBus: CommandBus
 		queryBus: QueryBus
 	}

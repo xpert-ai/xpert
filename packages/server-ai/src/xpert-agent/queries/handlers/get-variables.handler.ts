@@ -25,17 +25,18 @@ import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
 import {
+	agentToolOutputVariables,
+	answerOutputVariables,
 	classifierOutputVariables,
 	codeOutputVariables,
 	httpOutoutVariables,
 	iteratingOutputVariables,
 	knowledgeOutputVariables,
-	subflowOutputVariables
+	subflowOutputVariables,
+	templateOutputVariables,
+	toolOutputVariables
 } from '../../workflow'
-import { templateOutputVariables } from '../../workflow/template'
-import { toolOutputVariables } from '../../workflow/tool'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
-import { answerOutputVariables } from '../../workflow/answer'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -287,6 +288,11 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					}
 					case WorkflowNodeTypeEnum.ANSWER: {
 						variables.push(...answerOutputVariables(entity))
+						varGroups.push(varGroup)
+						break
+					}
+					case WorkflowNodeTypeEnum.AGENT_TOOL: {
+						variables.push(...agentToolOutputVariables(entity))
 						varGroups.push(varGroup)
 						break
 					}

@@ -1,5 +1,13 @@
 <div fNodeInput [fInputId]="node().key" fInputConnectableSide="top" class="top absolute"></div>
 
+<div class="block relative w-full">
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true" class="right group">
+    <div class="inner-dot cursor-crosshair">
+      <i class="ri-add-line w-2 h-2 flex justify-center items-center text-white"></i>
+    </div>
+  </div>
+</div>
+
 <div class="space-y-1">
   <div class="font-mono text-sm truncate flex justify-between items-center">
     {{toolName()}}

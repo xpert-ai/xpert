@@ -373,15 +373,15 @@
         <div class="flex items-center gap-6 w-[240px]">
           <mat-slider class="relative slider grow" disableRipple discrete
             min="1"
-            max="10"
+            max="100"
             step="1" >
             <input matSliderThumb [value]="maxConcurrency()" (dragEnd)="maxConcurrency.set($event.value)">
           </mat-slider>
           <input
             min="1"
-            max="10"
+            max="100"
             step="1"
-            class="block w-12 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            class="block w-16 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
             type="number"
             [(ngModel)]="maxConcurrency"
           />
@@ -403,16 +403,16 @@
         </div>
         <div class="flex items-center gap-6 w-[240px]">
           <mat-slider class="relative slider grow" disableRipple discrete
-            min="1"
-            max="99"
-            step="1" >
+            min="10"
+            max="1000"
+            step="10" >
             <input matSliderThumb [value]="recursionLimit()" (dragEnd)="recursionLimit.set($event.value)">
           </mat-slider>
           <input
-            min="1"
-            max="99"
-            step="1"
-            class="block w-12 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            min="10"
+            max="1000"
+            step="10"
+            class="block w-16 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
             type="number"
             [(ngModel)]="recursionLimit"
           />
