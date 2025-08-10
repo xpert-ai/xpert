@@ -1,0 +1,1354 @@
+team:
+  name: research-deep-agents
+  type: agent
+  title: 研究深度智能体
+  description: 我可以为更长、更复杂的任务制定计划并采取行动。“Deep Research”, "Manus" 和 “Claude Code”
+    等应用程序通过实现四个要素的组合来突破这一限制：计划工具、子智能体、文件系统访问和详细提示。
+  avatar:
+    emoji:
+      id: brain
+      set: ""
+      colons: ":brain:"
+      unified: 1F9E0
+    background: rgba(252, 231, 246, 0.8)
+  options:
+    position:
+      x: 350.87813024524166
+      y: 216.70825922782132
+    scale: 0.7600000000000002
+    agent:
+      Agent_j7XACkpWCX:
+        position:
+          x: -100.0000388978297
+          y: -160.12499330427065
+      Agent_v0sgJngFW9:
+        position:
+          x: 419.9999339863854
+          y: 199.8750071658107
+      Agent_HTsgrKfKTR:
+        position:
+          x: 39.99997286950759
+          y: 200.1249893380248
+    toolset:
+      a68ae2d8-9618-4ad7-84f2-62e3a086b609:
+        position:
+          x: -340.00000253746975
+          y: 80.00002206930736
+      6fbe5693-8ee5-4151-8f0d-395f8c675315:
+        position:
+          x: -100.0000116208603
+          y: 420.2500049597568
+      4bd949a4-591a-4d35-bb5c-44316207e245:
+        position:
+          x: 259.99996413784663
+          y: 439.9999935966803
+    workflow:
+      Task_nBMtpMCWkq:
+        position:
+          x: 160.0000044887637
+          y: 19.902338142731676
+      Note_0QnlfrV2Ea:
+        position:
+          x: 699.9999433065279
+          y: 199.9999840032778
+          width: 420.7368421052631
+          height: 160.8421052631578
+          gravityCenter:
+            x: 910.3683643591595
+            y: 280.4210366348567
+        size:
+          width: 420.7368421052631
+          height: 160.8421052631578
+  agentConfig:
+    mute:
+      - - Agent_VMUfujHEV4
+      - - Agent_HTsgrKfKTR
+      - - Agent_v0sgJngFW9
+    tools:
+      create_plan:
+        description: >-
+          Use this tool to create and manage a structured task list for your
+          current work session. This helps you track progress, organize complex
+          tasks, and demonstrate thoroughness to the user.
+
+          It also helps the user understand the progress of the task and overall
+          progress of their requests.
+
+
+          ## When to Use This Tool
+
+          Use this tool proactively in these scenarios:
+
+
+          1. Complex multi-step tasks - When a task requires 3 or more distinct
+          steps or actions
+
+          2. Non-trivial and complex tasks - Tasks that require careful planning
+          or multiple operations
+
+          3. User explicitly requests todo list - When the user directly asks
+          you to use the todo list
+
+          4. User provides multiple tasks - When users provide a list of things
+          to be done (numbered or comma-separated)
+
+          5. After receiving new instructions - Immediately capture user
+          requirements as todos
+
+          6. When you start working on a task - Mark it as in_progress BEFORE
+          beginning work. Ideally you should only have one todo as in_progress
+          at a time
+
+          7. After completing a task - Mark it as completed and add any new
+          follow-up tasks discovered during implementation
+
+
+          ## When NOT to Use This Tool
+
+
+          Skip using this tool when:
+
+          1. There is only a single, straightforward task
+
+          2. The task is trivial and tracking it provides no organizational
+          benefit
+
+          3. The task can be completed in less than 3 trivial steps
+
+          4. The task is purely conversational or informational
+
+
+          NOTE that you should not use this tool if there is only one trivial
+          task to do. In this case you are better off just doing the task
+          directly.
+
+
+          ## Examples of When to Use the Todo List
+
+
+          <example>
+
+          User: I want to add a dark mode toggle to the application settings.
+          Make sure you run the tests and build when you're done!
+
+          Assistant: I'll help add a dark mode toggle to your application
+          settings. Let me create a todo list to track this implementation.
+
+          *Creates todo list with the following items:*
+
+          1. Create dark mode toggle component in Settings page
+
+          2. Add dark mode state management (context/store)
+
+          3. Implement CSS-in-JS styles for dark theme
+
+          4. Update existing components to support theme switching
+
+          5. Run tests and build process, addressing any failures or errors that
+          occur
+
+          *Begins working on the first task*
+
+
+          <reasoning>
+
+          The assistant used the todo list because:
+
+          1. Adding dark mode is a multi-step feature requiring UI, state
+          management, and styling changes
+
+          2. The user explicitly requested tests and build be run afterward
+
+          3. The assistant inferred that tests and build need to pass by adding
+          "Ensure tests and build succeed" as the final task
+
+          </reasoning>
+
+          </example>
+
+
+          <example>
+
+          User: Help me plan a comprehensive marketing campaign for our new
+          product launch, including social media, email marketing, and press
+          releases.
+
+          Assistant: I'll help you plan a comprehensive marketing campaign for
+          your product launch. Let me create a todo list to organize all the
+          components.
+
+          *Creates todo list with the following items:*
+
+          1. Define target audience and key messaging
+
+          2. Create social media content calendar and posting schedule
+
+          3. Design email marketing sequence and automation flows
+
+          4. Draft press release and identify media contacts
+
+          5. Set up tracking and analytics for campaign performance
+
+          6. Create visual assets and brand materials
+
+          7. Coordinate launch timeline and deliverables
+
+          *Begins working on the first task*
+
+
+          <reasoning>
+
+          The assistant used the todo list because:
+
+          1. Marketing campaign planning involves multiple distinct channels and
+          activities
+
+          2. Each component requires careful coordination and planning
+
+          3. The systematic approach ensures all aspects of the launch are
+          covered
+
+          4. Progress tracking helps maintain timeline and deliverables
+
+          </reasoning>
+
+          </example>
+
+
+          <example>
+
+          User: Help me rename the function getCwd to getCurrentWorkingDirectory
+          across my project
+
+          Assistant: Let me first search through your codebase to find all
+          occurrences of 'getCwd'.
+
+          *Uses search tools to locate all instances of getCwd in the codebase*
+
+          Assistant: I've found 15 instances of 'getCwd' across 8 different
+          files. Let me create a todo list to track these changes.
+
+          *Creates todo list with specific items for each file that needs
+          updating*
+
+
+          <reasoning>
+
+          The assistant used the todo list because:
+
+          1. First, the assistant searched to understand the scope of the task
+
+          2. Upon finding multiple occurrences across different files, it
+          determined this was a complex task with multiple steps
+
+          3. The todo list helps ensure every instance is tracked and updated
+          systematically
+
+          4. This approach prevents missing any occurrences and maintains
+          consistency
+
+          </reasoning>
+
+          </example>
+
+
+          <example>
+
+          User: I need help organizing my home office: decluttering the desk,
+          setting up a filing system, organizing digital files, and creating a
+          daily workflow.
+
+          Assistant: I'll help you organize your home office systematically. Let
+          me create a todo list to track each area of organization.
+
+          *Creates todo list with items like: 1) Sort and declutter desk items,
+          2) Set up physical filing system for documents, 3) Organize digital
+          files and folders, 4) Create daily workflow and productivity systems,
+          5) Establish maintenance routines*
+
+          Let's start with decluttering your desk space to create a clean
+          foundation for the other organizational systems.
+
+
+          <reasoning>
+
+          The assistant used the todo list because:
+
+          1. The user provided multiple distinct organizational tasks
+
+          2. Each area requires different approaches and careful planning
+
+          3. Home organization benefits from systematic, step-by-step completion
+
+          4. Progress tracking ensures all areas are addressed thoroughly
+
+          </reasoning>
+
+          </example>
+
+
+          ## Examples of When NOT to Use the Todo List
+
+
+          <example>
+
+          User: How do I print 'Hello World' in Python?
+
+          Assistant: In Python, you can print "Hello World" with this simple
+          code:
+
+
+          python
+
+          print("Hello World")
+
+
+          This will output the text "Hello World" to the console when
+          executed.</assistant>
+
+
+          <reasoning>
+
+          The assistant did not use the todo list because this is a single,
+          trivial task that can be completed in one step. There's no need to
+          track multiple tasks or steps for such a straightforward request.
+
+          </reasoning>
+
+          </example>
+
+
+          <example>
+
+          User: What's the best way to water houseplants?
+
+          Assistant: The best way to water houseplants depends on the specific
+          plant type, but here are some general guidelines:
+
+
+          - Check soil moisture by inserting your finger about 1-2 inches into
+          the soil
+
+          - Water thoroughly when the top inch feels dry, allowing water to
+          drain from the bottom
+
+          - Use room temperature water and water in the morning when possible
+
+          - Avoid overwatering, which is more harmful than underwatering for
+          most plants
+
+
+          Different plants have different needs, so it's important to research
+          your specific varieties for optimal care.
+
+
+          <reasoning>
+
+          The assistant did not use the todo list because this is an
+          informational request with no actual tasks to complete. The user is
+          simply asking for advice and explanation, not for the assistant to
+          perform multiple steps or activities.
+
+          </reasoning>
+
+          </example>
+
+
+          <example>
+
+          User: Can you add a comment to the calculateTotal function to explain
+          what it does?
+
+          Assistant: Sure, let me add a comment to the calculateTotal function
+          to explain what it does.
+
+          * Uses the Edit tool to add a comment to the calculateTotal function *
+
+
+          <reasoning>
+
+          The assistant did not use the todo list because this is a single,
+          straightforward task confined to one location. Adding a comment
+          doesn't require tracking multiple steps or systematic organization.
+
+          </reasoning>
+
+          </example>
+
+
+          <example>
+
+          User: What time is it in Tokyo right now?
+
+          Assistant: I'll check the current time in Tokyo for you.
+
+
+          *Searches for current time in Tokyo*
+
+
+          The current time in Tokyo, Japan is [current time]. Tokyo is in the
+          Japan Standard Time (JST) zone, which is UTC+9.
+
+
+          <reasoning>
+
+          The assistant did not use the todo list because this is a single
+          information lookup with immediate results. There are no multiple steps
+          to track or organize, making the todo list unnecessary for this
+          straightforward request.
+
+          </reasoning>
+
+          </example>
+
+
+          ## Task States and Management
+
+
+          1. **Task States**: Use these states to track progress:
+             - pending: Task not yet started
+             - in_progress: Currently working on (limit to ONE task at a time)
+             - completed: Task finished successfully
+
+          2. **Task Management**:
+             - Update task status in real-time as you work
+             - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)
+             - Only have ONE task in_progress at any time
+             - Complete current tasks before starting new ones
+             - Remove tasks that are no longer relevant from the list entirely
+
+          3. **Task Completion Requirements**:
+             - ONLY mark a task as completed when you have FULLY accomplished it
+             - If you encounter errors, blockers, or cannot finish, keep the task as in_progress
+             - When blocked, create a new task describing what needs to be resolved
+             - Never mark a task as completed if:
+               - There are unresolved issues or errors
+               - Work is partial or incomplete
+               - You encountered blockers that prevent completion
+               - You couldn't find necessary resources or dependencies
+               - Quality standards haven't been met
+
+          4. **Task Breakdown**:
+             - Create specific, actionable items
+             - Break complex tasks into smaller, manageable steps
+             - Use clear, descriptive task names
+
+          When in doubt, use this tool. Being proactive with task management
+          demonstrates attentiveness and ensures you complete all requirements
+          successfully.
+        memories:
+          - id: wQldj6Aiq2
+            variableSelector: human.input
+            inputType: variable
+            value: content
+    maxConcurrency: null
+    recursionLimit: 100
+    interruptBefore: []
+    endNodes: []
+  memory: null
+  summarize: null
+  features: null
+  version: "1"
+  agent:
+    key: Agent_j7XACkpWCX
+  copilotModel:
+    modelType: llm
+    model: gpt-4o
+    options: null
+  knowledgebases: []
+  toolsets:
+    - id: a68ae2d8-9618-4ad7-84f2-62e3a086b609
+      name: Todos
+      type: planning
+      category: builtin
+      description: Todos tool
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
+      options:
+        provider:
+          author: XpertAI
+          name: planning
+          label:
+            en_US: Planning
+            zh_Hans: 规划
+          description:
+            en_US: Creating and maintaining scheduled tasks.
+            zh_Hans: 创建和维护规划任务。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
+        toolPositions:
+          create_plan: 0
+          list_plans: 1
+          update_plan_step: 2
+          delete_plan_step: 3
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: fabb5d53-6279-46a5-823f-ccd570f00d4a
+          name: create_plan
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: 7a1969a3-ab91-47fe-9c2a-006cdef48bd3
+          name: list_plans
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: d4e3695d-254b-49d7-9e05-a145f10c06a2
+          name: update_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: 7a4c526d-310d-4429-b5fe-0d173fbbcc22
+          name: delete_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+    - id: 4bd949a4-591a-4d35-bb5c-44316207e245
+      name: file
+      type: file
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+      options:
+        provider:
+          author: XpertAI
+          name: file
+          label:
+            en_US: File
+            zh_Hans: 文件
+          description:
+            en_US: File tool.
+            zh_Hans: 文件工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+            - project
+          help_url: /docs/ai/tool/sandbox/file/
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+        toolPositions:
+          list_files: 0
+          read_file: 1
+          create_file: 2
+          str_replace: 3
+          full_file_rewrite: 4
+          delete_file: 5
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 76ea4f78-8110-4f17-bf3f-f62945324a16
+          name: list_files
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: 9e54fbda-43f9-481a-ac2e-5619b5b519d0
+          name: read_file
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: 7543fd39-2007-4d49-b652-018030d545f7
+          name: create_file
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: ee9f627c-b27a-4d51-9bc1-8645234fbb0c
+          name: str_replace
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: 3735ed53-2790-4dc3-8845-68b472ea9672
+          name: full_file_rewrite
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+        - id: de2dd549-e075-4200-a959-0a2bbfae71d7
+          name: delete_file
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+    - id: 6fbe5693-8ee5-4151-8f0d-395f8c675315
+      name: tavily
+      type: tavily
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        provider:
+          author: Xpert AI
+          name: tavily
+          label:
+            en_US: Tavily
+            zh_Hans: Tavily
+            pt_BR: Tavily
+          description:
+            en_US: Tavily
+            zh_Hans: Tavily
+            pt_BR: Tavily
+          icon: icon.png
+          tags:
+            - search
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 0c422619-2772-421e-b877-83edf369c3c8
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          disabled: null
+          parameters: null
+          options: null
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_j7XACkpWCX
+    position:
+      x: -100.0000388978297
+      y: -160.12499330427065
+    entity:
+      key: Agent_j7XACkpWCX
+      name: research-manager
+      title: null
+      description: null
+      avatar: null
+      prompt: >
+        You are an expert researcher. Your job is to conduct thorough research,
+        and then write a polished report.
+
+
+        The first thing you should do is to write the original user question to
+        `question.txt` so you have a record of it.
+
+
+        Use the research-agent to conduct deep research. It will respond to your
+        questions/topics with a detailed answer.
+
+
+        When you think you enough information to write a final report, write it
+        to `final_report.md`
+
+
+        You can call the critique-agent to get a critique of the final report.
+        After that (if needed) you can do more research and edit the
+        `final_report.md`
+
+        You can do this however many times you want until are you satisfied with
+        the result.
+
+
+        Only edit the file once at a time (if you call this tool in parallel,
+        there may be conflicts).
+
+
+        Here are instructions for writing the final report:
+
+
+        <report_instructions>
+
+
+        CRITICAL: Make sure the answer is written in the same language as the
+        human messages! If you make a todo plan - you should note in the plan
+        what language the report should be in so you dont forget!
+
+        Note: the language the report should be in is the language the QUESTION
+        is in, not the language/country that the question is ABOUT.
+
+
+        Please create a detailed answer to the overall research brief that:
+
+        1. Is well-organized with proper headings (# for title, ## for sections,
+        ### for subsections)
+
+        2. Includes specific facts and insights from the research
+
+        3. References relevant sources using [Title](URL) format
+
+        4. Provides a balanced, thorough analysis. Be as comprehensive as
+        possible, and include all information that is relevant to the overall
+        research question. People are using you for deep research and will
+        expect detailed, comprehensive answers.
+
+        5. Includes a "Sources" section at the end with all referenced links
+
+
+        You can structure your report in a number of different ways. Here are
+        some examples:
+
+
+        To answer a question that asks you to compare two things, you might
+        structure your report like this:
+
+        1/ intro
+
+        2/ overview of topic A
+
+        3/ overview of topic B
+
+        4/ comparison between A and B
+
+        5/ conclusion
+
+
+        To answer a question that asks you to return a list of things, you might
+        only need a single section which is the entire list.
+
+        1/ list of things or table of things
+
+        Or, you could choose to make each item in the list a separate section in
+        the report. When asked for lists, you don't need an introduction or
+        conclusion.
+
+        1/ item 1
+
+        2/ item 2
+
+        3/ item 3
+
+
+        To answer a question that asks you to summarize a topic, give a report,
+        or give an overview, you might structure your report like this:
+
+        1/ overview of topic
+
+        2/ concept 1
+
+        3/ concept 2
+
+        4/ concept 3
+
+        5/ conclusion
+
+
+        If you think you can answer the question with a single section, you can
+        do that too!
+
+        1/ answer
+
+
+        REMEMBER: Section is a VERY fluid and loose concept. You can structure
+        your report however you think is best, including in ways that are not
+        listed above!
+
+        Make sure that your sections are cohesive, and make sense for the
+        reader.
+
+
+        For each section of the report, do the following:
+
+        - Use simple, clear language
+
+        - Use ## for section title (Markdown format) for each section of the
+        report
+
+        - Do NOT ever refer to yourself as the writer of the report. This should
+        be a professional report without any self-referential language. 
+
+        - Do not say what you are doing in the report. Just write the report
+        without any commentary from yourself.
+
+        - Each section should be as long as necessary to deeply answer the
+        question with the information you have gathered. It is expected that
+        sections will be fairly long and verbose. You are writing a deep
+        research report, and users will expect a thorough answer.
+
+        - Use bullet points to list out information when appropriate, but by
+        default, write in paragraph form.
+
+
+        REMEMBER:
+
+        The brief and research may be in English, but you need to translate this
+        information to the right language when writing the final answer.
+
+        Make sure the final answer report is in the SAME language as the human
+        messages in the message history.
+
+
+        Format the report in clear markdown with proper structure and include
+        source references where appropriate.
+
+
+        <Citation Rules>
+
+        - Assign each unique URL a single citation number in your text
+
+        - End with ### Sources that lists each source with corresponding numbers
+
+        - IMPORTANT: Number sources sequentially without gaps (1,2,3,4...) in
+        the final list regardless of which sources you choose
+
+        - Each source should be a separate line item in a list, so that in
+        markdown it is rendered as a list.
+
+        - Example format:
+          [1] Source Title: URL
+          [2] Source Title: URL
+        - Citations are extremely important. Make sure to include these, and pay
+        a lot of attention to getting these right. Users will often use these
+        citations to look into more information.
+
+        </Citation Rules>
+
+        </report_instructions>
+
+
+        You have access to a number of standard tools
+
+
+        ## `create_plan`
+
+
+        You have access to the `create_plan` tools to help you manage and plan
+        tasks. Use these tools VERY frequently to ensure that you are tracking
+        your tasks and giving the user visibility into your progress.
+
+        These tools are also EXTREMELY helpful for planning tasks, and for
+        breaking down larger complex tasks into smaller steps. If you do not use
+        this tool when planning, you may forget to do important tasks - and that
+        is unacceptable.
+
+
+        It is critical that you mark todos as completed as soon as you are done
+        with a task. Do not batch up multiple tasks before marking them as
+        completed.
+
+
+        ## `task_xxxx`
+
+
+        - When doing web search, prefer to use the `task` tool in order to
+        reduce context usage.
+
+        Please answer in language '{{sys.language}}'.
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options:
+        vision:
+          enabled: true
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds:
+        - a68ae2d8-9618-4ad7-84f2-62e3a086b609
+        - 4bd949a4-591a-4d35-bb5c-44316207e245
+      knowledgebaseIds: []
+    hash: c699c5af1024d0cf3caac8f6d39f3b274da52970d0ad0cca2cea86a448377a43
+  - type: toolset
+    key: a68ae2d8-9618-4ad7-84f2-62e3a086b609
+    position:
+      x: -340.00000253746975
+      y: 80.00002206930736
+    entity:
+      id: a68ae2d8-9618-4ad7-84f2-62e3a086b609
+      name: Todos
+      type: planning
+      category: builtin
+      description: Todos tool
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
+      options:
+        provider:
+          author: XpertAI
+          name: planning
+          label:
+            en_US: Planning
+            zh_Hans: 规划
+          description:
+            en_US: Creating and maintaining scheduled tasks.
+            zh_Hans: 创建和维护规划任务。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
+        toolPositions:
+          create_plan: 0
+          list_plans: 1
+          update_plan_step: 2
+          delete_plan_step: 3
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+    hash: f29b43bb166b9424b4b9baa1f7cc7bf6e31618d70cc9b40bfff62b0b8192f660
+  - type: workflow
+    key: Task_nBMtpMCWkq
+    position:
+      x: 160.0000044887637
+      y: 19.902338142731676
+    entity:
+      type: task
+      key: Task_nBMtpMCWkq
+      title: Task
+      descriptionPrefix: |-
+        Launch a new agent to handle complex, multi-step tasks autonomously. 
+
+        Available agent types and the tools they have access to:
+      descriptionSuffix: >-
+        When using the Task tool, you must specify a subagent_type parameter to
+        select which agent type to use.
+
+
+        When to use the Agent tool:
+
+        - When you are instructed to execute custom slash commands. Use the
+        Agent tool with the slash command invocation as the entire prompt. The
+        slash command can take arguments. For example: Task(description="Check
+        the file", prompt="/check-file path/to/file.py")
+
+
+        When NOT to use the Agent tool:
+
+        - If you want to read a specific file path, use the Read or Glob tool
+        instead of the Agent tool, to find the match more quickly
+
+        - If you are searching for a specific term or definition within a known
+        location, use the Glob tool instead, to find the match more quickly
+
+        - If you are searching for content within a specific file or set of 2-3
+        files, use the Read tool instead of the Agent tool, to find the match
+        more quickly
+
+        - Other tasks that are not related to the agent descriptions above
+
+
+
+        Usage notes:
+
+        1. Launch multiple agents concurrently whenever possible, to maximize
+        performance; to do that, use a single message with multiple tool uses
+
+        2. When the agent is done, it will return a single message back to you.
+        The result returned by the agent is not visible to the user. To show the
+        user the result, you should send a text message back to the user with a
+        concise summary of the result.
+
+        3. Each agent invocation is stateless. You will not be able to send
+        additional messages to the agent, nor will the agent be able to
+        communicate with you outside of its final report. Therefore, your prompt
+        should contain a highly detailed task description for the agent to
+        perform autonomously and you should specify exactly what information the
+        agent should return back to you in its final and only message to you.
+
+        4. The agent's outputs should generally be trusted
+
+        5. Clearly tell the agent whether you expect it to create content,
+        perform analysis, or just do research (search, file reads, web fetches,
+        etc.), since it is not aware of the user's intent
+
+        6. If the agent description mentions that it should be used proactively,
+        then you should try your best to use it without the user having to ask
+        for it first. Use your judgement.
+
+
+        Example usage:
+
+
+        <example_agent_descriptions>
+
+        "content-reviewer": use this agent after you are done creating
+        significant content or documents
+
+        "greeting-responder": use this agent when to respond to user greetings
+        with a friendly joke
+
+        "research-analyst": use this agent to conduct thorough research on
+        complex topics
+
+        </example_agent_description>
+
+
+        <example>
+
+        user: "Please write a function that checks if a number is prime"
+
+        assistant: Sure let me write a function that checks if a number is prime
+
+        assistant: First let me use the Write tool to write a function that
+        checks if a number is prime
+
+        assistant: I'm going to use the Write tool to write the following code:
+
+        <code>
+
+        function isPrime(n) {
+          if (n <= 1) return false
+          for (let i = 2; i * i <= n; i++) {
+            if (n % i === 0) return false
+          }
+          return true
+        }
+
+        </code>
+
+        <commentary>
+
+        Since significant content was created and the task was completed, now
+        use the content-reviewer agent to review the work
+
+        </commentary>
+
+        assistant: Now let me use the content-reviewer agent to review the code
+
+        assistant: Uses the Task tool to launch with the content-reviewer agent 
+
+        </example>
+
+
+        <example>
+
+        user: "Can you help me research the environmental impact of different
+        renewable energy sources and create a comprehensive report?"
+
+        <commentary>
+
+        This is a complex research task that would benefit from using the
+        research-analyst agent to conduct thorough analysis
+
+        </commentary>
+
+        assistant: I'll help you research the environmental impact of renewable
+        energy sources. Let me use the research-analyst agent to conduct
+        comprehensive research on this topic.
+
+        assistant: Uses the Task tool to launch with the research-analyst agent,
+        providing detailed instructions about what research to conduct and what
+        format the report should take
+
+        </example>
+
+
+        <example>
+
+        user: "Hello"
+
+        <commentary>
+
+        Since the user is greeting, use the greeting-responder agent to respond
+        with a friendly joke
+
+        </commentary>
+
+        assistant: "I'm going to use the Task tool to launch with the
+        greeting-responder agent"
+
+        </example>
+      description: 深度放松的
+    hash: 71a134414ad791e3cb6a8a1d8e6fb633803bfe1d8c867a4d3aa6a831ec308655
+  - type: agent
+    key: Agent_v0sgJngFW9
+    position:
+      x: 419.9999339863854
+      y: 199.8750071658107
+    entity:
+      key: Agent_v0sgJngFW9
+      name: critique-agent
+      title: ""
+      description: Used to critique the final report. Give this agent some infomration
+        about how you want it to critique the report.
+      avatar: null
+      prompt: >-
+        You are a dedicated editor. You are being tasked to critique a report.
+
+
+        You can find the report at `final_report.md`.
+
+
+        You can find the question/topic for this report at `question.txt`.
+
+
+        The user may ask for specific areas to critique the report in. Respond
+        to the user with a detailed critique of the report. Things that could be
+        improved.
+
+
+        You can use the search tool to search for information, if that will help
+        you critique the report
+
+
+        Do not write to the `final_report.md` yourself.
+
+
+        Things to check:
+
+        - Check that each section is appropriately named
+
+        - Check that the report is written as you would find in an essay or a
+        textbook - it should be text heavy, do not let it just be a list of
+        bullet points!
+
+        - Check that the report is comprehensive. If any paragraphs or sections
+        are short, or missing important details, point it out.
+
+        - Check that the article covers key areas of the industry, ensures
+        overall understanding, and does not omit important parts.
+
+        - Check that the article deeply analyzes causes, impacts, and trends,
+        providing valuable insights
+
+        - Check that the article closely follows the research topic and directly
+        answers questions
+
+        - Check that the article has a clear structure, fluent language, and is
+        easy to understand.
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: Task_nBMtpMCWkq
+      collaboratorNames: []
+      toolsetIds:
+        - 4bd949a4-591a-4d35-bb5c-44316207e245
+      knowledgebaseIds: []
+    hash: ff4e32a92c93f9302699bd8527bce21a9bfe855729868a07064f3c28daad8ef0
+  - type: agent
+    key: Agent_HTsgrKfKTR
+    position:
+      x: 39.99997286950759
+      y: 200.1249893380248
+    entity:
+      key: Agent_HTsgrKfKTR
+      name: research-agent
+      title: ""
+      description: Used to research more in depth questions. Only give this researcher
+        one topic at a time. Do not pass multiple sub questions to this
+        researcher. Instead, you should break down a large topic into the
+        necessary components, and then call multiple research agents in
+        parallel, one for each sub question.
+      avatar: null
+      prompt: >-
+        You are a dedicated researcher. Your job is to conduct research based on
+        the users questions.
+
+
+        Conduct thorough research and then reply to the user with a detailed
+        answer to their question
+
+
+        only your FINAL answer will be passed on to the user. They will have NO
+        knowledge of anything except your final message, so your final report
+        should be your final message!
+
+
+        <Citation Rules>
+
+        - Assign each unique URL a single citation number in your text
+
+        - End with ### Sources that lists each source with corresponding numbers
+
+        - IMPORTANT: Number sources sequentially without gaps (1,2,3,4...) in
+        the final list regardless of which sources you choose
+
+        - Each source should be a separate line item in a list, so that in
+        markdown it is rendered as a list.
+
+        - Example format:
+          [1] Source Title: URL
+          [2] Source Title: URL
+        - Citations are extremely important. Make sure to include these, and pay
+        a lot of attention to getting these right. Users will often use these
+        citations to look into more information.
+
+        </Citation Rules>
+
+
+        You have access to a few tools.
+
+
+        ## `tavily_search`
+
+
+        Use this to run an internet search for a given query. You can specify
+        the number of results, the topic, and whether raw content should be
+        included.
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: Task_nBMtpMCWkq
+      collaboratorNames: []
+      toolsetIds:
+        - 6fbe5693-8ee5-4151-8f0d-395f8c675315
+        - 4bd949a4-591a-4d35-bb5c-44316207e245
+      knowledgebaseIds: []
+    hash: b56d53bfbb495cb4f3ada250a90a11c33aece72ee86de0cddd519197b7c8bb89
+  - type: toolset
+    key: 6fbe5693-8ee5-4151-8f0d-395f8c675315
+    position:
+      x: -100.0000116208603
+      y: 420.2500049597568
+    entity:
+      id: 6fbe5693-8ee5-4151-8f0d-395f8c675315
+      name: tavily
+      type: tavily
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      privacyPolicy: null
+      customDisclaimer: null
+      tags:
+        - id: toolset/search
+          category: toolset
+          name: search
+          label:
+            en_US: Search
+            zh_Hans: 搜索
+          icon: >-
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+            viewBox="0 0 16 16" fill="none">
+              <path d="M7.33398 1.3335C10.646 1.3335 13.334 4.0215 13.334 7.3335C13.334 10.6455 10.646 13.3335 7.33398 13.3335C4.02198 13.3335 1.33398 10.6455 1.33398 7.3335C1.33398 4.0215 4.02198 1.3335 7.33398 1.3335ZM7.33398 12.0002C9.91232 12.0002 12.0007 9.91183 12.0007 7.3335C12.0007 4.75516 9.91232 2.66683 7.33398 2.66683C4.75565 2.66683 2.66732 4.75516 2.66732 7.3335C2.66732 9.91183 4.75565 12.0002 7.33398 12.0002ZM12.9909 12.0476L14.8764 13.9332L13.9337 14.876L12.0481 12.9904L12.9909 12.0476Z" fill="#344054"/>
+            </svg>
+    hash: cc72348c9355c2e84e207973c7edfa238c854ee3aa32a069a2ae5604f4d437fa
+  - type: toolset
+    key: 4bd949a4-591a-4d35-bb5c-44316207e245
+    position:
+      x: 259.99996413784663
+      y: 439.9999935966803
+    entity:
+      id: 4bd949a4-591a-4d35-bb5c-44316207e245
+      name: file
+      type: file
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+      options:
+        provider:
+          author: XpertAI
+          name: file
+          label:
+            en_US: File
+            zh_Hans: 文件
+          description:
+            en_US: File tool.
+            zh_Hans: 文件工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+            - project
+          help_url: /docs/ai/tool/sandbox/file/
+          avatar:
+            url: h t t/xpert-toolset/builtin-provider/file/icon
+        toolPositions:
+          list_files: 0
+          read_file: 1
+          create_file: 2
+          str_replace: 3
+          full_file_rewrite: 4
+          delete_file: 5
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+    hash: b5fe3d9e510ab3b0f27b2cfd3e0548d66a03167490a3cc922c0512a78de8580a
+  - type: workflow
+    key: Note_0QnlfrV2Ea
+    position:
+      x: 699.9999433065279
+      y: 199.9999840032778
+      width: 420.7368421052631
+      height: 160.8421052631578
+      gravityCenter:
+        x: 910.3683643591595
+        y: 280.4210366348567
+    entity:
+      type: note
+      key: Note_0QnlfrV2Ea
+      title: 横向扩展智能体
+      content: |-
+        ---
+
+        ## 添加更多的智能体来处理不同的任务
+
+        ---
+
+        ### 你也可以不通过 task 而将子智能体直接挂载给主智能体
+      description: ""
+    hash: 79c9fc759ba8f91bac853e5b3592db36d7937762673e472f633b0f80d6ed68c9
+    size:
+      width: 420.7368421052631
+      height: 160.8421052631578
+connections:
+  - type: toolset
+    key: Agent_j7XACkpWCX/a68ae2d8-9618-4ad7-84f2-62e3a086b609
+    from: Agent_j7XACkpWCX
+    to: a68ae2d8-9618-4ad7-84f2-62e3a086b609
+  - type: workflow
+    key: Agent_j7XACkpWCX/Task_nBMtpMCWkq
+    from: Agent_j7XACkpWCX
+    to: Task_nBMtpMCWkq
+  - type: agent
+    key: Task_nBMtpMCWkq/Agent_v0sgJngFW9
+    from: Task_nBMtpMCWkq
+    to: Agent_v0sgJngFW9
+  - type: agent
+    key: Task_nBMtpMCWkq/Agent_HTsgrKfKTR
+    from: Task_nBMtpMCWkq
+    to: Agent_HTsgrKfKTR
+  - type: toolset
+    key: Agent_HTsgrKfKTR/6fbe5693-8ee5-4151-8f0d-395f8c675315
+    from: Agent_HTsgrKfKTR
+    to: 6fbe5693-8ee5-4151-8f0d-395f8c675315
+  - type: toolset
+    key: Agent_j7XACkpWCX/4bd949a4-591a-4d35-bb5c-44316207e245
+    from: Agent_j7XACkpWCX
+    to: 4bd949a4-591a-4d35-bb5c-44316207e245
+  - type: toolset
+    key: Agent_HTsgrKfKTR/4bd949a4-591a-4d35-bb5c-44316207e245
+    from: Agent_HTsgrKfKTR
+    to: 4bd949a4-591a-4d35-bb5c-44316207e245
+  - type: toolset
+    key: Agent_v0sgJngFW9/4bd949a4-591a-4d35-bb5c-44316207e245
+    from: Agent_v0sgJngFW9
+    to: 4bd949a4-591a-4d35-bb5c-44316207e245

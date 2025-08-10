@@ -11,6 +11,7 @@ import {
 	IXpertAgent,
 	IXpertAgentExecution,
 	STATE_VARIABLE_HUMAN,
+	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TMessageComponent,
 	TMessageComponentStep,
@@ -197,16 +198,17 @@ ${taskEntity.descriptionSuffix ?? ''}`
 
 			const lastMessage = await wrapAgentExecution(
 				async (execution) => {
-					const state = await subgraph.invoke(
+					const outputState = await subgraph.invoke(
 						{
 							[STATE_VARIABLE_HUMAN]: {
 								input: _.description
-							}
+							},
+							[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS]
 						},
 						config
 					)
 
-					const messages = state.messages
+					const messages = outputState.messages
 					const lastMessage = messages[messages.length - 1]
 
 					return {

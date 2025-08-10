@@ -263,6 +263,22 @@
             ],
             "recommendedApps": [
                 {
+                    "name": "Research Deep Agents",
+                    "type": "agent",
+                    "title": "研究深度智能体",
+                    "description": "1比1复刻 Langchain 的 Deep Agents (https://github.com/hwchase17/deepagents)。我可以为更长、更复杂的任务制定计划并采取行动。“Deep Research”, “Manus” 和 “Claude Code”等应用程序通过实现四个要素的组合来突破这一限制：计划工具、子智能体、文件系统访问和详细提示。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "brain"
+                        },
+                        "background": "rgba(252, 231, 246, 0.8)"
+                    },
+                    "id": "01f32870-ec9d-4a3d-b3f6-86c62aad04f7",
+                    "category": "Writing",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
                     "name": "Open Deep Researcher",
                     "type": "agent",
                     "title": "开放深度调研员",

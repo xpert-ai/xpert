@@ -297,8 +297,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
 		// Fixed Edge
 		const edges: Record<string, string> = {}
+		// Add task nodes and edges
 		taskTools.tools.forEach((_) => {
 			nodes[_.tool.name] = {graph: _.graph, ends: []}
+			// Return to agent who calls it
+			edges[_.tool.name] = _.caller
 		})
 
 		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool), ...(handoffTools ?? [])]
