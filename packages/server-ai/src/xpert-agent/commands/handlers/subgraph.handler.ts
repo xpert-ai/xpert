@@ -139,6 +139,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			items.filter((tool) => availableTools.length ? availableTools.includes(tool.name) : true)
 			  .forEach((tool) => {
 				const lc_name = tool instanceof DynamicStructuredTool ? tool.name : get_lc_unique_name(tool.constructor as typeof Serializable)
+				if (team.agentConfig?.tools?.[lc_name]?.description) {
+					tool.description = team.agentConfig.tools[lc_name].description
+				}
 				tools.push({
 					toolset: {
 						provider: toolset.providerName,
@@ -147,7 +150,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					},
 					caller: agent.key, 
 					tool, 
-					variables: team.agentConfig?.toolsMemory?.[lc_name],
+					variables: team.agentConfig?.tools?.[lc_name]?.memories || team.agentConfig?.toolsMemory?.[lc_name],
 				})
 
 				// Add sensitive tools into interruptBefore
@@ -288,17 +291,22 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 		}
 
-		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool), ...(handoffTools ?? [])]
-		const summarize = ensureSummarize(team.summarize)
-		// Next agent
-		let nextNodeKey: string[] = []
-		// let failNodeKey = fail[0] ? fail[0].key : END
-		const agentKeys = new Set([agent.key])
+		// Graph nodes
 		const nodes: Record<string, {ends: string[]; graph: Runnable;}> = {}
 		// Conditional Edges
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
 		// Fixed Edge
 		const edges: Record<string, string> = {}
+		taskTools.tools.forEach((_) => {
+			nodes[_.tool.name] = {graph: _.graph, ends: []}
+		})
+
+		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool), ...(handoffTools ?? [])]
+		const summarize = ensureSummarize(team.summarize)
+		// Next agent
+		let nextNodeKey: string[] = []
+		const agentKeys = new Set([agent.key])
+		
 		// Channels of workflow
 		const channels: TStateChannel[] = []
 		const startNodes = findStartNodes(getCurrentGraph(graph, agent.key), agent.key).filter((_) => _ !== agent.key)
@@ -681,7 +689,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Add nodes for tools
-		tools?.forEach(({ caller, tool, variables, toolset }) => {
+		tools?.filter((_) => !_.graph).forEach(({ caller, tool, variables, toolset }) => {
 			const name = tool.name
 			const ends = []
 			if (endNodes?.includes(tool.name)) {

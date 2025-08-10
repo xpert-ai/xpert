@@ -135,6 +135,13 @@ export class XpertStudioApiService {
     return null
   })
   readonly xpert = computed(() => this.viewModel()?.team)
+  readonly agentConfig = linkedModel({
+    initialValue: null,
+    compute: () => this.xpert()?.agentConfig,
+    update: (config) => {
+      this.updateXpertAgentConfig(config)
+    }
+  })
 
   // knowledgebases
   readonly knowledgebases$ = toObservable(this.workspaceId).pipe(
@@ -516,6 +523,9 @@ export class XpertStudioApiService {
     }, reason)
   }
 
+  /**
+   * @deprecated use `agentConfig` model
+   */
   public updateXpertAgentConfig(config: Partial<TXpertAgentConfig>, reason = EReloadReason.XPERT_UPDATED) {
     this.updateXpertTeam((xpert) => {
       return {

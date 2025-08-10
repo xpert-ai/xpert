@@ -5,7 +5,7 @@ import {
   isBaseMessage,
 } from "@langchain/core/messages";
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
-import { StructuredToolInterface, tool } from "@langchain/core/tools";
+import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
 import { Command, isCommand, isGraphInterrupt } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
@@ -222,6 +222,8 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     // const config = ensureLangGraphConfig(options);
     const mergedConfig = mergeConfigs(this.config, options);
 
+    setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input);
+
     if (this.trace) {
       returnValue = await this._callWithConfig(
         this._tracedInvoke,
@@ -239,7 +241,6 @@ export class ToolNode<T = any> extends Runnable<T, T> {
       return await AsyncLocalStorageProviderSingleton.runWithConfig(
         mergedConfig,
         async () => {
-          setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input);
           return returnValue.invoke(input, mergedConfig);
       });
     }

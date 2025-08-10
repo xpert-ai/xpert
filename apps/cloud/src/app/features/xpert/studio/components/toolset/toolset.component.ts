@@ -14,6 +14,8 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { NgxFloatUiModule, NgxFloatUiTriggers } from 'ngx-float-ui'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
@@ -26,7 +28,7 @@ import { XpertStudioNodeStatus } from '../../types'
   styleUrls: ['./toolset.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, NgmI18nPipe, EmojiAvatarComponent, NgmSpinComponent],
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, NgxFloatUiModule, NgmSpinComponent, NgxJsonViewerModule, NgmI18nPipe, EmojiAvatarComponent],
   host: {
     tabindex: '-1',
     '[class]': 'status()'
@@ -34,6 +36,7 @@ import { XpertStudioNodeStatus } from '../../types'
 })
 export class XpertStudioNodeToolsetComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
+  eNgxFloatUiTriggers = NgxFloatUiTriggers
 
   readonly elementRef = inject(ElementRef)
   readonly apiService = inject(XpertStudioApiService)

@@ -2,7 +2,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema'
 import { z } from 'zod'
 import { IWFNAgentTool, TVariableAssigner, TXpertGraph, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { StructuredToolInterface, tool } from '@langchain/core/tools'
-import { RunnableToolLike } from '@langchain/core/runnables'
+import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
 import { createParameters } from '../agent/parameter'
 type ZodObjectAny = z.ZodObject<any, any, any, any>
 
@@ -22,16 +22,34 @@ export function toolNamePrefix(prefix: string, name: string) {
 	return `${prefix ? prefix + '__' : ''}${name}`
 }
 
-
+/**
+ * Intermediate communication type of creating tools
+ */
 export type TGraphTool = {
+	/**
+	 * Agent who is calling the tool
+	 */
 	caller: string
+	/**
+	 * Toolset info
+	 */
 	toolset: {
 		provider: string
 		title: string
 		id?: string
 	}
+	/**
+	 * Tool definition
+	 */
 	tool: StructuredToolInterface | RunnableToolLike
+	/**
+	 * Variables
+	 */
 	variables?: TVariableAssigner[]
+	/**
+	 * Subgraph node for the tool, otherwise use tool itself
+	 */
+	graph?: Runnable
 }
 
 export function createWorkflowAgentTools(agentKey: string, graph: TXpertGraph) {

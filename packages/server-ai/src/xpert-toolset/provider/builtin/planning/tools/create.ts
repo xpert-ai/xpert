@@ -5,6 +5,7 @@ import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
 import {
 	ChatMessageEventTypeEnum,
 	CONTEXT_VARIABLE_CURRENTSTATE,
+	getToolCallIdFromConfig,
 	mapTranslationLanguage,
 	STATE_VARIABLE_SYS
 } from '@metad/contracts'
@@ -49,7 +50,7 @@ export class PlanningCreateTool extends BuiltinTool {
 		const { subscriber } = config?.configurable ?? {}
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 		const lang = currentState[STATE_VARIABLE_SYS]?.language
-		const toolCallId = config.toolCall?.id
+		const toolCallId = getToolCallIdFromConfig(config)
 
 		const plan = {
 			title: parameters.title,

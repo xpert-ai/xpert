@@ -13,6 +13,7 @@ import {
   getToolLabel,
   injectHelpWebsite,
   injectToastr,
+  IXpertTool,
   IXpertToolset,
   TVariableAssigner,
   TXpertTeamNode,
@@ -24,7 +25,7 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
 import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit, uniq } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -79,8 +80,9 @@ export class XpertStudioPanelToolsetComponent {
   // Toolset node
   readonly toolset = computed(() => this.node()?.entity as IXpertToolset)
   readonly toolsetId = computed(() => this.toolset()?.id)
-  readonly agentConfig = computed(() => this.xpert()?.agentConfig)
+  readonly agentConfig = this.studioService.agentConfig
   readonly positions = computed(() => this.toolset()?.options?.toolPositions)
+  readonly _tools = attrModel(this.agentConfig, 'tools')
 
   // Refresh toolset details
   readonly toolsetDetail = derivedAsync(() => {
@@ -113,18 +115,6 @@ export class XpertStudioPanelToolsetComponent {
   readonly tools = computed(() => getEnabledTools(this.toolsetDetail())?.map((tool) => ({tool, label: getToolLabel(tool)})))
 
   readonly expandTools = signal<Record<string, boolean>>({})
-
-  // readonly variables = derivedAsync(() => {
-  //   const xpertId = this.xpertId()
-  //   return xpertId
-  //     ? this.studioService.getVariables({xpertId, type: 'output'}).pipe(
-  //         catchError((error) => {
-  //           this.#toastr.error(getErrorMessage(error))
-  //           return of([])
-  //         })
-  //       )
-  //     : of(null)
-  // })
 
   readonly varOptions = computed<TXpertVariablesOptions>(() => {
     return {
@@ -182,23 +172,44 @@ export class XpertStudioPanelToolsetComponent {
   }
 
   toolMemory(name: string) {
-    return this.agentConfig()?.toolsMemory?.[name]
+    return this._tools()?.[name]?.memories
   }
 
   toggleToolMemory(name: string, value: boolean) {
-    this.xpertStudioComponent.updateXpertAgentConfig({
-      toolsMemory: {
-        ...(this.agentConfig()?.toolsMemory ?? {}),
-        [name]: value ? [] : null
+    this._tools.update((state) => {
+      return {
+        ...(state ?? {}),
+        [name]: {
+          ...(state?.[name] ?? {}),
+          memories: value ? [] : null
+        }
       }
     })
   }
 
   updateToolMemory(name: string, value: TVariableAssigner[]) {
-    this.xpertStudioComponent.updateXpertAgentConfig({
-      toolsMemory: {
-        ...(this.agentConfig()?.toolsMemory ?? {}),
-        [name]: value
+    this._tools.update((state) => {
+      return {
+        ...(state ?? {}),
+        [name]: {
+          ...(state?.[name] ?? {}),
+          memories: value
+        }
+      }
+    })
+  }
+
+  getToolDescription(name: string, tool: IXpertTool) {
+    return this._tools()?.[name]?.description || tool.description
+  }
+  updateToolDescription(name: string, description: string) {
+    this._tools.update((state) => {
+      return {
+        ...(state ?? {}),
+        [name]: {
+          ...(state?.[name] ?? {}),
+          description
+        }
       }
     })
   }

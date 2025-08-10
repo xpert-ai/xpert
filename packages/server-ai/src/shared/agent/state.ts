@@ -58,7 +58,7 @@ export const AgentStateAnnotation = Annotation.Root({
 		default: () => ({} as TChatRequestHuman)
 	}),
 	/**
-	 * @deprecated Is it still in use?
+	 * Temporarily transfer tool call information between nodes
 	 */
 	toolCall: Annotation<TToolCall>({
 		reducer: (a, b) => b ?? a,

@@ -1,17 +1,19 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { ToolMessage } from '@langchain/core/messages'
+import { RunnableLambda } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
 import { CompiledStateGraph } from '@langchain/langgraph'
 import {
 	channelName,
 	ChatMessageEventTypeEnum,
-	getToolCallIdFromConfig,
 	IEnvironment,
 	IWFNTask,
 	IXpertAgent,
 	IXpertAgentExecution,
 	STATE_VARIABLE_HUMAN,
 	TAgentRunnableConfigurable,
+	TMessageComponent,
+	TMessageComponentStep,
 	TXpertGraph,
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum
@@ -20,7 +22,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import { Subscriber } from 'rxjs'
 import { z } from 'zod'
-import { TAgentSubgraphParams, TGraphTool } from '../../../shared'
+import { AgentStateAnnotation, TAgentSubgraphParams, TGraphTool } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 
@@ -98,102 +100,15 @@ function createTaskTool(
 ${subAgentsDesc}
 ${taskEntity.descriptionSuffix ?? ''}`
 
+	const toolName = taskEntity.key.toLowerCase()
 	// Subagent graph tool
 	return {
 		tool: tool(
 			async (_, config) => {
-				const configurable = config.configurable as TAgentRunnableConfigurable
-				const { xpertId, thread_id, checkpoint_ns, checkpoint_id, executionId } = configurable
-				const toolCallId = getToolCallIdFromConfig(config)
-				const agentNode = agentNodes.find((node) => node.name === _.subagent_type)
-				if (!agentNode) {
-					throw new Error(
-						`invoked agent of type ${_.subagent_type}, the only allowed types are ${agentNodes.map((node) => node.name).join(', ')}`
-					)
-				}
-
-				// Update event message
-				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-					id: toolCallId,
-					category: 'Tool',
-					message: `${agentNode.title || agentNode.key}: ` + _.description
-				})
-
-				// Instantiate sub-agent graph
-				const agentKey = agentNode.key
-				const abortController = new AbortController()
-				const execution: IXpertAgentExecution = {
-					category: 'agent',
-					inputs: { input: _.description },
-					parentId: executionId,
-					threadId: thread_id,
-					checkpointNs: checkpoint_ns,
-					checkpointId: checkpoint_id,
-					agentKey,
-					title: agentNode.title
-				}
-
 				//
-				const compiled = await params.commandBus.execute<
-					XpertAgentSubgraphCommand,
-					{ agent: IXpertAgent; graph: CompiledStateGraph<any, any, any> }
-				>(
-					new XpertAgentSubgraphCommand(
-						agentKey,
-						{ id: xpertId },
-						{
-							thread_id,
-							isDraft: params.isDraft,
-							mute: params.mute,
-							store: params.store,
-							isStart: true,
-							rootController: abortController,
-							signal: abortController.signal,
-							execution: execution,
-							subscriber: params.subscriber,
-							disableCheckpointer: true,
-							channel: channelName(agentKey),
-							partners: [],
-							environment: params.environment
-						}
-					)
-				)
-				const subgraph = compiled.graph
-
-				const lastMessage = await wrapAgentExecution(
-					async (execution) => {
-						const state = await subgraph.invoke(
-							{
-								[STATE_VARIABLE_HUMAN]: {
-									input: _.description
-								}
-							},
-							config
-						)
-
-						const messages = state.messages
-						const lastMessage = messages[messages.length - 1]
-
-						return {
-							state: lastMessage,
-							output: lastMessage.content
-						}
-					},
-					{
-						commandBus: params.commandBus,
-						queryBus: params.queryBus,
-						subscriber: params.subscriber,
-						execution: execution
-					}
-				)()
-
-				return new ToolMessage({
-					tool_call_id: toolCallId,
-					content: lastMessage.content
-				})
 			},
 			{
-				name: taskEntity.key.toLowerCase(),
+				name: toolName,
 				description,
 				schema: z.object({
 					description: z.string().optional().nullable().describe('Task description'),
@@ -206,6 +121,131 @@ ${taskEntity.descriptionSuffix ?? ''}`
 			provider: 'workflow_task',
 			title: t('server-ai:Xpert.TaskHandover'),
 			id: ''
-		}
+		},
+		graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
+			const configurable = config.configurable as TAgentRunnableConfigurable
+			const { xpertId, thread_id, checkpoint_ns, checkpoint_id, executionId } = configurable
+			const toolCall = state.toolCall
+			const _ = toolCall.args
+			const toolCallId = toolCall.id
+
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCallId,
+				category: 'Tool',
+				title: t('server-ai:Xpert.TaskHandover'),
+				toolset: 'workflow_task',
+				tool: toolName,
+				status: 'running',
+				created_date: new Date().toISOString(),
+				input: _
+			} as TMessageComponent<Partial<TMessageComponentStep>>)
+
+			const agentNode = agentNodes.find((node) => node.name === _.subagent_type)
+			if (!agentNode) {
+				throw new Error(
+					`invoked agent of type ${_.subagent_type}, the only allowed types are ${agentNodes.map((node) => node.name).join(', ')}`
+				)
+			}
+
+			// Update event message
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCallId,
+				category: 'Tool',
+				message: `${agentNode.title || agentNode.key}: ` + _.description
+			})
+
+			// Instantiate sub-agent graph
+			const agentKey = agentNode.key
+			const abortController = new AbortController()
+			const execution: IXpertAgentExecution = {
+				category: 'agent',
+				inputs: { input: _.description },
+				parentId: executionId,
+				threadId: thread_id,
+				checkpointNs: checkpoint_ns,
+				checkpointId: checkpoint_id,
+				agentKey,
+				title: agentNode.title
+			}
+
+			//
+			const compiled = await params.commandBus.execute<
+				XpertAgentSubgraphCommand,
+				{ agent: IXpertAgent; graph: CompiledStateGraph<any, any, any> }
+			>(
+				new XpertAgentSubgraphCommand(
+					agentKey,
+					{ id: xpertId },
+					{
+						thread_id,
+						isDraft: params.isDraft,
+						mute: params.mute,
+						store: params.store,
+						isStart: true,
+						rootController: abortController,
+						signal: abortController.signal,
+						execution: execution,
+						subscriber: params.subscriber,
+						disableCheckpointer: true,
+						channel: channelName(agentKey),
+						partners: [],
+						environment: params.environment
+					}
+				)
+			)
+			const subgraph = compiled.graph
+
+			const lastMessage = await wrapAgentExecution(
+				async (execution) => {
+					const state = await subgraph.invoke(
+						{
+							[STATE_VARIABLE_HUMAN]: {
+								input: _.description
+							}
+						},
+						config
+					)
+
+					const messages = state.messages
+					const lastMessage = messages[messages.length - 1]
+
+					return {
+						state: lastMessage,
+						output: lastMessage.content
+					}
+				},
+				{
+					commandBus: params.commandBus,
+					queryBus: params.queryBus,
+					subscriber: params.subscriber,
+					execution: execution
+				}
+			)()
+
+			// End execution event
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCallId,
+				category: 'Tool',
+				status: 'success',
+				end_date: new Date().toISOString()
+			} as TMessageComponent<Partial<TMessageComponentStep>>)
+
+			return {
+				messages: [
+					new ToolMessage({
+						tool_call_id: toolCall.id,
+						content: lastMessage.content
+					})
+				],
+				[channelName(caller)]: {
+					messages: [
+						new ToolMessage({
+							tool_call_id: toolCall.id,
+							content: lastMessage.content
+						})
+					]
+				}
+			}
+		})
 	} as TGraphTool
 }

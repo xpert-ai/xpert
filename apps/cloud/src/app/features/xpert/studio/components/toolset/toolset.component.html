@@ -35,54 +35,70 @@
   (wheel)="$event.stopPropagation()"
 >
   @for (item of tools(); track item.tool.id) {
-    <div class="relative flex items-center gap-1 p-2 text-left rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
+    <div class="relative flex flex-col p-2 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
       [matTooltip]="item.tool.description"
       matTooltipPosition="after"
     >
-      @for (execution of item.executions; track execution) {
-        @switch (execution.status) {
-          @case ('running') {
-            <ngm-spin class="shrink-0 scale-90 origin-center" small />
-          }
-          @case ('fail') {
-            <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-              [matTooltip]="execution.error"
-              matTooltipPosition="above"
-            ></div>
-          }
-          @case ('success') {
-            <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-              [matTooltip]="execution.message"
-              matTooltipPosition="above"
-            >
-            </div>
-          }
+      <div class="flex items-center gap-1 px-1 text-left">
+        @if (isSensitive(item.tool.name)) {
+          <i class="ri-shield-keyhole-line shrink-0 text-lg leading-4 text-text-warning"
+            [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
+            matTooltipPosition="above"></i>
         }
-      }
-      
-      @if (isSensitive(item.tool.name)) {
-        <i class="ri-shield-keyhole-line shrink-0 text-lg leading-4 text-text-warning"
-          [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
-          matTooltipPosition="above"></i>
-      }
-      <span class="truncate whitespace-nowrap" [title]="item.tool.description || item.tool.name">
-        {{item.label | i18n}}
-      </span>
-      <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
-        {{item.tool.name}}
+        <span class="truncate whitespace-nowrap" [title]="item.tool.description || item.tool.name">
+          {{item.label | i18n}}
+        </span>
+        <span class="flex-1"></span>
+        <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
+          {{item.tool.name}}
+        </div>
+        @if (hasMemory(item.tool.name)) {
+          <i class="ri-brain-fill shrink-0 text-lg leading-4 text-text-secondary"
+            [matTooltip]="'PAC.Xpert.ToolMemoryTip' | translate: {Default: 'Tool memory, storing tool results in agent state variables'}"
+            matTooltipPosition="above"></i>
+        }
+        @if (isEnd(item.tool.name)) {
+          <i class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
+            [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'Terminal tool, the run of chat ends when tool completed'}"
+            matTooltipPosition="above"></i>
+        }
       </div>
-      <span class="flex-1"></span>
 
-      @if (hasMemory(item.tool.name)) {
-        <i class="ri-brain-fill shrink-0 text-lg leading-4 text-text-secondary"
-          [matTooltip]="'PAC.Xpert.ToolMemoryTip' | translate: {Default: 'Tool memory, storing tool results in agent state variables'}"
-          matTooltipPosition="above"></i>
-      }
-      @if (isEnd(item.tool.name)) {
-        <i class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
-          [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'Terminal tool, the run of chat ends when tool completed'}"
-          matTooltipPosition="above"></i>
-      }
+      <div class="flex flex-wrap gap-1 px-1">
+        @for (execution of item.executions; track execution) {
+          <div>
+            @switch (execution.status) {
+              @case ('running') {
+                <ngm-spin class="shrink-0 scale-90 origin-center" small />
+              }
+              @case ('fail') {
+                <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                  [matTooltip]="execution.error"
+                  matTooltipPosition="above"
+                ></div>
+              }
+              @case ('success') {
+                <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                  [floatUi]="popperContent"
+                  [appendTo]="'body'"
+                  [showTrigger]="eNgxFloatUiTriggers.hover"
+                  hideOnClickOutside
+                  [hideOnScroll]="true"
+                  [hideTimeout]="200"
+                >
+                </div>
+              }
+            }
+
+            <float-ui-content #popperContent>
+              <div class="text-sm text-left w-96 max-h-80 overflow-auto">
+                <div class="px-2 py-1 font-semibold">{{ 'PAC.KEY_WORDS.Input' | translate: {Default: 'Input'} }}:</div>
+                <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-pre-wrap"/>
+              </div>
+            </float-ui-content>
+          </div>
+        }
+      </div>
     </div>
   }
 
