@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.pentaho</groupId>
+    <artifactId>pentaho-ce-parent-pom</artifactId>
+    <version>9.4.0.0-343</version>
+  </parent>
+  
+  <groupId>org.pentaho</groupId>
+  <artifactId>pentaho-ce-jar-parent-pom</artifactId>
+  <version>9.4.0.0-343</version>
+  <packaging>pom</packaging>
+
+  <name>Pentaho Community Edition Project Parent POM For Java Projects</name>
+  <description>parent pom for Pentaho CE Java projects</description>
+  <url>http://wwww.pentaho.org</url>
+  
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  
+  <modules>
+    <module>pentaho-ce-bundle-parent-pom</module>
+  </modules>
+
+  <properties>
+    <!-- VERSIONS -->
+    <junit.version>4.11</junit.version>
+
+    <!-- http://maven.apache.org/surefire/maven-surefire-plugin/examples/fork-options-and-parallel-execution.html -->
+    <maven.test.failure.ignore>false</maven.test.failure.ignore>
+    <maven-surefire-plugin.reuseForks>true</maven-surefire-plugin.reuseForks>   <!-- default setting is reuseForks = true -->
+    <maven-surefire-plugin.forkCount>1</maven-surefire-plugin.forkCount>        <!-- default setting is forkCount = 1 -->
+    <maven-surefire-plugin.testFailureIgnore>${maven.test.failure.ignore}</maven-surefire-plugin.testFailureIgnore>
+    <maven-surefire-plugin.argLine/>
+    <maven-surefire-plugin.ci.argLine/>
+    <maven-failsafe-plugin.reuseForks>true</maven-failsafe-plugin.reuseForks>   <!-- default setting is reuseForks = true -->
+    <maven-failsafe-plugin.forkCount>1</maven-failsafe-plugin.forkCount>        <!-- default setting is forkCount = 1 -->
+    <maven-failsafe-plugin.testFailureIgnore>${maven.test.failure.ignore}</maven-failsafe-plugin.testFailureIgnore>
+    <maven-failsafe-plugin.argLine/>
+    <maven-failsafe-plugin.ci.argLine/>
+
+    <SCM_BRANCH>master</SCM_BRANCH>
+    
+    <jacocoSurefireArgLine/> <!-- this is set by jacoco's prepare-agent execution -->
+    <jacocoFailsafeArgLine/> <!-- this is set by jacoco's prepare-agent execution -->
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-test</id>
+            <phase>${test-unit-execute-phase}</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <argLine>-Dfile.encoding=${project.build.sourceEncoding} @{jacocoSurefireArgLine} ${maven-surefire-plugin.argLine} ${maven-surefire-plugin.ci.argLine}</argLine>
+              <forkCount>${maven-surefire-plugin.forkCount}</forkCount>
+              <reuseForks>${maven-surefire-plugin.reuseForks}</reuseForks>
+              <testFailureIgnore>${maven-surefire-plugin.testFailureIgnore}</testFailureIgnore>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>${attach-sources-phase}</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <profiles>
+    <profile>
+      <id>test-integration</id>
+      <activation>
+        <property>
+          <name>runITs</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- only used in audit mode -->
+        <test-integration_jacoco-agent-prep-phase>pre-integration-test</test-integration_jacoco-agent-prep-phase>
+        <test-integration_jacoco-report-phase>verify</test-integration_jacoco-report-phase>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>test-integration_add-resources</id>
+                <phase>${test-integration_add-resources-phase}</phase>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/it-classes</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>src/it/resources</directory>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>test-integration_add-source</id>
+                <phase>${test-integration_add-source-phase}</phase>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/it/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>test-integration_compile</id>
+                <phase>${test-integration_compile-phase}</phase>
+                <goals>
+                  <goal>testCompile</goal>
+                </goals>
+                <configuration>
+                  <testExcludes>
+                    <testExcludes>**/*Test.java</testExcludes>
+                  </testExcludes>
+                  <outputDirectory>${project.build.directory}/it-classes</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>test-integration_execute</id>
+                <phase>${test-integration_execute-phase}</phase>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>test-integration_report</id>
+                <phase>${test-integration_report-phase}</phase>
+                <goals>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <argLine>-Dfile.encoding=${project.build.sourceEncoding} @{jacocoFailsafeArgLine} ${maven-failsafe-plugin.argLine} ${maven-failsafe-plugin.ci.argLine}</argLine>
+              <forkCount>${maven-failsafe-plugin.forkCount}</forkCount>
+              <reuseForks>${maven-failsafe-plugin.reuseForks}</reuseForks>
+              <testClassesDirectory>${project.build.directory}/it-classes</testClassesDirectory>
+              <testFailureIgnore>${maven-failsafe-plugin.testFailureIgnore}</testFailureIgnore>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>javadoc</id>
+      <activation>
+        <property>
+          <name>javadoc</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>attach-javadoc</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+                <configuration>
+                  <additionalparam>-Xdoclint:none</additionalparam>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    
+  </profiles>
+</project>
