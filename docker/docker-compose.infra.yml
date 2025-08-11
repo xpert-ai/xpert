@@ -110,6 +110,15 @@ services:
     networks:
       - milvus
 
+  # Crawl services
+  crawl4ai:
+    image: unclecode/crawl4ai:0.7
+    profiles:
+      - crawl4ai
+    ports:
+      - "11235:11235"
+    shm_size: 1g
+
   # Databases services
 
   # mysqldb:
