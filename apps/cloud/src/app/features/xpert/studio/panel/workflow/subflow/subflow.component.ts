@@ -6,7 +6,6 @@ import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app
 import { attrModel, linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  getErrorMessage,
   IWFNSubflow,
   IWorkflowNode,
   TXpertTeamNode,
@@ -14,8 +13,6 @@ import {
   XpertAgentExecutionStatusEnum,
   XpertService
 } from 'apps/cloud/src/app/@core'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
@@ -64,34 +61,6 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
   readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.subflow()?.key)?.to)
   readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
   readonly subXpertAgentKey = computed(() => this.subXpert()?.entity.agent?.key)
-
-  // readonly subAgentVariables = derivedAsync(() => {
-  //   const xpertId = this.xpertId()
-  //   const nodeKey = this.subAgentKey()
-  //   return xpertId && nodeKey
-  //     ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
-  //         catchError((error) => {
-  //           this._toastr.error(getErrorMessage(error))
-  //           return of([])
-  //         })
-  //       )
-  //     : of(null)
-  // })
-
-  // readonly extXpertVariables = derivedAsync(() => {
-  //   const xpertId = this.subXpertKey()
-  //   const nodeKey = this.subXpertAgentKey()
-  //   return xpertId && nodeKey
-  //     ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
-  //         catchError((error) => {
-  //           this._toastr.error(getErrorMessage(error))
-  //           return of([])
-  //         })
-  //       )
-  //     : of(null)
-  // })
-
-  // readonly subVariables = computed(() => this.extXpertVariables() ?? this.subAgentVariables())
 
   readonly subVarOptions = computed<TXpertVariablesOptions>(() => {
     return {

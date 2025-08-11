@@ -85,6 +85,9 @@
   @case (eWorkflowNodeTypeEnum.AGENT_TOOL) {
     <xpert-workflow-agent-tool [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.TASK) {
+    <xpert-workflow-task [node]="node()" [entity]="wfNode()" />
+  }
   @case (eWorkflowNodeTypeEnum.NOTE) {
     <xpert-workflow-note [node]="node()" [entity]="wfNode()" />
   }

@@ -221,7 +221,7 @@ export type TXpertAgentConfig = {
   stateVariables?: TStateVariable[]
 
   /**
-   * Memory assigner for tool's results. (save result of tool call into state variable)
+   * @deprecated use memories in tools
    */
   toolsMemory?: Record<string, TVariableAssigner[]>
 
@@ -248,6 +248,18 @@ export type TXpertAgentConfig = {
     disable?: boolean
     instruction?: string
   }
+
+  tools?: Record<string, {
+    /**
+     * Memory assigner for tool's results. (save result of tool call into state variable)
+     */
+    memories?: TVariableAssigner[]
+    timeout?: number
+    /**
+     * Custom description for the tool
+     */
+    description?: string
+  }>
 }
 
 export type TStateVariableType = XpertParameterTypeEnum | 'object' | 'array[string]' | 'array[number]' | 'array[object]'

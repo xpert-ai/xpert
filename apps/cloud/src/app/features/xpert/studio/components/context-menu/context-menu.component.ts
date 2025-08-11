@@ -23,7 +23,11 @@ import {
   IXpertToolset,
   IToolProvider,
   XpertToolsetCategoryEnum,
-  IWFNAssigner
+  IWFNAssigner,
+  IWFNTask,
+  IWFNAgentTool,
+  TASK_DESCRIPTION_PREFIX,
+  TASK_DESCRIPTION_SUFFIX
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
@@ -40,7 +44,8 @@ import {
   genXpertSubflowKey,
   genXpertTemplateKey,
   genXpertToolKey,
-  genXpertAgentToolKey
+  genXpertAgentToolKey,
+  genXpertTaskKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
@@ -292,7 +297,17 @@ export class XpertStudioContextMenuComponent {
       type: WorkflowNodeTypeEnum.AGENT_TOOL,
       key: genXpertAgentToolKey(),
       title: this.#translate.instant('PAC.Workflow.AgentTool', { Default: 'Agent Tool' })
-    } as IWorkflowNode)
+    } as IWFNAgentTool)
+  }
+
+  addWorkflowTask() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.TASK,
+      key: genXpertTaskKey(),
+      title: this.#translate.instant('PAC.Workflow.Task', { Default: 'Task' }),
+      descriptionPrefix: TASK_DESCRIPTION_PREFIX,
+      descriptionSuffix: TASK_DESCRIPTION_SUFFIX
+    } as IWFNTask)
   }
 
   onSelectToolset({toolset, provider}: {toolset?: IXpertToolset; provider?: IToolProvider}) {

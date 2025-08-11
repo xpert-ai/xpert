@@ -7,7 +7,7 @@
     matTooltipPosition="above" />
 </div>
 
-<div class="p-2 flex flex-col max-h-[400px] font-body overflow-auto">
+<div class="opacity-80 hover:opacity-100 p-2 flex flex-col max-h-[400px] font-body overflow-auto">
 
   @if (reasoning()) {
     <div class="relative group/reasoning w-full max-h-90 px-1 mb-2 border-l-2 border-solid border-gray-200 overflow-auto">
@@ -58,7 +58,7 @@
       }
     }
     @case ('tool') {
-      <div class="flex items-center mb-1">Tool: {{toolMessage().name}}</div>
+      <div class="flex items-center mb-1">Tool: {{toolMessage().name || toolMessage().tool_call_id}}</div>
       <div class="whitespace-pre-wrap">
         {{ toolResponse() }}
       </div>

@@ -95,6 +95,12 @@
       <i class="ri-tools-fill"></i>
     </div>
   }
+  @case (eWorkflowNodeTypeEnum.TASK) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
+      w-full h-full rounded-lg shadow-sm shrink-0">
+      <i class="ri-p2p-fill"></i>
+    </div>
+  }
   @default {
     <div>Unimplement type ({{type()}})</div>
   }

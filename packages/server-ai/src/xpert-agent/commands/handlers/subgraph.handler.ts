@@ -15,7 +15,7 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertAgentConfig, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertAgentConfig, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -32,15 +32,15 @@ import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery, TXpertWorkflowQueryOutput } from '../../../xpert/queries'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
-import { parseXmlString, TSubAgent } from './types'
+import { parseXmlString } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { XpertConfigException } from '../../../core/errors'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphParams, TAgentSubgraphResult, TStateChannel } from '../../agent'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
-import { CreateWorkflowNodeCommand } from '../../workflow'
+import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, createWorkflowAgentTools, TGraphTool } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 
 
@@ -139,6 +139,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			items.filter((tool) => availableTools.length ? availableTools.includes(tool.name) : true)
 			  .forEach((tool) => {
 				const lc_name = tool instanceof DynamicStructuredTool ? tool.name : get_lc_unique_name(tool.constructor as typeof Serializable)
+				if (team.agentConfig?.tools?.[lc_name]?.description) {
+					tool.description = team.agentConfig.tools[lc_name].description
+				}
 				tools.push({
 					toolset: {
 						provider: toolset.providerName,
@@ -147,7 +150,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					},
 					caller: agent.key, 
 					tool, 
-					variables: team.agentConfig?.toolsMemory?.[lc_name],
+					variables: team.agentConfig?.tools?.[lc_name]?.memories || team.agentConfig?.toolsMemory?.[lc_name],
 				})
 
 				// Add sensitive tools into interruptBefore
@@ -158,9 +161,30 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Workflow agent tools
-		const agentTools = createWorkflowAgentTools(agentKey, graph)
-		tools.push(...agentTools.tools)
-		endNodes.push(...agentTools.endNodes)
+		// const agentTools = createWorkflowAgentTools(agentKey, graph, {
+		// 	environment,
+		// 	subscriber,
+		// 	isDraft: command.options.isDraft,
+		// 	mute: command.options.mute,
+		// 	store: command.options.store,
+		// 	commandBus: this.commandBus,
+		// 	queryBus: this.queryBus,
+		// })
+		// tools.push(...agentTools.tools)
+		// endNodes.push(...agentTools.endNodes)
+
+		// Workflow Task tool
+		const taskTools = await createWorkflowTaskTools(agentKey, graph, {
+			environment,
+			subscriber,
+			isDraft: command.options.isDraft,
+			mute: command.options.mute,
+			store: command.options.store,
+			commandBus: this.commandBus,
+			queryBus: this.queryBus,
+		})
+		tools.push(...taskTools.tools)
+		endNodes.push(...taskTools.endNodes)
 
 		// Additional Tools
 		if (additionalTools) {
@@ -233,7 +257,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					rootController,
 					signal,
 					isTool: true,
-					partners
+					partners,
+					isDraft: command.options.isDraft,
+					subscriber,
+					environment
 				})
 
 				subAgents[item.name] = item
@@ -261,7 +288,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					rootController,
 					signal,
 					isTool: true,
-					partners
+					partners,
+					isDraft: command.options.isDraft,
+					subscriber,
+					environment
 				})
 				
 				subAgents[item.name] = item
@@ -275,21 +305,28 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 		}
 
-		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool), ...(handoffTools ?? [])]
-		const summarize = ensureSummarize(team.summarize)
-		// Next agent
-		let nextNodeKey: string[] = []
-		// let failNodeKey = fail[0] ? fail[0].key : END
-		const agentKeys = new Set([agent.key])
+		// Graph nodes
 		const nodes: Record<string, {ends: string[]; graph: Runnable;}> = {}
 		// Conditional Edges
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
 		// Fixed Edge
 		const edges: Record<string, string> = {}
+		// Add task nodes and edges
+		taskTools.tools.forEach((_) => {
+			nodes[_.tool.name] = {graph: _.graph, ends: []}
+			// Return to agent who calls it
+			edges[_.tool.name] = _.caller
+		})
+		
+		const summarize = ensureSummarize(team.summarize)
+		// Next agent
+		let nextNodeKey: string[] = []
+		const agentKeys = new Set([agent.key])
+		
 		// Channels of workflow
 		const channels: TStateChannel[] = []
 		const startNodes = findStartNodes(getCurrentGraph(graph, agent.key), agent.key).filter((_) => _ !== agent.key)
-		const pathMap = [...withTools.map((tool) => tool.name)]
+		const pathMap = []
 		if (summarizeTitle) {
 			pathMap.push(GRAPH_NODE_TITLE_CONVERSATION)
 		}
@@ -306,7 +343,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			 * @param nexts Nexts nodes of primary agent call
 			 * @returns 
 			 */
-			const createSubgraph = async (node: TXpertTeamNode, parentKey?: string) => {
+			const createSubgraph = async (node: TXpertTeamNode, parentKey?: string, finalReturn?: string) => {
 				if (node?.type === 'agent') {
 					if (agentKeys.has(node.key)) {
 						return
@@ -330,7 +367,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						signal,
 						isTool: false,
 						variables: toolsetVarirables,
-						partners
+						partners,
+						environment: options.environment,
+						isDraft: command.options.isDraft,
+						subscriber
 					})
 					
 					// Conditional Edges
@@ -338,7 +378,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					// The failure process of non-starting agents is created here
 					if (failNode) {
 						ends.push(failNode.key)
-						await createSubgraph(failNode)
+						await createSubgraph(failNode, null, finalReturn)
 					}
 					nodes[node.key] = {graph: stateGraph, ends}
 					if (nextNodes?.length) {
@@ -351,8 +391,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 							edges[node.key] = nextNodes[0].key
 						}
 						for await (const nextNode of nextNodes) {
-							await createSubgraph(nextNode, null)
+							await createSubgraph(nextNode, null, finalReturn)
 						}
+					} else if (finalReturn) {
+						edges[node.key] = finalReturn
 					} else {
 						nodes[node.key].ends.push(END)
 						// edges[node.key] = END
@@ -361,7 +403,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					if (nodes[node.key]) {
 						return
 					}
-					const { workflowNode, navigator, nextNodes, channel } = await this.commandBus.execute(
+					const { workflowNode, navigator, nextNodes, channel, tool, caller, toolset } = await this.commandBus.execute(
 						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
 							mute: options.mute,
 							store: options.store,
@@ -380,9 +422,19 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					if (!nextNodes.length) {
 						workflowNodeEnds.push(END)
 					}
+					// Tool
+					if (tool) {
+						tools.push({tool, caller, toolset, graph: workflowNode.graph})
+						finalReturn = node.key
+						workflowNodeEnds.push(parentKey)
+					}
 					conditionalEdges[node.key] = [navigator, workflowNodeEnds]
+
 					for await (const nNode of nextNodes ?? []) {
-						await createSubgraph(nNode, null)
+						await createSubgraph(nNode, null, finalReturn)
+					}
+					if (!nextNodes.length && finalReturn) {
+						edges[node.key] = finalReturn
 					}
 				}
 			}
@@ -399,20 +451,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					pathMap.push(nextNode.key)
 				}
 				
-				nextNodeKey = next?.map((n) => n.key)
+				nextNodeKey = next?.filter((n) => !(n.type === 'workflow' && n.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL)).map((n) => n.key)
 				if (nextNodeKey?.some((_) => !_)) {
 					console.error(`There is an empty nextNodeKey in Agent`)
 				}
-				// if (fail?.length) {
-				// 	failNodeKey = fail?.[0]?.key
-				// }
-				// if (fail?.length) {
-				// 	pathMap.push(fail?.[0]?.key)
-				// }
-				// conditionalEdges[agentKey] = [
-				// 	createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, nextNodeKey),
-				// 	pathMap
-				// ]
 			}
 
 			if (startNodes.length) {
@@ -425,6 +467,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		if (leaderKey) {
 			agentKeys.add(leaderKey)
 		}
+
+		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool), ...(handoffTools ?? [])]
+		pathMap.push(...withTools.map((tool) => tool.name))
 
 		// State
 		const workflowNodes = allChannels(graph, agent.key)
@@ -530,7 +575,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						}).format(parameters))
 					}
 				}
-				if (!humanMessages.length && state.input) {
+				if (!humanMessages.length && state.human) {
 					// Add attachments
 					humanMessages.push(await createHumanMessage(this.commandBus, this.queryBus, state.human, agent.options?.vision))
 				}
@@ -668,7 +713,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Add nodes for tools
-		tools?.forEach(({ caller, tool, variables, toolset }) => {
+		tools?.filter((_) => !_.graph).forEach(({ caller, tool, variables, toolset }) => {
 			const name = tool.name
 			const ends = []
 			if (endNodes?.includes(tool.name)) {
@@ -840,7 +885,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				execution,
 				variables,
 				channel: channelName(agent.key),
-				partners
+				partners,
+				environment: config.environment,
 			})
 		)
 

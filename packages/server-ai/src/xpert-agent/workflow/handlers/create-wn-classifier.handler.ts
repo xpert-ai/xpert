@@ -79,7 +79,7 @@ export class CreateWNClassifierHandler implements ICommandHandler<CreateWNClassi
 					const configurable: TAgentRunnableConfigurable = config.configurable
 					const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 					const stateEnv = stateToParameters(state, environment)
-					const inputs = inputVariables.map((name) => get(stateEnv, name, ''))
+					const inputs = inputVariables.map((name) => ({name, value: get(stateEnv, name, '')}))
 
 					const execution: IXpertAgentExecution = {
 						category: 'workflow',
@@ -100,6 +100,7 @@ export class CreateWNClassifierHandler implements ICommandHandler<CreateWNClassi
 					// LLM
 					const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 						new GetXpertChatModelQuery(xpert, null, {
+							copilotModel: copilotModel,
 							abortController: controller,
 							usageCallback: assignExecutionUsage(execution)
 						})
@@ -141,7 +142,7 @@ ${instruction ? `## User Instruction\n${instruction}` : ''}`,
 										category: z.number().describe('The index of the class to classify')
 									})
 								)
-								.invoke([systemMessage, new HumanMessage(inputs.join('\n'))])
+								.invoke([systemMessage, new HumanMessage(inputs.map(({value}) => value).join('\n'))])
 							return {
 								state: {
 									[channelName(node.key)]: result

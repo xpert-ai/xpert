@@ -664,7 +664,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					addHandoffBackMessages: false, 
 					supervisorName,
 					mute,
-					store: memoryStore
+					store: memoryStore,
+					isDraft: false,
+					environment
 				})
 				const tool = createHandoffTool({ agentName: agent.name, title: xpert.title, description: xpert.description })
 				xperts.push({name: agent.name, agent, tool })
@@ -845,6 +847,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				signal: abortController.signal,
 				subscriber,
 				projectId: project?.id,
+				isDraft: false,
+				environment: params.environment,
 			})
 		)
 		

@@ -16,7 +16,8 @@
     },
     "Xpert": {
         "SummaryTitleStarting": "Summarizing title...",
-        "SummaryTitleEnd": "Title summarized"
+        "SummaryTitleEnd": "Title summarized",
+        "TaskHandover": "Task handover"
     },
     "Tools": {
         "MCP": {

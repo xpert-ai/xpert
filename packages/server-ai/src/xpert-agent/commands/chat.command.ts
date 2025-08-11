@@ -17,7 +17,7 @@ export class XpertAgentChatCommand implements ICommand {
 		public readonly xpert: IXpert,
 		public readonly options: TChatOptions & {
 			// Use xpert's draft
-			isDraft?: boolean
+			isDraft: boolean
 			/**
 			 * Long-term memory store
 			 */

@@ -5,7 +5,7 @@ import {
   isBaseMessage,
 } from "@langchain/core/messages";
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
-import { StructuredToolInterface, tool } from "@langchain/core/tools";
+import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
 import { Command, isCommand, isGraphInterrupt } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
@@ -217,14 +217,12 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     options?: Partial<RunnableConfig> | undefined
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
-
-    // We set a context variable before invoking the tool node and running our tool.
-    setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input);
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let returnValue: any;
     // const config = ensureLangGraphConfig(options);
     const mergedConfig = mergeConfigs(this.config, options);
+
+    setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input);
 
     if (this.trace) {
       returnValue = await this._callWithConfig(
@@ -242,8 +240,9 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     if (Runnable.isRunnable(returnValue) && this.recurse) {
       return await AsyncLocalStorageProviderSingleton.runWithConfig(
         mergedConfig,
-        async () => returnValue.invoke(input, mergedConfig)
-      );
+        async () => {
+          return returnValue.invoke(input, mergedConfig);
+      });
     }
 
     return returnValue;

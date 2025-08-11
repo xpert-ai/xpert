@@ -68,7 +68,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 				let result = ''
 				const agentStream = await this.commandBus.execute<XpertAgentInvokeCommand, Observable<string | TMessageContentComplex>>(
 							new XpertAgentInvokeCommand(input, agentKey, xpert, {
-								...(options ?? {}),
+								...options,
 								store: options.store,
 								rootExecutionId: execution.id,
 								thread_id,
@@ -124,7 +124,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 									new XpertAgentExecutionOneQuery(execution.id)
 								)))
 
-								this.#logger.verbose(fullExecution)
+								// this.#logger.verbose(fullExecution)
 
 								return {
 									data: {

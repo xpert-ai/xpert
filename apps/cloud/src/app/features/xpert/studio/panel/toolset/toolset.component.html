@@ -106,6 +106,16 @@
     @if (expandTools()[item.tool.name]) {
       <div class="px-2 my-2 text-sm text-text-secondary line-clamp-3">{{item.tool.description | i18n}}</div>
 
+      <div class="px-2 font-semibold">{{ 'PAC.Xpert.ToolDescription' | translate: {Default: 'Tool Description'} }}</div>
+      <div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0 font-mono">
+        <textarea class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none
+        placeholder:text-gray-400 caret-[#295EFF]" 
+          placeholder="{{'PAC.Xpert.AddDescription' | translate: {Default: 'Add description'} }}..."
+          [ngModel]="getToolDescription(item.tool.name, item.tool)"
+          (ngModelChange)="updateToolDescription(item.tool.name, $event)"
+        ></textarea>
+      </div>
+
       <div class="w-full flex justify-end px-2 mb-4">
         <mat-slide-toggle [ngModel]="getSensitive(item.tool.name)" (ngModelChange)="updateSensitive(item.tool.name, $event)"
           labelPosition="before"

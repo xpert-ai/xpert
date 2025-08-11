@@ -364,6 +364,9 @@ export class XpertStudioComponent {
     )
   })
 
+  /**
+   * @deprecated use agentConfig model signal
+   */
   updateXpertAgentConfig(config: Partial<TXpertAgentConfig>) {
     this.apiService.updateXpertAgentConfig(config)
   }

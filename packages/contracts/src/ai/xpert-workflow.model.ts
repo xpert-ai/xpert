@@ -24,7 +24,11 @@ export enum WorkflowNodeTypeEnum {
   CLASSIFIER = 'classifier',
   TOOL = 'tool',
   AGENT_TOOL = 'agent-tool',
-  NOTE = 'note'
+  NOTE = 'note',
+  /**
+   * Task node, distribute tasks to sub-agents
+   */
+  TASK = 'task'
 }
 
 export interface IWorkflowNode {
@@ -316,6 +320,12 @@ export interface IWFNAgentTool extends IWorkflowNode {
    * Error handling
    */
   errorHandling?: TErrorHandling
+}
+
+export interface IWFNTask extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.TASK,
+  descriptionPrefix?: string
+  descriptionSuffix?: string
 }
 
 export function isAgentKey(key: string) {

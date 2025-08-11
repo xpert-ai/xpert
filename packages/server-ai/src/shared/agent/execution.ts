@@ -7,6 +7,13 @@ import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
 import { messageEvent } from '../../xpert-agent/agent'
 
+/**
+ * Wraps the agent execution in a try-catch block and handles the execution lifecycle.
+ * 
+ * @param fuc return {output: string; state: State}
+ * @param params 
+ * @returns 
+ */
 export function wrapAgentExecution<T>(
 	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{ output?: string; state: T }>,
 	params: {

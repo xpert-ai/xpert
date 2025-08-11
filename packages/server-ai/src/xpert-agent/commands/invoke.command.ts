@@ -14,7 +14,7 @@ export class XpertAgentInvokeCommand implements ICommand {
 			// Langgraph thread id
 			thread_id?: string
 			// Use xpert's draft
-			isDraft?: boolean
+			isDraft: boolean
 			/**
 			 * The id of root agent execution
 			 * @deprecated use `executionId` in `TAgentRunnableConfigurable`

@@ -67,6 +67,7 @@
         (click)="onSelectNode($event, node)"
 
         [floatUi]="executionPopper"
+        [appendTo]="'body'"
         [disabled]="!executions()[node.key]"
         [showTrigger]="eNgxFloatUiTriggers.hover"
         [hideOnClickOutside]="false"

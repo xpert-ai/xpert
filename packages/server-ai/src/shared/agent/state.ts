@@ -13,10 +13,14 @@ import {
 	TStateVariable,
 	TToolCall,
 	TXpertAgentConfig,
+	TXpertTeamNode,
 	VariableOperationEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
 import { isFunction } from '@metad/server-common'
+import { Subscriber } from 'rxjs'
+import { StructuredToolInterface } from '@langchain/core/tools'
+import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
 import { commonTimes } from './time'
 
 export type TAgentStateSystem = {
@@ -58,7 +62,7 @@ export const AgentStateAnnotation = Annotation.Root({
 		default: () => ({} as TChatRequestHuman)
 	}),
 	/**
-	 * @deprecated Is it still in use?
+	 * Temporarily transfer tool call information between nodes
 	 */
 	toolCall: Annotation<TToolCall>({
 		reducer: (a, b) => b ?? a,
@@ -231,6 +235,22 @@ export type TAgentSubgraphParams = {
 	 * Long-term memory store
 	 */
 	store: BaseStore
+
+	// The subscriber response to client
+	subscriber: Subscriber<MessageEvent>
+	isDraft: boolean
+	environment?: IEnvironment
+}
+
+/**
+ * @deprecated The same as `TGraphTool` should be combined
+ */
+export type TSubAgent = {
+	name: string
+	tool: StructuredToolInterface | RunnableToolLike
+	stateGraph?: Runnable
+	nextNodes?: TXpertTeamNode[]
+	failNode?: TXpertTeamNode
 }
 
 export function findChannelByTool(values: typeof AgentStateAnnotation.State, toolName: string): [string, TMessageChannel] {

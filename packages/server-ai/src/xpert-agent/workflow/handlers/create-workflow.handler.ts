@@ -16,6 +16,7 @@ import { createTemplateNode } from '../template'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
 import { createToolNode } from '../tool'
 import { createAssignerNode } from '../assigner'
+import { createAgentToolNode } from '../agent-tool'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -155,6 +156,17 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			}
 			case WorkflowNodeTypeEnum.TOOL: {
 				workflow = createToolNode(graph, node, {
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					xpertId,
+					environment: options.environment,
+					conversationId: options.conversationId
+				})
+				break
+			}
+			case WorkflowNodeTypeEnum.AGENT_TOOL: {
+				workflow = createAgentToolNode(graph, node, {
+					leaderKey: command.leaderKey,
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
 					xpertId,

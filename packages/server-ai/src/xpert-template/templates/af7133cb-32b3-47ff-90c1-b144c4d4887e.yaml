@@ -138,6 +138,9 @@ nodes:
         你是一名销售分析业务专家，请使用工具回复用户问题。
         {{tool_chatbi_prompts_default}}
 
+        常用时间：
+        {{sys.common_times}}
+
         当前可用 Cubes 有以下：
         <cubes>
         {{chatbi_models}}

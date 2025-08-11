@@ -71,14 +71,14 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 		const channel_name = execution.channelName || (execution.agentKey ? channelName(execution.agentKey) : null)
 		const channel = tuple?.checkpoint?.channel_values?.[channel_name]
 		const _messages: BaseMessage[] = channel?.messages ?? tuple?.checkpoint?.channel_values?.messages
-		if (_messages && channel.system) {
+		if (_messages && channel?.system) {
 			_messages.unshift(new SystemMessage(channel.system))
 		}
 		return new XpertAgentExecutionDTO({
 			...execution,
 			messages: _messages ? mapChatMessagesToStoredMessages(_messages) : execution.messages,
 			totalTokens: execution.totalTokens,
-			summary: tuple?.checkpoint?.channel_values?.[channel_name]?.summary,
+			summary: channel?.summary,
 			agent
 		})
 	}

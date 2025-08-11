@@ -19,6 +19,7 @@
 		<java.version>11</java.version>
 		<mondrian-version>9.4.0.0-343</mondrian-version>
 		<foodmart-hsqldb-version>0.4</foodmart-hsqldb-version>
+		<olap4j.version>1.2.0</olap4j.version>
 	</properties>
 
 	<dependencies>
@@ -83,6 +84,13 @@
 					<groupId>dom4j</groupId>
 				</exclusion>
 			</exclusions>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/artifactory/mondrian-9.4.0.0-343/mondrian-9.4.0.0-343.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>org.olap4j</groupId>
+			<artifactId>olap4j</artifactId>
+			<version>${olap4j.version}</version>
 		</dependency>
 
 		<!-- Xalan (or some javax transformer implementation) is required by ehcache -->
@@ -196,11 +204,11 @@
 	</dependencies>
 
 	<repositories>
-		<repository>
+		<!-- <repository>
 			<id>pentaho-public</id>
 			<name>Pentaho Public</name>
 			<url>https://repo.orl.eng.hitachivantara.com/artifactory/pnt-mvn/</url>
-		</repository>
+		</repository> -->
 		<!-- 
 		<repository>
 			<releases>

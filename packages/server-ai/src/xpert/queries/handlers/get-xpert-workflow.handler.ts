@@ -1,4 +1,4 @@
-import { ICopilotModel, IXpertAgent, mapTranslationLanguage } from '@metad/contracts'
+import { ICopilotModel, IXpertAgent, mapTranslationLanguage, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { pick } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -55,8 +55,9 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 				.map((conn) => nodes.find((_) => _.type === 'xpert' && _.key === conn.to))
 
 			const next = connections
-				.filter((_) => _.type === 'edge' && _.from === agentKey)
+				.filter((_) => ['edge', 'workflow'].includes(_.type) && _.from === agentKey)
 				.map((conn) => nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
+				.filter((n) => !(n.type === 'workflow' && n.entity.type === WorkflowNodeTypeEnum.TASK))
 			const fail = connections
 				.filter((_) => _.type === 'edge' && _.from === (agentKey + '/fail'))
 				.map((conn) => nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
@@ -84,8 +85,9 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 			const agent = keyOrName ? agents.find((_) => _.key === keyOrName || _.name === keyOrName) : xpert.agent
 			if (agent) {
 				const next = xpert.graph?.connections
-					.filter((_) => _.type === 'edge' && _.from === agent.key)
+					.filter((_) => ['edge', 'workflow'].includes(_.type) && _.from === agent.key)
 					.map((conn) => xpert.graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
+					.filter((n) => !(n.type === 'workflow' && n.entity.type === WorkflowNodeTypeEnum.TASK))
 				const fail = xpert.graph?.connections
 					.filter((_) => _.type === 'edge' && _.from === (agent.key + '/fail'))
 					.map((conn) => xpert.graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
