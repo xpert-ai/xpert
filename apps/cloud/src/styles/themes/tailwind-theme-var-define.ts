@@ -53,6 +53,7 @@ const vars = {
   'components-button-primary-text': 'var(--color-components-button-primary-text)',
   'components-button-primary-border': 'var(--color-components-button-primary-border)',
   'components-button-primary-bg': 'var(--color-components-button-primary-bg)',
+  'components-dropzone-bg': 'var(--color-components-dropzone-bg)',
   'components-input-bg': 'var(--color-components-input-bg)',
   'components-input-bg-normal': 'var(--color-components-input-bg-normal)',
   'components-input-bg-hover': 'var(--color-components-input-bg-hover)',

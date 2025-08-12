@@ -1,0 +1,7 @@
+:host {
+  @apply relative flex flex-col p-6 text-left align-middle shadow-xl transition-all overflow-hidden duration-100 ease-in max-w-[520px] rounded-2xl px-8 py-6 bg-components-panel-bg-blur backdrop-blur-sm;
+}
+
+.dropzone.ngm-fileover {
+  @apply bg-blue-200 border-blue-500 transition-colors;
+}

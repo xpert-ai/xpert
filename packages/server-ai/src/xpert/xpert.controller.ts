@@ -335,6 +335,13 @@ export class XpertController extends CrudController<Xpert> {
 		}
 	}
 
+	@Post(':id/memory/bulk')
+	async createBulkMemory(@Param('id') id: string, @Body() body: {
+		type: LongTermMemoryTypeEnum; memories: Array<TMemoryQA | TMemoryUserProfile>
+	}) {
+		return this.service.createBulkMemories(id, body)
+	}
+
 	@Post(':id/memory')
 	async createMemory(@Param('id') id: string, @Body() body: {type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile}) {
 		return this.service.createMemory(id, body)

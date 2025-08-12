@@ -12,7 +12,7 @@ import {
 })
 export class NgmDndDirective {
   @HostBinding('class.ngm-fileover') fileOver: boolean;
-  @Output() fileDropped = new EventEmitter<any>();
+  @Output() fileDropped = new EventEmitter<FileList>();
 
   // Dragover listener
   @HostListener('dragover', ['$event']) onDragOver(evt) {

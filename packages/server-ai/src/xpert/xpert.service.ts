@@ -13,13 +13,12 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign, uniq, uniqBy } from 'lodash'
 import { FindConditions, In, IsNull, Not, Repository } from 'typeorm'
-import { v4 as uuidv4 } from 'uuid'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { Xpert } from './xpert.entity'
 import { XpertIdentiDto } from './dto'
 import { GetXpertMemoryEmbeddingsQuery } from './queries'
-import { CopilotMemoryStore, CreateCopilotStoreCommand } from '../copilot-store'
+import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { FreeNodeValidator } from './validators'
 
 @Injectable()
@@ -320,15 +319,27 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 				}
 			})
 		)
-		const store = await this.commandBus.execute<CreateCopilotStoreCommand, CopilotMemoryStore>(new CreateCopilotStoreCommand({
-			index: {
-				dims: null,
-				embeddings,
-				fields: ['question', ]
-			}
-		}))
 
-		const memoryKey = uuidv4()
-		await store.put([xpertId, body.type || LongTermMemoryTypeEnum.QA], memoryKey, body.value)
+		await this.commandBus.execute(new CopilotStoreBulkPutCommand(body.type, [body.value],
+			[xpertId, body.type || LongTermMemoryTypeEnum.QA], embeddings))
+	}
+
+	async createBulkMemories(
+		xpertId: string,
+		body: {type: LongTermMemoryTypeEnum; memories: Array<TMemoryQA | TMemoryUserProfile>}
+	) {
+		const xpert = await this.findOne(xpertId, { relations: ['agent'] })
+		const memory = xpert.memory
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const execution: IXpertAgentExecution = {}
+		const embeddings = await this.queryBus.execute(
+			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
+				tokenCallback: (token) => {
+					execution.embedTokens += token ?? 0
+				}
+			})
+		)
+		await this.commandBus.execute(new CopilotStoreBulkPutCommand(body.type, body.memories, [xpertId, body.type || LongTermMemoryTypeEnum.QA], embeddings))
 	}
 }
