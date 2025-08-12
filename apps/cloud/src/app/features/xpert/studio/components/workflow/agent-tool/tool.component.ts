@@ -46,9 +46,9 @@ export class XpertWorkflowNodeAgentToolComponent {
     return this.executionService.toolMessages()?.map((_) => _.data).filter((e) => e.tool === this.toolName())
   })
 
-  constructor() {
-    effect(() => {
-      console.log(this.executionService.toolMessages())
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log(this.executionService.toolMessages())
+  //   })
+  // }
 }

@@ -23,6 +23,7 @@ import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, of, Subscription } from 'rxjs'
 import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
+import { json2csv } from 'json-2-csv';
 import {
   CopilotStoreService,
   DateRelativePipe,
@@ -37,6 +38,7 @@ import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertComponent } from '../xpert.component'
 import { OverlayAnimation1 } from '@metad/core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
+import { XpertMemoryBulkImportComponent } from './bulk-import/bulk-import.component'
 
 @Component({
   standalone: true,
@@ -301,5 +303,33 @@ export class XpertMemoryComponent {
   copyValue(id: string, value: any) {
     this.#clipboard.copy(JSON.stringify(value))
     this.#toastr.success('PAC.Messages.CopiedToClipboard', {Default: 'Copied to clipboard'})
+  }
+
+  bulkImport() {
+    this.#dialog.open(XpertMemoryBulkImportComponent, {
+      data: {
+        xpertId: this.xpertId(),
+        type: this.memoryType() || LongTermMemoryTypeEnum.QA
+      }
+    }).closed.subscribe({
+      next: (upload) => {
+        if (upload) {
+          this.#toastr.success('PAC.Messages.UploadSuccessful', {Default: 'Upload successful'})
+          this.#refresh$.next()
+        }
+      }
+    })
+  }
+
+  bulkExport() {
+    const csvContent = json2csv(this.filterdData().map(({value}) => value))
+
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = (this.memoryType() || 'all') + '-memory-data.csv'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 }

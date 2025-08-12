@@ -73,7 +73,7 @@ export class UserUploadComponent {
 
   async readDataFile(file: File) {
     // Multiple sheets for excel file
-    const sheets = await readExcelWorkSheets<{ data: any[] }>(file)
+    const sheets = await readExcelWorkSheets(file)
     this.users.update((users) => [...users, ...sheets[0].data])
   }
 

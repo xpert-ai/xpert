@@ -197,24 +197,6 @@ export function getNodeSizeViaRange(range: Range, node: any): number {
 
   return width
 }
-/**
- *@hidden
- * Returns the actual size of the node content, using Canvas
- * ```typescript
- * let ctx = document.createElement('canvas').getContext('2d');
- * let column = this.grid.columnList.filter(c => c.field === 'ID')[0];
- *
- * let size = valToPxlsUsingCanvas(ctx, column.cells[0].nativeElement);
- * ```
- */
-// export function getNodeSizeViaCanvas(canvas2dCtx: any, node: any): number {
-//   const s = this.grid.document.defaultView.getComputedStyle(node)
-
-//   // need to set the font to get correct width
-//   canvas2dCtx.font = s.fontSize + ' ' + s.fontFamily
-
-//   return canvas2dCtx.measureText(node.textContent).width
-// }
 
 /**
  *@hidden
@@ -226,6 +208,7 @@ export function isIE(): boolean {
  *@hidden
  */
 export function isEdge(): boolean {
+  // eslint-disable-next-line no-useless-escape
   const edgeBrowser = /Edge[\/\s](\d+\.\d+)/.test(navigator.userAgent)
   return edgeBrowser
 }
@@ -234,11 +217,13 @@ export function isEdge(): boolean {
  *@hidden
  */
 export function isFirefox(): boolean {
+  // eslint-disable-next-line no-useless-escape
   const firefoxBrowser = /Firefox[\/\s](\d+\.\d+)/.test(navigator.userAgent)
   return firefoxBrowser
 }
 
 /**
+ * @deprecated
  * @hidden
  */
 @Injectable({ providedIn: 'root' })
@@ -248,6 +233,7 @@ export class PlatformUtil {
   public isIOS =
     this.isBrowser && /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window)
 
+  // eslint-disable-next-line @typescript-eslint/ban-types
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 }
 
@@ -552,7 +538,7 @@ export function camelCaseObject(obj: Record<string, any>) {
 export type WorkBook = any
 export async function readExcelWorkSheets<T = unknown>(file: File) {
   const XLSX = await import('xlsx')
-  return new Promise<T[]>((resolve, reject) => {
+  return new Promise<{fileName: string; name: string; columns: any[]; data: T[]}[]>((resolve, reject) => {
     const reader: FileReader = new FileReader()
 
     reader.onload = async (e: any) => {
@@ -577,7 +563,7 @@ export async function readExcelWorkSheets<T = unknown>(file: File) {
   })
 }
 
-export async function readExcelJson<T = unknown>(wSheet: WorkBook, fileName = ''): Promise<T[]> {
+export async function readExcelJson<T = unknown>(wSheet: WorkBook, fileName = ''): Promise<{fileName: string; name: string; columns: any[]; data: T[]}[]> {
   const XLSX = await import('xlsx')
 
   const name = fileName

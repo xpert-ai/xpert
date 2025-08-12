@@ -26,15 +26,11 @@ export async function createMCPClient(
 		const name = serverName || toolset.name || 'default'
 		const transport = server.type?.toLowerCase()
 		if (transport === MCPServerType.SSE || (!transport && server.url)) {
-			let headers = server.headers
-			if (Object.keys(server.headers ?? {}).length === 0) {
-				headers = null
-			} else {
-				for await (const name of Object.keys(headers)) {
-					headers[name] = await PromptTemplate.fromTemplate(headers[name], {
-						templateFormat: 'mustache'
-					}).format(envState)
-				}
+			const headers = server.headers ?? {}
+			for await (const name of Object.keys(headers)) {
+				headers[name] = await PromptTemplate.fromTemplate(headers[name], {
+					templateFormat: 'mustache'
+				}).format(envState)
 			}
 			mcpServers[name] = omitBy(
 				{

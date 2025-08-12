@@ -28,6 +28,19 @@
   [columns]="columns()"
   [data]="filterdData()"
 />
+@if (!filterdData()?.length) {
+  <div class="flex h-full items-center justify-center">
+    <div class="box-border h-fit w-[560px] rounded-2xl bg-neutral-100 px-5 py-4">
+      <span class="system-md-semibold text-text-secondary">
+        {{ 'PAC.Xpert.NoMemories' | translate: {Default: 'No Memories'} }}
+        <i class="ri-eye-close-line"></i>
+      </span>
+      <div class="system-sm-regular mt-2 text-text-tertiary">
+        {{ 'PAC.Xpert.NoMemoriesTooltip' | translate: {Default: 'You can save memories during app debugging or import memories in bulk here for a high-quality response.'} }}
+      </div>
+    </div>
+  </div>
+}
 
 <div class="sticky bottom-0 p-4 rounded-bl-2xl flex flex-col justify-start items-start">
   <div class="text-lg p-2">
@@ -194,9 +207,17 @@
 </ng-template>
 
 <ng-template #moreMenu>
-  <div cdkMenu class="cdk-menu__medium">
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="bulkImport()" >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-tertiary mr-1" data-icon="FilePlus02" aria-hidden="true"><path d="M13.3333 6.99992V4.53325C13.3333 3.41315 13.3333 2.85309 13.1153 2.42527C12.9236 2.04895 12.6176 1.74299 12.2413 1.55124C11.8135 1.33325 11.2534 1.33325 10.1333 1.33325H5.86666C4.74655 1.33325 4.1865 1.33325 3.75868 1.55124C3.38235 1.74299 3.07639 2.04895 2.88464 2.42527C2.66666 2.85309 2.66666 3.41315 2.66666 4.53325V11.4666C2.66666 12.5867 2.66666 13.1467 2.88464 13.5746C3.07639 13.9509 3.38235 14.2569 3.75868 14.4486C4.1865 14.6666 4.74655 14.6666 5.86666 14.6666H7.99999M9.33332 7.33325H5.33332M6.66666 9.99992H5.33332M10.6667 4.66659H5.33332M12 13.9999V9.99992M9.99999 11.9999H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      {{ 'PAC.Xpert.BulkImport' | translate: {Default: 'Bulk Import'} }}
+    </div>
+    <div cdkMenuItem (click)="bulkExport()" >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-tertiary mr-1" data-icon="FileDownload02" aria-hidden="true"><path d="M20 12.5V6.8C20 5.11984 20 4.27976 19.673 3.63803C19.3854 3.07354 18.9265 2.6146 18.362 2.32698C17.7202 2 16.8802 2 15.2 2H8.8C7.11984 2 6.27976 2 5.63803 2.32698C5.07354 2.6146 4.6146 3.07354 4.32698 3.63803C4 4.27976 4 5.11984 4 6.8V17.2C4 18.8802 4 19.7202 4.32698 20.362C4.6146 20.9265 5.07354 21.3854 5.63803 21.673C6.27976 22 7.1198 22 8.79986 22H12.5M14 11H8M10 15H8M16 7H8M15 19L18 22M18 22L21 19M18 22V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      {{ 'PAC.Xpert.BulkExport' | translate: {Default: 'Bulk Export'} }}
+    </div>
     <div cdkMenuItem class="danger" (click)="clearMemory()" >
-      <i class="ri-delete-bin-7-line mr-1"></i>
+      <i class="ri-delete-bin-7-line text-text-tertiary mr-1"></i>
       {{ 'PAC.Xpert.ClearMemory' | translate: {Default: 'Clear memory'} }}
     </div>
   </div>

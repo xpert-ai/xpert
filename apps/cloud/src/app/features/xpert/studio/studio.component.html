@@ -25,10 +25,11 @@
         [class.f-selected]="connection.from.startsWith(selectedNodeKey()) || connection.to.startsWith(selectedNodeKey())"
         [class.f-hover]="connection.from.startsWith(hoverNode()) || connection.to.startsWith(hoverNode())"
         [class.autonomous]="connection.type !== 'edge'"
+        [class.fail-branch]="connection.from.endsWith('/fail')"
+        [class.connecting]="connection.running"
         fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
         [cdkContextMenuTriggerFor]="connContextMenu"
         [cdkContextMenuTriggerData]="{connection: connection, connectionComponent: connComp}"
-        [class.connecting]="connection.running"
       >
         @if (connection.type === 'edge') {
           <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.END" class="connection-marker"

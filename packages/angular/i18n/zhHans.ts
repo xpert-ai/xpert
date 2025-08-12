@@ -270,6 +270,7 @@ export const ZhHans = {
       Calendar: '日历',
       'Address.Country': '国家',
       Variable: '参数变量',
+      NoProperties: '没有属性'
     },
     MeasureSelect: {
       EditCalculationMeasure: '编辑计算度量',

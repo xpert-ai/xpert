@@ -668,6 +668,7 @@
       "PasswordChangedSuccessfully": "密码修改成功"
     },
     "ACTIONS": {
+      "Export": "导出",
       "Disable": "禁用",
       "Enable": "启用",
       "Pause": "暂停",
@@ -2402,6 +2403,21 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "ExportXpertDSL": "导出数字专家 DSL",
+      "UseDraft": "使用草稿",
+      "UseDraftTooltip": "使用草稿版本导出",
+      "NotUseDraftTooltip": "使用已发布的最新版本导出",
+      "IncludeMemory": "包含记忆",
+      "IncludeMemoryTooltip": "在导出中包含记忆",
+      "NotIncludeMemoryTooltip": "在导出中不包含记忆",
+      "NoMemories": "无记忆",
+      "NoMemoriesTooltip": "您可以在应用程序调试期间保存记忆，或者在这里批量导入记忆以获得高质量的响应。",
+      "BulkImport": "批量导入",
+      "BulkExport": "批量导出",
+      "DragDropCsv": "拖拽 CSV 文件至此，或",
+      "Browse": "浏览",
+      "MemoryCsvMustContain": "记忆 CSV 文件必须包含以下列：",
+      "DownloadTemplateHere": "在这里下载模板",
       "ToolParameters": "工具参数",
       "ToolName": "工具名称",
       "ToolDescription": "工具描述",

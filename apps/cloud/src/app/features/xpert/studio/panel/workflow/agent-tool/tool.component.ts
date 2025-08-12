@@ -78,9 +78,9 @@ export class XpertWorkflowAgentToolComponent extends XpertWorkflowBaseComponent 
   readonly toolDescription = attrModel(this.toolEntity, 'toolDescription')
   readonly parameters = attrModel(this.toolEntity, 'toolParameters')
   readonly isEnd = attrModel(this.toolEntity, 'isEnd')
-  readonly errorHandling = attrModel(this.toolEntity, 'errorHandling')
+  // readonly errorHandling = attrModel(this.toolEntity, 'errorHandling')
 
-  constructor() {
-    super()
-  }
+  // constructor() {
+  //   super()
+  // }
 }

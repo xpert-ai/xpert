@@ -11,7 +11,7 @@ import { pick } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, IfAnimation, injectToastr, IXpert, XpertService } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { XpertBasicDialogComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { XpertBasicDialogComponent, XpertExportDslComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { EMPTY } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
 import { XpertAPIComponent } from '../api/api.component'
@@ -91,19 +91,14 @@ export class XpertBasicManageComponent {
   }
 
   export(isDraft = false) {
-    this.#xpertService.exportDSL(this.xpert().id, isDraft).subscribe({
-      next: (result) => {
-        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `xpert-${this.xpert().slug}.yaml`
-        a.click()
-        window.URL.revokeObjectURL(url)
-      },
-      error: (err) => {
-        this.#toastr.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
+    this.#dialog.open(XpertExportDslComponent, {
+      data: {
+        xpertId: this.xpert().id,
+        slug: this.xpert().slug,
+        isDraft
       }
+    }).closed.subscribe({
+      next: () => {}
     })
   }
 

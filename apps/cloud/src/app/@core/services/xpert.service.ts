@@ -154,8 +154,8 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
-  exportDSL(id: string, isDraft: boolean) {
-    return this.httpClient.get<{ data: string }>(this.apiBaseUrl + `/${id}/export`, { params: { isDraft } })
+  exportDSL(id: string, params: {isDraft: boolean; includeMemory?: boolean}) {
+    return this.httpClient.get<{ data: string }>(this.apiBaseUrl + `/${id}/export`, { params })
   }
 
   importDSL(dslObject: Record<string, any>) {
@@ -176,6 +176,9 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   addMemory(id: string, memory: {type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile}) {
     return this.httpClient.post<TCopilotStore>(this.apiBaseUrl + `/${id}/memory`, memory)
+  }
+  bulkCreateMemories(id: string, body: { type: LongTermMemoryTypeEnum; memories: (TMemoryQA | TMemoryUserProfile)[]}) {
+    return this.httpClient.post(this.apiBaseUrl + `/${id}/memory/bulk`, body)
   }
   searchMemory(id: string, body: { type: LongTermMemoryTypeEnum; text: string; isDraft: boolean }) {
     return this.httpClient.post<SearchItem[]>(this.apiBaseUrl + `/${id}/memory/search`, body)
