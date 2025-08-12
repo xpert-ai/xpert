@@ -315,8 +315,9 @@ export interface IWFNAgentTool extends IWorkflowNode {
    * End point tool
    */
   isEnd?: boolean
-  
+
   /**
+   * @deprecated Mixed sub-processes are not suitable for catching exceptions unless they are implemented using a separate subgraph
    * Error handling
    */
   errorHandling?: TErrorHandling

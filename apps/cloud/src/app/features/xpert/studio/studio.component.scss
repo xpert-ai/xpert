@@ -4,6 +4,8 @@
   @apply flex w-full h-full bg-gray-100;
   --output-size: 14px;
   --f-component-hover-border: theme('colors.primary.300');
+  --f-component-fail-branch-hover: theme('colors.orange.300');
+  --f-component-fail-branch: theme('colors.orange.500');
 }
 
 :host::ng-deep {
@@ -35,6 +37,17 @@
           fill: var(--components-card-option-selected-border);
         }
       }
+
+      &.fail-branch {
+        .f-connection-path {
+          stroke: var(--f-component-fail-branch);
+        }
+        .connection-marker {
+          circle, rect, path {
+            fill: var(--f-component-fail-branch);
+          }
+        }
+      }
     }
     &.f-hover:not(.f-selected) {
       z-index: 1;
@@ -44,6 +57,17 @@
       .connection-marker {
         circle, rect, path {
           fill: var(--f-component-hover-border);
+        }
+      }
+
+      &.fail-branch {
+        .f-connection-path {
+          stroke: var(--f-component-fail-branch-hover);
+        }
+        .connection-marker {
+          circle, rect, path {
+            fill: var(--f-component-fail-branch-hover);
+          }
         }
       }
     }
