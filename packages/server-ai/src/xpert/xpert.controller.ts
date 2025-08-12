@@ -156,9 +156,10 @@ export class XpertController extends CrudController<Xpert> {
 	async exportDSL(
 		@Param('id') xpertId: string,
 		@Query('isDraft') isDraft: string,
+		@Query('includeMemory') includeMemory: string,
 		@Query('data', ParseJsonPipe) params: PaginationParams<Xpert>) {
 		try {
-			const xpert = await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft === 'true'))
+			const xpert = await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft === 'true', includeMemory === 'true'))
 			return {
 				data: yaml.stringify(instanceToPlain(xpert))
 			}
@@ -317,22 +318,8 @@ export class XpertController extends CrudController<Xpert> {
 
 	@Get(':id/memory')
 	async getAllMemory(@Param('id') id: string, @Query('types') types: string) {
-		const where = {} as FindConditions<ICopilotStore>
 		const _types = types?.split(':').filter((_) => !!_)
-		if (_types?.length > 1) {
-			where.prefix = In(_types.map((type) => `${id}${type ? `:${type}` : ''}`))
-		} else if(_types?.length === 1) {
-			const type = _types[0]
-			where.prefix = `${id}${type ? `:${type}` : ''}`
-		} else {
-			where.prefix = Like(`${id}%`)
-		}
-
-		try {
-			return await this.storeService.findAll({where, relations: ['createdBy'], order: {createdAt: OrderTypeEnum.DESC}})
-		} catch(err) {
-			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
-		}
+		return this.service.findAllMemory(id, _types)
 	}
 
 	@Post(':id/memory/bulk')
@@ -435,7 +422,7 @@ export class XpertController extends CrudController<Xpert> {
 	@Post(':id/duplicate')
 	async duplicate(@Param('id') id: string, @Body() body: {basic: Partial<IXpert>; isDraft: boolean}) {
 		try {
-			const dsl = await this.commandBus.execute(new XpertExportCommand(id, body.isDraft))
+			const dsl = await this.commandBus.execute(new XpertExportCommand(id, body.isDraft, false))
 			// const dsl = instanceToPlain(xpertDto)
 			return await this.commandBus.execute(new XpertImportCommand({...dsl, team: {...dsl.team, ...body.basic}}))
 		} catch(err) {

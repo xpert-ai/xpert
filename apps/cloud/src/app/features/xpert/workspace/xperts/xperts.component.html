@@ -4,82 +4,86 @@
 >
   <a class="ngm-card-shadow relative col-span-1 flex flex-col justify-between min-h-[160px] bg-gray-200 rounded-xl border-[0.5px] border-black/5">
     <div class="grow p-2 rounded-t-xl">
-    <div class="px-6 pt-2 pb-1 text-sm font-medium leading-[18px] text-gray-500">
-      {{ 'PAC.Xpert.CreateXpert' | translate: {Default: 'Create Xpert'} }}
-    </div>
-    <div
-      class="flex items-center mb-1 px-6 py-[7px] rounded-lg text-[13px] font-medium leading-[18px] text-gray-600 cursor-pointer
-        hover:text-primary-600 hover:bg-gray-50"
-      (click)="newBlank()"
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        class="shrink-0 mr-2 w-4 h-4"
+      <div class="px-6 pt-2 pb-1 text-sm font-medium leading-[18px] text-gray-500">
+        {{ 'PAC.Xpert.CreateXpert' | translate: {Default: 'Create Xpert'} }}
+      </div>
+      <div
+        class="flex items-center mb-1 px-6 py-[7px] rounded-lg text-[13px] font-medium leading-[18px] text-gray-600 cursor-pointer
+          hover:text-primary-600 hover:bg-gray-50"
+        (click)="newBlank()"
       >
-        <g id="file-plus-01">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class="shrink-0 mr-2 w-4 h-4"
+        >
+          <g id="file-plus-01">
+            <path
+              id="Icon"
+              d="M13.3332 6.99967V4.53301C13.3332 3.4129 13.3332 2.85285 13.1152 2.42503C12.9234 2.0487 12.6175 1.74274 12.2412 1.55099C11.8133 1.33301 11.2533 1.33301 10.1332 1.33301H5.8665C4.7464 1.33301 4.18635 1.33301 3.75852 1.55099C3.3822 1.74274 3.07624 2.0487 2.88449 2.42503C2.6665 2.85285 2.6665 3.4129 2.6665 4.53301V11.4663C2.6665 12.5864 2.6665 13.1465 2.88449 13.5743C3.07624 13.9506 3.3822 14.2566 3.75852 14.4484C4.18635 14.6663 4.7464 14.6663 5.8665 14.6663H7.99984M11.9998 13.9997V9.99967M9.99984 11.9997H13.9998"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></path>
+          </g></svg>
+          {{ 'PAC.Xpert.CreateBlankXpert' | translate: {Default: 'Create blank Xpert'} }}
+      </div>
+      <!-- <div
+        class="flex items-center px-6 py-[7px] rounded-lg text-[13px] font-medium leading-[18px] text-gray-600 cursor-pointer hover:text-primary-600 hover:bg-white"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class="shrink-0 mr-2 w-4 h-4"
+        >
           <path
-            id="Icon"
-            d="M13.3332 6.99967V4.53301C13.3332 3.4129 13.3332 2.85285 13.1152 2.42503C12.9234 2.0487 12.6175 1.74274 12.2412 1.55099C11.8133 1.33301 11.2533 1.33301 10.1332 1.33301H5.8665C4.7464 1.33301 4.18635 1.33301 3.75852 1.55099C3.3822 1.74274 3.07624 2.0487 2.88449 2.42503C2.6665 2.85285 2.6665 3.4129 2.6665 4.53301V11.4663C2.6665 12.5864 2.6665 13.1465 2.88449 13.5743C3.07624 13.9506 3.3822 14.2566 3.75852 14.4484C4.18635 14.6663 4.7464 14.6663 5.8665 14.6663H7.99984M11.9998 13.9997V9.99967M9.99984 11.9997H13.9998"
+            d="M13.3333 6.99992V4.53325C13.3333 3.41315 13.3333 2.85309 13.1153 2.42527C12.9236 2.04895 12.6176 1.74299 12.2413 1.55124C11.8135 1.33325 11.2534 1.33325 10.1333 1.33325H5.86666C4.74655 1.33325 4.1865 1.33325 3.75868 1.55124C3.38235 1.74299 3.07639 2.04895 2.88464 2.42527C2.66666 2.85309 2.66666 3.41315 2.66666 4.53325V11.4666C2.66666 12.5867 2.66666 13.1467 2.88464 13.5746C3.07639 13.9509 3.38235 14.2569 3.75868 14.4486C4.1865 14.6666 4.74655 14.6666 5.86666 14.6666H7.99999M9.33332 7.33325H5.33332M6.66666 9.99992H5.33332M10.6667 4.66659H5.33332M12 13.9999V9.99992M9.99999 11.9999H14"
             stroke="currentColor"
             stroke-width="1.5"
             stroke-linecap="round"
             stroke-linejoin="round"
-          ></path>
-        </g></svg>
-        {{ 'PAC.Xpert.CreateBlankXpert' | translate: {Default: 'Create blank Xpert'} }}
+          ></path></svg
+        >从应用模版创建
+      </div> -->
     </div>
-    <!-- <div
-      class="flex items-center px-6 py-[7px] rounded-lg text-[13px] font-medium leading-[18px] text-gray-600 cursor-pointer hover:text-primary-600 hover:bg-white"
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        class="shrink-0 mr-2 w-4 h-4"
+    <div class="p-2 border-t-[0.5px] border-black/5 rounded-b-xl">
+      <div
+        class="flex items-center px-6 py-[7px] rounded-lg text-[13px] font-medium leading-[18px] text-gray-600 cursor-pointer hover:text-primary-600 hover:bg-white"
+        (click)="importDSL()"
       >
-        <path
-          d="M13.3333 6.99992V4.53325C13.3333 3.41315 13.3333 2.85309 13.1153 2.42527C12.9236 2.04895 12.6176 1.74299 12.2413 1.55124C11.8135 1.33325 11.2534 1.33325 10.1333 1.33325H5.86666C4.74655 1.33325 4.1865 1.33325 3.75868 1.55124C3.38235 1.74299 3.07639 2.04895 2.88464 2.42527C2.66666 2.85309 2.66666 3.41315 2.66666 4.53325V11.4666C2.66666 12.5867 2.66666 13.1467 2.88464 13.5746C3.07639 13.9509 3.38235 14.2569 3.75868 14.4486C4.1865 14.6666 4.74655 14.6666 5.86666 14.6666H7.99999M9.33332 7.33325H5.33332M6.66666 9.99992H5.33332M10.6667 4.66659H5.33332M12 13.9999V9.99992M9.99999 11.9999H14"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        ></path></svg
-      >从应用模版创建
-    </div> -->
-  </div>
-  <div class="p-2 border-t-[0.5px] border-black/5 rounded-b-xl">
-    <div
-      class="flex items-center px-6 py-[7px] rounded-lg text-[13px] font-medium leading-[18px] text-gray-600 cursor-pointer hover:text-primary-600 hover:bg-white"
-      (click)="importDSL()"
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        class="shrink-0 mr-2 w-4 h-4"
-      >
-        <g id="file-arrow-01">
-          <path
-            id="Vector"
-            d="M3.33333 12.333C3.33333 12.6426 3.33333 12.7974 3.35044 12.9274C3.4686 13.8249 4.17481 14.5311 5.07228 14.6492C5.20225 14.6663 5.35705 14.6663 5.66667 14.6663H10.8C11.9201 14.6663 12.4802 14.6663 12.908 14.4484C13.2843 14.2566 13.5903 13.9506 13.782 13.5743C14 13.1465 14 12.5864 14 11.4663V6.65849C14 6.16931 14 5.92472 13.9447 5.69454C13.8957 5.49047 13.8149 5.29538 13.7053 5.11644C13.5816 4.91461 13.4086 4.74165 13.0627 4.39575L10.9373 2.27027C10.5914 1.92436 10.4184 1.75141 10.2166 1.62773C10.0376 1.51807 9.84254 1.43726 9.63846 1.38827C9.40829 1.33301 9.1637 1.33301 8.67452 1.33301H5.66667C5.35705 1.33301 5.20225 1.33301 5.07228 1.35012C4.17481 1.46827 3.4686 2.17449 3.35044 3.07196M5.33333 5.99967L7.33333 7.99967M7.33333 7.99967L5.33333 9.99967M7.33333 7.99967H2"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          ></path>
-        </g>
-      </svg>
-      {{ 'PAC.Xpert.ImportDSL' | translate: {Default: 'Import DSL file'} }}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class="shrink-0 mr-2 w-4 h-4"
+        >
+          <g id="file-arrow-01">
+            <path
+              id="Vector"
+              d="M3.33333 12.333C3.33333 12.6426 3.33333 12.7974 3.35044 12.9274C3.4686 13.8249 4.17481 14.5311 5.07228 14.6492C5.20225 14.6663 5.35705 14.6663 5.66667 14.6663H10.8C11.9201 14.6663 12.4802 14.6663 12.908 14.4484C13.2843 14.2566 13.5903 13.9506 13.782 13.5743C14 13.1465 14 12.5864 14 11.4663V6.65849C14 6.16931 14 5.92472 13.9447 5.69454C13.8957 5.49047 13.8149 5.29538 13.7053 5.11644C13.5816 4.91461 13.4086 4.74165 13.0627 4.39575L10.9373 2.27027C10.5914 1.92436 10.4184 1.75141 10.2166 1.62773C10.0376 1.51807 9.84254 1.43726 9.63846 1.38827C9.40829 1.33301 9.1637 1.33301 8.67452 1.33301H5.66667C5.35705 1.33301 5.20225 1.33301 5.07228 1.35012C4.17481 1.46827 3.4686 2.17449 3.35044 3.07196M5.33333 5.99967L7.33333 7.99967M7.33333 7.99967L5.33333 9.99967M7.33333 7.99967H2"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></path>
+          </g>
+        </svg>
+        {{ 'PAC.Xpert.ImportDSL' | translate: {Default: 'Import DSL file'} }}
+      </div>
     </div>
-  </div>
+
+    @if (loading()) {
+      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+    }
   </a>
   
   @for (xpert of xperts(); track xpert.name) {

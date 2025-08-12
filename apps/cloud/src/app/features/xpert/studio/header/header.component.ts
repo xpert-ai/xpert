@@ -19,7 +19,7 @@ import {
   ToastrService,
   XpertService
 } from 'apps/cloud/src/app/@core'
-import { XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { XpertExportDslComponent, XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { formatRelative } from 'date-fns'
 import {
   BehaviorSubject,
@@ -183,20 +183,29 @@ export class XpertStudioHeaderComponent {
   }
 
   export(isDraft = false) {
-    this.xpertService.exportDSL(this.team().id, isDraft).subscribe({
-      next: (result) => {
-        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `xpert-${this.apiService.team().slug}.yaml`
-        a.click()
-        window.URL.revokeObjectURL(url)
-      },
-      error: (err) => {
-        this.#toastr.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
+    this.#dialog.open(XpertExportDslComponent, {
+      data: {
+        xpertId: this.xpert().id,
+        slug: this.xpert().slug,
+        isDraft
       }
+    }).closed.subscribe({
+      next: () => {}
     })
+    // this.xpertService.exportDSL(this.team().id, isDraft).subscribe({
+    //   next: (result) => {
+    //     const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' })
+    //     const url = window.URL.createObjectURL(blob)
+    //     const a = document.createElement('a')
+    //     a.href = url
+    //     a.download = `xpert-${this.apiService.team().slug}.yaml`
+    //     a.click()
+    //     window.URL.revokeObjectURL(url)
+    //   },
+    //   error: (err) => {
+    //     this.#toastr.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
+    //   }
+    // })
   }
 
   publishToIntegration() {

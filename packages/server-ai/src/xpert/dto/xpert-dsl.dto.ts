@@ -136,6 +136,9 @@ export class XpertDraftDslDTO implements TXpertTeamDraft {
 	@Expose()
 	connections: TXpertTeamConnection[]
 
+	@Expose()
+	memories?: any[]
+
 	constructor(partial: Partial<XpertDraftDslDTO>) {
 		Object.assign(this, partial)
 	}
@@ -294,6 +297,22 @@ export class KnowledgebaseDslDTO {
 	name: string
 
 	constructor(partial: Partial<KnowledgebaseDslDTO>) {
+		Object.assign(this, partial)
+	}
+}
+
+@Exclude()
+export class MemoryDslDTO {
+	@Expose()
+	key?: string
+
+	@Expose()
+	prefix: string
+
+	@Expose()
+	value: any
+
+	constructor(partial: Partial<MemoryDslDTO>) {
 		Object.assign(this, partial)
 	}
 }

@@ -2,13 +2,14 @@ import {
 	createAgentConnections,
 	createXpertNodes,
 	IXpert,
+	LongTermMemoryTypeEnum,
 	TXpertTeamConnection,
 	TXpertTeamDraft
 } from '@metad/contracts'
 import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { XpertDraftDslDTO } from '../../dto'
+import { MemoryDslDTO, XpertDraftDslDTO } from '../../dto'
 import { XpertService } from '../../xpert.service'
 import { XpertExportCommand } from '../export.command'
 
@@ -26,7 +27,7 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 	) {}
 
 	public async execute(command: XpertExportCommand): Promise<Record<string, any>> {
-		const { id, isDraft } = command
+		const { id, isDraft, includeMemory } = command
 
 		const relations = isDraft ? [
 				'agent',
@@ -52,7 +53,14 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 		if (!draft.team.agent) {
 			draft.team.agent = xpert.agent
 		}
-		return new XpertDraftDslDTO(draft)
+		
+		const dto = new XpertDraftDslDTO(draft)
+		if (includeMemory) {
+			const result = await this.xpertService.findAllMemory(id, [LongTermMemoryTypeEnum.QA])
+			dto.memories = result.items.map((memory) => new MemoryDslDTO(memory))
+		}
+		
+		return dto
 	}
 
 	getInitialDraft(xpert: IXpert) {

@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, uploadYamlFile } from '@metad/core'
@@ -115,6 +115,8 @@ export class XpertWorkspaceXpertsComponent {
       )
   })
 
+  readonly loading = signal(false)
+
   refresh() {
     this.refresh$.next()
   }
@@ -199,8 +201,9 @@ export class XpertWorkspaceXpertsComponent {
       })
       .closed.pipe(
         switchMap((basic) => {
-          return basic
-            ? this.xpertService.importDSL({
+          if (basic) {
+            this.loading.set(true)
+            return this.xpertService.importDSL({
                 ...dsl,
                 team: {
                   ...dsl.team,
@@ -208,17 +211,20 @@ export class XpertWorkspaceXpertsComponent {
                   workspaceId: this.workspace().id
                 }
               })
-            : EMPTY
+          }
+          return EMPTY
         })
       )
       .subscribe({
         next: (xpert) => {
+          this.loading.set(false)
           this.router.navigate(['/xpert/', xpert.id])
           this.#toastr.success(
             this.#translate.instant('PAC.Xpert.ImportSuccess', { Default: 'DSL file imported successfully' })
           )
         },
         error: (err) => {
+          this.loading.set(false)
           this.#toastr.error(
             this.#translate.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
               ': ' +

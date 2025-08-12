@@ -154,8 +154,8 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
-  exportDSL(id: string, isDraft: boolean) {
-    return this.httpClient.get<{ data: string }>(this.apiBaseUrl + `/${id}/export`, { params: { isDraft } })
+  exportDSL(id: string, params: {isDraft: boolean; includeMemory?: boolean}) {
+    return this.httpClient.get<{ data: string }>(this.apiBaseUrl + `/${id}/export`, { params })
   }
 
   importDSL(dslObject: Record<string, any>) {

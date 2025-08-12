@@ -1,4 +1,4 @@
-import { ChecklistItem, convertToUrlPath, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft } from '@metad/contracts'
+import { ChecklistItem, convertToUrlPath, ICopilotStore, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, OrderTypeEnum, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft } from '@metad/contracts'
 import {
 	OptionParams,
 	PaginationParams,
@@ -8,11 +8,11 @@ import {
 	UserPublicDTO,
 	UserService
 } from '@metad/server-core'
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign, uniq, uniqBy } from 'lodash'
-import { FindConditions, In, IsNull, Not, Repository } from 'typeorm'
+import { FindConditions, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { Xpert } from './xpert.entity'
@@ -20,6 +20,8 @@ import { XpertIdentiDto } from './dto'
 import { GetXpertMemoryEmbeddingsQuery } from './queries'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { FreeNodeValidator } from './validators'
+import { CopilotStoreService } from '../copilot-store/copilot-store.service'
+import { getErrorMessage } from '@metad/server-common'
 
 @Injectable()
 export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
@@ -28,6 +30,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 	constructor(
 		@InjectRepository(Xpert)
 		public readonly repository: Repository<Xpert>,
+		private readonly storeService: CopilotStoreService,
 		private readonly userService: UserService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
@@ -341,5 +344,24 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 			})
 		)
 		await this.commandBus.execute(new CopilotStoreBulkPutCommand(body.type, body.memories, [xpertId, body.type || LongTermMemoryTypeEnum.QA], embeddings))
+	}
+
+	async findAllMemory(id: string, types: string[]) {
+		const where = {} as FindConditions<ICopilotStore>
+		const _types = types
+		if (_types?.length > 1) {
+			where.prefix = In(_types.map((type) => `${id}${type ? `:${type}` : ''}`))
+		} else if(_types?.length === 1) {
+			const type = _types[0]
+			where.prefix = `${id}${type ? `:${type}` : ''}`
+		} else {
+			where.prefix = Like(`${id}%`)
+		}
+
+		try {
+			return await this.storeService.findAll({where, relations: ['createdBy'], order: {createdAt: OrderTypeEnum.DESC}})
+		} catch(err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
 	}
 }

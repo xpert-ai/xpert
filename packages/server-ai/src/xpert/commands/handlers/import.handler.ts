@@ -1,9 +1,9 @@
-import { IXpert, mapTranslationLanguage, replaceAgentInDraft, TXpertTeamDraft } from '@metad/contracts'
+import { IXpert, LongTermMemoryTypeEnum, mapTranslationLanguage, replaceAgentInDraft, TXpertTeamDraft } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {t} from 'i18next'
-import { omit, pick } from 'lodash'
+import { groupBy, omit, pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { XpertAgentService } from '../../../xpert-agent'
 import { XpertNameInvalidException } from '../../types'
@@ -58,33 +58,31 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 		// Update draft into xpert
 		await this.xpertService.update(xpert.id, {
 			draft: {
-				...draft,
+				...omit(draft, 'memories'),
 				team: xpert
 			},
 			graph: pick(draft, 'connections', 'nodes')
 		})
 
-		// const xpertAgents = await Promise.all(
-		// 	draft.nodes
-		// 		.filter((node) => node.type === 'agent')
-		// 		.map(async (node) => {
-		// 			return await this.agentService.create({
-		// 				key: node.key,
-		// 				...pickXpertAgent(node.entity as Partial<IXpertAgent>),
-		// 				teamId: node.key === draft.team.agent.key ? null : xpert.id, // is xpert team's member
-		// 				xpertId: node.key === draft.team.agent.key ? xpert.id : null // is primary agent
-		// 			})
-		// 		})
-		// )
-
-		// Establish connections between agents based on draft connections
-		// for (const connection of draft.connections) {
-		// 	const fromAgent = xpertAgents.find((agent) => agent.key === connection.from)
-		// 	const toAgent = xpertAgents.find((agent) => agent.key === connection.to)
-		// 	if (fromAgent && toAgent) {
-		// 		await this.createConnection(toAgent.id, fromAgent.key)
-		// 	}
-		// }
+		// Memories
+		if (draft.memories?.length) {
+			const items = groupBy(draft.memories.map((item) => {
+				const namespace = item.prefix.split(':')
+				return {
+					type: namespace[namespace.length - 1] as LongTermMemoryTypeEnum,
+					value: item.value
+				}
+			}), 'type')
+			await Promise.all(
+				Object.keys(items).filter((name) => !!name && items[name].length).map((type: LongTermMemoryTypeEnum) => {
+					const memories = items[type].map((_) => _.value)
+					return this.xpertService.createBulkMemories(xpert.id, {
+						type,
+						memories
+					})
+				})
+			)
+		}
 
 		return xpert
 	}
