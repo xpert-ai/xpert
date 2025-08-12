@@ -328,11 +328,11 @@
         <button cdkMenuItem disableRipple [cdkMenuTriggerFor]="propertiesMenu">
           <mat-icon class="shrink-0 mr-1" fontSet="material-icons-outlined">extension</mat-icon>
           {{ 'Ngm.Property.PropertyList' | translate: {Default: "Property List"} }}
-          
         </button>
 
-        <button cdkMenuItem disableRipple (click)="$event.stopPropagation();">
-          <mat-checkbox [(ngModel)]="displayHierarchy" style="width: 100%;">
+        <button cdkMenuItem class="flex justify-start items-center" (click)="$event.stopPropagation();">
+          <mat-checkbox
+            [(ngModel)]="displayHierarchy" [ngModelOptions]="{standalone: true}" style="width: 100%;">
             {{ 'Ngm.Property.DisplayHierarchy' | translate: {Default: "Display as Hierarchy"} }}
           </mat-checkbox>
         </button>
@@ -372,12 +372,16 @@
 
 <ng-template #propertiesMenu>
   <div cdkMenu class="cdk-menu__large">
-    <mat-selection-list [(ngModel)]="properties" displayDensity="compact">
+    <mat-selection-list [(ngModel)]="properties" [ngModelOptions]="{standalone: true}" displayDensity="compact">
       @for (property of properties$ | async; track property.name) {
         <mat-list-option [value]="property.name"
           (click)="$event.stopPropagation();">
           {{ property.caption }}
         </mat-list-option>
+      } @empty {
+        <div class="text-sm text-text-secondary">
+          {{ 'Ngm.Property.NoProperties' | translate: {Default: "No Properties"} }}
+        </div>
       }
     </mat-selection-list>
   </div>
