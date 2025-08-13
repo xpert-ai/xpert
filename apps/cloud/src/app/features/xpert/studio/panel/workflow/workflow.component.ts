@@ -124,6 +124,10 @@ export class XpertStudioPanelWorkflowComponent {
     this.testing.set(true)
   }
 
+  moveToNode() {
+    this.xpertStudioComponent.centerGroupOrNode(this.key())
+  }
+
   remove() {
     this.studioService.removeNode(this.key())
   }

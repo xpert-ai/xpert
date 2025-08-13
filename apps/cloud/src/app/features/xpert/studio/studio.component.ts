@@ -142,10 +142,12 @@ export class XpertStudioComponent {
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #clipboard = inject(Clipboard)
 
+  // Children
   readonly fFlowComponent = viewChild(FFlowComponent)
   readonly fCanvasComponent = viewChild(FCanvasComponent)
   readonly fZoom = viewChild(FZoomDirective)
 
+  // States
   public contextMenuPosition: IPoint = PointExtensions.initialize(0, 0)
 
   private subscriptions$ = new Subscription()
@@ -401,6 +403,10 @@ export class XpertStudioComponent {
 
   deleteNode(node: TXpertTeamNode) {
     this.apiService.removeNode(node.key)
+  }
+
+  centerGroupOrNode(id: string,) {
+    this.fCanvasComponent().centerGroupOrNode(id, true)
   }
 }
 

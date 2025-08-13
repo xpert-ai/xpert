@@ -25,6 +25,13 @@
       </button>
     }
 
+    <button type="button" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
+      [matTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
+      matTooltipPosition="above"
+      (click)="moveToNode()">
+      <i class="ri-crosshair-line"></i>
+    </button>
+
     <a [href]="helpUrl()" target="_blank" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
       [matTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
       matTooltipPosition="above"

@@ -75,6 +75,7 @@ export class XpertStudioPanelToolsetComponent {
 
   // States
   readonly xpert = this.xpertStudioComponent.xpert
+  readonly key = computed(() => this.node()?.key)
   readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   // Toolset node
@@ -294,6 +295,10 @@ export class XpertStudioPanelToolsetComponent {
           }
         })
     }
+  }
+
+  moveToNode() {
+    this.xpertStudioComponent.centerGroupOrNode(this.key())
   }
 
   saveDefaultParameters(event) {

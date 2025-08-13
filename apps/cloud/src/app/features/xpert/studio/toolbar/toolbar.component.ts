@@ -32,7 +32,7 @@ export class XpertStudioToolbarComponent {
 
   public zoomScales = [200, 100, 75, 50, 25]
   get fZoomScale() {
-    return Number((this.xpertStudioComponent.fZoom().getScale() * 100).toFixed(0))
+    return Number((this.xpertStudioComponent.fZoom().getZoomValue() * 100).toFixed(0))
   }
 
   readonly historyHasPast = this.apiService.historyHasPast

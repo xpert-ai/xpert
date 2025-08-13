@@ -20,6 +20,14 @@
       >
         <i class="ri-play-large-line"></i>
       </div>
+      <div class="flex items-center justify-center mr-1 w-7 h-7 rounded-md cursor-pointer hover:text-base-content
+        hover:bg-hover-bg"
+        [matTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
+        matTooltipPosition="above"
+        (click)="moveToNode()"
+      >
+        <i class="ri-crosshair-line"></i>
+      </div>
       <a [href]="helpUrl() + '/docs/ai/workflow/' + type()" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6"
         [matTooltip]="'PAC.Xpert.HelpDocs' | translate: {Default: 'Help docs'}"
         matTooltipPosition="above">

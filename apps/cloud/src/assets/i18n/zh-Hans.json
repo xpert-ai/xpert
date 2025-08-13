@@ -3027,6 +3027,7 @@
       "Code": "代码执行",
       "Template": "模版",
       "TestWorkflowNode": "测试工作流节点",
+      "MoveToNode": "移动到此节点",
       "TestRun": "测试运行",
       "Question": "问题",
       "SearchRecallMemories": "搜寻回忆",
