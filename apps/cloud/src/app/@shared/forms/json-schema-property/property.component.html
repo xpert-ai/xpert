@@ -1,10 +1,12 @@
-<div class="flex justify-between items-center py-1">
-  <div>
-    @if(required()) {
-      <span class="text-text-destructive">*</span>
-    }
-    {{meta().title || name()}}
-  </div>
+<div class="flex justify-between items-center">
+  @if (meta().title || name(); as title) {
+    <div class="py-1">
+      @if(required()) {
+        <span class="text-text-destructive">*</span>
+      }
+      {{title}}
+    </div>
+  }
 
   @if (type() === 'array') {
     <button class="btn btn-small justify-center w-6 h-6" (click)="addArray()">
@@ -15,18 +17,24 @@
 
 @switch (type()) {
   @case ('string') {
-    <input
-      class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+    <!-- <input
+      class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
       [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
       type="text"
       [disabled]="readonly()"
       [ngModel]="value$()"
       (ngModelChange)="update($event)"
-    />
+    /> -->
+    <xpert-variable-input class="w-full px-2 py-1 text-gray-900 border-0 rounded-lg grow bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+      [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
+      [disabled]="readonly()"
+      [variables]="variables()"
+      [ngModel]="value$()"
+      (ngModelChange)="update($event)"/>
   }
   @case ('number') {
     <input
-      class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+      class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
       [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
       type="number"
       [disabled]="readonly()"
@@ -36,7 +44,7 @@
   }
   @case ('integer') {
     <input
-      class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+      class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
       [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
       type="number"
       [disabled]="readonly()"
@@ -46,8 +54,14 @@
   }
   @case ('array') {
     <div class="flex flex-col gap-1">
-      @for (item of value$(); track item; let i = $index) {
-        <json-schema-property [schema]="arraySchema().items" [ngModel]="item" (ngModelChange)="updateArray(i, $event)" />
+      @for (item of value$(); track i; let i = $index) {
+        <div class="relative group/item">
+          <json-schema-property class="w-full" [schema]="arraySchema().items" [ngModel]="item" (ngModelChange)="updateArray(i, $event)" />
+          <button class="btn btn-small danger flex justify-center items-center w-6 h-6 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 z-20"
+            (click)="removeArray(i)">
+            <i class="ri-delete-bin-line"></i>
+          </button>
+        </div>
       }
     </div>
   }

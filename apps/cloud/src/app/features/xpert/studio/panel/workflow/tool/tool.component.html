@@ -37,7 +37,7 @@
 <div class="space-y-2">
   <div class="flex items-center justify-between">
     <div class="flex h-6 items-center">
-      <div class="system-sm-semibold-uppercase text-text-secondary">
+      <div class="font-semibold uppercase text-text-secondary">
         {{ 'PAC.Xpert.Tool' | translate: {Default: 'Tool'} }}
       </div>
     </div>
@@ -79,7 +79,7 @@
   </div>
 </div>
 
-<div>
+<!-- <div>
   <div class="my-2 system-sm-semibold-uppercase text-text-secondary">
     {{ 'PAC.Xpert.ParameterVariable' | translate: {Default: 'Parameter Variable'} }}
   </div>
@@ -89,7 +89,13 @@
       [(ngModel)]="parameterVariable" 
     />
   </div>
+</div> -->
+
+<div class="h-[0.5px] bg-divider-subtle"></div>
+<div class="mt-2 font-semibold uppercase text-text-secondary">
+  {{ 'PAC.Xpert.ParameterVariable' | translate: {Default: 'Parameter Variable'} }}
 </div>
+<json-schema-form [schema]="schema()" [variables]="variables()" [(ngModel)]="parameters" />
 
 <!-- <div class="h-[0.5px] bg-divider-subtle"></div>
 <div class="p-4 flex flex-col gap-2">

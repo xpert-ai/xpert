@@ -1,3 +1,4 @@
+import { PromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
 import {
@@ -14,7 +15,6 @@ import {
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { get } from 'lodash'
 import { toEnvState } from '../../../environment'
 import { _BaseToolset, AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
@@ -62,7 +62,9 @@ export function createToolNode(
 
 				const stateEnv = stateToParameters(state, environment)
 
-				const parameters = get(stateEnv, entity.parameterVariable)
+				const parameters = await deepTransformValue(entity.parameters, async (v) => {
+					return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
+				})
 
 				const execution: IXpertAgentExecution = {
 					category: 'workflow',
@@ -100,7 +102,7 @@ export function createToolNode(
 								output: result
 							}
 						} catch (error) {
-							if (entity.errorHandling.type === 'defaultValue') {
+							if (entity.errorHandling?.type === 'defaultValue') {
 								const result = entity.errorHandling.defaultValue?.result
 								let resultJson = result
 								try {
@@ -119,7 +121,7 @@ export function createToolNode(
 									},
 									output: result
 								}
-							} else if (entity.errorHandling.type === 'failBranch') {
+							} else if (entity.errorHandling?.type === 'failBranch') {
 								return {
 									state: {
 										[channelName(node.key)]: {
@@ -196,4 +198,39 @@ export function toolOutputVariables(entity: IWorkflowNode) {
 			}
 		}
 	]
+}
+
+/**
+ * Recursively traverse an object and transform all string values
+ * 
+ * @param obj The object to process
+ * @param x   The function to apply to string values
+ * @returns   A new object with transformed string values
+ * @generator GPT
+ */
+async function deepTransformValue<T>(obj: T, x: (val: string) => Promise<string>): Promise<T> {
+	if (typeof obj === 'string') {
+		// If it's a string, transform it directly
+		return await x(obj) as unknown as T
+	}
+
+	if (Array.isArray(obj)) {
+		// If it's an array, map each element recursively
+		return await Promise.all(obj.map((item) => deepTransformValue(item, x))) as unknown as T
+	}
+
+	if (obj !== null && typeof obj === 'object') {
+		// If it's an object, process each key
+		const result: Record<string, unknown> = {}
+		for (const key in obj) {
+			// Omit blank values
+			if (Object.prototype.hasOwnProperty.call(obj, key) && (obj[key] !== null && obj[key] !== undefined && obj[key] !== '')) {
+				result[key] = await deepTransformValue((obj as Record<string, unknown>)[key], x)
+			}
+		}
+		return result as T
+	}
+
+	// If it's neither string, array nor object, return as-is
+	return obj
 }

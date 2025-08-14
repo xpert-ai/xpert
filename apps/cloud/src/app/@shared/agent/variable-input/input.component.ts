@@ -19,12 +19,12 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { TWorkflowVarGroup } from '../../../@core/types'
-import { StateVariableSelectComponent } from '../state-variable-select/select.component'
-import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
 import { myRxResource } from '@metad/ocap-angular/core'
 import { XpertService } from '@cloud/app/@core'
 import { of } from 'rxjs'
+import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
+import { StateVariableSelectComponent } from '../state-variable-select/select.component'
+import { TWorkflowVarGroup } from '../../../@core/types'
 
 @Component({
   standalone: true,
