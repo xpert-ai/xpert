@@ -1,4 +1,4 @@
-import { IPagination, IXpertTool, IXpertToolset } from '@metad/contracts'
+import { IPagination, IXpertTool, IXpertToolset, TAvatar } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -152,13 +152,13 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	@Get('mcp/:id/avatar')
 	async getMCPAvatar(@Param('id', UUIDValidationPipe) id: string) {
 		const cacheKey = `mcp:avatar:${id}`
-		const avatar = await this.cacheManager.get(cacheKey)
-		if (!avatar) {
+		const cache = await this.cacheManager.get<{avatar: TAvatar}>(cacheKey)
+		if (!cache) {
 			const toolset = await this.service.findOne(id)
-			await this.cacheManager.set(cacheKey, toolset.avatar, 5 * 60 * 1000) // Cache for 5 minutes
+			await this.cacheManager.set(cacheKey, {avatar: toolset.avatar}, 5 * 60 * 1000) // Cache for 5 minutes
 			return toolset.avatar
 		}
-		return avatar
+		return cache.avatar
 	}
 
 	@Public()
