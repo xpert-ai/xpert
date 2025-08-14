@@ -83,8 +83,15 @@ export class XpertHomeService {
     { allowSignalWrites: true }
   )
 
-  selectSemanticModel(id: string) {
-    if (!this.#models[id]) {
+  /**
+   * Observe semantic model from cache or server.
+   * 
+   * @param id model id
+   * @param refresh Skip cache to fetch latest model
+   * @returns 
+   */
+  selectSemanticModel(id: string, refresh = false) {
+    if (!this.#models[id] || refresh) {
       this.#models[id] = this.semanticModelService.getById(id, {
             relations: ['indicators', 'createdBy', 'updatedBy', 'dataSource', 'dataSource.type']
           })

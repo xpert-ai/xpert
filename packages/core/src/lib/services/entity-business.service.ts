@@ -290,4 +290,8 @@ export class EntityBusinessService<
   getIndicator(idOrCode: string) {
     return this.entityService.getIndicator(idOrCode)
   }
+
+  selectIndicator(idOrCode: string) {
+    return this.entityService$.pipe(switchMap((entityService) => entityService.selectIndicator(idOrCode)))
+  }
 }

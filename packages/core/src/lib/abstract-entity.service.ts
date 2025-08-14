@@ -91,6 +91,10 @@ export abstract class AbstractEntityService<T> implements EntityService<T> {
     return this.dataSource.getIndicator(id, this.entitySet)
   }
 
+  selectIndicator(idOrCode: string) {
+    return this.dataSource.selectIndicator(this.entitySet, idOrCode)
+  }
+
   registerMeasure(name: string, property: CalculatedProperty) {
     const registerMeasures = this.registerMeasures$.value
     this.registerMeasures$.next({

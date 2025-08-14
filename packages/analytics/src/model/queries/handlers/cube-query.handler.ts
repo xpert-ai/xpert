@@ -30,28 +30,32 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 
 	async execute(params: ModelCubeQuery) {
 		const { id, sessionId, modelId, body, acceptLanguage, forceRefresh, isDraft } = params.input
-		const { mdx, query, isDraftIndicators } = body ?? {}
+		const { mdx, query, isIndicatorsDraft } = body ?? {}
 
 		this.logger.verbose(`Executing OLAP query [${id}] for model: ${modelId}`)
 
-		const model = await this.semanticModelService.findOne4Ocap(modelId, {withIndicators: true})
+		const model = await this.semanticModelService.findOne4Ocap(modelId, {withIndicators: true, skipCache: isIndicatorsDraft || isDraft})
 
 		// New Ocap context for every chatbi conversation
 		const dsCoreService = new NgmDSCoreService(this.agent, this.dataSourceFactory)
-
+		
 		// Indicators to use draft
-		if (isDraftIndicators?.length) {
-			model.indicators = model.indicators.map((indicator) => {
-				if (isDraftIndicators.includes(indicator.code) && indicator.draft) {
-					return {
-						...indicator,
-						...indicator.draft,
-						status: null // Reset status to null to avoid filter when registerSemanticModel
-					}
+		model.indicators = model.indicators.map((indicator) => {
+			if (isIndicatorsDraft && indicator.draft) {
+				return {
+					...indicator,
+					...indicator.draft,
+					status: null // Reset status to null to avoid filter when registerSemanticModel
 				}
-				return indicator
-			})
+			}
+			return indicator
+		})
+		// Indicators modified by the client
+		if (query.indicators) {
+			model.indicators = model.indicators.filter((item) => !query.indicators.some((_) => _.code === item.code))
+			model.indicators.push(...query.indicators.map((item) => ({...item, status: null })))
 		}
+		
 		registerSemanticModel(isDraft ? {...applySemanticModelDraft(model), isDraft: true} : model, isDraft, dsCoreService, { language: acceptLanguage })
 
 		const entityService = await firstValueFrom(dsCoreService.getEntityService(modelId, query.cube))

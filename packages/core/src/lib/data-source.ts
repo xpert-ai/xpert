@@ -244,9 +244,14 @@ export interface DataSource {
   /**
    * Observe indicators of entity
    *
-   * @param entitySet 实体
+   * @param entitySet Cube name
    */
   selectIndicators(entity: string): Observable<Array<Indicator>>
+
+  /**
+   * Observe an indicator by code from model
+   */
+  selectIndicator(cube: string, code: string): Observable<Indicator>
 
   /**
    * Get an indicator by id from entity
@@ -539,6 +544,14 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
     return this.selectEntitySet(entity).pipe(
       filter(isEntitySet),
       map((entitySet) => entitySet.indicators),
+      distinctUntilChanged()
+    )
+  }
+
+  selectIndicator(cube: string, code: string): Observable<Indicator> {
+    return this.selectEntitySet(cube).pipe(
+      filter(isEntitySet),
+      map((entitySet) => entitySet.indicators?.find((indicator) => indicator.code === code)),
       distinctUntilChanged()
     )
   }

@@ -57,13 +57,13 @@ import { In } from 'typeorm'
 import { z } from 'zod'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
 import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, extractDataValue, limitDataResults, TChatBICredentials, tryFixDimensions } from './types'
-import { buildDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
 import { fixMeasure, markdownCubes, tryFixChartType, tryFixFormula } from '../../types'
 import { TBIContext } from '../../../types'
 import { GetBIContextQuery } from '../../../queries'
 import { IndicatorSchema } from '../../schema'
 import { TOOL_CHATBI_PROMPTS_DEFAULT } from './prompts'
 import { BIVariableEnum, mapTimeSlicer } from '../bi-toolset'
+import { buildDimensionMemberRetrieverTool } from '../tools/dimension_member_retriever'
 
 
 function cubesReducer(a, b) {
@@ -169,7 +169,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		if (allAllowed || tools.find((_) => _.name === ChatBIToolsEnum.MEMBER_RETRIEVER)) {
 			const dimensionMemberRetrieverTool = buildDimensionMemberRetrieverTool(
 				{
-					chatbi: this,
 					dsCoreService: this.dsCoreService,
 					commandBus: this.commandBus
 				},

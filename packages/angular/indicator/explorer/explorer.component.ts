@@ -57,10 +57,13 @@ export class NgmIndicatorExplorerComponent {
       startWith(false)
     )
   )
-  readonly indicator = computed(() => {
+  /**
+   * When original indicator is changed, this need refresh.
+   */
+  readonly indicator = derivedAsync(() => {
     const code = this.indicatorCode()
     if (code && this.initied()) {
-      return this.dataService.getIndicator(code)
+      return this.dataService.selectIndicator(code)
     }
     return null
   })
