@@ -3,6 +3,7 @@
         "SemanticModelNotFound": "语义模型‘{model}’未找到。",
         "ChatBIModelNotFound": "未找到‘{toolset}’工具集的语义模型‘{model}’。",
         "IndicatorNotFound": "指标‘{indicator}’未找到。",
-        "SemanticModelDraftVersionNotFound": "语义模型‘{model}’的草稿版本‘{version}’未找到或已过期。"
+        "SemanticModelDraftVersionNotFound": "语义模型‘{model}’的草稿版本‘{version}’未找到或已过期。",
+        "IndicatorDraftVersionNotFound": "指标‘{code}’的草稿版本‘{version}’未找到或已过期。"
     }
 }

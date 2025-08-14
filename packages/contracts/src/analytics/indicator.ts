@@ -60,6 +60,8 @@ export type TIndicator = {
 
 export type TIndicatorDraft = TIndicator & {
   checklist?: ChecklistItem[]
+  version?: number
+  savedAt?: Date
 }
 
 export interface IIndicator extends IBasePerProjectEntityModel, TIndicator {

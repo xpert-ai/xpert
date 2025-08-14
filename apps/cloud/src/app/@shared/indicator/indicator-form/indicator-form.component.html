@@ -23,6 +23,15 @@
         }
       }
     </div>
+     <button type="button" class="btn pressable relative flex justify-center items-center w-7 h-7 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+      [cdkMenuTriggerFor]="checklistMenu">
+      <i class="ri-list-check-3"></i>
+      @if (checklist()?.length) {
+        <div class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-gray-100 bg-[#F79009] text-[11px] font-semibold text-white">
+          {{checklist()?.length ?? 0}}</div>
+      }
+    </button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium relative"
       [disabled]="!isDirty()"
       (click)="onSave()"
@@ -142,4 +151,8 @@
       {{ 'PAC.INDICATOR.Delete' | translate: {Default: "Delete"} }}
     </button>
   </div>
+</ng-template>
+
+<ng-template #checklistMenu>
+  <xp-checklist cdkMenu class="cdk-menu__large rounded-xl" [checklist]="checklist()" />
 </ng-template>

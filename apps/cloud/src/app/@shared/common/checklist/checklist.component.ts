@@ -7,14 +7,14 @@ import { TranslateModule } from '@ngx-translate/core'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'xp-model-checklist',
+  selector: 'xp-checklist',
   templateUrl: 'checklist.component.html',
   styleUrls: ['checklist.component.scss'],
   imports: [CommonModule, TranslateModule, NgmI18nPipe],
   host: {
-    class: 'xp-model-checklist'
+    class: 'xp-checklist'
   }
 })
-export class ModelChecklistComponent {
+export class ChecklistComponent {
   readonly checklist = input<ChecklistItem[]>()
 }

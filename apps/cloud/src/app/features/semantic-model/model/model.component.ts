@@ -82,7 +82,7 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { ModelChecklistComponent } from '@cloud/app/@shared/model'
+import { ChecklistComponent } from '@cloud/app/@shared/common'
 
 @Component({
   standalone: true,
@@ -109,7 +109,7 @@ import { ModelChecklistComponent } from '@cloud/app/@shared/model'
     NgmCommonModule,
     DateRelativePipe,
 
-    ModelChecklistComponent
+    ChecklistComponent
   ],
   selector: 'ngm-semanctic-model',
   templateUrl: './model.component.html',

@@ -51,7 +51,6 @@ import { IndicatorRegisterFormComponent } from '../register-form/register-form.c
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Dialog } from '@angular/cdk/dialog'
 import { ExplainComponent } from '@metad/story/story'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { exportIndicator } from '@cloud/app/@shared/indicator'
 import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
@@ -83,7 +82,7 @@ type AOA = any[][]
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss']
 })
-export class IndicatorRegisterComponent extends TranslationBaseComponent implements OnDestroy, IsDirty {
+export class IndicatorRegisterComponent implements OnDestroy, IsDirty {
   PERIODS = PERIODS
 
   private projectService = inject(ProjectService)
@@ -140,7 +139,7 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
     )
     if (!level) {
       return {
-        error: this.translateService.instant(`PAC.INDICATOR.REGISTER.CalendarDimensionNotSet`, {
+        error: this.#translate.instant(`PAC.INDICATOR.REGISTER.CalendarDimensionNotSet`, {
           Default: 'Calendar dimension not set'
         })
       } as undefined as DataSettings & { error?: string }
@@ -169,7 +168,7 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
           chartAnnotation: {
             chartType: {
               type: ChartTypeEnum.Line,
-              name: this.translateService.instant(`PAC.KEY_WORDS.LineChart`, {
+              name: this.#translate.instant(`PAC.KEY_WORDS.LineChart`, {
                 Default: 'Line'
               }),
               chartOptions: {
@@ -307,8 +306,6 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
     })
 
   constructor() {
-    super()
-
     effect(
       () => {
         if (this.indicator()?.id) {
@@ -443,12 +440,10 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
   }
 
   /**
-   * 下载指标上传模板
+   * Download indicator upload template
    */
-  async downloadTempl() {
-    const indicatorTmplFileName = await firstValueFrom(
-      this.translateService.get('PAC.INDICATOR.IndicatorTemplateFileName', { Default: 'IndicatorTemplate' })
-    )
+  downloadTempl() {
+    const indicatorTmplFileName = this.#translate.instant('PAC.INDICATOR.IndicatorTemplateFileName', { Default: 'IndicatorTemplate' })
     saveAsYaml(`${indicatorTmplFileName}.yaml`, [exportIndicator(this.indicator())])
   }
 

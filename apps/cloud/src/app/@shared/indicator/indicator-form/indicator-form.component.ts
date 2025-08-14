@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { getErrorMessage, injectToastr, ProjectAPIService } from '@cloud/app/@core'
-import { convertIndicatorResult, IIndicator, IndicatorsService, IndicatorStatusEnum, Store, TMessageContentIndicator } from '@metad/cloud/state'
+import { convertIndicatorResult, IIndicator, IndicatorsService, IndicatorStatusEnum, Store, TIndicatorDraft, TMessageContentIndicator } from '@metad/cloud/state'
 import { saveAsYaml } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -34,6 +34,7 @@ import { of } from 'rxjs'
 import { injectI18nService } from '../../i18n'
 import { XpIndicatorRegisterFormComponent } from '../register-form/register-form.component'
 import { exportIndicator } from '../types'
+import { ChecklistComponent } from '../../common'
 
 @Component({
   standalone: true,
@@ -50,6 +51,7 @@ import { exportIndicator } from '../types'
     MatTooltipModule,
     NgmSpinComponent,
     AnalyticalCardModule,
+    ChecklistComponent,
     XpIndicatorRegisterFormComponent
   ]
 })
@@ -98,7 +100,7 @@ export class XpIndicatorFormComponent {
   })
   readonly draft = linkedModel({
     initialValue: null,
-    compute: () => this.indicator()?.draft ?? this.indicator(),
+    compute: () => this.indicator()?.draft ?? this.indicator() as TIndicatorDraft,
     update: (value) => {}
   })
   readonly projectId = computed(() => this.indicator()?.projectId)
@@ -116,6 +118,7 @@ export class XpIndicatorFormComponent {
     return this.dsCoreService.getDataSource(this.modelKey())
   })
   readonly entityType = computed(() => this.registerForm()?.entityType())
+  readonly checklist = computed(() => this.indicator()?.draft?.checklist)
 
   readonly dataSettings = computed(() => {
     const registerForm = this.registerForm()

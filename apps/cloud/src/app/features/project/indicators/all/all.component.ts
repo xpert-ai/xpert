@@ -7,7 +7,8 @@ import {
   DestroyRef,
   effect,
   inject,
-  signal
+  signal,
+  ViewContainerRef
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { MatButtonModule } from '@angular/material/button'
@@ -22,7 +23,8 @@ import { catchError, debounceTime, filter, map, merge, of, Subject, switchMap } 
 import { DateRelativePipe, getErrorMessage, IIndicator, isUUID, ToastrService } from '../../../../@core/index'
 import { ProjectService } from '../../project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
-import { exportIndicator } from '@cloud/app/@shared/indicator'
+import { exportIndicator, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
@@ -56,6 +58,8 @@ export class AllIndicatorComponent {
   readonly #translate = inject(TranslateService)
   readonly confirmDelete = injectConfirmDelete()
   readonly #destroyRef = inject(DestroyRef)
+  readonly #dialog = inject(Dialog)
+  readonly #viewContainerRef = inject(ViewContainerRef)
 
   readonly projectId = computed(() => this.projectService.project()?.id)
   readonly #indicators = toSignal(this.projectService.indicators$)
@@ -203,5 +207,19 @@ export class AllIndicatorComponent {
       `${indicatorsFileName}.yaml`,
       indicators.map((item) => exportIndicator(convertIndicatorResult(item)))
     )
+  }
+
+  editIndicator(id: string) {
+    this.#dialog.open<IIndicator>(XpIndicatorFormComponent, {
+      viewContainerRef: this.#viewContainerRef,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet',
+      data: {
+        id
+      }
+    }).closed.subscribe((result) => {
+      if (result) {
+      }
+    })
   }
 }

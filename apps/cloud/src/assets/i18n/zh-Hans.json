@@ -24,6 +24,8 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Checklist": "检查清单",
+      "ChecklistTip": "确保发布前所有问题都已解决",
       "Input": "输入",
       "OR": "或",
       "Changelog": "更新日志",

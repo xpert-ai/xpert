@@ -1,13 +1,15 @@
 import { BaseStore } from '@langchain/langgraph'
-import { EmbeddingStatusEnum, IIndicator, IndicatorStatusEnum, TIndicatorDraft } from '@metad/contracts'
+import { ChecklistItem, EmbeddingStatusEnum, IIndicator, IndicatorStatusEnum, mapTranslationLanguage, TIndicatorDraft } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
 import { ILike, Repository } from 'typeorm'
 import { plainToInstance } from 'class-transformer'
+import { I18nService } from 'nestjs-i18n'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
 import { CreateProjectStoreCommand } from '../project/commands'
 import { IndicatorCreateCommand } from './commands'
@@ -19,7 +21,7 @@ import {
 	JOB_EMBEDDING_INDICATORS,
 	TJobEmbeddingIndicators
 } from './types'
-import { getErrorMessage } from '@metad/server-common'
+import { IndicatorValidator } from './validators'
 
 
 @Injectable()
@@ -28,7 +30,8 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 		@InjectRepository(Indicator)
 		indicatorRepository: Repository<Indicator>,
 		@InjectQueue(JOB_EMBEDDING_INDICATORS) private indicatorQueue: Queue<TJobEmbeddingIndicators>,
-		readonly commandBus: CommandBus
+		readonly commandBus: CommandBus,
+		private readonly i18nService: I18nService,
 	) {
 		super(indicatorRepository, commandBus)
 	}
@@ -129,8 +132,33 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 	}
 
 	async updateDraft(id: string, draft: TIndicatorDraft): Promise<Indicator> {
+		const indicator = await this.findOne(id)
+		if (indicator.draft?.version && indicator.draft.version !== draft.version) {
+			throw new NotFoundException(
+				await this.i18nService.t('analytics.Error.IndicatorDraftVersionNotFound', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						code: indicator.code,
+						version: draft.version
+					}
+				})
+			)
+		}
+		draft.checklist = await this.validate(draft)
+		draft.version = draft?.version ? draft.version + 1 : 1
+		draft.savedAt = new Date()
 		await this.update(id, { draft })
 		return this.findOne(id)
+	}
+
+	async validate(draft: TIndicatorDraft) {
+		const results: ChecklistItem[] = []
+
+		const issues = await new IndicatorValidator().validate(draft)
+		if (issues.length) {
+			results.push(...issues)
+		}
+		return results
 	}
 
 	async publish(id: string) {

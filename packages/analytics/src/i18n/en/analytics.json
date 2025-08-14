@@ -3,6 +3,7 @@
         "SemanticModelNotFound": "Semantic model '{model}' not found.",
         "ChatBIModelNotFound": "Semantic model '{model}' not found for '{toolset}' toolset.",
         "IndicatorNotFound": "Indicator '{indicator}' not found.",
-        "SemanticModelDraftVersionNotFound": "Draft version '{version}' of semantic model '{model}' not found or outdated."
+        "SemanticModelDraftVersionNotFound": "Draft version '{version}' of semantic model '{model}' not found or outdated.",
+        "IndicatorDraftVersionNotFound": "Draft version '{version}' of indicator '{code}' not found or outdated."
     }
 }
