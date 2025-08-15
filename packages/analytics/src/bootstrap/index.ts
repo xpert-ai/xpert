@@ -1,24 +1,29 @@
-import { environment as env } from '@metad/server-config'
+import { environment as env, getConfig, setConfig } from '@metad/server-config'
 import { AppService, AuthGuard, initI18next, ServerAppModule } from '@metad/server-core'
+import { IPluginConfig } from '@metad/server-common'
 import { Logger, LogLevel } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import cookieParser from 'cookie-parser'
 import { json, text, urlencoded } from 'express'
 import expressSession from 'express-session'
-import * as path from 'path'
 import i18next from 'i18next'
 import * as middleware from 'i18next-http-middleware'
+import path from 'path'
 import { AnalyticsModule } from '../app.module'
 import { AnalyticsService } from '../app.service'
 import { BootstrapModule } from './bootstrap.module'
 
-const baseDir = path.join(__dirname, '../../../')
+
 const LOGGER_LEVELS = ['error', 'warn', 'log', 'debug', 'verbose'] as LogLevel[]
 const LoggerIndex = LOGGER_LEVELS.findIndex((value) => value === (process.env.LOG_LEVEL || 'warn'))
 
 export async function bootstrap(options: {title: string; version: string}) {
-	await initI18next(baseDir)
+	// Pre-bootstrap the application configuration
+	const config = await preBootstrapApplicationConfig({})
+
+	const baseDir = config.assetOptions.serverRoot
+	await initI18next(path.join(baseDir, 'packages'))
 	
 	const app = await NestFactory.create(BootstrapModule, {
 		logger: LOGGER_LEVELS.slice(0, LoggerIndex + 1)
@@ -90,6 +95,23 @@ export async function bootstrap(options: {title: string; version: string}) {
 	await app.listen(port, '0.0.0.0', () => {
 		Logger.log('Listening at http://localhost:' + port + '/' + globalPrefix)
 	})
+}
+
+/**
+ * Prepares the application configuration before initializing plugins.
+ * Configures migration settings, registers entities and subscribers,
+ * and applies additional plugin configurations.
+ *
+ * @param applicationConfig - The initial application configuration.
+ * @returns A promise that resolves to the final application configuration after pre-bootstrap operations.
+ */
+export async function preBootstrapApplicationConfig(applicationConfig: Partial<IPluginConfig>) {
+	if (Object.keys(applicationConfig).length > 0) {
+		// Set initial configuration if any properties are provided
+		setConfig(applicationConfig);
+	}
+
+	return getConfig()
 }
 
 function origins(url: string) {

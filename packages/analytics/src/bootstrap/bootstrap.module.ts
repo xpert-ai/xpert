@@ -9,13 +9,12 @@ import {
 	SeederModule,
 	ServerAppModule
 } from '@metad/server-core'
-import { ConfigModule } from '@metad/server-config'
+import { ConfigModule, getConfig } from '@metad/server-config'
 import { Logger, MiddlewareConsumer, Module, NestModule, OnApplicationShutdown } from '@nestjs/common'
-import * as path from 'path'
 import { AnalyticsModule } from '../app.module'
 export * from '../ai/index'
 
-const baseDir = path.join(__dirname, '../../../')
+const baseDir = getConfig().assetOptions.serverRoot
 
 @Module({
 	imports: [
