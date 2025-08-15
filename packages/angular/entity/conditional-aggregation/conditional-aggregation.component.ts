@@ -67,9 +67,10 @@ export class NgmConditionalAggregationComponent implements ControlValueAccessor,
   readonly #translate = inject(TranslateService)
 
   OPERATIONS = AggregationOperations.map((operation) => ({...operation, label: this.#translate.instant(`Ngm.Calculation.${operation.label.split(' ').join('')}`, {Default: operation.label}) }))
-  COMPARES = AggregationCompareOperations.map((operation) => ({...operation, label: this.#translate.instant(`Ngm.Calculation.${operation.label.split(' ').join('')}`, {Default: operation.label}) }))
+  COMPARES = [{value: null, label: ''}, ...AggregationCompareOperations.map((operation) => ({...operation, label: this.#translate.instant(`Ngm.Calculation.${operation.label.split(' ').join('')}`, {Default: operation.label}) }))]
   HAS_VALUE_OPERATIONS = [AggregationOperation.TOP_COUNT, AggregationOperation.TOP_PERCENT, AggregationOperation.TOP_SUM]
-  COMPARE_VALUE_OPERATIONS = [AggregationOperation.COUNT]
+  COMPARE_VALUE_OPERATIONS = [AggregationOperation.SUM, AggregationOperation.COUNT]
+  COMPARE_NO_VALUE = [null, 'empty', 'not_empty']
 
   // Inputs
   readonly dataSettings = input<DataSettings>(null)

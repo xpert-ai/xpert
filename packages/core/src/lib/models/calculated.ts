@@ -98,6 +98,14 @@ export const AggregationCompareOperations = [
   {
     value: '<=',
     label: 'Less or Equal'
+  },
+  {
+    value: 'empty',
+    label: 'Empty'
+  },
+  {
+    value: 'not_empty',
+    label: 'Not Empty'
   }
 ]
 
@@ -224,7 +232,7 @@ export interface AggregationProperty extends CalculationProperty {
    * )
    *```
    */
-  compare?: '>' | '<' | '=' | '<=' | '>=' | '!='
+  compare?: '>' | '<' | '=' | '<=' | '>=' | '!=' | 'empty' | 'not_empty'
   /**
    * Aggregation dimensions of the calculation measure
    */

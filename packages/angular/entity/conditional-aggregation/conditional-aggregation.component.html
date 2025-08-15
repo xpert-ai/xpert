@@ -31,12 +31,14 @@
         [selectOptions]="COMPARES"
       />
 
-      <ngm-parameter-select class="flex-1" displayDensity="cosy"
-        [label]=" 'Ngm.Calculation.VALUE' | translate: {Default: 'Value'} "
-        [dataSettings]="dataSettings()"
-        [entityType]="entityType()"
-        formControlName="value"
-      />
+      @if (!COMPARE_NO_VALUE.includes(formGroup.value?.compare)) {
+        <ngm-parameter-select class="flex-1" displayDensity="cosy"
+          [label]=" 'Ngm.Calculation.VALUE' | translate: {Default: 'Value'} "
+          [dataSettings]="dataSettings()"
+          [entityType]="entityType()"
+          formControlName="value"
+        />
+      }
     }
   </div>
 

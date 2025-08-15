@@ -46,6 +46,7 @@ import {
   Filter,
   Lag,
   Lead,
+  LogicalExpression,
   Max,
   Median,
   Members,
@@ -340,7 +341,7 @@ export function serializeAggregationProperty(property: AggregationProperty) {
         if (isNil(property.value)) {
           throw new Error(t('Error.AggregationValueEmpty', {ns: 'xmla', name: property.name}))
         }
-        memberSet = Filter(memberSet, `${measureFormatter(property.measure)} ${property.compare} ${property.value}`)
+        memberSet = Filter(memberSet, LogicalExpression(measureFormatter(property.measure), property.compare, property.value))
       }
       return Count(Distinct(memberSet), true)
     }

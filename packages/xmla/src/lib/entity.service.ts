@@ -93,7 +93,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
 
     const dialect = this.dataSource.options.dialect
     const cube = this.dataSource.options.schema?.cubes?.find(({ name }) => name === this.entitySet)
-    const _indicators = this.dataSource.options.schema.indicators.filter((_) => _.entity === this.entitySet)
+    const _indicators = this.dataSource.options.schema?.indicators?.filter((_) => _.entity === this.entitySet)
     try {
       if (options) {
         // Language
@@ -109,7 +109,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
       mdxQuery.parameters = options.parameters
       const mdx =
         options.statement || generateMDXStatement(mdxQuery, this.entityType, this.entityType.dialect as MDXDialect)
-      const indicators = Object.values(mdxQuery.withMembers ?? {}).map((member) => _indicators.find((item) => item.code === member.name)).filter(nonNullable)
+      const indicators = Object.values(mdxQuery.withMembers ?? {}).map((member) => _indicators?.find((item) => item.code === member.name)).filter(nonNullable)
 
       if (mdx) {
         let recursiveHierarchy: RecursiveHierarchyType
