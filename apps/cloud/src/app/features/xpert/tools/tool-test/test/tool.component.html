@@ -2,47 +2,14 @@
   <div class="w-full flex justify-between items-center p-2">
     <div class="py-2 leading-5 text-sm font-medium text-gray-900">
       {{ 'PAC.Xpert.Parameters' | translate: { Default: 'Parameters' } }} &amp; {{ 'PAC.Xpert.Value' | translate: { Default: 'Value' } }}</div>
-    <button type="button" class="btn btn-medium h-8"
+    <!-- <button type="button" class="btn btn-medium h-8"
       [disabled]="!parameters()"
       (click)="saveAsDefault()">
-      {{ 'PAC.Xpert.SaveAsDefault' | translate: { Default: 'Save as default' } }}</button>
+      {{ 'PAC.Xpert.SaveAsDefault' | translate: { Default: 'Save as default' } }}</button> -->
   </div>
   
   <div class="rounded-lg border border-gray-200 max-h-80 p-2 overflow-y-auto">
-    @if (parameterList()) {
-      <table class="w-full leading-[18px] text-sm text-gray-700 font-normal">
-        <thead class="text-gray-500 uppercase">
-          <tr class="border-b border-gray-200">
-            <th class="p-2 pl-3 font-medium text-left">{{ 'PAC.Xpert.Parameters' | translate: { Default: 'Parameters' } }}</th>
-            <th class="p-2 pl-3 font-medium text-left">{{ 'PAC.Xpert.Value' | translate: { Default: 'Value' } }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (parameter of parameterList(); track parameter.name) {
-            <tr class="border-b last:border-0 border-gray-200">
-              <td class="py-2 pl-3 pr-2.5">
-                <div class="whitespace-nowrap">
-                  <span>{{parameter.label | i18n}}</span>
-                  <span class="px-1 text-xs font-mono truncate text-gray-600 bg-slate-50">
-                    {{parameter.name}}
-                  </span>
-                  @if (parameter.required) {
-                    <span class="inline-block text-sm font-medium text-[#EC4A0A]">*</span>
-                  }
-                </div>
-              </td>
-              <td class="">
-                <input class="ngm-input-inline ngm-input-sm w-full" [type]="parameter.type || 'text' "
-                  [ngModel]="parameters()?.[parameter.name]"
-                  (ngModelChange)="onParameter(parameter.name, $event)">
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    } @else if(jsonSchema()) {
-      <json-schema-form [schema]="jsonSchema()" [(ngModel)]="parameters" />
-    }
+    <xp-tool-parameters-form [tool]="tool()" [(ngModel)]="parameters" />
   </div>
 </div>
 

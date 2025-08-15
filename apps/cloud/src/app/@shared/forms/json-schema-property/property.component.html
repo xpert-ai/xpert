@@ -17,20 +17,24 @@
 
 @switch (type()) {
   @case ('string') {
-    <!-- <input
-      class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-      [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
-      type="text"
-      [disabled]="readonly()"
-      [ngModel]="value$()"
-      (ngModelChange)="update($event)"
-    /> -->
-    <xpert-variable-input class="w-full px-2 py-1 text-gray-900 border-0 rounded-lg grow bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-      [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
-      [disabled]="readonly()"
-      [variables]="variables()"
-      [ngModel]="value$()"
-      (ngModelChange)="update($event)"/>
+    @if (variables()) {
+      <xpert-variable-input class="w-full px-2 py-1 text-gray-900 border-0 rounded-lg grow bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+        [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
+        [disabled]="readonly()"
+        [variables]="variables()"
+        [ngModel]="value$()"
+        (ngModelChange)="update($event)"
+      />
+    } @else {
+      <input
+        class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+        [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
+        type="text"
+        [disabled]="readonly()"
+        [ngModel]="value$()"
+        (ngModelChange)="update($event)"
+      />
+    }
   }
   @case ('number') {
     <input

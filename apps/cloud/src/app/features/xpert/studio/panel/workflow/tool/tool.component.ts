@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
 import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -29,12 +28,12 @@ import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { Dialog } from '@angular/cdk/dialog'
 import { XpertWorkflowErrorHandlingComponent } from '@cloud/app/@shared/workflow'
 import { ClipboardModule, Clipboard } from '@angular/cdk/clipboard'
-import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { XpertStudioToolsetMenuComponent } from '../../../components/toolset-menu/toolset.component'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
 
 
 @Component({
@@ -52,10 +51,9 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     TranslateModule,
     NgmI18nPipe,
     EmojiAvatarComponent,
-    JSONSchemaFormComponent,
-    StateVariableSelectComponent,
     XpertStudioToolsetMenuComponent,
     XpertWorkflowErrorHandlingComponent,
+    XpToolParametersFormComponent
   ]
 })
 export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
@@ -192,6 +190,9 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
       })
     }
   
+  /**
+   * @deprecated
+   */
   copyParamsSample() {
     if (!this.paramsSample().loading) {
       if (this.paramsSample().value) {

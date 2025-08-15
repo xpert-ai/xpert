@@ -14,6 +14,7 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -26,7 +27,6 @@ import {
   XpertToolService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
-import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { isNil, omit } from 'lodash-es'
 import { Subscription } from 'rxjs'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
@@ -44,7 +44,7 @@ import { JsonSchema7ObjectType } from 'zod-to-json-schema'
     NgmDensityDirective,
     NgmSpinComponent,
     NgmI18nPipe,
-    JSONSchemaFormComponent
+    XpToolParametersFormComponent
   ],
   selector: 'xpert-toolset-tool-test',
   templateUrl: './tool.component.html',
@@ -73,8 +73,8 @@ export class XpertToolsetToolTestComponent {
 
   readonly toolAvatar = computed(() => this.tool()?.avatar)
 
+  // Buildin Tools schema or JSON schema
   readonly schema = computed(() => this.tool()?.schema)
-  readonly jsonSchema = computed(() => this.tool()?.schema as JsonSchema7ObjectType)
   readonly parameterList = computed<TToolParameter[]>(() => {
     const parameters = this.schema()?.parameters ?? this.tool()?.provider?.parameters
     return parameters?.filter((_) => isNil(_.visible) || _.visible || this.visibleAll())
