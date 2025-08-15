@@ -174,6 +174,22 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						en_US: 'Common Times',
 						zh_Hans: '常用时间'
 					}
+				},
+				{
+					name: 'workspace_path',
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Workspace Path',
+						zh_Hans: '工作区路径'
+					}
+				},
+				{
+					name: 'workspace_url',
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Workspace URL',
+						zh_Hans: '工作区 URL'
+					}
 				}
 			]
 		})
