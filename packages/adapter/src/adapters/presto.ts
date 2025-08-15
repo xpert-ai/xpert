@@ -149,10 +149,10 @@ export class PrestoQueryRunner extends BaseSQLQueryRunner<PrestoAdapterOptions> 
       return { columns: [] }
     }
 
-    // if (catalog) {
+    // Remove trailing semicolon, if present, and trim whitespace
+    statement = statement.trim().replace(/;+$/, '')
     statement = `${statement} LIMIT 1`
-    // }
-    return this.runQuery(statement)
+    return this.runQuery(statement, { catalog })
   }
 
   /**
@@ -160,7 +160,7 @@ export class PrestoQueryRunner extends BaseSQLQueryRunner<PrestoAdapterOptions> 
    * @param catalog 
    * @param options 
    */
-  override async createCatalog(catalog: string, options?: {}) {
+  override async createCatalog(catalog: string, options?: Record<string, any>) {
     throw new Error('Method not implemented.')
   }
 
