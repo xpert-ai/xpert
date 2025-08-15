@@ -1,5 +1,5 @@
-require('dotenv').config();
-
+import * as dotenv from 'dotenv';
+dotenv.config();
 import {
 	DEFAULT_API_HOST,
 	DEFAULT_API_PORT,
