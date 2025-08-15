@@ -16,10 +16,12 @@
         <i class="ri-links-line"></i> &nbsp; StandIO
       </li>
     
-      <li #option3="cdkOption" class="relative p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-not-allowed enabled:hover:bg-white"
+      <li #option3="cdkOption" class="relative p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium enabled:hover:bg-white"
         [ngClass]="option3.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
+        [ngClass]="pro ? 'cursor-pointer' : 'cursor-not-allowed'"
         [cdkOption]="eMCPServerType.CODE"
         [cdkOptionDisabled]="!pro"
+        [attr.disabled]="pro ? null : true"
         >
         <i class="ri-exchange-2-line"></i> &nbsp; Code
         @if (!pro) {
