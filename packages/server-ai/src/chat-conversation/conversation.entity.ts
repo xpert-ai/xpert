@@ -1,5 +1,4 @@
 import {
-	I18nObject,
 	IChatConversation,
 	IChatMessage,
 	IStorageFile,

@@ -232,31 +232,6 @@
       }
     </div>
   <!-- } -->
-  
-  @if (types()[0] === eMCPServerType.STDIO) {
-    <div class="flex justify-start items-center px-2 py-1 rounded-md text-text-secondary cursor-pointer hover:bg-hover-bg hover:text-text-primary"
-      (click)="expandAdvanced.set(!expandAdvanced())">
-      @if (expandAdvanced()) {
-        <i class="ri-arrow-drop-down-line"></i>
-      } @else {
-        <i class="ri-arrow-drop-right-line"></i>
-      }
-      <span>{{'PAC.MCP.AdvancedOptions' | translate: {Default: 'Advanced Options'} }}</span>  
-    </div>
-    @if (expandAdvanced()) {
-      <div class="px-2">
-        <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
-          <div class="truncate">{{'PAC.MCP.InitScript' | translate: {Default: 'Init Script'} }}</div>
-        </div>
-        <div class="grow">
-          <pac-code-editor class="h-[240px]" fileName=".sh"
-            lineNumbers [editable]="!loading()"
-            [(ngModel)]="initScripts"
-          />
-        </div>
-      </div>
-    }
-  }
 
   <div class="my-2">
     <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
@@ -329,18 +304,27 @@
       cdkListbox
       [(ngModel)]="views"
     >
-      @if (types()[0] === 'code') {
+      @if (types()[0] !== eMCPServerType.SSE) {
         <button #view1="cdkOption" type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none active" id="tabs-with-icons-item-1" aria-selected="true" data-hs-tab="#tabs-with-icons-1" aria-controls="tabs-with-icons-1" role="tab"
-          [cdkOption]="'code'"
+          [cdkOption]="'script'"
           [class.active]="view1.isSelected()"
+        >
+          <i class="ri-terminal-box-line text-lg"></i>
+          {{'PAC.MCP.InitScript' | translate: {Default: 'Init Script'} }}
+        </button>
+      }
+      @if (types()[0] === eMCPServerType.CODE) {
+        <button #view2="cdkOption" type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none active" id="tabs-with-icons-item-1" aria-selected="true" data-hs-tab="#tabs-with-icons-1" aria-controls="tabs-with-icons-1" role="tab"
+          [cdkOption]="'code'"
+          [class.active]="view2.isSelected()"
         >
           <i class="ri-code-s-slash-line text-lg"></i>
           {{'PAC.MCP.Code' | translate: {Default: 'Code'} }}
         </button>
       }
-      <button #view2="cdkOption" type="button" class="view-option p-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" id="tabs-with-icons-item-2" aria-selected="false" data-hs-tab="#tabs-with-icons-2" aria-controls="tabs-with-icons-2" role="tab"
+      <button #view3="cdkOption" type="button" class="view-option p-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" id="tabs-with-icons-item-2" aria-selected="false" data-hs-tab="#tabs-with-icons-2" aria-controls="tabs-with-icons-2" role="tab"
           [cdkOption]="'tools'"
-          [class.active]="view2.isSelected()"
+          [class.active]="view3.isSelected()"
       >
         <i class="ri-hammer-line text-lg"></i>
         {{'PAC.MCP.Tools' | translate: {Default: 'Tools'} }}
@@ -377,7 +361,14 @@
       </div>
     }
     <div role="tabpanel" class="view-tab hidden"
-      [class.active]="view2.isSelected()">
+      [class.active]="views()[0] === 'script'">
+      <pac-code-editor class="h-[400px]" fileName=".sh"
+        lineNumbers [editable]="!loading()"
+        [(ngModel)]="initScripts"
+      />
+    </div>
+    <div role="tabpanel" class="view-tab hidden"
+      [class.active]="view3.isSelected()">
       <mcp-config-tools class="overflow-auto" 
         [(ngModel)]="tools" 
         [toolset]="_toolset()"

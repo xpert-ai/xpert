@@ -14,6 +14,11 @@
         "project": "packages/core/package.json",
         "assets": [
           {
+						"glob": "**/*.json",
+						"input": "packages/core/src",
+						"output": "./src/"
+					},
+          {
             "glob": "*.md",
             "input": "packages/core/",
             "output": "."

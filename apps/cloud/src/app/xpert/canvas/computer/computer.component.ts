@@ -9,7 +9,8 @@ import { RouterModule } from '@angular/router'
 import {
   ChatConversationService,
   ChatMessageStepCategory,
-  injectFormatRelative
+  injectFormatRelative,
+  TChatConversationOptions
 } from '@cloud/app/@core'
 import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
@@ -24,6 +25,7 @@ import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
 import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
 import { ChatCanvasTerminalComponent } from '../terminal/terminal.component'
 import { ChatCanvasKnowledgesComponent } from '../knowledges/knowledges.component'
+import { ChatCanvasWebTerminalComponent } from '../web-terminal/terminal.component'
 
 @Component({
   standalone: true,
@@ -42,7 +44,8 @@ import { ChatCanvasKnowledgesComponent } from '../knowledges/knowledges.componen
     ChatCanvasIframeComponent,
     ChatCanvasTerminalComponent,
     ChatCanvasFileEditorComponent,
-    ChatCanvasKnowledgesComponent
+    ChatCanvasKnowledgesComponent,
+    ChatCanvasWebTerminalComponent
   ],
   selector: 'chat-canvas-computer',
   templateUrl: './computer.component.html',
@@ -88,6 +91,9 @@ export class ChatCanvasComputerComponent {
   readonly conversationId = this.homeService.conversationId
 
   readonly projectId = computed(() => this.chatService.project()?.id)
+
+  readonly features = computed(() => ['timeline' as TChatConversationOptions['features'][number], ...(this.chatService.conversation()?.options?.features ?? [])])
+  readonly feature = signal<TChatConversationOptions['features'][number]>('timeline')
 
   constructor() {
     effect(() => {

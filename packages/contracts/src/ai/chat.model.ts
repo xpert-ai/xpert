@@ -17,6 +17,7 @@ export type TChatConversationOptions = {
   }
   knowledgebases?: string[]
   toolsets?: string[]
+  features?: Array<'timeline' | 'sandbox' | 'files'>
 }
 
 export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"

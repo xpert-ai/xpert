@@ -1,14 +1,19 @@
+import { keepAlive, takeUntilClose } from '@metad/server-common'
 import { environment } from '@metad/server-config'
 import { GetDefaultTenantQuery, Public, RequestContext, TransformInterceptor } from '@metad/server-core'
 import {
+	BadRequestException,
 	Body,
 	Controller,
+	ForbiddenException,
 	Get,
+	Header,
 	Logger,
 	Param,
 	Post,
 	Query,
 	Res,
+	Sse,
 	UploadedFile,
 	UseInterceptors
 } from '@nestjs/common'
@@ -17,11 +22,14 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
 import fs from 'fs'
+import { ServerResponse } from 'http'
 import { I18nService } from 'nestjs-i18n'
 import { join } from 'path'
 import { ChatConversationService } from '../chat-conversation'
-import { VolumeClient, getMediaTypeWithCharset } from '../shared'
-
+import { VolumeClient, getMediaTypeWithCharset, getWorkspace } from '../shared'
+import { XpertProjectService } from '../xpert-project'
+import { Sandbox, SandboxFileSystem } from './client'
+import { SandboxLoadCommand } from './commands'
 
 @ApiTags('Sandbox')
 @ApiBearerAuth()
@@ -102,7 +110,8 @@ export class SandboxController {
 	 */
 	@Post('file')
 	@UseInterceptors(FileInterceptor('file'))
-	async uploadFile(@Body('workspace') workspace: string,
+	async uploadFile(
+		@Body('workspace') workspace: string,
 		@Body('conversationId') conversationId: string,
 		@Body('path') path: string,
 		@UploadedFile() file: Express.Multer.File
@@ -121,5 +130,40 @@ export class SandboxController {
 			originalname: Buffer.from(file.originalname, 'latin1').toString('utf8')
 		})
 		return { url, filePath }
+	}
+
+	@Header('content-type', 'text/event-stream')
+	@Header('Connection', 'keep-alive')
+	@Post('terminal')
+	@Sse()
+	async terminal(
+		@Body() body: { cmd: string },
+		@Query('projectId') projectId: string,
+		@Query('conversationId') conversationId: string,
+		@Res() res: Response
+	) {
+		const userId = RequestContext.currentUserId()
+		const { sandboxUrl } = await this.commandBus.execute<SandboxLoadCommand, { sandboxUrl: string }>(
+			new SandboxLoadCommand({ userId, projectId, isReadonly: true })
+		)
+		if (!sandboxUrl) {
+			throw new ForbiddenException('Sandbox is not available')
+		}
+		const sandbox = new Sandbox({
+			sandboxUrl,
+			commandBus: this.commandBus,
+			volume: Sandbox.sandboxVolume(projectId, userId)
+		})
+
+		return sandbox.shell
+			.stream({
+				command: body.cmd,
+				workspace_id: getWorkspace(projectId, conversationId)
+			})
+			.pipe(
+				// Add an operator to send a comment event periodically (30s) to keep the connection alive
+				keepAlive(30000),
+				takeUntilClose(res)
+			)
 	}
 }

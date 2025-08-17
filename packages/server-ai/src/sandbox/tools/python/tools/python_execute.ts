@@ -49,7 +49,7 @@ export class PythonExecuteTool extends SandboxBaseTool {
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 		const lang = currentState[STATE_VARIABLE_SYS]?.language
 
-		const {sandboxUrl} = await this.toolset.commandBus.execute<SandboxLoadCommand, {sandboxUrl: string}>(new SandboxLoadCommand())
+		const {sandboxUrl} = await this.toolset.commandBus.execute<SandboxLoadCommand, {sandboxUrl: string}>(new SandboxLoadCommand({}))
 
 		const requestData = {
 			...parameters,

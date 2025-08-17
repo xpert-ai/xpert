@@ -66,7 +66,7 @@ export class MCPServerFormComponent {
 
   // States
   readonly types = model<MCPServerType[]>([MCPServerType.SSE])
-  readonly views = model<('code' | 'tools')[]>(['tools'])
+  readonly views = model<('script' | 'code' | 'tools')[]>(['tools'])
   readonly fileIndex = model<number[]>([])
   readonly isCode = computed(() => this.types()[0] === MCPServerType.CODE)
 
@@ -87,7 +87,7 @@ export class MCPServerFormComponent {
   readonly delayMs = attrModel(this.reconnect, 'delayMs')
 
   readonly initScripts = attrModel(this.value$, 'initScripts')
-  readonly expandAdvanced = signal(false)
+  // readonly expandAdvanced = signal(false)
 
   get command() {
     return this.value$()?.command
@@ -200,6 +200,9 @@ export class MCPServerFormComponent {
 
   updateType(types: MCPServerType[]) {
     this.value$.update((state) => ({ ...(state ?? {}), type: types[0] }))
+    if (this.value$().type === MCPServerType.SSE) {
+      this.views.set(['tools'])
+    }
   }
 
   initFiles() {

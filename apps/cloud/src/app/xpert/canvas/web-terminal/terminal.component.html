@@ -1,0 +1,37 @@
+<div class="bg-neutral-900 text-gray-200 font-mono p-4 rounded-2xl h-full flex flex-col overflow-hidden">
+  <div #container class="flex-1 pb-8 overflow-y-auto">
+    @for (line of history(); track $index) {
+      @if (line.type === 'input') {
+        <div class="my-1">
+          <span class="text-green-400">xpert&#64;sandbox:</span>
+          <span class="text-gray-200">$ {{ line.text }}</span>
+        </div>
+      } @else {
+        <div class="leading-3">
+          <span class="text-sm text-gray-300">{{ line.text }}</span>
+        </div>
+      }
+    }
+  </div>
+
+  <div class="relative flex items-center mt-2">
+    <span class="text-green-400 mr-2">$</span>
+    <input
+      type="text"
+      class="bg-transparent outline-none flex-1 text-gray-200 placeholder-gray-500"
+      [disabled]="running()"
+      [(ngModel)]="currentInput"
+      (keydown.enter)="runCommand()"
+      [placeholder]="'Type a command...'"
+      autofocus
+    >
+    <div class="absolute right-1 top-1/2 -translate-y-1/2">
+      @if (running()) {
+        <span class="loading"></span>
+      }
+      @if (runtime()) {
+        <span class="runtime text-xs">{{ runtime() | number:'0.2-2' }}s</span>
+      }
+    </div>
+  </div>
+</div>

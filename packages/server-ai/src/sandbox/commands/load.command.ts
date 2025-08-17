@@ -4,7 +4,14 @@ export class SandboxLoadCommand implements ICommand {
 	static readonly type = '[Sandbox] Load'
 
 	constructor(
-		public readonly userId?: string,
-		public readonly isReadonly?: boolean,
+		public readonly params: {
+			userId?: string
+			projectId?: string
+			isReadonly?: boolean
+			/**
+			 * Init scripts of container
+			 */
+			initScripts?: string[]
+		}
 	) {}
 }

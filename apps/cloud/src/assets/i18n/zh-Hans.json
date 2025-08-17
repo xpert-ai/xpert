@@ -1931,6 +1931,9 @@
       }
     },
     "Chat": {
+      "Terminal": "终端",
+      "FileSystem": "文件",
+      "Timeline": "时间线",
       "NoResults": "未找到结果",
       "UploadFile": "上传文件",
       "GoToTask": "前往任务",

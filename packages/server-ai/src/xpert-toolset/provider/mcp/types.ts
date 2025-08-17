@@ -54,8 +54,9 @@ export async function createMCPClient(
 			} as TChatEventMessage)
 
 			// Init scripts
-			if (server.initScripts) {
-				const result = await runScript(server.initScripts, {safeEnv: environment.production, timeout: 1000 * 60 * 10 })
+			const initScripts = server.initScripts?.trim()
+			if (initScripts) {
+				const result = await runScript(initScripts, {safeEnv: environment.production, timeout: 1000 * 60 * 10 })
 				if (result.timedOut) {
 					logs.push(`Timeout executing init scripts after 10 mins.`)
 				}
