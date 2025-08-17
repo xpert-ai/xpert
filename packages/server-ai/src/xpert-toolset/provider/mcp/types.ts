@@ -9,6 +9,8 @@ import {
 	TMCPSchema,
 	TMCPServer
 } from '@metad/contracts'
+import { environment } from '@metad/server-config'
+import { runScript } from '@metad/server-core'
 import { t } from 'i18next'
 import { isNil, omitBy } from 'lodash'
 
@@ -17,6 +19,7 @@ export async function createMCPClient(
 	schema: TMCPSchema,
 	envState: Record<string, unknown>
 ) {
+	const logs: string[] = []
 	const mcpServers = {}
 	let server: TMCPServer = null
 	const servers = schema.servers ?? schema.mcpServers
@@ -49,6 +52,18 @@ export async function createMCPClient(
 				status: 'running',
 				created_date: new Date().toISOString()
 			} as TChatEventMessage)
+
+			// Init scripts
+			if (server.initScripts) {
+				const result = await runScript(server.initScripts, {safeEnv: environment.production, timeout: 1000 * 60 * 10 })
+				if (result.timedOut) {
+					logs.push(`Timeout executing init scripts after 10 mins.`)
+				}
+				if (result.stderr)
+				  	logs.push(result.stderr)
+				if (result.stdout)
+				  	logs.push(result.stdout)
+			}
 			let args = null
 			if (server.args?.length) {
 				args = []
@@ -94,5 +109,5 @@ export async function createMCPClient(
 		end_date: new Date().toISOString()
 	} as TChatEventMessage)
 
-	return { client, destroy: null, logs: null }
+	return { client, destroy: null, logs }
 }

@@ -233,7 +233,7 @@
     </div>
   <!-- } -->
   
-  @if (types()[0] === eMCPServerType.STDIO && pro) {
+  @if (types()[0] === eMCPServerType.STDIO) {
     <div class="flex justify-start items-center px-2 py-1 rounded-md text-text-secondary cursor-pointer hover:bg-hover-bg hover:text-text-primary"
       (click)="expandAdvanced.set(!expandAdvanced())">
       @if (expandAdvanced()) {
@@ -246,7 +246,7 @@
     @if (expandAdvanced()) {
       <div class="px-2">
         <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
-          <div class="truncate">{{'PAC.MCP.SandboxScript' | translate: {Default: 'Sandbox Script'} }}</div>
+          <div class="truncate">{{'PAC.MCP.InitScript' | translate: {Default: 'Init Script'} }}</div>
         </div>
         <div class="grow">
           <pac-code-editor class="h-[240px]" 
@@ -310,7 +310,10 @@
     </div>
   }
   @if (logs()?.length) {
-    <div class="p-4 text-sm text-text-destructive whitespace-pre-line break-all rounded-xl space-y-1 bg-gray-50">
+    <div class="text-semibold px-2 flex h-6 justify-between items-center gap-1 text-text-secondary">
+      <div class="truncate">{{'PAC.MCP.Logs' | translate: {Default: 'Logs'} }}</div>
+    </div>
+    <div class="p-4 text-sm text-text-secondary whitespace-pre-line break-all rounded-xl space-y-1 bg-gray-50">
       @for (log of logs(); track log) {
         <div>{{log}}</div>
       }
