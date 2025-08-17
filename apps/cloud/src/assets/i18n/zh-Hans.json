@@ -3043,6 +3043,8 @@
       "AddDescriptionSuffix": "添加描述后缀"
     },
     "MCP": {
+      "AdvancedOptions": "高级选项",
+      "SandboxScript": "沙盒脚本",
       "Connect": "连接",
       "Connected": "已连接",
       "Connecting": "连接中...",

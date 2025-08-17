@@ -9,5 +9,5 @@ export async function createProMCPClient(
 	envState: Record<string, unknown>
 ) {
     // PRO
-    return {client: null, destroy: null}
+    return {client: null, destroy: null, logs: null}
 }

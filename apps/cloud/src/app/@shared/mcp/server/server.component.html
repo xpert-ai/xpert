@@ -232,6 +232,31 @@
       }
     </div>
   <!-- } -->
+  
+  @if (types()[0] === eMCPServerType.STDIO && pro) {
+    <div class="flex justify-start items-center px-2 py-1 rounded-md text-text-secondary cursor-pointer hover:bg-hover-bg hover:text-text-primary"
+      (click)="expandAdvanced.set(!expandAdvanced())">
+      @if (expandAdvanced()) {
+        <i class="ri-arrow-drop-down-line"></i>
+      } @else {
+        <i class="ri-arrow-drop-right-line"></i>
+      }
+      <span>{{'PAC.MCP.AdvancedOptions' | translate: {Default: 'Advanced Options'} }}</span>  
+    </div>
+    @if (expandAdvanced()) {
+      <div class="px-2">
+        <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+          <div class="truncate">{{'PAC.MCP.SandboxScript' | translate: {Default: 'Sandbox Script'} }}</div>
+        </div>
+        <div class="grow">
+          <pac-code-editor class="h-[240px]" 
+            lineNumbers [editable]="!loading()"
+            [(ngModel)]="initScripts"
+          />
+        </div>
+      </div>
+    }
+  }
 
   <div class="my-2">
     <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
@@ -284,6 +309,13 @@
       {{error()}}
     </div>
   }
+  @if (logs()?.length) {
+    <div class="p-4 text-sm text-text-destructive whitespace-pre-line break-all rounded-xl space-y-1 bg-gray-50">
+      @for (log of logs(); track log) {
+        <div>{{log}}</div>
+      }
+    </div>
+  }
 </div>
 
 <div class="border-l border-solid border-divider-regular my-2"></div>
@@ -314,7 +346,7 @@
   </div>
       
   <div class="mt-3">
-    @if (types()[0] === 'stdio' || types()[0] === 'code') {
+    @if (!pro && (types()[0] === 'stdio' || types()[0] === 'code')) {
       <div class="flex items-center px-4 mb-2">
         <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
         <span class="text-sm text-text-secondary truncate">{{ 'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'} }}</span>

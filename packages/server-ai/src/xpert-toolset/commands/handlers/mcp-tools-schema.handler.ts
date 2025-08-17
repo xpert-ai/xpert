@@ -23,7 +23,7 @@ export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchema
 		const envState = await this.queryBus.execute(new EnvStateQuery(command.toolset.workspaceId))
 
 		// Create a client
-		const {client, destroy} = this.toolsetService.isPro()
+		const {client, destroy, logs} = this.toolsetService.isPro()
 			? await createProMCPClient(command.toolset, null, this.commandBus, schema, envState)
 			: await createMCPClient(command.toolset, schema, envState)
 		
@@ -38,7 +38,8 @@ export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchema
 						schema: (<DynamicStructuredTool>tool).lc_kwargs?.schema ??
 							ToolSchemaParser.parseZodToJsonSchema(tool.schema)
 					}
-				})
+				}),
+				logs
 			}
 		} finally {
 			if (destroy) {

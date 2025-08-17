@@ -109,7 +109,7 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
   }
 
   getMCPToolsBySchema(toolset: Partial<IXpertToolset>) {
-    return this.httpClient.post<{ schema: string; tools: TXpertToolEntity[] }>(
+    return this.httpClient.post<{ schema: string; tools: TXpertToolEntity[]; logs: string[] }>(
       this.apiBaseUrl + `/provider/mcp/tools`,
       toolset
     )

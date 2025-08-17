@@ -6,6 +6,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { environment } from '@cloud/environments/environment'
 import { EntriesPipe, linkedModel } from '@metad/core'
 import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
+import { attrModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -78,56 +79,15 @@ export class MCPServerFormComponent {
       this.value$.update((state) => ({ ...(state ?? {}), toolNamePrefix }))
     }
   })
+ 
+  readonly args = attrModel(this.value$, 'args')
+  readonly reconnect = attrModel(this.value$, 'reconnect')
+  readonly reconnectEnabled = attrModel(this.reconnect, 'enabled')
+  readonly maxAttempts = attrModel(this.reconnect, 'maxAttempts')
+  readonly delayMs = attrModel(this.reconnect, 'delayMs')
 
-  readonly args = linkedModel({
-    initialValue: [],
-    compute: () => {
-      return this.value$()?.args
-    },
-    update: (args) => {
-      this.value$.update((state) => ({ ...(state ?? {}), args }))
-    }
-  })
-
-  readonly reconnect = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.value$()?.reconnect
-    },
-    update: (reconnect) => {
-      this.value$.update((state) => ({ ...(state ?? {}), reconnect }))
-    }
-  })
-
-  readonly reconnectEnabled = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.reconnect()?.enabled
-    },
-    update: (enabled) => {
-      this.reconnect.update((state) => ({ ...(state ?? {}), enabled }))
-    }
-  })
-
-  readonly maxAttempts = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.reconnect()?.maxAttempts
-    },
-    update: (maxAttempts) => {
-      this.reconnect.update((state) => ({ ...(state ?? {}), maxAttempts }))
-    }
-  })
-
-  readonly delayMs = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.reconnect()?.delayMs
-    },
-    update: (delayMs) => {
-      this.reconnect.update((state) => ({ ...(state ?? {}), delayMs }))
-    }
-  })
+  readonly initScripts = attrModel(this.value$, 'initScripts')
+  readonly expandAdvanced = signal(false)
 
   get command() {
     return this.value$()?.command
@@ -201,6 +161,8 @@ export class MCPServerFormComponent {
     }
     return null
   })
+
+  readonly logs = signal<string[]>([])
 
   constructor() {
     effect(
@@ -296,6 +258,7 @@ if __name__ == "__main__":
 
   connect() {
     this.loading.set(true)
+    this.logs.set(null)
     this.error.set(null)
     this.connectSub?.unsubscribe()
     this.connectSub = this.toolsetService.getMCPToolsBySchema(this._toolset()).subscribe({
@@ -303,6 +266,7 @@ if __name__ == "__main__":
         this.loading.set(false)
         this.tools.set(result.tools)
         this.views.set(['tools'])
+        this.logs.set(result.logs)
       },
       error: (err) => {
         this.error.set(getErrorMessage(err))

@@ -94,5 +94,5 @@ export async function createMCPClient(
 		end_date: new Date().toISOString()
 	} as TChatEventMessage)
 
-	return { client, destroy: null }
+	return { client, destroy: null, logs: null }
 }
