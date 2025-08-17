@@ -13,7 +13,7 @@
       <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer hover:bg-white"
         [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
         [cdkOption]="eMCPServerType.STDIO">
-        <i class="ri-links-line"></i> &nbsp; StandIO
+        <i class="ri-terminal-line"></i> &nbsp; StandIO
       </li>
     
       <li #option3="cdkOption" class="relative p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium enabled:hover:bg-white"
@@ -23,7 +23,7 @@
         [cdkOptionDisabled]="!pro"
         [attr.disabled]="pro ? null : true"
         >
-        <i class="ri-exchange-2-line"></i> &nbsp; Code
+        <i class="ri-code-s-slash-line"></i> &nbsp; Code
         @if (!pro) {
           <div class="absolute -right-1 -top-1 w-5 h-5 flex justify-center items-center shadow-sm rounded-md bg-white text-orange-500"
             [matTooltip]="'PRO'" matTooltipPosition="above">
@@ -249,7 +249,7 @@
           <div class="truncate">{{'PAC.MCP.InitScript' | translate: {Default: 'Init Script'} }}</div>
         </div>
         <div class="grow">
-          <pac-code-editor class="h-[240px]" 
+          <pac-code-editor class="h-[240px]" fileName=".sh"
             lineNumbers [editable]="!loading()"
             [(ngModel)]="initScripts"
           />
