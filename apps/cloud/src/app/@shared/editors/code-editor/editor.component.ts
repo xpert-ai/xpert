@@ -111,6 +111,10 @@ export class CodeEditorComponent {
         return 'swift'
       case 'kt':
         return 'kotlin'
+      case 'sh':
+      case 'bash':
+      case 'bat':
+        return 'shell'
       default:
         return 'plaintext'
     }

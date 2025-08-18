@@ -86,12 +86,13 @@
 
 <ng-template #nameTempl let-id="id" let-name="name">
   @if (isUUID(id)) {
-    <a [routerLink]="['/indicator/viewer', id]"><span>{{name}}</span></a>
+    <a (click)="editIndicator(id)"><span>{{name}}</span></a>
   } @else {
     <span class="ping-badge pointer-events-none relative inline-flex h-2 w-2 m-2">
       <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
       <span class="relative inline-flex rounded-full h-2 w-2"></span>
-    </span><span>{{name}}</span>
+    </span>
+    <span>{{name}}</span>
   }
 </ng-template>
 
@@ -169,7 +170,7 @@
 <ng-template #actionTempl let-id="id" let-name="name">
   <div class="pac__table-actions flex gap-2 group">
     <button mat-icon-button displayDensity="cosy" class="text-slate-500 opacity-50 group-hover:opacity-100"
-      [routerLink]="['/project/indicators/', id]">
+      (click)="editIndicator(id)">
       <i class="ri-pencil-line"></i>
     </button>
     

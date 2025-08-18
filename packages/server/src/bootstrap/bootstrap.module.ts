@@ -5,7 +5,6 @@ import {
 	OnApplicationShutdown
 } from '@nestjs/common';
 import { ConfigModule, getConfig } from '@metad/server-config';
-import * as path from 'path'
 import { ServerAppModule } from './../server.module';
 import { Logger, LoggerModule } from '../logger';
 import { provideCacheModule } from './cache';
@@ -14,7 +13,7 @@ import { provideEventEmitterModule } from './event';
 import { provideScheduleModule } from './task';
 import { provideI18nModule } from './i18n';
 
-const baseDir = path.join(__dirname, '../../../')
+const baseDir = getConfig().assetOptions.serverRoot
 
 @Module({
 	imports: [

@@ -13,10 +13,10 @@ import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nes
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Like } from 'typeorm'
-import { VolumeClient } from '../sandbox/volume'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
+import { VolumeClient } from '../shared'
 
 @ApiTags('ChatConversation')
 @ApiBearerAuth()

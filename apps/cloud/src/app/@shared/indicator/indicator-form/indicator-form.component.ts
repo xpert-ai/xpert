@@ -1,4 +1,4 @@
-import { Dialog, DIALOG_DATA } from '@angular/cdk/dialog'
+import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, ElementRef, HostListener, inject, input, output, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { getErrorMessage, injectToastr, ProjectAPIService } from '@cloud/app/@core'
-import { convertIndicatorResult, IIndicator, IndicatorsService, IndicatorStatusEnum, Store, TMessageContentIndicator } from '@metad/cloud/state'
+import { convertIndicatorResult, IIndicator, IndicatorsService, IndicatorStatusEnum, Store, TIndicatorDraft, TMessageContentIndicator } from '@metad/cloud/state'
 import { saveAsYaml } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -27,14 +27,14 @@ import {
 } from '@metad/ocap-core'
 import { ExplainComponent } from '@metad/story/story'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectI18nService } from '../../i18n'
-import { XpIndicatorRegisterFormComponent } from '../register-form/register-form.component'
-import { exportIndicator } from '../types'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { uniq } from 'lodash'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { of } from 'rxjs'
+import { injectI18nService } from '../../i18n'
+import { XpIndicatorRegisterFormComponent } from '../register-form/register-form.component'
+import { exportIndicator } from '../types'
+import { ChecklistComponent } from '../../common'
 
 @Component({
   standalone: true,
@@ -51,6 +51,7 @@ import { of } from 'rxjs'
     MatTooltipModule,
     NgmSpinComponent,
     AnalyticalCardModule,
+    ChecklistComponent,
     XpIndicatorRegisterFormComponent
   ]
 })
@@ -62,10 +63,11 @@ export class XpIndicatorFormComponent {
   readonly projectAPI = inject(ProjectAPIService)
   readonly #store = inject(Store)
   private toastrService = injectToastr()
-  readonly #dialog = inject(Dialog)
   readonly translateService = injectI18nService()
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly confirmDelete = injectConfirmDelete()
+  readonly #dialog = inject(Dialog)
+  readonly #dialogRef = inject(DialogRef, {optional: true})
   readonly #dialogData = inject<{id: string}>(DIALOG_DATA, {optional: true})
 
   // Inputs
@@ -98,7 +100,7 @@ export class XpIndicatorFormComponent {
   })
   readonly draft = linkedModel({
     initialValue: null,
-    compute: () => this.indicator()?.draft ?? this.indicator(),
+    compute: () => this.indicator()?.draft ?? this.indicator() as TIndicatorDraft,
     update: (value) => {}
   })
   readonly projectId = computed(() => this.indicator()?.projectId)
@@ -116,6 +118,7 @@ export class XpIndicatorFormComponent {
     return this.dsCoreService.getDataSource(this.modelKey())
   })
   readonly entityType = computed(() => this.registerForm()?.entityType())
+  readonly checklist = computed(() => this.indicator()?.draft?.checklist)
 
   readonly dataSettings = computed(() => {
     const registerForm = this.registerForm()
@@ -285,18 +288,19 @@ export class XpIndicatorFormComponent {
   readonly saving = signal(false)
 
   constructor() {
-    // effect(() => {
-    //   const indicator = this.indicator()
-    //   if (indicator && this.dataSource()) {
-    //     this.dataSource().updateOptions((options) => {
-    //       return {
-    //         ...options,
-    //         isDraftIndicators: uniq([...(options.isDraftIndicators ?? []), indicator.code]),
-    //       }
-    //     })
-    //     this.dataSource().upsertIndicator(convertIndicatorResult(indicator.draft ? {...indicator, ...indicator.draft} : indicator))
-    //   }
-    // }, { allowSignalWrites: true })
+    effect(() => {
+      const indicator = this.indicator()
+      const draft = this.draft()
+      if (indicator && this.dataSource()) {
+        // this.dataSource().updateOptions((options) => {
+        //   return {
+        //     ...options,
+        //     isDraftIndicators: uniq([...(options.isDraftIndicators ?? []), indicator.code]),
+        //   }
+        // })
+        this.dataSource().upsertIndicator(convertIndicatorResult(draft ? {...indicator, ...draft} : indicator))
+      }
+    }, { allowSignalWrites: true })
   }
 
   isDirty(): boolean {
@@ -341,7 +345,7 @@ export class XpIndicatorFormComponent {
   }
 
   onSave() {
-    console.log(this.draft())
+    // console.log(this.draft())
     this.saving.set(true)
     this.indicatorAPI.updateDraft(this.indicator().id, this.draft()).subscribe({
       next: (indicator) => {
@@ -354,6 +358,9 @@ export class XpIndicatorFormComponent {
           }
         })
         this.toastrService.success('PAC.INDICATOR.SaveDraftSuccessfuly', { Default: 'Save draft successful' })
+        if (this.#dialogRef) {
+          this.#dialogRef.close(this.indicator())
+        }
       },
       error: (err) => {
         this.saving.set(false)

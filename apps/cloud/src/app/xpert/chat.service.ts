@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http'
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
 import { appendMessageContent } from '@metad/copilot'
 import { linkedModel } from '@metad/core'
-import { omit } from 'lodash-es'
+import { omit, uniq } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, combineLatest, map, of, startWith, Subscription } from 'rxjs'
@@ -372,6 +372,17 @@ export abstract class ChatService {
                   break
                 }
                 case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+                  if (event.data?.type === 'sandbox') {
+                    this.conversation.update((conversation) => {
+                      return {
+                        ...conversation,
+                        options: {
+                          ...(conversation.options ?? {}),
+                          features: uniq([...(conversation.options?.features ?? []), 'sandbox'])
+                        }
+                      }
+                    })
+                  }
                   this.updateLatestMessage((message) => {
                     message.events ??= []
                     const step = event.data as TChatMessageStep

@@ -6,13 +6,15 @@ import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { JsonSchema7StringType, JsonSchema7ArrayType, JsonSchema7Type, JsonSchema7TypeUnion } from 'zod-to-json-schema'
+import { TWorkflowVarGroup } from '@cloud/app/@core'
+import { XpertVariableInputComponent } from '../../agent'
 
 /**
  *
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSlideToggleComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, NgmSlideToggleComponent, XpertVariableInputComponent],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
   styleUrls: ['property.component.scss'],
@@ -25,6 +27,7 @@ export class JSONSchemaPropertyComponent {
   // Inputs
   readonly name = input<string>()
   readonly schema = input<JsonSchema7TypeUnion>()
+  readonly variables = input<TWorkflowVarGroup[]>()
   readonly readonly = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
@@ -79,6 +82,14 @@ export class JSONSchemaPropertyComponent {
     this.value$.update((state) => {
       state ??= []
       state.push(null)
+      return [...state]
+    })
+  }
+
+  removeArray(index: number) {
+    this.value$.update((state) => {
+      state ??= []
+      state.splice(index, 1)
       return [...state]
     })
   }

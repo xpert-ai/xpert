@@ -7,6 +7,8 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
+import { XpertOcapService } from '@cloud/app/xpert/ocap.service'
+import { IIndicator } from '@metad/contracts'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmIndicatorComponent, NgmIndicatorExplorerComponent } from '@metad/ocap-angular/indicator'
 import { DataSettings, IndicatorTagEnum, IndicatorType, TimeGranularity } from '@metad/ocap-core'
@@ -38,6 +40,7 @@ export class ChatComponentIndicatorsComponent {
   eTimeGranularity = TimeGranularity
 
   readonly dsCoreService = inject(NgmDSCoreService)
+  readonly xpertOcapService = inject(XpertOcapService)
   readonly #dialog = inject(Dialog)
   readonly viewContainerRef = inject(ViewContainerRef)
 
@@ -134,7 +137,7 @@ export class ChatComponentIndicatorsComponent {
   }
 
   editIndicator(id: string) {
-    this.#dialog.open(XpIndicatorFormComponent, {
+    this.#dialog.open<IIndicator>(XpIndicatorFormComponent, {
       viewContainerRef: this.viewContainerRef,
       backdropClass: 'xp-overlay-share-sheet',
       panelClass: 'xp-overlay-pane-share-sheet',
@@ -143,8 +146,7 @@ export class ChatComponentIndicatorsComponent {
       }
     }).closed.subscribe((result) => {
       if (result) {
-        // Handle the result of the dialog, e.g., refresh indicators or show a message
-        console.log('Indicator edited:', result)
+        this.xpertOcapService.refreshModel(result.modelId, true)
       }
     })
   }

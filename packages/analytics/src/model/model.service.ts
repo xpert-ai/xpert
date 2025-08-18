@@ -358,12 +358,12 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	/**
 	 * Find one semantic model by id for OCAP with cache.
 	 */
-	async findOne4Ocap(id: string, params: {withIndicators?: boolean} = {}) {
-		const { withIndicators } = params ?? {}
+	async findOne4Ocap(id: string, params: {withIndicators?: boolean; skipCache?: boolean} = {}) {
+		const { withIndicators, skipCache } = params ?? {}
 		const cacheKey = `analytics:semantic-model:${id}`
 		
 		let model: ISemanticModel = await this.cacheManager.get(cacheKey)
-		if (!model) {
+		if (!model || skipCache) {
 			model = await this.findOne(id, {
 				relations: ['dataSource', 'dataSource.type', 'roles', 'roles.users',].concat(withIndicators ? ['indicators'] : [])
 			})

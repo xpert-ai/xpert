@@ -23,6 +23,7 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { catchError, concat, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
+import { uniq } from 'lodash'
 import {
 	CancelSummaryJobCommand,
 	ChatConversationUpsertCommand,
@@ -94,7 +95,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		} else {
 			// New message in conversation
 			if (conversationId) {
-				conversation = await await this.commandBus.execute(new ChatConversationUpsertCommand({
+				conversation = await this.commandBus.execute(new ChatConversationUpsertCommand({
 					id: conversationId,
 					status: 'busy',
 					error: null
@@ -256,6 +257,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 											appendMessageSteps(aiMessage, [event.data.data])
 											break
 										}
+										case (ChatMessageEventTypeEnum.ON_CHAT_EVENT): {
+											if (event.data.data?.type === 'sandbox') {
+												conversation.options.features ??= []
+												conversation.options.features.push('sandbox')
+												conversation.options.features = uniq(conversation.options.features)
+											}
+											break
+										}
 									}
 								}
 							}
@@ -321,7 +330,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 										status: convStatus,
 										title: conversation.title || _execution?.title || shortTitle(input?.input),
 										operation,
-										error: _execution?.error
+										error: _execution?.error,
+										options: conversation.options,
 									})
 								)
 
@@ -383,6 +393,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 										id: conversation.id,
 										status: 'idle',
 										title: conversation.title || _execution?.title || shortTitle(input?.input),
+										options: conversation.options,
 									})
 								)
 							} catch(err) {
@@ -397,7 +408,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					{
 						handleCustomEvent(eventName, data, runId) {
 							if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
-								logger.debug(`========= handle custom event in project:`, eventName, runId)
+								logger.debug(`========= handle custom event in xpert:`, eventName, runId)
 								subscriber.next({
 									data: {
 										type: ChatMessageTypeEnum.EVENT,
@@ -406,7 +417,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 									}
 								} as MessageEvent)
 							} else {
-								logger.warn(`Unprocessed custom event in project:`, eventName, runId)
+								logger.warn(`Unprocessed custom event in xpert:`, eventName, runId)
 							}
 						},
 					},

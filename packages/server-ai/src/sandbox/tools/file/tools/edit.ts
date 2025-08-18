@@ -55,17 +55,13 @@ export class FileEditTool extends SandboxBaseTool {
 		}
 
 		const { signal, configurable } = config ?? {}
-
-		const {sandboxUrl} = await this.toolset.commandBus.execute<SandboxLoadCommand, {sandboxUrl: string}>(new SandboxLoadCommand())
-
 		const requestData = {
 			...parameters,
 			thread_id: configurable?.thread_id
 		}
 
 		try {
-			const result = await axios.post(`${sandboxUrl}/file/edit/`, requestData, { signal })
-			return JSON.stringify(result.data)
+			return ''
 		} catch (error) {
 			// console.error((<AxiosError>error).toJSON())
 			throw new Error(error.response?.data?.detail || error.response?.data || error)

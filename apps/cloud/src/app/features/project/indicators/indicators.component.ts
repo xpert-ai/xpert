@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { RouterModule } from '@angular/router'
-import { Indicator, IndicatorsService, convertIndicatorResult } from '@metad/cloud/state'
+import { Indicator, IndicatorStatusEnum, IndicatorsService, convertIndicatorResult } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { saveAsYaml, uploadYamlFile } from '@metad/core'
 import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
@@ -195,7 +195,8 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
       ...indicator,
       measure: indicator.type === IndicatorType.BASIC ? indicator.measure : null,
       formula: indicator.type === IndicatorType.DERIVE ? indicator.formula : null,
-      projectId: this.projectService.project().id ?? null
+      projectId: this.projectService.project().id ?? null,
+      status: IndicatorStatusEnum.RELEASED // This component is an old component that creates indicators directly without using draft, so the status is released.
     }
     if (!isUUID(_indicator.id)) {
       delete _indicator.id

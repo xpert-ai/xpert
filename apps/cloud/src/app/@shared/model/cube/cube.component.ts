@@ -8,10 +8,10 @@ import { SemanticModelServerService } from '@metad/cloud/state'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ModelChecklistComponent } from '../checklist/checklist.component'
 import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
 import { CubeStudioComponent } from '../studio/studio.component'
+import { ChecklistComponent } from '../../common'
 
 @Component({
   standalone: true,
@@ -26,7 +26,7 @@ import { CubeStudioComponent } from '../studio/studio.component'
     CdkMenuModule,
     MatTooltipModule,
     NgmSpinComponent,
-    ModelChecklistComponent,
+    ChecklistComponent,
     CubeStudioComponent
   ],
   host: {

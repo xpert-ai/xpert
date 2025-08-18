@@ -6,6 +6,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
+import { TWorkflowVarGroup } from '@cloud/app/@core'
 import { JSONSchemaPropertyComponent } from '../json-schema-property/property.component'
 
 /**
@@ -26,6 +27,7 @@ export class JSONSchemaFormComponent {
 
   // Inputs
   readonly schema = input<JsonSchema7ObjectType>()
+  readonly variables = input<TWorkflowVarGroup[]>()
 
   // Attrs
   get invalid() {

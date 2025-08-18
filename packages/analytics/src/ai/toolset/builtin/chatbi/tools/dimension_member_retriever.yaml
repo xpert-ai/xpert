@@ -101,3 +101,16 @@ parameters:
     form: llm
     schema:
       type: number
+  - name: re_embedding
+    type: boolean
+    required: false
+    label:
+      en_US: Re-embedding
+      zh_Hans: 重新嵌入
+    human_description:
+      en_US: Whether to re-embed the dimension members
+      zh_Hans: 是否重新嵌入维度成员
+    llm_description: Whether to re-embed the dimension members
+    form: llm
+    schema:
+      type: boolean

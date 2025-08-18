@@ -12,7 +12,8 @@
     },
     "Sandbox": {
         "Starting": "Sandbox is starting...",
-        "Ready": "Sandbox is ready"
+        "Ready": "Sandbox is ready",
+        "ExecScript": "Executing init script: {{part}}/{{total}}"
     },
     "Xpert": {
         "SummaryTitleStarting": "Summarizing title...",

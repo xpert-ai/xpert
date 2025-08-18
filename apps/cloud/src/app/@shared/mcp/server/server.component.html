@@ -13,15 +13,17 @@
       <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer hover:bg-white"
         [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
         [cdkOption]="eMCPServerType.STDIO">
-        <i class="ri-links-line"></i> &nbsp; StandIO
+        <i class="ri-terminal-line"></i> &nbsp; StandIO
       </li>
     
-      <li #option3="cdkOption" class="relative p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer enabled:hover:bg-white"
+      <li #option3="cdkOption" class="relative p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium enabled:hover:bg-white"
         [ngClass]="option3.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
+        [ngClass]="pro ? 'cursor-pointer' : 'cursor-not-allowed'"
         [cdkOption]="eMCPServerType.CODE"
         [cdkOptionDisabled]="!pro"
+        [attr.disabled]="pro ? null : true"
         >
-        <i class="ri-exchange-2-line"></i> &nbsp; Code
+        <i class="ri-code-s-slash-line"></i> &nbsp; Code
         @if (!pro) {
           <div class="absolute -right-1 -top-1 w-5 h-5 flex justify-center items-center shadow-sm rounded-md bg-white text-orange-500"
             [matTooltip]="'PRO'" matTooltipPosition="above">
@@ -265,6 +267,9 @@
     }
   </div>
   <div class="flex justify-center items-center gap-2 p-2">
+    @if (timer()) {
+      <div class="font-mono text-sm text-text-secondary mr-2 -ml-8" [ngmTimer]="timer()" [stopTime]="stopTime()"></div>
+    }
     @if (loading()) {
         <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-orange-500 flex'></span>
         {{ 'PAC.MCP.Connecting' | translate: { Default: 'Connecting' } }}
@@ -282,6 +287,19 @@
       {{error()}}
     </div>
   }
+  @if (logs()?.length) {
+    <div class="text-semibold px-2 flex h-6 justify-between items-center gap-1 text-text-secondary">
+      <div class="truncate">{{'PAC.MCP.Logs' | translate: {Default: 'Logs'} }}</div>
+    </div>
+    <div class="p-4 text-sm text-text-secondary whitespace-pre-line break-all rounded-xl space-y-1 max-h-80 overflow-y-auto bg-gray-50"
+      ngmAutoScrollBottom
+      [dataSource]="logs()"
+    >
+      @for (log of logs(); track log) {
+        <div>{{log}}</div>
+      }
+    </div>
+  }
 </div>
 
 <div class="border-l border-solid border-divider-regular my-2"></div>
@@ -292,18 +310,27 @@
       cdkListbox
       [(ngModel)]="views"
     >
-      @if (types()[0] === 'code') {
+      @if (types()[0] !== eMCPServerType.SSE) {
         <button #view1="cdkOption" type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none active" id="tabs-with-icons-item-1" aria-selected="true" data-hs-tab="#tabs-with-icons-1" aria-controls="tabs-with-icons-1" role="tab"
-          [cdkOption]="'code'"
+          [cdkOption]="'script'"
           [class.active]="view1.isSelected()"
+        >
+          <i class="ri-terminal-box-line text-lg"></i>
+          {{'PAC.MCP.InitScript' | translate: {Default: 'Init Script'} }}
+        </button>
+      }
+      @if (types()[0] === eMCPServerType.CODE) {
+        <button #view2="cdkOption" type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none active" id="tabs-with-icons-item-1" aria-selected="true" data-hs-tab="#tabs-with-icons-1" aria-controls="tabs-with-icons-1" role="tab"
+          [cdkOption]="'code'"
+          [class.active]="view2.isSelected()"
         >
           <i class="ri-code-s-slash-line text-lg"></i>
           {{'PAC.MCP.Code' | translate: {Default: 'Code'} }}
         </button>
       }
-      <button #view2="cdkOption" type="button" class="view-option p-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" id="tabs-with-icons-item-2" aria-selected="false" data-hs-tab="#tabs-with-icons-2" aria-controls="tabs-with-icons-2" role="tab"
+      <button #view3="cdkOption" type="button" class="view-option p-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" id="tabs-with-icons-item-2" aria-selected="false" data-hs-tab="#tabs-with-icons-2" aria-controls="tabs-with-icons-2" role="tab"
           [cdkOption]="'tools'"
-          [class.active]="view2.isSelected()"
+          [class.active]="view3.isSelected()"
       >
         <i class="ri-hammer-line text-lg"></i>
         {{'PAC.MCP.Tools' | translate: {Default: 'Tools'} }}
@@ -312,7 +339,7 @@
   </div>
       
   <div class="mt-3">
-    @if (types()[0] === 'stdio' || types()[0] === 'code') {
+    @if (!pro && (types()[0] === 'stdio' || types()[0] === 'code')) {
       <div class="flex items-center px-4 mb-2">
         <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
         <span class="text-sm text-text-secondary truncate">{{ 'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'} }}</span>
@@ -340,7 +367,14 @@
       </div>
     }
     <div role="tabpanel" class="view-tab hidden"
-      [class.active]="view2.isSelected()">
+      [class.active]="views()[0] === 'script'">
+      <pac-code-editor class="h-[400px]" fileName=".sh"
+        lineNumbers [editable]="!loading()"
+        [(ngModel)]="initScripts"
+      />
+    </div>
+    <div role="tabpanel" class="view-tab hidden"
+      [class.active]="view3.isSelected()">
       <mcp-config-tools class="overflow-auto" 
         [(ngModel)]="tools" 
         [toolset]="_toolset()"

@@ -188,7 +188,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 						{
 							handleCustomEvent(eventName, data, runId) {
 								if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
-									logger.debug(`========= handle custom event in project:`, eventName, runId)
+									logger.debug(`========= handle custom event in xpert agent: ${eventName} ${runId}`)
 									subscriber.next({
 										data: {
 											type: ChatMessageTypeEnum.EVENT,
@@ -197,7 +197,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 										}
 									} as MessageEvent)
 								} else {
-									logger.warn(`Unprocessed custom event in project:`, eventName, runId)
+									logger.warn(`Unprocessed custom event in xpert agent: ${eventName} ${runId}`)
 								}
 							},
 						},

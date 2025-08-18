@@ -60,6 +60,10 @@ export type TMCPServer = {
   files?: {name: string; content: string}[]
 
   toolNamePrefix?: string
+  /**
+   * Init scripts for sandbox
+   */
+  initScripts?: string
 }
 
 export type TMCPSchema = {

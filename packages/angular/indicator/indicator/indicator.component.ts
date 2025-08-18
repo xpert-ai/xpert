@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { NgmIsNilPipe, NgmLanguageEnum } from '@metad/ocap-angular/core'
 import { DataSettings, IndicatorTagEnum, QueryReturn, TimeGranularity } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
+import { derivedAsync } from 'ngxtension/derived-async'
 import { map, startWith } from 'rxjs'
 import { NgmIndicatorService } from '../indicator.service'
 import { NgmSparkLineDirective } from '../spark-line/spark-line.directive'
@@ -49,10 +50,13 @@ export class NgmIndicatorComponent {
   )
   readonly loading = toSignal(this.dataService.loading$)
 
-  readonly indicator = computed(() => {
+  /**
+   * When original indicator is changed, this need refresh.
+   */
+  readonly indicator = derivedAsync(() => {
     const code = this.indicatorCode()
     if (code && this.initied()) {
-      return this.dataService.getIndicator(code)
+      return this.dataService.selectIndicator(code)
     }
     return null
   })
@@ -101,13 +105,16 @@ export class NgmIndicatorComponent {
           indicatorId: this.indicatorCode(),
           lookBack: this.lookBack()
         })
-
-        if (this.initied()) {
-          this.dataService.refresh()
-        }
       },
       { allowSignalWrites: true }
     )
+
+    effect(() => {
+      // Refresh data when indicator is changed
+      if (this.indicator()) {
+        this.dataService.refresh()
+      }
+    })
   }
 
   _toggleTag(event: Event) {

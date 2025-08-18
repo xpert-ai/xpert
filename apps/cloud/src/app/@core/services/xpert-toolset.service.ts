@@ -18,10 +18,12 @@ import {
   TXpertToolEntity
 } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
+import { injectFetchEventSource } from './fetch-event-source'
 
 @Injectable({ providedIn: 'root' })
 export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToolset> {
   readonly #logger = inject(NGXLogger)
+  readonly fetchEventSource = injectFetchEventSource()
 
   readonly #refresh = new BehaviorSubject<void>(null)
 
@@ -109,9 +111,12 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
   }
 
   getMCPToolsBySchema(toolset: Partial<IXpertToolset>) {
-    return this.httpClient.post<{ schema: string; tools: TXpertToolEntity[] }>(
-      this.apiBaseUrl + `/provider/mcp/tools`,
-      toolset
+    return this.fetchEventSource(
+      {
+        url: this.apiBaseUrl + `/provider/mcp/tools`,
+        method: 'POST',
+      },
+      JSON.stringify(toolset)
     )
   }
 

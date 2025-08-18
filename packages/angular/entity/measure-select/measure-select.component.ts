@@ -85,7 +85,7 @@ export class NgmMeasureSelectComponent implements ControlValueAccessor {
     return [
       {
         name: null,
-        caption: 'Null'
+        caption: ''
       },
       ...orderBy(
         measures.filter((measure) => !isCalculationProperty(measure)),

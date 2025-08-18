@@ -290,7 +290,11 @@ export interface IWFNTool extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.TOOL,
   toolsetId: string
   toolName: string
+  /**
+   * @deprecated Use parameters instead
+   */
   parameterVariable: string
+  parameters?: any
   
   /**
    * Error handling

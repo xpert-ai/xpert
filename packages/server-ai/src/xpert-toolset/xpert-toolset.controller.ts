@@ -1,4 +1,4 @@
-import { IPagination, IXpertTool, IXpertToolset } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IPagination, IXpertTool, IXpertToolset, TAvatar } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -24,13 +24,15 @@ import {
 	Inject,
 	UseGuards,
 	InternalServerErrorException,
-	BadRequestException,
-	CACHE_MANAGER
+	CACHE_MANAGER,
+	Header,
+	Sse
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Cache } from 'cache-manager'
 import { ServerResponse } from 'http'
+import { Response } from 'express'
 import { TestOpenAPICommand } from '../xpert-tool/commands/'
 import { MCPToolsBySchemaCommand, ParserODataSchemaCommand, ParserOpenAPISchemaCommand } from './commands/'
 import { ToolProviderDTO, ToolsetPublicDTO } from './dto'
@@ -47,6 +49,9 @@ import { XpertToolsetService } from './xpert-toolset.service'
 import { ToolProviderNotFoundError } from './errors'
 import { ToolsetGuard } from './guards/toolset.guard'
 import { WorkspaceGuard } from '../xpert-workspace'
+import { Observable } from 'rxjs'
+import { RunnableLambda } from '@langchain/core/runnables'
+import { getErrorMessage, keepAlive, takeUntilClose } from '@metad/server-common'
 
 
 @ApiTags('XpertToolset')
@@ -152,13 +157,13 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	@Get('mcp/:id/avatar')
 	async getMCPAvatar(@Param('id', UUIDValidationPipe) id: string) {
 		const cacheKey = `mcp:avatar:${id}`
-		const avatar = await this.cacheManager.get(cacheKey)
-		if (!avatar) {
+		const cache = await this.cacheManager.get<{avatar: TAvatar}>(cacheKey)
+		if (!cache) {
 			const toolset = await this.service.findOne(id)
-			await this.cacheManager.set(cacheKey, toolset.avatar, 5 * 60 * 1000) // Cache for 5 minutes
+			await this.cacheManager.set(cacheKey, {avatar: toolset.avatar}, 5 * 60 * 1000) // Cache for 5 minutes
 			return toolset.avatar
 		}
-		return avatar
+		return cache.avatar
 	}
 
 	@Public()
@@ -203,13 +208,55 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 		return this.commandBus.execute(new ParserODataSchemaCommand(schema))
 	}
 
+	/**
+	 * @Post @Sse There is a priority order.
+	 */
+	@Header('content-type', 'text/event-stream')
+	@Header('Connection', 'keep-alive')
 	@Post('provider/mcp/tools')
-	async getMCPTools(@Body() toolset: Partial<IXpertToolset>) {
-		try {
-			return await this.commandBus.execute(new MCPToolsBySchemaCommand(toolset))
-		} catch(err) {
-			throw new BadRequestException(err.message)
-		}
+	@Sse()
+	getMCPTools(@Res() res: Response, @Body() toolset: Partial<IXpertToolset>) {
+		return new Observable<MessageEvent>((subscriber) => {
+			RunnableLambda.from(async (toolset: Partial<IXpertToolset>) => {
+				try {
+					const result = await this.commandBus.execute(new MCPToolsBySchemaCommand(toolset))
+					subscriber.next({
+						data: {
+							type: ChatMessageTypeEnum.MESSAGE,
+							data: result
+						}
+					} as MessageEvent)
+					subscriber.complete()
+				} catch(err) {
+					this.#logger.error(err)
+					subscriber.error(err)
+				}
+			}).invoke(toolset, {
+				callbacks: [
+					{
+						handleCustomEvent(eventName, data, runId) {
+							if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
+								subscriber.next({
+									data: {
+										type: ChatMessageTypeEnum.EVENT,
+										data: data
+									}
+								} as MessageEvent)
+							} else {
+								this.#logger.warn(`Unprocessed custom event in xpert agent: ${eventName} ${runId}`)
+							}
+						},
+					},
+				],
+			}).catch((err) => {
+				console.error(err)
+				subscriber.error(getErrorMessage(err))
+			})
+		}).pipe(
+			// Add an operator to send a comment event periodically (30s) to keep the connection alive
+			keepAlive(30000),
+			takeUntilClose(res)
+		)
 	}
 
 	// Single Toolset

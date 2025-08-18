@@ -155,7 +155,7 @@ export class EntityMemberProcessor {
 						endAt: new Date()
 					}
 				})
-				await job.moveToFailed(err)
+				await job.moveToFailed(err, true)
 			}
 		})
 	}

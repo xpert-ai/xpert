@@ -1,5 +1,5 @@
-require('dotenv').config();
-
+import * as dotenv from 'dotenv';
+dotenv.config();
 import {
 	DEFAULT_API_HOST,
 	DEFAULT_API_PORT,
@@ -7,17 +7,18 @@ import {
 	DEFAULT_GRAPHQL_API_PATH,
 	IPluginConfig
 } from '@metad/server-common';
-import * as path from 'path';
+import chalk from 'chalk';
+import path from 'path';
 import { dbConnectionConfig } from './database';
 
 process.cwd();
 
-let assetPath;
-let assetPublicPath;
-let serverRoot;
+let assetPath = '';
+let assetPublicPath = '';
+let serverRoot = '';
 
-console.log('Default Config -> __dirname: ' + __dirname);
-console.log('Plugin Config -> process.cwd: ' + process.cwd());
+console.log(chalk.blueBright('Default Config -> __dirname: ' + __dirname));
+console.log(chalk.blueBright('Plugin Config -> process.cwd: ' + process.cwd()));
 
 // TODO: maybe better to use process.cwd() instead of __dirname?
 
@@ -36,8 +37,9 @@ if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
 	assetPublicPath = path.join(serverRoot, ...['apps', 'api', 'public'])
 }
 
-console.log('Default Config -> assetPath: ' + assetPath);
-console.log('Default Config -> assetPublicPath: ' + assetPublicPath);
+console.log(chalk.blueBright('Default Config -> serverRoot: ' + serverRoot));
+console.log(chalk.blueBright('Default Config -> assetPath: ' + assetPath));
+console.log(chalk.blueBright('Default Config -> assetPublicPath: ' + assetPublicPath));
 
 /**
  * The default configurations.

@@ -5,13 +5,15 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { environment } from '@cloud/environments/environment'
 import { EntriesPipe, linkedModel } from '@metad/core'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
+import { NgmAutoScrollBottomDirective, NgmSlideToggleComponent, NgmTimerDirective } from '@metad/ocap-angular/common'
+import { attrModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { Subscription } from 'rxjs'
 import { ToastrService, XpertToolsetService } from '../../../@core'
 import {
+  ChatMessageTypeEnum,
   getErrorMessage,
   IEnvironment,
   IXpertTool,
@@ -43,7 +45,9 @@ import { XpertEnvVarInputComponent } from '../../environment'
     MCPToolsComponent,
     EntriesPipe,
     NgmSlideToggleComponent,
-    XpertEnvVarInputComponent
+    XpertEnvVarInputComponent,
+    NgmAutoScrollBottomDirective,
+    NgmTimerDirective
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -65,7 +69,7 @@ export class MCPServerFormComponent {
 
   // States
   readonly types = model<MCPServerType[]>([MCPServerType.SSE])
-  readonly views = model<('code' | 'tools')[]>(['tools'])
+  readonly views = model<('script' | 'code' | 'tools')[]>(['tools'])
   readonly fileIndex = model<number[]>([])
   readonly isCode = computed(() => this.types()[0] === MCPServerType.CODE)
 
@@ -78,56 +82,15 @@ export class MCPServerFormComponent {
       this.value$.update((state) => ({ ...(state ?? {}), toolNamePrefix }))
     }
   })
+ 
+  readonly args = attrModel(this.value$, 'args')
+  readonly reconnect = attrModel(this.value$, 'reconnect')
+  readonly reconnectEnabled = attrModel(this.reconnect, 'enabled')
+  readonly maxAttempts = attrModel(this.reconnect, 'maxAttempts')
+  readonly delayMs = attrModel(this.reconnect, 'delayMs')
 
-  readonly args = linkedModel({
-    initialValue: [],
-    compute: () => {
-      return this.value$()?.args
-    },
-    update: (args) => {
-      this.value$.update((state) => ({ ...(state ?? {}), args }))
-    }
-  })
-
-  readonly reconnect = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.value$()?.reconnect
-    },
-    update: (reconnect) => {
-      this.value$.update((state) => ({ ...(state ?? {}), reconnect }))
-    }
-  })
-
-  readonly reconnectEnabled = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.reconnect()?.enabled
-    },
-    update: (enabled) => {
-      this.reconnect.update((state) => ({ ...(state ?? {}), enabled }))
-    }
-  })
-
-  readonly maxAttempts = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.reconnect()?.maxAttempts
-    },
-    update: (maxAttempts) => {
-      this.reconnect.update((state) => ({ ...(state ?? {}), maxAttempts }))
-    }
-  })
-
-  readonly delayMs = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.reconnect()?.delayMs
-    },
-    update: (delayMs) => {
-      this.reconnect.update((state) => ({ ...(state ?? {}), delayMs }))
-    }
-  })
+  readonly initScripts = attrModel(this.value$, 'initScripts')
+  // readonly expandAdvanced = signal(false)
 
   get command() {
     return this.value$()?.command
@@ -172,6 +135,8 @@ export class MCPServerFormComponent {
     }
   })
 
+  readonly timer = signal<Date>(null)
+  readonly stopTime = signal<Date>(null)
   readonly error = signal<string>(null)
 
   readonly files = computed(() => this.value$()?.files)
@@ -201,6 +166,8 @@ export class MCPServerFormComponent {
     }
     return null
   })
+
+  readonly logs = signal<string[]>([])
 
   constructor() {
     effect(
@@ -238,6 +205,9 @@ export class MCPServerFormComponent {
 
   updateType(types: MCPServerType[]) {
     this.value$.update((state) => ({ ...(state ?? {}), type: types[0] }))
+    if (this.value$().type === MCPServerType.SSE) {
+      this.views.set(['tools'])
+    }
   }
 
   initFiles() {
@@ -296,19 +266,47 @@ if __name__ == "__main__":
 
   connect() {
     this.loading.set(true)
+    this.logs.set(null)
     this.error.set(null)
+    this.timer.set(new Date())
+    this.stopTime.set(null)
     this.connectSub?.unsubscribe()
     this.connectSub = this.toolsetService.getMCPToolsBySchema(this._toolset()).subscribe({
-      next: (result) => {
-        this.loading.set(false)
-        this.tools.set(result.tools)
-        this.views.set(['tools'])
+      next: (message) => {
+        if (message.event === 'error') {
+          this.error.set(getErrorMessage(message.data))
+          this.loading.set(false)
+          this.tools.set([])
+          this.stopTime.set(new Date())
+        } else {
+          if (!message.data || message.data?.startsWith(': keep-alive')) return
+          try {
+            const result = JSON.parse(message.data)
+            if (result.type === ChatMessageTypeEnum.EVENT) {
+              this.logs.update((state) => {
+                state ??= []
+                const log = result.data.message || result.data.title
+                if (state[state.length - 1] !== log) {
+                  return [...state, log]
+                }
+                return state
+              })
+            } else if (result.type === ChatMessageTypeEnum.MESSAGE) {
+              this.loading.set(false)
+              this.tools.set(result.data.tools)
+              this.views.set(['tools'])
+              this.logs.set(result.data.logs)
+              this.stopTime.set(new Date())
+            }
+          } catch(err) {}
+        }
       },
       error: (err) => {
         this.error.set(getErrorMessage(err))
         this.tools.set([])
         this.#toastr.error(getErrorMessage(err))
         this.loading.set(false)
+        this.stopTime.set(new Date())
         // Handle the error scenario here
       }
     })
@@ -319,6 +317,8 @@ if __name__ == "__main__":
     this.connectSub = null
     this.loading.set(false)
     this.error.set(null)
+    this.timer.set(null)
+    this.stopTime.set(null)
   }
 
   addHeader() {

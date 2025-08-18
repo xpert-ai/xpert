@@ -31,6 +31,7 @@ export class XpertOcapService {
       string,
       {
         model?: ISemanticModel // Semantic model details from the server
+        skipCache?: boolean
         // indicators?: IIndicator[] // Runtime indicators to be registered
         isDraft?: boolean // Whether use the model draft
         isIndicatorsDraft?: boolean // Whether use the indicators draft
@@ -48,7 +49,7 @@ export class XpertOcapService {
     const ids = Object.keys(this.#semanticModels()).filter((id) => !this.#semanticModels()[id].model)
     if (ids.length) {
       return combineLatest(ids.map((id) => 
-        this.isPublic() ? this.homeService.selectPublicSemanticModel(id) : this.homeService.selectSemanticModel(id))
+        this.isPublic() ? this.homeService.selectPublicSemanticModel(id) : this.homeService.selectSemanticModel(id, this.#semanticModels()[id].skipCache))
       ).pipe(
         tap({
           error: (err) => {
@@ -173,6 +174,7 @@ export class XpertOcapService {
         [id]: {
           ...state[id],
           model: null, // Reset the model to fetch again
+          skipCache: true, // Skip cache to fetch the latest model
           dirty: true,
           isIndicatorsDraft
         }

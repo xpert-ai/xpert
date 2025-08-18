@@ -3,10 +3,9 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -20,18 +19,21 @@ import {
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertParameterTypeEnum,
+  XpertService,
   XpertToolService
 } from 'apps/cloud/src/app/@core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
-import { XpertStudioToolsetMenuComponent } from '../../../components/toolset-menu/toolset.component'
-import { XpertStudioApiService } from '../../../domain'
-import { XpertStudioComponent } from '../../../studio.component'
-import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { Dialog } from '@angular/cdk/dialog'
 import { XpertWorkflowErrorHandlingComponent } from '@cloud/app/@shared/workflow'
 import { ClipboardModule, Clipboard } from '@angular/cdk/clipboard'
+import { JsonSchema7ObjectType } from 'zod-to-json-schema'
+import { XpertStudioToolsetMenuComponent } from '../../../components/toolset-menu/toolset.component'
+import { XpertStudioApiService } from '../../../domain'
+import { XpertStudioComponent } from '../../../studio.component'
+import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
 
 
 @Component({
@@ -49,9 +51,9 @@ import { ClipboardModule, Clipboard } from '@angular/cdk/clipboard'
     TranslateModule,
     NgmI18nPipe,
     EmojiAvatarComponent,
-    StateVariableSelectComponent,
     XpertStudioToolsetMenuComponent,
     XpertWorkflowErrorHandlingComponent,
+    XpToolParametersFormComponent
   ]
 })
 export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
@@ -64,6 +66,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly studioService = inject(XpertStudioApiService)
   readonly toolService = inject(XpertToolService)
+  readonly xpertAPI = inject(XpertService)
   readonly #dialog = inject(Dialog)
   readonly #clipboard = inject(Clipboard)
   readonly configureBuiltin = injectConfigureBuiltin()
@@ -87,6 +90,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   readonly toolsetId = attrModel(this.toolEntity, 'toolsetId')
   readonly toolName = attrModel(this.toolEntity, 'toolName')
   readonly parameterVariable = attrModel(this.toolEntity, 'parameterVariable')
+  readonly parameters = attrModel(this.toolEntity, 'parameters')
   readonly errorHandling = attrModel(this.toolEntity, 'errorHandling')
 
   // Refresh toolset details
@@ -113,12 +117,21 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
     }
     return null
   })
-  readonly schema = computed(() => this.tool()?.schema)
+  readonly schema = computed(() => this.tool()?.schema as JsonSchema7ObjectType)
   readonly paramsSample = signal<{loading?: boolean; value?: any}>({})
 
   readonly xpertCopilotModel = computed(() => this.xpert()?.copilotModel)
 
   readonly expandOutputVariables = signal(false)
+
+  readonly #variables = myRxResource({
+    request: () => this.varOptions(),
+    loader: ({ request }) => {
+      return request ? this.xpertAPI.getNodeVariables(request) : of(null)
+    }
+  })
+  readonly loading = computed(() => this.#variables.status() === 'loading')
+  readonly variables = this.#variables.value
 
   constructor() {
     super()
@@ -177,6 +190,9 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
       })
     }
   
+  /**
+   * @deprecated
+   */
   copyParamsSample() {
     if (!this.paramsSample().loading) {
       if (this.paramsSample().value) {

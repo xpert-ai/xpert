@@ -331,6 +331,8 @@ export const ZhHans = {
       GreaterThan: '大于',
       LessorEqual: '小于等于',
       GreaterorEqual: '大于等于',
+      Empty: '为空',
+      NotEmpty: '不为空',
       Sum: '总和',
       Count: '计数',
       Average: '平均',

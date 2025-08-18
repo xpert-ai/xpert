@@ -17,6 +17,7 @@ import { Router } from '@angular/router'
 import { MatSliderModule } from '@angular/material/slider'
 import { KnowledgeRecallParamsComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { XpertStudioApiService } from '../../domain'
+import { XpertStudioComponent } from '../../studio.component'
 
 @Component({
   selector: 'xpert-studio-panel-knowledge',
@@ -44,6 +45,7 @@ export class XpertStudioPanelKnowledgeComponent {
   eModelType = AiModelTypeEnum
   readonly elementRef = inject(ElementRef)
   readonly #router = inject(Router)
+  readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly studioService = inject(XpertStudioApiService)
@@ -101,5 +103,9 @@ export class XpertStudioPanelKnowledgeComponent {
 
   edit() {
     window.open(['/xpert', 'knowledges', this.knowledgebase().id].join('/'), '_blank')
+  }
+
+  moveToNode() {
+    this.xpertStudioComponent.centerGroupOrNode(this.id())
   }
 }

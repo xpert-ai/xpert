@@ -535,4 +535,8 @@ export class XpertStudioPanelAgentComponent {
     const errorHandling = this.errorHandling() ?? {}
     this.updateOptions({errorHandling: {...errorHandling, ...value}})
   }
+
+  moveToNode() {
+    this.xpertStudioComponent.centerGroupOrNode(this.key())
+  }
 }

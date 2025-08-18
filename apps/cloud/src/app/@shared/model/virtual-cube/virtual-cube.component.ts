@@ -32,7 +32,7 @@ import { NGXLogger } from 'ngx-logger'
 import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ModelChecklistComponent } from '../checklist/checklist.component'
+import { ChecklistComponent } from '../../common'
 
 
 @Component({
@@ -61,7 +61,7 @@ import { ModelChecklistComponent } from '../checklist/checklist.component'
     ResizerModule,
     NgmCommonModule,
     NgmCalculatedMeasureComponent,
-    ModelChecklistComponent
+    ChecklistComponent
   ],
   providers: [NgmDSCoreService, ModelStudioService]
 })

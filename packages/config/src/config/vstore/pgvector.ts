@@ -1,4 +1,4 @@
-import { IMilvusConfig, IPGVectorConfig } from '@metad/server-common';
+import { IPGVectorConfig } from '@metad/server-common';
 import { registerAs } from '@nestjs/config';
 
 /**

@@ -1,3 +1,4 @@
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { IBuiltinTool, IXpertTool, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { omit } from '@metad/server-common'
 import { PaginationParams, TenantOrganizationAwareCrudService } from '@metad/server-core'
@@ -70,7 +71,9 @@ export class XpertToolService extends TenantOrganizationAwareCrudService<XpertTo
 		const toolset = toolsets[0]
 		await toolset.initTools()
 		const toolInstance = toolset.getTool(tool.name)
-		const jsonSchema = ToolSchemaParser.parseZodToJsonSchema(toolInstance.schema)
+		const jsonSchema =
+			(<DynamicStructuredTool>toolInstance).lc_kwargs?.schema ??
+			ToolSchemaParser.parseZodToJsonSchema(toolInstance.schema)
 		const sample = JSONSchemaFaker.generate(jsonSchema as Schema)
 		return sample
 	}

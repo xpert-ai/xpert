@@ -35,6 +35,7 @@ import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService } from '../../../environment'
+import { VolumeClient } from '../../../shared'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -147,7 +148,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					user_email: user.email,
 					timezone: user.timeZone || options.timeZone,
 					date: format(new Date(), 'yyyy-MM-dd'),
-					datetime: new Date().toLocaleString()
+					datetime: new Date().toLocaleString(),
+					workspace_path: await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, options.conversationId),
+					workspace_url: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.conversationId)
 				},
 				[STATE_VARIABLE_HUMAN]: {
 					input: input.input,

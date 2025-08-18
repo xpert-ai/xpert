@@ -257,6 +257,7 @@ export type TMessageComponentStep<T = JSONValue> = {
  * Data type for chat event message
  */
 export type TChatEventMessage = {
+  type?: string
   title?: string
   message?: string
   status?: 'success' | 'fail' | 'running'

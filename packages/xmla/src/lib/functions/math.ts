@@ -1,4 +1,5 @@
-import { AND, NOT, Parenthesis } from "./common"
+import { AggregationProperty } from "@metad/ocap-core"
+import { AND, IsEmpty, Not, NOT, Parenthesis } from "./common"
 
 /**
  * the absolute value of a numeric argument.
@@ -174,4 +175,15 @@ export function Equal(left: string, right: string) {
 
 export function NotEqual(left: string, right: string) {
   return `${left} <> ${right}`
+}
+
+export function LogicalExpression(expression: string, operator: AggregationProperty['compare'], value?: string | number) {
+  switch(operator) {
+    case 'empty':
+      return IsEmpty(expression)
+    case 'not_empty':
+      return Not(IsEmpty(expression))
+    default:
+      return `${expression} ${operator} ${value !== undefined ? value : ''}`
+  }
 }

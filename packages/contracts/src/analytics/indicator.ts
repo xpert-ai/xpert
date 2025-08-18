@@ -1,5 +1,6 @@
 import { EmbeddingStatusEnum } from '../ai'
 import { ITag } from '../tag-entity.model'
+import { ChecklistItem } from '../types'
 import { Visibility } from '../visibility.model'
 import { IBusinessArea } from './business-area'
 import { ICertification } from './certification.model'
@@ -57,7 +58,11 @@ export type TIndicator = {
   businessAreaId?: string
 }
 
-export type TIndicatorDraft = TIndicator
+export type TIndicatorDraft = TIndicator & {
+  checklist?: ChecklistItem[]
+  version?: number
+  savedAt?: Date
+}
 
 export interface IIndicator extends IBasePerProjectEntityModel, TIndicator {
   draft?: TIndicatorDraft

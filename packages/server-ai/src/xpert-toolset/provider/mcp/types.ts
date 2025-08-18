@@ -9,6 +9,8 @@ import {
 	TMCPSchema,
 	TMCPServer
 } from '@metad/contracts'
+import { environment } from '@metad/server-config'
+import { runScript } from '@metad/server-core'
 import { t } from 'i18next'
 import { isNil, omitBy } from 'lodash'
 
@@ -17,6 +19,7 @@ export async function createMCPClient(
 	schema: TMCPSchema,
 	envState: Record<string, unknown>
 ) {
+	const logs: string[] = []
 	const mcpServers = {}
 	let server: TMCPServer = null
 	const servers = schema.servers ?? schema.mcpServers
@@ -49,6 +52,29 @@ export async function createMCPClient(
 				status: 'running',
 				created_date: new Date().toISOString()
 			} as TChatEventMessage)
+
+			// Init scripts
+			const initScripts = server.initScripts?.trim()
+			if (initScripts) {
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+					id: toolset.id,
+					title: t('server-ai:Sandbox.ExecScript', {part: 1, total: 1}),
+				} as TChatEventMessage)
+				const result = await runScript(initScripts, {safeEnv: environment.production, timeout: 1000 * 60 * 10 })
+				if (result.timedOut) {
+					logs.push(`Timeout executing init scripts after 10 mins.`)
+				}
+				if (result.stderr)
+				  	logs.push(result.stderr)
+				if (result.stdout)
+				  	logs.push(result.stdout)
+
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+					id: toolset.id,
+					title: t('server-ai:Sandbox.ExecScript', {part: 1, total: 1}),
+					message: logs.join('\n'),
+				} as TChatEventMessage)
+			}
 			let args = null
 			if (server.args?.length) {
 				args = []
@@ -94,5 +120,5 @@ export async function createMCPClient(
 		end_date: new Date().toISOString()
 	} as TChatEventMessage)
 
-	return { client, destroy: null }
+	return { client, destroy: null, logs }
 }

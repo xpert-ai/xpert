@@ -39,13 +39,13 @@ import { Response } from 'express'
 import { FindOneOptions } from 'typeorm'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { FindChatConversationQuery } from '../chat-conversation/queries'
-import { VolumeClient } from '../sandbox/volume'
 import { XpertProjectDto, XpertProjectTaskDto } from './dto'
 import { XpertProjectIdentiDto } from './dto/project-identi.dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectGuard, XpertProjectOwnerGuard } from './guards'
 import { XpertProjectService } from './project.service'
 import { XpertProjectFileService } from './services'
+import { VolumeClient } from '../shared'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
