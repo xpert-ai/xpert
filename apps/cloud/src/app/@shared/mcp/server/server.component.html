@@ -267,6 +267,9 @@
     }
   </div>
   <div class="flex justify-center items-center gap-2 p-2">
+    @if (timer()) {
+      <div class="font-mono text-sm text-text-secondary mr-2 -ml-8" [ngmTimer]="timer()" [stopTime]="stopTime()"></div>
+    }
     @if (loading()) {
         <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-orange-500 flex'></span>
         {{ 'PAC.MCP.Connecting' | translate: { Default: 'Connecting' } }}
@@ -288,7 +291,10 @@
     <div class="text-semibold px-2 flex h-6 justify-between items-center gap-1 text-text-secondary">
       <div class="truncate">{{'PAC.MCP.Logs' | translate: {Default: 'Logs'} }}</div>
     </div>
-    <div class="p-4 text-sm text-text-secondary whitespace-pre-line break-all rounded-xl space-y-1 bg-gray-50">
+    <div class="p-4 text-sm text-text-secondary whitespace-pre-line break-all rounded-xl space-y-1 max-h-80 overflow-y-auto bg-gray-50"
+      ngmAutoScrollBottom
+      [dataSource]="logs()"
+    >
       @for (log of logs(); track log) {
         <div>{{log}}</div>
       }

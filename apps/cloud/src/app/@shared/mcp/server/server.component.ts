@@ -5,7 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { environment } from '@cloud/environments/environment'
 import { EntriesPipe, linkedModel } from '@metad/core'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
+import { NgmAutoScrollBottomDirective, NgmSlideToggleComponent, NgmTimerDirective } from '@metad/ocap-angular/common'
 import { attrModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
@@ -13,6 +13,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { Subscription } from 'rxjs'
 import { ToastrService, XpertToolsetService } from '../../../@core'
 import {
+  ChatMessageTypeEnum,
   getErrorMessage,
   IEnvironment,
   IXpertTool,
@@ -44,7 +45,9 @@ import { XpertEnvVarInputComponent } from '../../environment'
     MCPToolsComponent,
     EntriesPipe,
     NgmSlideToggleComponent,
-    XpertEnvVarInputComponent
+    XpertEnvVarInputComponent,
+    NgmAutoScrollBottomDirective,
+    NgmTimerDirective
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -132,6 +135,8 @@ export class MCPServerFormComponent {
     }
   })
 
+  readonly timer = signal<Date>(null)
+  readonly stopTime = signal<Date>(null)
   readonly error = signal<string>(null)
 
   readonly files = computed(() => this.value$()?.files)
@@ -263,19 +268,45 @@ if __name__ == "__main__":
     this.loading.set(true)
     this.logs.set(null)
     this.error.set(null)
+    this.timer.set(new Date())
+    this.stopTime.set(null)
     this.connectSub?.unsubscribe()
     this.connectSub = this.toolsetService.getMCPToolsBySchema(this._toolset()).subscribe({
-      next: (result) => {
-        this.loading.set(false)
-        this.tools.set(result.tools)
-        this.views.set(['tools'])
-        this.logs.set(result.logs)
+      next: (message) => {
+        if (message.event === 'error') {
+          this.error.set(getErrorMessage(message.data))
+          this.loading.set(false)
+          this.tools.set([])
+          this.stopTime.set(new Date())
+        } else {
+          if (!message.data || message.data?.startsWith(': keep-alive')) return
+          try {
+            const result = JSON.parse(message.data)
+            if (result.type === ChatMessageTypeEnum.EVENT) {
+              this.logs.update((state) => {
+                state ??= []
+                const log = result.data.message || result.data.title
+                if (state[state.length - 1] !== log) {
+                  return [...state, log]
+                }
+                return state
+              })
+            } else if (result.type === ChatMessageTypeEnum.MESSAGE) {
+              this.loading.set(false)
+              this.tools.set(result.data.tools)
+              this.views.set(['tools'])
+              this.logs.set(result.data.logs)
+              this.stopTime.set(new Date())
+            }
+          } catch(err) {}
+        }
       },
       error: (err) => {
         this.error.set(getErrorMessage(err))
         this.tools.set([])
         this.#toastr.error(getErrorMessage(err))
         this.loading.set(false)
+        this.stopTime.set(new Date())
         // Handle the error scenario here
       }
     })
@@ -286,6 +317,8 @@ if __name__ == "__main__":
     this.connectSub = null
     this.loading.set(false)
     this.error.set(null)
+    this.timer.set(null)
+    this.stopTime.set(null)
   }
 
   addHeader() {

@@ -12,7 +12,8 @@
     },
     "Sandbox": {
         "Starting": "沙盒正在启动...",
-        "Ready": "沙盒已就绪"
+        "Ready": "沙盒已就绪",
+        "ExecScript": "正在执行初始化脚本: {{part}}/{{total}}"
     },
     "Xpert": {
         "SummaryTitleStarting": "正在总结标题...",

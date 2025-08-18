@@ -56,6 +56,10 @@ export async function createMCPClient(
 			// Init scripts
 			const initScripts = server.initScripts?.trim()
 			if (initScripts) {
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+					id: toolset.id,
+					title: t('server-ai:Sandbox.ExecScript', {part: 1, total: 1}),
+				} as TChatEventMessage)
 				const result = await runScript(initScripts, {safeEnv: environment.production, timeout: 1000 * 60 * 10 })
 				if (result.timedOut) {
 					logs.push(`Timeout executing init scripts after 10 mins.`)
@@ -64,6 +68,12 @@ export async function createMCPClient(
 				  	logs.push(result.stderr)
 				if (result.stdout)
 				  	logs.push(result.stdout)
+
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+					id: toolset.id,
+					title: t('server-ai:Sandbox.ExecScript', {part: 1, total: 1}),
+					message: logs.join('\n'),
+				} as TChatEventMessage)
 			}
 			let args = null
 			if (server.args?.length) {
