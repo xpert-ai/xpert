@@ -4,6 +4,8 @@ import {
 	OperationResults,
 	PutOperation,
 	SearchOperation,
+	ListNamespacesOperation,
+	MatchCondition,
 	type Operation
 } from '@langchain/langgraph'
 import { IndexConfig } from '@langchain/langgraph-checkpoint/dist/store/base'
@@ -444,6 +446,97 @@ export class CopilotMemoryStore extends BaseStore {
 					namespace: decodeNsBytes(row['prefix']),
 				}))
 		}
+	}
+
+	/**
+	 * List namespaces with optional filtering.
+	 */
+	async listNamespaces(
+		options: {
+		prefix?: string[];
+		suffix?: string[];
+		maxDepth?: number;
+		limit?: number;
+		offset?: number;
+		} = {}
+	): Promise<string[][]> {
+		const { prefix, suffix, maxDepth, limit = 100, offset = 0 } = options;
+
+		// Convert options to match conditions format
+		const matchConditions: MatchCondition[] = [];
+
+		if (prefix) {
+			matchConditions.push({
+				matchType: "prefix",
+				path: prefix,
+			});
+		}
+
+		if (suffix) {
+			matchConditions.push({
+				matchType: "suffix",
+				path: suffix,
+			});
+		}
+
+		const operation: ListNamespacesOperation = {
+			matchConditions,
+			maxDepth,
+			limit,
+			offset,
+		};
+
+		return this.executeListNamespaces(this.pgPool, operation);
+	}
+	
+	private async executeListNamespaces(
+		client: Pool,
+		operation: ListNamespacesOperation
+	): Promise<string[][]> {
+		const { matchConditions, maxDepth, limit = 100, offset = 0 } = operation;
+
+		let sqlQuery = `SELECT DISTINCT prefix
+			FROM copilot_store
+			`;
+
+		const params: unknown[] = [];
+		const conditions: string[] = [];
+		let paramIndex = 1;
+
+		// Add match conditions
+		if (matchConditions && matchConditions.length > 0) {
+			for (const condition of matchConditions) {
+				if (condition.matchType === "prefix") {
+					const prefix = condition.path.join(":");
+					conditions.push(`prefix LIKE $${paramIndex}`);
+					params.push(`${prefix}%`);
+					paramIndex += 1;
+				} else if (condition.matchType === "suffix") {
+					const suffix = condition.path.join(":");
+					conditions.push(`prefix LIKE $${paramIndex}`);
+					params.push(`%${suffix}`);
+					paramIndex += 1;
+				}
+			}
+		}
+
+		if (conditions.length > 0) {
+			sqlQuery += ` WHERE ${conditions.join(" AND ")}`;
+		}
+
+		sqlQuery += ` ORDER BY prefix LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+		params.push(limit, offset);
+
+		const result = await client.query(sqlQuery, params);
+
+		let namespaces = result.rows.map((row) => row.prefix.split(":"));
+
+		// Apply maxDepth filter if specified
+		if (maxDepth !== undefined) {
+			namespaces = namespaces.filter((ns) => ns.length <= maxDepth);
+		}
+
+		return namespaces;
 	}
 
 	private extractTexts(ops: PutOperation[]): { [text: string]: [string[], string, string][] } {

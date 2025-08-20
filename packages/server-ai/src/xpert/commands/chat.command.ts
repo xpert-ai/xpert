@@ -10,6 +10,7 @@ export class XpertChatCommand implements ICommand {
 			// Use xpert's draft
 			isDraft?: boolean
 			fromEndUserId?: string
+			execution?: {id: string}
 		}
 	) {}
 }

@@ -30,7 +30,8 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
 				conversation = await this.commandBus.execute(
 					new ChatConversationUpsertCommand({
 						threadId: input.thread_id,
-						title: input.metadata?.title
+						title: input.metadata?.title,
+						from: 'api'
 					})
 				)
 			}
@@ -38,7 +39,8 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
 			conversation = await this.commandBus.execute(
 				new ChatConversationUpsertCommand({
 					threadId: uuidv4(),
-					title: input.metadata?.title
+					title: input.metadata?.title,
+					from: 'api'
 				})
 			)
 		}

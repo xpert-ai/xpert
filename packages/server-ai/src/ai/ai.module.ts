@@ -13,6 +13,9 @@ import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
 import { ThreadsController } from './thread.controller'
 import { KnowledgeDocumentModule } from '../knowledge-document'
+import { AssistantsController } from './assistant.controller'
+import { XpertModule } from '../xpert'
+import { StoreController } from './store.controller'
 
 @Module({
 	imports: [
@@ -30,8 +33,9 @@ import { KnowledgeDocumentModule } from '../knowledge-document'
 		forwardRef(() => KnowledgebaseModule),
 		forwardRef(() => KnowledgeDocumentModule),
 		forwardRef(() => StorageFileModule),
+		forwardRef(() => XpertModule),
 	],
-	controllers: [AIController, AIV1Controller, ThreadsController],
+	controllers: [AIController, AIV1Controller, AssistantsController, ThreadsController, StoreController],
 	providers: [AiService, ...CommandHandlers, ...QueryHandlers]
 })
 export class AIModule {}

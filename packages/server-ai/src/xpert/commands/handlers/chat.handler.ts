@@ -52,6 +52,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const { options } = c
 		const { projectId, xpertId, input, conversationId, confirm, command, reject } = c.request
 		const { taskId, from, fromEndUserId } = options ?? {}
+		let { execution } = options ?? {}
 		const userId = RequestContext.currentUserId()
 
 		const timeStart = Date.now()
@@ -130,8 +131,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			}
 
 			// New execution (Run) in thread
-			const execution = await this.commandBus.execute(
+			execution = await this.commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
+					...(execution ?? {}),
 					xpert: { id: xpert.id } as IXpert,
 					agentKey: xpert.agent.key,
 					inputs: input,

@@ -53,6 +53,11 @@ export class XpertIdentiDto implements Partial<IXpert> {
 	@Transform(({ value }: TransformFnParams) => value && new UserPublicDTO(value))
 	createdBy?: IUser
 
+	@Expose()
+	createdAt?: Date
+	@Expose()
+	updatedAt?: Date
+
 	constructor(partial: Partial<XpertIdentiDto | IXpert>) {
 		Object.assign(this, partial)
 	}
