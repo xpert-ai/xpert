@@ -39,6 +39,7 @@ import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
 import { ProjectService } from '../project.service'
 import { ChatProjectFilesComponent } from '../files/files.component'
 import { FileIconComponent } from '@cloud/app/@shared/files'
+import { ChatProjectVcsComponent } from '../vcs/vcs.component'
 
 /**
  *
@@ -66,6 +67,7 @@ import { FileIconComponent } from '@cloud/app/@shared/files'
     ChatProjectFilesComponent,
     ChatProjectConversationsComponent,
     ChatProjectKnowledgesComponent,
+    ChatProjectVcsComponent,
     ChatAttachmentsComponent,
     FileIconComponent
   ],
@@ -129,7 +131,7 @@ export class ChatProjectHomeComponent {
   })
 
   // View
-  readonly viewType = signal<'files' | 'tools' | 'knowledges' | 'conversations'>('tools')
+  readonly viewType = signal<'files' | 'tools' | 'knowledges' | 'conversations' | 'vcs'>('tools')
 
   readonly form = this.#fb.group({
     input: ''

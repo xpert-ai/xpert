@@ -1,6 +1,2 @@
 export * from './create-toolset.command'
-export * from './upsert-file.command'
-export * from './delete-file.command'
-export * from './read-file.command'
-export * from './list-files.command'
 export * from './export.command'

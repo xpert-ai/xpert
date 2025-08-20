@@ -97,7 +97,8 @@ export enum IntegrationEnum {
 	DINGTALK = 'DingTalk',
 	WECOM = 'WeCom',
 	FIRECRAWL = 'firecrawl',
-	KNOWLEDGEBASE = 'knowledgebase'
+	KNOWLEDGEBASE = 'knowledgebase',
+	GITHUB = 'GitHub'
 }
 
 // export enum IntegrationEntity {

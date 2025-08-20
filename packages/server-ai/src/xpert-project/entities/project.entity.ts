@@ -1,24 +1,26 @@
 import {
 	ICopilotModel,
+	IIntegration,
 	IKnowledgebase,
 	IStorageFile,
 	IUser,
 	IXpert,
 	IXpertProject,
-	IXpertProjectFile,
 	IXpertProjectTask,
+	IXpertProjectVCS,
 	IXpertToolset,
 	IXpertWorkspace,
 	TAvatar,
 	TXpertProjectSettings,
 	TXpertProjectStatus
 } from '@metad/contracts'
-import { StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-core'
+import { Integration, StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
-import { CopilotModel, Knowledgebase, Xpert, XpertProjectFile, XpertProjectTask, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
-import { WorkspaceBaseEntity } from '../../core/entities/base.entity'
+import { CopilotModel, Knowledgebase, Xpert, XpertProjectTask, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
+import { XpertProjectVCS } from './project-vcs.entity'
+
 
 @Entity('xpert_project')
 export class XpertProject extends TenantOrganizationBaseEntity implements IXpertProject {
@@ -78,7 +80,7 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	workspace?: IXpertWorkspace
 
 	@ApiProperty({ type: () => String, readOnly: true })
-	@RelationId((it: WorkspaceBaseEntity) => it.workspace)
+	@RelationId((it: XpertProject) => it.workspace)
 	@IsString()
 	@IsOptional()
 	@Column({ nullable: true })
@@ -104,6 +106,21 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	@Column({ nullable: true })
 	copilotModelId?: string
 
+	// VCS
+	@ApiProperty({ type: () => XpertProjectVCS })
+	@OneToOne(() => XpertProjectVCS, {
+		nullable: true,
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	@JoinColumn()
+	vcs?: IXpertProjectVCS
+
+	@ApiProperty({ type: () => String })
+	@RelationId((it: XpertProject) => it.vcs)
+	@IsString()
+	@Column({ nullable: true })
+	vcsId?: string
+
 	/*
     |--------------------------------------------------------------------------
     | @OneToMany 
@@ -115,14 +132,6 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
 	tasks?: IXpertProjectTask[] | null
-
-	// Project's files
-	@ApiPropertyOptional({ type: () => XpertProjectFile, isArray: true })
-	@IsOptional()
-	@OneToMany(() => XpertProjectFile, (_) => _.project, {
-		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
-	})
-	files?: IXpertProjectFile[]
 
 	/*
     |--------------------------------------------------------------------------

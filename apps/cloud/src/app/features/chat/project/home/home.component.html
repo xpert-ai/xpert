@@ -257,6 +257,16 @@
             <i class="ri-chat-thread-line text-lg"></i>
             {{'PAC.XProject.Conversations' | translate: {Default: 'Conversations'} }}
           </button>
+
+          @if (project()?.vcsId) {
+            <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+              [class.active]="viewType() === 'vcs'"
+              (click)="viewType.set('vcs')"
+            >
+              <i class="ri-github-fill text-lg"></i>
+              {{'PAC.XProject.GitHub' | translate: {Default: 'GitHub'} }}
+            </button>
+          }
         </div>
 
         <button type="button" class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-2xl py-2 group/attach-button relative transition-colors duration-100 bg-transparent border aspect-square border-border-l2 hover:bg-button-ghost-hover px-2 w-auto"
@@ -304,6 +314,9 @@
         }
         @case ('conversations') {
           <chat-project-conversations role="tabpanel" class="py-2" />
+        }
+        @case ('vcs') {
+          <chat-project-vcs role="tabpanel" class="py-2" [projectId]="id()" />
         }
       }
     </div>

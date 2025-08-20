@@ -17,3 +17,7 @@ export class IntegrationService extends OrganizationBaseCrudService<IIntegration
     return this.httpClient.post(API_PREFIX + `/${integration.provider}/test`, integration)
   }
 }
+
+export function injectIntegrationAPI() {
+  return inject(IntegrationService)
+}

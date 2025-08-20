@@ -43,8 +43,14 @@ export class ConfigService {
 		return this.config.assetOptions;
 	}
 
-	get(key: keyof IEnvironment): IEnvironment[keyof IEnvironment] {
-		return this.environment[key];
+	/**
+	 * Get the environment variable value.
+	 *
+	 * @param key
+	 * @returns
+	 */
+	get<T>(key: keyof IEnvironment): T {
+		return this.environment[key] as T;
 	}
 
 	isProd(): boolean {

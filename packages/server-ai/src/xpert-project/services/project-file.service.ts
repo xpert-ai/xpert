@@ -6,6 +6,9 @@ import { I18nService } from 'nestjs-i18n'
 import { Repository } from 'typeorm'
 import { XpertProjectFile } from '../entities/project-file.entity'
 
+/**
+ * @deprecated
+ */
 @Injectable()
 export class XpertProjectFileService extends TenantOrganizationAwareCrudService<XpertProjectFile> {
 	readonly #logger = new Logger(XpertProjectFileService.name)

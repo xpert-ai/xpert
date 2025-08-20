@@ -1,0 +1,198 @@
+@if (error() || installationsError()) {
+  <div class="flex flex-col rounded-2xl border border-solid border-divider-regular p-4 bg-components-card-bg">
+    <div class="mb-4">
+      <div class="font-semibold text-xl">GitHub Integration Error</div>
+      <div class="text-text-destructive">{{ error() || installationsError() }}</div>
+    </div>
+  </div>
+}
+
+<div class="flex flex-col rounded-2xl border border-solid border-divider-regular p-4 bg-components-card-bg">
+  <div class="mb-4">
+    <div class="font-semibold text-xl">GitHub{{" "}}{{ currentInstallation()?.accountType === "Organization"
+              ? "Organization"
+              : "User" }}</div>
+    <div>Manage your GitHub App installations and switch between organizations</div>
+  </div>
+
+  <div class="space-y-2">
+    <div class="border-border bg-muted/50 flex items-center justify-between rounded-lg border p-4">
+      <div class="flex-1">
+        <h3 class="text-foreground mb-1 font-semibold">
+          Current{{" "}}
+          {{currentInstallation()?.accountType === "Organization"
+            ? "Organization"
+            : "User"}}
+        </h3>
+        <p class="text-muted-foreground text-sm">
+          Select which GitHub organization or user account to work with
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <ngm-select class="min-w-[200px]" [selectOptions]="installationOptions()" [ngModel]="installationId()" (ngModelChange)="handleInstallationChange($event)" />
+
+        <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+          [title]="'Add new organization'"
+          (click)="handleInstallApp()">
+          <i class="ri-add-line"></i>
+        </button>
+
+        <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+          [title]="'Add new organization'"
+          [disabled]="installationsLoading()"
+          (click)="refreshInstallations()">
+          <i class="ri-refresh-line"></i>
+        </button>
+      </div>
+    </div>
+
+    @if (currentInstallation(); as currentInstallation) {
+      <div class="border-border flex items-center gap-4 rounded-lg border p-4">
+        <img
+          src="{{currentInstallation.avatarUrl}}"
+          alt="{{ currentInstallation.accountName + ' avatar'}}"
+          class="h-12 w-12 rounded-full"
+        />
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <h4 class="text-foreground font-semibold">
+              {{currentInstallation.accountName}}
+            </h4>
+
+            <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 inset-ring inset-ring-gray-500/10">
+              @if (currentInstallation.accountType === "Organization") {
+                <i class="ri-community-line"></i>
+                Organization
+              } @else {
+                <i class="ri-user-line"></i>
+                Personal
+              }
+            </span>
+          </div>
+          <p class="text-muted-foreground text-sm">
+            repositories accessible
+          </p>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<div class="flex flex-col rounded-2xl border border-solid border-divider-regular p-4 bg-components-card-bg">
+  <div class="flex justify-between items-center mb-4">
+    <div>
+      <div class="font-semibold text-xl">Your Repositories</div>
+      <div>Repositories you have access to through your GitHub integration</div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 inset-ring inset-ring-gray-500/10">
+        {{repositories().length}} repositories
+      </span>
+
+      <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+        [disabled]="isLoading() || repositoriesLoadingMore()"
+        (click)="handleRefresh()">
+        <i class="ri-refresh-line mr-1" [class.animate-spin]="isLoading() || repositoriesLoadingMore()"></i>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="space-y-2">
+    @for (repo of repositories(); track repo.id) {
+      <div [attr.key]="repo.id">
+        <div class="border-border hover:bg-muted/50 flex items-start justify-between rounded-lg border p-4 transition-colors">
+          <div class="min-w-0 flex-1">
+            <div class="mb-2 flex items-center gap-2">
+              <h3 class="text-primary hover:text-primary/80 cursor-pointer font-mono font-semibold">
+                {{repo.full_name}}
+              </h3>
+              <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 inset-ring inset-ring-gray-500/10">
+                @if (repo.private) {
+                  <i class="ri-git-repository-private-line mr-1"></i>
+                  Private
+                } @else {
+                  <i class="ri-global-line mr-1"></i>
+                  Public
+                }
+              </span>
+            </div>
+            @if (repo.description) {
+              <p class="text-muted-foreground mb-3 text-sm">
+                {{repo.description}}
+              </p>
+            }
+
+            <div class="text-muted-foreground flex items-center gap-4 text-sm">
+              <div class="flex items-center gap-1">
+                <i class="ri-git-branch-line"></i>
+                <span class="font-mono">
+                  Default: {{repo.default_branch}}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-ghost btn-medium flex justify-center items-center"
+            (click)="openRepository(repo)">
+            <i class="ri-external-link-line"></i>
+          </button>
+        </div>
+      </div>
+    } @empty {
+      <div class="py-8 text-center">
+        <p class="text-muted-foreground">
+          No repositories found. Make sure you've granted access to at
+          least one repository for the selected organization.
+        </p>
+      </div>
+    }
+
+    @if (repositoriesHasMore()) {
+      <div class="pt-4 text-center">
+        <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+          [disabled]="repositoriesLoadingMore()"
+          (click)="loadMoreRepositories()"
+        >
+          @if (repositoriesLoadingMore()) {
+            <i class="ri-refresh-line animate-spin"></i>
+            Loading...
+          } @else {
+            Load More Repositories
+          }
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<div class="flex flex-col rounded-2xl border border-solid border-divider-regular p-4 bg-components-card-bg">
+  <div class="mb-4">
+    <div class="font-semibold text-xl">GitHub App Management</div>
+    <div class="text-text-secondary">Manage your GitHub App installation and permissions</div>
+  </div>
+
+  <div class="border-border bg-muted/50 flex items-center justify-between rounded-lg p-4">
+    <div>
+      <h3 class="text-foreground mb-1 font-semibold">
+        GitHub App Installation
+      </h3>
+      <p class="text-muted-foreground text-sm">
+        You can manage your GitHub App installation, including adding or
+        removing repositories, through GitHub.
+      </p>
+    </div>
+
+    <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+      (click)="handleManageOnGitHub()"
+    >
+      <i class="ri-external-link-line mr-1"></i>
+      Manage on GitHub
+    </button>
+  </div>
+</div>
+
+@if (isLoading()) {
+  <ngm-spin class="absolute w-full h-full top-0 left-0" />
+}

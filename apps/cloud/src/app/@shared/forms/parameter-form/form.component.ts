@@ -4,17 +4,18 @@ import { FormGroup, FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { assign, isNil } from 'lodash-es'
+import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { toFormlySchema } from '../../../@core'
 import { ParameterTypeEnum, TParameterSchema } from '../../../@core/types'
 import { ParameterComponent } from '../parameter/parameter.component'
+import { JSONSchemaFormComponent } from '../json-schema-form/form.component'
 
 /**
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, ParameterComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, JSONSchemaFormComponent, ParameterComponent],
   selector: 'parameter-form',
   templateUrl: 'form.component.html',
   styleUrls: ['form.component.scss'],
@@ -27,7 +28,7 @@ export class ParameterFormComponent {
   readonly i18n = new NgmI18nPipe()
 
   // Inputs
-  readonly schema = input<TParameterSchema>()
+  readonly schema = input<TParameterSchema | any>()
 
   // Attrs
   get invalid() {

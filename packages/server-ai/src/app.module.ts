@@ -33,6 +33,7 @@ import { XpertToolsetModule } from './xpert-toolset/index'
 import { XpertWorkspaceModule } from './xpert-workspace'
 import { CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
+import { IntegrationGithubModule } from './integration-github'
 
 @Module({
 	imports: [
@@ -65,6 +66,7 @@ import { RagVStoreModule } from './rag-vstore'
 		XpertTaskModule,
 		IntegrationLarkModule,
 		IntegrationFirecrawlModule,
+		IntegrationGithubModule,
 		RagVStoreModule,
 		RagWebModule,
 		SandboxModule,

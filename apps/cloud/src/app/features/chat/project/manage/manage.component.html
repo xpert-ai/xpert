@@ -30,6 +30,17 @@
   <chat-project-members tabindex="-1" class="py-3" [project]="project()" />
 </div>
 
+<div class="px-6 py-2">
+  <div class="text-lg font-semibold">{{'PAC.XProject.VCS' | translate: {Default: 'Version Control Service'} }}</div>
+  <div class="relative flex justify-start items-center gap-4">
+    <xp-integration-select class="grow" [integrationList]="integrations()" [(ngModel)]="integrationId" />
+    <button type="button" class="btn btn-secondary btn-medium" [disabled]="!integrationId()" (click)="connectIntegration()">
+      Connect
+    </button>
+  </div>
+</div>
+
+
 <div class="border-b border-solid border-divider-regular my-6"></div>
 
 <div class="px-6 py-2 mb-4">

@@ -1,10 +1,11 @@
 @if (fields(); as fields) {
-  <formly-form [form]="form"
+  <json-schema-form [schema]="schema()" [(ngModel)]="value$" />
+  <!-- <formly-form [form]="form"
     [options]="formOptions"
     [fields]="fields"
     [model]="value$()"
     (modelChange)="updateValues($event)"
-  />
+  /> -->
 } @else {
   @for (param of parameters(); track param.name) {
     <parameter [schema]="param" [required]="isRequired(param.name)"
