@@ -13,9 +13,14 @@
         "tsConfig": "packages/echarts/tsconfig.lib.json",
         "assets": [
           {
-						"glob": "**/*.(md|json)",
+						"glob": "**/*.md",
 						"input": "packages/echarts/",
 						"output": "./"
+					},
+          {
+						"glob": "**/*.json",
+						"input": "packages/echarts/src/i18n/",
+						"output": "./src/i18n/"
 					}
         ]
       }

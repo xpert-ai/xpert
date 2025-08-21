@@ -14,10 +14,15 @@
         "main": "packages/sql/src/index.ts",
         "assets": [
           {
-            "glob": "**/*.(md|json)",
+            "glob": "**/*.md",
             "input": "packages/sql/",
             "output": "./"
-          }
+          },
+          {
+						"glob": "**/*.json",
+						"input": "packages/sql/src/i18n/",
+						"output": "./src/i18n/"
+					}
         ]
       }
     },
