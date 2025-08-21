@@ -38,11 +38,15 @@ export class ChatCanvasWebTerminalComponent {
   readonly runtime = signal(0)
   private startTime: number
 
-  runCommand(): void {
+  runCommand(event: Event): void {
+    if ((<KeyboardEvent>event).isComposing) {
+      return
+    }
+
     const command = this.currentInput().trim()
     if (!command) return
 
-    // 追加输入到历史
+    // Append input to history
     this.history.update((h) => [...h, { type: 'input', text: command }])
     this.currentInput.set('')
     this.running.set(true)
