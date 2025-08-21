@@ -15,8 +15,8 @@
         "assets": [
           {
 						"glob": "**/*.json",
-						"input": "packages/core/src",
-						"output": "./src/"
+						"input": "packages/core/src/i18n/",
+						"output": "./src/i18n/"
 					},
           {
             "glob": "*.md",

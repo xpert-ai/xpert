@@ -36,3 +36,28 @@ f you need to enable multidimensional modeling capabilities for data analysis, p
 同时要启用数据分析平台的可以使用以下命令：
 
 `docker compose -f docker-compose.cn.yml --profile bi up -d`
+
+## Migration: Postgres
+
+1. **Backup the existing Postgres database:**
+
+Enter the `pg12` container and run the backup command:
+
+```
+pg_dump -U postgres -d ocap --exclude-schema=demo -Fc -f /var/lib/postgresql/data/pg12_backup.dump
+```
+
+Manually export the backup file to another location.
+
+2. **Create a new Postgres database:**
+
+If upgrading to pg15 in the same location, clear the `./volumes/db/data` folder.  
+After starting the service, copy the `pg12_backup.dump` backup file into the `./volumes/db/data` folder.
+
+Enter the `pg15` container and run the following command:
+
+```
+pg_restore -U postgres -d ocap --data-only --disable-triggers /var/lib/postgresql/data/pg12_backup.dump
+```
+
+Import the data.

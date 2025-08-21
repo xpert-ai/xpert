@@ -2,15 +2,28 @@
   "name": "sql",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/sql/src",
+  "projectType": "library",
   "targets": {
     "build": {
       "executor": "@nrwl/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/sql",
-        "main": "packages/sql/src/index.ts",
         "tsConfig": "packages/sql/tsconfig.lib.json",
-        "assets": ["packages/sql/*.md"]
+        "packageJson": "packages/sql/package.json",
+        "main": "packages/sql/src/index.ts",
+        "assets": [
+          {
+            "glob": "**/*.md",
+            "input": "packages/sql/",
+            "output": "./"
+          },
+          {
+						"glob": "**/*.json",
+						"input": "packages/sql/src/i18n/",
+						"output": "./src/i18n/"
+					}
+        ]
       }
     },
     "lint": {
