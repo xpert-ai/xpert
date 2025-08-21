@@ -11,7 +11,18 @@
         "outputPath": "dist/packages/echarts",
         "main": "packages/echarts/src/index.ts",
         "tsConfig": "packages/echarts/tsconfig.lib.json",
-        "assets": ["packages/echarts/*.md"]
+        "assets": [
+          {
+						"glob": "**/*.(csv|json|svg|png|jpg|yaml|yml)",
+						"input": "packages/echarts/",
+						"output": "./"
+					},
+          {
+            "glob": "*.md",
+            "input": "packages/echarts/",
+            "output": "."
+          }
+        ]
       }
     },
     "publish": {

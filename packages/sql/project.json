@@ -10,7 +10,18 @@
         "outputPath": "dist/packages/sql",
         "main": "packages/sql/src/index.ts",
         "tsConfig": "packages/sql/tsconfig.lib.json",
-        "assets": ["packages/sql/*.md"]
+        "assets": [
+          {
+						"glob": "**/*.(csv|json|svg|png|jpg|yaml|yml)",
+						"input": "packages/sql/",
+						"output": "./"
+					},
+          {
+            "glob": "*.md",
+            "input": "packages/sql/",
+            "output": "."
+          }
+        ]
       }
     },
     "lint": {
