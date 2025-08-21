@@ -25,13 +25,19 @@
         <div class="flex flex-col gap-y-4">
           <div class="flex gap-3">
             <div class="space-y-2 flex-1">
-              <ngm-input [label]="'PAC.Knowledgebase.ChunkDelimiter' | translate: {Default: 'Delimiter'}" [(ngModel)]="delimiter" />
+              <ngm-input [label]="'PAC.Knowledgebase.ChunkDelimiter' | translate: {Default: 'Delimiter'}"
+                [placeholder]="'PAC.Knowledgebase.ChunkDelimiterDefault' | translate: {Default: '\\n\\n \\n &quot; &quot;'}"
+                [(ngModel)]="delimiter" />
             </div>
             <div class="space-y-2 flex-1">
-              <ngm-input [label]="'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'}" type="number" [(ngModel)]="chunkSize" />
+              <ngm-input [label]="'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'}" type="number" 
+                [placeholder]="'PAC.Knowledgebase.ChunkSizeDefault' | translate: {Default: 'default 1000'}"
+                [(ngModel)]="chunkSize" />
             </div>
             <div class="space-y-2 flex-1">
-              <ngm-input [label]="'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'}" type="number" [(ngModel)]="chunkOverlap" />
+              <ngm-input [label]="'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'}" type="number" 
+                [placeholder]="'PAC.Knowledgebase.ChunkOverlapDefault' | translate: {Default: 'default 100'}"
+                [(ngModel)]="chunkOverlap" />
             </div>
           </div>
           <div class="w-full flex flex-col">
