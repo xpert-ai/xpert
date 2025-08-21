@@ -32,7 +32,7 @@
           {
             "glob": "*.md",
             "input": "packages/xmla/",
-            "output": "."
+            "output": "./"
           }
         ],
         "compiler": "swc",

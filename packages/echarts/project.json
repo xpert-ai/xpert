@@ -13,15 +13,10 @@
         "tsConfig": "packages/echarts/tsconfig.lib.json",
         "assets": [
           {
-						"glob": "**/*.(csv|json|svg|png|jpg|yaml|yml)",
+						"glob": "**/*.(md|json)",
 						"input": "packages/echarts/",
 						"output": "./"
-					},
-          {
-            "glob": "*.md",
-            "input": "packages/echarts/",
-            "output": "."
-          }
+					}
         ]
       }
     },
