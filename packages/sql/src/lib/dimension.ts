@@ -148,9 +148,10 @@ export function serializeTablesJoin(prefix: string, tables: Table[], dialect: st
     tableNames.push(table.name)
   })
 
-  if (tables.length > 1) {
-    statement = `(${statement})`
-  }
+  // ClickHouse does not support bracketing join statements for table associations
+  // if (tables.length > 1) {
+  //   statement = `(${statement})`
+  // }
 
   return statement
 }

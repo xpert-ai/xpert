@@ -26,13 +26,13 @@
         "assets": [
           {
 						"glob": "**/*.json",
-						"input": "packages/xmla/src",
-						"output": "./src/"
+						"input": "packages/xmla/src/i18n/",
+						"output": "./src/i18n/"
 					},
           {
             "glob": "*.md",
             "input": "packages/xmla/",
-            "output": "."
+            "output": "./"
           }
         ],
         "compiler": "swc",
