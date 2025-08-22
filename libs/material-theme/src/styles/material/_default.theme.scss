@@ -67,7 +67,7 @@ $foreground: map.get($config, foreground);
   --ngm-color-secondary-container: #{lighten(mat.get-color-from-palette($accent), 30%)};
   --ngm-color-outline: #{map.get($foreground, divider)};
 
-  @include mat.all-component-colors($mat-theme);
+  // @include mat.all-component-colors($mat-theme);
   @include formly.color($mat-theme);
   @include responsive.color($mat-theme);
   @include story.color($mat-theme);
