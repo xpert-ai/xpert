@@ -9,7 +9,7 @@ import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
-import { catchError, distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators'
+import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, of } from 'rxjs'
 import {
@@ -18,7 +18,6 @@ import {
   getErrorMessage,
   IBuiltinTool,
   injectHelpWebsite,
-  IToolProvider,
   IXpertTool,
   IXpertToolset,
   TagCategoryEnum,

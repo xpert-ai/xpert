@@ -1,17 +1,16 @@
 @if (provider(); as provider) {
-  <div class="px-6 py-3 bg-gray-200">
-    <div class="flex items-center py-1 gap-2">
-      <div class="relative shrink-0">
-        <emoji-avatar [avatar]="provider.avatar" class="rounded-lg overflow-hidden shadow-sm" />
-      </div>
-      <div class="grow w-0 py-[1px]">
-        <div class="flex items-center text-md leading-6 font-semibold text-gray-900">
-          <div class="truncate" [title]="provider.label | i18n">{{provider.label | i18n}}</div>
-        </div>
+  <div class="flex items-center px-4 pt-4 pb-2 gap-2 sticky top-0 bg-gray-200 z-10">
+    <div class="relative shrink-0">
+      <emoji-avatar [avatar]="provider.avatar" class="rounded-lg overflow-hidden shadow-sm" />
+    </div>
+    <div class="grow w-0 py-[1px]">
+      <div class="flex items-center text-md leading-6 font-semibold text-gray-900">
+        <div class="truncate" [title]="provider.label | i18n">{{provider.label | i18n}}</div>
       </div>
     </div>
-    
-    <div class="mt-2 min-h-[36px] text-gray-500 text-sm leading-[18px]">{{provider.description | i18n}}</div>
+  </div>
+  <div class="px-6 py-3 bg-gray-200">
+    <div class="min-h-[36px] text-gray-500 text-sm leading-[18px]">{{provider.description | i18n}}</div>
   
     @if (authorizing()) {
       <xpert-tool-builtin-authorize class="mb-4"
