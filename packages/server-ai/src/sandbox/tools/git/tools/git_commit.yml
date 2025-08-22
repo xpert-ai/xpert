@@ -1,0 +1,32 @@
+identity:
+  name: git_commit
+  author: XpertAI
+  label:
+    en_US: Execute git commit
+    zh_Hans: 执行 git commit
+description:
+  human:
+    en_US: Execute a git commit command.
+    zh_Hans: 运行一个 git commit 命令。
+  llm: This tool can execute a git commit command.
+parameters:
+  - name: path
+    type: string
+    required: true
+    label:
+      en_US: Repository Path
+      zh_Hans: 代码仓库路径
+    human_description:
+      en_US: Repository path.
+      zh_Hans: 代码仓库路径。
+    form: llm
+  - name: message
+    type: string
+    required: true
+    label:
+      en_US: Commit Message
+      zh_Hans: 提交信息
+    human_description:
+      en_US: Commit message.
+      zh_Hans: 提交信息。
+    form: llm

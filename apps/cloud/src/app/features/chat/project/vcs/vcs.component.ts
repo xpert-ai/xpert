@@ -29,7 +29,7 @@ export class ChatProjectVcsComponent {
     loader: ({ request }) => (request ? this.projectAPI.getGithubInstallations(request) : null)
   })
   readonly installations = computed(() => {
-    const transformedInstallations = this.#installations.value()?.installations.map(transformInstallation)
+    const transformedInstallations = this.#installations.value()?.installations?.map(transformInstallation)
     return transformedInstallations
   })
   readonly installationTotal = computed(() => this.#installations.value()?.total_count || 0)
@@ -67,6 +67,10 @@ export class ChatProjectVcsComponent {
         this.checkInstallation()
       }
     }, { allowSignalWrites: true })
+
+    effect(() => {
+      console.log(this.isLoading())
+    })
   }
 
   handleInstallationChange(installationId: string) {

@@ -1,0 +1,32 @@
+identity:
+  name: git_create_branch
+  author: XpertAI
+  label:
+    en_US: Execute git create branch
+    zh_Hans: 执行 git create branch
+description:
+  human:
+    en_US: Execute a git create branch command.
+    zh_Hans: 运行一个 git create branch 命令。
+  llm: This tool can execute a git create branch command.
+parameters:
+  - name: path
+    type: string
+    required: true
+    label:
+      en_US: Repository Path
+      zh_Hans: 代码仓库路径
+    human_description:
+      en_US: Repository path.
+      zh_Hans: 代码仓库路径。
+    form: llm
+  - name: branch
+    type: string
+    required: true
+    label:
+      en_US: Branch Name
+      zh_Hans: 分支名称
+    human_description:
+      en_US: Branch name.
+      zh_Hans: 分支名称。
+    form: llm
