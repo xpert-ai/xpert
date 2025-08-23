@@ -120,7 +120,8 @@ export class GithubService {
 		// Get an installation access token
 		let installationToken: string
 		try {
-			installationToken = await getInstallationToken(installationId, appId, privateKey)
+			const installationTokenData = await getInstallationToken(installationId, appId, privateKey)
+			installationToken = installationTokenData.token
 		} catch (error) {
 			console.error('Failed to get installation token:', error)
 			throw new BadRequestException('Failed to get installation token')

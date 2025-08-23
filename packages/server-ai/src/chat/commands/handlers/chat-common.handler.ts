@@ -1,4 +1,4 @@
-import { AIMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent, RemoveMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessage, isAIMessage, isBaseMessage, isToolMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
@@ -47,7 +47,7 @@ import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
-import { concat, filter, from, map, Observable, of, Subscriber, switchMap, tap } from 'rxjs'
+import { Observable, Subscriber, tap } from 'rxjs'
 import z from 'zod'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
@@ -67,7 +67,7 @@ import {
 	XpertAgentExecutionOneQuery,
 	XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
-import { CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
+import { CreateProjectToolsetCommand, GetVcsCredentialsCommand, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
 import { _normalizeAgentName, createHandoffBackMessages, createHandoffTool } from './handoff'
 import {
@@ -81,7 +81,7 @@ import {
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
-import { _BaseToolset, AgentStateAnnotation, BaseTool, createHumanMessage, CreateMemoryStoreCommand, rejectGraph, stateToParameters, stateVariable, TAgentSubgraphParams, ToolNode, translate, updateToolCalls } from '../../../shared'
+import { CONFIG_KEY_CREDENTIALS, _BaseToolset, AgentStateAnnotation, BaseTool, createHumanMessage, CreateMemoryStoreCommand, rejectGraph, stateToParameters, stateVariable, TAgentSubgraphParams, ToolNode, translate, updateToolCalls, VolumeClient } from '../../../shared'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -119,6 +119,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			executionId = aiMessage.executionId
 		} else {
 			if (isNil(conversationId)) {
+				const workspacePath = await VolumeClient.getWorkspacePath(tenantId, projectId, userId)
+				const workspaceUrl = VolumeClient.getWorkspaceUrl(projectId, userId)
 				conversation = await this.commandBus.execute(
 					new ChatConversationUpsertCommand({
 						tenantId,
@@ -128,7 +130,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						status: 'busy',
 						options: {
 							knowledgebases,
-							parameters: input
+							parameters: input,
+							workspacePath,
+							workspaceUrl
 						},
 						from: chatFrom
 					})
@@ -202,6 +206,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					}
 				}
 			} as MessageEvent)
+
 			const reflect = RunnableLambda.from(async (input: TChatRequestHuman) => {
 				if (!aiMessage) {
 					aiMessage = await this.commandBus.execute(
@@ -224,8 +229,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				} as MessageEvent)
 
 				let graph: CompiledStateGraph<any, any, any> = null
-
 				try {
+					// Vcs credentials
+					const vcsCredentials = projectId ? await this.commandBus.execute(
+						new GetVcsCredentialsCommand(projectId)
+					) : null
 					const thread_id = execution.threadId
 					const mute = [] as TXpertAgentConfig['mute']
 					graph = await this.createReactAgent(command, project, execution, abortController, subscriber, conversation.id, mute)
@@ -255,39 +263,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 											user_email: user.email,
 											timezone: user.timeZone || command.options.timeZone,
 											date: format(new Date(), 'yyyy-MM-dd'),
-											datetime: new Date().toLocaleString()
+											datetime: new Date().toLocaleString(),
+											workspace_path: conversation.options?.workspacePath,
+											workspace_url: conversation.options?.workspaceUrl,
 										}
 									}
 					}
-
-					const contentStream = from(
-						graph.streamEvents(graphInput,
-							{
-								version: 'v2',
-								configurable: {
-									...config,
-									tenantId: tenantId,
-									organizationId: organizationId,
-									userId,
-									projectId: project?.id,
-									subscriber
-								},
-								recursionLimit: GeneralAgentRecursionLimit,
-								signal: abortController.signal
-							}
-						)
-					).pipe(
-						map(createMapStreamEvents(this.#logger, subscriber, {
-							xperts: project?.xperts,
-							disableOutputs: [
-								GRAPH_NODE_TITLE_CONVERSATION
-							],
-							mute: [
-								...mute,
-								[GRAPH_NODE_TITLE_CONVERSATION]
-							]
-						}))
-					)
 
 					const recordLastState = async () => {
 						const state = await graph.getState({
@@ -380,62 +361,82 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						}
 					}
 
-					concat(
-						contentStream,
-						of(true).pipe(
-							switchMap(async () => {
-								const state = await graph.getState({
+					try {
+						const stream = graph.streamEvents(graphInput,
+								{
+									version: 'v2',
+									configurable: {
+										...config,
+										tenantId: tenantId,
+										organizationId: organizationId,
+										userId,
+										projectId: project?.id,
+										subscriber,
+										[CONFIG_KEY_CREDENTIALS]: {
+											...vcsCredentials
+										}
+									},
+									recursionLimit: GeneralAgentRecursionLimit,
+									signal: abortController.signal
+								}
+							)
+						const transformGraphEvent = createMapStreamEvents(this.#logger, subscriber, {
+								xperts: project?.xperts,
+								disableOutputs: [
+									GRAPH_NODE_TITLE_CONVERSATION
+								],
+								mute: [
+									...mute,
+									[GRAPH_NODE_TITLE_CONVERSATION]
+								]
+							})
+						for await (const event of stream) {
+							const messageContent = transformGraphEvent(event)
+							if (!isNil(messageContent)) {
+								subscriber.next({
+										data: {
+											type: ChatMessageTypeEnum.MESSAGE,
+											data: messageContent
+										}
+									} as MessageEvent)
+							}
+						}
+
+						const state = await graph.getState({
 									configurable: {
 										...config
 									}
 								})
 
-								execution.checkpointId = state.parentConfig?.configurable?.checkpoint_id
+						execution.checkpointId = state.parentConfig?.configurable?.checkpoint_id
 
-								// Update execution title from graph states
-								if (state.values.title) {
-									execution.title = state.values.title
-								}
+						// Update execution title from graph states
+						if (state.values.title) {
+							execution.title = state.values.title
+						}
 
-								const messages = state.values.messages
-								const lastMessage = messages[messages.length - 1]
+						const messages = state.values.messages
+						const lastMessage = messages[messages.length - 1]
 
-								if (isToolMessage(lastMessage)) {
-									return lastMessage.content
-								}
-							})
-						)
-					)
-						.pipe(
-							filter((content) => !isNil(content)),
-							map((messageContent: MessageContent) => {
-								return {
-									data: {
-										type: ChatMessageTypeEnum.MESSAGE,
-										data: messageContent
-									}
-								} as MessageEvent
-							})
-						)
-						.subscribe({
-							next: (message) => {
-								subscriber.next(message)
-							},
-							error: (err) => {
-								console.error(err)
-								if (err instanceof NodeInterrupt) {
-									status = XpertAgentExecutionStatusEnum.INTERRUPTED
-									error = null
-								} else {
-									status = XpertAgentExecutionStatusEnum.ERROR
-									error = getErrorMessage(err)
-								}
-								complete().catch((err) => this.#logger.error(err))
-							},
-							complete: async () => {
-								complete().catch((err) => this.#logger.error(err))
-							}
-						})
+						if (isToolMessage(lastMessage)) {
+							subscriber.next({
+										data: {
+											type: ChatMessageTypeEnum.MESSAGE,
+											data: lastMessage.content
+										}
+									} as MessageEvent)
+						}
+					} catch (err) {
+						if (err instanceof NodeInterrupt) {
+							status = XpertAgentExecutionStatusEnum.INTERRUPTED
+							error = null
+						} else {
+							status = XpertAgentExecutionStatusEnum.ERROR
+							error = getErrorMessage(err)
+						}
+					} finally {
+						complete().catch((err) => this.#logger.error(err))
+					}
 				} catch (err) {
 					console.error(err)
 					this.#logger.error(err)
@@ -1013,7 +1014,17 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 	async getProject(projectId: string) {
 		if (projectId) {
 			return await this.projectService.findOne(projectId, {
-				relations: ['copilotModel', 'copilotModel.copilot', 'xperts', 'xperts.agent', 'toolsets', 'knowledges', 'workspace', 'workspace.environments'] 
+				relations: [
+					'copilotModel',
+					'copilotModel.copilot',
+					'xperts',
+					'xperts.agent',
+					'toolsets',
+					'knowledges',
+					'workspace',
+					'workspace.environments',
+					'vcs'
+				] 
 			})
 		}
 		return null

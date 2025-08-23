@@ -3,12 +3,11 @@ import {
 	IXpertToolset,
 	STATE_VARIABLE_FILES,
 	TStateVariable,
-	TToolCredentials,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
 import { DeployTool } from './tools/deploy'
 import { CodeProjectToolEnum } from './types'
-import { BuiltinTool, BuiltinToolset, TBuiltinToolsetParams } from '../../../xpert-toolset'
+import { BuiltinToolset, TBuiltinToolsetParams } from '../../../shared'
 
 export class CodeProjectToolset extends BuiltinToolset {
 	static provider = 'code-project'
@@ -34,7 +33,7 @@ export class CodeProjectToolset extends BuiltinToolset {
 		]
 	}
 
-	async initTools(): Promise<BuiltinTool[]> {
+	async initTools() {
 		this.tools = []
 		if (this.toolset?.tools) {
 			this.toolset.tools
@@ -54,9 +53,5 @@ export class CodeProjectToolset extends BuiltinToolset {
 		}
 
 		return this.tools
-	}
-
-	async _validateCredentials(credentials: TToolCredentials) {
-		//
 	}
 }

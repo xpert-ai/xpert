@@ -10,3 +10,7 @@ export enum GitToolEnum {
     GIT_PUSH = 'git_push',
     GIT_PULL = 'git_pull'
 }
+
+export type TGitToolCredentials = {
+    integration: string
+}

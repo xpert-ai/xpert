@@ -18,7 +18,7 @@ export class FirecrawlToolset extends BuiltinToolset {
 		super(FirecrawlToolset.provider, toolset, params)
 	}
 
-	async initTools(): Promise<BuiltinTool[]> {
+	async initTools() {
 		this.tools = []
 		if (this.toolset?.tools) {
 			const enabledTools = this.toolset?.tools.filter((_) => _.enabled)

@@ -31,7 +31,7 @@ export class VolumeClient {
 		return path.join(root, sandboxVolume(projectId, userId))
 	}
 
-	static async getWorkspacePath(tenantId: string, projectId: string, userId: string, conversationId: string): Promise<string> {
+	static async getWorkspacePath(tenantId: string, projectId: string, userId: string, conversationId?: string): Promise<string> {
 		let dist = ''
 		if (environment.env.IS_DOCKER === 'true') {
 			dist = path.join(`/sandbox/${tenantId}`, sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId))
@@ -42,7 +42,7 @@ export class VolumeClient {
 		return dist
 	}
 
-	static getWorkspaceUrl(projectId: string, userId: string, conversationId: string) {
+	static getWorkspaceUrl(projectId: string, userId: string, conversationId?: string) {
 		return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId))
 	}
 

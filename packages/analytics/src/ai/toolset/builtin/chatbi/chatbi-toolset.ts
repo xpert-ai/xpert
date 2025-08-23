@@ -16,7 +16,6 @@ import {
 	TAgentRunnableConfigurable,
 	TMessageComponent,
 	TMessageContentComponent,
-	TranslationLanguageMap,
 	TStateVariable,
 	TToolCredentials
 } from '@metad/contracts'
@@ -51,6 +50,7 @@ import {
 } from '@metad/ocap-core'
 import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
 import { getErrorMessage, isEmpty, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
+import { t } from 'i18next'
 import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
@@ -215,8 +215,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		// Check exist
 		for await (const id of models) {
 			if (!items.some((_) => _.id === id)) {
-				throw new Error(await this.translate('analytics.Error.ChatBIModelNotFound', {
-					args: {model: id, toolset: this.toolset.name} }))
+				throw new Error(t('analytics:Error.ChatBIModelNotFound', {model: id, toolset: this.toolset.name}))
 			}
 		}
 
@@ -570,7 +569,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		// ChartTypes
 		let chartSettings: ChartSettings = null
 		if (chartAnnotation.chartType) {
-			const i18n = await chatbi.translate('toolset.ChatBI.ChartTypes', {lang: TranslationLanguageMap[lang] || lang})
+			const i18n = t('analytics:Tools.ChatBI.ChartTypes')
+			// await chatbi.translate('toolset.ChatBI.ChartTypes', {lang: TranslationLanguageMap[lang] || lang})
 			const chartTypes = CHART_TYPES.map((_) => ({..._, name: i18n[_.name]}))
 			const index = chartTypes.findIndex(
 				({ type, orient }) => type === chartAnnotation.chartType.type && orient === chartAnnotation.chartType.orient

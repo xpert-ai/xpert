@@ -1,6 +1,5 @@
 import {
 	ICopilotModel,
-	IIntegration,
 	IKnowledgebase,
 	IStorageFile,
 	IUser,
@@ -14,7 +13,7 @@ import {
 	TXpertProjectSettings,
 	TXpertProjectStatus
 } from '@metad/contracts'
-import { Integration, StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-core'
+import { StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'

@@ -1,8 +1,8 @@
 import { StructuredToolInterface } from '@langchain/core/tools'
-import { isEnableTool, IXpertToolset, TToolCredentials } from '@metad/contracts'
-import { TBuiltinToolsetParams } from '../../../xpert-toolset'
+import { isEnableTool, IXpertToolset } from '@metad/contracts'
+import { t } from 'i18next'
 import { BaseSandboxToolset } from '../sandbox-toolset'
-import { GitToolEnum } from './types'
+import { GitToolEnum, TGitToolCredentials } from './types'
 import { buildGitCloneTool } from './tools/git_clone'
 import { buildGitStatusTool } from './tools/git_status'
 import { buildGitBranchesTool } from './tools/git_branches'
@@ -13,6 +13,7 @@ import { buildGitAddTool } from './tools/git_add'
 import { buildGitCommitTool } from './tools/git_commit'
 import { buildGitPushTool } from './tools/git_push'
 import { buildGitPullTool } from './tools/git_pull'
+import { getCurrentTaskCredentials, TBuiltinToolsetParams } from '../../../shared'
 
 export class GitToolset extends BaseSandboxToolset<StructuredToolInterface> {
 	static provider = 'git'
@@ -61,11 +62,22 @@ export class GitToolset extends BaseSandboxToolset<StructuredToolInterface> {
 		return this.tools
 	}
 
-	async _validateCredentials(credentials: TToolCredentials) {
-		console.log(credentials)
+	async _validateCredentials(credentials: TGitToolCredentials) {
+		if (!credentials || !credentials.integration) {
+			throw new Error(t('server-ai:Error.GitIntegrationNotProvided'))
+		}
 	}
 
 	isEnabled(name: string) {
 		return this.toolset?.tools?.some((_) => isEnableTool(_, this.toolset) && name === _.name)
 	}
+}
+
+export function getIntegrationCredentials(toolset: GitToolset) {
+	const credentials = getCurrentTaskCredentials<Record<string, any>>()
+	const _config = toolset.getCredentials<TGitToolCredentials>()
+	if (_config?.integration) {
+		return credentials[_config.integration]
+	}
+	return null
 }

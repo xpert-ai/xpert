@@ -11,6 +11,7 @@ import {
 import { Indicator } from '@metad/ocap-core'
 import { TBuiltinToolsetParams } from '@metad/server-ai'
 import { shortuuid } from '@metad/server-common'
+import { t } from 'i18next'
 import { AbstractChatBIToolset } from '../chatbi/chatbi-toolset'
 import { ChatBIToolsEnum } from '../chatbi/types'
 import { createChatAnswerTool } from './tools/answer_question'
@@ -66,7 +67,7 @@ export class ChatBILarkToolset extends AbstractChatBIToolset {
 
 	async onCreatedIndicator(indicator: Indicator, configurable: TAgentRunnableConfigurable) {
 		const { subscriber, xpertName, agentKey, language } = configurable ?? {}
-		const lang = mapTranslationLanguage(language as LanguagesEnum)
+		// const lang = mapTranslationLanguage(language as LanguagesEnum)
 		subscriber.next({
 			data: {
 				type: ChatMessageTypeEnum.MESSAGE,
@@ -78,14 +79,14 @@ export class ChatBILarkToolset extends AbstractChatBIToolset {
 							{
 								tag: 'markdown',
 								content:
-									`:Pin: ${await this.translate('toolset.ChatBI.NewCalculatedIndicator', { lang })}\n` +
-									`**${await this.translate('toolset.ChatBI.Name', { lang })}:** ${indicator.name}\n` +
-									`**${await this.translate('toolset.ChatBI.Code', { lang })}:** ${indicator.code}\n` +
-									`**${await this.translate('toolset.ChatBI.Formula', { lang })}:**\n` +
+									`:Pin: ${t('analytics:Tools.ChatBI.NewCalculatedIndicator')}\n` +
+									`**${t('analytics:Tools.ChatBI.Name')}:** ${indicator.name}\n` +
+									`**${t('analytics:Tools.ChatBI.Code')}:** ${indicator.code}\n` +
+									`**${t('analytics:Tools.ChatBI.Formula')}:**\n` +
 									`\`\`\`SQL\n` +
 									`${indicator.formula}\n` +
 									`\`\`\`\n` +
-									`${indicator.unit ? `**${await this.translate('toolset.ChatBI.Unit', { lang })}:** ${indicator.unit}\n` : ''}`
+									`${indicator.unit ? `**${t('analytics:Tools.ChatBI.Unit')}:** ${indicator.unit}\n` : ''}`
 							},
 							{
 								tag: 'hr'

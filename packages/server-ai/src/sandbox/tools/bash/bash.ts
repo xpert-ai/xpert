@@ -1,7 +1,7 @@
-import { IXpertToolset, TToolCredentials } from '@metad/contracts'
+import { IXpertToolset } from '@metad/contracts'
 import { BashExecTool } from './tools/execute'
 import { BashToolEnum } from './types'
-import { BuiltinTool, BuiltinToolset, TBuiltinToolsetParams } from '../../../xpert-toolset'
+import { BuiltinToolset, TBuiltinToolsetParams } from '../../../shared'
 
 export class BashToolset extends BuiltinToolset {
 	static provider = 'bash'
@@ -13,7 +13,7 @@ export class BashToolset extends BuiltinToolset {
 		super(BashToolset.provider, toolset, params)
 	}
 
-	async initTools(): Promise<BuiltinTool[]> {
+	async initTools() {
 		this.tools = []
 		if (this.toolset?.tools) {
 			this.toolset?.tools.filter((_) => _.enabled).forEach((tool) => {
@@ -24,13 +24,8 @@ export class BashToolset extends BuiltinToolset {
 					 }
 				}
 			})
-
 		}
 
 		return this.tools
-	}
-
-	async _validateCredentials(credentials: TToolCredentials) {
-		//
 	}
 }

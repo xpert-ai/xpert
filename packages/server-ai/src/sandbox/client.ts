@@ -633,7 +633,7 @@ export class GitClient {
 	async commit(repoPath: string, message: string) {
 		return ''
 	}
-	async push(repoPath: string) {
+	async push(repoPath: string, username: string, password: string) {
 		return ''
 	}
 	async pull(repoPath: string) {

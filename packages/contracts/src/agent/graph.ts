@@ -5,6 +5,9 @@ import { agentLabel, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph
 import { TMessageContentComplex } from '../ai/chat-message.model'
 import { I18nObject } from '../types'
 
+/**
+ * @deprecated can use getCurrentTaskInput instead?
+ */
 export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
 export const STATE_VARIABLE_SYS = 'sys'
 export const STATE_VARIABLE_HUMAN = 'human'

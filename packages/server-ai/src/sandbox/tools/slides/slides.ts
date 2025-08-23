@@ -1,7 +1,6 @@
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { isEnableTool, IXpertToolset, TToolCredentials, XpertParameterTypeEnum } from '@metad/contracts'
 import { BaseSandboxToolset, TSandboxToolsetParams } from '../sandbox-toolset'
-import { SlidesToolEnum } from './types'
 
 export class SlidesToolset extends BaseSandboxToolset<StructuredToolInterface> {
 	static provider = 'slides'
@@ -45,13 +44,5 @@ export class SlidesToolset extends BaseSandboxToolset<StructuredToolInterface> {
 		const allEnabled = !this.toolset?.tools?.length
 		this.tools = []
 		return this.tools
-	}
-
-	async _validateCredentials(credentials: TToolCredentials) {
-		//
-	}
-
-	getCredentials() {
-		return this.toolset?.credentials
 	}
 }

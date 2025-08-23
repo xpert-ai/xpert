@@ -12,8 +12,8 @@ import {
 	XpertParameterTypeEnum
 } from '@metad/contracts'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { _BaseToolset, findChannelByTool, identifyAgent } from '../../../shared'
-import { BuiltinToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
+import { _BaseToolset, BuiltinToolset, findChannelByTool, identifyAgent } from '../../../shared'
+import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries'
 import { CompleteToolCallsQuery } from '../complete-tool-calls.query'
 

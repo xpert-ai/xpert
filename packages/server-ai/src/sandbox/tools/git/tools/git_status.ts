@@ -22,7 +22,7 @@ export function buildGitStatusTool(toolset: GitToolset) {
 					.string()
 					.optional()
 					.nullable()
-					.describe(`The local relative path where the repository is located.`),
+					.describe(`The local relative path where the repository is located.`)
 			})
 		}
 	)

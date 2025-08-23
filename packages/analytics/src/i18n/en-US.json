@@ -1,12 +1,37 @@
 {
-    "Error": {
-        "IndicatorNotFound": "Indicator '{{indicator}}' not found."
-    },
-    "Tools": {
-        
-    },
-    "Model": {
-        "EmbeddingStart": "Embedding members for dimension '{{dimension}}' started.",
-        "EmbeddingComplete": "Embedding members for dimension '{{dimension}}' completed."
-    }
+	"Error": {
+		"IndicatorNotFound": "Indicator '{{indicator}}' not found.",
+		"ChatBIModelNotFound": "Semantic model '{{model}}' not found for '{{toolset}}' toolset."
+	},
+	"Tools": {
+		"ChatBI": {
+			"ChartTypes": {
+				"Line": "Line",
+				"Column": "Column",
+				"Bar": "Bar",
+				"Pie": "Pie"
+			},
+			"GuessAsk": "Guess you want to ask:",
+			"QuestionsAboutDataset": "Questions you may want to ask about the dataset '{cube}':",
+			"AnalyzeDataset": "Analyze the dataset '{cube}': ",
+			"MoreDatasets": "- More datasets:",
+			"GiveWelcomeMessage": "Give a welcome message for the dataset '{cube}'",
+			"Welcome": "Hi, I am ChatBI. I can analyze the data and generate charts based on your questions.",
+			"Error": {
+				"NoModel": "No ChatBI Model found for model: '{model}' and cube: '{cube}'",
+				"ChartError": "Chart config error"
+			},
+			"NewCalculatedIndicator": "Create a new calculated indicator:",
+			"Name": "Name",
+			"Code": "Code",
+			"Formula": "Formula",
+			"Unit": "Unit",
+			"AnalysisConditions": "Analysis conditions",
+			"QueryStatement": "Query statement"
+		}
+	},
+	"Model": {
+		"EmbeddingStart": "Embedding members for dimension '{{dimension}}' started.",
+		"EmbeddingComplete": "Embedding members for dimension '{{dimension}}' completed."
+	}
 }

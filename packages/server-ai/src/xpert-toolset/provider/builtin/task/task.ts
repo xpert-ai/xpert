@@ -1,5 +1,4 @@
 import { IXpertToolset, TToolCredentials } from '@metad/contracts'
-import { BuiltinTool } from '../builtin-tool'
 import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 import { TaskCreateTool } from './tools/create'
 import { TaskDeleteTool } from './tools/delete'
@@ -16,7 +15,7 @@ export class TaskToolset extends BuiltinToolset {
 		super(TaskToolset.provider, toolset, params)
 	}
 
-	async initTools(): Promise<BuiltinTool[]> {
+	async initTools() {
 		this.tools = []
 		if (this.toolset?.tools) {
 			const enabledTools = this.toolset?.tools.filter((_) => _.enabled)

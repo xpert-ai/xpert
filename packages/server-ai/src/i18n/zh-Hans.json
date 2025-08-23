@@ -1,7 +1,8 @@
 {
     "Error": {
         "AgentNotFound": "Agent‘{{key}}’未找到。",
-        "PrimaryAgentNotFound": "主智能体节点未找到"
+        "PrimaryAgentNotFound": "主智能体节点未找到",
+        "GitIntegrationNotProvided": "未提供 Git 集成"
     },
     "tools": {
         "ListFiles": "列出文件",
@@ -62,6 +63,11 @@
         },
         "Task": {
             "ScheduledTask": "定时任务"
+        },
+        "Planning": {
+            "CreatedAPlan": "创建一个计划",
+            "Update": "更新",
+            "Step": "步骤"
         }
     }
 }

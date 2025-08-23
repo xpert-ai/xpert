@@ -1,7 +1,8 @@
 import { tool } from '@langchain/core/tools'
+import { TGithubAuth } from '@metad/contracts'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../shared/'
-import { GitToolset } from '../git'
+import { getIntegrationCredentials, GitToolset } from '../git'
 import { GitToolEnum } from '../types'
 
 export function buildGitPushTool(toolset: GitToolset) {
@@ -12,7 +13,9 @@ export function buildGitPushTool(toolset: GitToolset) {
 			}
 			const { signal, configurable } = config ?? {}
 
-			return await toolset.sandbox.git.push(_.path)
+			const credentials: TGithubAuth = getIntegrationCredentials(toolset)
+
+			return await toolset.sandbox.git.push(_.path, 'git', credentials.installation_token)
 		},
 		{
 			name: GitToolEnum.GIT_PUSH,

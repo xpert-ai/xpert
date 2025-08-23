@@ -3,6 +3,18 @@ import { generateJWT } from "./jwt";
 const convertEscapedNewlinesToNewlines = (str: string) =>
   str.replace(/\\n/g, "\n");
 
+export interface GitHubToken {
+  token: string;
+  expires_at: string;
+  permissions: {
+    contents: string;
+    issues: string;
+    metadata: string;
+    pull_requests: string;
+  };
+  repository_selection: string;
+}
+
 /**
  * Gets an installation access token for a GitHub App installation
  */
@@ -10,7 +22,7 @@ export async function getInstallationToken(
   installationId: string,
   appId: string,
   privateKey: string,
-): Promise<string> {
+): Promise<GitHubToken> {
   const jwtToken = generateJWT(
     appId,
     convertEscapedNewlinesToNewlines(privateKey),
@@ -39,5 +51,5 @@ export async function getInstallationToken(
   if (typeof data !== "object" || !data || !("token" in data)) {
     throw new Error("No token returned after fetching installation token");
   }
-  return data.token as string;
+  return data
 }

@@ -1,5 +1,4 @@
 import { IXpertToolset, TToolCredentials } from '@metad/contracts'
-import { IBuiltinToolset } from '../../../xpert-toolset'
 import {
 	BaseFileToolset,
 	buildCreateFileTool,
@@ -10,6 +9,7 @@ import {
 	buildStrReplaceTool
 } from '../base-file'
 import { TSandboxToolsetParams } from '../sandbox-toolset'
+import { IBuiltinToolset } from '../../../shared'
 
 export class FileToolset extends BaseFileToolset implements IBuiltinToolset {
 	static provider = 'file'

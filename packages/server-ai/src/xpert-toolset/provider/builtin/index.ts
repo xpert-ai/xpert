@@ -17,11 +17,9 @@ import { TaskToolset } from './task/task'
 import { TavilyToolset } from './tavily/tavily'
 import { FirecrawlToolset } from './firecrawl/firecrawl'
 import { PlanningToolset } from './planning/planning'
-import { TBuiltinToolsetParams } from './builtin-toolset'
+import { TBuiltinToolsetParams } from '../../../shared'
 
 export * from './builtin-tool'
-export * from './builtin-toolset'
-export * from './command'
 
 export const BUILTIN_TOOLSET_REPOSITORY: {
 	baseUrl: string

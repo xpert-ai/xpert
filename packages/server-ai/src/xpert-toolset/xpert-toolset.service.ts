@@ -14,8 +14,9 @@ import { TToolsetProviderSchema } from './types'
 import { ToolProviderDTO } from './dto'
 import { ConfigService } from '@metad/server-config'
 import { I18nService, translateOptions } from 'nestjs-i18n';
-import { BuiltinToolset, createBuiltinToolset } from './provider/builtin'
+import { createBuiltinToolset } from './provider/builtin'
 import { EnvStateQuery } from '../environment'
+import { BuiltinToolset } from '../shared'
 
 @Injectable()
 export class XpertToolsetService extends TenantOrganizationAwareCrudService<XpertToolset> {
@@ -107,7 +108,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		const toolproviderController: BuiltinToolset = createBuiltinToolset(provider, null, {
 			tenantId,
 			organizationId,
-			toolsetService: this,
+			// toolsetService: this,
 			commandBus: this.commandBus,
 			queryBus: this.queryBus,
 			env: envState

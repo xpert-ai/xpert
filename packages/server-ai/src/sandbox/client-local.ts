@@ -74,39 +74,26 @@ export class GitLocalClient extends GitClient {
 		const workspace = await this.getWorkspacePath()
 		return await execPromise(command, { cwd: path.join(workspace, repoPath) })
 	}
+	
 	async clone(url: string, repoPath: string, branch: string) {
 		// Target folder path must be a relative path in local.
 		if (repoPath && path.isAbsolute(repoPath)) {
 			throw new Error(`Target path must be a relative path`)
 		}
-		const workspace = await this.getWorkspacePath()
 
-		try {
-			// Set current working directory to workspace
-			process.chdir(workspace)
-
-			// Construct git clone command
-			let command = `git clone `
-			if (branch) {
-				command += `-b ${branch} `
-			}
-			command += url
-			if (path) {
-				command += ` ${path}`
-			}
-
-			// Execute git clone asynchronously
-			const { stdout, stderr } = await execPromise(command)
-			console.log(`Git clone output: ${stdout}`)
-			console.error(`Git clone error: ${stderr}`)
-
-			console.log(`Successfully cloned ${url} to ${workspace}`)
-		} catch (error) {
-			console.error(`Error cloning repository: ${error.message}`)
-			throw error
+		// Construct git clone command
+		let command = `git clone `
+		if (branch) {
+			command += `-b ${branch} `
+		}
+		command += url
+		if (path) {
+			command += ` ${path}`
 		}
 
-		return 'Git clone successfully!'
+		const { stdout, stderr } = await this.execGit(command, repoPath)
+
+		return stdout.trim()
 	}
 
 	async status(repoPath: string) {
@@ -114,34 +101,18 @@ export class GitLocalClient extends GitClient {
 		if (!repoPath) {
 			throw new Error(`Repository path is empty`)
 		}
+		// Construct git status command
+		const command = `git status`
 
-		const workspace = await this.getWorkspacePath()
-
-		try {
-			// Set current working directory to workspace/repo
-			process.chdir(path.join(workspace, repoPath))
-
-			// Construct git status command
-			const command = `git status`
-
-			// Execute git status asynchronously
-			const { stdout, stderr } = await execPromise(command)
-			console.log(`Git status output: ${stdout}`)
-			console.error(`Git status error: ${stderr}`)
-
-			console.log(`Successfully checked status of ${repoPath}`)
-			return stdout.trim()
-		} catch (error) {
-			console.error(`Error checking status of repository: ${error.message}`)
-			throw error
-		}
+		const { stdout, stderr } = await this.execGit(command, repoPath)
+		if (stderr) console.error(stderr)
+		return stdout.trim()
 	}
 
 	async branches(repoPath: string) {
 		const command = `git branch --all`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
-		console.log(`Git branches output: ${stdout}`)
-		console.error(`Git branches error: ${stderr}`)
+		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
 
@@ -151,8 +122,7 @@ export class GitLocalClient extends GitClient {
 		}
 		const command = `git checkout -b ${branchName}`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
-		console.log(`Git create branch output: ${stdout}`)
-		console.error(`Git create branch error: ${stderr}`)
+		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
 
@@ -162,8 +132,7 @@ export class GitLocalClient extends GitClient {
 		}
 		const command = `git checkout ${branchName}`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
-		console.log(`Git checkout branch output: ${stdout}`)
-		console.error(`Git checkout branch error: ${stderr}`)
+		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
 
@@ -173,40 +142,35 @@ export class GitLocalClient extends GitClient {
 		}
 		const command = `git branch -d ${branchName}`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
-		console.log(`Git delete branch output: ${stdout}`)
-		console.error(`Git delete branch error: ${stderr}`)
+		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
 
 	async add(repoPath: string, files: string[]) {
 		const command = `git add ${files.join(' ')}`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
-		console.log(`Git add output: ${stdout}`)
-		console.error(`Git add error: ${stderr}`)
+		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
 
 	async commit(repoPath: string, message: string) {
 		const command = `git commit -m "${message}"`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
-		console.log(`Git commit output: ${stdout}`)
-		console.error(`Git commit error: ${stderr}`)
+		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
 
-	async push(repoPath: string) {
-		const command = `git push`
+	async push(repoPath: string, username: string, password: string) {
+		const command = `git -c http.extraHeader="Authorization: token ${password}" push`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
-		console.log(`Git push output: ${stdout}`)
-		console.error(`Git push error: ${stderr}`)
+		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
 	
 	async pull(repoPath: string) {
 		const command = `git pull`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
-		console.log(`Git pull output: ${stdout}`)
-		console.error(`Git pull error: ${stderr}`)
+		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
 }

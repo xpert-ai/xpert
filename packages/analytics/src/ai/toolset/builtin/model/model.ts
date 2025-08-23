@@ -84,16 +84,12 @@ export class SemanticModelToolset extends BuiltinToolset {
 		this.biContext.commandBus = this.commandBus
 	}
 
-	async initTools(): Promise<BuiltinTool[]> {
+	async initTools() {
 		// Initialize models in coap framework
 		await this.initModels()
 		// Initialize enabled tools
 		this.tools = []
 
 		return this.tools
-	}
-
-	async _validateCredentials(credentials: TToolCredentials) {
-		return null
 	}
 }

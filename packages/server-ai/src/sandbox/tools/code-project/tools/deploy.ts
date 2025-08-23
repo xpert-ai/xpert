@@ -70,7 +70,6 @@ export class DeployTool extends SandboxBaseTool {
 		try {
 			const result = await axios.post(`${sandboxUrl}/project/deploy/`, requestData, { signal })
 			const files = result.data.files.map((file) => ({ ...file, url: baseUrl + file.name, filePath: file.name }))
-			const i18n = await this.toolset.translate('toolset.CodeProject', { lang: mapTranslationLanguage(lang) })
 			// Tool message event
 
 			return JSON.stringify(files)

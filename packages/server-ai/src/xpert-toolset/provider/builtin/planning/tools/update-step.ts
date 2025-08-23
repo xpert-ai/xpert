@@ -4,6 +4,7 @@ import { getContextVariable } from '@langchain/core/context'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
 import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, mapTranslationLanguage, STATE_VARIABLE_SYS } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
+import { t } from 'i18next'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'
 import { BuiltinTool } from '../../builtin-tool'
@@ -48,7 +49,7 @@ export class PlanningUpdateStepTool extends BuiltinTool {
 		}
 
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
-		const language = currentState[STATE_VARIABLE_SYS]?.language
+		// const language = currentState[STATE_VARIABLE_SYS]?.language
 		const planSteps = currentState[PLAN_STEPS_NAME]
 		const toolCallId = config.toolCall?.id
 
@@ -62,7 +63,7 @@ export class PlanningUpdateStepTool extends BuiltinTool {
 			)
 		}
 
-		const i18n = await this.toolset.translate('toolset.Planning', { lang: mapTranslationLanguage(language) })
+		// const i18n = await this.toolset.translate('toolset.Planning', { lang: mapTranslationLanguage(language) })
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 			id: toolCallId,
@@ -70,7 +71,7 @@ export class PlanningUpdateStepTool extends BuiltinTool {
 			toolset: PlanningToolset.provider,
 			tool: this.name,
 			title: `${planSteps[parameters.step_index]?.content}`,
-			message: `${i18n.Update} ${parameters.step_index + 1} ${i18n.Step}: ${parameters.step_status}, ${parameters.step_notes}`
+			message: `${t('server-ai:Tools.Planning.Update')} ${parameters.step_index + 1} ${t('server-ai:Tools.Planning.Step')}: ${parameters.step_status}, ${parameters.step_notes}`
 		}).catch((err) => {
 			this.#logger.error(err)
 		})

@@ -41,6 +41,18 @@ export const IntegrationGitHubProvider: TIntegrationProvider = {
   },
 }
 
+export type TGithubAuth = {
+  redirectUri: string;
+  integrationId: string;
+  access_token: string;
+  expires_in: number;
+  refresh_token: string;
+  refresh_token_expires_in: number;
+  token_type: string;
+  scope: string;
+  installation_token: string;
+};
+
 type GitHubInstallationsResponse =
   Endpoints["GET /user/installations"]["response"]["data"];
 type GitHubInstallation = GitHubInstallationsResponse["installations"][0];

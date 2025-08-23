@@ -5,6 +5,7 @@ import { ChatMessageTypeEnum, JSONValue } from '@metad/contracts'
 import { ChatLarkMessage } from '@metad/server-ai'
 import { shortuuid } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
+import { t } from 'i18next'
 import { z } from 'zod'
 import { ChatBILarkContext, ChatBILarkToolsEnum } from '../types'
 import { AbstractChatBIToolset } from '../../chatbi/chatbi-toolset'
@@ -24,7 +25,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 			const elements = []
 			elements.push({
 				tag: 'markdown',
-				content: await chatbi.translate('toolset.ChatBI.GuessAsk', { lang: language })
+				content: t('analytics:Tools.ChatBI.GuessAsk', { lang: language })
 			})
 
 			for await (const model of models) {
@@ -33,15 +34,15 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 					(model) => model.modelId === modelId && model.entity === cubeName
 				)
 				if (!chatModel) {
-					throw new Error(await chatbi.translate('toolset.ChatBI.Error.NoModel', { lang: language, args: {model: modelId, cube: cubeName} }))
+					throw new Error(t('analytics:Tools.ChatBI.Error.NoModel', { lang: language, args: {model: modelId, cube: cubeName} }))
 				}
 
-				const questionPrefix = await chatbi.translate('toolset.ChatBI.AnalyzeDataset', { lang: language, args: {cube: chatModel.entityCaption} })
+				const questionPrefix = t('analytics:Tools.ChatBI.AnalyzeDataset', { lang: language, args: {cube: chatModel.entityCaption} })
 
 				elements.push(
 					{
 						tag: 'markdown',
-						content: `- ` + await chatbi.translate('toolset.ChatBI.QuestionsAboutDataset',
+						content: `- ` + t('analytics:Tools.ChatBI.QuestionsAboutDataset',
 									{
 										lang: language,
 										args: {
@@ -88,7 +89,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 			if (more?.length) {
 				elements.push({
 					tag: 'markdown',
-					content: await chatbi.translate('toolset.ChatBI.MoreDatasets', { lang: language })
+					content: t('analytics:Tools.ChatBI.MoreDatasets', { lang: language })
 				})
 
 				const columnSet = []
@@ -99,10 +100,10 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 					)
 
 					if (!chatModel) {
-						throw new Error(await chatbi.translate('toolset.ChatBI.Error.NoModel', { lang: language, args: {model: modelId, cube: cubeName} }))
+						throw new Error(t('analytics:Tools.ChatBI.Error.NoModel', { lang: language, args: {model: modelId, cube: cubeName} }))
 					}
 
-					const welcomeMessage = await chatbi.translate('toolset.ChatBI.GiveWelcomeMessage', {lang: language, args: {cube: chatModel.entityCaption}})
+					const welcomeMessage = t('analytics:Tools.ChatBI.GiveWelcomeMessage', {lang: language, args: {cube: chatModel.entityCaption}})
 
 					columnSet.push({
 						tag: 'button',
@@ -145,7 +146,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 							header: {
 								title: {
 									tag: 'plain_text',
-									content: await chatbi.translate('toolset.ChatBI.Welcome', {lang: language,})
+									content: t('analytics:Tools.ChatBI.Welcome', {lang: language,})
 								},
 								subtitle: {
 									tag: 'plain_text',

@@ -1,6 +1,7 @@
 # Chat
 
 `ChatMessageTypeEnum` 定义了所有的消息类型，主要分为以下几类：
+
 - `ChatMessageTypeEnum.MESSAGE`：消息，需要持久化在对话消息列表中的消息。
 - `ChatMessageTypeEnum.EVENT`：事件，临时事件消息，不需要持久化在对话消息列表中。
 
@@ -12,6 +13,7 @@
 - 第二级分类是 `category` 类型为 `ChatMessageStepCategory`： 是觉得消息以何种组件的形式展示，大概有 `WebSearch` `Files` `Program` 和 `Memory` 等类型。
 
 剩下的就是消息的详细信息，如：
+
 - toolset 工具集名称
 - tool 工具名称
 - title 标题
@@ -59,8 +61,8 @@ dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 
 ```typescript
 async function tool(_, config) => {
-	const { configurable } = config ?? {}
-	const { subscriber } = configurable ?? {}
+    const { configurable } = config ?? {}
+    const { subscriber } = configurable ?? {}
 
     subscriber?.next({
         data: {
