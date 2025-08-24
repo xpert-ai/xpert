@@ -67,6 +67,7 @@ export class ChatConversationComponent {
 
   // States
   readonly messages = this.chatService.messages
+  readonly project = this.chatService.project
   readonly conversation = this.chatService.conversation
   readonly loadingConv = this.chatService.loadingConv
 

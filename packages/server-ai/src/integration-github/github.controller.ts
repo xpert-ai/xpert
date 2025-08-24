@@ -137,6 +137,7 @@ export class GithubController {
 					provider: integration.provider,
 					integrationId: integration.id,
 					state: queryString,
+					installation_id,
 					...tokenData
 				})
 			)

@@ -1,3 +1,4 @@
+import { IntegrationEnum } from '@metad/contracts'
 import { Controller, Get, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'
@@ -7,7 +8,6 @@ import { CrudController, PaginationParams } from './../core/crud'
 import { IntegrationPublicDTO } from './dto'
 import { Integration } from './integration.entity'
 import { IntegrationService } from './integration.service'
-import { IntegrationEnum } from '@metad/contracts'
 
 @ApiTags('Integration')
 @UseInterceptors(TransformInterceptor)
@@ -31,11 +31,12 @@ export class IntegrationController extends CrudController<Integration> {
 
 	@Get('select-options')
 	async getSelectOptions(@Query('provider') provider: IntegrationEnum) {
-		const where = provider ? {provider} : {}
-		const { items } = await this.service.findAll({where})
+		const where = provider ? { provider } : {}
+		const { items } = await this.service.findAll({ where })
 		return items.map((item) => ({
 			value: item.id,
-			label: item.name
+			label: item.name,
+			description: item.description
 		}))
 	}
 }

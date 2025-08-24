@@ -440,8 +440,8 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		const project = await this.findOne(event.payload.projectId, {relations: ['vcs']})
 		if (project) {
 			const entity: Partial<IXpertProjectVCS> = { auth: {...(project.vcs.auth ?? {}), ...omit(event.payload, ['projectId'])} }
-			if (event.payload.installationId) {
-				entity.installationId = event.payload.installationId
+			if (event.payload.installation_id) {
+				entity.installationId = event.payload.installation_id
 			}
 			await this.updateVCS(event.payload.projectId, entity)
 		}

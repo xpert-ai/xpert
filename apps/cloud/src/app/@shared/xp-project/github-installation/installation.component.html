@@ -1,0 +1,83 @@
+@if (error() || installationsError()) {
+  <div class="flex flex-col rounded-2xl border border-solid border-divider-regular p-4 bg-components-card-bg">
+    <div class="mb-4">
+      <div class="font-semibold text-xl">GitHub Integration Error</div>
+      <div class="text-text-destructive">{{ error() || installationsError() }}</div>
+    </div>
+  </div>
+}
+
+<div class="flex flex-col rounded-2xl border border-solid border-divider-regular p-4 bg-components-card-bg">
+  <div class="mb-4">
+    <div class="font-semibold text-xl">GitHub{{" "}}{{ currentInstallation()?.accountType === "Organization"
+              ? "Organization"
+              : "User" }}</div>
+    <div>Manage your GitHub App installations and switch between organizations</div>
+  </div>
+
+  <div class="space-y-2">
+    <div class="border-border bg-muted/50 flex flex-wrap items-center justify-between rounded-lg border p-4">
+      <div class="flex-1">
+        <h3 class="text-foreground mb-1 font-semibold">
+          Current{{" "}}
+          {{currentInstallation()?.accountType === "Organization"
+            ? "Organization"
+            : "User"}}
+        </h3>
+        <p class="text-muted-foreground text-sm">
+          Select which GitHub organization or user account to work with
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <ngm-select class="min-w-[200px]" [selectOptions]="installationOptions()" [ngModel]="installationId()" (ngModelChange)="handleInstallationChange($event)" />
+
+        <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+          [title]="'Add new organization'"
+          (click)="handleInstallApp()">
+          <i class="ri-add-line"></i>
+        </button>
+
+        <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+          [title]="'Add new organization'"
+          [disabled]="installationsLoading()"
+          (click)="refreshInstallations()">
+          <i class="ri-refresh-line"></i>
+        </button>
+      </div>
+    </div>
+
+    @if (currentInstallation(); as currentInstallation) {
+      <div class="border-border flex items-center gap-4 rounded-lg border p-4">
+        <img
+          src="{{currentInstallation.avatarUrl}}"
+          alt="{{ currentInstallation.accountName + ' avatar'}}"
+          class="h-12 w-12 rounded-full"
+        />
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <h4 class="text-foreground font-semibold">
+              {{currentInstallation.accountName}}
+            </h4>
+
+            <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 inset-ring inset-ring-gray-500/10">
+              @if (currentInstallation.accountType === "Organization") {
+                <i class="ri-community-line"></i>
+                Organization
+              } @else {
+                <i class="ri-user-line"></i>
+                Personal
+              }
+            </span>
+          </div>
+          <p class="text-muted-foreground text-sm">
+            repositories accessible
+          </p>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+@if (isLoading()) {
+  <ngm-spin class="absolute w-full h-full top-0 left-0 backdrop-blur-[2px] bg-white/5" />
+}

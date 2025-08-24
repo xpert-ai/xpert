@@ -609,7 +609,7 @@ export class GitClient {
 		protected params: TSandboxParams
 	) {}
 
-	async clone(url: string, path: string, branch: string) {
+	async clone(url: string, path?: string, branch?: string) {
         return ''
     }
 	async status(repoPath: string) {

@@ -87,12 +87,14 @@ export class GitLocalClient extends GitClient {
 			command += `-b ${branch} `
 		}
 		command += url
-		if (path) {
-			command += ` ${path}`
+		if (repoPath) {
+			command += ` ${repoPath}`
 		}
 
-		const { stdout, stderr } = await this.execGit(command, repoPath)
-
+		const workspace = await this.getWorkspacePath()
+		const target = repoPath ? path.join(workspace, repoPath) : workspace
+		const { stdout, stderr } = await execPromise(command, { cwd: target })
+		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
 

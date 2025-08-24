@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input, output } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { getErrorMessage, ISelectOption, NgmI18nPipe, toParams } from '@metad/ocap-angular/core'
+import { getErrorMessage, NgmI18nPipe, toParams, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -92,7 +92,7 @@ export class NgmRemoteSelectComponent {
   getSelectOptions(url: string, params: Record<string, unknown>) {
     return of(true).pipe(
       tap(() => this.error.emit(null)),
-      switchMap(() => this.httpClient.get<ISelectOption<TSelectOptionValue>[]>(url, { params: params ? toParams(params) : null })),
+      switchMap(() => this.httpClient.get<TSelectOption<TSelectOptionValue>[]>(url, { params: params ? toParams(params) : null })),
       catchError((err) => {
         this.error.emit(getErrorMessage(err))
         return of(null)

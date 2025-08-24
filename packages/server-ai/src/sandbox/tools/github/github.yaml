@@ -1,0 +1,25 @@
+identity:
+  author: XpertAI
+  name: github
+  label:
+    en_US: GitHub
+    zh_Hans: GitHub
+  description:
+    en_US: GitHub tool.
+    zh_Hans: GitHub 工具。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+    - sandbox
+credentials_for_provider:
+  integration:
+    type: remote-select
+    label:
+      en_US: GitHub Integration
+      zh_Hans: GitHub 集成
+    placeholder:
+      en_US: Please select a GitHub integration
+      zh_Hans: 请选择一个 GitHub 集成
+    selectUrl: /api/integration/select-options?provider=github
+    url: /settings/integration

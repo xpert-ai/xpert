@@ -1,0 +1,22 @@
+identity:
+  name: switch_repository
+  author: Xpert AI
+  label:
+    en_US: Switch to a repository
+    zh_Hans: 切换到新的代码仓库
+description:
+  human:
+    en_US: Switch to a GitHub repository
+    zh_Hans: 切换到新的 GitHub 代码仓库
+  llm: A tool to switch to a GitHub repository.
+parameters:
+  - name: name
+    type: string
+    label:
+      en_US: Repository name
+      zh_Hans: 仓库名称
+    human_description:
+      en_US: The name of the new GitHub repository
+      zh_Hans: 新建 GitHub 仓库的名称
+    llm_description: Repository name
+    form: llm

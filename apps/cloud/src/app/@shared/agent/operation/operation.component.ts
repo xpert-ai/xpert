@@ -30,6 +30,7 @@ export class XpertAgentOperationComponent {
   agentLabel = agentLabel
 
   // Inputs
+  readonly projectId = input<string>()
   readonly conversationId = input<string>()
   readonly operation = input<TSensitiveOperation>()
   readonly tools = input<{ name: string; title: string; parameters: any }[]>()
@@ -55,7 +56,7 @@ export class XpertAgentOperationComponent {
   constructor() {
     effect(
       () => {
-        console.log(this.operation())
+        // console.log(this.operation())
         if (this.operation()?.tasks) {
           this.#toolCalls.set(this.operation().tasks.map(({ call }) => call))
           // Support one task temporarily

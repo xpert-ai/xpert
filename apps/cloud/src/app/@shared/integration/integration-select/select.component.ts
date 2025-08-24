@@ -22,7 +22,7 @@ export class IntegrationSelectComponent {
 
   // States
   readonly selectOptions = computed(() => {
-    return this.integrationList().map((integration) => ({
+    return this.integrationList()?.map((integration) => ({
       value: integration.id,
       label: integration.name,
       description: integration.description,

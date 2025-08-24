@@ -8,7 +8,6 @@ import { DiscordToolset } from './discord/discord'
 import { DuckDuckGoToolset } from './duckduckgo/duckduckgo'
 import { EmailToolset } from './email/email'
 import { FeishuMessageToolset } from './feishu_message/feishu_message'
-import { GithubToolset } from './github/github'
 import { SearchAPIToolset } from './searchapi/searchapi'
 import { SerpAPIToolset } from './serpapi/serpapi'
 import { SerperToolset } from './serper/serper'
@@ -40,7 +39,6 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			BingToolset,
 			DingTalkToolset,
 			SlackToolset,
-			GithubToolset,
 			DiscordToolset,
 			SerperToolset,
 		]

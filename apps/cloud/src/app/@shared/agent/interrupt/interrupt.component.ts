@@ -16,7 +16,7 @@ import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   BIInterruptMessageType,
-  SandboxInterruptMessageType,
+  InterruptMessageType,
   TInterruptMessage,
   TSensitiveOperation
 } from '../../../@core'
@@ -35,6 +35,7 @@ export class XpertAgentInterruptComponent {
   readonly #cdr = inject(ChangeDetectorRef)
 
   // Inputs
+  readonly projectId = input<string>()
   readonly conversationId = input<string>()
   readonly interrupt = input<TSensitiveOperation['tasks'][number]['interrupts'][number]>()
 
@@ -64,17 +65,7 @@ export class XpertAgentInterruptComponent {
   }
 
   async loadComponent(message: TInterruptMessage) {
-    let component: Type<AbstractInterruptComponent>
-    if (message.type === BIInterruptMessageType.SwitchProject) {
-      const { ProjectInterruptSwitchComponent } = await import('../../project/index')
-      component = ProjectInterruptSwitchComponent
-    } else if (message.type === BIInterruptMessageType.SwitchSemanticModel) {
-      const { InitModelComponent } = await import('../../model/index')
-      component = InitModelComponent
-    } else if (message.type === SandboxInterruptMessageType.SlidesTemplate) {
-      const { InterruptSlideComponent } = await import('../../files/interrupt-slide/interrupt-slide.component')
-      component = InterruptSlideComponent
-    }
+    const component: Type<AbstractInterruptComponent> = await importComponent(message.type)
     if (!component) return
 
     this.container().clear()
@@ -84,9 +75,29 @@ export class XpertAgentInterruptComponent {
     this.componentRef.instance.value.subscribe((value: any) => {
       this.value.set(value)
     })
+    this.componentRef.instance.projectId.set(this.projectId())
     this.componentRef.instance.conversationId.set(this.conversationId())
     this.componentRef.instance.message.set(message)
 
     this.#cdr.detectChanges()
   }
+
+}
+
+async function importComponent(type: BIInterruptMessageType | InterruptMessageType | string) {
+  switch (type) {
+    case BIInterruptMessageType.SwitchProject:
+      const { ProjectInterruptSwitchComponent } = await import('../../project/index')
+      return ProjectInterruptSwitchComponent
+    case BIInterruptMessageType.SwitchSemanticModel:
+      const { InitModelComponent } = await import('../../model/index')
+      return InitModelComponent
+    case InterruptMessageType.SlidesTemplate:
+      const { InterruptSlideComponent } = await import('../../files/interrupt-slide/interrupt-slide.component')
+      return InterruptSlideComponent
+    case InterruptMessageType.SwitchGitHubRepository:
+      const { ProjectSwitchRepositoryComponent } = await import('../../xp-project/index')
+      return ProjectSwitchRepositoryComponent
+  }
+  return null
 }
