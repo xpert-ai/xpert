@@ -51,6 +51,7 @@ export type TGithubAuth = {
   token_type: string;
   scope: string;
   installation_token: string;
+  repository: string
 };
 
 type GitHubInstallationsResponse =

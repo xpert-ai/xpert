@@ -75,7 +75,7 @@ export class GitLocalClient extends GitClient {
 		return await execPromise(command, { cwd: path.join(workspace, repoPath) })
 	}
 	
-	async clone(url: string, repoPath: string, branch: string) {
+	async clone(url: string, repoPath?: string, branch?: string) {
 		// Target folder path must be a relative path in local.
 		if (repoPath && path.isAbsolute(repoPath)) {
 			throw new Error(`Target path must be a relative path`)
@@ -162,8 +162,9 @@ export class GitLocalClient extends GitClient {
 		return stdout.trim()
 	}
 
-	async push(repoPath: string, username: string, password: string) {
-		const command = `git -c http.extraHeader="Authorization: token ${password}" push`
+	async push(repoPath: string, params?: {username?: string; password?: string; createBranch?: string}) {
+		const { createBranch } = params || {}
+		const command = createBranch ? `git push --set-upstream origin ${createBranch}` : `git push`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
 		if (stderr) console.error(stderr)
 		return stdout.trim()
@@ -171,6 +172,19 @@ export class GitLocalClient extends GitClient {
 	
 	async pull(repoPath: string) {
 		const command = `git pull`
+		const { stdout, stderr } = await this.execGit(command, repoPath)
+		if (stderr) console.error(stderr)
+		return stdout.trim()
+	}
+
+	async setRemote(repoPath: string, name: string, url: string) {
+		const { stdout, stderr } = await this.execGit(`git remote set-url ${name} ${url}`, repoPath)
+		if (stderr) console.error(stderr)
+		return stdout.trim()
+	}
+
+	async currentBranch(repoPath: string) {
+		const command = `git rev-parse --abbrev-ref HEAD`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
 		if (stderr) console.error(stderr)
 		return stdout.trim()

@@ -15,7 +15,10 @@ export function buildGitPushTool(toolset: GitToolset) {
 
 			const credentials: TGithubAuth = getIntegrationCredentials(toolset)
 
-			return await toolset.sandbox.git.push(_.path, 'git', credentials.installation_token)
+			return await toolset.sandbox.git.push(_.path, {
+				username: 'git',
+				password: credentials.installation_token
+			})
 		},
 		{
 			name: GitToolEnum.GIT_PUSH,

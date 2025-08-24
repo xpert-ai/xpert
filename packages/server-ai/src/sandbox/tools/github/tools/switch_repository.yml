@@ -1,5 +1,5 @@
 identity:
-  name: switch_repository
+  name: github_switch_repository
   author: Xpert AI
   label:
     en_US: Switch to a repository

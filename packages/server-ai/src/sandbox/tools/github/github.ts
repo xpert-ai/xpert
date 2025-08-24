@@ -5,6 +5,7 @@ import { BaseSandboxToolset } from '../sandbox-toolset'
 import { getCurrentTaskCredentials, TBuiltinToolsetParams } from '../../../shared'
 import { GitHubToolsEnum, TGitHubToolCredentials } from './types'
 import { buildSwitchRepositoryTool } from './tools/switch_repository'
+import { buildPushFilesTool } from './tools/push_files'
 
 export class GitHubToolset extends BaseSandboxToolset<StructuredToolInterface> {
 	static provider = 'github'
@@ -23,6 +24,9 @@ export class GitHubToolset extends BaseSandboxToolset<StructuredToolInterface> {
 		if (allEnabled || this.isEnabled(GitHubToolsEnum.SWITCH_REPOSITORY)) {
 			this.tools.push(buildSwitchRepositoryTool(this))
 		}
+		if (allEnabled || this.isEnabled(GitHubToolsEnum.PUSH_FILES)) {
+			this.tools.push(buildPushFilesTool(this))
+		}
 		return this.tools
 	}
 
@@ -37,11 +41,11 @@ export class GitHubToolset extends BaseSandboxToolset<StructuredToolInterface> {
 	}
 }
 
-// export function getIntegrationCredentials(toolset: GitToolset) {
-// 	const credentials = getCurrentTaskCredentials<Record<string, any>>()
-// 	const _config = toolset.getCredentials<TGitToolCredentials>()
-// 	if (_config?.integration) {
-// 		return credentials[_config.integration]
-// 	}
-// 	return null
-// }
+export function getIntegrationCredentials(toolset: GitHubToolset) {
+	const credentials = getCurrentTaskCredentials<Record<string, any>>()
+	const _config = toolset.getCredentials<TGitHubToolCredentials>()
+	if (_config?.integration) {
+		return credentials[_config.integration]
+	}
+	return null
+}

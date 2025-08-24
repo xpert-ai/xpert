@@ -20,8 +20,6 @@ export function buildGitStatusTool(toolset: GitToolset) {
 			schema: z.object({
 				path: z
 					.string()
-					.optional()
-					.nullable()
 					.describe(`The local relative path where the repository is located.`)
 			})
 		}

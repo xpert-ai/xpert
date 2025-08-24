@@ -633,10 +633,17 @@ export class GitClient {
 	async commit(repoPath: string, message: string) {
 		return ''
 	}
-	async push(repoPath: string, username: string, password: string) {
+	async push(repoPath: string, params?: {username?: string; password?: string; createBranch?: string}) {
 		return ''
 	}
 	async pull(repoPath: string) {
+		return ''
+	}
+	async setRemote(repoPath: string, name: string, url: string) {
+		return ''
+	}
+
+	async currentBranch(repoPath: string) {
 		return ''
 	}
 }

@@ -51,6 +51,7 @@ export class GetVcsCredentialsHandler implements ICommandHandler<GetVcsCredentia
 				return {
 					[project.vcs.integrationId]: {
 						...(project.vcs.auth ?? {}),
+						repository: project.vcs.repository,
 						installation_token
 					} as TGithubAuth
 				}

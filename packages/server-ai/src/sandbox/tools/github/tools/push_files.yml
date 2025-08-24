@@ -1,0 +1,42 @@
+identity:
+  name: github_push_files
+  author: Xpert AI
+  label:
+    en_US: Push files to repository
+    zh_Hans: 推送文件到仓库
+description:
+  human:
+    en_US: Push files to a GitHub repository
+    zh_Hans: 推送文件到 GitHub 代码仓库
+  llm: A tool to push files to a GitHub repository.
+parameters:
+  - name: path
+    type: string
+    required: true
+    label:
+      en_US: Repository Path
+      zh_Hans: 代码仓库路径
+    human_description:
+      en_US: Repository path.
+      zh_Hans: 代码仓库路径。
+    form: llm
+  - name: files
+    type: array_string
+    required: true
+    label:
+      en_US: Files
+      zh_Hans: 文件
+    human_description:
+      en_US: Files to add.
+      zh_Hans: 要添加的文件。
+    form: llm
+  - name: message
+    type: string
+    required: true
+    label:
+      en_US: Commit Message
+      zh_Hans: 提交信息
+    human_description:
+      en_US: Commit message.
+      zh_Hans: 提交信息。
+    form: llm
