@@ -155,7 +155,10 @@ export class EntityMemberProcessor {
 						endAt: new Date()
 					}
 				})
-				await job.moveToFailed(err, true)
+
+				job.moveToFailed(err, true).catch((error) => {
+					console.error('Move job to failed error', error)
+				})
 			}
 		})
 	}
