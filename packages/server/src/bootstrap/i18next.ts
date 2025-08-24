@@ -43,7 +43,4 @@ export async function initI18next(baseDir: string) {
 
 		return originalT(key, finalOptions);
 	}) as any;
-
-	console.log(chalk.bgCyan(i18next.t('Error.NoHierarchyFoundFor', {ns: 'core', dimension: 'dimension1', name: 'xxx'})))
-	console.log(chalk.bgBlue(t('Error.NoHierarchyFoundFor', {ns: 'core', dimension: 'dimension1', name: 'xxx'})))
 }
