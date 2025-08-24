@@ -1,27 +1,95 @@
 import { exec } from 'node:child_process'
+import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import util from 'node:util'
 import { VolumeClient } from '../shared'
+import { GitClient, ProjectClient, PythonClient, Sandbox, TProjectDeployParams } from './client'
 import {
-	GitClient,
-	ProjectClient,
-	PythonClient,
-	Sandbox,
-	SandboxFileSystem,
+	FilesSystem,
+	TCreateFileReq,
 	TCreateFileResp,
-	TProjectDeployParams
-} from './client'
+	TFileBaseReq,
+	TListFilesReq,
+	TListFilesResponse,
+	TReadFileReq,
+	TSandboxParams
+} from './types'
 
 // Convert exec to return a promise
 const execPromise = util.promisify(exec)
 
-export class MockFileSystem extends SandboxFileSystem {
-	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }): Promise<any> {
-		return
+export class FileLocalSystem implements FilesSystem {
+	constructor(protected params: TSandboxParams) {}
+
+	async createFile(body: TCreateFileReq, options: { signal: AbortSignal }): Promise<TCreateFileResp> {
+		const { workspace_id, file_path, file_contents, file_description } = body
+		const root = VolumeClient.getWorkspaceRoot(this.params.tenantId, this.params.projectId, this.params.userId)
+		const filePath = path.join(root, workspace_id, file_path)
+		await fsPromises.mkdir(path.dirname(filePath), { recursive: true })
+		await fsPromises.writeFile(filePath, file_contents)
+
+		// Save file_description in a sidecar .meta file
+		// if (file_description) {
+		// 	const metaPath = filePath + '.meta.json'
+		// 	await fsPromises.writeFile(metaPath, JSON.stringify({ description: file_description }, null, 2))
+		// }
+
+		return {
+			message: 'File created successfully'
+		}
 	}
 
-	async createFile(body: any, options: { signal: AbortSignal }): Promise<TCreateFileResp> {
-		return this.doRequest('create', body, options)
+	async listFiles(body: TListFilesReq, options: { signal: AbortSignal }): Promise<TListFilesResponse> {
+		const { workspace_id, path: dirPath = '', depth = 2, limit = 1000 } = body
+
+		const client = new VolumeClient({
+			tenantId: this.params.tenantId,
+			projectId: this.params.projectId,
+			userId: this.params.userId
+		})
+
+		const files = await client.list({
+			path: path.join(workspace_id, dirPath),
+			deepth: depth
+		})
+
+		return {
+			files: files.map((item) => {
+				return {
+					name: item.filePath,
+					extension: item.fileType,
+					size: item.size,
+					created_date: item.createdAt.toISOString()
+				}
+			})
+		}
+	}
+
+	async readFile(req: TReadFileReq, options?: { signal: AbortSignal }): Promise<string> {
+		const { workspace_id, file_path, line_from, line_to } = req
+		const client = new VolumeClient({
+			tenantId: this.params.tenantId,
+			projectId: this.params.projectId,
+			userId: this.params.userId
+		})
+
+		const content = await client.readFile(path.join(workspace_id, file_path))
+		if (line_from !== undefined && line_to !== undefined) {
+			const lines = content.split('\n').slice(line_from - 1, line_to)
+			return lines.join('\n')
+		}
+		return content
+	}
+
+	deleteFile(body: TFileBaseReq, options?: { signal: AbortSignal }): Promise<void> {
+		const { workspace_id, file_path } = body
+		const client = new VolumeClient({
+			tenantId: this.params.tenantId,
+			projectId: this.params.projectId,
+			userId: this.params.userId
+		})
+
+		return client.deleteFile(path.join(workspace_id, file_path))
 	}
 }
 
@@ -46,14 +114,10 @@ export class MockPythonClient extends PythonClient {
 }
 
 export class SandboxLocal extends Sandbox {
-	fs = new MockFileSystem(this.sandboxUrl)
+	fs = new FileLocalSystem(this.params)
 	project = new MockProjectClient(this.params)
 	python = new MockPythonClient(this.params)
 	git = new GitLocalClient(this.params)
-
-	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
-		return
-	}
 }
 
 export class GitLocalClient extends GitClient {
@@ -74,7 +138,7 @@ export class GitLocalClient extends GitClient {
 		const workspace = await this.getWorkspacePath()
 		return await execPromise(command, { cwd: path.join(workspace, repoPath) })
 	}
-	
+
 	async clone(url: string, repoPath?: string, branch?: string) {
 		// Target folder path must be a relative path in local.
 		if (repoPath && path.isAbsolute(repoPath)) {
@@ -162,14 +226,14 @@ export class GitLocalClient extends GitClient {
 		return stdout.trim()
 	}
 
-	async push(repoPath: string, params?: {username?: string; password?: string; createBranch?: string}) {
+	async push(repoPath: string, params?: { username?: string; password?: string; createBranch?: string }) {
 		const { createBranch } = params || {}
 		const command = createBranch ? `git push --set-upstream origin ${createBranch}` : `git push`
 		const { stdout, stderr } = await this.execGit(command, repoPath)
 		if (stderr) console.error(stderr)
 		return stdout.trim()
 	}
-	
+
 	async pull(repoPath: string) {
 		const command = `git pull`
 		const { stdout, stderr } = await this.execGit(command, repoPath)

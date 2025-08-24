@@ -1,5 +1,5 @@
 identity:
-  name: file_list
+  name: list_files
   author: XpertAI
   label:
     en_US: List Files
@@ -7,5 +7,6 @@ identity:
 description:
   human:
     en_US: List files.
-    zh_Hans: 列出文件。
+    zh_Hans: 列出文件列表
 parameters:
+  

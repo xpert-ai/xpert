@@ -13,7 +13,8 @@ import { t } from 'i18next'
 import z from 'zod'
 import { toolNamePrefix } from '../../shared'
 import { BaseSandboxToolset } from './sandbox-toolset'
-import { Sandbox, TCreateFileReq, TFileBaseReq } from '../client'
+import { Sandbox, } from '../client'
+import { TCreateFileReq, TFileBaseReq } from '../types'
 
 export enum FileToolsetEnum {
 	ListFiles = 'list_files',

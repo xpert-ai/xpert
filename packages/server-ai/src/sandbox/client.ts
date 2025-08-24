@@ -16,6 +16,7 @@ import { ServerResponse } from 'http'
 import { t } from 'i18next'
 import { Observable } from 'rxjs'
 import { sandboxVolumeUrl } from '../shared'
+import { FilesSystem, TCreateFileReq, TCreateFileResp, TFileBaseReq, TListFilesReq, TListFilesResponse, TReadFileReq, TSandboxParams } from './types'
 
 /**
  * Base parameters for sandbox operations.
@@ -28,41 +29,14 @@ export type TSandboxBaseParams = {
 	thread_id?: string
 }
 
-export type TListFilesReq = TSandboxBaseParams & {
-	path?: string
-	depth?: number
-	limit?: number
-}
-export type TListFilesResponse = {
-	files: {
-		name: string
-		extension: string
-		size: number
-		created_date: string
-	}[]
-}
+export class SandboxFileSystem implements FilesSystem {
+	get sandboxUrl() {
+		return this.params.sandboxUrl
+	}
 
-export type TFileBaseReq = TSandboxBaseParams & {
-	file_path: string
-}
-
-export type TCreateFileReq = TFileBaseReq & {
-	file_contents?: string
-	file_description?: string
-	permissions?: string
-}
-
-export type TReadFileReq = TFileBaseReq & {
-	line_from?: number
-	line_to?: number
-}
-
-export type TCreateFileResp = {
-	message: string
-}
-
-export class SandboxFileSystem {
-	constructor(protected sandboxUrl: string) {}
+	constructor(
+		protected params: TSandboxParams
+	) {}
 
 	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
 		if (environment.pro) {
@@ -487,19 +461,9 @@ export class ShellClient extends BaseToolClient {
 	}
 }
 
-export type TSandboxParams = {
-	commandBus: CommandBus
-	sandboxUrl: string
-	volume?: string
-	tenantId?: string
-	projectId?: string
-	userId: string
-	conversationId: string
-}
-
 export class Sandbox {
 	volume = ''
-	fs = new SandboxFileSystem(this.sandboxUrl)
+	fs: FilesSystem = new SandboxFileSystem(this.params)
 	project = new ProjectClient(this.params)
 	python = new PythonClient(this.params)
 	shell = new ShellClient(this.params)

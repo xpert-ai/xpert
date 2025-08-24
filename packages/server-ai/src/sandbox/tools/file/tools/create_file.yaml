@@ -1,0 +1,53 @@
+identity:
+  name: create_file
+  author: XpertAI
+  label:
+    en_US: Create file
+    zh_Hans: 创建文件
+description:
+  human:
+    en_US: Create file
+    zh_Hans: 创建文件
+parameters:
+  - name: file_path
+    type: string
+    required: true
+    label:
+      en_US: File path
+      zh_Hans: 文件路径
+    human_description:
+      en_US: File path (include file name).
+      zh_Hans: 文件路径 (包含文件名)。
+    llm_description: Create a file.
+    form: llm
+  - name: file_contents
+    type: string
+    required: true
+    label:
+      en_US: File contents
+      zh_Hans: 文件内容
+    human_description:
+      en_US: File contents.
+      zh_Hans: 文件内容。
+    llm_description: The contents of the file to create.
+    form: llm
+  - name: file_description
+    type: string
+    label:
+      en_US: File description
+      zh_Hans: 文件描述
+    human_description:
+      en_US: File contents overview.
+      zh_Hans: 文件内容概述
+    llm_description: The description of the file to create.
+    form: llm
+  - name: permissions
+    type: string
+    label:
+      en_US: Permissions
+      zh_Hans: 权限
+    human_description:
+      en_US: File permissions in octal fomat e.g. '644'
+      zh_Hans: 文件权限，八进制格式，例如 '644'
+    llm_description: The permissions of the file to create in octal format, e.g. '644'.
+    form: llm
