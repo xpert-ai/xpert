@@ -6,12 +6,16 @@ set -ex
 
 # ---------------------------------------
 # Fix ownership of the mounted volume
-if [ -d "/srv/pangolin/public" ]; then
-  echo "Fixing permissions for /srv/pangolin/public..."
-  sudo chown -R node:node /srv/pangolin/public
-else
-  echo "Warning: /srv/pangolin/public does not exist. Skipping permission fix."
-fi
+folders="/srv/pangolin/public /sandbox /ms-playwright"
+
+for folder in $folders; do
+  if [ -d "$folder" ]; then
+    echo "Fixing permissions for $folder..."
+    sudo chown -R node:node "$folder"
+  else
+    echo "Warning: $folder does not exist. Skipping permission fix."
+  fi
+done
 # ---------------------------------------
 
 # Then execute the main command
