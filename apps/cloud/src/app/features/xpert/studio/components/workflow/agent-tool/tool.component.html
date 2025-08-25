@@ -10,7 +10,7 @@
 
 <div class="space-y-1">
   <div class="font-mono text-sm truncate flex justify-between items-center">
-    {{toolName()}}
+    <span class="font-semibold">{{toolName()}}</span>
 
     @if (isEnd()) {
       <i class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
@@ -42,7 +42,7 @@
       }
   </div>
 
-  <div class="font-body text-sm text-left line-clamp-3">
+  <div class="text-sm font-mono text-left line-clamp-3">
     {{toolDescription()}}
   </div>
 
