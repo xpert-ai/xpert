@@ -1,6 +1,6 @@
 import { IEnvironment, VERSION } from "./types"
 
-let API_BASE_URL = '//localhost:3000'
+let API_BASE_URL = 'http://localhost:3000'
 
 export const environment: IEnvironment = {
 	version: VERSION,

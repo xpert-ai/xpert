@@ -1,0 +1,23 @@
+identity:
+  name: github_create_issue
+  author: Xpert AI
+  label:
+    en_US: Create GitHub Issue
+    zh_Hans: 创建 GitHub 问题
+description:
+  human:
+    en_US: Create a new issue in a GitHub repository
+    zh_Hans: 在 GitHub 代码仓库中创建一个新问题
+  llm: A tool to create a new issue in a GitHub repository.
+parameters:
+  - name: path
+    type: string
+    required: true
+    label:
+      en_US: Repository Path
+      zh_Hans: 代码仓库路径
+    human_description:
+      en_US: Repository path.
+      zh_Hans: 代码仓库路径。
+    form: llm
+  

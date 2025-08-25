@@ -8,7 +8,7 @@ import {
 	IntegrationAuthorizedEvent,
 	IntegrationService
 } from '@metad/server-core'
-import { Controller, Get, NotFoundException, Param, Query, Req, Res, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Request, Response } from 'express'
 import { GithubService } from './github.service'
@@ -187,14 +187,14 @@ export class GithubController {
 		}
 	}
 
-	// @Post('webhook/:integrationId')
-	// async handleWebhook(@Param('integrationId') integrationId: string, @Req() req: Request, @Body() body: any) {
-	// 	const app = this.githubService.getApp(integrationId)
-	// 	// 验证签名，使用 app.webhookSecret 或类似
-	// 	// 处理事件
-	// 	console.log(`Webhook for integration ${integrationId}:`, body)
-	// 	return { status: 'ok' }
-	// }
+	@Public()
+	@Post(':id/webhook')
+	async handleWebhook(@Param('id') integrationId: string, @Req() req: Request, @Body() body: any) {
+		// 验证签名，使用 app.webhookSecret 或类似
+		// 处理事件
+		console.log(`Webhook for integration ${integrationId}:`, body)
+		return { status: 'ok' }
+	}
 
 	// 其他端点，如创建集成
 	@Get(':id/repositories')

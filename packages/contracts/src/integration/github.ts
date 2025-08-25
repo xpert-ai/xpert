@@ -1,5 +1,5 @@
-import { IntegrationEnum, TIntegrationProvider } from '../integration.model'
 import { Endpoints } from "@octokit/types";
+import { IIntegration, IntegrationEnum, TIntegrationProvider } from '../integration.model';
 
 
 export const IntegrationGitHubProvider: TIntegrationProvider = {
@@ -39,6 +39,9 @@ export const IntegrationGitHubProvider: TIntegrationProvider = {
         }
     }
   },
+  webhookUrl: (integration: IIntegration, baseUrl: string) => {
+    return `${baseUrl}/api/github/${integration.id}/webhook`
+  }
 }
 
 export type TGithubAuth = {

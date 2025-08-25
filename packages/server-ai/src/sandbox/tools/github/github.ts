@@ -6,6 +6,7 @@ import { getCurrentTaskCredentials, TBuiltinToolsetParams } from '../../../share
 import { GitHubToolsEnum, TGitHubToolCredentials } from './types'
 import { buildSwitchRepositoryTool } from './tools/switch_repository'
 import { buildPushFilesTool } from './tools/push_files'
+import { buildCreateIssueTool } from './tools/create_issue'
 
 export class GitHubToolset extends BaseSandboxToolset<StructuredToolInterface> {
 	static provider = 'github'
@@ -26,6 +27,9 @@ export class GitHubToolset extends BaseSandboxToolset<StructuredToolInterface> {
 		}
 		if (allEnabled || this.isEnabled(GitHubToolsEnum.PUSH_FILES)) {
 			this.tools.push(buildPushFilesTool(this))
+		}
+		if (allEnabled || this.isEnabled(GitHubToolsEnum.CREATE_ISSUE)) {
+			this.tools.push(buildCreateIssueTool(this))
 		}
 		return this.tools
 	}
