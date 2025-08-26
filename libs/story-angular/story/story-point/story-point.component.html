@@ -46,11 +46,16 @@
                     (selectedChange)="onWidgetSelected(widget, widgetComponent)"
                 />
                 <!-- <div *ngIf="editable" class="ngm-drag-handler"></div> -->
-                <div *ngIf="editable() && (resizingWidgetKey === widget.key || !resizingWidgetKey)" class="ngm-story__layout-widget-size absolute -top-6 right-0 text-xs font-semibold py-1 px-2 rounded text-gray-600 bg-orange-200 last:mr-0 mr-1 hidden group-hover:inline-block"
-                    [class.ngm-story__layout-widget-size-show]="resizingWidgetKey === widget.key"
-                >
-                    {{widget.position.cols}}x{{widget.position.rows}}
-                </div>
+                @if (editable() && (resizingWidgetKey === widget.key || !resizingWidgetKey)) {
+                  <div class="ngm-story__layout-widget-size absolute -top-6 right-0 items-center gap-1 hidden group-hover:inline-flex">
+                    <div class="text-xs font-mono">{{widget.key}}</div>
+                    <div class="text-xs font-semibold py-1 px-2 rounded text-gray-600 bg-orange-200 last:mr-0 mr-1"
+                      [class.ngm-story__layout-widget-size-show]="resizingWidgetKey === widget.key"
+                    >
+                      {{widget.position.cols}}x{{widget.position.rows}}
+                    </div>
+                  </div>
+                }
             </gridster-item>
           }
         </gridster>
@@ -64,7 +69,7 @@
     <div class="ngm-story-point__quick-start absolute top-0 left-0 w-full h-full flex justify-center items-center z-10">
         <div class="container relative p-12 mx-8 rounded-xl flex flex-col justify-center items-center">
             <button mat-icon-button style="position: absolute;" class="absolute right-1 top-1" (click)="closeQuickStart()">
-                <mat-icon>close</mat-icon>
+                <mat-icon class="mr-1">close</mat-icon>
             </button>
             
             <span class="text-6xl font-notoColorEmoji">🛒</span>
@@ -98,66 +103,66 @@
 </ng-template>
 
 <ng-template #context_menu>
-    <div cdkMenu class="cdk-menu__medium">
+    <div cdkMenu class="cdk-menu__medium space-y-1">
         <button cdkMenuItem *ngIf="!point.hidden" (click)="hidePage()">
-            <mat-icon>flip_to_back</mat-icon>
+            <mat-icon class="mr-1">flip_to_back</mat-icon>
             {{ 'Story.Story.Hidden' | translate: {Default: "Hidden"} }}
         </button>
         <button cdkMenuItem *ngIf="point.hidden" (click)="showPage()">
-            <mat-icon>flip_to_front</mat-icon>
+            <mat-icon class="mr-1">flip_to_front</mat-icon>
             {{ 'Story.Story.Visiable' | translate: {Default: "Visiable"} }}
         </button>
         <button cdkMenuItem (click)="openShare()">
-            <mat-icon fontSet="material-icons-outlined">share</mat-icon>
+            <mat-icon class="mr-1" fontSet="material-icons-outlined">share</mat-icon>
             {{ 'Story.Story.Share' | translate: {Default: "Share"} }}
         </button>
         <ng-container *ngIf="editable()">
             <div class="w-full border-b border-solid border-divider-deep my-1"></div>
 
             <button cdkMenuItem (click)="openEditAttributes()">
-                <mat-icon fontSet="material-icons-outlined">edit_attributes</mat-icon>
+                <mat-icon class="mr-1" fontSet="material-icons-outlined">edit_attributes</mat-icon>
                 {{ 'Story.Widget.EditAttributes' | translate: {Default: "Edit Attributes"} }}
             </button>
 
-            <button cdkMenuItem [disabled]="isFirst" (click)="move('left')">
-                <mat-icon>chevron_left</mat-icon>
+            <button cdkMenuItem class="disabled:opacity-50" [disabled]="isFirst" (click)="move('left')">
+                <mat-icon class="mr-1">chevron_left</mat-icon>
                 {{ 'Story.Story.MOVE_LEFT' | translate: {Default: "Move Left"} }}
             </button>
-            <button cdkMenuItem [disabled]="isLast" (click)="move('right')">
-                <mat-icon>chevron_right</mat-icon>
+            <button cdkMenuItem class="disabled:opacity-50" [disabled]="isLast" (click)="move('right')">
+                <mat-icon class="mr-1">chevron_right</mat-icon>
                 {{ 'Story.Story.MOVE_RIGHT' | translate: {Default: "Move Right"} }}
             </button>
-            <button cdkMenuItem [disabled]="isFirst" (click)="move('first')">
-                <mat-icon>first_page</mat-icon>
+            <button cdkMenuItem class="disabled:opacity-50" [disabled]="isFirst" (click)="move('first')">
+                <mat-icon class="mr-1">first_page</mat-icon>
                 {{ 'Story.Story.MOVE_FIRST' | translate: {Default: "Move First"} }}
             </button>
-            <button cdkMenuItem [disabled]="isLast" (click)="move('last')">
-                <mat-icon>last_page</mat-icon>
+            <button cdkMenuItem class="disabled:opacity-50" [disabled]="isLast" (click)="move('last')">
+                <mat-icon class="mr-1">last_page</mat-icon>
                 {{ 'Story.Story.MOVE_LAST' | translate: {Default: "Move Last"} }}
             </button>
             <button cdkMenuItem (click)="rename()">
-                <mat-icon fontSet="material-icons-outlined">drive_file_rename_outline</mat-icon>
+                <mat-icon class="mr-1" fontSet="material-icons-outlined">drive_file_rename_outline</mat-icon>
                 {{ 'Story.Story.Rename' | translate: {Default: "Rename"} }}
             </button>
             <button cdkMenuItem (click)="duplicate()">
-                <mat-icon>content_copy</mat-icon>
+                <mat-icon class="mr-1">content_copy</mat-icon>
                 {{ 'Story.Story.Duplicate' | translate: {Default: "Duplicate"} }}
             </button>
 
             <button cdkMenuItem *ngIf="isCopyWidgetSelected$ | async as isCopyWidgetSelected"
                 (click)="isCopyWidgetSelected?pasteWidget():''">
-                <mat-icon fontSet="material-icons-outlined">content_paste</mat-icon>
+                <mat-icon class="mr-1" fontSet="material-icons-outlined">content_paste</mat-icon>
                 {{ 'Story.Story.Paste' | translate: {Default: "Paste"} }}
             </button>
             
             <button cdkMenuItem (click)="fileUpload.click()">
-                <mat-icon fontSet="material-icons-outlined">file_upload</mat-icon>
+                <mat-icon class="mr-1" fontSet="material-icons-outlined">file_upload</mat-icon>
                 {{ 'Story.Story.Upload' | translate: {Default: "Upload"} }}
             </button>
 
             <div class="w-full border-b border-solid border-divider-deep my-1"></div>
             <button cdkMenuItem class="danger" (click)="remove()">
-              <i class="ri-delete-bin-line text-lg mr-1"></i>
+              <i class="ri-delete-bin-line text-lg mr-2"></i>
               {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
             </button>
         </ng-container>

@@ -66,10 +66,10 @@
             {{ 'Story.Toolbar.Widgets' | translate: {Default: "Widget"} }}
         </div>
 
-        <button mat-icon-button [color]="(creatingWidget$ | async) === ComponentType.AnalyticalCard?'accent':''"
+        <button mat-icon-button [color]="creatingWidget() === ComponentType.AnalyticalCard?'accent':''"
             [matTooltip]="'Story.Toolbar.INSERT.ChartCard' | translate: {Default: 'Chart'}"
             matTooltipPosition="after"
-            [class.active]="(creatingWidget$ | async) === ComponentType.AnalyticalCard"
+            [class.active]="creatingWidget() === ComponentType.AnalyticalCard"
             draggable="true"
             (dragstart)="dragStartHandler($event, {
                 component: ComponentType.AnalyticalCard
@@ -79,10 +79,10 @@
             })">
             <mat-icon fontSet="material-icons-outlined">addchart</mat-icon>
         </button>
-        <button mat-icon-button [color]="(creatingWidget$ | async) === ComponentType.AnalyticalGrid?'accent':''"
+        <button mat-icon-button [color]="creatingWidget() === ComponentType.AnalyticalGrid?'accent':''"
             [matTooltip]="'Story.Toolbar.INSERT.Table' | translate: {Default: 'Table'}"
             matTooltipPosition="after"
-            [class.active]="(creatingWidget$ | async) === ComponentType.AnalyticalGrid"
+            [class.active]="creatingWidget() === ComponentType.AnalyticalGrid"
             draggable="true"
             (dragstart)="dragStartHandler($event, { component: ComponentType.AnalyticalGrid })"
             (click)="createWidget({
@@ -90,10 +90,10 @@
             })">
             <mat-icon fontSet="material-icons-outlined">pivot_table_chart</mat-icon>
         </button>
-        <button mat-icon-button [color]="(creatingWidget$ | async) === ComponentType.InputControl?'accent':''"
+        <button mat-icon-button [color]="creatingWidget() === ComponentType.InputControl?'accent':''"
             [matTooltip]="'Story.Toolbar.INSERT.InputControl' | translate: {Default: 'Input Control'}"
             matTooltipPosition="after"
-            [class.active]="(creatingWidget$ | async) === ComponentType.InputControl"
+            [class.active]="creatingWidget() === ComponentType.InputControl"
             draggable="true"
             (dragstart)="dragStartHandler($event, {component: ComponentType.InputControl})"
             (click)="createWidget({
@@ -101,10 +101,10 @@
             })" >
             <mat-icon fontSet="material-icons-outlined">toggle_on</mat-icon>
         </button>
-        <button mat-icon-button [color]="(creatingWidget$ | async) === ComponentType.KpiCard?'accent':''"
+        <button mat-icon-button [color]="creatingWidget() === ComponentType.KpiCard?'accent':''"
             [matTooltip]="'Story.Toolbar.INSERT.KPI' | translate: {Default: 'KPI'}"
             matTooltipPosition="after"
-            [class.active]="(creatingWidget$ | async) === ComponentType.KpiCard"
+            [class.active]="creatingWidget() === ComponentType.KpiCard"
             draggable="true"
             (dragstart)="dragStartHandler($event, {component: ComponentType.KpiCard})"
             (click)="createWidget({

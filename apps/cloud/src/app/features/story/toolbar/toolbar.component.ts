@@ -180,7 +180,7 @@ export class StoryToolbarComponent implements OnInit {
   readonly currentPage = this.storyService.currentPageState
   readonly scale = computed(() => this.currentPage()?.scale ?? 100)
 
-  public readonly creatingWidget$ = this.toolbarService.creatingWidget$
+  readonly creatingWidget = this.toolbarService.creatingWidget
   readonly isPanMode = this.storyService.isPanMode
 
   public readonly isWidgetSelected = computed(() => !this.storyService.currentWidget())

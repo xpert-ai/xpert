@@ -417,8 +417,8 @@ export class NxStoryPointComponent {
     this.storyPointService.updateWidgetLayer({ key: widget.key, position: { ...widget.position, ...item } })
   }
 
-  async emptyCellClick(event: MouseEvent, item: GridsterItem) {
-    const dataSettings = await this.storyService.getDefaultDataSource()
+  emptyCellClick(event: MouseEvent, item: GridsterItem) {
+    const dataSettings = this.storyService.getDefaultDataSource()
     if (event.type === 'drop') {
       const creatingWidget = JSON.parse((<DragEvent>event).dataTransfer.getData('json'))
       this.storyPointService.createWidget({
@@ -461,7 +461,7 @@ export class NxStoryPointComponent {
   }
 
   /**
-   * 重新计算页面布局
+   * Recalculate page layout
    */
   resize() {
     this.gridster?.onResize()
@@ -472,7 +472,7 @@ export class NxStoryPointComponent {
   }
 
   /**
-   * 响应 Widget 组件全屏变化
+   * Responding to full-screen changes in Widget components
    */
   onFullscreenChange(event: boolean, widget: StoryWidget) {
     if (!widget) {
@@ -513,7 +513,7 @@ export class NxStoryPointComponent {
   }
 
   /**
-   * 点击 Widget
+   * Click Widget
    * 1. active selcted this widget
    * 2. unfocus other widgets
    *

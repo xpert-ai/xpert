@@ -1,13 +1,12 @@
 import { Injectable } from '@angular/core'
-import { ControlType } from '@metad/core'
 import { NgmOcapCoreService } from '@metad/ocap-angular/core'
 import { PropertyCapacity } from '@metad/ocap-angular/entity'
 import {
+  CubeParameterEnum,
   FilterSelectionType,
   getEntityProperty,
   getPropertyName,
   MemberSource,
-  ParameterControlEnum,
   ParameterProperty,
   Property
 } from '@metad/ocap-core'
@@ -60,7 +59,7 @@ export class InputControlSchemaService extends DataSettingsSchemaService {
     )
   }
 
-  builderSchema(i18nStoryWidgets, DateVariable, controlType: ControlType | FilterControlType, property: Property) {
+  builderSchema(i18nStoryWidgets, DateVariable, controlType: FilterControlType, property: Property) {
     const className = FORMLY_W_1_2
 
     const dimensionField = {
@@ -225,7 +224,7 @@ function ParameterSchema(property: ParameterProperty, className: string, I18N) {
   const hideExpression = `!model || !model.slider`
 
   const fieldGroup: any[] = []
-  if (property.paramType === ParameterControlEnum.Input && property.dataType === 'number') {
+  if (property.paramType === CubeParameterEnum.Input && property.dataType === 'number') {
     fieldGroup.push(
       {
         className: FORMLY_W_FULL,
@@ -325,9 +324,9 @@ function ParameterSchema(property: ParameterProperty, className: string, I18N) {
         }
       }
     )
-  } else if (property.paramType === ParameterControlEnum.Dimensions) {
+  } else if (property.paramType === CubeParameterEnum.Dimension) {
     fieldGroup.push(SelectionType(className, I18N))
-  } else if (property.paramType === ParameterControlEnum.Select) {
+  } else if (property.paramType === CubeParameterEnum.Select) {
     fieldGroup.push(SelectionType(className, I18N))
   }
 

@@ -670,7 +670,10 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
             linkedAnalysis: cloneDeep(widget.linkedAnalysis) ?? {},
             widgets: widgets
               ?.filter((item) => item.key !== widget.key)
-              .map((item) => ({ key: item.key, caption: item.name || item.title }))
+              .map((item) => ({ 
+                key: item.key,
+                caption: item.name || item.title || item.key
+              }))
           }
         })
         .afterClosed()

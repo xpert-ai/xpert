@@ -56,7 +56,7 @@ export enum DateVariableEnum {
   PREVIOUS_YEAR = 'PREVIOUS_YEAR'
 }
 
-// 系统预定义的时间变量
+// System predefined time variables
 export function NX_DATE_VARIABLES_FACTORY() {
   return [
     {
