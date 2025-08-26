@@ -1,4 +1,4 @@
-import { Component, computed, effect, forwardRef, inject, input, Input, model, OnChanges, OnInit, output, SimpleChanges } from '@angular/core'
+import { Component, computed, effect, forwardRef, inject, input, Input, model, OnInit, output } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { MatFormFieldAppearance } from '@angular/material/form-field'
@@ -50,7 +50,7 @@ import { NgmSmartFilterService } from '../../smart-filter.service'
     }
   ]
 })
-export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlValueAccessor {
+export class NgmMemberDatepickerComponent implements OnInit, ControlValueAccessor {
   FilterType = FilterSelectionType
   TimeGranularity = TimeGranularity
   TIME_GRANULARITY_SEQUENCES = TIME_GRANULARITY_SEQUENCES
@@ -63,7 +63,7 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
   @Input() appearance: MatFormFieldAppearance
   @Input() displayDensity: DisplayDensity
 
-  @Input() dataSettings: DataSettings
+  // @Input() dataSettings: DataSettings
 
   readonly dimension = input<Dimension>()
   readonly granularity = model<TimeGranularity>(TimeGranularity.Month)
@@ -79,10 +79,13 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
   }
 
   @Input() granularitySequence = 0
-  @Input() defaultValue: string
+  // @Input() defaultValue: string
   @Input() selectionType: FilterSelectionType
   @Input() disabled: boolean
   @Input() formatter: string
+
+  readonly dataSettings = input<DataSettings>()
+  readonly defaultValue = input<string>()
 
   readonly dateChange = output<Date[]>()
 
@@ -235,28 +238,33 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
         }
       }
     }, { allowSignalWrites: true })
+
+    effect(() => {
+      if (this.defaultValue()) {
+        const value = this.coreService.execDateVariables(this.defaultValue())
+        this.date = Array.isArray(value) ? value : [value]
+      }
+    }, { allowSignalWrites: true })
+
+    effect(() => {
+      if (this.dataSettings()) {
+        this.dataService.dataSettings = this.dataSettings()
+      }
+    }, { allowSignalWrites: true })
+
+    effect(() => {
+      if (this.dimension()) {
+        this.dataService.options = {
+          ...this.dataService.options,
+          dimension: this.dimension()
+        }
+      }
+    }, { allowSignalWrites: true })
   }
 
   ngOnInit() {
     if (this.disabled) {
       this.dateControl.disable()
-    }
-  }
-
-  ngOnChanges({ dataSettings, dimension, defaultValue }: SimpleChanges): void {
-    if (defaultValue?.currentValue) {
-      const value = this.coreService.execDateVariables(defaultValue.currentValue)
-      this.date = Array.isArray(value) ? value : [value]
-    }
-
-    if (dataSettings?.currentValue) {
-      this.dataService.dataSettings = dataSettings.currentValue
-    }
-    if (dimension?.currentValue) {
-      this.dataService.options = {
-        ...this.dataService.options,
-        dimension: dimension.currentValue
-      }
     }
   }
 
