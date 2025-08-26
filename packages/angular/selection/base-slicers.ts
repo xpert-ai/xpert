@@ -57,7 +57,7 @@ export class BaseSlicersComponent {
     transform: booleanAttribute
   })
 
-  public readonly dateVariables = this.coreService.getDateVariables().filter((variable) => !!variable.dateRange)
+  readonly dateVariables = this.coreService.getDateVariables().filter((variable) => !!variable.dateRange)
 
   async openSlicerCreator(property: Property | VariableProperty | SlicersCapacity) {
     const entityType = this.entityType

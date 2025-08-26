@@ -11,7 +11,7 @@ import {
   nonNullable,
   Syntax
 } from '@metad/ocap-core'
-import { floor, pick } from 'lodash-es'
+import { pick } from 'lodash-es'
 import {
   BehaviorSubject,
   catchError,

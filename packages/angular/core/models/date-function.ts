@@ -403,8 +403,11 @@ export function NX_DATE_VARIABLES_FACTORY() {
       id: DateVariableEnum.THIS_WHOLE_YEAR,
       name: '今年(包含整年)',
       deps: ['TODAY'],
-      useFactory: ([today]) => {
-        return [startOfYear(today), endOfYear(today)]
+      dateRange: {
+        type: TimeRangeType.Standard,
+        granularity: TimeGranularity.Year,
+        lookBack: 0,
+        lookAhead: 0,
       }
     },
     {
