@@ -1,5 +1,5 @@
 import { Component, computed, effect, forwardRef, inject, input, Input, model, OnChanges, OnInit, output, SimpleChanges } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { MatFormFieldAppearance } from '@angular/material/form-field'
 import { DisplayDensity, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@metad/ocap-angular/core'
@@ -24,6 +24,7 @@ import { isEqual } from 'lodash-es'
 import {
   catchError,
   combineLatest,
+  combineLatestWith,
   distinctUntilChanged,
   EMPTY,
   filter,
@@ -107,10 +108,11 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
   private svSubscriber = this.dateControl.valueChanges.pipe(
     startWith(this.dateControl.value),
     filter((value) => this.selectionType !== FilterSelectionType.SingleRange && value),
-    map((value) => {
+    combineLatestWith(toObservable(this.granularity)),
+    map(([value, timeGranularity]) => {
       const entityType = this.entityType()
       const dimension = this.dimension()
-      const timeGranularity = this.granularity()
+      
       if (!(entityType && dimension && timeGranularity)) {
         return null
       }
@@ -161,10 +163,11 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
     .pipe(
       startWith([this.fromDateControl.value, this.dateControl.value]),
       filter(([from, to]) => this.selectionType === FilterSelectionType.SingleRange && from && to),
-      map(([from, to]) => {
+      combineLatestWith(toObservable(this.granularity)),
+      map(([[from, to], timeGranularity]) => {
         const entityType = this.entityType()
         const dimension = this.dimension()
-        const timeGranularity = this.granularity()
+        
         if (!(entityType && dimension && timeGranularity)) {
           return null
         }

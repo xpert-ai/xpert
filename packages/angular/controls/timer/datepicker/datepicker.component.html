@@ -11,9 +11,10 @@
           [label]="'Ngm.DatePicker.From' | translate: {Default: 'From'}"/>
 
         <ngm-yearpicker class="flex flex-1" [formControl]="dateControl" [label]="'Ngm.DatePicker.To' | translate: {Default: 'To'}">
-          <button ngmSuffix mat-icon-button [cdkMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix type="button" class="w-9 h-9 rounded-full shrink-0 hover:bg-hover-bg flex justify-center items-center dark:hover:bg-white/10"
+            [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-            <mat-icon>more_vert</mat-icon>
+            <i class="ri-more-2-fill"></i>
           </button>
         </ngm-yearpicker>
       }
@@ -22,9 +23,10 @@
           [label]="'Ngm.DatePicker.From' | translate: {Default: 'From'}" />
 
         <ngm-quarterpicker class="flex flex-1" [formControl]="dateControl" [label]="'Ngm.DatePicker.To' | translate: {Default: 'To'}">
-          <button ngmSuffix mat-icon-button [cdkMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix type="button" class="w-9 h-9 rounded-full shrink-0 hover:bg-hover-bg flex justify-center items-center dark:hover:bg-white/10"
+            [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>more_vert</mat-icon>
+            <i class="ri-more-2-fill"></i>
           </button>
         </ngm-quarterpicker>
       }
@@ -33,9 +35,10 @@
           [label]="'Ngm.DatePicker.From' | translate: {Default: 'From'}" />
 
         <ngm-monthpicker class="flex flex-1" [formControl]="dateControl" [label]="'Ngm.DatePicker.To' | translate: {Default: 'To'}">
-          <button ngmSuffix mat-icon-button [cdkMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix type="button" class="w-9 h-9 rounded-full shrink-0 hover:bg-hover-bg flex justify-center items-center dark:hover:bg-white/10"
+            [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>more_vert</mat-icon>
+            <i class="ri-more-2-fill"></i>
           </button>
         </ngm-monthpicker>
       }
@@ -44,9 +47,10 @@
           [label]="'Ngm.DatePicker.From' | translate: {Default: 'From'}" />
 
         <ngm-datepicker class="flex flex-1" [formControl]="dateControl" [label]="'Ngm.DatePicker.To' | translate: {Default: 'To'}">
-          <button ngmSuffix mat-icon-button [cdkMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix type="button" class="w-9 h-9 rounded-full shrink-0 hover:bg-hover-bg flex justify-center items-center dark:hover:bg-white/10"
+            [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-            <mat-icon>more_vert</mat-icon>
+            <i class="ri-more-2-fill"></i>
           </button>
         </ngm-datepicker>
       }
@@ -57,33 +61,37 @@
     @switch (granularity()) {
       @case (TimeGranularity.Year) {
         <ngm-yearpicker [formControl]="dateControl">
-          <button ngmSuffix mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix type="button" class="w-9 h-9 rounded-full shrink-0 hover:bg-hover-bg flex justify-center items-center dark:hover:bg-white/10"
+            [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>more_vert</mat-icon>
+            <i class="ri-more-2-fill"></i>
           </button>
         </ngm-yearpicker>
       }
       @case (TimeGranularity.Quarter) {
         <ngm-quarterpicker [formControl]="dateControl">
-          <button ngmSuffix mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix type="button" class="w-9 h-9 rounded-full shrink-0 hover:bg-hover-bg flex justify-center items-center dark:hover:bg-white/10"
+            [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>more_vert</mat-icon>
+            <i class="ri-more-2-fill"></i>
           </button>
         </ngm-quarterpicker>
       }
       @case (TimeGranularity.Month) {
         <ngm-monthpicker [formControl]="dateControl">
-          <button ngmSuffix mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix type="button" class="w-9 h-9 rounded-full shrink-0 hover:bg-hover-bg flex justify-center items-center dark:hover:bg-white/10"
+            [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>more_vert</mat-icon>
+            <i class="ri-more-2-fill"></i>
           </button>
         </ngm-monthpicker>
       }
       @default {
         <ngm-datepicker [formControl]="dateControl">
-          <button ngmSuffix mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix type="button" class="w-9 h-9 rounded-full shrink-0 hover:bg-hover-bg flex justify-center items-center dark:hover:bg-white/10"
+            [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>more_vert</mat-icon>
+            <i class="ri-more-2-fill"></i>
           </button>
         </ngm-datepicker>
       }
@@ -92,10 +100,10 @@
 }
 
 <ng-template #granularityMenu>
-  <div cdkMenu class="cdk-menu__large ngm-density__compact">
-    <mat-radio-group [(ngModel)]="granularity" class="flex flex-col">
+  <div cdkMenu class="cdk-menu__large ngm-density__compact min-w-[100px] overflow-hidden">
+    <mat-radio-group [(ngModel)]="granularity" class="flex flex-col gap-1">
       @for (value of TIME_GRANULARITY_SEQUENCES[granularitySequence ?? 2]; track value) {
-        <mat-radio-button [value]="value">
+        <mat-radio-button [value]="value" class="cursor-pointer rounded-lg hover:bg-hover-bg">
           {{ 'Ngm.DatePicker.' + value | translate: {Default: value} }}
         </mat-radio-button>
       }
