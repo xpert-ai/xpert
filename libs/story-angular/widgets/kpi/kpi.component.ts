@@ -66,7 +66,7 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
   readonly showPlaceholder = computed(
     () => !(this.dataSettingsSignal()?.dataSource && this.dataSettingsSignal()?.entitySet)
   )
-  readonly showToolbar = computed(() => this.optionsSignal()?.showToolbar)
+  readonly hideToolbar = computed(() => this.optionsSignal()?.hideToolbar)
   readonly hasSlicers$ = this.selectOptions$.pipe(map((selectOptions) => !isEmpty(selectOptions)))
 
   public readonly kpiValue$ = this.dataService.kpiValue$

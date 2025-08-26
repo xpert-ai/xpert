@@ -354,7 +354,7 @@ export class KeyPerformanceIndicatorService<T> extends SmartBusinessService<T> i
       }
     }
 
-    // 默认 Neutral
+    // Default Neutral
     return CriticalityType.Neutral
   }
 
@@ -365,7 +365,7 @@ export class KeyPerformanceIndicatorService<T> extends SmartBusinessService<T> i
     queryOptions.columns.push(...this.getSelects(kpiAnnotation))
 
     if (isEmpty(queryOptions.columns)) {
-      throw new Error(`No columns for kpi: '${kpiAnnotation.DataPoint?.Title}'`)
+      throw new Error(`No columns for kpi`)
     }
     return super.selectQuery(queryOptions)
   }
@@ -443,7 +443,7 @@ export class KeyPerformanceIndicatorService<T> extends SmartBusinessService<T> i
   }
 
   _getPatternPath(set, ...names) {
-    // TODO 提取字段匹配表达式
+    // TODO Extract fields matching expressions
     return names.map((name) => ({ name, value: set[name]?.match(/\{([0-9A-Za-z_\s\-\/\[\]]*)\}/)?.[1] }))
   }
 
@@ -466,7 +466,7 @@ function _getValue(data: unknown, prop: Dimension | Measure | PrimitiveType) {
 
 /**
  * Transforms a string into a number (if needed).
- * 未来支持将空字符串是否转为 0 的功能
+ * In the future, we will support the function of converting empty strings to 0.
  */
 function strToNumber(value: number | string): number {
   // Convert strings to numbers

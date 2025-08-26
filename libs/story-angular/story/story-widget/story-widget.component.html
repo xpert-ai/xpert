@@ -18,7 +18,7 @@
   (cdkDragMoved)="onDragFab($event)">
   @if (showMenu$ | async) {
     <button mat-mini-fab [cdkMenuTriggerFor]="context_menu">
-      <i class="ri-menu-add-fill"></i>
+      <i class="ri-menu-add-fill text-lg"></i>
     </button>
   }
 
@@ -147,7 +147,7 @@
 
       <div class="w-full border-b border-solid border-divider-deep my-1"></div>
       <button cdkMenuItem class="ngm-copilot-command-button" (click)="generateWithAI()">
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">auto_fix_high</mat-icon>
+        <i class="ri-sparkling-line text-lg mr-1 text-neutral-100"></i>
         {{ 'Copilot.GenerateWithAI' | translate: {Default: "Generate with AI"} }}
       </button>
       <button cdkMenuItem (click)="openEditAttributes()">

@@ -1,5 +1,15 @@
 :host {
   @apply flex flex-col relative;
+
+  .toolbar {
+    @apply opacity-50;
+  }
+
+  &:hover {
+    .toolbar {
+      @apply opacity-100;
+    }
+  }
 }
 
 .ngm-kpi--loading {
