@@ -155,10 +155,10 @@ export class KpiSchemaService extends DataSettingsSchemaService {
         fieldGroup: [
           {
             className,
-            key: 'hideToolbar',
+            key: 'showToolbar',
             type: 'checkbox',
             props: {
-              label: BUILDER?.KPI?.HideToolbar ?? 'Hide Toolbar'
+              label: BUILDER?.KPI?.ShowToolbar ?? 'Show Toolbar'
             }
           },
           {

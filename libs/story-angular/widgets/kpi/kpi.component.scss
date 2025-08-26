@@ -2,12 +2,16 @@
   @apply flex flex-col relative;
 
   .toolbar {
-    @apply opacity-50;
+    @apply absolute top-0 left-0 w-full hidden;
+
+    &.show-toolbar {
+      @apply relative flex;
+    }
   }
 
   &:hover {
     .toolbar {
-      @apply opacity-100;
+      @apply flex opacity-100;
     }
   }
 }

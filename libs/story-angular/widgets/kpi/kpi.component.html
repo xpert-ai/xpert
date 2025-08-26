@@ -1,58 +1,58 @@
-@if (!hideToolbar()) {
-  <div class="toolbar flex justify-between items-center">
-    <span class="title">
-      @if (drilling()) {
-        <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
-          [matTooltip]="'Story.Common.Back' | translate: {Default: 'Back'}"
-          matTooltipPosition="above"
-          (click)="drillDimensions.set([])">
-          <i class="ri-arrow-left-line"></i>
-        </button>
-      }
-    </span>
-
-    <div class="flex items-center gap-1">
-      <ng-content></ng-content>
-
-      @if (drilling()) {
-        <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
-          [matTooltip]="'Story.Common.Download' | translate: {Default: 'Download'}"
-          matTooltipPosition="above"
-          (click)="download()">
-          <i class="ri-download-line"></i>
-        </button>
-      }
-
-      <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
-        [cdkMenuTriggerFor]="filtersMenu"
-        [cdkMenuTriggerData]="{trigger: mt}"
-        #mt="cdkMenuTriggerFor"
-        [class.active]="mt.isOpen()"
-        [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
+<div class="toolbar justify-between items-center"
+  [class.show-toolbar]="showToolbar()">
+  <span class="title">
+    @if (drilling()) {
+      <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
+        [matTooltip]="'Story.Common.Back' | translate: {Default: 'Back'}"
         matTooltipPosition="above"
-        >
-        <i class="ri-filter-line"></i>
-        @if (hasSlicers$ | async) {
-          <span class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"></span>
-        }
+        (click)="drillDimensions.set([])">
+        <i class="ri-arrow-left-line"></i>
       </button>
+    }
+  </span>
 
-      @if (isLoading()) {
-        <div class="w-7 h-7 flex justify-center items-center">
-          <i class="ri-loader-2-line animate-spin"></i>
-        </div>
-      } @else {
-        <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
-          bg-transparent hover:bg-hover-bg"
-          [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
-          matTooltipPosition="above"
-          (click)="refresh(true)">
-          <i class="ri-refresh-line"></i>
-        </button>
+  <div class="flex items-center">
+    <ng-content></ng-content>
+
+    @if (drilling()) {
+      <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
+        [matTooltip]="'Story.Common.Download' | translate: {Default: 'Download'}"
+        matTooltipPosition="above"
+        (click)="download()">
+        <i class="ri-download-line"></i>
+      </button>
+    }
+
+    <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
+      [cdkMenuTriggerFor]="filtersMenu"
+      [cdkMenuTriggerData]="{trigger: mt}"
+      #mt="cdkMenuTriggerFor"
+      [class.active]="mt.isOpen()"
+      [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
+      matTooltipPosition="above"
+      >
+      <i class="ri-filter-line"></i>
+      @if (hasSlicers$ | async) {
+        <span class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"></span>
       }
-    </div>
+    </button>
+
+    @if (isLoading()) {
+      <div class="w-7 h-7 flex justify-center items-center text-base">
+        <i class="ri-loader-2-line animate-spin"></i>
+      </div>
+    } @else {
+      <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full text-base border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+        [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
+        matTooltipPosition="above"
+        (click)="refresh(true)">
+        <i class="ri-refresh-line"></i>
+      </button>
+    }
   </div>
-}
+</div>
+
 @if (error()) {
   <div class="pac-kpi-card__error ngm-card-error relative left-0 top-0 w-full h-full overflow-auto
     flex flex-col justify-center items-center"

@@ -60,4 +60,20 @@
       @apply content-start;
     }
   }
+
+  .ngm-parameter {
+    .mat-slider-thumb-label-showing {
+      &.mat-slider-horizontal {
+        margin-top: 1rem;
+        margin-left: 1rem;
+        margin-right: 1rem;
+      }
+
+      &.mat-slider-vertical {
+        margin-left: 1rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+      }
+    }
+  }
 }

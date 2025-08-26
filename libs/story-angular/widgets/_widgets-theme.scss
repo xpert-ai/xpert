@@ -1,7 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
 @use '@angular/material' as mat;
-@use './input-control/input-control-theme' as iControl;
 @use './swiper/swiper-theme' as swiper;
 @use './tab-group/tabgroup-theme' as tabgroup;
 @use './financial/accounting-statement/accounting-statement-theme' as statement;
@@ -18,7 +17,6 @@
   $accent: map.get($config, accent);
   $warn: map.get($config, warn);
 
-  @include iControl.color($config-or-theme);
   @include swiper.color($config-or-theme);
   @include tabgroup.color($config-or-theme);
   @include statement.color($config-or-theme);
@@ -83,7 +81,6 @@
 
 @mixin density($config-or-theme) {
   @include filter-bar.density($config-or-theme);
-  @include iControl.density($config-or-theme);
   @include kpi.density($config-or-theme);
   @include statement.density($config-or-theme);
 }

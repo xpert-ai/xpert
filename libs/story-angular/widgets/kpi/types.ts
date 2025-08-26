@@ -1,7 +1,7 @@
 import { Intent } from "@metad/core"
 
 export interface NxWidgetKPIOptions {
-  hideToolbar?: boolean
+  showToolbar?: boolean
   icon?: string
   unit?: string
   unitSemantics?: 'currency-code' | 'unit-of-measure' | string
