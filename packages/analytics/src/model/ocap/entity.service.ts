@@ -41,7 +41,7 @@ export class MyXmlaEntityService<T> extends XmlaEntityService<T> {
 					}
 
 					if (key) {
-            query.filters ??= []
+            			query.filters ??= []
 						query.filters.push({
 							dimension: {
 								parameter: _.name,
