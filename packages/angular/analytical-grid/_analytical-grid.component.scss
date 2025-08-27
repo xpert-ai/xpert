@@ -47,11 +47,19 @@
       @apply bg-gray-300 bg-opacity-10 dark:bg-gray-500 dark:bg-opacity-10;
     }
   }
+
+  th.mat-mdc-table-sticky {
+    @apply bg-neutral-50;
+  }
 }
 
 .dark {
   .ngm-analytical-grid {
     --ngm-cdk-cell-selected-border-color: theme(colors.yellow.700);
     --ngm-cdk-cell-selected-bg-color: theme(colors.gray.700);
+
+    th.mat-mdc-table-sticky {
+      @apply bg-white/5;
+    }
   }
 }

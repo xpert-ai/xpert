@@ -5,7 +5,6 @@ import { MatListModule } from '@angular/material/list'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { QuillModule } from 'ngx-quill'
 import { PreferencesComponent } from './preferences/preferences.component'
 
 @NgModule({
@@ -15,7 +14,6 @@ import { PreferencesComponent } from './preferences/preferences.component'
     MatListModule,
     MatDialogModule,
     FormlyModule,
-    QuillModule,
     TranslateModule,
     ButtonGroupDirective
   ],

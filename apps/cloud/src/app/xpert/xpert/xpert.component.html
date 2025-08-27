@@ -138,7 +138,7 @@
         }
       </div>
     } @else {
-      <chat-conversation @ifAnimationTrigger class="w-full"
+      <chat-conversation #conversation @ifAnimationTrigger class="w-full"
         [xpert]="xpert()"
         (chat)="chatInput.ask($event)"
       />

@@ -53,7 +53,7 @@ export class CreateConnectionHandler implements IHandler<CreateConnectionRequest
 }
 
 function removeConnSuffix(id: string) {
-  return id ? removeSuffix(id, '/agent', '/knowledge', '/toolset', '/xpert', '/edge') : id
+  return id ? removeSuffix(id, '/agent', '/knowledge', '/toolset', '/xpert', '/workflow', '/edge') : id
 }
 
 function removeSuffix(str: string, ...suffixs: string[]) {

@@ -592,6 +592,7 @@ export const ZhHans = {
         TargetValue: '目标值',
         Options: '属性',
         ShortNumber: '缩写数字',
+        ShowToolbar: '显示工具栏',
         DigitsInfo: '数字格式',
         Unit: '单位',
         UnitSemantics: '单位语义',

@@ -10,9 +10,11 @@
   (explain)="setExplains($event)"
 >
   <div ngmAction class="flex items-center">
-    <button mat-icon-button displayDensity="cosy" *ngIf="pin" (click)="unlinkAnalysis()">
-      <mat-icon fontSet="material-icons-outlined">push_pin</mat-icon>
-    </button>
+    @if (pin) {
+      <button mat-icon-button displayDensity="cosy" (click)="unlinkAnalysis()">
+        <mat-icon fontSet="material-icons-outlined">push_pin</mat-icon>
+      </button>
+    }
     <button mat-icon-button displayDensity="cosy" class="ngm-menu-trigger opacity-20 group-hover:opacity-100 duration-200"
       [color]="(hasSlicers$ | async) ? 'accent':''"
       [matMenuTriggerFor]="filtersMenu"

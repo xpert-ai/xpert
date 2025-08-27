@@ -44,6 +44,7 @@ import {
   WidgetMenuType,
   WidgetService
 } from '@metad/core'
+import { CommandDialogComponent } from '@metad/copilot-angular'
 import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import {
@@ -90,11 +91,9 @@ import { ExplainComponent } from '../explain/explain.component'
 import { LinkedAnalysisComponent } from '../linked-analysis/linked-analysis.component'
 import { NxStorySharedModule } from '../shared.module'
 import { StorySharesComponent } from '../shares/shares.component'
-import { StoryCommentsComponent } from '../story-comments/story-comments.component'
 import { NxStoryPointService } from '../story-point.service'
 import { NxStoryPointComponent } from '../story-point/story-point.component'
 import { NxStoryWidgetService } from './story-widget.service'
-import { CommandDialogComponent } from '@metad/copilot-angular'
 
 @Component({
   standalone: true,
@@ -114,8 +113,6 @@ import { CommandDialogComponent } from '@metad/copilot-angular'
     ContentLoaderModule,
     NxCoreModule,
     NgmCommonModule,
-
-    StoryCommentsComponent
   ]
 })
 export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
@@ -673,7 +670,10 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
             linkedAnalysis: cloneDeep(widget.linkedAnalysis) ?? {},
             widgets: widgets
               ?.filter((item) => item.key !== widget.key)
-              .map((item) => ({ key: item.key, caption: item.name || item.title }))
+              .map((item) => ({ 
+                key: item.key,
+                caption: item.name || item.title || item.key
+              }))
           }
         })
         .afterClosed()

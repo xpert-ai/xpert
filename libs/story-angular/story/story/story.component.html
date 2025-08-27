@@ -74,45 +74,45 @@
 }
 
 <ng-template #pageMenu let-point="point" let-component="component">
-  <div cdkMenu class="cdk-menu__medium">
-    <button cdkMenuItem [disabled]="!component?.dirtySignal()" (click)="saveStoryPoint(point.key)">
-        <mat-icon fontSet="material-icons-outlined">save</mat-icon>
+  <div cdkMenu class="cdk-menu__medium space-y-1">
+    <button cdkMenuItem class="disabled:opacity-50" [disabled]="!component?.dirtySignal()" (click)="saveStoryPoint(point.key)">
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">save</mat-icon>
         {{ 'Story.Story.Save' | translate: {Default: "Save"} }}
     </button>
 
     <button cdkMenuItem (click)="duplicateStoryPoint(point.key)">
-        <mat-icon>content_copy</mat-icon>
+        <mat-icon class="mr-1">content_copy</mat-icon>
         {{ 'Story.Story.Duplicate' | translate: {Default: "Duplicate"} }}
     </button>
     <button cdkMenuItem (click)="component?.rename()">
-        <mat-icon fontSet="material-icons-outlined">drive_file_rename_outline</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">drive_file_rename_outline</mat-icon>
         {{ 'Story.Story.Rename' | translate: {Default: "Rename"} }}
     </button>
 
     <mat-divider></mat-divider>
 
     <button cdkMenuItem *ngIf="!point.hidden" (click)="toggleStoryPointHidden(point.key)">
-        <mat-icon>flip_to_back</mat-icon>
+        <mat-icon class="mr-1">flip_to_back</mat-icon>
         {{ 'Story.Story.Hidden' | translate: {Default: "Hidden"} }}
     </button>
     <button cdkMenuItem *ngIf="point.hidden" (click)="toggleStoryPointHidden(point.key)">
-        <mat-icon>flip_to_front</mat-icon>
+        <mat-icon class="mr-1">flip_to_front</mat-icon>
         {{ 'Story.Story.Visiable' | translate: {Default: "Visiable"} }}
     </button>
-    <button cdkMenuItem [disabled]="component?.isFirst" (click)="move(point, 'left')">
-        <mat-icon>chevron_left</mat-icon>
+    <button cdkMenuItem class="disabled:opacity-50" [disabled]="component?.isFirst" (click)="move(point, 'left')">
+        <mat-icon class="mr-1">chevron_left</mat-icon>
         {{ 'Story.Story.MOVE_LEFT' | translate: {Default: "Move Left"} }}
     </button>
-    <button cdkMenuItem [disabled]="component?.isLast" (click)="move(point, 'right')">
-        <mat-icon>chevron_right</mat-icon>
+    <button cdkMenuItem class="disabled:opacity-50" [disabled]="component?.isLast" (click)="move(point, 'right')">
+        <mat-icon class="mr-1">chevron_right</mat-icon>
         {{ 'Story.Story.MOVE_RIGHT' | translate: {Default: "Move Right"} }}
     </button>
-    <button cdkMenuItem [disabled]="component?.isFirst" (click)="move(point, 'first')">
-        <mat-icon>first_page</mat-icon>
+    <button cdkMenuItem class="disabled:opacity-50" [disabled]="component?.isFirst" (click)="move(point, 'first')">
+        <mat-icon class="mr-1">first_page</mat-icon>
         {{ 'Story.Story.MOVE_FIRST' | translate: {Default: "Move First"} }}
     </button>
-    <button cdkMenuItem [disabled]="component?.isLast" (click)="move(point, 'last')">
-        <mat-icon>last_page</mat-icon>
+    <button cdkMenuItem class="disabled:opacity-50" [disabled]="component?.isLast" (click)="move(point, 'last')">
+        <mat-icon class="mr-1">last_page</mat-icon>
         {{ 'Story.Story.MOVE_LAST' | translate: {Default: "Move Last"} }}
     </button>
 
@@ -122,7 +122,7 @@
         {{ 'Story.Story.COMMENT' | translate: {Default: "Comment"} }}
     </button> -->
     <button cdkMenuItem (click)="openShare(point)">
-        <mat-icon fontSet="material-icons-outlined">share</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">share</mat-icon>
         {{ 'Story.Story.Share' | translate: {Default: "Share"} }}
     </button>
 
@@ -130,7 +130,7 @@
 
     <button cdkMenuItem class="ngm-cdk-menu__danger" color="warn" ngmAppearance="danger"
         (click)="removeStoryPoint(point)">
-        <mat-icon>delete_forever</mat-icon>
+        <mat-icon class="mr-1">delete_forever</mat-icon>
         {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
     </button>
   </div>

@@ -64,7 +64,7 @@ import { StorySharesComponent } from '../shares/shares.component'
 import { NxStoryPointComponent } from '../story-point/story-point.component'
 
 /**
- * 暂时将 providers 放在此 Story 组件上, 后续考虑更好的位置
+ * For now, place the providers on this Story component and consider a better location later.
  */
 @Component({
   standalone: true,

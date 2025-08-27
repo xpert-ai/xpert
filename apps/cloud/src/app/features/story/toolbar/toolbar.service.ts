@@ -7,10 +7,11 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 import { IStoryTemplate, StoryTemplateType, ToastrService } from '../../../@core'
 import { DeepPartial } from '@metad/ocap-core'
 import { StoryTemplateComponent } from '../../../@shared/story'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 @Injectable()
 export class StoryToolbarService {
-  private readonly translateService = inject(TranslateService)
+  readonly #translate = inject(TranslateService)
   public readonly toastrService = inject(ToastrService)
   public readonly _viewContainerRef = inject(ViewContainerRef)
   private storyService = inject(NxStoryService)
@@ -18,21 +19,22 @@ export class StoryToolbarService {
 
   public widgetComponents = []
 
-  public readonly creatingWidget$ = this.storyService.creatingWidget$.pipe(
-    map((widget) => widget?.component),
-    distinctUntilChanged()
+  readonly creatingWidget = toSignal(this.storyService.creatingWidget$.pipe(
+    map((widget) => widget?.component))
   )
 
   /**
-   * 新创建 Story Widget
+   * Create a new StoryWidget
    */
-  async createWidget(widget: DeepPartial<StoryWidget>) {
-    // const untitled = await firstValueFrom(this.translateService.get('Story.Common.Untitled', { Default: 'Untitled' }))
-    const currentWidget = await firstValueFrom(this.creatingWidget$)
+  createWidget(widget: DeepPartial<StoryWidget>) {
+    const currentWidget = this.creatingWidget()
     if (currentWidget === widget.component) {
       this.storyService.setCreatingWidget(null)
     } else {
-      this.storyService.setCreatingWidget({...widget} as StoryWidget)
+      this.storyService.setCreatingWidget({
+        title: this.#translate.instant('Story.Common.Untitled', { Default: 'Untitled' }),
+        ...widget
+      } as StoryWidget)
     }
   }
 
