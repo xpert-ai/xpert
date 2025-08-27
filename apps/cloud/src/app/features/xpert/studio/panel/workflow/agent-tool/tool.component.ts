@@ -6,7 +6,6 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { XpertWorkflowErrorHandlingComponent } from '@cloud/app/@shared/workflow'
 import { XpertOutputVariablesEditComponent } from '@cloud/app/@shared/xpert'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
 import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
@@ -40,7 +39,6 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     TranslateModule,
     NgmDensityDirective,
     XpertOutputVariablesEditComponent,
-    XpertWorkflowErrorHandlingComponent
   ]
 })
 export class XpertWorkflowAgentToolComponent extends XpertWorkflowBaseComponent {
@@ -79,8 +77,4 @@ export class XpertWorkflowAgentToolComponent extends XpertWorkflowBaseComponent 
   readonly parameters = attrModel(this.toolEntity, 'toolParameters')
   readonly isEnd = attrModel(this.toolEntity, 'isEnd')
   // readonly errorHandling = attrModel(this.toolEntity, 'errorHandling')
-
-  // constructor() {
-  //   super()
-  // }
 }

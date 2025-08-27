@@ -441,8 +441,8 @@ team:
             variableSelector: human.input
             inputType: variable
             value: content
-    maxConcurrency: null
-    recursionLimit: 100
+    maxConcurrency: 20
+    recursionLimit: 120
     interruptBefore: []
     endNodes: []
   memory: null

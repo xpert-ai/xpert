@@ -124,7 +124,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		})
 
 		const endNodes = team.agentConfig?.endNodes ?? []
+		/**
+		 * Collection Tools
+		 */
 		const tools: TGraphTool[] = []
+		/**
+		 * Collect Agent Tools
+		 */
+		const workflowTools = []
 		const interruptBefore: string[] = []
 		const toolsetVarirables: TStateVariable[] = []
 		const stateVariables: TStateVariable[] = Array.from(team.agentConfig?.stateVariables ?? [])
@@ -159,19 +166,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 			})
 		}
-
-		// Workflow agent tools
-		// const agentTools = createWorkflowAgentTools(agentKey, graph, {
-		// 	environment,
-		// 	subscriber,
-		// 	isDraft: command.options.isDraft,
-		// 	mute: command.options.mute,
-		// 	store: command.options.store,
-		// 	commandBus: this.commandBus,
-		// 	queryBus: this.queryBus,
-		// })
-		// tools.push(...agentTools.tools)
-		// endNodes.push(...agentTools.endNodes)
 
 		// Workflow Task tool
 		const taskTools = await createWorkflowTaskTools(agentKey, graph, {
@@ -333,114 +327,116 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		if (summarize?.enabled) {
 			pathMap.push(GRAPH_NODE_SUMMARIZE_CONVERSATION)
 		}
-		if (isStart) {
-			/**
-			 * The root node is responsible for the overall workflow
-			 * 
-			 * @param node next node
-			 * @param parentKey The pre-node of this node
-			 * @param isPrimary is the root agent call
-			 * @param nexts Nexts nodes of primary agent call
-			 * @returns 
-			 */
-			const createSubgraph = async (node: TXpertTeamNode, parentKey?: string, finalReturn?: string) => {
-				if (node?.type === 'agent') {
-					if (agentKeys.has(node.key)) {
-						return
-					}
-					agentKeys.add(node.key)
-					// Is sensitive node
-					if (team.agentConfig?.interruptBefore?.includes(agentUniqueName(node.entity))) {
-						interruptBefore.push(node.key)
-					}
-					const {stateGraph, nextNodes, failNode} = await this.createAgentSubgraph(node.entity, {
-						mute: options.mute,
-						store: options.store,
-						xpert,
-						options: {
-							leaderKey: parentKey,
-							isDraft: command.options.isDraft,
-							subscriber
-						},
-						thread_id,
-						rootController,
-						signal,
-						isTool: false,
-						variables: toolsetVarirables,
-						partners,
-						environment: options.environment,
+
+		/**
+		 * The root node is responsible for the overall workflow
+		 * 
+		 * @param node next node
+		 * @param parentKey The pre-node of this node
+		 * @param finalReturn The end node if this node is the end of the workflow
+		 */
+		const createSubgraph = async (node: TXpertTeamNode, parentKey?: string, finalReturn?: string) => {
+			if (node?.type === 'agent') {
+				if (agentKeys.has(node.key)) {
+					return
+				}
+				agentKeys.add(node.key)
+				// Is sensitive node
+				if (team.agentConfig?.interruptBefore?.includes(agentUniqueName(node.entity))) {
+					interruptBefore.push(node.key)
+				}
+				const {stateGraph, nextNodes, failNode} = await this.createAgentSubgraph(node.entity, {
+					mute: options.mute,
+					store: options.store,
+					xpert,
+					options: {
+						leaderKey: parentKey,
 						isDraft: command.options.isDraft,
 						subscriber
-					})
-					
-					// Conditional Edges
-					const ends = []
-					// The failure process of non-starting agents is created here
-					if (failNode) {
-						ends.push(failNode.key)
-						await createSubgraph(failNode, null, finalReturn)
+					},
+					thread_id,
+					rootController,
+					signal,
+					isTool: false,
+					variables: toolsetVarirables,
+					partners,
+					environment: options.environment,
+					isDraft: command.options.isDraft,
+					subscriber
+				})
+				
+				// Conditional Edges
+				const ends = []
+				// The failure process of non-starting agents is created here
+				if (failNode) {
+					ends.push(failNode.key)
+					await createSubgraph(failNode, null, finalReturn)
+				}
+				nodes[node.key] = {graph: stateGraph, ends}
+				const _nextNodes = nextNodes.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL))
+				if (_nextNodes?.length) {
+					// One2many edge or one2one
+					if (_nextNodes?.length > 1) {
+						conditionalEdges[node.key] = [(state) => {
+							return _nextNodes.filter((_) => !!_).map(({key}) => new Send(key, state))
+						}, _nextNodes.map(({key}) => key)]
+					} else if (_nextNodes?.[0]?.key) {
+						edges[node.key] = _nextNodes[0].key
 					}
-					nodes[node.key] = {graph: stateGraph, ends}
-					if (nextNodes?.length) {
-						// One2many edge or one2one
-						if (nextNodes?.length > 1) {
-							conditionalEdges[node.key] = [(state) => {
-								return nextNodes.filter((_) => !!_).map(({key}) => new Send(key, state))
-							}, nextNodes.map(({key}) => key)]
-						} else if (nextNodes?.[0]?.key) {
-							edges[node.key] = nextNodes[0].key
-						}
-						for await (const nextNode of nextNodes) {
-							await createSubgraph(nextNode, null, finalReturn)
-						}
-					} else if (finalReturn) {
-						edges[node.key] = finalReturn
-					} else {
-						nodes[node.key].ends.push(END)
-						// edges[node.key] = END
+					for await (const nextNode of _nextNodes) {
+						await createSubgraph(nextNode, node.key, finalReturn)
 					}
-				} else if(node?.type === 'workflow') {
-					if (nodes[node.key]) {
-						return
-					}
-					const { workflowNode, navigator, nextNodes, channel, tool, caller, toolset } = await this.commandBus.execute(
-						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
-							mute: options.mute,
-							store: options.store,
-							isDraft: options.isDraft,
-							subscriber,
-							environment,
-							xpert: team
-						}))
-					if (channel) {
-						channels.push(channel)
-					}
-					nodes[node.key] = {
-						...workflowNode
-					}
-					const workflowNodeEnds = [...nextNodes.map((n) => n.key)]
-					if (!nextNodes.length) {
-						workflowNodeEnds.push(END)
-					}
-					// Tool
-					if (tool) {
-						tools.push({tool, caller, toolset, graph: workflowNode.graph})
-						finalReturn = node.key
+				} else if (finalReturn) {
+					edges[node.key] = finalReturn
+				} else {
+					nodes[node.key].ends.push(END)
+					// edges[node.key] = END
+				}
+			} else if(node?.type === 'workflow') {
+				if (nodes[node.key]) {
+					return
+				}
+				const { workflowNode, navigator, nextNodes, channel, tool, caller, toolset } = await this.commandBus.execute(
+					new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
+						mute: options.mute,
+						store: options.store,
+						isDraft: options.isDraft,
+						subscriber,
+						environment,
+						xpert: team
+					}))
+				if (channel) {
+					channels.push(channel)
+				}
+				nodes[node.key] = {
+					...workflowNode
+				}
+				const workflowNodeEnds = [...nextNodes.map((n) => n.key)]
+				if (!nextNodes.length) {
+					workflowNodeEnds.push(END)
+				}
+				// Tool
+				if (tool) {
+					workflowTools.push({tool, name: node.key, parentKey})
+					finalReturn = node.key
+					if (parentKey) {
 						workflowNodeEnds.push(parentKey)
 					}
-					conditionalEdges[node.key] = [navigator, workflowNodeEnds]
+				}
+				conditionalEdges[node.key] = [navigator, workflowNodeEnds]
 
-					for await (const nNode of nextNodes ?? []) {
-						await createSubgraph(nNode, null, finalReturn)
-					}
-					if (!nextNodes.length && finalReturn) {
-						edges[node.key] = finalReturn
-					}
+				for await (const nNode of nextNodes ?? []) {
+					await createSubgraph(nNode, null, finalReturn)
+				}
+				if (!nextNodes.length && finalReturn) {
+					edges[node.key] = finalReturn
 				}
 			}
+		}
 
+		if (isStart) {
 			if (agentHasNextNodes) {
-				for await (const nextNode of next) {
+				for await (const nextNode of next.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL))) {
 					await createSubgraph(nextNode, agentKey)
 					pathMap.push(nextNode.key)
 				}
@@ -464,12 +460,19 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 			}
 		}
+		for await (const nextNode of next.filter((_) => _.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL)) {
+			await createSubgraph(nextNode, agentKey)
+			pathMap.push(nextNode.key)
+		}
 		if (leaderKey) {
 			agentKeys.add(leaderKey)
 		}
 
 		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool), ...(handoffTools ?? [])]
 		pathMap.push(...withTools.map((tool) => tool.name))
+		if (workflowTools.length) {
+			withTools.push(...workflowTools.map((_) => _.tool))
+		}
 
 		// State
 		const workflowNodes = allChannels(graph, agent.key)
@@ -1047,91 +1050,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			stateGraph: stateGraph.withConfig({tags: [xpert.id]}),
 		} as TSubAgent
 	}
-
-	/**
-	 * @deprecated use CreateSummarizeTitleAgentCommand
-	 */
-	// async createTitleAgent(xpert: IXpert, options: {rootController: AbortController; rootExecutionId: string; agentKey?: string;}) {
-	// 	const {rootController, rootExecutionId, agentKey} = options
-	// 	const execution = {} as TXpertAgentExecution
-	// 	const copilotModel = xpert.copilotModel
-	// 	if (!copilotModel) {
-	// 		throw new XpertCopilotNotFoundException(await this.i18nService.t('xpert.Error.XpertCopilotNotFound', {
-	// 			lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-	// 		}))
-	// 	}
-	// 	execution.metadata = {
-	// 		provider: copilotModel.copilot.modelProvider?.providerName,
-	// 		model: copilotModel.model || copilotModel.copilot.copilotModel?.model
-	// 	}
-	// 	const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
-	// 		new GetXpertChatModelQuery(xpert, null, {
-	// 			copilotModel: copilotModel,
-	// 			abortController: rootController,
-	// 			usageCallback: assignExecutionUsage(execution)
-	// 		})
-	// 	)
-		
-	// 	return async (state: typeof AgentStateAnnotation.State, config: RunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
-	// 		// Record start time
-	// 		const timeStart = Date.now()
-	// 		let status = XpertAgentExecutionStatusEnum.SUCCESS
-	// 		let error = null
-	// 		let result = null
-	// 		const _execution = await this.commandBus.execute(
-	// 			new XpertAgentExecutionUpsertCommand({
-	// 				...execution,
-	// 				xpert: { id: xpert.id } as IXpert,
-	// 				parentId: rootExecutionId,
-	// 				status: XpertAgentExecutionStatusEnum.RUNNING,
-	// 				channelName: STATE_VARIABLE_TITLE_CHANNEL
-	// 			})
-	// 		)
-
-	// 		try {
-	// 			// Title the conversation
-	// 			const messages = (<TMessageChannel>state[channelName(agentKey)]).messages
-	// 			const language = state[STATE_VARIABLE_SYS]?.language
-			
-	// 			const allMessages = [...messages, new HumanMessage({
-	// 				id: uuidv4(),
-	// 				content: `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above, without adding any extra phrases like 'Conversation Title:':`,
-	// 			})]
-	// 			const response = await chatModel.invoke(allMessages, {tags: [GRAPH_NODE_TITLE_CONVERSATION]});
-	// 			result = response.content
-	// 			if (typeof response.content !== "string") {
-	// 				throw new Error("Expected a string response from the model");
-	// 			}
-				
-	// 			return {
-	// 				title: response.content.replace(/^"/g, '').replace(/"$/g, ''),
-	// 				[STATE_VARIABLE_TITLE_CHANNEL]: {
-	// 					messages: [...allMessages, response]
-	// 				}
-	// 			}
-	// 		} catch (err) {
-	// 			error = getErrorMessage(err)
-	// 			status = XpertAgentExecutionStatusEnum.ERROR
-	// 		} finally {
-	// 			const timeEnd = Date.now()
-	// 			// Record End time
-	// 			await this.commandBus.execute(
-	// 				new XpertAgentExecutionUpsertCommand({
-	// 					..._execution,
-	// 					threadId: config.configurable.thread_id,
-	// 					checkpointId: config.configurable.checkpoint_id,
-	// 					checkpointNs: '',
-	// 					elapsedTime: timeEnd - timeStart,
-	// 					status,
-	// 					error,
-	// 					outputs: {
-	// 						output: result
-	// 					}
-	// 				})
-	// 			)
-	// 		}
-	// 	}
-	// }
 }
 
 function ensureSummarize(summarize?: TSummarize) {
