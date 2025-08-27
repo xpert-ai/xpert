@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
 import { ChecklistItem } from '@metad/cloud/state'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -16,5 +16,9 @@ import { TranslateModule } from '@ngx-translate/core'
   }
 })
 export class ChecklistComponent {
+  // Inputs
   readonly checklist = input<ChecklistItem[]>()
+
+  // Outputs
+  readonly clickItem = output<ChecklistItem>()
 }

@@ -9,10 +9,11 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { attrModel, OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
+import { linkedModel, nonBlank } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
+  ChecklistItem,
   getErrorMessage,
   IChatConversation,
   OrderTypeEnum,
@@ -35,10 +36,11 @@ import {
   tap
 } from 'rxjs'
 import { getDateLocale } from '../../../../@core'
-import { XpertStudioApiService } from '../domain'
+import { SelectionService, XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertPublishVersionComponent } from './publish/publish.component'
+import { ChecklistComponent } from '@cloud/app/@shared/common'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -51,7 +53,7 @@ import { XpertPublishVersionComponent } from './publish/publish.component'
     MatSliderModule,
     TranslateModule,
     NgmSpinComponent,
-    NgmI18nPipe
+    ChecklistComponent
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
@@ -61,6 +63,7 @@ export class XpertStudioHeaderComponent {
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly xpertService = inject(XpertService)
   readonly apiService = inject(XpertStudioApiService)
+  readonly selectionService = inject(SelectionService)
   readonly executionService = inject(XpertExecutionService)
   readonly chatConversationService = inject(ChatConversationService)
   readonly #dialog = inject(Dialog)
@@ -192,20 +195,6 @@ export class XpertStudioHeaderComponent {
     }).closed.subscribe({
       next: () => {}
     })
-    // this.xpertService.exportDSL(this.team().id, isDraft).subscribe({
-    //   next: (result) => {
-    //     const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' })
-    //     const url = window.URL.createObjectURL(blob)
-    //     const a = document.createElement('a')
-    //     a.href = url
-    //     a.download = `xpert-${this.apiService.team().slug}.yaml`
-    //     a.click()
-    //     window.URL.revokeObjectURL(url)
-    //   },
-    //   error: (err) => {
-    //     this.#toastr.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
-    //   }
-    // })
   }
 
   publishToIntegration() {
@@ -216,6 +205,13 @@ export class XpertStudioHeaderComponent {
         }
       })
       .closed.subscribe({})
+  }
+
+  onCheckItem(item: ChecklistItem) {
+    if (item.field === 'node') {
+      this.xpertStudioComponent.centerGroupOrNode(item.value)
+      this.selectionService.selectNode(item.value)
+    }
   }
 
   @HostListener('window:keydown', ['$event'])
