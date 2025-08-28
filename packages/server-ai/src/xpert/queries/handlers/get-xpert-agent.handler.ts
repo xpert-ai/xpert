@@ -1,12 +1,11 @@
 import { ICopilotModel, IXpertAgent } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { pick } from '@metad/server-common'
-import { IQueryHandler, QueryHandler, QueryBus } from '@nestjs/cqrs'
-import { XpertService } from '../../xpert.service'
-import { GetXpertAgentQuery } from '../get-xpert-agent.query'
+import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotGetOneQuery } from '../../../copilot'
 import { isKeyEqual } from '../../../shared'
-
+import { XpertService } from '../../xpert.service'
+import { GetXpertAgentQuery } from '../get-xpert-agent.query'
 
 @QueryHandler(GetXpertAgentQuery)
 export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
@@ -18,7 +17,17 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 	public async execute(command: GetXpertAgentQuery): Promise<IXpertAgent> {
 		const { id, agentKey: keyOrName, draft } = command
 		const xpert = await this.service.findOne(id, {
-			relations: ['agent', 'agent.copilotModel', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']
+			relations: [
+				'agent',
+				'agent.copilotModel',
+				'copilotModel',
+				'copilotModel.copilot',
+				'agents',
+				'agents.copilotModel',
+				'knowledgebases',
+				'toolsets',
+				'executors'
+			]
 		})
 		const tenantId = xpert.tenantId
 
@@ -26,7 +35,9 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 			const draft = xpert.draft
 			const nodes = draft.nodes ?? xpert.graph.nodes
 			const connections = draft.connections ?? xpert.graph.connections
-			const agentNode = nodes?.find((_) => _.type === 'agent' && (isKeyEqual(_.key, keyOrName) || isKeyEqual(_.entity.name, keyOrName)))
+			const agentNode = nodes?.find(
+				(_) => _.type === 'agent' && (isKeyEqual(_.key, keyOrName) || isKeyEqual(_.entity.name, keyOrName))
+			)
 			if (!agentNode) {
 				return null
 			}
@@ -46,7 +57,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 			const collaborators = connections
 				.filter((_) => _.type === 'xpert' && _.from === agentKey)
 				.map((conn) => nodes.find((_) => _.type === 'xpert' && _.key === conn.to))
-			
+
 			await this.fillCopilot(tenantId, (<IXpertAgent>agentNode.entity).copilotModel)
 			await this.fillCopilot(tenantId, draft.team.copilotModel)
 			return {
@@ -62,13 +73,17 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 			} as IXpertAgent
 		} else {
 			const agents = [xpert.agent, ...xpert.agents]
-			const agent = keyOrName ? agents.find((_) => isKeyEqual(_.key, keyOrName) || isKeyEqual(_.name, keyOrName)) : xpert.agent
+			const agent = keyOrName
+				? agents.find((_) => isKeyEqual(_.key, keyOrName) || isKeyEqual(_.name, keyOrName))
+				: xpert.agent
 			if (agent) {
 				await this.fillCopilot(tenantId, agent.copilotModel)
 				return {
 					...agent,
 					followers: [xpert.agent, ...xpert.agents].filter((_) => _.leaderKey === agent.key),
-					collaborators: agent.collaboratorNames?.map((name) => xpert.executors.find((_) => _.name === name)).filter(nonNullable),
+					collaborators: agent.collaboratorNames
+						?.map((name) => xpert.executors.find((_) => _.name === name))
+						.filter(nonNullable),
 					team: xpert
 				}
 			}
@@ -79,12 +94,14 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 
 	/**
 	 * Find the runtime copilot fill in the copilot model for agent
-	 * 
-	 * @param copilotModel 
+	 *
+	 * @param copilotModel
 	 */
 	async fillCopilot(tenantId: string, copilotModel: ICopilotModel) {
 		if (copilotModel?.copilotId) {
-			copilotModel.copilot = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotModel.copilotId, []))
+			copilotModel.copilot = await this.queryBus.execute(
+				new CopilotGetOneQuery(tenantId, copilotModel.copilotId, [])
+			)
 		}
 	}
 }

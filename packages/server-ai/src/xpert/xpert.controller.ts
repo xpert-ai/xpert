@@ -1,4 +1,4 @@
-import { IChatConversation, ICopilotStore, IIntegration, IXpert, LanguagesEnum, LongTermMemoryTypeEnum, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TCopilotStore, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
+import { IChatConversation, IIntegration, IXpert, LanguagesEnum, LongTermMemoryTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -42,7 +42,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { instanceToPlain } from 'class-transformer'
 import { Request, Response } from 'express'
-import { Between, DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
+import { Between, DeleteResult, IsNull, Like, Not } from 'typeorm'
 import { I18nLang, I18nService } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
@@ -235,6 +235,7 @@ export class XpertController extends CrudController<Xpert> {
 			res.setHeader('Content-Type', 'image/jpeg')
 			res.send(Buffer.from(await imageData.arrayBuffer()))
 		} catch (err) {
+			console.error(err)
 			throw new InternalServerErrorException(err.message)
 		}
 	}
@@ -478,7 +479,7 @@ export class XpertController extends CrudController<Xpert> {
 	private getPublicUserCondition() {
 		const userId = RequestContext.currentUserId()
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		return userId ? {createdById: userId} : {fromEndUserId}
+		return userId ? fromEndUserId ? {createdById: userId, fromEndUserId} : {createdById: userId} : {fromEndUserId}
 	}
 
 	@Public()

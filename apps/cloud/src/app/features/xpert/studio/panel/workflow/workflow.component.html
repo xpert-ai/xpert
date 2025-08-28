@@ -57,6 +57,9 @@
 </div>
 
 @switch (type()) {
+  @case (eWorkflowNodeTypeEnum.TRIGGER) {
+    <xpert-workflow-trigger [node]="node()" [entity]="wfNode()" />
+  }
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
     <xpert-studio-panel-workflow-ifelse [node]="node()" [entity]="wfNode()" />
   }
@@ -117,6 +120,9 @@
       </div>
 
       @switch (type()) {
+        @case (eWorkflowNodeTypeEnum.TRIGGER) {
+          <xpert-workflow-trigger-test class="grow overflow-y-auto" [node]="node()" [entity]="wfNode()" (closed)="testing.set(false)"/>
+        }
         @case (eWorkflowNodeTypeEnum.CODE) {
           <xpert-workflow-code-test class="grow overflow-y-auto pb-4" [node]="node()" [wfNode]="wfNode()" />
         }

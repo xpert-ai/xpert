@@ -6,8 +6,7 @@
   </div>
   @if (placeholder$ | async) {
     <facebook-content-loader class="ngm-story-widget__placeholder dark:opacity-20"
-      [animate]="false">
-    </facebook-content-loader>
+      [animate]="false" />
   }
 </div>
 
@@ -17,12 +16,13 @@
   [cdkDragDisabled]="editable()"
   [cdkDragStartDelay]="100"
   (cdkDragMoved)="onDragFab($event)">
-  
-  <button *ngIf="showMenu$ | async" mat-mini-fab [cdkMenuTriggerFor]="context_menu">
-    <mat-icon fontSet="material-icons-outlined" class="mr-1">menu</mat-icon>
-  </button>
+  @if (showMenu$ | async) {
+    <button mat-mini-fab [cdkMenuTriggerFor]="context_menu">
+      <i class="ri-menu-add-fill text-lg"></i>
+    </button>
+  }
 
-  <ng-container *ngIf="comments$ | async as comments">
+  <!-- <ng-container *ngIf="comments$ | async as comments">
     <button mat-icon-button color="basic" cdkOverlayOrigin #trigger="cdkOverlayOrigin" (click)="isCommentOpen=!isCommentOpen">
       <mat-icon fontSet="material-icons-outlined" class="mr-1">comment</mat-icon>
     </button>
@@ -38,11 +38,11 @@
       </ngm-story-comments>
 
     </ng-template>
-  </ng-container>
+  </ng-container> -->
 </div>
 
 <ng-template #context_menu>
-  <div cdkMenu class="cdk-menu__medium">
+  <div cdkMenu class="cdk-menu__medium space-y-1">
     <ng-container *ngFor="let menu of menus$ | async; trackBy: trackByMenu">
       <ng-container [ngSwitch]="menu.type">
         <button cdkMenuItem *ngSwitchCase="WIDGET_MENU_TYPE.Toggle" (click)="onClickMenu(menu)">
@@ -124,9 +124,9 @@
       {{ 'Story.Widget.Share' | translate: {Default: "Share"} }}
     </button>
 
-    <ng-container *ngIf="editable()">
-      <div class="w-full border-b border-solid border-divider-deep my-1"></div>
-      <ng-container *ngIf="allowMultiLayer$ | async">
+    @if (editable()) {
+      @if (allowMultiLayer$ | async) {
+        <div class="w-full border-b border-solid border-divider-deep my-1"></div>
         <button cdkMenuItem (click)="bringForward()">
           <mat-icon fontSet="material-icons-outlined" class="mr-1">flip_to_front</mat-icon>
           {{ 'Story.Widget.BringForward' | translate: {Default: "Bring Forward"} }}
@@ -143,11 +143,11 @@
           <mat-icon fontSet="material-icons-outlined" class="mr-1">vertical_align_bottom</mat-icon>
           {{ 'Story.Widget.SendtoBack' | translate: {Default: "Send to Back"} }}
         </button>
-      </ng-container>
+      }
 
       <div class="w-full border-b border-solid border-divider-deep my-1"></div>
       <button cdkMenuItem class="ngm-copilot-command-button" (click)="generateWithAI()">
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">auto_fix_high</mat-icon>
+        <i class="ri-sparkling-line text-lg mr-1 text-neutral-100"></i>
         {{ 'Copilot.GenerateWithAI' | translate: {Default: "Generate with AI"} }}
       </button>
       <button cdkMenuItem (click)="openEditAttributes()">
@@ -176,12 +176,12 @@
         <i class="ri-delete-bin-line text-lg mr-1"></i>
         {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
       </button>
-    </ng-container>
+    }
   </div>
 </ng-template>
 
 <ng-template #copyMenu>
-  <div cdkMenu class="cdk-menu__medium">
+  <div cdkMenu class="cdk-menu__medium space-y-1">
     <button cdkMenuItem (click)="onCopy()">
       {{ 'Story.Story.Copy' | translate: {Default: "Copy"} }}
     </button>
@@ -198,7 +198,7 @@
 </ng-template>
 
 <ng-template #moveToMenu>
-  <div cdkMenu class="cdk-menu__medium">
+  <div cdkMenu class="cdk-menu__medium space-y-1">
     <button cdkMenuItem (click)="onMoveToNew(STORY_POINT_TYPE.Responsive)">
       {{ 'Story.Story.NewResponsivePage' | translate: {Default: "New Responsive Page"} }}
     </button>
@@ -215,7 +215,7 @@
 </ng-template>
 
 <ng-template #copyToMenu>
-  <div cdkMenu class="cdk-menu__medium">
+  <div cdkMenu class="cdk-menu__medium space-y-1">
     <button cdkMenuItem (click)="onCopyToNew(STORY_POINT_TYPE.Responsive)">
       {{ 'Story.Story.NewResponsivePage' | translate: {Default: "New Responsive Page"} }}
     </button>
@@ -234,7 +234,7 @@
 
 
 <ng-template #subMenu>
-  <div cdkMenu class="cdk-menu__medium">
+  <div cdkMenu class="cdk-menu__medium space-y-1">
     <ng-container *ngFor="let menu of customSubMenus; trackBy: trackByMenu">
       <mat-divider *ngIf="menu.type === WIDGET_MENU_TYPE.Divider"></mat-divider>
       <button cdkMenuItem *ngIf="menu.type !== WIDGET_MENU_TYPE.Divider"

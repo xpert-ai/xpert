@@ -1,7 +1,7 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { Subscriber } from 'rxjs'
-import { agentLabel, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai'
+import { agentLabel, IWFNTrigger, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from '../ai'
 import { TMessageContentComplex } from '../ai/chat-message.model'
 import { I18nObject } from '../types'
 
@@ -258,4 +258,8 @@ export function getSwarmPartners(graph: TXpertGraph, agentKey: string, partners:
 	}
   })
   return partners
+}
+
+export function getWorkflowTriggers(graph: TXpertGraph, from: string) {
+	return graph.nodes.filter((node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER && (<IWFNTrigger>node.entity).from === from)
 }

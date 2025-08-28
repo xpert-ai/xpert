@@ -28,7 +28,19 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 			const draft = xpert.draft
 			const nodes = draft.nodes ?? xpert.graph.nodes
 			const connections = draft.connections ?? xpert.graph.connections
-			const agentNode = nodes?.find((_) => _.type === 'agent' && (_.key === keyOrName || _.entity.name === keyOrName))
+			let agentNode = nodes?.find((_) => _.type === 'agent' && (_.key === keyOrName || _.entity.name === keyOrName))
+			// Is hidden primary agent?
+			if (!agentNode) {
+				if (draft.team.agent?.options?.hidden) {
+					agentNode = {
+						key: draft.team.agent.key,
+						type: 'agent',
+						entity: draft.team.agent,
+						position: null
+					}
+				}
+
+			}
 			if (!agentNode) {
 				throw new Error(await this.i18nService.translate('xpert.Error.NoAgentInGraph', {
 					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
@@ -37,6 +49,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 					}
 				}))
 			}
+			
 			const agentKey = agentNode.key
 
 			const toolNodes = connections
@@ -62,7 +75,9 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 				.filter((_) => _.type === 'edge' && _.from === (agentKey + '/fail'))
 				.map((conn) => nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
 			
-			await this.fillCopilot(tenantId, (<IXpertAgent>agentNode.entity).copilotModel)
+			if (agentNode) {
+			    await this.fillCopilot(tenantId, (<IXpertAgent>agentNode.entity).copilotModel)
+			}
 			await this.fillCopilot(tenantId, draft.team.copilotModel)
 			return {
 				agent: {

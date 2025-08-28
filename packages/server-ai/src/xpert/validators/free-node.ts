@@ -16,6 +16,7 @@ export class FreeNodeValidator implements RuleValidator {
 						)
 					) {
 						issues.push({
+							node: node.key,
 							ruleCode: 'FREE_NODE_NOT_CONNECTED',
 							field: 'node',
 							value: node.key,

@@ -1,7 +1,8 @@
 import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { END, Send } from '@langchain/langgraph'
-import { TVariableAssigner, TXpertGraph } from '@metad/contracts'
+import { TVariableAssigner, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { TStateChannel } from './state'
 
 /**
  * Intermediate communication type of creating tools
@@ -34,10 +35,15 @@ export type TGraphTool = {
 }
 
 export type TWorkflowGraphNode = TGraphTool & {
-	workflowNode: {graph: Runnable; ends?: string[]}
+	workflowNode: {
+		name?: string;
+		graph: Runnable;
+		ends: string[]
+		defer?: boolean
+	}
 	navigator?
-	nextNodes?
-	channel?
+	nextNodes?: TXpertTeamNode[]
+	channel?: TStateChannel
 }
 
 export function nextWorkflowNodes(graph: TXpertGraph, from: string, state: any) {

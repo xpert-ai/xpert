@@ -3,7 +3,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { BaseChannel, CompiledStateGraph, isCommand } from '@langchain/langgraph'
+import { CompiledStateGraph, isCommand } from '@langchain/langgraph'
 import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentComponent, TMessageContentReasoning, TMessageContentText, TXpertAgentConfig, TXpertTeamNode} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
@@ -564,11 +564,6 @@ export function messageEvent(event: ChatMessageEventTypeEnum, data: any) {
 			data: instanceToPlain(data)
 		}
 	} as MessageEvent
-}
-
-export type TStateChannel = {
-	name: string
-	annotation: BaseChannel
 }
 
 export function getChannelState(state, channel: string): TMessageChannel {

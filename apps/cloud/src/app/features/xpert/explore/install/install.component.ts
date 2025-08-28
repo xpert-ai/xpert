@@ -17,7 +17,8 @@ import {
   TXpertTeamDraft,
   XpertService,
   XpertTemplateService,
-  XpertWorkspaceService
+  XpertWorkspaceService,
+  OrderTypeEnum
 } from 'apps/cloud/src/app/@core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -51,7 +52,7 @@ export class XpertInstallComponent {
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
 
-  readonly workspaces = toSignal(this.workspaceService.getAllMy().pipe(map(({ items }) => items)))
+  readonly workspaces = toSignal(this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)))
   readonly workspaceOptions = computed(() => {
     return this.workspaces()?.map((workspace) => ({
       value: workspace.id,

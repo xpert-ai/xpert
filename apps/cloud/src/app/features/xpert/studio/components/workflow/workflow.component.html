@@ -1,4 +1,4 @@
-@if (type() !== eWorkflowNodeTypeEnum.NOTE) {
+@if (!NoInputs.includes(type())) {
   <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left absolute"></div>
 }
 
@@ -23,6 +23,9 @@
 </div>
 
 @switch(type()) {
+  @case (eWorkflowNodeTypeEnum.TRIGGER) {
+    <xpert-workflow-node-trigger class="px-3" [node]="node()" [entity]="entity()" />
+  }
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
     <xpert-studio-node-workflow-ifelse class="px-3" [node]="node()" [entity]="entity()" />
   }

@@ -92,6 +92,11 @@ export interface IXpertAgent extends IBasePerTenantAndOrganizationEntityModel, T
 
 export type TXpertAgentOptions = {
   /**
+   * Hide this agent node in the graph
+   */
+  hidden?: boolean
+  
+  /**
    * Disable message history for agent conversation
    */
   disableMessageHistory?: boolean

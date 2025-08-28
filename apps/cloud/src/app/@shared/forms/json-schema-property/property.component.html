@@ -76,6 +76,10 @@
             <i class="ri-delete-bin-line"></i>
           </button>
         </div>
+      } @empty {
+        <div class="flex justify-center text-sm rounded-lg p-2 text-text-secondary bg-neutral-50">
+          {{ 'PAC.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
+        </div>
       }
     </div>
   }
@@ -85,9 +89,21 @@
       (ngModelChange)="update($event)" 
     />
   }
+   @case ('object') {
+    <div class="rounded-lg border border-divider-regular px-2">
+      @for (param of properties(); track param.name) {
+        <json-schema-property class="mb-1" [schema]="param" [name]="param.name"
+          [required]="isRequired(param.name)"
+          [variables]="variables()"
+          [ngModel]="value$()?.[param.name]"
+          (ngModelChange)="updateValue(param.name, $event)" 
+        />
+      }
+    </div>
+  }
   @default {
     @if (type()) {
-      <div>Unsupported type: {{type()}}</div>
+      <div>Unsupported type: {{type()}} for '{{name()}}'</div>
     } @else {
       @if (variables()) {
         <xpert-variable-input class="w-full px-2 py-1 text-gray-900 border-0 rounded-lg grow bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"

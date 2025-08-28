@@ -1,5 +1,19 @@
 :host {
   @apply flex flex-col relative;
+
+  .toolbar {
+    @apply absolute top-0 left-0 w-full hidden;
+
+    &.show-toolbar {
+      @apply relative flex;
+    }
+  }
+
+  &:hover {
+    .toolbar {
+      @apply flex opacity-100;
+    }
+  }
 }
 
 .ngm-kpi--loading {

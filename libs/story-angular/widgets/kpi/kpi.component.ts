@@ -11,13 +11,13 @@ import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selecti
 import { DataSettings, Dimension, PropertyHierarchy, TrendType, assignDeepOmitBlank, getEntityDimensions, isEmpty, isEqual, isNil } from '@metad/ocap-core'
 import { ComponentStyling, NxStoryService, componentStyling } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NGXLogger } from 'ngx-logger'
-import { distinctUntilChanged, filter, map } from 'rxjs/operators'
-import { KeyPerformanceIndicatorService } from './key-performance-indicator.service'
-import { KPIPlaceholderComponent } from './placeholder/placeholder.component'
-import { NxWidgetKPIOptions } from './types'
 import { AnalyticalGridComponent, AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
 import { DisplayDensity } from '@metad/ocap-angular/core'
+import { NGXLogger } from 'ngx-logger'
+import { distinctUntilChanged, filter, map } from 'rxjs/operators'
+import { KPIPlaceholderComponent } from './placeholder/placeholder.component'
+import { KeyPerformanceIndicatorService } from './key-performance-indicator.service'
+import { NxWidgetKPIOptions } from './types'
 
 export interface PacWidgetKPIStyling extends StoryWidgetStyling {
   title: ComponentStyling

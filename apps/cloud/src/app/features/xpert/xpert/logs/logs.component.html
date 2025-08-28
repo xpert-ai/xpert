@@ -130,7 +130,7 @@
       />
     }
 
-    <chat-conversation-preview #prev class="h-full w-[420px] rounded-2xl shadow-lg bg-components-card-bg overflow-auto"
+    <chat-conversation-preview #prev class="h-full w-[420px] rounded-2xl shadow-lg overflow-auto border border-gray-100 bg-components-panel-bg-blur"
       readonly
       [conversationId]="preview()"
       (close)="preview.set(null)"

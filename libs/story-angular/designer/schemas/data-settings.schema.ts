@@ -323,10 +323,10 @@ export abstract class DataSettingsSchemaService<
 }
 
 export function SelectionVariantExpansion(BUILDER, dataSettings$: Observable<DataSettings>) {
-  return AccordionWrappers([
+  return [
     {
       key: 'selectionVariant',
-      label: BUILDER?.SELECTION_VARIANT ?? 'Selection Variant',
+      className: 'my-4',
       fieldGroup: [
         {
           key: 'selectOptions',
@@ -339,7 +339,24 @@ export function SelectionVariantExpansion(BUILDER, dataSettings$: Observable<Dat
         }
       ]
     }
-  ])
+  ]
+  // return AccordionWrappers([
+  //   {
+  //     key: 'selectionVariant',
+  //     label: BUILDER?.SELECTION_VARIANT ?? 'Selection Variant',
+  //     fieldGroup: [
+  //       {
+  //         key: 'selectOptions',
+  //         type: 'slicers',
+  //         props: {
+  //           label: BUILDER?.SELECT_OPTIONS ?? 'Select Options',
+  //           dataSettings: dataSettings$,
+  //           capacities: [SlicersCapacity.CombinationSlicer, SlicersCapacity.AdvancedSlicer, SlicersCapacity.Variable]
+  //         }
+  //       }
+  //     ]
+  //   }
+  // ])
 }
 
 export function PresentationVariantExpansion(

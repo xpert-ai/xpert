@@ -46,10 +46,13 @@ import {
   findStartNodes,
   injectHelpWebsite,
   isWorkflowKey,
+  IWFNTrigger,
+  IXpertAgent,
   IXpertToolset,
   ToastrService,
   TXpertAgentConfig,
   TXpertTeamNode,
+  WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertService,
   XpertTypeEnum,
@@ -403,6 +406,27 @@ export class XpertStudioComponent {
 
   deleteNode(node: TXpertTeamNode) {
     this.apiService.removeNode(node.key)
+    if (node.key === this.rootAgent().key) {
+      this.apiService.updatePrimaryAgent((state) => {
+        return {
+          ...state,
+          options: {
+            ...(state?.options ?? {}),
+            hidden: true
+          }
+        } as IXpertAgent
+      })
+    }
+
+    // Remove parameters of xpert when removed chat trigger point
+    if (node.type === 'workflow' && node.entity?.type === WorkflowNodeTypeEnum.TRIGGER && (<IWFNTrigger>node.entity).from === 'chat') {
+      this.apiService.agentConfig.update((state) => {
+          return {
+            ...(state ?? {}),
+            parameters: null
+          }
+        })
+    }
   }
 
   centerGroupOrNode(id: string,) {

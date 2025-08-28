@@ -9,10 +9,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IsNilPipe, NgMapPipeModule, NxCoreModule } from '@metad/core'
 import { NxStoryResponsiveModule } from '@metad/story/responsive'
 import { GridsterModule } from 'angular-gridster2'
-import { QuillModule } from 'ngx-quill'
 import { NxStorySharedModule } from './shared.module'
 import { StorySharesComponent } from './shares/shares.component'
-import { StoryCommentsComponent } from './story-comments/story-comments.component'
 import { NxStoryPointComponent } from './story-point/story-point.component'
 import { NxStoryWidgetComponent } from './story-widget/story-widget.component'
 import { NxStoryComponent } from './story/story.component'
@@ -26,7 +24,6 @@ import { SinglePageStoryComponent } from './single-page-story/sps.component'
     OverlayModule,
     CdkMenuModule,
     GridsterModule,
-    QuillModule,
     HammerModule,
     TranslateModule,
     IsNilPipe,
@@ -44,7 +41,6 @@ import { SinglePageStoryComponent } from './single-page-story/sps.component'
     NxStoryComponent,
     NxStoryPointComponent,
     NxStoryWidgetComponent,
-    StoryCommentsComponent,
     SinglePageStoryComponent
   ],
   exports: [NxStoryComponent, NxStoryWidgetComponent, NxStoryPointComponent, SinglePageStoryComponent]

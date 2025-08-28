@@ -28,6 +28,7 @@ import { XpertWorkflowNodeToolComponent } from './tool/tool.component'
 import { XpertWorkflowNodeAssignerComponent } from './assigner/assigner.component'
 import { XpertWorkflowNodeAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowNodeTaskComponent } from './task/task.component'
+import { XpertWorkflowNodeTriggerComponent } from './trigger/trigger.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -55,7 +56,8 @@ import { XpertWorkflowNodeTaskComponent } from './task/task.component'
     XpertWorkflowNodeToolComponent,
     XpertWorkflowNodeAgentToolComponent,
     XpertWorkflowNodeAssignerComponent,
-    XpertWorkflowNodeTaskComponent
+    XpertWorkflowNodeTaskComponent,
+    XpertWorkflowNodeTriggerComponent
   ],
   host: {
     '[class]': 'type()',
@@ -82,4 +84,11 @@ export class XpertStudioNodeWorkflowComponent {
   readonly title = computed(() => this.entity()?.title)
   readonly description = computed(() => this.entity()?.description)
   readonly isStart = computed(() => this.startNodes()?.includes(this.key()))
+
+  readonly NoInputs = [
+    WorkflowNodeTypeEnum.NOTE,
+    WorkflowNodeTypeEnum.TRIGGER,
+    WorkflowNodeTypeEnum.TASK,
+    WorkflowNodeTypeEnum.AGENT_TOOL
+  ]
 }

@@ -14,6 +14,7 @@ import {
   signal,
   output,
   DestroyRef,
+  viewChild,
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -73,6 +74,9 @@ export class XpertChatAppComponent {
   // Outputs
   readonly openHistories = output()
 
+  // Children
+  readonly convComponent = viewChild('conversation', {read: ChatConversationComponent})
+
   // States
   readonly userSignal = toSignal(this.#store.user$)
   readonly conversationId = this.chatService.conversationId
@@ -92,7 +96,10 @@ export class XpertChatAppComponent {
     return this.xpert()?.starters
   })
 
-  readonly parameters = computed(() => this.xpert()?.agent?.parameters)
+  readonly primaryAgent = computed(() => this.xpert()?.agent)
+  readonly parameters = computed(() => this.xpert()?.agentConfig?.parameters ?? (
+    this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters
+  ))
   readonly parametersValue = model<Record<string, unknown>>()
 
   readonly parameterInvalid = computed(() => {
@@ -164,7 +171,7 @@ export class XpertChatAppComponent {
 
     effect(() => {
       // Follow the latest news
-      if (this.messages() && this.isBottom()) {
+      if ((this.messages() || this.convComponent()?.suggestionQuestions()) && this.isBottom()) {
         this.scrollBottom(true)
       }
     })
@@ -185,6 +192,7 @@ export class XpertChatAppComponent {
   }
 
   newXpertConv(xpert?: IXpert) {
+    this.parametersValue.set({})
     xpert ??= this.xpert() ?? this.chatService.xpert()
     this.chatService.newConv(xpert)
   }

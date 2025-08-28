@@ -441,13 +441,22 @@ team:
             variableSelector: human.input
             inputType: variable
             value: content
-    maxConcurrency: null
-    recursionLimit: 100
+    maxConcurrency: 20
+    recursionLimit: 120
     interruptBefore: []
     endNodes: []
   memory: null
   summarize: null
-  features: null
+  features:
+    opener:
+      enabled: true
+      questions:
+        - Current Development Status of Autonomous Driving for New Energy
+          Vehicles
+        - Future technological directions of AI
+      message: I am one of the most popular Deep Agents. A simple, configurable, and
+        fully open source deep research agent that runs across multiple model
+        providers, search tools, and MCP servers.
   version: "1"
   agent:
     key: Agent_j7XACkpWCX
@@ -1080,7 +1089,7 @@ nodes:
         greeting-responder agent"
 
         </example>
-      description: 深度放松的
+      description:
     hash: 71a134414ad791e3cb6a8a1d8e6fb633803bfe1d8c867a4d3aa6a831ec308655
   - type: agent
     key: Agent_v0sgJngFW9
