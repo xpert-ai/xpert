@@ -834,7 +834,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 																)
 									  )
 			Object.keys(edges).forEach((name) => subgraphBuilder.addEdge(name, edges[name]))
-			Object.keys(conditionalEdges).forEach((name) => subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0], conditionalEdges[name][1]))
+			Object.keys(conditionalEdges).forEach((name) => subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0] as any, conditionalEdges[name][1]))
 		}
 
 		// Verbose
@@ -1026,13 +1026,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						]
 					},
 					[channelName(agent.key)]: {
-						...output[channelName(agent.key)],
+						...(output[channelName(agent.key)] as Record<string, any>),
 						messages: [lastMessage]
 					}
 				} : {
 					messages: [lastMessage],
 					[channelName(agent.key)]: {
-						...output[channelName(agent.key)],
+						...(output[channelName(agent.key)] as Record<string, any>),
 						messages: output.messages, // Return full messages to parent graph
 						output: stringifyMessageContent(lastMessage.content)
 					}

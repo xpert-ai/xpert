@@ -89,9 +89,9 @@
     "@duckdb/duckdb-wasm": "1.25.0",
     "@emoji-mart/data": "^1.2.1",
     "@floating-ui/dom": "^1.6.11",
-    "@langchain/community": "0.3.27",
-    "@langchain/core": "0.3.40",
-    "@langchain/langgraph": "0.2.53",
+    "@langchain/community": "0.3.53",
+    "@langchain/core": "0.3.72",
+    "@langchain/langgraph": "0.4.7",
     "@langchain/ollama": "0.1.5",
     "@langchain/openai": "0.4.2",
     "@microsoft/fetch-event-source": "^2.0.1",
@@ -179,6 +179,7 @@
     "xlsx": "^0.18.5",
     "xmldom": "^0.6.0",
     "yaml": "^2.6.1",
+    "zod": "3.25.67",
     "zone.js": "~0.14.0"
   },
   "devDependencies": {
@@ -269,7 +270,8 @@
     "packages/*"
   ],
   "resolutions": {
-    "@langchain/core": "0.3.40"
+    "@langchain/core": "0.3.72",
+    "zod": "3.25.67"
   },
   "nx": {
     "includedScripts": []

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-instanceof/no-instanceof */
 import { load } from "@langchain/core/load";
 import { SerializerProtocol } from '@langchain/langgraph-checkpoint'
 
@@ -112,7 +111,7 @@ export class JsonPlusSerializer implements SerializerProtocol {
     return new TextEncoder().encode(jsonString);
   }
 
-  dumpsTyped(obj: any): [string, Uint8Array] {
+  async dumpsTyped(obj: any): Promise<[string, Uint8Array]> {
     if (obj instanceof Uint8Array) {
       return ["bytes", obj];
     } else {

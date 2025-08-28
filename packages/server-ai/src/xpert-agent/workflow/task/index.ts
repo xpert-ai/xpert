@@ -164,7 +164,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
 			//
 			const compiled = await params.commandBus.execute<
 				XpertAgentSubgraphCommand,
-				{ agent: IXpertAgent; graph: CompiledStateGraph<any, any, any> }
+				{ agent: IXpertAgent; graph: CompiledStateGraph<any, any, any, any, typeof AgentStateAnnotation.spec> }
 			>(
 				new XpertAgentSubgraphCommand(
 					agentKey,
@@ -205,7 +205,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
 
 					return {
 						state: lastMessage,
-						output: lastMessage.content
+						output: lastMessage.content as string
 					}
 				},
 				{

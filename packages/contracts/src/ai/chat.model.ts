@@ -34,8 +34,8 @@ export type TSensitiveOperation = {
   tasks?: {
     name: string;
     interrupts: {
-      value: TInterruptMessage;
-      when: "during";
+      value?: TInterruptMessage;
+      when?: "during";
       resumable?: boolean;
       ns?: string[];
     }[];

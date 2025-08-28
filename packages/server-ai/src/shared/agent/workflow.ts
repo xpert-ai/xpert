@@ -1,5 +1,5 @@
 import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
-import { StructuredToolInterface } from '@langchain/core/tools'
+import { StructuredToolInterface, DynamicStructuredTool } from '@langchain/core/tools'
 import { END, Send } from '@langchain/langgraph'
 import { TVariableAssigner, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { TStateChannel } from './state'
@@ -23,7 +23,7 @@ export type TGraphTool = {
 	/**
 	 * Tool definition
 	 */
-	tool: StructuredToolInterface | RunnableToolLike
+	tool?: any
 	/**
 	 * Variables
 	 */

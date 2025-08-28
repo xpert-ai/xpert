@@ -837,7 +837,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const _execution: IXpertAgentExecution = {}
 		const { graph, agent } = await this.commandBus.execute<
 			CompileGraphCommand,
-			{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
+			{ graph: CompiledStateGraph<unknown, unknown, string, typeof AgentStateAnnotation.spec, typeof AgentStateAnnotation.spec>; agent: IXpertAgent }
 		>(
 			new CompileGraphCommand(xpert.agent.key, xpert, {
 				mute: params.mute,
@@ -947,7 +947,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							input: input,
 							[STATE_VARIABLE_HUMAN]: {
 								input,
-								files: state.files || [],
+								files: state.human?.files || [],
 							},
 							messages: [],
 							[primaryChannelName]: {

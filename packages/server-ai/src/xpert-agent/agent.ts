@@ -572,7 +572,7 @@ export function getChannelState(state, channel: string): TMessageChannel {
 
 export type TAgentSubgraphResult = {
 	agent: IXpertAgent; 
-	graph: CompiledStateGraph<unknown, unknown, any>;
+	graph: CompiledStateGraph<unknown, unknown, any, typeof AgentStateAnnotation.spec, typeof AgentStateAnnotation.spec>;
 	nextNodes: TXpertTeamNode[];
 	failNode: TXpertTeamNode
 	mute?: TXpertAgentConfig['mute']

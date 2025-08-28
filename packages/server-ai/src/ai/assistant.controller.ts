@@ -47,6 +47,7 @@ function transformAssistant(xpert: IXpert) {
 		config: null,
 		metadata: {
 			avatar: xpert.avatar
-		}
+		},
+		context: null
 	} as Assistant
 }

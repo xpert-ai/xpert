@@ -1,11 +1,10 @@
-import { z } from 'zod'
+import type { z as z3 } from "zod/v3";
+import { type JsonSchema7Type } from "zod-to-json-schema";
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
-type ZodObjectAny = z.ZodObject<any, any, any, any>
-
 export class ToolSchemaParser {
-	static parseZodToJsonSchema(schema: ZodObjectAny | z.ZodEffects<ZodObjectAny>) {
-		const jsonSchema = zodToJsonSchema(schema)
+	static parseZodToJsonSchema(schema: z3.ZodTypeAny | JsonSchema7Type) {
+		const jsonSchema = zodToJsonSchema(schema as any)
 		return jsonSchema
 	}
 
