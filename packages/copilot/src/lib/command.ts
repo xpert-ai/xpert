@@ -74,7 +74,7 @@ export interface CopilotCommand<T extends StateDefinition = any> {
   createGraph?: (
     options: CreateGraphOptions
   ) => Promise<
-    StateGraph<{ channels: ChannelReducers<T> }, T, Partial<T>, string> | CompiledStateGraph<T, Partial<T>, string>
+    any // StateGraph<{ channels: ChannelReducers<T> }, T, Partial<T>, string> | CompiledStateGraph<T, Partial<T>, string>
   >
 
   // For history management
