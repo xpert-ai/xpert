@@ -1,5 +1,5 @@
 import { BaseMessage, isAIMessage, isAIMessageChunk, isBaseMessageChunk, ToolMessage, getBufferString } from '@langchain/core/messages'
-import { Annotation, CompiledStateGraph, messagesStateReducer } from '@langchain/langgraph'
+import { Annotation, CompiledStateGraph, messagesStateReducer, BaseChannel } from '@langchain/langgraph'
 import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
 import {
 	channelName,
@@ -30,6 +30,11 @@ export type TAgentStateSystem = {
 	date: string
 	datetime: string
 	common_times: string
+}
+
+export type TStateChannel = {
+	name: string
+	annotation: BaseChannel
 }
 
 export const AgentStateAnnotation = Annotation.Root({

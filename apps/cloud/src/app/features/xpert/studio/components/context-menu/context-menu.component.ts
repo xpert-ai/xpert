@@ -213,10 +213,11 @@ export class XpertStudioContextMenuComponent {
   }
 
   async addWorkflowCode() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CODE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CODE,
       key: genXpertCodeKey(),
-      title: await this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }),
+      title: await this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }) + ` ${length + 1}`,
       language: 'javascript',
       code: `return {"result": arg1 + arg2};`,
       inputs: [

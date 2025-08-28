@@ -5,7 +5,6 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
-import { TStateChannel } from '../../agent'
 import { createHttpNode } from '../http'
 import { createRouterNode } from '../router'
 import { createSplitterNode } from '../splitter'
@@ -18,7 +17,7 @@ import { createAssignerNode } from '../assigner'
 import { createAgentToolNode } from '../agent-tool'
 import { createTriggerNode } from '../trigger'
 import { createCodeNode, WorkflowCodeValidator } from '../code/index'
-import { TWorkflowGraphNode } from '../../../shared'
+import { TStateChannel, TWorkflowGraphNode } from '../../../shared'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {

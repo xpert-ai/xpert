@@ -36,11 +36,11 @@ import { parseXmlString } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { XpertConfigException } from '../../../core/errors'
-import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphParams, TAgentSubgraphResult, TStateChannel } from '../../agent'
+import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphParams, TAgentSubgraphResult } from '../../agent'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 
 
@@ -298,7 +298,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Graph nodes
-		const nodes: Record<string, {name?: string; ends: string[]; graph: Runnable;}> = {}
+		const nodes: Record<string, TWorkflowGraphNode['workflowNode']> = {}
 		// Conditional Edges
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
 		// Fixed Edge
@@ -827,7 +827,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(
 																	nodes[name].name || name,
 																	nodes[name].graph.withConfig({signal: abortController.signal}),
-																	{ends: nodes[name].ends}
+																	{
+																		ends: nodes[name].ends,
+																		// defer: nodes[name].defer
+																	}
 																)
 									  )
 			Object.keys(edges).forEach((name) => subgraphBuilder.addEdge(name, edges[name]))
