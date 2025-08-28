@@ -40,7 +40,7 @@ import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphPa
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 
 
@@ -371,7 +371,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					ends.push(failNode.key)
 					await createSubgraph(failNode, null, finalReturn)
 				}
-				nodes[node.key] = {graph: stateGraph, ends}
+				nodes[node.key] = {
+					graph: stateGraph,
+					ends,
+				}
 				const _nextNodes = nextNodes.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL))
 				if (_nextNodes?.length) {
 					// One2many edge or one2one
@@ -408,7 +411,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					channels.push(channel)
 				}
 				nodes[node.key] = {
-					...workflowNode
+					...workflowNode,
 				}
 				const graphNodeName = nodes[node.key].name || node.key
 				// Agent Tools
@@ -716,7 +719,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		if (!hiddenAgent) {
 			subgraphBuilder.addNode(agentKey, new RunnableLambda({ func: callModel })
-					.withConfig({ runName: agentKey, tags: [thread_id, xpert.id, agentKey] })
+					.withConfig({ runName: agentKey, tags: [thread_id, xpert.id, agentKey] }),
+					{
+						defer: hasMultipleInputs(graph, agent.key)
+					}
 				)
 		}
 		if (isStart && startNodes.length) {
@@ -829,7 +835,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 																	nodes[name].graph.withConfig({signal: abortController.signal}),
 																	{
 																		ends: nodes[name].ends,
-																		// defer: nodes[name].defer
+																		defer: hasMultipleInputs(graph, name)
 																	}
 																)
 									  )
