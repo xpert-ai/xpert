@@ -479,7 +479,7 @@ export class XpertController extends CrudController<Xpert> {
 	private getPublicUserCondition() {
 		const userId = RequestContext.currentUserId()
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		return userId ? {createdById: userId} : {fromEndUserId}
+		return userId ? fromEndUserId ? {createdById: userId, fromEndUserId} : {createdById: userId} : {fromEndUserId}
 	}
 
 	@Public()

@@ -11,8 +11,8 @@ export class AnonymousStrategy extends PassportStrategy(Strategy, 'xpert') {
 	readonly xpertService: XpertService
 
 	authenticate(req: Request) {
-		this.xpertService
-			.findBySlug(req.params.name)
+		const slug = req.params.name
+		this.xpertService.findBySlug(slug)
 			.then((xpert) => {
 				if (xpert.app?.enabled && xpert.app.public) {
 					req.headers['organization-id'] = xpert.organizationId
