@@ -5,7 +5,7 @@ import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { JsonSchema7StringType, JsonSchema7ArrayType, JsonSchema7Type, JsonSchema7TypeUnion } from 'zod-to-json-schema'
+import { JsonSchema7StringType, JsonSchema7ArrayType, JsonSchema7Type, JsonSchema7TypeUnion, JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { TWorkflowVarGroup } from '@cloud/app/@core'
 import { XpertVariableInputComponent } from '../../agent'
 
@@ -48,6 +48,14 @@ export class JSONSchemaPropertyComponent {
   readonly meta = computed(() => this.schema() as JsonSchema7Type)
   readonly stringSchema = computed(() => this.schema() as JsonSchema7StringType)
   readonly arraySchema = computed(() => this.schema() as JsonSchema7ArrayType)
+  readonly objectSchema = computed(() => this.schema() as JsonSchema7ObjectType)
+
+  readonly properties = computed(() => this.objectSchema()?.properties && 
+    Object.entries(this.objectSchema().properties).map(([name, value]) => ({
+      ...value,
+      name,
+    }))
+  )
 
   readonly #invalid = computed(() => {
     return false
@@ -92,5 +100,13 @@ export class JSONSchemaPropertyComponent {
       state.splice(index, 1)
       return [...state]
     })
+  }
+
+  isRequired(name: string) {
+    return this.objectSchema().required?.includes(name)
+  }
+
+  updateValue(name: string, value: unknown) {
+    this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))
   }
 }
