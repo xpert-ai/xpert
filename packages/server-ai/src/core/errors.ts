@@ -20,4 +20,5 @@ export class ThreadAlreadyExistsException extends BadRequestException {
 }
 
 export class XpertConfigException extends NotFoundException {}
+export class XpertWorkflowConfigException extends BadRequestException {}
 export class XpertSensitiveOperationException extends BadRequestException {}

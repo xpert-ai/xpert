@@ -16,9 +16,11 @@ import {
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get, isNil } from 'lodash'
-import { SandboxVMCommand } from '../../sandbox'
-import { AgentStateAnnotation, nextWorkflowNodes, stateWithEnvironment } from '../../shared'
-import { wrapAgentExecution } from '../../shared/agent/execution'
+import { SandboxVMCommand } from '../../../sandbox'
+import { AgentStateAnnotation, nextWorkflowNodes, stateWithEnvironment, translate } from '../../../shared'
+import { wrapAgentExecution } from '../../../shared/agent/execution'
+import { WorkflowCodeValidator } from './validator'
+import { XpertWorkflowConfigException } from '../../../core'
 
 const ErrorChannelName = 'error'
 const LogsChannelName = 'logs'
@@ -31,10 +33,16 @@ export function createCodeNode(
 		queryBus: QueryBus
 		xpertId: string
 		environment: IEnvironment
+		validator: WorkflowCodeValidator
 	}
 ) {
-	const { commandBus, queryBus, environment } = params
+	const { commandBus, queryBus, environment, validator } = params
 	const entity = node.entity as IWFNCode
+
+	const items = validator.check(node)
+	if (items.length) {
+		throw new XpertWorkflowConfigException(items.map((item, index) => (items.length > 1 ? `${index + 1}. ` : '') + translate(item.message)).join('\n'))
+	}
 
 	return {
 		workflowNode: {

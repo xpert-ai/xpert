@@ -3,7 +3,7 @@
     <div cdkMenuItem class="" (click)="createAgent(menu)">
       <i class="ri-robot-3-line mr-1"></i><span>{{ 'PAC.Xpert.NewAgent' | translate: {Default: 'New Agent'} }}</span>
     </div>
-    <div cdkMenuItem class=""
+    <div cdkMenuItem class="!pr-1"
       [cdkMenuTriggerFor]="collaboratorsMenu"
       [cdkMenuPosition]="[
         {
@@ -16,9 +16,10 @@
       ]"
     >
       <i class="ri-user-add-line mr-1"></i>
-      <span>{{ 'PAC.Xpert.AddExternalExpert' | translate: {Default: 'Add External Expert'} }}</span>
+      <span class="grow">{{ 'PAC.Xpert.AddExternalExpert' | translate: {Default: 'Add External Expert'} }}</span>
+      <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
-    <div cdkMenuItem class=""
+    <div cdkMenuItem class="!pr-1"
       [cdkMenuTriggerFor]="knowledgeMenu"
       [cdkMenuPosition]="[
         {
@@ -31,9 +32,10 @@
       ]"
     >
       <i class="ri-book-shelf-line mr-1"></i>
-      <span>{{ 'PAC.Xpert.AddKnowledgebase' | translate: {Default: 'Add Knowledgebase'} }}</span>
+      <span class="grow">{{ 'PAC.Xpert.AddKnowledgebase' | translate: {Default: 'Add Knowledgebase'} }}</span>
+      <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
-    <div cdkMenuItem class=""
+    <div cdkMenuItem class="!pr-1"
       [cdkMenuTriggerFor]="toolsetMenu"
       [cdkMenuPosition]="[
         {
@@ -46,10 +48,11 @@
       ]"
     >
       <i class="ri-hammer-line mr-1"></i>
-      <span>{{ 'PAC.Xpert.AddToolset' | translate: {Default: 'Add Toolset'} }}</span>
+      <span class="grow">{{ 'PAC.Xpert.AddToolset' | translate: {Default: 'Add Toolset'} }}</span>
+      <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
 
-    <div cdkMenuItem class=""
+    <div cdkMenuItem class="!pr-1"
       [cdkMenuTriggerFor]="blockMenu"
       [cdkMenuPosition]="[
         {
@@ -62,7 +65,8 @@
       ]"
     >
       <i class="ri-code-block mr-1"></i>
-      <span>{{ 'PAC.Xpert.AddWorkflow' | translate: {Default: 'Add Workflow'} }}</span>
+      <span class="grow">{{ 'PAC.Xpert.AddWorkflow' | translate: {Default: 'Add Workflow'} }}</span>
+      <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
 
     @if (node) {
@@ -107,9 +111,18 @@
 </ng-template>
 
 <ng-template #blockMenu>
-  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur rounded-xl backdrop-blur-[5px] shadow-lg !min-w-[256px]">
-    <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
+  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[256px]">
+    <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Logic' | translate: {Default: 'Logic'} }}
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      [cdkMenuTriggerFor]="triggerMenu"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TRIGGER" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary grow">
+        {{ 'PAC.Workflow.Trigger' | translate: {Default: 'Trigger'} }}
+      </div>
+      <i class="ri-arrow-drop-right-fill"></i>
     </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowRouter()"
@@ -219,6 +232,22 @@
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.NOTE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
         {{ 'PAC.Xpert.Note' | translate: {Default: 'Note'} }}
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #triggerMenu>
+  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]">
+    <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
+      {{ 'PAC.Workflow.Triggers' | translate: {Default: 'Triggers'} }}
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowTrigger('chat')"
+    >
+      <xpert-workflow-icon [type]="'chat'" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.Chat' | translate: {Default: 'Chat'} }}
       </div>
     </div>
   </div>

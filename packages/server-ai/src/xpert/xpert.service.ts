@@ -8,8 +8,10 @@ import {
 	UserPublicDTO,
 	UserService
 } from '@metad/server-core'
+import { getErrorMessage } from '@metad/server-common'
 import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign, uniq, uniqBy } from 'lodash'
 import { FindConditions, In, IsNull, Like, Not, Repository } from 'typeorm'
@@ -21,7 +23,8 @@ import { GetXpertMemoryEmbeddingsQuery } from './queries'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { FreeNodeValidator } from './validators'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
-import { getErrorMessage } from '@metad/server-common'
+import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
+
 
 @Injectable()
 export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
@@ -33,7 +36,8 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		private readonly storeService: CopilotStoreService,
 		private readonly userService: UserService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly eventEmitter: EventEmitter2
 	) {
 		super(repository)
 	}
@@ -219,6 +223,14 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
 		const res = await freeNodeValidator.validate(draft)
 		results.push(...res)
+
+		// More validators events
+		const validators = await this.eventEmitter.emitAsync(EventNameXpertValidate, new XpertDraftValidateEvent(draft))
+		validators.forEach((items) => {
+			if (items) {
+				results.push(...items)
+			}
+		})
 		return results
 	}
 

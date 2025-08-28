@@ -153,8 +153,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					workspace_url: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.conversationId)
 				},
 				[STATE_VARIABLE_HUMAN]: {
-					input: input.input,
-					files: input.files
+					...input,
 				},
 				memories
 			}

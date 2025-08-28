@@ -27,7 +27,8 @@ import {
   IWFNTask,
   IWFNAgentTool,
   TASK_DESCRIPTION_PREFIX,
-  TASK_DESCRIPTION_SUFFIX
+  TASK_DESCRIPTION_SUFFIX,
+  IWFNTrigger
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
@@ -45,7 +46,8 @@ import {
   genXpertTemplateKey,
   genXpertToolKey,
   genXpertAgentToolKey,
-  genXpertTaskKey
+  genXpertTaskKey,
+  genXpertTriggerKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
@@ -211,10 +213,11 @@ export class XpertStudioContextMenuComponent {
   }
 
   async addWorkflowCode() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CODE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CODE,
       key: genXpertCodeKey(),
-      title: await this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }),
+      title: await this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }) + ` ${length + 1}`,
       language: 'javascript',
       code: `return {"result": arg1 + arg2};`,
       inputs: [
@@ -308,6 +311,15 @@ export class XpertStudioContextMenuComponent {
       descriptionPrefix: TASK_DESCRIPTION_PREFIX,
       descriptionSuffix: TASK_DESCRIPTION_SUFFIX
     } as IWFNTask)
+  }
+
+  addWorkflowTrigger(from: string) {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.TRIGGER,
+      key: genXpertTriggerKey(),
+      title: this.#translate.instant('PAC.Workflow.Trigger', { Default: 'Trigger' }),
+      from
+    } as IWFNTrigger)
   }
 
   onSelectToolset({toolset, provider}: {toolset?: IXpertToolset; provider?: IToolProvider}) {

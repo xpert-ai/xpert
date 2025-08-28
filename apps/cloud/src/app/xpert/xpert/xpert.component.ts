@@ -96,7 +96,10 @@ export class XpertChatAppComponent {
     return this.xpert()?.starters
   })
 
-  readonly parameters = computed(() => this.xpert()?.agent?.parameters)
+  readonly primaryAgent = computed(() => this.xpert()?.agent)
+  readonly parameters = computed(() => this.xpert()?.agentConfig?.parameters ?? (
+    this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters
+  ))
   readonly parametersValue = model<Record<string, unknown>>()
 
   readonly parameterInvalid = computed(() => {
@@ -189,6 +192,7 @@ export class XpertChatAppComponent {
   }
 
   newXpertConv(xpert?: IXpert) {
+    this.parametersValue.set({})
     xpert ??= this.xpert() ?? this.chatService.xpert()
     this.chatService.newConv(xpert)
   }

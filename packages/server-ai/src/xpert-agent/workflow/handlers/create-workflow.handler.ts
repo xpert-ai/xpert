@@ -1,14 +1,12 @@
 import { Annotation } from '@langchain/langgraph'
 import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
-import { Logger } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
-import { TStateChannel } from '../../agent'
 import { createHttpNode } from '../http'
 import { createRouterNode } from '../router'
-import { createCodeNode } from '../code'
 import { createSplitterNode } from '../splitter'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
@@ -17,10 +15,16 @@ import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
 import { createToolNode } from '../tool'
 import { createAssignerNode } from '../assigner'
 import { createAgentToolNode } from '../agent-tool'
+import { createTriggerNode } from '../trigger'
+import { createCodeNode, WorkflowCodeValidator } from '../code/index'
+import { TStateChannel, TWorkflowGraphNode } from '../../../shared'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
 	readonly #logger = new Logger(CreateWorkflowNodeHandler.name)
+
+	@Inject(WorkflowCodeValidator)
+	private codeValidator: WorkflowCodeValidator
 
 	constructor(
 		private readonly commandBus: CommandBus,
@@ -34,6 +38,16 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 		let workflow = {} as any
 		let channel: TStateChannel = null
 		switch (node.entity.type) {
+			case WorkflowNodeTypeEnum.TRIGGER: {
+				workflow = createTriggerNode(graph, node, {
+					conversationId: options.conversationId,
+					xpertId,
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					environment: options.environment
+				})
+				break
+			}
 			case WorkflowNodeTypeEnum.ASSIGNER: {
 				workflow = createAssignerNode(graph, node, {
 					commandBus: this.commandBus,
@@ -68,7 +82,8 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					xpertId, 
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
-					environment: options.environment
+					environment: options.environment,
+					validator: this.codeValidator
 				})
 				channel = {
 					name: channelName(node.key),
@@ -175,6 +190,8 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				})
 				break
 			}
+			default:
+				throw new Error(`Unsupported workflow node type: ${node.entity?.type}`)
 		}
 
 		return {
@@ -185,6 +202,6 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				.map((conn) =>
 					graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to)
 				)
-		}
+		} as TWorkflowGraphNode
 	}
 }

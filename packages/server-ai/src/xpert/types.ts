@@ -1,10 +1,19 @@
 import { Embeddings } from '@langchain/core/embeddings'
-import { AiProviderRole, ICopilot, TLongTermMemory } from '@metad/contracts'
+import { AiProviderRole, ICopilot, TLongTermMemory, TXpertTeamDraft } from '@metad/contracts'
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { CopilotGetOneQuery, CopilotOneByRoleQuery } from '../copilot'
 import { CopilotModelGetEmbeddingsQuery } from '../copilot-model'
 import { CopilotNotFoundException } from '../core/errors'
+
+export const EventNameXpertValidate = 'xpert.validate'
+
+export class XpertDraftValidateEvent {
+  constructor(
+    public readonly draft: TXpertTeamDraft,
+  ) {}
+}
+
 
 export class XpertNameInvalidException extends HttpException {
 	constructor(message: string) {

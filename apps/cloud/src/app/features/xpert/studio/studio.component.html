@@ -49,7 +49,7 @@
       </f-connection>
     }
 
-    @for (node of nodes(); track node.key + node.hash) {
+    @for (node of nodes(); track node.key) {
       <div class="w-[240px] group relative pb-1 shadow-sm border border-transparent rounded-[15px] bg-workflow-block-bg hover:shadow-lg hover:z-10"
         [class.ngm-selected]="selectedNodeKey() === node.key"
         [class.f-hover]="hoverNode() === node.key"
@@ -264,12 +264,10 @@
 
     <div class="h-[1px] bg-divider-regular my-1"></div>
 
-    @if (rootAgent().key !== node.key) {
-      <div cdkMenuItem class="danger" (click)="deleteNode(node)">
-        <i class="ri-delete-bin-3-line mr-1"></i>
-        <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</span>
-      </div>
-    }
+    <div cdkMenuItem class="danger" (click)="deleteNode(node)">
+      <i class="ri-delete-bin-3-line mr-1"></i>
+      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</span>
+    </div>
 
     <div class="h-[1px] bg-divider-regular my-1"></div>
 
