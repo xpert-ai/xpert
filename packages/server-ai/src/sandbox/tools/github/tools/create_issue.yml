@@ -10,14 +10,37 @@ description:
     zh_Hans: 在 GitHub 代码仓库中创建一个新问题
   llm: A tool to create a new issue in a GitHub repository.
 parameters:
-  - name: path
+  - name: owner
     type: string
     required: true
     label:
-      en_US: Repository Path
-      zh_Hans: 代码仓库路径
+      en_US: Repository Owner
+      zh_Hans: 代码仓库拥有者
+  - name: repo
+    type: string
+    required: true
+    label:
+      en_US: Repository Name
+      zh_Hans: 代码仓库名称
     human_description:
-      en_US: Repository path.
-      zh_Hans: 代码仓库路径。
+      en_US: Repository name.
+      zh_Hans: 代码仓库名称。
     form: llm
-  
+  - name: title
+    type: string
+    required: true
+    label:
+      en_US: Issue Title
+      zh_Hans: 问题标题
+    human_description:
+      en_US: Title of the issue to be created.
+      zh_Hans: 要创建的问题的标题。
+  - name: body
+    type: string
+    required: true
+    label:
+      en_US: Issue Body
+      zh_Hans: 问题正文
+    human_description:
+      en_US: Body of the issue to be created.
+      zh_Hans: 要创建的问题的正文。
