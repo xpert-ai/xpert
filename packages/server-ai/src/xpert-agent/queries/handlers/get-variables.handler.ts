@@ -6,7 +6,7 @@ import {
 	IWFNKnowledgeRetrieval,
 	IWFNSubflow,
 	IWorkflowNode,
-	IXpertAgent,
+	IXpert,
 	STATE_VARIABLE_FILES,
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_INPUT,
@@ -22,7 +22,6 @@ import { omit } from '@metad/server-common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { EnvironmentService } from '../../../environment'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
 import {
 	agentToolOutputVariables,
@@ -34,9 +33,11 @@ import {
 	knowledgeOutputVariables,
 	subflowOutputVariables,
 	templateOutputVariables,
-	toolOutputVariables
+	toolOutputVariables,
+	triggerOutputVariables
 } from '../../workflow'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
+import { getXpertAgent } from '../../../xpert/utils'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -50,7 +51,21 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 	public async execute(command: XpertAgentVariablesQuery): Promise<TWorkflowVarGroup[]> {
 		const { xpertId, type, nodeKey, isDraft, environmentId } = command.options
 
-		const xpert = await this.xpertService.findOne(xpertId, { select: ['id', 'agentConfig', 'draft', 'graph'] })
+		// const xpert = await this.xpertService.findOne(xpertId, { select: ['id', 'agentConfig', 'draft', 'graph'] })
+
+		const xpert = await this.xpertService.findOne(xpertId, {
+			relations: [
+				'agent',
+				'agent.copilotModel',
+				'copilotModel',
+				'copilotModel.copilot',
+				'agents',
+				'agents.copilotModel',
+				'knowledgebases',
+				'toolsets',
+				'executors'
+			]
+		})
 
 		const varGroups: TWorkflowVarGroup[] = []
 		const variables: TStateVariable[] = []
@@ -208,7 +223,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 
 		// Current agent variables (parameters)
 		if (nodeKey && node?.type === 'agent' && type === 'input') {
-			const _variables = await this.getAgentVariables(xpertId, nodeKey, isDraft)
+			const _variables = await this.getAgentVariables(xpert, nodeKey, isDraft)
 			variables.push(..._variables)
 			// Current agent variable group
 			varGroups.push(getAgentVarGroup(node.key, graph))
@@ -223,13 +238,14 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				const g = getAgentVarGroup(node.key, graph)
 				varGroups.push(g)
 
-				const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-					new GetXpertAgentQuery(xpertId, node.key, isDraft)
-				)
+				// const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+				// 	new GetXpertAgentQuery(xpertId, node.key, isDraft)
+				// )
+				const agent = getXpertAgent(xpert, node.key, { isDraft })
 
 				// Add parameters of agent into global variables
 				if (agent.parameters) {
-					variables.push(...agent.parameters.map(xpertParameterToVariable))
+					variables.push(...agent.parameters.filter((_) => _.name).map(xpertParameterToVariable))
 				}
 
 				// Add toolset's states into global variables
@@ -262,6 +278,11 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 
 				switch (entity.type) {
+					case WorkflowNodeTypeEnum.TRIGGER: {
+						variables.push(...triggerOutputVariables(entity))
+						varGroups.push(varGroup)
+						break
+					}
 					case WorkflowNodeTypeEnum.CODE: {
 						variables.push(...codeOutputVariables(entity))
 						varGroups.push(varGroup)
@@ -322,11 +343,14 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 	/**
 	 * Toolset's state variables and parameters
 	 */
-	async getAgentVariables(xpertId: string, key: string, isDraft: boolean) {
+	async getAgentVariables(xpert: IXpert, key: string, isDraft: boolean) {
 		const variables = []
-		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-			new GetXpertAgentQuery(xpertId, key, isDraft)
-		)
+		// const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+		// 	new GetXpertAgentQuery(xpertId, key, isDraft)
+		// )
+
+		const agent = getXpertAgent(xpert, key, { isDraft })
+
 		if (!agent) {
 			return variables
 		}
@@ -336,7 +360,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		)
 
 		if (agent.parameters) {
-			variables.push(...agent.parameters.map(xpertParameterToVariable))
+			variables.push(...agent.parameters.filter((_) => _.name).map(xpertParameterToVariable))
 		}
 
 		for await (const toolset of toolsets) {

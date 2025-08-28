@@ -10,13 +10,12 @@ import {
   input,
   model,
   output,
-  signal
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { CopilotChatMessage, injectToastr, IXpert, TInterruptCommand, TToolCall, XpertAgentExecutionStatusEnum } from '../../@core'
+import { CopilotChatMessage, injectToastr, IXpert, TInterruptCommand, XpertAgentExecutionStatusEnum } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { XpertParametersCardComponent } from '../../@shared/xpert'
 import { AppService } from '../../app.service'
@@ -76,11 +75,11 @@ export class ChatConversationComponent {
   readonly error = computed(() => this.conversation()?.error)
   readonly operation = computed(() => this.chatService.conversation()?.operation)
   readonly command = model<TInterruptCommand>()
-  // readonly toolCalls = signal<TToolCall[]>(null)
-  // readonly #confirmOperation = computed(() =>
-  //   this.toolCalls() ? { ...this.operation(), toolCalls: this.toolCalls().map((call) => ({ call })) } : null
-  // )
-  readonly parameters = computed(() => this.xpert()?.agent?.parameters)
+
+  readonly primaryAgent = computed(() => this.xpert()?.agent)
+  readonly parameters = computed(() => this.xpert()?.agentConfig?.parameters ?? (
+    this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters
+  ))
 
   readonly parametersValue = this.chatService.parametersValue
   readonly suggestion_enabled = this.chatService.suggestion_enabled
@@ -101,19 +100,11 @@ export class ChatConversationComponent {
     this.destroyRef.onDestroy(() => {
       this.homeService.canvasOpened.set(null)
     })
-
-    // effect(() => {
-    //   console.log(this.conversationStatus())
-    // })
   }
 
   onChat(statement: string) {
     this.chat.emit(statement)
   }
-
-  // onToolCalls(toolCalls: TToolCall[]) {
-  //   this.toolCalls.set(toolCalls)
-  // }
 
   onConfirm() {
     this.chatService.chat({ confirm: true, command: this.command() })

@@ -1,5 +1,5 @@
 @for (conv of conversations(); track conv) {
-  <chat-conversation-preview #preview class="w-[420px]"
+  <chat-conversation-preview #preview class="w-[420px] h-full"
     [(conversationId)]="conversationId"
     [xpert]="xpert()"
     [environmentId]="environmentId()"
@@ -13,6 +13,5 @@
     (chatStop)="onChatStop($event)"
     (execution)="openExecution($event)"
   >
-    
   </chat-conversation-preview>
 }

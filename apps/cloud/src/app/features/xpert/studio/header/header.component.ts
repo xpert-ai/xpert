@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
+import { Component, computed, effect, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
@@ -85,7 +85,7 @@ export class XpertStudioHeaderComponent {
     const versions = this.apiService.versions()?.filter(nonBlank)
     return versions.sort((a, b) => Number(b.version) - Number(a.version))
   })
-  readonly draft = computed(() => this.apiService.draft())
+  readonly draft = this.apiService.pristineDraft
   readonly unsaved = this.apiService.unsaved
   readonly draftSavedDate = computed(() => {
     if (this.draft()?.savedAt) {
@@ -208,9 +208,9 @@ export class XpertStudioHeaderComponent {
   }
 
   onCheckItem(item: ChecklistItem) {
-    if (item.field === 'node') {
-      this.xpertStudioComponent.centerGroupOrNode(item.value)
-      this.selectionService.selectNode(item.value)
+    if (item.node) {
+      this.xpertStudioComponent.centerGroupOrNode(item.node)
+      this.selectionService.selectNode(item.node)
     }
   }
 

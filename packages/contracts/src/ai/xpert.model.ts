@@ -221,6 +221,11 @@ export type TXpertAgentConfig = {
   stateVariables?: TStateVariable[]
 
   /**
+   * Custom input parameters should be consistent with the start node or primary agent parameters.
+   */
+  parameters?: TXpertParameter[]
+
+  /**
    * @deprecated use memories in tools
    */
   toolsMemory?: Record<string, TVariableAssigner[]>

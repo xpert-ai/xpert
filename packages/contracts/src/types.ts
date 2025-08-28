@@ -134,6 +134,7 @@ export type DeepPartial<T> = {
 }
 
 export interface ChecklistItem {
+  node?: string
 	field?: string // Incorrect field name, such as role, hierarchy
   value?: string // Optional: value of the field, such as role name
 	message: I18nObject

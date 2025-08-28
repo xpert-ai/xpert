@@ -35,7 +35,9 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
 	public async execute(command: XpertPublishCommand): Promise<Xpert> {
 		const {id, newVersion, environmentId, notes} = command
-		const xpert = await this.xpertService.findOne(id, { relations: ['agent', 'copilotModel', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets'] })
+		const xpert = await this.xpertService.findOne(id, { relations: [
+			'agent', 'copilotModel', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets'
+		] })
 
 		if (!xpert.draft) {
 			throw new NotFoundException(`No draft found on Xpert '${xpert.name}'`)
@@ -158,7 +160,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 				const knowledgebaseIds = draft.connections.filter((_) => _.type === 'knowledge' && _.from === node.key).map((_) => _.to)
 				totalToolsetIds.push(...toolsetIds)
 				totalKnowledgebaseIds.push(...knowledgebaseIds)
-				// totalXpertIds.push(...xpertIds)
+				
 				// All relative experts
 				const xpertIds = draft.connections.filter((_) => _.type === 'xpert' && _.from === node.key).map((_) => _.to)
 				const collaboratorNames = xpertIds.map((id) => xpertNodes.find((_) => _.key === id)?.entity.name).filter(Boolean)
@@ -228,6 +230,16 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 				}
 			}
 
+			// Hidden primary agent
+			if (!xpert.agent.options?.hidden && !agentNodes.some((_) => _.key === xpert.agent.key)) {
+				xpert.agent = await this.xpertAgentService.update(xpert.agent.id, {
+					options: {
+						...(xpert.agent.options ?? {}),
+						hidden: true
+					}					
+				})
+			}
+			
 			// Delete unused agents
 			for await (const agent of oldAgents) {
 				if (!newAgents.some((_) => _.id === agent.id)) {

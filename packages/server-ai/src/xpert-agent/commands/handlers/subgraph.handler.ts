@@ -15,7 +15,7 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertAgentConfig, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, getWorkflowTriggers, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IWFNAgentTool, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertAgentConfig, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -40,7 +40,7 @@ import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphPa
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 
 
@@ -59,14 +59,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 	public async execute(command: XpertAgentSubgraphCommand): Promise<TAgentSubgraphResult> {
 		const { agentKeyOrName, xpert, options } = command
 		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools, environment, tools: additionalTools, mute } = options
-		// const userId = RequestContext.currentUserId()
 
 		// Signal controller in this subgraph
 		const abortController = new AbortController()
 		signal?.addEventListener('abort', () => abortController.abort())
-
-		// I8n
-		// const i18n = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(RequestContext.getLanguageCode())})
 
 		const {agent, graph, next, fail} = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
 			new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
@@ -77,6 +73,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			)
 		}
 
+		// Hidden this agent node: the graph created is a pure workflow starting from start node
+		const hiddenAgent = agent.options?.hidden
 		// Agent has next nodes or fail node
 		const agentHasNextNodes = next?.length || fail?.length
 
@@ -300,7 +298,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Graph nodes
-		const nodes: Record<string, {ends: string[]; graph: Runnable;}> = {}
+		const nodes: Record<string, {name?: string; ends: string[]; graph: Runnable;}> = {}
 		// Conditional Edges
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
 		// Fixed Edge
@@ -319,7 +317,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		
 		// Channels of workflow
 		const channels: TStateChannel[] = []
-		const startNodes = findStartNodes(getCurrentGraph(graph, agent.key), agent.key).filter((_) => _ !== agent.key)
 		const pathMap = []
 		if (summarizeTitle) {
 			pathMap.push(GRAPH_NODE_TITLE_CONVERSATION)
@@ -327,6 +324,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		if (summarize?.enabled) {
 			pathMap.push(GRAPH_NODE_SUMMARIZE_CONVERSATION)
 		}
+
+		let startNodes: string[] = []
 
 		/**
 		 * The root node is responsible for the overall workflow
@@ -396,7 +395,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (nodes[node.key]) {
 					return
 				}
-				const { workflowNode, navigator, nextNodes, channel, tool, caller, toolset } = await this.commandBus.execute(
+				const { workflowNode, navigator, nextNodes, channel, tool} = await this.commandBus.execute<CreateWorkflowNodeCommand, TWorkflowGraphNode>(
 					new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
 						mute: options.mute,
 						store: options.store,
@@ -411,25 +410,35 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				nodes[node.key] = {
 					...workflowNode
 				}
+				const graphNodeName = nodes[node.key].name || node.key
+				// Agent Tools
+				if (parentKey === agentKey) {
+					pathMap.push(graphNodeName)
+				}
 				const workflowNodeEnds = [...nextNodes.map((n) => n.key)]
 				if (!nextNodes.length) {
 					workflowNodeEnds.push(END)
 				}
 				// Tool
 				if (tool) {
-					workflowTools.push({tool, name: node.key, parentKey})
-					finalReturn = node.key
+					workflowTools.push({tool, parentKey})
+					finalReturn = graphNodeName
 					if (parentKey) {
 						workflowNodeEnds.push(parentKey)
 					}
 				}
-				conditionalEdges[node.key] = [navigator, workflowNodeEnds]
+				conditionalEdges[graphNodeName] = [navigator, workflowNodeEnds]
 
 				for await (const nNode of nextNodes ?? []) {
 					await createSubgraph(nNode, null, finalReturn)
 				}
-				if (!nextNodes.length && finalReturn) {
-					edges[node.key] = finalReturn
+				
+				if (!nextNodes.length) {
+					if ((<IWFNAgentTool>node.entity).isEnd) {
+						edges[graphNodeName] = END
+					} else if (finalReturn) {
+						edges[graphNodeName] = finalReturn
+					}
 				}
 			}
 		}
@@ -453,6 +462,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 			}
 
+			if (hiddenAgent) {
+				startNodes = getWorkflowTriggers(graph, 'chat').map((n) => n.key)
+			} else {
+				startNodes = findStartNodes(getCurrentGraph(graph, agent.key), agent.key).filter((_) => _ !== agent.key)
+			}
 			if (startNodes.length) {
 				for await (const key of startNodes) {
 					const node = graph.nodes.find((_) => _.key === key)
@@ -460,9 +474,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 			}
 		}
+		// Agent tools in workflow
 		for await (const nextNode of next.filter((_) => _.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL)) {
 			await createSubgraph(nextNode, agentKey)
-			pathMap.push(nextNode.key)
 		}
 		if (leaderKey) {
 			agentKeys.add(leaderKey)
@@ -498,7 +512,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				return acc
 			}, {}) ?? {}),
 			// Default channels for nodes
-			...Object.fromEntries(uniq([agent.key, ...workflowNodes]).map((key) => {
+			...Object.fromEntries(uniq([...(hiddenAgent ? [] : [agent.key]), ...workflowNodes]).map((key) => {
 				// for agent
 				if (isAgentKey(key)) {
 					const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key)
@@ -698,10 +712,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 		}
 
-		const subgraphBuilder = new StateGraph(SubgraphStateAnnotation)
-			.addNode(agentKey, new RunnableLambda({ func: callModel })
+		const subgraphBuilder = new StateGraph<any, any, any, string>(SubgraphStateAnnotation)
+
+		if (!hiddenAgent) {
+			subgraphBuilder.addNode(agentKey, new RunnableLambda({ func: callModel })
 					.withConfig({ runName: agentKey, tags: [thread_id, xpert.id, agentKey] })
 				)
+		}
 		if (isStart && startNodes.length) {
 			/**
 			 * @todo use Send does not avoid multiple executions
@@ -722,9 +739,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			if (endNodes?.includes(tool.name)) {
 				// If it is end of the agent, connect the subsequent nodes of the agent
 				if (nextNodeKey?.length) {
-					// if (nextNodeKey.some((_) => !_)) {
-					// 	throw new InternalServerErrorException(`There is an empty nextNodeKey in tools`)
-					// }
 					ends.push(...nextNodeKey)
 					subgraphBuilder.addConditionalEdges(name, (state, config) => {
 						return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
@@ -768,9 +782,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 				if (endNodes?.includes(name)) {
 					if (nextNodeKey?.length) {
-						if (nextNodeKey.some((_) => !_)) {
-							throw new InternalServerErrorException(`There is an empty nextNodeKey in tools`)
-						}
+						// if (nextNodeKey.some((_) => !_)) {
+						// 	throw new InternalServerErrorException(`There is an empty nextNodeKey in tools`)
+						// }
 						subgraphBuilder.addConditionalEdges(name, (state, config) => {
 							return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
 						})
@@ -783,7 +797,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})
 		}
 
-		if (summarizeTitle) {
+		if (summarizeTitle && !hiddenAgent) {
 			const titleAgent = await this.commandBus.execute(
 				new CreateSummarizeTitleAgentCommand({
 					xpert: team,
@@ -804,12 +818,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		if (!nextNodeKey.length) {
 			pathMap.push(END)
 		}
-		subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey), pathMap)
+		if (!hiddenAgent) {
+			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey), pathMap)
+		}
 
 		// Has other nodes
 		if (Object.keys(nodes).length) {
 			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(
-																	name,
+																	nodes[name].name || name,
 																	nodes[name].graph.withConfig({signal: abortController.signal}),
 																	{ends: nodes[name].ends}
 																)
@@ -1089,11 +1105,9 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 
 				if (nextNodes && !subState?.error) {
 					if (Array.isArray(nextNodes)) {
-						// if (nextNodes.some((_) => !_)) {
-						// 	throw new InternalServerErrorException(`There is an empty nextNodes in createAgentNavigator`)
-						// }
-						if (nextNodes.length)
+						if (nextNodes.length) {
 							nexts.push(...nextNodes.filter((_) => !!_).map((name) => new Send(name, state)))
+						}
 					} else {
 						nexts.push(new Send(nextNodes(state, config), state))
 					}

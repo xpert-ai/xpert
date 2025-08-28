@@ -6,6 +6,10 @@ import { TStateVariable, TXpertParameter } from "./xpert.model"
 
 export enum WorkflowNodeTypeEnum {
   /**
+   * Trigger
+   */
+  TRIGGER = 'trigger',
+  /**
    * State Variable Assigner
    */
   ASSIGNER = 'assigner',
@@ -325,6 +329,12 @@ export interface IWFNAgentTool extends IWorkflowNode {
    * Error handling
    */
   errorHandling?: TErrorHandling
+}
+
+export interface IWFNTrigger extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.TRIGGER,
+  from: 'chat' | 'integration' | 'scheduler'
+  parameters?: TXpertParameter[]
 }
 
 export interface IWFNTask extends IWorkflowNode {

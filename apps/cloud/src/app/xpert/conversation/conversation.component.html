@@ -16,10 +16,9 @@
       </button>
     </div>
   </div>
-
 }
 
-@if (conversation()) {
+@if (conversation()?.id) {
   @if (parameters()?.length) {
     <xpert-parameters-card class="w-full mb-4" [parameters]="parameters()"
       [(ngModel)]="parametersValue"

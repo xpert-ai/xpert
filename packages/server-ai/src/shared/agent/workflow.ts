@@ -34,7 +34,11 @@ export type TGraphTool = {
 }
 
 export type TWorkflowGraphNode = TGraphTool & {
-	workflowNode: {graph: Runnable; ends?: string[]}
+	workflowNode: {
+		name?: string;
+		graph: Runnable;
+		ends: string[]
+	}
 	navigator?
 	nextNodes?
 	channel?

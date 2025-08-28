@@ -35,6 +35,8 @@ import { XpertWorkflowToolComponent } from './tool/tool.component'
 import { XpertWorkflowAssignerComponent } from './assigner/assigner.component'
 import { XpertWorkflowAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowTaskComponent } from './task/task.component'
+import { XpertWorkflowTriggerComponent } from './trigger/trigger.component'
+import { XpertWorkflowTriggerTestComponent } from './trigger-test/trigger.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -67,7 +69,9 @@ import { XpertWorkflowTaskComponent } from './task/task.component'
     XpertWorkflowToolComponent,
     XpertWorkflowAgentToolComponent,
     XpertWorkflowAssignerComponent,
-    XpertWorkflowTaskComponent
+    XpertWorkflowTaskComponent,
+    XpertWorkflowTriggerComponent,
+    XpertWorkflowTriggerTestComponent
   ],
   animations: [IfAnimation,]
 })

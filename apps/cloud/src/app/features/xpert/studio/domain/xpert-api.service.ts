@@ -1,14 +1,14 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { IPoint, IRect } from '@foblex/2d'
-import { nonNullable, debounceUntilChanged, linkedModel } from '@metad/core'
+import { nonNullable, debounceUntilChanged } from '@metad/core'
 import { createStore, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { FCanvasChangeEvent } from '@foblex/flow'
 import { nonBlank } from '@metad/copilot'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { ActivatedRoute, Router } from '@angular/router'
-import { effectAction } from '@metad/ocap-angular/core'
+import { Router } from '@angular/router'
+import { attrModel, effectAction, linkedModel } from '@metad/ocap-angular/core'
 import { calculateHash } from '@cloud/app/@shared/utils'
 import { EnvironmentService, KnowledgebaseService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { isEqual, isNil, negate, omit, omitBy, pick } from 'lodash-es'
@@ -23,7 +23,6 @@ import {
   filter,
   map,
   Observable,
-  of,
   shareReplay,
   Subject,
   switchMap,
@@ -82,7 +81,6 @@ export class XpertStudioApiService {
   readonly getXpertTeam = injectGetXpertTeam()
   readonly getXpertsByWorkspace = injectGetXpertsByWorkspace()
   readonly #router = inject(Router)
-  readonly #route = inject(ActivatedRoute)
 
   readonly store = createStore({ name: 'xpertStudio' }, withProps<IStudioStore>({ draft: null }))
   readonly #stateHistory = stateHistory<Store, IStudioStore>(this.store, {
@@ -94,6 +92,22 @@ export class XpertStudioApiService {
   get storage(): TXpertTeamDraft {
     return this.store.getValue().draft
   }
+  // Draft model
+  readonly _draft = linkedModel({
+    initialValue: null,
+    compute: () => this.viewModel(),
+    update: (draft) => {
+      this.store.update((state) => {
+        return {
+          ...(state ?? {}),
+          draft
+        }
+      })
+      // this.#reload.next(EReloadReason.JUST_RELOAD)
+    }
+  })
+  readonly xpert = attrModel(this._draft, 'team')
+  readonly agentConfig = attrModel(this.xpert, 'agentConfig')
 
   readonly #reload: Subject<EReloadReason | null> = new Subject<EReloadReason>()
 
@@ -104,6 +118,9 @@ export class XpertStudioApiService {
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
 
+  /**
+   * Pristine xpert
+   */
   readonly team = signal<IXpert>(null)
   readonly versions = toSignal(
     this.#refresh$.pipe(
@@ -114,9 +131,9 @@ export class XpertStudioApiService {
   readonly workspaceId = computed(() => this.team()?.workspaceId)
 
   /**
-   * pristine draft
+   * Pristine draft of xpert
    */
-  readonly draft = signal<TXpertTeamDraft>(null)
+  readonly pristineDraft = signal<TXpertTeamDraft>(null)
   readonly unsaved = signal(false)
   /**
    * Operate histories
@@ -133,14 +150,6 @@ export class XpertStudioApiService {
       return this.viewModel().nodes.find((_) => _.type === 'agent' && _.key === primaryAgentKey)?.entity as IXpertAgent
     }
     return null
-  })
-  readonly xpert = computed(() => this.viewModel()?.team)
-  readonly agentConfig = linkedModel({
-    initialValue: null,
-    compute: () => this.xpert()?.agentConfig,
-    update: (config) => {
-      this.updateXpertAgentConfig(config)
-    }
   })
 
   // knowledgebases
@@ -202,10 +211,10 @@ export class XpertStudioApiService {
           this.paramId$.pipe(
             distinctUntilChanged(),
             switchMap((id) => this.getXpertTeam(id)),
-            tap((role) => {
+            tap((xpert) => {
               this.#stateHistory.clear()
-              this.draft.set(role.draft)
-              this.initRole(role)
+              this.pristineDraft.set(xpert.draft)
+              this.initRole(xpert)
               this.stateHistories.update(() => ({
                 past: [
                   {
@@ -313,7 +322,7 @@ export class XpertStudioApiService {
     return this.xpertService.saveDraft(draft.team.id, draft).pipe(
       tap((draft) => {
         this.unsaved.set(false)
-        this.draft.set(draft)
+        this.pristineDraft.set(draft)
       })
     )
   }
@@ -344,11 +353,11 @@ export class XpertStudioApiService {
   }
 
   gotoHistoryIndex(index: number) {
-    // 更新历史记录，根据给定的索引调整过去和未来的状态
+    // Updates the history, adjusting past and future states based on the given index
     this.stateHistories.update((state) => {
       let past: TStateHistory[]
       let future: TStateHistory[]
-      // 如果索引在过去的长度范围内，调整过去和未来的状态
+      // If the index is within the range of past length, adjust past and future states
       if (index <= state.past.length) {
         past = state.past.slice(0, index)
         future = [...state.past.slice(index), ...state.future]
@@ -384,6 +393,7 @@ export class XpertStudioApiService {
       }
     })
     this.#stateHistory.jumpToPast(cursor)
+    this.#reload.next(null)
   }
 
   redo() {
@@ -396,6 +406,7 @@ export class XpertStudioApiService {
         }
       })
       this.#stateHistory.jumpToFuture(cursor - this.getHistoryCursor() - 1)
+      this.#reload.next(null)
     }
   }
 
@@ -493,6 +504,9 @@ export class XpertStudioApiService {
     }
   }
 
+  /**
+   * Update external expert
+   */
   public updateXpert(key: string, entity: IXpert, options?: {emitEvent: boolean}) {
     new UpdateXpertHandler(this.store).handle(new UpdateXpertRequest(key, entity))
     if (options?.emitEvent == null || options.emitEvent) {
@@ -500,6 +514,9 @@ export class XpertStudioApiService {
     }
   }
 
+  /**
+   * Update xpert in draft
+   */
   updateXpertTeam(fn: (state: Partial<IXpert>) => Partial<IXpert>, reason = EReloadReason.XPERT_UPDATED) {
     this.store.update((state) => {
       const draft = structuredClone(state.draft)
@@ -509,6 +526,15 @@ export class XpertStudioApiService {
       }
     })
     this.#reload.next(reason)
+  }
+
+  public updatePrimaryAgent(fn: (state: Partial<IXpertAgent>) => IXpertAgent) {
+    this.updateXpertTeam((xpert) => {
+      return {
+        ...xpert,
+        agent: fn(xpert.agent)
+      }
+    }, EReloadReason.XPERT_UPDATED)
   }
 
   public updateXpertOptions(options: Partial<TXpertOptions>, reason: EReloadReason) {

@@ -13,6 +13,7 @@ import { QueryHandlers } from './queries/handlers'
 import { XpertModule } from '../xpert/xpert.module'
 import { WorkflowCommandHandlers } from './workflow/handlers'
 import { EnvironmentModule } from '../environment'
+import { Validators } from './workflow'
 
 @Module({
 	imports: [
@@ -27,7 +28,7 @@ import { EnvironmentModule } from '../environment'
 		forwardRef(() => EnvironmentModule),
 	],
 	controllers: [XpertAgentController],
-	providers: [XpertAgentService, ...CommandHandlers, ...WorkflowCommandHandlers, ...QueryHandlers],
+	providers: [XpertAgentService, ...CommandHandlers, ...WorkflowCommandHandlers, ...QueryHandlers, ...Validators],
 	exports: [XpertAgentService]
 })
 export class XpertAgentModule {}

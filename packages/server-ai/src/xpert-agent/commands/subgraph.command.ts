@@ -6,6 +6,11 @@ import { TAgentSubgraphParams } from '../agent'
 
 /**
  * Create ReAct graph for agent
+ * 
+ * 1. If isStart true and leaderKey is null, it is primary agent;
+ * 2. If isStart true and leaderKey is not null, it is a sub-agent;
+ * 3. If isStart false and leaderKey is not null, it is a normal agent in workflow;
+ * 
  */
 export class XpertAgentSubgraphCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Subgraph'

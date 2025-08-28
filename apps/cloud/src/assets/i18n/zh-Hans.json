@@ -441,7 +441,10 @@
       "ToolCall": "工具调用",
       "VariableAssigner": "变量赋值",
       "AgentTool": "智能体工具",
-      "TaskHandover": "任务移交"
+      "TaskHandover": "任务移交",
+      "Trigger": "触发器",
+      "Triggers": "触发器",
+      "Chat": "对话"
     },
     "Environment": {
       "Environment": "环境",
