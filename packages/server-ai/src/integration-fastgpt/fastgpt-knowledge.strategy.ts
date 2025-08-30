@@ -35,7 +35,6 @@ export class FastGPTKnowledgeStrategy implements KnowledgeStrategy {
 				integration.options.apiKey,
 				request
 			)
-			console.log(JSON.stringify(result.data.list, null, 2))
 
 			return {
 				chunks: result.data.list.map((item) => {
