@@ -23,7 +23,20 @@
     </div>
 
     <div class="flex-1 min-w-full flex flex-col">
-      <label class="ngm-input-label shrink-0">{{ 'PAC.Integration.Provider' | translate: {Default: 'Provider'} }}</label>
+      <label class="ngm-input-label shrink-0 flex justify-between items-center">
+        {{ 'PAC.Integration.Provider' | translate: {Default: 'Provider'} }}
+
+        @if (integrationProvider()?.helpUrl; as helpUrl) {
+          <a [href]="helpUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
+            {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+            <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+            <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+          </a>
+        }
+      </label>
       <ngm-select class="flex-1" [placeholder]=" 'PAC.Integration.SelectProvider' | translate: {Default: 'Select a provider'} "
         formControlName="provider"
         [selectOptions]="providers()"

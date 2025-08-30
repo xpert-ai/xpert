@@ -27,5 +27,6 @@ export const IntegrationFastGPTProvider: TIntegrationProvider = {
   },
   features: [
     IntegrationFeatureEnum.KNOWLEDGE
-  ]
+  ],
+  helpUrl: 'https://doc.fastgpt.io/docs/introduction/development/openapi/dataset'
 }

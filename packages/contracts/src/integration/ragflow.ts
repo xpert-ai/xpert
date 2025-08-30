@@ -27,5 +27,6 @@ export const IntegrationRAGFlowProvider: TIntegrationProvider = {
   },
   features: [
     IntegrationFeatureEnum.KNOWLEDGE
-  ]
+  ],
+  helpUrl: 'https://ragflow.io/docs/dev/http_api_reference#retrieve-chunks'
 }
