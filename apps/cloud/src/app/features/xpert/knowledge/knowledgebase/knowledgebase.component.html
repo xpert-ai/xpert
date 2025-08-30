@@ -21,17 +21,19 @@
     disableRipple
     [tabPanel]="tabPanel"
   >
-    <span
-      mat-tab-link
-      [routerLink]="['./documents']"
-      routerLinkActive
-      #rla1="routerLinkActive"
-      [routerLinkActiveOptions]="{ exact: false }"
-      [active]="rla1.isActive"
-    >
-      <mat-icon fontSet="material-icons-round">document_scanner</mat-icon>
-      <span class="ml-1">{{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}</span>
-    </span>
+    @if (type() !== eKnowledgebaseTypeEnum.External) {
+      <span
+        mat-tab-link
+        [routerLink]="['./documents']"
+        routerLinkActive
+        #rla1="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: false }"
+        [active]="rla1.isActive"
+      >
+        <mat-icon fontSet="material-icons-round">document_scanner</mat-icon>
+        <span class="ml-1">{{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}</span>
+      </span>
+    }
     <span
       mat-tab-link
       [routerLink]="['./test']"
@@ -59,7 +61,7 @@
 
 <mat-divider></mat-divider>
   
-<mat-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
+<mat-tab-nav-panel #tabPanel class="pac-page-body relative flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
   <router-outlet #o="outlet"></router-outlet>
 </mat-tab-nav-panel>

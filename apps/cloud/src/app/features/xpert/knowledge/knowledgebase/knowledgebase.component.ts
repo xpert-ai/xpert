@@ -1,15 +1,14 @@
-import { Component, inject } from '@angular/core'
+import { Component, computed, inject } from '@angular/core'
+import { MatDividerModule } from '@angular/material/divider'
+import { MatIconModule } from '@angular/material/icon'
+import { MatTabsModule } from '@angular/material/tabs'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, of, pipe, switchMap } from 'rxjs'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { KnowledgebaseService, ToastrService, routeAnimations } from '../../../../@core'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatTabsModule } from '@angular/material/tabs'
-import { MatIconModule } from '@angular/material/icon'
+import { KnowledgebaseService, KnowledgebaseTypeEnum, ToastrService, routeAnimations } from '../../../../@core'
 
 @Component({
   standalone: true,
@@ -19,7 +18,9 @@ import { MatIconModule } from '@angular/material/icon'
   imports: [RouterModule, TranslateModule, MatDividerModule, MatTabsModule, MatIconModule, EmojiAvatarComponent],
   animations: [routeAnimations]
 })
-export class KnowledgebaseComponent extends TranslationBaseComponent {
+export class KnowledgebaseComponent {
+  eKnowledgebaseTypeEnum = KnowledgebaseTypeEnum
+
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly _toastrService = inject(ToastrService)
   readonly paramId = injectParams('id')
@@ -31,7 +32,9 @@ export class KnowledgebaseComponent extends TranslationBaseComponent {
       switchMap(([id]) =>
         id
           ? this.refresh$.pipe(
-              switchMap(() => this.knowledgebaseService.getOneById(id, { relations: ['copilotModel', 'rerankModel', 'xperts'] }))
+              switchMap(() =>
+                this.knowledgebaseService.getOneById(id, { relations: ['copilotModel', 'rerankModel', 'xperts'] })
+              )
             )
           : of(null)
       )
@@ -40,6 +43,8 @@ export class KnowledgebaseComponent extends TranslationBaseComponent {
       initialValue: null
     }
   )
+
+  readonly type = computed(() => this.knowledgebase()?.type)
 
   refresh() {
     this.refresh$.next(true)

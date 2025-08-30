@@ -3,6 +3,19 @@ import { TAvatar } from '../types'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IKnowledgeDocument } from './knowledge-doc.model'
 import { IXpert } from './xpert.model'
+import { IIntegration } from '../integration.model'
+
+/**
+ * Non-internal types should remain the same as IntegrationEnum.
+ */
+export enum KnowledgeProviderEnum {
+  Internal = 'internal',
+  // IntegrationEnum.RAGFlow
+  RAGFlow = 'ragflow',
+  // IntegrationEnum.Dify
+  Dify = 'dify',
+  FastGPT = 'fastgpt'
+}
 
 export enum KnowledgebaseTypeEnum {
   Standard = 'standard',
@@ -62,7 +75,7 @@ export type TKnowledgebase = {
   tokenNum?: number | null
   chunkNum?: number | null
   /**
-   *
+   *@deprecated use `recall`
    */
   similarityThreshold?: number
   vectorSimilarityWeight?: number
@@ -73,9 +86,17 @@ export type TKnowledgebase = {
 
   parserConfig?: KnowledgebaseParserConfig
 
+  /**
+   * Recall params for kb chunks
+   */
+  recall?: TKBRecallParams
+
   status?: string
 
   documents?: IKnowledgeDocument[]
+
+  integrationId?: string
+  extKnowledgebaseId?: string
 }
 
 /**
@@ -83,6 +104,7 @@ export type TKnowledgebase = {
  */
 export interface IKnowledgebase extends TKnowledgebase, IBasePerWorkspaceEntityModel {
   xperts?: IXpert[]
+  integration?: IIntegration
 }
 
 export enum KnowledgebasePermission {

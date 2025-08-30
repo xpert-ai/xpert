@@ -41,34 +41,20 @@
       [cdkListboxValue]="values()"
       (cdkListboxValueChange)="selectValues($event)">
       @for (option of selectOptions(); track option.key) {
-        <li #opElem="cdkOption" class="px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer" [cdkOption]="option.value"
+        <li #opElem="cdkOption" class="relative px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer" [cdkOption]="option.value"
           (click)="selectOption(trigger, option.value)"
         >
-          <div class="relative">
-            <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
-            <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
-            @if (opElem.isSelected()) {
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                class="absolute top-0.5 right-0 w-4 h-4 text-primary-600"
-              >
-                <g id="check">
-                  <path
-                    id="Icon"
-                    d="M13.3334 4L6.00008 11.3333L2.66675 8"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  ></path>
-                </g>
-              </svg>
-            }
-          </div>
+          @if (optionTemplate()) {
+            <ng-container *ngTemplateOutlet="optionTemplate(); context: { $implicit: option }"></ng-container>
+          } @else {
+            <div class="relative">
+              <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
+              <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+            </div>
+          }
+          @if (opElem.isSelected()) {
+            <i class="ri-checkbox-circle-line text-text-accent absolute right-2 top-1/2 -translate-y-1/2"></i>
+          }
         </li>
       }
     </ul>

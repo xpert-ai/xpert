@@ -60,6 +60,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     return this.httpClient.post<DocumentInterface[]>(`${this.apiBaseUrl}/mmr-search`, { query, options })
   }
 
+  createExternal(entity: Partial<IKnowledgebase>) {
+    return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + '/external', entity)
+  }
+
   getStatisticsKnowledgebases(timeRange: string[]) {
     return this.httpClient.get<number>(
       this.apiBaseUrl + `/statistics/knowledgebases`, {

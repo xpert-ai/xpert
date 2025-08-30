@@ -4,7 +4,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, nonBlank } from '@metad/core'
 import { injectConfirmDelete, injectConfirmUnique } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { BehaviorSubject, filter, map, switchMap } from 'rxjs'
@@ -21,7 +21,6 @@ import {
   ToastrService
 } from '../../../../@core'
 import { EmojiAvatarComponent } from '../../../../@shared/avatar'
-import { CardCreateComponent } from '../../../../@shared/card'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertNewKnowledgeComponent } from '../../knowledge'
@@ -36,11 +35,9 @@ import { XpertNewKnowledgeComponent } from '../../knowledge'
     TranslateModule,
     CdkMenuModule,
     AppearanceDirective,
-    DensityDirective,
     DynamicGridDirective,
     EmojiAvatarComponent,
     UserProfileInlineComponent,
-    CardCreateComponent
   ],
   animations: [routeAnimations]
 })

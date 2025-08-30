@@ -39,7 +39,7 @@
           <span matListItemTitle>
             <div class="flex justify-end items-center gap-2" >
               <ngm-tags class="text-sm" [tags]="[
-                {caption: 'Score: '+(1 - item.score).toFixed(2)}
+                {caption: 'Score: '+item.score.toFixed(2)}
                 ]" color="green" />
               @if (item.relevanceScore) {
                 <ngm-tags class="text-sm" [tags]="[

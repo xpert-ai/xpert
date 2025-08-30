@@ -1,13 +1,12 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { AiBusinessRole, IKnowledgebase, mapTranslationLanguage, Metadata } from '@metad/contracts'
-import { DATABASE_POOL_TOKEN, RequestContext } from '@metad/server-core'
+import { AiBusinessRole, IKnowledgebase, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata } from '@metad/contracts'
+import { IntegrationService, RequestContext } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign, sortBy } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { Pool } from 'pg'
 import { In, IsNull, Not, Repository } from 'typeorm'
 import { CopilotModelGetEmbeddingsQuery, CopilotModelGetRerankQuery } from '../copilot-model/queries/index'
 import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
@@ -17,6 +16,7 @@ import { KnowledgeSearchQuery } from './queries'
 import { KnowledgeDocumentStore } from './vector-store'
 import { IRerank } from '../ai-model/types/rerank'
 import { RagCreateVStoreCommand } from '../rag-vstore'
+import { KnowledgeStrategyRegistry } from './strategy/knowledge-strategy.registry'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -28,7 +28,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	constructor(
 		@InjectRepository(Knowledgebase)
 		repository: Repository<Knowledgebase>,
-		@Inject(DATABASE_POOL_TOKEN) private readonly pgPool: Pool
+		private readonly integrationService: IntegrationService,
+		private readonly knowledgeStrategyRegistry: KnowledgeStrategyRegistry,
 	) {
 		super(repository)
 	}
@@ -47,6 +48,40 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		}
 
 		return await super.create(entity)
+	}
+
+	async createExternal(entity: Partial<IKnowledgebase>) {
+		// Test external integration
+		if (!entity.integrationId) {
+			throw new BadRequestException(
+				await this.i18nService.t('xpert.Error.ExternalIntegrationRequired', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				})
+			)
+		}
+		
+		await this.searchExternalKnowledgebase(entity, 'test', 1, {})
+
+		return this.create({
+			...entity,
+			type: KnowledgebaseTypeEnum.External
+		})
+	}
+
+	async searchExternalKnowledgebase(entity: Partial<IKnowledgebase>, query: string, k: number, filter?: Record<string, string>) {
+		const integration = await this.integrationService.findOne(entity.integrationId)
+		const knowledgeStrategy = this.knowledgeStrategyRegistry.get(integration.provider as unknown as KnowledgeProviderEnum)
+		if (!knowledgeStrategy) {
+			throw new BadRequestException(
+				await this.i18nService.t('xpert.Error.KnowledgeStrategyNotFound', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						provider: integration.provider
+					}
+				})
+			)
+		}
+		return await knowledgeStrategy.execute(integration, {query, k, filter, options: {knowledgebaseId: entity.extKnowledgebaseId}})
 	}
 
 	/**

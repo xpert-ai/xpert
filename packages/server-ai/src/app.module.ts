@@ -34,13 +34,14 @@ import { XpertWorkspaceModule } from './xpert-workspace'
 import { CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
+import { IntegrationRAGFlowModule } from './integration-ragflow'
+import { IntegrationDifyModule } from './integration-dify/dify.module'
+import { IntegrationFastGPTModule } from './integration-fastgpt/fastgpt.module'
 
 @Module({
 	imports: [
 		forwardRef(() => CqrsModule),
 		forwardRef(() => UserModule),
-		KnowledgebaseModule,
-		KnowledgeDocumentModule,
 		ChatModule,
 		ChatConversationModule,
 		ChatMessageModule,
@@ -64,9 +65,14 @@ import { IntegrationGithubModule } from './integration-github'
 		XpertProjectModule,
 		XpertTemplateModule,
 		XpertTaskModule,
+		KnowledgebaseModule,
+		KnowledgeDocumentModule,
 		IntegrationLarkModule,
 		IntegrationFirecrawlModule,
 		IntegrationGithubModule,
+		IntegrationRAGFlowModule,
+		IntegrationDifyModule,
+		IntegrationFastGPTModule,
 		RagVStoreModule,
 		RagWebModule,
 		SandboxModule,

@@ -8,7 +8,7 @@ import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IsDirty } from '@metad/core'
-import { NgmInputComponent, NgmSelectComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -34,6 +34,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
 import { environment } from '@cloud/environments/environment'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
 
 @Component({
   standalone: true,
@@ -58,7 +59,8 @@ import { environment } from '@cloud/environments/environment'
     NgmSpinComponent,
     EmojiAvatarComponent,
     ParameterFormComponent,
-    CardProComponent
+    CardProComponent,
+    NgmI18nPipe
   ],
   animations: [routeAnimations]
 })
@@ -89,8 +91,10 @@ export class IntegrationComponent implements IsDirty {
 
   readonly providers = signal(
     Object.keys(INTEGRATION_PROVIDERS).map((name) => ({
-      key: name,
-      caption: this.i18n.transform(INTEGRATION_PROVIDERS[name].label)
+      value: name,
+      label: INTEGRATION_PROVIDERS[name].label,
+      description: INTEGRATION_PROVIDERS[name].description,
+      avatar: INTEGRATION_PROVIDERS[name].avatar,
     }))
   )
 
@@ -102,6 +106,7 @@ export class IntegrationComponent implements IsDirty {
     slug: new FormControl(null),
     provider: new FormControl(null),
     options: new FormControl(null),
+    features: new FormControl([]),
   })
 
   get optionsControl() {
@@ -110,6 +115,10 @@ export class IntegrationComponent implements IsDirty {
 
   get optionsInvalid() {
     return this.optionsForm()?.invalid
+  }
+
+  get name() {
+    return this.formGroup.value?.name
   }
 
   readonly provider = this.formGroup.get('provider')
@@ -152,6 +161,12 @@ export class IntegrationComponent implements IsDirty {
       },
       { allowSignalWrites: true }
     )
+
+    effect(() => {
+      if (this.integrationProvider()) {
+        this.formGroup.get('features').setValue(this.integrationProvider().features || [])
+      }
+    }, { allowSignalWrites: true })
   }
 
   isDirty(): boolean {

@@ -6,43 +6,6 @@ import { IOrganizationUpdateInput } from './organization.model';
 import { ITag } from './tag-entity.model';
 import { I18nObject, TAvatar, TParameterSchema } from './types';
 
-// export interface IIntegrationSetting
-// 	extends IBasePerTenantAndOrganizationEntityModel {
-// 	settingsName: string;
-// 	settingsValue: string;
-// 	integration?: IIntegrationTenant;
-// 	integrationId?: string;
-// }
-
-// export interface IIntegrationEntitySetting
-// 	extends IBasePerTenantAndOrganizationEntityModel {
-// 	entity: string;
-// 	sync: boolean;
-// 	integration?: IIntegrationTenant;
-// 	readonly integrationId?: string;
-// 	tiedEntities?: IIntegrationEntitySettingTied[];
-// }
-
-// export interface IIntegrationEntitySettingTied
-// 	extends IBasePerTenantAndOrganizationEntityModel {
-// 	entity: string;
-// 	sync: boolean;
-// 	integrationEntitySetting?: IIntegrationEntitySetting;
-// 	readonly integrationEntitySettingId?: string;
-// }
-
-// export interface IIntegrationViewModel {
-// 	name: string;
-// 	imgSrc: string;
-// 	navigation_url: string;
-// 	isComingSoon?: boolean;
-// }
-
-// export interface IIntegrationTenant extends IBasePerTenantAndOrganizationEntityModel {
-// 	name: string;
-// 	entitySettings?: IIntegrationEntitySetting[];
-// 	settings?: IIntegrationSetting[];
-// }
 
 export interface IIntegration<T = any> extends IBasePerTenantAndOrganizationEntityModel {
 	name: string
@@ -53,11 +16,15 @@ export interface IIntegration<T = any> extends IBasePerTenantAndOrganizationEnti
 	avatar?: TAvatar
 	slug: string;
 	provider: IntegrationEnum
-	/**
-	 * Integration type: Agent ...
-	 */
-	type?: string
 
+	/**
+	 * Integration features: ['knowledge', 'agent', ...]
+	 */
+	features?: IntegrationFeatureEnum[]
+
+	/**
+	 * Custom options for different providers
+	 */
 	options?: T
 
 	tags?: ITag[]
@@ -83,13 +50,6 @@ export interface IIntegrationMapSyncOrganization
 	sourceId: number;
 }
 
-// export interface IIntegrationTenantCreateDto
-// 	extends IBasePerTenantAndOrganizationEntityModel {
-// 	name: string;
-// 	entitySettings?: IIntegrationEntitySetting[];
-// 	settings?: IIntegrationSetting[];
-// }
-
 export enum IntegrationEnum {
 	UPWORK = 'Upwork',
 	HUBSTAFF = 'Hubstaff',
@@ -98,39 +58,16 @@ export enum IntegrationEnum {
 	WECOM = 'WeCom',
 	FIRECRAWL = 'firecrawl',
 	KNOWLEDGEBASE = 'knowledgebase',
-	GITHUB = 'github'
+	GITHUB = 'github',
+	RAGFlow = 'ragflow',
+	Dify = 'dify',
+	FastGPT = 'fastgpt',
 }
 
-// export enum IntegrationEntity {
-// 	PROJECT = 'Project',
-// 	ORGANIZATION = 'Organization',
-// 	NOTE = 'Note',
-// 	CLIENT = 'Client',
-// 	TASK = 'Task',
-// 	ACTIVITY = 'Activity',
-// 	USER = 'User',
-// 	EMPLOYEE = 'Employee',
-// 	TIME_LOG = 'TimeLog',
-// 	TIME_SLOT = 'TimeSlot',
-// 	SCREENSHOT = 'Screenshot',
-// 	INCOME = 'Income',
-// 	EXPENSE = 'Expense',
-// 	PROPOSAL = 'Proposal'
-// }
-
-export enum IntegrationTypeGroupEnum {
-	FEATURED = 'Featured',
-	CATEGORIES = 'Categories'
-}
-
-export enum IntegrationTypeNameEnum {
-	ALL_INTEGRATIONS = 'All Integrations',
-	FOR_SALES_TEAMS = 'For Sales Teams',
-	FOR_ACCOUNTANTS = 'For Accountants',
-	FOR_SUPPORT_TEAMS = 'For Support Teams',
-	CRM = 'CRM',
-	SCHEDULING = 'Scheduling',
-	TOOLS = 'Tools'
+export enum IntegrationFeatureEnum {
+	KNOWLEDGE = 'knowledge',
+	AGENT = 'agent',
+	SSO = 'sso',
 }
 
 export enum IntegrationFilterEnum {
@@ -154,43 +91,6 @@ export const DEFAULT_INTEGRATION_PAID_FILTERS = [
 	}
 ];
 
-export const DEFAULT_INTEGRATIONS = [
-	{
-		name: IntegrationEnum.HUBSTAFF,
-		imgSrc: 'assets/images/integrations/hubstaff.svg',
-		integrationTypesMap: <string[]>[
-			IntegrationTypeNameEnum.ALL_INTEGRATIONS
-		],
-		order: 1
-	},
-	{
-		name: IntegrationEnum.UPWORK,
-		imgSrc: 'assets/images/integrations/upwork.svg',
-		integrationTypesMap: <string[]>[
-			IntegrationTypeNameEnum.ALL_INTEGRATIONS
-		],
-		order: 2
-	},
-	{
-		name: 'Import/Export',
-		imgSrc: 'assets/images/integrations/import-export.svg',
-		isComingSoon: true,
-		integrationTypesMap: <string[]>[
-			IntegrationTypeNameEnum.ALL_INTEGRATIONS,
-			IntegrationTypeNameEnum.CRM
-		],
-		order: 3
-	}
-];
-
-/**
-* Hubstaff Integration
-*/
-// export interface IEntitySettingToSync {
-// 	previousValue: IIntegrationEntitySetting[];
-// 	currentValue: IIntegrationEntitySetting[];
-// }
-
 export interface IDateRangeActivityFilter {
 	start: Date;
 	end: Date;
@@ -199,9 +99,12 @@ export interface IDateRangeActivityFilter {
 export type TIntegrationProvider = {
 	name: string
 	label: I18nObject
+	description?: I18nObject
 	avatar: string
 	webhook?: boolean
 	schema?: TParameterSchema
+	features?: IntegrationFeatureEnum[]
+	helpUrl?: string
 	
 	webhookUrl?: (integration: IIntegration, baseUrl: string) => string
 	pro?: boolean

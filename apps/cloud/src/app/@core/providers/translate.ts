@@ -20,10 +20,10 @@ export function injectLanguage() {
   )
 }
 
-export function injectTranslate(key?: string) {
+export function injectTranslate(key?: string, params?: any) {
   const translate = inject(TranslateService)
 
   return toSignal(
-    translate.stream(key)
+    translate.stream(key, params)
   )
 }

@@ -8,7 +8,7 @@ export const IntegrationGitHubProvider: TIntegrationProvider = {
     en_US: 'GitHub',
     zh_Hans: 'GitHub'
   },
-  avatar: 'github.png',
+  avatar: 'github.svg',
   webhook: true,
   schema: {
     type: 'object',
