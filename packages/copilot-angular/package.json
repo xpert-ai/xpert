@@ -5,7 +5,7 @@
   "peerDependencies": {
     "@angular/common": "^17.3.0",
     "@angular/core": "^17.3.0",
-    "@langchain/anthropic": "^0.3.12",
+    "@langchain/anthropic": "^0.3.26",
     "@langchain/baidu-qianfan": "0.1.0",
     "@langchain/cohere": "0.3.0",
     "ngx-float-ui": "^18.0.1"
