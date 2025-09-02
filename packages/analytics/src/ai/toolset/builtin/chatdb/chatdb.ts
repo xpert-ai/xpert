@@ -1,7 +1,6 @@
 import { isEnableTool, IXpertTool, IXpertToolset, TToolCredentials } from '@metad/contracts'
 import { getErrorMessage, omit } from '@metad/server-common'
-import { ChatDBCommandTool } from './tools/chatdb-command'
-import { BuiltinToolset, TBuiltinToolsetParams, ToolProviderCredentialValidationError } from '@metad/server-ai'
+import { BuiltinToolset, TBuiltinToolsetParams } from '@metad/server-ai'
 
 export class ChatDBToolset extends BuiltinToolset {
 	static provider = 'chatdb'
