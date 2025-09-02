@@ -1,4 +1,4 @@
-import { ChatOpenAI, ChatOpenAICallOptions, OpenAIClient } from '@langchain/openai'
+import { ChatOpenAI } from '@langchain/openai'
 import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable, Logger } from '@nestjs/common'
@@ -8,6 +8,7 @@ import { LargeLanguageModel } from '../../../llm'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { QWenModelCredentials, toCredentialKwargs, TongyiCredentials } from '../types'
+import { ChatOAICompatReasoningModel } from '../../openai_api_compatible'
 
 @Injectable()
 export class TongyiLargeLanguageModel extends LargeLanguageModel {
@@ -69,7 +70,7 @@ export class TongyiLargeLanguageModel extends LargeLanguageModel {
 			},
 			isNil
 		)
-		return new ChatTongyi({
+		return new ChatOAICompatReasoningModel({
 			...fields,
 			verbose: options?.verbose,
 			callbacks: [
@@ -77,35 +78,5 @@ export class TongyiLargeLanguageModel extends LargeLanguageModel {
 				this.createHandleLLMErrorCallbacks(fields, this.#logger)
 			]
 		})
-	}
-}
-
-export interface ChatDeepSeekCallOptions extends ChatOpenAICallOptions {
-	headers?: Record<string, string>
-}
-
-type OpenAIRoleEnum = 'system' | 'developer' | 'assistant' | 'user' | 'function' | 'tool'
-
-export class ChatTongyi extends ChatOpenAI<ChatDeepSeekCallOptions> {
-	protected override _convertOpenAIDeltaToBaseMessageChunk(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		delta: Record<string, any>,
-		rawResponse: OpenAIClient.ChatCompletionChunk,
-		defaultRole?: OpenAIRoleEnum
-	) {
-		const messageChunk = super._convertOpenAIDeltaToBaseMessageChunk(delta, rawResponse, defaultRole)
-		messageChunk.additional_kwargs.reasoning_content = delta.reasoning_content
-		return messageChunk
-	}
-
-	protected override _convertOpenAIChatCompletionMessageToBaseMessage(
-		message: OpenAIClient.ChatCompletionMessage,
-		rawResponse: OpenAIClient.ChatCompletion
-	) {
-		const langChainMessage = super._convertOpenAIChatCompletionMessageToBaseMessage(message, rawResponse)
-		langChainMessage.additional_kwargs.reasoning_content =
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(message as any).reasoning_content
-		return langChainMessage
 	}
 }
