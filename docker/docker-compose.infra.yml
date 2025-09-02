@@ -112,7 +112,7 @@ services:
 
   # Crawl services
   crawl4ai:
-    image: unclecode/crawl4ai:0.7
+    image: unclecode/crawl4ai:0.6.0rc1-r2
     profiles:
       - crawl4ai
     ports:
