@@ -1,38 +1,65 @@
-<button class="inline-flex items-center gap-1.5 py-1 pl-2 pr-1 text-sm hover:bg-white rounded-lg transition-colors cursor-pointer border border-neutral-200 dark:border-neutral-700/50"
-  (click)="onClick()">
-  <chat-message-step-icon class="w-4 h-4 shrink-0 inline-flex justify-center items-center text-text-secondary"
-    [step]="{
-      type: chunk().type, 
-      toolset: chunk().toolset, 
-      toolsetId: chunk().toolset_id
-    }"
-  />
-  <span class="text-sm max-w-[200px] truncate text-foreground" [title]="chunk().title">{{chunk().title}}</span>
-    @if (chunk().status === 'fail') {
-      <span class="font-mono text-xs ml-1 text-text-destructive truncate max-w-[200px]" [title]="chunk().error">{{chunk().error}}</span>
-    } @else {
-      <span class="font-mono text-xs ml-1 text-text-secondary truncate max-w-[200px]" [title]="chunk().message">{{chunk().message}}</span>
+<div class="flex flex-col py-1 pl-2 pr-1 hover:bg-white rounded-lg transition-colors border border-neutral-200 dark:border-neutral-700/50">
+  <div class="inline-flex items-center gap-1.5 text-sm">
+    <chat-message-step-icon class="w-4 h-4 shrink-0 inline-flex justify-center items-center text-text-secondary"
+      [step]="{
+        type: chunk().type, 
+        toolset: chunk().toolset, 
+        toolsetId: chunk().toolset_id
+      }"
+    />
+    <span class="text-sm max-w-[200px] truncate text-foreground" [title]="chunk().title">{{chunk().title}}</span>
+      @if (chunk().status === 'fail') {
+        <span class="font-mono text-xs ml-1 text-text-destructive truncate max-w-[200px]" [title]="chunk().error">{{chunk().error}}</span>
+      } @else {
+        <span class="font-mono text-xs ml-1 text-text-secondary truncate max-w-[200px]" [title]="chunk().message">{{chunk().message}}</span>
+      }
+    <span class="font-mono text-xs text-text-secondary ml-1">
+      @if (conversationStatus() === 'busy' && chunk().status === 'running') {
+        {{ chunk().created_date | relativeTimes:100 | number:'0.3-3' }}s
+      } @else if (duration()) {
+        {{ duration() }}s
+      }
+    </span>
+    <span class="flex-1"></span>
+    @if (openable()) {
+      <button class="btn pressable flex justify-center items-center w-6 h-6 rounded-lg border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+        [matTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
+        matTooltipPosition="above"
+        (click)="open.emit()">
+        <svg class="shrink-0 w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/>
+          <path d="M8 21h8"/>
+          <path d="M12 17v4"/>
+          <path d="m17 8 5-5"/>
+          <path d="M17 3h5v5"/>
+        </svg>
+      </button>
     }
-  <span class="font-mono text-xs text-text-secondary ml-1">
-    @if (conversationStatus() === 'busy' && chunk().status === 'running') {
-      {{ chunk().created_date | relativeTimes:100 | number:'0.3-3' }}s
-    } @else if (duration()) {
-      {{ duration() }}s
-    }
-  </span>
-  @if (openable()) {
-    <button class="btn pressable flex justify-center items-center w-6 h-6 rounded-lg border-0 text-text-secondary hover:text-text-primary
-      bg-transparent hover:bg-hover-bg"
-      [matTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
-      matTooltipPosition="above"
-      (click)="open.emit()">
-      <svg class="shrink-0 w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/>
-        <path d="M8 21h8"/>
-        <path d="M12 17v4"/>
-        <path d="m17 8 5-5"/>
-        <path d="M17 3h5v5"/>
-      </svg>
+
+    <button type="button" class="flex justify-center items-center w-6 h-6 rounded-lg border-0 text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
+      (click)="toggleExpand()">
+      @if (expanded()) {
+        <i class="ri-arrow-down-s-line"></i>
+      } @else {
+        <i class="ri-arrow-left-s-line"></i>
+      }
     </button>
+  </div>
+
+  @if (expanded()) {
+    <div class="flex flex-col text-xs leading-4 font-mono">
+      <div>
+        <label class="font-semibold">{{'PAC.Chat.Input' | translate: {Default: 'Input'} }}:</label>
+        <ngx-json-viewer [json]="chunk().input" [depth]="1" />
+      </div>
+
+      @if (output(); as output) {
+        <div>
+          <label class="font-semibold">{{'PAC.Chat.Output' | translate: {Default: 'Output'} }}:</label>
+          <ngx-json-viewer [json]="output" [depth]="1" />
+        </div>
+      }
+    </div>
   }
-</button>
+</div>

@@ -1938,6 +1938,8 @@
       }
     },
     "Chat": {
+      "Input": "输入",
+      "Output": "输出",
       "Terminal": "终端",
       "FileSystem": "文件",
       "Timeline": "时间线",
