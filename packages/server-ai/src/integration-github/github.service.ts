@@ -18,29 +18,6 @@ export class GithubService {
 		private configService: ConfigService,
 	) {}
 
-	// async getApp(integrationId: string): Promise<any> {
-	// 	if (!this.appsCache.has(integrationId)) {
-	// 		const integration = await this.integrationService.findOne(integrationId)
-	// 		if (!integration || integration.provider !== IntegrationEnum.GITHUB) {
-	// 			throw new NotFoundException(`GitHub integration ${integrationId} not found`)
-	// 		}
-	// 		const { App } = await import('@octokit/app')
-	// 		const app = new App({
-	// 			appId: integration.options.appId,
-	// 			privateKey: integration.options.privateKey,
-	// 			webhookSecret: integration.options.webhookSecret
-	// 		})
-	// 		this.appsCache.set(integrationId, app)
-	// 	}
-	// 	return this.appsCache.get(integrationId)
-	// }
-
-	// async getOctokit(integrationId: string, installationId: number): Promise<any> {
-	// 	const app = await this.getApp(integrationId)
-	// 	const { Octokit } = await import('@octokit/core')
-	// 	return app.getInstallationOctokit(installationId)
-	// }
-
 	/**
 	 * Initiates the GitHub App installation flow
 	 * This redirects users to the GitHub App installation page where they can

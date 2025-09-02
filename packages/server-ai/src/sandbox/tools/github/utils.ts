@@ -1,4 +1,4 @@
-import { Octokit } from 'octokit'
+// import { Octokit } from 'octokit'
 
 /**
  * Check if a branch exists in the remote repository using GitHub API
@@ -10,8 +10,8 @@ import { Octokit } from 'octokit'
 export async function checkRemoteBranch(repository: string, branch: string, token: string): Promise<boolean> {
 	try {
 		const [owner, repo] = repository.split('/')
-		const octokit = new Octokit({ auth: token })
-		await octokit.rest.repos.getBranch({ owner, repo, branch })
+		// const octokit = new Octokit({ auth: token })
+		// await octokit.rest.repos.getBranch({ owner, repo, branch })
 		return true
 	} catch (error) {
 		if (error.status === 404) {
@@ -40,19 +40,19 @@ export async function createIssue(
 	},
 	githubAccessToken: string
 ) {
-	const { title, body, assignees, labels } = params
-	const octokit = new Octokit({ auth: githubAccessToken })
+	// const { title, body, assignees, labels } = params
+	// const octokit = new Octokit({ auth: githubAccessToken })
 	try {
-		const { data: issue } = await octokit.rest.issues.create({
-			owner,
-			repo,
-			title,
-			body,
-			assignees,
-			labels
-		})
+		// const { data: issue } = await octokit.rest.issues.create({
+		// 	owner,
+		// 	repo,
+		// 	title,
+		// 	body,
+		// 	assignees,
+		// 	labels
+		// })
 
-		return issue
+		return null // issue
 	} catch (error) {
 		const errorFields =
 			error instanceof Error
