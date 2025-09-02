@@ -35,8 +35,8 @@ import { CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
 import { IntegrationRAGFlowModule } from './integration-ragflow'
-import { IntegrationDifyModule } from './integration-dify/dify.module'
-import { IntegrationFastGPTModule } from './integration-fastgpt/fastgpt.module'
+import { IntegrationDifyModule } from './integration-dify'
+import { IntegrationFastGPTModule } from './integration-fastgpt'
 
 @Module({
 	imports: [
