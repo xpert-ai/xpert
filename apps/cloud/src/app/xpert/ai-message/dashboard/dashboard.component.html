@@ -2,9 +2,9 @@
   @case ('AnalyticalCard') {
     <ngm-analytical-card class="z-0"
       [title]="data().title"
-      [dataSettings]="data().dataSettings"
+      [dataSettings]="dataSettings()"
       [chartSettings]="chartSettings()"
-      [slicers]="data().slicers"
+      [slicers]="slicers()"
       [options]="{
         showSlicers: true
       }"
@@ -43,8 +43,8 @@
   }
   @case ('KPI') {
     <pac-widget-kpi class="mb-4" displayDensity="compact" [title]="data().title"
-      [dataSettings]="data().dataSettings"
-      [slicers]="data().slicers"
+      [dataSettings]="dataSettings()"
+      [slicers]="slicers()"
       [options]="{
         showToolbar: true,
         shortNumber: true,

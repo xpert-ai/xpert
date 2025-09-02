@@ -1,18 +1,15 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
-import { getContextVariable } from '@langchain/core/context'
 import { ToolMessage } from '@langchain/core/messages'
 import { Tool, tool } from '@langchain/core/tools'
-import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
+import { Command, getCurrentTaskInput, LangGraphRunnableConfig } from '@langchain/langgraph'
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
-	CONTEXT_VARIABLE_CURRENTSTATE,
 	getToolCallIdFromConfig,
 	IChatBIModel,
 	IIndicator,
 	isEnableTool,
 	OrderTypeEnum,
-	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TMessageComponent,
 	TMessageContentComponent,
@@ -51,7 +48,7 @@ import {
 import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
 import { getErrorMessage, isEmpty, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { t } from 'i18next'
-import { groupBy } from 'lodash'
+import { groupBy, upperFirst } from 'lodash'
 import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { z } from 'zod'
@@ -323,7 +320,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				try {
 					// Fetch a context variable named "currentState".
 					// We have set this variable explicitly in each ToolNode invoke method that calls this tool.
-					const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+					const currentState = getCurrentTaskInput<{chatbi_cubes: any[]}>()
 
 					return await race(maximumWaitTime, async () => {
 						const cubes = []
@@ -333,7 +330,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							let entityType = await this.getCubeCache(item.modelId, item.name)
 							if (!entityType) {
 								// Update runtime indicators
-								const indicators = currentState?.[BIVariableEnum.INDICATORS]
+								const indicators = currentState[BIVariableEnum.INDICATORS]
 								if (indicators) {
 									await this.updateIndicators(dsCoreService, indicators)
 								}
@@ -411,13 +408,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			async (params, config: LangGraphRunnableConfig): Promise<string> => {
 				const { configurable } = config ?? {}
 				const { language } = configurable ?? {}
-				const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+				const currentState = getCurrentTaskInput()
 				this.logger.debug(`Execute tool '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(params, null, 2))
 
 				const answer = params as ChatAnswer
 
 				// Update runtime indicators
-				const indicators = currentState?.[BIVariableEnum.INDICATORS]
+				const indicators = currentState[BIVariableEnum.INDICATORS]
 				if (indicators) {
 					await this.updateIndicators(dsCoreService, indicators)
 				}
@@ -498,9 +495,9 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		const { dsCoreService, entityType, chatbi, language } = context
 		const { subscriber, agentKey, xpertName, tool_call_id } = configurable ?? {}
 
-		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
-		const lang = currentState?.[STATE_VARIABLE_SYS]?.language
-		const indicators = currentState?.[BIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
+		const currentState = getCurrentTaskInput()
+		// const lang = currentState[STATE_VARIABLE_SYS]?.language
+		const indicators = currentState[BIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
 		const chartService = new ChartBusinessService(dsCoreService)
 		const destroy$ = new Subject<void>()
 
@@ -569,9 +566,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		// ChartTypes
 		let chartSettings: ChartSettings = null
 		if (chartAnnotation.chartType) {
-			const i18n = t('analytics:Tools.ChatBI.ChartTypes')
-			// await chatbi.translate('toolset.ChatBI.ChartTypes', {lang: TranslationLanguageMap[lang] || lang})
-			const chartTypes = CHART_TYPES.map((_) => ({..._, name: i18n[_.name]}))
+			const i18n = t('analytics:Tools.ChatBI.ChartTypes', {returnObjects: true})
+			const chartTypes = CHART_TYPES.map((_) => ({..._, name: i18n[upperFirst(_.name)]}))
 			const index = chartTypes.findIndex(
 				({ type, orient }) => type === chartAnnotation.chartType.type && orient === chartAnnotation.chartType.orient
 			)

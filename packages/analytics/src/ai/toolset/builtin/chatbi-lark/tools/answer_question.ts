@@ -34,7 +34,7 @@ export function createChatAnswerTool(
 
 			const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 			const { language } = answer
-			const i18n = t('analytics:Tools.ChatBI')
+			const i18n = t('analytics:Tools.ChatBI', {returnObjects: true})
 			// await chatbi.translate('toolset.ChatBI', {lang: language})
 			
 			// Update runtime indicators

@@ -315,7 +315,11 @@ export class StoryExplorerComponent {
   readonly rows = signal<Dimension[]>([])
   readonly columns = signal<(Dimension | Measure)[]>([])
   readonly slicers = signal<{ [name: string]: ISlicer }>({})
-  readonly component = signal({
+  readonly component = signal<{
+    label: string;
+    component: WidgetComponentType;
+    dataSettings: Partial<DataSettings>;
+  }>({
     label: ChartTypeEnum.Bar,
     component: WidgetComponentType.AnalyticalCard,
     dataSettings: {
@@ -559,7 +563,11 @@ export class StoryExplorerComponent {
     })
   }
 
-  createWidget(widget: any) {
+  createWidget(widget: {
+    label: string;
+    component: WidgetComponentType,
+    dataSettings: Partial<DataSettings>
+  }) {
     this.component.set(widget)
     if (this.component().component === WidgetComponentType.AnalyticalCard) {
       this.view = 'chart'
