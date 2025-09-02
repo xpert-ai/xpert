@@ -136,7 +136,14 @@ export class ThreadsController {
 
 		return result.items.map(transformRun)
 	}
-
+	
+	/**
+	 * Create run in background, return run immediately.
+	 * 
+	 * @param thread_id 
+	 * @param body 
+	 * @returns 
+	 */
 	@Post(':thread_id/runs')
 	async createRun(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
 		const { stream, execution } = await this.commandBus.execute<
@@ -147,6 +154,14 @@ export class ThreadsController {
 		return transformRun(execution)
 	}
 
+	/**
+	 * Create run and stream messages back to client.
+	 * 
+	 * @param res 
+	 * @param thread_id 
+	 * @param body 
+	 * @returns 
+	 */
 	@Header('content-type', 'text/event-stream')
 	@Header('Connection', 'keep-alive')
 	@Post(':thread_id/runs/stream')
@@ -163,6 +178,13 @@ export class ThreadsController {
 		return stream.pipe(takeUntilClose(res))
 	}
 
+	/**
+	 * Create run and wait for it to complete, then return the final message.
+	 * 
+	 * @param thread_id 
+	 * @param body 
+	 * @returns 
+	 */
 	@Post(':thread_id/runs/wait')
 	async runWait(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
 		const { stream } = await this.commandBus.execute<

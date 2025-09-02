@@ -1,5 +1,5 @@
 
-import { IKnowledgeDocument } from '@metad/contracts'
+import { IKnowledgeDocument, KBDocumentStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger, Scope } from '@nestjs/common'
@@ -40,7 +40,7 @@ export class KnowledgeDocumentConsumer {
 		} catch (err) {
 			await Promise.all(
 				job.data.docs.map((doc) =>
-					this.service.update(doc.id, { status: 'error', processMsg: getErrorMessage(err) })
+					this.service.update(doc.id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(err) })
 				)
 			)
 			await job.moveToFailed(err)
@@ -92,13 +92,13 @@ export class KnowledgeDocumentConsumer {
 					}
 				}
 
-				await this.service.update(doc.id, { status: 'finish', processMsg: '' })
+				await this.service.update(doc.id, { status: KBDocumentStatusEnum.FINISH, processMsg: '' })
 
 				this.logger.debug(`[Job: entity '${job.id}'] End!`)
 			} catch (err) {
 				this.logger.debug(`[Job: entity '${job.id}'] Error!`)
 				this.service.update(document.id, {
-					status: 'error',
+					status: KBDocumentStatusEnum.ERROR,
 					processMsg: getErrorMessage(err)
 				})
 				await job.moveToFailed(err)
@@ -112,7 +112,7 @@ export class KnowledgeDocumentConsumer {
 		// Check database/cache for cancellation flag
 		const doc = await this.service.findOne(docId)
 		if (doc) {
-			return doc?.status === 'cancel'
+			return doc?.status === KBDocumentStatusEnum.CANCEL
 		}
 		return true
 	}

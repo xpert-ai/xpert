@@ -39,6 +39,7 @@ import {
   IKnowledgeDocumentPage,
   injectToastr,
   IXpert,
+  KBDocumentStatusEnum,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
   OrderTypeEnum,
@@ -250,7 +251,7 @@ export class KnowledgeDocumentsComponent {
   }
 
   startParsing(row: IKnowledgeDocument) {
-    row.status = 'running'
+    row.status = KBDocumentStatusEnum.RUNNING
     this.knowledgeDocumentService.startParsing(row.id).subscribe({
       next: () => {
         this.refresh()

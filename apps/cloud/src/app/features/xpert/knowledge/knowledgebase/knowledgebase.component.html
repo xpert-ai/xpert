@@ -5,9 +5,9 @@
     <emoji-avatar [avatar]="knowledgebase()?.avatar" large class="shrink-0 rounded-md overflow-hidden shadow-sm" />
 
     <div class="flex flex-col items-start overflow-hidden text-ellipsis">
-      <h2 class="pac-page-title">{{ knowledgebase()?.name }}</h2>
+      <h2 class="pac-page-title truncate max-w-full">{{ knowledgebase()?.name }}</h2>
 
-      <div class="line-clamp-2 text-text-secondary text-sm">{{knowledgebase()?.description}}</div>
+      <div class="max-w-full line-clamp-2 text-text-secondary text-sm">{{knowledgebase()?.description}}</div>
     </div>
   </div>
 

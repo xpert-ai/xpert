@@ -1,4 +1,4 @@
-<nav class="min-h-full content-start gap-4 px-4 pt-4 grow shrink-0 pb-4 overflow-auto"
+<nav class="relative content-start gap-4 pt-2 pb-4 grow shrink-0"
   ngmDynamicGrid colWidth="280"
   box="content-box"
   >
@@ -29,7 +29,7 @@
   </div>
 
   @for (item of knowledgebases(); track item.id) {
-    <div class="ngm-card min-h-[160px] flex-1 flex flex-col p-4 group bg-components-card-bg hover:bg-white">
+    <div class="ngm-card min-h-[160px] flex-1 flex flex-col p-4 group overflow-hidden bg-components-card-bg hover:bg-white">
       <button class="ngm-card__menu transition-opacity h-8 w-8 rounded-md border-none opacity-0 group-hover:opacity-100" displayDensity="cosy"
         #mt="cdkMenuTriggerFor"
         [cdkMenuTriggerFor]="menu"

@@ -21,10 +21,14 @@
   <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!primary()?.enabled" [expanded]="!!primary()?.enabled">
     <mat-expansion-panel-header>
       <mat-panel-title>
-        {{'PAC.KEY_WORDS.Primary' | translate: {Default: 'Primary'} }}
         @if (primary()?.modelProvider?.provider) {
-          <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="primary().modelProvider.provider.icon_large | i18n">
+          <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="primary().modelProvider.provider.icon_large | i18n"
+            [matTooltip]="primary().id">
         }
+
+        <div class="ml-2">
+          {{'PAC.KEY_WORDS.Primary' | translate: {Default: 'Primary'} }}
+        </div>
       </mat-panel-title>
       <mat-panel-description class="flex-1">
         <mat-slide-toggle labelPosition="before" ngm-density small
@@ -44,14 +48,40 @@
     <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!copilot.enabled">
       <mat-expansion-panel-header>
         <mat-panel-title>
-          {{'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) } }}
-          @if (copilot.modelProvider?.provider) {
-            @if (copilot.modelProvider.provider.icon_large) {
-              <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
-            } @else {
-              <span class="ml-2">{{copilot.modelProvider.provider.label | i18n}}</span>
+          <div [matTooltip]="copilot.id">
+            @if (copilot.modelProvider?.provider) {
+              @if (copilot.modelProvider.provider.icon_large) {
+                <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
+              } @else {
+                <span class="ml-2">{{copilot.modelProvider.provider.label | i18n}}</span>
+              }
             }
-          }
+          </div>
+
+          <div class="flex justify-start items-center ml-2">
+            @if (editingId() === copilot.id) {
+              <input class="flex-1 bg-transparent focus-visible:outline-none bg-white" cdkFocusInitial
+                type="text"
+                [(ngModel)]="name"
+                (click)="$event.stopPropagation()"
+              />
+              <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
+                type="button"
+                (click)="$event.stopPropagation(); saveCopilotName(copilot)"
+              >
+                <i class="ri-check-line text-lg"></i>
+              </button>
+            } @else {
+              <div [ngClass]="expansion.expanded ? 'cursor-text' : ''"
+                (click)="expansion.expanded ? editName($event, copilot) : null">
+                @if (copilot.name) {
+                  {{ copilot.name }}
+                } @else {
+                  {{'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) } }}
+                }
+              </div>
+            }
+          </div>
         </mat-panel-title>
         <mat-panel-description class="flex-1">
           <mat-slide-toggle labelPosition="before" ngm-density small 

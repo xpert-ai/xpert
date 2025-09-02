@@ -10,7 +10,7 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { compact } from 'lodash-es'
 import { BehaviorSubject, debounceTime, Subject } from 'rxjs'
-import { getErrorMessage, IKnowledgeDocument, KDocumentSourceType, KnowledgeDocumentService, ToastrService } from '../../../../../../../@core'
+import { getErrorMessage, KBDocumentStatusEnum, KDocumentSourceType, KnowledgeDocumentService, ToastrService } from '../../../../../../../@core'
 import { KnowledgeDocumentCreateComponent } from '../create.component'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
@@ -87,7 +87,7 @@ export class KnowledgeDocumentCreateStep3Component {
           if (_.jobId === doc.jobId) {
             return {
               ..._,
-              status: 'cancel',
+              status: KBDocumentStatusEnum.CANCEL,
               progress: 0,
             }
           }

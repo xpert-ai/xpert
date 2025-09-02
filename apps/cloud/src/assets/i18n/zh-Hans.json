@@ -2349,7 +2349,7 @@
       "DescribeKBContentOptional": "描述知识库内容（可选）",
       "ExtKnowledgebaseIntegration": "外部知识库集成",
       "ExtKnowledgebaseIntegrationPlaceholder": "还没有外部知识库集成，点击此处选择或创建",
-      "NoIntegration": "没有集成！",
+      "NoIntegrationYet": "还没有知识库集成！",
       "CreateKBIntegration": "创建知识库集成",
       "ExtKBId": "外部知识库 ID",
       "EnterExtKBId": "请输入外部知识库 ID",

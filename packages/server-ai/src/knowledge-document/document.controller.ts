@@ -1,4 +1,4 @@
-import { IDocumentChunk, IIntegration, IKnowledgeDocument, isDocumentSheet, KBDocumentCategoryEnum, TRagWebOptions } from '@metad/contracts'
+import { IDocumentChunk, IIntegration, IKnowledgeDocument, isDocumentSheet, KBDocumentCategoryEnum, KBDocumentStatusEnum, TRagWebOptions } from '@metad/contracts'
 import {
 	CrudController,
 	IntegrationService,
@@ -124,7 +124,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		}
 
 		knowledgeDocument.jobId = null
-		knowledgeDocument.status = 'cancel'
+		knowledgeDocument.status = KBDocumentStatusEnum.CANCEL
 		knowledgeDocument.progress = 0
 
 		return await this.service.save(knowledgeDocument)
