@@ -8,10 +8,13 @@
  * @returns True if the branch exists, false otherwise
  */
 export async function checkRemoteBranch(repository: string, branch: string, token: string): Promise<boolean> {
+	// dynamically import Octokit because it's ESM
+    const { Octokit } = await import("octokit")
+
 	try {
 		const [owner, repo] = repository.split('/')
-		// const octokit = new Octokit({ auth: token })
-		// await octokit.rest.repos.getBranch({ owner, repo, branch })
+		const octokit = new Octokit({ auth: token })
+		await octokit.rest.repos.getBranch({ owner, repo, branch })
 		return true
 	} catch (error) {
 		if (error.status === 404) {
@@ -40,19 +43,21 @@ export async function createIssue(
 	},
 	githubAccessToken: string
 ) {
-	// const { title, body, assignees, labels } = params
-	// const octokit = new Octokit({ auth: githubAccessToken })
+	// dynamically import Octokit because it's ESM
+    const { Octokit } = await import("octokit")
+	const { title, body, assignees, labels } = params
+	const octokit = new Octokit({ auth: githubAccessToken })
 	try {
-		// const { data: issue } = await octokit.rest.issues.create({
-		// 	owner,
-		// 	repo,
-		// 	title,
-		// 	body,
-		// 	assignees,
-		// 	labels
-		// })
+		const { data: issue } = await octokit.rest.issues.create({
+			owner,
+			repo,
+			title,
+			body,
+			assignees,
+			labels
+		})
 
-		return null // issue
+		return issue
 	} catch (error) {
 		const errorFields =
 			error instanceof Error
