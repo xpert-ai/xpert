@@ -397,11 +397,6 @@
 
 <ng-template #generalMenu>
   <div cdkMenu class="p-2">
-    <!-- <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="!isDirty()" (click)="saveModel()">
-      <mat-icon fontSet="material-icons-outlined" [color]="isDirty() ?'accent':''">save</mat-icon>
-      <span class="ml-2">{{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}</span>
-    </button> -->
-
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="openPreferences()">
       <mat-icon fontSet="material-icons-outlined">settings_suggest</mat-icon>
       <span class="ml-2">{{ 'PAC.KEY_WORDS.PREFERENCES' | translate: {Default: "Preferences"} }}</span>

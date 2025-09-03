@@ -1,5 +1,5 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
-import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core'
+import { Injectable, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { nonNullable } from '@metad/core'
@@ -45,24 +45,23 @@ import {
   tap,
   withLatestFrom
 } from 'rxjs'
-import { createSubStore, dirtyCheckWith, write } from '../../store'
-import { SemanticModelService } from '../model.service'
-import { EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
-import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable } from './types'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model'
 import { getSemanticModelKey } from '@metad/story/core'
+import { SemanticModelService } from '../model.service'
+import { createSubStore, dirtyCheckWith, write } from '../../store'
+import { EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
+import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable } from './types'
 
 /**
  * State servcie for Cube
  */
 @Injectable()
 export class ModelEntityService {
-  #modelService = inject(SemanticModelService)
-  #settingsService = inject(NxSettingsPanelService)
-  #router = inject(Router)
-  #route = inject(ActivatedRoute)
-  #destroyRef = inject(DestroyRef)
+  readonly #modelService = inject(SemanticModelService)
+  readonly #settingsService = inject(NxSettingsPanelService)
+  readonly #router = inject(Router)
+  readonly #route = inject(ActivatedRoute)
   readonly i18n = injectI18nService()
 
   /**
@@ -103,7 +102,7 @@ export class ModelEntityService {
   readonly queryLab = signal<{
     statement?: string
   }>({})
-  set statement(value) {
+  set statement(value: string) {
     this.queryLab.update((state) => ({
       ...state,
       statement: value
@@ -282,9 +281,6 @@ export class ModelEntityService {
             combineLatest([
               this.cube$,
               this.selectByTypeAndId(ModelDesignerType[type], key)
-                .pipe
-                // filter(Boolean) // 过滤已经被删除的等情况
-                ()
             ]).pipe(
               map(([cube, modeling]) => ({
                 cube,
@@ -356,7 +352,7 @@ export class ModelEntityService {
   })
 
   readonly removeCubeTable = this.updater((state, table: Table) => {
-    // 有的情况下 table.__id__ 会为空，这时候就用 name 去删除
+    // Sometimes table.__id__ will be empty, in which case use name to delete it.
     const index = state.tables?.findIndex((item) =>
       item.__id__ ? item.__id__ === table.__id__ : item.name === table.name
     )
@@ -621,12 +617,12 @@ export class ModelEntityService {
   })
 
   /**
-   * 删除维度及维度下的字段
+   * Delete a dimension and its fields
    */
   readonly deleteDimensionProperty = this.updater((state, id: string) => {
-    // 所在的数组
+    // The array where
     let parent = null
-    // 所在数组的索引位置
+    // The index position of the array
     let index = null
 
     state.dimensionUsages?.find((usage, i) => {
@@ -665,7 +661,7 @@ export class ModelEntityService {
       })
     }
 
-    // 从 id 所在数组索引处删除该节点 Node
+    // Delete the node Node from the array index where id is located
     if (parent) {
       this.setSelectedProperty(null)
       parent.splice(index, 1)
@@ -859,7 +855,7 @@ export class ModelEntityService {
             ...model
           }
         } else {
-          // 都找不到 id 了为什么要 push 进来 ？？？
+          // Why push it in if I can’t find the id?
           state.dimensions.push({
             ...model,
             __id__: id
@@ -948,7 +944,7 @@ function findTableById(state, id) {
 }
 
 /**
- * 验证维度定义信息相对于运行时信息是否合法
+ * Validate the dimension definition information against the runtime information
  *
  * @param dimension
  * @param rtDimensions

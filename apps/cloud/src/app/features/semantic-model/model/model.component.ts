@@ -25,6 +25,20 @@ import { CommandDialogComponent, NgmCopilotChatComponent, provideCopilotDropActi
 import { DBTable, PropertyAttributes, TableEntity, VirtualCube, pick } from '@metad/ocap-core'
 import { NX_STORY_STORE, NxStoryStore, StoryModel } from '@metad/story/core'
 import { NxSettingsPanelService } from '@metad/story/designer'
+import { Dialog } from '@angular/cdk/dialog'
+import { CommonModule } from '@angular/common'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
+import { MatSidenavModule } from '@angular/material/sidenav'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { ContentLoaderModule } from '@ngneat/content-loader'
+import { ScrollingModule } from '@angular/cdk/scrolling'
+import { MatProgressBarModule } from '@angular/material/progress-bar'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { lowerCase, snakeCase, sortBy, uniqBy } from 'lodash-es'
 import { nanoid } from 'nanoid'
 import { NGXLogger } from 'ngx-logger'
@@ -68,21 +82,7 @@ import {
   TOOLBAR_ACTION_CATEGORY
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
-import { TranslationBaseComponent } from '../../../@shared/language/'
-import { Dialog } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { TranslateModule } from '@ngx-translate/core'
-import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { ContentLoaderModule } from '@ngneat/content-loader'
-import { ScrollingModule } from '@angular/cdk/scrolling'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { ChecklistComponent } from '@cloud/app/@shared/common'
+
 
 @Component({
   standalone: true,
@@ -121,7 +121,7 @@ import { ChecklistComponent } from '@cloud/app/@shared/common'
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ModelComponent extends TranslationBaseComponent {
+export class ModelComponent {
   SemanticModelEntityType = SemanticModelEntityType
   TOOLBAR_ACTION_CATEGORY = TOOLBAR_ACTION_CATEGORY
   eCdkDragDropContainers = CdkDragDropContainers
@@ -137,6 +137,7 @@ export class ModelComponent extends TranslationBaseComponent {
   private _viewContainerRef = inject(ViewContainerRef)
   readonly #toastr = injectToastr()
   readonly #logger = inject(NGXLogger)
+  readonly #translate = inject(TranslateService)
   readonly destroyRef = inject(DestroyRef)
   readonly copilotContext = provideCopilotTables()
 
@@ -278,7 +279,7 @@ export class ModelComponent extends TranslationBaseComponent {
     implementation: async (event: CdkDragDrop<any[], any[], any>, copilotEngine: CopilotEngine) => {
       this.#logger.debug(`Drop table to copilot chat:`, event)
       const data = event.item.data
-      // 获取源表或源多维数据集结构
+      // Get the source table or source cube structure
       const entityType = await firstValueFrom(this.modelService.selectOriginalEntityType(data.name))
 
       const topCount = 10
@@ -321,7 +322,7 @@ export class ModelComponent extends TranslationBaseComponent {
     implementation: async (event: CdkDragDrop<any[], any[], any>, copilotEngine: CopilotEngine) => {
       this.#logger.debug(`Drop query result to copilot chat:`, event)
       const data = event.item.data
-      // 自定义查询结果数据
+      // Custom query result data
       return {
         id: nanoid(),
         role: CopilotChatMessageRoleEnum.User,
@@ -491,10 +492,6 @@ export class ModelComponent extends TranslationBaseComponent {
     }
   }
 
-  saveModel() {
-    this.modelService.saveModel()
-  }
-
   saveAsDefaultCube(name: string) {
     this.modelService.updateDraft({
       cube: name
@@ -505,7 +502,7 @@ export class ModelComponent extends TranslationBaseComponent {
     this._dialog
       .open(NgmConfirmUniqueComponent, {
         data: {
-          title: this.getTranslation('PAC.KEY_WORDS.StoryName', { Default: 'Story Name' })
+          title: this.#translate.instant('PAC.KEY_WORDS.StoryName', { Default: 'Story Name' })
         }
       })
       .afterClosed()

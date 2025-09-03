@@ -1,7 +1,7 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, OnInit, effect, inject, model, signal } from '@angular/core'
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, UrlSegment } from '@angular/router'
 import { nonBlank, routeAnimations, LeanRightEaseInAnimation } from '@metad/core'
@@ -14,20 +14,20 @@ import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, of } from 'rxjs'
 import { debounceTime, distinctUntilChanged, filter, map, pairwise, startWith, switchMap } from 'rxjs/operators'
-import { AppService } from '../../../../app.service'
-import { injectCalculatedCommand } from '../copilot'
-import { ModelComponent } from '../model.component'
-import { SemanticModelService } from '../model.service'
-import { ModelCubeStructureComponent } from './cube-structure/cube-structure.component'
-import { ModelEntityService } from './entity.service'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTabsModule } from '@angular/material/tabs'
-import { ModelCubeFactComponent } from './fact/fact.component'
-import { AggregationRole, isEntitySet } from '@metad/ocap-core'
-import { ModelEntityCalculationComponent } from './calculation/calculation.component'
+import { AggregationRole, isEntitySet, PropertyAttributes } from '@metad/ocap-core'
 import { NgmOcapCoreService } from '@metad/ocap-angular/core'
+import { AppService } from '../../../../app.service'
+import { injectCalculatedCommand } from '../copilot'
+import { ModelCubeStructureComponent } from './cube-structure/cube-structure.component'
+import { ModelEntityCalculationComponent } from './calculation/calculation.component'
+import { ModelEntityService } from './entity.service'
+import { ModelCubeFactComponent } from './fact/fact.component'
+import { SemanticModelService } from '../model.service'
+import { ModelComponent } from '../model.component'
 
 @Component({
   standalone: true,
@@ -84,7 +84,7 @@ export class ModelEntityComponent implements OnInit {
     map(decodeURIComponent),
     distinctUntilChanged()
   )
-  // 当前子组件
+  // Current child component
   public readonly route$ = this.router.events.pipe(
     filter((event) => event instanceof NavigationEnd),
     startWith({}),
@@ -218,8 +218,7 @@ export class ModelEntityComponent implements OnInit {
     this.detailsOpen.set(true)
   }
 
-  onPropertyEdit(event) {
-    // this.router.navigate([`calculation/${event.__id__}`], { relativeTo: this.route })
+  onPropertyEdit(event: PropertyAttributes) {
     this.openedCalculation.set(event.__id__)
   }
 

@@ -29,7 +29,7 @@ import { stateHistory } from '@ngneat/elf-state-history'
 import { cloneDeep, isEqual, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, EMPTY, Observable, Subject, combineLatest, from } from 'rxjs'
-import { catchError, combineLatestWith, debounceTime, distinctUntilChanged, filter, map, shareReplay, skip, switchMap, take, tap } from 'rxjs/operators'
+import { catchError, combineLatestWith, debounce, debounceTime, delay, delayWhen, distinctUntilChanged, filter, map, shareReplay, skip, switchMap, take, tap } from 'rxjs/operators'
 import {
   ISemanticModel,
   MDX,
@@ -258,26 +258,42 @@ export class SemanticModelService {
   })
 
   // Subscriptions
+  readonly #saving$ = new BehaviorSubject(false)
+  readonly #manualSave$ = new BehaviorSubject<void>(null)
   private saveDraftSub = this.draft$.pipe(
     skip(1),
     map(() => calculateHash(JSON.stringify(omit(this.draftSignal(), 'version', 'checklist')))),
     distinctUntilChanged(),
     tap(() => this.unsaved.set(true)),
-    debounceTime(SaveDraftDebounceTime * 1000),
-    switchMap(() => this.saveDraft()),
+    // debounceTime(SaveDraftDebounceTime * 1000),
+    // Delay until previous save is complete
+    // delayWhen(() => this.saving.pipe(filter((saving) => !saving), take(1))),
+    debounce(() => this.#saving$.pipe(filter((saving) => !saving), take(1), delay(SaveDraftDebounceTime * 1000))),
+    combineLatestWith(this.#manualSave$),
+    switchMap(() => {
+      this.#saving$.next(true)
+      return this.saveDraft()
+    }),
     catchError((err) => {
+      this.#saving$.next(false)
       this.#toastr.error(getErrorMessage(err))
       this.saveDraftError.set(getErrorMessage(err))
       return EMPTY
     })
   ).subscribe({
-    next: ({checklist, version}) => {
+    next: ({savedAt, checklist, version}) => {
+      this.unsaved.set(false)
+      this.#savedAt.set(savedAt)
+      this.dataSource$.value?.clearCache()
+      // Register model after saved to refresh metadata of entity
+      this.registerModel()
+      this.dataSource$.value?.refresh()
       this.updateDraft({checklist, version})
+      this.#saving$.next(false)
     }
   })
 
   constructor(
-    private modelsService: SemanticModelsService,
     private dsCoreService: NgmDSCoreService,
     private wasmAgent: WasmAgentService,
     private _router: Router,
@@ -346,16 +362,11 @@ export class SemanticModelService {
 
   saveDraft() {
     const draft = this.store.value.draft
-    return this.#modelsService.saveDraft(this.modelSignal().id, draft).pipe(
-      tap((result) => {
-        this.unsaved.set(false)
-        this.#savedAt.set(result.savedAt)
-        this.dataSource$.value?.clearCache()
-        // Register model after saved to refresh metadata of entity
-        this.registerModel()
-        this.dataSource$.value?.refresh()
-      })
-    )
+    return this.#modelsService.saveDraft(this.modelSignal().id, draft)
+  }
+
+  saveModel() {
+    this.#manualSave$.next()
   }
 
   getHistoryCursor() {
@@ -401,31 +412,31 @@ export class SemanticModelService {
     registerModel(omit(draftModel, 'indicators'), true, this.dsCoreService, this.wasmAgent)
   }
 
-  saveModel = effectAction((origin$: Observable<void>) => {
-    return origin$.pipe(
-      map(() => {
-        const model = cloneDeep(this.modelSignal())
-        // Update index of roles
-        model.roles = model.roles.map((role, index) => ({ ...role, index }))
-        return model
-      }),
-      switchMap((model) =>
-        this.#toastr
-          .update({ code: 'PAC.MODEL.MODEL.TITLE', params: { Default: 'Semantic Model' } }, () => {
-            return this.modelsService.update(model.id, model, { relations: ['roles', 'roles.users'] })
-          })
-          .pipe(
-            tap((model) => {
-              this.resetPristine()
-              this.clearDirty()
-              this.dataSource$.value?.clearCache()
-              // Register model after saved to refresh metadata of entity
-              this.registerModel()
-            })
-          )
-      )
-    )
-  })
+  // saveModel = effectAction((origin$: Observable<void>) => {
+  //   return origin$.pipe(
+  //     map(() => {
+  //       const model = cloneDeep(this.modelSignal())
+  //       // Update index of roles
+  //       model.roles = model.roles.map((role, index) => ({ ...role, index }))
+  //       return model
+  //     }),
+  //     switchMap((model) =>
+  //       this.#toastr
+  //         .update({ code: 'PAC.MODEL.MODEL.TITLE', params: { Default: 'Semantic Model' } }, () => {
+  //           return this.modelsService.update(model.id, model, { relations: ['roles', 'roles.users'] })
+  //         })
+  //         .pipe(
+  //           tap((model) => {
+  //             this.resetPristine()
+  //             this.clearDirty()
+  //             this.dataSource$.value?.clearCache()
+  //             // Register model after saved to refresh metadata of entity
+  //             this.registerModel()
+  //           })
+  //         )
+  //     )
+  //   )
+  // })
 
   resetPristine() {
     this.pristineStore.update(() => ({ model: cloneDeep(this.modelSignal()) }))
