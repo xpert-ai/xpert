@@ -123,6 +123,17 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 			template = data['en-US']
 		}
 
+		// Query visits
+		const ids = template.templates.map((_) => _.id)
+		const { items } = await this.findAll({ where: { key: In(ids) } })
+		template.templates.forEach((temp) => {
+			temp.visitCount = items.find((_) => _.key === temp.id)?.visitCount
+		})
+
+		// Sort the templates by visitCount desc. If visitCount is empty, sort first
+		const quota = 20
+		template.templates = template.templates.sort((a, b) => (b.visitCount < quota ? Number.MAX_SAFE_INTEGER : b.visitCount) - (a.visitCount < quota ? Number.MAX_SAFE_INTEGER : a.visitCount))
+
 		if (!isNil(paginationParams?.take)) {
 			template = {
 				...template,
@@ -132,13 +143,6 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 				)
 			}
 		}
-
-		// Query visits
-		const ids = template.templates.map((_) => _.id)
-		const { items } = await this.findAll({ where: { key: In(ids) } })
-		template.templates.forEach((temp) => {
-			temp.visitCount = items.find((_) => _.key === temp.id)?.visitCount
-		})
 
 		return {
 			...template,
