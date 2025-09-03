@@ -6,7 +6,14 @@
         </svg>
     </button>
   }
-  {{ 'PAC.MODEL.SyncDimensionMembers' | translate: {Default: 'Sync Dimension Members'} }}
+  {{ 'PAC.MODEL.SyncDimensionMembers' | translate: {Default: 'Dimension Members Embedding'} }}
+
+  <div class="flex items-center text-text-secondary">
+    <i class="ri-information-2-line"></i>
+    <span class="text-sm ">
+      {{ 'PAC.MODEL.SyncDimensionMembersInfo' | translate: {Default: 'Dimension member embedding can only be performed on published semantic model'} }}
+    </span>
+  </div>
 </div>
 
 <mat-accordion multi class="px-4 py-2">

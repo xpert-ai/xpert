@@ -46,7 +46,7 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 		
 		let cache: ITryRequest
 		let cacheKey = ''
-		if (model.preferences?.enableCache) {
+		if (!isDraft && model.preferences?.enableCache) {
 			const md5 = new Md5()
 			md5.appendStr(body)
 			key = md5.end() as string
@@ -98,7 +98,7 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 			// eslint-disable-next-line no-control-regex
 			const queryData = queryResult.data.replace(/\u0000/g, '-')
 
-			if (model.preferences?.enableCache) {
+			if (!isDraft && model.preferences?.enableCache) {
 				if (cache?.success) {
 					try {
 						await this.cacheService.delete(cache.record.id)

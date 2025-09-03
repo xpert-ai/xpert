@@ -69,7 +69,6 @@ export class ModelEntityController extends CrudController<SemanticModelEntity> {
 	
 	@Delete(':id')
 	async remove(@Param('id') id: string) {
-		await this.entityService.pauseSchedule(id)
-		await this.entityService.delete(id)
+		await this.entityService.deleteEntity(id)
 	}
 }
