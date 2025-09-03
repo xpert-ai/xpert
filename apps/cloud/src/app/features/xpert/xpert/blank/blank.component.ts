@@ -18,6 +18,7 @@ import {
 import { genAgentKey } from '../../utils'
 import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 @Component({
   selector: 'xpert-new-blank',
@@ -29,7 +30,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
     MatInputModule,
     FormsModule,
     CdkListboxModule,
-    XpertBasicFormComponent
+    NgmSpinComponent,
+    XpertBasicFormComponent,
   ],
   templateUrl: './blank.component.html',
   styleUrl: './blank.component.scss'
@@ -49,7 +51,10 @@ export class XpertNewBlankComponent {
   readonly title = model<string>()
   readonly copilotModel = model<ICopilotModel>()
 
+  readonly loading = signal(false)
+
   create() {
+    this.loading.set(true)
     this.xpertService
       .create({
         type: this.types()[0],
@@ -72,10 +77,12 @@ export class XpertNewBlankComponent {
       })
       .subscribe({
         next: (xpert) => {
+          this.loading.set(false)
           this.#toastr.success(`PAC.Messages.CreatedSuccessfully`, { Default: 'Created Successfully' })
           this.close(xpert)
         },
         error: (error) => {
+          this.loading.set(false)
           this.#toastr.error(getErrorMessage(error))
         }
       })
