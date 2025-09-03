@@ -62,7 +62,11 @@ export abstract class BuiltinToolset<T extends StructuredToolInterface = Structu
 		super(params)
 	}
 
-	validateCredentials(credentials: C): Promise<void> {
+	async validateCredentials(credentials: C): Promise<void> {
+		await this._validateCredentials(credentials)
+	}
+
+	async _validateCredentials(credentials: C) {
 		throw new Error('Method not implemented.')
 	}
 
