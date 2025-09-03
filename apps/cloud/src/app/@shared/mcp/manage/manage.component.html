@@ -74,7 +74,7 @@
       <div class="pt-3" [@listSlideStagger]="tools()?.length">
         @for (tool of tools(); track tool.name) {
           <div class="tool-item mb-2 px-4 py-3 rounded-xl bg-neutral-50 border-[0.5px] border-gary-200 cursor-pointer hover:bg-white hover:shadow-sm"
-            [class.selected]="tool.id === selectedTool()"
+            [class.selected]="tool.name === selectedTool()"
             [class.removed]="tool.deletedAt"
             (click)="selectTool(tool)"
           >

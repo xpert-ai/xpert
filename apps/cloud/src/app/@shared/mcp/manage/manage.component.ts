@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, ElementRef, HostListener, inject, signal } from '@angular/core'
+import { Component, computed, effect, ElementRef, HostListener, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -15,6 +15,7 @@ import {
   injectToastr,
   IXpertTool,
   IXpertToolset,
+  MCPServerType,
   TagCategoryEnum,
   TMCPSchema,
   TMCPServer,
@@ -171,10 +172,11 @@ export class XpertMCPManageComponent {
     }
   })
 
-  readonly mcpServer = computed(
-    () => {
+  readonly mcpServer = computed(() => {
       if (!this.toolset()?.schema) {
-        return null
+        return {
+          type: MCPServerType.SSE
+        }
       }
       const schema = JSON.parse(this.toolset().schema) as TMCPSchema
 
@@ -183,16 +185,19 @@ export class XpertMCPManageComponent {
     { equal: isEqual }
   )
 
+  /**
+   * Selected tool's name
+   */
   readonly selectedTool = signal<string>(null)
   readonly toolsDirty = signal(false)
 
   readonly tool = linkedModel({
     initialValue: null,
-    compute: () => this.selectedTool() ? this.toolset()?.tools?.find((_) => _.id === this.selectedTool()) : null,
+    compute: () => this.selectedTool() ? this.toolset()?.tools?.find((_) => _.name === this.selectedTool()) : null,
     update: (tool) => {
       this.toolset.update((state) => {
         const tools = [...(state.tools ?? [])]
-        const index = tools.findIndex((_) => _.id === this.selectedTool())
+        const index = tools.findIndex((_) => _.name === this.selectedTool())
         tools[index] = tool
         return { ...(state ?? {}), tools }
       })
@@ -204,11 +209,13 @@ export class XpertMCPManageComponent {
   readonly saved = signal(false)
 
   constructor() {
-    // effect(() => {}, { allowSignalWrites: true })
+    // effect(() => {
+    //   console.log(this.toolsDirty(), this.dirty())
+    // }, { allowSignalWrites: true })
   }
 
   selectTool(tool: IXpertTool) {
-    this.selectedTool.set(tool?.id)
+    this.selectedTool.set(tool?.name)
   }
 
   updateTool(value: Partial<IXpertTool>) {
@@ -304,9 +311,11 @@ export class XpertMCPManageComponent {
       next: () => {
         this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
         this.#loading.set(false)
-        this.dirty.set(false)
-        this.toolsDirty.set(false)
-        this.saved.set(true)
+        setTimeout(() => {
+          this.dirty.set(false)
+          this.toolsDirty.set(false)
+          this.saved.set(true)
+        });
       },
       error: (error) => {
         this.#toastr.error(getErrorMessage(error))
