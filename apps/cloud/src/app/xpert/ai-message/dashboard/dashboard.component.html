@@ -18,19 +18,21 @@
         <i class="ri-expand-diagonal-2-line"></i>
       </button>
 
-      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
-        bg-transparent hover:bg-hover-bg"
-        [matTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
-        matTooltipPosition="above"
-        (click)="openCanvas()">
-        <svg class="shrink-0 w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/>
-          <path d="M8 21h8"/>
-          <path d="M12 17v4"/>
-          <path d="m17 8 5-5"/>
-          <path d="M17 3h5v5"/>
-        </svg>
-      </button>
+      @if (inline()) {
+        <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+          bg-transparent hover:bg-hover-bg"
+          [matTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
+          matTooltipPosition="above"
+          (click)="openCanvas()">
+          <svg class="shrink-0 w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/>
+            <path d="M8 21h8"/>
+            <path d="M12 17v4"/>
+            <path d="m17 8 5-5"/>
+            <path d="M17 3h5v5"/>
+          </svg>
+        </button>
+      }
     
       <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
         bg-transparent hover:bg-hover-bg"
@@ -40,6 +42,53 @@
         <i class="ri-terminal-box-line"></i>
       </button>
     </ngm-analytical-card>
+  }
+  @case ('AnalyticalGrid') {
+    <ngm-analytical-grid class="z-0 max-h-full"
+      [title]="data().title"
+      [dataSettings]="dataSettings()"
+      [slicers]="slicers()"
+      [options]="{
+        paging: true,
+        pageSize: 20,
+        strip: true,
+        sortable: true
+      }"
+      [appearance]="{
+        displayDensity: eDisplayDensity.compact
+      }"
+      (explain)="setExplains($event)"
+    >
+      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+        [matTooltip]="'PAC.Chat.OpenExplorer' | translate: {Default: 'Open Explorer'}"
+        matTooltipPosition="above"
+        (click)="openExplorer()">
+        <i class="ri-expand-diagonal-2-line"></i>
+      </button>
+      @if (inline()) {
+        <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+          bg-transparent hover:bg-hover-bg"
+          [matTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
+          matTooltipPosition="above"
+          (click)="openCanvas()">
+          <svg class="shrink-0 w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/>
+            <path d="M8 21h8"/>
+            <path d="M12 17v4"/>
+            <path d="m17 8 5-5"/>
+            <path d="M17 3h5v5"/>
+          </svg>
+        </button>
+      }
+      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+        [matTooltip]="'PAC.Chat.OpenExplain' | translate: {Default: 'Open Explain'}"
+        matTooltipPosition="above"
+        (click)="openExplain()">
+        <i class="ri-terminal-box-line"></i>
+      </button>
+    </ngm-analytical-grid>
   }
   @case ('KPI') {
     <pac-widget-kpi class="mb-4" displayDensity="compact" [title]="data().title"
@@ -69,7 +118,7 @@
   } -->
   @default {
     <chat-tool-call-chunk [chunk]="data()" [conversationStatus]="conversationStatus()"
-      openable
+      [openable]="inline()"
       (open)="openCanvas()"
     />
   }

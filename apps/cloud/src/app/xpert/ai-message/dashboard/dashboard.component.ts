@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ChatDashboardMessageType, convertIndicatorResult, Store, TMessageComponent, TMessageComponentStep } from '@metad/cloud/state'
 import { listEnterAnimation } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
+import { DisplayDensity, linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { AggregationRole, CalculationType, DataSettings, Indicator, mapIndicatorToMeasures, tryFixMeasureName } from '@metad/ocap-core'
 import { StoryExplorerComponent } from '@metad/story'
 import { ExplainComponent } from '@metad/story/story'
@@ -27,6 +27,7 @@ import { XpertOcapService } from '../../ocap.service'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
 import { ChatService } from '../../chat.service'
+import { AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
 
 /**
  * A component that uniformly displays different types of component messages for category: `Dashboard`.
@@ -39,6 +40,7 @@ import { ChatService } from '../../chat.service'
     MatTooltipModule,
     NgxJsonViewerModule,
     AnalyticalCardModule,
+    AnalyticalGridModule,
     NxWidgetKpiComponent,
     ChatComponentIndicatorsComponent,
     ChatToolCallChunkComponent
@@ -50,6 +52,8 @@ import { ChatService } from '../../chat.service'
   animations: [listEnterAnimation]
 })
 export class ChatMessageDashboardComponent {
+  eDisplayDensity = DisplayDensity
+  
   readonly #store = inject(Store)
   readonly #dialog = inject(Dialog)
   readonly dsCore = inject(NgmDSCoreService)
@@ -63,6 +67,8 @@ export class ChatMessageDashboardComponent {
   readonly messageId = input<string>()
   // Sub component message
   readonly message = input<any>()
+
+  readonly inline = input<boolean>(true)
 
   // States
   readonly data = computed(() => this.message()?.data as TMessageComponent<Omit<TMessageComponentStep, 'type'> & {

@@ -61,6 +61,7 @@ import { IndicatorSchema } from '../../schema'
 import { TOOL_CHATBI_PROMPTS_DEFAULT } from './prompts'
 import { BIVariableEnum, mapTimeSlicer } from '../bi-toolset'
 import { buildDimensionMemberRetrieverTool } from '../tools/dimension_member_retriever'
+import { drawTableMessage } from './tools/answer_question'
 
 
 function cubesReducer(a, b) {
@@ -465,12 +466,22 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				// Fetch data for chart or table or kpi
 				if (answer.dimensions?.length || answer.measures?.length) {
 					try {
-						const { data } = await this.drawChartMessage(
-							answer as ChatAnswer,
-							{ ...context, entityType, language },
-							configurable as TAgentRunnableConfigurable,
-							credentials
-						)
+						let data = null
+						if (answer.visualType === 'Table') {
+							data = await drawTableMessage(
+								answer as ChatAnswer,
+								{ ...context, entityType, language },
+								configurable as TAgentRunnableConfigurable,
+								credentials
+							)
+						} else {
+							data = await this.drawChartMessage(
+								answer as ChatAnswer,
+								{ ...context, entityType, language },
+								configurable as TAgentRunnableConfigurable,
+								credentials
+							)
+						}
 
 						const results = limitDataResults(data, credentials)
 
@@ -650,12 +661,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			// 	}
 			// } as MessageEvent)
 		}
+
 		return new Promise((resolve, reject) => {
 			chartService.selectResult().subscribe((result) => {
 				if (result.error) {
 					reject(result.error)
 				} else {
-					resolve({ data: extractDataValue(result.data, dataSettings.chartAnnotation, credentials) })
+					resolve(extractDataValue(result.data, dataSettings.chartAnnotation, credentials))
 				}
 				destroy$.next()
 				destroy$.complete()
