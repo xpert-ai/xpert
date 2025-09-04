@@ -13,6 +13,7 @@ import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestC
 import { CACHE_MANAGER, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { CommandBus, EventBus } from '@nestjs/cqrs'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
 import chalk from 'chalk'
@@ -33,6 +34,7 @@ import { updateXmlaCatalogContent } from './helper'
 import { SemanticModel } from './model.entity'
 import { NgmDSCoreService, registerSemanticModel } from './ocap'
 import { CubeValidator, DimensionValidator, RoleValidator, VirtualCubeValidator } from './validators'
+import { EVENT_SEMANTIC_MODEL_DELETED, SemanticModelDeletedEvent } from './types'
 
 const axios = _axios.default
 
@@ -51,6 +53,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		private readonly i18nService: I18nService,
 		commandBus: CommandBus,
 		private readonly eventBus: EventBus,
+		private readonly eventEmitter: EventEmitter2,
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType,
 		@Inject(CACHE_MANAGER)
@@ -503,6 +506,15 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		const model = await this.findOne(id)
 		model.options = fn(model.options)
 		return await this.repository.save(model)
+	}
+
+	async delete(id: string) {
+		try {
+		    await this.eventEmitter.emitAsync(EVENT_SEMANTIC_MODEL_DELETED, new SemanticModelDeletedEvent(id))
+		} catch (err) {
+			console.error(err)
+		}
+		return super.delete(id)
 	}
 
 	/*

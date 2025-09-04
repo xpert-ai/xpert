@@ -1,6 +1,6 @@
 import { isAIMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { Annotation, CompiledStateGraph, isCommand, isParentCommand } from '@langchain/langgraph'
+import { Annotation, CompiledStateGraph, isCommand, isParentCommand, MessagesAnnotation } from '@langchain/langgraph'
 import { createHandoffTool, createSwarm } from '@langchain/langgraph-swarm'
 import {
 	agentLabel,
@@ -84,7 +84,13 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 				XpertAgentSubgraphCommand,
 				{
 					name: string
-					graph: CompiledStateGraph<unknown, unknown>
+					graph: CompiledStateGraph<
+							unknown,
+							unknown,
+							string,
+  							any,
+							typeof MessagesAnnotation.spec
+						>
 				}
 			>(
 				new XpertAgentSubgraphCommand(member, xpert, {

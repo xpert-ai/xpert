@@ -12,12 +12,16 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 	}
 
 	authenticate(req: IncomingMessage, options: { session: boolean }) {
-		const authHeader = req.headers['authorization']
-		if (!authHeader || !authHeader.startsWith('Bearer ')) {
-			return this.fail(new UnauthorizedException('Authorization header not provided or invalid'))
+		let token = req.headers['x-api-key'] as string
+		if (!token) {
+			const authHeader = req.headers['authorization']
+			if (!authHeader || !authHeader.startsWith('Bearer ')) {
+				return this.fail(new UnauthorizedException('Authorization header not provided or invalid'))
+			}
+
+			token = authHeader.split(' ')[1]
 		}
 
-		const token = authHeader.split(' ')[1]
 		this.validateToken(token)
 			.then((apiKey) => {
 				if (!apiKey.createdBy) {

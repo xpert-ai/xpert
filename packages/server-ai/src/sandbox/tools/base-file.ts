@@ -11,21 +11,10 @@ import {
 } from '@metad/contracts'
 import { t } from 'i18next'
 import z from 'zod'
-import {
-	ConvFileDeleteCommand,
-	ConvFileGetByPathCommand,
-	ConvFileUpsertCommand,
-	ListConvFilesCommand
-} from '../../chat-conversation'
 import { toolNamePrefix } from '../../shared'
-import {
-	DeleteProjectFileCommand,
-	ListProjectFilesCommand,
-	ReadProjectFileCommand,
-	UpsertProjectFileCommand
-} from '../../xpert-project/commands/index'
 import { BaseSandboxToolset } from './sandbox-toolset'
-import { Sandbox, TCreateFileReq, TFileBaseReq } from '../client'
+import { Sandbox, } from '../client'
+import { TCreateFileReq, TFileBaseReq } from '../types'
 
 export enum FileToolsetEnum {
 	ListFiles = 'list_files',

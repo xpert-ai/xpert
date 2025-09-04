@@ -49,7 +49,7 @@ export function createState() {
  */
 export async function createWorkerAgent<NewPartialVariableName extends string>(
   llm: BaseChatModel,
-  tools: StructuredToolInterface<ZodAny>[],
+  tools: any[],
   systemPrompt: string,
   partialValues?: PartialValues<NewPartialVariableName>,
   templateFormat?: TemplateFormat

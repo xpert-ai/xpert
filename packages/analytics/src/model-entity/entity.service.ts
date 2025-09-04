@@ -1,9 +1,10 @@
-import { generateCronExpression, ISemanticModelEntity, IUser, ScheduleTaskStatus } from '@metad/contracts'
+import { embeddingCubeCollectionName, generateCronExpression, ISemanticModelEntity, IUser, ScheduleTaskStatus } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext, runWithRequestContext } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
+import { OnEvent } from '@nestjs/event-emitter'
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
@@ -13,6 +14,8 @@ import { DeepPartial, Repository } from 'typeorm'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
 import { SemanticModelEntity } from './entity.entity'
 import { JOB_ENTITY_SYNC, MEMBERS_SYNC_NAME, TDimensionMembersSyncJob } from './types'
+import { CreateVectorStoreCommand } from '../model-member'
+import { EVENT_SEMANTIC_MODEL_DELETED, SemanticModelDeletedEvent } from '../model/types'
 
 @Injectable()
 export class SemanticModelEntityService extends BusinessAreaAwareCrudService<SemanticModelEntity> implements OnModuleInit {
@@ -181,5 +184,28 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 		const task = await this.findOne(id, { relations: ['createdBy', 'createdBy.role'] })
 		this.rescheduleTask(task, RequestContext.currentUser() ?? task.createdBy)
 		return await this.update(id, { status: ScheduleTaskStatus.SCHEDULED })
+	}
+
+	async deleteEntity(id: string) {
+		const entity = await this.findOne(id)
+		
+		await this.pauseSchedule(id)
+
+		const collectionName = embeddingCubeCollectionName(entity.modelId, entity.name, false)
+		const vectorStore = await this.commandBus.execute(new CreateVectorStoreCommand(collectionName))
+		// Clear all dimensions
+		await vectorStore?.clear()
+
+		await this.delete(id)
+	}
+
+	@OnEvent(EVENT_SEMANTIC_MODEL_DELETED)
+	async handle(event: SemanticModelDeletedEvent) {
+		const id = event.id
+		// Delete all entity by model id
+		const {items} = await this.findAll({where: {modelId: id}})
+		for await (const item of items) {
+			await this.deleteEntity(item.id)
+		}
 	}
 }

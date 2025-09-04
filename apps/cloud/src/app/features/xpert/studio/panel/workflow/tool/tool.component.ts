@@ -104,7 +104,8 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
     getEnabledTools(this.toolsetDetail())?.map((tool) => ({
       value: tool.name,
       tool,
-      label: getToolLabel(tool)
+      label: getToolLabel(tool),
+      description: tool.description
     }))
   )
   readonly tool = computed(() => {

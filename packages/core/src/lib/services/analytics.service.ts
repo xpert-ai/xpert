@@ -18,7 +18,7 @@ export class AnalyticsBusinessService<T> extends SmartBusinessService<T> {
   }
 
   /**
-   * 合并相应 Entity Property 后的 Analytics 注解
+   * Analytics annotations after merging corresponding Entity Properties
    */
   public readonly analytics$ = this.analyticsAnnotation$.pipe(
     filter(nonNullable),

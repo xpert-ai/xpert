@@ -1,7 +1,8 @@
 {
     "Error": {
         "AgentNotFound": "Agent '{{key}}' not found.",
-        "PrimaryAgentNotFound": "Primary agent node not found"
+        "PrimaryAgentNotFound": "Primary agent node not found",
+        "GitIntegrationNotProvided": "Git integration not provided"
     },
     "tools": {
         "ListFiles": "List files",
@@ -62,6 +63,11 @@
         },
         "Task": {
             "ScheduledTask": "Scheduled Task"
+        },
+        "Planning": {
+            "CreatedAPlan": "Created a plan",
+            "Update": "Update",
+            "Step": "Step"
         }
     }
 }

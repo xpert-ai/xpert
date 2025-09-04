@@ -1,0 +1,23 @@
+identity:
+  name: read_file
+  author: XpertAI
+  label:
+    en_US: Read File
+    zh_Hans: 读取文件
+description:
+  human:
+    en_US: Read a file content.
+    zh_Hans: 读取文件内容。
+  llm: This tool can read a file with content.
+parameters:
+  - name: file_path
+    type: string
+    required: true
+    label:
+      en_US: File path
+      zh_Hans: 文件路径
+    human_description:
+      en_US: Specify the file path to read.
+      zh_Hans: 指定要读取文件的路径
+    llm_description: The file path to read.
+    form: llm

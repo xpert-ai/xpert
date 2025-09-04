@@ -1,13 +1,13 @@
 import * as lark from '@larksuiteoapi/node-sdk'
-import { IXpertToolset } from '@metad/contracts'
+import { isEnableTool, IXpertToolset } from '@metad/contracts'
 import { GetLarkClientQuery } from '../../../../integration-lark'
 import { ToolProviderCredentialValidationError } from '../../../errors'
-import { BuiltinTool } from '../builtin-tool'
 import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 import { CreateMessageTool } from './tools/create-message'
 import { FeishuToolEnum, TFeishuMessageToolCredentials } from './types'
+import { BaseTool } from '../../../../shared'
 
-export class FeishuMessageToolset extends BuiltinToolset {
+export class FeishuMessageToolset extends BuiltinToolset<BaseTool, TFeishuMessageToolCredentials> {
 	static provider = 'feishu_message'
 
     protected _client: lark.Client = null
@@ -15,10 +15,10 @@ export class FeishuMessageToolset extends BuiltinToolset {
 		super(FeishuMessageToolset.provider, toolset, params)
 	}
 
-	async initTools(): Promise<BuiltinTool[]> {
+	async initTools(): Promise<BaseTool[]> {
 		this.tools = []
 		if (this.toolset?.tools) {
-			const enabledTools = this.toolset?.tools.filter((_) => _.enabled)
+			const enabledTools = this.toolset?.tools.filter((_) => isEnableTool(_, this.toolset))
 			if (enabledTools.some((_) => _.name === FeishuToolEnum.CREATE_MESSAGE)) {
 				this.tools.push(new CreateMessageTool(this))
 			}
@@ -27,13 +27,9 @@ export class FeishuMessageToolset extends BuiltinToolset {
 		return this.tools
 	}
 
-	getCredentials() {
-		return this.toolset.credentials as TFeishuMessageToolCredentials
-	}
-
     async getClient() {
         if (!this._client) {
-            const integration = this.toolset.credentials?.integration
+            const integration = this.getCredentials()?.integration
             this._client = await this.queryBus.execute(new GetLarkClientQuery(integration))
         }
         return this._client

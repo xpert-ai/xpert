@@ -1,6 +1,5 @@
-import { isEnableTool, IXpertToolset, TStateVariable, TToolCredentials } from '@metad/contracts'
+import { isEnableTool, IXpertToolset, TStateVariable } from '@metad/contracts'
 import {
-	BuiltinTool,
 	BuiltinToolset,
 	TBuiltinToolsetParams
 } from '@metad/server-ai'
@@ -34,14 +33,10 @@ export class IndicatorsToolset extends BuiltinToolset {
 		]
 	}
 
-	async initTools(): Promise<BuiltinTool[]> {
+	async initTools() {
 		this.tools = []
 		const tools = this.toolset.tools.filter((_) => isEnableTool(_, this.toolset))
 
 		return this.tools
-	}
-
-	async _validateCredentials(credentials: TToolCredentials) {
-		return null
 	}
 }

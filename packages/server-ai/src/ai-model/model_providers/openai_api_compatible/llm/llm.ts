@@ -1,4 +1,4 @@
-import { ChatOpenAI, ChatOpenAICallOptions, ChatOpenAIFields, ClientOptions, OpenAIClient } from '@langchain/openai'
+import { ChatOpenAI, ChatOpenAICompletions, ChatOpenAIFields, ClientOptions, OpenAIClient } from '@langchain/openai'
 import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
@@ -71,30 +71,23 @@ export class OAIAPICompatLargeLanguageModel extends LargeLanguageModel {
 	}
 }
 
-
-export interface ChatReasoningCallOptions extends ChatOpenAICallOptions {
-	headers?: Record<string, string>
-}
-
-type OpenAIRoleEnum = 'system' | 'developer' | 'assistant' | 'user' | 'function' | 'tool'
-
-export class ChatReasoningModel extends ChatOpenAI<ChatReasoningCallOptions> {
-	protected override _convertOpenAIDeltaToBaseMessageChunk(
+export class ChatOAICompatReasoningModel extends ChatOpenAICompletions {
+	protected override _convertCompletionsDeltaToBaseMessageChunk(
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		delta: Record<string, any>,
 		rawResponse: OpenAIClient.ChatCompletionChunk,
-		defaultRole?: OpenAIRoleEnum
+		defaultRole?: 'function' | 'user' | 'system' | 'developer' | 'assistant' | 'tool'
 	) {
-		const messageChunk = super._convertOpenAIDeltaToBaseMessageChunk(delta, rawResponse, defaultRole)
+		const messageChunk = super._convertCompletionsDeltaToBaseMessageChunk(delta, rawResponse, defaultRole)
 		messageChunk.additional_kwargs.reasoning_content = delta.reasoning_content
 		return messageChunk
 	}
 
-	protected override _convertOpenAIChatCompletionMessageToBaseMessage(
+	protected override _convertCompletionsMessageToBaseMessage(
 		message: OpenAIClient.ChatCompletionMessage,
 		rawResponse: OpenAIClient.ChatCompletion
 	) {
-		const langChainMessage = super._convertOpenAIChatCompletionMessageToBaseMessage(message, rawResponse)
+		const langChainMessage = super._convertCompletionsMessageToBaseMessage(message, rawResponse)
 		langChainMessage.additional_kwargs.reasoning_content =
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(message as any).reasoning_content

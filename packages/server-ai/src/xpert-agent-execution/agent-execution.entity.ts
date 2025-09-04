@@ -1,3 +1,4 @@
+import { StoredMessage } from '@langchain/core/messages'
 import {
 	IXpert,
 	IXpertAgentExecution,
@@ -11,7 +12,6 @@ import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum, IsObject } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
-import { StoredMessage } from '@langchain/core/messages'
 import { Xpert } from '../core/entities/internal'
 
 @Entity('xpert_agent_execution')

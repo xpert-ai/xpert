@@ -8,7 +8,6 @@ import { DiscordToolset } from './discord/discord'
 import { DuckDuckGoToolset } from './duckduckgo/duckduckgo'
 import { EmailToolset } from './email/email'
 import { FeishuMessageToolset } from './feishu_message/feishu_message'
-import { GithubToolset } from './github/github'
 import { SearchAPIToolset } from './searchapi/searchapi'
 import { SerpAPIToolset } from './serpapi/serpapi'
 import { SerperToolset } from './serper/serper'
@@ -17,11 +16,9 @@ import { TaskToolset } from './task/task'
 import { TavilyToolset } from './tavily/tavily'
 import { FirecrawlToolset } from './firecrawl/firecrawl'
 import { PlanningToolset } from './planning/planning'
-import { TBuiltinToolsetParams } from './builtin-toolset'
+import { TBuiltinToolsetParams } from '../../../shared'
 
 export * from './builtin-tool'
-export * from './builtin-toolset'
-export * from './command'
 
 export const BUILTIN_TOOLSET_REPOSITORY: {
 	baseUrl: string
@@ -42,7 +39,6 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			BingToolset,
 			DingTalkToolset,
 			SlackToolset,
-			GithubToolset,
 			DiscordToolset,
 			SerperToolset,
 		]

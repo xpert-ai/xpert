@@ -251,6 +251,8 @@ export type TMessageComponentStep<T = JSONValue> = {
   error?: string
   data?: T
   input?: any
+  output?: string
+  artifact?: any
 }
 
 /**

@@ -32,10 +32,6 @@ export class PythonExecuteTool extends SandboxBaseTool {
 		code: z.string().describe(`The Python code to execute.`)
 	})
 
-	constructor(protected toolset: PythonToolset) {
-		super(toolset)
-	}
-
 	async _call(
 		parameters: TPythonExecuteToolParameters,
 		callbacks: CallbackManagerForToolRun,
@@ -48,48 +44,5 @@ export class PythonExecuteTool extends SandboxBaseTool {
 		const { signal, configurable } = config ?? {}
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 		const lang = currentState[STATE_VARIABLE_SYS]?.language
-
-		const {sandboxUrl} = await this.toolset.commandBus.execute<SandboxLoadCommand, {sandboxUrl: string}>(new SandboxLoadCommand({}))
-
-		const requestData = {
-			...parameters,
-			thread_id: configurable?.thread_id
-		}
-
-		try {
-			const { data: result } = await axios.post(`${sandboxUrl}/python/exec/`, requestData, { signal })
-
-			dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-				category: ChatMessageStepCategory.Program,
-				toolset: PythonToolset.provider,
-				tool: this.name,
-				title: await this.toolset.translate('toolset.Python.ExecPythonCode', { lang: mapTranslationLanguage(lang)}),
-				message: `Code: ` + parameters.code,
-				data: {
-					code: parameters.code,
-					output: result.observation
-				}
-			}).catch((err) => {
-				this.#logger.error(err)
-			})
-
-			return JSON.stringify(result.observation)
-		} catch (err) {
-			const error = getErrorMessage(err)
-			dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-				category: ChatMessageStepCategory.Program,
-				toolset: PythonToolset.provider,
-				tool: this.name,
-				title: await this.toolset.translate('toolset.Python.ExecPythonCode', { lang: mapTranslationLanguage(lang)}),
-				message: `Code: ` + parameters.code,
-				data: {
-					code: parameters.code,
-					error
-				}
-			}).catch((err) => {
-				this.#logger.error(err)
-			})
-			throw new Error(error)
-		}
 	}
 }

@@ -1,0 +1,26 @@
+<div class="flex flex-col rounded-2xl border border-solid border-divider-regular p-4 bg-components-card-bg">
+  <div class="mb-4">
+    <div class="font-semibold text-xl">GitHub Login</div>
+    <div>Login your GitHub App installations and switch between organizations</div>
+  </div>
+  <div>
+    <div class="w-full flex justify-between items-center gap-3">
+      <ngm-select class="min-w-[200px]" 
+        [selectOptions]="integrations()" 
+        [ngModel]="_integrationId()" 
+        (ngModelChange)="handleIntegrationChange($event)" 
+      />
+
+      <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+        [disabled]="!_integrationId()"
+        [title]="'Login GitHub App'"
+        (click)="handleLogin()">
+        <i class="ri-login-circle-line"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+@if (isLoading()) {
+  <ngm-spin class="absolute w-full h-full top-0 left-0 backdrop-blur-[2px] bg-white/5" />
+}

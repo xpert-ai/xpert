@@ -1,11 +1,11 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { I18nObject, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { environment } from '@metad/server-config'
 import { Logger } from '@nestjs/common'
-import { TBuiltinToolsetParams } from '../builtin'
 import { createProMCPClient } from './pro'
 import { createMCPClient } from './types'
-import { _BaseToolset } from '../../../shared'
+import { _BaseToolset, TBuiltinToolsetParams } from '../../../shared'
 
 export class MCPToolset extends _BaseToolset {
 	providerName = 'mcp'
@@ -30,7 +30,7 @@ export class MCPToolset extends _BaseToolset {
 	}
 
 	async initTools() {
-		const { client } = this.params.toolsetService.isPro()
+		const { client } = environment.pro
 			? await createProMCPClient(
 					this.toolset,
 					this.params?.signal,

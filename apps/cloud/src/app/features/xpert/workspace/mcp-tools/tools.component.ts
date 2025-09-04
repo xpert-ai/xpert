@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CapitalizePipe, DynamicGridDirective } from '@metad/core'
+import { DynamicGridDirective } from '@metad/core'
 import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
@@ -46,7 +46,6 @@ import { MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@sh
     RouterModule,
     TranslateModule,
 
-    CapitalizePipe,
     DynamicGridDirective,
     NgmCommonModule,
     CardCreateComponent,

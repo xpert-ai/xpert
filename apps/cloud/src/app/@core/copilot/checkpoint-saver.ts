@@ -10,6 +10,8 @@ import { API_COPILOT_CHECKPOINT } from '../constants/app.constants'
   providedIn: 'root'
 })
 export class CopilotCheckpointSaver extends BaseCheckpointSaver {
+  
+
   readonly #httpClient = inject(HttpClient)
 
   constructor() {
@@ -48,8 +50,8 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
   }
 
   async put(config: RunnableConfig, checkpoint: Checkpoint, metadata: CheckpointMetadata): Promise<RunnableConfig> {
-    const [type1, serializedCheckpoint] = this.serde.dumpsTyped(checkpoint)
-    const [type2, serializedMetadata] = this.serde.dumpsTyped(metadata)
+    const [type1, serializedCheckpoint] = await this.serde.dumpsTyped(checkpoint)
+    const [type2, serializedMetadata] = await this.serde.dumpsTyped(metadata)
 
     await firstValueFrom(
       this.#httpClient.post(API_COPILOT_CHECKPOINT, {
@@ -90,6 +92,10 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
     await firstValueFrom(this.#httpClient.post(API_COPILOT_CHECKPOINT + '/writes', rows))
   }
 
+  deleteThread(threadId: string): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+
   toJSON(data: Uint8Array) {
     return {
       type: "Buffer",
@@ -104,6 +110,7 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
   
     return new TextEncoder().encode(value as string)
   }
+  
 }
 
 export function provideCheckpointSaver(): Provider[] {

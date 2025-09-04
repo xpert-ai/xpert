@@ -1,0 +1,256 @@
+<div class="flex grow justify-center self-stretch">
+  <div class="relative flex w-full max-w-[960px] flex-col items-center px-6 py-0">
+    <div class="flex w-full max-w-[640px] grow flex-col items-center gap-4 pb-8 pt-6">
+      <div class="relative flex flex-col items-center gap-[2px] self-stretch py-2">
+        <div class="system-xl-semibold grow self-stretch text-text-primary">
+          {{ 'PAC.Knowledgebase.ConnectingToExternalKB' | translate: {Default: 'Connecting to external knowledgebase'} }}
+        </div>
+        <p class="system-sm-regular text-text-tertiary font-body">
+          <span>
+            {{ 'PAC.Knowledgebase.ConnectToExternalKB_1' | translate: {Default: 'Connect to external knowledgebase via API and knowledgebase ID. Currently,'} }}
+          </span>
+          <span class="system-sm-medium text-text-secondary">
+            {{ 'PAC.Knowledgebase.ConnectToExternalKB_2' | translate: {Default: 'only supports search function.'} }}
+          </span>
+          <span>
+            {{ 'PAC.Knowledgebase.ConnectToExternalKB_3' | translate: {Default: 'We strongly recommend that you use this feature before'} }}
+          </span>
+          <a
+            class="system-sm-regular self-stretch text-text-accent hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+            [href]="helpUrl()"
+            >
+            {{ 'PAC.Knowledgebase.ConnectToExternalKB_4' | translate: {Default: 'Read the help documentation carefully.'} }}
+          </a>
+        </p>
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-tertiary btn-medium absolute left-[-44px] top-1 flex h-10 w-10 items-center justify-center rounded-full p-2"
+          (click)="goBack()"
+        >
+          <i class="ri-arrow-left-line"></i>
+        </button>
+      </div>
+      <div class="flex flex-col gap-4 self-stretch">
+        <div class="flex flex-col gap-4 self-stretch">
+          <div class="flex flex-col gap-1 self-stretch">
+            <div class="flex flex-col justify-center self-stretch">
+              <label class="system-sm-semibold text-text-secondary">
+                {{ 'PAC.Knowledgebase.ExternalKnowledgebaseName' | translate: {Default: 'External knowledgebase name'} }}
+              </label>
+            </div>
+            <div class="relative w-full">
+              <input
+                class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+                [placeholder]="'PAC.Knowledgebase.EnterExternalKnowledgebaseName' | translate: {Default: 'Please enter external knowledgebase name'}"
+                [(ngModel)]="name"
+              />
+            </div>
+          </div>
+          <div class="flex flex-col gap-1 self-stretch">
+            <div class="flex flex-col justify-center self-stretch">
+              <label class="system-sm-semibold text-text-secondary">
+                {{ 'PAC.Knowledgebase.KnowledgebaseDescription' | translate: {Default: 'Knowledgebase description'} }}
+              </label>
+            </div>
+            <div class="flex flex-col gap-1 self-stretch">
+              <textarea
+                [placeholder]="'PAC.Knowledgebase.DescribeKBContentOptional' | translate: {Default: 'Describe the knowledge base content (optional)'}"
+                class="flex h-20 items-start self-stretch rounded-lg bg-components-input-bg-normal p-3 py-2 text-components-input-text-placeholder system-sm-regular"
+                [(ngModel)]="description"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="w-full h-[0.5px] my-2 bg-divider-regular"></div>
+      <div class="flex flex-col gap-4 self-stretch">
+        <div class="flex flex-col gap-1 self-stretch">
+          <div class="flex flex-col self-stretch">
+            <label class="system-sm-semibold text-text-secondary">
+              {{ 'PAC.Knowledgebase.ExtKnowledgebaseIntegration' | translate: {Default: 'External knowledgebase integration'} }}
+            </label>
+          </div>
+          <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-medium justify-start gap-0.5"
+            [cdkMenuTriggerFor]="integrationMenu"
+            #menuTrigger
+            >
+            @if (integration(); as integration) {
+              <span>{{integration.label | i18n}}</span>
+            } @else {
+              <i class="ri-add-line"></i>
+              <span class="system-sm-regular text-text-tertiary">
+                {{ 'PAC.Knowledgebase.ExtKnowledgebaseIntegrationPlaceholder' | translate: {Default: 'There is no external knowledge base integration yet, click here to select or create one'} }}
+              </span>
+            }
+          </button>
+          <ng-template #integrationMenu >
+            <div cdkMenu class="cdk-menu__large" [style.width.px]="menuTrigger.offsetWidth">
+              @for (option of integrations(); track option.value) {
+                <div cdkMenuItem class="group/item overflow-hidden"
+                  [class.active]="option.value === integrationId()" (click)="integrationId.set(option.value)">
+                  <div class="relative flex items-start gap-2">
+                    @if (option.icon) {
+                      <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.icon">
+                    }
+                    <div class="max-w-full flex flex-col items-start overflow-hidden">
+                      <div class="text-start">{{option.label | i18n}}</div>
+                      <div class="text-start text-sm whitespace-normal line-clamp-2 opacity-60 group-hover/item:opacity-80">{{option.description}}</div>
+                    </div>
+                  </div>
+                </div>
+              } @empty {
+                <div class="p-4 text-center text-text-tertiary">
+                  {{ 'PAC.Knowledgebase.NoIntegrationYet' | translate: {Default: 'No knowledge base integration yet!'} }}
+                </div>
+              }
+              <div class="border-t border-solid border-divider-regular my-1"></div>
+              <div cdkMenuItem (click)="openIntegrations()">
+                <i class="ri-add-line mr-1"></i>
+                {{ 'PAC.Knowledgebase.CreateKBIntegration' | translate: {Default: 'Create knowledgebase integration'} }}
+              </div>
+            </div>
+          </ng-template>
+        </div>
+        <div class="flex flex-col gap-1 self-stretch">
+          <div class="flex flex-col self-stretch">
+            <label class="system-sm-semibold text-text-secondary">
+              {{ 'PAC.Knowledgebase.ExtKBId' | translate: {Default: 'External knowledgebase ID'} }}
+            </label>
+          </div>
+          <div class="relative w-full">
+            <input
+              class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+              [placeholder]="'PAC.Knowledgebase.EnterExtKBId' | translate: {Default: 'Please enter external knowledgebase ID'}"
+              [(ngModel)]="extKnowledgebaseId"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2 self-stretch">
+        <div class="flex h-7 flex-col gap-2 self-stretch pt-1">
+          <label class="system-sm-semibold text-text-secondary">
+          {{ 'PAC.Knowledgebase.RecallSettings' | translate: {Default: 'Recall settings'} }}
+          </label>
+        </div>
+        <div class="flex gap-4 self-stretch flex-col sm:flex-row">
+          <div class="flex grow flex-col gap-1">
+            <div class="grow">
+              <div class="flex items-center justify-between">
+                <div class="flex h-6 items-center">
+                  <span class="system-sm-semibold mr-1 text-text-secondary">Top K</span>
+                  <!-- <div class="w-4 h-4 shrink-0 flex justify-center items-center text-text-tertiary hover:text-text-primary">
+                    <i class="ri-question-line"></i>
+                  </div> -->
+                </div>
+              </div>
+              <div class="mt-1 flex items-center">
+                <div class="mr-3 flex shrink-0 items-center">
+                  <div class="flex">
+                    <div class="relative w-full">
+                      <input
+                        class="appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular no-spinner rounded-r-none w-52"
+                        placeholder="Top K"
+                        step="1"
+                        max="10"
+                        min="1"
+                        type="number"
+                        [(ngModel)]="topK"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex grow flex-col gap-1">
+            <div class="grow">
+              <div class="flex items-center justify-between">
+                <div class="flex h-6 items-center">
+                  <ngm-slide-toggle [(ngModel)]="enabledScore" class="mr-1" />
+                  <span class="system-sm-semibold mr-1 text-text-secondary">
+                    {{ 'PAC.Knowledgebase.ScoreThreshold' | translate: {Default: 'Score Threshold'} }}
+                  </span>
+                  <!-- <div class="w-4 h-4 shrink-0 flex justify-center items-center text-text-tertiary hover:text-text-primary">
+                    <i class="ri-question-line"></i>
+                  </div> -->
+                </div>
+              </div>
+              <div class="mt-1 flex items-center">
+                <div class="mr-3 flex shrink-0 items-center">
+                  <div class="flex">
+                    <div class="relative w-full">
+                      <input
+                        class="appearance-none border py-[7px] caret-primary-600 outline-none bg-components-input-bg-normal placeholder:text-components-input-text-placeholder focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular border-transparent bg-components-input-bg-disabled text-components-input-text-filled-disabled hover:border-transparent hover:bg-components-input-bg-disabled no-spinner rounded-r-none w-52"
+                        [ngClass]="{
+                          'cursor-pointer': enabledScore(),
+                          'cursor-not-allowed': !enabledScore()
+                        }"
+                        [disabled]="!enabledScore()"
+                        step="0.01"
+                        max="1"
+                        min="0"
+                        type="number"
+                        [(ngModel)]="score"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 self-stretch py-2">
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="goBack()">
+          <div class="system-sm-medium text-components-button-secondary-text">
+            {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
+          </div>
+        </button>
+        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+          [disabled]="loading() || !name() || !integrationId() || !extKnowledgebaseId()"
+          (click)="create()">
+          <div class="system-sm-medium text-components-button-primary-text">
+            {{ 'PAC.Knowledgebase.Connect' | translate: {Default: 'Connect'} }}
+          </div>
+          <i class="ri-corner-up-right-line"></i>
+        </button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+    }
+  </div>
+  <div class="flex w-[360px] flex-col items-start pb-2 pr-8 pt-[108px]">
+    <div class="flex w-full min-w-[240px] flex-col items-start gap-3 self-stretch rounded-xl bg-gray-100 p-6">
+      <div
+        class="flex h-10 w-10 grow items-center justify-center gap-2 self-stretch rounded-lg border-[0.5px] border-components-card-border bg-components-card-bg p-1"
+      >
+        <i class="ri-book-open-line text-text-accent"></i>
+      </div>
+      <p class="flex flex-col items-start gap-2 self-stretch">
+        <span class="system-xl-semibold self-stretch text-text-secondary">
+          {{ 'PAC.Knowledgebase.HowConnectExtKB' | translate: {Default: 'How to connect to an external knowledge base'} }}
+        </span>
+        <span class="system-sm-regular text-text-tertiary">
+          {{ 'PAC.Knowledgebase.HowConnectExtKB_1' | translate: {Default: 'To connect to an external knowledge base, you need to first create an external API. Please read and refer to'} }}
+          <a
+            class="system-sm-regular ml-1 text-text-accent hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+            [href]="helpUrl()"
+          >{{ 'PAC.Knowledgebase.HowConnectExtKB_2' | translate: {Default: 'Learn how to create an external API.' } }}</a>
+          {{ 'PAC.Knowledgebase.HowConnectExtKB_3' | translate: {Default: 'then find the corresponding knowledge base ID and fill it in the form on the left. If all information is correct, clicking the Connect button will automatically redirect you to the search test within the knowledge base.' } }}
+        </span>
+        <a
+          class="system-sm-regular self-stretch text-text-accent hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+          [href]="learnMoreUrl()"
+        >{{ 'PAC.KEY_WORDS.LearnMore' | translate: {Default: 'Learn more'} }}</a>
+      </p>
+    </div>
+  </div>
+</div>

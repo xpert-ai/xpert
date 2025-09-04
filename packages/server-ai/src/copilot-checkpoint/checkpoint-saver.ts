@@ -15,6 +15,7 @@ import { CopilotCheckpointWrites } from './writes/writes.entity'
 
 @Injectable()
 export class CopilotCheckpointSaver extends BaseCheckpointSaver {
+
 	constructor(
 		@InjectRepository(CopilotCheckpoint)
 		private repository: Repository<CopilotCheckpoint>,
@@ -129,8 +130,8 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
 
 	async put(config: RunnableConfig, checkpoint: Checkpoint, metadata: CheckpointMetadata): Promise<RunnableConfig> {
 		const { tenantId, organizationId, userId } = config.configurable ?? {}
-		const [type1, serializedCheckpoint] = this.serde.dumpsTyped(checkpoint)
-		const [type2, serializedMetadata] = this.serde.dumpsTyped(metadata)
+		const [type1, serializedCheckpoint] = await this.serde.dumpsTyped(checkpoint)
+		const [type2, serializedMetadata] = await this.serde.dumpsTyped(metadata)
 
 		if (type1 !== type2) {
 			throw new Error('Failed to serialized checkpoint and metadata to the same type.')
@@ -166,7 +167,7 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
 		await this.wRepository.manager.transaction(async (transactionalEntityManager) => {
 			let idx = 0
 			for await (const write of writes) {
-				const [type, serializedWrite] = this.serde.dumpsTyped(write[1])
+				const [type, serializedWrite] = await this.serde.dumpsTyped(write[1])
 				await transactionalEntityManager.upsert(
 					CopilotCheckpointWrites,
 					{
@@ -190,6 +191,12 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
 
 				idx++
 			}
+		})
+	}
+
+	async deleteThread(threadId: string): Promise<void> {
+		await this.repository.delete({
+			thread_id: threadId
 		})
 	}
 }

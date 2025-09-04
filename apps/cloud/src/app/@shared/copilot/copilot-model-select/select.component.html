@@ -157,9 +157,15 @@
     <div class="pr-2">
       @for (copilot of searchedModels(); track copilot.id) {
         <div class="text-base px-4 my-4 font-semibold flex justify-start items-center">
-          <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
-          <span class="mx-1">•</span>
           <span >{{copilot.providerWithModels?.label | i18n }}</span>
+          <span class="mx-1">•</span>
+          <div>
+            @if (copilot.name) {
+              <span>{{copilot.name}}</span>
+            } @else {
+              <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
+            }
+          </div>
         </div>
         @for (item of copilot.providerWithModels?.models; track item.model) {
           <button type="button" class="w-full flex justify-start items-center gap-1 px-4 py-2 rounded-xl cursor-pointer 

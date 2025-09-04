@@ -3,6 +3,7 @@ import {
 	IPagination,
 	IXpertProject,
 	IXpertProjectTask,
+	IXpertProjectVCS,
 	IXpertToolset,
 	OrderTypeEnum
 } from '@metad/contracts'
@@ -11,6 +12,7 @@ import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
+	Public,
 	RequestContext,
 	TransformInterceptor,
 	UserPublicDTO
@@ -44,8 +46,8 @@ import { XpertProjectIdentiDto } from './dto/project-identi.dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectGuard, XpertProjectOwnerGuard } from './guards'
 import { XpertProjectService } from './project.service'
-import { XpertProjectFileService } from './services'
 import { VolumeClient } from '../shared'
+import { GithubService } from '../integration-github/github.service'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -55,7 +57,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	readonly #logger = new Logger(XpertProjectController.name)
 	constructor(
 		private readonly service: XpertProjectService,
-		private readonly fileService: XpertProjectFileService,
+		private readonly githubService: GithubService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {
@@ -261,24 +263,42 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		await this.service.removeAttachments(id, [file])
 	}
 
-	/**
-	 * @deprecated Probably won't be used.
-	 */
-	@Get(':id/file/:file')
-	async readFile(@Param('id') id: string, @Param('file') filePath: string, @Res() res: Response) {
-		// read file from project and return as a file stream
-		try {
-			const file = await this.fileService.readFile(id, filePath)
-			if (!file) {
-				res.status(HttpStatus.NOT_FOUND).send('File not found')
-				return
-			}
-			res.setHeader('Content-Type', 'text/plain')
-			res.setHeader('Content-Disposition', `attachment; filename="${file.filePath}"`)
-			res.send(file.contents)
-		} catch (error) {
-			this.#logger.error(`Error reading file: ${error.message}`, error.stack)
-			res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Error reading file')
+	@UseGuards(XpertProjectGuard)
+	@Get(':id/vcs')
+	async getVCS(@Param('id') id: string): Promise<IXpertProjectVCS> {
+		const integration = await this.service.findOne(id, {relations: ['vcs']})
+		return integration.vcs
+	}
+
+	@UseGuards(XpertProjectGuard)
+	@Put(':id/vcs')
+	async updateVCS(
+		@Param('id') id: string,
+		@Body() entity: Partial<IXpertProjectVCS>
+	): Promise<IXpertProjectVCS> {
+		return this.service.updateVCS(id, entity)
+	}
+
+	@Public()
+	@Get(':id/github-installation')
+	async GithubInstallation(@Param('id') id: string, @Res() res: Response,) {
+		const project = await this.service.findOne(id, {relations: ['vcs']})
+		if (!project.vcs?.auth) {
+			throw new BadRequestException('User is not authorized to access this resource')
 		}
+		const result = await this.githubService.installation(project.vcs.integrationId, project.vcs.auth)
+		if (result.redirect) {
+			return res.redirect(result.redirect)
+		}
+	}
+
+	@UseGuards(XpertProjectGuard)
+	@Get(':id/github-installations')
+	async getGithubInstallations(@Param('id') id: string) {
+		const project = await this.service.findOne(id, {relations: ['vcs']})
+		if (!project.vcs?.auth) {
+			throw new BadRequestException('User is not authorized to access this resource')
+		}
+		return this.githubService.getInstallations(project.vcs.auth)
 	}
 }

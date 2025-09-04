@@ -55,7 +55,7 @@ export class ProjectInterruptSwitchComponent extends AbstractInterruptComponent<
   readonly loading = computed(() => this.#projects.status() === 'loading')
   readonly createdProject = signal<IProject | null>(null)
 
-  readonly projectId = linkedModel({
+  readonly biProjectId = linkedModel({
     initialValue: null,
     compute: () => this.value()?.projectId ?? null,
     update: (value) => {
@@ -86,7 +86,7 @@ export class ProjectInterruptSwitchComponent extends AbstractInterruptComponent<
       panelClass: 'xp-overlay-pane-share-sheet',
     }).closed.subscribe((project) => {
       if (project) {
-        this.projectId.set(project.id)
+        this.biProjectId.set(project.id)
         this.createdProject.set(project)
       }
     })

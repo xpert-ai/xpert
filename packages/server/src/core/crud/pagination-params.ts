@@ -68,7 +68,7 @@ export abstract class PaginationParams<T = any> extends OptionParams<T>  {
 	@Min(0)
 	@Max(50)
 	@Transform((val: TransformFnParams) => parseInt(val as unknown as string, 10))
-	readonly take = 10;
+	readonly take: number = 10;
 
 	/**
 	 * Pagination offset
@@ -77,7 +77,7 @@ export abstract class PaginationParams<T = any> extends OptionParams<T>  {
 	@IsOptional()
 	@Min(0)
 	@Transform((val: TransformFnParams) => parseInt(val as unknown as string, 10))
-	readonly skip = 0;
+	readonly skip: number = 0;
 }
 
 /**

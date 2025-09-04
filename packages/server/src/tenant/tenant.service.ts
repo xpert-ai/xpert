@@ -12,7 +12,7 @@ import {
 	DEFAULT_TENANT,
 	IOrganizationCreateInput
 } from '@metad/contracts';
-import { EventEmitter2 } from 'eventemitter2'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { UserService } from '../user/user.service';
 import { RoleService } from './../role/role.service';
 import { TenantRoleBulkCreateCommand } from '../role/commands/tenant-role-bulk-create.command';

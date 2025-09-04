@@ -1,6 +1,6 @@
 {
   "name": "@metad/ocap-angular",
-  "version": "3.4.6",
+  "version": "3.5.0",
   "keywords": [
     "metad",
     "ocap",
@@ -22,7 +22,6 @@
     "@angular/material-date-fns-adapter": "^17.0.0",
     "@metad/ocap-core": "^2.3.0",
     "@ngx-translate/core": "^15.0.0",
-    "langchain": "0.2.10",
     "lodash-es": "^4.17.21",
     "marked": "^9.0.0",
     "ngx-popperjs": ">=15.0.4",

@@ -14,10 +14,12 @@ export class KnowledgebaseOwnerGuard implements CanActivate {
 		if (!apiKey) {
 			throw new ForbiddenException('API key not found')
 		}
-		const ids = apiKey.entityId?.split(',').map((id) => id.trim())
-		if (apiKey?.type !== 'knowledgebase' || !ids.includes(request.params.id)) {
-			throw new ForbiddenException('Access denied')
-		}
+
+		// @todo ApiKey needs to be used to create a new knowledge base, so it cannot be restricted in ids.
+		// const ids = apiKey.entityId?.split(',').map((id) => id.trim())
+		// if (apiKey?.type !== 'knowledgebase' || !ids.includes(request.params.id)) {
+		// 	throw new ForbiddenException('Access denied')
+		// }
 
 		return true
 	}

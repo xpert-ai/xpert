@@ -1,22 +1,18 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
-import { getContextVariable } from '@langchain/core/context'
 import { ToolMessage } from '@langchain/core/messages'
 import { Tool, tool } from '@langchain/core/tools'
-import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
+import { Command, getCurrentTaskInput, LangGraphRunnableConfig } from '@langchain/langgraph'
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
-	CONTEXT_VARIABLE_CURRENTSTATE,
 	getToolCallIdFromConfig,
 	IChatBIModel,
 	IIndicator,
 	isEnableTool,
 	OrderTypeEnum,
-	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TMessageComponent,
 	TMessageContentComponent,
-	TranslationLanguageMap,
 	TStateVariable,
 	TToolCredentials
 } from '@metad/contracts'
@@ -51,7 +47,8 @@ import {
 } from '@metad/ocap-core'
 import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
 import { getErrorMessage, isEmpty, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
-import { groupBy } from 'lodash'
+import { t } from 'i18next'
+import { groupBy, upperFirst } from 'lodash'
 import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { z } from 'zod'
@@ -64,6 +61,7 @@ import { IndicatorSchema } from '../../schema'
 import { TOOL_CHATBI_PROMPTS_DEFAULT } from './prompts'
 import { BIVariableEnum, mapTimeSlicer } from '../bi-toolset'
 import { buildDimensionMemberRetrieverTool } from '../tools/dimension_member_retriever'
+import { drawTableMessage } from './tools/answer_question'
 
 
 function cubesReducer(a, b) {
@@ -215,8 +213,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		// Check exist
 		for await (const id of models) {
 			if (!items.some((_) => _.id === id)) {
-				throw new Error(await this.translate('analytics.Error.ChatBIModelNotFound', {
-					args: {model: id, toolset: this.toolset.name} }))
+				throw new Error(t('analytics:Error.ChatBIModelNotFound', {model: id, toolset: this.toolset.name}))
 			}
 		}
 
@@ -324,7 +321,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				try {
 					// Fetch a context variable named "currentState".
 					// We have set this variable explicitly in each ToolNode invoke method that calls this tool.
-					const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+					const currentState = getCurrentTaskInput<{chatbi_cubes: any[]}>()
 
 					return await race(maximumWaitTime, async () => {
 						const cubes = []
@@ -334,7 +331,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							let entityType = await this.getCubeCache(item.modelId, item.name)
 							if (!entityType) {
 								// Update runtime indicators
-								const indicators = currentState?.[BIVariableEnum.INDICATORS]
+								const indicators = currentState[BIVariableEnum.INDICATORS]
 								if (indicators) {
 									await this.updateIndicators(dsCoreService, indicators)
 								}
@@ -412,13 +409,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			async (params, config: LangGraphRunnableConfig): Promise<string> => {
 				const { configurable } = config ?? {}
 				const { language } = configurable ?? {}
-				const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+				const currentState = getCurrentTaskInput()
 				this.logger.debug(`Execute tool '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(params, null, 2))
 
 				const answer = params as ChatAnswer
 
 				// Update runtime indicators
-				const indicators = currentState?.[BIVariableEnum.INDICATORS]
+				const indicators = currentState[BIVariableEnum.INDICATORS]
 				if (indicators) {
 					await this.updateIndicators(dsCoreService, indicators)
 				}
@@ -469,12 +466,22 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				// Fetch data for chart or table or kpi
 				if (answer.dimensions?.length || answer.measures?.length) {
 					try {
-						const { data } = await this.drawChartMessage(
-							answer as ChatAnswer,
-							{ ...context, entityType, language },
-							configurable as TAgentRunnableConfigurable,
-							credentials
-						)
+						let data = null
+						if (answer.visualType === 'Table') {
+							data = await drawTableMessage(
+								answer as ChatAnswer,
+								{ ...context, entityType, language },
+								configurable as TAgentRunnableConfigurable,
+								credentials
+							)
+						} else {
+							data = await this.drawChartMessage(
+								answer as ChatAnswer,
+								{ ...context, entityType, language },
+								configurable as TAgentRunnableConfigurable,
+								credentials
+							)
+						}
 
 						const results = limitDataResults(data, credentials)
 
@@ -499,9 +506,9 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		const { dsCoreService, entityType, chatbi, language } = context
 		const { subscriber, agentKey, xpertName, tool_call_id } = configurable ?? {}
 
-		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
-		const lang = currentState?.[STATE_VARIABLE_SYS]?.language
-		const indicators = currentState?.[BIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
+		const currentState = getCurrentTaskInput()
+		// const lang = currentState[STATE_VARIABLE_SYS]?.language
+		const indicators = currentState[BIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
 		const chartService = new ChartBusinessService(dsCoreService)
 		const destroy$ = new Subject<void>()
 
@@ -570,8 +577,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		// ChartTypes
 		let chartSettings: ChartSettings = null
 		if (chartAnnotation.chartType) {
-			const i18n = await chatbi.translate('toolset.ChatBI.ChartTypes', {lang: TranslationLanguageMap[lang] || lang})
-			const chartTypes = CHART_TYPES.map((_) => ({..._, name: i18n[_.name]}))
+			const i18n = t('analytics:Tools.ChatBI.ChartTypes', {returnObjects: true})
+			const chartTypes = CHART_TYPES.map((_) => ({..._, name: i18n[upperFirst(_.name)]}))
 			const index = chartTypes.findIndex(
 				({ type, orient }) => type === chartAnnotation.chartType.type && orient === chartAnnotation.chartType.orient
 			)
@@ -654,12 +661,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			// 	}
 			// } as MessageEvent)
 		}
+
 		return new Promise((resolve, reject) => {
 			chartService.selectResult().subscribe((result) => {
 				if (result.error) {
 					reject(result.error)
 				} else {
-					resolve({ data: extractDataValue(result.data, dataSettings.chartAnnotation, credentials) })
+					resolve(extractDataValue(result.data, dataSettings.chartAnnotation, credentials))
 				}
 				destroy$.next()
 				destroy$.complete()

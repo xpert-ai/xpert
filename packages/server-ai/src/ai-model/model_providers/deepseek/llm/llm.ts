@@ -1,5 +1,5 @@
 import { ChatDeepSeek } from '@langchain/deepseek'
-import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
+import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'

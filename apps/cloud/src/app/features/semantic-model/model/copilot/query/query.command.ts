@@ -115,7 +115,7 @@ ${statement()}
     return prompt
   }
 
-  const tools = [selectTablesTool, queryTablesTool, createQueryTool]
+  const tools: any[] = [selectTablesTool, queryTablesTool, createQueryTool]
   if (memberRetrieverTool) {
     tools.push(memberRetrieverTool)
   }

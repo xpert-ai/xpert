@@ -16,17 +16,6 @@
     "Formula": "Formula",
     "Unit": "Unit",
     "AnalysisConditions": "Analysis conditions",
-    "QueryStatement": "Query statement",
-    "ChartTypes": {
-      "Line": "Line",
-      "Column": "Column",
-      "Bar": "Bar",
-      "Pie": "Pie"
-    }
-  },
-  "Planning": {
-    "CreatedAPlan": "Created a plan",
-    "Update": "Update",
-    "Step": "Step"
+    "QueryStatement": "Query statement"
   }
 }

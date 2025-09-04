@@ -1,8 +1,9 @@
-import { ICopilotModel, IKnowledgebase, IKnowledgeDocument, IXpert, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar } from '@metad/contracts'
+import { ICopilotModel, IIntegration, IKnowledgebase, IKnowledgeDocument, IXpert, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar, TKBRecallParams } from '@metad/contracts'
+import { Integration } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Transform, TransformFnParams } from 'class-transformer'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
-import { Column, Entity, Index, JoinColumn, ManyToMany, OneToMany, OneToOne, RelationId } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { CopilotModel, KnowledgeDocument, Xpert } from '../core/entities/internal'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 import { XpertIdentiDto } from '../xpert/dto'
@@ -91,6 +92,9 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@Column({ nullable: true })
 	chunkNum?: number
 
+	/**
+	 * @deprecated use `recall`
+	 */
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
@@ -102,6 +106,12 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@IsOptional()
 	@Column({ nullable: true })
 	vectorSimilarityWeight?: number
+	
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	recall?: TKBRecallParams
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -121,6 +131,12 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@Column({ nullable: true })
 	status?: string
 
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	extKnowledgebaseId?: string
+
 	/*
     |--------------------------------------------------------------------------
     | @OneToMany
@@ -132,6 +148,24 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
 	documents?: IKnowledgeDocument[] | null
+
+	/*
+    |--------------------------------------------------------------------------
+    | @ManyToOne
+    |--------------------------------------------------------------------------
+    */
+	@ApiProperty({ type: () => Integration })
+	@ManyToOne(() => Integration, {
+		onDelete: 'SET NULL'
+	})
+	@JoinColumn()
+	integration?: IIntegration
+
+	@ApiProperty({ type: () => String })
+	@RelationId((it: Knowledgebase) => it.integration)
+	@IsString()
+	@Column({ nullable: true })
+	integrationId?: string
 
 	/*
     |--------------------------------------------------------------------------

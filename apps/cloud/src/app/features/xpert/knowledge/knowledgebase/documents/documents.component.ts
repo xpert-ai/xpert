@@ -1,17 +1,23 @@
 import { animate, state, style, transition, trigger } from '@angular/animations'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { afterNextRender, Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
+import { MatDividerModule } from '@angular/material/divider'
+import { MatIconModule } from '@angular/material/icon'
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSort, MatSortModule } from '@angular/material/sort'
+import { MatTableModule } from '@angular/material/table'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import {
-  injectConfirmDelete,
-  NgmCommonModule,
-  NgmCountdownConfirmationComponent
-} from '@metad/ocap-angular/common'
+import { I18nService } from '@cloud/app/@shared/i18n'
+import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
+import { injectConfirmDelete, NgmCommonModule, NgmCountdownConfirmationComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { formatRelative } from 'date-fns/formatRelative'
 import { get } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -32,25 +38,16 @@ import {
   IKnowledgeDocument,
   IKnowledgeDocumentPage,
   injectToastr,
-  IStorageFile,
   IXpert,
+  KBDocumentStatusEnum,
+  KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
   OrderTypeEnum,
   Store,
   ToastrService
 } from '../../../../../@core'
+import { KnowledgeDocIdComponent } from '../../../../../@shared/knowledge'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { formatRelative } from 'date-fns/formatRelative'
-import { KnowledgeDocIdComponent } from "../../../../../@shared/knowledge";
-import { MatTableModule } from '@angular/material/table'
-import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatDividerModule } from '@angular/material/divider'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { I18nService } from '@cloud/app/@shared/i18n'
-import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 
 @Component({
   standalone: true,
@@ -73,7 +70,7 @@ import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
     NgmCommonModule,
     KnowledgeDocIdComponent,
     XpertInlineProfileComponent
-],
+  ],
   animations: [
     trigger('detailExpand', [
       state('collapsed,void', style({ height: '0px', minHeight: '0' })),
@@ -140,6 +137,12 @@ export class KnowledgeDocumentsComponent {
   readonly total = signal<number>(0)
 
   constructor() {
+    effect(() => {
+      if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
+        this.#router.navigate(['../test'], { relativeTo: this.#route })
+      }
+    }, { allowSignalWrites: true })
+
     afterNextRender(() => {
       // If the user changes the sort order, reset back to the first page.
       this.sort().sortChange.subscribe(() => (this.paginator().pageIndex = 0))
@@ -181,13 +184,18 @@ export class KnowledgeDocumentsComponent {
           })
         )
         .subscribe((data) =>
-          this.data.set(data.map((item) => ({
-            ...item,
-            createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
-              locale: getDateLocale(this.#translate.currentLanguage)
-            }),
-            parserConfig: item.parserConfig ?? {}
-          }) as IKnowledgeDocument))
+          this.data.set(
+            data.map(
+              (item) =>
+                ({
+                  ...item,
+                  createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
+                    locale: getDateLocale(this.#translate.currentLanguage)
+                  }),
+                  parserConfig: item.parserConfig ?? {}
+                }) as IKnowledgeDocument
+            )
+          )
         )
     })
 
@@ -213,11 +221,13 @@ export class KnowledgeDocumentsComponent {
   }
 
   deleteDocument(doc: IKnowledgeDocument) {
-    this.confirmDelete({
-      value: doc.id,
-      information: doc.name
-    }, this.knowledgeDocumentService.delete(doc.id))
-    .subscribe({
+    this.confirmDelete(
+      {
+        value: doc.id,
+        information: doc.name
+      },
+      this.knowledgeDocumentService.delete(doc.id)
+    ).subscribe({
       next: () => {
         this.refresh()
       },
@@ -241,7 +251,7 @@ export class KnowledgeDocumentsComponent {
   }
 
   startParsing(row: IKnowledgeDocument) {
-    row.status = 'running'
+    row.status = KBDocumentStatusEnum.RUNNING
     this.knowledgeDocumentService.startParsing(row.id).subscribe({
       next: () => {
         this.refresh()
@@ -290,7 +300,7 @@ export class KnowledgeDocumentsComponent {
       })
   }
 
-  removePage(doc: IKnowledgeDocument , page: IKnowledgeDocumentPage) {
+  removePage(doc: IKnowledgeDocument, page: IKnowledgeDocumentPage) {
     this.knowledgeDocumentService.removePage(doc, page).subscribe({
       next: () => {
         this.data.update((docs) => {
@@ -312,6 +322,6 @@ export class KnowledgeDocumentsComponent {
   }
 
   openXpert(xpert: IXpert) {
-    window.open(['/xpert', xpert.id ,'agents'].join('/'), '_blank')
+    window.open(['/xpert', xpert.id, 'agents'].join('/'), '_blank')
   }
 }

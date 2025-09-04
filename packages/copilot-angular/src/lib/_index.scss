@@ -181,4 +181,8 @@ markdown.ngm-copilot-markdown {
       text-decoration: underline;
     }
   }
+
+  .markdown-clipboard-button {
+    @apply px-2 bg-neutral-100 rounded-md hover:bg-white;
+  }
 }

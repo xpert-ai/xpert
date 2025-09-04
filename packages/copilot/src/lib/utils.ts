@@ -9,13 +9,13 @@ import {
   TTokenUsage
 } from '@metad/contracts'
 import { nanoid as _nanoid } from 'nanoid'
-import { ZodType, ZodTypeDef } from 'zod'
+import { ZodSchema } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 import omitBy from 'lodash/omitBy'
 import { CopilotChatMessage } from './types'
 
-export function zodToAnnotations(obj: ZodType<any, ZodTypeDef, any>) {
-  return (<{ properties: any }>zodToJsonSchema(obj)).properties
+export function zodToAnnotations(obj: ZodSchema) {
+  return (<{ properties: any }>zodToJsonSchema(obj as any)).properties
 }
 
 export function nanoid() {
@@ -51,6 +51,7 @@ export function nonBlank<T>(value: T): value is NonNullable<T> {
 export function getCommandPrompt(prompt: string) {
   prompt = prompt.trim()
   // a regex match `/command prompt`
+  // eslint-disable-next-line no-useless-escape
   const match = prompt.match(/^\/([a-zA-Z\-]*)\s*/i)
   const command = match?.[1]
 
@@ -178,7 +179,7 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: str
         if (content.type === 'text' && content.id) {
           const index = _content.findIndex((_) => _.type === 'text' && _.id === content.id)
           if (index > -1) {
-            ;(<TMessageContentText>_content[index]).text += content.text
+            (<TMessageContentText>_content[index]).text += content.text
           } else {
             _content.push(content)
           }

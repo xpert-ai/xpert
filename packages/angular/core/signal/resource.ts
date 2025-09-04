@@ -1,5 +1,5 @@
 import { computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core'
-import { Observable, Subscription } from 'rxjs'
+import { EMPTY, Observable, Subscription } from 'rxjs'
 
 export type ResourceStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -87,7 +87,7 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
         currentSub.unsubscribe()
       }
 
-      const obs$ = options.loader({ request: untracked(() => req) })
+      const obs$ = options.loader({ request: untracked(() => req) }) ?? EMPTY
 
       currentSub = obs$.subscribe({
         next: (res) => {

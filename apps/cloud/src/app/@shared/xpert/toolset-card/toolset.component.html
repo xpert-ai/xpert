@@ -67,7 +67,7 @@
       fill="currentColor"></path>
   </svg>
   <div class="text-xs font-semibold uppercase h-6 rounded-tr-xl bg-gray-50 pr-2 leading-6 text-text-tertiary"
-  >{{toolset().category || 'Tool'}}</div>
+  >{{eXpertToolsetCategoryEnum.MCP == toolset().category ? 'MCP/' + toolset().type : (toolset().category || 'Tool')}}</div>
 </div>
 
 <div class="absolute right-3 bottom-3 flex items-center gap-2">

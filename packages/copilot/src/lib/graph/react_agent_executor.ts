@@ -61,7 +61,10 @@ export function createReactAgent(
 ): CompiledStateGraph<
   AgentState,
   Partial<AgentState>,
-  typeof START | "agent" | "tools"
+  typeof START | "agent" | "tools",
+  any,
+  any,
+  any
 > {
   const {
     llm,

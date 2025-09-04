@@ -6,14 +6,15 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { injectConfirmDelete, injectConfirmUnique } from '@metad/ocap-angular/common'
+import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
 import {
   getErrorMessage,
   IKnowledgebase,
   injectHelpWebsite,
+  injectTranslate,
   KnowledgebasePermission,
   KnowledgebaseService,
   OrderTypeEnum,
@@ -22,8 +23,6 @@ import {
   ToastrService
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { CardCreateComponent } from '../../../@shared/card'
-import { TranslationBaseComponent } from '../../../@shared/language'
 import { UserProfileInlineComponent } from '../../../@shared/user'
 
 @Component({
@@ -38,16 +37,13 @@ import { UserProfileInlineComponent } from '../../../@shared/user'
     MatButtonModule,
     MatIconModule,
     AppearanceDirective,
-    DensityDirective,
     DynamicGridDirective,
     EmojiAvatarComponent,
-    UserProfileInlineComponent,
-    CardCreateComponent,
-    NgmSearchComponent
+    UserProfileInlineComponent
   ],
   animations: [routeAnimations]
 })
-export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
+export class KnowledgebaseHomeComponent {
   KnowledgebasePermission = KnowledgebasePermission
 
   readonly knowledgebaseService = inject(KnowledgebaseService)
@@ -58,6 +54,10 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
   readonly helpWebsite = injectHelpWebsite()
   readonly confirmUnique = injectConfirmUnique()
   readonly confirmDelete = injectConfirmDelete()
+  readonly title = injectTranslate('PAC.Knowledgebase.NewKnowledgebase', { Default: `New Knowledgebase` })
+  readonly information = injectTranslate('PAC.Knowledgebase.ConfirmDeleteKnowledgebase', {
+    Default: `Confirm delete knowledgebase and all its contents?`
+  })
 
   readonly organizationId$ = this.#store.selectOrganizationId()
 
@@ -96,9 +96,7 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
   newKnowledgebase() {
     this.confirmUnique(
       {
-        title: this.translateService.instant('PAC.Knowledgebase.NewKnowledgebase', {
-          Default: `New Knowledgebase`
-        })
+        title: this.title()
       },
       (name: string) =>
         this.knowledgebaseService.create({
@@ -123,9 +121,7 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
     this.confirmDelete(
       {
         value: item.name,
-        information: this.translateService.instant('PAC.Knowledgebase.ConfirmDeleteKnowledgebase', {
-          Default: `Confirm delete knowledgebase and all its contents?`
-        })
+        information: this.information()
       },
       this.knowledgebaseService.delete(item.id)
     ).subscribe({

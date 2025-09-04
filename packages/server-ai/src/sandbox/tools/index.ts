@@ -4,6 +4,8 @@ import { BrowserUseToolset } from './browser-use/browser-use'
 import { BrowserToolset } from './browser/browser'
 import { CodeProjectToolset } from './code-project/code-project'
 import { FileToolset } from './file/file'
+import { GitToolset } from './git/git'
+import { GitHubToolset } from './github/github'
 import { PythonToolset } from './python/python'
 import { SlidesToolset } from './slides/slides'
 
@@ -16,11 +18,13 @@ BUILTIN_TOOLSET_REPOSITORY.splice(0, 0, {
 		BashToolset,
 		BrowserToolset,
 		BrowserUseToolset,
-		SlidesToolset
+		SlidesToolset,
+		GitHubToolset,
+		GitToolset
 	]
 })
 
-export { FileToolset, PythonToolset, CodeProjectToolset }
+export { FileToolset, PythonToolset, CodeProjectToolset, GitHubToolset }
 export * from './sandbox-tool'
 export * from './sandbox-toolset'
 export * from './base-file'

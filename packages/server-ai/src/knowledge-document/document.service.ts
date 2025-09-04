@@ -1,4 +1,4 @@
-import { IDocumentChunk, IKnowledgeDocument } from '@metad/contracts'
+import { IDocumentChunk, IKnowledgeDocument, KBDocumentStatusEnum } from '@metad/contracts'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -131,7 +131,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 			where
 		})
 
-		const docs = items.filter((doc) => doc.status !== 'running')
+		const docs = items.filter((doc) => doc.status !== KBDocumentStatusEnum.RUNNING)
 
 		const job = await this.docQueue.add({
 			userId,
@@ -140,7 +140,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
 		docs.forEach((item) => {
 			item.jobId = job.id as string
-			item.status = 'running'
+			item.status = KBDocumentStatusEnum.RUNNING
 			item.processMsg = ''
 			item.progress = 0
 		})

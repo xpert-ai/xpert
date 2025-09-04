@@ -18,6 +18,8 @@ export type TChatConversationOptions = {
   knowledgebases?: string[]
   toolsets?: string[]
   features?: Array<'timeline' | 'sandbox' | 'files'>
+  workspacePath?: string
+  workspaceUrl?: string
 }
 
 export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"
@@ -32,8 +34,8 @@ export type TSensitiveOperation = {
   tasks?: {
     name: string;
     interrupts: {
-      value: TInterruptMessage;
-      when: "during";
+      value?: TInterruptMessage;
+      when?: "during";
       resumable?: boolean;
       ns?: string[];
     }[];

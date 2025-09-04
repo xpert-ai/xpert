@@ -7,14 +7,13 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, uploadYamlFile } from '@metad/core'
 import { CdkConfirmDeleteComponent, injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
-import { AppearanceDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { AppearanceDirective, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { XpertBasicDialogComponent, XpertCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { isNil, omitBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, EMPTY } from 'rxjs'
+import { EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import {
   getErrorMessage,
@@ -80,31 +79,29 @@ export class XpertWorkspaceXpertsComponent {
   readonly builtinTags = this.homeComponent.toolTags
   readonly searchText = this.homeComponent.searchText
 
-  readonly refresh$ = new BehaviorSubject<void>(null)
-
-  readonly #xperts = derivedAsync(() => {
-    const where = {
-      type: this.type(),
-      latest: true
-    }
-    if (!this.workspace()) return null
-    const workspaceId = this.workspace().id
-    return this.refresh$.pipe(
-      switchMap(() =>
-        this.xpertService.getAllByWorkspace(workspaceId, {
-          where: omitBy(where, isNil),
+  readonly #xperts = myRxResource({
+    request: () => {
+      const where = {
+        type: this.type(),
+        latest: true
+      }
+      if (!this.workspace()) return null
+      const workspaceId = this.workspace().id
+      return { workspaceId, where }
+    },
+    loader: ({request}) => {
+      return request ? this.xpertService.getAllByWorkspace(request.workspaceId, {
+          where: omitBy(request.where, isNil),
           order: { updatedAt: OrderTypeEnum.DESC },
           relations: ['createdBy', 'tags']
-        })
-      ),
-      map(({ items }) => items.filter((item) => item.latest))
-    )
+        }).pipe(map(({ items }) => items.filter((item) => item.latest))) : null
+    }
   })
 
   readonly xperts = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
     const tags = this.tags()
-    return this.#xperts()
+    return this.#xperts.value()
       ?.filter((item) => (tags?.length ? tags.some((t) => item.tags.some((tt) => tt.name === t.name)) : true))
       .filter((item) =>
         searchText
@@ -115,10 +112,13 @@ export class XpertWorkspaceXpertsComponent {
       )
   })
 
-  readonly loading = signal(false)
+  readonly #loading = signal(false)
+
+  readonly loading = computed(() => this.#loading() || this.#xperts.status() === 'loading')
 
   refresh() {
-    this.refresh$.next()
+    // this.refresh$.next()
+    this.#xperts.reload()
   }
 
   newBlank() {
@@ -150,13 +150,21 @@ export class XpertWorkspaceXpertsComponent {
           })
         }
       })
-      .closed.pipe(switchMap((confirm) => (confirm ? this.xpertService.delete(xpert.id) : EMPTY)))
+      .closed.pipe(switchMap((confirm) => {
+        if (confirm) {
+          this.#loading.set(true)
+          return this.xpertService.delete(xpert.id)
+        }
+        return EMPTY
+      }))
       .subscribe({
         next: () => {
+          this.#loading.set(false)
           this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, xpert.title)
           this.refresh()
         },
         error: (error) => {
+          this.#loading.set(false)
           this.#toastr.error(getErrorMessage(error))
         }
       })
@@ -202,7 +210,7 @@ export class XpertWorkspaceXpertsComponent {
       .closed.pipe(
         switchMap((basic) => {
           if (basic) {
-            this.loading.set(true)
+            this.#loading.set(true)
             return this.xpertService.importDSL({
                 ...dsl,
                 team: {
@@ -217,14 +225,14 @@ export class XpertWorkspaceXpertsComponent {
       )
       .subscribe({
         next: (xpert) => {
-          this.loading.set(false)
+          this.#loading.set(false)
           this.router.navigate(['/xpert/', xpert.id])
           this.#toastr.success(
             this.#translate.instant('PAC.Xpert.ImportSuccess', { Default: 'DSL file imported successfully' })
           )
         },
         error: (err) => {
-          this.loading.set(false)
+          this.#loading.set(false)
           this.#toastr.error(
             this.#translate.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
               ': ' +

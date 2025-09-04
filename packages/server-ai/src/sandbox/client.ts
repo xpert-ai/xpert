@@ -16,6 +16,7 @@ import { ServerResponse } from 'http'
 import { t } from 'i18next'
 import { Observable } from 'rxjs'
 import { sandboxVolumeUrl } from '../shared'
+import { FilesSystem, TCreateFileReq, TCreateFileResp, TFileBaseReq, TListFilesReq, TListFilesResponse, TReadFileReq, TSandboxParams } from './types'
 
 /**
  * Base parameters for sandbox operations.
@@ -28,41 +29,14 @@ export type TSandboxBaseParams = {
 	thread_id?: string
 }
 
-export type TListFilesReq = TSandboxBaseParams & {
-	path?: string
-	depth?: number
-	limit?: number
-}
-export type TListFilesResponse = {
-	files: {
-		name: string
-		extension: string
-		size: number
-		created_date: string
-	}[]
-}
+export class SandboxFileSystem implements FilesSystem {
+	get sandboxUrl() {
+		return this.params.sandboxUrl
+	}
 
-export type TFileBaseReq = TSandboxBaseParams & {
-	file_path: string
-}
-
-export type TCreateFileReq = TFileBaseReq & {
-	file_contents?: string
-	file_description?: string
-	permissions?: string
-}
-
-export type TReadFileReq = TFileBaseReq & {
-	line_from?: number
-	line_to?: number
-}
-
-export type TCreateFileResp = {
-	message: string
-}
-
-export class SandboxFileSystem {
-	constructor(protected sandboxUrl: string) {}
+	constructor(
+		protected params: TSandboxParams
+	) {}
 
 	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
 		if (environment.pro) {
@@ -296,10 +270,7 @@ export class PythonClient {
 		return this.params.sandboxUrl
 	}
 	constructor(
-		protected params: {
-			commandBus: CommandBus
-			sandboxUrl: string
-		}
+		protected params: TSandboxParams
 	) {}
 
 	async exec(body: { code: string }, options: { signal: AbortSignal }): Promise<string> {
@@ -492,11 +463,12 @@ export class ShellClient extends BaseToolClient {
 
 export class Sandbox {
 	volume = ''
-	fs = new SandboxFileSystem(this.sandboxUrl)
+	fs: FilesSystem = new SandboxFileSystem(this.params)
 	project = new ProjectClient(this.params)
 	python = new PythonClient(this.params)
 	shell = new ShellClient(this.params)
 	browser = new BrowserClient(this.params)
+	git  = new GitClient(this.params)
 
 	static sandboxVolume(projectId: string, userId: string) {
 		return projectId ? `/projects/${projectId}` : `/users/${userId}`
@@ -509,13 +481,7 @@ export class Sandbox {
 	get sandboxUrl() {
 		return this.params.sandboxUrl
 	}
-	constructor(
-		protected params: {
-			commandBus: CommandBus
-			sandboxUrl: string
-			volume?: string
-		}
-	) {
+	constructor(protected params: TSandboxParams) {
 		this.volume = this.params.volume || ''
 	}
 
@@ -538,45 +504,6 @@ export class Sandbox {
 	}
 }
 
-export class MockFileSystem extends SandboxFileSystem {
-	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }): Promise<any> {
-		return
-	}
-
-	async createFile(body: any, options: { signal: AbortSignal }): Promise<TCreateFileResp> {
-		return this.doRequest('create', body, options)
-	}
-}
-
-export class MockProjectClient extends ProjectClient {
-	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
-		return
-	}
-
-	async deploy(body: TProjectDeployParams, options: { signal: AbortSignal }): Promise<string> {
-		return ''
-	}
-}
-
-export class MockPythonClient extends PythonClient {
-	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
-		return
-	}
-
-	async deploy(body: TProjectDeployParams, options: { signal: AbortSignal }): Promise<string> {
-		return ''
-	}
-}
-
-export class MockSandbox extends Sandbox {
-	fs = new MockFileSystem(this.sandboxUrl)
-	project = new MockProjectClient(this.params)
-	python = new MockPythonClient(this.params)
-
-	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
-		return
-	}
-}
 
 export type TBrowserActionResult = {
 	success?: boolean
@@ -635,5 +562,52 @@ export class BrowserClient {
 		}
 
 		return null
+	}
+}
+
+export class GitClient {
+	get sandboxUrl() {
+		return this.params.sandboxUrl
+	}
+	constructor(
+		protected params: TSandboxParams
+	) {}
+
+	async clone(url: string, path?: string, branch?: string) {
+        return ''
+    }
+	async status(repoPath: string) {
+		return ''
+	}
+	async branches(repoPath: string) {
+		return ''
+	}
+	async createBranch(repoPath: string, branchName: string) {
+		return ''
+	}
+	async checkoutBranch(repoPath: string, branchName: string) {
+		return ''
+	}
+	async deleteBranch(repoPath: string, branchName: string) {
+		return ''
+	}
+	async add(repoPath: string, files: string[]) {
+		return ''
+	}
+	async commit(repoPath: string, message: string) {
+		return ''
+	}
+	async push(repoPath: string, params?: {username?: string; password?: string; createBranch?: string}) {
+		return ''
+	}
+	async pull(repoPath: string) {
+		return ''
+	}
+	async setRemote(repoPath: string, name: string, url: string) {
+		return ''
+	}
+
+	async currentBranch(repoPath: string) {
+		return ''
 	}
 }

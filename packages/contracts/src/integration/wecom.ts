@@ -6,7 +6,7 @@ export const IntegrationWeComProvider: TIntegrationProvider = {
     en_US: 'WeCom',
     zh_Hans: '企业微信'
   },
-  avatar: 'wecom.png',
+  avatar: 'wecom.webp',
   webhook: true,
   schema: {
     type: 'object',

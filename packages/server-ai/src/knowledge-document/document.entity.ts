@@ -7,12 +7,13 @@ import {
 	IStorageFile,
 	KDocumentSourceType,
 	KBDocumentCategoryEnum,
-	DocumentTextParserConfig
+	DocumentTextParserConfig,
+	KBDocumentStatusEnum
 } from '@metad/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsBoolean, IsDate, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
+import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { Knowledgebase, KnowledgeDocumentPage } from '../core/entities/internal'
 
@@ -49,7 +50,7 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsOptional()
 	storageFile?: IStorageFile
 
-	@ApiProperty({ type: () => String, readOnly: true })
+	@ApiProperty({ type: 'string', format: 'uuid', description: 'Storage file ID' })
 	@RelationId((it: KnowledgeDocument) => it.storageFile)
 	@IsString()
 	@IsOptional()
@@ -68,25 +69,33 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	parserId: string
 
-	@ApiPropertyOptional({ type: () => Object })
+	@ApiProperty({
+		type: 'object',
+		description: 'Parser Config',
+		example: {
+			chunkSize: 1000,
+			chunkOverlap: 100,
+			delimiter: '; , .'
+		}
+	})
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	parserConfig: DocumentTextParserConfig
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
+	@ApiPropertyOptional({ enum: KDocumentSourceType, description: 'Source type of the document' })
+	@IsEnum(KDocumentSourceType)
 	@Optional()
 	@Column({ nullable: true, length: 20 })
 	sourceType?: KDocumentSourceType
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
+	@ApiPropertyOptional({ enum: KBDocumentCategoryEnum, description: 'Category of the document' })
+	@IsEnum(KBDocumentCategoryEnum)
 	@Optional()
 	@Column({ nullable: true })
 	category?: KBDocumentCategoryEnum | null
 
-	@ApiPropertyOptional({ type: () => String })
+	@ApiPropertyOptional({ type: () => String, description: 'Type of the file' })
 	@IsString()
 	@Optional()
 	@Column({ nullable: true })
@@ -152,11 +161,11 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	run?: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
+	@ApiPropertyOptional({ enum: KBDocumentStatusEnum, description: 'Status of the document process' })
+	@IsEnum(KBDocumentStatusEnum)
 	@Optional()
 	@Column({ nullable: true })
-	status?: 'wasted' | 'validate' | 'running' | 'cancel' | 'finish' | 'error'
+	status?: KBDocumentStatusEnum
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

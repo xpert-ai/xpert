@@ -1,4 +1,4 @@
-import { IApiKey, IKnowledgebase, IKnowledgeDocument, TChatOptions, TChatRequest, UploadedFile } from '@metad/contracts'
+import { IApiKey, IKnowledgeDocument, TChatOptions, TChatRequest, UploadedFile } from '@metad/contracts'
 import { keepAlive, takeUntilClose } from '@metad/server-common'
 import {
 	ApiKeyAuthGuard,
@@ -7,13 +7,13 @@ import {
 	LazyFileInterceptor,
 	Public,
 	RequestContext,
-	StorageFile,
 	StorageFileService,
 	UploadedFileStorage
 } from '@metad/server-core'
 import {
 	Body,
 	Controller,
+	Delete,
 	ExecutionContext,
 	Get,
 	Header,
@@ -28,14 +28,15 @@ import {
 	UseInterceptors
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
 import path from 'path'
 import { In } from 'typeorm'
 import { ChatCommand } from '../chat/commands'
-import { KnowledgeDocumentService } from '../knowledge-document/document.service'
-import { KnowledgebaseService } from '../knowledgebase'
+import { CreateKnowledgebaseDTO, KnowledgebaseService } from '../knowledgebase'
 import { KnowledgebaseOwnerGuard } from './guards/knowledgebase'
+import { KnowledgeDocumentService } from '../knowledge-document'
+import { KnowledgeDocument } from '../core/entities/internal'
 
 @ApiTags('AI/v1')
 @ApiBearerAuth()
@@ -75,27 +76,50 @@ export class AIV1Controller {
 		)
 	}
 
+	@Post('kb')
+	@ApiBody({ 
+		type: CreateKnowledgebaseDTO,
+		description: 'Knowledgebase',
+	})
+	async createKnowledgebase(@Body() body: CreateKnowledgebaseDTO) {
+		return this.kbService.create(body)
+	}
+
 	@UseGuards(KnowledgebaseOwnerGuard)
 	@Put('kb/:id')
-	async updateKnowledgebase(@Param('id') id: string, @Body() body: Partial<IKnowledgebase>, @ApiKeyDecorator() apiKey: IApiKey) {
+	@ApiBody({
+		type: CreateKnowledgebaseDTO,
+		description: 'Knowledgebase',
+	})
+	async updateKnowledgebase(@Param('id') id: string, @Body() body: CreateKnowledgebaseDTO) {
 		return this.kbService.update(id, body)
 	}
 
 	@UseGuards(KnowledgebaseOwnerGuard)
+	@Delete('kb/:id')
+	async deleteKnowledgebase(@Param('id') id: string, @ApiKeyDecorator() apiKey: IApiKey) {
+		return this.kbService.delete(id)
+	}
+
+	@UseGuards(KnowledgebaseOwnerGuard)
 	@Post('kb/:id/bulk')
-	async createDocBulk(@Param('id') id: string, @Body() entities: Partial<IKnowledgeDocument>[], @ApiKeyDecorator() apiKey: IApiKey) {
+	@ApiBody({
+		type: [KnowledgeDocument],
+		description: 'Knowledge documents',
+	})
+	async createDocBulk(@Param('id') id: string, @Body() entities: KnowledgeDocument[]) {
 		return await this.docService.createBulk(entities?.map((entity) => ({...entity, knowledgebaseId: id})))
 	}
 
 	@UseGuards(KnowledgebaseOwnerGuard)
 	@Post('kb/:id/process')
-	async start(@Param('id') id: string, @Body() ids: string[], @ApiKeyDecorator() apiKey: IApiKey) {
+	async start(@Param('id') id: string, @Body() ids: string[]) {
 		return this.docService.startProcessing(ids, id)
 	}
 
 	@UseGuards(KnowledgebaseOwnerGuard)
 	@Get('kb/:id/status')
-	async getStatus(@Query('ids') _ids: string, @ApiKeyDecorator() apiKey: IApiKey) {
+	async getStatus(@Query('ids') _ids: string) {
 		const ids = _ids.split(',').map((id) => id.trim())
 		const { items } = await this.docService.findAll({
 			select: ['id', 'status', 'progress', 'processMsg'],
@@ -115,7 +139,7 @@ export class AIV1Controller {
 			}
 		})
 	)
-	async create(@Body() entity: StorageFile, @UploadedFileStorage() file: UploadedFile, @ApiKeyDecorator() apiKey: IApiKey) {
+	async create(@UploadedFileStorage() file: UploadedFile) {
 		return await this.storageFileService.createStorageFile(file)
 	}
 }

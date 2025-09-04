@@ -1,0 +1,22 @@
+identity:
+  name: git_pull
+  author: XpertAI
+  label:
+    en_US: Execute git pull
+    zh_Hans: 执行 git pull
+description:
+  human:
+    en_US: Execute a git pull command.
+    zh_Hans: 运行一个 git pull 命令。
+  llm: This tool can execute a git pull command.
+parameters:
+  - name: path
+    type: string
+    required: true
+    label:
+      en_US: Repository Path
+      zh_Hans: 代码仓库路径
+    human_description:
+      en_US: Repository path.
+      zh_Hans: 代码仓库路径。
+    form: llm

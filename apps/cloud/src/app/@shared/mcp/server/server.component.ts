@@ -68,7 +68,16 @@ export class MCPServerFormComponent {
   readonly environment = input<IEnvironment>()
 
   // States
-  readonly types = model<MCPServerType[]>([MCPServerType.SSE])
+  readonly toolsetId = computed(() => this.toolset()?.id)
+  readonly type = attrModel(this.value$, 'type')
+  readonly types = linkedModel({
+    initialValue: [MCPServerType.SSE],
+    compute: () => this.type() ? [this.type()] : [MCPServerType.SSE],
+    update: (types) => {
+      this.type.set(types?.[0] ?? MCPServerType.SSE)
+    }
+  })
+  // readonly types = model<MCPServerType[]>([MCPServerType.SSE])
   readonly views = model<('script' | 'code' | 'tools')[]>(['tools'])
   readonly fileIndex = model<number[]>([])
   readonly isCode = computed(() => this.types()[0] === MCPServerType.CODE)
@@ -88,9 +97,20 @@ export class MCPServerFormComponent {
   readonly reconnectEnabled = attrModel(this.reconnect, 'enabled')
   readonly maxAttempts = attrModel(this.reconnect, 'maxAttempts')
   readonly delayMs = attrModel(this.reconnect, 'delayMs')
-
-  readonly initScripts = attrModel(this.value$, 'initScripts')
-  // readonly expandAdvanced = signal(false)
+  
+  readonly initScripts = linkedModel({
+    initialValue: null,
+    compute: () => this.value$()?.initScripts || '',
+    update: (initScripts) => {
+      this.value$.update((state) => {
+        // Avoid unnecessary updates
+        if (initScripts !== state.initScripts) {
+          return { ...(state ?? {}), initScripts }
+        }
+        return state
+      })
+    }
+  })
 
   get command() {
     return this.value$()?.command
@@ -179,15 +199,6 @@ export class MCPServerFormComponent {
           }
           this.command = 'python3'
           this.args.set(['main.py'])
-        }
-      },
-      { allowSignalWrites: true }
-    )
-
-    effect(
-      () => {
-        if (this.value$()?.type && this.value$().type !== this.types()[0]) {
-          this.types.set([this.value$().type])
         }
       },
       { allowSignalWrites: true }

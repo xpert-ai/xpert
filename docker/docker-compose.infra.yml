@@ -6,7 +6,7 @@ networks:
 
 services:
   db:
-    image: pgvector/pgvector:pg12
+    image: pgvector/pgvector:pg15
     restart: always
     environment:
       POSTGRES_DB: ${DB_NAME:-postgres}
@@ -112,12 +112,14 @@ services:
 
   # Crawl services
   crawl4ai:
-    image: unclecode/crawl4ai:0.7
+    image: unclecode/crawl4ai:0.6.0rc1-r2
     profiles:
       - crawl4ai
     ports:
       - "11235:11235"
     shm_size: 1g
+    networks:
+      - overlay
 
   # Databases services
 
@@ -162,10 +164,10 @@ services:
     links:
       - db:${DB_HOST:-db}
     environment:
-      POSTGRES_DB: ${DB_NAME:-gauzy}
+      POSTGRES_DB: ${DB_NAME:-postgres}
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASS:-gauzy_password}
-      PGWEB_DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASS:-gauzy_password}@${DB_HOST:-db}:${DB_PORT:-5432}/${DB_NAME:-gauzy}?sslmode=disable
+      POSTGRES_PASSWORD: ${DB_PASS:-root}
+      PGWEB_DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASS:-root}@${DB_HOST:-db}:${DB_PORT:-5432}/${DB_NAME:-postgres}?sslmode=disable
     ports:
       - '8081:8081'
     networks:

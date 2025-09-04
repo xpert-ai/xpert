@@ -1,7 +1,7 @@
-import { IXpertToolset, TToolCredentials } from '@metad/contracts'
+import { IXpertToolset } from '@metad/contracts'
 import { PythonToolEnum } from './types'
 import { PythonExecuteTool } from './tools/python_execute'
-import { BuiltinTool, BuiltinToolset, TBuiltinToolsetParams } from '../../../xpert-toolset'
+import { BuiltinToolset, TBuiltinToolsetParams } from '../../../shared'
 
 export class PythonToolset extends BuiltinToolset {
 	static provider = 'python'
@@ -13,7 +13,7 @@ export class PythonToolset extends BuiltinToolset {
 		super(PythonToolset.provider, toolset, params)
 	}
 
-	async initTools(): Promise<BuiltinTool[]> {
+	async initTools() {
 		this.tools = []
 		if (this.toolset?.tools) {
 			this.toolset?.tools.filter((_) => _.enabled).forEach((tool) => {
@@ -28,9 +28,5 @@ export class PythonToolset extends BuiltinToolset {
 		}
 
 		return this.tools
-	}
-
-	async _validateCredentials(credentials: TToolCredentials) {
-		//
 	}
 }

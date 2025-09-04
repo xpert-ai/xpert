@@ -55,6 +55,15 @@ export enum KBDocumentCategoryEnum {
   Other = 'other'
 }
 
+export enum KBDocumentStatusEnum {
+  WASTED = 'wasted',
+  VALIDATE = 'validate',
+  RUNNING = 'running',
+  CANCEL = 'cancel',
+  FINISH = 'finish',
+  ERROR = 'error'
+}
+
 export type TDocumentWebOptions = TRagWebOptions & {
   //
 }
@@ -117,7 +126,7 @@ export type TKnowledgeDocument = {
   /**
    * is it validate (0: wasted，1: validate)
    */
-  status?: 'wasted' | 'validate' | 'running' | 'cancel' | 'finish' | 'error'
+  status?: KBDocumentStatusEnum
   /**
    * The background job id
    */

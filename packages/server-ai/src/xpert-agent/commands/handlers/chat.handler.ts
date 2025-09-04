@@ -4,7 +4,6 @@ import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	IXpert,
-	mapTranslationLanguage,
 	messageContentText,
 	TChatRequestHuman,
 	TMessageContentComplex,

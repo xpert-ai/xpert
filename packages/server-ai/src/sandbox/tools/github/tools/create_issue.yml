@@ -1,0 +1,46 @@
+identity:
+  name: github_create_issue
+  author: Xpert AI
+  label:
+    en_US: Create GitHub Issue
+    zh_Hans: 创建 GitHub 问题
+description:
+  human:
+    en_US: Create a new issue in a GitHub repository
+    zh_Hans: 在 GitHub 代码仓库中创建一个新问题
+  llm: A tool to create a new issue in a GitHub repository.
+parameters:
+  - name: owner
+    type: string
+    required: true
+    label:
+      en_US: Repository Owner
+      zh_Hans: 代码仓库拥有者
+  - name: repo
+    type: string
+    required: true
+    label:
+      en_US: Repository Name
+      zh_Hans: 代码仓库名称
+    human_description:
+      en_US: Repository name.
+      zh_Hans: 代码仓库名称。
+    form: llm
+  - name: title
+    type: string
+    required: true
+    label:
+      en_US: Issue Title
+      zh_Hans: 问题标题
+    human_description:
+      en_US: Title of the issue to be created.
+      zh_Hans: 要创建的问题的标题。
+  - name: body
+    type: string
+    required: true
+    label:
+      en_US: Issue Body
+      zh_Hans: 问题正文
+    human_description:
+      en_US: Body of the issue to be created.
+      zh_Hans: 要创建的问题的正文。

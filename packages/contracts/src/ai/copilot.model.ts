@@ -3,6 +3,7 @@ import { ICopilotModel } from './copilot-model.model'
 import { ICopilotProvider } from './copilot-provider.model'
 
 export interface ICopilot extends IBasePerTenantAndOrganizationEntityModel {
+  name?: string
   role: AiProviderRole
   enabled?: boolean
 

@@ -3,14 +3,15 @@ import {
 	IStorageFile,
 	IUser,
 	IXpertProject,
-	IXpertProjectFile,
 	IXpertProjectTask,
+	IXpertProjectVCS,
 	IXpertToolset,
 	OrderTypeEnum,
-	TFile
 } from '@metad/contracts'
 import {
 	applyWhereToQueryBuilder,
+	EventNameIntegrationAuthorized,
+	IntegrationAuthorizedEvent,
 	PaginationParams,
 	RequestContext,
 	StorageFileDeleteCommand,
@@ -20,17 +21,16 @@ import { yaml } from '@metad/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Document } from 'langchain/document'
+import { OnEvent } from '@nestjs/event-emitter'
 import { assign, omit } from 'lodash'
 import { Brackets, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
-import { LoadStorageFileCommand } from '../shared'
 import { FindXpertToolsetsQuery } from '../xpert-toolset'
 import { ToolsetPublicDTO } from '../xpert-toolset/dto'
 import { XpertIdentiDto } from '../xpert/dto'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertProject } from './entities/project.entity'
-import { XpertProjectFileService, XpertProjectTaskService } from './services/'
+import { XpertProjectTaskService } from './services/'
 import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 import { KnowledgebaseGetOneQuery } from '../knowledgebase/queries'
 import { XpertProjectIdentiDto } from './dto'
@@ -46,7 +46,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		private readonly taskService: XpertProjectTaskService,
-		private readonly fileService: XpertProjectFileService
 	) {
 		super(repository)
 	}
@@ -323,43 +322,43 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		})
 	}
 
-	async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {
-		const project = await this.findOne(id, { relations: ['files', 'attachments'] })
+	// async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {
+	// 	const project = await this.findOne(id, { relations: ['files', 'attachments'] })
 
-		return [
-			...project.files,
-			...project.attachments.map(
-				(storageFile) =>
-					({
-						filePath: `attachments/` + storageFile.originalName,
-						url: storageFile.fileUrl,
-						storageFileId: storageFile.id
-					}) as TFile
-			)
-		]
-	}
+	// 	return [
+	// 		...project.files,
+	// 		...project.attachments.map(
+	// 			(storageFile) =>
+	// 				({
+	// 					filePath: `attachments/` + storageFile.originalName,
+	// 					url: storageFile.fileUrl,
+	// 					storageFileId: storageFile.id
+	// 				}) as TFile
+	// 		)
+	// 	]
+	// }
 
-	async getFileByPath(projectId: string, path: string) {
-		if (path.startsWith('attachments/')) {
-			const project = await this.findOne(projectId, { relations: ['attachments'] })
-			const storageFile = project.attachments.find((_) => _.originalName === path.replace(/^attachments\//, ''))
-			if (storageFile) {
-				const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(
-					new LoadStorageFileCommand(storageFile.id)
-				)
-				return {
-					filePath: path,
-					contents: docs.map((doc) => doc.pageContent).join('\n\n'),
-					url: storageFile.fileUrl,
-					fileType: storageFile.mimetype,
-					size: storageFile.size,
-					description: ''
-				}
-			}
-		}
-		const result = await this.fileService.findOneOrFail({ where: { projectId, filePath: path } })
-		return result.record
-	}
+	// async getFileByPath(projectId: string, path: string) {
+	// 	if (path.startsWith('attachments/')) {
+	// 		const project = await this.findOne(projectId, { relations: ['attachments'] })
+	// 		const storageFile = project.attachments.find((_) => _.originalName === path.replace(/^attachments\//, ''))
+	// 		if (storageFile) {
+	// 			const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(
+	// 				new LoadStorageFileCommand(storageFile.id)
+	// 			)
+	// 			return {
+	// 				filePath: path,
+	// 				contents: docs.map((doc) => doc.pageContent).join('\n\n'),
+	// 				url: storageFile.fileUrl,
+	// 				fileType: storageFile.mimetype,
+	// 				size: storageFile.size,
+	// 				description: ''
+	// 			}
+	// 		}
+	// 	}
+	// 	const result = await this.fileService.findOneOrFail({ where: { projectId, filePath: path } })
+	// 	return result.record
+	// }
 
 	async addAttachments(id: string, files: string[]) {
 		const project = await this.findOne(id, { relations: ['attachments'] })
@@ -415,12 +414,36 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 			toolsets: project.toolsets.map((toolset) => ({ id: toolset.id })),
 			knowledges: project.knowledges.map((knowledge) => ({ id: knowledge.id })),
 			attachments: project.attachments.map((_) => ({ id: _.id })),
-			files: []
 		})
 	}
 
 	async exportProject(id: string) {
 		const projectDsl = await this.commandBus.execute(new ExportProjectCommand(id))
 		return yaml.stringify(projectDsl)
+	}
+
+	// VCS
+	async updateVCS(id: string, entity: Partial<IXpertProjectVCS>) {
+		const project = await this.findOne(id, { relations: ['vcs'] })
+		if (project) {
+			project.vcs = { ...(project.vcs ?? {}), ...entity }
+			await this.repository.save(project)
+		}
+
+		return project?.vcs
+	}
+
+	@OnEvent(EventNameIntegrationAuthorized)
+	async handleIntegrationAuthorizedEvent(event: IntegrationAuthorizedEvent) {
+		console.log('Integration Authorized:', event)
+		if (!event.payload.projectId) return
+		const project = await this.findOne(event.payload.projectId, {relations: ['vcs']})
+		if (project) {
+			const entity: Partial<IXpertProjectVCS> = { auth: {...(project.vcs.auth ?? {}), ...omit(event.payload, ['projectId'])} }
+			if (event.payload.installation_id) {
+				entity.installationId = event.payload.installation_id
+			}
+			await this.updateVCS(event.payload.projectId, entity)
+		}
 	}
 }

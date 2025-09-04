@@ -1,8 +1,7 @@
 import { I18nObject, IXpertProject } from '@metad/contracts'
 import { CommandBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
-import { _BaseToolset } from '../../../shared'
-import { BuiltinTool, TBuiltinToolsetParams } from '../../../xpert-toolset'
+import { _BaseToolset, TBuiltinToolsetParams } from '../../../shared'
 import { XpertProjectService } from '../../project.service'
 import { XpertProjectTaskService } from '../../services/'
 import { createCreateTasksTool } from './tools/create'
@@ -15,7 +14,7 @@ export enum ProjectToolEnum {
 	UpdateTasks = 'project_update_tasks'
 }
 
-export class ProjectToolset extends _BaseToolset<BuiltinTool> {
+export class ProjectToolset extends _BaseToolset {
 	readonly providerName = 'project-tasks'
 	
 	get commandBus(): CommandBus {
@@ -38,7 +37,7 @@ export class ProjectToolset extends _BaseToolset<BuiltinTool> {
 		return `project-tasks`
 	}
 
-	async initTools(): Promise<BuiltinTool[]> {
+	async initTools() {
 		this.tools = []
 
 		this.tools.push(createListTasksTool({ projectId: this.project.id, service: this.taskService }))

@@ -16,17 +16,6 @@
     "Formula": "公式",
     "Unit": "单位",
     "AnalysisConditions": "分析条件",
-    "QueryStatement": "查询语句",
-    "ChartTypes": {
-      "Line": "线图",
-      "Column": "柱形图",
-      "Bar": "条形图",
-      "Pie": "饼图"
-    }
-  },
-  "Planning": {
-    "CreatedAPlan": "创建一个计划",
-    "Update": "更新",
-    "Step": "步骤"
+    "QueryStatement": "查询语句"
   }
 }

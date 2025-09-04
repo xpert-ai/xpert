@@ -1,4 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
+import { IIntegration } from '../integration.model'
 import { IStorageFile, TFile } from '../storage-file.model'
 import { TAvatar } from '../types'
 import { IUser } from '../user.model'
@@ -24,6 +25,8 @@ export type TXpertProject = {
   // Used copilot model
   copilotModel?: ICopilotModel
   copilotModelId?: string
+
+  vcsId?: string
 }
 
 /**
@@ -47,6 +50,8 @@ export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizat
    */
   files?: IXpertProjectFile[]
   attachments?: IStorageFile[]
+
+  vcs?: IXpertProjectVCS
 }
 
 export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrganizationEntityModel {
@@ -63,24 +68,35 @@ export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
 }
 
 export interface IXpertProjectTaskStep extends IBasePerXpertProjectEntityModel {
-  taskId: string;
-  stepIndex: number;
-  description: string;
-  notes: string;
-  status: 'pending' | 'running' | 'done' | 'failed';
+  taskId: string
+  stepIndex: number
+  description: string
+  notes: string
+  status: 'pending' | 'running' | 'done' | 'failed'
 }
 
 export interface IXpertProjectTaskLog extends IBasePerXpertProjectEntityModel {
-  stepId: string;
-  logType: 'input' | 'output' | 'error';
-  content: string;
+  stepId: string
+  logType: 'input' | 'output' | 'error'
+  content: string
+}
+
+export interface IXpertProjectVCS extends IBasePerXpertProjectEntityModel {
+  integrationId?: string
+  integration?: IIntegration
+  auth?: {
+		token_type?: string
+		access_token?: string
+    state?: string
+	}
+  installationId?: number | string // For GitHub Apps
+  repository?: string
 }
 
 /**
  * @deprecated Use `attachments`
  */
-export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, Omit<TFile, 'createdAt'> {
-}
+export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, Omit<TFile, 'createdAt'> {}
 
 export type TXpertProjectDSL = IXpertProject & {
   xperts?: TXpertTeamDraft[]

@@ -19,6 +19,7 @@ export const prodEnvironment: IEnvironment = {
 	},
 	pro: process.env.PRO === 'true',
 
+	secretsEncryptionKey: process.env.SECRETS_ENCRYPTION_KEY || 'default_secrets_encryption_key',
 	EXPRESS_SESSION_SECRET: 'pangolin',
 	USER_PASSWORD_BCRYPT_SALT_ROUNDS: 12,
 	JWT_SECRET: process.env.JWT_SECRET,

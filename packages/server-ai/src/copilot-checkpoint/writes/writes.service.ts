@@ -22,7 +22,7 @@ export class CopilotCheckpointWritesService extends TenantOrganizationAwareCrudS
 		await this.repository.manager.transaction(async (transactionalEntityManager) => {
 			let idx = 0
 			for await (const entity of entities) {
-				const [type, serializedWrite] = this.serde.dumpsTyped(entity.value)
+				const [type, serializedWrite] = await this.serde.dumpsTyped(entity.value)
 				await transactionalEntityManager.upsert(
 					CopilotCheckpointWrites,
 					{

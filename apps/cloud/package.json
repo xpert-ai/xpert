@@ -1,6 +1,6 @@
 {
 	"name": "@metad/xpert-ui",
-	"version": "3.4.6",
+	"version": "3.5.0",
 	"type": "commonjs",
 	"license": "AGPL-3.0",
 	"scripts": {
@@ -13,6 +13,9 @@
 		"@foblex/mediator": "^1.1.2",
 		"@foblex/platform": "^1.0.4",
 		"@foblex/utils": "^1.1.1",
+		"@langchain/anthropic": "^0.3.26",
+		"@octokit/types": "14.1.0",
+		"crypto-js": "^4.2.0",
 		"json-2-csv": "^5.5.9",
 		"i18next": "~23.14.0",
 		"i18next-browser-languagedetector": "^8.0.5",

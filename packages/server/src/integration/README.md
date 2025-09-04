@@ -1,4 +1,4 @@
-## Develop Integrations
+# Develop Integrations
 
 Use [ngrok](https://ngrok.com/) to provide api for callback local service from integration provider's server.
 

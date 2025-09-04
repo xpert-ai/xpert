@@ -3,8 +3,10 @@
   [label]="props?.label"
   [placeholder]="props?.placeholder"
   [type]="props?.type"
-  [formControl]="valueFormControl"
   [options]="selectOptions()"
+  [ngModel]="formControl.value"
+  (ngModelChange)="newValue = $event"
+  (blur)="formControl.setValue(newValue)"
   >
   @if (props?.help) {
     <a ngmLabel [href]="props.help" target="_blank" rel="noopener noreferrer" class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal">

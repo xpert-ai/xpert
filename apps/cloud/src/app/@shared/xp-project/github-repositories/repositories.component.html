@@ -1,0 +1,93 @@
+<div class="flex justify-between items-center mb-4">
+  <div>
+    <div class="font-semibold text-xl">Your Repositories</div>
+    <div>Repositories you have access to through your GitHub integration</div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 inset-ring inset-ring-gray-500/10">
+      {{repositories().length}} repositories
+    </span>
+
+    <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+      [disabled]="isLoading() || repositoriesLoadingMore()"
+      (click)="handleRefresh()">
+      <i class="ri-refresh-line mr-1" [class.animate-spin]="isLoading() || repositoriesLoadingMore()"></i>
+      Refresh
+    </button>
+  </div>
+</div>
+
+<div class="space-y-2 max-h-96 overflow-y-auto relative">
+  @for (repo of repositories(); track repo.id) {
+    <div [attr.key]="repo.id">
+      <div class="border-border hover:bg-muted/50 flex items-start justify-between rounded-lg border p-4 transition-colors cursor-pointer hover:bg-hover-bg"
+        [class.border-green-500]="repo.full_name === repositoryName()"
+        (click)="selectRepository(repo)"
+      >
+        <div class="min-w-0 flex-1">
+          <div class="mb-2 flex items-center gap-2">
+            <h3 class="text-primary hover:text-primary/80 cursor-pointer font-mono font-semibold">
+              {{repo.full_name}}
+            </h3>
+            <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 inset-ring inset-ring-gray-500/10">
+              @if (repo.private) {
+                <i class="ri-git-repository-private-line mr-1"></i>
+                Private
+              } @else {
+                <i class="ri-global-line mr-1"></i>
+                Public
+              }
+            </span>
+          </div>
+          @if (repo.description) {
+            <p class="text-muted-foreground mb-3 text-sm">
+              {{repo.description}}
+            </p>
+          }
+
+          <div class="text-muted-foreground flex items-center gap-4 text-sm">
+            <div class="flex items-center gap-1">
+              <i class="ri-git-branch-line"></i>
+              <span class="font-mono">
+                Default: {{repo.default_branch}}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-ghost btn-medium flex justify-center items-center"
+          (click)="openRepository(repo)">
+          <i class="ri-external-link-line"></i>
+        </button>
+      </div>
+    </div>
+  } @empty {
+    <div class="py-8 text-center">
+      <p class="text-muted-foreground">
+        No repositories found. Make sure you've granted access to at
+        least one repository for the selected organization.
+      </p>
+    </div>
+  }
+
+  @if (repositoriesHasMore()) {
+    <div class="pt-4 text-center">
+      <button type="button" class="btn btn-secondary btn-medium flex justify-center items-center"
+        [disabled]="repositoriesLoadingMore()"
+        (click)="loadMoreRepositories()"
+      >
+        @if (repositoriesLoadingMore()) {
+          <i class="ri-refresh-line animate-spin"></i>
+          Loading...
+        } @else {
+          Load More Repositories
+        }
+      </button>
+    </div>
+  }
+</div>
+
+@if (isLoading()) {
+  <ngm-spin class="absolute w-full h-full top-0 left-0 backdrop-blur-[2px] bg-white/5" />
+}

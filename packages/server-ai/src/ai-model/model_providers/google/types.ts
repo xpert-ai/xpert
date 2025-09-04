@@ -8,7 +8,8 @@ export interface GoogleCredentials {
 export function toCredentialKwargs(credentials: GoogleCredentials) {
 	const credentialsKwargs: GoogleGenerativeAIChatInput = {
 		apiKey: credentials.google_api_key,
-		baseUrl: credentials.google_base_url
+		baseUrl: credentials.google_base_url,
+		model: null
 	}
 
 	return credentialsKwargs

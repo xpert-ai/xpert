@@ -1,15 +1,9 @@
 import { CreateProjectToolsetHandler } from "./create-toolset.handler";
-import { DeleteProjectFileHandler } from "./delete-file.handler";
 import { ExportProjectHandler } from "./export.handler";
-import { ListProjectFilesHandler } from "./list-files.handler";
-import { ReadProjectFileHandler } from "./read-file.handler";
-import { UpsertProjectFileHandler } from "./upsert-file.handler";
+import { GetVcsCredentialsHandler } from "./get-vcs-credentials.handler";
 
 export const CommandHandlers = [
     CreateProjectToolsetHandler,
-    UpsertProjectFileHandler,
-    DeleteProjectFileHandler,
-    ReadProjectFileHandler,
-    ListProjectFilesHandler,
-    ExportProjectHandler
+    ExportProjectHandler,
+    GetVcsCredentialsHandler
 ]

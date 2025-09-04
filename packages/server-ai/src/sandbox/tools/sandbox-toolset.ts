@@ -1,10 +1,12 @@
 import { StructuredToolInterface } from '@langchain/core/tools'
-import { I18nObject, IBuiltinTool, IXpertToolset, TranslateOptions, TToolsetParams } from '@metad/contracts'
+import { I18nObject, IBuiltinTool, IXpertToolset, TranslateOptions, TToolCredentials, TToolsetParams } from '@metad/contracts'
 import { environment } from '@metad/server-config'
+import { RequestContext } from '@metad/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
-import { _BaseToolset, toolNamePrefix } from '../../shared/'
-import { MockSandbox, Sandbox } from '../client'
+import { BuiltinToolset, toolNamePrefix } from '../../shared/'
+import { Sandbox } from '../client'
+import { SandboxLocal } from '../client-local'
 
 export type TSandboxToolsetParams = TToolsetParams & {
 	commandBus: CommandBus
@@ -13,7 +15,7 @@ export type TSandboxToolsetParams = TToolsetParams & {
 
 export abstract class BaseSandboxToolset<
 	T extends StructuredToolInterface = StructuredToolInterface
-> extends _BaseToolset<T> {
+> extends BuiltinToolset<T> {
 	toolNamePrefix: string
 
 	public sandbox: Sandbox
@@ -36,7 +38,7 @@ export abstract class BaseSandboxToolset<
 		protected params?: TSandboxToolsetParams,
 		protected toolset?: IXpertToolset
 	) {
-		super(params)
+		super(providerName, toolset, params)
 	}
 
 	protected async _ensureSandbox() {
@@ -44,7 +46,14 @@ export abstract class BaseSandboxToolset<
 			if (environment.pro) {
 				//
 			} else {
-				this.sandbox = new MockSandbox({sandboxUrl: '', commandBus: this.commandBus})
+				this.sandbox = new SandboxLocal({
+					sandboxUrl: null,
+					commandBus: this.commandBus,
+					tenantId: RequestContext.currentTenantId(),
+					projectId: this.params.projectId,
+					userId: this.params.userId,
+					conversationId: this.params.conversationId
+				})
 			}
 		}
 
@@ -80,5 +89,17 @@ export abstract class BaseSandboxToolset<
 	 */
 	translate(key: string, options?: TranslateOptions) {
 		return t(key, {ns: 'server-ai', ...(options?.args ?? {})})
+	}
+
+	async validateCredentials(credentials: TToolCredentials) {
+		return await this._validateCredentials(credentials)
+	}
+
+	async _validateCredentials(credentials: TToolCredentials): Promise<void> {
+		//
+	}
+
+	getCredentials<T extends TToolCredentials>(): T {
+		return this.toolset?.credentials as T
 	}
 }

@@ -1,4 +1,4 @@
-import { AIPermissionsEnum, IPagination, KnowledgebasePermission, Metadata, RolesEnum } from '@metad/contracts'
+import { AIPermissionsEnum, IKnowledgebase, IPagination, KnowledgebasePermission, Metadata, RolesEnum } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -151,6 +151,11 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		)
 
 		return this.service.maxMarginalRelevanceSearch(query, options)
+	}
+
+	@Post('external')
+	async createExternal(@Body() body: Partial<IKnowledgebase>) {
+		return this.service.createExternal(body)
 	}
 
 	@Post(':id/test')

@@ -3,13 +3,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   ContentChild,
-  EventEmitter,
   Input,
-  Output,
   TemplateRef,
   booleanAttribute,
   forwardRef,
   input,
+  output,
   signal
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
@@ -66,7 +65,7 @@ export class NgmInputComponent implements ControlValueAccessor {
     transform: booleanAttribute
   })
 
-  @Output() blur = new EventEmitter()
+  readonly blur = output<FocusEvent>()
 
   /**
    * Template provided in the tab content that will be used if present, used to enable lazy-loading

@@ -12,8 +12,11 @@ import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, switchMap } from 'rxjs'
 import { API_XPERT_PROJECT } from '../constants/app.constants'
 import { IXpertProject } from '../types'
-import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { IXpertProjectVCS, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { toParams } from '@metad/core'
+import { Endpoints } from '@octokit/types'
+
+type GitHubInstallationsResponse = Endpoints['GET /user/installations']['response']['data']
 
 @Injectable({ providedIn: 'root' })
 export class XpertProjectService extends OrganizationBaseCrudService<IXpertProject> {
@@ -142,6 +145,16 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/attachments/${fileId}`)
   }
   
+  // VCS github integration
+  getVCS(id: string) {
+    return this.httpClient.get<IXpertProjectVCS>(this.apiBaseUrl + `/${id}/vcs`)
+  }
+  updateVCS(id: string, entity: Partial<IXpertProjectVCS>) {
+    return this.httpClient.put<IXpertProjectVCS>(this.apiBaseUrl + `/${id}/vcs`, entity)
+  }
+  getGithubInstallations(id: string) {
+    return this.httpClient.get<GitHubInstallationsResponse>(this.apiBaseUrl + `/${id}/github-installations`)
+  }
 }
 
 export function injectProjectService() {

@@ -1,0 +1,44 @@
+identity:
+  name: str_replace
+  author: XpertAI
+  label:
+    en_US: Edit File
+    zh_Hans: 编辑文件
+description:
+  human:
+    en_US: Replace a string in a file with another string.
+    zh_Hans: 替换文件中的字符串。
+  llm: This tool can update a file with content.
+parameters:
+  - name: file_path
+    type: string
+    required: true
+    label:
+      en_US: File path
+      zh_Hans: 文件路径
+    human_description:
+      en_US: File path (include file name).
+      zh_Hans: 文件路径 (包含文件名)。
+    llm_description: Create a file.
+    form: llm
+  - name: old_str
+    type: string
+    required: true
+    label:
+      en_US: Old string
+      zh_Hans: 旧字符串
+    human_description:
+      en_US: The string to be replaced.
+      zh_Hans: 要被替换的字符串。
+    llm_description: The string to be replaced in the file.
+    form: llm
+  - name: new_str
+    type: string
+    label:
+      en_US: New string
+      zh_Hans: 新字符串
+    human_description:
+      en_US: The string to replace with.
+      zh_Hans: 替换成的新字符串。
+    llm_description: The string to replace with in the file.
+    form: llm

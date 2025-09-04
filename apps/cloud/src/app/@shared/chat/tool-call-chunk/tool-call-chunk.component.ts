@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, input, output } from '@angular/core'
+import { booleanAttribute, Component, computed, input, output, signal } from '@angular/core'
 import { TMessageComponent, TMessageComponentStep } from '@cloud/app/@core'
 import { RelativeTimesPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { ChatMessageStepIconComponent } from '../message-step-icon/icon.component'
 
 @Component({
@@ -11,7 +12,7 @@ import { ChatMessageStepIconComponent } from '../message-step-icon/icon.componen
   selector: 'chat-tool-call-chunk',
   templateUrl: `tool-call-chunk.component.html`,
   styleUrl: `tool-call-chunk.component.scss`,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, RelativeTimesPipe, ChatMessageStepIconComponent]
+  imports: [CommonModule, TranslateModule, MatTooltipModule, NgxJsonViewerModule, RelativeTimesPipe, ChatMessageStepIconComponent]
 })
 export class ChatToolCallChunkComponent {
   // Inputs
@@ -31,7 +32,25 @@ export class ChatToolCallChunkComponent {
     return start ? (end.getTime() - start.getTime()) / 1000 : null
   })
 
-  onClick() {
-    console.log(this.chunk())
+  readonly output = computed(() => {
+    const artifact = this.chunk()?.artifact
+    const output = this.chunk()?.output
+    if (Array.isArray(artifact) ? artifact.length : !!artifact) {
+      return artifact
+    }
+    if (output) {
+      try {
+        return JSON.parse(output)
+      } catch (error) {
+        return output
+      }
+    }
+    return null
+  })
+
+  readonly expanded = signal(false)
+
+  toggleExpand() {
+    this.expanded.set(!this.expanded())
   }
 }

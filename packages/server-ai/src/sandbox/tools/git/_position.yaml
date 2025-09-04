@@ -1,0 +1,10 @@
+- git_clone
+- git_status
+- git_branches
+- git_create_branch
+- git_checkout_branch
+- git_delete_branch
+- git_add
+- git_commit
+- git_push
+- git_pull

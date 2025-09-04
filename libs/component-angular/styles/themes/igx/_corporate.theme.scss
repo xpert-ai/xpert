@@ -1,6 +1,0 @@
-@import '../../components/igx.theme';
-
-.nb-theme-default {
-  @include igx-core();
-  @include igx-theme($default-palette);
-}

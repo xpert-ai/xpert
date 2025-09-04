@@ -75,15 +75,15 @@ export class SuggestedQuestionsHandler implements ICommandHandler<SuggestedQuest
 				templateFormat: 'mustache'
 			}
 		)
-		const output = await prompt
-			.pipe(
-				chatModel.withStructuredOutput(
-					z.object({
-						questions: z.array(z.string().describe('Suggested Question')).max(5, 'Maximum 5 questions')
-					})
-				)
-			)
-			.invoke([])
+
+		const structuredOutput = chatModel.withStructuredOutput<{
+			questions: string[]
+		}>(
+			z.object({
+				questions: z.array(z.string().describe('Suggested Question')).max(5, 'Maximum 5 questions')
+			})
+		)
+		const output = await prompt.pipe(structuredOutput).invoke([])
 
 		return output.questions
 	}

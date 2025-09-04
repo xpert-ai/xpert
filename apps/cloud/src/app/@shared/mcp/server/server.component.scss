@@ -13,3 +13,13 @@
 .file-option.active {
   @apply shadow-sm border-divider-regular bg-gray-100;
 }
+
+.cdk-option:not([aria-disabled="true"]) {
+  @apply cursor-pointer hover:bg-components-card-bg hover:shadow-sm;
+}
+.cdk-option.selected {
+  @apply shadow-md bg-components-card-bg;
+}
+.cdk-option[aria-disabled="true"] {
+  @apply cursor-not-allowed;
+}

@@ -6,7 +6,7 @@ export const IntegrationDingTalkProvider: TIntegrationProvider = {
     en_US: 'DingTalk',
     zh_Hans: '钉钉'
   },
-  avatar: 'dingtalk.png',
+  avatar: 'dingtalk.svg',
   webhook: true,
   schema: {
     type: 'object',

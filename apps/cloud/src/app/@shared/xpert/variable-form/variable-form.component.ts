@@ -3,7 +3,7 @@ import { Component, inject, output, input, effect } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from '../../common'
-import { TStateVariable, VariableOperationEnum } from '../../../@core/types'
+import { TStateVariable, VariableOperationEnum, XpertParameterTypeEnum } from '../../../@core/types'
 
 @Component({
   standalone: true,
@@ -26,7 +26,7 @@ export class XpertVariableFormComponent {
 
   readonly form = this.#fb.group<TStateVariable>({
     name: null,
-    type: null,
+    type: XpertParameterTypeEnum.STRING,
     default: null,
     description: null,
     operation: null

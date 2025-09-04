@@ -12,7 +12,7 @@
         <div class="text-lg font-semibold">{{interrupt.value.title | i18n }}</div>
         <div class="text-sm line-clamp-2 font-body text-text-secondary">{{interrupt.value.message | i18n }}</div>
       </div>
-      <xpert-agent-interrupt [conversationId]="conversationId()" [interrupt]="interrupt" [(value)]="resume" />
+      <xpert-agent-interrupt [projectId]="projectId()" [conversationId]="conversationId()" [interrupt]="interrupt" [(value)]="resume" />
     } @empty {
       <label class="font-semibold pb-2">{{task.info?.title || task.info?.name}}</label>
       <div class="flex flex-col gap-1">

@@ -10,6 +10,7 @@ import {
 	STATE_VARIABLE_SYS
 } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
+import { t } from 'i18next'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'
 import { BuiltinTool } from '../../builtin-tool'
@@ -48,23 +49,22 @@ export class PlanningCreateTool extends BuiltinTool {
 		}
 
 		const { subscriber } = config?.configurable ?? {}
-		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
-		const lang = currentState[STATE_VARIABLE_SYS]?.language
+		// const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+		// const lang = currentState[STATE_VARIABLE_SYS]?.language
 		const toolCallId = getToolCallIdFromConfig(config)
 
 		const plan = {
 			title: parameters.title,
 			steps: parameters.steps.map((content, index) => ({ index, content }))
 		}
-
-		const i18n = await this.toolset.translate('toolset.Planning', { lang: mapTranslationLanguage(lang) })
+		
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 			id: toolCallId,
 			category: 'Computer',
 			toolset: PlanningToolset.provider,
 			tool: this.name,
-			title: i18n.CreatedAPlan,
+			title: t('server-ai:Tools.Planning.CreatedAPlan'),
 			message: parameters.title,
 			data: plan
 		}).catch((err) => {

@@ -31,18 +31,21 @@ export class VolumeClient {
 		return path.join(root, sandboxVolume(projectId, userId))
 	}
 
-	static async getWorkspacePath(tenantId: string, projectId: string, userId: string, conversationId: string): Promise<string> {
-		let dist = ''
+	static getWorkspaceRoot(tenantId: string, projectId: string, userId: string) {
 		if (environment.env.IS_DOCKER === 'true') {
-			dist = path.join(`/sandbox/${tenantId}`, sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId))
+			return path.join(`/sandbox/${tenantId}`, sandboxVolume(projectId, userId))
 		} else {
-			dist = path.join(process.env.HOME || process.env.USERPROFILE, 'data', getWorkspace(projectId, conversationId))
+			return path.join(process.env.HOME || process.env.USERPROFILE, 'data')
 		}
+	}
+
+	static async getWorkspacePath(tenantId: string, projectId: string, userId: string, conversationId?: string): Promise<string> {
+		const dist = path.join(VolumeClient.getWorkspaceRoot(tenantId, projectId, userId), getWorkspace(projectId, conversationId))
 		await fsPromises.mkdir(dist, { recursive: true })
 		return dist
 	}
 
-	static getWorkspaceUrl(projectId: string, userId: string, conversationId: string) {
+	static getWorkspaceUrl(projectId: string, userId: string, conversationId?: string) {
 		return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId))
 	}
 
@@ -61,6 +64,11 @@ export class VolumeClient {
 		await fsPromises.mkdir(targetFolder, { recursive: true })
 		await fsPromises.writeFile(filePath, file.buffer as unknown as string)
 		return urlJoin(this.baseUrl, folder, file.originalname)
+	}
+
+	async readFile(filePath: string) {
+		const fullPath = path.join(this.volumePath, filePath)
+		return await fsPromises.readFile(fullPath, 'utf-8')
 	}
 
 	async deleteFile(filePath: string): Promise<void> {

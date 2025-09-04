@@ -1,0 +1,32 @@
+identity:
+  name: git_checkout_branch
+  author: XpertAI
+  label:
+    en_US: Execute git checkout branch
+    zh_Hans: 执行 git checkout branch
+description:
+  human:
+    en_US: Execute a git checkout branch command.
+    zh_Hans: 运行一个 git checkout branch 命令。
+  llm: This tool can execute a git checkout branch command.
+parameters:
+  - name: path
+    type: string
+    required: true
+    label:
+      en_US: Repository Path
+      zh_Hans: 代码仓库路径
+    human_description:
+      en_US: Repository path.
+      zh_Hans: 代码仓库路径。
+    form: llm
+  - name: branch
+    type: string
+    required: true
+    label:
+      en_US: Branch Name
+      zh_Hans: 分支名称
+    human_description:
+      en_US: Branch name.
+      zh_Hans: 分支名称。
+    form: llm

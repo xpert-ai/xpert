@@ -1,5 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { Component, computed, effect, inject, signal } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatExpansionModule, MatExpansionPanel } from '@angular/material/expansion'
@@ -24,6 +25,7 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
   templateUrl: './basic.component.html',
   styleUrls: ['./basic.component.scss'],
   imports: [
+    CommonModule,
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
@@ -84,6 +86,10 @@ export class CopilotBasicComponent {
 
   readonly loading = signal(false)
 
+  // Edit
+  readonly editingId = signal<string | null>(null)
+  readonly name = model<string>('')
+  
   constructor() {
     this.copilotServer.refresh()
 
@@ -140,5 +146,35 @@ export class CopilotBasicComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  editName(event: Event, copilot: ICopilot) {
+    event.stopPropagation();
+    this.editingId.set(copilot.id)
+    this.name.set(copilot.name || '')
+  }
+
+  saveCopilotName(copilot: ICopilot) {
+    this.loading.set(true)
+    this.copilotServer.update(copilot.id, { name: this.name() }).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.editingId.set(null)
+        this.name.set('')
+        this.copilotServer.refresh()
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  handleEscapeKey(event: KeyboardEvent) {
+    if (this.editingId()) {
+      this.editingId.set(null)
+      this.name.set('')
+    }
   }
 }

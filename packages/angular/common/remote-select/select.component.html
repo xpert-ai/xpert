@@ -57,16 +57,19 @@
       (cdkListboxValueChange)="selectValues($event)"
       >
       @for (option of filteredSelectOptions(); track option.value) {
-        <li class="flex items-center gap-2 pl-3 py-[6px] pr-2 rounded-lg cursor-pointer hover:bg-gray-100"
+        <li class="flex items-start gap-2 pl-3 py-[6px] pr-2 rounded-lg cursor-pointer hover:bg-gray-100"
           [cdkOption]="option.value"
           (click)="selectOption(trigger, option.value)"
         >
-          <input type="checkbox" class="checkbox opacity-0 w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600 dark:ring-offset-gray-800"
+          <input type="checkbox" class="checkbox opacity-0 w-4 h-4 mt-1 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600 dark:ring-offset-gray-800"
             checked
             [ngClass]="{'opacity-100': checkedWith(option.value)}"
             >
-          <div [title]="option.label | i18n" class="grow text-sm text-gray-700 leading-5 truncate">
-            <span [ngmHighlight]="searchControl.value" [content]="option.label | i18n">{{option.label | i18n}}</span>
+          <div>
+            <div [title]="option.label | i18n" class="grow text-sm text-gray-700 leading-5 truncate">
+              <span [ngmHighlight]="searchControl.value" [content]="option.label | i18n">{{option.label | i18n}}</span>
+            </div>
+            <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
           </div>
         </li>
       }

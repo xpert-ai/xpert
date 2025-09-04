@@ -1,0 +1,32 @@
+identity:
+  name: git_add
+  author: XpertAI
+  label:
+    en_US: Execute git add
+    zh_Hans: 执行 git add
+description:
+  human:
+    en_US: Execute a git add command.
+    zh_Hans: 运行一个 git add 命令。
+  llm: This tool can execute a git add command.
+parameters:
+  - name: path
+    type: string
+    required: true
+    label:
+      en_US: Repository Path
+      zh_Hans: 代码仓库路径
+    human_description:
+      en_US: Repository path.
+      zh_Hans: 代码仓库路径。
+    form: llm
+  - name: files
+    type: array_string
+    required: true
+    label:
+      en_US: Files
+      zh_Hans: 文件
+    human_description:
+      en_US: Files to add.
+      zh_Hans: 要添加的文件。
+    form: llm

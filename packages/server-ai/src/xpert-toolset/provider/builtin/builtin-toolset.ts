@@ -1,90 +1,86 @@
-import { BaseStore } from '@langchain/langgraph'
-import { I18nObject, IBuiltinTool, IXpertToolset, TranslateOptions, TToolCredentials, TToolsetParams, XpertToolsetCategoryEnum } from '@metad/contracts'
-import { Logger } from '@nestjs/common'
-import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { BaseToolset } from '../../toolset'
-import { BuiltinTool } from './builtin-tool'
-import { XpertToolsetService } from '../../xpert-toolset.service'
+export { TBuiltinToolsetParams, BuiltinToolset } from '../../../shared'
 
-/**
- * The context params of creating toolset
- */
-export type TBuiltinToolsetParams = TToolsetParams & {
-	toolsetService?: XpertToolsetService
-	commandBus: CommandBus
-	queryBus: QueryBus
-	store?: BaseStore
-}
+// import { BaseStore } from '@langchain/langgraph'
+// import { I18nObject, IBuiltinTool, IXpertToolset, TranslateOptions, TToolCredentials, TToolsetParams, XpertToolsetCategoryEnum } from '@metad/contracts'
+// import { Logger } from '@nestjs/common'
+// import { CommandBus, QueryBus } from '@nestjs/cqrs'
+// import { BaseToolset } from '../../toolset'
+// import { BuiltinTool } from './builtin-tool'
+// import { XpertToolsetService } from '../../xpert-toolset.service'
 
-export interface IBuiltinToolset {
-	validateCredentials(credentials: TToolCredentials): Promise<void>
-}
+// /**
+//  * The context params of creating toolset
+//  */
+// export type TBuiltinToolsetParams = TToolsetParams & {
+// 	toolsetService?: XpertToolsetService
+// 	commandBus: CommandBus
+// 	queryBus: QueryBus
+// 	store?: BaseStore
+// }
 
-export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> implements IBuiltinToolset {
-	static provider = ''
-	protected logger = new Logger(this.constructor.name)
+// export interface IBuiltinToolset {
+// 	validateCredentials(credentials: TToolCredentials): Promise<void>
+// }
 
-	providerType: XpertToolsetCategoryEnum.BUILTIN
+// export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> implements IBuiltinToolset {
+// 	static provider = ''
+// 	protected logger = new Logger(this.constructor.name)
 
-	get tenantId() {
-		return this.params?.tenantId
-	}
-	get organizationId() {
-		return this.params?.organizationId
-	}
-	get commandBus() {
-		return this.params?.commandBus
-	}
-	get queryBus() {
-		return this.params?.queryBus
-	}
+// 	providerType: XpertToolsetCategoryEnum.BUILTIN
 
-	get toolsetService() {
-		return this.params?.toolsetService
-	}
-	get xpertId() {
-		return this.params?.xpertId
-	}
+// 	get tenantId() {
+// 		return this.params?.tenantId
+// 	}
+// 	get organizationId() {
+// 		return this.params?.organizationId
+// 	}
+// 	get commandBus() {
+// 		return this.params?.commandBus
+// 	}
+// 	get queryBus() {
+// 		return this.params?.queryBus
+// 	}
 
-	constructor(
-		public providerName: string,
-		protected toolset?: IXpertToolset,
-		protected params?: TBuiltinToolsetParams
-	) {
-		super(toolset)
-	}
+// 	get toolsetService() {
+// 		return this.params?.toolsetService
+// 	}
+// 	get xpertId() {
+// 		return this.params?.xpertId
+// 	}
 
-	async validateCredentials(credentials: TToolCredentials) {
-		return await this._validateCredentials(credentials)
-	}
+// 	constructor(
+// 		public providerName: string,
+// 		protected toolset?: IXpertToolset,
+// 		protected params?: TBuiltinToolsetParams
+// 	) {
+// 		super(toolset)
+// 	}
 
-	abstract _validateCredentials(credentials: TToolCredentials): Promise<void>
+// 	getId() {
+// 		return this.toolset?.id
+// 	}
 
-	getId() {
-		return this.toolset?.id
-	}
+// 	getCredentials() {
+// 		return this.toolset?.credentials
+// 	}
 
-	getCredentials() {
-		return this.toolset?.credentials
-	}
+// 	getToolTitle(name: string): string | I18nObject {
+// 		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
+// 		const identity = (<IBuiltinTool>tool?.schema)?.identity;
+// 		if (identity) {
+// 			return identity.label
+// 		}
+// 		return null
+// 	}
 
-	getToolTitle(name: string): string | I18nObject {
-		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
-		const identity = (<IBuiltinTool>tool?.schema)?.identity;
-		if (identity) {
-			return identity.label
-		}
-		return null
-	}
-
-	/**
-	 * Translate language text
-	 * 
-	 * @param key 
-	 * @param options 
-	 * @returns 
-	 */
-	async translate(key: string, options?: TranslateOptions) {
-		return await this.toolsetService.translate(key, options)
-	}
-}
+// 	/**
+// 	 * Translate language text
+// 	 * 
+// 	 * @param key 
+// 	 * @param options 
+// 	 * @returns 
+// 	 */
+// 	async translate(key: string, options?: TranslateOptions) {
+// 		return await this.toolsetService.translate(key, options)
+// 	}
+// }

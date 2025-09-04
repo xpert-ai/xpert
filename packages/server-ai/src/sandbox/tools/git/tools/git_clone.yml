@@ -1,0 +1,40 @@
+identity:
+  name: git_clone
+  author: XpertAI
+  label:
+    en_US: Execute git clone
+    zh_Hans: 执行 git clone
+description:
+  human:
+    en_US: Execute a git clone command.
+    zh_Hans: 运行一个 git clone 命令。
+  llm: This tool can execute a git clone command.
+parameters:
+  - name: url
+    type: string
+    required: true
+    label:
+      en_US: URL
+      zh_Hans: URL
+    human_description:
+      en_US: Repository URL.
+      zh_Hans: 代码仓库 URL。
+    form: llm
+  - name: path
+    type: string
+    label:
+      en_US: Path
+      zh_Hans: 路径
+    human_description:
+      en_US: The local path where the repository should be cloned.
+      zh_Hans: 代码仓库克隆到的本地路径。
+    form: llm
+  - name: branch
+    type: string
+    label:
+      en_US: Branch
+      zh_Hans: 分支
+    human_description:
+      en_US: The branch to checkout after cloning.
+      zh_Hans: 克隆后要检出的分支。
+    form: llm

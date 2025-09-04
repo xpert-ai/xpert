@@ -1,12 +1,15 @@
-import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, inject, model, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
+import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
+import { PAC_API_BASE_URL } from '@metad/cloud/auth'
 import { attrModel } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
@@ -16,12 +19,13 @@ import {
   AiProviderRole,
   getErrorMessage,
   injectCopilots,
+  injectIntegrationAPI,
   injectToastr,
   injectUser,
   IXpertProject,
   XpertProjectService
 } from 'apps/cloud/src/app/@core'
-import { EMPTY, switchMap } from 'rxjs'
+import { EMPTY, map, switchMap } from 'rxjs'
 import { ChatProjectMembersComponent } from '../members/members.component'
 
 @Component({
@@ -35,7 +39,8 @@ import { ChatProjectMembersComponent } from '../members/members.component'
     MatTooltipModule,
     CopilotModelSelectComponent,
     NgmSpinComponent,
-    ChatProjectMembersComponent
+    ChatProjectMembersComponent,
+    IntegrationSelectComponent
   ],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss'
@@ -52,12 +57,15 @@ export class ChatProjectManageComponent {
   readonly confirmDelete = injectConfirmDelete()
   readonly i18nService = injectI18nService()
   readonly #copilots = injectCopilots()
+  readonly integrationAPI = injectIntegrationAPI()
+  readonly API_BASE_URL = inject(PAC_API_BASE_URL)
 
   // States
   readonly projectId = signal(this.#data.id)
   readonly #project = myRxResource<string, IXpertProject>({
     request: () => this.projectId(),
-    loader: ({ request }) => this.projectsService.getOneById(request, {relations: ['copilotModel', 'createdBy', 'owner']}),
+    loader: ({ request }) =>
+      this.projectsService.getOneById(request, { relations: ['copilotModel', 'createdBy', 'owner', 'vcs'] })
   })
 
   readonly project = linkedModel({
@@ -69,7 +77,13 @@ export class ChatProjectManageComponent {
   readonly name = computed(() => this.project()?.name)
   readonly owner = computed(() => this.project()?.owner)
   readonly copilotModel = attrModel(this.project, 'copilotModel')
-  readonly primaryCopilot = computed(() => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)?.copilotModel)
+  readonly primaryCopilot = computed(
+    () => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)?.copilotModel
+  )
+
+  readonly integrations = toSignal(this.integrationAPI.getAllInOrg().pipe(map(({ items }) => items)))
+  readonly vcs = attrModel(this.project, 'vcs')
+  readonly integrationId = attrModel(this.vcs, 'integrationId')
 
   readonly loading = signal(false)
 
@@ -125,5 +139,31 @@ export class ChatProjectManageComponent {
 
   cancel() {
     this.#dialogRef.close()
+  }
+
+  connectIntegration() {
+    if (!this.integrationId()) {
+      this.#toastr.error(this.i18nService.instant('PAC.XProject.PleaseSelectIntegration'))
+      return
+    }
+    const integration = this.integrations().find((i) => i.id === this.integrationId())
+    const openLogin = () => {
+      window.location.href = `/api/${integration.provider.toLowerCase()}/${this.integrationId()}/login?projectId=${this.projectId()}&redirectUri=${encodeURIComponent(window.location.href)}`
+    }
+    if (this.integrationId() === this.#project.value().vcs?.integrationId) {
+      openLogin()
+      return
+    }
+    this.loading.set(true)
+    this.projectsService.updateVCS(this.projectId(), {integrationId: this.integrationId()}).subscribe({
+      next: () => {
+        this.loading.set(false)
+        openLogin()
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 }

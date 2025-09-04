@@ -202,7 +202,7 @@ Reference Documentations:
 
   superGraph.addEdge(START, SUPERVISOR_NAME)
 
-  return superGraph
+  return superGraph as any
 }
 
 export function injectCreateCalculationGraph(

@@ -2,6 +2,7 @@ export const TOOL_CHATBI_PROMPTS_DEFAULT =`
 ## Tools
   1. Call \`get_cube_context\` to get the cube context information if you do not have the model's dimensions and measures info, then proceed based on that information.
   2. Use the \`answer_question\` tool to reply to the user with the analysis results.
+      If the number of dimensions used exceeds 3, please use the 'Table' visual type first.
 ## Measures and indicators
   1. Call \`show_indicators\` to display indicator data only when the user explicitly wants to display certain indicators. Try NOT to call tools.
   2. When using a measure that has parameters, be sure to specify the values of those parameters in your answer.

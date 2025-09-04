@@ -260,8 +260,13 @@ export function createMapStreamEvents(
 									status: 'success',
 									end_date: new Date(),
 								}
-					if (isBaseMessage(output) && isToolMessage(output) && output.artifact) {
-						component.artifact = output.artifact
+					if (isBaseMessage(output) && isToolMessage(output)) {
+						if (output.content) {
+							component.output = output.content
+						}
+						if (output.artifact) {
+							component.artifact = output.artifact
+						}
 					}
 					subscriber.next({
 						data: {
@@ -572,7 +577,7 @@ export function getChannelState(state, channel: string): TMessageChannel {
 
 export type TAgentSubgraphResult = {
 	agent: IXpertAgent; 
-	graph: CompiledStateGraph<unknown, unknown, any>;
+	graph: CompiledStateGraph<unknown, unknown, any, typeof AgentStateAnnotation.spec, typeof AgentStateAnnotation.spec>;
 	nextNodes: TXpertTeamNode[];
 	failNode: TXpertTeamNode
 	mute?: TXpertAgentConfig['mute']

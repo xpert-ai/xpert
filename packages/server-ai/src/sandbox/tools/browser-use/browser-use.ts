@@ -1,5 +1,4 @@
-import { isEnableTool, IXpertToolset, TToolCredentials } from '@metad/contracts'
-import { BrowserUseToolEnum } from './types'
+import { isEnableTool, IXpertToolset } from '@metad/contracts'
 import { BaseSandboxToolset, TSandboxToolsetParams } from '../sandbox-toolset'
 
 export class BrowserUseToolset extends BaseSandboxToolset {
@@ -23,13 +22,5 @@ export class BrowserUseToolset extends BaseSandboxToolset {
 		}
 
 		return this.tools
-	}
-
-	async _validateCredentials(credentials: TToolCredentials) {
-		//
-	}
-
-	getCredentials() {
-		return this.toolset?.credentials
 	}
 }

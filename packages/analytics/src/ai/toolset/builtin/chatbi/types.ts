@@ -241,7 +241,7 @@ export function tryFixDimensions(dimensions: ChartDimension[]) {
  * @param credentials Config of ChatBI toolset
  * @returns 
  */
-export function extractDataValue(data: any[], chartAnnotation: ChartAnnotation, credentials: TChatBICredentials) {
+export function extractDataValue(data: any[], chartAnnotation: {dimensions: Dimension[]; measures: Measure[]}, credentials: TChatBICredentials) {
 	const { dataPermission } = credentials
 
 	const dimensions = chartAnnotation?.dimensions

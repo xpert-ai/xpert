@@ -4,14 +4,14 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { SemanticModelServerService } from '@metad/cloud/state'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { isEntitySet } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelEntityService, ToastrService } from 'apps/cloud/src/app/@core'
 import { catchError, combineLatest, delay, map, of, startWith, switchMap, tap } from 'rxjs'
+import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { ModelMembersCubeComponent } from './cube/cube.component'
-import { ModelComponent } from '../model.component'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: true,
@@ -34,9 +34,9 @@ export class ModelMembersComponent {
   readonly toastrService = inject(ToastrService)
   readonly #model = inject(ModelComponent)
 
-  readonly modelSideMenuOpened= this.#model.sideMenuOpened
-  readonly cubes = toSignal(this.modelService.cubes$)
-  readonly virtualCubes = toSignal(this.modelService.virtualCubes$)
+  readonly modelSideMenuOpened = this.#model.sideMenuOpened
+  readonly cubes = computed(() => this.modelService.modelSignal()?.schema?.cubes)
+  readonly virtualCubes = computed(() => this.modelService.modelSignal()?.schema?.virtualCubes)
 
   readonly _cubes = computed(() => {
     const cubes = this.cubes() ?? []

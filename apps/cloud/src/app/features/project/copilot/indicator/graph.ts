@@ -98,6 +98,6 @@ export function injectRunIndicatorAgent() {
         context: state.context,
         references: state.references,
       }
-    }).pipe(agent)
+    }).pipe(agent) as any
   }
 }

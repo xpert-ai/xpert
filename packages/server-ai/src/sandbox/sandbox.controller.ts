@@ -2,7 +2,6 @@ import { keepAlive, takeUntilClose } from '@metad/server-common'
 import { environment } from '@metad/server-config'
 import { GetDefaultTenantQuery, Public, RequestContext, TransformInterceptor } from '@metad/server-core'
 import {
-	BadRequestException,
 	Body,
 	Controller,
 	ForbiddenException,
@@ -22,13 +21,11 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
 import fs from 'fs'
-import { ServerResponse } from 'http'
 import { I18nService } from 'nestjs-i18n'
 import { join } from 'path'
 import { ChatConversationService } from '../chat-conversation'
 import { VolumeClient, getMediaTypeWithCharset, getWorkspace } from '../shared'
-import { XpertProjectService } from '../xpert-project'
-import { Sandbox, SandboxFileSystem } from './client'
+import { Sandbox } from './client'
 import { SandboxLoadCommand } from './commands'
 
 @ApiTags('Sandbox')
@@ -152,7 +149,11 @@ export class SandboxController {
 		const sandbox = new Sandbox({
 			sandboxUrl,
 			commandBus: this.commandBus,
-			volume: Sandbox.sandboxVolume(projectId, userId)
+			volume: Sandbox.sandboxVolume(projectId, userId),
+			tenantId: RequestContext.currentTenantId(),
+			userId,
+			projectId,
+			conversationId,
 		})
 
 		return sandbox.shell

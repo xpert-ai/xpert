@@ -89,11 +89,11 @@
     "@duckdb/duckdb-wasm": "1.25.0",
     "@emoji-mart/data": "^1.2.1",
     "@floating-ui/dom": "^1.6.11",
-    "@langchain/community": "0.3.27",
-    "@langchain/core": "0.3.40",
-    "@langchain/langgraph": "0.2.53",
-    "@langchain/ollama": "0.1.5",
-    "@langchain/openai": "0.4.2",
+    "@langchain/community": "0.3.53",
+    "@langchain/core": "0.3.72",
+    "@langchain/langgraph": "0.4.7",
+    "@langchain/ollama": "0.2.3",
+    "@langchain/openai": "0.6.9",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@ng-matero/extensions": "^13.1.0",
     "@ng-web-apis/common": "^4.11.1",
@@ -136,7 +136,7 @@
     "idb-keyval": "^6.2.1",
     "immer": "^10.0.1",
     "json5": "^2.2.3",
-    "langchain": "0.3.15",
+    "langchain": "0.3.31",
     "lato-font": "^3.0.0",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
@@ -179,6 +179,7 @@
     "xlsx": "^0.18.5",
     "xmldom": "^0.6.0",
     "yaml": "^2.6.1",
+    "zod": "3.25.67",
     "zone.js": "~0.14.0"
   },
   "devDependencies": {
@@ -269,7 +270,9 @@
     "packages/*"
   ],
   "resolutions": {
-    "@langchain/core": "0.3.40"
+    "@langchain/core": "0.3.72",
+    "langchain": "0.3.31",
+    "zod": "3.25.67"
   },
   "nx": {
     "includedScripts": []

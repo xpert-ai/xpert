@@ -7,7 +7,11 @@
     
     <ngm-input class="flex-1" [label]="'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'}"
       formControlName="name"
-    />
+    >
+      @if (!name) {
+        <div ngmError>{{ 'PAC.KEY_WORDS.NameRequired' | translate: {Default: 'Name is required'} }}</div>
+      }
+    </ngm-input>
 
     <div class="flex-1 min-w-full flex flex-col">
       <label class="ngm-input-label shrink-0">{{'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</label>
@@ -18,11 +22,38 @@
       </textarea>
     </div>
 
-    <ngm-select class="flex-1" [label]="'PAC.Integration.Provider' | translate: {Default: 'Provider'}" valueKey="key"
-      [displayBehaviour]="DisplayBehaviour.descriptionOnly"
-      formControlName="provider"
-      [selectOptions]="providers()"
-    />
+    <div class="flex-1 min-w-full flex flex-col">
+      <label class="ngm-input-label shrink-0 flex justify-between items-center">
+        {{ 'PAC.Integration.Provider' | translate: {Default: 'Provider'} }}
+
+        @if (integrationProvider()?.helpUrl; as helpUrl) {
+          <a [href]="helpUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
+            {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+            <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+            <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+          </a>
+        }
+      </label>
+      <ngm-select class="flex-1" [placeholder]=" 'PAC.Integration.SelectProvider' | translate: {Default: 'Select a provider'} "
+        formControlName="provider"
+        [selectOptions]="providers()"
+      >
+        <ng-template #option let-option>
+          <div class="relative flex gap-2">
+            @if (option.avatar) {
+              <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar">
+            }
+            <div class="flex flex-col">
+              <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
+              <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+            </div>
+          </div>
+        </ng-template>
+      </ngm-select>
+    </div>
 
     @if (integrationProvider(); as provider) {
       @if (provider.pro && !pro) {
