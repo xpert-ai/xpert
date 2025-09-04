@@ -2,7 +2,7 @@
   <div class="text-2xl font-semibold mb-8 mt-6 px-3 py-2 text-text-primary">
     {{ 'PAC.Xpert.Toolset' | translate: {Default: 'Toolset'} }}
   </div>
-  <div class="w-full flex flex-col px-4 overflow-auto">
+  <div class="w-full grow flex flex-col px-4 overflow-auto">
     <div>
       <div class="py-2 leading-5 font-medium">
         {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
@@ -65,13 +65,12 @@
     <div class="flex-1 flex flex-col overflow-y-auto">
       <div class="sticky top-0 flex justify-between items-center text-sm font-medium leading-6 px-2 border-b-[0.5px] border-black/5 text-gray-500 bg-components-panel-bg">
         <span class="uppercase">{{tools()?.length}} {{'PAC.Xpert.ToolsIncluded' | translate: {Default: 'Tools Included'} }}</span>
-
         <div>
           <span class="mr-1">{{'PAC.Xpert.DisableToolDefault' | translate: {Default: 'Disable by default'} }}</span>
           <ngm-slide-toggle [(ngModel)]="disableToolDefault" />
         </div>
       </div>
-      <div class="pt-3" [@listSlideStagger]="tools()?.length">
+      <div class="pt-3 grow" [@listSlideStagger]="tools()?.length">
         @for (tool of tools(); track tool.name) {
           <div class="tool-item mb-2 px-4 py-3 rounded-xl bg-neutral-50 border-[0.5px] border-gary-200 cursor-pointer hover:bg-white hover:shadow-sm"
             [class.selected]="tool.name === selectedTool()"
@@ -90,11 +89,24 @@
             </div>
             <div class="mt-0.5 text-sm leading-[18px] text-gray-500 line-clamp-2" [title]="tool.description">{{tool.description}}</div>
           </div>
+        } @empty {
+          <div class="h-full flex flex-col justify-center items-center text-sm text-text-warning">
+            <i class="ri-information-2-line text-lg"></i>
+            <span class="">
+              {{'PAC.Xpert.ConnectMCPTools' | translate: {Default: 'Connect to the MCP service to get the tool list'} }}
+            </span>
+          </div>
         }
       </div>
     </div>
 
-    <div class="flex justify-between items-center mb-8">
+    @if (!atLeastOne()) {
+      <div class="flex items-center gap-1 mr-2 text-sm text-text-warning">
+        <i class="ri-alarm-warning-line"></i>
+        {{'PAC.Xpert.AtLeastOneTool' | translate: {Default: 'Enable at least one tool'} }}
+      </div>
+    }
+    <div class="flex justify-between items-center mb-4">
       <button type="button" class="btn disabled:btn-disabled btn-danger btn-large"
         [disabled]="!toolset()?.id"
         (click)="deleteToolset()">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}

@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-ai",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {
@@ -20,7 +20,7 @@
     "@langchain/google-genai": "0.2.16",
     "@langchain/ollama": "0.2.3",
     "@langchain/xai": "0.1.0",
-    "@mendable/firecrawl-js": "^4.3.1",
+    "@mendable/firecrawl-js": "1.21.1",
     "@modelcontextprotocol/sdk": "^1.17.4",
     "@nestjs/schedule": "4.1.2",
     "@notionhq/client": "2.2.15",

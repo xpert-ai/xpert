@@ -1,5 +1,5 @@
 import { StructuredToolInterface } from '@langchain/core/tools'
-import { isEnableTool, IXpertToolset } from '@metad/contracts'
+import { isEnableTool, IXpertToolset, TStateVariable } from '@metad/contracts'
 import { t } from 'i18next'
 import { BaseSandboxToolset } from '../sandbox-toolset'
 import { getCurrentTaskCredentials, TBuiltinToolsetParams } from '../../../shared'
@@ -16,6 +16,11 @@ export class GitHubToolset extends BaseSandboxToolset<StructuredToolInterface> {
 		params?: TBuiltinToolsetParams
 	) {
 		super(GitHubToolset.provider, params, toolset)
+	}
+
+	async getVariables(): Promise<TStateVariable[]> {
+		
+		return null
 	}
 
 	async initTools() {
@@ -35,7 +40,7 @@ export class GitHubToolset extends BaseSandboxToolset<StructuredToolInterface> {
 	}
 
 	async _validateCredentials(credentials: TGitHubToolCredentials) {
-		if (!credentials || !credentials.integration) {
+		if (!credentials || (!credentials.integration && !credentials.personal_access_token)) {
 			throw new Error(t('server-ai:Error.GitIntegrationNotProvided'))
 		}
 	}

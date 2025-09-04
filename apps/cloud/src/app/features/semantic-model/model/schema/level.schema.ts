@@ -187,19 +187,7 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
               props: {
                 label: LEVEL?.Type ?? 'Type',
                 help: this.helpDimensionUrl() + '/hierarchy/',
-                options: [
-                  {
-                    value: null,
-                    label: LEVEL?.Type_Null ?? this.getTranslation('PAC.KEY_WORDS.None', { Default: 'None' })
-                  },
-                  { value: 'String', label: LEVEL?.Type_String ?? 'String' },
-                  { value: 'Integer', label: LEVEL?.Type_Integer ?? 'Integer' },
-                  { value: 'Numeric', label: LEVEL?.Type_Numeric ?? 'Numeric' },
-                  { value: 'Boolean', label: LEVEL?.Type_Boolean ?? 'Boolean' },
-                  { value: 'Date', label: LEVEL?.Type_Date ?? 'Date' },
-                  { value: 'Time', label: LEVEL?.Type_Time ?? 'Time' },
-                  { value: 'Timestamp', label: LEVEL?.Type_Timestamp ?? 'Timestamp' }
-                ]
+                options: ValueTypes(LEVEL),
               }
             },
             {
@@ -421,6 +409,19 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
               },
               {
                 className,
+                key: 'caption',
+                type: 'input',
+                props: {
+                  label: COMMON?.Caption ?? 'Caption'
+                }
+              }
+            ]
+          },
+          {
+            fieldGroupClassName: FORMLY_ROW,
+            fieldGroup: [
+              {
+                className,
                 key: 'column',
                 type: 'ngm-select',
                 props: {
@@ -429,16 +430,17 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
                   options: this.columnOptions$,
                   valueKey: 'key'
                 }
-              }
+              },
+              {
+                className,
+                key: 'type',
+                type: 'ngm-select',
+                props: {
+                  label: LEVEL?.Type ?? 'Type',
+                  options: ValueTypes(LEVEL),
+                }
+              },
             ]
-          },
-          {
-            className: FORMLY_W_FULL,
-            key: 'caption',
-            type: 'input',
-            props: {
-              label: COMMON?.Caption ?? 'Caption'
-            }
           },
           {
             className: FORMLY_W_FULL,
@@ -464,4 +466,20 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
       }
     }
   }
+}
+
+function ValueTypes(LEVEL: Record<string, string>) {
+  return [
+    {
+      value: null,
+      label: LEVEL?.Type_Null ?? ''
+    },
+    { value: 'String', label: LEVEL?.Type_String ?? 'String' },
+    { value: 'Integer', label: LEVEL?.Type_Integer ?? 'Integer' },
+    { value: 'Numeric', label: LEVEL?.Type_Numeric ?? 'Numeric' },
+    { value: 'Boolean', label: LEVEL?.Type_Boolean ?? 'Boolean' },
+    { value: 'Date', label: LEVEL?.Type_Date ?? 'Date' },
+    { value: 'Time', label: LEVEL?.Type_Time ?? 'Time' },
+    { value: 'Timestamp', label: LEVEL?.Type_Timestamp ?? 'Timestamp' }
+  ]
 }

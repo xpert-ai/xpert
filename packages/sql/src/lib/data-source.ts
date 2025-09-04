@@ -50,8 +50,6 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
       map((schemas: SQLSchema[]) => {
         const entitySets: DBTable[] = []
         schemas
-          // 过滤出当前 Catalog (对应三段式中的 schema, 后续改成 schema) 的 tables , 因为有些 DB Driver 会带出来所有 catalog 下的 tables
-          // .filter((schema) => (this.options.catalog ? schema.schema === this.options.catalog : true))
           .forEach((schema) => {
             schema.tables.forEach((table) => {
               entitySets.push({
@@ -90,7 +88,7 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
   /**
    * @deprecated use discoverDBCatalogs
    *
-   * 应该对应数据库的什么对象 ?
+   * Should correspond to what object in the database?
    */
   getCatalogs(refresh?: boolean): Observable<Catalog[]> {
     if (!this._catalogs$ || refresh) {
@@ -105,9 +103,9 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
   }
 
   /**
-   * 获取数据库表列表
+   * Get a list of database tables
    *
-   * @TODO 应不应该用缓存, 用了缓存刷新怎么做? refresh ?
+   * @TODO Should I use cache? If I do, how do I refresh the cache?
    *
    */
   getEntitySets(refresh?: boolean): Observable<EntitySet[]> {
@@ -117,7 +115,7 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
   override selectEntitySets(refresh?: boolean): Observable<EntitySet[]> {
     if (!this._entitySets$ || refresh) {
       this._entitySets$ = from(this.fetchSchema(this.options.name, this.options.catalog || '')).pipe(
-        // 不用给 Client 处理 error 的机会
+        // Don't give the Client a chance to handle the error
         catchError((err) => {
           this.agent.error(err)
           return []
@@ -125,11 +123,14 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
         map((schemas: SQLSchema[]) => {
           const entitySets = []
           schemas
-            // 过滤出当前 Catalog (对应三段式中的 schema, 后续改成 schema) 的 tables , 因为有些 DB Driver 会带出来所有 catalog 下的 tables
+            /**
+             * Filter out the tables of the current catalog (corresponding to the schema in the three-part format, 
+             * which will be changed to schema later), because some DB drivers will bring out the tables under all catalogs
+             */
             .filter((schema) => (this.options.catalog ? schema.schema === this.options.catalog : true))
             .forEach((schema) => {
               schema.tables.forEach((table) => {
-                // 感觉这里应该只用到了 table label
+                // I feel like only table label should be used here
                 entitySets.push({
                   catalog: schema.schema,
                   name: table.name,
@@ -399,8 +400,10 @@ function mapTableSchemaEntityType(entity: string, item: SQLTableSchema, dialect:
       name: column.name,
       caption: column.label,
       dataType: column.dataType + (column.dataLength == null ? '' : ` (${column.dataLength})`),
-      // 从后端进行推荐角色, 因为不同数据库字段类型差别很大
-      // 似乎后端判断也不合适
+      /**
+       * Recommend roles from the backend because different database field types vary greatly
+       * @todo It seems that the back-end judgment is not appropriate
+       */
       role: decideRole(column.type),
       column: column.name,
     }

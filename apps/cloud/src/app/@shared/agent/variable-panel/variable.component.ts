@@ -5,11 +5,11 @@ import { FormsModule } from '@angular/forms'
 import { debouncedSignal, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { getVariableSchema, TStateVariable, TStateVariableType, TWorkflowVarGroup } from '../../../@core/types'
-import { TXpertVariablesOptions, XpertService } from '@cloud/app/@core'
 import { of } from 'rxjs'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { TXpertVariablesOptions, XpertService } from '@cloud/app/@core'
 export { TXpertVariablesOptions } from '@cloud/app/@core/services'
+import { getVariableSchema, TStateVariable, TStateVariableType, TWorkflowVarGroup } from '../../../@core/types'
 
 
 @Component({
@@ -63,12 +63,12 @@ export class XpertVariablePanelComponent {
     const type = this.type()
     return this.variables()?.map((group) => ({
         ...group,
-        variables: group.variables.filter((variable) => {
+        variables: group.variables?.filter((variable) => {
           return type ? variable.type === type : true && 
             (variable.name.toLowerCase().includes(searchTerm) || variable.title?.toLowerCase().includes(searchTerm))
         })
       }))
-      .filter((group) => group.variables.length > 0)
+      .filter((group) => group.variables?.length > 0)
   })
 
   selectVariable(group: string, variable: TStateVariable) {

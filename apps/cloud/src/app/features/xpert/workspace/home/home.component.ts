@@ -23,6 +23,7 @@ import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
 import { injectWorkspace, Store } from '@metad/cloud/state'
 import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
+import { debouncedSignal } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag'
 import { concat } from 'lodash-es'
@@ -49,7 +50,7 @@ import {
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
-import { debouncedSignal } from '@metad/ocap-angular/core'
+
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -187,6 +188,12 @@ export class XpertWorkspaceHomeComponent {
       },
       { allowSignalWrites: true }
     )
+
+    effect(() => {
+      if (this.tags()?.[0]) {
+        this.searchControl.setValue(this.tags()[0].name)
+      }
+    })
   }
 
   selectWorkspace(ws: IXpertWorkspace) {
@@ -225,7 +232,7 @@ export class XpertWorkspaceHomeComponent {
   openSettings() {
     this.#dialog
       .open(XpertWorkspaceSettingsComponent, {
-        backdropClass: 'backdrop-blur-md-white',
+        // backdropClass: 'backdrop-blur-md-white',
         data: {
           id: this.selectedWorkspace()?.id
         }

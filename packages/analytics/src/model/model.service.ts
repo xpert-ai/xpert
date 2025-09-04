@@ -21,6 +21,7 @@ import { I18nService } from 'nestjs-i18n'
 import { RedisClientType } from 'redis'
 import { FindManyOptions, FindOneOptions, ILike, Repository } from 'typeorm'
 import { Cache } from 'cache-manager'
+import { t } from 'i18next'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
 import { SemanticModelQueryLog } from '../core/entities/internal'
 import { Md5 } from '../core/helper'
@@ -298,7 +299,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			return await axios.post(`http://${olapHost}:${olapPort}/xmla`, query, { headers })
 		} catch (err) {
 			this.logger.error(err)
-			throw new Error(`Can't connect olap service`)
+			throw new Error(t('analytics:Error.FailedConnectToOLAP'))
 		}
 	}
 

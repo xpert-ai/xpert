@@ -6687,12 +6687,13 @@
   dependencies:
     "@types/mdx" "^2.0.0"
 
-"@mendable/firecrawl-js@^4.3.1":
-  version "4.3.1"
-  resolved "https://registry.yarnpkg.com/@mendable/firecrawl-js/-/firecrawl-js-4.3.1.tgz#535d9bb878072a7d9e00a463f8786850986ff2e3"
-  integrity sha512-wDPpWjnU3SStnhTtCVtTEiEOelJHaUqKq8Oak6+GRcOUkJk2VgueT8GvsOW9FZtMYjo5dbUa8KfPpdN0mAyfIA==
+"@mendable/firecrawl-js@1.21.1":
+  version "1.21.1"
+  resolved "https://registry.yarnpkg.com/@mendable/firecrawl-js/-/firecrawl-js-1.21.1.tgz#e3504a9c2aeed8ab7a008fc142170115a25aff79"
+  integrity sha512-k+ju7P6/tpvj8EHQrKZBbBcPxV1dF3z7PzXQIFsn7Dpp7pWlU/LlAbai+b9hxzDkTlY05ec3NJG0V68VjyoJcA==
   dependencies:
-    axios "^1.11.0"
+    axios "^1.6.8"
+    isows "^1.0.4"
     typescript-event-target "^1.1.1"
     zod "^3.23.8"
     zod-to-json-schema "^3.23.0"
@@ -13395,15 +13396,6 @@ axios@^0.24.0:
   dependencies:
     follow-redirects "^1.14.4"
 
-axios@^1.11.0:
-  version "1.11.0"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.11.0.tgz#c2ec219e35e414c025b2095e8b8280278478fdb6"
-  integrity sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==
-  dependencies:
-    follow-redirects "^1.15.6"
-    form-data "^4.0.4"
-    proxy-from-env "^1.1.0"
-
 axios@^1.6.0, axios@^1.7.4:
   version "1.7.5"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.5.tgz#21eed340eb5daf47d29b6e002424b3e88c8c54b1"
@@ -13411,6 +13403,15 @@ axios@^1.6.0, axios@^1.7.4:
   dependencies:
     follow-redirects "^1.15.6"
     form-data "^4.0.0"
+    proxy-from-env "^1.1.0"
+
+axios@^1.6.8:
+  version "1.11.0"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.11.0.tgz#c2ec219e35e414c025b2095e8b8280278478fdb6"
+  integrity sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==
+  dependencies:
+    follow-redirects "^1.15.6"
+    form-data "^4.0.4"
     proxy-from-env "^1.1.0"
 
 axobject-query@4.0.0:
@@ -20818,6 +20819,11 @@ isolated-vm@5.0.4:
   integrity sha512-RYUf/JC4ldWz/oi2BVs8a1XIprQ71q6eQPBwySaF5Apu0KMyf2gIpElbCyPh2OEmRT+FYw1GOKSdkv7jw2KLxw==
   dependencies:
     prebuild-install "^7.1.2"
+
+isows@^1.0.4:
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/isows/-/isows-1.0.7.tgz#1c06400b7eed216fbba3bcbd68f12490fc342915"
+  integrity sha512-I1fSfDCZL5P0v33sVqeTDSpcstAg/N+wF5HS033mogOVIp4B+oHC7oOCsA3axAbBSGTJ8QubbNmnIRN/h8U7hg==
 
 isstream@~0.1.2:
   version "0.1.2"

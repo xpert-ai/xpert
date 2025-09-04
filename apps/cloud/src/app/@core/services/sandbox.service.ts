@@ -4,6 +4,7 @@ import { API_PREFIX } from '@metad/cloud/state'
 import { EventSourceMessage } from '@microsoft/fetch-event-source'
 import { Observable } from 'rxjs'
 import { injectFetchEventSource } from './fetch-event-source'
+import { injectApiBaseUrl } from '../providers'
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,7 @@ import { injectFetchEventSource } from './fetch-event-source'
 export class SandboxService {
   private http = inject(HttpClient)
   readonly fetchEventSource = injectFetchEventSource()
-  readonly baseUrl = API_PREFIX + '/sandbox'
+  readonly baseUrl = injectApiBaseUrl() + API_PREFIX + '/sandbox'
 
   uploadFile(file: File, params: { workspace: string; conversationId: string; path: string }) {
     const formData = new FormData()

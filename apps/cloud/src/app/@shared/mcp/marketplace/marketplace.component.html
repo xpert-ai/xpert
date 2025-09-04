@@ -75,7 +75,7 @@
                 <div class="system-xs-regular flex max-w-[120px] space-x-1 overflow-hidden"
                   [title]="'# ' + tag">
                   <span class="text-text-quaternary">#</span>
-                  <span class="truncate text-text-tertiary">{{tag | capitalize}}</span>
+                  <span class="truncate text-text-tertiary" [ngmHighlight]="searchText()" [content]="tag | capitalize">{{tag | capitalize}}</span>
                 </div>
               }
             </div>

@@ -1,7 +1,8 @@
 {
 	"Error": {
 		"IndicatorNotFound": "Indicator '{{indicator}}' not found.",
-		"ChatBIModelNotFound": "Semantic model '{{model}}' not found for '{{toolset}}' toolset."
+		"ChatBIModelNotFound": "Semantic model '{{model}}' not found for '{{toolset}}' toolset.",
+		"FailedConnectToOLAP": "Failed to connect to OLAP engine."
 	},
 	"Tools": {
 		"ChatBI": {

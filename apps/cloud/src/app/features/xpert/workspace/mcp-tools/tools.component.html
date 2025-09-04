@@ -23,4 +23,6 @@
   }
 </div>
 
-<mcp-marketplace class="px-12" [workspace]="workspace()" [inline]="inline()" (refresh)="refresh()"/>
+<mcp-marketplace class="px-12" [workspace]="workspace()" [inline]="inline()"
+  [searchText]="searchText()"
+  (refresh)="refresh()"/>

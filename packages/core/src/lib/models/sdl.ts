@@ -308,6 +308,8 @@ export enum RuntimeLevelType {
   TIME_DAY = 516
 }
 
+type ColumnType = 'String' | 'Integer' | 'Numeric' | 'Boolean' | 'Date' | 'Time' | 'Timestamp'
+
 export interface PropertyLevel extends EntityProperty {
   hierarchy?: PropertyName
   column?: string
@@ -317,7 +319,7 @@ export interface PropertyLevel extends EntityProperty {
   parentColumn?: string
   nullParentValue?: string
   uniqueMembers?: boolean
-  type?: 'String' | 'Integer' | 'Numeric' | 'Boolean' | 'Date' | 'Time' | 'Timestamp'
+  type?: ColumnType
   table?: string
   closure?: Closure
 
@@ -327,7 +329,10 @@ export interface PropertyLevel extends EntityProperty {
    * The type of level, such as 'TimeYears', 'TimeMonths', 'TimeDays' if dimension is a time dimension
    */
   levelType?: TimeLevelType | RuntimeLevelType | string
-  properties?: Array<LevelProperty>
+  /**
+   * Properties of members in the level
+   */
+  properties?: Array<LevelMemberProperty>
   // hierarchyLevelFor?: PropertyName
   parentChild?: boolean
 
@@ -338,8 +343,19 @@ export interface PropertyLevel extends EntityProperty {
   parentExpression?: SQLExpression
 }
 
-export interface LevelProperty extends PropertyAttributes {
+/**
+ * Member property.
+ * 
+ * Member properties are defined by the <Property> element within a <Level>, like this:
+ * ```xml
+ * <Level name="MyLevel" column="LevelColumn" uniqueMembers="true">
+ *   <Property name="MyProp" column="PropColumn" type="Numeric"/>
+ * </Level>
+ * ```
+ */
+export interface LevelMemberProperty extends PropertyAttributes {
   column?: string
+  type?: ColumnType
   propertyExpression?: SQLExpression
 }
 

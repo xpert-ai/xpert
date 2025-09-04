@@ -1,3 +1,5 @@
+import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
+import axios from 'axios';
 // import { Octokit } from 'octokit'
 
 /**
@@ -9,7 +11,7 @@
  */
 export async function checkRemoteBranch(repository: string, branch: string, token: string): Promise<boolean> {
 	// dynamically import Octokit because it's ESM
-    const { Octokit } = await import("octokit")
+	const { Octokit } = await import('octokit')
 
 	try {
 		const [owner, repo] = repository.split('/')
@@ -44,7 +46,7 @@ export async function createIssue(
 	githubAccessToken: string
 ) {
 	// dynamically import Octokit because it's ESM
-    const { Octokit } = await import("octokit")
+	const { Octokit } = await import('octokit')
 	const { title, body, assignees, labels } = params
 	const octokit = new Octokit({ auth: githubAccessToken })
 	try {
@@ -70,4 +72,58 @@ export async function createIssue(
 		console.error(`Failed to create issue`, errorFields)
 		throw errorFields
 	}
+}
+
+export async function getUserRepositories(pat: string) {
+  const repositories = [];
+  let page = 1;
+  const perPage = 100; // 每页最大 100 个仓库
+
+  try {
+    while (true) {
+      const response = await axios.get<RestEndpointMethodTypes["repos"]["listForAuthenticatedUser"]["response"]['data']>('https://api.github.com/user/repos', {
+        headers: {
+          Authorization: `token ${pat}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+        params: {
+          per_page: perPage,
+          page: page,
+          sort: 'updated', // 按更新时间排序
+          direction: 'desc', // 降序
+        },
+      });
+
+      const repos = response.data;
+      if (repos.length === 0) break; // 没有更多仓库，退出循环
+
+	  console.log(repos);
+
+      repositories.push(...repos.map(repo => ({
+        full_name: repo.full_name,
+        name: repo.name,
+        private: repo.private,
+        permissions: repo.permissions,
+        url: repo.html_url,
+		description: repo.description,
+      })));
+
+      page++; // 下一页
+    }
+
+    return repositories;
+  } catch (error) {
+    if (error.response) {
+      if (error.response.status === 401) {
+        console.error('Error: Invalid or expired PAT. Please check your token.');
+      } else if (error.response.status === 403) {
+        console.error('Error: Insufficient permissions or rate limit exceeded.');
+      } else {
+        console.error(`Error: ${error.response.status} - ${error.response.data.message}`);
+      }
+    } else {
+      console.error('Error fetching repositories:', error.message);
+    }
+    throw error;
+  }
 }

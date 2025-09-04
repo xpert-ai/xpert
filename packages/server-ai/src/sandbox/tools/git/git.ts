@@ -63,9 +63,9 @@ export class GitToolset extends BaseSandboxToolset<StructuredToolInterface> {
 	}
 
 	async _validateCredentials(credentials: TGitToolCredentials) {
-		if (!credentials || !credentials.integration) {
-			throw new Error(t('server-ai:Error.GitIntegrationNotProvided'))
-		}
+		// if (!credentials || !credentials.integration) {
+		// 	throw new Error(t('server-ai:Error.GitIntegrationNotProvided'))
+		// }
 	}
 
 	isEnabled(name: string) {

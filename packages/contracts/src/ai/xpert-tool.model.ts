@@ -149,11 +149,26 @@ export const TOOL_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 
 // Helper functions for tools
 /**
+ * 
+ * @param tool Tool
+ * @param disableToolDefault Is default disable tools
+ * @returns Tool is enabled?
+ */
+export function isToolEnabled(tool: IXpertTool, disableToolDefault = false) {
+  let disabled = tool.disabled
+  if (disabled == null && tool.enabled != null) {
+    disabled = !tool.enabled
+  }
+  if (disabled == null) {
+    disabled = disableToolDefault
+  }
+  return !disabled
+}
+
+/**
  * Tool is enabled?
  * 
- * @param tool 
- * @param toolset 
- * @returns 
+ * @deprecated use isToolEnabled
  */
 export function isEnableTool(tool: IXpertTool, toolset: IXpertToolset) {
   let disabled = tool.disabled
@@ -168,8 +183,9 @@ export function isEnableTool(tool: IXpertTool, toolset: IXpertToolset) {
 
 export function getEnabledTools(toolset: IXpertToolset) {
   if (!toolset) return null
+  const disableToolDefault = toolset.options?.disableToolDefault
   const positions = toolset?.options?.toolPositions
-  const tools = toolset?.tools?.filter((_) => isEnableTool(_, toolset))
+  const tools = toolset?.tools?.filter((_) => isToolEnabled(_, disableToolDefault))
   return positions && tools
     ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
     : tools

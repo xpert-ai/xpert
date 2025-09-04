@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core'
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CapitalizePipe, DynamicGridDirective } from '@metad/core'
 import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
@@ -12,7 +12,6 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { startWith } from 'rxjs/operators'
 import {
   getErrorMessage,
   IXpertMCPTemplate,
@@ -28,7 +27,6 @@ import {
 } from '@cloud/app/@core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { AppService } from '@cloud/app/app.service'
-import { toSignal } from '@angular/core/rxjs-interop'
 import { TXpertMCPManageComponentRet, XpertMCPManageComponent } from '../manage/manage.component'
 
 const InlineTemplateCount = 8
@@ -76,6 +74,7 @@ export class MCPMarketplaceComponent {
     transform: booleanAttribute
   })
   readonly workspace = input<IXpertWorkspace>()
+  readonly searchText = input<string>()
 
   // Outputs
   readonly refresh = output<void>()
@@ -83,12 +82,7 @@ export class MCPMarketplaceComponent {
   // States
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
-  
   readonly workspaceId = computed(() => this.workspace()?.id)
-
-  readonly formControl = new FormControl()
-  readonly searchText = toSignal(this.formControl.valueChanges.pipe(startWith(this.formControl.value)))
-
 
   readonly #templates = derivedAsync(() => {
     const params = this.inline() ? {take: InlineTemplateCount} : null
@@ -104,7 +98,10 @@ export class MCPMarketplaceComponent {
     const searchText = this.searchText()?.toLowerCase()
     const templates = this.#catTemplates()
     return templates.filter((_) => searchText
-      ? _.name.toLowerCase().includes(searchText) || _.title?.toLowerCase().includes(searchText) || _.description?.toLowerCase().includes(searchText)
+      ? _.name.toLowerCase().includes(searchText)
+        || _.title?.toLowerCase().includes(searchText)
+        || _.description?.toLowerCase().includes(searchText)
+        || _.tags?.some((tag) => tag.toLowerCase().includes(searchText))
       : true)
   })
   
@@ -135,6 +132,7 @@ export class MCPMarketplaceComponent {
         category: XpertToolsetCategoryEnum.MCP,
         type: template.server.type,
         schema: JSON.stringify({mcpServers: {'': mcpServer}}),
+        options: template.options
       }
       if (template.icon) {
         toolset.avatar = {

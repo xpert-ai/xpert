@@ -12,5 +12,5 @@ export enum GitToolEnum {
 }
 
 export type TGitToolCredentials = {
-    integration: string
+    integration?: string
 }

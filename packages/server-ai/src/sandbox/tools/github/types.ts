@@ -5,5 +5,6 @@ export enum GitHubToolsEnum {
 }
 
 export type TGitHubToolCredentials = {
-    integration: string
+    integration?: string
+    personal_access_token?: string
 }
