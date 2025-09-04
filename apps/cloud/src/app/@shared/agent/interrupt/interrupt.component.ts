@@ -21,6 +21,7 @@ import {
   TSensitiveOperation
 } from '../../../@core'
 import { AbstractInterruptComponent } from '../types'
+import { XpAgentInterruptSelectComponent } from './select/select.component'
 
 /**
  */
@@ -86,6 +87,8 @@ export class XpertAgentInterruptComponent {
 
 async function importComponent(type: BIInterruptMessageType | InterruptMessageType | string) {
   switch (type) {
+    case InterruptMessageType.Select:
+      return XpAgentInterruptSelectComponent
     case BIInterruptMessageType.SwitchProject:
       const { ProjectInterruptSwitchComponent } = await import('../../project/index')
       return ProjectInterruptSwitchComponent

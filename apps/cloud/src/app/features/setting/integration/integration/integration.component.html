@@ -41,6 +41,11 @@
         formControlName="provider"
         [selectOptions]="providers()"
       >
+        <div icon>
+          @if (integrationProvider(); as provider) {
+            <img class="w-5 h-5 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar">
+          }
+        </div>
         <ng-template #option let-option>
           <div class="relative flex gap-2">
             @if (option.avatar) {

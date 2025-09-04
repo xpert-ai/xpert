@@ -8,6 +8,10 @@ export const IntegrationGitHubProvider: TIntegrationProvider = {
     en_US: 'GitHub',
     zh_Hans: 'GitHub'
   },
+  description: {
+    en_US: 'GitHub is a proprietary developer platform that allows developers to create, store, manage, and share their code. It uses Git to provide distributed version control and GitHub itself provides access control, bug tracking, software feature requests, task management, continuous integration, and wikis for every project.',
+    zh_Hans: 'GitHub 是一个专有的开发者平台，允许开发者创建、存储、管理和分享他们的代码。它使用 Git 提供分布式版本控制，GitHub 本身为每个项目提供访问控制、错误跟踪、软件功能请求、任务管理、持续集成和知识。'
+  },
   avatar: 'github.svg',
   webhook: true,
   schema: {

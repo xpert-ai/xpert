@@ -23,3 +23,11 @@ credentials_for_provider:
       zh_Hans: 请选择一个 GitHub 集成
     selectUrl: /api/integration/select-options?provider=github
     url: /settings/integration
+  personal_access_token:
+    type: secret-input
+    label:
+      en_US: Personal Access Token
+      zh_Hans: 个人访问令牌
+    placeholder:
+      en_US: Please enter your GitHub personal access token
+      zh_Hans: 请输入您的 GitHub 个人访问令牌
