@@ -42,4 +42,5 @@ export interface IXpertMCPTemplate {
   tags?: string[]
   visitCount?: number
   server: TMCPServer
+  options?: any
 }

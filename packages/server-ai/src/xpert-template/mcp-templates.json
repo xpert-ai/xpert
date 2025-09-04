@@ -18,6 +18,9 @@
 				"server": {
 					"type": "sse",
 					"url": "http://crawl4ai:11235/mcp/sse"
+				},
+				"options": {
+					"disableToolDefault": true
 				}
 			},
 			{
@@ -538,6 +541,9 @@
 				"server": {
 					"type": "sse",
 					"url": "http://crawl4ai:11235/mcp/sse"
+				},
+				"options": {
+					"disableToolDefault": true
 				}
 			},
 			{

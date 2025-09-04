@@ -13,6 +13,7 @@ import {
   getErrorMessage,
   IEnvironment,
   injectToastr,
+  isToolEnabled,
   IXpertTool,
   IXpertToolset,
   MCPServerType,
@@ -205,7 +206,8 @@ export class XpertMCPManageComponent {
   })
 
   // Status
-  readonly canSave = computed(() => this.name() && this.tools()?.length)
+  readonly atLeastOne = computed(() => this.tools()?.some((_) => isToolEnabled(_, this.disableToolDefault())))
+  readonly canSave = computed(() => this.name() && this.atLeastOne())
   readonly saved = signal(false)
 
   constructor() {

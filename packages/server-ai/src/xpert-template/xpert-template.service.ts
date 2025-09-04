@@ -146,7 +146,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
 		return {
 			...template,
-			templates: template.templates.map((_) => omit(_, 'server'))
+			templates: template.templates.map((_) => omit(_, 'server', 'options'))
 		}
 	}
 

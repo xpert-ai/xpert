@@ -41,9 +41,11 @@ export class MCPToolset extends _BaseToolset {
 			: await createMCPClient(this.toolset, JSON.parse(this.toolset.schema), this.params.env)
 		this.client = client
 		const tools = await this.client.getTools()
+		// Filter tools by custom instance config
 		const disableToolDefault = this.toolset.options?.disableToolDefault
 		this.tools = tools.filter((tool) =>
-			disableToolDefault ? this.toolset.tools.some((_) => _.name === tool.name && !_.disabled) : true
+			disableToolDefault ? this.toolset.tools.some((_) => _.name === tool.name && !_.disabled) : 
+				!this.toolset.tools.some((_) => _.name === tool.name && _.disabled)
 		)
 		this.tools.forEach((tool) => (<DynamicStructuredTool>tool).verboseParsingErrors = true)
 		return this.tools

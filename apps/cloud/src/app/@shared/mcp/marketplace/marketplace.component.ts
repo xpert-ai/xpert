@@ -135,6 +135,7 @@ export class MCPMarketplaceComponent {
         category: XpertToolsetCategoryEnum.MCP,
         type: template.server.type,
         schema: JSON.stringify({mcpServers: {'': mcpServer}}),
+        options: template.options
       }
       if (template.icon) {
         toolset.avatar = {
