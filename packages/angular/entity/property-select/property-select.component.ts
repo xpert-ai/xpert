@@ -19,7 +19,7 @@ import {
   isMeasureControlProperty,
   isParameterProperty,
   isVisible,
-  LevelProperty,
+  LevelMemberProperty,
   Measure,
   Member,
   omit,
@@ -345,11 +345,11 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
       map(([properties, level]) => properties?.find((prop) => prop.name === level))
     )
   readonly properties$ = this.level$.pipe(map(level => {
-    // MDX 固有属性, 移到 entityType dimension 上 ?
+    // MDX intrinsic attributes, moved to entityType dimension?
     const options = [{
       name: IntrinsicMemberProperties.DESCRIPTION,
       caption: 'DESCRIPTION'
-    } as LevelProperty]
+    } as LevelMemberProperty]
     options.push(
       ...(
         level?.properties ?? []

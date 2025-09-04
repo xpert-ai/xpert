@@ -668,7 +668,7 @@ export function compileDimensionSchema(
         IntrinsicMemberProperties.MEMBER_CAPTION
       ),
       role: AggregationRole.level,
-      properties: level.properties?.map((property) => ({
+      properties: level.properties?.filter((_) => !!_?.name).map((property) => ({
         ...property,
         name: serializeUniqueName(dialect, dimension.name, hierarchy.name, property.name),
         caption: property.caption || property.name,
