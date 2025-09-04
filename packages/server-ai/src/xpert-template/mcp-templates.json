@@ -198,7 +198,7 @@
 				"explore": "https://mcp.so/server/firecrawl-mcp-server/mendableai",
 				"copyright": null,
 				"privacyPolicy": null,
-				"tags": ["utilities"],
+				"tags": ["utilities", "crawler"],
 				"server": {
 					"type": "stdio",
 					"command": "npx",
@@ -206,6 +206,9 @@
 					"env": {
 						"FIRECRAWL_API_KEY": "<YOUR-API-KEY>"
 					}
+				},
+				"options": {
+					"disableToolDefault": true
 				}
 			},
 			{
@@ -721,7 +724,7 @@
 				"explore": "https://mcp.so/server/firecrawl-mcp-server/mendableai",
 				"copyright": null,
 				"privacyPolicy": null,
-				"tags": ["utilities"],
+				"tags": ["utilities", "crawler"],
 				"server": {
 					"type": "stdio",
 					"command": "npx",
@@ -729,6 +732,9 @@
 					"env": {
 						"FIRECRAWL_API_KEY": "<YOUR-API-KEY>"
 					}
+				},
+				"options": {
+					"disableToolDefault": true
 				}
 			},
 			{

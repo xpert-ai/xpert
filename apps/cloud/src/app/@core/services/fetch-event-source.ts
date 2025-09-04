@@ -3,12 +3,11 @@ import { EventSourceMessage, EventStreamContentType, fetchEventSource } from '@m
 import { firstValueFrom, Observable } from 'rxjs'
 import { AuthStrategy } from '../auth'
 import { Store } from './store.service'
-import { injectApiBaseUrl, injectLanguage } from '../providers'
+import { injectLanguage } from '../providers'
 
 export function injectFetchEventSource<T extends BodyInit | null>() {
   const store = inject(Store)
   const auth = inject(AuthStrategy)
-  const baseUrl = injectApiBaseUrl()
   const lang = injectLanguage()
 
 
@@ -38,7 +37,7 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
           headers['Organization-Id'] = organization.id
         }
         // Handle query params if provided
-        let finalUrl = baseUrl + url
+        let finalUrl = url
         if (typeof params === 'object' && params.params) {
           const searchParams = new URLSearchParams(params.params as Record<string, string>).toString()
           finalUrl += (finalUrl.includes('?') ? '&' : '?') + searchParams

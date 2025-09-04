@@ -2,6 +2,8 @@ import { computed, inject, Injectable } from '@angular/core'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
 import { injectXpertPreferences, LanguagesEnum, LongTermMemoryTypeEnum, PaginationParams, TCopilotStore, timeRangeToParams, TMemoryQA, TMemoryUserProfile, toHttpParams } from '@metad/cloud/state'
 import { toParams } from '@metad/ocap-angular/core'
+import { HttpErrorResponse, HttpParams } from '@angular/common/http'
+import { derivedFrom } from 'ngxtension/derived-from'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, catchError, map, Observable, pipe, tap, throwError } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
@@ -27,8 +29,7 @@ import {
 } from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
-import { HttpErrorResponse, HttpParams } from '@angular/common/http'
-import { derivedFrom } from 'ngxtension/derived-from'
+
 
 export type TXpertVariablesOptions = {
   environmentId: string;
