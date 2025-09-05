@@ -5,6 +5,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, model, signal } f
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
+import { injectWorkspace } from '@metad/cloud/state'
 import { parseYAML } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -51,6 +52,7 @@ export class XpertInstallComponent {
   readonly xpertService = inject(XpertService)
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
+  readonly selectedWorkspace = injectWorkspace()
 
   readonly workspaces = toSignal(this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)))
   readonly workspaceOptions = computed(() => {
@@ -63,7 +65,7 @@ export class XpertInstallComponent {
   readonly originName = this.#data.name
 
   // Models
-  readonly workspace = model<string>()
+  readonly workspace = model<string>(this.selectedWorkspace()?.id)
   readonly name = model<string>(this.#data.name)
   readonly description = model<string>(this.#data.description)
   readonly avatar = model<TAvatar>(this.#data.avatar)
