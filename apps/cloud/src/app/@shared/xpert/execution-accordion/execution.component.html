@@ -45,6 +45,10 @@
   }
 
   @if (expand()) {
-    <xpert-agent-execution class="w-full px-4 my-4" [execution]="execution()" />
+    <xpert-agent-execution class="w-full px-4 my-4" [execution]="expandExecution()" />
   }
 </div>
+
+@if (loading()) {
+  <ngm-spin class="absolute inset-0 m-auto"></ngm-spin>
+}

@@ -17,13 +17,13 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 	public async execute(command: XpertAgentExecutionOneQuery): Promise<IXpertAgentExecution> {
 		const id = command.id
 		const execution = await this.service.findOne(id, { relations: ['createdBy', 'xpert'] })
-
-		return await this.expandExecutionTree(execution)
+		const expandedExecution = await this.expandExecutionLatestCheckpoint(execution)
+		return await this.expandExecutionTree(expandedExecution)
 	}
 
 	private async expandExecutionTree(execution: IXpertAgentExecution): Promise<IXpertAgentExecution> {
 		// First expand your own Checkpoint and Agent
-		const expandedExecution = await this.expandExecutionLatestCheckpoint(execution)
+		// const expandedExecution = await this.expandExecutionLatestCheckpoint(execution)
 
 		// Query and recursively expand subtasks
 		const subExecutions = await this.expandSubExecutions(execution)
@@ -31,7 +31,8 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 		const expandedSubExecutions = await Promise.all(subExecutions.map((sub) => this.expandExecutionTree(sub)))
 
 		return {
-			...expandedExecution,
+			// ...expandedExecution,
+			...execution,
 			subExecutions: expandedSubExecutions
 		}
 	}
