@@ -1,6 +1,6 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
-import { I18nObject, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { I18nObject, isToolEnabled, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { environment } from '@metad/server-config'
 import { Logger } from '@nestjs/common'
 import { createProMCPClient } from './pro'
@@ -43,10 +43,13 @@ export class MCPToolset extends _BaseToolset {
 		const tools = await this.client.getTools()
 		// Filter tools by custom instance config
 		const disableToolDefault = this.toolset.options?.disableToolDefault
-		this.tools = tools.filter((tool) =>
-			disableToolDefault ? this.toolset.tools.some((_) => _.name === tool.name && !_.disabled) : 
-				!this.toolset.tools.some((_) => _.name === tool.name && _.disabled)
-		)
+		this.tools = tools.filter((tool) => {
+			const config = this.toolset.tools?.find((_) => _.name === tool.name)
+			if (config) {
+				return isToolEnabled(config, disableToolDefault)
+			}
+			return disableToolDefault
+		})
 		this.tools.forEach((tool) => (<DynamicStructuredTool>tool).verboseParsingErrors = true)
 		return this.tools
 	}
