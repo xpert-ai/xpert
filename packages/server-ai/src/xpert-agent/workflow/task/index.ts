@@ -104,7 +104,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
 				name: toolName,
 				description,
 				schema: z.object({
-					description: z.string().optional().nullable().describe('Task description'),
+					description: z.string().optional().nullable().describe('Task description or prompt'),
 					subagent_type: z.string().optional().nullable().describe('Sub-agent type')
 				})
 			}
@@ -179,7 +179,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
 						signal: abortController.signal,
 						execution: execution,
 						subscriber: params.subscriber,
-						disableCheckpointer: true,
+						// disableCheckpointer: true,
 						channel: channelName(agentKey),
 						partners: [],
 						environment: params.environment
