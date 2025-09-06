@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { plainToClass, Transform, TransformFnParams, Type } from 'class-transformer';
+import { Transform, TransformFnParams, Type } from 'class-transformer';
 import { IsNotEmpty, IsOptional, Max, Min, ValidateNested } from 'class-validator';
-import { OrderTypeEnum } from '@metad/contracts';
 import { parseToBoolean } from '@metad/server-common';
-import { SimpleObjectLiteral, convertNativeParameters, parseObject } from './pagination.helper';
-import { TenantOrganizationBaseDTO } from '../dto';
+import { parseObject } from './pagination.helper';
+import { escapeQueryWithParameters, TenantOrganizationBaseDTO } from '../dto';
+import { FindOptionsOrder } from 'typeorm';
 
 
 /**
@@ -35,7 +35,7 @@ export class OptionParams<T> extends OptionsRelations<T> {
 	 */
 	@ApiPropertyOptional({ type: () => Object })
 	@IsOptional()
-	readonly order: { [P in keyof T]?: OrderTypeEnum };
+	readonly order: FindOptionsOrder<T>;
 
 	/**
 	 * Simple condition that should be applied to match entities.
@@ -78,18 +78,4 @@ export abstract class PaginationParams<T = any> extends OptionParams<T>  {
 	@Min(0)
 	@Transform((val: TransformFnParams) => parseInt(val as unknown as string, 10))
 	readonly skip: number = 0;
-}
-
-/**
- * Function to escape query parameters and convert to DTO class.
- * @param nativeParameters - The original query parameters.
- * @returns {TenantOrganizationBaseDTO} - The escaped and converted query parameters as a DTO instance.
- */
-export function escapeQueryWithParameters(nativeParameters: SimpleObjectLiteral): TenantOrganizationBaseDTO {
-
-	// Convert native parameters based on the database connection type
-	const builtParameters: SimpleObjectLiteral = convertNativeParameters(nativeParameters);
-
-	// Convert to DTO class using class-transformer's plainToClass
-	return plainToClass(TenantOrganizationBaseDTO, builtParameters, { enableImplicitConversion: true });
 }

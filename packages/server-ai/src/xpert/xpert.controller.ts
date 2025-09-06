@@ -448,7 +448,7 @@ export class XpertController extends CrudController<Xpert> {
 				where: {
 					...(where ?? {}),
 					xpertId: id,
-					createdAt: Between(start, end)
+					createdAt: Between(new Date(start), new Date(end))
 				},
 			},
 		))

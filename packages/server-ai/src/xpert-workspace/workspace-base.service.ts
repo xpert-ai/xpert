@@ -2,7 +2,7 @@ import { IUser } from '@metad/contracts'
 import { PaginationParams, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { FindConditions, IsNull, Not } from 'typeorm'
+import { FindOptionsWhere, IsNull, Not } from 'typeorm'
 import { GetXpertWorkspaceQuery } from './queries'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 
@@ -21,7 +21,7 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
 		where = where ?? {}
 		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
 			where = {
-				...(<FindConditions<T>>where),
+				...(<FindOptionsWhere<T>>where),
 				workspaceId: IsNull(),
 				createdById: user.id
 			}
@@ -32,7 +32,7 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
 			}
 
 			where = {
-				...(<FindConditions<T>>where),
+				...(<FindOptionsWhere<T>>where),
 				workspaceId: workspaceId
 			}
 		}

@@ -20,7 +20,7 @@ export class NotificationDestinationService extends TenantOrganizationAwareCrudS
 	}
 
 	async getGroups(id: string) {
-		const destination = await this.repository.findOne(id)
+		const destination = await this.repository.findOneBy({id})
 		return createNotificationDestination(destination, this.redisClient).getGroups()
 	}
 }

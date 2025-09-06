@@ -140,7 +140,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	 * @returns
 	 */
 	async updateCatalogContent(id: string) {
-		const model = await this.repository.findOne(id, {
+		const model = await this.repository.findOne({
+			where: { id },
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 
@@ -167,7 +168,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	async query(modelId: string, query: { statement: string }, options: Record<string, unknown>) {
-		const model = await this.repository.findOne(modelId, {
+		const model = await this.repository.findOne({
+			where: { id: modelId },
 			relations: ['dataSource', 'dataSource.type']
 		})
 		return this.dsService.query(model.dataSourceId, query.statement, {
@@ -177,14 +179,16 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	async import(modelId: string, body: any) {
-		const model = await this.repository.findOne(modelId, {
+		const model = await this.repository.findOne({
+			where: { id: modelId },
 			relations: ['dataSource', 'dataSource.type']
 		})
 		return this.dsService.import(model.dataSourceId, body, { catalog: model.catalog })
 	}
 
 	async dropTable(modelId: string, tableName: string) {
-		const model = await this.repository.findOne(modelId, {
+		const model = await this.repository.findOne({
+			where: { id: modelId },
 			relations: ['dataSource', 'dataSource.type']
 		})
 		return this.dsService.dropTable(model.dataSourceId, tableName, { catalog: model.catalog })
@@ -204,7 +208,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 		let key = ''
 
-		const model = await this.repository.findOne(modelId, {
+		const model = await this.repository.findOne({
+			where: { id: modelId },
 			relations: ['dataSource', 'dataSource.type', 'roles', 'roles.users']
 		})
 
@@ -525,9 +530,10 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
     |--------------------------------------------------------------------------
     */
 	async findPublicOne(id: string, options?: FindOneOptions) {
-		const model = await this.repository.findOne(id, {
+		const model = await this.repository.findOne({
 			relations: options?.relations,
 			where: {
+				id,
 				visibility: Visibility.Public
 			}
 		})

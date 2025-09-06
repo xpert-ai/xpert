@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IndicatorsByProjectQuery } from '../../../indicator/queries'
-import { Brackets, Repository } from 'typeorm'
+import { Brackets, FindOptionsRelationByString, Repository } from 'typeorm'
 import { Project } from '../../../core/entities/internal'
 import { ModelsQuery } from '../../../model/queries'
 import { ProjectGetQuery } from '../project-get.query'
@@ -22,7 +22,7 @@ export class ProjectGetHandler implements IQueryHandler<ProjectGetQuery> {
 	async execute(query: ProjectGetQuery) {
 		const { input } = query
 		const { id, options } = input
-		const relations = options?.relations
+		const relations = options?.relations as FindOptionsRelationByString
 		const user = RequestContext.currentUser()
 		const organizationId = RequestContext.getOrganizationId()
 

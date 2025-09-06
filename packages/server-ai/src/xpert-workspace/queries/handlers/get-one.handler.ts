@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Brackets, Repository } from 'typeorm'
+import { Brackets, FindOptionsRelationByString, Repository } from 'typeorm'
 import { GetXpertWorkspaceQuery } from '../get-one.query'
 import { XpertWorkspace } from '../../workspace.entity'
 
@@ -16,7 +16,7 @@ export class GetXpertWorkspaceHandler implements IQueryHandler<GetXpertWorkspace
 	async execute(query: GetXpertWorkspaceQuery) {
 		const { user, input } = query
 		const { id, options } = input
-		const relations = options?.relations
+		const relations = options?.relations as FindOptionsRelationByString
 
 		if (!id || id === 'null') {
 

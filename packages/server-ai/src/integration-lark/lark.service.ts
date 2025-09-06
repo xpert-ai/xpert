@@ -318,7 +318,7 @@ export class LarkService {
 		}
 
 		try {
-			user = await this.userService.findOneByConditions({
+			user = await this.userService.findOneByWhereOptions({
 				tenantId,
 				thirdPartyId: unionId
 			})

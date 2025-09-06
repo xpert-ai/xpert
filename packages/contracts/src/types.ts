@@ -1,4 +1,11 @@
-export type ID = string
+/**
+ * @description
+ * An entity ID. Represents a unique identifier as a string.
+ *
+ * @docsCategory Type Definitions
+ * @docsSubcategory Identifiers
+ */
+export type ID = string;
 
 export interface I18nObject {
   en_US: string

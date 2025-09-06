@@ -16,7 +16,7 @@ import bcrypt from 'bcryptjs'
 import { nanoid } from 'nanoid'
 import { I18nService } from 'nestjs-i18n'
 import { JsonWebTokenError, sign, verify } from 'jsonwebtoken'
-import { FindConditions, getManager } from 'typeorm'
+import { FindOptionsWhere, getManager } from 'typeorm'
 import { EmailService } from '../email/email.service'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
 import { User } from '../user/user.entity'
@@ -46,7 +46,8 @@ export class AuthService extends SocialAuthService {
 	}
 
 	async validateUser(email: string, password: string): Promise<any> {
-		const user = await this.userService.findOneByConditions({ email, emailVerified: true }, {
+		const user = await this.userService.findOneByOptions({
+			where: { email, emailVerified: true },
 			order: {
 				createdAt: 'DESC'
 			}
@@ -89,13 +90,14 @@ export class AuthService extends SocialAuthService {
 	}
 
 	async requestPassword(
-		request: any,
+		request: FindOptionsWhere<User>,
 		languageCode: LanguagesEnum,
 		originUrl?: string
 	): Promise<boolean | BadRequestException> {
 
 		try {
-			const user = await this.userService.findOneByConditions(request, {
+			const user = await this.userService.findOneByOptions({
+				where: request,
 				relations: ['role', 'employee']
 			});
 			try {
@@ -262,7 +264,7 @@ export class AuthService extends SocialAuthService {
 
 		
 		// Uniqueness Check
-		const where: FindConditions<User>[] = []
+		const where: FindOptionsWhere<User>[] = []
 		if (input.user.email) {
 			where.push({
 				tenantId: tenant.id,

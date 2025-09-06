@@ -14,7 +14,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign, uniq, uniqBy } from 'lodash'
-import { FindConditions, In, IsNull, Like, Not, Repository } from 'typeorm'
+import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { Xpert } from './xpert.entity'
@@ -78,7 +78,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		where = transformWhere(where ?? {})
 		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
 			where = {
-				...(<FindConditions<Xpert>>where),
+				...(<FindOptionsWhere<Xpert>>where),
 				workspaceId: IsNull(),
 				createdById: user.id
 			}
@@ -89,7 +89,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 			}
 
 			where = {
-				...(<FindConditions<Xpert>>where),
+				...(<FindOptionsWhere<Xpert>>where),
 				workspaceId: workspaceId
 			}
 		}
@@ -114,7 +114,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		where = where ?? {};
 
 		where = {
-			...(<FindConditions<Xpert>>where),
+			...(<FindOptionsWhere<Xpert>>where),
 			publishAt: Not(IsNull()),
 			createdById: userId
 		};
@@ -359,7 +359,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 	}
 
 	async findAllMemory(id: string, types: string[]) {
-		const where = {} as FindConditions<ICopilotStore>
+		const where = {} as FindOptionsWhere<ICopilotStore>
 		const _types = types
 		if (_types?.length > 1) {
 			where.prefix = In(_types.map((type) => `${id}${type ? `:${type}` : ''}`))

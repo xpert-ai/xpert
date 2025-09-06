@@ -1,9 +1,9 @@
 import { IXpertAgentExecution } from '@metad/contracts'
+import { FindOptionsWhere } from '@metad/server-core'
 import { ICommand } from '@nestjs/cqrs'
-import { FindConditions } from 'typeorm'
 
 export class XpertAgentExecutionDelCommand implements ICommand {
 	static readonly type = '[Xpert Agent Execution] Delete'
 
-	constructor(public readonly conditions: FindConditions<IXpertAgentExecution>) {}
+	constructor(public readonly conditions: FindOptionsWhere<IXpertAgentExecution>) {}
 }

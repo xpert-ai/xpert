@@ -16,7 +16,7 @@ export class SemanticModelCacheDeleteHandler implements ICommandHandler<Semantic
 		const { id } = command
 		const tenantId = RequestContext.currentTenantId()
 
-		const semanticModel = await this.modelService.findOne({ tenantId, id })
+		const semanticModel = await this.modelService.findOneByWhereOptions({ tenantId, id })
 
 		return await this.cacheService.delete({
 			tenantId,

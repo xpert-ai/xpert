@@ -3,7 +3,7 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Brackets, ObjectLiteral, Repository } from 'typeorm'
+import { Brackets, FindOptionsRelationByString, ObjectLiteral, Repository } from 'typeorm'
 import { BusinessAreaMyCommand } from '../../../business-area'
 import { BusinessArea, PermissionApproval } from '../../../core/entities/internal'
 import { Indicator } from '../../indicator.entity'
@@ -21,7 +21,7 @@ export class IndicatorMyHandler implements IQueryHandler<IndicatorMyQuery> {
 
 	async execute(query: IndicatorMyQuery) {
 		const { options } = query
-		const relations = options?.relations
+		const relations = options?.relations as FindOptionsRelationByString
 		const where = <ObjectLiteral>options?.where ?? {}
 
 		const me = RequestContext.currentUser()

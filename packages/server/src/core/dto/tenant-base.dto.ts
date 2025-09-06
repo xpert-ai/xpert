@@ -1,17 +1,18 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsObject } from 'class-validator';
-import { IBasePerTenantEntityModel, ITenant } from '@metad/contracts';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsObject, IsUUID } from 'class-validator';
+import { IBasePerTenantEntityModel, ID, ITenant } from '@metad/contracts';
+import { IsTenantBelongsToUser } from '../../shared/validators';
 
-export abstract class TenantBaseDTO 
-	implements IBasePerTenantEntityModel {
-	
-	@ApiProperty({ type: () => Object, readOnly: true })
+export class TenantBaseDTO implements IBasePerTenantEntityModel {
+	@ApiPropertyOptional({ type: () => Object })
 	@IsOptional()
 	@IsObject()
+	@IsTenantBelongsToUser()
 	readonly tenant: ITenant;
 
-	@ApiProperty({ type: () => String, readOnly: true })
+	@ApiPropertyOptional({ type: () => String })
 	@IsOptional()
-	@IsString()
-	readonly tenantId: string;
+	@IsUUID()
+	@IsTenantBelongsToUser()
+	readonly tenantId: ID;
 }

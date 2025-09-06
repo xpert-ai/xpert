@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { IPagination } from '@metad/contracts';
-import { DeepPartial } from 'typeorm';
+import { DeepPartial, FindOptionsWhere } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { BaseEntity } from '../entities/internal';
 import { ICrudService } from './icrud.service';
@@ -32,18 +32,24 @@ import { TenantOrganizationBaseDTO } from '../dto';
 @ApiBearerAuth()
 export abstract class CrudController<T extends BaseEntity> {
 	protected constructor(private readonly crudService: ICrudService<T>) {}
-
-	@ApiOperation({ summary: 'Find all records counts' })
+	
+	/**
+	 * Get the total count of all records.
+	 *
+	 * This endpoint retrieves the total count of all records for the given entity.
+	 *
+	 * @param options Optional query options for filtering records.
+	 * @returns A promise resolving to the count of all records.
+	 */
+	@ApiOperation({ summary: 'Get total record count' })
 	@ApiResponse({
 		status: HttpStatus.OK,
-		description: 'Found records count'
+		description: 'Total record count retrieved successfully'
 	})
 	@Get('count')
-    async getCount(
-		filter?: PaginationParams<T>
-	): Promise<number | void> {
-        return await this.crudService.count(filter);
-    }
+	async getCount(@Query() options?: FindOptionsWhere<T>): Promise<number | void> {
+		return await this.crudService.countBy(options);
+	}
 
 	@ApiOperation({ summary: 'Find all records using pagination' })
 	@ApiResponse({

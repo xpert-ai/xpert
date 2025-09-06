@@ -21,7 +21,7 @@ export class ChatBIModelService extends TenantOrganizationAwareCrudService<ChatB
 	}
 
 	async visit(modelId: string, entity: string) {
-		const record = await this.findOneByConditions({ modelId, entity })
+		const record = await this.findOneByWhereOptions({ modelId, entity })
 		record.visits = (record.visits ?? 0) + 1
 		await this.repository.save(record)
 	}

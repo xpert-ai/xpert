@@ -1,6 +1,6 @@
 import { TChatConversationLog } from '@metad/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
-import { getRepository } from 'typeorm'
+import { FindOptionsRelationByString, getRepository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
 import { ChatConversationService } from '../../conversation.service'
 import { ChatConversationLogsQuery } from '../conversation-logs.query'
@@ -10,7 +10,8 @@ export class ChatConversationLogsHandler implements IQueryHandler<ChatConversati
 	constructor(private readonly service: ChatConversationService) {}
 
 	public async execute(command: ChatConversationLogsQuery) {
-		const { where, relations = [], skip, take, order } = command.options
+		const { where, skip, take, order } = command.options
+		const relations = command.options.relations as FindOptionsRelationByString
 
 		const repository = getRepository(ChatConversation)
 

@@ -2,7 +2,7 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Brackets, Repository } from 'typeorm'
+import { Brackets, FindOptionsRelationByString, Repository } from 'typeorm'
 import { Project } from '../../project.entity'
 import { ProjectService } from '../../project.service'
 import { ProjectMyQuery } from '../project-my.query'
@@ -17,7 +17,7 @@ export class ProjectMyHandler implements IQueryHandler<ProjectMyQuery> {
 
 	async execute(query: ProjectMyQuery) {
 		const { input } = query
-		const relations = input?.relations
+		const relations = input?.relations as FindOptionsRelationByString
 		const user = RequestContext.currentUser()
 		const organizationId = RequestContext.getOrganizationId()
 

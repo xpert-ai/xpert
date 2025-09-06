@@ -10,9 +10,7 @@ import { CommandHandlers } from './commands/handlers';
 import { TenantModule } from '../tenant/tenant.module';
 import { RoleModule } from './../role/role.module';
 import { UserModule } from './../user/user.module';
-import { OrganizationProjectModule } from './../organization-project/organization-project.module';
 import { OrganizationContactModule } from './../organization-contact/organization-contact.module';
-import { OrganizationDepartmentModule } from './../organization-department/organization-department.module';
 import { OrganizationModule } from './../organization/organization.module';
 import { UserOrganizationModule } from './../user-organization/user-organization.module';
 import { InviteController } from './invite.controller';
@@ -34,9 +32,7 @@ import { RolePermissionModule } from '../role-permission';
 		TenantModule,
 		RoleModule,
 		OrganizationModule,
-		OrganizationProjectModule,
 		OrganizationContactModule,
-		OrganizationDepartmentModule,
 		UserOrganizationModule
 	],
 	controllers: [InviteController],

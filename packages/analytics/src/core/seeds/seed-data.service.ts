@@ -186,7 +186,8 @@ export class SeedDataService extends SeedServerDataService {
 	}
 
 	async dataLoadDoris(id: string) {
-		let dataSource = await this.connection.manager.findOne(DataSource, id, {
+		let dataSource = await this.connection.manager.findOne(DataSource, {
+			where: {id},
 			relations: ['type', 'authentications']
 		})
 		dataSource = await prepareDataSource(dataSource)
@@ -266,7 +267,8 @@ export class SeedDataService extends SeedServerDataService {
 		model.dataSourceId = dataSourceId
 		model = await this.connection.manager.save<SemanticModel>(model)
 
-		model = await this.connection.manager.findOne(SemanticModel, model.id, {
+		model = await this.connection.manager.findOne(SemanticModel, {
+			where: { id: model.id },
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 

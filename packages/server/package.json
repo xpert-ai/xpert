@@ -64,7 +64,7 @@
     "rimraf": "^5.0.5",
     "sharp": "^0.33.5",
     "swagger-ui-express": "^4.1.6",
-    "typeorm": "^0.2.37",
+    "typeorm": "^0.3.24",
     "underscore": "^1.13.1",
     "unzipper": "^0.12.3"
   },

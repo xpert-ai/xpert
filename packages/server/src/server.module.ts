@@ -20,9 +20,7 @@ import { HomeModule } from './home/home.module'
 import { InviteModule } from './invite/invite.module'
 import { LanguageModule } from './language/language.module'
 import { OrganizationContactModule } from './organization-contact/organization-contact.module'
-import { OrganizationDepartmentModule } from './organization-department/organization-department.module'
 import { OrganizationLanguageModule } from './organization-language/organization-language.module'
-import { OrganizationProjectModule } from './organization-project/organization-project.module'
 import { OrganizationModule } from './organization/organization.module'
 import { RolePermissionModule } from './role-permission/role-permission.module'
 import { RoleModule } from './role/role.module'
@@ -70,10 +68,8 @@ import { HealthModule } from './health'
 		RoleModule,
 		OrganizationModule,
 		UserOrganizationModule,
-		OrganizationDepartmentModule,
 		OrganizationContactModule,
 		OrganizationLanguageModule,
-		OrganizationProjectModule,
 		TagModule,
 		InviteModule,
 		CustomSmtpModule,

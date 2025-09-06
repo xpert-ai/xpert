@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository, SelectQueryBuilder, WhereExpression } from 'typeorm';
-import { IPagination } from '@metad/contracts';
+import { Brackets, Repository, SelectQueryBuilder, WhereExpression, WhereExpressionBuilder } from 'typeorm';
+import { IEmailTemplate, IPagination } from '@metad/contracts';
 import { OnEvent } from '@nestjs/event-emitter'
 import chalk from 'chalk'
 import { CrudService, PaginationParams } from './../core/crud';
@@ -10,6 +10,8 @@ import { RequestContext } from './../core/context';
 import { TenantCreatedEvent } from '../tenant/events';
 import { TenantService } from '../tenant';
 import { createDefaultEmailTemplates } from './email-template.seed';
+import { isNotEmpty } from '@metad/server-common';
+import { BaseQueryDTO } from '../core/dto';
 
 @Injectable()
 export class EmailTemplateService extends CrudService<EmailTemplate> {
@@ -22,44 +24,60 @@ export class EmailTemplateService extends CrudService<EmailTemplate> {
 	}
 
 	/**
-	* Get Email Templates
-	* @param params 
-	* @returns
-	*/
-	async findAll(params: PaginationParams<EmailTemplate>): Promise<IPagination<EmailTemplate>> {
-		const { where, relations } = params;
-		const [items, total]  = await this.emailRepository.findAndCount({
-			relations: [
-				...(relations ? relations : [])
-			],
-			where: (qb: SelectQueryBuilder<EmailTemplate>) => {
-				qb.where(
-					new Brackets((bck: WhereExpression) => { 
-						const tenantId = RequestContext.currentTenantId();
-						const { organizationId, languageCode } = where;
-						if (organizationId) {
-							bck.andWhere(`"${qb.alias}"."organizationId" = :organizationId`, {
-								organizationId
-							});
-						}
-						if (languageCode) {
-							bck.andWhere(`"${qb.alias}"."languageCode" = :languageCode`, {
-								languageCode
-							});
-						}
-						bck.andWhere(`"${qb.alias}"."tenantId" = :tenantId`, {
-							tenantId
-						});
-					})
-				);
-				qb.orWhere(
-					new Brackets((bck: WhereExpression) => { 
-						bck.andWhere(`"${qb.alias}"."organizationId" IS NULL`);
-						bck.andWhere(`"${qb.alias}"."tenantId" IS NULL`);
-					})
-				)
-			}
+	 * Get Email Templates
+	 * @param params
+	 * @returns
+	 */
+	async findAll(params: BaseQueryDTO<EmailTemplate>): Promise<IPagination<IEmailTemplate>> {
+		const query = this.repository.createQueryBuilder('email_template');
+		query.setFindOptions({
+			select: {
+				organization: {
+					id: true,
+					name: true,
+					brandColor: true
+				}
+			},
+			...(params && params.relations
+				? {
+						relations: params.relations
+				  }
+				: {}),
+			...(params && params.order
+				? {
+						order: params.order
+				  }
+				: {})
 		});
+		query.where((qb: SelectQueryBuilder<EmailTemplate>) => {
+			qb.where(
+				new Brackets((web: WhereExpressionBuilder) => {
+					const { tenantId, organizationId, languageCode } = params.where;
+					if (isNotEmpty(tenantId)) {
+						web.andWhere(`"${qb.alias}"."tenantId" = :tenantId`, {
+							tenantId: RequestContext.currentTenantId()
+						});
+					}
+					if (isNotEmpty(organizationId)) {
+						web.andWhere(`"${qb.alias}"."organizationId" = :organizationId`, {
+							organizationId
+						});
+					}
+					if (isNotEmpty(languageCode)) {
+						web.andWhere(`"${qb.alias}"."languageCode" = :languageCode`, {
+							languageCode
+						});
+					}
+				})
+			);
+			qb.orWhere(
+				new Brackets((web: WhereExpressionBuilder) => {
+					web.andWhere(`"${qb.alias}"."organizationId" IS NULL`);
+					web.andWhere(`"${qb.alias}"."tenantId" IS NULL`);
+				})
+			);
+		});
+		const [items, total] = await query.getManyAndCount();
 		return { items, total };
 	}
 

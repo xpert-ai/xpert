@@ -1,10 +1,11 @@
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { FindOneOptions, Repository } from 'typeorm'
+import { FindOneOptions, FindOptionsRelationByString, Repository } from 'typeorm'
 import { BusinessArea, BusinessAreaService } from '../business-area/index'
 import { StoryPointPublicDTO } from './dto'
 import { StoryPoint } from './story-point.entity'
+import { Visibility } from '@metad/contracts'
 
 @Injectable()
 export class StoryPointService extends TenantOrganizationAwareCrudService<StoryPoint> {
@@ -17,11 +18,13 @@ export class StoryPointService extends TenantOrganizationAwareCrudService<StoryP
 	}
 
 	async findPublicOne(id: string, options: FindOneOptions) {
-		const point = await this.repository.findOne(id, {
-			relations: ['story', ...(options?.relations ?? [])],
+		const relations = options?.relations as FindOptionsRelationByString
+		const point = await this.repository.findOne({
+			relations: ['story', ...(relations ?? [])],
 			where: {
+				id,
 				story: {
-					visibility: 'public'
+					visibility: Visibility.Public
 				}
 			}
 		})

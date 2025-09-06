@@ -2,7 +2,7 @@ import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { FindChatConversationQuery } from '../../../chat-conversation'
 import { ThreadDTO } from '../../dto'
 import { SearchThreadsQuery } from '../thread-search.query'
-import { FindConditions } from 'typeorm'
+import { FindOptionsWhere } from 'typeorm'
 import { IChatConversation } from '@metad/contracts'
 
 @QueryHandler(SearchThreadsQuery)
@@ -12,7 +12,7 @@ export class SearchThreadsHandler implements IQueryHandler<SearchThreadsQuery> {
 	public async execute(command: SearchThreadsQuery): Promise<ThreadDTO> {
 		const request = command.request
 
-		const conditions = {} as FindConditions<IChatConversation>
+		const conditions = {} as FindOptionsWhere<IChatConversation>
 		if (request.metadata?.assistant_id) {
 			conditions.xpertId = request.metadata.assistant_id
 		}

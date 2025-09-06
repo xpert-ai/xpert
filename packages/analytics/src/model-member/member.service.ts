@@ -5,7 +5,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Pool } from 'pg'
-import { DeepPartial, FindConditions, FindManyOptions, In, Repository } from 'typeorm'
+import { DeepPartial, FindOptionsWhere, FindManyOptions, In, Repository } from 'typeorm'
 import { SemanticModelMember } from './member.entity'
 import { CreateVectorStoreCommand } from './commands/create-vector-store.command'
 import { PGMemberVectorStore } from './vector-store'
@@ -51,7 +51,7 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 		const { items: members } = await this.findAll({
 			...query,
 			where: {
-				...((query.where as FindConditions<SemanticModelMember>) ?? {}),
+				...((query.where as FindOptionsWhere<SemanticModelMember>) ?? {}),
 				modelId,
 				cube
 			}

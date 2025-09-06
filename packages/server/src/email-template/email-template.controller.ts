@@ -27,11 +27,11 @@ import {
 	ApiResponse,
 	ApiTags
 } from '@nestjs/swagger';
-import { UpdateResult } from 'typeorm';
+import { FindOptionsWhere, UpdateResult } from 'typeorm';
 import { CrudController, PaginationParams } from './../core/crud';
 import { RequestContext } from './../core/context';
 import { TenantPermissionGuard } from './../shared/guards';
-import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes';
+import { ParseJsonPipe, UseValidationPipe, UUIDValidationPipe } from './../shared/pipes';
 import { LanguageDecorator } from './../shared/decorators';
 import { EmailTemplate } from './email-template.entity';
 import { EmailTemplateService } from './email-template.service';
@@ -41,6 +41,7 @@ import {
 	FindEmailTemplateQuery
 } from './queries';
 import { EmailTemplateSaveCommand } from './commands';
+import { BaseQueryDTO } from '../core/dto';
 
 
 @ApiTags('EmailTemplate')
@@ -55,16 +56,18 @@ export class EmailTemplateController extends CrudController<EmailTemplate> {
 		super(emailTemplateService);
 	}
 
+	/**
+	 * GET count for email templates in the same tenant
+	 *
+	 * @param options
+	 * @returns
+	 */
 	@Get('count')
-	@UsePipes(new ValidationPipe({ transform: true }))
-	async getCount(
-		@Query() filter: PaginationParams<EmailTemplate>
-	): Promise<number> {
-		return this.emailTemplateService.count({
-			where: {
-				tenantId: RequestContext.currentTenantId()
-			},
-			...filter
+	@UseValidationPipe()
+	async getCount(@Query() options: FindOptionsWhere<EmailTemplate>): Promise<number> {
+		return await this.emailTemplateService.countBy({
+			...options,
+			tenantId: RequestContext.currentTenantId()
 		});
 	}
 
@@ -134,20 +137,16 @@ export class EmailTemplateController extends CrudController<EmailTemplate> {
 		);
 	}
 
+	/**
+	 * GET email templates in the same tenant
+	 *
+	 * @param options
+	 * @returns
+	 */
 	@Get()
-	async findAll(
-		@Query('data', ParseJsonPipe) filter: PaginationParams<EmailTemplate>
-	): Promise<IPagination<EmailTemplate>> {
-		return await this.queryBus.execute(
-			new EmailTemplateQuery({
-				...(filter ?? {}),
-				where: {
-					...(filter?.where ?? {}),
-					tenantId: RequestContext.currentTenantId(),
-					organizationId: RequestContext.getOrganizationId()
-				}
-			} as PaginationParams<EmailTemplate>)
-		);
+	@UseValidationPipe()
+	async findAlls(@Query() options: BaseQueryDTO<EmailTemplate>): Promise<IPagination<IEmailTemplate>> {
+		return await this.queryBus.execute(new EmailTemplateQuery(options));
 	}
 
 	@ApiOperation({

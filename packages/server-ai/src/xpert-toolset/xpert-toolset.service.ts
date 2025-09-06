@@ -2,7 +2,7 @@ import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } 
 import { Injectable, Logger, NotFoundException, Type, Inject } from '@nestjs/common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { FindConditions, IsNull, Not, Repository } from 'typeorm'
+import { FindOptionsWhere, IsNull, Not, Repository } from 'typeorm'
 import { XpertToolset } from './xpert-toolset.entity'
 import { ITag, IUser, IXpertToolset, mapTranslationLanguage, TagCategoryEnum, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { assign } from 'lodash'
@@ -61,7 +61,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		where = where ?? {}
 		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
 			where = {
-				...(<FindConditions<XpertToolset>>where),
+				...(<FindOptionsWhere<XpertToolset>>where),
 				workspaceId: IsNull(),
 				createdById: user.id
 			}
@@ -72,7 +72,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 			}
 
 			where = {
-				...(<FindConditions<XpertToolset>>where),
+				...(<FindOptionsWhere<XpertToolset>>where),
 				workspaceId: workspaceId
 			}
 		}

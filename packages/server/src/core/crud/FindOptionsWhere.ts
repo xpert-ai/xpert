@@ -1,6 +1,6 @@
-import { FindConditions } from 'typeorm'
+import { FindOptionsWhere as TypeormFindOptionsWhere } from 'typeorm'
 
 /**
  * Used for find operations.
  */
-export type FindOptionsWhere<Entity> = FindConditions<Entity>
+export type FindOptionsWhere<Entity> = TypeormFindOptionsWhere<Entity>

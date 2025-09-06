@@ -98,7 +98,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 	public async execute(command: OrganizationDemoCommand): Promise<void> {
 		const { id, options } = command.input as { id: string; options: OrgGenerateDemoOptions}
 		const userId = RequestContext.currentUserId()
-		const organization = await this.orgRepository.findOne(id, { relations: ['tenant'] })
+		const organization = await this.orgRepository.findOne({where: {id}, relations: ['tenant'] })
 		this.organization = organization
 		this.tenant = organization.tenant
 		this.owner = RequestContext.currentUser()
@@ -453,7 +453,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		const type = await this.dstRepository.findOne({
 			where: {
 				tenant: this.tenant,
-				type: dataSource.type
+				type: dataSource.type as string
 			}
 		})
 
@@ -529,7 +529,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		model.owner = this.owner
 		model.dataSourceId = semanticModel.dataSourceId
 			? (
-					await this.dsRepository.findOne({
+					await this.dsRepository.findOneBy({
 						tenantId: this.tenant.id,
 						organizationId: this.organization.id,
 						name: semanticModel.dataSourceId
@@ -537,7 +537,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 			  ).id
 			: dataSourceId
 		model.businessAreaId = semanticModel.businessAreaId ? (
-				await this.businessAreaRepository.findOne({
+				await this.businessAreaRepository.findOneBy({
 					tenantId: this.tenant.id,
 					organizationId: this.organization.id,
 					name: semanticModel.businessAreaId
@@ -545,7 +545,8 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 			)?.id : null
 		model = await this.modelRepository.save(model)
 
-		model = await this.modelRepository.findOne(model.id, {
+		model = await this.modelRepository.findOne({
+			where: {id: model.id},
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 
@@ -600,7 +601,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		_indicator.project = this.project
 		_indicator.modelId = indicator.modelId
 			? (
-					await this.modelRepository.findOne({
+					await this.modelRepository.findOneBy({
 						tenantId: this.tenant.id,
 						organizationId: this.organization.id,
 						key: indicator.modelKey
@@ -608,7 +609,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 				)?.id
 			: modelId
 		_indicator.businessAreaId = (
-			await this.businessAreaRepository.findOne({
+			await this.businessAreaRepository.findOneBy({
 				tenantId: this.tenant.id,
 				organizationId: this.organization.id,
 				name: indicator.businessAreaId
@@ -645,7 +646,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		// 	  ).id
 		// 	: semanticModelId
 		_story.models = await Promise.all(story.models.map((model) => {
-			return this.modelRepository.findOne({
+			return this.modelRepository.findOneBy({
 				tenantId: this.tenant.id,
 				organizationId: this.organization.id,
 				key: model.key
@@ -655,7 +656,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		_story.visibility = Visibility.Private
 		_story.businessAreaId = story.businessAreaId
 			? (
-					await this.businessAreaRepository.findOne({
+					await this.businessAreaRepository.findOneBy({
 						tenantId: this.tenant.id,
 						organizationId: this.organization.id,
 						name: story.businessAreaId

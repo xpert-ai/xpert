@@ -88,6 +88,9 @@ export class InviteController {
 		);
 	}
 
+	/**
+	 * @todo 
+	 */
 	@ApiOperation({ summary: 'Get invite.' })
 	@ApiResponse({
 		status: HttpStatus.OK,
@@ -107,7 +110,7 @@ export class InviteController {
 		if (!email && !token) {
 			throw new BadRequestException('Email & Token Mandatory');
 		}
-		return await this.inviteService.validate(relations, email, token);
+		return await this.inviteService.validateByToken(data);
 	}
 
 	@ApiOperation({ summary: 'Find all invites.' })

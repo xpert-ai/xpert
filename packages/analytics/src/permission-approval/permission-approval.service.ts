@@ -94,7 +94,7 @@ export class PermissionApprovalService extends TenantAwareCrudService<Permission
 
 			const result = await this.permissionApprovalRepository.find({
 				where: {
-					createdBy: id,
+					createdById: id,
 					organizationId,
 					tenantId
 				}
@@ -164,7 +164,7 @@ export class PermissionApprovalService extends TenantAwareCrudService<Permission
 		try {
 			const tenantId = RequestContext.currentTenantId()
 			const organizationId = RequestContext.getOrganizationId()
-			const permissionApproval = await this.permissionApprovalRepository.findOne({
+			const permissionApproval = await this.permissionApprovalRepository.findOneBy({
 				id
 			})
 			permissionApproval.status = PermissionApprovalStatusTypesEnum.REQUESTED

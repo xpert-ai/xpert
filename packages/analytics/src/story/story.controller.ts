@@ -39,7 +39,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { add } from 'date-fns'
 import { nanoid } from 'nanoid'
-import { FindConditions, FindManyOptions, FindOneOptions, IsNull, ObjectLiteral } from 'typeorm'
+import { FindOptionsWhere, FindManyOptions, FindOneOptions, IsNull, ObjectLiteral } from 'typeorm'
 import { CaslAbilityFactory } from '../core/index'
 import { BookmarkGetCommand } from '../favorite'
 import { ProjectGetQuery } from '../project'
@@ -75,7 +75,7 @@ export class StoryController extends CrudController<Story> {
 		where = where ?? {}
 		if (projectId === 'null' || projectId === 'undefined' || !projectId) {
 			where = {
-				...(<FindConditions<Story>>where),
+				...(<FindOptionsWhere<Story>>where),
 				projectId: IsNull(),
 				createdById: user.id
 			}
@@ -86,7 +86,7 @@ export class StoryController extends CrudController<Story> {
 			}
 
 			where = {
-				...(<FindConditions<Story>>where),
+				...(<FindOptionsWhere<Story>>where),
 				projectId
 			}
 		}
