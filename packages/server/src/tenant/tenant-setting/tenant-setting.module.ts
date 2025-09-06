@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { TenantModule } from './../tenant.module';
 import { TenantSettingController } from './tenant-setting.controller';
 import { TenantSetting } from './tenant-setting.entity';
@@ -10,7 +10,7 @@ import { CommandHandlers } from './commands/handlers';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{ path: '/tenant-setting', module: TenantSettingModule }
 		]),
 		TypeOrmModule.forFeature([ TenantSetting ]),

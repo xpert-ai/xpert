@@ -2,7 +2,7 @@ import { TenantModule } from '@metad/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { XpertToolsetController } from './xpert-toolset.controller'
 import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
@@ -14,7 +14,7 @@ import { XpertWorkspaceModule } from '../xpert-workspace'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
+		RouterModule.register([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
 		TypeOrmModule.forFeature([XpertToolset]),
 		TenantModule,
 		CqrsModule,

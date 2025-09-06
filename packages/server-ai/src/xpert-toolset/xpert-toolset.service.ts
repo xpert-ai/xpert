@@ -13,7 +13,7 @@ import { ToolProviderNotFoundError } from './errors'
 import { TToolsetProviderSchema } from './types'
 import { ToolProviderDTO } from './dto'
 import { ConfigService } from '@metad/server-config'
-import { I18nService, translateOptions } from 'nestjs-i18n';
+import { I18nService, TranslateOptions } from 'nestjs-i18n';
 import { createBuiltinToolset } from './provider/builtin'
 import { EnvStateQuery } from '../environment'
 import { BuiltinToolset } from '../shared'
@@ -163,7 +163,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		return toolsets
 	}
 
-	async translate(key: string, options?: translateOptions) {
+	async translate(key: string, options?: TranslateOptions) {
 		options ??= {}
 		options.lang ??= mapTranslationLanguage(RequestContext.getLanguageCode())
 		return await this.i18n.t(key, options)

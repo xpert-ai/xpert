@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { ApprovalPolicy } from './approval-policy.entity';
 import { ApprovalPolicyController } from './approval-policy.controller';
 import { ApprovalPolicyService } from './approval-policy.service';
@@ -10,7 +10,7 @@ import { TenantModule, UserModule } from '@metad/server-core';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{ path: '/approval-policy', module: ApprovalPolicyModule }
 		]),
 		TypeOrmModule.forFeature([

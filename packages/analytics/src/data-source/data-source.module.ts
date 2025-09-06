@@ -3,7 +3,7 @@ import { SharedModule, TenantModule, UserModule } from '@metad/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { DataSourceAuthentication } from './authentication/authentication.entity'
 import { CommandHandlers } from './commands/handlers'
 import { DataSourceController } from './data-source.controller'
@@ -14,8 +14,8 @@ import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/data-source', module: DataSourceModule }]),
-		forwardRef(() => TypeOrmModule.forFeature([DataSource, DataSourceAuthentication])),
+		RouterModule.register([{ path: '/data-source', module: DataSourceModule }]),
+		TypeOrmModule.forFeature([DataSource, DataSourceAuthentication]),
 		forwardRef(() => TenantModule),
 		forwardRef(() => UserModule),
 		SharedModule,

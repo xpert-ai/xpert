@@ -7,6 +7,10 @@ import { XpertService } from '../xpert.service'
 
 @Injectable()
 export class AnonymousStrategy extends PassportStrategy(Strategy, 'xpert') {
+	validate(...args: any[]): unknown {
+		throw new Error('Method not implemented.')
+	}
+	
 	@Inject(XpertService)
 	readonly xpertService: XpertService
 

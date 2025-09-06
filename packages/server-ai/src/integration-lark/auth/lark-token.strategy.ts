@@ -10,6 +10,9 @@ import { LarkService } from '../lark.service'
 
 @Injectable()
 export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') {
+	validate(...args: any[]): unknown {
+		throw new Error('Method not implemented.')
+	}
 	readonly logger = new Logger(LarkTokenStrategy.name)
 
 	constructor(

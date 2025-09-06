@@ -1,7 +1,7 @@
-import { CacheModule, forwardRef, Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { CommandHandlers } from './commands/handlers';
 import { User } from './user.entity';
 import { UserService } from './user.service';
@@ -15,16 +15,15 @@ import { RoleModule } from '../role';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{ path: '/user', module: UserModule }
 		]),
-		forwardRef(() => TypeOrmModule.forFeature([ User, EmailVerification ])),
+		TypeOrmModule.forFeature([ User, EmailVerification ]),
 		forwardRef(() => TenantModule),
 		SharedModule,
 		CqrsModule,
 		RoleModule,
 		FactoryResetModule,
-		// CacheModule.register({ isGlobal: true })
 	],
 	controllers: [UserController],
 	providers: [UserService, ...CommandHandlers, ...EventHandlers],

@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { DiscoveryModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@metad/server-core'
 import { CopilotModule } from '../copilot/copilot.module'
 import { Knowledgebase } from './knowledgebase.entity'
@@ -15,7 +15,7 @@ import { KnowledgeStrategyRegistry } from './strategy/knowledge-strategy.registr
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
+		RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
 		TypeOrmModule.forFeature([ Knowledgebase ]),
 		DiscoveryModule,
 		TenantModule,

@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { UserModule } from '../user/user.module'
 import { TenantModule } from './../tenant/tenant.module'
 import { CommandHandlers } from './commands/handlers'
@@ -11,8 +11,8 @@ import { RoleService } from './role.service'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/roles', module: RoleModule }]),
-		forwardRef(() => TypeOrmModule.forFeature([Role])),
+		RouterModule.register([{ path: '/roles', module: RoleModule }]),
+		TypeOrmModule.forFeature([Role]),
 		forwardRef(() => TenantModule),
 		forwardRef(() => UserModule),
 		CqrsModule,

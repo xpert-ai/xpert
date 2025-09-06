@@ -12,7 +12,7 @@ import { TenantOrganizationBaseDTO } from '../dto';
  */
 export class OptionsSelect<T = any> {
 
-	@ApiPropertyOptional({ type: 'object' })
+	@ApiPropertyOptional({ type: () => Object })
 	@IsOptional()
 	@Transform(({ value }: TransformFnParams) => parseObject(value, parseToBoolean))
 	readonly select?: (keyof T)[]
@@ -23,7 +23,7 @@ export class OptionsSelect<T = any> {
 */
 export class OptionsRelations<T = any> extends OptionsSelect<T> {
 
-	@ApiPropertyOptional({ type: 'object' })
+	@ApiPropertyOptional({ type: () => Object })
 	@IsOptional()
 	readonly relations?: string[];
 }
@@ -33,14 +33,14 @@ export class OptionParams<T> extends OptionsRelations<T> {
 	/**
 	 * Order, in which entities should be ordered.
 	 */
-	@ApiPropertyOptional({ type: 'object' })
+	@ApiPropertyOptional({ type: () => Object })
 	@IsOptional()
 	readonly order: { [P in keyof T]?: OrderTypeEnum };
 
 	/**
 	 * Simple condition that should be applied to match entities.
 	 */
-	@ApiProperty({ type: 'object' })
+	@ApiProperty({ type: () => Object })
 	@IsNotEmpty()
 	@ValidateNested({ each: true })
 	@Type(() => TenantOrganizationBaseDTO)

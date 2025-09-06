@@ -2,7 +2,7 @@ import { ICopilot, IUser, TGatewayQueryEvent, TGatewayRespError, TGatewayRespEve
 import { CopilotTokenRecordCommand } from '@metad/server-ai'
 import { getErrorMessage } from '@metad/server-common'
 import { WsJWTGuard, WsUser } from '@metad/server-core'
-import { CACHE_MANAGER, Inject, UseGuards } from '@nestjs/common'
+import { Inject, UseGuards } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import {
 	ConnectedSocket,
@@ -13,6 +13,7 @@ import {
 	WebSocketServer,
 	WsResponse
 } from '@nestjs/websockets'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Cache } from 'cache-manager'
 import { from, Observable } from 'rxjs'
 import { map } from 'rxjs/operators'

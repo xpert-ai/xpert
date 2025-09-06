@@ -37,6 +37,7 @@ import { IntegrationGithubModule } from './integration-github'
 import { IntegrationRAGFlowModule } from './integration-ragflow'
 import { IntegrationDifyModule } from './integration-dify'
 import { IntegrationFastGPTModule } from './integration-fastgpt'
+import { EnvironmentModule } from './environment'
 
 @Module({
 	imports: [
@@ -55,6 +56,7 @@ import { IntegrationFastGPTModule } from './integration-fastgpt'
 		CopilotOrganizationModule,
 		CopilotProviderModule,
 		CopilotStoreModule,
+		EnvironmentModule,
 		GraphragModule,
 		XpertModule,
 		XpertAgentModule,

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { PermissionApproval } from './permission-approval.entity';
 import { TenantModule, UserModule } from '@metad/server-core';
 import { PermissionApprovalControler } from './permission-approval.controller';
@@ -13,7 +13,7 @@ import { QueryHandlers } from './queries/handlers';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{ path: '/permission-approval', module: PermissionApprovalModule }
 		]),
 		TypeOrmModule.forFeature([

@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { EmailTemplate } from './email-template.entity';
 import { EmailTemplateService } from './email-template.service';
 import { EmailTemplateController } from './email-template.controller';
@@ -12,10 +12,10 @@ import { EventHandlers } from './events/handlers';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule. register([
 			{ path: '/email-template', module: EmailTemplateModule }
 		]),
-		forwardRef(() => TypeOrmModule.forFeature([EmailTemplate])),
+		TypeOrmModule.forFeature([EmailTemplate]),
 		CqrsModule,
 		forwardRef(() => TenantModule)
 	],
@@ -27,8 +27,8 @@ import { EventHandlers } from './events/handlers';
 		...EventHandlers
 	],
 	exports: [
-		TypeOrmModule,
-		EmailTemplateService
+		EmailTemplateService,
+		TypeOrmModule
 	]
 })
 export class EmailTemplateModule {}

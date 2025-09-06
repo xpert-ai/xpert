@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { DatabaseModule } from '@metad/server-core'
 import { TenantModule } from '@metad/server-core'
 import { CopilotCheckpointSaver } from './checkpoint-saver'
@@ -15,7 +15,7 @@ import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/copilot-checkpoint', module: CopilotCheckpointModule }]),
+		RouterModule.register([{ path: '/copilot-checkpoint', module: CopilotCheckpointModule }]),
 		TypeOrmModule.forFeature([CopilotCheckpoint, CopilotCheckpointWrites]),
 		TenantModule,
 		CqrsModule,

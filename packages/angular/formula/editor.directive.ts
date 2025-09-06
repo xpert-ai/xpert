@@ -71,7 +71,7 @@ export class NgmBaseEditorDirective implements ControlValueAccessor, OnDestroy {
     this.selectionChange.emit({ range: this.editor.getSelection(), text: this.getSelectText() })
   })
 
-  readonly focusSub = this.editor$.pipe(filter(Boolean), switchMap((editor) => new Observable((observer) => {
+  readonly focusSub = this.editor$.pipe(filter(Boolean), switchMap((editor) => new Observable<void>((observer) => {
     editor.onDidFocusEditorWidget(()=>{
       observer.next()
     })
@@ -83,7 +83,7 @@ export class NgmBaseEditorDirective implements ControlValueAccessor, OnDestroy {
     this.focus.emit()
   })
 
-  readonly blurSub = this.editor$.pipe(filter(Boolean), switchMap((editor) => new Observable((observer) => {
+  readonly blurSub = this.editor$.pipe(filter(Boolean), switchMap((editor) => new Observable<void>((observer) => {
     editor.onDidBlurEditorWidget(()=>{
       observer.next()
     })

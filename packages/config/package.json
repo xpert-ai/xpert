@@ -4,9 +4,8 @@
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {
-    "@nestjs/common": "^8.0.0",
-    "@nestjs/typeorm": "^8.0.3",
-    "cache-manager": "^3.6.1",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/typeorm": "^11.0.0",
     "dotenv": "^16.0.0",
     "typeorm": "^0.2.37"
   }

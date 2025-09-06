@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { AuthService } from '../auth/auth.service';
 import { EmailModule } from '../email/email.module';
 import { EmailService } from '../email/email.service';
@@ -22,7 +22,7 @@ import { RolePermissionModule } from '../role-permission';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{ path: '/invite', module: InviteModule }
 		]),
 		TypeOrmModule.forFeature([ Invite ]),

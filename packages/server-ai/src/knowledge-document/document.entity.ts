@@ -70,7 +70,7 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	parserId: string
 
 	@ApiProperty({
-		type: 'object',
+		type: () => Object,
 		description: 'Parser Config',
 		example: {
 			chunkSize: 1000,

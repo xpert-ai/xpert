@@ -42,8 +42,8 @@ export class SandboxController {
 	) {}
 
 	@Public()
-	@Get('volume/**')
-	async getVolumeFile(@Param('0') path: string, @Query('tenant') tenant: string, @Res() res: Response) {
+	@Get('volume/*path')
+	async getVolumeFile(@Param('path') path: string, @Query('tenant') tenant: string, @Res() res: Response) {
 		if (!tenant) {
 			tenant = RequestContext.currentTenantId()
 		}

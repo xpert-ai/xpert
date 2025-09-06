@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { TenantModule, UserModule } from '@metad/server-core'
 import { XpertController } from './xpert.controller'
 import { Xpert } from './xpert.entity'
@@ -18,7 +18,7 @@ import { EnvironmentModule } from '../environment'
 
 @Module({
     imports: [
-        RouterModule.forRoutes([{ path: '/xpert', module: XpertModule }]),
+        RouterModule.register([{ path: '/xpert', module: XpertModule }]),
         TypeOrmModule.forFeature([Xpert]),
         TenantModule,
         CqrsModule,

@@ -53,7 +53,7 @@ export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
 	type: KnowledgebaseTypeEnum
 
 	@ApiProperty({
-		type: 'object',
+		type: () => Object,
 		description: 'Recall Options',
 		example: {
 			topK: 10,
@@ -63,7 +63,7 @@ export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
 	recall?: TKBRecallParams
 
 	@ApiProperty({
-		type: 'object',
+		type: () => Object,
 		description: 'Parser Config',
 		example: {
 			chunkSize: 1000,
@@ -84,7 +84,7 @@ export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
 	extKnowledgebaseId?: string
 
 	@ApiProperty({
-		type: 'object',
+		type: () => Object,
 		description: 'Copilot embedding model',
 		example: {
 			copilotId: 'xxxx',

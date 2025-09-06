@@ -305,7 +305,7 @@ export class XpertStudioComponent {
   }
 
   public reassignConnection(event: FReassignConnectionEvent): void {
-    this.apiService.createConnection(event.fOutputId, event.newFInputId, event.oldFInputId)
+    this.apiService.createConnection(event.newSourceId, event.newTargetId, event.oldTargetId)
   }
 
   public moveNode({key, point}: {point: IPoint; key: string}) {

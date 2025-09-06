@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { BullModule } from '@nestjs/bull'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { IntegrationModule, StorageFileModule, TenantModule, UserModule } from '@metad/server-core'
 import { KnowledgeDocumentController } from './document.controller'
 import { KnowledgeDocument } from './document.entity'
@@ -17,7 +17,7 @@ import { JOB_EMBEDDING_DOCUMENT } from './types'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
+		RouterModule.register([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
 		TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage]),
 		TenantModule,
 		CqrsModule,

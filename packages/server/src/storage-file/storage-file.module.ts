@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { StorageFileController } from './storage-file.controller';
 import { StorageFile } from './storage-file.entity';
 import { StorageFileService } from './storage-file.service';
@@ -15,7 +15,7 @@ import { QueryHandlers } from './queries/handlers';
 		StorageFileController
 	],
 	imports: [
-		RouterModule.forRoutes([{ path: '/storage-file', module: StorageFileModule }]),
+		RouterModule.register([{ path: '/storage-file', module: StorageFileModule }]),
 		TypeOrmModule.forFeature([ StorageFile ]),
 		TenantModule,
 		CqrsModule,

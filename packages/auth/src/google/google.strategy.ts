@@ -48,5 +48,5 @@ export const config = (configService: ConfigService) => {
 			GOOGLE_CONFIG.callbackUrl || `${baseUrl}/api/auth/google/callback`,
 		passReqToCallback: true,
 		scope: ['email', 'profile']
-	};
+	} as any;
 };

@@ -1,6 +1,6 @@
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { TagService } from './tag.service';
 import { TagController } from './tag.controller';
 import { Tag } from './tag.entity';
@@ -9,7 +9,7 @@ import { TenantModule } from '../tenant/tenant.module';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/tags', module: TagModule }]),
+		RouterModule.register([{ path: '/tags', module: TagModule }]),
 		TypeOrmModule.forFeature([Tag]),
 		UserModule,
 		TenantModule

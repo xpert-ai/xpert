@@ -65,7 +65,7 @@ export class FeatureToggleController {
 	@UseGuards(TenantPermissionGuard)
 	@Get('/organizations')
 	async getFeaturesOrganization(@Query('data') data: any): Promise<IPagination<IFeatureOrganization>> {
-		const { relations = [], findInput = {} } = data
+		const { relations = [], findInput = {} } = data ?? {}
 		return await this._featureOrganizationService.findAll({
 			where: findInput,
 			relations

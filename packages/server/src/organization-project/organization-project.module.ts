@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { CqrsModule } from '@nestjs/cqrs';
 import { OrganizationProject } from './organization-project.entity';
 import { OrganizationProjectController } from './organization-project.controller';
@@ -11,7 +11,7 @@ import { TenantModule } from '../tenant/tenant.module';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{
 				path: '/organization-projects',
 				module: OrganizationProjectModule

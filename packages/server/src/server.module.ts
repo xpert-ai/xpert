@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { MulterModule } from '@nestjs/platform-express'
 import { ServeStaticModule, ServeStaticModuleOptions } from '@nestjs/serve-static'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { AuthModule } from './auth/auth.module'
@@ -46,7 +46,7 @@ import { HealthModule } from './health'
 			imports: []
 		}),
 		MulterModule.register(),
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{
 				path: '',
 				children: [{ path: '/', module: HomeModule }]

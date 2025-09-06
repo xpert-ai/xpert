@@ -7,8 +7,13 @@ import { UseApiKeyQuery } from '../../api-key'
 
 @Injectable()
 export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
+	
 	constructor(private readonly queryBus: QueryBus) {
 		super()
+	}
+
+	validate(...args: any[]): unknown {
+		throw new Error('Method not implemented.')
 	}
 
 	authenticate(req: IncomingMessage, options: { session: boolean }) {

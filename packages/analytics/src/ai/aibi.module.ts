@@ -1,5 +1,6 @@
 import { CopilotCheckpointModule, CopilotKnowledgeModule, CopilotModule, MCPModule, XpertToolsetModule } from '@metad/server-ai'
-import { CacheModule, forwardRef, Module } from '@nestjs/common'
+import { CacheModule } from '@nestjs/cache-manager'
+import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ChatBIModelModule } from '../chatbi-model'
 import { provideOcap } from '../model/ocap/'
@@ -12,7 +13,7 @@ import { IndicatorModule } from '../indicator'
  */
 @Module({
 	imports: [
-		CacheModule.register(),
+		// CacheModule.register(),
 		CqrsModule,
 		CopilotModule,
 		CopilotCheckpointModule,

@@ -25,6 +25,7 @@ import { ImportRecordUpdateOrCreateCommand } from './../export-import/import-rec
 import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
 import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
+import { StringValue } from 'ms'
 
 
 @Injectable()
@@ -593,9 +594,9 @@ export class AuthService extends SocialAuthService {
 		}
 
 		const JWT_SECRET = this._configService.get('JWT_SECRET', {infer: true})
-		const jwtExpiresIn = this._configService.get('jwtExpiresIn', {infer: true})
+		const jwtExpiresIn = this._configService.get<StringValue | number>('jwtExpiresIn', {infer: true})
 		const JWT_REFRESH_SECRET = this._configService.get('JWT_REFRESH_SECRET', {infer: true})
-		const jwtRefreshExpiresIn = this._configService.get('jwtRefreshExpiresIn', {infer: true})
+		const jwtRefreshExpiresIn = this._configService.get<StringValue | number>('jwtRefreshExpiresIn', {infer: true})
 
 		const token: string = sign(payload, JWT_SECRET, {
 			expiresIn: jwtExpiresIn

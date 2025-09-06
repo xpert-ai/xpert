@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { AuthModule } from '../auth/auth.module'
 import { EmailModule } from '../email'
 import { TenantModule } from '../tenant/tenant.module'
@@ -13,7 +13,7 @@ import { EmployeeService } from './employee.service'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/employee', module: EmployeeModule }]),
+		RouterModule.register([{ path: '/employee', module: EmployeeModule }]),
 		TypeOrmModule.forFeature([Employee]),
 		forwardRef(() => EmailModule),
 		forwardRef(() => UserOrganizationModule),

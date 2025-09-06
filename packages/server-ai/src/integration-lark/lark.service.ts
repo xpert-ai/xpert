@@ -3,7 +3,8 @@ import { IIntegration, IUser, TIntegrationLarkOptions, TranslateOptions } from '
 import { nonNullable } from '@metad/copilot'
 import { ConfigService, IEnvironment } from '@metad/server-config'
 import { UserService, RoleService, RequestContext, IntegrationService } from '@metad/server-core'
-import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
 import { isEqual } from 'date-fns'
@@ -559,6 +560,6 @@ export class LarkService {
 	}
 
 	async translate(key: string, options: TranslateOptions) {
-		return await this.i18n.t(key, options)
+		return this.i18n.t<string, string>(key, options)
 	}
 }

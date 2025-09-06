@@ -1,7 +1,7 @@
 import { IntegrationModule, RedisModule, RoleModule, UserModule } from '@metad/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { LarkTokenStrategy } from './auth/lark-token.strategy'
 import { CommandHandlers } from './commands/handlers'
 import { LarkConversationService } from './conversation.service'
@@ -11,7 +11,7 @@ import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/lark', module: IntegrationLarkModule }]),
+		RouterModule.register([{ path: '/lark', module: IntegrationLarkModule }]),
 		RedisModule,
 		CqrsModule,
 		UserModule,

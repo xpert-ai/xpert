@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { SemanticModelMemberModule } from '../model-member'
 import { CommandHandlers } from './commands/handlers'
 import { ModelEntityController } from './entity.controller'
@@ -15,8 +15,8 @@ import { JOB_ENTITY_SYNC } from './types'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/semantic-model-entity', module: SemanticModelEntityModule }]),
-		forwardRef(() => TypeOrmModule.forFeature([SemanticModelEntity])),
+		RouterModule.register([{ path: '/semantic-model-entity', module: SemanticModelEntityModule }]),
+		TypeOrmModule.forFeature([SemanticModelEntity]),
 		TenantModule,
 		SharedModule,
 		CqrsModule,
@@ -30,6 +30,6 @@ import { JOB_ENTITY_SYNC } from './types'
 	],
 	controllers: [ModelEntityController],
 	providers: [SemanticModelEntityService, EntityMemberProcessor, ...CommandHandlers],
-	exports: [TypeOrmModule, SemanticModelEntityService]
+	exports: [SemanticModelEntityService]
 })
 export class SemanticModelEntityModule {}

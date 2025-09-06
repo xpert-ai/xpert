@@ -1,7 +1,8 @@
 import { PermissionsEnum } from '@metad/contracts';
 import { isEmpty, PERMISSIONS_METADATA, removeDuplicates } from '@metad/server-common';
 import { environment as env } from '@metad/server-config';
-import { CACHE_MANAGER, CanActivate, ExecutionContext, Inject, Injectable, Logger, Type } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { CanActivate, ExecutionContext, Inject, Injectable, Logger, Type } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CommandBus } from '@nestjs/cqrs';
 import { Cache } from 'cache-manager';

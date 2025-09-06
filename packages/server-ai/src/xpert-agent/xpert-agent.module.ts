@@ -2,7 +2,7 @@ import { TenantModule } from '@metad/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { XpertAgentController } from './xpert-agent.controller'
 import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
@@ -17,7 +17,7 @@ import { Validators } from './workflow'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/xpert-agent', module: XpertAgentModule }]),
+		RouterModule.register([{ path: '/xpert-agent', module: XpertAgentModule }]),
 		TypeOrmModule.forFeature([XpertAgent]),
 		TenantModule,
 		CqrsModule,
