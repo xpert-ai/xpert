@@ -1,8 +1,8 @@
 import { BaseMessage, mapChatMessagesToStoredMessages, SystemMessage } from '@langchain/core/messages'
-import { channelName, IXpertAgent, IXpertAgentExecution, OrderTypeEnum } from '@metad/contracts'
+import { channelName, IXpert, IXpertAgent, IXpertAgentExecution, OrderTypeEnum } from '@metad/contracts'
+import { omit } from '@metad/server-common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
-import { GetXpertAgentQuery } from '../../../xpert/queries'
 import { XpertAgentExecutionService } from '../../agent-execution.service'
 import { XpertAgentExecutionDTO } from '../../dto'
 import { XpertAgentExecutionOneQuery } from '../get-one.query'
@@ -17,18 +17,27 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 	public async execute(command: XpertAgentExecutionOneQuery): Promise<IXpertAgentExecution> {
 		const id = command.id
 		const execution = await this.service.findOne(id, { relations: ['createdBy', 'xpert'] })
-		const expandedExecution = await this.expandExecutionLatestCheckpoint(execution)
-		return await this.expandExecutionTree(expandedExecution)
+		const agents = getXpertDraftAgents(execution.xpert)
+		const expandedExecution = await this.expandExecutionLatestCheckpoint({
+			...execution,
+			agent: execution.agentKey ? agents.find((agent) => agent.key === execution.agentKey) : null
+		})
+		return await this.expandExecutionTree(expandedExecution, agents)
 	}
 
-	private async expandExecutionTree(execution: IXpertAgentExecution): Promise<IXpertAgentExecution> {
+	private async expandExecutionTree(
+		execution: IXpertAgentExecution,
+		agents: IXpertAgent[]
+	): Promise<IXpertAgentExecution> {
 		// First expand your own Checkpoint and Agent
 		// const expandedExecution = await this.expandExecutionLatestCheckpoint(execution)
 
 		// Query and recursively expand subtasks
-		const subExecutions = await this.expandSubExecutions(execution)
+		const subExecutions = await this.expandSubExecutions(execution, agents)
 
-		const expandedSubExecutions = await Promise.all(subExecutions.map((sub) => this.expandExecutionTree(sub)))
+		const expandedSubExecutions = await Promise.all(
+			subExecutions.map((sub) => this.expandExecutionTree(sub, agents))
+		)
 
 		return {
 			// ...expandedExecution,
@@ -37,7 +46,7 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 		}
 	}
 
-	async expandSubExecutions(execution: IXpertAgentExecution) {
+	async expandSubExecutions(execution: IXpertAgentExecution, agents: IXpertAgent[]) {
 		const { items: executions } = await this.service.findAll({
 			where: {
 				parentId: execution.id
@@ -47,18 +56,23 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 				createdAt: OrderTypeEnum.ASC
 			}
 		})
-		return executions
+		return executions.map((item) => {
+			return {
+				...item,
+				agent: item.agentKey ? agents.find((agent) => agent.key === item.agentKey) : null
+			}
+		})
 	}
 
 	async expandExecutionLatestCheckpoint(execution: IXpertAgentExecution, parent?: IXpertAgentExecution) {
-		let agent = null
-		if (execution.xpertId && execution.agentKey) {
-			agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-				new GetXpertAgentQuery(execution.xpertId, execution.agentKey, true)
-			)
-		}
+		// let agent = null
+		// if (execution.xpertId && execution.agentKey) {
+		// 	agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+		// 		new GetXpertAgentQuery(execution.xpertId, execution.agentKey, true)
+		// 	)
+		// }
 		if (!execution.threadId) {
-			return { ...execution, agent }
+			return execution // { ...execution, agent }
 		}
 
 		const tuple = await this.queryBus.execute(
@@ -80,7 +94,21 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 			messages: _messages ? mapChatMessagesToStoredMessages(_messages) : execution.messages,
 			totalTokens: execution.totalTokens,
 			summary: channel?.summary,
-			agent
+			// agent
 		})
 	}
+}
+
+function getXpertDraft(xpert: IXpert) {
+	return (
+		xpert.draft ?? {
+			...(xpert.graph ?? {}),
+			team: omit(xpert, 'draft', 'graph')
+		}
+	)
+}
+
+function getXpertDraftAgents(xpert: IXpert) {
+	const draft = getXpertDraft(xpert)
+	return draft.nodes.filter((node) => node.type === 'agent').map((node) => node.entity) as IXpertAgent[]
 }

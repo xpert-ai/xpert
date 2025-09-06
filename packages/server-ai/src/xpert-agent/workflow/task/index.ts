@@ -197,7 +197,13 @@ ${taskEntity.descriptionSuffix ?? ''}`
 							},
 							[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS]
 						},
-						config
+						{
+							...config,
+							configurable: {
+								...config.configurable,
+								executionId: execution.id
+							},
+						}
 					)
 
 					const messages = outputState.messages
