@@ -9,7 +9,6 @@ import { TwitterStrategy, TwitterController } from './twitter';
 export const Strategies = [
 	Auth0Strategy,
 	FacebookStrategy,
-	// FiverrStrategy,
 	GithubStrategy,
 	GoogleStrategy,
 	// KeycloakStrategy,
