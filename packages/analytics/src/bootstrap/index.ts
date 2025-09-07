@@ -1,7 +1,7 @@
 import { environment as env, getConfig, setConfig } from '@metad/server-config'
-import { AppService, AuthGuard, initI18next, ServerAppModule } from '@metad/server-core'
+import { AppService, AuthGuard, getPluginModules, initI18next, PluginModule, registerPluginsAsync, ServerAppModule } from '@metad/server-core'
 import { IPluginConfig } from '@metad/server-common'
-import { Logger, LogLevel } from '@nestjs/common'
+import { Logger, LogLevel, Module } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import cookieParser from 'cookie-parser'
@@ -24,8 +24,11 @@ export async function bootstrap(options: {title: string; version: string}) {
 
 	const baseDir = config.assetOptions.serverRoot
 	await initI18next(path.join(baseDir, 'packages'))
+
+	@Module({ imports: [PluginModule.init(), BootstrapModule] })
+    class RootModule {}
 	
-	const app = await NestFactory.create(BootstrapModule, {
+	const app = await NestFactory.create(RootModule, {
 		logger: LOGGER_LEVELS.slice(0, LoggerIndex + 1)
 	})
 
@@ -111,7 +114,20 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
 		setConfig(applicationConfig);
 	}
 
+	await preBootstrapPlugins();
+
 	return getConfig()
+}
+
+export async function preBootstrapPlugins() {
+	const { modules } = await registerPluginsAsync({
+		plugins: ['@xpert-ai/plugin-integration-github'],
+		discovery: {
+			prefix: '@xpert-ai/plugin-',
+		}
+	});
+
+	setConfig({plugins: modules});
 }
 
 function origins(url: string) {

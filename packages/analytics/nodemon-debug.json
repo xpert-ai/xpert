@@ -1,5 +1,17 @@
 {
-	"watch": ["src", "../config/src", "../server/src", "../auth/src", "../adapter/src", "../server-ai/src", "../core/src", "../xmla/src", "../copilot/src"],
+	"watch": [
+		"src",
+		"../config/src",
+		"../server/src",
+		"../auth/src",
+		"../adapter/src",
+		"../server-ai/src",
+		"../core/src",
+		"../xmla/src",
+		"../copilot/src",
+		"../plugin-sdk",
+		"../plugins/"
+	],
 	"ext": "ts",
 	"ignore": ["src/**/*.spec.ts"],
 	"exec": "node --inspect=0.0.0.0:9229 -r ts-node/register -r tsconfig-paths/register src/main.ts",

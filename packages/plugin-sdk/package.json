@@ -1,0 +1,9 @@
+{
+  "name": "@xpert-ai/plugin-sdk",
+  "version": "0.0.1",
+  "dependencies": {},
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "type": "commonjs",
+  "private": true
+}

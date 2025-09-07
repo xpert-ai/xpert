@@ -1,0 +1,14 @@
+{
+  "name": "@xpert-ai/plugin-integration-github",
+  "version": "0.0.1",
+  "dependencies": {},
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "private": true,
+  "peerDependencies": {
+    "@nestjs/common": ">=10",
+    "@nestjs/core": ">=10",
+    "@xpert-ai/plugin-sdk": ">=0.0.1",
+    "zod": ">=3.22.4"
+  }
+}

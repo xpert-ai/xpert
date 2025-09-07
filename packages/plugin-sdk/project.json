@@ -1,0 +1,29 @@
+{
+  "name": "plugin-sdk",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugin-sdk/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugin-sdk",
+        "main": "packages/plugin-sdk/src/index.ts",
+        "tsConfig": "packages/plugin-sdk/tsconfig.lib.json",
+        "assets": [],
+        "project": "packages/plugin-sdk/package.json",
+        "compiler": "swc",
+        "format": ["cjs", "esm"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "packages/plugin-sdk/jest.config.ts"
+      }
+    }
+  }
+}
