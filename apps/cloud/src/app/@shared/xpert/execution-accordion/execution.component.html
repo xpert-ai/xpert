@@ -40,11 +40,10 @@
     }
   </div>
 
-  @for (execution of executions(); track execution.id) {
-    <xpert-agent-execution-accordion class="w-full mb-2 px-2" [execution]="execution" />
-  }
-
   @if (expand()) {
+    @for (execution of executions(); track execution.id) {
+      <xpert-agent-execution-accordion class="w-full mb-2 px-2" [execution]="execution" />
+    }
     <xpert-agent-execution class="w-full px-4 my-4" [execution]="expandExecution()" />
   }
 </div>

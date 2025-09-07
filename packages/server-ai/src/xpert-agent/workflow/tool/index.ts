@@ -13,8 +13,9 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage, isBlank } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { omitBy } from 'lodash'
 import { toEnvState } from '../../../environment'
 import { _BaseToolset, AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
@@ -62,9 +63,13 @@ export function createToolNode(
 
 				const stateEnv = stateToParameters(state, environment)
 
-				const parameters = await deepTransformValue(entity.parameters, async (v) => {
+				let parameters = await deepTransformValue(entity.parameters, async (v) => {
 					return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
 				})
+
+				if (entity.omitBlankValues) {
+					parameters = omitBy(parameters, isBlank)
+				}
 
 				const execution: IXpertAgentExecution = {
 					category: 'workflow',

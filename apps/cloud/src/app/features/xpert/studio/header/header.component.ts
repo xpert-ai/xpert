@@ -126,7 +126,7 @@ export class XpertStudioHeaderComponent {
   readonly conversations$ = this.xpertId$.pipe(
     combineLatestWith(this.refreshConv$),
     tap(() => this.loadingConv.set(true)),
-    switchMap(([id]) => this.chatConversationService.findAllByXpert(id, { order: { updatedAt: OrderTypeEnum.DESC } })),
+    switchMap(([id]) => this.chatConversationService.findAllByXpert(id, { where: {from: 'debugger'}, order: { updatedAt: OrderTypeEnum.DESC } })),
     map(({ items }) => items),
     tap(() => this.loadingConv.set(false)),
     shareReplay(1)

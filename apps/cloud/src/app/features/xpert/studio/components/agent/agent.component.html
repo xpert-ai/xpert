@@ -100,7 +100,7 @@
 
   @if (retry()?.enabled && retry().stopAfterAttempt) {
     <div class="w-full px-3">
-      <div class="flex items-center justify-between px-[5px] py-1 bg-gray-100 border-[0.5px] border-transparent rounded-md uppercase font-medium text-sm text-text-tertiary">
+      <div class="flex items-center justify-between px-[5px] py-1 bg-gray-100 border-[0.5px] border-transparent rounded-md uppercase font-medium text-sm text-text-warning">
         <div class="flex items-center">
           {{'PAC.Xpert.RetryTimes' | translate: {
               Default: 'Retry '+(retry().stopAfterAttempt - 1)+' times on failure',

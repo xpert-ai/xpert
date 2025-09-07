@@ -2,7 +2,6 @@ import { Annotation } from '@langchain/langgraph'
 import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { createHttpNode } from '../http'
@@ -18,6 +17,7 @@ import { createAgentToolNode } from '../agent-tool'
 import { createTriggerNode } from '../trigger'
 import { createCodeNode, WorkflowCodeValidator } from '../code/index'
 import { TStateChannel, TWorkflowGraphNode } from '../../../shared'
+import { createAnswerNode } from '../answer/node'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -66,7 +66,16 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				break
 			}
 			case WorkflowNodeTypeEnum.ANSWER: {
-				workflow = await this.commandBus.execute(new CreateWNAnswerCommand(xpertId, graph, node, options))
+				workflow = createAnswerNode(graph, node, {
+					leaderKey: command.leaderKey,
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					xpertId,
+					environment: options.environment,
+					conversationId: options.conversationId
+				})
+
+				// await this.commandBus.execute(new CreateWNAnswerCommand(xpertId, graph, node, options))
 				break
 			}
 			case WorkflowNodeTypeEnum.CLASSIFIER: {

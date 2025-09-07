@@ -27,10 +27,11 @@ export function wrapAgentExecution<T>(
 	return async () => {
 		// Record start time
 		const timeStart = Date.now()
+		execution.status = XpertAgentExecutionStatusEnum.RUNNING
 		let subexecution = await commandBus.execute(
 			new XpertAgentExecutionUpsertCommand({
 				...execution,
-				status: XpertAgentExecutionStatusEnum.RUNNING
+				// status: XpertAgentExecutionStatusEnum.RUNNING
 			})
 		)
 		execution.id = subexecution.id
@@ -51,14 +52,16 @@ export function wrapAgentExecution<T>(
 			throw err
 		} finally {
 			const timeEnd = Date.now()
+			execution.status = status
+			execution.error = error
 			// Record End time
 			subexecution = await commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					...subexecution,
 					...execution,
 					elapsedTime: timeEnd - timeStart,
-					status,
-					error,
+					// status,
+					// error,
 					outputs: {
 						output
 					}

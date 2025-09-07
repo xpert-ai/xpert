@@ -102,6 +102,26 @@
 
 <xp-tool-parameters-form [tool]="tool()" [variables]="variables()" [(ngModel)]="parameters" />
 
+<div class="flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
+  <div class="flex items-center space-x-1 shrink-0">
+    <div class="flex items-center justify-center w-6 h-6">
+      <i class="ri-equalizer-3-line text-orange-600"></i>
+    </div>
+    <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.ParameterSettings' | translate: {Default: 'Parameter Settings'} }}</div>
+  </div>
+
+  <div class="flex justify-end items-center gap-1 w-full">
+    <i class="ri-volume-mute-fill text-base text-sky-700"></i>
+    <div class="text-sm">{{'PAC.Xpert.OmitBlankValues' | translate: {Default: 'Omit Blank Values'} }}</div>
+    <mat-slide-toggle class="flex" [(ngModel)]="omitBlankValues"
+      labelPosition="before"
+      ngm-density="xs"
+      [matTooltip]="'PAC.Xpert.OmitBlankValuesTip' | translate: {Default: 'Omit blank values in parameters'}"
+      matTooltipPosition="left"
+    />
+  </div>
+</div>
+
 <div class="h-[0.5px] bg-divider-subtle"></div>
 <div class="space-y-2">
   <div class="flex items-center">

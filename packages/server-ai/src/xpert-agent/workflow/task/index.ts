@@ -16,7 +16,8 @@ import {
 	TMessageComponentStep,
 	TXpertGraph,
 	TXpertTeamNode,
-	WorkflowNodeTypeEnum
+	WorkflowNodeTypeEnum,
+	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
@@ -117,7 +118,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
 		},
 		graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 			const configurable = config.configurable as TAgentRunnableConfigurable
-			const { xpertId, thread_id, checkpoint_ns, checkpoint_id, executionId } = configurable
+			const { xpertId, thread_id, checkpoint_ns, checkpoint_id, executionId, signal } = configurable
 			const toolCall = state.toolCall
 			const _ = toolCall.args
 			const toolCallId = toolCall.id
@@ -140,13 +141,6 @@ ${taskEntity.descriptionSuffix ?? ''}`
 				)
 			}
 
-			// Update event message
-			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-				id: toolCallId,
-				category: 'Tool',
-				message: `${agentNode.title || agentNode.key}: ` + _.description
-			})
-
 			// Instantiate sub-agent graph
 			const agentKey = agentNode.key
 			const abortController = new AbortController()
@@ -160,6 +154,28 @@ ${taskEntity.descriptionSuffix ?? ''}`
 				agentKey,
 				title: agentNode.title
 			}
+
+			signal?.addEventListener('abort', () => {
+				// Handle abort signal
+				abortController.abort()
+				if (execution.status !== XpertAgentExecutionStatusEnum.SUCCESS) {
+					dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+						id: toolCallId,
+						category: 'Tool',
+						status: 'fail',
+						end_date: new Date().toISOString()
+					} as TMessageComponent<Partial<TMessageComponentStep>>).catch((err) => {
+						console.error(err)
+					})
+				}
+			})
+
+			// Update event message
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCallId,
+				category: 'Tool',
+				message: `${agentNode.title || agentNode.key}: ` + _.description
+			})
 
 			//
 			const compiled = await params.commandBus.execute<

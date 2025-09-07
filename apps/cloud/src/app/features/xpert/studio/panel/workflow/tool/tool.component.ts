@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -34,6 +34,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 
 
 @Component({
@@ -48,7 +49,9 @@ import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
     ClipboardModule,
     CdkMenuModule,
     MatTooltipModule,
+    MatSlideToggleModule,
     TranslateModule,
+    NgmDensityDirective,
     NgmI18nPipe,
     EmojiAvatarComponent,
     XpertStudioToolsetMenuComponent,
@@ -92,6 +95,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   readonly parameterVariable = attrModel(this.toolEntity, 'parameterVariable')
   readonly parameters = attrModel(this.toolEntity, 'parameters')
   readonly errorHandling = attrModel(this.toolEntity, 'errorHandling')
+  readonly omitBlankValues = attrModel(this.toolEntity, 'omitBlankValues')
 
   // Refresh toolset details
   readonly toolsetDetail = derivedAsync(() => {

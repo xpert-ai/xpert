@@ -30,7 +30,7 @@
 
   <div class="mt-4 flex justify-between space-x-2">
     <button type="button" class="btn disabled:btn-disabled btn-primary w-0 h-10 grow space-x-2"
-      [disabled]="loading() || status() === eExecutionStatusEnum.INTERRUPTED"
+      [disabled]="loading() || status() === eExecutionStatusEnum.INTERRUPTED || !input()?.trim()"
       (click)="startRunAgent()"
     >
       <div class="w-full flex justify-center">{{ 'PAC.Xpert.StartRun' | translate: {Default: 'Start run'} }}</div>
