@@ -5,7 +5,7 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { createHttpNode } from '../http'
-import { createRouterNode } from '../router'
+import { createRouterNode } from '../router/index'
 import { createSplitterNode } from '../splitter'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
@@ -58,7 +58,11 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				break
 			}
 			case WorkflowNodeTypeEnum.IF_ELSE: {
-				workflow = createRouterNode(graph, node, {environment: options.environment})
+				workflow = createRouterNode(graph, node, {
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					environment: options.environment
+				})
 				break
 			}
 			case WorkflowNodeTypeEnum.ITERATING: {
