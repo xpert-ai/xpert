@@ -81,7 +81,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		})
 
 		// Environment variables
-		if (environmentId) {
+		if (environmentId && type !== 'input') {
 			const environment = await this.environmentService.findOne(environmentId)
 			varGroups.push({
 				group: {
@@ -133,81 +133,83 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		})
 
 		// System variables
-		varGroups.push({
-			group: {
-				name: STATE_VARIABLE_SYS,
-				description: {
-					en_US: 'System Variables',
-					zh_Hans: '系统变量'
-				}
-			},
-			variables: [
-				{
-					name: `language`,
-					type: XpertParameterTypeEnum.STRING,
+		if (type !== 'input') {
+			varGroups.push({
+				group: {
+					name: STATE_VARIABLE_SYS,
 					description: {
-						en_US: 'Language',
-						zh_Hans: '语言'
+						en_US: 'System Variables',
+						zh_Hans: '系统变量'
 					}
 				},
-				{
-					name: `user_email`,
-					type: XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: 'User email',
-						zh_Hans: '用户邮箱'
+				variables: [
+					{
+						name: `language`,
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'Language',
+							zh_Hans: '语言'
+						}
+					},
+					{
+						name: `user_email`,
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'User email',
+							zh_Hans: '用户邮箱'
+						}
+					},
+					{
+						name: `timezone`,
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'User time zone',
+							zh_Hans: '用户时区'
+						}
+					},
+					{
+						name: `date`,
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'Current Date',
+							zh_Hans: '当前日期'
+						}
+					},
+					{
+						name: `datetime`,
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'Current Datetime',
+							zh_Hans: '当前时间'
+						}
+					},
+					{
+						name: `common_times`,
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'Common Times',
+							zh_Hans: '常用时间'
+						}
+					},
+					{
+						name: 'workspace_path',
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'Workspace Path',
+							zh_Hans: '工作区路径'
+						}
+					},
+					{
+						name: 'workspace_url',
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'Workspace URL',
+							zh_Hans: '工作区 URL'
+						}
 					}
-				},
-				{
-					name: `timezone`,
-					type: XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: 'User time zone',
-						zh_Hans: '用户时区'
-					}
-				},
-				{
-					name: `date`,
-					type: XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: 'Current Date',
-						zh_Hans: '当前日期'
-					}
-				},
-				{
-					name: `datetime`,
-					type: XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: 'Current Datetime',
-						zh_Hans: '当前时间'
-					}
-				},
-				{
-					name: `common_times`,
-					type: XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: 'Common Times',
-						zh_Hans: '常用时间'
-					}
-				},
-				{
-					name: 'workspace_path',
-					type: XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: 'Workspace Path',
-						zh_Hans: '工作区路径'
-					}
-				},
-				{
-					name: 'workspace_url',
-					type: XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: 'Workspace URL',
-						zh_Hans: '工作区 URL'
-					}
-				}
-			]
-		})
+				]
+			})
+		}
 
 		// Xpert state variables
 		const agentConfig = isDraft ? (xpert.draft?.team?.agentConfig ?? xpert.agentConfig) : xpert.agentConfig
@@ -226,13 +228,15 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			const _variables = await this.getAgentVariables(xpert, nodeKey, isDraft)
 			variables.push(..._variables)
 			// Current agent variable group
-			varGroups.push(getAgentVarGroup(node.key, graph))
+			// varGroups.push(getAgentVarGroup(node.key, graph))
+		}
+
+		if (type === 'input') {
+			return varGroups
 		}
 
 		// Other agents
-		const agentNodes = graph?.nodes?.filter(
-			(_) => _.type === 'agent' && (type === 'input' ? _.key !== nodeKey : true)
-		)
+		const agentNodes = graph?.nodes?.filter((_) => _.type === 'agent')
 		if (agentNodes) {
 			for await (const node of agentNodes) {
 				const g = getAgentVarGroup(node.key, graph)
@@ -341,13 +345,10 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 	}
 
 	/**
-	 * Toolset's state variables and parameters
+	 * Toolset's state variables and parameters of Agent node
 	 */
 	async getAgentVariables(xpert: IXpert, key: string, isDraft: boolean) {
 		const variables = []
-		// const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-		// 	new GetXpertAgentQuery(xpertId, key, isDraft)
-		// )
 
 		const agent = getXpertAgent(xpert, key, { isDraft })
 

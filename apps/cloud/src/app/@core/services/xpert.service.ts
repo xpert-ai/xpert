@@ -36,7 +36,7 @@ export type TXpertVariablesOptions = {
   xpertId: string;
   workflowKey?: string;
   agentKey?: string;
-  type: 'input' | 'output';
+  type?: 'input' | 'output';
 }
 
 
