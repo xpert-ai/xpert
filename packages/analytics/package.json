@@ -19,7 +19,6 @@
 		"@nestjs/platform-socket.io": "^11.1.6",
 		"@nestjs/typeorm": "^11.0.0",
 		"@nestjs/websockets": "^11.1.6",
-		"axios": "^0.24.0",
 		"core-js": "3.41.0",
 		"bull": "^4.12.6",
 		"date-fns": "^3.0.4",
@@ -30,7 +29,7 @@
 		"reflect-metadata": "^0.1.13",
 		"socket.io-redis": "6.1.1",
 		"web-streams-polyfill": "^4.1.0",
-		"xml2js": "^0.4.23"
+		"xml2js": "^0.6.2"
 	},
 	"devDependencies": {
 		"@types/socket.io": "3.0.1",

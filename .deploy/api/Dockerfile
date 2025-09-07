@@ -2,14 +2,14 @@ ARG HOST
 ARG PORT
 ARG LOG_LEVEL
 
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 
 LABEL maintainer="meta.digital.cloud@gmail.com"
 LABEL org.opencontainers.image.source https://github.com/xpert-ai/xpert
 
 ENV CI=true
 
-RUN apk --update add bash && npm i -g npm
+RUN apk --update add bash jq && npm i -g npm
 
 RUN npm install yarn -g --force
 RUN mkdir /srv/pangolin && chown -R node:node /srv/pangolin
@@ -29,6 +29,8 @@ COPY --chown=node:node packages/server/package.json ./packages/server/
 COPY --chown=node:node packages/server-ai/package.json ./packages/server-ai/
 COPY --chown=node:node packages/adapter/package.json ./packages/adapter/
 COPY --chown=node:node packages/analytics/package.json ./packages/analytics/
+COPY --chown=node:node packages/plugin-sdk/package.json ./packages/plugin-sdk/
+COPY --chown=node:node packages/plugins/integration-github/package.json ./packages/plugins/integration-github/
 
 COPY --chown=node:node .deploy/api/package.json ./
 COPY --chown=node:node yarn.lock ./
@@ -39,10 +41,15 @@ COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
 COPY --chown=node:node apps/api ./apps/api
+RUN yarn build:plugins
 RUN yarn nx build api
 
+COPY --chown=node:node .deploy/api/install-plugins.sh ./
+RUN chmod +x install-plugins.sh
+RUN ./install-plugins.sh
+
 #////////////////////////////////////////////////////////////////////////////////
-FROM node:18 AS production
+FROM node:20 AS production
 
 ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
     NODE_ENV=${NODE_ENV:-production} \
@@ -92,6 +99,7 @@ RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 # RUN yarn config set network-timeout 300000
 RUN npm install --legacy-peer-deps && \
     touch ormlogs.log && chown -R node:node /srv/pangolin
+COPY --chown=node:node --from=build /srv/pangolin/plugins_node_modules/ ./node_modules/
 
 USER node:node
 

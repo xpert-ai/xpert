@@ -8,7 +8,7 @@ import {
   merge as ObservableMerge,
   from as ObservableFrom,
 } from 'rxjs';
-import chokidar from 'chokidar';
+import * as chokidar from 'chokidar';
 import { switchMap } from 'rxjs/operators';
 import { I18N_LOADER_OPTIONS, I18nLoader, I18nTranslation } from 'nestjs-i18n';
 const readFile = promisify(fs.readFile);
