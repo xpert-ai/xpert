@@ -22,9 +22,13 @@ export class SemanticModelPublishHandler implements ICommandHandler<SemanticMode
 		const { id, notes } = command
 
 		const model = await this.service.findOne(id)
+		// Keep the embedded state, that is, publish without requiring re-embedding
+		const embedded = model.options?.embedded
 		applySemanticModelDraft(model)
 		model.releaseNotes = compact([model.releaseNotes, notes]).join('\n')
 		model.publishAt = new Date()
+		model.options ??= {}
+		model.options.embedded = embedded
 		return await this.commandBus.execute(new SemanticModelUpdateCommand(model, ['roles']))
 	}
 }
