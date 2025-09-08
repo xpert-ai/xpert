@@ -40,7 +40,7 @@ export class VolumeClient {
 	}
 
 	static async getWorkspacePath(tenantId: string, projectId: string, userId: string, conversationId?: string): Promise<string> {
-		const dist = path.join(VolumeClient.getWorkspaceRoot(tenantId, projectId, userId), getWorkspace(projectId, conversationId))
+		const dist = path.join(VolumeClient.getWorkspaceRoot(tenantId, projectId, userId), getWorkspace(projectId, conversationId) || '')
 		await fsPromises.mkdir(dist, { recursive: true })
 		return dist
 	}

@@ -289,13 +289,6 @@ export class XpertStudioPanelAgentComponent {
   readonly varOptions = computed<TXpertVariablesOptions>(() => ({
     xpertId: this.xpertId(),
     agentKey: this.key(),
-    type: 'input',
-    environmentId: this.apiService.environmentId()
-  }))
-  readonly varOutOptions = computed<TXpertVariablesOptions>(() => ({
-    xpertId: this.xpertId(),
-    agentKey: this.key(),
-    type: 'output',
     environmentId: this.apiService.environmentId()
   }))
 

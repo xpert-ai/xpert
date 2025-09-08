@@ -16,7 +16,8 @@ import {
 	TMessageComponentStep,
 	TXpertGraph,
 	TXpertTeamNode,
-	WorkflowNodeTypeEnum
+	WorkflowNodeTypeEnum,
+	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
@@ -104,7 +105,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
 				name: toolName,
 				description,
 				schema: z.object({
-					description: z.string().optional().nullable().describe('Task description'),
+					description: z.string().optional().nullable().describe('Task description or prompt'),
 					subagent_type: z.string().optional().nullable().describe('Sub-agent type')
 				})
 			}
@@ -117,7 +118,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
 		},
 		graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 			const configurable = config.configurable as TAgentRunnableConfigurable
-			const { xpertId, thread_id, checkpoint_ns, checkpoint_id, executionId } = configurable
+			const { xpertId, thread_id, checkpoint_ns, checkpoint_id, executionId, signal } = configurable
 			const toolCall = state.toolCall
 			const _ = toolCall.args
 			const toolCallId = toolCall.id
@@ -140,13 +141,6 @@ ${taskEntity.descriptionSuffix ?? ''}`
 				)
 			}
 
-			// Update event message
-			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-				id: toolCallId,
-				category: 'Tool',
-				message: `${agentNode.title || agentNode.key}: ` + _.description
-			})
-
 			// Instantiate sub-agent graph
 			const agentKey = agentNode.key
 			const abortController = new AbortController()
@@ -160,6 +154,28 @@ ${taskEntity.descriptionSuffix ?? ''}`
 				agentKey,
 				title: agentNode.title
 			}
+
+			signal?.addEventListener('abort', () => {
+				// Handle abort signal
+				abortController.abort()
+				if (execution.status !== XpertAgentExecutionStatusEnum.SUCCESS) {
+					dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+						id: toolCallId,
+						category: 'Tool',
+						status: 'fail',
+						end_date: new Date().toISOString()
+					} as TMessageComponent<Partial<TMessageComponentStep>>).catch((err) => {
+						console.error(err)
+					})
+				}
+			})
+
+			// Update event message
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCallId,
+				category: 'Tool',
+				message: `${agentNode.title || agentNode.key}: ` + _.description
+			})
 
 			//
 			const compiled = await params.commandBus.execute<
@@ -179,7 +195,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
 						signal: abortController.signal,
 						execution: execution,
 						subscriber: params.subscriber,
-						disableCheckpointer: true,
+						// disableCheckpointer: true,
 						channel: channelName(agentKey),
 						partners: [],
 						environment: params.environment
@@ -197,7 +213,13 @@ ${taskEntity.descriptionSuffix ?? ''}`
 							},
 							[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS]
 						},
-						config
+						{
+							...config,
+							configurable: {
+								...config.configurable,
+								executionId: execution.id
+							},
+						}
 					)
 
 					const messages = outputState.messages

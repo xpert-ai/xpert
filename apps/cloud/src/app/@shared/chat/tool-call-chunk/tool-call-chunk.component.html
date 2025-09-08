@@ -7,7 +7,7 @@
         toolsetId: chunk().toolset_id
       }"
     />
-    <span class="text-sm max-w-[200px] truncate text-foreground" [title]="chunk().title">{{chunk().title}}</span>
+    <span class="shrink-0 max-w-[200px] truncate text-sm text-foreground" [title]="chunk().title">{{chunk().title}}</span>
       @if (chunk().status === 'fail') {
         <span class="font-mono text-xs ml-1 text-text-destructive truncate max-w-[200px]" [title]="chunk().error">{{chunk().error}}</span>
       } @else {

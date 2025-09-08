@@ -120,6 +120,7 @@ export const IteratingIndexParameterName = '$index'
 export interface IWFNAnswer extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.ANSWER
   promptTemplate: string
+  mute?: boolean
 }
 
 export enum WorkflowLogicalOperator {
@@ -299,6 +300,7 @@ export interface IWFNTool extends IWorkflowNode {
    */
   parameterVariable: string
   parameters?: any
+  omitBlankValues?: boolean
   
   /**
    * Error handling

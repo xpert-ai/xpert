@@ -22,7 +22,7 @@ export class XpertAgentExecutionStateHandler implements IQueryHandler<XpertAgent
 		const tuple = await this.queryBus.execute(
 			new CopilotCheckpointGetTupleQuery({
 				thread_id: execution.threadId,
-				checkpoint_ns: '',
+				checkpoint_ns: execution.checkpointNs ?? '',
 				checkpoint_id: execution.checkpointId
 			})
 		)

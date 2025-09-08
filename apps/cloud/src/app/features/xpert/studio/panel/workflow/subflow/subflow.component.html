@@ -28,7 +28,7 @@
           <i class="ri-arrow-right-circle-line mx-1"></i>
 
           <xpert-state-variable-select class="truncate opacity-90 hover:opacity-100"
-            [varOptions]="subVarOptions()"
+            [varOptions]="subVarInputOptions()"
             [ngModel]="item.variable"
             (ngModelChange)="updateInput(i, 'variable', $event)"
           />
@@ -81,7 +81,7 @@
           <i class="ri-arrow-left-circle-line mx-1"></i>
 
           <xpert-state-variable-select 
-            [varOptions]="subVarOptions()" 
+            [varOptions]="subVarOutputOptions()" 
             [ngModel]="param.variable" 
             (ngModelChange)="updateOutput(i, 'variable', $event)"
           />

@@ -43,6 +43,9 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			 */
 			rootController: AbortController
 			signal: AbortSignal
+			/**
+			 * @deprecated How to use?
+			 */
 			disableCheckpointer?: boolean
 			/**
 			 * Temporary parameters (state variables)
