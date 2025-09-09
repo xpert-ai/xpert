@@ -42,7 +42,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { instanceToPlain } from 'class-transformer'
 import { Request, Response } from 'express'
-import { Between, DeleteResult, IsNull, Like, Not } from 'typeorm'
+import { Between, DeleteResult, IsNull, LessThanOrEqual, Like, Not } from 'typeorm'
 import { I18nLang, I18nService } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
@@ -448,7 +448,7 @@ export class XpertController extends CrudController<Xpert> {
 				where: {
 					...(where ?? {}),
 					xpertId: id,
-					createdAt: Between(start, end)
+					createdAt: start ? Between(start, end) : LessThanOrEqual(end)
 				},
 			},
 		))
