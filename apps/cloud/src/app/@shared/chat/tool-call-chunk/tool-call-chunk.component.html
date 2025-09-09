@@ -57,7 +57,16 @@
       @if (output(); as output) {
         <div>
           <label class="font-semibold">{{'PAC.Chat.Output' | translate: {Default: 'Output'} }}:</label>
-          <ngx-json-viewer [json]="output" [depth]="1" />
+          <ngx-json-viewer [json]="output" [depth]="1" class="block max-h-56 overflow-auto"/>
+        </div>
+      }
+
+      @if (chunk().status === 'fail') {
+        <div>
+          <label class="font-semibold text-text-destructive">{{'PAC.Chat.Error' | translate: {Default: 'Error'} }}:</label>
+          <div class="block max-h-56 overflow-auto text-text-destructive opacity-80 hover:opacity-100">
+            {{chunk().error}}
+          </div>
         </div>
       }
     </div>
