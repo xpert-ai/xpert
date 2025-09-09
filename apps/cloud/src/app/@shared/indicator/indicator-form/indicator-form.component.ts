@@ -341,11 +341,13 @@ export class XpIndicatorFormComponent {
   }
 
   onModelChange(event: Indicator) {
-    this.draft.set(event)
+    this.draft.update((state) => ({
+      ...state,
+      ...event,
+    }))
   }
 
   onSave() {
-    // console.log(this.draft())
     this.saving.set(true)
     this.indicatorAPI.updateDraft(this.indicator().id, this.draft()).subscribe({
       next: (indicator) => {
