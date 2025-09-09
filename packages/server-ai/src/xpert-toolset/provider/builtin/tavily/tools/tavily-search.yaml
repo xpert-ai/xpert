@@ -12,7 +12,7 @@ description:
     pt_BR: A tool for search engine built specifically for AI agents (LLMs), delivering real-time, accurate, and factual results at speed.
   llm: A tool for search engine built specifically for AI agents (LLMs), delivering real-time, accurate, and factual results at speed.
 parameters:
-  - name: input
+  - name: query
     type: string
     required: true
     label:
@@ -25,7 +25,7 @@ parameters:
       pt_BR: used for searching
     llm_description: key words for searching
     form: llm
-  - name: search_depth
+  - name: searchDepth
     type: select
     required: false
     label:
@@ -49,7 +49,7 @@ parameters:
           zh_Hans: 高级
           pt_BR: Advanced
     default: basic
-  - name: include_images
+  - name: includeImages
     type: boolean
     required: false
     label:
@@ -73,70 +73,7 @@ parameters:
           zh_Hans: 否
           pt_BR: 'No'
     default: 'false'
-  - name: include_answer
-    type: boolean
-    required: false
-    label:
-      en_US: Include Answer
-      zh_Hans: 包含答案
-      pt_BR: Include Answer
-    human_description:
-      en_US: Include answers in the search results
-      zh_Hans: 在搜索结果中包含答案
-      pt_BR: Include answers in the search results
-    form: form
-    options:
-      - value: 'true'
-        label:
-          en_US: 'Yes'
-          zh_Hans: 是
-          pt_BR: 'Yes'
-      - value: 'false'
-        label:
-          en_US: 'No'
-          zh_Hans: 否
-          pt_BR: 'No'
-    default: 'false'
-  - name: include_raw_content
-    type: boolean
-    required: false
-    label:
-      en_US: Include Raw Content
-      zh_Hans: 包含原始内容
-      pt_BR: Include Raw Content
-    human_description:
-      en_US: Include raw content in the search results
-      zh_Hans: 在搜索结果中包含原始内容
-      pt_BR: Include raw content in the search results
-    form: form
-    options:
-      - value: 'true'
-        label:
-          en_US: 'Yes'
-          zh_Hans: 是
-          pt_BR: 'Yes'
-      - value: 'false'
-        label:
-          en_US: 'No'
-          zh_Hans: 否
-          pt_BR: 'No'
-    default: 'false'
-  - name: max_results
-    type: number
-    required: false
-    label:
-      en_US: Max Results
-      zh_Hans: 最大结果
-      pt_BR: Max Results
-    human_description:
-      en_US: The number of maximum search results to return
-      zh_Hans: 返回的最大搜索结果数
-      pt_BR: The number of maximum search results to return
-    form: form
-    min: 1
-    max: 20
-    default: 5
-  - name: include_domains
+  - name: includeDomains
     type: string
     required: false
     label:
@@ -148,7 +85,7 @@ parameters:
       zh_Hans: 在搜索结果中特别包含的域名列表
       pt_BR: A list of domains to specifically include in the search results
     form: form
-  - name: exclude_domains
+  - name: excludeDomains
     type: string
     required: false
     label:
@@ -160,3 +97,24 @@ parameters:
       zh_Hans: 从搜索结果中特别排除的域名列表
       pt_BR: A list of domains to specifically exclude from the search results
     form: form
+  - name: topic
+    type: string
+    required: false
+    label:
+      en_US: Search category
+      zh_Hans: 搜索类别
+      pt_BR: Search category
+    human_description:
+      en_US: Specifies search category for optimized results
+      zh_Hans: 指定搜索类别以优化结果
+      pt_BR: Especifica a categoria de pesquisa para resultados otimizados.
+    options:
+      - value: general
+        label:
+          en_US: 'General'
+      - value: news
+        label:
+          en_US: 'News'
+      - value: finance
+        label:
+          en_US: 'Finance'
