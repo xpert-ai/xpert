@@ -698,18 +698,26 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				return nState
 			} catch(err) {
 				if(errorHandling?.type === 'failBranch') {
-					return new Command({
-						goto: fail[0] ? fail[0].key : END,
-						graph: isStart ? null : Command.PARENT,
-						update: {
-							messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
-							[channelName(agentKey)]: {
-								system: systemMessage.content,
-								error: getErrorMessage(err),
-								messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
-							}
+					// return new Command({
+					// 	goto: fail[0] ? fail[0].key : END,
+					// 	graph: isStart ? null : Command.PARENT,
+					// 	update: {
+					// 		messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
+					// 		[channelName(agentKey)]: {
+					// 			system: systemMessage.content,
+					// 			error: getErrorMessage(err),
+					// 			messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
+					// 		}
+					// 	}
+					// })
+					return {
+						messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
+						[channelName(agentKey)]: {
+							system: systemMessage.content,
+							error: getErrorMessage(err),
+							messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
 						}
-					})
+					}
 				}
 				throw err
 			}
@@ -825,7 +833,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			pathMap.push(END)
 		}
 		if (!hiddenAgent) {
-			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey), pathMap)
+			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey, fail[0]?.key), pathMap)
 		}
 
 		// Has other nodes
@@ -1090,13 +1098,14 @@ function ensureSummarize(summarize?: TSummarize) {
 /**
  * Create conditionalEdges function for agent
  * 
- * @param agentChannel 
- * @param summarize 
- * @param summarizeTitle 
- * @param nextNodes 
+ * @param agentChannel Channel name of agent
+ * @param summarize Summarize config
+ * @param summarizeTitle Is title summarize enabled
+ * @param nextNodes Next nodes after agent
+ * @param fail Failure node of agent
  * @returns conditionalEdgesFun
  */
-function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string))) {
+function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string)), fail?: string) {
 	return (state: typeof AgentStateAnnotation.State, config) => {
 		const { title } = state
 		const subState = getChannelState(state, agentChannel)
@@ -1124,6 +1133,10 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 
 				if (nexts.length) {
 					return nexts
+				}
+
+				if (subState?.error) {
+					return fail
 				}
 
 				return END
