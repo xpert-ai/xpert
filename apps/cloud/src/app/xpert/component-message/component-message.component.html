@@ -18,7 +18,7 @@
       }
       @default {
         @if (step(); as step) {
-          <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()" (click)="openComponentMessage()" openable />
+          <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()" openable />
         }
       }
     }
@@ -30,7 +30,7 @@
       }
       @default {
         @if (step(); as step) {
-          <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()" (click)="openComponentMessage()" />
+          <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()"/>
         }
       }
     } 

@@ -1,5 +1,6 @@
 import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
+import { IWFNTrigger, WorkflowNodeTypeEnum } from '@cloud/app/@core'
 import { EReloadReason, IStudioStore } from '../../types'
 import { RemoveNodeRequest } from './remove.request'
 
@@ -15,6 +16,10 @@ export class RemoveNodeHandler implements IHandler<RemoveNodeRequest> {
       draft.connections = draft.connections.filter(
         (item) => !(item.from.startsWith(request.key) || item.to.startsWith(request.key))
       )
+
+      if (node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER && (<IWFNTrigger>node.entity).from === 'chat') {
+        delete draft.team.agentConfig.parameters
+      }
 
       return {
         draft

@@ -6,7 +6,6 @@ import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langcha
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import {
 	Annotation,
-	Command,
 	END,
 	LangGraphRunnableConfig,
 	messagesStateReducer,
@@ -42,7 +41,7 @@ import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workfl
 import { toEnvState } from '../../../environment'
 import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
-
+import { XpertCollaborator } from '../../../shared/agent/xpert'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -266,29 +265,31 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		if (agent.collaborators?.length) {
 			this.#logger.debug(`Use xpert collaborators:\n${agent.collaborators.map((_) => _.name)}`)
 			for await (const collaborator of agent.collaborators) {
-				const {agent} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent}>(new GetXpertWorkflowQuery(collaborator.id,))
-				const item = await this.createAgentSubgraph(agent, {
-					mute: options.mute,
-					store: options.store,
+				const subAgent = await XpertCollaborator.build({
 					xpert: collaborator,
-					options: {
-						leaderKey: agentKey,
-						isDraft: false,
-						subscriber
+					config: {
+						mute: options.mute,
+						store: options.store,
+						options: {
+							leaderKey: agentKey,
+							isDraft: false,
+							subscriber
+						},
+						thread_id,
+						rootController,
+						signal,
+						partners,
+						isDraft: command.options.isDraft,
+						subscriber,
+						environment
 					},
-					thread_id,
-					rootController,
-					signal,
-					isTool: true,
-					partners,
-					isDraft: command.options.isDraft,
-					subscriber,
-					environment
+					commandBus: this.commandBus,
+					queryBus: this.queryBus
 				})
 				
-				subAgents[item.name] = item
-				if (team.agentConfig?.interruptBefore?.includes(item.name)) {
-					interruptBefore.push(item.name)
+				subAgents[subAgent.name] = subAgent
+				if (team.agentConfig?.interruptBefore?.includes(subAgent.name)) {
+					interruptBefore.push(subAgent.name)
 				}
 				// Collect mute config for external xpert
 				if (collaborator.agentConfig?.mute?.length) {

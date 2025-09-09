@@ -49,6 +49,7 @@
   <div class="group/tool relative rounded-[9px] bg-zinc-100 p-0.5">
     <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-dashed
       border-divider-deep px-2 text-sm text-text-placeholder"
+      #toolMenuTrigger
       [cdkMenuTriggerFor]="toolsMenu"
       [ariaDisabled]="!toolsetDetail()"
       [matTooltip]="tool()?.description"
@@ -183,7 +184,7 @@
 </ng-template>
 
 <ng-template #toolsMenu>
-  <div cdkMenu class="cdk-menu__medium overflow-auto">
+  <div cdkMenu class="cdk-menu__medium overflow-auto" [style.width.px]="toolMenuTrigger.offsetWidth" >
     @for (tool of tools(); track tool.value) {
       <div cdkMenuItem class="flex flex-col items-start gap-1" (click)="onSelectTool(tool.value)">
         <div class="flex justify-between items-center gap-2 w-full">
