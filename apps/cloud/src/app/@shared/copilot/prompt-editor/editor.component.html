@@ -63,7 +63,7 @@
         <i class="ri-text-wrap"></i>
       </button>
       
-      @if (varOptions()) {
+      @if (varOptions() || variables()) {
         <button type="button" class="action-btn action-btn-m w-7 h-7"
           (click)="showSuggestions()"
         >

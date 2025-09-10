@@ -19,7 +19,7 @@
       @for (item of inputParams(); track i; let i = $index) {
         <li class="group/item relative px-1 py-0.5 flex justify-between items-center text-text-secondary hover:bg-hover-bg">
           <xpert-state-variable-select class="truncate opacity-90 hover:opacity-100"
-            [varOptions]="varOptions()"
+            [variables]="variables()"
             [ngModel]="item.name"
             (ngModelChange)="updateInputParamName(item.name, $event)"
           />

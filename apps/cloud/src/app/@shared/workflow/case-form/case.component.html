@@ -30,7 +30,7 @@
       
       @for (condition of conditions(); track condition.id; let i = $index) {
         <xpert-workflow-condition-form class="flex mb-1 last-of-type:mb-0"
-          [varOptions]="varOptions()"
+          [variables]="variables()"
           [condition]="condition"
           (conditionChange)="updateCondition(i, $event)"
           (deleted)="remove(i)"

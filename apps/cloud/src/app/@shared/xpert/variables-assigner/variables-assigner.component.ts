@@ -7,6 +7,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   TAgentOutputVariable,
   TVariableAssigner,
+  TWorkflowVarGroup,
   TXpertParameter,
   uuid,
   VariableOperations
@@ -33,7 +34,8 @@ export class XpertVariablesAssignerComponent {
   // Inputs
   readonly title = input<string>()
   readonly tooltip = input<string>()
-  readonly varOptions = input.required<TXpertVariablesOptions>()
+  readonly varOptions = input<TXpertVariablesOptions>()
+  readonly variables = input<TWorkflowVarGroup[]>()
   readonly parameters = input<TXpertParameter[]>()
   readonly memories = model<TVariableAssigner[]>()
   readonly type = input<'tool' | 'agent' | 'variable'>()

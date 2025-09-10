@@ -27,14 +27,15 @@ import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
 import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { omit, uniq } from 'lodash-es'
+import { isEqual, omit, uniq } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, map, of } from 'rxjs'
+import { catchError, distinctUntilChanged, filter, map, of } from 'rxjs'
 import { injectConfigureBuiltin, XpertToolConfigureBuiltinComponent, XpertToolTestComponent } from '../../../tools'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -117,11 +118,24 @@ export class XpertStudioPanelToolsetComponent {
 
   readonly expandTools = signal<Record<string, boolean>>({})
 
+    readonly connections = toSignal(
+      this.studioService.savedEvent$.pipe(
+        filter((value) => value),
+        map(() => {
+          return this.studioService
+            .viewModel()
+            .connections.filter((c) => c.from.startsWith(this.key()) || c.to.startsWith(this.key()))
+            .map((c) => c.key)
+        }),
+        distinctUntilChanged(isEqual)
+      )
+    )
   readonly varOptions = computed<TXpertVariablesOptions>(() => {
     return {
       xpertId: this.xpertId(),
       type: 'output',
       environmentId: this.studioService.environmentId(),
+      connections: this.connections()
     }
   })
 

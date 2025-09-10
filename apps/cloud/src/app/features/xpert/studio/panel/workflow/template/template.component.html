@@ -28,7 +28,7 @@
           <div class="grow"></div>
           <i class="ri-arrow-left-circle-line mx-1"></i>
           <xpert-state-variable-select class="grow truncate opacity-90 hover:opacity-100"
-            [varOptions]="varOptions()"
+            [variables]="variables()"
             [ngModel]="item.variable"
             (ngModelChange)="updateInput(i, 'variable', $event)"
           />

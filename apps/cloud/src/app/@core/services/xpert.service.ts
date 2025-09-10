@@ -37,6 +37,7 @@ export type TXpertVariablesOptions = {
   workflowKey?: string;
   agentKey?: string;
   type?: 'input' | 'output';
+  connections: string[];
 }
 
 

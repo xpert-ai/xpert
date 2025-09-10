@@ -111,7 +111,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
     return this.draft()?.nodes.find((_) => _.type === 'agent' && _.key === this.subAgentKey())
   })
 
-  readonly variables = model<TWorkflowVarGroup[]>()
+  // readonly variables = model<TWorkflowVarGroup[]>()
   readonly inputVariableItem = computed(() => getVariableSchema(this.variables(), this.inputVariable()).variable?.item)
   readonly restInputParams = computed(() => this.inputParams()?.filter((p) => p.name !== IteratingIndexParameterName && p.name !== IteratingItemParameterName && !this.inputVariableItem()?.some((_) => _.name === p.name)))
 
@@ -125,6 +125,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
       agentKey: this.subXpertAgentKey() ?? this.subAgentKey(),
       type: 'output',
       environmentId: this.studioService.environmentId(),
+      connections: this.connections()
     }
   })
   
