@@ -681,6 +681,7 @@
       "Export": "导出",
       "Disable": "禁用",
       "Enable": "启用",
+      "Clear": "清空",
       "Pause": "暂停",
       "Add": "添加",
       "Apply": "应用",
@@ -965,6 +966,9 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "CreateVirtualCube": "创建虚拟数据集",
+      "CreateCube": "创建数据集",
+      "CreateDimension": "创建维度",
       "OpenModel": "打开模型",
       "OpenCube": "打开数据集",
       "CreatedModelWorkspace": "已创建的模型工作空间",

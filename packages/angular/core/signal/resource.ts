@@ -1,5 +1,5 @@
 import { computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core'
-import { EMPTY, Observable, Subscription } from 'rxjs'
+import { Observable, Subscription } from 'rxjs'
 
 export type ResourceStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -79,7 +79,6 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
   effect(
     () => {
       const req = requestSig()
-      statusSig.set('loading')
       errorSig.set(null)
 
       // 取消上一个订阅
@@ -87,8 +86,12 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
         currentSub.unsubscribe()
       }
 
-      const obs$ = options.loader({ request: untracked(() => req) }) ?? EMPTY
+      const obs$ = options.loader({ request: untracked(() => req) })
+      if (!obs$) {
+        return
+      }
 
+      statusSig.set('loading')
       currentSub = obs$.subscribe({
         next: (res) => {
           valueSig.set(res)

@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, uploadYamlFile } from '@metad/core'
@@ -115,6 +115,7 @@ export class XpertWorkspaceXpertsComponent {
   readonly #loading = signal(false)
 
   readonly loading = computed(() => this.#loading() || this.#xperts.status() === 'loading')
+
 
   refresh() {
     // this.refresh$.next()
