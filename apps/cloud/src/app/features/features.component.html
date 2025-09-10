@@ -17,30 +17,6 @@
       />
     </div>
 
-    <!-- @if (AbilityActions.Manage | able:'Story') {
-      @if (isCollapsed) {
-        <button mat-icon-button color="accent" class="pac__toolbar-new m-2"
-          [matMenuTriggerFor]="creatMenu"
-          #mt="matMenuTrigger"
-          [class.active]="mt.menuOpen">
-          <mat-icon class="shrink-0">add</mat-icon>
-        </button>
-      } @else {
-        <button mat-stroked-button color="accent" class="pac__toolbar-new m-2"
-          [matMenuTriggerFor]="creatMenu"
-          #mt="matMenuTrigger"
-          [class.active]="mt.menuOpen"
-          >
-          <div class="flex justify-center items-center">
-            <mat-icon class="shrink-0">add</mat-icon>
-            <span class="hidden md:inline">
-              {{ 'PAC.ACTIONS.New' | translate: {Default: 'New'} }}
-            </span>
-          </div>
-        </button>
-      }
-    } -->
-
     <pac-menu class="flex-1 p-2 flex overflow-hidden hover:overflow-y-auto"
       [isCollapsed]="isCollapsed"
       [isMobile]="isMobile()"
