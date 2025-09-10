@@ -13,6 +13,8 @@ export interface MysqlAdapterOptions extends SQLAdapterOptions {
   serverTimezone?: string
 }
 
+const MYSQL_DEFAULT_PORT = 3306
+
 export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> extends BaseSQLQueryRunner<T> {
   readonly name: string = 'MySQL'
   readonly type: string = MYSQL_TYPE
@@ -21,7 +23,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
 
   readonly jdbcDriver: string = 'com.mysql.jdbc.Driver'
   jdbcUrl(schema?: string) {
-    return `jdbc:mysql://${this.options.host}:${this.options.port}/${schema}?${this.options.serverTimezone ? `serverTimezone=${this.options.serverTimezone}&` : ''}user=${encodeURIComponent(
+    return `jdbc:mysql://${this.options.host}:${this.options.port || MYSQL_DEFAULT_PORT}/${schema}?${this.options.serverTimezone ? `serverTimezone=${this.options.serverTimezone}&` : ''}user=${encodeURIComponent(
       this.options.username as string
     )}&password=${encodeURIComponent(this.options.password as string)}`
   }
@@ -31,7 +33,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
       type: 'object',
       properties: {
         host: { type: 'string' },
-        port: { type: 'number', default: 3306 },
+        port: { type: 'number', default: MYSQL_DEFAULT_PORT },
         username: { type: 'string', title: 'Username' },
         password: { type: 'string', title: 'Password' },
         // 目前 catalog 用于指定数据库
