@@ -12,13 +12,13 @@ import {
 	TToolCall,
 	TXpertGraph,
 	TXpertTeamNode,
-	WorkflowNodeTypeEnum,
-	XpertParameterTypeEnum
+	WorkflowNodeTypeEnum
 } from '@metad/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
 import { AgentStateAnnotation, createParameters, nextWorkflowNodes, TWorkflowGraphNode } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
+
 
 export const WORKFLOW_AGENT_TOOL_ARGS_CHANNEL = 'args'
 export type TWorkflowAgentToolState = {
@@ -77,7 +77,7 @@ export function createAgentToolNode(
 							})
 						],
 						[channelName(node.key)]: {
-							toolCall: null,
+							toolCall: null
 						}
 					}
 				}
@@ -154,15 +154,11 @@ export function createAgentToolNode(
 }
 
 export function agentToolOutputVariables(entity: IWorkflowNode) {
+	const agentTool = entity as IWFNAgentTool
 	return [
-		{
-			type: XpertParameterTypeEnum.OBJECT,
-			name: WORKFLOW_AGENT_TOOL_ARGS_CHANNEL,
-			title: 'Arguments',
-			description: {
-				en_US: 'Input Arguments',
-				zh_Hans: '输入参数'
-			}
-		}
+		...(agentTool.toolParameters ?? []).map((param) => ({
+			...param,
+			name: WORKFLOW_AGENT_TOOL_ARGS_CHANNEL + '.' + param.name
+		}))
 	]
 }

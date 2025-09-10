@@ -10,12 +10,12 @@ import { TWorkflowVarGroup } from "../ai";
  * @returns 
  */
 export function getVariableSchema(variables: TWorkflowVarGroup[], variable: string) {
-    const [groupName, name] = variable?.split('.') ?? []
+    const [groupName, ...rest] = variable?.split('.') ?? []
 
-    const group = variables?.find((_) => (name ? _.group?.name === groupName : !_.group?.name))
+    const group = variables?.find((_) => (rest.length ? _.group?.name === groupName : !_.group?.name))
 
     return {
         group,
-        variable: group?.variables.find((_) => _.name === (name ?? groupName))
+        variable: group?.variables.find((_) => _.name === (rest.join('.') ?? groupName))
     }
 }

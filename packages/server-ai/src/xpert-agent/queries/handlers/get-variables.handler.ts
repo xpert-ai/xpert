@@ -21,7 +21,7 @@ import {
 import { omit } from '@metad/server-common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { EnvironmentService } from '../../../environment'
-import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
+import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { XpertService } from '../../../xpert/xpert.service'
 import {
 	agentToolOutputVariables,
@@ -38,6 +38,7 @@ import {
 } from '../../workflow'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { getXpertAgent } from '../../../xpert/utils'
+import { _BaseToolset } from '../../../shared'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -253,7 +254,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 
 				// Add toolset's states into global variables
-				const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
+				const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
 					new ToolsetGetToolsCommand(agent.toolsetIds)
 				)
 				for await (const toolset of toolsets) {
@@ -356,7 +357,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			return variables
 		}
 
-		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
+		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
 			new ToolsetGetToolsCommand(agent.toolsetIds)
 		)
 
