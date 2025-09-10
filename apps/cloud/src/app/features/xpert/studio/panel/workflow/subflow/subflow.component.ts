@@ -68,6 +68,7 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
       agentKey: this.subXpertAgentKey() ?? this.subAgentKey(),
       type: 'input',
       environmentId: this.studioService.environmentId(),
+      connections: this.connections()
     }
   })
 
@@ -77,15 +78,10 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
       agentKey: this.subXpertAgentKey() ?? this.subAgentKey(),
       type: 'output',
       environmentId: this.studioService.environmentId(),
+      connections: this.connections()
     }
   })
 
-  // constructor() {
-  //   super()
-  //   effect(() => {
-  //     console.log(this.extXpertVariables())
-  //   })
-  // }
 
   addInput() {
     this.inputParams.update((state) => {

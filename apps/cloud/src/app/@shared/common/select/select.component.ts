@@ -43,6 +43,10 @@ export class NgmSelectComponent {
 
   readonly icon = input<string>()
 
+  readonly readonly = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+
   // Children
   readonly optionTemplate = contentChild('option', { read: TemplateRef })
 

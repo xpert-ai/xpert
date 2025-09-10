@@ -2,9 +2,8 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, Element
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectToastr, TWFCase, TWFCaseCondition, uuid, WorkflowComparisonOperator, WorkflowLogicalOperator, XpertService } from 'apps/cloud/src/app/@core'
+import { injectToastr, TWFCase, TWFCaseCondition, TWorkflowVarGroup, uuid, WorkflowComparisonOperator, WorkflowLogicalOperator, XpertService } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowConditionFormComponent } from '../condition-form/condition.component'
-import { TXpertVariablesOptions } from '../../agent'
 
 @Component({
   selector: 'xpert-workflow-case-form',
@@ -30,7 +29,7 @@ export class XpertWorkflowCaseFormComponent {
   readonly first = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
-  readonly varOptions = input.required<TXpertVariablesOptions>()
+  readonly variables = input<TWorkflowVarGroup[]>()
 
   // Outputs
   readonly deleted = output<void>()

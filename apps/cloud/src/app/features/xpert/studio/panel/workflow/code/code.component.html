@@ -31,7 +31,7 @@
               <div class="border-gray-100 relative group/wrap flex items-center gap-1 w-full h-9 p-1 rounded-lg bg-components-input-bg-normal">
                 <div class="grow h-full mr-1 overflow-hidden">
                   <xpert-state-variable-select
-                    [varOptions]="varOptions()"
+                    [variables]="variables()"
                     [ngModel]="param.variable"
                     (ngModelChange)="updateInput(i, 'variable', $event)"
                   />

@@ -111,9 +111,10 @@ export class XpertStudioContextMenuComponent {
 
   async createAgent(menu: CdkMenu) {
     menu.menuStack.closeAll()
+    const length = this.agents()?.length ?? 0
     this.apiService.createAgent(this.root.contextMenuPosition, {
       title:
-        (await this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' })) + ' ' + (this.agents()?.length ?? 1)
+        (await this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' })) + ' ' + (length ? ` ${length + 1}` : '')
     })
   }
 
@@ -155,10 +156,11 @@ export class XpertStudioContextMenuComponent {
   }
 
   async addWorkflowRouter() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.IF_ELSE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.IF_ELSE,
       key: genXpertRouterKey(),
-      title: await this.#translate.instant('PAC.Workflow.Router', { Default: 'Router' }),
+      title: await this.#translate.instant('PAC.Workflow.Router', { Default: 'Router' }) + (length ? ` ${length + 1}` : ''),
       cases: [
         {
           caseId: uuid(),
@@ -169,18 +171,20 @@ export class XpertStudioContextMenuComponent {
   }
 
   async addWorkflowIterating() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ITERATING).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.ITERATING,
       key: genXpertIteratingKey(),
-      title: await this.#translate.instant('PAC.Workflow.Iterating', { Default: 'Iterating' })
+      title: await this.#translate.instant('PAC.Workflow.Iterating', { Default: 'Iterating' }) + (length ? ` ${length + 1}` : '')
     })
   }
 
   async addWorkflowAnswer() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ANSWER).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.ANSWER,
       key: genXpertAnswerKey(),
-      title: await this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' })
+      title: await this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' }) + (length ? ` ${length + 1}` : '')
     })
   }
 
@@ -203,10 +207,11 @@ export class XpertStudioContextMenuComponent {
   }
 
   async addWorkflowKnowledgeRetrieval() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.KNOWLEDGE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.KNOWLEDGE,
       key: genXpertKnowledgeKey(),
-      title: await this.#translate.instant('PAC.Workflow.KnowledgeRetrieval', { Default: 'Knowledge Retrieval' }),
+      title: await this.#translate.instant('PAC.Workflow.KnowledgeRetrieval', { Default: 'Knowledge Retrieval' }) + (length ? ` ${length + 1}` : ''),
       queryVariable: `input`,
       knowledgebases: []
     } as IWFNKnowledgeRetrieval)
@@ -240,10 +245,11 @@ export class XpertStudioContextMenuComponent {
   }
 
   async addWorkflowTemplate() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.TEMPLATE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TEMPLATE,
       key: genXpertTemplateKey(),
-      title: await this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template Transform' }),
+      title: await this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template Transform' }) + (length ? ` ${length + 1}` : ''),
       code: `{{arg1}}`,
       inputParams: [
         {
@@ -271,43 +277,48 @@ export class XpertStudioContextMenuComponent {
   }
 
   async addWorkflowHttp() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.HTTP).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.HTTP,
       key: genXpertHttpKey(),
       method: 'get',
-      title: await this.#translate.instant('PAC.Workflow.HTTPRequest', { Default: 'HTTP Request' })
+      title: await this.#translate.instant('PAC.Workflow.HTTPRequest', { Default: 'HTTP Request' }) + (length ? ` ${length + 1}` : '')
     } as IWFNHttp)
   }
 
   async addWorkflowTool() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.TOOL).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TOOL,
       key: genXpertToolKey(),
-      title: await this.#translate.instant('PAC.Workflow.Tool', { Default: 'Tool' })
+      title: await this.#translate.instant('PAC.Workflow.Tool', { Default: 'Tool' }) + (length ? ` ${length + 1}` : '')
     } as IWFNTool)
   }
 
   async addWorkflowSubflow() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.SUBFLOW).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.SUBFLOW,
       key: genXpertSubflowKey(),
-      title: await this.#translate.instant('PAC.Workflow.Subflow', { Default: 'Subflow' })
+      title: await this.#translate.instant('PAC.Workflow.Subflow', { Default: 'Subflow' }) + (length ? ` ${length + 1}` : '')
     } as IWFNSubflow)
   }
 
   addWorkflowAgentTool() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.AGENT_TOOL).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.AGENT_TOOL,
       key: genXpertAgentToolKey(),
-      title: this.#translate.instant('PAC.Workflow.AgentTool', { Default: 'Agent Tool' })
+      title: this.#translate.instant('PAC.Workflow.AgentTool', { Default: 'Agent Tool' }) + (length ? ` ${length + 1}` : '')
     } as IWFNAgentTool)
   }
 
   addWorkflowTask() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.TASK).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TASK,
       key: genXpertTaskKey(),
-      title: this.#translate.instant('PAC.Workflow.Task', { Default: 'Task' }),
+      title: this.#translate.instant('PAC.Workflow.TaskHandover', { Default: 'Task Handover' }) + (length ? ` ${length + 1}` : ''),
       descriptionPrefix: TASK_DESCRIPTION_PREFIX,
       descriptionSuffix: TASK_DESCRIPTION_SUFFIX
     } as IWFNTask)

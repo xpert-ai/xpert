@@ -276,7 +276,11 @@
                     "id": "01f32870-ec9d-4a3d-b3f6-86c62aad04f7",
                     "category": "Writing",
                     "copyright": null,
-                    "privacyPolicy": null
+                    "privacyPolicy": null,
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    }
                 },
                 {
                     "name": "Open Deep Researcher",
@@ -292,7 +296,11 @@
                     "id": "ec468d87-3031-4702-ad23-c1a427181062",
                     "category": "Writing",
                     "copyright": null,
-                    "privacyPolicy": null
+                    "privacyPolicy": null,
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    }
                 },
                 {
                     "name": "Demo - Workflow transform",

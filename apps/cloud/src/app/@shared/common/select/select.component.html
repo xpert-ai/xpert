@@ -12,7 +12,7 @@
   }
   <ng-content select="[icon]"></ng-content>
   
-  <div class="grow mr-2 text-sm">
+  <div class="grow mr-2 text-sm truncate">
     @for (option of selectedOptions(); track option.value; let last = $last) {
       {{(option.label | i18n) || option.value}}
       @if (!last) {
@@ -38,6 +38,7 @@
     [style.width.px]="menuTrigger.offsetWidth"
   >
     <ul cdkListbox [cdkListboxMultiple]="multiple()"
+      [cdkListboxDisabled]="readonly()"
       [cdkListboxValue]="values()"
       (cdkListboxValueChange)="selectValues($event)">
       @for (option of selectOptions(); track option.key) {

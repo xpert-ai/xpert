@@ -3,7 +3,6 @@ import { omit } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import { PaginationParams, TenantAwareCrudService } from '@metad/server-core'
 import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common'
-import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Cache } from 'cache-manager'
 import * as fs from 'fs'
@@ -26,9 +25,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
 	constructor(
 		@InjectRepository(XpertTemplate)
-		private readonly xtRepository: Repository<XpertTemplate>,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		readonly xtRepository: Repository<XpertTemplate>,
 	) {
 		super(xtRepository)
 	}

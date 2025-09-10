@@ -136,15 +136,17 @@ export class CopilotPromptEditorComponent {
 
   generate() {
     this.#dialog
-      .open<string>(CopilotPromptGeneratorComponent, {
+      .open<{instruction: string}>(CopilotPromptGeneratorComponent, {
         panelClass: 'large',
-        data: {}
+        data: {
+          instruction: this.prompt()
+        }
       })
       .closed
       .subscribe({
         next: (result) => {
-          if (result) {
-            this.prompt.set(result)
+          if (result?.instruction) {
+            this.prompt.set(result.instruction)
           }
         }
       })

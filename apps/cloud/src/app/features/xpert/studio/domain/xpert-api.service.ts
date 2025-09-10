@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core'
+import { ChangeDetectorRef, computed, effect, inject, Injectable, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { IPoint, IRect } from '@foblex/2d'
 import { nonNullable, debounceUntilChanged } from '@metad/core'
@@ -81,6 +81,7 @@ export class XpertStudioApiService {
   readonly getXpertTeam = injectGetXpertTeam()
   readonly getXpertsByWorkspace = injectGetXpertsByWorkspace()
   readonly #router = inject(Router)
+  readonly #cdr = inject(ChangeDetectorRef)
 
   readonly store = createStore({ name: 'xpertStudio' }, withProps<IStudioStore>({ draft: null }))
   readonly #stateHistory = stateHistory<Store, IStudioStore>(this.store, {
@@ -117,6 +118,7 @@ export class XpertStudioApiService {
   readonly paramId$ = this.xpertComponent.paramId$
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
+  readonly savedEvent$ = new BehaviorSubject<boolean>(true)
 
   /**
    * Pristine xpert
@@ -229,6 +231,7 @@ export class XpertStudioApiService {
           ),
           this.#reload.pipe(
             filter((event) => event !== EReloadReason.INIT),
+            tap(() => this.savedEvent$.next(false)),
             debounceUntilChanged(2000),
             tap((event) => {
               if (event) {
@@ -265,7 +268,10 @@ export class XpertStudioApiService {
         })
       )),
     )
-    .subscribe()
+    .subscribe(() => {
+      this.savedEvent$.next(true)
+      this.#cdr.detectChanges()
+    })
 
   constructor() {
     effect(

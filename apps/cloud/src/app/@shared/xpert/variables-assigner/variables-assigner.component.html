@@ -22,7 +22,7 @@
   @for (memory of memories(); track memory.id; let i = $index) {
     <div class="flex p-0.5 rounded-lg" [class.bg-red-100]="hoveredDelIndex() === i">
       <xpert-memory-assigner class="w-full flex-1 flex flex-col items-start gap-2 overflow-hidden"
-        [varOptions]="varOptions()"
+        [variables]="variables()"
         [type]="type()"
         [parameters]="parameters()"
         [ngModel]="memory"

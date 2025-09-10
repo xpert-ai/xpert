@@ -7,7 +7,7 @@ import { z } from 'zod'
  * @param parameters
  * @returns
  */
-export function createParameters(parameters: TXpertParameter[]) {
+export function createParameters(parameters: TXpertParameter[]): Record<string, z.ZodTypeAny> {
 	return parameters?.reduce((schema, parameter) => {
 		let value = null
 		switch (parameter.type) {

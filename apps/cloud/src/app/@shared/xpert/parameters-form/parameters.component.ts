@@ -1,18 +1,30 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
-import { NgmSelectComponent, SlashSvgComponent, VariableSvgComponent } from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
 import { FormsModule } from '@angular/forms'
+import { MatTooltip } from '@angular/material/tooltip'
+import { SlashSvgComponent, VariableSvgComponent } from '@metad/ocap-angular/common'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
+import { TSelectOption, TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
+import { NgmSelectComponent } from '../../common'
 
 @Component({
   standalone: true,
   selector: 'xpert-parameters-form',
   templateUrl: './parameters.component.html',
   styleUrl: 'parameters.component.scss',
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSelectComponent, VariableSvgComponent, SlashSvgComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    NgmI18nPipe,
+    NgmSelectComponent,
+    VariableSvgComponent,
+    SlashSvgComponent,
+    MatTooltip
+  ],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertParametersFormComponent {
@@ -28,18 +40,19 @@ export class XpertParametersFormComponent {
   })
 
   // States
-  readonly params = computed(() => {
+  readonly params = computed<Array<TXpertParameter & {selectOptions?: TSelectOption[]}>>(() => {
     return this.parameters().map((parameter) => {
       if (parameter.type === XpertParameterTypeEnum.SELECT) {
         return {
           ...parameter,
-          options: parameter.options.map((key) => ({
-            key,
-            caption: key
+          selectOptions: parameter.options.map((key) => ({
+            value: key,
+            label: key
           }))
-        }
+        } as TXpertParameter
       }
-      return parameter as any
+
+      return parameter
     })
   })
 

@@ -138,7 +138,7 @@ export class TavilySearchResults extends BaseTool {
     const json = await response.json();
     if (!response.ok) {
       throw new Error(
-        `Request failed with status code ${response.status}: ${json.error}`
+        `Request failed with status code ${response.status}: ${json.detail?.error}`
       );
     }
     if (!Array.isArray(json.results)) {

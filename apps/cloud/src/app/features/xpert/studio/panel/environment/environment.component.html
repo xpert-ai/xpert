@@ -6,7 +6,7 @@
   <div class="flex items-center gap-2 text-text-secondary">
     <button class="group inline-flex h-8 w-full items-center justify-center rounded-[10px] px-2 text-base font-semibold" type="button" 
       [cdkMenuTriggerFor]="envsMenu">
-      <div class="max-w-[180px] truncate">{{environment()?.name || 'Select env'}}</div>
+      <div class="max-w-[180px] truncate">{{environment()?.name || ('PAC.Environment.SelectEnv' | translate: {Default: 'Select an environment'}) }}</div>
       <i class="ri-arrow-down-s-line"></i>
     </button>
 

@@ -11,7 +11,7 @@
     </div>
     <div class="mt-1">
       <xpert-state-variable-select class="w-full focus:bg-white" 
-        [varOptions]="varOptions()"
+        [variables]="variables()"
         [(ngModel)]="queryVariable" 
         (focus)="onFocus($event)"
       />
