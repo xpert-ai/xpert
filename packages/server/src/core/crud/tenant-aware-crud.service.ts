@@ -32,11 +32,12 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 	protected findConditionsWithTenantByUser(
 		user: IUser		
 	): FindOptionsWhere<T> {		
-		return {
+		return user ? {
 					tenant: {
 						id: user.tenantId
 					}
-			  } as FindOptionsWhere<T>;
+			  } as FindOptionsWhere<T>
+			  : {}
 	}
 
 	protected findConditionsWithTenant(

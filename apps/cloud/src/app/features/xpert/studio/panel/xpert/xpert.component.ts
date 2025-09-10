@@ -66,7 +66,10 @@ export class XpertStudioPanelXpertComponent {
   readonly xpert = computed(() => this.node().entity as IXpert)
   readonly xpertId = computed(() => this.xpert()?.id)
   readonly primaryAgent = computed(() => this.xpert()?.agent)
-  readonly parameters = computed(() => this.primaryAgent()?.parameters)
+  readonly parameters = computed(() => 
+    this.xpert().agentConfig?.parameters ||
+    (this.xpert().agent?.options?.hidden ? null : this.xpert().agent?.parameters)
+  )
   readonly copilotModel = computed(() => this.xpert()?.copilotModel)
 
   // Team

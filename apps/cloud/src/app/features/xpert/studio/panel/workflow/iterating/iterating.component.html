@@ -19,8 +19,7 @@
 
   <div class="">
     <xpert-state-variable-select class="w-full mt-1 opacity-90 hover:opacity-100"
-      [varOptions]="varOptions()"
-      [(variables)]="variables"
+      [variables]="variables()"
       [ngModel]="inputVariable()"
       (ngModelChange)="updateEntity('inputVariable', $event)"
     />
@@ -59,7 +58,7 @@
       @for (item of restInputParams(); track item.name) {
         <li class="group/item relative px-2 py-0.5 flex justify-between items-center text-text-secondary hover:bg-hover-bg">
           <xpert-state-variable-select inline class="overflow-hidden opacity-90 hover:opacity-100"
-            [varOptions]="varOptions()"
+            [variables]="variables()"
             [ngModel]="item.name"
             (ngModelChange)="updateInputParamName(item.name, $event)"
           />

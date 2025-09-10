@@ -161,7 +161,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 		// Clear cache for model
 		try {
-			await this.cacheService.delete({ modelId: model.id })
+			await this.cacheService.delete({ tenantId: model.tenantId, modelId: model.id })
 		} catch (err) {
 			//
 		}

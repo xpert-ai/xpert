@@ -62,21 +62,26 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
   readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
   readonly subXpertAgentKey = computed(() => this.subXpert()?.entity.agent?.key)
 
-  readonly subVarOptions = computed<TXpertVariablesOptions>(() => {
+  readonly subVarInputOptions = computed<TXpertVariablesOptions>(() => {
+    return {
+      xpertId: this.subXpertKey() ?? this.xpertId(),
+      agentKey: this.subXpertAgentKey() ?? this.subAgentKey(),
+      type: 'input',
+      environmentId: this.studioService.environmentId(),
+      connections: this.connections()
+    }
+  })
+
+  readonly subVarOutputOptions = computed<TXpertVariablesOptions>(() => {
     return {
       xpertId: this.subXpertKey() ?? this.xpertId(),
       agentKey: this.subXpertAgentKey() ?? this.subAgentKey(),
       type: 'output',
       environmentId: this.studioService.environmentId(),
+      connections: this.connections()
     }
   })
 
-  // constructor() {
-  //   super()
-  //   effect(() => {
-  //     console.log(this.extXpertVariables())
-  //   })
-  // }
 
   addInput() {
     this.inputParams.update((state) => {

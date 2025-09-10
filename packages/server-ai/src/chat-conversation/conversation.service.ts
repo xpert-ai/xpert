@@ -32,6 +32,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		return this.findAll({
 			...options,
 			where: {
+				...(options.where ?? {}),
 				xpertId
 			}
 		})

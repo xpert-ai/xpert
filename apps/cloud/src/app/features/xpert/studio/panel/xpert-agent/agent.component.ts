@@ -46,14 +46,14 @@ import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/exec
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelToolsetSectionComponent } from './toolset-section/toolset.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, catchError, map, of, retry, shareReplay, startWith, switchMap } from 'rxjs'
+import { BehaviorSubject, catchError, distinctUntilChanged, filter, map, of, retry, shareReplay, startWith, switchMap } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
 import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertOutputVariablesEditComponent, XpertParametersEditComponent, XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { uniq } from 'lodash-es'
+import { isEqual, uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -63,6 +63,7 @@ import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
 import { VISION_DEFAULT_VARIABLE } from '../../types'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -285,18 +286,24 @@ export class XpertStudioPanelAgentComponent {
     )
   })
 
+  readonly connections = toSignal(
+    this.apiService.savedEvent$.pipe(
+      filter((value) => value),
+      map(() => {
+        return this.apiService
+          .viewModel()
+          .connections.filter((c) => c.from.startsWith(this.key()) || c.to.startsWith(this.key()))
+          .map((c) => c.key)
+      }),
+      distinctUntilChanged(isEqual)
+    )
+  )
   // Fetch avaiable variables for this agent from server
   readonly varOptions = computed<TXpertVariablesOptions>(() => ({
     xpertId: this.xpertId(),
     agentKey: this.key(),
-    type: 'input',
-    environmentId: this.apiService.environmentId()
-  }))
-  readonly varOutOptions = computed<TXpertVariablesOptions>(() => ({
-    xpertId: this.xpertId(),
-    agentKey: this.key(),
-    type: 'output',
-    environmentId: this.apiService.environmentId()
+    environmentId: this.apiService.environmentId(),
+    connections: this.connections(),
   }))
 
   readonly promptTemplateFullscreen = signal<string>(null)

@@ -54,14 +54,14 @@ export class FileLocalSystem implements FilesSystem {
 		})
 
 		return {
-			files: files.map((item) => {
+			files: files?.map((item) => {
 				return {
 					name: item.filePath,
 					extension: item.fileType,
 					size: item.size,
 					created_date: item.createdAt.toISOString()
 				}
-			})
+			}) ?? []
 		}
 	}
 

@@ -17,11 +17,14 @@
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large" @overlayAnimation1>
-    @for (org of organizations$ | async; track org.id) {
+    <div class="sticky top-0 w-full mb-1 bg-components-card-bg border-b border-solid border-divider-deep z-10">
+      <ngm-search class="w-full mb-1 rounded-lg overflow-hidden" [(ngModel)]="searchTerm" />
+    </div>
+    @for (org of organizations(); track org.id) {
       <div cdkMenuItem [class.active]="org.id === organization()?.id" (click)="selectOrganization(org)">
         <div class="flex justify-start items-center overflow-hidden text-ellipsis">
           <pac-org-avatar [organization]="org" class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2" />
-          <span class="whitespace-nowrap" [title]="org.name">{{org.name}}</span>
+          <span class="whitespace-nowrap" [title]="org.name" [ngmHighlight]="searchTerm()" [content]="org.name">{{org.name}}</span>
         </div>
       </div>
     }

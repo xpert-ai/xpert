@@ -127,7 +127,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 						signal: abortController.signal,
 						execution: _execution,
 						subscriber,
-						disableCheckpointer: true,
+						// disableCheckpointer: true,
 						channel: channelName(agentKey),
 						partners: [],
 						environment

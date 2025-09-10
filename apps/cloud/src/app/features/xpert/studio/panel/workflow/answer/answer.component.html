@@ -2,8 +2,30 @@
   <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
     [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
     [role]="'ai'"
-    [varOptions]="varOptions()"
+    [variables]="variables()"
     [prompt]="promptTemplate()"
     (promptChange)="updateEntity('promptTemplate', $event)"
   />
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="flex flex-col gap-2 p-3 mx-4 bg-gray-50 rounded-xl">
+  <div class="flex items-center space-x-1 shrink-0">
+    <div class="flex items-center justify-center w-6 h-6">
+      <i class="ri-git-commit-fill text-orange-600"></i>
+    </div>
+    <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.Node' | translate: {Default: 'Node'} }}</div>
+  </div>
+
+  <div class="flex justify-end items-center gap-1 w-full">
+    <i class="ri-volume-mute-fill text-base text-sky-700"></i>
+    <div class="text-sm">{{'PAC.Xpert.DisableOutput' | translate: {Default: 'Disable Output'} }}</div>
+    <mat-slide-toggle class="flex" [(ngModel)]="mute"
+      labelPosition="before"
+      ngm-density="xs"
+      [matTooltip]="'PAC.Xpert.DisableOutputTip' | translate: {Default: 'Disable returning the agent\'s output to the user'}"
+      matTooltipPosition="left"
+    />
+  </div>
 </div>

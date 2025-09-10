@@ -359,7 +359,7 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
       .open(XpertWorkflowAuthorizationComponent, {
         data: {
           authorization: this.authorization(),
-          varOptions: this.varOptions()
+          variables: this.variables()
         }
       })
       .closed.subscribe({

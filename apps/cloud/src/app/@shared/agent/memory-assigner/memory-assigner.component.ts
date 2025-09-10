@@ -8,8 +8,8 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { NgmSelectComponent } from '../../common'
 import { CopilotPromptEditorComponent } from '../../copilot/prompt-editor/editor.component'
 import { StateVariableSelectComponent } from '../state-variable-select/select.component'
-import { TXpertVariablesOptions } from '../variable-panel/variable.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { TXpertVariablesOptions } from '@cloud/app/@core'
 
 @Component({
   standalone: true,
@@ -33,12 +33,12 @@ export class XpertMemoryAssignerComponent {
   readonly value$ = this.cva.value$
 
   // Inputs
-  readonly varOptions = input.required<TXpertVariablesOptions>()
+  readonly varOptions = input<TXpertVariablesOptions>()
+  readonly variables = model<TWorkflowVarGroup[]>()
   readonly type = input<'tool' | 'agent' | 'variable'>()
   readonly parameters = input<TXpertParameter[]>()
 
   // Models
-  readonly variables = model<TWorkflowVarGroup[]>()
   readonly variableSelector = attrModel(this.value$, 'variableSelector')
   readonly inputType = attrModel(this.value$, 'inputType')
   readonly value = attrModel(this.value$, 'value')

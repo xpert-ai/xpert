@@ -36,7 +36,7 @@ export type TGraphTool = {
 	graph?: Runnable
 }
 
-export type TWorkflowGraphNode = TGraphTool & {
+export type TWorkflowGraphNode = Partial<TGraphTool> & {
 	workflowNode: {
 		name?: string;
 		graph: Runnable;

@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectToastr,
@@ -21,7 +23,14 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./answer.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatTooltipModule, TranslateModule, CopilotPromptEditorComponent],
+  imports: [
+    FormsModule,
+    MatTooltipModule,
+    MatSlideToggleModule,
+    TranslateModule,
+    NgmDensityDirective,
+    CopilotPromptEditorComponent
+  ],
   host: {
     tabindex: '-1'
   }
@@ -41,12 +50,21 @@ export class XpertStudioPanelWorkflowAnswerComponent extends XpertWorkflowBaseCo
 
   // States
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
-  readonly answerEntity = computed(() => this.entity() as IWFNAnswer)
+  readonly answerEntity = linkedModel({
+    initialValue: null,
+    compute: () => this.entity() as IWFNAnswer,
+    update: (value) => {
+      this.studioService.updateWorkflowNode(this.key(), () => value)
+    }
+  })
   readonly promptTemplate = computed(() => this.answerEntity()?.promptTemplate)
+  readonly mute = attrModel(this.answerEntity, 'mute')
 
   updateEntity(name: string, value: string | number) {
-    const entity = { ...(this.answerEntity() ?? {}) } as IWFNAnswer
-    entity[name] = value
-    this.studioService.updateBlock(this.key(), { entity })
+    this.studioService.updateWorkflowNode(this.key(), (state) => {
+      const entity = { ...(state ?? {}) } as IWFNAnswer
+      entity[name] = value
+      return entity
+    })
   }
 }

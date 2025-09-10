@@ -467,7 +467,8 @@
       "NewEnvironment": "新建环境",
       "ManageEnvironments": "管理环境",
       "Manage": "管理",
-      "DeleteEnv": "删除此环境及其所有的环境变量"
+      "DeleteEnv": "删除此环境及其所有的环境变量",
+      "SelectEnv": "选择环境"
     },
     "MENU": {
       "IsLatest": "已是最新版本。",
@@ -2916,6 +2917,10 @@
       "AgentMemoryTip": "智能体短期记忆，对话中插入消息历史",
       "DisableOutput": "禁用输出",
       "DisableOutputTip": "禁止返回智能体的输出给用户",
+      "OmitBlankValues": "省略空值",
+      "OmitBlankValuesTip": "省略空值参数",
+      "ParameterSettings": "参数设置",
+      "NodeType": "节点类型",
       "Node": "节点",
       "MaxConcurrencyTip": "控制最大并行调用数",
       "RecursionLimitTip": "限制智能体可以递归的次数",

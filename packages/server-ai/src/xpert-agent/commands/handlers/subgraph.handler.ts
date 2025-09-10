@@ -6,7 +6,6 @@ import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langcha
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import {
 	Annotation,
-	Command,
 	END,
 	LangGraphRunnableConfig,
 	messagesStateReducer,
@@ -42,7 +41,7 @@ import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workfl
 import { toEnvState } from '../../../environment'
 import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
-
+import { XpertCollaborator } from '../../../shared/agent/xpert'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -266,29 +265,31 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		if (agent.collaborators?.length) {
 			this.#logger.debug(`Use xpert collaborators:\n${agent.collaborators.map((_) => _.name)}`)
 			for await (const collaborator of agent.collaborators) {
-				const {agent} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent}>(new GetXpertWorkflowQuery(collaborator.id,))
-				const item = await this.createAgentSubgraph(agent, {
-					mute: options.mute,
-					store: options.store,
+				const subAgent = await XpertCollaborator.build({
 					xpert: collaborator,
-					options: {
-						leaderKey: agentKey,
-						isDraft: false,
-						subscriber
+					config: {
+						mute: options.mute,
+						store: options.store,
+						options: {
+							leaderKey: agentKey,
+							isDraft: false,
+							subscriber
+						},
+						thread_id,
+						rootController,
+						signal,
+						partners,
+						isDraft: command.options.isDraft,
+						subscriber,
+						environment
 					},
-					thread_id,
-					rootController,
-					signal,
-					isTool: true,
-					partners,
-					isDraft: command.options.isDraft,
-					subscriber,
-					environment
+					commandBus: this.commandBus,
+					queryBus: this.queryBus
 				})
 				
-				subAgents[item.name] = item
-				if (team.agentConfig?.interruptBefore?.includes(item.name)) {
-					interruptBefore.push(item.name)
+				subAgents[subAgent.name] = subAgent
+				if (team.agentConfig?.interruptBefore?.includes(subAgent.name)) {
+					interruptBefore.push(subAgent.name)
 				}
 				// Collect mute config for external xpert
 				if (collaborator.agentConfig?.mute?.length) {
@@ -698,18 +699,26 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				return nState
 			} catch(err) {
 				if(errorHandling?.type === 'failBranch') {
-					return new Command({
-						goto: fail[0] ? fail[0].key : END,
-						graph: isStart ? null : Command.PARENT,
-						update: {
-							messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
-							[channelName(agentKey)]: {
-								system: systemMessage.content,
-								error: getErrorMessage(err),
-								messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
-							}
+					// return new Command({
+					// 	goto: fail[0] ? fail[0].key : END,
+					// 	graph: isStart ? null : Command.PARENT,
+					// 	update: {
+					// 		messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
+					// 		[channelName(agentKey)]: {
+					// 			system: systemMessage.content,
+					// 			error: getErrorMessage(err),
+					// 			messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
+					// 		}
+					// 	}
+					// })
+					return {
+						messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
+						[channelName(agentKey)]: {
+							system: systemMessage.content,
+							error: getErrorMessage(err),
+							messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
 						}
-					})
+					}
 				}
 				throw err
 			}
@@ -825,7 +834,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			pathMap.push(END)
 		}
 		if (!hiddenAgent) {
-			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey), pathMap)
+			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey, fail[0]?.key), pathMap)
 		}
 
 		// Has other nodes
@@ -1090,13 +1099,14 @@ function ensureSummarize(summarize?: TSummarize) {
 /**
  * Create conditionalEdges function for agent
  * 
- * @param agentChannel 
- * @param summarize 
- * @param summarizeTitle 
- * @param nextNodes 
+ * @param agentChannel Channel name of agent
+ * @param summarize Summarize config
+ * @param summarizeTitle Is title summarize enabled
+ * @param nextNodes Next nodes after agent
+ * @param fail Failure node of agent
  * @returns conditionalEdgesFun
  */
-function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string))) {
+function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string)), fail?: string) {
 	return (state: typeof AgentStateAnnotation.State, config) => {
 		const { title } = state
 		const subState = getChannelState(state, agentChannel)
@@ -1124,6 +1134,10 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 
 				if (nexts.length) {
 					return nexts
+				}
+
+				if (subState?.error) {
+					return fail
 				}
 
 				return END

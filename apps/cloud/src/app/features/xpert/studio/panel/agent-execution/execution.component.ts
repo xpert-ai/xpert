@@ -13,7 +13,6 @@ import {
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatMessageEventTypeEnum,
   ChatMessageTypeEnum,
@@ -29,18 +28,16 @@ import {
   XpertAgentExecutionStatusEnum,
   XpertAgentService
 } from '@cloud/app/@core'
+import { XpertAgentOperationComponent } from '@cloud/app/@shared/agent'
 import { CopilotStoredMessageComponent } from '@cloud/app/@shared/copilot'
-import {
-  XpertAgentExecutionStatusComponent,
-  XpertParametersCardComponent
-} from '@cloud/app/@shared/xpert'
+import { XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
+import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { of, Subscription } from 'rxjs'
 import { distinctUntilChanged, switchMap } from 'rxjs/operators'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
-import { XpertAgentOperationComponent } from '@cloud/app/@shared/agent'
 
 @Component({
   selector: 'xpert-studio-panel-agent-execution',
@@ -101,7 +98,7 @@ export class XpertStudioPanelAgentExecutionComponent {
     if (!agentExecutions) {
       return []
     }
-    const executions: {executions: IXpertAgentExecution[]; agent: IXpertAgent; expand: boolean;}[] = []
+    const executions: { executions: IXpertAgentExecution[]; agent: IXpertAgent; expand: boolean }[] = []
     Object.keys(agentExecutions).forEach((key) => {
       executions.push({
         executions: agentExecutions[key],
@@ -141,11 +138,14 @@ export class XpertStudioPanelAgentExecutionComponent {
       this.clearStatus()
     })
 
-    effect(() => {
-      if (this.execution()) {
-        this.parameterValue.set(this.execution().inputs)
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.execution()) {
+          this.parameterValue.set(this.execution().inputs)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   clearStatus() {
@@ -157,7 +157,9 @@ export class XpertStudioPanelAgentExecutionComponent {
   onKeyEnter(param: Event) {
     const event = param as KeyboardEvent
     if (event.code === 'Enter' && !event.isComposing) {
-      this.startRunAgent()
+      if (this.input()?.trim()) {
+        this.startRunAgent()
+      }
     }
   }
 
@@ -172,9 +174,8 @@ export class XpertStudioPanelAgentExecutionComponent {
       .chatAgent({
         input: {
           ...(this.parameterValue() ?? {}),
-          input: this.input()
+          input: this.input().trim()
         },
-        // agent: this.xpertAgent(),
         agentKey: this.xpertAgent().key,
         xpertId: this.xpert().id,
         executionId,
@@ -219,6 +220,11 @@ export class XpertStudioPanelAgentExecutionComponent {
   stopAgent() {
     this.#agentSubscription?.unsubscribe()
     this.loading.set(false)
+    this.executionService.conversation.update((state) => ({
+        ...state,
+        status: XpertAgentExecutionStatusEnum.ERROR,
+        error: 'Aborted by user'
+      }))
   }
 
   getAgent(key: string): IXpertAgent {
@@ -248,8 +254,9 @@ export class XpertStudioPanelAgentExecutionComponent {
 }
 
 export function processEvents(
-  event: {type: ChatMessageTypeEnum; event?: ChatMessageEventTypeEnum; data: any},
-  executionService: XpertExecutionService) {
+  event: { type: ChatMessageTypeEnum; event?: ChatMessageEventTypeEnum; data: any },
+  executionService: XpertExecutionService
+) {
   switch (event.event) {
     case ChatMessageEventTypeEnum.ON_CONVERSATION_START: {
       executionService.conversation.update((state) => ({
@@ -324,7 +331,7 @@ export function processEvents(
       break
     }
     default: {
-      console.log(`未处理的事件：`, event)
+      console.log(`Unprocessed chat events:`, event)
     }
   }
 }

@@ -2,6 +2,14 @@
   <div class="grow">
   </div>
 
+  <a [href]="helpUrl()"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="group inline-flex items-center text-sm mr-2 hover:underline text-primary-400 hover:text-primary-600">
+    {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+    <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+    <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+  </a>
   <div class="flex rounded-lg bg-gray-50 hover:bg-gray-50 py-2 items-center flex-shrink-0 mr-2 w-52 sm:w-80">
     <div class="flex items-center flex-grow h-5">
       <div class="ml-2 border border-gray-200 border-solid flex-shrink-0 px-2 py-0.5 rounded-[6px] text-gray-500 text-sm">

@@ -119,7 +119,7 @@ export function createCodeNode(
 								const type = isNil(result[output.name]) ? 'nil' : typeof result[output.name]
 								switch (output.type) {
 									case XpertParameterTypeEnum.STRING: {
-										if (type !== 'string') {
+										if (type !== 'string' && type !== 'nil') {
 											throw new Error(
 												`Output variable "${output.name}" expects a string, but received: ${type}`
 											)
@@ -127,7 +127,7 @@ export function createCodeNode(
 										break
 									}
 									case XpertParameterTypeEnum.NUMBER: {
-										if (type !== 'number') {
+										if (type !== 'number' && type !== 'nil') {
 											throw new Error(
 												`Output variable "${output.name}" expects a number, but received: ${type}`
 											)
@@ -135,7 +135,7 @@ export function createCodeNode(
 										break
 									}
 									case XpertParameterTypeEnum.BOOLEAN: {
-										if (type !== 'boolean') {
+										if (type !== 'boolean' && type !== 'nil') {
 											throw new Error(
 												`Output variable "${output.name}" expects a boolean, but received: ${type}`
 											)
@@ -143,7 +143,7 @@ export function createCodeNode(
 										break
 									}
 									case XpertParameterTypeEnum.OBJECT: {
-										if (type !== 'object') {
+										if (type !== 'object' && type !== 'nil') {
 											throw new Error(
 												`Output variable "${output.name}" expects an object, but received: ${type}`
 											)

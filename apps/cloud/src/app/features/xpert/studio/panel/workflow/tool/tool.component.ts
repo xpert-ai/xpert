@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -22,6 +22,7 @@ import {
   XpertService,
   XpertToolService
 } from 'apps/cloud/src/app/@core'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
@@ -48,7 +49,9 @@ import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
     ClipboardModule,
     CdkMenuModule,
     MatTooltipModule,
+    MatSlideToggleModule,
     TranslateModule,
+    NgmDensityDirective,
     NgmI18nPipe,
     EmojiAvatarComponent,
     XpertStudioToolsetMenuComponent,
@@ -92,6 +95,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   readonly parameterVariable = attrModel(this.toolEntity, 'parameterVariable')
   readonly parameters = attrModel(this.toolEntity, 'parameters')
   readonly errorHandling = attrModel(this.toolEntity, 'errorHandling')
+  readonly omitBlankValues = attrModel(this.toolEntity, 'omitBlankValues')
 
   // Refresh toolset details
   readonly toolsetDetail = derivedAsync(() => {
@@ -124,15 +128,6 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   readonly xpertCopilotModel = computed(() => this.xpert()?.copilotModel)
 
   readonly expandOutputVariables = signal(false)
-
-  readonly #variables = myRxResource({
-    request: () => this.varOptions(),
-    loader: ({ request }) => {
-      return request ? this.xpertAPI.getNodeVariables(request) : of(null)
-    }
-  })
-  readonly loading = computed(() => this.#variables.status() === 'loading')
-  readonly variables = this.#variables.value
 
   constructor() {
     super()

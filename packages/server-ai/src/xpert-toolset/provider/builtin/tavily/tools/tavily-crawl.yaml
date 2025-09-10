@@ -1,0 +1,160 @@
+identity:
+  name: tavily_crawl
+  author: Xpert AI
+  label:
+    en_US: Tavily Crawl
+    zh_Hans: Tavily Crawl
+    pt_BR: Tavily Crawl
+description:
+  human:
+    en_US: "A powerful web crawler that initiates a structured web crawl starting from a specified base URL. The crawler uses a BFS Depth: refering to the number of link hops from the root URL. A page directly linked from the root is at BFS depth 1, regardless of its URL structure. You can control how deep and wide it goes, and guide it to focus on specific sections of the site."
+parameters:
+  - name: url
+    type: string
+    required: true
+    label:
+      en_US: URL to crawl
+      zh_Hans: 要爬取的URL
+      pt_BR: URL para rastrear
+    human_description:
+      en_US: The URL to start crawling from
+      zh_Hans: 开始爬取的URL
+      pt_BR: O URL a partir do qual começar o rastreamento
+    llm_description: URL to crawl
+    form: form
+  - name: instructions
+    type: string
+    required: false
+    label:
+      en_US: Crawler Instructions
+      zh_Hans: 爬虫指令
+      pt_BR: Instruções do Rastreador
+    human_description:
+      en_US: Natural language instructions for the crawler, e.g., 'Python SDK'
+      zh_Hans: 爬虫的自然语言指令，例如“Python SDK”
+      pt_BR: Instruções em linguagem natural para o rastreador, por exemplo, 'Python SDK'
+    llm_description: Natural language instructions for the crawler
+    form: form
+  - name: selectPaths
+    type: array
+    required: false
+    label:
+      en_US: Select Paths
+      zh_Hans: 选择路径
+      pt_BR: Selecionar Caminhos
+    human_description:
+      en_US: Regex patterns to select only URLs with specific path patterns, e.g., ['/api/v1.*']
+      zh_Hans: 用于选择具有特定路径模式的URL的正则表达式，例如 ['/api/v1.*']
+      pt_BR: Padrões regex para selecionar apenas URLs com padrões de caminho específicos, por exemplo, ['/api/v1.*']
+    llm_description: Regex patterns to select URLs with specific path patterns
+    form: form
+    items:
+      type: string
+  - name: selectDomains
+    type: array
+    required: false
+    label:
+      en_US: Select Domains
+      zh_Hans: 选择域
+      pt_BR: Selecionar Domínios
+    human_description:
+      en_US: Regex patterns to select only URLs from specific domains or subdomains, e.g., ['^docs\\.example\\.com$']
+      zh_Hans: 用于选择特定域或子域的URL的正则表达式，例如 ['^docs\\.example\\.com$']
+      pt_BR: Padrões regex para selecionar apenas URLs de domínios ou subdomínios específicos, por exemplo, ['^docs\\.example\\.com$']
+    llm_description: Regex patterns to select URLs from specific domains or subdomains
+    form: form
+    items:
+      type: string
+  - name: excludePaths
+    type: array
+    required: false
+    label:
+      en_US: Exclude Paths
+      zh_Hans: 排除路径
+      pt_BR: Excluir Caminhos
+    human_description:
+      en_US: Regex patterns to exclude URLs with specific path patterns, e.g., ['/private/.*', '/admin/.*']
+      zh_Hans: 用于排除具有特定路径模式的URL的正则表达式，例如 ['/private/.*', '/admin/.*']
+      pt_BR: Padrões regex para excluir URLs com padrões de caminho específicos, por exemplo, ['/private/.*', '/admin/.*']
+    llm_description: Regex patterns to exclude URLs with specific path patterns
+    form: form
+    items:
+      type: string
+  - name: excludeDomains
+    type: array
+    required: false
+    label:
+      en_US: Exclude Domains
+      zh_Hans: 排除域
+      pt_BR: Excluir Domínios
+    human_description:
+      en_US: Regex patterns to exclude specific domains or subdomains from crawling, e.g., ['^private\\.example\\.com$']
+      zh_Hans: 用于排除特定域或子域的正则表达式，例如 ['^private\\.example\\.com$']
+      pt_BR: Padrões regex para excluir domínios ou subdomínios específicos do rastreamento, por exemplo, ['^private\\.example\\.com$']
+    llm_description: Regex patterns to exclude specific domains or subdomains from crawling
+    form: form
+    items:
+      type: string
+  - name: allowExternal
+    type: boolean
+    required: false
+    label:
+      en_US: Allow External Domains
+      zh_Hans: 允许外部域
+      pt_BR: Permitir Domínios Externos
+    human_description:
+      en_US: Whether to allow following links that go to external domains
+      zh_Hans: 是否允许跟踪指向外部域的链接
+      pt_BR: Se deve permitir seguir links que levam a domínios externos
+    llm_description: Whether to allow following links to external domains
+    form: form
+    options:
+      - value: 'true'
+        label:
+          en_US: 'Yes'
+          zh_Hans: 是
+          pt_BR: 'Sim'
+      - value: 'false'
+        label:
+          en_US: 'No'
+          zh_Hans: 否
+          pt_BR: 'Não'
+    default: 'false'
+  - name: categories
+    type: array
+    required: false
+    label:
+      en_US: Categories
+      zh_Hans: 类别
+      pt_BR: Categorias
+    human_description:
+      en_US: Filter URLs using predefined categories like 'Documentation', 'Blogs', etc.
+      zh_Hans: 使用预定义类别（如“文档”、“博客”等）过滤URL
+      pt_BR: Filtrar URLs usando categorias predefinidas como 'Documentação', 'Blogs', etc.
+    llm_description: Predefined categories to filter URLs
+    form: form
+    items:
+      type: string
+      enum:
+        - Documentation
+        - Blog
+        - Blogs
+        - Community
+        - About
+        - Contact
+        - Privacy
+        - Terms
+        - Status
+        - Pricing
+        - Enterprise
+        - Careers
+        - E-Commerce
+        - Authentication
+        - Developer
+        - Developers
+        - Solutions
+        - Partners
+        - Downloads
+        - Media
+        - Events
+        - People

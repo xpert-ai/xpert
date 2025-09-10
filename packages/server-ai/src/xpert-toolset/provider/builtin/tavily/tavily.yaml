@@ -29,3 +29,18 @@ credentials_for_provider:
       zh_Hans: 从 TavilyApi 获取您的 Tavily API key
       pt_BR: Get your Tavily API key from Tavily
     url: https://docs.tavily.com/docs/welcome
+  maxResults:
+    type: number
+    default: 5
+    label:
+      en_US: Max Results
+      zh_Hans: 最大结果数
+      pt_BR: Max Results
+    placeholder:
+      en_US: Please input max results
+      zh_Hans: 请输入最大结果数
+      pt_BR: Please input max results
+    help:
+      en_US: "The maximum number of results to return (default: 5)"
+      zh_Hans: "要返回的最大结果数（默认值：5）"
+      pt_BR: "The maximum number of results to return (default: 5)"

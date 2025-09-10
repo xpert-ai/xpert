@@ -23,6 +23,10 @@ export class XpertAgentExecutionService extends OrganizationBaseCrudService<IXpe
     })
   }
 
+  getOneState(id: string) {
+    return this.httpClient.get<IXpertAgentExecution>(this.apiBaseUrl + `/${id}/state`)
+  }
+
   findAllByXpertAgent(xpertId: string, agentKey: string, options: PaginationParams<IXpertAgentExecution>) {
     return this.httpClient.get<{ items: IXpertAgentExecution[] }>(
       this.apiBaseUrl + `/xpert/${xpertId}/agent/${agentKey}`,

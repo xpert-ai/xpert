@@ -283,13 +283,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							try {
 								// Record Execution
 								const timeEnd = Date.now()
-								const entity =
+
+								const entity = _execution?.status === XpertAgentExecutionStatusEnum.ERROR ||
 									status === XpertAgentExecutionStatusEnum.ERROR
 										? {
 												id: executionId,
 												elapsedTime: timeEnd - timeStart,
-												status,
-												error,
+												status: XpertAgentExecutionStatusEnum.ERROR,
+												error: _execution?.error || error,
 												outputs: {
 													output: result
 												}

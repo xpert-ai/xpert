@@ -1,0 +1,76 @@
+identity:
+  name: tavily_extract
+  author: Xpert AI
+  label:
+    en_US: Tavily Extract
+    zh_Hans: Tavily Extract
+    pt_BR: Tavily Extract
+description:
+  human:
+    en_US: "Extracts comprehensive content from web pages based on provided URLs. This tool retrieves raw text of a web page, with an option to include images. It supports two extraction depths: 'basic' for standard text extraction and 'advanced' for a more comprehensive extraction with higher success rate. Ideal for use cases such as content curation, data ingestion for NLP models, and automated information retrieval, this endpoint seamlessly integrates into your content processing pipeline. Input should be a list of one or more URLs."
+parameters:
+  - name: urls
+    type: array
+    required: true
+    label:
+      en_US: URLs to Extract
+      zh_Hans: 要提取的URL列表
+      pt_BR: URLs para Extração
+    human_description:
+      en_US: List of URLs to extract content from
+      zh_Hansважный: Список URL-адресов для извлечения содержимого
+      pt_BR: Lista de URLs para extrair conteúdo
+    llm_description: List of URLs to extract
+    form: form
+    items:
+      type: string
+  - name: extractDepth
+    type: select
+    required: false
+    label:
+      en_US: Extraction Depth
+      zh_Hans: 提取深度
+      pt_BR: Profundidade de Extração
+    human_description:
+      en_US: Controls the thoroughness of web content extraction. Use 'basic' for faster extraction of main text content. Use 'advanced' (default) to retrieve comprehensive content including tables and embedded elements. Always use 'advanced' for LinkedIn and YouTube URLs for optimal results. Better for complex websites but may increase response time.
+      zh_Hans: 控制网页内容提取的彻底性。使用“基本”以快速提取主要文本内容。使用“高级”（默认）以检索包括表格和嵌入元素的全面内容。对于LinkedIn和YouTube URL始终使用“高级”以获得最佳结果。适用于复杂网站，但可能会增加响应时间。
+      pt_BR: Controla a profundidade da extração de conteúdo da web. Use 'básico' para extração mais rápida do conteúdo de texto principal. Use 'avançado' (padrão) para recuperar conteúdo abrangente, incluindo tabelas e elementos incorporados. Sempre use 'avançado' para URLs do LinkedIn e YouTube para melhores resultados. Melhor para sites complexos, mas pode aumentar o tempo de resposta.
+    llm_description: Controls the thoroughness of web content extraction
+    form: form
+    options:
+      - value: basic
+        label:
+          en_US: Basic
+          zh_Hans: 基本
+          pt_BR: Básico
+      - value: advanced
+        label:
+          en_US: Advanced
+          zh_Hans: 高级
+          pt_BR: Avançado
+    default: advanced
+  - name: includeImages
+    type: boolean
+    required: false
+    label:
+      en_US: Include Images
+      zh_Hans: 包含图片
+      pt_BR: Incluir Imagens
+    human_description:
+      en_US: Determines whether to extract and include images from the source URLs. Set to True when visualizations are needed for better context or understanding. Default is False (extracts text content only).
+      zh_Hans: 确定是否从源URL中提取并包含图片。当需要可视化以获得更好的上下文或理解时，设置为True。默认值为False（仅提取文本内容）。
+      pt_BR: Determina se deve extrair e incluir imagens dos URLs de origem. Defina como True quando visualizações forem necessárias para melhor contexto ou entendimento. O padrão é False (extrai apenas conteúdo de texto).
+    llm_description: Whether to extract and include images from the source URLs
+    form: form
+    options:
+      - value: 'true'
+        label:
+          en_US: 'Yes'
+          zh_Hans: 是
+          pt_BR: 'Sim'
+      - value: 'false'
+        label:
+          en_US: 'No'
+          zh_Hans: 否
+          pt_BR: 'Não'
+    default: 'false'

@@ -1,6 +1,6 @@
 import { PromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { END } from '@langchain/langgraph'
+import { Annotation, END } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
@@ -13,10 +13,17 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage, isBlank } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { omitBy } from 'lodash'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import {
+	_BaseToolset,
+	AgentStateAnnotation,
+	nextWorkflowNodes,
+	stateToParameters,
+	TWorkflowGraphNode
+} from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 
@@ -35,7 +42,7 @@ export function createToolNode(
 		environment: IEnvironment
 		conversationId: string
 	}
-) {
+): TWorkflowGraphNode {
 	const { commandBus, queryBus, xpertId, environment, conversationId } = params
 	const entity = node.entity as IWFNTool
 
@@ -62,9 +69,13 @@ export function createToolNode(
 
 				const stateEnv = stateToParameters(state, environment)
 
-				const parameters = await deepTransformValue(entity.parameters, async (v) => {
+				let parameters = await deepTransformValue(entity.parameters, async (v) => {
 					return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
 				})
+
+				if (entity.omitBlankValues) {
+					parameters = omitBy(parameters, isBlank)
+				}
 
 				const execution: IXpertAgentExecution = {
 					category: 'workflow',
@@ -83,23 +94,29 @@ export function createToolNode(
 						await toolset.initTools()
 						const tool = toolset.getTool(toolName)
 						try {
-							const result = await tool.invoke(parameters, config)
-							let resultJson = result
-							try {
-								resultJson = JSON.parse(result)
-							} catch (e) {
-								// ignore JSON parse error
+							let output = await tool.invoke(parameters, config)
+							let resultJson = null
+							if (typeof output === 'string') {
+								try {
+									resultJson = JSON.parse(output)
+								} catch (e) {
+									// ignore JSON parse error
+								}
+							} else {
+								resultJson = output
+								output = JSON.stringify(output, null, 2)
 							}
+
 							return {
 								state: {
 									[channelName(node.key)]: {
-										[WORKFLOW_TOOL_TEXT_CHANNEL]: result,
+										[WORKFLOW_TOOL_TEXT_CHANNEL]: output,
 										[WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
 										[WORKFLOW_TOOL_FILES_CHANNEL]: [],
 										[WORKFLOW_TOOL_ERROR_CHANNEL]: null
 									}
 								},
-								output: result
+								output: output
 							}
 						} catch (error) {
 							if (entity.errorHandling?.type === 'defaultValue') {
@@ -155,6 +172,20 @@ export function createToolNode(
 				)
 			}
 			return nextWorkflowNodes(graph, node.key, state)
+		},
+		channel: {
+			name: channelName(node.key),
+			annotation: Annotation<Record<string, unknown>>({
+				reducer: (a, b) => {
+					return b
+						? {
+								...a,
+								...b
+							}
+						: a
+				},
+				default: () => ({})
+			})
 		}
 	}
 }
@@ -202,7 +233,7 @@ export function toolOutputVariables(entity: IWorkflowNode) {
 
 /**
  * Recursively traverse an object and transform all string values
- * 
+ *
  * @param obj The object to process
  * @param x   The function to apply to string values
  * @returns   A new object with transformed string values
@@ -211,12 +242,12 @@ export function toolOutputVariables(entity: IWorkflowNode) {
 async function deepTransformValue<T>(obj: T, x: (val: string) => Promise<string>): Promise<T> {
 	if (typeof obj === 'string') {
 		// If it's a string, transform it directly
-		return await x(obj) as unknown as T
+		return (await x(obj)) as unknown as T
 	}
 
 	if (Array.isArray(obj)) {
 		// If it's an array, map each element recursively
-		return await Promise.all(obj.map((item) => deepTransformValue(item, x))) as unknown as T
+		return (await Promise.all(obj.map((item) => deepTransformValue(item, x)))) as unknown as T
 	}
 
 	if (obj !== null && typeof obj === 'object') {
@@ -224,7 +255,12 @@ async function deepTransformValue<T>(obj: T, x: (val: string) => Promise<string>
 		const result: Record<string, unknown> = {}
 		for (const key in obj) {
 			// Omit blank values
-			if (Object.prototype.hasOwnProperty.call(obj, key) && (obj[key] !== null && obj[key] !== undefined && obj[key] !== '')) {
+			if (
+				Object.prototype.hasOwnProperty.call(obj, key) &&
+				obj[key] !== null &&
+				obj[key] !== undefined &&
+				obj[key] !== ''
+			) {
 				result[key] = await deepTransformValue((obj as Record<string, unknown>)[key], x)
 			}
 		}

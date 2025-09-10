@@ -1,7 +1,7 @@
 <div class="w-full flex justify-start items-center px-3 pt-3 pb-2">
   <emoji-avatar [avatar]="xpert().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
   <div class="flex flex-col">
-    <span class="text-lg">{{xpert().name}}</span>
+    <span class="text-lg">{{xpert().title || xpert().name}}</span>
   </div>
 
   <div class="flex-1"></div>
@@ -40,18 +40,23 @@
 </div>
 
 <div class="w-full flex flex-col p-4 gap-4">
-  <div class="text-text-tertiary text-sm">
+  <div class="text-text-tertiary text-sm font-mono">
+    {{xpert().name}}
+  </div>
+  <div class="text-text-tertiary text-sm font-mono">
     {{xpert().description}}
   </div>
 
-  <div class="flex flex-col border border-solid border-divider-regular px-3 py-2 rounded-2xl text-sm text-text-secondary">
-    <div class="flex items-center text-gray-600">
-      <i class="ri-robot-2-line mr-1 text-lg"></i>
-      <span class="font-semibold uppercase">{{primaryAgent().title}}</span>
+  @if (!primaryAgent()?.options?.hidden) {
+    <div class="flex flex-col border border-solid border-divider-regular px-3 py-2 rounded-2xl text-sm text-text-secondary">
+      <div class="flex items-center text-gray-600">
+        <i class="ri-robot-2-line mr-1 text-lg"></i>
+        <span class="font-semibold uppercase">{{primaryAgent().title}}</span>
+      </div>
+      <div class="font-medium">{{primaryAgent().name || primaryAgent().key}}</div>
+      <div>{{primaryAgent().description}}</div>
     </div>
-    <div class="font-medium">{{primaryAgent().name || primaryAgent().key}}</div>
-    <div>{{primaryAgent().description}}</div>
-  </div>
+  }
 
   <copilot-model-select class="w-full" readonly
     [modelType]="eModelType.LLM"

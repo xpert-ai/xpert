@@ -7,7 +7,6 @@ import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
-import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
@@ -22,7 +21,7 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 		private readonly i18nService: I18nService
 	) {}
 
-	public async execute(command: CreateWNAnswerCommand) {
+	public async execute(command: CreateWNKnowledgeRetrievalCommand) {
 		const { graph, node } = command
 		const { environment } = command.options
 

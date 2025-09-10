@@ -1,6 +1,6 @@
 {
   "name": "@metad/ocap-xmla",
-  "version": "3.5.1",
+  "version": "3.5.3",
   "license": "AGPL-3.0",
   "scripts": {
     "docs": "yarn typedoc --out ./.docs"
@@ -8,7 +8,7 @@
   "main": "./src/index.js",
   "typings": "./src/index.d.ts",
   "peerDependencies": {
-    "@metad/ocap-core": "^2.7.0",
+    "@metad/ocap-core": ">=3.0.0",
     "debug": "^4.4.0",
     "i18next": "^23.14.0",
     "xmldom": "^0.6.0"

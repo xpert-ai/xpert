@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IfAnimation,
@@ -89,38 +89,25 @@ export class XpertStudioPanelWorkflowComponent {
   readonly node = input<TXpertTeamNode>()
 
   // States
+  readonly wfNode = linkedModel({
+      initialValue: null,
+      compute: () => this.node().entity as IWorkflowNode,
+      update: (value) => {
+        this.studioService.updateWorkflowNode(this.key(), () => value)
+      }
+    })
   readonly xpert = this.xpertStudioComponent.xpert
   readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly key = computed(() => this.node()?.key)
-  readonly wfNode = computed(() => this.node().entity as IWorkflowNode)
+  // readonly wfNode = computed(() => this.node().entity as IWorkflowNode)
   readonly type = computed(() => this.wfNode()?.type)
+
+  readonly title = attrModel(this.wfNode, 'title')
+  readonly description = attrModel(this.wfNode, 'description')
 
   readonly loading = signal(false)
 
-  get title() {
-    return this.wfNode().title
-  }
-  set title(value) {
-    this.studioService.updateBlock(this.key(), {
-      entity: {
-        ...this.wfNode(),
-        title: value
-      }
-    })
-  }
-
-  get description() {
-    return this.wfNode().description
-  }
-  set description(value) {
-    this.studioService.updateBlock(this.key(), {
-      entity: {
-        ...this.wfNode(),
-        description: value
-      }
-    })
-  }
 
   readonly testing = signal(false)
 

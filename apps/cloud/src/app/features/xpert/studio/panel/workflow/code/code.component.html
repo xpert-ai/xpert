@@ -19,19 +19,19 @@
     <div class="space-y-2">
       @for (param of inputs(); track i; let i = $index) {
         <div class="flex items-center space-x-1">
-          <div class="relative w-[120px]">
+          <div class="relative shrink-0 w-[120px]">
             <input class="w-full py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular" 
               [placeholder]=" 'PAC.Xpert.VariableName' | translate: {Default: 'Variable Name'}"
               [ngModel]="param.name"
               (ngModelChange)="updateInput(i, 'name', $event)"
             >
           </div>
-          <div class="grow cursor-pointer">
+          <div class="grow cursor-pointer overflow-hidden">
             <div class="!flex group/picker-trigger-wrap relative">
               <div class="border-gray-100 relative group/wrap flex items-center gap-1 w-full h-9 p-1 rounded-lg bg-components-input-bg-normal">
-                <div class="grow h-full mr-1">
+                <div class="grow h-full mr-1 overflow-hidden">
                   <xpert-state-variable-select
-                    [varOptions]="varOptions()"
+                    [variables]="variables()"
                     [ngModel]="param.variable"
                     (ngModelChange)="updateInput(i, 'variable', $event)"
                   />

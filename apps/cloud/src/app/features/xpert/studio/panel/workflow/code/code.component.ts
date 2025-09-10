@@ -95,6 +95,12 @@ export class XpertStudioPanelWorkflowCodeComponent extends XpertWorkflowBaseComp
       }
     },
     {
+      value: XpertParameterTypeEnum.BOOLEAN,
+      label: {
+        en_US: 'Boolean'
+      }
+    },
+    {
       value: 'object',
       label: {
         en_US: 'Object'

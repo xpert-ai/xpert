@@ -8,6 +8,10 @@
       <ngm-slash-svg class="" />
       <ngm-variable-svg class="w-4 h-4 text-primary-500" />
       <div class="text-sm text-primary-500">{{parameter.name}}</div>
+
+      @if (parameter.description) {
+        <i class="ri-information-line text-text-secondary ml-1 opacity-60 hover:opacity-100" [matTooltip]="parameter.description | i18n"></i>
+      }
     </div>
 
     @switch (parameter.type) {
@@ -53,11 +57,10 @@
 
       @case (eXpertParameterTypeEnum.SELECT) {
         <ngm-select class="flex-1"
-          [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
-          valueKey="key"
-          [disabled]="readonly()"
-          [selectOptions]="parameter.options" displayDensity="cosy"
-          [displayBehaviour]="eDisplayBehaviour.descriptionOnly" 
+          [placeholder]="(parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+          [readonly]="readonly()"
+          [nullable]="parameter.optional"
+          [selectOptions]="parameter.selectOptions"
           [ngModel]="getParameter(parameter.name)"
           (ngModelChange)="updateParameter(parameter.name, $event)"
         ></ngm-select>

@@ -463,7 +463,6 @@ team:
   copilotModel:
     modelType: llm
     model: gpt-4o
-    options: null
   knowledgebases: []
   toolsets:
     - id: a68ae2d8-9618-4ad7-84f2-62e3a086b609
@@ -874,6 +873,9 @@ nodes:
         - When doing web search, prefer to use the `task` tool in order to
         reduce context usage.
 
+
+        Finally, please provide the report file url to the user in the form of a markdown hyperlink.
+
         Please answer in language '{{sys.language}}'.
       promptTemplates: null
       parameters: null
@@ -936,6 +938,7 @@ nodes:
       type: task
       key: Task_nBMtpMCWkq
       title: Task
+      description: 任务集中分发与回收。
       descriptionPrefix: |-
         Launch a new agent to handle complex, multi-step tasks autonomously. 
 
@@ -1089,7 +1092,6 @@ nodes:
         greeting-responder agent"
 
         </example>
-      description:
     hash: 71a134414ad791e3cb6a8a1d8e6fb633803bfe1d8c867a4d3aa6a831ec308655
   - type: agent
     key: Agent_v0sgJngFW9
@@ -1354,10 +1356,10 @@ connections:
     from: Agent_j7XACkpWCX
     to: 4bd949a4-591a-4d35-bb5c-44316207e245
   - type: toolset
-    key: Agent_HTsgrKfKTR/4bd949a4-591a-4d35-bb5c-44316207e245
-    from: Agent_HTsgrKfKTR
-    to: 4bd949a4-591a-4d35-bb5c-44316207e245
-  - type: toolset
     key: Agent_v0sgJngFW9/4bd949a4-591a-4d35-bb5c-44316207e245
     from: Agent_v0sgJngFW9
     to: 4bd949a4-591a-4d35-bb5c-44316207e245
+  - type: toolset
+    key: Agent_v0sgJngFW9/6fbe5693-8ee5-4151-8f0d-395f8c675315
+    from: Agent_v0sgJngFW9
+    to: 6fbe5693-8ee5-4151-8f0d-395f8c675315

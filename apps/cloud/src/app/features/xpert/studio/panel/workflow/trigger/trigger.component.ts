@@ -1,5 +1,3 @@
-import { Clipboard } from '@angular/cdk/clipboard'
-import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
@@ -41,8 +39,6 @@ export class XpertWorkflowTriggerComponent extends XpertWorkflowBaseComponent {
   readonly studioService = inject(XpertStudioApiService)
   readonly toolService = inject(XpertToolService)
   readonly xpertAPI = inject(XpertService)
-  readonly #dialog = inject(Dialog)
-  readonly #clipboard = inject(Clipboard)
 
   // Inputs
   readonly entity = input<IWorkflowNode>()

@@ -41,7 +41,7 @@ export class XpertWorkflowConditionFormComponent {
 
   // Inputs
   readonly condition = model<TWFCaseCondition>()
-  readonly varOptions = input.required<TXpertVariablesOptions>()
+  // readonly varOptions = input.required<TXpertVariablesOptions>()
 
   // Outputs
   readonly deleted = output<void>()

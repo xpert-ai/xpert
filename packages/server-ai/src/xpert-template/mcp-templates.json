@@ -17,7 +17,8 @@
 				"tags": ["browser", "crawler", "productivity"],
 				"server": {
 					"type": "sse",
-					"url": "http://crawl4ai:11235/mcp/sse"
+					"url": "http://crawl4ai:11235/mcp/sse",
+					"toolNamePrefix": "mcp_crawl4ai"
 				},
 				"options": {
 					"disableToolDefault": true
@@ -543,7 +544,8 @@
 				"tags": ["browser", "crawler", "productivity"],
 				"server": {
 					"type": "sse",
-					"url": "http://crawl4ai:11235/mcp/sse"
+					"url": "http://crawl4ai:11235/mcp/sse",
+					"toolNamePrefix": "mcp_crawl4ai"
 				},
 				"options": {
 					"disableToolDefault": true
