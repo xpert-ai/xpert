@@ -15,7 +15,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectApiBaseUrl, routeAnimations } from '../../../../@core'
+import { injectApiBaseUrl, injectHelpWebsite, routeAnimations } from '../../../../@core'
 import { XpertComponent } from '../xpert.component'
 import { XpertDevelopApiKeyComponent } from './api-key/api-key.component'
 import customerApiDoc from './openapi.json'
@@ -34,6 +34,7 @@ export class XpertDevelopComponent {
   readonly #dialog = inject(Dialog)
   readonly #clipboard = inject(Clipboard)
   readonly apiBaseUrl = injectApiBaseUrl() + '/api/ai/'
+  readonly helpUrl = injectHelpWebsite('/docs/ai/xpert/develop')
 
   readonly swaggerUIContainer = viewChild('swaggeruiContainer', { read: ElementRef })
 
