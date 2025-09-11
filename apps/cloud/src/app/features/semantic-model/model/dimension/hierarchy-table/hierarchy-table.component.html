@@ -26,20 +26,21 @@
         <div class="flex items-center">
           @if (data.level === column.name) {
             @if (!last) {
-                <button mat-icon-button class="inline-block" (click)="toggleNode(data)">
-                    @if (data.expanded) {
-                      <mat-icon>expand_less</mat-icon>
-                    } @else {
-                      <mat-icon>expand_more</mat-icon>
-                    }
-                </button>
+              <button mat-icon-button class="inline-block" (click)="toggleNode(data)">
+                @if (data.expanded) {
+                  <mat-icon>expand_more</mat-icon>
+                } @else {
+                  <mat-icon>keyboard_arrow_right</mat-icon>
+                }
+              </button>
             }
             
             <ngm-display-behaviour class="flex-1" [option]="{
                 key: getValue(data.value, column.name),
                 caption: getValue(data.value, column.captionName)
               }"
-              [displayBehaviour]="displayBehaviour()"/>
+              [displayBehaviour]="displayBehaviour()"
+            />
           }
         </div>
       </td>
