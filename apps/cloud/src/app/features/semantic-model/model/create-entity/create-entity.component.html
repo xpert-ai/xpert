@@ -95,7 +95,7 @@
 </div>
 
 <div class="min-w-[400px] relative flex flex-col">
-  <div class="flex justify-start items-center gap-2 p-1">
+  <div class="flex justify-start items-center gap-2 p-2">
     <div class="relative w-[160px]">
       <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
       <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
@@ -212,14 +212,17 @@
                 >
                   {{column.visible ? 'visibility' : 'visibility_off'}}
                 </mat-icon>
-                <ngm-display-behaviour class="flex-1 ml-8" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId" />
+                <ngm-display-behaviour class="flex-1 ml-8" [option]="{key: column.name, caption: column.caption}"
+                  [highlight]="searchTerm()"
+                  displayBehaviour="descriptionAndId"
+                />
               </div>
             </mat-list-item>
           }
         </mat-list>
       </div>
     } @case(SemanticModelEntityType.VirtualCube) {
-      <div class="p-4 overflow-auto">
+      <div class="px-4 overflow-auto">
         <mat-selection-list [compareWith]="compareWithCube" [(ngModel)]="cubes">
           @for (cube of cubes$ | async; track cube.name) {
             <mat-list-option class="rounded-lg" [value]="cube">

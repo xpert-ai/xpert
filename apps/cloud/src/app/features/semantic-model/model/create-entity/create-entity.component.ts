@@ -290,6 +290,7 @@ export class ModelCreateEntityComponent {
         isMeasure: false
       }))
     )
+    this.cubes = []
   }
 
   onSubmit(event) {
