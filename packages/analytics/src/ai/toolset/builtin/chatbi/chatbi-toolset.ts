@@ -485,7 +485,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 						const results = limitDataResults(data, credentials)
 
-						return `The data are:\n${results}\n`
+						return `The chart answer has already been provided to the user and the data of query are:\n${results}\n`
 					} catch(err) {
 						throw new Error(getErrorMessage(err))
 					}

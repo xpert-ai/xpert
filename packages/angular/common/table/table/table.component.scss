@@ -39,6 +39,10 @@
     .cdk-cell.mat-mdc-table-sticky {
       @apply bg-components-panel-bg;
     }
+
+    .mat-mdc-paginator-page-size-label {
+      @apply hidden;
+    }
   }
 }
 
