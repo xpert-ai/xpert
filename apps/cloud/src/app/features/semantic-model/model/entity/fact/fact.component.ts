@@ -17,7 +17,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { nonBlank } from '@metad/core'
 import { injectConfirmOptions, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+import { debouncedSignal, effectAction } from '@metad/ocap-angular/core'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import {
   AggregationRole,
@@ -88,20 +88,37 @@ export class ModelCubeFactComponent {
   | Signals
   |--------------------------------------------------------------------------
   */
-  readonly dimensions = signal<Property[]>([])
-  readonly measures = signal<Property[]>([])
+  readonly _dimensions = signal<Property[]>([])
+  readonly _measures = signal<Property[]>([])
   readonly allVisible = signal(false)
   readonly loading = signal(false)
   readonly search = model<string>()
+  readonly searchTerm = debouncedSignal(this.search, 300)
+
+  readonly dimensions = computed(() => {
+    const term = this.searchTerm()?.toLowerCase()
+    if (term) {
+      return this._dimensions()?.filter((item) => item.name.toLowerCase().includes(term) || item.caption?.toLowerCase().includes(term))
+    }
+    return this._dimensions()
+  })
+
+  readonly measures = computed(() => {
+    const term = this.searchTerm()?.toLowerCase()
+    if (term) {
+      return this._measures()?.filter((item) => item.name.toLowerCase().includes(term) || item.caption?.toLowerCase().includes(term))
+    }
+    return this._measures()
+  })
   
 
   readonly visibleIndeterminate = computed(
     () =>
-      (this.dimensions().some((item) => item.visible) || this.measures().some((item) => item.visible)) &&
+      (this._dimensions().some((item) => item.visible) || this._measures().some((item) => item.visible)) &&
       !this.allVisible()
   )
   readonly visibleEmpty = computed(
-    () => !(this.dimensions().some((item) => item.visible) || this.measures().some((item) => item.visible))
+    () => !(this._dimensions().some((item) => item.visible) || this._measures().some((item) => item.visible))
   )
 
   readonly isXmla$ = this.modelService.modelType$.pipe(filter((modelType) => modelType === MODEL_TYPE.XMLA))
@@ -149,13 +166,13 @@ export class ModelCubeFactComponent {
         tap(() => this.loading.set(false)),
       )
     }),
-    filter(() => isEmpty(this.dimensions()) && isEmpty(this.measures())),
+    filter(() => isEmpty(this._dimensions()) && isEmpty(this._measures())),
     takeUntilDestroyed()
   ).subscribe((entityType) => {
-    this.dimensions.set(
+    this._dimensions.set(
       structuredClone(getEntityDimensions(entityType).map((item) => ({ ...item, dataType: 'dimension' })))
     )
-    this.measures.set(structuredClone(getEntityMeasures(entityType).map((item) => ({ ...item, dataType: 'measure' }))))
+    this._measures.set(structuredClone(getEntityMeasures(entityType).map((item) => ({ ...item, dataType: 'measure' }))))
   })
 
   constructor() {
@@ -166,14 +183,14 @@ export class ModelCubeFactComponent {
         const measures = this.entityService.tableMeasures()
 
         if (isEmpty(dimensions) && isEmpty(measures) && properties) {
-          this.dimensions.set(
+          this._dimensions.set(
             dimensions ??
               properties.filter(
                 (item) => item.role === AggregationRole.dimension && item.dataType?.toLowerCase() !== 'numeric'
               )
           )
 
-          this.measures.set(
+          this._measures.set(
             measures ??
               properties.filter(
                 (item) => item.role === AggregationRole.measure || item.dataType?.toLowerCase() === 'numeric'
@@ -186,7 +203,7 @@ export class ModelCubeFactComponent {
   }
 
   toggleDimVisible(property: Property, visible: boolean) {
-    this.dimensions.update((dimensions) => {
+    this._dimensions.update((dimensions) => {
       const index = dimensions.findIndex((item) => item === property)
       dimensions[index].visible = visible
       return [...dimensions]
@@ -194,7 +211,7 @@ export class ModelCubeFactComponent {
   }
 
   toggleMeasureVisible(property: Property, visible: boolean) {
-    this.measures.update((measures) => {
+    this._measures.update((measures) => {
       const index = measures.findIndex((item) => item === property)
       measures[index].visible = visible
       return [...measures]
@@ -222,8 +239,8 @@ export class ModelCubeFactComponent {
 
   async confirmOverwriteCube() {
     if (
-      !this.dimensions().filter((item) => item.visible).length &&
-      !this.measures().filter((item) => item.visible).length
+      !this._dimensions().filter((item) => item.visible).length &&
+      !this._measures().filter((item) => item.visible).length
     ) {
       this._toastrService.warning('PAC.MODEL.ENTITY.PleaseSelectFields', { Default: 'Please select fields!' })
       return false
@@ -254,7 +271,7 @@ export class ModelCubeFactComponent {
 
     const modelType = await firstValueFrom(this.modelService.modelType$)
 
-    const dimensions = this.dimensions()
+    const dimensions = this._dimensions()
       .filter((item) => item.visible)
       // Xmla 数据源的直接同步，sql 数据源的 1 生成 olap 维度 2 生成 sql 维度
       .map((item) =>
@@ -263,7 +280,7 @@ export class ModelCubeFactComponent {
           : newDimensionFromColumn(item, modelType === MODEL_TYPE.OLAP)
       )
 
-    const measures = this.measures()
+    const measures = this._measures()
       .filter((item) => item.visible)
       .map((measure) => {
         return {
@@ -282,12 +299,12 @@ export class ModelCubeFactComponent {
       measures
     })
     // Save current meta from data source
-    this.entityService.tableDimensions.set(this.dimensions())
-    this.entityService.tableMeasures.set(this.measures())
+    this.entityService.tableDimensions.set(this._dimensions())
+    this.entityService.tableMeasures.set(this._measures())
   }
 
   createDimension() {
-    const levels = this.dimensions().filter((item) => item.visible)
+    const levels = this._dimensions().filter((item) => item.visible)
     this.confirmOptions<{name: string; caption: string;}>({
       information: this.i18n.translate('PAC.MODEL.ENTITY.CreateDimension', {Default: 'Create an dimension'}),
       formFields: [
@@ -350,7 +367,7 @@ export class ModelCubeFactComponent {
       return
     }
 
-    const dimensions = this.dimensions()
+    const dimensions = this._dimensions()
       .filter((item) => item.visible)
       .map((dim) => {
         const dimension = pick(dim, '__id__', 'name', 'caption') as PropertyDimension
@@ -369,7 +386,7 @@ export class ModelCubeFactComponent {
         return dimension
       })
 
-    const measures = this.measures()
+    const measures = this._measures()
       .filter((item) => item.visible)
       .map(
         (measure) =>
@@ -388,13 +405,13 @@ export class ModelCubeFactComponent {
     this.entityService.event$.next({ type: 'dimension-created' })
 
     // Save current meta from data source: @todo Why???
-    this.entityService.tableDimensions.set(this.dimensions())
-    this.entityService.tableMeasures.set(this.measures())
+    this.entityService.tableDimensions.set(this._dimensions())
+    this.entityService.tableMeasures.set(this._measures())
   }
 
   toggleVisibleAll(visible: boolean) {
-    this.dimensions.update((dimensions) => dimensions.map((item) => ({ ...item, visible })))
-    this.measures.update((measures) => measures.map((item) => ({ ...item, visible })))
+    this._dimensions.update((dimensions) => dimensions.map((item) => ({ ...item, visible })))
+    this._measures.update((measures) => measures.map((item) => ({ ...item, visible })))
   }
 
   selectTableType(table: Table) {

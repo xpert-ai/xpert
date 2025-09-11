@@ -2,13 +2,17 @@
   <div class="flex items-center justify-between p-2">
     <span class="grow text-lg font-semibold">{{ 'PAC.MODEL.ENTITY.SourceFields' | translate: {Default: "Source Fields"} }}</span>
 
-    <!-- <div class="relative w-[160px]">
+    <div class="relative w-[160px]">
       <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
       <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[3px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
         [placeholder]="'PAC.MODEL.Search' | translate: {Default: 'Search'}"
         [(ngModel)]="search"
       >
-    </div> -->
+      @if (search()) {
+        <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+          (click)="search.set('')"></i>
+      }
+    </div>
   
     <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 ml-2 cursor-pointer z-20"
       (click)="close.emit()">
@@ -62,7 +66,7 @@
 
 <div [id]="eCdkDragDropContainers.FactTableDimensions" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col"
   cdkDropList
-  [cdkDropListData]="dimensions()"
+  [cdkDropListData]="_dimensions()"
   [cdkDropListEnterPredicate]="dropEnterPredicate"
   (cdkDropListDropped)="dropProperty($event)"
 >
@@ -73,7 +77,7 @@
         [cdkDragData]="property"
         (cdkDragReleased)="onDragReleased($event)">
         <mat-checkbox class="flex-1" [ngModel]="property.visible" (ngModelChange)="toggleDimVisible(property, $event)">
-          <ngm-entity-property class="flex-1" [property]="property" hiddenIcon></ngm-entity-property>
+          <ngm-entity-property class="flex-1" [property]="property" hiddenIcon [highlight]="search()" />
         </mat-checkbox>
 
         <span class="pac-data-type-tag ml-2 h-6 my-auto">{{property.dataType}}</span>
@@ -89,7 +93,7 @@
 
 <div [id]="eCdkDragDropContainers.FactTableMeasures" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col"
   cdkDropList
-  [cdkDropListData]="measures()"
+  [cdkDropListData]="_measures()"
   [cdkDropListEnterPredicate]="dropEnterPredicate"
   (cdkDropListDropped)="dropProperty($event)">
   <ul displayDensity="compact">
@@ -99,7 +103,7 @@
         [cdkDragData]="property"
         (cdkDragReleased)="onDragReleased($event)">
         <mat-checkbox class="flex-1" [ngModel]="property.visible" (ngModelChange)="toggleMeasureVisible(property, $event)">
-          <ngm-entity-property class="flex-1" [property]="property" hiddenIcon />
+          <ngm-entity-property class="flex-1" [property]="property" hiddenIcon [highlight]="search()" />
         </mat-checkbox>
 
         <span class="pac-data-type-tag ml-2 h-6 my-auto">{{property.dataType}}</span>
