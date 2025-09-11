@@ -82,10 +82,20 @@
         <ngm-splitter class="pac-model-hierarchy-content ngm-layout-container-secondary flex-1 h-full w-full" [type]="SplitterType.Vertical">
             <ngm-splitter-pane class="pac-model-hierarchy__preview flex flex-col justify-items-stretch items-stretch">
                 <mat-toolbar class="pac-sub-toolbar flex justify-between items-center" displayDensity="compact" >
-                    <div class="flex">
-                        <span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">
                             {{ 'PAC.MODEL.DIMENSION.DataPreview' | translate: {Default: 'Data Preview'} }}
                         </span>
+
+                        <div class="relative w-[160px]">
+                            <i class="ri-alarm-warning-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"
+                              [matTooltip]="'PAC.KEY_WORDS.Limit' | translate: {Default: 'Limit'}"></i>
+                            <input class="w-full appearance-none border border-transparent py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+                                type="number"
+                                [placeholder]="'PAC.MODEL.Limit' | translate: {Default: 'Limit'}"
+                                [(ngModel)]="limit"
+                            >
+                        </div>
                     </div>
                     <div class="flex items-center gap-4">
                       @if (viewMode() === 'tree') {
@@ -116,7 +126,7 @@
                             [columns]="columns()"
                             [data]="data()"
                             [paging]="true"
-                        ></ngm-table>
+                        />
                     }
                     @case('tree') {
                         <ngm-hierarchy-table class="flex-1 max-w-full" displayDensity="compact"
