@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Limit": "限制",
       "Help": "帮助",
       "LearnMore": "了解更多",
       "NameRequired": "名称必输",
@@ -681,6 +682,7 @@
       "Export": "导出",
       "Disable": "禁用",
       "Enable": "启用",
+      "Clear": "清空",
       "Pause": "暂停",
       "Add": "添加",
       "Apply": "应用",
@@ -965,6 +967,9 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "CreateVirtualCube": "创建虚拟数据集",
+      "CreateCube": "创建数据集",
+      "CreateDimension": "创建维度",
       "OpenModel": "打开模型",
       "OpenCube": "打开数据集",
       "CreatedModelWorkspace": "已创建的模型工作空间",

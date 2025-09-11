@@ -124,7 +124,7 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
     //OCAP Modules
     OcapCoreModule,
   ],
-  providers: [{provide: MatPaginatorIntl, useClass: MyCustomPaginatorIntl}],
+  // providers: [{provide: MatPaginatorIntl, useClass: MyCustomPaginatorIntl}],
 })
 export class NgmTableComponent {
   readonly #injector = inject(Injector)

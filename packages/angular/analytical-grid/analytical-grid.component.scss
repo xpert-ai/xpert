@@ -93,3 +93,9 @@
     justify-content: flex-end;
   }
 }
+
+:host::ng-deep {
+  .mat-mdc-paginator-page-size-label {
+    @apply hidden;
+  }
+}

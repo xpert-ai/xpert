@@ -296,7 +296,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
       shareReplay(1)
     )
 
-  public readonly columnAxes$: Observable<AnalyticalGridColumn[]> = this.analyticsService.selectResult().pipe(
+  readonly columnAxes$: Observable<AnalyticalGridColumn[]> = this.analyticsService.selectResult().pipe(
     filter(({ error }) => !error),
     withLatestFrom(this.analyticsService.selectEntityType()),
     map(([{ schema }, entityType]) => {
@@ -580,7 +580,9 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
       this.matRowColumns = compact(
         rowColumns.length
           ? [...rowColumns, ...pivotColumnNames[pivotColumnNames.length - 1]]
-          : [columnAxes[columnAxes.length - 1]?.dimension, ...pivotColumnNames[pivotColumnNames.length - 1]]
+          : [
+            // columnAxes[columnAxes.length - 1]?.dimension, 
+            ...pivotColumnNames[pivotColumnNames.length - 1]]
       )
 
       this.cdr.detectChanges()
@@ -651,7 +653,8 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
     ).subscribe((data) => {
       this.flatDataSource.data = data
     })
-    
+  
+
   constructor(
     private translateService: TranslateService,
     private cdr: ChangeDetectorRef,

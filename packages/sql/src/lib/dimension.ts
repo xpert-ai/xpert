@@ -587,6 +587,10 @@ export function queryDimension(
 
   statement = `SELECT ` + statement
 
+  if (options.paging?.top) {
+    statement += ` LIMIT ${options.paging.top}`
+  }
+
   return statement
 }
 

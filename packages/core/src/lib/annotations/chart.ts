@@ -184,14 +184,14 @@ export enum HeatmapVariant {
 export const isChartMapType = (toBe): toBe is ChartMapType => toBe?.type === 'GeoMap'
 
 export function getChartTrellis(chartAnnotation: ChartAnnotation): ChartDimension {
-  return chartAnnotation.dimensions.find((item) => item?.role === ChartDimensionRoleType.Trellis)
+  return chartAnnotation.dimensions?.find((item) => item?.role === ChartDimensionRoleType.Trellis)
 }
 export function getChartCategory(chartAnnotation: ChartAnnotation): ChartDimension {
   return (
-    chartAnnotation?.dimensions.find(
+    chartAnnotation?.dimensions?.find(
       (dimension) =>
         dimension?.role === ChartDimensionRoleType.Category || dimension?.role === ChartDimensionRoleType.Time
-    ) || chartAnnotation?.dimensions.find((dimension) => isNil(dimension?.role))
+    ) || chartAnnotation?.dimensions?.find((dimension) => isNil(dimension?.role))
   )
 }
 

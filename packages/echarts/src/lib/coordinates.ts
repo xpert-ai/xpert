@@ -2,7 +2,6 @@ import {
   PieVariant,
   getChartTrellis,
   getDimensionMemberCaption,
-  getEntityHierarchy,
   getPropertyHierarchy,
   isNil,
   mergeOptions,

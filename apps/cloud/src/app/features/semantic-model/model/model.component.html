@@ -156,6 +156,11 @@
               </button>
             </li>
           }
+          <div class="placeholder absolute inset-0 left-0 top-0 hidden justify-center items-center">
+            <div class="text-text-secondary">
+              {{ 'PAC.MODEL.CreateCube' | translate: {Default: 'Create cube'} }}
+            </div>
+          </div>
         </ul>
         <ul [id]="eCdkDragDropContainers.ShareDimensions" class="pac-cdk-drop__list min-h-[25px]"
           cdkDropList
@@ -185,6 +190,11 @@
               </button>
             </li>
           }
+          <div class="placeholder absolute inset-0 left-0 top-0 hidden justify-center items-center">
+            <div class="text-text-secondary">
+              {{ 'PAC.MODEL.CreateDimension' | translate: {Default: 'Create dimension'} }}
+            </div>
+          </div>
         </ul>
         <ul [id]="eCdkDragDropContainers.VirtualCubes" class="pac-cdk-drop__list min-h-[25px]"
           cdkDropList
@@ -214,54 +224,12 @@
               </button>
             </li>
           }
-        </ul>
-<!-- 
-        <mat-nav-list displayDensity="compact" disableRipple class="pac-cdk-drop__list"
-          id="pac-model-entities"
-          cdkDropList
-          [cdkDropListData]="entities$ | async"
-          (cdkDropListDropped)="drop($event)"
-          [cdkDropListEnterPredicate]="entityPredicate"
-        >
-          <div class="max-h-full overflow-hidden hover:overflow-y-auto">
-            @for (entity of entities$ | async; track entity.id) {
-              <a mat-list-item class="pac-model__nav-item relative"
-                [class.selected]="rla.isActive"
-                [routerLink]="[entity.type === SemanticModelEntityType.CUBE ? 'entity' : 'dimension', entity.id]"
-                routerLinkActive #rla="routerLinkActive"
-                cdkDrag
-                [cdkDragData]="entity"
-              >
-                @if (cube() === entity.name) {
-                  <i class="ri-star-fill" [matTooltip]="'PAC.MODEL.IsDefault' | translate: {Default: 'Is default'}"></i>
-                }
-                @switch (entity.type) {
-                  @case(SemanticModelEntityType.CUBE) {
-                    <mat-icon class="pac-model__nav-icon"
-                      displayDensity="compact" fontSet="material-icons-outlined">deployed_code</mat-icon>
-                  }
-                  @case(SemanticModelEntityType.DIMENSION) {
-                    <mat-icon class="pac-model__nav-icon"
-                      displayDensity="compact" fontSet="material-icons-outlined">account_tree</mat-icon>
-                  }
-                }
-                  
-                <ngm-display-behaviour class="flex-1 overflow-hidden"
-                  [option]="{ key: entity.name, caption: entity.caption }"
-                />
-
-                <button mat-icon-button displayDensity="compact" class="pac-model__nav-action"
-                  [cdkMenuTriggerFor]="entityMenu"
-                  [cdkMenuTriggerData]="{entity: entity}"
-                  #mt="cdkMenuTriggerFor"
-                  [class.active]="mt.isOpen()"
-                  (click)="$event.stopPropagation();$event.preventDefault()">
-                  <mat-icon>more_vert</mat-icon>
-                </button>
-              </a>
-            }
+          <div class="placeholder absolute inset-0 left-0 top-0 hidden justify-center items-center">
+            <div class="text-text-secondary">
+              {{ 'PAC.MODEL.CreateVirtualCube' | translate: {Default: 'Create virtual cube'} }}
+            </div>
           </div>
-        </mat-nav-list> -->
+        </ul>
       </ngm-splitter-pane>
 
       <ngm-splitter-pane class="relative flex flex-col justify-start items-stretch">

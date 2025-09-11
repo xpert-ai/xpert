@@ -1,5 +1,5 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
-import { Component, Inject, effect, inject, signal } from '@angular/core'
+import { Component, Inject, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
 import { nonNullable } from '@metad/core'
@@ -9,7 +9,7 @@ import { debounceTime, distinctUntilChanged, map, startWith, switchMap, tap } fr
 import { SemanticModelService } from '../model.service'
 import { MODEL_TYPE, SemanticModelEntityType } from '../types'
 import { uuid } from '@cloud/app/@core'
-import { ISelectOption } from '@metad/ocap-angular/core'
+import { debouncedSignal, ISelectOption } from '@metad/ocap-angular/core'
 import { CommonModule } from '@angular/common'
 import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
@@ -107,7 +107,17 @@ export class ModelCreateEntityComponent {
 
   readonly primaryKey = signal<string>(null)
   readonly columns = signal<CreateEntityColumnType[]>([])
-  // columns: CreateEntityColumnType[] = []
+  readonly searchTerm = model<string>('')
+  readonly #search = debouncedSignal(this.searchTerm, 300)
+
+  readonly filteredColumns = computed(() => {
+    const search = this.#search()?.toLowerCase()
+    if (!search) {
+      return this.columns()
+    }
+    return this.columns()?.filter((column) => column.name.toLowerCase().includes(search) || column.caption?.toLowerCase().includes(search))
+  })
+  
   cubes: Cube[] = []
   table = new FormControl(null)
   type = new FormControl<SemanticModelEntityType>(null, [Validators.required])
@@ -270,6 +280,17 @@ export class ModelCreateEntityComponent {
     if (value) {
       column.isDimension = false
     }
+  }
+
+  clearSelection() {
+    this.columns.update((columns) =>
+      columns.map((column) => ({
+        ...column,
+        isDimension: false,
+        isMeasure: false
+      }))
+    )
+    this.cubes = []
   }
 
   onSubmit(event) {

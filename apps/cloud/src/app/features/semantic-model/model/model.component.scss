@@ -166,3 +166,13 @@ list-content-loader {
 .cdk-virtual-scrollable {
   @apply overflow-hidden hover:overflow-auto;
 }
+
+// Style for DropList
+.pac-cdk-drop__list.cdk-drop-list {
+  &.cdk-drop-list-receiving, &.cdk-drop-list-dragging {
+    @apply min-h-[100px];
+    .placeholder {
+      display: flex;
+    }
+  }
+}

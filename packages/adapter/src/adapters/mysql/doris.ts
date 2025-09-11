@@ -16,13 +16,16 @@ export interface DorisAdapterOptions extends MysqlAdapterOptions {
   apiPort?: number
 }
 
+const DORIS_DEFAULT_PORT = 9030
+const DORIS_DEFAULT_API_PORT = 8030
+
 export class DorisRunner extends BaseSQLQueryRunner<DorisAdapterOptions> {
   readonly name: string = 'Doris'
   readonly type: string = DORIS_TYPE
 
   readonly jdbcDriver = 'com.mysql.jdbc.Driver'
   jdbcUrl(schema?: string) {
-    return `jdbc:mysql://${this.options.host}:${this.options.port}/${schema}?user=${encodeURIComponent(
+    return `jdbc:mysql://${this.options.host}:${this.options.port || DORIS_DEFAULT_PORT}/${schema}?user=${encodeURIComponent(
       this.options.username as string
     )}&password=${encodeURIComponent(this.options.password as string)}`
   }
@@ -32,11 +35,11 @@ export class DorisRunner extends BaseSQLQueryRunner<DorisAdapterOptions> {
       type: 'object',
       properties: {
         host: { type: 'string' },
-        port: { type: 'number', default: 9030 },
+        port: { type: 'number', default: DORIS_DEFAULT_PORT },
         username: { type: 'string', title: 'Username' },
         password: { type: 'string', title: 'Password' },
         apiHost: { type: 'string' },
-        apiPort: { type: 'number', default: 8030 },
+        apiPort: { type: 'number', default: DORIS_DEFAULT_API_PORT },
         version: { type: 'number', default: 0 },
         // 目前 catalog 用于指定数据库，Doris 的 catalog 只支持默认
         catalog: { type: 'string', title: 'Database' },

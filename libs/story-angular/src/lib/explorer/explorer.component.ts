@@ -249,9 +249,9 @@ export class StoryExplorerComponent {
         )
       },
       {
-        dimensions: this.rows().map((row) => ({
+        dimensions: this.rows()?.map((row) => ({
           ...row
-        })),
+        })) ?? [],
         measures: [...this.columns()]
       },
       5
@@ -282,7 +282,7 @@ export class StoryExplorerComponent {
       return property?.caption
     }).filter(nonBlank).join(` ${this.i18n()?.And ?? 'and'} `)
     
-    const by = this.rows().map((row) => {
+    const by = this.rows()?.map((row) => {
       const property = getEntityLevel(this.entityType(), row)
       return property?.caption
     }).filter(nonBlank).join(` ${this.i18n()?.And ?? 'and'} `)

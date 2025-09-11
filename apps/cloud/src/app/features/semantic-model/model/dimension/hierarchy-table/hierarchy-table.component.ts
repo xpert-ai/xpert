@@ -1,14 +1,16 @@
 import { Component, afterNextRender, booleanAttribute, effect, input, signal, viewChild } from '@angular/core'
-import { MatPaginator, MatPaginatorDefaultOptions } from '@angular/material/paginator'
-import { MatTableDataSource } from '@angular/material/table'
+import { MatPaginator, MatPaginatorDefaultOptions, MatPaginatorModule } from '@angular/material/paginator'
+import { MatTableDataSource, MatTableModule } from '@angular/material/table'
 import { NgmDisplayBehaviourComponent, TableColumn } from '@metad/ocap-angular/common'
-import { DisplayDensity } from '@metad/ocap-angular/core'
+import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { serializeMemberCaption } from '@metad/ocap-sql'
 import { findIndex, get } from 'lodash-es'
 import { HierarchyTableDataType } from '../types'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
+import { CommonModule } from '@angular/common'
+import { TranslateModule } from '@ngx-translate/core'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
 
 type LevelTableColumn = TableColumn & { captionName: string }
 
@@ -21,7 +23,16 @@ type LevelTableColumn = TableColumn & { captionName: string }
     class: 'ngm-hierarchy-table'
   },
   providers: [],
-  imports: [SharedModule, MaterialModule, NgmDisplayBehaviourComponent]
+  imports: [
+    CommonModule,
+    MatTableModule,
+    MatIconModule,
+    MatButtonModule,
+    MatPaginatorModule,
+    TranslateModule,
+    DensityDirective,
+    NgmDisplayBehaviourComponent
+  ]
 })
 export class HierarchyTableComponent<T> {
   /**
