@@ -604,31 +604,33 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			}
 		// In parallel: return to the front-end display and back-end data retrieval
 		if (answer.visualType === 'KPI') {
-			subscriber?.next({
-				data: {
-					type: ChatMessageTypeEnum.MESSAGE,
+			for (const measure of chartAnnotation.measures) {
+				subscriber?.next({
 					data: {
-						id: shortuuid(),
-						type: 'component',
+						type: ChatMessageTypeEnum.MESSAGE,
 						data: {
-							category: 'Dashboard',
-							type: 'KPI',
-							dataSettings: {
-								...omit(dataSettings, 'chartAnnotation'),
-								KPIAnnotation: {
-									DataPoint: {
-										Value: chartAnnotation.measures[0]
+							id: shortuuid(),
+							type: 'component',
+							data: {
+								category: 'Dashboard',
+								type: 'KPI',
+								dataSettings: {
+									...omit(dataSettings, 'chartAnnotation'),
+									KPIAnnotation: {
+										DataPoint: {
+											Value: measure
+										}
 									}
-								}
-							} as DataSettings,
-							slicers,
-							title: answer.preface,
-						} as TMessageComponent,
-						xpertName,
-						agentKey
-					} as TMessageContentComponent
-				}
-			} as MessageEvent)
+								} as DataSettings,
+								slicers,
+								title: answer.preface,
+							} as TMessageComponent,
+							xpertName,
+							agentKey
+						} as TMessageContentComponent
+					}
+				} as MessageEvent)
+			}
 		} else {
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				id: tool_call_id,
