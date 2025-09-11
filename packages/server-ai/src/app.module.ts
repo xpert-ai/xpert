@@ -34,9 +34,6 @@ import { XpertWorkspaceModule } from './xpert-workspace'
 import { CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
-import { IntegrationRAGFlowModule } from './integration-ragflow'
-import { IntegrationDifyModule } from './integration-dify'
-import { IntegrationFastGPTModule } from './integration-fastgpt'
 import { EnvironmentModule } from './environment'
 
 @Module({
@@ -72,9 +69,6 @@ import { EnvironmentModule } from './environment'
 		IntegrationLarkModule,
 		IntegrationFirecrawlModule,
 		IntegrationGithubModule,
-		IntegrationRAGFlowModule,
-		IntegrationDifyModule,
-		IntegrationFastGPTModule,
 		RagVStoreModule,
 		RagWebModule,
 		SandboxModule,

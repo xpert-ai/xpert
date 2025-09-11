@@ -2,7 +2,6 @@ import { Component, computed, effect, inject, signal, viewChild } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -23,7 +22,6 @@ import {
   getErrorMessage,
   injectApiBaseUrl,
   injectTranslate,
-  INTEGRATION_PROVIDERS,
   IntegrationService,
   routeAnimations,
   Store,
@@ -68,18 +66,18 @@ export class IntegrationComponent implements IsDirty {
   DisplayBehaviour = DisplayBehaviour
   pro = environment.pro
 
-  readonly integrationService = inject(IntegrationService)
+  readonly integrationAPI = inject(IntegrationService)
   readonly #toastr = inject(ToastrService)
   readonly #store = inject(Store)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly #dialog = inject(MatDialog)
   readonly #translate = inject(TranslateService)
   readonly apiBaseUrl = injectApiBaseUrl()
   readonly i18n = new NgmI18nPipe()
   readonly integrationI18n = injectTranslate('PAC.Integration')
 
   readonly paramId = injectParams('id')
+  readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
 
   // Childs
   readonly optionsForm = viewChild('optionsForm', {read: ParameterFormComponent})
@@ -89,14 +87,14 @@ export class IntegrationComponent implements IsDirty {
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
 
-  readonly providers = signal(
-    Object.keys(INTEGRATION_PROVIDERS).map((name) => ({
-      value: name,
-      label: INTEGRATION_PROVIDERS[name].label,
-      description: INTEGRATION_PROVIDERS[name].description,
-      avatar: INTEGRATION_PROVIDERS[name].avatar,
+  readonly providers = computed(() => {
+    return this.#providers()?.map((provider) => ({
+      value: provider.name,
+      label: provider.label,
+      description: provider.description,
+      avatar: provider.avatar,
     }))
-  )
+  })
 
   readonly formGroup = new FormGroup({
     id: new FormControl(null),
@@ -125,7 +123,7 @@ export class IntegrationComponent implements IsDirty {
   readonly integrationProvider = toSignal<TIntegrationProvider>(
     this.provider.valueChanges.pipe(
       startWith(this.provider.value),
-      map((provider) => INTEGRATION_PROVIDERS[provider])
+      map((provider) => this.#providers().find((p) => p.name === provider))
     )
   )
 
@@ -135,7 +133,7 @@ export class IntegrationComponent implements IsDirty {
     [this.paramId],
     pipe(
       distinctUntilChanged(),
-      switchMap(([id]) => (id ? this.integrationService.getById(id) : EMPTY))
+      switchMap(([id]) => (id ? this.integrationAPI.getById(id) : EMPTY))
     ),
     {
       initialValue: null
@@ -179,7 +177,7 @@ export class IntegrationComponent implements IsDirty {
 
   test() {
     this.loading.set(true)
-    this.integrationService.test(this.formGroup.value).subscribe({
+    this.integrationAPI.test(this.formGroup.value).subscribe({
       next: (result) => {
         this.formGroup.patchValue(result)
         this.formGroup.markAsDirty()
@@ -195,10 +193,10 @@ export class IntegrationComponent implements IsDirty {
 
   upsert() {
     (this.formGroup.value.id
-      ? this.integrationService.update(this.formGroup.value.id, {
+      ? this.integrationAPI.update(this.formGroup.value.id, {
           ...this.formGroup.value
         })
-      : this.integrationService.create(omit(this.formGroup.value, 'id'))
+      : this.integrationAPI.create(omit(this.formGroup.value, 'id'))
     ).subscribe({
       next: () => {
         this.formGroup.markAsPristine()

@@ -49,8 +49,11 @@
       "@metad/store": ["packages/store/src/index.ts"],
       "@metad/story": ["libs/story-angular/src/index.ts"],
       "@metad/story/*": ["libs/story-angular/*"],
-      "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],
+      "@xpert-ai/plugin-integration-dify": ["packages/plugins/integration-dify/src/index.ts"],
+      "@xpert-ai/plugin-integration-fastgpt": ["packages/plugins/integration-fastgpt/src/index.ts"],
       "@xpert-ai/plugin-integration-github": ["packages/plugins/integration-github/src/index.ts"],
+      "@xpert-ai/plugin-integration-ragflow": ["packages/plugins/integration-ragflow/src/index.ts"],
+      "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],
       "ngx-echarts": ["packages/ngx-echarts/src/public-api"]
     },
     "preserveConstEnums": true,

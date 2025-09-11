@@ -3,7 +3,7 @@ import { getErrorMessage, omit } from '@metad/server-common'
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
 import axios, { AxiosResponse } from 'axios'
 import { Document } from 'langchain/document'
-import { KnowledgeStrategy, KnowledgeStrategyKey, TKnowledgeStrategyParams } from '../knowledgebase'
+import { KnowledgeStrategy, KnowledgeStrategyKey, TKnowledgeStrategyParams } from '@xpert-ai/plugin-sdk'
 
 @Injectable()
 @KnowledgeStrategyKey(KnowledgeProviderEnum.Dify)

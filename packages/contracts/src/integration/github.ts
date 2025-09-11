@@ -43,9 +43,9 @@ export const IntegrationGitHubProvider: TIntegrationProvider = {
         }
     }
   },
-  webhookUrl: (integration: IIntegration, baseUrl: string) => {
-    return `${baseUrl}/api/github/${integration.id}/webhook`
-  }
+  // webhookUrl: (integration: IIntegration, baseUrl: string) => {
+  //   return `${baseUrl}/api/github/${integration.id}/webhook`
+  // }
 }
 
 export type TGithubAuth = {

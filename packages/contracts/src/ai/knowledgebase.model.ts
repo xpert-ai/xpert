@@ -10,11 +10,6 @@ import { IIntegration } from '../integration.model'
  */
 export enum KnowledgeProviderEnum {
   Internal = 'internal',
-  // IntegrationEnum.RAGFlow
-  RAGFlow = 'ragflow',
-  // IntegrationEnum.Dify
-  Dify = 'dify',
-  FastGPT = 'fastgpt'
 }
 
 export enum KnowledgebaseTypeEnum {

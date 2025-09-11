@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
-import { IIntegration, IntegrationFeatureEnum } from '@metad/contracts'
+import { IIntegration, IntegrationFeatureEnum, TIntegrationProvider } from '@metad/contracts'
 import { TSelectOption } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 
@@ -28,6 +28,10 @@ export class IntegrationService extends OrganizationBaseCrudService<IIntegration
     }
 
     return this.httpClient.get<TSelectOption<string>[]>(this.apiBaseUrl + '/select-options', { params })
+  }
+
+  getProviders() {
+    return this.httpClient.get<TIntegrationProvider[]>(this.apiBaseUrl + '/providers')
   }
 }
 

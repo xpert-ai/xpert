@@ -1,22 +1,21 @@
-import { forwardRef, Module } from '@nestjs/common'
-import { CqrsModule } from '@nestjs/cqrs'
-import { DiscoveryModule } from '@nestjs/core'
-import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from '@nestjs/core'
 import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@metad/server-core'
+import { forwardRef, Module } from '@nestjs/common'
+import { DiscoveryModule, RouterModule } from '@nestjs/core'
+import { CqrsModule } from '@nestjs/cqrs'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { KnowledgeStrategyRegistry } from '@xpert-ai/plugin-sdk'
 import { CopilotModule } from '../copilot/copilot.module'
-import { Knowledgebase } from './knowledgebase.entity'
+import { XpertWorkspaceModule } from '../xpert-workspace'
+import { CommandHandlers } from './commands/handlers'
 import { KnowledgebaseController } from './knowledgebase.controller'
+import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { QueryHandlers } from './queries/handlers'
-import { CommandHandlers } from './commands/handlers'
-import { XpertWorkspaceModule } from '../xpert-workspace'
-import { KnowledgeStrategyRegistry } from './strategy/knowledge-strategy.registry'
 
 @Module({
 	imports: [
 		RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
-		TypeOrmModule.forFeature([ Knowledgebase ]),
+		TypeOrmModule.forFeature([Knowledgebase]),
 		DiscoveryModule,
 		TenantModule,
 		CqrsModule,
@@ -24,7 +23,7 @@ import { KnowledgeStrategyRegistry } from './strategy/knowledge-strategy.registr
 		CopilotModule,
 		DatabaseModule,
 		forwardRef(() => XpertWorkspaceModule),
-		forwardRef(() => IntegrationModule),
+		forwardRef(() => IntegrationModule)
 	],
 	controllers: [KnowledgebaseController],
 	providers: [KnowledgebaseService, KnowledgeStrategyRegistry, ...QueryHandlers, ...CommandHandlers],

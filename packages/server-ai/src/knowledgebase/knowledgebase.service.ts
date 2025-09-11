@@ -16,7 +16,7 @@ import { KnowledgeSearchQuery } from './queries'
 import { KnowledgeDocumentStore } from './vector-store'
 import { IRerank } from '../ai-model/types/rerank'
 import { RagCreateVStoreCommand } from '../rag-vstore'
-import { KnowledgeStrategyRegistry } from './strategy/knowledge-strategy.registry'
+import { KnowledgeStrategyRegistry } from '@xpert-ai/plugin-sdk'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {

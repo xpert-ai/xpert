@@ -121,7 +121,12 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
 
 export async function preBootstrapPlugins() {
 	const { modules } = await registerPluginsAsync({
-		plugins: ['@xpert-ai/plugin-integration-github'],
+		plugins: [
+			'@xpert-ai/plugin-integration-dify',
+			'@xpert-ai/plugin-integration-fastgpt',
+			'@xpert-ai/plugin-integration-ragflow',
+			'@xpert-ai/plugin-integration-github'
+		],
 		discovery: {
 			prefix: '@xpert-ai/plugin-',
 		}

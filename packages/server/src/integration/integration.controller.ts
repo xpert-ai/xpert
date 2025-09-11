@@ -45,4 +45,9 @@ export class IntegrationController extends CrudController<Integration> {
 			icon: INTEGRATION_PROVIDERS[item.provider]?.avatar
 		}))
 	}
+
+	@Get('providers')
+	async getProviders() {
+		return this.service.getProviders()
+	}
 }
