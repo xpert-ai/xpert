@@ -213,6 +213,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			  })
 			tools.push({
 				toolset: {
+					id: knowledgebaseIds.join(','),
 					provider: 'knowledgebase',
 					title: translate({en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
 				},

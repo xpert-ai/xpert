@@ -680,6 +680,7 @@
     },
     "ACTIONS": {
       "Export": "导出",
+      "Change": "更改",
       "Disable": "禁用",
       "Enable": "启用",
       "Clear": "清空",

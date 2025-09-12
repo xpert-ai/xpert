@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
@@ -36,7 +36,7 @@ export class XpertStudioNodeKnowledgeComponent {
     this.id() && this.knowledgebases() && !this.knowledgebaseDetail() ? 'template' : null
   )
 
-  readonly executions = computed(() => this.executionService.knowledgeMessages()?.filter((_) => _.data?.tool === this.id()))
+  readonly executions = computed(() => this.executionService.knowledgeMessages()?.filter((_) => _.data?.toolset_id?.split(',').includes(this.id())))
   readonly executionStatus = computed(() => {
     const executions = this.executions()
     if (!executions || executions.length === 0) {
