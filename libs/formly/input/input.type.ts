@@ -7,7 +7,7 @@ import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { DensityDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { isObservable } from 'rxjs'
+import { isObservable, startWith } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -18,16 +18,30 @@ import { isObservable } from 'rxjs'
   host: {
     class: 'pac-formly-input'
   },
-  imports: [CommonModule, FormsModule, TranslateModule, MatFormFieldModule, FormlyModule, DensityDirective, NgmInputComponent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    MatFormFieldModule,
+    FormlyModule,
+    DensityDirective,
+    NgmInputComponent
+  ]
 })
 export class PACFormlyInputComponent extends FieldType implements OnInit {
   readonly #destroyRef = inject(DestroyRef)
-  
+
   readonly selectOptions = signal<ISelectOption[]>([])
 
-  newValue = null;
+  oldValue = null
+  newValue = null
 
   ngOnInit(): void {
+    this.formControl.valueChanges.pipe(startWith(this.formControl.value), takeUntilDestroyed(this.#destroyRef)).subscribe((value) => {
+      this.oldValue = value
+      this.newValue = value
+    })
+
     if (isObservable(this.props?.options)) {
       this.props.options.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((options) => {
         this.selectOptions.set(options)
@@ -38,6 +52,12 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
 
     if (this.props?.readonly) {
       this.formControl.disable()
+    }
+  }
+
+  onBlur() {
+    if (this.oldValue !== this.newValue) {
+      this.formControl.setValue(this.newValue)
     }
   }
 }
