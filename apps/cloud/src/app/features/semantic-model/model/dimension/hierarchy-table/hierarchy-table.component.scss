@@ -15,4 +15,8 @@
   .mat-mdc-cell.mat-mdc-table-sticky {
     background-color: var(--mat-table-background-color);
   }
+
+  .mat-mdc-paginator-page-size-label {
+    @apply hidden;
+  }
 }

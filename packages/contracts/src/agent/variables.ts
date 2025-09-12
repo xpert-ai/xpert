@@ -16,6 +16,6 @@ export function getVariableSchema(variables: TWorkflowVarGroup[], variable: stri
 
     return {
         group,
-        variable: group?.variables.find((_) => _.name === (rest.join('.') ?? groupName))
+        variable: group?.variables.find((_) => _.name === (rest.join('.') || groupName))
     }
 }

@@ -1,10 +1,9 @@
 identity:
-  name: query-schema
+  name: db_query_schema
   author: Xpert AI
   label:
-    en_US: QuerySchema
+    en_US: Query Schema
     zh_Hans: 查询表结构
-entity: QuerySchema
 description:
   human:
     en_US: A tool to query the structure of the specified tables (array of one or more tables) and the first 10 sample data.

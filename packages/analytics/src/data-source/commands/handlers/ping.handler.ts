@@ -2,7 +2,6 @@ import { createQueryRunnerByType } from '@metad/adapter'
 import { XpertToolsetService } from '@metad/server-ai'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'
-import { ListTablesCommand } from '../list-tables.command'
 import { DataSourcePingCommand } from '../ping.command'
 
 @CommandHandler(DataSourcePingCommand)
@@ -14,7 +13,7 @@ export class DataSourcePingHandler implements ICommandHandler<DataSourcePingComm
 		this.toolsetService.registerCommand('PingDataSource', DataSourcePingCommand)
 	}
 
-	public async execute(command: ListTablesCommand): Promise<void> {
+	public async execute(command: DataSourcePingCommand): Promise<void> {
 		const { dataSource: dataSourceId } = command.args
 		const isDev = process.env.NODE_ENV === 'development'
 

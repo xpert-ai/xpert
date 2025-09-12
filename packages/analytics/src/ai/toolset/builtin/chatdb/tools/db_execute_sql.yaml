@@ -1,17 +1,16 @@
 identity:
-  name: query_sql
+  name: db_execute_sql
   author: Xpert AI
   label:
-    en_US: QuerySQL
-    zh_Hans: 查询语句
-entity: QuerySql
+    en_US: Execute SQL
+    zh_Hans: 执行查询语句
 description:
   human:
     en_US: A tool for executing SQL query.
     zh_Hans: 可执行 SQL 查询语句的工具。
   llm: A tool for executing SQL query.
 parameters:
-  - name: query
+  - name: statement
     type: string
     required: true
     label:

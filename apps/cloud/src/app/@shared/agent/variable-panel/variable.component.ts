@@ -1,16 +1,28 @@
 import { Overlay } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
-import { afterNextRender, Component, computed, effect, ElementRef, HostListener, inject, input, model, output, signal } from '@angular/core'
+import {
+  afterNextRender,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  HostListener,
+  inject,
+  input,
+  model,
+  output,
+  signal
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { TXpertVariablesOptions, XpertService } from '@cloud/app/@core'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { debouncedSignal, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { of } from 'rxjs'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { TXpertVariablesOptions, XpertService } from '@cloud/app/@core'
-export { TXpertVariablesOptions } from '@cloud/app/@core/services'
 import { getVariableSchema, TStateVariable, TStateVariableType, TWorkflowVarGroup } from '../../../@core/types'
 
+export { TXpertVariablesOptions } from '@cloud/app/@core/services'
 
 @Component({
   standalone: true,
@@ -20,7 +32,7 @@ import { getVariableSchema, TStateVariable, TStateVariableType, TWorkflowVarGrou
   styleUrls: ['./variable.component.scss'],
   hostDirectives: [NgxControlValueAccessor],
   host: {
-    'tabIndex': '0'
+    tabIndex: '0'
   }
 })
 export class XpertVariablePanelComponent {
@@ -28,7 +40,7 @@ export class XpertVariablePanelComponent {
   readonly overlay = inject(Overlay)
   readonly elementRef = inject(ElementRef)
   readonly xpertAPI = inject(XpertService)
-  
+
   // Inputs
   readonly options = input.required<TXpertVariablesOptions>()
   readonly type = input<TStateVariableType>()
@@ -48,24 +60,28 @@ export class XpertVariablePanelComponent {
   readonly selectedGroupName = computed(() => this.selected()?.group?.group.name)
 
   readonly #variables = myRxResource({
-    request: () => this.variables() ? null : this.options(),
-    loader: ({request}) => {
+    request: () => (this.variables() ? null : this.options()),
+    loader: ({ request }) => {
       return request ? this.xpertAPI.getNodeVariables(request) : of(null)
     }
   })
   readonly loading = computed(() => this.#variables.status() === 'loading')
-
 
   readonly searchTerm = signal('')
   readonly #searchTerm = debouncedSignal(this.searchTerm, 300)
   readonly filteredVariables = computed(() => {
     const searchTerm = this.#searchTerm().toLowerCase()
     const type = this.type()
-    return this.variables()?.map((group) => ({
+    return this.variables()
+      ?.map((group) => ({
         ...group,
         variables: group.variables?.filter((variable) => {
-          return type ? variable.type === type : true && 
-            (variable.name.toLowerCase().includes(searchTerm) || variable.title?.toLowerCase().includes(searchTerm))
+          const description = variable.description
+          return type
+            ? variable.type === type
+            : true &&
+                (variable.name.toLowerCase().includes(searchTerm) ||
+                  (typeof description === 'string' ? description.toLowerCase().includes(searchTerm) : true))
         })
       }))
       .filter((group) => group.variables?.length > 0)
@@ -76,7 +92,7 @@ export class XpertVariablePanelComponent {
   }
 
   private isListening = signal(false)
-  
+
   constructor() {
     afterNextRender(() => {
       setTimeout(() => {
@@ -84,15 +100,18 @@ export class XpertVariablePanelComponent {
       }, 1000)
     })
 
-    effect(() => {
-      if (this.#variables.value()) {
-        this.variables.set(this.#variables.value())
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.#variables.value()) {
+          this.variables.set(this.#variables.value())
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   focus() {
-    (this.elementRef.nativeElement as HTMLElement).focus()
+    ;(this.elementRef.nativeElement as HTMLElement).focus()
   }
 
   @HostListener('document:click', ['$event'])
