@@ -97,7 +97,7 @@ export class ChatInputComponent {
 
   constructor() {
     effect(() => {
-      if (this.answering() || this.disabled()) {
+      if (this.disabled()) {
         this.promptControl.disable()
       } else {
         this.promptControl.enable()
@@ -151,6 +151,7 @@ export class ChatInputComponent {
   }
 
   triggerFun(event: KeyboardEvent) {
+    if (this.answering()) return
     if ((event.isComposing || event.shiftKey) && event.key === 'Enter') {
       return
     }

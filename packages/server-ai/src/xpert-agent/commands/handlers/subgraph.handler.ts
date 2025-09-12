@@ -196,7 +196,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})))
 		}
 
-		this.#logger.debug(`Use tools:\n${tools.length ? tools.map((_, i) => `${i+1}. ` + _.tool.name + ': ' + _.tool.description).join('\n') : 'No tools.'}`)
+		this.#logger.debug(`\nUse tools:\n${tools.length ? tools.map((_, i) => `${i+1}. ` + _.tool.name + ': ' + _.tool.description).join('\n') : 'No tools.'}`)
 
 		// Knowledgebases
 		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
@@ -230,7 +230,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		 */
 		const subAgents: Record<string, TSubAgent> = {}
 		if (agent.followers?.length) {
-			this.#logger.debug(`Use sub agents:\n ${agent.followers.map((_) => _.name)}`)
+			this.#logger.debug(`\nUse sub agents:\n${agent.followers.map((_, i) => `${i+1}. ` + _.name + ': ' + _.description).join('\n')}`)
 			for await (const follower of agent.followers) {
 				if (partners?.includes(follower.key)) {
 					continue
@@ -263,7 +263,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		// Collaborators (external xperts)
 		if (agent.collaborators?.length) {
-			this.#logger.debug(`Use xpert collaborators:\n${agent.collaborators.map((_) => _.name)}`)
+			this.#logger.debug(`\nUse xpert collaborators:\n${agent.collaborators.map((_, i) => `${i+1}. ` + _.name + ': ' + _.description).join('\n')}`)
 			for await (const collaborator of agent.collaborators) {
 				const subAgent = await XpertCollaborator.build({
 					xpert: collaborator,

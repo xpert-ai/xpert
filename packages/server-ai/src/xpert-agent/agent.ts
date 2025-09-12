@@ -176,19 +176,6 @@ export function createMapStreamEvents(
 			case 'on_tool_start': {
 				eventStack.push(event)
 				toolsMap[rest.metadata.langgraph_node] = rest.name
-				
-				// subscriber.next({
-				// 	data: {
-				// 		type: ChatMessageTypeEnum.EVENT,
-				// 		event: ChatMessageEventTypeEnum.ON_TOOL_START,
-				// 		data: {
-				// 			data,
-				// 			tags,
-				// 			...rest,
-				// 			agentKey: rest.metadata.agentKey
-				// 		}
-				// 	}
-				// } as MessageEvent)
 
 				const tool_call_id = data.id || rest.metadata.tool_call_id
 				if (tool_call_id) {
@@ -287,7 +274,7 @@ export function createMapStreamEvents(
 					data: {
 						type: ChatMessageTypeEnum.MESSAGE,
 						data: {
-							id: data.id || rest.metadata.tool_call_id,
+							id: data.id || rest.metadata.tool_call_id || rest.run_id,
 							type: 'component',
 							xpertName: rest.metadata.xpertName,
 							agentKey: rest.metadata.agentKey,
@@ -301,30 +288,19 @@ export function createMapStreamEvents(
 								status: 'running',
 								message: data.input?.query,
 								end_date: null,
+								input: data.input
 							} as TMessageComponent<TMessageComponentStep>
 						} as TMessageContentComponent
 					}
 				} as MessageEvent)
-				// subscriber.next({
-				// 	data: {
-				// 		type: ChatMessageTypeEnum.EVENT,
-				// 		event: ChatMessageEventTypeEnum.ON_RETRIEVER_START,
-				// 		data: {
-				// 			data,
-				// 			tags,
-				// 			...rest
-				// 		}
-				// 	}
-				// } as MessageEvent)
 				break
 			}
 			case 'on_retriever_end': {
-				// console.log('on_retriever_end', data, rest)
 				subscriber.next({
 					data: {
 						type: ChatMessageTypeEnum.MESSAGE,
 						data: {
-							id: data.id || rest.metadata.tool_call_id,
+							id: data.id || rest.metadata.tool_call_id || rest.run_id,
 							type: 'component',
 							data: {
 								category: 'Computer',
@@ -335,17 +311,6 @@ export function createMapStreamEvents(
 						} as TMessageContentComponent
 					}
 				} as MessageEvent)
-				// subscriber.next({
-				// 	data: {
-				// 		type: ChatMessageTypeEnum.EVENT,
-				// 		event: ChatMessageEventTypeEnum.ON_RETRIEVER_END,
-				// 		data: {
-				// 			data,
-				// 			tags,
-				// 			...rest
-				// 		}
-				// 	}
-				// } as MessageEvent)
 				break
 			}
 			case 'on_custom_event': {

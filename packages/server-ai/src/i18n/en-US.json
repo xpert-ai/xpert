@@ -19,7 +19,8 @@
     "Xpert": {
         "SummaryTitleStarting": "Summarizing title...",
         "SummaryTitleEnd": "Title summarized",
-        "TaskHandover": "Task handover"
+        "TaskHandover": "Task handover",
+        "KnowledgeRetrieval": "Knowledge retrieval"
     },
     "Tools": {
         "MCP": {

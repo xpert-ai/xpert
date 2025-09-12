@@ -6,6 +6,7 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
+import { t } from 'i18next'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
@@ -50,7 +51,11 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 
 					return await wrapAgentExecution(
 						async () => {
-							const documents = (await retriever?.invoke(query)) ?? []
+							const documents = (await retriever?.invoke(query, {
+								metadata: {
+									toolName: t('server-ai:Xpert.KnowledgeRetrieval')
+								}
+							})) ?? []
 
 							return {
 								state: {
@@ -84,11 +89,11 @@ export function createWorkflowRetriever(queryBus: QueryBus, entity: IWFNKnowledg
 		weight: entity?.recall?.weight
 	}))
 	const retriever = retrievers?.length
-		? new EnsembleRetriever({
+		? retrievers.length > 1 ? new EnsembleRetriever({
 				retrievers: retrievers.map(({ retriever }) => retriever),
 				weights: retrievers.map(({ weight }) => weight ?? 0.5)
 			})
-		: null
+		: retrievers[0].retriever : null
 	return retriever
 }
 
