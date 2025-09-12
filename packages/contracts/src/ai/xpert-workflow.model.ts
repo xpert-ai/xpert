@@ -4,6 +4,17 @@ import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
 
+export type TWorkflowTriggerMeta = {
+  name: string
+  label: I18nObject
+  icon: {
+    svg?: string
+    remixicon?: string
+    color?: string
+  }
+  configSchema: any
+}
+
 export enum WorkflowNodeTypeEnum {
   /**
    * Trigger
@@ -337,6 +348,7 @@ export interface IWFNTrigger extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.TRIGGER,
   from: 'chat' | 'integration' | 'scheduler'
   parameters?: TXpertParameter[]
+  config?: any
 }
 
 export interface IWFNTask extends IWorkflowNode {

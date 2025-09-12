@@ -125,7 +125,8 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-integration-dify',
 			'@xpert-ai/plugin-integration-fastgpt',
 			'@xpert-ai/plugin-integration-ragflow',
-			'@xpert-ai/plugin-integration-github'
+			'@xpert-ai/plugin-integration-github',
+			'@xpert-ai/plugin-trigger-schedule'
 		],
 		discovery: {
 			prefix: '@xpert-ai/plugin-',

@@ -56,6 +56,7 @@ export class XpertWorkflowTriggerTestComponent extends XpertWorkflowBaseComponen
   // States
   readonly triggerEntity = computed(() => this.entity() as IWFNTrigger)
   readonly parameters = computed(() => this.triggerEntity()?.parameters)
+  readonly from = computed(() => this.triggerEntity()?.from)
   // Models
   readonly conversationId = model<string>(null)
   readonly conversations = signal<string[]>([null])

@@ -1,4 +1,4 @@
-import { ChecklistItem, convertToUrlPath, ICopilotStore, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, OrderTypeEnum, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft } from '@metad/contracts'
+import { ChecklistItem, convertToUrlPath, ICopilotStore, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, OrderTypeEnum, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft, WorkflowNodeTypeEnum } from '@metad/contracts'
 import {
 	OptionParams,
 	PaginationParams,
@@ -13,6 +13,7 @@ import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
+import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
 import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
@@ -37,7 +38,8 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		private readonly userService: UserService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly eventEmitter: EventEmitter2
+		private readonly eventEmitter: EventEmitter2,
+		private readonly triggerRegistry: WorkflowTriggerRegistry,
 	) {
 		super(repository)
 	}
@@ -375,5 +377,11 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		} catch(err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
+	}
+
+	async getTriggerProviders() {
+		return this.triggerRegistry.list().map((provider) => ({
+			...provider.meta
+		}))
 	}
 }

@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpertParametersEditComponent } from '@cloud/app/@shared/xpert'
-import { linkedModel } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -19,6 +19,7 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 
 @Component({
   selector: 'xpert-workflow-trigger',
@@ -26,7 +27,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./trigger.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, CdkMenuModule, MatTooltipModule, TranslateModule, XpertParametersEditComponent]
+  imports: [CommonModule, FormsModule, CdkMenuModule, MatTooltipModule, TranslateModule, JSONSchemaFormComponent, XpertParametersEditComponent]
 })
 export class XpertWorkflowTriggerComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -76,4 +77,10 @@ export class XpertWorkflowTriggerComponent extends XpertWorkflowBaseComponent {
       }
     }
   })
+
+  readonly config = attrModel(this.triggerEntity, 'config')
+  readonly from = computed(() => this.triggerEntity()?.from)
+  readonly triggerProviders = this.studioService.triggerProviders
+
+  readonly provider = computed(() => this.triggerProviders()?.find((item) => item.name === this.from()))
 }

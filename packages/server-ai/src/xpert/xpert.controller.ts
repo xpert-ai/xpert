@@ -144,6 +144,11 @@ export class XpertController extends CrudController<Xpert> {
 			label: xpertLabel(item)
 		}))
 	}
+
+	@Get('triggers/providers')
+	async getTriggerProviders() {
+		return this.service.getTriggerProviders()
+	}
 	
 	@Get('slug/:slug')
 	async getOneBySlug(@Param('slug') slug: string,) {

@@ -1,14 +1,18 @@
-<chat-conversation-preview #preview class="w-full h-full"
-  [(conversationId)]="conversationId"
-  [xpert]="xpert()"
-  [environmentId]="environmentId()"
-  [parameters]="parameters()"
-  [(_messages)]="messages"
-  [(currentMessage)]="currentMessage"
-  (close)="close()"
-  (restart)="restart()"
-  (chatEvent)="onChatEvent($event)"
-  (chatError)="onChatError($event)"
-  (chatStop)="onChatStop($event)"
-  (execution)="openExecution($event)"
-/>
+@if (from() === 'chat') {
+  <chat-conversation-preview #preview class="w-full h-full"
+    [(conversationId)]="conversationId"
+    [xpert]="xpert()"
+    [environmentId]="environmentId()"
+    [parameters]="parameters()"
+    [(_messages)]="messages"
+    [(currentMessage)]="currentMessage"
+    (close)="close()"
+    (restart)="restart()"
+    (chatEvent)="onChatEvent($event)"
+    (chatError)="onChatError($event)"
+    (chatStop)="onChatStop($event)"
+    (execution)="openExecution($event)"
+  />
+} @else {
+  
+}

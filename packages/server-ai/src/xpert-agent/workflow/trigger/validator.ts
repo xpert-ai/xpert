@@ -1,20 +1,50 @@
 import { ChecklistItem, IWFNTrigger, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
+import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from '../../../xpert/types'
+
 
 @Injectable()
 export class WorkflowTriggerValidator {
+
+	constructor(private readonly triggerRegistry: WorkflowTriggerRegistry,) {}
+
 	@OnEvent(EventNameXpertValidate)
-	handle(event: XpertDraftValidateEvent) {
+	async handle(event: XpertDraftValidateEvent) {
 		const draft = event.draft
 		const triggerNodes = draft.nodes.filter(
 			(node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER
 		)
 		const items: ChecklistItem[] = []
-		triggerNodes.forEach((node) => {
-			items.push(...this.check(node, draft))
-		})
+		for await (const node of triggerNodes) {
+			const entity = <IWFNTrigger>node.entity
+			if (entity.from === 'chat') {
+				items.push(...this.check(node, draft))
+				continue
+			}
+			const provider = this.triggerRegistry.get(entity.from)
+			if (!provider) {
+				items.push({
+					node: node.key,
+					ruleCode: 'TRIGGER_PROVIDER_NOT_FOUND',
+					field: 'from',
+					value: entity.from,
+					message: {
+						en_US: `Trigger node "${entity.from}" provider not found`,
+						zh_Hans: `触发器节点 "${entity.from}" 提供者未找到`
+					},
+					level: 'error'
+				})
+			} else {
+				const results = await provider.validate({
+					xpertId: draft.team.id, 
+					node,
+					config: entity.config
+				})
+				items.push(...results)
+			}
+		}
 		return items
 	}
 

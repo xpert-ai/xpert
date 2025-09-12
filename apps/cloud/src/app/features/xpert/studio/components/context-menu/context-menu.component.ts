@@ -1,7 +1,6 @@
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, computed, inject, TemplateRef, ViewChild } from '@angular/core'
-import { MatTabsModule } from '@angular/material/tabs'
+import { ChangeDetectorRef, Component, computed, effect, inject, TemplateRef, ViewChild } from '@angular/core'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,7 +27,8 @@ import {
   IWFNAgentTool,
   TASK_DESCRIPTION_PREFIX,
   TASK_DESCRIPTION_SUFFIX,
-  IWFNTrigger
+  IWFNTrigger,
+  TWorkflowTriggerMeta
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
@@ -54,6 +54,8 @@ import { SelectionService } from '../../domain/selection.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
+import { SafePipe } from '@metad/core'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -63,7 +65,8 @@ import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.compone
     CommonModule,
     CdkMenuModule,
     TranslateModule,
-    MatTabsModule,
+    SafePipe,
+    NgmI18nPipe,
     XpertStudioKnowledgeMenuComponent,
     XpertStudioToolsetMenuComponent,
     XpertInlineProfileComponent,
@@ -92,6 +95,10 @@ export class XpertStudioContextMenuComponent {
   readonly collaborators$ = this.apiService.collaborators$
   readonly nodes = computed(() => this.root.viewModel()?.nodes)
   readonly agents = computed(() => this.nodes()?.filter((n) => n.type === 'agent'))
+
+  // Workflow providers
+  readonly triggerProviders = this.apiService.triggerProviders
+ 
 
   public ngOnInit(): void {
     this.subscriptions.add(this.subscribeToSelectionChanges())
@@ -324,12 +331,12 @@ export class XpertStudioContextMenuComponent {
     } as IWFNTask)
   }
 
-  addWorkflowTrigger(from: string) {
+  addWorkflowTrigger(from: string | TWorkflowTriggerMeta) {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TRIGGER,
       key: genXpertTriggerKey(),
       title: this.#translate.instant('PAC.Workflow.Trigger', { Default: 'Trigger' }),
-      from
+      from: typeof from === 'string' ? from : from.name
     } as IWFNTrigger)
   }
 

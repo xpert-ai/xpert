@@ -154,6 +154,9 @@ export class XpertStudioApiService {
     return null
   })
 
+  // Workflow providers
+  readonly triggerProviders = toSignal(this.xpertService.getTriggerProviders(), { initialValue: [] })
+
   // knowledgebases
   readonly knowledgebases$ = toObservable(this.workspaceId).pipe(
     filter(nonBlank),

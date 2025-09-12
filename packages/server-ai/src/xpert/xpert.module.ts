@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from '@nestjs/core'
+import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { TenantModule, UserModule } from '@metad/server-core'
 import { XpertController } from './xpert.controller'
 import { Xpert } from './xpert.entity'
@@ -15,11 +15,13 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { CopilotStoreModule } from '../copilot-store/copilot-store.module'
 import { AnonymousStrategy } from './auth/anonymous.strategy'
 import { EnvironmentModule } from '../environment'
+import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/xpert', module: XpertModule }]),
         TypeOrmModule.forFeature([Xpert]),
+        DiscoveryModule,
         TenantModule,
         CqrsModule,
         forwardRef(() => KnowledgebaseModule),
@@ -31,7 +33,7 @@ import { EnvironmentModule } from '../environment'
         CopilotStoreModule,
     ],
     controllers: [XpertController],
-    providers: [XpertService, AnonymousStrategy, ...CommandHandlers, ...QueryHandlers],
+    providers: [XpertService, AnonymousStrategy, WorkflowTriggerRegistry, ...CommandHandlers, ...QueryHandlers],
     exports: [XpertService]
 })
 export class XpertModule { }
