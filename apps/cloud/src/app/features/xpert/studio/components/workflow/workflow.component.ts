@@ -4,6 +4,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  IWFNTrigger,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
@@ -29,6 +30,7 @@ import { XpertWorkflowNodeAssignerComponent } from './assigner/assigner.componen
 import { XpertWorkflowNodeAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowNodeTaskComponent } from './task/task.component'
 import { XpertWorkflowNodeTriggerComponent } from './trigger/trigger.component'
+import { SafePipe } from '@metad/core'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -41,6 +43,7 @@ import { XpertWorkflowNodeTriggerComponent } from './trigger/trigger.component'
     CdkMenuModule,
     MatTooltipModule,
     TranslateModule,
+    SafePipe,
     XpertWorkflowIconComponent,
     XpertStudioNodeWorkflowIfelseComponent,
     XpertStudioNodeWorkflowIteratingComponent,
@@ -91,4 +94,10 @@ export class XpertStudioNodeWorkflowComponent {
     WorkflowNodeTypeEnum.TASK,
     WorkflowNodeTypeEnum.AGENT_TOOL
   ]
+
+  // Workflow providers
+  readonly triggerProviders = this.apiService.triggerProviders
+  readonly triggerEntity = computed(() => this.entity()?.type === WorkflowNodeTypeEnum.TRIGGER ? this.entity() as IWFNTrigger : null)
+  readonly from = computed(() => this.triggerEntity()?.from)
+  readonly provider = computed(() => this.triggerProviders()?.find((item) => item.name === this.from()))
 }

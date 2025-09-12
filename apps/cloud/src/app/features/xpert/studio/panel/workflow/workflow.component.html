@@ -1,9 +1,29 @@
 <div class="sticky top-0 bg-components-panel-bg border-b-[0.5px] border-black/5 z-10">
   <div class="flex items-center px-4 pt-4 pb-1">
-    <xpert-workflow-icon [type]="type()"  class="w-7 h-7 shrink-0 mr-2" 
-      [matTooltip]="key()"
-      matTooltipPosition="above"
-    />
+    @switch(type()) {
+      @case (eWorkflowNodeTypeEnum.TRIGGER) {
+        @if (provider()?.icon.svg) {
+          <div [innerHTML]="provider().icon.svg | safe: 'html'" class="w-7 h-7 shrink-0 mr-2"
+            [style.color]="provider().icon.color || '#14b8a6'"
+            [matTooltip]="key()"
+            matTooltipPosition="above"></div>
+        } @else {
+          <div class="w-7 h-7 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
+            rounded-lg shadow-sm"
+            [matTooltip]="key()"
+            matTooltipPosition="above">
+            <i class="ri-message-3-fill"></i>
+          </div>
+        }
+      }
+      @default {
+        <xpert-workflow-icon [type]="type()" class="w-7 h-7 shrink-0 mr-2" 
+          [matTooltip]="key()"
+          matTooltipPosition="above"
+        />
+      }
+    }
+
     <input class="grow mr-2 px-1 h-6 text-base text-gray-900 font-semibold rounded-lg border border-transparent appearance-none outline-none
                 hover:bg-gray-50 
                 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]

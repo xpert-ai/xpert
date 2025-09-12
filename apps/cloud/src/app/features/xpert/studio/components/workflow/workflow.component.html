@@ -3,11 +3,25 @@
 }
 
 <div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
-  <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" 
-    [matTooltip]="key()"
-    matTooltipPosition="above"
-  />
-  
+  @switch(type()) {
+    @case (eWorkflowNodeTypeEnum.TRIGGER) {
+      @if (provider()?.icon.svg) {
+        <div [innerHTML]="provider().icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 mr-2"
+          [style.color]="provider().icon.color || '#14b8a6'"></div>
+      } @else {
+        <div class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
+          rounded-lg shadow-sm">
+          <i class="ri-message-3-fill"></i>
+        </div>
+      }
+    }
+    @default {
+      <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" 
+        [matTooltip]="key()"
+        matTooltipPosition="above"
+      />
+    }
+  }
   <div [title]="title()" class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center">
     <div>{{title()}}</div>
   </div>

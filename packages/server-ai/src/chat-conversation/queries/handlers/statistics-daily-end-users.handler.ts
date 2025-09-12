@@ -1,19 +1,23 @@
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { ChatConversation } from '../../../core/entities/internal'
 import { StatisticsDailyEndUsersQuery } from '../statistics-daily-end-suers.query'
 import { RequestContext } from '@metad/server-core'
+import { InjectRepository } from '@nestjs/typeorm'
 
 @QueryHandler(StatisticsDailyEndUsersQuery)
 export class StatisticsDailyEndUsersHandler implements IQueryHandler<StatisticsDailyEndUsersQuery> {
-	constructor(private readonly queryBus: QueryBus) {}
+	constructor(
+		@InjectRepository(ChatConversation)
+		public repository: Repository<ChatConversation>,
+		private readonly queryBus: QueryBus) {}
 
 	public async execute(command: StatisticsDailyEndUsersQuery) {
 		const { xpertId, start, end } = command
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
-		const repository = getRepository(ChatConversation)
+		const repository = this.repository
 
 		const query = repository
 			.createQueryBuilder('conversation')

@@ -1,7 +1,8 @@
-import { ChecklistItem, convertToUrlPath, ICopilotStore, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, OrderTypeEnum, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { ChecklistItem, convertToUrlPath, ICopilotStore, IUser, IWFNTrigger, IXpert, IXpertAgentExecution, LongTermMemoryTypeEnum, OrderTypeEnum, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft, WorkflowNodeTypeEnum } from '@metad/contracts'
 import {
 	OptionParams,
 	PaginationParams,
+	RedisLockService,
 	RequestContext,
 	TenantOrganizationAwareCrudService,
 	transformWhere,
@@ -9,7 +10,7 @@ import {
 	UserService
 } from '@metad/server-core'
 import { getErrorMessage } from '@metad/server-common'
-import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -24,11 +25,13 @@ import { GetXpertMemoryEmbeddingsQuery } from './queries'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { FreeNodeValidator } from './validators'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
-import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
+import { EventNameXpertValidate, XpertDraftValidateEvent, QUEUE_XPERT_TRIGGER } from './types'
+import { InjectQueue } from '@nestjs/bull'
+import { Queue } from 'bull'
 
 
 @Injectable()
-export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
+export class XpertService extends TenantOrganizationAwareCrudService<Xpert> implements OnModuleInit {
 	readonly #logger = new Logger(XpertService.name)
 
 	constructor(
@@ -40,8 +43,26 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		private readonly queryBus: QueryBus,
 		private readonly eventEmitter: EventEmitter2,
 		private readonly triggerRegistry: WorkflowTriggerRegistry,
+		private readonly redisLockService: RedisLockService,
+		@InjectQueue(QUEUE_XPERT_TRIGGER) 
+		private triggerQueue: Queue
 	) {
 		super(repository)
+	}
+
+	async onModuleInit() {
+		const {items} = await this.findAll({ where: { latest: true, publishAt: Not(IsNull()) } })
+		for (const xpert of items) {
+			const triggers = xpert.graph?.nodes?.filter((node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER
+				&& (<IWFNTrigger>node.entity).from !== 'chat')
+			if (triggers?.length) {
+				const lockId = await this.redisLockService.acquireLock('job:trigger:' + xpert.id, 10000)
+				if (!lockId) {
+					continue
+				}
+				await this.publishTriggers(xpert)
+			}
+		}
 	}
 
 	/**
@@ -383,5 +404,31 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		return this.triggerRegistry.list().map((provider) => ({
 			...provider.meta
 		}))
+	}
+
+	async publishTriggers(xpert: IXpert) {
+		const triggers = xpert.graph.nodes
+			.filter((_) => _.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.TRIGGER)
+			.map((node) => node.entity as IWFNTrigger)
+			.filter((node) => node.from && node.from !== 'chat')
+		for await (const node of triggers) {
+			const provider = this.triggerRegistry.get(node.from)
+			if (!provider) continue
+			provider.publish(
+				{
+					xpertId: xpert.id,
+					config: node.config
+				},
+				(payload) => {
+					// Handle the payload if needed
+					console.log(`Trigger '${node.from}' executed with payload:`, payload)
+					this.triggerQueue.add({
+						xpertId: xpert.id,
+						trigger: node,
+						request: payload
+					 })
+				}
+			)
+		}
 	}
 }

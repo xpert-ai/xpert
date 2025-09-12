@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import * as Redis from 'ioredis'
 import { createClient } from 'redis'
+import { RedisLockService } from './redis-lock.service'
+import { REDIS_CLIENT, REDIS_OPTIONS } from './types'
 
-export const REDIS_CLIENT = 'REDIS_CLIENT'
-export const REDIS_OPTIONS = 'Redis_Options'
+
 
 @Module({
 	imports: [ConfigModule],
@@ -38,8 +39,9 @@ export const REDIS_OPTIONS = 'Redis_Options'
 				await client.connect()
 				return client
 			}
-		}
+		},
+		RedisLockService
 	],
-	exports: [REDIS_OPTIONS, REDIS_CLIENT]
+	exports: [REDIS_OPTIONS, REDIS_CLIENT, RedisLockService]
 })
 export class RedisModule {}

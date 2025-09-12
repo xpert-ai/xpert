@@ -11,6 +11,7 @@ import {
   IfAnimation,
   injectHelpWebsite,
   injectToastr,
+  IWFNTrigger,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum
@@ -37,6 +38,7 @@ import { XpertWorkflowAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowTaskComponent } from './task/task.component'
 import { XpertWorkflowTriggerComponent } from './trigger/trigger.component'
 import { XpertWorkflowTriggerTestComponent } from './trigger-test/trigger.component'
+import { SafePipe } from '@metad/core'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -53,6 +55,7 @@ import { XpertWorkflowTriggerTestComponent } from './trigger-test/trigger.compon
     TextFieldModule,
     NgmDensityDirective,
     NgmSpinComponent,
+    SafePipe,
     XpertStudioPanelWorkflowIfelseComponent,
     XpertStudioPanelWorkflowIteratingComponent,
     XpertStudioPanelWorkflowAnswerComponent,
@@ -110,6 +113,12 @@ export class XpertStudioPanelWorkflowComponent {
 
 
   readonly testing = signal(false)
+
+  // Workflow providers
+  readonly triggerProviders = this.studioService.triggerProviders
+  readonly triggerEntity = computed(() => this.wfNode()?.type === WorkflowNodeTypeEnum.TRIGGER ? this.wfNode() as IWFNTrigger : null)
+  readonly from = computed(() => this.triggerEntity()?.from)
+  readonly provider = computed(() => this.triggerProviders()?.find((item) => item.name === this.from()))
 
   openTest() {
     this.testing.set(true)

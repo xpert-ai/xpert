@@ -2,7 +2,6 @@ import {
 	agentLabel,
 	IKnowledgebase,
 	IWFNKnowledgeRetrieval,
-	IWFNTrigger,
 	IXpert,
 	IXpertAgent,
 	IXpertToolset,
@@ -15,8 +14,7 @@ import {
 import { omit, pick } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { WorkflowTriggerRegistry } from "@xpert-ai/plugin-sdk"
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { groupBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { IsNull } from 'typeorm'
@@ -33,7 +31,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		private readonly xpertService: XpertService,
 		private readonly xpertAgentService: XpertAgentService,
 		private readonly i18nService: I18nService,
-		private readonly triggerRegistry: WorkflowTriggerRegistry,
+		private readonly commandBus: CommandBus,
 	) {}
 
 	public async execute(command: XpertPublishCommand): Promise<Xpert> {
@@ -301,22 +299,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		const _xpert = await this.xpertService.save(xpert)
 
 		// Publish triggers
-		const triggers = xpert.graph.nodes.filter((_) =>
-				_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.TRIGGER
-			)
-			.map((node) => node.entity as IWFNTrigger)
-			.filter((node) => node.from && node.from !== 'chat')
-		for await (const node of triggers) {
-			const provider = this.triggerRegistry.get(node.from)
-			if (!provider) continue
-			provider.publish({
-				xpertId: _xpert.id,
-				config: node.config
-			}, (payload) => {
-				// Handle the payload if needed
-				console.log(`Trigger '${node.from}' executed with payload:`, payload)
-			})
-		}
+		await this.xpertService.publishTriggers(_xpert)
 
 		return _xpert
 	}

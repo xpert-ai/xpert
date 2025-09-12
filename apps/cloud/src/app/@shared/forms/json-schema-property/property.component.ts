@@ -14,7 +14,7 @@ import { XpertVariableInputComponent } from '../../agent'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSlideToggleComponent, XpertVariableInputComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, NgmSlideToggleComponent, NgmI18nPipe, XpertVariableInputComponent],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
   styleUrls: ['property.component.scss'],

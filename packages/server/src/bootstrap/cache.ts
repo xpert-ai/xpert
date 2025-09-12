@@ -1,7 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager'
 import { createKeyv } from '@keyv/redis'
 import { RedisOptions } from 'ioredis'
-import { REDIS_OPTIONS, RedisModule } from '../core/redis.module'
+import { REDIS_OPTIONS, RedisModule } from '../core/redis'
 
 /**
  * https://docs.nestjs.com/techniques/caching

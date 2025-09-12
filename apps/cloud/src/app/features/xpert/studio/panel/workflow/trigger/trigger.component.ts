@@ -81,6 +81,5 @@ export class XpertWorkflowTriggerComponent extends XpertWorkflowBaseComponent {
   readonly config = attrModel(this.triggerEntity, 'config')
   readonly from = computed(() => this.triggerEntity()?.from)
   readonly triggerProviders = this.studioService.triggerProviders
-
   readonly provider = computed(() => this.triggerProviders()?.find((item) => item.name === this.from()))
 }

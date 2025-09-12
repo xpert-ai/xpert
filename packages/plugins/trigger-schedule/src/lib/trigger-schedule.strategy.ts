@@ -21,9 +21,29 @@ export class ScheduleTriggerStrategy implements IWorkflowTriggerStrategy<TSchedu
     configSchema: {
       type: 'object',
       properties: {
-        enabled: { type: 'boolean', title: 'Enable', default: true },
-        cron: { type: 'string', title: 'Cron Expression', default: '0 * * * *' },
-        task: { type: 'string', title: 'Task' }
+        enabled: {
+          type: 'boolean',
+          title: {
+            en_US: 'Enabled',
+            zh_Hans: '启用'
+          },
+          default: true
+        },
+        cron: {
+          type: 'string',
+          title: {
+            en_US: 'Cron Expression',
+            zh_Hans: 'Cron 表达式'
+          },
+          default: '0 * * * *'
+        },
+        task: {
+          type: 'string',
+          title: {
+            en_US: 'Task',
+            zh_Hans: '任务'
+          }
+        }
       },
       required: ['enabled', 'cron', 'task']
     }
@@ -56,13 +76,13 @@ export class ScheduleTriggerStrategy implements IWorkflowTriggerStrategy<TSchedu
     const agentKey = payload.agentKey
     const jobName = this.jobName(xpertId)
 
-    // 如果已存在同名任务，先删除再重建（避免重复）
+    // If already exists, delete it and create it again (to avoid duplication)
     try {
       const existingJob = this.schedulerRegistry.getCronJob(jobName)
       existingJob.stop()
       this.schedulerRegistry.deleteCronJob(jobName)
     } catch {
-      // 不存在时会抛错，忽略即可
+      // Ignore if there is no corresponding task
     }
 
     if (config.enabled) {
@@ -74,7 +94,7 @@ export class ScheduleTriggerStrategy implements IWorkflowTriggerStrategy<TSchedu
             from: ScheduleTrigger,
             input: {
               input: config.task
-            },
+            }
           })
         }
       })
@@ -97,7 +117,7 @@ export class ScheduleTriggerStrategy implements IWorkflowTriggerStrategy<TSchedu
 
       console.log(`Stopped and deleted scheduled job '${jobName}' with cron expression '${config.cron}'`)
     } catch {
-      // 如果不存在对应任务就忽略
+      // Ignore if there is no corresponding task
     }
   }
 

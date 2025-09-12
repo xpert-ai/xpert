@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
-import { TenantModule, UserModule } from '@metad/server-core'
+import { RedisModule, TenantModule, UserModule } from '@metad/server-core'
 import { XpertController } from './xpert.controller'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
@@ -16,6 +16,9 @@ import { CopilotStoreModule } from '../copilot-store/copilot-store.module'
 import { AnonymousStrategy } from './auth/anonymous.strategy'
 import { EnvironmentModule } from '../environment'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import { BullModule } from '@nestjs/bull'
+import { QUEUE_XPERT_TRIGGER } from './types'
+import { XpertTriggerConsumer } from './jobs/trigger.job'
 
 @Module({
     imports: [
@@ -24,6 +27,7 @@ import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
         DiscoveryModule,
         TenantModule,
         CqrsModule,
+        RedisModule,
         forwardRef(() => KnowledgebaseModule),
         forwardRef(() => XpertAgentModule),
         forwardRef(() => UserModule),
@@ -31,9 +35,12 @@ import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
         forwardRef(() => EnvironmentModule),
         CopilotCheckpointModule,
         CopilotStoreModule,
+        BullModule.registerQueue({
+                    name: QUEUE_XPERT_TRIGGER,
+                  })
     ],
     controllers: [XpertController],
-    providers: [XpertService, AnonymousStrategy, WorkflowTriggerRegistry, ...CommandHandlers, ...QueryHandlers],
+    providers: [XpertService, AnonymousStrategy, WorkflowTriggerRegistry, XpertTriggerConsumer, ...CommandHandlers, ...QueryHandlers],
     exports: [XpertService]
 })
 export class XpertModule { }
