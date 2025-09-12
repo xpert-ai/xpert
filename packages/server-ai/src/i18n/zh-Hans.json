@@ -19,7 +19,8 @@
     "Xpert": {
         "SummaryTitleStarting": "正在总结标题...",
         "SummaryTitleEnd": "标题已总结",
-        "TaskHandover": "任务移交"
+        "TaskHandover": "任务移交",
+        "KnowledgeRetrieval": "知识检索"
     },
     "Tools": {
         "MCP": {

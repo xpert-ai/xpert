@@ -56,7 +56,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { isEqual, uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { myRxResource, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@metad/core'
 import { MatSliderModule } from '@angular/material/slider'
@@ -109,7 +109,7 @@ export class XpertStudioPanelAgentComponent {
   readonly elementRef = inject(ElementRef)
   readonly appService = inject(AppService)
   readonly apiService = inject(XpertStudioApiService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertAPI = inject(XpertService)
   readonly agentService = inject(XpertAgentService)
   readonly executionService = inject(XpertAgentExecutionService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
@@ -306,6 +306,19 @@ export class XpertStudioPanelAgentComponent {
     connections: this.connections(),
   }))
 
+  readonly #variables = myRxResource({
+    request: () => ({
+      xpertId: this.xpertId(),
+      agentKey: this.key(),
+      environmentId: this.apiService.environmentId(),
+      connections: this.connections(),
+    } as TXpertVariablesOptions),
+      loader: ({ request }) => {
+        return request ? this.xpertAPI.getNodeVariables(request) : of(null)
+      }
+    })
+  readonly variables = this.#variables.value
+
   readonly promptTemplateFullscreen = signal<string>(null)
 
   readonly loading = signal(false)
@@ -313,7 +326,7 @@ export class XpertStudioPanelAgentComponent {
   // Diagram of agents
   readonly refreshDiagram$ = new BehaviorSubject<void>(null)
   readonly diagram$ = this.refreshDiagram$.pipe(
-    switchMap(() => this.xpertService.getDiagram(this.xpert().id, this.key()).pipe(
+    switchMap(() => this.xpertAPI.getDiagram(this.xpert().id, this.key()).pipe(
       map((imageBlob) => imageBlob ? {image: URL.createObjectURL(imageBlob), error: null} : null),
       catchError((err) => of({image: null, error: getErrorMessage(err)})),
       startWith(null))

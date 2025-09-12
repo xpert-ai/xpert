@@ -1,6 +1,7 @@
-import { createQueryRunnerByType } from '@metad/adapter'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { createQueryRunnerByType, IDSSchema, IDSTable } from '@metad/adapter'
 import { XpertToolsetService } from '@metad/server-ai'
+import { omit } from '@metad/server-common'
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'
 import { ListTablesCommand } from '../list-tables.command'
 
@@ -13,7 +14,7 @@ export class ListTablesHandler implements ICommandHandler<ListTablesCommand> {
 		this.toolsetService.registerCommand('ListTables', ListTablesCommand)
 	}
 
-	public async execute(command: ListTablesCommand): Promise<string> {
+	public async execute(command: ListTablesCommand): Promise<IDSTable[] | IDSSchema[]> {
 		const { dataSource: dataSourceId, schema } = command.args
 		const isDev = process.env.NODE_ENV === 'development'
 
@@ -26,8 +27,14 @@ export class ListTablesHandler implements ICommandHandler<ListTablesCommand> {
 		})
 
 		try {
-			const tables = await runner.getSchema(schema)
-			return JSON.stringify(tables)
+			const result = await runner.getSchema(schema)
+			// Omit empty columns
+			return schema ? result[0]?.tables?.map((table) => omit(table, 'columns')) : result.map((s) => {
+				return {
+					...s,
+					tables: s.tables?.map((table) => omit(table, 'columns'))
+				}
+			})
 		} finally {
 			await runner.teardown()
 		}

@@ -555,9 +555,6 @@ export class XpertStudioApiService {
     }, reason)
   }
 
-  /**
-   * @deprecated use `agentConfig` model
-   */
   public updateXpertAgentConfig(config: Partial<TXpertAgentConfig>, reason = EReloadReason.XPERT_UPDATED) {
     this.updateXpertTeam((xpert) => {
       return {
