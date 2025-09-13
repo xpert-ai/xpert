@@ -181,6 +181,31 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 
 	/*
     |--------------------------------------------------------------------------
+    | Parent-children relationship 
+    |--------------------------------------------------------------------------
+    */
+	@ApiPropertyOptional({ type: () => KnowledgeDocument, description: 'Parent document' })
+	@ManyToOne(() => KnowledgeDocument, (parent) => parent.children, {
+		nullable: true,
+		onDelete: 'SET NULL'
+	})
+	@JoinColumn({ name: 'parentId' })
+	@IsOptional()
+	parent?: KnowledgeDocument
+
+	@ApiPropertyOptional({ type: () => String, description: 'Parent document ID' })
+	@RelationId((it: KnowledgeDocument) => it.parent)
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	parentId?: string
+
+	@ApiProperty({ type: () => KnowledgeDocument, isArray: true, description: 'Child documents' })
+	@OneToMany(() => KnowledgeDocument, (child) => child.parent)
+	children?: KnowledgeDocument[]
+
+	/*
+    |--------------------------------------------------------------------------
     | @OneToOne
     |--------------------------------------------------------------------------
     */
@@ -210,4 +235,5 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
 	pages?: IKnowledgeDocumentPage[]
+	
 }

@@ -1,10 +1,18 @@
-import { HttpClient, HttpParams } from '@angular/common/http'
+import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
-import { IDocumentChunk, IIntegration, IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentPage, TKDocumentWebSchema, TRagWebOptions, TRagWebResult } from '../types'
-import { NGXLogger } from 'ngx-logger'
+import { OrganizationBaseCrudService } from '@metad/cloud/state'
 import { Document } from 'langchain/document'
+import { NGXLogger } from 'ngx-logger'
 import { API_KNOWLEDGE_DOCUMENT } from '../constants/app.constants'
+import {
+  IDocumentChunk,
+  IIntegration,
+  IKnowledgeDocument,
+  IKnowledgeDocumentPage,
+  TKDocumentWebSchema,
+  TRagWebOptions,
+  TRagWebResult
+} from '../types'
 
 @Injectable({ providedIn: 'root' })
 export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowledgeDocument> {
@@ -47,15 +55,15 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
   }
 
   loadRagWebPages(type: string, webOptions: TRagWebOptions, integration: IIntegration) {
-    return this.httpClient.post<TRagWebResult>(this.apiBaseUrl + `/web/${type}/load`, {webOptions, integration})
+    return this.httpClient.post<TRagWebResult>(this.apiBaseUrl + `/web/${type}/load`, { webOptions, integration })
   }
 
   removePage(kd: IKnowledgeDocument, page: IKnowledgeDocumentPage) {
     return this.httpClient.delete(this.apiBaseUrl + `/${kd.id}/page/${page.id}`)
   }
 
-  getChunks(id: string, params: {take: number; skip: number; search?: string}) {
-    return this.httpClient.get<{items: IDocumentChunk[]; total: number;}>(this.apiBaseUrl + `/${id}` + '/chunk', {
+  getChunks(id: string, params: { take: number; skip: number; search?: string }) {
+    return this.httpClient.get<{ items: IDocumentChunk[]; total: number }>(this.apiBaseUrl + `/${id}` + '/chunk', {
       params: new HttpParams().append('data', JSON.stringify(params))
     })
   }
@@ -71,4 +79,5 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
   updateChunk(documentId: string, id: string, chunk: Partial<IDocumentChunk>) {
     return this.httpClient.put<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id, chunk)
   }
+
 }

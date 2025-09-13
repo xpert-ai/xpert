@@ -43,7 +43,9 @@ type OperatorValue =
  * @param where 
  * @returns 
  */
-export function transformWhere<T = any>(where: Record<string, OperatorValue>): FindOptionsWhere<T> {
+export function transformWhere<T = any>(where: Record<string, OperatorValue> | null): FindOptionsWhere<T> | null {
+  if (!where) return null
+  
   const result: Record<string, any> = {}
 
   for (const key in where) {

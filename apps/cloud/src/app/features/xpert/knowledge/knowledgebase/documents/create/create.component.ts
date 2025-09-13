@@ -10,11 +10,9 @@ import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
 import {
-  DocumentParserConfig,
   DocumentTextParserConfig,
   IIntegration,
   IKnowledgeDocument,
-  IStorageFile,
   KDocumentSourceType,
   KDocumentWebTypeEnum,
   KnowledgeDocumentService,
@@ -30,6 +28,7 @@ import { KnowledgeDocumentCreateStep2Component } from './step-2/step.component'
 import { KnowledgeDocumentCreateStep3Component } from './step-3/step.component'
 import { TSelectOption } from '@metad/ocap-angular/core'
 import { TFileItem } from '../types'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 
 
 @Component({
@@ -62,6 +61,7 @@ export class KnowledgeDocumentCreateComponent {
   readonly storageFileService = inject(StorageFileService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly documentsComponent = inject(KnowledgeDocumentsComponent)
+  readonly parentId = injectQueryParams('parentId')
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
@@ -99,7 +99,7 @@ export class KnowledgeDocumentCreateComponent {
   }
 
   close() {
-    this.#router.navigate(['..'], { relativeTo: this.#route })
+    this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 
   apply() {

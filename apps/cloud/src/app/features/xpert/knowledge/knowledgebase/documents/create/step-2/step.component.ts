@@ -146,7 +146,8 @@ export class KnowledgeDocumentCreateStep2Component {
               parserConfig: item.doc.parserConfig ?? this.parserConfig(),
               name: item.doc.storageFile.originalName,
               category: item.doc.category,
-              type: item.doc.type
+              type: item.doc.type,
+              parentId: this.createComponent.parentId() || null
             }))
           )
         : of([]),
@@ -161,7 +162,8 @@ export class KnowledgeDocumentCreateStep2Component {
               pages: this.webDocs().map((doc) => ({
                 ...doc,
                 status: 'finish'
-              }))
+              })),
+              parentId: this.createComponent.parentId() || null
             }
           ])
         : of([])

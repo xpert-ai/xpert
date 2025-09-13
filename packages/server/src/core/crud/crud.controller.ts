@@ -20,6 +20,7 @@ import { OptionsSelect, PaginationParams } from './pagination-params';
 import { AbstractValidationPipe, ParseJsonPipe, UUIDValidationPipe } from './../../shared/pipes';
 import { isNil, omitBy } from 'lodash';
 import { TenantOrganizationBaseDTO } from '../dto';
+import { transformWhere } from './transform-where';
 
 @ApiResponse({ 
 	status: HttpStatus.UNAUTHORIZED,
@@ -81,7 +82,7 @@ export abstract class CrudController<T extends BaseEntity> {
 		...options: any[]
 	): Promise<IPagination<T>> {
 		return this.crudService.findAll(omitBy({
-			where: where ?? filter?.where,
+			where: transformWhere(where ?? filter?.where),
 			relations: relations ?? filter?.relations,
 			order: order ?? filter?.order,
 			take: take ?? filter?.take,

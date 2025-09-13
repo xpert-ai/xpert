@@ -40,7 +40,11 @@ export enum KDocumentSourceType {
   /**
    * Web documents
    */
-  WEB = 'web'
+  WEB = 'web',
+  /**
+   * Folder, parent of other documents
+   */
+  FOLDER = 'folder',
 }
 
 /**
@@ -140,8 +144,12 @@ export type TKnowledgeDocument = {
   pages?: IKnowledgeDocumentPage[]
 }
 
+/**
+ * Document, include file, web pages, folder, virtual, etc.
+ */
 export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
-  //
+  parentId?: string | null
+  parent?: IKnowledgeDocument | null
 }
 
 export interface IDocumentChunk {

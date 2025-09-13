@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
-import { injectConfirmDelete, NgmCommonModule, NgmCountdownConfirmationComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, injectConfirmUnique, NgmCommonModule, NgmCountdownConfirmationComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { formatRelative } from 'date-fns/formatRelative'
 import { get } from 'lodash-es'
@@ -40,14 +40,15 @@ import {
   injectToastr,
   IXpert,
   KBDocumentStatusEnum,
+  KDocumentSourceType,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
   OrderTypeEnum,
-  Store,
   ToastrService
 } from '../../../../../@core'
 import { KnowledgeDocIdComponent } from '../../../../../@shared/knowledge'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 
 @Component({
   standalone: true,
@@ -80,16 +81,19 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
   ]
 })
 export class KnowledgeDocumentsComponent {
-  readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
+  eKDocumentSourceType = KDocumentSourceType
+
+  readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
-  readonly #store = inject(Store)
   readonly #dialog = inject(MatDialog)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly confirmDelete = injectConfirmDelete()
+  readonly confirmUnique = injectConfirmUnique()
   readonly #toastr = injectToastr()
   readonly #translate = inject(I18nService)
+  readonly parentId = injectQueryParams('parentId')
 
   readonly paginator = viewChild(MatPaginator)
   readonly sort = viewChild(MatSort)
@@ -98,6 +102,7 @@ export class KnowledgeDocumentsComponent {
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly knowledgebase$ = toObservable(this.knowledgebase)
   readonly xperts = computed(() => this.knowledgebase()?.xperts)
+  readonly parentId$ = toObservable(this.parentId)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly delayRefresh$ = new Subject<boolean>()
@@ -107,10 +112,10 @@ export class KnowledgeDocumentsComponent {
       name: 'name',
       caption: 'Name'
     },
-    {
-      name: 'sourceType',
-      caption: 'Source Type'
-    },
+    // {
+    //   name: 'sourceType',
+    //   caption: 'Source Type'
+    // },
     {
       name: 'type',
       caption: 'Type'
@@ -147,7 +152,7 @@ export class KnowledgeDocumentsComponent {
       // If the user changes the sort order, reset back to the first page.
       this.sort().sortChange.subscribe(() => (this.paginator().pageIndex = 0))
 
-      merge(this.sort().sortChange, this.paginator().page, this.knowledgebase$, this.refresh$)
+      merge(this.sort().sortChange, this.paginator().page, this.knowledgebase$, this.parentId$, this.refresh$)
         .pipe(
           startWith({}),
           debounceTime(100),
@@ -157,10 +162,12 @@ export class KnowledgeDocumentsComponent {
             const order = this.sort().active
               ? { [this.sort().active]: this.sort().direction.toUpperCase() }
               : { createdAt: OrderTypeEnum.DESC }
-            return this.knowledgeDocumentService!.getAll({
-              where: {
-                knowledgebaseId: this.knowledgebase().id
-              },
+            const where = {
+              knowledgebaseId: this.knowledgebase().id,
+              parentId: this.parentId() ? this.parentId() : { $isNull: true }
+            }
+            return this.knowledgeDocumentAPI.getAll({
+              where,
               take: this.pageSize(),
               skip: this.paginator().pageIndex,
               relations: ['storageFile', 'pages'],
@@ -216,8 +223,37 @@ export class KnowledgeDocumentsComponent {
     this.refresh$.next(true)
   }
 
+  backHome() {
+    this.#router.navigate(['.'], { relativeTo: this.#route, queryParams: { parentId: null } })
+  }
+
+  createFolder() {
+    this.confirmUnique({
+      title: this.#translate.instant('PAC.Knowledgebase.NewFolder', { Default: 'New Folder' }),
+    }, (name: string) => {
+      return name ? this.knowledgeDocumentAPI.create({
+        sourceType: KDocumentSourceType.FOLDER,
+        name: name,
+        knowledgebaseId: this.knowledgebase().id,
+        parentId: this.parentId() || null
+      }) : EMPTY
+    })
+    .subscribe({
+      next: (doc) => {
+        this.refresh()
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  createDocument() {
+    //
+  }
+
   uploadDocuments() {
-    this.#router.navigate(['create'], { relativeTo: this.#route })
+    this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 
   deleteDocument(doc: IKnowledgeDocument) {
@@ -226,7 +262,7 @@ export class KnowledgeDocumentsComponent {
         value: doc.id,
         information: doc.name
       },
-      this.knowledgeDocumentService.delete(doc.id)
+      this.knowledgeDocumentAPI.delete(doc.id)
     ).subscribe({
       next: () => {
         this.refresh()
@@ -238,12 +274,14 @@ export class KnowledgeDocumentsComponent {
   }
 
   updateParserConfig(document: IKnowledgeDocument, config: Partial<IKnowledgeDocument['parserConfig']>) {
-    this.knowledgeDocumentService
+    this.knowledgeDocumentAPI
       .update(document.id, {
         parserConfig: { ...(document.parserConfig ?? {}), ...config } as IKnowledgeDocument['parserConfig']
       })
       .subscribe({
-        next: () => {},
+        next: () => {
+          //
+        },
         error: (err) => {
           this.#toastr.error(getErrorMessage(err))
         }
@@ -252,7 +290,7 @@ export class KnowledgeDocumentsComponent {
 
   startParsing(row: IKnowledgeDocument) {
     row.status = KBDocumentStatusEnum.RUNNING
-    this.knowledgeDocumentService.startParsing(row.id).subscribe({
+    this.knowledgeDocumentAPI.startParsing(row.id).subscribe({
       next: () => {
         this.refresh()
       },
@@ -270,7 +308,7 @@ export class KnowledgeDocumentsComponent {
         }
       })
       .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.startParsing(id) : EMPTY)))
+      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentAPI.startParsing(id) : EMPTY)))
       .subscribe({
         next: () => {
           this.refresh()
@@ -289,7 +327,7 @@ export class KnowledgeDocumentsComponent {
         }
       })
       .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.stopParsing(id) : EMPTY)))
+      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentAPI.stopParsing(id) : EMPTY)))
       .subscribe({
         next: () => {
           this.refresh()
@@ -301,7 +339,7 @@ export class KnowledgeDocumentsComponent {
   }
 
   removePage(doc: IKnowledgeDocument, page: IKnowledgeDocumentPage) {
-    this.knowledgeDocumentService.removePage(doc, page).subscribe({
+    this.knowledgeDocumentAPI.removePage(doc, page).subscribe({
       next: () => {
         this.data.update((docs) => {
           return docs.map((doc) => {
