@@ -114,7 +114,7 @@ const DEFAULT_INDEX_SEARCH_PARAMS: Record<IndexType, IndexSearchParam> = {
  * class.
  */
 export class Milvus extends VectorStore {
-  get lc_secrets(): { [key: string]: string } {
+  override get lc_secrets(): { [key: string]: string } {
     return {
       ssl: "MILVUS_SSL",
       username: "MILVUS_USERNAME",
@@ -156,7 +156,7 @@ export class Milvus extends VectorStore {
 
   indexSearchParams: keyValueObj;
 
-  constructor(public embeddings: EmbeddingsInterface, args: MilvusLibArgs) {
+  constructor(embeddings: EmbeddingsInterface, args: MilvusLibArgs) {
     super(embeddings, args);
     this.collectionName = args.collectionName ?? genCollectionName();
     this.partitionName = args.partitionName;

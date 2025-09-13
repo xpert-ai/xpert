@@ -126,7 +126,9 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-integration-fastgpt',
 			'@xpert-ai/plugin-integration-ragflow',
 			'@xpert-ai/plugin-integration-github',
-			'@xpert-ai/plugin-trigger-schedule'
+			'@xpert-ai/plugin-trigger-schedule',
+			'@xpert-ai/plugin-vstore-chroma',
+			'@xpert-ai/plugin-vstore-milvus'
 		],
 		discovery: {
 			prefix: '@xpert-ai/plugin-',
