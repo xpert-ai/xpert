@@ -7,6 +7,9 @@ import { OcapCoreModule } from '@metad/ocap-angular/core'
 
 import { TreeTableComponent } from './tree-table.component'
 
+/**
+ * @deprecated use headless components instead
+ */
 @NgModule({
   imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule, OcapCoreModule],
   exports: [TreeTableComponent],

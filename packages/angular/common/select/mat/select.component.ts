@@ -39,6 +39,9 @@ import { combineLatestWith, debounceTime, distinctUntilChanged, filter, map, sta
 import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 import { isEqual } from 'lodash-es'
 
+/**
+ * @deprecated use headless components instead
+ */
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

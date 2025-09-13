@@ -12,6 +12,9 @@ export type TreeTableColumn = Property & {
   stickyEnd?: boolean
 }
 
+/**
+ * @deprecated use headless components instead
+ */
 @Component({
   selector: 'ngm-tree-table',
   templateUrl: 'tree-table.component.html',

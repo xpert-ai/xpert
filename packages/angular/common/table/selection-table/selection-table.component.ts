@@ -24,6 +24,7 @@ export type SelectionTableColumn = {
 }
 
 /**
+ * @deprecated use headless components instead
  */
 @Component({
   standalone: true,

@@ -9,6 +9,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, startWith } from 'rxjs'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour'
 
+/**
+ * @deprecated use headless components instead
+ */
 @Component({
   standalone: true,
   imports: [

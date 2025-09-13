@@ -4,6 +4,9 @@ import { MatIconModule } from '@angular/material/icon'
 
 import { SplitButtonComponent } from './split-button.component'
 
+/**
+ * @deprecated use headless components instead
+ */
 @NgModule({
   imports: [MatButtonModule, MatIconModule],
   exports: [SplitButtonComponent],

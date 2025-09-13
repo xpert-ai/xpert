@@ -24,6 +24,7 @@ import { NgmHighlightDirective } from '../directives'
 /**
  * You can use the following custom elements to customize the input:
  * - ngmLabel: the custom label elements of the input
+ * @deprecated use headless components instead
  */
 @Component({
   standalone: true,
