@@ -57,6 +57,7 @@
       "@xpert-ai/plugin-trigger-schedule": ["packages/plugins/trigger-schedule/src/index.ts"],
       "@xpert-ai/plugin-vstore-chroma": ["packages/plugins/vstore-chroma/src/index.ts"],
       "@xpert-ai/plugin-vstore-milvus": ["packages/plugins/vstore-milvus/src/index.ts"],
+      "@xpert-ai/plugin-vstore-weaviate": ["packages/plugins/vstore-weaviate/src/index.ts"],
       "ngx-echarts": ["packages/ngx-echarts/src/public-api"]
     },
     "preserveConstEnums": true,
