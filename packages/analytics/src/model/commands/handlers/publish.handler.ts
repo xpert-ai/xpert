@@ -21,6 +21,9 @@ export class SemanticModelPublishHandler implements ICommandHandler<SemanticMode
 	public async execute(command: SemanticModelPublishCommand): Promise<ISemanticModel> {
 		const { id, notes } = command
 
+		// Clear semantic model cache
+		await this.service.clearOne4Ocap(id)
+
 		const model = await this.service.findOne(id)
 		// Keep the embedded state, that is, publish without requiring re-embedding
 		const embedded = model.options?.embedded
