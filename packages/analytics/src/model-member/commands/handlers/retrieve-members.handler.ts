@@ -19,7 +19,7 @@ export class RetrieveMembersHandler implements ICommandHandler<RetrieveMembersCo
 
 	constructor(
 		private readonly modelService: SemanticModelService,
-		private readonly service: SemanticModelMemberService,
+		// private readonly service: SemanticModelMemberService,
 		private readonly commandBus: CommandBus,) {}
 
 	public async execute(command: RetrieveMembersCommand) {

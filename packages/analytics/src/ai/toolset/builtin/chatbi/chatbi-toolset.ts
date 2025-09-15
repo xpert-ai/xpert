@@ -8,7 +8,7 @@ import {
 	getToolCallIdFromConfig,
 	IChatBIModel,
 	IIndicator,
-	isEnableTool,
+	isToolEnabled,
 	OrderTypeEnum,
 	TAgentRunnableConfigurable,
 	TMessageComponent,
@@ -151,7 +151,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		if (!this.toolset) {
 			throw new ToolNotSupportedError(`Toolset not provided for '${this.constructor.prototype.provider}'`)
 		}
-		const tools = this.toolset.tools.filter((_) => isEnableTool(_, this.toolset))
+		const tools = this.toolset.tools.filter((_) => isToolEnabled(_, this.toolset.options?.disableToolDefault))
 
 		await this.initModels()
 

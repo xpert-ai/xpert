@@ -2,7 +2,9 @@
 	"Error": {
 		"IndicatorNotFound": "Indicator '{{indicator}}' not found.",
 		"ChatBIModelNotFound": "Semantic model '{{model}}' not found for '{{toolset}}' toolset.",
-		"FailedConnectToOLAP": "Failed to connect to OLAP engine."
+		"FailedConnectToOLAP": "Failed to connect to OLAP engine.",
+		"EmbeddingDimensionRequired": "Dimension is required for embedding members",
+		"NoDimensionFound": "No dimension '{{dimension}}' found in cube '{{cube}}'"
 	},
 	"Tools": {
 		"ChatBI": {
