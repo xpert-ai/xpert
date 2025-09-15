@@ -423,8 +423,8 @@ export class XpertController extends CrudController<Xpert> {
 	@Post(':id/duplicate')
 	async duplicate(@Param('id') id: string, @Body() body: {basic: Partial<IXpert>; isDraft: boolean}) {
 		try {
-			const dsl = await this.commandBus.execute(new XpertExportCommand(id, body.isDraft, false))
-			// const dsl = instanceToPlain(xpertDto)
+			const xpertDto = await this.commandBus.execute(new XpertExportCommand(id, body.isDraft, false))
+			const dsl = instanceToPlain(xpertDto)
 			return await this.commandBus.execute(new XpertImportCommand({...dsl, team: {...dsl.team, ...body.basic}}))
 		} catch(err) {
 			throw new InternalServerErrorException(err.message)
