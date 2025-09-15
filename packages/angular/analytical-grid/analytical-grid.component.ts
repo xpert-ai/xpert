@@ -8,7 +8,6 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
-  DestroyRef,
   effect,
   ElementRef,
   EventEmitter,
@@ -88,6 +87,7 @@ import {
   VisualMap
 } from './types'
 import { NgmTreeFlatDataSource } from './tree-flat-data-source'
+import { SlicersCapacity } from '@metad/ocap-angular/selection'
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -107,10 +107,10 @@ import { NgmTreeFlatDataSource } from './tree-flat-data-source'
 export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnDestroy, FocusableOption {
   AggregationRole = AggregationRole
   C_MEASURES = C_MEASURES
+  eSlicersCapacity = SlicersCapacity
   isNil = isNil
 
   public readonly analyticsService = inject(NgmAnalyticsBusinessService)
-  readonly #destroyRef = inject(DestroyRef)
 
   private _disabled = false
 
