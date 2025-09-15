@@ -2,6 +2,12 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  ::ng-deep {
+    .mat-mdc-paginator-page-size-label {
+      @apply hidden;
+    }
+  }
 }
 
 table.mat-mdc-table {
