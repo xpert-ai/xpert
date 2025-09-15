@@ -43,3 +43,11 @@ credentials_for_provider:
     placeholder:
       en_US: Default top 100 rows
       zh_Hans: 默认前 100 行
+  showError:
+    type: boolean
+    label:
+      en_US: Show Error
+      zh_Hans: 显示错误
+    help:
+      en_US: Show error message from LLM
+      zh_Hans: 显示出错的组件

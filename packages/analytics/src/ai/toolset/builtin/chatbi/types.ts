@@ -1,7 +1,6 @@
 import {
 	CalculatedMeasureSchema,
 	CalculatedMember,
-	ChartAnnotation,
 	ChartDimension,
 	ChartDimensionRoleType,
 	ChartDimensionSchema,
@@ -53,6 +52,10 @@ export type TChatBICredentials = {
 	 * Default limit top 100 rows to LLM
 	 */
 	dataLimit?: number
+	/**
+	 * Whether to display unfinished data components, which may contain error information
+	 */
+	showError?: boolean
 }
 
 /**

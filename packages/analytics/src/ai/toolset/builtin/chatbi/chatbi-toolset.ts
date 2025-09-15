@@ -403,7 +403,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 	createChatAnswerTool(context: ChatBIContext, credentials: TChatBICredentials) {
 		const { dsCoreService } = context
-		const { dataPermission } = credentials
+		// const { dataPermission } = credentials
 
 		return tool(
 			async (params, config: LangGraphRunnableConfig): Promise<string> => {
@@ -505,6 +505,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, configurable: TAgentRunnableConfigurable, credentials: TChatBICredentials): Promise<any> {
 		const { dsCoreService, entityType, chatbi, language } = context
 		const { subscriber, agentKey, xpertName, tool_call_id } = configurable ?? {}
+		const { showError } = credentials
 
 		const currentState = getCurrentTaskInput()
 		// const lang = currentState[STATE_VARIABLE_SYS]?.language
@@ -602,66 +603,51 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					return acc
 				}, {})
 			}
-		// In parallel: return to the front-end display and back-end data retrieval
-		if (answer.visualType === 'KPI') {
-			for (const measure of chartAnnotation.measures) {
-				subscriber?.next({
-					data: {
-						type: ChatMessageTypeEnum.MESSAGE,
+		async function sendToClient() {
+			if (answer.visualType === 'KPI') {
+				for (const measure of chartAnnotation.measures) {
+					subscriber?.next({
 						data: {
-							id: shortuuid(),
-							type: 'component',
+							type: ChatMessageTypeEnum.MESSAGE,
 							data: {
-								category: 'Dashboard',
-								type: 'KPI',
-								dataSettings: {
-									...omit(dataSettings, 'chartAnnotation'),
-									KPIAnnotation: {
-										DataPoint: {
-											Value: measure
+								id: shortuuid(),
+								type: 'component',
+								data: {
+									category: 'Dashboard',
+									type: 'KPI',
+									dataSettings: {
+										...omit(dataSettings, 'chartAnnotation'),
+										KPIAnnotation: {
+											DataPoint: {
+												Value: measure
+											}
 										}
-									}
-								} as DataSettings,
-								slicers,
-								title: answer.preface,
-							} as TMessageComponent,
-							xpertName,
-							agentKey
-						} as TMessageContentComponent
-					}
-				} as MessageEvent)
+									} as DataSettings,
+									slicers,
+									title: answer.preface,
+								} as TMessageComponent,
+								xpertName,
+								agentKey
+							} as TMessageContentComponent
+						}
+					} as MessageEvent)
+				}
+			} else {
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+					id: tool_call_id,
+					category: 'Dashboard',
+					type: 'AnalyticalCard',
+					dataSettings,
+					chartSettings,
+					slicers,
+					title: answer.preface,
+					indicators,
+				} as TMessageComponent)
 			}
-		} else {
-			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-				id: tool_call_id,
-				category: 'Dashboard',
-				type: 'AnalyticalCard',
-				dataSettings,
-				chartSettings,
-				slicers,
-				title: answer.preface,
-				indicators,
-			} as TMessageComponent)
-			// subscriber.next({
-			// 	data: {
-			// 		type: ChatMessageTypeEnum.MESSAGE,
-			// 		data: {
-			// 			id: shortuuid(),
-			// 			type: 'component',
-			// 			data: {
-			// 				category: 'Dashboard',
-			// 				type: 'AnalyticalCard',
-			// 				dataSettings,
-			// 				chartSettings,
-			// 				slicers,
-			// 				title: answer.preface,
-			// 				indicators
-			// 			} as TMessageComponent,
-			// 			xpertName,
-			// 			agentKey
-			// 		} as TMessageContentComponent
-			// 	}
-			// } as MessageEvent)
+		}
+		// In parallel: return to the front-end display and back-end data retrieval
+		if (showError) {
+			await sendToClient()
 		}
 
 		return new Promise((resolve, reject) => {
@@ -669,6 +655,11 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				if (result.error) {
 					reject(result.error)
 				} else {
+					if (!showError) {
+						sendToClient().catch((error) => {
+							console.error(error)
+						})
+					}
 					resolve(extractDataValue(result.data, dataSettings.chartAnnotation, credentials))
 				}
 				destroy$.next()

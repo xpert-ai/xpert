@@ -91,7 +91,9 @@ export function buildDimensionMemberRetrieverTool(context: Partial<TBIContext>, 
 				type: ChatMessageStepCategory.Knowledges,
 				data: docs.map(([doc]) => doc)
 			})
-			return formatDocumentsAsString(docs.map(([doc]) => doc))
+			return docs.map(([doc]) => 
+				`- Caption: ${doc.metadata.caption || ''}; Key: \`${doc.metadata.key}\``
+			).join('\n')
 		},
 		{
 			name,
