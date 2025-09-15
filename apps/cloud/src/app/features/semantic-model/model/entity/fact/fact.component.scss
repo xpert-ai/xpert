@@ -1,5 +1,5 @@
 :host {
-  @apply relative flex flex-col overflow-auto;
+  @apply relative flex flex-col overflow-y-auto;
 }
 
 .pac-cube-structure-drop {
@@ -13,6 +13,8 @@
 
 :host::ng-deep {
   .mat-mdc-checkbox {
+    @apply overflow-hidden;
+    
     .mat-internal-form-field {
       width: 100%;
     }

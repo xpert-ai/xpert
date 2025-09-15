@@ -454,7 +454,7 @@ export class ModelCubeStructureComponent {
 
     // Add shared dimension into this cube
     if (
-      event.previousContainer.id === CdkDragDropContainers.ShareDimensions &&
+      // event.previousContainer.id === CdkDragDropContainers.ShareDimensions &&
       previousItem.type === SemanticModelEntityType.DIMENSION &&
       event.container.id === CdkDragDropContainers.Dimensions
     ) {

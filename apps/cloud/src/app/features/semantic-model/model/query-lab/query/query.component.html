@@ -21,7 +21,7 @@
 
             <div id="pac-model__query-entities" class="pac-model-query__schema pac-cdk-drop__list flex-1 flex flex-col overflow-auto"
                 cdkDropList
-                [cdkDropListEnterPredicate]="editorDropPredicate"
+                [cdkDropListEnterPredicate]="navDropPredicate()"
                 (cdkDropListDropped)="dropEntity($event)"
             >
               @for (entity of entities(); track entity) {

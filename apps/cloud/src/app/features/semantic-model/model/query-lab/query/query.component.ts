@@ -23,7 +23,7 @@ import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@metad/ocap-
 import { C_MEASURES, nonNullable, uniqBy, VariableProperty, wrapBrackets } from '@metad/ocap-core'
 import { limitSelect, serializeName } from '@metad/ocap-sql'
 import { ModelQuery, Store } from 'apps/cloud/src/app/@core'
-import { cloneDeep, isEqual, isPlainObject } from 'lodash-es'
+import { isEqual, isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Subscription, combineLatest, firstValueFrom, of } from 'rxjs'
 import { catchError, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators'
@@ -178,7 +178,7 @@ ${calcEntityTypePrompt(entityType)}
   | Signals
   |--------------------------------------------------------------------------
   */
-  // 当前使用 MDX 查询
+  // Currently using MDX query
   readonly modelType = toSignal(this.modelService.modelType$)
   /**
    * The source is Xmla service, so must use MDX statement to query
@@ -200,15 +200,22 @@ ${calcEntityTypePrompt(entityType)}
 
   readonly entityType = computed(() => this.entityTypes()[0])
 
-  // readonly dbTablesPrompt = computed(() =>
-  //   this.isMDX()
-  //     ? `The source dialect is ${this.entityTypes()[0]?.dialect}, the cubes information are ${this.#promptCubes?.join(
-  //         '\n'
-  //       )}`
-  //     : `The database dialect is ${
-  //         this.entityTypes()[0]?.dialect
-  //       }, the tables information are ${this.promptTables?.join('\n')}`
-  // )
+  readonly navDropPredicate = computed(() => {
+    const isMDX = this.isMDX()
+    return (event: CdkDrag<EntitySchemaNode>) => {
+      if (isMDX) {
+        return [
+          CdkDragDropContainers.Tables,
+          CdkDragDropContainers.Entity,
+        ].includes(event.dropContainer.id as CdkDragDropContainers)
+      } else {
+        return [
+          CdkDragDropContainers.Tables,
+        ].includes(event.dropContainer.id as CdkDragDropContainers)
+      }
+    }
+  })
+
   sqlEditorActionLabel = toSignal(
     this.translateService.stream('PAC.MODEL.QUERY.EditorActions', {
       Default: {
@@ -218,56 +225,6 @@ ${calcEntityTypePrompt(entityType)}
       }
     })
   )
-  // sqlEditorActions = [
-  //   {
-  //     id: `sql-editor-action-nl-sql`,
-  //     label: computed(() => this.sqlEditorActionLabel().Nl2SQL),
-  //     action: (text, options) => {
-  //       const statement = text || this.statement
-  //       if (statement) {
-  //         this.answering.set(true)
-  //         this.nl2SQL(statement).subscribe((result) => {
-  //           this.answering.set(false)
-  //           const lines = this.statement.split('\n')
-  //           const endLineNumber = text ? options.selection.endLineNumber : lines.length
-  //           lines.splice(endLineNumber, 0, result)
-  //           this.statement = lines.join('\n')
-  //         })
-  //       }
-  //     }
-  //   },
-  //   {
-  //     id: `sql-editor-action-explain-sql`,
-  //     label: computed(() => this.sqlEditorActionLabel().Explain),
-  //     action: (text, options) => {
-  //       const statement = text || this.statement
-  //       if (statement) {
-  //         this.answering.set(true)
-  //         this.explainSQL(statement).subscribe((result) => {
-  //           this.answering.set(false)
-  //           const startLineNumber = text ? options.selection.startLineNumber : 1
-  //           const lines = this.statement.split('\n')
-  //           lines.splice(startLineNumber - 1, 0, `/**\n${result}\n*/`)
-  //           this.statement = lines.join('\n')
-  //         })
-  //       }
-  //     }
-  //   },
-  //   {
-  //     id: `sql-editor-action-optimize-sql`,
-  //     label: computed(() => this.sqlEditorActionLabel().Optimize),
-  //     action: (text, options) => {
-  //       const statement = text || this.statement
-  //       if (statement) {
-  //         this.answering.set(true)
-  //         this.optimizeSQL(statement).subscribe((result) => {
-  //           this.answering.set(false)
-  //           this.statement = this.statement.replace(statement, result)
-  //         })
-  //       }
-  //     }
-  //   }
-  // ]
 
   get results() {
     return this.queryLabService.results[this.queryKey()]
@@ -302,7 +259,7 @@ ${calcEntityTypePrompt(entityType)}
     implementation: async (event: CdkDragDrop<any[], any[], any>, copilotEngine: CopilotEngine) => {
       this.#logger.debug(`Drop table entity to copilot chat:`, event)
       const data = event.item.data
-      // 获取源表或源多维数据集结构
+      // Get the source table or source cube structure
       const entityType = await firstValueFrom(this.modelService.selectOriginalEntityType(data.name))
 
       const topCount = 10
@@ -400,7 +357,7 @@ ${calcEntityTypePrompt(entityType)}
   }
 
   editorDropPredicate(event: CdkDrag<EntitySchemaNode>) {
-    // 排除 query results 拖进来
+    // Exclude dragging query results
     return !['pac-model__query-results'].includes(event.dropContainer.id)
   }
 
@@ -512,7 +469,7 @@ ${calcEntityTypePrompt(entityType)}
   }
 
   /**
-   * 另存为 SQL Model
+   * save as SQL Model
    */
   saveAsModel() {
     this.modelComponent.createByExpression(this.statement)
@@ -538,9 +495,7 @@ ${calcEntityTypePrompt(entityType)}
           }
           break
         }
-        case CdkDragDropContainers.Cubes:
-        case CdkDragDropContainers.ShareDimensions:
-        case CdkDragDropContainers.VirtualCubes:
+        case CdkDragDropContainers.Entity:
         {
           if (this.isMDX()) {
             // Add original cube name into list

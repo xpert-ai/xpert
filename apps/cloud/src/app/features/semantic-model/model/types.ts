@@ -237,10 +237,11 @@ export type ModelSchemaValueTypes = {
 }
 
 export enum CdkDragDropContainers {
+  Entity = 'pac-model-entities',
   Tables = 'pac-model-entitysets',
-  Cubes = 'pac-model-cubes',
-  ShareDimensions = 'pac-model-dimensions',
-  VirtualCubes = 'pac-model-virtual-cubes',
+  // Cubes = 'pac-model-cubes',
+  // ShareDimensions = 'pac-model-dimensions',
+  // VirtualCubes = 'pac-model-virtual-cubes',
   HierarchyTable = 'pac-model-dimension__hierarchy-tables',
   QueryEntity = 'pac-model__query-entities',
   Dimensions = 'list-dimensions',
