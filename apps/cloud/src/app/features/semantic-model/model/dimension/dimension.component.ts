@@ -2,11 +2,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, model } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTabsModule } from '@angular/material/tabs'
-import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router'
 import { nonBlank } from '@metad/core'
@@ -14,9 +11,10 @@ import { NgmCommonModule, ResizerModule, SplitterModule } from '@metad/ocap-angu
 import { OcapCoreModule, effectAction } from '@metad/ocap-angular/core'
 import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, uniq } from 'lodash-es'
 import { derivedFrom } from 'ngxtension/derived-from'
+import { injectParams } from 'ngxtension/inject-params'
 import { Observable, combineLatest, pipe } from 'rxjs'
 import { distinctUntilChanged, filter, map, startWith, switchMap, tap, withLatestFrom } from 'rxjs/operators'
 import { ToastrService, routeAnimations, uuid } from '../../../../@core'
@@ -25,7 +23,7 @@ import { TablesJoinModule } from '../../tables-join'
 import { injectHierarchyCommand } from '../copilot'
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
-import { ModelDesignerType, TOOLBAR_ACTION_CATEGORY } from '../types'
+import { ModelDesignerType, SemanticModelEntityType, TOOLBAR_ACTION_CATEGORY } from '../types'
 import { ModelDimensionService } from './dimension.service'
 
 @Component({
@@ -41,12 +39,9 @@ import { ModelDimensionService } from './dimension.service'
     RouterModule,
     CdkMenuModule,
     ContentLoaderModule,
-    MatButtonModule,
-    MatIconModule,
     MatTabsModule,
     MatTooltipModule,
     MatSidenavModule,
-    MatToolbarModule,
     TranslateModule,
 
     NxDesignerModule,
@@ -69,7 +64,7 @@ export class ModelDimensionComponent implements OnInit {
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly #destroyRef = inject(DestroyRef)
-  readonly params = inject(ActivatedRoute)
+  readonly id = injectParams('id')
 
   readonly dimension$ = this.dimensionService.dimension$
 
@@ -138,7 +133,7 @@ export class ModelDimensionComponent implements OnInit {
   })
 
   constructor() {
-    this.#router.events.pipe(takeUntilDestroyed()).subscribe(event => {
+    this.#router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
       if (event instanceof NavigationEnd && this.#route.snapshot.params['id']) {
         this.dimensionService.initHierarchyIndex()
       }
@@ -220,5 +215,16 @@ export class ModelDimensionComponent implements OnInit {
 
   navigateTo(id: string) {
     this.#router.navigate(['hierarchy', id], { relativeTo: this.#route })
+  }
+
+  duplicate() {
+    const newKey = uuid()
+    this.modelService.duplicate({ type: SemanticModelEntityType.DIMENSION, id: this.id(), newKey })
+    this.#router.navigate(['..', newKey], { relativeTo: this.#route })
+  }
+
+  delete() {
+    this.modelService.deleteEntity(this.id())
+    this.#router.navigate([`../..`], { relativeTo: this.#route })
   }
 }

@@ -968,6 +968,7 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "DimensionAttributes": "维度属性",
       "CreateVirtualCube": "创建虚拟数据集",
       "CreateCube": "创建数据集",
       "CreateDimension": "创建维度",
