@@ -6,7 +6,13 @@
                     <mat-icon fontSet="material-icons-round">segment</mat-icon>
                 </button>
 
-                <span>{{ 'PAC.MODEL.QUERY.TableSchema' | translate: {Default: "Table Schema"} }}</span>
+                <span>
+                  @if (queryType() === 'mdx') {
+                    {{ 'PAC.MODEL.QUERY.Cubes' | translate: {Default: "Cubes"} }}
+                  } @else {
+                    {{ 'PAC.MODEL.QUERY.TableSchema' | translate: {Default: "Table Schema"} }}
+                  }
+                </span>
 
                 <span class="flex flex-1"></span>
 
@@ -26,7 +32,7 @@
             >
               @for (entity of entities(); track entity) {
                 <ngm-entity-schema
-                    [dataSettings]="{dataSource: dataSourceName, entitySet: entity}"
+                    [dataSettings]="{dataSource: dataSourceName(), entitySet: entity}"
                     [capacities]="[
                         EntityCapacity.Dimension,
                         EntityCapacity.Measure,
@@ -281,10 +287,10 @@
   @if (message.data['header']) {
     <div >{{message.data['header']}}</div>
   }
-    <ngm-table class="max-w-full rounded-lg border overflow-hidden"
-        [columns]="message.data['columns']"
-        [data]="message.data['content']"
-        paging
-        [pageSizeOptions]="[10, 20, 50, 100]"
-    ></ngm-table>
+  <ngm-table class="max-w-full rounded-lg border overflow-hidden"
+    [columns]="message.data['columns']"
+    [data]="message.data['content']"
+    paging
+    [pageSizeOptions]="[10, 20, 50, 100]"
+  />
 </ng-template>
