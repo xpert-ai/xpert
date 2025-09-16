@@ -70,6 +70,7 @@ export class ModelEntityPreviewComponent {
     PropertyCapacity.Order,
     PropertyCapacity.MeasureAttributes
   ]
+  eCdkDragDropContainers = CdkDragDropContainers
 
   readonly modelService = inject(SemanticModelService)
   readonly entityService = inject(ModelEntityService)
@@ -294,7 +295,8 @@ export class ModelEntityPreviewComponent {
 
   dropRowsPredicate(item: CdkDrag<any>) {
     return (
-      // dimensions
+      item.dropContainer.id === CdkDragDropContainers.PreviewRows ||
+      item.dropContainer.id === CdkDragDropContainers.PreviewColumns ||
       item.dropContainer.id === CdkDragDropContainers.Dimensions ||
       item.dropContainer.id === CdkDragDropContainers.Measures ||
       item.dropContainer.id === CdkDragDropContainers.CalculatedMembers ||
@@ -314,20 +316,20 @@ export class ModelEntityPreviewComponent {
 
     const data = event.item.data
     if (event.previousContainer === event.container) {
-      if (event.previousContainer.id === 'property-modeling-rows') {
+      if (event.previousContainer.id === CdkDragDropContainers.PreviewRows) {
         moveItemInArray(this.rows, event.previousIndex, event.currentIndex)
-      } else if (event.previousContainer.id === 'property-modeling-columns') {
+      } else if (event.previousContainer.id === CdkDragDropContainers.PreviewColumns) {
         moveItemInArray(this.columns, event.previousIndex, event.currentIndex)
       }
     } else {
       if (event.previousContainer.id === 'list-dimensions') {
         const item = getDropProperty(event, this.modelType(), this.dialect())
 
-        if (event.container.id === 'property-modeling-rows') {
+        if (event.container.id === CdkDragDropContainers.PreviewRows) {
           const rows = differenceBy(this.rows, [item], 'dimension')
           rows.splice(event.currentIndex, 0, item)
           this.rows = rows
-        } else if (event.container.id === 'property-modeling-columns') {
+        } else if (event.container.id === CdkDragDropContainers.PreviewColumns) {
           const columns = differenceBy(this.columns, [item], 'dimension')
           columns.splice(event.currentIndex, 0, item)
           this.columns = columns
@@ -346,9 +348,9 @@ export class ModelEntityPreviewComponent {
         event.previousContainer.id === CdkDragDropContainers.Calculations
       ) {
         let rows = null
-        if (event.container.id === 'property-modeling-rows') {
+        if (event.container.id === CdkDragDropContainers.PreviewRows) {
           rows = [...this.rows]
-        } else if (event.container.id === 'property-modeling-columns') {
+        } else if (event.container.id === CdkDragDropContainers.PreviewColumns) {
           rows = [...this.columns]
         }
 
@@ -364,30 +366,30 @@ export class ModelEntityPreviewComponent {
           }
         }
 
-        if (event.container.id === 'property-modeling-rows') {
+        if (event.container.id === CdkDragDropContainers.PreviewRows) {
           this.rows = rows
-        } else if (event.container.id === 'property-modeling-columns') {
+        } else if (event.container.id === CdkDragDropContainers.PreviewColumns) {
           this.columns = rows
         }
-      } else if (event.previousContainer.id === 'property-modeling-rows') {
-        if (event.container.id === 'property-modeling-columns') {
+      } else if (event.previousContainer.id === CdkDragDropContainers.PreviewRows) {
+        if (event.container.id === CdkDragDropContainers.PreviewColumns) {
           transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex)
         } else if (event.container.id === 'property-modeling-slicers') {
           const moves = this.rows.splice(event.previousIndex, 1)
           this.slicers.splice(event.currentIndex, 0, ...moves.map((dimension) => ({ dimension })))
         }
-      } else if (event.previousContainer.id === 'property-modeling-columns') {
-        if (event.container.id === 'property-modeling-rows') {
+      } else if (event.previousContainer.id === CdkDragDropContainers.PreviewColumns) {
+        if (event.container.id === CdkDragDropContainers.PreviewRows) {
           transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex)
         } else if (event.container.id === 'property-modeling-slicers') {
           const moves = this.columns.splice(event.previousIndex, 1)
           this.slicers.splice(event.currentIndex, 0, ...moves.map((dimension) => ({ dimension })))
         }
       } else if (event.previousContainer.id === 'property-modeling-slicers') {
-        if (event.container.id === 'property-modeling-rows') {
+        if (event.container.id === CdkDragDropContainers.PreviewRows) {
           const moves = this.slicers.splice(event.previousIndex, 1)
           this.rows.splice(event.currentIndex, 0, ...moves.map((slicer) => slicer.dimension))
-        } else if (event.container.id === 'property-modeling-columns') {
+        } else if (event.container.id === CdkDragDropContainers.PreviewColumns) {
           const moves = this.slicers.splice(event.previousIndex, 1)
           this.columns.splice(event.currentIndex, 0, ...moves.map((slicer) => slicer.dimension))
         }

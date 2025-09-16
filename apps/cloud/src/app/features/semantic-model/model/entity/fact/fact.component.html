@@ -20,7 +20,7 @@
     </button>
   </div>
   
-  <div class="flex items-center gap-2 px-2 py-1" displayDensity="compact">
+  <div class="flex items-center gap-2 px-2 pb-1" displayDensity="compact">
     @if (isSQLSource()) {
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
         [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeyGenerateModel' | translate: {Default: 'Generate a model based on table field division, which will overwrite existing information'} "
@@ -60,7 +60,7 @@
   </div>
 </div>
 
-<div class="px-2 pt-2 flex justify-between items-center">
+<div class="p-3 flex justify-between items-center sticky top-0 z-10 bg-components-card-bg">
   <span class="leading-tight text-lg">{{ 'PAC.MENU.DIMENSIONS' | translate: {Default: "Dimensions"} }}</span>
 </div>
 
@@ -87,7 +87,7 @@
  
 </div>
 
-<div class="px-2 pt-2 flex justify-between items-center">
+<div class="p-3 flex justify-between items-center sticky top-0 z-10 bg-components-card-bg">
   <span class="leading-tight text-lg">{{ 'PAC.MENU.MEASURES' | translate: {Default: "Measures"} }}</span>
 </div>
 

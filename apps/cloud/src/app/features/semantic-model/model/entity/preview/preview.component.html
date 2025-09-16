@@ -59,7 +59,7 @@
 
         </mat-expansion-panel-header>
 
-        <div id="property-modeling-rows" class="pac-cdk-drop__list flex flex-col pb-2" 
+        <div [id]="eCdkDragDropContainers.PreviewRows" class="pac-cdk-drop__list flex flex-col pb-2" 
           [ngClass]="{'ngm-property-modeling__empty': !rows?.length}"
           cdkDropList
           [cdkDropListEnterPredicate]="dropRowsPredicate"
@@ -103,7 +103,7 @@
             </button>
           </div>
         </mat-expansion-panel-header>
-        <div id="property-modeling-columns" class="pac-cdk-drop__list flex flex-col pb-2"
+        <div [id]="eCdkDragDropContainers.PreviewColumns" class="pac-cdk-drop__list flex flex-col pb-2"
           [ngClass]="{'ngm-property-modeling__empty': !columns?.length}"
           cdkDropList 
           [cdkDropListEnterPredicate]="dropRowsPredicate"

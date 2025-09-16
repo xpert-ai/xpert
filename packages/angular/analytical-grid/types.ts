@@ -63,7 +63,7 @@ export interface AnalyticalGridOptions {
 }
 
 /**
- * 行的列配置类型
+ * The column configuration type of the row
  */
 export interface AnalyticalGridColumn extends Dimension, AnalyticalGridColumnOptions {
   // caption?: string

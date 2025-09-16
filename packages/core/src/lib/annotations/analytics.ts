@@ -1,3 +1,4 @@
+import { Property } from '../models'
 import { Dimension, Measure } from '../types'
 
 export interface AnalyticsMeasure extends Measure {
@@ -13,6 +14,6 @@ export interface AnalyticsMeasure extends Measure {
 }
 
 export interface AnalyticsAnnotation {
-  rows: Array<Dimension | AnalyticsMeasure>
-  columns: Array<Dimension | AnalyticsMeasure>
+  rows: Array<(Dimension | AnalyticsMeasure) & { property?: Property }>
+  columns: Array<(Dimension | AnalyticsMeasure) & { property?: Property }>
 }

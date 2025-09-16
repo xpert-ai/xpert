@@ -48,7 +48,7 @@ export function serializeUniqueName(dimension: string, hierarchy?: string, level
 }
 
 /**
- * 通过字段名或者 dimension 配置获取 dimension property
+ * Get dimension property by field name or dimension configuration
  */
 export function getEntityProperty<T = Property>(entityType: EntityType, path: Dimension | Measure | string): T {
   const name = getPropertyName(path)
@@ -56,7 +56,8 @@ export function getEntityProperty<T = Property>(entityType: EntityType, path: Di
 }
 
 /**
- * 获取不仅是 dimension 的具体属性字段如 level hierarchy parameter measure 等, 而 {@link getEntityProperty} 仅获取 dimension, measure 字段
+ * Get not only the specific attribute fields of dimension, such as level hierarchy parameter measure, etc.
+ * while {@link getEntityProperty} only gets dimension and measure fields
  *
  * @param entityType
  * @param path
