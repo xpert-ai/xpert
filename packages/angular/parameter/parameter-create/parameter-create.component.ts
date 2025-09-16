@@ -21,9 +21,9 @@ import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/fo
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatRadioModule } from '@angular/material/radio'
-import { NgmInputModule, NgmHierarchySelectComponent } from '@metad/ocap-angular/common'
+import { NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { NgmControlsModule, TreeControlOptions } from '@metad/ocap-angular/controls'
-import { EntityUpdateEvent, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DisplayDensity, EntityUpdateEvent, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -61,11 +61,13 @@ import { filter, map, startWith } from 'rxjs'
     OcapCoreModule,
     NgmControlsModule,
     NgmInputModule,
-    NgmHierarchySelectComponent
+    NgmHierarchySelectComponent,
+    NgmCheckboxComponent
   ]
 })
 export class NgmParameterCreateComponent {
   eCubeParameterEnum = CubeParameterEnum
+  eDisplayDensity = DisplayDensity
 
   readonly #coreService = inject(NgmOcapCoreService)
   readonly #dialogRef = inject(DialogRef, { optional: true })
@@ -105,7 +107,8 @@ export class NgmParameterCreateComponent {
     value: null,
     dataType: null,
     members: [],
-    availableMembers: this._formBuilder.array([])
+    availableMembers: this._formBuilder.array([]),
+    multiple: false
   })
   get availableMembers(): FormArray {
     return this.formGroup.get('availableMembers') as FormArray
@@ -121,6 +124,9 @@ export class NgmParameterCreateComponent {
   }
   get value() {
     return this.formGroup.get('value') as FormControl
+  }
+  get multiple() {
+    return this.formGroup.get('multiple') as FormControl
   }
   get dimension() {
     return this.formGroup.value.dimension

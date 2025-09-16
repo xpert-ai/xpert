@@ -117,10 +117,21 @@
         [ngModel]="hierarchy"
         (ngModelChange)="onHierarchyChange($event)"
       />
-      <ngm-member-tree class="flex-1 w-full min-h-[600px] p-4"
+
+      <div class="px-4">
+        <ngm-checkbox [formControl]="multiple">
+          {{ 'Ngm.Property.AllowParameterMultipleSelection' | translate: {Default: "Allow Parameter Multiple Selection"} }}
+        </ngm-checkbox>
+      </div>
+
+      <div class="mt-4 px-4">
+        {{ 'Ngm.Property.SelectParameterOptions' | translate: {Default: "Select parameter options"} }}:
+      </div>
+      <ngm-member-tree class="flex-1 w-full min-h-[600px] px-4 pb-4"
         [dataSettings]="dataSettings()"
         [dimension]="dimension$ | async"
         [options]="memberTreeOptions"
+        [appearance]="{displayDensity: eDisplayDensity.compact}"
         [(ngModel)]="slicer"
       />
     </div>
