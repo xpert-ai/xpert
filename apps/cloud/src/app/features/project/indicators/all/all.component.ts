@@ -233,6 +233,22 @@ export class AllIndicatorComponent {
       })
   }
 
+  publish(indicator: IIndicator) {
+    if (indicator.draft) {
+      this.loading.set(true)
+      this.indicatorAPI.publish(indicator.id).subscribe({
+        next: () => {
+          this.loading.set(false)
+          this.#indicators.reload()
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.toastrService.error(getErrorMessage(err))
+        }
+      })
+    }
+  }
+
   isSelected(row: IIndicator) {
     return this.selectedIndicators().some((item) => item.id === row.id)
   }

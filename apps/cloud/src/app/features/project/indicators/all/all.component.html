@@ -52,7 +52,7 @@
             </div>
           </td>
           <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-            <a (click)="editIndicator(row.id)">
+            <a class="cursor-pointer hover:underline" (click)="editIndicator(row.id)">
               <span>{{row.name}}</span>
             </a>
           </th>
@@ -134,6 +134,12 @@
                 (click)="editIndicator(row.id)">
                 <i class="ri-pencil-line"></i>
               </button>
+              <button type="button" class="w-8 h-8 rounded-full text-slate-500 enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
+                [disabled]="!row.draft"
+                (click)="publish(row)">
+                <i class="ri-send-plane-line"></i>
+              </button>
+
               <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100 duration-300"
                 (click)="onDelete({id: row.id, name: row.name})">
                 <i class="ri-delete-bin-line"></i>

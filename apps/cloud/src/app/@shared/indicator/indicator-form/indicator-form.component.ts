@@ -289,6 +289,8 @@ export class XpIndicatorFormComponent {
 
   readonly saving = signal(false)
 
+  readonly saved = signal(false)
+
   constructor() {
     effect(() => {
       const indicator = this.indicator()
@@ -330,8 +332,11 @@ export class XpIndicatorFormComponent {
 
   publish() {
     if (this.indicator().draft) {
+      this.loading.set(true)
       this.indicatorAPI.publish(this.indicator().id).subscribe({
         next: () => {
+          this.loading.set(false)
+          this.saved.set(true)
           this.indicator.update((state) => {
             return {
               ...state,
@@ -342,18 +347,12 @@ export class XpIndicatorFormComponent {
           })
         },
         error: (err) => {
+          this.loading.set(false)
           this.toastrService.error(getErrorMessage(err))
         }
       })
     }
   }
-
-  // onModelChange(event: Indicator) {
-  //   this.draft.update((state) => ({
-  //     ...state,
-  //     ...event,
-  //   }))
-  // }
 
   onSave() {
     this.saving.set(true)
@@ -369,6 +368,7 @@ export class XpIndicatorFormComponent {
     upsertObservable.subscribe({
       next: (indicator) => {
         this.saving.set(false)
+        this.saved.set(true)
         this.registerForm().formGroup.markAsPristine()
         this.indicator.update((state) => {
           return {
@@ -408,6 +408,9 @@ export class XpIndicatorFormComponent {
       next: () => {
         this.toastrService.success('PAC.INDICATOR.DeleteIndicatorSuccessfuly', { name: this.indicator().name, Default: 'Delete indicator successful' })
         this.close.emit()
+        if (this.#dialogRef) {
+          this.#dialogRef.close(this.indicator())
+        }
       }
     })
   }
