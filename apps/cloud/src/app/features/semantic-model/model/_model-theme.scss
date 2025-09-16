@@ -2,7 +2,6 @@
 @use 'sass:color';
 @use '@angular/material' as mat;
 @use './entity/entity-theme' as entity;
-@use './dimension/dimension-theme' as dimension;
 @use './query-lab/query-lab-theme' as query-lab;
 
 @mixin color($config-or-theme) {
@@ -14,7 +13,6 @@
   $warn: map.get($config, warn);
 
   @include entity.color($config-or-theme);
-  @include dimension.color($config-or-theme);
   @include query-lab.color($config-or-theme);
 
   .pac-model__nav-list {
@@ -210,6 +208,5 @@
 
 @mixin density($config-or-theme) {
   @include entity.density($config-or-theme);
-  @include dimension.density($config-or-theme);
   @include query-lab.density($config-or-theme);
 }
