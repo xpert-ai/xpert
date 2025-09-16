@@ -30,6 +30,7 @@ import { flatMap, isEmpty } from 'lodash-es'
 import {
   BehaviorSubject,
   combineLatestWith,
+  debounceTime,
   distinctUntilChanged,
   filter,
   first,
@@ -67,7 +68,7 @@ export class EntitySchemaDataSource implements DataSource<EntitySchemaFlatNode> 
   private destroy$ = new Subject<void>()
   dataChange = new BehaviorSubject<EntitySchemaFlatNode[]>([])
 
-  searchControl = new FormControl()
+  readonly searchControl = new FormControl()
   get dataSourceName() {
     return this.dataSourceName$.value
   }
@@ -119,14 +120,15 @@ export class EntitySchemaDataSource implements DataSource<EntitySchemaFlatNode> 
     })
 
     return merge(collectionViewer.viewChange, this.dataChange).pipe(
-      combineLatestWith(this.searchControl.valueChanges.pipe(startWith(null), distinctUntilChanged())),
-      map(([, text]) => this.data.filter((node) => node.item.type === EntitySchemaType.Entity || 
-        node.item.type === EntitySchemaType.Dimension ||
-        node.item.type === EntitySchemaType.Parameters ||
-        !text ||
-        node.item.caption?.toLowerCase().includes(text.toLowerCase()) ||
-        node.item.name.toLowerCase().includes(text.toLowerCase())
-      ))
+      combineLatestWith(this.searchControl.valueChanges.pipe(debounceTime(300), startWith(null), distinctUntilChanged())),
+      map(([, text]) => {
+        const lowerCaseText = text?.toLowerCase()
+        return lowerCaseText ?
+          this.data.filter((node) => node.item.type === EntitySchemaType.Entity || 
+            node.item.caption?.toLowerCase().includes(lowerCaseText) ||
+            node.item.name.toLowerCase().includes(lowerCaseText)
+          ) : this.data
+      })
     )
   }
   disconnect(collectionViewer: CollectionViewer): void {

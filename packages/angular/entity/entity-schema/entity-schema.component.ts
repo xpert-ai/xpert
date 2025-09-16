@@ -26,9 +26,9 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { DataSettings } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { A11yModule } from '@angular/cdk/a11y'
 import { EntitySchemaDataSource, EntitySchemaFlatNode } from './data-source'
 import { EntityCapacity, EntitySchemaType } from './types'
-import { A11yModule } from '@angular/cdk/a11y'
 
 
 @Component({
