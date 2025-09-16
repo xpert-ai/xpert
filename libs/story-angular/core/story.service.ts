@@ -962,13 +962,13 @@ export class NxStoryService {
 
       if (isRestrictedMeasureProperty(property)) {
         // Create Input Control for RestrictedMeasure
-        property.dimensions?.forEach((dimension) => {
-          if (dimension.name && !originName) {
+        property.slicers?.forEach((slicer) => {
+          if (slicer.dimension.name && !originName) {
             // create dimension input control
             this.createInputControlWidget({
               dataSource: dataSettings.dataSource,
               entitySet: dataSettings.entitySet,
-              dimension: dimension
+              dimension: slicer.dimension
             })
           }
         })

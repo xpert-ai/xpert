@@ -376,8 +376,8 @@ export function serializeAggregationProperty(property: AggregationProperty) {
  * @returns
  */
 export function serializeRestrictedMeasureProperty(property: RestrictedMeasureProperty, filters: MDXHierarchyFilter[]) {
-  const dimensions = property.slicers ? property.slicers.filter((slicer) => !isVariableSlicer(slicer)).map(convertSlicerToDimension) :
-    property.dimensions
+  const dimensions = property.slicers?.filter((slicer) => !isVariableSlicer(slicer)).map(convertSlicerToDimension)
+    // property.dimensions
   const contexts = dimensions?.map((item) => {
       const dimension = { ...item, members: item.members || [] }
       // If it is not a constant selection or has a name?, the filter of the context context is merged.

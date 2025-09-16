@@ -128,8 +128,14 @@ export enum CalculationType {
   Variance = 'Variance',
   D2Measure = 'D2Measure',
   MeasureControl = 'MeasureControl',
-  Parameter = 'Parameter',
-  Indicator = 'Indicator'
+  /**
+   * Indicator generation
+  */
+ Indicator = 'Indicator',
+ /**
+  * Parameter
+  */
+ Parameter = 'Parameter',
 }
 
 export interface CalculatedMember {
@@ -180,10 +186,10 @@ export interface RestrictedMeasureProperty extends CalculationProperty {
    * The measure name
    */
   measure: PropertyName
-  /**
-   * @deprecated use slicers
-   */
-  dimensions: Array<Dimension>
+  // /**
+  //  * @deprecated use slicers
+  //  */
+  // dimensions: Array<Dimension>
   /**
    * The slicers to restrict measure
    */
