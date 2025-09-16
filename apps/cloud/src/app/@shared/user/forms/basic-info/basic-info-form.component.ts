@@ -1,16 +1,15 @@
-import { Component, computed, ElementRef, forwardRef, inject, Input, ViewChild } from '@angular/core'
+import { Component, ElementRef, forwardRef, inject, Input, ViewChild } from '@angular/core'
 import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { matchValidator } from '@metad/cloud/auth'
 import { AuthService } from '@metad/cloud/state'
 import { ITag, IUser } from '@metad/contracts'
+import { FORMLY_W_FULL } from '@metad/formly'
+import { DisplayBehaviour } from '@metad/ocap-core'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
+import { TranslateService } from '@ngx-translate/core'
+import { timezones } from 'apps/cloud/src/app/@core/constants'
 import { firstValueFrom, map } from 'rxjs'
 import { LANGUAGES, RoleService, Store } from '../../../../@core'
-import { DisplayBehaviour } from '@metad/ocap-core'
-import { FORMLY_W_FULL } from '@metad/formly'
-import { timezones } from 'apps/cloud/src/app/@core/constants'
-import { TranslateService } from '@ngx-translate/core'
 
 @Component({
   selector: 'pac-user-basic-info-form',
@@ -26,7 +25,7 @@ import { TranslateService } from '@ngx-translate/core'
 })
 export class BasicInfoFormComponent implements ControlValueAccessor {
   eDisplayBehaviour = DisplayBehaviour
-  
+
   readonly #store = inject(Store)
   readonly #roleService = inject(RoleService)
   readonly #authService = inject(AuthService)
@@ -54,7 +53,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
     )
   )
 
-  //Fields for the form
+  // Fields for the form
   public form = new FormGroup({})
   model = {} as any
   fields: FormlyFieldConfig[] = []
@@ -114,13 +113,14 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
                   const confirmPassword = control.value
                   return password === confirmPassword
                 },
-                message: (error, field: FormlyFieldConfig) => this.#translate.instant('PAC.KEY_WORDS.PasswordsNotMatch', {Default: 'Passwords do not match'}),
+                message: (error, field: FormlyFieldConfig) =>
+                  this.#translate.instant('PAC.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
               }
             }
           }
         ]
       : []
-    
+
     this.fields = [
       {
         fieldGroupClassName: FORMLY_ROW,
@@ -167,7 +167,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               appearance: 'fill'
             }
           },
-          // ...password,
+          ...password,
           {
             className: FORMLY_W_1_2,
             key: 'roleId',
@@ -204,7 +204,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               label: TRANSLATES?.ThirdPartyId ?? 'Third Party Id',
               placeholder: '',
               appearance: 'fill',
-              disabled: !this.isSuperAdmin && !this.isAdmin,
+              disabled: !this.isSuperAdmin && !this.isAdmin
             }
           },
           {
@@ -216,8 +216,8 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               placeholder: 'Image',
               appearance: 'fill'
             }
-          },
-        ],
+          }
+        ]
       },
       {
         className: FORMLY_W_FULL,
@@ -248,16 +248,19 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
         tenantId: tenant.id
       }
 
-      return await firstValueFrom(
-        this.#authService.register({
-          user,
-          // password: this.model.password,
-          // confirmPassword: this.model.confirmPassword,
-          organizationId,
-          createdById,
-          timeZone: this.model.timeZone
-        })
-      )
+      const entity: any = {
+        user,
+        organizationId,
+        createdById,
+        timeZone: this.model.timeZone
+      }
+
+      if (this.password) {
+        entity.password = this.model.password
+        entity.confirmPassword = this.model.confirmPassword
+      }
+
+      return await firstValueFrom(this.#authService.register(entity))
     }
 
     return null

@@ -1,5 +1,5 @@
 :host {
-  @apply relative flex flex-col overflow-auto;
+  @apply relative flex flex-col overflow-y-auto;
 }
 
 .pac-cube-structure-drop {
@@ -8,11 +8,13 @@
 
 .pac-data-type-tag {
   border-color: var(--ngm-color-outline);
-  @apply text-xs leading-3 inline-flex items-center px-3 py-1 rounded-full border border-solid truncate;
+  @apply max-w-[100px] text-xs leading-3 inline-flex items-center px-2 py-1 rounded-full border border-solid truncate;
 }
 
 :host::ng-deep {
   .mat-mdc-checkbox {
+    @apply overflow-hidden;
+    
     .mat-internal-form-field {
       width: 100%;
     }

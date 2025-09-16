@@ -226,7 +226,7 @@ export class EntityQueryComponent extends TranslationBaseComponent {
   }
 
   /**
-   * 另存为 SQL Model
+   * Save as SQL Model
    */
   saveAsModel() {
     this.modelComponent.createByExpression(this.statement())
@@ -240,10 +240,7 @@ export class EntityQueryComponent extends TranslationBaseComponent {
       this.editor.insert(modelType === MODEL_TYPE.XMLA ? property.name : measureFormatter(property.name))
     } else if (event.previousContainer.id === 'list-dimensions') {
       this.editor.insert(modelType === MODEL_TYPE.XMLA ? property.name : serializePropertyUniqueName(property, dialect))
-    } else if (event.previousContainer.id === CdkDragDropContainers.Cubes ||
-      event.previousContainer.id === CdkDragDropContainers.ShareDimensions ||
-      event.previousContainer.id === CdkDragDropContainers.VirtualCubes
-    ) {
+    } else if (event.previousContainer.id === CdkDragDropContainers.Entity) {
       this.editor.insert(modelType === MODEL_TYPE.XMLA ? property.name : serializeUniqueName(property.name))
     } else if (CdkDragDropContainers.CubeSchema) {
       if (isPropertyMeasure(event.item.data)) {

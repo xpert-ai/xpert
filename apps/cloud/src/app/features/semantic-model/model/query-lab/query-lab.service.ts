@@ -6,10 +6,11 @@ import { CopilotChatConversation } from '@metad/copilot'
 import { NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
 import { cloneDeep, isEqual } from '@metad/ocap-core'
 import { ComponentStore } from '@metad/store'
-import { ModelQuery, ModelQueryService, convertModelQueryResult, uuid } from 'apps/cloud/src/app/@core'
+import { ModelQuery, ModelQueryService, convertModelQueryResult, injectTranslate, uuid } from 'apps/cloud/src/app/@core'
 import { firstValueFrom } from 'rxjs'
 import { ModelQueryState, QueryResult } from '../types'
 import { initModelQueryState } from './types'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
 
 export interface QueryLabState {
   modelId: string
@@ -24,6 +25,7 @@ export class QueryLabService extends ComponentStore<QueryLabState> {
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   public readonly dialog = inject(MatDialog)
+  readonly translate = injectI18nService()
 
   public results: {
     [key: string]: QueryResult[]
@@ -76,6 +78,25 @@ export class QueryLabService extends ComponentStore<QueryLabState> {
       state.queries[key].dirty = !isEqual(state.queries[key].origin, state.queries[key].query)
     })
   })
+
+  readonly updateQuery = this.updater((state, { key, query }: { key: string; query: Partial<ModelQuery> }) => {
+    if (state.queries[key]) {
+      state.queries[key].query = {
+        ...state.queries[key].query,
+        ...query
+      }
+    }
+  })
+
+  initType(key: string, type: 'sql' | 'mdx') {
+    const query = this.get((state) => state.queries[key].query)
+    if (query.type && query.type !== type) {
+      throw new Error(
+        this.translate.instant('PAC.MODEL.QUERY.QueryTypeInitialized', {Default: 'Query type has been initialized'})
+      )
+    }
+    this.updateQuery({ key, query: { type } })
+  }
 
   newQuery(statement?: string) {
     const key = uuid()

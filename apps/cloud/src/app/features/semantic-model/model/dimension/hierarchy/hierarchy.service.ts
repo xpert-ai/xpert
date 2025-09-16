@@ -94,7 +94,7 @@ export class ModelHierarchyService {
   )
 
   /**
-   * 当前选中列
+   * Currently selected column
    */
   column: string
 
@@ -114,9 +114,9 @@ export class ModelHierarchyService {
   }
 
   /**
-   * 更新 Hierarchy state
+   * Update Hierarchy state
    *
-   * 对于空值覆盖问题应该有更好的办法
+   * There should be a better way to solve the problem of null value coverage
    */
   updateHierarchy(hierarchy: Partial<PropertyHierarchy>) {
     this.store.update(
@@ -221,7 +221,7 @@ export class ModelHierarchyService {
       })
     } else {
       const primaryTable = state.primaryKeyTable || state.tables[0]?.name
-      // 字段相同并且表相同
+      // The fields are the same and the tables are the same
       const index = state.levels.findIndex(
         (level) => level.column === name && (!level.table ? primaryTable === table : level.table === table)
       )

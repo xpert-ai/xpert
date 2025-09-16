@@ -10,7 +10,7 @@ import {
   model,
   output
 } from '@angular/core'
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ThemePalette } from '@angular/material/core'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -34,9 +34,7 @@ import {
   pick
 } from '@metad/ocap-core'
 import {
-  Subject,
   combineLatestWith,
-  debounceTime,
   distinctUntilChanged,
   filter,
   map,
@@ -98,48 +96,22 @@ export class NgmParameterComponent {
 
   readonly parameter = model<ParameterProperty>()
   readonly parameter$ = toObservable(this.parameter)
-  // @Input() get parameter(): ParameterProperty {
-  //   return this.parameter$.value
-  // }
-  // set parameter(value) {
-  //   this.parameter$.next(value)
-  // }
-  // private parameter$ = new BehaviorSubject<ParameterProperty>(null)
 
-  // @Input() displayBehaviour: DisplayBehaviour
   readonly displayBehaviour = input<DisplayBehaviour>(DisplayBehaviour.auto)
 
-  // @Input() options: ParameterOptions
   readonly options = input<ParameterOptions>()
-  // @Input() appearance: NgmAppearance
   readonly appearance = input<NgmAppearance>()
 
   // Outputs
   readonly parameterChange = output<ParameterProperty>()
 
-  // @Output() parameterChange = new EventEmitter<ParameterProperty>()
-
   get multiple() {
-    return this.options()?.selectionType === FilterSelectionType.Multiple
+    return this.options()?.selectionType === FilterSelectionType.Multiple || this.parameter()?.multiple
   }
   get paramType() {
     return this.parameter()?.paramType
   }
-  // get availableMembers() {
-  //   return this.parameter()?.availableMembers ?? []
-  // }
-  // get members() {
-  //   return this.parameter()?.members
-  // }
-  // set members(members) {
-  //   if (!isEqual(members, this.parameter()?.members)) {
-  //     this.parameter = {
-  //       ...this.parameter,
-  //       members
-  //     }
-  //     this.changeParameter()
-  //   }
-  // }
+
   readonly members = attrModel(this.parameter, 'members')
 
   private readonly dataSource$ = this.dataSettings$.pipe(
@@ -218,34 +190,13 @@ export class NgmParameterComponent {
 
   slicer = {}
 
-  // private changeParameter$ = new Subject<void>()
-  // private changeSub = this.changeParameter$
-  //   .pipe(debounceTime(500), takeUntilDestroyed())
-  //   .subscribe(() => this.parameterChange.emit(this.parameter()))
-
-  // constructor() {
-  //   effect(() => {
-  //     console.log('parameter', this.parameter(), this.availableMembers(), this.valueList())
-  //   })
-  // }
-
   compareWith(a: IMember, b: IMember) {
     return a.key === b.key
   }
 
   updateParameterValue(event) {
     this.parameterValue.set(event)
-  //   this.parameter = {
-  //     ...this.parameter,
-  //     value: event
-  //   }
-  //   this.changeParameter()
   }
-
-  // changeParameter() {
-  //   // this.changeParameter$.next()
-  //   this.parameterValue.set(this.parameter().value)
-  // }
 
   onSlicerChange(slicer: ISlicer) {
     this.updateParameterValue(slicer.members)

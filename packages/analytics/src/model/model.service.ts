@@ -361,6 +361,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	/**
 	 * Find one semantic model by id for OCAP with cache.
+	 * 
+	 * @cache semantic model cache 1 minute
 	 */
 	async findOne4Ocap(id: string, params: {withIndicators?: boolean; skipCache?: boolean} = {}) {
 		const { withIndicators, skipCache } = params ?? {}
@@ -375,6 +377,19 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		}
 
 		return model
+	}
+
+	/**
+	 * Clear the cache of semantic model
+	 * @param id 
+	 */
+	async clearOne4Ocap(id: string) {
+		const cacheKey = `analytics:semantic-model:${id}`
+		try {
+			await this.cacheManager.del(cacheKey)
+		} catch (err) {
+			this.logger.error(err)
+		}
 	}
 
 	public async checkViewerAuthorization(id: string | number) {

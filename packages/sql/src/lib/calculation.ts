@@ -56,10 +56,12 @@ export function serializeRestrictedMeasure(
     }
 
     const conditions = compact(
-      indicator.slicers?.map((slicer) => compileSlicer(slicer, cubeContext, dialect)) ??
-      indicator.dimensions?.map((dimension) => {
-        return compileSlicer(convertDimensionToSlicer(dimension), cubeContext, dialect)
-      }) ?? 
+      indicator.slicers?.map((slicer) => compileSlicer(slicer, cubeContext, dialect))
+      //  ??
+      // indicator.dimensions?.map((dimension) => {
+      //   return compileSlicer(convertDimensionToSlicer(dimension), cubeContext, dialect)
+      // }) 
+      ?? 
       []
     )
 

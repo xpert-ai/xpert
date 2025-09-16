@@ -367,6 +367,10 @@ export interface ParameterProperty extends EntityProperty {
   availableMembers?: Array<IMember>
   
   hierarchy?: string
+  /**
+   * Single or multiple selection of parameter's members
+   */
+  multiple?: boolean
 }
 
 // SAP Variables

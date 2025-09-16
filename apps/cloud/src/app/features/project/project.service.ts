@@ -19,6 +19,7 @@ import { cloneDeep } from 'lodash-es'
 import {
   BehaviorSubject,
   EMPTY,
+  Subject,
   catchError,
   combineLatest,
   distinctUntilChanged,
@@ -129,6 +130,9 @@ export class ProjectService {
    */
   readonly tags = toSignal(this.tagService.getAllByCategory(TagCategoryEnum.INDICATOR), { initialValue: [] })
 
+  readonly refresh$ = new Subject<void>()
+
+  
   // constructor() {
   //   effect(() => {
   //     console.log(this.hasDirty(), this.dirty())
@@ -224,6 +228,9 @@ export class ProjectService {
     }
   }
 
+  /**
+   * @deprecated
+   */
   refreshIndicators() {
     this.projectAPI
       .getOne(this.project().id ?? null, ['indicators', 'indicators.businessArea'])

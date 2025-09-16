@@ -19,8 +19,7 @@
 
     <div class="ngm-entity-schema__type" [title]="node.item.dataType || node.item.type">{{node.item.dataType || node.item.type?.[0]}}</div>
     <ngm-display-behaviour [option]="{value: node.item.name, caption: node.item.caption ?? node.item.label}"
-      [highlight]="searchControl.value">
-    </ngm-display-behaviour>
+      [highlight]="searchControl.value" />
     <div class="ngm-entity-schema__drag-placeholder" *cdkDragPlaceholder></div>
   </mat-tree-node>
   <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding matTreeNodePaddingIndent="20" class="group"
@@ -31,25 +30,27 @@
       node.item.name === selectedHierarchy || node.item.hierarchy === selectedHierarchy || node.item.raw?.hierarchy === selectedHierarchy)"
     draggable="true"
   >
-    <button *ngIf="!node.isLoading" mat-icon-button
-            [attr.aria-label]="'Toggle ' + node.item" matTreeNodeToggle>
-      <mat-icon class="mat-icon-rtl-mirror" fontSet="material-icons-round">
-        {{treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'}}
-      </mat-icon>
-    </button>
-    <mat-spinner *ngIf="node.isLoading" class="m-2" strokeWidth="1" diameter="15"></mat-spinner>
+    @if (node.isLoading) {
+      <mat-spinner class="m-2" strokeWidth="1" diameter="15" />
+    } @else {
+      <button mat-icon-button [attr.aria-label]="'Toggle ' + node.item" matTreeNodeToggle>
+        <mat-icon class="mat-icon-rtl-mirror" fontSet="material-icons-round">
+          {{treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'}}
+        </mat-icon>
+      </button>
+    }
 
     <div class="ngm-entity-schema__type" [title]="node.item.dataType || node.item.type">{{node.item.dataType || node.item.type?.[0]}}</div>
 
     <ngm-display-behaviour class="flex-1" [option]="{value: node.item.name, caption: node.item.caption ?? node.item.label}"
-      [highlight]="searchControl.value">
-    </ngm-display-behaviour>
+      [highlight]="searchControl.value" />
 
-    <ngm-search *ngIf="node.item.type === EntitySchemaType.Entity" cdkMonitorSubtreeFocus
-      class="overflow-hidden"
-      displayDensity="cosy"
-      [formControl]="searchControl">
-    </ngm-search>
+    @if (node.item.type === EntitySchemaType.Entity) {
+      <ngm-search cdkMonitorSubtreeFocus
+        class="overflow-hidden"
+        displayDensity="cosy"
+        [formControl]="searchControl" />
+    }
 
     <div class="ngm-entity-schema__drag-placeholder" *cdkDragPlaceholder></div>
   </mat-tree-node>

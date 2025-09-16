@@ -21,6 +21,8 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { NgmSelectionModule } from '@metad/ocap-angular/selection'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { AnalyticalGridComponent } from './analytical-grid.component'
 
 @NgModule({
@@ -29,6 +31,7 @@ import { AnalyticalGridComponent } from './analytical-grid.component'
     FormsModule,
     
     A11yModule,
+    CdkMenuModule,
     MatTableModule,
     MatPaginatorModule,
     MatButtonModule,
@@ -47,7 +50,8 @@ import { AnalyticalGridComponent } from './analytical-grid.component'
 
     TranslateModule,
     OcapCoreModule,
-    NgmCommonModule
+    NgmCommonModule,
+    NgmSelectionModule
   ],
   exports: [AnalyticalGridComponent],
   declarations: [AnalyticalGridComponent],

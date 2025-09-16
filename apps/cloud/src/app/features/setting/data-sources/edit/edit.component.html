@@ -1,4 +1,4 @@
-<header class="p-6 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header class="px-6 pt-6 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 class="text-xl font-semibold">
     {{ 'PAC.KEY_WORDS.MODIFY' | translate: {Default: 'Modify'} }} {{ 'PAC.KEY_WORDS.DataSource' | translate: {Default: 'Data Source'} }}
     {{nameCtrl.value}}
@@ -6,10 +6,10 @@
 </header>
 
 <div class="p-6 min-w-[500px] overflow-y-auto">
-  @if(dataSource?.type) {
+  @if(dataSource()?.type) {
     <div class="flex justify-center items-center text-lg">
-      <img src="assets/images/db-logos/{{dataSource.type.type}}.png" width="64" height="64">
-      {{dataSource.type.name}}
+      <img src="assets/images/db-logos/{{dataSource().type.type}}.png" width="64" height="64">
+      {{dataSource().type.name}}
     </div>
   }
 
@@ -48,12 +48,10 @@
         </div>
       }
     </div>
-
   </form>
 
   @if (schema$()) {
-    <formly-form
-      [form]="options"
+    <formly-form [form]="optionsFormGroup"
       [fields]="schema$()"
       [model]="model"
     />
@@ -64,7 +62,7 @@
 
 <div class="flex justify-between p-4">
   <div ngmButtonGroup>
-    <button mat-raised-button [disabled]="loading" (click)="ping()">
+    <button mat-raised-button [disabled]="_loading()" (click)="ping()">
       {{ 'PAC.ACTIONS.PING' | translate: {Default: 'Ping'} }}
     </button>
   </div>
@@ -72,7 +70,7 @@
     <button mat-flat-button (click)="onCancel()">
       {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent" [disabled]="formGroup.pristine||formGroup.invalid"
+    <button mat-raised-button color="accent" [disabled]="!dirty() || formGroup.invalid || _loading()"
       (click)="onSave()">
       {{ 'PAC.ACTIONS.SAVE' | translate: {Default: 'Save'} }}
     </button>

@@ -18,7 +18,7 @@
 <ngm-splitter class="flex-1">
   <ngm-splitter-pane size='280px' class="max-w-[50%] min-w-[300px] flex flex-col">
      @if (parameters()?.length) {
-      <div class="flex flex-col px-4">
+      <div class="flex flex-col px-4 max-h-80 overflow-auto">
         <label class="p-2">{{ 'PAC.KEY_WORDS.Parameters' | translate: {Default: "Parameters"}  }}</label>
         @for (item of parameters(); track item.name;) {
           <label class="px-2 py-1 text-sm">{{item.caption || item.caption}}</label>
@@ -59,7 +59,7 @@
 
         </mat-expansion-panel-header>
 
-        <div id="property-modeling-rows" class="pac-cdk-drop__list flex flex-col pb-2" 
+        <div [id]="eCdkDragDropContainers.PreviewRows" class="pac-cdk-drop__list flex flex-col pb-2" 
           [ngClass]="{'ngm-property-modeling__empty': !rows?.length}"
           cdkDropList
           [cdkDropListEnterPredicate]="dropRowsPredicate"
@@ -103,7 +103,7 @@
             </button>
           </div>
         </mat-expansion-panel-header>
-        <div id="property-modeling-columns" class="pac-cdk-drop__list flex flex-col pb-2"
+        <div [id]="eCdkDragDropContainers.PreviewColumns" class="pac-cdk-drop__list flex flex-col pb-2"
           [ngClass]="{'ngm-property-modeling__empty': !columns?.length}"
           cdkDropList 
           [cdkDropListEnterPredicate]="dropRowsPredicate"

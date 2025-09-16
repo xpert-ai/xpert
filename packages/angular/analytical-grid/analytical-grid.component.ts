@@ -8,7 +8,6 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
-  DestroyRef,
   effect,
   ElementRef,
   EventEmitter,
@@ -88,6 +87,7 @@ import {
   VisualMap
 } from './types'
 import { NgmTreeFlatDataSource } from './tree-flat-data-source'
+import { SlicersCapacity } from '@metad/ocap-angular/selection'
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -107,10 +107,10 @@ import { NgmTreeFlatDataSource } from './tree-flat-data-source'
 export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnDestroy, FocusableOption {
   AggregationRole = AggregationRole
   C_MEASURES = C_MEASURES
+  eSlicersCapacity = SlicersCapacity
   isNil = isNil
 
   public readonly analyticsService = inject(NgmAnalyticsBusinessService)
-  readonly #destroyRef = inject(DestroyRef)
 
   private _disabled = false
 
@@ -163,6 +163,11 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
   readonly showToolbar = computed(() => isNil(this.options()?.showToolbar) || this.options().showToolbar)
 
   // Inner states
+  readonly tablesConfig = signal<{rowAxes?: AnalyticalGridColumn[]; columnAxes?: AnalyticalGridColumn[]; pivotColumns?: AnalyticalGridColumn[][];
+      matHeaders: string[];
+      matRestHeaders: string[][];
+      matRowColumns?: string[]
+    }[]>([])
   matSortActive = ''
   matSortDirection: SortDirection
   selected: {
@@ -219,28 +224,28 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
 
   treeNodePadding = 16
   /**
-   * 行的列配置
+   * Row column configuration
    */
-  rowAxes: AnalyticalGridColumn[] = []
+  private rowAxes: AnalyticalGridColumn[] = []
   /**
    * First header line of pivot columns
    */
-  matHeaders: string[] = []
+  // matHeaders: string[] = []
   /**
    * Rest header lines of pivot columns
    */
-  matRestHeaders = []
-  columnAxes = []
+  // matRestHeaders = []
+  private columnAxes = []
   /**
    * Header columns for body
    */
-  matRowColumns: string[] = []
+  // matRowColumns: string[] = []
   /**
-   * 列的总行数
+   * Pivot column total row count
    */
   pivotColumnRowCount = 0
   /**
-   * 列的列配置
+   * Column configuration
    */
   get pivotColumns() {
     return this._pivotColumns$.value
@@ -259,30 +264,44 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
   readonly rowAxes$: Observable<AnalyticalGridColumn[]> = this.analyticsService.analytics$.pipe(
       map((analytics) => {
         const columns: AnalyticalGridColumn[] = []
-        analytics.rows?.forEach((column: any) => {
-          columns.push({
-            ...column,
-            name: column.dimension === C_MEASURES ? wrapBrackets(C_MEASURES) : column.property?.name,
-            caption: column.caption || (column.dimension === C_MEASURES ? C_MEASURES : (column.property?.caption ?? column.name)),
-            memberCaption: getDimensionMemberCaption(column, this.entityType()) ||
-              (column.dimension === C_MEASURES ? C_MEASURES_CAPTION : column.name),
-            displayBehaviour: column.displayBehaviour ?? DisplayBehaviour.descriptionOnly
-          })
-          // Properties
-          column.properties?.forEach((name) => {
-            const hierarchy = getEntityHierarchy(this.entityType(), pick(column, 'dimension', 'hierarchy'))
-            const property = getHierarchyProperty(hierarchy, name)
-            if (property) {
-              columns.push({
-                name: name,
-                caption: property.caption,
-                memberCaption: name,
-                displayBehaviour: DisplayBehaviour.descriptionOnly,
-                property
-              } as AnalyticalGridColumn)
-            }
-          })
+        const measures = {
+            name: C_MEASURES,
+            dimension: C_MEASURES,
+            caption: this.translateService.instant('Ngm.Common.Measures', { Default: 'Measures' }),
+            members: []
+          } as AnalyticalGridColumn
+        analytics.rows?.forEach((column) => {
+          if (isDimension(column)) {
+            columns.push({
+              ...column,
+              name: column.dimension === C_MEASURES ? wrapBrackets(C_MEASURES) : column.property?.name,
+              caption: column.caption || (column.dimension === C_MEASURES ? C_MEASURES : (column.property?.caption ?? column.name)),
+              memberCaption: getDimensionMemberCaption(column, this.entityType()) ||
+                (column.dimension === C_MEASURES ? C_MEASURES_CAPTION : column.name),
+              displayBehaviour: column.displayBehaviour ?? DisplayBehaviour.descriptionOnly
+            } as AnalyticalGridColumn)
+            // Properties
+            column.properties?.forEach((name) => {
+              const hierarchy = getEntityHierarchy(this.entityType(), pick(column, 'dimension', 'hierarchy'))
+              const property = getHierarchyProperty(hierarchy, name)
+              if (property) {
+                columns.push({
+                  name: name,
+                  caption: property.caption,
+                  memberCaption: name,
+                  displayBehaviour: DisplayBehaviour.descriptionOnly,
+                  property
+                } as AnalyticalGridColumn)
+              }
+            })
+          } else if (isMeasure(column)) {
+            measures.members.push(column as any)
+          }
         })
+
+        if (measures.members.length) {
+          columns.push(measures)
+        }
 
         return unionBy(columns.filter((_) => _.name), 'name')
       }),
@@ -430,7 +449,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
           levels[1] = levels[1] ?? []
           pivotCol.columns.forEach((subCol) => {
             let colspan = 1
-            // 支持列深度最多 3 层
+            // Supports columns up to 3 levels deep
             if (subCol.columns?.length) {
               levels[2] = levels[2] ?? []
               levels[2].push(
@@ -478,7 +497,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
         : []
 
       this.columnsDataSource.data = treeDataNodes
-      // 初始化数据后展开列初始层级深度
+      // Expand initial column level after data initialization
       if (this.options()?.initialColumnLevel > 0) {
         this.columnTreeControl.dataNodes.forEach((node) => {
           const level = this.columnTreeControl.getLevel(node)
@@ -560,35 +579,43 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
       this.rowAxes = rowAxes
       this.columnAxes = columnAxes
       const pivotColumnNames = levels.map((item) => item.map((column) => column.name))
-      // 列的总行数
+      // Pivot column total row count
       this.pivotColumnRowCount = pivotColumnNames.length
 
       const rowColumns = rowAxes.map((row) => row.name)
+      let matHeaders = []
+      let matRestHeaders = []
       if (this.pivotColumnRowCount > 1) {
-        // 首行列
-        this.matHeaders = compact([...rowColumns, columnAxes[0].dimension, ...pivotColumnNames[0]])
-        // 其余行列
-        this.matRestHeaders = pivotColumnNames
+        // First row columns
+        matHeaders = compact([...rowColumns, columnAxes[0].dimension, ...pivotColumnNames[0]])
+        // Remaining rows
+        matRestHeaders = pivotColumnNames
           .slice(1)
           .map((columns, index) => compact([columnAxes[index + 1].dimension, ...columns]))
       } else {
-        // 首行列
-        this.matHeaders = compact([...rowColumns, ...pivotColumnNames[0]])
+        // First row columns
+        matHeaders = compact([...rowColumns, ...pivotColumnNames[0]])
       }
 
-      // body 行的列
-      this.matRowColumns = compact(
-        rowColumns.length
-          ? [...rowColumns, ...pivotColumnNames[pivotColumnNames.length - 1]]
-          : [
-            // columnAxes[columnAxes.length - 1]?.dimension, 
-            ...pivotColumnNames[pivotColumnNames.length - 1]]
-      )
+      this.tablesConfig.set([{
+        rowAxes: this.rowAxes,
+        columnAxes: this.columnAxes,
+        pivotColumns: this.pivotColumns,
+        matHeaders,
+        matRestHeaders,
+        matRowColumns: compact(
+          rowColumns.length
+            ? [...rowColumns, ...pivotColumnNames[pivotColumnNames.length - 1]]
+            : [
+              // columnAxes[columnAxes.length - 1]?.dimension, 
+              ...pivotColumnNames[pivotColumnNames.length - 1]]
+          )
+      }])
 
       this.cdr.detectChanges()
     })
   
-      // Flat data to tree dataSource
+  // Flat data to tree dataSource
   private filteredTreeDataSub = this.filteredData$
       .pipe(
         filter(() => this.rowRecursiveHierarchy),
@@ -601,7 +628,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
             .map((row: AnalyticalGridColumn) => row.name)
             .filter((key: string) => key !== this.rowRecursiveHierarchy.valueProperty)
           this.rowDataSource.data = hierarchize<T>(data as T[], this.rowRecursiveHierarchy, { compositeKeys })
-          // 初始化数据后展开行初始层级深度
+          // Initial row depth after data initialization
           if (this.options()?.initialRowLevel > 0) {
             this.rowTreeControl.dataNodes.forEach((node) => {
               const level = this.rowTreeControl.getLevel(node)
@@ -632,7 +659,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
         this.rowTreeProperty.set(null)
       }
 
-      // 转换 Cell data format
+      // Transform Cell data format
       // copy data
       data = data.map((item: any) => ({ ...item }))
       columns.forEach((column) => {
@@ -839,7 +866,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
       this.selected.rowMembers = rowMembers
 
       let slicers = []
-      // 选择度量单元格时，将行维度成员作为切片器
+      // When a measure cell is selected, use the row dimension members as slicers
       if (isMeasure(this.selected.column)) {
         slicers = [
           ...this.rowAxes.map((column) => {
@@ -868,7 +895,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
           }))
         ]
       } else {
-        // 当选择行成员时，将行单元格成员作为切片器
+        // When a row member is selected, use the row cell member as a slicer
         const column = this.selected.column
         slicers = [
           {
@@ -886,7 +913,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
           }
         ]
       }
-      // 发出切片器作联动分析
+      // Emit slicers for linked analysis
       this.onLinkAnalysis(slicers)
     }
   }
@@ -989,13 +1016,27 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
   }
 
   moveLeft(name: string) {
-    this.matHeaders = moveLeft(this.matHeaders, name)
-    this.matRowColumns = moveLeft(this.matRowColumns, name)
+    this.tablesConfig.update((tables) => {
+      return tables.map((table) => {
+        table.matHeaders = moveLeft(table.matHeaders, name)
+        table.matRowColumns = moveLeft(table.matRowColumns, name)
+        return {...table}
+      })
+    })
+    // this.matHeaders = moveLeft(this.matHeaders, name)
+    // this.matRowColumns = moveLeft(this.matRowColumns, name)
   }
 
   moveRight(name: string) {
-    this.matHeaders = moveRight(this.matHeaders, name)
-    this.matRowColumns = moveRight(this.matRowColumns, name)
+    this.tablesConfig.update((tables) => {
+      return tables.map((table) => {
+        table.matHeaders = moveRight(table.matHeaders, name)
+        table.matRowColumns = moveRight(table.matRowColumns, name)
+        return {...table}
+      })
+    })
+    // this.matHeaders = moveRight(this.matHeaders, name)
+    // this.matRowColumns = moveRight(this.matRowColumns, name)
   }
 
   onColumnMemberSearch(column, text: string) {
@@ -1095,7 +1136,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
         : null
       : 'asc'
 
-    // 默认: 支持前两个维度, 最后一个维度为度量维度
+    // Default: supports the first two dimensions, the last dimension is the measurement dimension
     let querySchemaColumns = this.columnAxes[0].sortDirection
       ? orderBy(this.querySchemaColumns, 'name', this.columnAxes[0].sortDirection)
       : [...this.querySchemaColumns]

@@ -38,22 +38,28 @@
         [multiple]="true"
         [displayDensity]="appearance()?.displayDensity"
         [compareWith]="compareWith"
-        [(ngModel)]="members"
+        [ngModel]="parameterValue()"
+        (ngModelChange)="updateParameterValue($event)"
       >
-        <mat-list-option *ngFor="let availableMember of availableMembers$ | async" [value]="availableMember">
-          <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
-        </mat-list-option>
+        @for (availableMember of availableMembers$ | async; track availableMember.key) {
+          <mat-list-option [value]="availableMember">
+            <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
+          </mat-list-option>
+        }
       </mat-selection-list>
     }@else {
       <mat-selection-list class="flex-1"
         [multiple]="false"
         [displayDensity]="appearance()?.displayDensity"
         [compareWith]="compareWith"
-        [(ngModel)]="members"
+        [ngModel]="parameterValue()"
+        (ngModelChange)="updateParameterValue($event)"
       >
-        <mat-list-option *ngFor="let availableMember of availableMembers$ | async" [value]="availableMember">
-          <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
-        </mat-list-option>
+        @for (availableMember of availableMembers$ | async; track availableMember.key) {
+          <mat-list-option [value]="availableMember">
+            <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
+          </mat-list-option>
+        }
       </mat-selection-list>
     }
   }

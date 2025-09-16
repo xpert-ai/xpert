@@ -968,6 +968,7 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "DimensionAttributes": "维度属性",
       "CreateVirtualCube": "创建虚拟数据集",
       "CreateCube": "创建数据集",
       "CreateDimension": "创建维度",
@@ -1122,6 +1123,7 @@
         "SaveAsModel": "另存为模型",
         "SaveAsDBInit": "另存为数据库初始化脚本",
         "TableSchema": "表结构",
+        "Cubes": "多维数据集",
         "New": "新建查询",
         "TotalRecords": "总记录数",
         "PreviewTop1000": "最大预览 1000 条",
@@ -1133,7 +1135,8 @@
           "Explain": "解释",
           "Optimize": "优化"
         },
-        "QueryResults": "查询结果"
+        "QueryResults": "查询结果",
+        "QueryTypeInitialized": "查询类型已初始化"
       },
       "TOASTR": {
         "MODEL_UPDATE": "模型更新",

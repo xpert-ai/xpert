@@ -32,6 +32,7 @@ export async function drawTableMessage(
 ) {
 	const { dsCoreService, entityType, chatbi, language } = context
 	const { subscriber, agentKey, xpertName, tool_call_id } = configurable ?? {}
+	const { showError } = credentials
 
 	const currentState = getCurrentTaskInput()
 	// const lang = currentState[STATE_VARIABLE_SYS]?.language
@@ -105,21 +106,36 @@ export async function drawTableMessage(
 	}
 
 	// In parallel: return to the front-end display and back-end data retrieval
-	await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-		id: tool_call_id,
-		category: 'Dashboard',
-		type: 'AnalyticalGrid',
-		dataSettings,
-		slicers,
-		title: answer.preface,
-		indicators
-	} as TMessageComponent)
+	if (showError) {
+		await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			id: tool_call_id,
+			category: 'Dashboard',
+			type: 'AnalyticalGrid',
+			dataSettings,
+			slicers,
+			title: answer.preface,
+			indicators
+		} as TMessageComponent)
+	}
 
 	return new Promise((resolve, reject) => {
 		chartService.selectResult().subscribe((result) => {
 			if (result.error) {
 				reject(result.error)
 			} else {
+				if (!showError) {
+					dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+						id: tool_call_id,
+						category: 'Dashboard',
+						type: 'AnalyticalGrid',
+						dataSettings,
+						slicers,
+						title: answer.preface,
+						indicators
+					} as TMessageComponent).catch((error) => {
+						console.error(error)
+					})
+				}
 				resolve(extractDataValue(result.data, {dimensions: analytics.rows, measures: analytics.columns as Measure[]}, credentials))
 			}
 			destroy$.next()

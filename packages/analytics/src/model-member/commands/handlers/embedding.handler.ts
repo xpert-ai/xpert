@@ -3,6 +3,7 @@ import { ChatMessageEventTypeEnum, embeddingCubeCollectionName, TChatEventMessag
 import { getEntityProperty, isEntityType, uuid } from '@metad/ocap-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { t } from 'i18next'
 import { firstValueFrom } from 'rxjs'
 import { PGMemberVectorStore } from '../../vector-store'
 import { CreateVectorStoreCommand } from '../create-vector-store.command'
@@ -23,6 +24,12 @@ export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembers
 		const { dsCoreService, modelKey, cube } = command
 		const { dimension, isDraft, messageId } = command.params ?? {}
 
+		if (!dimension) {
+			throw new Error(
+				t('Error.EmbeddingDimensionRequired', { ns: 'analytics' })
+			)
+		}
+
 		const modelDataSource = await firstValueFrom(dsCoreService.getDataSource(modelKey))
 
 		const entityType = await firstValueFrom(modelDataSource.selectEntityType(cube))
@@ -30,11 +37,11 @@ export class EmbeddingMembersHandler implements ICommandHandler<EmbeddingMembers
 			throw entityType
 		}
 
-		this.logger.debug(`Got entity type: ${entityType.name}`)
-
 		const dimensionProperty = getEntityProperty(entityType, dimension)
 		if (!dimensionProperty) {
-			throw new Error(`No property found for cube '${entityType.name}' and dimension '${dimension}'`)
+			throw new Error(
+				t('Error.NoDimensionFound', { ns: 'analytics', cube: entityType.name, dimension })
+			)
 		}
 		let members = []
 		for (const hierarchy of dimensionProperty.hierarchies) {

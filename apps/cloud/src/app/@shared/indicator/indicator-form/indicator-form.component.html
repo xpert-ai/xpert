@@ -33,7 +33,7 @@
       }
     </button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium relative"
-      [disabled]="!isDirty()"
+      [disabled]="!isDirty() || register_form.formGroup.invalid || saving()"
       (click)="onSave()"
     >
       <i class="ri-save-line mr-1"></i>
@@ -65,8 +65,7 @@
   <xp-indicator-register-form #register_form
     [certifications]="certifications()"
     [models]="models()"
-    [ngModel]="draft()"
-    (ngModelChange)="onModelChange($event)"
+    [(ngModel)]="draftForm"
   />
     
   @if (loading()) {

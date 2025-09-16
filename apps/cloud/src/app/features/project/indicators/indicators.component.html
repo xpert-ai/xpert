@@ -10,13 +10,12 @@
         (change)="handleUploadChange($event)"
         (click)="fileUpload.value=null;">
       <div ngmButtonGroup>
-
-        <div class="w-8 h-8 flex justify-center items-center rounded-2xl mx-1 text-xl cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+        <!-- <div class="w-8 h-8 flex justify-center items-center rounded-2xl mx-1 text-xl cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
           [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
           (click)="aiRegister()"
         >
           <i class="ri-magic-line"></i>
-        </div>
+        </div> -->
 
         <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
           (click)="register()"
@@ -110,14 +109,6 @@
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__medium">
-    <button cdkMenuItem class="disabled:text-text-tertiary"
-      [disabled]="!selectedIndicators()?.length" (click)="export()">
-      <div class="flex items-center">
-        <i class="ri-download-2-line mr-1"></i>
-        {{ 'PAC.INDICATOR.MY_INDICATORS.EXPORT' | translate: {Default: "Export"} }}
-      </div>
-    </button>
-
     <button cdkMenuItem (click)="fileUpload.click()">
       <i class="ri-upload-2-line mr-1"></i>
       <span class="whitespace-nowrap">{{ 'PAC.MENU.INDICATOR.BATCH_UPLOAD' | translate: {Default: "Batch Upload"} }}</span>
@@ -130,14 +121,6 @@
       <span class="whitespace-nowrap">
         {{ 'PAC.MENU.INDICATOR.Embedding' | translate: {Default: "Embedding"} }}
       </span>
-    </button>
-
-    <div class="border-b border-solid border-divider-deep my-1"></div>
-
-    <button cdkMenuItem class="danger disabled:text-text-tertiary"
-      [disabled]="!selectedIndicators()?.length" (click)="deleteSelected()">
-      <i class="ri-delete-bin-line mr-1"></i>
-      {{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}
     </button>
   </div>
 </ng-template>

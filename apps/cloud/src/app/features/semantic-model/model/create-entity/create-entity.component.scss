@@ -1,5 +1,5 @@
 :host {
-  @apply flex-1 flex overflow-hidden max-h-[80vh] text-text-primary;
+  @apply grow flex overflow-hidden max-h-[80vh] max-w-5xl text-text-primary;
 }
 
 code {

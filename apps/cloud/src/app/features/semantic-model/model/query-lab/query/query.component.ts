@@ -16,28 +16,28 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
-import { calcEntityTypePrompt, convertQueryResultColumns, getErrorMessage } from '@metad/core'
 import { CopilotChatMessageRoleEnum, CopilotEngine, nanoid } from '@metad/copilot'
 import { NgmCopilotService, provideCopilotDropAction } from '@metad/copilot-angular'
+import { calcEntityTypePrompt, convertQueryResultColumns, getErrorMessage } from '@metad/core'
 import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@metad/ocap-angular/entity'
-import { C_MEASURES, nonNullable, uniqBy, VariableProperty, wrapBrackets } from '@metad/ocap-core'
+import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
+import { C_MEASURES, VariableProperty, measureFormatter, nonNullable, uniqBy, wrapBrackets } from '@metad/ocap-core'
 import { limitSelect, serializeName } from '@metad/ocap-sql'
-import { ModelQuery, Store } from 'apps/cloud/src/app/@core'
-import { cloneDeep, isEqual, isPlainObject } from 'lodash-es'
+import { TranslateService } from '@ngx-translate/core'
+import { injectToastr, ModelQuery, Store } from 'apps/cloud/src/app/@core'
+import { isEqual, isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Subscription, combineLatest, firstValueFrom, of } from 'rxjs'
 import { catchError, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators'
 import { FeaturesComponent } from '../../../../features.component'
+import { injectQueryCommand } from '../../copilot'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
-import { CdkDragDropContainers, MODEL_TYPE, QueryResult } from '../../types'
+import { CdkDragDropContainers, MODEL_TYPE, QueryResult, SemanticModelEntityType } from '../../types'
 import { markdownTableData, quoteLiteral, stringifyTableType } from '../../utils'
 import { QueryLabService } from '../query-lab.service'
-import { QueryService } from './query.service'
 import { QueryCopilotEngineService } from './copilot.service'
-import { injectQueryCommand } from '../../copilot'
-import { TranslateService } from '@ngx-translate/core'
-import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
+import { QueryService } from './query.service'
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,15 +62,12 @@ export class QueryComponent {
   readonly featuresComponent = inject(FeaturesComponent)
   readonly #destroyRef = inject(DestroyRef)
   readonly translateService = inject(TranslateService)
+  readonly #toastr = injectToastr()
 
   @ViewChild('editor') editor!: NgmBaseEditorDirective
   readonly tableTemplate = viewChild<TemplateRef<any>>('tableTemplate')
 
   themeName = toSignal(this.store.preferredTheme$.pipe(map((theme) => theme?.split('-')[0])))
-
-  get dataSourceName() {
-    return this.modelService.originalDataSource?.options.key
-  }
 
   get dbInitialization() {
     return this.modelService.modelSignal()?.dbInitialization
@@ -178,7 +175,7 @@ ${calcEntityTypePrompt(entityType)}
   | Signals
   |--------------------------------------------------------------------------
   */
-  // 当前使用 MDX 查询
+  // Currently using MDX query
   readonly modelType = toSignal(this.modelService.modelType$)
   /**
    * The source is Xmla service, so must use MDX statement to query
@@ -197,18 +194,28 @@ ${calcEntityTypePrompt(entityType)}
     { initialValue: [] }
   )
   readonly queryKey = toSignal(this.queryId$)
+  readonly queryType = toSignal(this.query$.pipe(map((query) => query.type)))
 
+  readonly dataSourceName = computed(() => 
+    this.queryType() === 'mdx' ? this.modelService.dataSource()?.options.key :
+      this.modelService.origiDataSource()?.options.key)
   readonly entityType = computed(() => this.entityTypes()[0])
 
-  // readonly dbTablesPrompt = computed(() =>
-  //   this.isMDX()
-  //     ? `The source dialect is ${this.entityTypes()[0]?.dialect}, the cubes information are ${this.#promptCubes?.join(
-  //         '\n'
-  //       )}`
-  //     : `The database dialect is ${
-  //         this.entityTypes()[0]?.dialect
-  //       }, the tables information are ${this.promptTables?.join('\n')}`
-  // )
+  readonly navDropPredicate = computed(() => {
+    const isMDX = this.isMDX()
+    return (event: CdkDrag<EntitySchemaNode>) => {
+      if (isMDX) {
+        return [CdkDragDropContainers.Tables, CdkDragDropContainers.Entity].includes(
+          event.dropContainer.id as CdkDragDropContainers
+        )
+      } else {
+        return [CdkDragDropContainers.Tables, CdkDragDropContainers.Entity].includes(
+          event.dropContainer.id as CdkDragDropContainers
+        )
+      }
+    }
+  })
+
   sqlEditorActionLabel = toSignal(
     this.translateService.stream('PAC.MODEL.QUERY.EditorActions', {
       Default: {
@@ -218,56 +225,6 @@ ${calcEntityTypePrompt(entityType)}
       }
     })
   )
-  // sqlEditorActions = [
-  //   {
-  //     id: `sql-editor-action-nl-sql`,
-  //     label: computed(() => this.sqlEditorActionLabel().Nl2SQL),
-  //     action: (text, options) => {
-  //       const statement = text || this.statement
-  //       if (statement) {
-  //         this.answering.set(true)
-  //         this.nl2SQL(statement).subscribe((result) => {
-  //           this.answering.set(false)
-  //           const lines = this.statement.split('\n')
-  //           const endLineNumber = text ? options.selection.endLineNumber : lines.length
-  //           lines.splice(endLineNumber, 0, result)
-  //           this.statement = lines.join('\n')
-  //         })
-  //       }
-  //     }
-  //   },
-  //   {
-  //     id: `sql-editor-action-explain-sql`,
-  //     label: computed(() => this.sqlEditorActionLabel().Explain),
-  //     action: (text, options) => {
-  //       const statement = text || this.statement
-  //       if (statement) {
-  //         this.answering.set(true)
-  //         this.explainSQL(statement).subscribe((result) => {
-  //           this.answering.set(false)
-  //           const startLineNumber = text ? options.selection.startLineNumber : 1
-  //           const lines = this.statement.split('\n')
-  //           lines.splice(startLineNumber - 1, 0, `/**\n${result}\n*/`)
-  //           this.statement = lines.join('\n')
-  //         })
-  //       }
-  //     }
-  //   },
-  //   {
-  //     id: `sql-editor-action-optimize-sql`,
-  //     label: computed(() => this.sqlEditorActionLabel().Optimize),
-  //     action: (text, options) => {
-  //       const statement = text || this.statement
-  //       if (statement) {
-  //         this.answering.set(true)
-  //         this.optimizeSQL(statement).subscribe((result) => {
-  //           this.answering.set(false)
-  //           this.statement = this.statement.replace(statement, result)
-  //         })
-  //       }
-  //     }
-  //   }
-  // ]
 
   get results() {
     return this.queryLabService.results[this.queryKey()]
@@ -302,7 +259,7 @@ ${calcEntityTypePrompt(entityType)}
     implementation: async (event: CdkDragDrop<any[], any[], any>, copilotEngine: CopilotEngine) => {
       this.#logger.debug(`Drop table entity to copilot chat:`, event)
       const data = event.item.data
-      // 获取源表或源多维数据集结构
+      // Get the source table or source cube structure
       const entityType = await firstValueFrom(this.modelService.selectOriginalEntityType(data.name))
 
       const topCount = 10
@@ -400,7 +357,7 @@ ${calcEntityTypePrompt(entityType)}
   }
 
   editorDropPredicate(event: CdkDrag<EntitySchemaNode>) {
-    // 排除 query results 拖进来
+    // Exclude dragging query results
     return !['pac-model__query-results'].includes(event.dropContainer.id)
   }
 
@@ -414,11 +371,78 @@ ${calcEntityTypePrompt(entityType)}
 
     this.querySubscription()?.unsubscribe()
     if (statement) {
-      const subscription = this._query(statement).subscribe()
+      let subscription = null
+      if (this.queryType() === 'mdx') {
+        subscription = this.queryMDX(statement).subscribe()
+      } else {
+        subscription = this._query(statement).subscribe()
+      }
       this.querySubscription.set(subscription)
     } else {
       this.querySubscription.set(null)
     }
+  }
+
+  queryMDX(statement: string) {
+    return this.modelService.dataSource$.value.query({ statement, forceRefresh: true }).pipe(
+      tap((result) => {
+        const { status, error, schema } = result
+        let { data } = result
+
+        if (status === 'ERROR' || error) {
+          // console.error(error)
+          this._error.set(error || status)
+
+          this.appendResult({
+            statement,
+            error
+          })
+
+          this._cdr.detectChanges()
+          return
+        }
+
+        try {
+          const columns = convertQueryResultColumns(schema)
+
+          if (isPlainObject(data)) {
+            columns.push(...typeOfObj(data))
+            data = [data]
+          }
+
+          let preview = data
+          if (data?.length > 1000) {
+            preview = data.slice(0, 1000)
+          }
+
+          this.appendResult({
+              statement,
+              data,
+              preview,
+              columns
+            })
+          this.loading$.next(false)
+          console.group(`sql results`)
+          console.debug(`statement`, statement)
+          console.debug(`data`, data)
+          console.debug(`columns`, columns)
+          console.groupEnd()
+        } catch (err) {
+          console.error(err)
+        }
+      }),
+      catchError((error) => {
+        this._error.set(getErrorMessage(error))
+        this.appendResult({
+          statement,
+          error
+        })
+        this.loading$.next(false)
+        return of({
+          error: error
+        })
+      })
+    )
   }
 
   _query(statement: string) {
@@ -480,7 +504,7 @@ ${calcEntityTypePrompt(entityType)}
         return of({
           error: error
         })
-      }),
+      })
     )
   }
 
@@ -512,7 +536,7 @@ ${calcEntityTypePrompt(entityType)}
   }
 
   /**
-   * 另存为 SQL Model
+   * save as SQL Model
    */
   saveAsModel() {
     this.modelComponent.createByExpression(this.statement)
@@ -524,54 +548,54 @@ ${calcEntityTypePrompt(entityType)}
   }
 
   dropEntity(event: CdkDragDrop<{ name: string }[]>) {
-    if (event.container === event.previousContainer) {
-      this.queryLabService.moveEntityInQuery({ key: this.queryKey(), event })
-    } else {
-      switch(event.previousContainer.id) {
-        case CdkDragDropContainers.Tables: {
-          if (event.item.data?.name) {
-            this.queryLabService.addEntity({
-              key: this.queryKey(),
-              entity: event.item.data?.name,
-              currentIndex: event.currentIndex
-            })
-          }
-          break
-        }
-        case CdkDragDropContainers.Cubes:
-        case CdkDragDropContainers.ShareDimensions:
-        case CdkDragDropContainers.VirtualCubes:
-        {
-          if (this.isMDX()) {
-            // Add original cube name into list
-            this.queryLabService.addEntity({
-              key: this.queryKey(),
-              entity: event.item.data?.cube?.name,
-              currentIndex: event.currentIndex
-            })
-          } else {
-            // Add the fact tables in cube or dimension tables into list
-            event.item.data?.cube?.tables.forEach((item, index) => {
+    try {
+      if (event.container === event.previousContainer) {
+        this.queryLabService.moveEntityInQuery({ key: this.queryKey(), event })
+      } else {
+        switch (event.previousContainer.id) {
+          case CdkDragDropContainers.Tables: {
+            if (event.item.data?.name) {
+              this.queryLabService.initType(this.queryKey(), 'sql')
               this.queryLabService.addEntity({
                 key: this.queryKey(),
-                entity: item.name,
-                currentIndex: event.currentIndex + index
+                entity: event.item.data?.name,
+                currentIndex: event.currentIndex
               })
-            })
-
-            event.item.data?.dimension?.hierarchies?.forEach((hierarchy) => {
-              hierarchy.tables?.forEach((item, index) => {
+            }
+            break
+          }
+          case CdkDragDropContainers.Entity: {
+            if (this.isMDX()) {
+              this.queryLabService.initType(this.queryKey(), 'mdx')
+              // Add original cube name into list
+              this.queryLabService.addEntity({
+                key: this.queryKey(),
+                entity: event.item.data?.cube?.name,
+                currentIndex: event.currentIndex
+              })
+            } else {
+              if (event.item.data?.type === SemanticModelEntityType.CUBE) {
+                this.queryLabService.initType(this.queryKey(), 'mdx')
                 this.queryLabService.addEntity({
                   key: this.queryKey(),
-                  entity: item.name,
-                  currentIndex: event.currentIndex + index
+                  entity: event.item.data?.name,
+                  currentIndex: event.currentIndex
                 })
-              })
-            })
+              } else if (event.item.data?.cubeUsages) { // @todo use type check
+                this.queryLabService.initType(this.queryKey(), 'mdx')
+                this.queryLabService.addEntity({
+                  key: this.queryKey(),
+                  entity: event.item.data?.name,
+                  currentIndex: event.currentIndex
+                })
+              }
+            }
+            break
           }
-          break
         }
       }
+    } catch (err) {
+      this.#toastr.error(getErrorMessage(err))
     }
   }
 
@@ -581,16 +605,19 @@ ${calcEntityTypePrompt(entityType)}
       return
     }
     let text = data.name
-    switch((<EntitySchemaNode>data).type) {
+    switch ((<EntitySchemaNode>data).type) {
       case EntitySchemaType.Parameter:
         text = serializeVariable(data)
         break
       case EntitySchemaType.Parameters:
-        // 暂时仅支持 SAP Variables
+        // Currently only supports SAP Variables
         text = `SAP VARIABLES\n` + (data.members?.map(serializeVariable).join('\n') ?? '')
         break
+      case EntitySchemaType.IMeasure:
+        text = measureFormatter(data.name)
+        break
     }
-    
+
     if (text) {
       this.editor.insert(text)
     }
@@ -606,7 +633,7 @@ ${calcEntityTypePrompt(entityType)}
     const dialect = this.modelService.dialect()
 
     let statement = ''
-    if (modelType === MODEL_TYPE.XMLA) {
+    if (modelType === MODEL_TYPE.XMLA || this.queryType() === 'mdx') {
       statement = await this.getXmlaQueryStatement(event.item.data)
     } else {
       if (event.item.data) {
@@ -643,7 +670,7 @@ ${calcEntityTypePrompt(entityType)}
     if (data.cubeType === 'CUBE' || data.cubeType === 'QUERY CUBE') {
       return `SELECT {[Measures].Members} ON COLUMNS FROM [${data.name}]`
     } else {
-      switch((<EntitySchemaNode>data).type) {
+      switch ((<EntitySchemaNode>data).type) {
         case EntitySchemaType.Entity:
           return `SELECT {[Measures].Members} ON COLUMNS FROM [${data.name}]`
         case EntitySchemaType.Dimension:
@@ -660,6 +687,8 @@ ${calcEntityTypePrompt(entityType)}
           return `SELECT {[Measures].Members} ON COLUMNS, {${data.raw.memberUniqueName}} ON ROWS FROM [${data.raw.cubeName}]`
         case EntitySchemaType.Field:
           return `SELECT {[Measures].Members} ON COLUMNS, {${data.levelUniqueName}.Members} DIMENSION PROPERTIES ${data.name} ON ROWS FROM [${data.cubeName}]`
+        case EntitySchemaType.IMeasure:
+          return `SELECT {${data.name}} ON COLUMNS FROM [${data.entity}]`
         // case EntitySchemaType.Parameter:
         //   return `${data.name} INCLUDING ` + (data.defaultLow ? `${data.hierarchy}.${data.defaultLow}` : '')
         //     + (data.defaultHigh ? `:${data.hierarchy}.${data.defaultHigh}` : '')
@@ -726,31 +755,6 @@ ${calcEntityTypePrompt(entityType)}
     this.queryLabService.setConversations({ key: this.queryKey(), conversations: event })
   }
 
-  // async dropCopilot(event: CdkDragDrop<any[], any[], any>) {
-  //   const data = event.item.data
-  //   if (event.previousContainer.id === 'pac-model__query-entities' && (<EntitySchemaNode>data).type === 'Entity') {
-  //     const entityType = await firstValueFrom(this.modelService.selectOriginalEntityType((<EntitySchemaNode>data).name))
-  //     this.copilotChat.addMessage({
-  //       id: nanoid(),
-  //       role: CopilotChatMessageRoleEnum.User,
-  //       content: calcEntityTypePrompt(entityType)
-  //     })
-  //   } else if (event.previousContainer.id === 'pac-model__query-results') {
-  //     this.copilotChat.addMessage({
-  //       id: nanoid(),
-  //       role: CopilotChatMessageRoleEnum.User,
-  //       data: {
-  //         columns: data.columns,
-  //         content: data.preview
-  //       },
-  //       content:
-  //         data.columns.map((column) => column.name).join(',') +
-  //         `\n` +
-  //         data.preview.map((row) => data.columns.map((column) => row[column.name]).join(',')).join('\n')
-  //     })
-  //   }
-  // }
-
   onCopilotCopy(text: string) {
     this.editor.appendText(text)
   }
@@ -807,61 +811,10 @@ ${calcEntityTypePrompt(entityType)}
       event.preventDefault()
     }
   }
-
-  // nl2SQL(sql: string): Observable<string> {
-  //   return this.copilotService
-  //     .chatCompletions([
-  //       {
-  //         id: nanoid(),
-  //         role: CopilotChatMessageRoleEnum.System,
-  //         content: `假如你是一个数据库管理员，已知数据库信息有：\n${this.dbTablesPrompt()}`
-  //       },
-  //       {
-  //         id: nanoid(),
-  //         role: CopilotChatMessageRoleEnum.User,
-  //         content: `请根据给定的表信息和要求给出相应的SQL语句(仅输出 sql 语句)， 要求：\n${sql}，答案：`
-  //       }
-  //     ])
-  //     .pipe(map(({ choices }) => choices[0]?.message?.content))
-  // }
-
-  // explainSQL(sql: string): Observable<string> {
-  //   return this.copilotService
-  //     .chatCompletions([
-  //       {
-  //         id: nanoid(),
-  //         role: CopilotChatMessageRoleEnum.System,
-  //         content: `假如你是一个数据库管理员，已知数据库信息有：\n${this.dbTablesPrompt()}`
-  //       },
-  //       {
-  //         id: nanoid(),
-  //         role: CopilotChatMessageRoleEnum.User,
-  //         content: `请根据给定的表信息解释一下这个SQL语句：\n${sql}`
-  //       }
-  //     ])
-  //     .pipe(map(({ choices }) => choices[0]?.message?.content))
-  // }
-
-  // optimizeSQL(sql: string): Observable<string> {
-  //   return this.copilotService
-  //     .chatCompletions([
-  //       {
-  //         id: nanoid(),
-  //         role: CopilotChatMessageRoleEnum.System,
-  //         content: `假如你是一个数据库管理员，已知数据库信息有：\n${this.dbTablesPrompt()}`
-  //       },
-  //       {
-  //         id: nanoid(),
-  //         role: CopilotChatMessageRoleEnum.User,
-  //         content: `请根据给定的表信息优化一下这个SQL语句(仅输出 sql 语句)：\n${sql}`
-  //       }
-  //     ])
-  //     .pipe(map(({ choices }) => choices[0]?.message?.content))
-  // }
 }
 
 /**
- * 根据 SQL 查询结果对象分析出字段类型
+ * Analyze the field type based on the SQL query result object
  *
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof
  *
@@ -876,6 +829,9 @@ export function typeOfObj(obj) {
 }
 
 function serializeVariable(data: VariableProperty) {
-  return `${data.name} INCLUDING ` + (data.defaultLow ? `${data.referenceHierarchy}.${data.defaultLow}` : `${data.referenceHierarchy}.[]`)
-            + (data.defaultHigh ? `:${data.referenceHierarchy}.${data.defaultHigh}` : '')
+  return (
+    `${data.name} INCLUDING ` +
+    (data.defaultLow ? `${data.referenceHierarchy}.${data.defaultLow}` : `${data.referenceHierarchy}.[]`) +
+    (data.defaultHigh ? `:${data.referenceHierarchy}.${data.defaultHigh}` : '')
+  )
 }

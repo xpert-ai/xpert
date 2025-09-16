@@ -9,10 +9,14 @@
 />
 
 @if (type() === 'table') {
-  <ngm-select [selectOptions]="props.options$ | async"
+  <ngm-select searchable [selectOptions]="props.options$ | async"
     [placeholder]="'PAC.MODEL.SelectAFactTable' | translate: {Default: 'Select a fact table'}"
     [(ngModel)]="tableName"
-  />
+  >
+    <ng-template #option let-value let-search="search">
+      <ngm-display-behaviour [option]="value" class="text-sm" [highlight]="search" />
+    </ng-template>
+  </ngm-select>
 } @else if (type() === 'view') {
   <div>
     <label>{{'PAC.MODEL.Alias' | translate: {Default: 'Alias'} }}</label>

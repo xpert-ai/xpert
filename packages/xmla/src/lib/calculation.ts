@@ -10,7 +10,6 @@ import {
   EntityType,
   formatCalculatedMemberName,
   getEntityProperty,
-  getMemberValue,
   getPropertyHierarchy,
   isAggregationProperty,
   isCalculatedProperty,
@@ -28,8 +27,10 @@ import {
   measureFormatter,
   isVariableSlicer,
   convertSlicerToDimension,
-  CubeParameterEnum
+  CubeParameterEnum,
+  getMemberKey
 } from '@metad/ocap-core'
+import { t } from 'i18next'
 import { MDXHierarchyFilter, MDXProperty } from './filter'
 import {
   Abs,
@@ -65,7 +66,7 @@ import {
 } from './functions'
 import { serializeDimension, serializeSlicer } from './slicer'
 import { wrapHierarchyValue } from './types/index'
-import { t } from 'i18next'
+
 
 export type WithMemberType = CalculatedMember | NamedSet
 
@@ -204,14 +205,14 @@ export function withCalculationMembers(
   // 未来迁移到 schema cube CalculatedMember 中
   [...dimensions, ...(filters ?? [])].forEach((dimension) => {
     dimension.members?.forEach((member) => {
-      const property = getEntityProperty(entityType, getMemberValue(member))
+      const property = getEntityProperty(entityType, getMemberKey(member))
       if (isCalculationProperty(property)) {
         const formula = calculationPropertyToFormula(property, filters)
 
         // Other CalculationProperty non-MDX calculated members
         if (formula) {
           const withMember = {
-            name: getMemberValue(member),
+            name: getMemberKey(member),
             dimension: C_MEASURES,
             formula
           }
@@ -219,7 +220,7 @@ export function withCalculationMembers(
         }
       } else if (!property?.rt) {
         const calculatedMember = cube?.calculatedMembers?.find(
-          (item) => item.hierarchy === dimension.hierarchy && item.name === getMemberValue(member)
+          (item) => item.hierarchy === dimension.hierarchy && item.name === getMemberKey(member)
         )
         if (calculatedMember) {
           members[formatCalculatedMemberName(calculatedMember)] = pick(calculatedMember,
@@ -376,8 +377,8 @@ export function serializeAggregationProperty(property: AggregationProperty) {
  * @returns
  */
 export function serializeRestrictedMeasureProperty(property: RestrictedMeasureProperty, filters: MDXHierarchyFilter[]) {
-  const dimensions = property.slicers ? property.slicers.filter((slicer) => !isVariableSlicer(slicer)).map(convertSlicerToDimension) :
-    property.dimensions
+  const dimensions = property.slicers?.filter((slicer) => !isVariableSlicer(slicer)).map(convertSlicerToDimension)
+    // property.dimensions
   const contexts = dimensions?.map((item) => {
       const dimension = { ...item, members: item.members || [] }
       // If it is not a constant selection or has a name?, the filter of the context context is merged.
@@ -522,19 +523,21 @@ export function serializeParameter(parameter: ParameterProperty, values: Record<
     case CubeParameterEnum.Select: {
       const value = values?.[parameter.name] ? values[parameter.name] : parameter.value
       if (!isNil(value)) {
-        return Array.isArray(value) ? value.map((member) => getMemberValue(member)).join(',') : value
+        return Array.isArray(value) ? value.map((member) => getMemberKey(member)).join(',') : value
       }
-      return isNil(parameter.value) ? parameter.members.map((member) => getMemberValue(member)).join(',') : parameter.value as string
+      return isNil(parameter.value) ? parameter.members.map((member) => getMemberKey(member)).join(',') : parameter.value as string
     }
     default: {
       if (values?.[parameter.name]) {
-        return values[parameter.name].map((member) => getMemberValue(member)).join(',')
+        return MemberSet(...values[parameter.name].map((member) => 
+          wrapHierarchyValue(parameter.hierarchy || parameter.dimension, getMemberKey(member))
+        ))
       }
       const hierarchy = getPropertyHierarchy(parameter)
       return isEmpty(parameter.members)
         ? serializeDimensionMembers(parameter)
-        : hierarchy ? MemberSet(...parameter.members.map((member) => wrapHierarchyValue(hierarchy, getMemberValue(member))))
-         : parameter.members.map((member) => getMemberValue(member)).join(',')
+        : hierarchy ? MemberSet(...parameter.members.map((member) => wrapHierarchyValue(hierarchy, getMemberKey(member))))
+         : parameter.members.map((member) => getMemberKey(member)).join(',')
     }
   }
 }

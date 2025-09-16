@@ -1,7 +1,7 @@
 import { combineLatestWith, distinctUntilChanged, filter, map, Observable } from 'rxjs'
 import { t } from 'i18next'
 import { AnalyticsAnnotation } from '../annotations'
-import { getEntityHierarchy, getEntityProperty, QueryReturn } from '../models'
+import { getEntityHierarchy, getEntityProperty, getEntityProperty2, isPropertyLevel, QueryReturn } from '../models'
 import { isBaseProperty, isMeasure, QueryOptions } from '../types'
 import { isEmpty, nonNullable } from '../utils'
 import { SmartBusinessService } from './smart-business.service'
@@ -25,13 +25,16 @@ export class AnalyticsBusinessService<T> extends SmartBusinessService<T> {
     combineLatestWith(this.selectEntityType()),
     map(([analyticsAnnotation, entityType]) => {
       return {
-        rows: analyticsAnnotation.rows?.filter(isBaseProperty).map((item) => ({
-          ...item,
-          property: isMeasure(item) ? getEntityProperty(entityType, item) : getEntityHierarchy(entityType, item)
-        })),
+        rows: analyticsAnnotation.rows?.filter(isBaseProperty).map((item) => {
+          const property = getEntityProperty2(entityType, item)
+          return {
+            ...item,
+            property
+          }
+        }),
         columns: analyticsAnnotation.columns?.filter(isBaseProperty).map((item) => ({
           ...item,
-          property: isMeasure(item) ? getEntityProperty(entityType, item) : getEntityHierarchy(entityType, item)
+          property: getEntityProperty2(entityType, item)
         }))
       } as AnalyticsAnnotation
     })

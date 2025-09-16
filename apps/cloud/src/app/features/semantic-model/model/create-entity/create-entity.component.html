@@ -131,7 +131,7 @@
         @for (column of filteredColumns(); track column.name) {
           <mat-list-item role="listitem" class="group rounded-lg">
             <div class="flex items-center">
-              <ngm-display-behaviour class="flex-1 ml-8" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId" [highlight]="searchTerm()" />
+              <ngm-display-behaviour class="flex-1 ml-4 overflow-hidden" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId" [highlight]="searchTerm()" />
               <div class="mx-4 w-10 shrink-0 flex justify-center">
                 <mat-checkbox [(ngModel)]="column.isMeasure" (ngModelChange)="toggleMeasure($event, column)"/>
               </div>
@@ -212,7 +212,7 @@
                 >
                   {{column.visible ? 'visibility' : 'visibility_off'}}
                 </mat-icon>
-                <ngm-display-behaviour class="flex-1 ml-8" [option]="{key: column.name, caption: column.caption}"
+                <ngm-display-behaviour class="flex-1 ml-8 overflow-hidden" [option]="{key: column.name, caption: column.caption}"
                   [highlight]="searchTerm()"
                   displayBehaviour="descriptionAndId"
                 />

@@ -1,5 +1,5 @@
 :host {
-  @apply p-1;
+  --mdc-list-list-item-one-line-container-height: 34px;
 }
 
 .radio-item[aria-selected='true'] {

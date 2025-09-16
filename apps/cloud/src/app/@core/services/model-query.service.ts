@@ -10,6 +10,7 @@ export interface ModelQuery extends IModelQuery {
   key: string
   modelId: string
   name: string
+  type?: 'sql' | 'mdx'
   entities: string[]
   statement?: string
   aiOptions?: any // AIOptions
@@ -44,13 +45,13 @@ export class ModelQueryService {
 export function convertModelQueryInput(query: Partial<ModelQuery>): IModelQuery {
   return {
     ...pick(query, 'key', 'name', 'modelId', 'index'),
-    options: pick(query, 'statement', 'entities', 'conversations')
+    options: pick(query, 'type', 'statement', 'entities', 'conversations')
   } as IModelQuery
 }
 
 export function convertModelQueryResult(query: IModelQuery): ModelQuery {
   return {
-    ...omit(query, 'statement', 'entities', 'options'),
+    ...omit(query, 'type', 'statement', 'entities', 'options'),
     ...(query.options ?? {})
   }
 }

@@ -245,6 +245,9 @@ $sidebar-collapsed-width: 40px;
   @include semantic-models.density($theme);
   @include indicator.density($theme);
 
+  /**
+   * @deprecated
+   */
   .pac-nav-toolbar.mat-toolbar {
     &.ngm-density__compact {
       .mat-mdc-tab-header {
