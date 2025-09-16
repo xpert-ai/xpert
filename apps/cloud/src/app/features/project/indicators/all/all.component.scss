@@ -1,3 +1,7 @@
 :host {
   @apply relative w-full overflow-hidden flex-1 max-w-full flex flex-col;
 }
+
+tr td, tr th {
+  @apply whitespace-nowrap;
+}

@@ -1,30 +1,37 @@
+import { Dialog } from '@angular/cdk/dialog'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, inject, signal } from '@angular/core'
+import { Component, inject, signal, ViewContainerRef } from '@angular/core'
+import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
+import { MatDividerModule } from '@angular/material/divider'
+import { MatIconModule } from '@angular/material/icon'
+import { MatTabsModule } from '@angular/material/tabs'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { Indicator, IndicatorStatusEnum, IndicatorsService, convertIndicatorResult } from '@metad/cloud/state'
+import { injectFetchModelDetails, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
+import { Indicator, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { saveAsYaml, uploadYamlFile } from '@metad/core'
 import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
-import { EMPTY, firstValueFrom, switchMap } from 'rxjs'
-import { IIndicator, IndicatorType, ProjectAPIService, ToastrService, getErrorMessage, isUUID, routeAnimations } from '../../../@core'
+import { firstValueFrom } from 'rxjs'
+import {
+  getErrorMessage,
+  IIndicator,
+  IndicatorType,
+  isUUID,
+  ProjectAPIService,
+  routeAnimations,
+  ToastrService
+} from '../../../@core'
+import { ManageEntityBaseComponent } from '../../../@shared/directives'
 import { ProjectService } from '../project.service'
 import { NewIndicatorCodePlaceholder } from '../types'
 import { IndicatorImportComponent } from './indicator-import/indicator-import.component'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { Dialog } from '@angular/cdk/dialog'
-import { ManageEntityBaseComponent } from '../../../@shared/directives'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTabsModule } from '@angular/material/tabs'
-import { MatDividerModule } from '@angular/material/divider'
-import { exportIndicator, injectFetchModelDetails } from '@cloud/app/@shared/indicator'
-
 
 @Component({
   standalone: true,
@@ -54,19 +61,16 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
   private _dialog = inject(MatDialog)
   readonly #dialog = inject(Dialog)
   readonly #logger = inject(NGXLogger)
-  readonly #translate = inject(TranslateService)
   readonly indicatorsService = inject(IndicatorsService)
   readonly projectAPI = inject(ProjectAPIService)
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly wasmAgent = inject(WasmAgentService)
   readonly toastrService = inject(ToastrService)
+  readonly #viewContainerRef = inject(ViewContainerRef)
   readonly fetchModelDetails = injectFetchModelDetails()
 
-  /**
-   * @deprecated
-   */
-  readonly selectedIndicators = signal<IIndicator[]>([])
   readonly hasDirty = this.projectService.hasDirty
+
 
   isDirty(id: string) {
     return this.projectService.dirty()[id]
@@ -77,15 +81,14 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
       const indicator = this.projectService.indicators().find((item) => item.id === link.id)
       const confirm = await firstValueFrom(
         this.#dialog.open(CdkConfirmDeleteComponent, {
-            data: {
-              title: this.getTranslation('PAC.ACTIONS.Close', { Default: 'Close' }) + ` [${indicator.name}]`,
-              value: indicator.name,
-              information: this.getTranslation('PAC.INDICATOR.IndicatorHasUnsavedChanges', {
-                Default: `There are unsaved changes in the indicator.\n Are you sure to close it?`
-              })
-            }
-          })
-          .closed
+          data: {
+            title: this.getTranslation('PAC.ACTIONS.Close', { Default: 'Close' }) + ` [${indicator.name}]`,
+            value: indicator.name,
+            information: this.getTranslation('PAC.INDICATOR.IndicatorHasUnsavedChanges', {
+              Default: `There are unsaved changes in the indicator.\n Are you sure to close it?`
+            })
+          }
+        }).closed
       )
       if (!confirm) {
         return
@@ -94,52 +97,6 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
 
     this.projectService.resetIndicator(link.id)
     super.removeOpenedLink(link)
-  }
-
-  /**
-   * @deprecated
-   */
-  async export() {
-    const project = this.projectService.project()
-    const indicators = this.selectedIndicators().length ? this.selectedIndicators() : project.indicators
-    const indicatorsFileName = this.getTranslation('PAC.INDICATOR.Indicators', { Default: 'Indicators' })
-    saveAsYaml(
-      `${indicatorsFileName}.yaml`,
-      indicators.map((item) => exportIndicator(convertIndicatorResult(item)))
-    )
-  }
-
-  /**
-   * @deprecated
-   */
-  deleteSelected() {
-    this.#dialog.open(CdkConfirmDeleteComponent, {
-        data: {
-          title: this.getTranslation('PAC.ACTIONS.Delete', { Default: 'Delete' }),
-          information: this.getTranslation('PAC.INDICATOR.DeleteSelectedIndicators', {
-            Default: 'Delete selected indicators?'
-          })
-        }
-      })
-      .closed
-      .pipe(
-        switchMap((confirm) => {
-          if (confirm) {
-            return this.projectService.deleteIndicators(this.selectedIndicators().map((item) => item.id))
-          }
-          return EMPTY
-        })
-      )
-      .subscribe({
-        next: () => {
-          this.toastrService.success('PAC.INDICATOR.DeletedSelectedIndicators', {
-            Default: 'Selected indicators deleted!'
-          })
-        },
-        error: (error) => {
-          this.toastrService.error(error)
-        }
-      })
   }
 
   async handleUploadChange(event) {
@@ -215,13 +172,32 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
   }
 
   register() {
-    this.projectService.newIndicator()
-
-    this.router.navigate([NewIndicatorCodePlaceholder], {
-      relativeTo: this.route
-    })
+    // this.projectService.newIndicator()
+    // this.router.navigate([NewIndicatorCodePlaceholder], {
+    //   relativeTo: this.route
+    // })
+    this.#dialog
+      .open<IIndicator>(XpIndicatorFormComponent, {
+        viewContainerRef: this.#viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          id: null,
+          models: this.projectService.models(),
+          certifications: this.projectService.project().certifications,
+          projectId: this.projectService.project().id
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+          this.projectService.refresh$.next()
+        }
+      })
   }
 
+  /**
+   * @deprecated use Xpert Agents instand
+   */
   aiRegister() {
     this._dialog
       .open(CommandDialogComponent, {

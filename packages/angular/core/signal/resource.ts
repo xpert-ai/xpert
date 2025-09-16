@@ -18,12 +18,12 @@ export function myResource<TReq, TRes>(options: ResourceOptions<TReq, TRes>) {
   const refreshTrigger = signal(0)
 
   const requestSig = computed(() => {
-    // 使用 refreshTrigger 使得 refresh 时也会重新请求
+    // Use refreshTrigger to ensure a new request is made on refresh
     refreshTrigger()
     return options.request()
   })
 
-  // 自动 effect 监控 requestSig 变化，执行 loader
+  // Automatic effect monitors requestSig changes and executes loader
   effect(
     () => {
       const requestVal = requestSig()
@@ -67,21 +67,21 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
   const refreshTrigger = signal(0)
 
   const requestSig = computed(() => {
-    refreshTrigger()
     return options.request()
   })
 
   let currentSub: Subscription | null = null
 
-  // 保证资源释放（避免订阅泄漏）
+  // Guaranteed resource release (avoiding subscription leaks)
   const destroyRef = inject(DestroyRef)
 
   effect(
     () => {
+      refreshTrigger()
       const req = requestSig()
       errorSig.set(null)
 
-      // 取消上一个订阅
+      // Cancel the previous subscription
       if (currentSub) {
         currentSub.unsubscribe()
       }
@@ -106,7 +106,7 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
     { allowSignalWrites: true }
   )
 
-  // 注销组件时，清理订阅
+  // Guaranteed resource release (avoiding subscription leaks)
   destroyRef.onDestroy(() => {
     if (currentSub) {
       currentSub.unsubscribe()
