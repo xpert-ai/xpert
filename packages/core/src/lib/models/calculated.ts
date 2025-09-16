@@ -186,14 +186,14 @@ export interface RestrictedMeasureProperty extends CalculationProperty {
    * The measure name
    */
   measure: PropertyName
-  // /**
-  //  * @deprecated use slicers
-  //  */
-  // dimensions: Array<Dimension>
+  /**
+   * Free dimensions for the indicator
+   */
+  dimensions?: Array<string>
   /**
    * The slicers to restrict measure
    */
-  slicers: ISlicer[]
+  slicers?: ISlicer[]
   /**
    * Enable Constant Selection
    */

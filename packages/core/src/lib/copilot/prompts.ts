@@ -67,9 +67,10 @@ function markdownMeasures(entityType: EntityType) {
   const indicators = getEntityIndicators(entityType).filter((_) => !_.semantics?.hidden)
   const measures = getEntityMeasures(entityType).filter((_) => !_.semantics?.hidden && !indicators.some((indicator) => indicator.name === _.name))
   if (measures.length) {
-    context += `  measures:\n`
-    + measures.map((item) => 
-      [
+    context += `measures:\n`
+    + measures.map((item) => {
+      const depend_parameters = markdownCalculationParams(entityType, item.name)
+      return [
         `  - name: "${item.name}"`,
         `    caption: ${item.caption || ''}`,
         item.description && item.description !== item.caption ? 
@@ -77,15 +78,16 @@ function markdownMeasures(entityType: EntityType) {
     ${prepend('      ', item.description)}` : null,
         item.formatting?.unit ?
         `    unit: ${item.formatting.unit}` : null,
-        prepend('    ', markdownCalculationParams(entityType, item.name)),
+        depend_parameters ? prepend('    ', depend_parameters) : null,
       ].filter(nonBlank).join(`\n`)
-    ).join('\n')
+    }).join('\n')
   }
 
   if (indicators.length) {
-    context += `\n  indicators:\n` +
-    indicators.map((item) =>
-      [
+    context += `\nindicators:\n` +
+    indicators.map((item) => {
+      const depend_parameters = markdownCalculationParams(entityType, item.name)
+      return [
         `   - name: "${item.name}"`,
         `     caption: ${item.caption || ''}`,
         item.description && item.description !== item.caption ? 
@@ -93,8 +95,11 @@ function markdownMeasures(entityType: EntityType) {
     ${prepend('       ', item.description)}` : null,
         item.formatting?.unit ?
         `     unit: ${item.formatting.unit}` : null,
+        item.dimensions?.length ?
+        `     available_dimensions: ${item.dimensions.map((_) => `\`${_}\``).join(', ')}` : null,
+        depend_parameters ? prepend('     ', depend_parameters) : null,
       ].filter(nonBlank).join(`\n`)
-    ).join('\n')
+    }).join('\n')
   }
 
   return context
