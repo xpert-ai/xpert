@@ -73,6 +73,26 @@ export const VariableSchema = z.object({
   })).describe('Members in the variable')
 })
 
+export function tryFixLevelName(level: string): string {
+  if (!level) return level
+
+  // Case 1: already a single bracketed expression, like [日历层级.年]
+  if (/^\[.*\]$/.test(level) && level.indexOf("].") === -1) {
+    return level
+  }
+
+  // Case 2: standard MDX like [日历层级].[年]
+  if (/\[.*\]\./.test(level)) {
+    return level
+  }
+
+  // Case 3: need to fix, e.g. 日历层级.年 → [日历层级].[年]
+  return level
+    .split(".")
+    .map(part => /^\[.*\]$/.test(part) ? part : `[${part}]`)
+    .join(".")
+}
+
 /**
  * Due to the instability of the AI's returned results, it is necessary to attempt to fix dimensions for different situations:
  * The dimensional attributes returned by AI may be level, hierarchy or dimension.
@@ -89,7 +109,7 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
   let property = null
   if (isDimension(dimension)) {
     if (dimension.level) {
-      property = getEntityProperty2<PropertyLevel>(entityType, dimension.level)
+      property = getEntityProperty2<PropertyLevel>(entityType, tryFixLevelName(dimension.level))
     } else if (dimension.hierarchy) {
       property = getEntityProperty2<PropertyHierarchy>(entityType, dimension.hierarchy)
     } else if (dimension.dimension) {

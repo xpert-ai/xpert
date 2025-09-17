@@ -463,6 +463,23 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		return this.logService.findAll(data)
 	}
 
+	/**
+	 * Update draft (Avoiding version lock checks)
+	 * 
+	 * @todo consider using version lock
+	 * 
+	 * @param id 
+	 * @param draft 
+	 * @returns 
+	 */
+	async updateDraft(id: string, draft: TSemanticModelDraft) {
+		const model = await this.findOne(id)
+		return this.saveDraft(id, {
+			...model.draft,
+			...draft
+		} as TSemanticModelDraft)
+	}
+
 	async saveDraft(id: string, draft: TSemanticModelDraft) {
 		const model = await this.findOne(id)
 		if (model.draft?.version && model.draft.version !== draft.version) {
@@ -492,7 +509,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async validate(draft: TSemanticModelDraft) {
 		const dimensionValidator = new DimensionValidator()
-		const cubeValidator = new CubeValidator()
+		const cubeValidator = new CubeValidator(this.commandBus, draft.dataSourceId, draft.catalog)
 		const virtualCubeValidator = new VirtualCubeValidator()
 		const roleValidator = new RoleValidator()
 
