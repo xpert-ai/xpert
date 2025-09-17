@@ -19,6 +19,7 @@
 		"@nestjs/platform-socket.io": "^8.1.2",
 		"@nestjs/typeorm": "^8.0.3",
 		"@nestjs/websockets": "^8.1.2",
+		"async-mutex": "^0.5.0",
 		"axios": "^0.24.0",
 		"core-js": "3.41.0",
 		"bull": "^4.12.6",

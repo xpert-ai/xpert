@@ -1,19 +1,19 @@
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { ConfigService } from '@metad/server-config'
 import { Injectable, Logger, NotFoundException, Type, Inject } from '@nestjs/common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { FindConditions, IsNull, Not, Repository } from 'typeorm'
-import { XpertToolset } from './xpert-toolset.entity'
 import { ITag, IUser, IXpertToolset, mapTranslationLanguage, TagCategoryEnum, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { assign } from 'lodash'
+import { FindConditions, IsNull, Not, Repository } from 'typeorm'
+import { XpertToolset } from './xpert-toolset.entity'
 import { GetXpertWorkspaceQuery } from '../xpert-workspace'
 import { DEFAULT_TOOL_TAG_MAP, defaultToolTags } from './utils/tags'
 import { ListBuiltinToolProvidersQuery } from './queries'
 import { ToolProviderNotFoundError } from './errors'
 import { TToolsetProviderSchema } from './types'
 import { ToolProviderDTO } from './dto'
-import { ConfigService } from '@metad/server-config'
-import { I18nService, translateOptions } from 'nestjs-i18n';
+import { I18nService, translateOptions } from 'nestjs-i18n'
 import { createBuiltinToolset } from './provider/builtin'
 import { EnvStateQuery } from '../environment'
 import { BuiltinToolset } from '../shared'
@@ -25,6 +25,9 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 	@Inject(ConfigService)
 	private readonly configService: ConfigService
 
+	/**
+	 * @deprecated
+	 */
 	private commands = new Map<string, Type<ICommand>>()
 	
 	constructor(
@@ -37,10 +40,16 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		super(repository)
 	}
 
+	/**
+	 * @deprecated
+	 */
 	registerCommand(name: string, command: Type<ICommand>) {
 		this.commands.set(name, command)
 	}
 
+	/**
+	 * @deprecated
+	 */
 	async executeCommand(name: string, ...args: any[]) {
 		const command = this.commands.get(name)
 		if (!command) {

@@ -6,6 +6,9 @@ export class QuerySqlCommand implements ICommand {
 
 	constructor(
 		public readonly args: {
+			/**
+			 * ID of DataSource
+			 */
 			dataSource: string
 			schema: string
 			statement: string

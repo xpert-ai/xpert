@@ -6,7 +6,7 @@ export class DimensionValidator implements RuleValidator {
 	async validate(dimension: PropertyDimension, params: { schema: Schema; cube?: Cube }): Promise<ChecklistItem[]> {
 		const issues: ChecklistItem[] = []
 
-		if (params.cube?.dimensionUsages.some((du) => du.name === dimension.name && du.__id__ !== dimension.__id__)) {
+		if (params.cube?.dimensionUsages?.some((du) => du.name === dimension.name && du.__id__ !== dimension.__id__)) {
 			issues.push({
 				ruleCode: 'DIMENSION_NAME_DUPLICATE',
 				field: 'dimension',
@@ -19,7 +19,7 @@ export class DimensionValidator implements RuleValidator {
 			})
 		}
 
-		if (params.cube?.dimensions.some((d) => d.name === dimension.name && d.__id__ !== dimension.__id__)) {
+		if (params.cube?.dimensions?.some((d) => d.name === dimension.name && d.__id__ !== dimension.__id__)) {
 			issues.push({
 				ruleCode: 'DIMENSION_NAME_DUPLICATE',
 				field: 'dimension',
@@ -72,16 +72,20 @@ export class DimensionValidator implements RuleValidator {
 			}
 
 			// Must specify a foreign key, because the hierarchy table is different from the fact table.
-			if (params.cube && dimension.hierarchies.some((h) => h.tables?.length) && !dimension.foreignKey) {
-				issues.push({
-					ruleCode: 'DIMENSION_MISSING_FOREIGN_KEY',
-					field: 'dimension',
-					value: dimension.name,
-					message: {
-						en_US: `Dimension "${dimension.name}" must specify a foreign key because the hierarchy table is different from the fact table`,
-						zh_Hans: `维度 "${dimension.name}" 必须指定一个外键，因为层次结构表与事实表不同`
-					},
-					level: 'error'
+			if (params.cube && !dimension.foreignKey) {
+				dimension.hierarchies.some((h) => {
+					if (h.tables?.[0] && h.tables[0].name !== params.cube?.fact?.table?.name) {
+						issues.push({
+							ruleCode: 'DIMENSION_MISSING_FOREIGN_KEY',
+							field: 'dimension',
+							value: dimension.name,
+							message: {
+								en_US: `Dimension "${dimension.name}" must specify a foreign key because the hierarchy table is different from the fact table`,
+								zh_Hans: `维度 "${dimension.name}" 必须指定一个外键，因为层次结构表与事实表不同`
+							},
+							level: 'error'
+						})
+					}
 				})
 			}
 		}
