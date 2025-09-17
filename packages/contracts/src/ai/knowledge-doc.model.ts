@@ -10,6 +10,10 @@ export type DocumentParserConfig = {
   pages?: number[][]
   replaceWhitespace?: boolean
   removeSensitive?: boolean
+  textSplitterType?: string
+  textSplitter?: {
+    [key: string]: unknown
+  }
 }
 
 export type DocumentTextParserConfig = DocumentParserConfig & {

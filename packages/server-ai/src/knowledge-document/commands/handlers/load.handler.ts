@@ -6,8 +6,9 @@ import {
 } from '@metad/contracts'
 import { pick } from '@metad/server-common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { Document } from 'langchain/document'
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
+import { TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
+import { Document } from 'langchain/document'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
 import { LoadStorageFileCommand, LoadStorageSheetCommand } from '../../../shared/'
 import { KnowledgeDocumentService } from '../../document.service'
@@ -18,7 +19,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 	constructor(
 		private readonly service: KnowledgeDocumentService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly textSplitterRegistry: TextSplitterRegistry
 	) {}
 
 	public async execute(command: KnowledgeDocLoadCommand): Promise<Document[]> {
@@ -100,12 +102,23 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			chunkOverlap = 100
 		}
 		const delimiter = document.parserConfig?.delimiter || parserConfig?.delimiter
-		const textSplitter = new RecursiveCharacterTextSplitter({
+
+		const textSplitter = this.textSplitterRegistry.get(document.parserConfig.textSplitterType || 'recursive-character')
+		if (textSplitter) {
+			return textSplitter.splitDocuments(data, {
+				chunkSize,
+				chunkOverlap,
+				separators: delimiter?.split(' '),
+				...(document.parserConfig.textSplitter || {})
+			})
+		}
+		
+		const textSplitter1 = new RecursiveCharacterTextSplitter({
 			chunkSize,
 			chunkOverlap,
 			separators: delimiter?.split(' ')
 		})
 
-		return await textSplitter.splitDocuments(data)
+		return await textSplitter1.splitDocuments(data)
 	}
 }

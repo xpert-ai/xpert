@@ -15,6 +15,7 @@ import {
   IKnowledgeDocument,
   KDocumentSourceType,
   KDocumentWebTypeEnum,
+  KnowledgebaseService,
   KnowledgeDocumentService,
   StorageFileService,
   TDocumentWebOptions,
@@ -29,6 +30,7 @@ import { KnowledgeDocumentCreateStep3Component } from './step-3/step.component'
 import { TSelectOption } from '@metad/ocap-angular/core'
 import { TFileItem } from '../types'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 
 @Component({
@@ -54,6 +56,7 @@ import { injectQueryParams } from 'ngxtension/inject-query-params'
 export class KnowledgeDocumentCreateComponent {
   eKDocumentSourceType = KDocumentSourceType
 
+  readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly #toastr = inject(ToastrService)
   readonly #router = inject(Router)
@@ -88,7 +91,9 @@ export class KnowledgeDocumentCreateComponent {
   readonly documents = signal<IKnowledgeDocument[]>([])
   readonly step3Avaiable = computed(() => this.step2Avaiable())
 
-  constructor() {}
+  // Strategies
+  readonly textSplitterStrategies = toSignal(this.knowledgebaseAPI.getTextSplitterStrategies())
+
 
   nextStep() {
     this.step.update((state) => ++state)

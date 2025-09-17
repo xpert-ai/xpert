@@ -1,7 +1,9 @@
 <div class="py-4 flex w-full grow overflow-hidden">
   <div class="grow max-w-[40%] flex flex-col px-8 py-4 overflow-auto">
-    <div class="system-md-semibold mb-1">
+    <div class="system-md-semibold mb-1 flex justify-between items-center">
       {{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}
+
+      <ngm-select [(ngModel)]="textSplitterType" [selectOptions]="textSplitterStrategies()" class="w-52" [nullable]="false" />
     </div>
 
     <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
@@ -14,10 +16,10 @@
         
         <div class="flex-1 space-y-0.5 py-3 pr-4">
           <div class="text-text-secondary system-md-semibold">
-            {{ 'PAC.Knowledgebase.General' | translate: {Default: 'General'} }}
+            {{ textSplitterStrategy().label | i18n }}
           </div>
           <div class="text-text-tertiary system-xs-regular">
-            {{ 'PAC.Knowledgebase.GeneralDesc' | translate: {Default: 'General text chunking pattern, the chunks for retrieval and recall are the same'} }}
+            {{ textSplitterStrategy().description | i18n }}
           </div>
         </div>
       </div>
@@ -57,27 +59,12 @@
               />
 
               <div class="w-full h-[0.5px] my-4 bg-divider-subtle"></div>
-<!-- 
-              <div class="flex items-center py-0.5">
 
-                <ngm-checkbox label="使用 Q&amp;A 分段，语言" />
+              <json-schema-form class="mt-2" [schema]="textSplitterConfigSchema()" 
+                [ngModel]="textSplitter()"
+                (ngModelChange)="textSplitter.set($event)"
+              />
 
-                <ngm-select class="ml-2 w-36" placeholder="选择语言"
-                  [selectOptions]="[
-                    {
-                      value: 'Chinese',
-                      label: {
-                        en_US: 'Chinese'
-                      }
-                    },
-                    {
-                      value: 'English',
-                      label: {
-                        en_US: 'English'
-                      }
-                    }
-                  ]"/>
-              </div> -->
             </div>
           </div>
         </div>

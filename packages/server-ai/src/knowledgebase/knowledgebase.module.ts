@@ -3,7 +3,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { KnowledgeStrategyRegistry } from '@xpert-ai/plugin-sdk'
+import { KnowledgeStrategyRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { CopilotModule } from '../copilot/copilot.module'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { CommandHandlers } from './commands/handlers'
@@ -26,7 +26,7 @@ import { QueryHandlers } from './queries/handlers'
 		forwardRef(() => IntegrationModule)
 	],
 	controllers: [KnowledgebaseController],
-	providers: [KnowledgebaseService, KnowledgeStrategyRegistry, ...QueryHandlers, ...CommandHandlers],
-	exports: [KnowledgebaseService]
+	providers: [KnowledgebaseService, KnowledgeStrategyRegistry, TextSplitterRegistry, ...QueryHandlers, ...CommandHandlers],
+	exports: [KnowledgebaseService, TextSplitterRegistry]
 })
 export class KnowledgebaseModule {}

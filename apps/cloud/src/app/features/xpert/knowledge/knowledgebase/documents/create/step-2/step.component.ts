@@ -1,13 +1,13 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { NgmCheckboxComponent, NgmInputComponent } from '@metad/ocap-angular/common'
-import { linkedModel } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { BehaviorSubject, combineLatest, of, switchMap, tap } from 'rxjs'
@@ -24,6 +24,9 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentCreateComponent } from '../create.component'
 import { KnowledgeDocumentPreviewComponent } from '../preview/preview.component'
 import { KnowledgeDocumentWebpagesComponent } from '../webpages/webpages.component'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { JSONSchemaFormComponent } from "@cloud/app/@shared/forms";
+import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 
 @Component({
   standalone: true,
@@ -40,10 +43,13 @@ import { KnowledgeDocumentWebpagesComponent } from '../webpages/webpages.compone
     MatProgressBarModule,
     NgmCheckboxComponent,
     NgmInputComponent,
+    NgmSelectComponent,
+    NgmI18nPipe,
     KnowledgeDocIdComponent,
     KnowledgeDocumentPreviewComponent,
-    KnowledgeDocumentWebpagesComponent
-  ]
+    KnowledgeDocumentWebpagesComponent,
+    JSONSchemaFormComponent
+]
 })
 export class KnowledgeDocumentCreateStep2Component {
   eKDocumentSourceType = KDocumentSourceType
@@ -124,12 +130,23 @@ export class KnowledgeDocumentCreateStep2Component {
     this.parserConfig.update((state) => ({ ...state, removeSensitive }))
   }
 
+  // Text Splitter
+  readonly textSplitterType = attrModel(this.parserConfig, 'textSplitterType', 'recursive-character')
+  readonly textSplitter = attrModel(this.parserConfig, 'textSplitter')
+
+  readonly textSplitterStrategies = computed(() => this.createComponent.textSplitterStrategies()?.map((strategy) => ({
+    value: strategy.name,
+    label: strategy.label,
+    description: strategy.description
+  })))
+
+  readonly textSplitterStrategy = computed(() => this.createComponent.textSplitterStrategies()?.find((strategy) => strategy.name === this.textSplitterType()))
+  readonly textSplitterConfigSchema = computed(() => this.textSplitterStrategy()?.configSchema || {} as JsonSchema7ObjectType)
+
   constructor() {
     // effect(
     //   () => {
-    //     if (this.parserConfig()) {
-    //       this.estimateFiles.set({})
-    //     }
+    //     console.log(this.createComponent.textSplitterStrategies())
     //   },
     //   { allowSignalWrites: true }
     // )

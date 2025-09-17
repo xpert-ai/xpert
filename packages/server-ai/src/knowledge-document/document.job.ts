@@ -4,8 +4,9 @@ import { getErrorMessage } from '@metad/server-common'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger, Scope } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { Job } from 'bull'
 import { estimateTokenUsage } from '@metad/copilot'
+import { Document } from '@langchain/core/documents'
+import { Job } from 'bull'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
 import { KnowledgeDocumentService } from './document.service'
 import { CopilotTokenRecordCommand } from '../copilot-user'
@@ -34,7 +35,7 @@ export class KnowledgeDocumentConsumer {
 		const copilot = knowledgebase?.copilotModel?.copilot
 		let vectorStore: KnowledgeDocumentStore
 		try {
-			const doc = job.data.docs[0]
+			// const doc = job.data.docs[0]
 
 			vectorStore = await this.knowledgebaseService.getVectorStore(knowledgebase, true)
 		} catch (err) {
@@ -51,7 +52,7 @@ export class KnowledgeDocumentConsumer {
 			const document = await this.service.findOne(doc.id, { relations: ['pages'] })
 
 			try {
-				const data = await this.commandBus.execute(new KnowledgeDocLoadCommand({doc: document}))
+				const data = await this.commandBus.execute<KnowledgeDocLoadCommand, Document[]>(new KnowledgeDocLoadCommand({doc: document}))
 
 				if (data) {
 					this.logger.debug(`Embeddings document '${document.name}' size: ${data.length}`)
