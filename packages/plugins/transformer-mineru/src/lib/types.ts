@@ -1,0 +1,1 @@
+export const MinerU = 'mineru'

@@ -128,6 +128,7 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-integration-github',
 			'@xpert-ai/plugin-trigger-schedule',
 			'@xpert-ai/plugin-textsplitter-common',
+			'@xpert-ai/plugin-transformer-mineru',
 			'@xpert-ai/plugin-vstore-chroma',
 			'@xpert-ai/plugin-vstore-milvus',
 			'@xpert-ai/plugin-vstore-weaviate'
