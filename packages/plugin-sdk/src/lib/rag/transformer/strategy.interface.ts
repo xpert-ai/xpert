@@ -23,5 +23,5 @@ export interface IDocumentTransformerStrategy<TConfig = any> {
   /**
    * Transform documents (e.g., extract, OCR, normalize, enrich metadata)
    */
-  transformDocuments(files: string[], config: TConfig): Promise<Document[]>;
+  transformDocuments(files: string[], config: TConfig): Promise<{chunks: Document[]; metadata: any}>;
 }

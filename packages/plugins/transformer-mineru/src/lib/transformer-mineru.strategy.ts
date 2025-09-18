@@ -1,14 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { DocumentTransformerStrategy, IDocumentTransformerStrategy } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
-import { MineruClient } from './mineru.client'
-import { MinerU, icon } from './types'
+import { MinerUClient } from './mineru.client'
+import { DocumentParseResult, MinerU, icon } from './types'
+import { MinerUResultParserService } from './result-parser.service'
 
 @Injectable()
 @DocumentTransformerStrategy(MinerU)
 export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<any> {
-  @Inject(MineruClient)
-  private readonly mineru: MineruClient
+  @Inject(MinerUClient)
+  private readonly mineru: MinerUClient
+
+  @Inject(MinerUResultParserService)
+  private readonly resultParser: MinerUResultParserService
 
   meta = {
     name: MinerU,
@@ -98,10 +101,7 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<a
     throw new Error('Method not implemented.')
   }
 
-  async transformDocuments(files: string[], config: any): Promise<Document[]> {
-    
-    console.log(files, config)
-
+  async transformDocuments(files: string[], config: any): Promise<DocumentParseResult> {
     const { taskId } = await this.mineru.createTask({
       url: files[0],
       isOcr: true,
@@ -111,12 +111,13 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<a
       modelVersion: 'vlm'
     })
 
-    // 等待完成
+    // Waiting for completion
     const result = await this.mineru.waitForTask(taskId, 5 * 60 * 1000, 5000)
 
     console.log('MinerUTransformerStrategy transformDocuments result:', result)
 
-    // result 中可能包含下载 URL 或 content 等
-    return result
+    const parsedResult = await this.resultParser.parseFromUrl(result.full_zip_url, taskId)
+
+    return parsedResult
   }
 }

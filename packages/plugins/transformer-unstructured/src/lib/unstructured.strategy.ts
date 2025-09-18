@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { DocumentTransformerStrategy, IDocumentTransformerStrategy } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
 import { icon, Unstructured } from './types'
-
+import { UnstructuredClient } from './unstructured.client'
 
 @Injectable()
 @DocumentTransformerStrategy(Unstructured)
 export class UnstructuredTransformerStrategy implements IDocumentTransformerStrategy<any> {
-
+  @Inject(UnstructuredClient)
+  private readonly client: UnstructuredClient
 
   meta = {
     name: Unstructured,
@@ -16,7 +16,8 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
       zh_Hans: 'Unstructured'
     },
     description: {
-      en_US: 'Designed specifically for converting multi-format documents into "LLM-friendly" structured paragraphs/elements, it is modular and oriented towards modern LLM pipelines.',
+      en_US:
+        'Designed specifically for converting multi-format documents into "LLM-friendly" structured paragraphs/elements, it is modular and oriented towards modern LLM pipelines.',
       zh_Hans: '专为将多格式文档转为“对 LLM 友好”结构化段落/元素而设计，模块化、面向现代 LLM 流水线。'
     },
     icon: {
@@ -34,8 +35,14 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
   validateConfig(config: any): Promise<void> {
     throw new Error('Method not implemented.')
   }
-  
-  async transformDocuments(files: string[], config: any): Promise<Document[]> {
-    return [];
+
+  async transformDocuments(files: string[], config: any) {
+    const result = await this.client.parseFromFile(files[0])
+
+    console.log('Chunks count:', result.chunks.length)
+    console.log('First chunk:', result.chunks[0])
+    console.log('Metadata:', result.metadata)
+
+    return result
   }
 }

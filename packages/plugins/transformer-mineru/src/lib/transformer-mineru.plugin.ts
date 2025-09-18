@@ -2,7 +2,8 @@ import chalk from 'chalk';
 import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-ai/plugin-sdk';
 import { ConfigModule } from '@nestjs/config';
 import { MinerUTransformerStrategy } from './transformer-mineru.strategy';
-import { MineruClient } from './mineru.client';
+import { MinerUClient } from './mineru.client';
+import { MinerUResultParserService } from './result-parser.service';
 
 @XpertServerPlugin({
 	/**
@@ -17,7 +18,8 @@ import { MineruClient } from './mineru.client';
 
 	providers: [
 		MinerUTransformerStrategy,
-		MineruClient
+		MinerUClient,
+		MinerUResultParserService
 	]
 })
 export class MinerUPlugin implements IOnPluginBootstrap, IOnPluginDestroy {

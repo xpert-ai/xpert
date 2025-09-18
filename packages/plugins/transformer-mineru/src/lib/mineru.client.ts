@@ -1,7 +1,6 @@
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { firstValueFrom } from 'rxjs';
 import { ENV_MINERU_API_BASE_URL, ENV_MINERU_API_TOKEN } from './types';
 
 interface CreateTaskOptions {
@@ -50,8 +49,8 @@ interface MineruTaskResult {
 }
 
 @Injectable()
-export class MineruClient {
-  private readonly logger = new Logger(MineruClient.name);
+export class MinerUClient {
+  private readonly logger = new Logger(MinerUClient.name);
   private readonly baseUrl: string;
   private readonly token: string;
 

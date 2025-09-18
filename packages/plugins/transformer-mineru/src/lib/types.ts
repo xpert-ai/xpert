@@ -1,3 +1,6 @@
+import { Document } from 'langchain/document'
+
+
 export const MinerU = 'mineru'
 
 export const ENV_MINERU_API_BASE_URL = 'MINERU_API_BASE_URL'
@@ -26,3 +29,19 @@ export const icon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"
 </defs>
 </svg>
 `
+
+
+export interface DocumentMetadata {
+  parser: 'mineru';
+  taskId: string;
+  originPdfUrl?: string;
+  mineruBackend?: string;
+  mineruVersion?: string;
+  layoutJson?: any;
+  contentListJson?: any;
+}
+
+export interface DocumentParseResult {
+  chunks: Document[];
+  metadata: DocumentMetadata;
+}

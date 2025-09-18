@@ -1,7 +1,13 @@
 {
   "name": "@xpert-ai/plugin-transformer-unstructured",
   "version": "0.0.1",
-  "dependencies": {},
+  "dependencies": {
+    "form-data": "^4.0.4"
+  },
   "main": "./index.cjs",
-  "module": "./index.js"
+  "module": "./index.js",
+  "peerDependencies": {
+    "axios": "*",
+    "langchain": "*"
+  }
 }

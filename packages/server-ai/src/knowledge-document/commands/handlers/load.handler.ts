@@ -54,7 +54,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			if (doc.parserConfig?.transformerType) {
 				const transformer = this.transformerRegistry.get(doc.parserConfig.transformerType)
 				if (transformer) {
-					docs = await transformer.transformDocuments([storageFile.fileUrl], doc.parserConfig.transformer)
+					const transformed = await transformer.transformDocuments([storageFile.fileUrl], doc.parserConfig.transformer)
+					docs = transformed.chunks
+					console.log('Transformed metadata:', transformed.metadata)
 				} else {
 					throw new Error(`Transformer not found: ${doc.parserConfig.transformerType}`)
 				}
