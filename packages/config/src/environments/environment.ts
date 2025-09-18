@@ -52,7 +52,8 @@ export const devEnvironment: IEnvironment = {
 		accessKeySecret: process.env.ALIYUN_ACCESS_KEY_SECRET,
 		region: process.env.ALIYUN_REGION,
 		oss: {
-			bucket: process.env.ALIYUN_OSS_BUCKET
+			bucket: process.env.ALIYUN_OSS_BUCKET,
+			endpoint: process.env.ALIYUN_OSS_ENDPOINT
 		}
 	},
 

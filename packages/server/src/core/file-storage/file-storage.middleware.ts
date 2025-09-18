@@ -2,6 +2,9 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { TenantSettingService } from '../../tenant/tenant-setting/tenant-setting.service';
 import jwt from 'jsonwebtoken';
 
+/**
+ * @deprecated Use TenantSettingsMiddleware instead
+ */
 @Injectable()
 export class FileStorageMiddleware implements NestMiddleware {
 	constructor(private readonly tenantSettingService: TenantSettingService) {}

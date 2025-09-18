@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-	BaseEntity, FeatureOrganization, ImportRecord, Organization, RolePermission, TenantSetting,
+	BaseEntity, FeatureOrganization, ImportRecord, Organization, RolePermission,
 } from '../core/entities/internal';
 import { Entity, Column, Index, OneToMany, JoinColumn } from 'typeorm';
 import { IsNotEmpty, IsString } from 'class-validator';
@@ -12,6 +12,7 @@ import {
 	IImportRecord,
 	ISetting
 } from '@metad/contracts';
+import { TenantSetting } from './tenant-setting/tenant-setting.entity';
 
 @Entity('tenant')
 export class Tenant extends BaseEntity implements ITenant {

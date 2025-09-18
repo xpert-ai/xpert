@@ -2,7 +2,7 @@ import { forwardRef, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { TenantSettingService } from './../../tenant-setting.service';
 import { TenantSettingSaveCommand } from '../tenant-setting.save.command';
-import { RequestContext } from '../../../../core';
+import { RequestContext } from '../../../../core/context/request-context';
 
 @CommandHandler(TenantSettingSaveCommand)
 export class TenantSettingSaveHandler

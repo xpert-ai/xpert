@@ -4,5 +4,6 @@ export interface IAliyunConfig {
 	region: string;
 	oss: {
 		bucket: string;
+		endpoint: string;
 	};
 }
