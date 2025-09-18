@@ -1,7 +1,9 @@
 {
   "name": "@xpert-ai/plugin-transformer-mineru",
   "version": "0.0.1",
-  "dependencies": {},
+  "dependencies": {
+    "@nestjs/axios": "^4.0.1"
+  },
   "main": "./index.cjs",
   "module": "./index.js"
 }

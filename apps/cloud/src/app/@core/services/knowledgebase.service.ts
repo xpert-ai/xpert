@@ -37,7 +37,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   getTextSplitterStrategies() {
-    return this.httpClient.get<{ name: string; label: I18nObject; description?: I18nObject; configSchema?: any }[]>(this.apiBaseUrl + '/text-splitter/strategies')
+    return this.httpClient.get<{ name: string; label: I18nObject; description?: I18nObject; configSchema?: any; icon: any; helpUrl: string }[]>(this.apiBaseUrl + '/text-splitter/strategies')
+  }
+
+  getDocumentTransformerStrategies() {
+    return this.httpClient.get<{ name: string; label: I18nObject; description?: I18nObject; configSchema?: any; icon: any; helpUrl: string }[]>(this.apiBaseUrl + '/transformer/strategies')
   }
 
   test(id: string, options: { query: string; k: number; score: number; filter?: Record<string, unknown> }) {

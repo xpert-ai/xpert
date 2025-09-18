@@ -1,14 +1,14 @@
 import chalk from 'chalk';
 import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-ai/plugin-sdk';
 import { ConfigModule } from '@nestjs/config';
-import { MinerUTransformerStrategy } from './transformer-mineru.strategy';
-import { MineruClient } from './mineru.client';
+import { ScheduleModule } from '@nestjs/schedule';
+import { UnstructuredTransformerStrategy } from './unstructured.strategy';
 
 @XpertServerPlugin({
 	/**
 	 * An array of modules that will be imported and registered with the plugin.
 	 */
-	imports: [ConfigModule],
+	imports: [ConfigModule, ScheduleModule],
 	/**
 	 * An array of Entity classes. The plugin (or ORM) will
 	 * register these entities for use within the application.
@@ -16,11 +16,10 @@ import { MineruClient } from './mineru.client';
 	entities: [],
 
 	providers: [
-		MinerUTransformerStrategy,
-		MineruClient
+		UnstructuredTransformerStrategy
 	]
 })
-export class MinerUPlugin implements IOnPluginBootstrap, IOnPluginDestroy {
+export class UnstructuredPlugin implements IOnPluginBootstrap, IOnPluginDestroy {
 	// We disable by default additional logging for each event to avoid cluttering the logs
 	private logEnabled = true;
 
@@ -29,7 +28,7 @@ export class MinerUPlugin implements IOnPluginBootstrap, IOnPluginDestroy {
 	 */
 	onPluginBootstrap(): void | Promise<void> {
 		if (this.logEnabled) {
-			console.log(chalk.green(`${MinerUPlugin.name} is being bootstrapped...`));
+			console.log(chalk.green(`${UnstructuredPlugin.name} is being bootstrapped...`));
 		}
 	}
 
@@ -38,7 +37,7 @@ export class MinerUPlugin implements IOnPluginBootstrap, IOnPluginDestroy {
 	 */
 	onPluginDestroy(): void | Promise<void> {
 		if (this.logEnabled) {
-			console.log(chalk.green(`${MinerUPlugin.name} is being destroyed...`));
+			console.log(chalk.green(`${UnstructuredPlugin.name} is being destroyed...`));
 		}
 	}
 }

@@ -1,0 +1,7 @@
+{
+  "name": "@xpert-ai/plugin-transformer-unstructured",
+  "version": "0.0.1",
+  "dependencies": {},
+  "main": "./index.cjs",
+  "module": "./index.js"
+}

@@ -5,7 +5,7 @@ import { AiBusinessRole, IKnowledgebase, KnowledgebaseTypeEnum, KnowledgeProvide
 import { IntegrationService, RequestContext } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { KnowledgeStrategyRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
+import { DocumentTransformerRegistry, KnowledgeStrategyRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, sortBy } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { In, IsNull, Not, Repository } from 'typeorm'
@@ -27,6 +27,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	@Inject(TextSplitterRegistry)
 	private readonly textSplitterRegistry: TextSplitterRegistry
+
+	@Inject(DocumentTransformerRegistry)
+	private readonly docTransformerRegistry: DocumentTransformerRegistry;
 
 	constructor(
 		@InjectRepository(Knowledgebase)
@@ -98,6 +101,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	async getTextSplitterStrategies() {
 		return this.textSplitterRegistry.list().map((strategy) => strategy.meta)
+	}
+
+	async getDocumentTransformerStrategies() {
+		return this.docTransformerRegistry.list().map((strategy) => strategy.meta)
 	}
 
 	async test(id: string, options: { query: string; k?: number; filter?: Metadata }) {

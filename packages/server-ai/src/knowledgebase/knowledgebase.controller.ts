@@ -163,6 +163,12 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		return this.service.getTextSplitterStrategies()
 	}
 
+	@Get('transformer/strategies')
+	async getDocumentTransformerStrategies() {
+		return this.service.getDocumentTransformerStrategies()
+	}
+	
+
 	@Post(':id/test')
 	async test(@Param('id') id: string, @Body() body: { query: string; k: number; score: number; filter: Metadata }) {
 		try {

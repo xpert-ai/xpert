@@ -1,3 +1,4 @@
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters'
 import {
 	DocumentSheetParserConfig,
 	DocumentTextParserConfig,
@@ -5,9 +6,9 @@ import {
 	KBDocumentCategoryEnum
 } from '@metad/contracts'
 import { pick } from '@metad/server-common'
+import { GetStorageFileQuery, StorageFile } from '@metad/server-core'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
-import { TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
+import { DocumentTransformerRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
 import { LoadStorageFileCommand, LoadStorageSheetCommand } from '../../../shared/'
@@ -20,7 +21,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		private readonly service: KnowledgeDocumentService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly textSplitterRegistry: TextSplitterRegistry
+		private readonly textSplitterRegistry: TextSplitterRegistry,
+		private readonly transformerRegistry: DocumentTransformerRegistry
 	) {}
 
 	public async execute(command: KnowledgeDocLoadCommand): Promise<Document[]> {
@@ -45,7 +47,21 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		}
 
 		if (doc.storageFileId) {
-			const docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
+			let docs: Document[]
+			const storageFile = await this.queryBus.execute<GetStorageFileQuery, StorageFile>(
+				new GetStorageFileQuery(doc.storageFileId)
+			)
+			if (doc.parserConfig?.transformerType) {
+				const transformer = this.transformerRegistry.get(doc.parserConfig.transformerType)
+				if (transformer) {
+					docs = await transformer.transformDocuments([storageFile.fileUrl], doc.parserConfig.transformer)
+				} else {
+					throw new Error(`Transformer not found: ${doc.parserConfig.transformerType}`)
+				}
+			} else {
+				docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
+			}
+
 			return await this.splitDocuments(doc, docs)
 		}
 
@@ -69,7 +85,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
 	/**
 	 * Split documents into smaller chunks for processing by `parserConfig`.
-	 * 
+	 *
 	 * @param document The original knowledge document entity.
 	 * @param data The document data to split.
 	 * @param parserConfig custom parser configuration.
@@ -103,7 +119,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		}
 		const delimiter = document.parserConfig?.delimiter || parserConfig?.delimiter
 
-		const textSplitter = this.textSplitterRegistry.get(document.parserConfig.textSplitterType || 'recursive-character')
+		const textSplitter = this.textSplitterRegistry.get(
+			document.parserConfig.textSplitterType || 'recursive-character'
+		)
 		if (textSplitter) {
 			return textSplitter.splitDocuments(data, {
 				chunkSize,
@@ -112,7 +130,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 				...(document.parserConfig.textSplitter || {})
 			})
 		}
-		
+
 		const textSplitter1 = new RecursiveCharacterTextSplitter({
 			chunkSize,
 			chunkOverlap,

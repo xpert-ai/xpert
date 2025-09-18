@@ -93,7 +93,7 @@ export class KnowledgeDocumentCreateComponent {
 
   // Strategies
   readonly textSplitterStrategies = toSignal(this.knowledgebaseAPI.getTextSplitterStrategies())
-
+  readonly documentTransformerStrategies = toSignal(this.knowledgebaseAPI.getDocumentTransformerStrategies())
 
   nextStep() {
     this.step.update((state) => ++state)

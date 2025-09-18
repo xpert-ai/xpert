@@ -1,12 +1,15 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { DocumentTransformerStrategy, IDocumentTransformerStrategy } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
-import { MinerU } from './types'
-
+import { MineruClient } from './mineru.client'
+import { MinerU, icon } from './types'
 
 @Injectable()
 @DocumentTransformerStrategy(MinerU)
 export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<any> {
+  @Inject(MineruClient)
+  private readonly mineru: MineruClient
+
   meta = {
     name: MinerU,
     label: {
@@ -18,12 +21,75 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<a
       zh_Hans: '一站式开源高质量数据提取工具，将PDF转换成Markdown和JSON格式。'
     },
     icon: {
-      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6177 5.9681L19.0711 4.51472L20.4853 5.92893L19.0319 7.38231C20.2635 8.92199 21 10.875 21 13C21 17.9706 16.9706 22 12 22C7.02944 22 3 17.9706 3 13C3 8.02944 7.02944 4 12 4C14.125 4 16.078 4.73647 17.6177 5.9681ZM12 20C15.866 20 19 16.866 19 13C19 9.13401 15.866 6 12 6C8.13401 6 5 9.13401 5 13C5 16.866 8.13401 20 12 20ZM11 8H13V14H11V8ZM8 1H16V3H8V1Z"></path></svg>',
+      svg: icon,
       color: '#14b8a6'
     },
+    helpUrl: 'https://mineru.net/apiManage/docs',
     configSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        isOcr: {
+          type: 'boolean',
+          title: {
+            en_US: 'Enable OCR',
+            zh_Hans: '启用 OCR'
+          },
+          description: {
+            en_US: 'Enable OCR for image-based PDFs.',
+            zh_Hans: '对基于图像的 PDF 启用 OCR。'
+          },
+          default: true
+        },
+        enableFormula: {
+          type: 'boolean',
+          title: {
+            en_US: 'Enable Formula Recognition',
+            zh_Hans: '启用公式识别'
+          },
+          description: {
+            en_US: 'Enable recognition of mathematical formulas in documents.',
+            zh_Hans: '启用对文档中数学公式的识别。'
+          },
+          default: true
+        },
+        enableTable: {
+          type: 'boolean',
+          title: {
+            en_US: 'Enable Table Recognition',
+            zh_Hans: '启用表格识别'
+          },
+          description: {
+            en_US: 'Enable recognition of tables in documents.',
+            zh_Hans: '启用对文档中表格的识别。'
+          },
+          default: true
+        },
+        language: {
+          type: 'string',
+          title: {
+            en_US: 'Document Language',
+            zh_Hans: '文档语言'
+          },
+          description: {
+            en_US: 'The primary language of the document (e.g., "en" for English, "ch" for Chinese).',
+            zh_Hans: '文档的主要语言（例如，英文为 "en"，中文为 "ch"）。'
+          },
+          default: 'ch'
+        },
+        modelVersion: {
+          type: 'string',
+          title: {
+            en_US: 'Model Version',
+            zh_Hans: '模型版本'
+          },
+          description: {
+            en_US: 'The model version to use for extraction (e.g., "vlm" or "pipeline").',
+            zh_Hans: '用于提取的模型版本（例如，“vlm”或“pipeline”）。'
+          },
+          enum: ['pipeline', 'vlm'],
+          default: 'pipeline'
+        }
+      },
       required: []
     }
   }
@@ -31,7 +97,26 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<a
   validateConfig(config: any): Promise<void> {
     throw new Error('Method not implemented.')
   }
-  transformDocuments(documents: Document[], config: any): Promise<Document[]> {
-    throw new Error('Method not implemented.')
+
+  async transformDocuments(files: string[], config: any): Promise<Document[]> {
+    
+    console.log(files, config)
+
+    const { taskId } = await this.mineru.createTask({
+      url: files[0],
+      isOcr: true,
+      enableFormula: true,
+      enableTable: true,
+      language: 'ch',
+      modelVersion: 'vlm'
+    })
+
+    // 等待完成
+    const result = await this.mineru.waitForTask(taskId, 5 * 60 * 1000, 5000)
+
+    console.log('MinerUTransformerStrategy transformDocuments result:', result)
+
+    // result 中可能包含下载 URL 或 content 等
+    return result
   }
 }

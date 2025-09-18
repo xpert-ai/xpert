@@ -15,96 +15,11 @@
   }
 </div>
 
-@switch (type()) {
-  @case ('string') {
-    @if (variables()) {
-      <xpert-variable-input class="w-full px-2 py-1 text-gray-900 border-0 rounded-lg grow bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-        [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
-        [disabled]="readonly()"
-        [variables]="variables()"
-        [ngModel]="value$()"
-        (ngModelChange)="update($event)"
-      />
-    } @else {
-      <input
-        class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-        [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
-        type="text"
-        [disabled]="readonly()"
-        [ngModel]="value$()"
-        (ngModelChange)="update($event)"
-      />
-    }
-  }
-  @case ('textarea') {
-    <textarea
-      class="w-full px-3 text-sm whitespace-nowrap text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-      [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
-      type="text"
-      [disabled]="readonly()"
-      [ngModel]="value$()"
-      (ngModelChange)="update($event)"
-    ></textarea>
-  }
-  @case ('number') {
-    <input
-      class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-      [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
-      type="number"
-      [disabled]="readonly()"
-      [ngModel]="value$()"
-      (ngModelChange)="update($event)"
-    />
-  }
-  @case ('integer') {
-    <input
-      class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-      [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
-      type="number"
-      [disabled]="readonly()"
-      [ngModel]="value$()"
-      (ngModelChange)="update($event)"
-    />
-  }
-  @case ('array') {
-    <div class="flex flex-col gap-1">
-      @for (item of value$(); track i; let i = $index) {
-        <div class="relative group/item">
-          <json-schema-property class="w-full" [schema]="arraySchema().items" [ngModel]="item" (ngModelChange)="updateArray(i, $event)" />
-          <button class="btn btn-small danger flex justify-center items-center w-6 h-6 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 z-20"
-            (click)="removeArray(i)">
-            <i class="ri-delete-bin-line"></i>
-          </button>
-        </div>
-      } @empty {
-        <div class="flex justify-center text-sm rounded-lg p-2 text-text-secondary bg-neutral-50">
-          {{ 'PAC.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
-        </div>
-      }
-    </div>
-  }
-  @case ('boolean') {
-    <ngm-slide-toggle [disabled]="readonly()"
-      [ngModel]="value$()"
-      (ngModelChange)="update($event)" 
-    />
-  }
-   @case ('object') {
-    <div class="rounded-lg border border-divider-regular px-2">
-      @for (param of properties(); track param.name) {
-        <json-schema-property class="mb-1" [schema]="param" [name]="param.name"
-          [required]="isRequired(param.name)"
-          [variables]="variables()"
-          [ngModel]="value$()?.[param.name]"
-          (ngModelChange)="updateValue(param.name, $event)" 
-        />
-      }
-    </div>
-  }
-  @default {
-    @if (type()) {
-      <div>Unsupported type: {{type()}} for '{{name()}}'</div>
-    } @else {
+@if (enum()) {
+  <ngm-select class="w-full py-1" [selectOptions]="enumOptions()" [(ngModel)]="value$" />
+} @else {
+  @switch (type()) {
+    @case ('string') {
       @if (variables()) {
         <xpert-variable-input class="w-full px-2 py-1 text-gray-900 border-0 rounded-lg grow bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
           [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
@@ -122,6 +37,95 @@
           [ngModel]="value$()"
           (ngModelChange)="update($event)"
         />
+      }
+    }
+    @case ('textarea') {
+      <textarea
+        class="w-full px-3 text-sm whitespace-nowrap text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+        [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
+        type="text"
+        [disabled]="readonly()"
+        [ngModel]="value$()"
+        (ngModelChange)="update($event)"
+      ></textarea>
+    }
+    @case ('number') {
+      <input
+        class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+        [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
+        type="number"
+        [disabled]="readonly()"
+        [ngModel]="value$()"
+        (ngModelChange)="update($event)"
+      />
+    }
+    @case ('integer') {
+      <input
+        class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+        [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
+        type="number"
+        [disabled]="readonly()"
+        [ngModel]="value$()"
+        (ngModelChange)="update($event)"
+      />
+    }
+    @case ('array') {
+      <div class="flex flex-col gap-1">
+        @for (item of value$(); track i; let i = $index) {
+          <div class="relative group/item">
+            <json-schema-property class="w-full" [schema]="arraySchema().items" [ngModel]="item" (ngModelChange)="updateArray(i, $event)" />
+            <button class="btn btn-small danger flex justify-center items-center w-6 h-6 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 z-20"
+              (click)="removeArray(i)">
+              <i class="ri-delete-bin-line"></i>
+            </button>
+          </div>
+        } @empty {
+          <div class="flex justify-center text-sm rounded-lg p-2 text-text-secondary bg-neutral-50">
+            {{ 'PAC.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
+          </div>
+        }
+      </div>
+    }
+    @case ('boolean') {
+      <ngm-slide-toggle [disabled]="readonly()"
+        [ngModel]="value$()"
+        (ngModelChange)="update($event)" 
+      />
+    }
+    @case ('object') {
+      <div class="rounded-lg border border-divider-regular px-2">
+        @for (param of properties(); track param.name) {
+          <json-schema-property class="mb-1" [schema]="param" [name]="param.name"
+            [required]="isRequired(param.name)"
+            [variables]="variables()"
+            [ngModel]="value$()?.[param.name]"
+            (ngModelChange)="updateValue(param.name, $event)" 
+          />
+        }
+      </div>
+    }
+    @default {
+      @if (type()) {
+        <div>Unsupported type: {{type()}} for '{{name()}}'</div>
+      } @else {
+        @if (variables()) {
+          <xpert-variable-input class="w-full px-2 py-1 text-gray-900 border-0 rounded-lg grow bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+            [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
+            [disabled]="readonly()"
+            [variables]="variables()"
+            [ngModel]="value$()"
+            (ngModelChange)="update($event)"
+          />
+        } @else {
+          <input
+            class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+            [placeholder]="(meta().description || meta().title || '' ) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
+            type="text"
+            [disabled]="readonly()"
+            [ngModel]="value$()"
+            (ngModelChange)="update($event)"
+          />
+        }
       }
     }
   }

@@ -1,0 +1,42 @@
+{
+  "name": "transformer-unstructured",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/transformer-unstructured/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "generatorOptions": {
+        "packageRoot": "dist/{projectRoot}",
+        "currentVersionResolver": "git-tag"
+      }
+    }
+  },
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugins/transformer-unstructured",
+        "main": "packages/plugins/transformer-unstructured/src/index.ts",
+        "tsConfig": "packages/plugins/transformer-unstructured/tsconfig.lib.json",
+        "assets": [],
+        "project": "packages/plugins/transformer-unstructured/package.json",
+        "compiler": "swc",
+        "format": ["cjs", "esm"]
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "packages/plugins/transformer-unstructured/jest.config.ts"
+      }
+    }
+  }
+}

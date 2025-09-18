@@ -27,6 +27,7 @@ import { KnowledgeDocumentWebpagesComponent } from '../webpages/webpages.compone
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { JSONSchemaFormComponent } from "@cloud/app/@shared/forms";
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
+import { SafePipe } from '@metad/core'
 
 @Component({
   standalone: true,
@@ -41,6 +42,7 @@ import { JsonSchema7ObjectType } from 'zod-to-json-schema'
     CdkListboxModule,
     MatTooltipModule,
     MatProgressBarModule,
+    SafePipe,
     NgmCheckboxComponent,
     NgmInputComponent,
     NgmSelectComponent,
@@ -49,7 +51,7 @@ import { JsonSchema7ObjectType } from 'zod-to-json-schema'
     KnowledgeDocumentPreviewComponent,
     KnowledgeDocumentWebpagesComponent,
     JSONSchemaFormComponent
-]
+  ]
 })
 export class KnowledgeDocumentCreateStep2Component {
   eKDocumentSourceType = KDocumentSourceType
@@ -142,6 +144,19 @@ export class KnowledgeDocumentCreateStep2Component {
 
   readonly textSplitterStrategy = computed(() => this.createComponent.textSplitterStrategies()?.find((strategy) => strategy.name === this.textSplitterType()))
   readonly textSplitterConfigSchema = computed(() => this.textSplitterStrategy()?.configSchema || {} as JsonSchema7ObjectType)
+
+  readonly documentTransformerStrategies = computed(() => this.createComponent.documentTransformerStrategies()?.map((strategy) => ({
+    value: strategy.name,
+    label: strategy.label,
+    description: strategy.description,
+    icon: strategy.icon
+  })))
+
+  readonly transformerType = attrModel(this.parserConfig, 'transformerType')
+  readonly transformer = attrModel(this.parserConfig, 'transformer')
+
+  readonly transformerStrategy = computed(() => this.createComponent.documentTransformerStrategies()?.find((strategy) => strategy.name === this.transformerType()))
+  readonly transformerConfigSchema = computed(() => this.transformerStrategy()?.configSchema || {} as JsonSchema7ObjectType)
 
   constructor() {
     // effect(

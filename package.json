@@ -265,7 +265,8 @@
   "workspaces": [
     "apps/*",
     "libs/*",
-    "packages/*"
+    "packages/*",
+    "packages/plugins/*"
   ],
   "resolutions": {
     "@langchain/core": "0.3.72",

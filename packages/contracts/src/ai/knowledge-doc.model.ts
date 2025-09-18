@@ -14,6 +14,10 @@ export type DocumentParserConfig = {
   textSplitter?: {
     [key: string]: unknown
   }
+  transformerType?: string
+  transformer?: {
+    [key: string]: unknown
+  }
 }
 
 export type DocumentTextParserConfig = DocumentParserConfig & {
