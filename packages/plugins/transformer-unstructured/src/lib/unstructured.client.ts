@@ -55,6 +55,14 @@ export class UnstructuredClient {
       form.append('files', fs.createReadStream(filePath), { filename })
     }
 
+    const headers = {
+        ...form.getHeaders(),
+        Accept: 'application/json'
+      }
+    if (this.token) {
+      Object.assign(headers, { Authorization: `Bearer ${this.token}` })
+    }
+
     // 2. Call Unstructured API
     const response = await axios.post<
       {
@@ -65,11 +73,7 @@ export class UnstructuredClient {
         metadata: any
       }[]
     >(url, form, {
-      headers: {
-        ...form.getHeaders(),
-        Accept: 'application/json'
-        // Authorization: `Bearer ${this.token}`,
-      },
+      headers,
       maxBodyLength: Infinity // Avoid large file errors
     })
 
