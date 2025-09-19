@@ -1,9 +1,10 @@
 import { IDocumentChunk, IKnowledgeDocument, KBDocumentStatusEnum } from '@metad/contracts'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { BadRequestException, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
+import { DocumentSourceRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { In, Repository } from 'typeorm'
@@ -14,6 +15,9 @@ import { LoadStorageFileCommand } from '../shared'
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
 	readonly #logger = new Logger(KnowledgeDocumentService.name)
+
+	@Inject(DocumentSourceRegistry)
+	private readonly docSourceRegistry: DocumentSourceRegistry;
 
 	constructor(
 		@InjectRepository(KnowledgeDocument)
@@ -154,5 +158,22 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		await vectorStore.deleteKnowledgeDocument(document)
 		const result = await super.delete(id)
 		return result
+	}
+
+	// Document source connection
+	async connectDocumentSource(type: string, config: any) {
+		const documentSource = this.docSourceRegistry.get(type)
+		if (!documentSource) {
+			throw new BadRequestException(`Document source '${type}' not found`)
+		}
+
+		try {
+			const docs = await documentSource.test(config)
+			
+			return docs
+		} catch (err) {
+			this.#logger.error(`Failed to connect document source '${type}'`, err)
+			throw new BadRequestException(`Failed to connect document source '${type}': ${err.message}`)
+		}
 	}
 }

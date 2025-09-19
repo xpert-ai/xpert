@@ -21,6 +21,13 @@ export interface IDocumentSourceStrategy<TConfig = any> {
   validateConfig(config: TConfig): Promise<void>;
 
   /**
+   * Test the connection to the source
+   * 
+   * @param config 
+   */
+  test(config: TConfig): Promise<any>;
+
+  /**
    * Load documents from the source
    */
   loadDocuments(config: TConfig): Promise<Document[]>;

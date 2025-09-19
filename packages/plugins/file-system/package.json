@@ -1,0 +1,13 @@
+{
+  "name": "@xpert-ai/plugin-file-system",
+  "version": "0.0.1",
+  "dependencies": {
+    "@awo00/smb2": "^1.1.1",
+    "basic-ftp": "^5.0.5",
+    "webdav": "^5.8.0",
+    "smb2": "^0.2.11",
+    "ssh2-sftp-client": "^12.0.1"
+  },
+  "main": "./index.cjs",
+  "module": "./index.js"
+}

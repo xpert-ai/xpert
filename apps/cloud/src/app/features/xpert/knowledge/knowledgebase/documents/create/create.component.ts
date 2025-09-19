@@ -76,6 +76,7 @@ export class KnowledgeDocumentCreateComponent {
 
   // Step 1
   readonly sourceType = model<KDocumentSourceType[]>([KDocumentSourceType.FILE])
+  readonly sourceConfig = model<any>(null)
   readonly fileList = signal<TFileItem[]>([])
   readonly webTypes = model<TSelectOption<KDocumentWebTypeEnum>[]>([])
   readonly integration = model<IIntegration>(null)
@@ -94,6 +95,7 @@ export class KnowledgeDocumentCreateComponent {
   // Strategies
   readonly textSplitterStrategies = toSignal(this.knowledgebaseAPI.getTextSplitterStrategies())
   readonly documentTransformerStrategies = toSignal(this.knowledgebaseAPI.getDocumentTransformerStrategies())
+  readonly documentSourceStrategies = toSignal(this.knowledgebaseAPI.getDocumentSourceStrategies())
 
   nextStep() {
     this.step.update((state) => ++state)

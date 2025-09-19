@@ -2,7 +2,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { HttpEventType } from '@angular/common/http'
-import { Component, computed, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -11,7 +11,7 @@ import { NgmDndDirective, SafePipe } from '@metad/core'
 import { NgmCheckboxComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
+import { JSONSchemaFormComponent, ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { BehaviorSubject, catchError, of, pipe, switchMap, tap, map, startWith } from 'rxjs'
 import { Document } from 'langchain/document'
@@ -40,6 +40,7 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { isNil, uniq } from 'lodash-es'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { TFileItem } from '../../types'
+import { FileSystemItem, KnowledgeFileSystemComponent } from '../file-system/file-system.component'
 
 @Component({
   standalone: true,
@@ -59,15 +60,17 @@ import { TFileItem } from '../../types'
     NgmDndDirective,
     NgmSpinComponent,
     SafePipe,
+    JSONSchemaFormComponent,
     ParameterComponent,
     NgmCheckboxComponent,
-    KnowledgeDocIdComponent
+    KnowledgeDocIdComponent,
+    KnowledgeFileSystemComponent
   ]
 })
 export class KnowledgeDocumentCreateStep1Component {
   eKDocumentSourceType = KDocumentSourceType
 
-  readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
+  readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly integrationService = inject(IntegrationService)
   readonly #toastr = inject(ToastrService)
   readonly #router = inject(Router)
@@ -79,6 +82,9 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly website = injectHelpWebsite()
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+
+  // Children
+  readonly fileSystemForm = viewChild('fileSystemForm', {read: JSONSchemaFormComponent})
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
 
@@ -97,6 +103,17 @@ export class KnowledgeDocumentCreateStep1Component {
       description: {
         zh_Hans: '上传本地文档',
         en_US: 'Upload local files'
+      }
+    },
+    {
+      value: KDocumentSourceType.REMOTE_FILE,
+      label: {
+        zh_Hans: '远程文件',
+        en_US: 'Remote File'
+      },
+      description: {
+        zh_Hans: '读取远程文档',
+        en_US: 'Read remote files'
       }
     },
     {
@@ -120,7 +137,7 @@ export class KnowledgeDocumentCreateStep1Component {
     pipe(
       switchMap(([types]) => {
         if (types[0]) {
-          return this.knowledgeDocumentService.getWebOptions(types[0].value)
+          return this.knowledgeDocumentAPI.getWebOptions(types[0].value)
         }
         return of(null)
       })
@@ -133,7 +150,7 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly selectedFile = signal<TFileItem>(null)
   readonly previewDoc = signal<IKnowledgeDocumentPage>(null)
   readonly previewFileDocs = derivedAsync<{docs?: Document[]; loading: boolean;}>(() => {
-    return this.previewFile()?.doc?.storageFile?.id ? this.knowledgeDocumentService.previewFile(this.previewFile().doc.storageFile.id).pipe(
+    return this.previewFile()?.doc?.storageFile?.id ? this.knowledgeDocumentAPI.previewFile(this.previewFile().doc.storageFile.id).pipe(
       map((docs) => ({docs, loading: false})),
       startWith({loading: true}),
     ) : of(null)
@@ -166,6 +183,7 @@ export class KnowledgeDocumentCreateStep1Component {
 
   readonly integration = this.createComponent.integration
 
+  readonly sourceConfig = this.createComponent.sourceConfig
   readonly webOptions = this.createComponent.webOptions
   /**
    * Actual value or default value
@@ -191,8 +209,20 @@ export class KnowledgeDocumentCreateStep1Component {
       ? this.fileList()?.length > 0 
       : this.sourceType()[0] === KDocumentSourceType.WEB 
         ? this.webDocs()?.length > 0 
-        : false
+        : this.sourceType()[0] === KDocumentSourceType.REMOTE_FILE ? !this.fileSystemForm()?.invalid : false
   })
+
+  // File system
+   readonly documentSourceStrategies = computed(() => this.createComponent.documentSourceStrategies()?.map((strategy) => ({
+    value: strategy.name,
+    label: strategy.label,
+    description: strategy.description,
+    icon: strategy.icon
+  })))
+
+  readonly fileSystemStrategy = computed(() => this.createComponent.documentSourceStrategies()?.find((strategy) => strategy.name === 'file-system'))
+
+  readonly files = signal<FileSystemItem[]>([])
 
   constructor() {
     effect(() => {
@@ -321,7 +351,7 @@ export class KnowledgeDocumentCreateStep1Component {
   loadRagWebPages() {
     this.webError.set(null)
     this.loadingWeb.set(true)
-    this.knowledgeDocumentService.loadRagWebPages(this.webTypes()[0].value, this.webOptions(), this.integration())
+    this.knowledgeDocumentAPI.loadRagWebPages(this.webTypes()[0].value, this.webOptions(), this.integration())
       .subscribe({
         next: (result) => {
           this.loadingWeb.set(false)
@@ -346,6 +376,17 @@ export class KnowledgeDocumentCreateStep1Component {
   togglePage(page: IKnowledgeDocumentPage, value: boolean) {
     this.selectedWebPages.update((state) => {
       return value ? uniq([...state, page.metadata.scrapeId]) : state.filter((id) => id !== page.metadata.scrapeId)
+    })
+  }
+
+  connectRemoteFiles() {
+    this.knowledgeDocumentAPI.connect(this.fileSystemStrategy()?.name, this.sourceConfig()).subscribe({
+      next: (res) => {
+        this.files.set(res)
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
     })
   }
 }

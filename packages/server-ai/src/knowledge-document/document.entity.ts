@@ -25,6 +25,30 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	disabled?: boolean
 
+	@ApiPropertyOptional({ enum: KDocumentSourceType, description: 'Source type of the document' })
+	@IsEnum(KDocumentSourceType)
+	@Optional()
+	@Column({ nullable: true, length: 20 })
+	sourceType?: KDocumentSourceType
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	sourceConfig?: any
+
+	@ApiPropertyOptional({ enum: KBDocumentCategoryEnum, description: 'Category of the document' })
+	@IsEnum(KBDocumentCategoryEnum)
+	@Optional()
+	@Column({ nullable: true })
+	category?: KBDocumentCategoryEnum | null
+
+	@ApiPropertyOptional({ type: () => String, description: 'Type of the file' })
+	@IsString()
+	@Optional()
+	@Column({ nullable: true })
+	type: string
+
 	@ApiProperty({ type: () => Knowledgebase, readOnly: true })
 	@ManyToOne(() => Knowledgebase, {
 		nullable: true,
@@ -82,24 +106,6 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	parserConfig: DocumentTextParserConfig
-
-	@ApiPropertyOptional({ enum: KDocumentSourceType, description: 'Source type of the document' })
-	@IsEnum(KDocumentSourceType)
-	@Optional()
-	@Column({ nullable: true, length: 20 })
-	sourceType?: KDocumentSourceType
-
-	@ApiPropertyOptional({ enum: KBDocumentCategoryEnum, description: 'Category of the document' })
-	@IsEnum(KBDocumentCategoryEnum)
-	@Optional()
-	@Column({ nullable: true })
-	category?: KBDocumentCategoryEnum | null
-
-	@ApiPropertyOptional({ type: () => String, description: 'Type of the file' })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	type: string
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

@@ -62,7 +62,12 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		return await this.service.startProcessing(body.ids)
 	}
 
-	@Get('preview-file/:id') 
+	@Post('connect')
+	async connectDocumentSource(@Body('type') type: string, @Body('config') config: any) {
+		return this.service.connectDocumentSource(type, config)
+	}
+
+	@Get('preview-file/:id')
 	async previewFile(@Param('id') id: string): Promise<Document[]> {
 		return await this.service.previewFile(id)
 	}

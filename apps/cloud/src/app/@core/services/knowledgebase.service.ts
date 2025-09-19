@@ -44,6 +44,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     return this.httpClient.get<{ name: string; label: I18nObject; description?: I18nObject; configSchema?: any; icon: any; helpUrl: string }[]>(this.apiBaseUrl + '/transformer/strategies')
   }
 
+  getDocumentSourceStrategies() {
+    return this.httpClient.get<{ name: string; label: I18nObject; description?: I18nObject; configSchema?: any; icon: any; helpUrl: string }[]>(this.apiBaseUrl + '/source/strategies')
+  }
+
   test(id: string, options: { query: string; k: number; score: number; filter?: Record<string, unknown> }) {
     return this.httpClient.post<{ doc: DocumentInterface; score: number; relevanceScore?: number }[]>(
       this.apiBaseUrl + '/' + id + '/test',

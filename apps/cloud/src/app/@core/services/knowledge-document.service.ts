@@ -80,4 +80,10 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.put<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id, chunk)
   }
 
+  connect(type: string, config: any) {
+    return this.httpClient.post<any[]>(this.apiBaseUrl + `/connect`, {
+      type,
+      config
+    })
+  }
 }

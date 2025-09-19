@@ -46,6 +46,10 @@ export enum KDocumentSourceType {
    */
   FILE = 'file',
   /**
+   * Remote files (FTP, SFTP, etc.)
+   */
+  REMOTE_FILE = 'remote-file',
+  /**
    * Web documents
    */
   WEB = 'web',
@@ -103,6 +107,7 @@ export type TKnowledgeDocument = {
    * where dose this document come from
    */
   sourceType?: KDocumentSourceType | null
+  sourceConfig?: any
   /**
    * document type category
    */
