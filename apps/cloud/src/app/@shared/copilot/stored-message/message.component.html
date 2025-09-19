@@ -61,9 +61,7 @@
     }
     @case ('tool') {
       <div class="flex items-center mb-1">Tool: {{toolMessage().name || toolMessage().tool_call_id}}</div>
-      <div class="whitespace-pre-wrap">
-        {{ toolResponse() }}
-      </div>
+      <div class="whitespace-pre-wrap">{{ toolResponse() }}</div>
     }
   }
 </div>

@@ -32,6 +32,7 @@ export class PGMemberVectorStore {
 				metadata: {
 					id: member.id,
 					key: member.memberKey,
+					caption: member.memberCaption,
 					dimension: member.dimension,
 					hierarchy: member.hierarchy,
 					level: member.level,

@@ -21,7 +21,6 @@
         mat-flat-button
         color="primary"
         (click)="changePassword()"
-        [disabled]="password.form.pristine || password.form.invalid"
       >
         {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
       </button>

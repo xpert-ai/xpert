@@ -2,4 +2,5 @@
   [(ngModel)]="value$" [indeterminate]="indeterminate()" [disabled]="disabled()" >
 <label for="checkbox-{{id}}" class="grow font-norma cursor-pointer">
   {{label()}}
+  <ng-content></ng-content>
 </label>

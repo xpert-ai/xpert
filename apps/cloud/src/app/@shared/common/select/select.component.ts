@@ -1,9 +1,10 @@
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, contentChild, inject, input, TemplateRef } from '@angular/core'
-import { ReactiveFormsModule } from '@angular/forms'
-import { NgmDensityDirective, NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import { booleanAttribute, Component, computed, contentChild, inject, input, model, TemplateRef } from '@angular/core'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { debouncedSignal, NgmDensityDirective, NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
@@ -12,7 +13,16 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, CdkMenuModule, NgmI18nPipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    CdkListboxModule,
+    CdkMenuModule,
+    NgmHighlightDirective,
+    NgmI18nPipe
+  ],
   selector: 'ngm-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
@@ -47,10 +57,31 @@ export class NgmSelectComponent {
     transform: booleanAttribute
   })
 
+  readonly searchable = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+
   // Children
   readonly optionTemplate = contentChild('option', { read: TemplateRef })
 
   // States
+  readonly search = model<string>()
+  readonly searchTerm = debouncedSignal(this.search, 300)
+  readonly filteredOptions = computed(() => {
+    const options = this.selectOptions() ?? []
+    const searchTerm = this.searchTerm()?.toLowerCase()
+    if (!searchTerm) {
+      return options
+    }
+
+    return options.filter((option) => {
+      const label = this.i18n.transform(option.label)
+      const description = this.i18n.transform(option.description)
+      return label?.toLowerCase().includes(searchTerm) || description?.toLowerCase().includes(searchTerm) || option.value?.toLowerCase().includes(searchTerm)
+        || this.values().includes(option.value)
+    })
+  })
+
   readonly selectedOptions = computed(() =>
     this.values()?.map((value) => this.selectOptions()?.find((_) => _.value === value) ?? { value })
   )

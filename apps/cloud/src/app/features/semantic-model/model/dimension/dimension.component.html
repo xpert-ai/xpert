@@ -1,10 +1,10 @@
-<mat-toolbar class="pac-nav-toolbar pac-model__shell-bar flex items-center pl-2" displayDensity="compact">
-  <button mat-icon-button displayDensity="cosy" [color]="mt.isOpen() ? 'accent':''"
+<div class="xp-nav-toolbar flex items-center px-2" displayDensity="compact">
+  <!-- <button mat-icon-button displayDensity="cosy" [color]="mt.isOpen() ? 'accent':''"
     [cdkMenuTriggerFor]="menu"
     #mt="cdkMenuTriggerFor"
   >
     <mat-icon [color]="mt.isOpen() ? 'accent':''">more_vert</mat-icon>
-  </button>
+  </button> -->
   <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple class="flex-1" mat-stretch-tabs="false" mat-align-tabs="start">
     @for (tab of hierarchies(); track tab.__id__; let i = $index) {
       <span mat-tab-link class="relative"
@@ -14,53 +14,61 @@
       >
         <span>{{tab.caption}}</span>
 
-        @if (dirty() && isDirty(tab.__id__)) {
+        <!-- @if (dirty() && isDirty(tab.__id__)) {
           <span class="ping-badge pointer-events-none absolute -left-2 top-2 flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2"></span>
           </span>
-        }
-          <button mat-icon-button displayDensity="compact" class="pac-nav-tab__close"
-              [cdkMenuTriggerFor]="hMenu"
-              [cdkMenuTriggerData]="{key: tab.__id__}"
-              #mt="cdkMenuTriggerFor"
-              [class.active]="mt.isOpen()"
-              >
-              <mat-icon>more_vert</mat-icon>
-          </button>
+        } -->
+
+        <div class="w-7 h-7 flex justify-center items-center self-center rounded-full cursor-pointer hover:bg-hover-bg"
+          [cdkMenuTriggerFor]="hMenu"
+          [cdkMenuTriggerData]="{key: tab.__id__}"
+          #mt="cdkMenuTriggerFor"
+          [class.active]="mt.isOpen()"
+        >
+          <i class="ri-more-2-fill"></i>
+        </div>
       </span>
     }
 
-    <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-2 cursor-pointer hover:bg-hover-bg"
+    <div class="w-7 h-7 flex justify-center items-center self-center rounded-lg mx-2 cursor-pointer hover:bg-hover-bg"
       [matTooltip]=" 'PAC.MODEL.DIMENSION.NewHierarchy' | translate: {Default: 'New Hierarchy'} " matTooltipPosition="above"
       (click)="newHierarchy()"
     >
       <i class="ri-add-line"></i>
     </div>
 
-    <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+    <!-- <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
       [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
       (click)="generateWithAI()"
     >
       <i class="ri-magic-line"></i>
-    </div>
+    </div> -->
   </nav>
 
   <div class="flex justify-around items-center">
-    <button mat-button displayDensity="cosy" [color]="detailsOpen()?'accent':''"
+    <button type="button" class="btn btn-secondary btn-small"
+      [cdkMenuTriggerFor]="menu"
+      >
+      <i class="ri-node-tree"></i>
+      <span class="ml-1">
+        {{ 'PAC.KEY_WORDS.Dimension' | translate: {Default: "Dimension"} }}
+      </span>
+    </button>
+    <button type="button" class="btn btn-secondary btn-small ml-2"
       [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
       matTooltipPosition="above"
+      [class.text-primary-500]="detailsOpen()"
       (click)="drawer.toggle()"
     >
-      <div class="flex justify-start items-center">
-        <mat-icon fontSet="material-icons-outlined" [color]="detailsOpen()?'accent':''">edit_attributes</mat-icon>
-        @if (!isMobile()) {
-          <span >{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
-        }    
-      </div>
+      <i class="ri-list-settings-line"></i>
+      @if (!isMobile()) {
+        <span >{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
+      }
     </button>
   </div>
-</mat-toolbar>
+</div>
 
 <mat-drawer-container class="flex-1" [hasBackdrop]="false" [autosize]="true">
   <mat-drawer #drawer class="ngm-story__designer-drawer mat-elevation-z"
@@ -99,7 +107,18 @@
   <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="editDimension()">
       <i class="ri-equalizer-3-line mr-1"></i>
-      <span>{{ 'PAC.KEY_WORDS.DIMENSION' | translate: {Default: "Dimension"} }}</span>
+      <span>{{ 'PAC.MODEL.DimensionAttributes' | translate: {Default: "Dimension Attributes"} }}</span>
+    </button>
+
+    <button cdkMenuItem class="" (click)="duplicate()">
+      <i class="ri-file-copy-line mr-1"></i>
+      <span>{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+    </button>
+    <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
+      (click)="delete()"
+    >
+      <i class="ri-delete-bin-line mr-1"></i>
+      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
     </button>
   </div>
 </ng-template>

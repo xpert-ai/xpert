@@ -411,7 +411,7 @@
         [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
         [tooltip]="'PAC.Xpert.WritetoMemoryTooltip' | translate: {Default: 'Write output content or parameters of the agent into global memory of the digital expert'}"
         type="agent"
-        [varOptions]="varOptions()"
+        [variables]="variables()"
         [parameters]="outputVariables()"
         [memories]="memories()"
         (memoriesChange)="updateMemories($event)"

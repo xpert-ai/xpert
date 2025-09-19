@@ -1,64 +1,184 @@
-<ngm-table class="flex-1 overflow-hidden rounded-lg mt-2" displayDensity="cosy"
-  paging
-  selectable
-  [data]="indicators()"
-  [columns]="[
-    {
-      name: 'name',
-      caption: ('PAC.KEY_WORDS.NAME' | translate: {Default: 'Name'}),
-      cellTemplate: nameTempl
-    },
-    {
-      name: 'code',
-      caption: 'PAC.KEY_WORDS.CODE' | translate: {Default: 'Code'},
-      cellTemplate: codeTempl
-    },
-    {
-      name: 'businessArea',
-      caption: 'PAC.KEY_WORDS.BUSINESS_AREA' | translate: {Default: 'Business Area'},
-      cellTemplate: businessAreaTempl
-    },
-    {
-      name: 'createdAt',
-      caption: 'PAC.KEY_WORDS.CreatedAt' | translate: {Default: 'Created At'},
-      cellTemplate: dateTempl
-    },
-    {
-      name: 'status',
-      caption: 'PAC.INDICATOR.REGISTER.Status' | translate: {Default: 'Status'},
-      cellTemplate: statusTempl
-    },
-    {
-      name: 'embeddingStatus',
-      caption: 'PAC.INDICATOR.REGISTER.EmbeddingStatus' | translate: {Default: 'Embedding Status'},
-      cellTemplate: embeddingTempl
-    },
-    {
-      name: 'isActive',
-      caption: 'PAC.INDICATOR.REGISTER.IsActive' | translate: {Default: 'Is Active'},
-      cellTemplate: visibleTempl
-    },
-    {
-      name: 'visible',
-      caption: 'PAC.INDICATOR.REGISTER.Visible' | translate: {Default: 'Visible'},
-      cellTemplate: visibleTempl
-    },
-    {
-      name: 'isApplication',
-      caption: 'PAC.INDICATOR.REGISTER.AvailableInApplication' | translate: {Default: 'App Available'},
-      cellTemplate: visibleTempl,
-      width: '100px'
-    },
-    {
-      name: 'action',
-      caption: 'PAC.KEY_WORDS.ACTION' | translate: {Default: 'Action'},
-      cellTemplate: actionTempl,
-      width: '100px',
-      stickyEnd: true
-    }
-  ]"
-  (rowSelectionChanging)="onRowSelectionChanging($event)"
-/>
+<div class="relative flex-1 overflow-x-auto">
+  <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+      <tr class="sticky top-0 left-0 bg-gray-50 dark:bg-gray-700 z-10">
+        <th scope="col" class="p-4">
+          <div class="flex items-center">
+            <input id="checkbox-all-search" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+              [ngModel]="allSelected()"
+              (ngModelChange)="toggleAllSelection($event)">
+            <label for="checkbox-all-search" class="sr-only">checkbox</label>
+          </div>
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.NAME' | translate: {Default: 'Name'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.CODE' | translate: {Default: 'Code'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.BUSINESS_AREA' | translate: {Default: 'Business Area'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.CreatedAt' | translate: {Default: 'Created At'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.INDICATOR.REGISTER.Status' | translate: {Default: 'Status'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.INDICATOR.REGISTER.EmbeddingStatus' | translate: {Default: 'Embedding Status'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.INDICATOR.REGISTER.AvailableInApplication' | translate: {Default: 'App Available'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.INDICATOR.REGISTER.Visible' | translate: {Default: 'Visible'} }}
+        </th>
+        <th scope="col" class="px-6 py-3 sticky right-0 bg-gray-50 dark:bg-gray-700">
+          {{ 'PAC.KEY_WORDS.ACTION' | translate: {Default: 'Action'} }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of indicators(); track row.id) {
+        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
+          <td class="w-4 p-4">
+            <div class="flex items-center">
+              <input id="checkbox-table-search-1" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                [ngModel]="isSelected(row)"
+                (ngModelChange)="toggleSelection(row, $event)"
+              >
+              <label for="checkbox-table-search-1" class="sr-only">checkbox</label>
+            </div>
+          </td>
+          <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            <a class="cursor-pointer hover:underline" (click)="editIndicator(row.id)">
+              <span>{{row.name}}</span>
+            </a>
+          </th>
+          <td class="px-6 py-2">
+            <span class="font-mono">{{ row.code }}</span>
+          </td>
+          <td class="px-6 py-2">
+            {{ row.businessArea?.name }}
+          </td>
+          <td class="px-6 py-2">
+           {{ row.createdAt | relative }}
+          </td>
+          <td class="px-6 py-2">
+           <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+            @switch (row.status) {
+              @case (eIndicatorStatusEnum.DRAFT) {
+                <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-orange-500 border-orange-700 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                <span class="">{{ 'PAC.INDICATOR.Draft' | translate: {Default: 'Draft'} }}</span>
+              }
+              @case (eIndicatorStatusEnum.RELEASED) {
+                <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+                <span >{{ 'PAC.INDICATOR.Published' | translate: {Default: 'Published'} }}</span>
+              }
+              @case (eIndicatorStatusEnum.ARCHIVED) {
+                <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-neutral-600 flex'></span>
+                <span >({{ 'PAC.INDICATOR.Archived' | translate: {Default: 'Archived'} }})</span>
+              }
+              @default {
+                <span class="text-neutral-500">({{ 'PAC.INDICATOR.Unknown' | translate: {Default: 'Unknown'} }})</span>
+              }
+            }
+            </div>
+          </td>
+          <td class="px-6 py-2">
+            @switch (row.embeddingStatus) {
+              @case (eEmbeddingStatusEnum.SUCCESS) {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+                  <span class="">
+                    {{ 'PAC.MODEL.Success' | translate: {Default: 'Success'} }}
+                  </span>
+                </div>
+              }
+              @case (eEmbeddingStatusEnum.FAILED) {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                  <span class="text-red-500">
+                    {{ row.error }}
+                  </span>
+                </div>
+              }
+              @case (eEmbeddingStatusEnum.PROCESSING) {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+                  <span class="">
+                    {{ 'PAC.MODEL.Running' | translate: {Default: 'Running'} }}
+                  </span>
+                </div>
+              }
+              @default {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                  <span class="">
+                    {{ 'PAC.MODEL.NotIndexed' | translate: {Default: 'Not indexed'} }}
+                  </span>
+                </div>
+              }
+            }
+          </td>
+          <td class="px-6 py-2">
+            {{ row.isApplication ? 'Yes' : 'No' }}
+          </td>
+          <td class="px-6 py-2">
+            {{ row.visible ? 'Yes' : 'No' }}
+          </td>
+          <td class="px-6 py-2 text-lg sticky right-0 bg-gray-50 dark:bg-gray-700">
+            <div class="pac__table-actions flex gap-1 group">
+              <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg opacity-50 group-hover:opacity-100"
+                (click)="editIndicator(row.id)">
+                <i class="ri-pencil-line"></i>
+              </button>
+              <button type="button" class="w-8 h-8 rounded-full text-slate-500 enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
+                [disabled]="!row.draft"
+                (click)="publish(row)">
+                <i class="ri-send-plane-line"></i>
+              </button>
+
+              <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100 duration-300"
+                (click)="onDelete({id: row.id, name: row.name})">
+                <i class="ri-delete-bin-line"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+<!-- <div class="p-2 flex justify-end">
+  <nav class="flex items-center flex-column flex-wrap md:flex-row justify-between pt-4" aria-label="Table navigation">
+    <span class="text-sm font-normal text-gray-500 dark:text-gray-400 mb-4 md:mb-0 block w-full md:inline md:w-auto">Showing <span class="font-semibold text-gray-900 dark:text-white">1-10</span> of <span class="font-semibold text-gray-900 dark:text-white">1000</span></span>
+    <ul class="inline-flex -space-x-px rtl:space-x-reverse text-sm h-8">
+      <li>
+          <a href="#" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a>
+      </li>
+      <li>
+          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">1</a>
+      </li>
+      <li>
+          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">2</a>
+      </li>
+      <li>
+          <a href="#" aria-current="page" class="flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">3</a>
+      </li>
+      <li>
+          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">4</a>
+      </li>
+      <li>
+          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">5</a>
+      </li>
+      <li>
+        <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+      </li>
+    </ul>
+  </nav>
+</div> -->
 
 @if (hasSelected()) {
   <div class="absolute bottom-12 w-full px-16 py-2 z-10">
@@ -82,101 +202,3 @@
 @if (loading()) {
   <ngm-spin class="absolute w-full h-full top-0 left-0"/>
 }
-
-
-<ng-template #nameTempl let-id="id" let-name="name">
-  @if (isUUID(id)) {
-    <a (click)="editIndicator(id)"><span>{{name}}</span></a>
-  } @else {
-    <span class="ping-badge pointer-events-none relative inline-flex h-2 w-2 m-2">
-      <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
-      <span class="relative inline-flex rounded-full h-2 w-2"></span>
-    </span>
-    <span>{{name}}</span>
-  }
-</ng-template>
-
-<ng-template #codeTempl let-code>
-  <span class="font-mono italic">{{ code }}</span>
-</ng-template>
-<ng-template #businessAreaTempl let-businessArea="businessArea">
-  {{ businessArea?.name }}
-</ng-template>
-<ng-template #dateTempl let-createdAt="createdAt">
-  {{ createdAt | relative }}
-</ng-template>
-<ng-template #statusTempl let-status="status">
-  <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-  @switch (status) {
-    @case (eIndicatorStatusEnum.DRAFT) {
-      <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-orange-500 border-orange-700 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
-      <span class="">{{ 'PAC.INDICATOR.Draft' | translate: {Default: 'Draft'} }}</span>
-    }
-    @case (eIndicatorStatusEnum.RELEASED) {
-      <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
-      <span >{{ 'PAC.INDICATOR.Published' | translate: {Default: 'Published'} }}</span>
-    }
-    @case (eIndicatorStatusEnum.ARCHIVED) {
-      <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-neutral-600 flex'></span>
-      <span >({{ 'PAC.INDICATOR.Archived' | translate: {Default: 'Archived'} }})</span>
-    }
-    @default {
-      <span class="text-neutral-500">({{ 'PAC.INDICATOR.Unknown' | translate: {Default: 'Unknown'} }})</span>
-    }
-  }
-  </div>
-</ng-template>
-
-<ng-template #visibleTempl let-visible>
-  <mat-checkbox [disabled]="true" [checked]="visible"></mat-checkbox>
-</ng-template>
-<ng-template #embeddingTempl let-status="embeddingStatus" let-error="error">
-  @switch (status) {
-    @case (eEmbeddingStatusEnum.SUCCESS) {
-      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-        <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
-        <span class="">
-          {{ 'PAC.MODEL.Success' | translate: {Default: 'Success'} }}
-        </span>
-      </div>
-    }
-    @case (eEmbeddingStatusEnum.FAILED) {
-      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-        <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
-        <span class="text-red-500">
-          {{ error }}
-        </span>
-      </div>
-    }
-    @case (eEmbeddingStatusEnum.PROCESSING) {
-      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-        <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
-        <span class="">
-          {{ 'PAC.MODEL.Running' | translate: {Default: 'Running'} }}
-        </span>
-      </div>
-    }
-    @default {
-      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-        <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
-        <span class="">
-          {{ 'PAC.MODEL.NotIndexed' | translate: {Default: 'Not indexed'} }}
-        </span>
-      </div>
-    }
-  }
-</ng-template>
-
-<ng-template #actionTempl let-id="id" let-name="name">
-  <div class="pac__table-actions flex gap-2 group">
-    <button mat-icon-button displayDensity="cosy" class="text-slate-500 opacity-50 group-hover:opacity-100"
-      (click)="editIndicator(id)">
-      <i class="ri-pencil-line"></i>
-    </button>
-    
-    <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="text-slate-500 opacity-50 group-hover:opacity-100 duration-300"
-      (click)="onDelete({id, name})">
-      <i class="ri-delete-bin-line"></i>
-    </button>
-  </div>
-</ng-template>

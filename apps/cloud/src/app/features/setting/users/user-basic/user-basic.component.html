@@ -13,7 +13,6 @@
     mat-flat-button
     color="primary"
     (click)="save()"
-    [disabled]="userBasicInfo.form.pristine || userBasicInfo.form.invalid"
   >
     {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
   </button>

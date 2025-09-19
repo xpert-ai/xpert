@@ -13,8 +13,8 @@ export class QuerySqlHandler implements ICommandHandler<QuerySqlCommand> {
 		this.toolsetService.registerCommand('QuerySql', QuerySqlCommand)
 	}
 
-	public async execute(command: QuerySqlCommand): Promise<string> {
-		const { dataSource: dataSourceId, schema, query } = command.args
+	public async execute(command: QuerySqlCommand): Promise<any[]> {
+		const { dataSource: dataSourceId, schema, statement } = command.args
 		const isDev = process.env.NODE_ENV === 'development'
 		
 		const dataSource = await this.dataSourceService.prepareDataSource(dataSourceId)
@@ -27,9 +27,9 @@ export class QuerySqlHandler implements ICommandHandler<QuerySqlCommand> {
 
 		try {
 			// Query samples data
-			const data = await runner.runQuery(query, { catalog: schema })
+			const data = await runner.runQuery(statement, { catalog: schema })
 
-			return JSON.stringify(data)
+			return data
 		} finally {
 			await runner.teardown()
 		}

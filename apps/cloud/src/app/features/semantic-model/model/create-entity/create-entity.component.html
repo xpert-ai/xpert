@@ -27,7 +27,9 @@
     <mat-form-field appearance="fill" color="accent">
       <mat-label>{{ 'PAC.MODEL.CREATE_ENTITY.NAME' | translate: { Default: 'Name' } }}</mat-label>
       <input matInput formControlName="name"/>
-      <mat-error *ngIf="name.invalid">{{getErrorMessage() | translate}}</mat-error>
+      @if (name.invalid) {
+        <mat-error>{{getErrorMessage() | translate}}</mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="fill" color="accent">
@@ -35,24 +37,28 @@
       <input matInput formControlName="caption" />
     </mat-form-field>
 
-    <code *ngIf="expression">
-      {{expression}}
-    </code>
+    @if (expression) {
+      <code>
+        {{expression}}
+      </code>
+    }
 
-    <mat-form-field *ngIf="!expression && !hiddenTable && type.value !== SemanticModelEntityType.VirtualCube" appearance="fill" color="accent">
-      <mat-label>{{ 'PAC.MODEL.CREATE_ENTITY.TABLE' | translate: { Default: 'Table' } }}</mat-label>
-      <input [placeholder]=" 'PAC.MODEL.CREATE_ENTITY.PICK_ONE_TABLE' | translate: { Default: 'pick one table' } "
-             aria-label="Table"
-             matInput
-             [matAutocomplete]="auto"
-             formControlName="table"
-             >
-      <mat-autocomplete #auto="matAutocomplete" displayDensity="compact" class="ngm-density__compact">
-        <mat-option *ngFor="let option of filteredTables | async" [value]="option.name">
-          <ngm-display-behaviour [option]="{value: option.name, label: option.label}" displayBehaviour="descriptionAndId"></ngm-display-behaviour>
-        </mat-option>
-      </mat-autocomplete>
-    </mat-form-field>
+    @if (!expression && !hiddenTable && type.value !== SemanticModelEntityType.VirtualCube) {
+      <mat-form-field appearance="fill" color="accent">
+        <mat-label>{{ 'PAC.MODEL.CREATE_ENTITY.TABLE' | translate: { Default: 'Table' } }}</mat-label>
+        <input [placeholder]=" 'PAC.MODEL.CREATE_ENTITY.PICK_ONE_TABLE' | translate: { Default: 'pick one table' } "
+              aria-label="Table"
+              matInput
+              [matAutocomplete]="auto"
+              formControlName="table"
+              >
+        <mat-autocomplete #auto="matAutocomplete" displayDensity="compact" class="ngm-density__compact">
+          <mat-option *ngFor="let option of filteredTables | async" [value]="option.name">
+            <ngm-display-behaviour [option]="{value: option.name, label: option.label}" displayBehaviour="descriptionAndId"></ngm-display-behaviour>
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+    }
 
     @if (type.value === SemanticModelEntityType.DIMENSION && factFields()?.length) {
       <mat-form-field appearance="fill" color="accent">
@@ -89,6 +95,22 @@
 </div>
 
 <div class="min-w-[400px] relative flex flex-col">
+  <div class="flex justify-start items-center gap-2 p-2">
+    <div class="relative w-[160px]">
+      <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
+      <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+        [placeholder]="'PAC.MODEL.Search' | translate: {Default: 'Search'}"
+        [(ngModel)]="searchTerm"
+      >
+      @if (searchTerm()) {
+        <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+          (click)="searchTerm.set('')"></i>
+      }
+    </div>
+    <button type="button" class="btn btn-secondary btn-medium" (click)="clearSelection()">
+      {{ 'PAC.ACTIONS.Clear' | translate: { Default: 'Clear' } }}
+    </button>
+  </div>
   @switch (type.value) {
     @case(SemanticModelEntityType.CUBE) {
       <div class="p-4 flex gap-4">
@@ -106,10 +128,10 @@
         </div>
       </div>
       <mat-list role="list" class="block overflow-auto">
-        @for (column of columns(); track column.name) {
+        @for (column of filteredColumns(); track column.name) {
           <mat-list-item role="listitem" class="group rounded-lg">
             <div class="flex items-center">
-              <ngm-display-behaviour class="flex-1 ml-8" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId"></ngm-display-behaviour>
+              <ngm-display-behaviour class="flex-1 ml-4 overflow-hidden" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId" [highlight]="searchTerm()" />
               <div class="mx-4 w-10 shrink-0 flex justify-center">
                 <mat-checkbox [(ngModel)]="column.isMeasure" (ngModelChange)="toggleMeasure($event, column)"/>
               </div>
@@ -117,26 +139,31 @@
                 <mat-checkbox [(ngModel)]="column.isDimension" (ngModelChange)="toggleDimension($event, column)"/>
               </div>
               <div style="width: 140px;" class="shrink-0">
-                <mat-select *ngIf="!column.isMeasure"
-                  class="ngm-density__compact p-1 rounded-md hover:bg-slate-500/10 dark:hover:bg-white/10 focus:bg-slate-500/20 dark:focus:bg-white/20 dark:caret-slate-100"
-                  panelClass="ngm-select-panel ngm-density__compact"
-                  [(ngModel)]="column.dimension"
-                >
-                  <mat-select-trigger>
-                    <ngm-display-behaviour *ngIf="column.dimension" class="flex-1" [option]="{key: column.dimension.name, caption: column.dimension.caption}"></ngm-display-behaviour>
-                    <span *ngIf="!column.dimension">
-                      {{ 'PAC.MODEL.CREATE_ENTITY.AssociatedDimension' | translate: { Default: 'Dimension' } }}
-                    </span>
-                  </mat-select-trigger>
-                  <mat-option [value]="null">
-                    {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
-                  </mat-option>
-                  @for (dimension of sharedDimensions(); track dimension.name) {
-                    <mat-option [value]="dimension">
-                      <ngm-display-behaviour class="flex-1" [option]="{key: dimension.name, caption: dimension.caption}" />
+                @if (!column.isMeasure) {
+                  <mat-select
+                    class="ngm-density__compact p-1 rounded-md hover:bg-slate-500/10 dark:hover:bg-white/10 focus:bg-slate-500/20 dark:focus:bg-white/20 dark:caret-slate-100"
+                    panelClass="ngm-select-panel ngm-density__compact"
+                    [(ngModel)]="column.dimension"
+                  >
+                    <mat-select-trigger>
+                      @if (column.dimension) {
+                        <ngm-display-behaviour class="flex-1" [option]="{key: column.dimension.name, caption: column.dimension.caption}" />
+                      } @else {
+                        <span>
+                          {{ 'PAC.MODEL.CREATE_ENTITY.AssociatedDimension' | translate: { Default: 'Dimension' } }}
+                        </span>
+                      }
+                    </mat-select-trigger>
+                    <mat-option [value]="null">
+                      {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
                     </mat-option>
-                  }
-                </mat-select>
+                    @for (dimension of sharedDimensions(); track dimension.name) {
+                      <mat-option [value]="dimension">
+                        <ngm-display-behaviour class="flex-1" [option]="{key: dimension.name, caption: dimension.caption}" />
+                      </mat-option>
+                    }
+                  </mat-select>
+                }
               </div>
             </div>
           </mat-list-item>
@@ -166,7 +193,7 @@
       </div>
       <div class="overflow-auto">
         <mat-list role="list" cdkDropList (cdkDropListDropped)="drop($event)">
-          @for (column of columns(); track column.name; let i = $index) {
+          @for (column of filteredColumns(); track column.name; let i = $index) {
             <mat-list-item cdkDrag cdkDragLockAxis="y"
               role="listitem" class="group rounded-lg">
               <div class="w-full h-full flex items-center">
@@ -185,14 +212,17 @@
                 >
                   {{column.visible ? 'visibility' : 'visibility_off'}}
                 </mat-icon>
-                <ngm-display-behaviour class="flex-1 ml-8" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId" />
+                <ngm-display-behaviour class="flex-1 ml-8 overflow-hidden" [option]="{key: column.name, caption: column.caption}"
+                  [highlight]="searchTerm()"
+                  displayBehaviour="descriptionAndId"
+                />
               </div>
             </mat-list-item>
           }
         </mat-list>
       </div>
     } @case(SemanticModelEntityType.VirtualCube) {
-      <div class="p-4 overflow-auto">
+      <div class="px-4 overflow-auto">
         <mat-selection-list [compareWith]="compareWithCube" [(ngModel)]="cubes">
           @for (cube of cubes$ | async; track cube.name) {
             <mat-list-option class="rounded-lg" [value]="cube">

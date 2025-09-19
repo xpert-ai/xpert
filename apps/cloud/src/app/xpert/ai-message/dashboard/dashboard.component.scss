@@ -1,3 +1,17 @@
 :host {
   @apply block overflow-hidden;
+
+  ::ng-deep {
+    .ngm-analytical-grid {
+      .mat-mdc-paginator {
+        @apply opacity-20;
+      }
+
+      &:hover {
+        .mat-mdc-paginator {
+          @apply opacity-100;
+        }
+      }
+    }
+  }
 }

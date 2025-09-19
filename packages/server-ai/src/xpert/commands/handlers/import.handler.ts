@@ -9,6 +9,7 @@ import { XpertAgentService } from '../../../xpert-agent'
 import { XpertNameInvalidException } from '../../types'
 import { XpertService } from '../../xpert.service'
 import { XpertImportCommand } from '../import.command'
+import { XpertDraftDslDTO } from '../../dto'
 
 const SYSTEM_FIELDS = ['tenantId', 'organizationId', 'id', 'createdById', 'updatedById']
 
@@ -28,7 +29,7 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 	) {}
 
 	public async execute(command: XpertImportCommand): Promise<IXpert> {
-		let { draft } = command
+		let draft = command.draft as XpertDraftDslDTO
 
 		// Check if the name is unique
 		const team = draft.team

@@ -607,9 +607,10 @@ export function mapIndicatorToMeasures(indicator: Indicator) {
     role: AggregationRole.measure,
     calculationType: CalculationType.Indicator,
     measure: measureName,
-    dimensions: indicator.filters?.map(convertSlicerToDimension),
+    // dimensions: indicator.filters?.map(convertSlicerToDimension),
     slicers: indicator.filters,
     enableConstantSelection: true,
+    dimensions: indicator.dimensions,
     formatting: {
       unit: indicator.unit
     },

@@ -10,7 +10,7 @@ import {
   isNil,
   assignDeepOmitBlank,
   getDimensionMemberCaption,
-  PieVariant
+  PieVariant,
 } from '@metad/ocap-core'
 import { trellisCoordinates, gatherCoordinates } from './coordinates'
 import { getEChartsTooltip } from './components/tooltip'
@@ -64,9 +64,7 @@ export function pieCoordinate(
   const category = getChartCategory(chartAnnotation)
   const categoryMemberCaption = getDimensionMemberCaption(category, entityType)
   const categoryProperty = getEntityProperty(entityType, category)
-  if (!categoryProperty) {
-    return null
-  }
+
 
   context.datasets = []
 
@@ -96,8 +94,6 @@ export function pieCoordinate(
     }
   ]
 
-  const { valueAxis } = getCoordinateSystem(context, data, settings.locale)
-
   const gridOptions: ICoordinate = {
     type: 'Pie',
     name: '',
@@ -113,6 +109,56 @@ export function pieCoordinate(
     legend: [],
   }
 
+  if (!categoryProperty) {
+    const series: any = {
+          type: 'pie',
+          data: seriesComponents.map((seriesComponent) => ({
+            value: data[0][seriesComponent.measure],
+            name: seriesComponent.property.caption || seriesComponent.measure
+          })),
+          label: {
+            show: true,
+            formatter: '{b|{b}}\n{c}\n{per|{d}%}',
+            rich: {
+              b: {
+                color: '#4C5058',
+                fontSize: 14,
+                fontWeight: 'bold',
+              },
+              per: {
+                color: '#eee',
+                backgroundColor: 'black',
+                padding: [2, 4],
+                borderRadius: 3
+              }
+            }
+          },
+        }
+    if (chartAnnotation.chartType.variant === PieVariant.Doughnut) {
+      series.radius = ['40%', '80%']
+      series.itemStyle = {
+        borderRadius: 5
+      }
+    }
+    if (chartAnnotation.chartType.variant === PieVariant.Nightingale) {
+      series.roseType = 'area'
+      series.radius = ['20%', '80%']
+      series.itemStyle = {
+        borderRadius: 5
+      }
+    }
+    gridOptions.datasets.push({
+      dataset: {
+      },
+      series: [{
+        options: mergeChartOptions(series, [], options?.seriesStyle, (<EChartsOptions>seriesComponents[0]?.chartOptions)?.seriesStyle)
+      }]
+    })
+
+    return gridOptions
+  }
+
+  const { valueAxis } = getCoordinateSystem(context, data, settings.locale)
   context.datasets.forEach(({ dataset, seriesComponents, tooltip }) => {
     gridOptions.datasets.push({
       dataset,

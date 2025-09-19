@@ -29,6 +29,7 @@ export const TOOL_CHATBI_PROMPTS_DEFAULT =`
         }
       ]
     }
+  4. Only the dimensions available in its available_dimensions can be used for analysis of a particular indicator.
 ## MDX Query
   1. The syntax of the mdx query statement has the following restrictions:
     - The same dimension cannot appear on any two axes of columns and rows slicers at the same time. If you need to limit dimension members on columns or rows, you can use functions such as descendants.。 

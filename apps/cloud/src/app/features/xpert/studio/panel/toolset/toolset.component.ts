@@ -1,5 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
@@ -25,7 +26,7 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
 import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, myRxResource, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, omit, uniq } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -35,7 +36,6 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
-import { toSignal } from '@angular/core/rxjs-interop'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -64,7 +64,7 @@ export class XpertStudioPanelToolsetComponent {
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly toolsetService = inject(XpertToolsetService)
   readonly studioService = inject(XpertStudioApiService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertAPI = inject(XpertService)
   readonly router = inject(Router)
   readonly dialog = inject(Dialog)
   readonly #toastr = injectToastr()
@@ -139,7 +139,21 @@ export class XpertStudioPanelToolsetComponent {
     }
   })
 
-  readonly loading = signal(false)
+  readonly #variables = myRxResource({
+    request: () => ({
+      xpertId: this.xpertId(),
+      type: 'output',
+      environmentId: this.studioService.environmentId(),
+      connections: this.connections()
+    } as TXpertVariablesOptions),
+      loader: ({ request }) => {
+        return request ? this.xpertAPI.getNodeVariables(request) : of(null)
+      }
+    })
+  readonly variables = this.#variables.value
+
+  readonly #loading = signal(false)
+  readonly loading = computed(() => this.#loading() || this.#variables.status() === 'loading')
 
   constructor() {
     effect(() => {
@@ -148,15 +162,15 @@ export class XpertStudioPanelToolsetComponent {
   }
 
   refresh() {
-    this.loading.set(true)
+    this.#loading.set(true)
     this.studioService.refreshToolset(this.toolsetId())
     this.toolsetService.getOneById(this.toolsetId(), { }).subscribe({
       next: (toolset) => {
-        this.loading.set(false)
+        this.#loading.set(false)
         this.studioService.updateToolset(this.node().key, toolset)
       },
       error: (error) => {
-        this.loading.set(false)
+        this.#loading.set(false)
         this.#toastr.error(getErrorMessage(error))
       }
     })
@@ -170,7 +184,7 @@ export class XpertStudioPanelToolsetComponent {
     const interruptBefore = value
       ? uniq([...(this.agentConfig()?.interruptBefore ?? []), name])
       : (this.agentConfig()?.interruptBefore?.filter((_) => _ !== name) ?? [])
-    this.xpertStudioComponent.updateXpertAgentConfig({
+    this.studioService.updateXpertAgentConfig({
       interruptBefore
     })
   }
@@ -183,7 +197,7 @@ export class XpertStudioPanelToolsetComponent {
     const endNodes = value
       ? uniq([...(this.agentConfig()?.endNodes ?? []), name])
       : (this.agentConfig()?.endNodes?.filter((_) => _ !== name) ?? [])
-    this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
+    this.studioService.updateXpertAgentConfig({ endNodes })
   }
 
   toolMemory(name: string) {
@@ -203,8 +217,9 @@ export class XpertStudioPanelToolsetComponent {
   }
 
   updateToolMemory(name: string, value: TVariableAssigner[]) {
-    this._tools.update((state) => {
-      return {
+    const state = this._tools()
+    this.studioService.updateXpertAgentConfig({
+      tools: {
         ...(state ?? {}),
         [name]: {
           ...(state?.[name] ?? {}),
@@ -249,15 +264,15 @@ export class XpertStudioPanelToolsetComponent {
    * @param toolset
    */
   useToolset(toolset: IXpertToolset) {
-    this.loading.set(true)
+    this.#loading.set(true)
     // Get the toolset details (with tools)
     this.toolsetService.getOneById(toolset.id, { }).subscribe({
       next: (toolset) => {
-        this.loading.set(false)
+        this.#loading.set(false)
         this.studioService.replaceToolset(this.toolset().key || this.toolset().id, toolset)
       },
       error: (err) => {
-        this.loading.set(false)
+        this.#loading.set(false)
         this.#toastr.error(getErrorMessage(err))
       }
     })

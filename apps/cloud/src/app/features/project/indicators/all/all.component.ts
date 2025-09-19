@@ -1,6 +1,6 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import {
-  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   computed,
@@ -10,48 +10,52 @@ import {
   signal,
   ViewContainerRef
 } from '@angular/core'
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
+import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { RouterModule } from '@angular/router'
+import { exportIndicator, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
 import { convertIndicatorResult, EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
 import { saveAsYaml } from '@metad/core'
-import { injectConfirmDelete, NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { catchError, debounceTime, filter, map, merge, of, Subject, switchMap } from 'rxjs'
-import { DateRelativePipe, getErrorMessage, IIndicator, isUUID, ToastrService } from '../../../../@core/index'
+import {
+  DateRelativePipe,
+  getErrorMessage,
+  IIndicator,
+  isUUID,
+  ProjectAPIService,
+  ToastrService
+} from '../../../../@core/index'
 import { ProjectService } from '../../project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
-import { exportIndicator, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
-import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     RouterModule,
+    FormsModule,
     MatCheckboxModule,
     MatButtonModule,
     TranslateModule,
-    DensityDirective,
-    AppearanceDirective,
-    NgmTableComponent,
     NgmSpinComponent,
     DateRelativePipe
   ],
   selector: 'pac-indicator-all',
   templateUrl: './all.component.html',
-  styleUrls: ['./all.component.scss'],
-  // changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrls: ['./all.component.scss']
 })
 export class AllIndicatorComponent {
   eEmbeddingStatusEnum = EmbeddingStatusEnum
   eIndicatorStatusEnum = IndicatorStatusEnum
   isUUID = isUUID
-  
-  private indicatorsComponent = inject(ProjectIndicatorsComponent)
+
   private projectService = inject(ProjectService)
+  private projectAPI = inject(ProjectAPIService)
   private indicatorAPI = inject(IndicatorsService)
   private toastrService = inject(ToastrService)
   readonly #cdr = inject(ChangeDetectorRef)
@@ -60,11 +64,21 @@ export class AllIndicatorComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly #dialog = inject(Dialog)
   readonly #viewContainerRef = inject(ViewContainerRef)
+  readonly parentComponent = inject(ProjectIndicatorsComponent)
 
   readonly projectId = computed(() => this.projectService.project()?.id)
-  readonly #indicators = toSignal(this.projectService.indicators$)
+  readonly #indicators = myRxResource({
+    request: () => this.projectId(),
+    loader: ({ request }) => {
+      return this.projectAPI
+        .getOne(request ?? null, ['indicators', 'indicators.businessArea'])
+        .pipe(map((project) => project?.indicators ?? []))
+    }
+  })
+  // readonly #indicators = toSignal(this.projectService.indicators$)
   readonly selectedIndicators = signal<IIndicator[]>([])
   readonly hasSelected = computed(() => this.selectedIndicators()?.length)
+  readonly allSelected = computed(() => this.selectedIndicators()?.length === this.indicators()?.length)
   readonly loading = signal(false)
 
   readonly refresh$ = this.projectService.refreshEmbedding$
@@ -74,7 +88,7 @@ export class AllIndicatorComponent {
 
   // Update status of indicators
   readonly indicators = computed(() => {
-    const indicators = this.#indicators()
+    const indicators = this.#indicators.value()
     const _indicators = this._indicators()
     return indicators?.map((indicator) => {
       const _indicator = _indicators?.find((item) => item.id === indicator.id)
@@ -83,13 +97,8 @@ export class AllIndicatorComponent {
   })
 
   constructor() {
-    this.#destroyRef.onDestroy(() => {
-      this.indicatorsComponent.selectedIndicators.set([])
-    })
-
     merge(this.refresh$, toObservable(this.projectId))
       .pipe(
-        // startWith({}),
         filter(() => !!this.projectId()),
         debounceTime(100),
         switchMap(() => {
@@ -121,17 +130,19 @@ export class AllIndicatorComponent {
 
     this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(5000)).subscribe(() => this.refresh())
 
-    effect(() => {
-      if (
-        this._indicators()?.some(
-          (item) =>
-            item.embeddingStatus === EmbeddingStatusEnum.PROCESSING ||
-            item.embeddingStatus === EmbeddingStatusEnum.REQUIRED
-        )
-      ) {
-        // this.delayRefresh$.next(true)
-      }
-    })
+    // effect(() => {
+    //   if (
+    //     this._indicators()?.some(
+    //       (item) =>
+    //         item.embeddingStatus === EmbeddingStatusEnum.PROCESSING ||
+    //         item.embeddingStatus === EmbeddingStatusEnum.REQUIRED
+    //     )
+    //   ) {
+    //     // this.delayRefresh$.next(true)
+    //   }
+    // })
+
+    this.projectService.refresh$.pipe(takeUntilDestroyed()).subscribe(() => this.#indicators.reload())
   }
 
   refresh() {
@@ -144,7 +155,8 @@ export class AllIndicatorComponent {
       next: () => {
         this.loading.set(false)
         this.toastrService.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted Successfully' })
-        this.projectService.removeIndicator(indicator.id)
+        this.#indicators.reload()
+        // this.projectService.removeIndicator(indicator.id)
       },
       error: (err) => {
         this.loading.set(false)
@@ -173,6 +185,7 @@ export class AllIndicatorComponent {
         this.toastrService.success('PAC.INDICATOR.DeletedSelectedIndicators', {
           Default: 'Selected indicators deleted!'
         })
+        this.#indicators.reload()
       },
       error: (err) => {
         this.loading.set(false)
@@ -193,12 +206,6 @@ export class AllIndicatorComponent {
     return a.code.localeCompare(b.code)
   }
 
-  onRowSelectionChanging(rows: any) {
-    this.selectedIndicators.set([...rows])
-    this.indicatorsComponent.selectedIndicators.set([...rows])
-    this.#cdr.detectChanges()
-  }
-
   export() {
     const project = this.projectService.project()
     const indicators = this.selectedIndicators().length ? this.selectedIndicators() : project.indicators
@@ -210,16 +217,55 @@ export class AllIndicatorComponent {
   }
 
   editIndicator(id: string) {
-    this.#dialog.open<IIndicator>(XpIndicatorFormComponent, {
-      viewContainerRef: this.#viewContainerRef,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: {
-        id
-      }
-    }).closed.subscribe((result) => {
-      if (result) {
-      }
-    })
+    this.#dialog
+      .open<IIndicator>(XpIndicatorFormComponent, {
+        viewContainerRef: this.#viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          id
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+          this.#indicators.reload()
+        }
+      })
+  }
+
+  publish(indicator: IIndicator) {
+    if (indicator.draft) {
+      this.loading.set(true)
+      this.indicatorAPI.publish(indicator.id).subscribe({
+        next: () => {
+          this.loading.set(false)
+          this.#indicators.reload()
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.toastrService.error(getErrorMessage(err))
+        }
+      })
+    }
+  }
+
+  isSelected(row: IIndicator) {
+    return this.selectedIndicators().some((item) => item.id === row.id)
+  }
+
+  toggleSelection(row: IIndicator, event: boolean) {
+    if (event) {
+      this.selectedIndicators.set([...this.selectedIndicators(), row])
+    } else {
+      this.selectedIndicators.set(this.selectedIndicators().filter((item) => item.id !== row.id))
+    }
+  }
+
+  toggleAllSelection(event: boolean) {
+    if (event) {
+      this.selectedIndicators.set(this.indicators())
+    } else {
+      this.selectedIndicators.set([])
+    }
   }
 }

@@ -115,9 +115,11 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
   readonly businessAreasAPI = inject(BusinessAreasService)
   readonly fetchModelDetails = injectFetchModelDetails()
 
+  // Inputs
   readonly certifications = input<ISelectOption[]>()
   readonly models = input<ISemanticModel[]>()
 
+  // States
   readonly modelsOptions = computed<ISelectOption[]>(() => {
     return this.models()?.map((item) => ({ key: item.id, caption: item.name, value: item }))
   })
@@ -136,9 +138,9 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
     unit: new FormControl<string>(null),
     validity: new FormControl<string>(null),
     business: new FormControl<string>(null),
-    modelId: new FormControl<string>(null),
-    entity: new FormControl<string>(null),
-    type: new FormControl<IndicatorType>(IndicatorType.BASIC),
+    modelId: new FormControl<string>(null, [Validators.required]),
+    entity: new FormControl<string>(null, [Validators.required]),
+    type: new FormControl<IndicatorType>(IndicatorType.BASIC, [Validators.required]),
     options: new FormGroup({
       measure: new FormControl<string>(null),
       formula: new FormControl<string>(null),
@@ -316,6 +318,7 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
 
   writeValue(obj: any): void {
     if (obj) {
+      console.log('writeValue', obj)
       this.formGroup.patchValue(obj)
     }
   }

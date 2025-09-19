@@ -96,7 +96,11 @@
     ngmResizer [resizerWidth]="230"
   >
     <ngm-splitter class="h-full mr-1" [type]="1">
-      <ngm-splitter-pane size='50%' class="flex flex-col justify-items-stretch items-stretch overflow-hidden hover:overflow-auto">
+      <ngm-splitter-pane [id]="eCdkDragDropContainers.Entity" size='50%' class="pac-cdk-drop__list flex flex-col justify-items-stretch items-stretch"
+        cdkDropList
+        (cdkDropListDropped)="dropEntity($event)"
+        [cdkDropListEnterPredicate]="entityPredicate"
+        >
         <div displayDensity="compact" class="shrink-0 h-10 flex justify-between items-center sticky top-0 z-10 bg-[--ngm-shell-primary-container-bg-color]">
           <button mat-icon-button class="text-neutral-600" (click)="closeSidebar()">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" class="icon-xl-heavy">
@@ -124,110 +128,12 @@
           </button>
         </div>
 
-        <ul [id]="eCdkDragDropContainers.Cubes" class="pac-cdk-drop__list min-h-[25px]"
-          cdkDropList
-          [cdkDropListData]="cubeStates$ | async"
-          (cdkDropListDropped)="dropCube($event)"
-          [cdkDropListEnterPredicate]="entityPredicate">
-          @for (entity of cubeStates$ | async; track entity.id) {
-            <li class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
-              [class.bg-hover-bg]="rla.isActive"
-              [routerLink]="['cube', entity.id]"
-              routerLinkActive #rla="routerLinkActive"
-              cdkDrag
-              [cdkDragData]="entity"
-            >
-              @if (cube() === entity.name) {
-                <i class="ri-star-fill" [matTooltip]="'PAC.MODEL.IsDefault' | translate: {Default: 'Is default'}"></i>
-              }
-              <mat-icon class="pac-model__nav-icon"
-                displayDensity="compact" fontSet="material-icons-outlined">deployed_code</mat-icon>
-              <ngm-display-behaviour class="flex-1 text-sm truncate"
-                [option]="{ key: entity.name, caption: entity.caption }"
-              />
-
-              <button mat-icon-button displayDensity="compact" class="pac-model__nav-action opacity-0 group-hover/item:opacity-100"
-                [cdkMenuTriggerFor]="entityMenu"
-                [cdkMenuTriggerData]="{entity: entity}"
-                #mt="cdkMenuTriggerFor"
-                [class.opacity-100]="mt.isOpen()"
-                (click)="$event.stopPropagation();$event.preventDefault()">
-                <mat-icon>more_vert</mat-icon>
-              </button>
-            </li>
-          }
-        </ul>
-        <ul [id]="eCdkDragDropContainers.ShareDimensions" class="pac-cdk-drop__list min-h-[25px]"
-          cdkDropList
-          [cdkDropListData]="dimensionStates$ | async"
-          (cdkDropListDropped)="dropDimension($event)"
-          [cdkDropListEnterPredicate]="entityPredicate">
-          @for (entity of dimensionStates$ | async; track entity.id) {
-            <li class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
-              [class.bg-hover-bg]="rla2.isActive"
-              [routerLink]="['dimension', entity.id]"
-              routerLinkActive #rla2="routerLinkActive"
-              cdkDrag
-              [cdkDragData]="entity">
-              <mat-icon class="pac-model__nav-icon"
-                displayDensity="compact" fontSet="material-icons-outlined">account_tree</mat-icon>
-              <ngm-display-behaviour class="flex-1 text-sm truncate"
-                [option]="{ key: entity.name, caption: entity.caption }"
-              />
-
-              <button mat-icon-button displayDensity="compact" class="pac-model__nav-action opacity-0 group-hover/item:opacity-100"
-                [cdkMenuTriggerFor]="entityMenu"
-                [cdkMenuTriggerData]="{entity: entity}"
-                #mt="cdkMenuTriggerFor"
-                [class.opacity-100]="mt.isOpen()"
-                (click)="$event.stopPropagation();$event.preventDefault()">
-                <mat-icon>more_vert</mat-icon>
-              </button>
-            </li>
-          }
-        </ul>
-        <ul [id]="eCdkDragDropContainers.VirtualCubes" class="pac-cdk-drop__list min-h-[25px]"
-          cdkDropList
-          [cdkDropListData]="virtualCubes$ | async"
-          (cdkDropListDropped)="dropVirtualCube($event)"
-          [cdkDropListEnterPredicate]="entityPredicate">
-          @for (entity of virtualCubes$ | async; track entity.__id__) {
-            <li class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
-              [class.bg-hover-bg]="rla3.isActive"
-              [routerLink]="['virtual-cube', entity.__id__]"
-              routerLinkActive #rla3="routerLinkActive"
-              cdkDrag
-              [cdkDragData]="entity"
-            >
-              <mat-icon class="pac-model__nav-icon" displayDensity="compact" fontSet="material-icons-outlined">dataset_linked</mat-icon>
-              <ngm-display-behaviour class="flex-1 text-sm truncate"
-                [option]="{key: entity.name, caption: entity.caption}"
-              />
-
-              <button mat-icon-button displayDensity="compact" class="pac-model__nav-action opacity-0 group-hover/item:opacity-100"
-                [cdkMenuTriggerFor]="entityMenu"
-                [cdkMenuTriggerData]="{entity: entity}"
-                #mt="cdkMenuTriggerFor"
-                [class.opacity-100]="mt.isOpen()"
-                (click)="$event.stopPropagation();$event.preventDefault()">
-                <mat-icon>more_vert</mat-icon>
-              </button>
-            </li>
-          }
-        </ul>
-<!-- 
-        <mat-nav-list displayDensity="compact" disableRipple class="pac-cdk-drop__list"
-          id="pac-model-entities"
-          cdkDropList
-          [cdkDropListData]="entities$ | async"
-          (cdkDropListDropped)="drop($event)"
-          [cdkDropListEnterPredicate]="entityPredicate"
-        >
-          <div class="max-h-full overflow-hidden hover:overflow-y-auto">
-            @for (entity of entities$ | async; track entity.id) {
-              <a mat-list-item class="pac-model__nav-item relative"
-                [class.selected]="rla.isActive"
-                [routerLink]="[entity.type === SemanticModelEntityType.CUBE ? 'entity' : 'dimension', entity.id]"
+        <div class="flex flex-col overflow-hidden hover:overflow-auto">
+          <ul class="">
+            @for (entity of cubeStates$ | async; track entity.id) {
+              <li class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
+                [class.bg-hover-bg]="rla.isActive"
+                [routerLink]="['cube', entity.id]"
                 routerLinkActive #rla="routerLinkActive"
                 cdkDrag
                 [cdkDragData]="entity"
@@ -235,33 +141,75 @@
                 @if (cube() === entity.name) {
                   <i class="ri-star-fill" [matTooltip]="'PAC.MODEL.IsDefault' | translate: {Default: 'Is default'}"></i>
                 }
-                @switch (entity.type) {
-                  @case(SemanticModelEntityType.CUBE) {
-                    <mat-icon class="pac-model__nav-icon"
-                      displayDensity="compact" fontSet="material-icons-outlined">deployed_code</mat-icon>
-                  }
-                  @case(SemanticModelEntityType.DIMENSION) {
-                    <mat-icon class="pac-model__nav-icon"
-                      displayDensity="compact" fontSet="material-icons-outlined">account_tree</mat-icon>
-                  }
-                }
-                  
-                <ngm-display-behaviour class="flex-1 overflow-hidden"
+                <mat-icon class="pac-model__nav-icon"
+                  displayDensity="compact" fontSet="material-icons-outlined">deployed_code</mat-icon>
+                <ngm-display-behaviour class="flex-1 text-sm truncate"
                   [option]="{ key: entity.name, caption: entity.caption }"
                 />
 
-                <button mat-icon-button displayDensity="compact" class="pac-model__nav-action"
+                <button mat-icon-button displayDensity="compact" class="pac-model__nav-action opacity-0 group-hover/item:opacity-100"
                   [cdkMenuTriggerFor]="entityMenu"
                   [cdkMenuTriggerData]="{entity: entity}"
                   #mt="cdkMenuTriggerFor"
-                  [class.active]="mt.isOpen()"
+                  [class.opacity-100]="mt.isOpen()"
                   (click)="$event.stopPropagation();$event.preventDefault()">
                   <mat-icon>more_vert</mat-icon>
                 </button>
-              </a>
+              </li>
             }
-          </div>
-        </mat-nav-list> -->
+          </ul>
+          <ul class="">
+            @for (entity of dimensionStates$ | async; track entity.id) {
+              <li class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
+                [class.bg-hover-bg]="rla2.isActive"
+                [routerLink]="['dimension', entity.id]"
+                routerLinkActive #rla2="routerLinkActive"
+                cdkDrag
+                [cdkDragData]="entity">
+                <mat-icon class="pac-model__nav-icon"
+                  displayDensity="compact" fontSet="material-icons-outlined">account_tree</mat-icon>
+                <ngm-display-behaviour class="flex-1 text-sm truncate"
+                  [option]="{ key: entity.name, caption: entity.caption }"
+                />
+
+                <button mat-icon-button displayDensity="compact" class="pac-model__nav-action opacity-0 group-hover/item:opacity-100"
+                  [cdkMenuTriggerFor]="entityMenu"
+                  [cdkMenuTriggerData]="{entity: entity}"
+                  #mt="cdkMenuTriggerFor"
+                  [class.opacity-100]="mt.isOpen()"
+                  (click)="$event.stopPropagation();$event.preventDefault()">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              </li>
+            }
+          </ul>
+
+          <ul>
+            @for (entity of virtualCubes$ | async; track entity.__id__) {
+              <li class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
+                [class.bg-hover-bg]="rla3.isActive"
+                [routerLink]="['virtual-cube', entity.__id__]"
+                routerLinkActive #rla3="routerLinkActive"
+                cdkDrag
+                [cdkDragData]="entity"
+              >
+                <mat-icon class="pac-model__nav-icon" displayDensity="compact" fontSet="material-icons-outlined">dataset_linked</mat-icon>
+                <ngm-display-behaviour class="flex-1 text-sm truncate"
+                  [option]="{key: entity.name, caption: entity.caption}"
+                />
+
+                <button mat-icon-button displayDensity="compact" class="pac-model__nav-action opacity-0 group-hover/item:opacity-100"
+                  [cdkMenuTriggerFor]="entityMenu"
+                  [cdkMenuTriggerData]="{entity: entity}"
+                  #mt="cdkMenuTriggerFor"
+                  [class.opacity-100]="mt.isOpen()"
+                  (click)="$event.stopPropagation();$event.preventDefault()">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
       </ngm-splitter-pane>
 
       <ngm-splitter-pane class="relative flex flex-col justify-start items-stretch">

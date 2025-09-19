@@ -209,17 +209,27 @@ export class SemanticModelService {
   )
   readonly semanticModelKey = toSignal(this.semanticModelKey$)
 
+  /**
+   * @deprecated use dataSource signal
+   */
   readonly dataSource$ = new BehaviorSubject<DataSource>(null)
+  readonly dataSource = toSignal(this.dataSource$)
 
   /**
    * Original data source:
    * - Used in MDX Model to directly calculate database information
    * - Equivalent to dataSource in SQL Model
+   * 
+   * @deprecated use origiDataSource signal
    */
   readonly originalDataSource$ = new BehaviorSubject<DataSource>(null)
+  /**
+   * @deprecated use origiDataSource signal
+   */
   public get originalDataSource() {
     return this.originalDataSource$.value
   }
+  readonly origiDataSource = toSignal(this.originalDataSource$)
 
   public readonly entitySets$ = this.dataSource$.pipe(
     filter(nonNullable),

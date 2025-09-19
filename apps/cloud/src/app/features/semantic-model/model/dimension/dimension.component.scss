@@ -8,11 +8,28 @@
   height: 100%;
 }
 
-:host::ng-deep {
-  .ant-tabs-tab-btn {
-    padding: 0 1rem;
+.pac-model-hierarchy {
+  #pac-model-dimension__hierarchy-levels {
+    .mat-mdc-list-text {
+      padding: 0;
+    }
   }
-  .ant-tabs-nav {
-    margin: 0;
+}
+
+#pac-model-dimension__hierarchy-levels {
+  .mdc-list-item.mdc-list-item--activated {
+    @apply bg-black/10;
+  }
+}
+
+.xp-nav-toolbar {
+  &.ngm-density__compact {
+    .mat-mdc-tab-header {
+      --mdc-secondary-navigation-tab-container-height: 32px;
+    }
+
+    .mdc-tab {
+      @apply px-2;
+    }
   }
 }

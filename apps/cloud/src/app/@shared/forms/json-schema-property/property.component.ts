@@ -15,7 +15,7 @@ import {
 } from 'zod-to-json-schema'
 import { XpertVariableInputComponent } from '../../agent'
 import { NgmSelectComponent } from '../../common'
-import { TWorkflowVarGroup } from '@cloud/app/@core'
+import { TWorkflowVarGroup } from '../../../@core'
 
 /**
  *

@@ -119,18 +119,21 @@ export const CubeMeasureSchema = z.object({
 /**
  * Cube schema for defining a cube structure
  */
-export const CubeSchema = z.object({
+export const BaseCubeSchema = {
   name: z.string().describe('The name of the cube'),
   caption: z.string().optional().nullable().describe('The caption of the cube'),
   description: z.string().optional().nullable().describe('The basic description of the cube'),
-  tables: z
-    .array(
-      z.object({
-        name: z.string().describe('The name of the cube fact table')
-        // join: z.object({})
-      })
-    )
-    .optional().nullable(),
+  // tables: z
+  //   .array(
+  //     z.object({
+  //       name: z.string().describe('The name of the cube fact table')
+  //       // join: z.object({})
+  //     })
+  //   )
+  //   .optional().nullable(),
+  fact: z.object({
+    tableName: z.string().describe('The name of the cube fact table')
+  }).optional().nullable().describe('The fact table of the cube'),
   defaultMeasure: z.string().optional().nullable().describe('The default measure of the cube'),
   measures: z
     .array(CubeMeasureSchema)
@@ -178,7 +181,7 @@ export const CubeSchema = z.object({
   //   .array(CalculatedMeasureSchema)
   //   .optional().nullable()
   //   .describe('An array of calculated measures in this cube')
-})
+}
 
 /**
  * Query schema for querying a cube use statement

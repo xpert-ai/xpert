@@ -3,7 +3,7 @@ import { Component, inject, Injector, OnInit, runInInjectionContext, signal } fr
 import { FormControl, FormsModule } from '@angular/forms'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { attrModel, bindFormControlToSignal, linkedModel } from '@metad/core'
-import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
+import { NgmDisplayBehaviourComponent, NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TSelectOption } from '@metad/ocap-angular/core'
 import { Cube } from '@metad/ocap-core'
 import { FieldType } from '@ngx-formly/core'
@@ -13,7 +13,7 @@ import { TranslateModule } from '@ngx-translate/core'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmRadioSelectComponent, NgmSelectComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, NgmRadioSelectComponent, NgmSelectComponent, NgmDisplayBehaviourComponent],
   selector: 'ngm-formly-fact',
   templateUrl: `fact.type.html`,
   host: {

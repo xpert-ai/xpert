@@ -128,8 +128,14 @@ export enum CalculationType {
   Variance = 'Variance',
   D2Measure = 'D2Measure',
   MeasureControl = 'MeasureControl',
-  Parameter = 'Parameter',
-  Indicator = 'Indicator'
+  /**
+   * Indicator generation
+  */
+ Indicator = 'Indicator',
+ /**
+  * Parameter
+  */
+ Parameter = 'Parameter',
 }
 
 export interface CalculatedMember {
@@ -181,13 +187,13 @@ export interface RestrictedMeasureProperty extends CalculationProperty {
    */
   measure: PropertyName
   /**
-   * @deprecated use slicers
+   * Free dimensions for the indicator
    */
-  dimensions: Array<Dimension>
+  dimensions?: Array<string>
   /**
    * The slicers to restrict measure
    */
-  slicers: ISlicer[]
+  slicers?: ISlicer[]
   /**
    * Enable Constant Selection
    */

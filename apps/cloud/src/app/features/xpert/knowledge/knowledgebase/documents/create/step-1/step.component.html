@@ -5,8 +5,8 @@
 
   <ol class="grid grid-cols-3 gap-2 items-start" cdkListbox [(ngModel)]="sourceType">
     @for (option of fileTypeOptions; track option.value) {
-      <li #opt="cdkOption" class="type-option relative flex flex-col h-24 max-w-xs border border-solid border-gray-200 rounded-2xl p-2 cursor-pointer
-        hover:bg-gray-50 hover:shadow-sm"
+      <li #opt="cdkOption" class="type-option relative flex flex-col h-24 max-w-xs border-2 border-solid border-gray-100 rounded-2xl p-2 cursor-pointer
+        hover:border-gray-200 hover:bg-gray-50 hover:shadow-sm"
         [cdkOption]="option.value"
         [class.active]="opt.isSelected()"
       >

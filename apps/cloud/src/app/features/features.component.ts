@@ -137,7 +137,10 @@ export class FeaturesComponent implements OnInit {
   readonly loading = signal(false)
 
   readonly title = this.appService.title
-  readonly copilotEnabled$ = toSignal(this.appService.copilotEnabled$)
+  /**
+   * @deprecated use Xpert Agent instead
+   */
+  readonly copilotEnabled$ = signal(false) // toSignal(this.appService.copilotEnabled$)
   readonly user$ = toSignal(this.store.user$)
 
   readonly selectedOrganization$ = this.store.selectedOrganization$

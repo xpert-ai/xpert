@@ -36,12 +36,7 @@ export class ModelDimensionService {
     { name: 'semantic_model_dimension_pristine', arrayKey: '__id__' },
     withProps<PropertyDimension>(null)
   )
-  // readonly #stateHistory = stateHistory<Store, PropertyDimension>(this.store, {
-  //   comparatorFn: negate(isEqual)
-  // })
   readonly dirtyCheckResult = dirtyCheckWith(this.store, this.pristineStore, { comparator: negate(isEqual) })
-  // readonly dimensionDirty = this.dirtyCheckResult.dirty
-  // readonly dirty$ = toObservable(this.dirtyCheckResult.dirty)
   readonly dimension$ = this.store.pipe(
     select((state) => state),
     filter(nonNullable)
@@ -49,22 +44,12 @@ export class ModelDimensionService {
 
   readonly dirty = signal<Record<string, boolean>>({})
 
-  // private dirtyCheckQuery: DirtyCheckQuery = new DirtyCheckQuery(this, {
-  //   watchProperty: ['dimension'],
-  //   clean: (head, current) => {
-  //     return of(true)
-  //   }
-  // })
-  // public dirty$ = this.dirtyCheckQuery.isDirty$
-
   // Query
-  // public readonly dimension$ = this.select((state) => state.dimension).pipe(filter(nonNullable))
   public readonly name$ = this.dimension$.pipe(
     map((dimension) => dimension?.name),
     distinctUntilChanged()
   )
   public readonly hierarchies$ = this.dimension$.pipe(map((dimension) => dimension?.hierarchies))
-  // public readonly currentHierarchy$ = this.select((state) => state.currentHierarchy)
 
   public readonly dimEntityService$ = this.name$.pipe(
     filter(nonBlank),
@@ -123,33 +108,19 @@ export class ModelDimensionService {
     timer(0).subscribe(() => {
       this.initHierarchyIndex()
     })
-
-    // this.dirtyCheckResult.setHead()
-
-    // this.connect(this.modelService, { parent: ['dimensions', id] })
-    //   .pipe(takeUntilDestroyed(this.#destroyRef))
-    //   .subscribe(() => {
-    //     // this.dirtyCheckQuery.setHead()
-    //     this.initHierarchyIndex()
-    //   })
-
-    // this.modelService.saved$.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe(() => {
-    // this.dirtyCheckQuery.setHead()
-    // this.dirtyCheckResult.setHead()
-    // })
   }
 
   /**
-   * 可以被下级页面调用设置当前 Hierarchy
+   * Can be called by the lower level page to set the current Hierarchy
    */
   setCurrentHierarchy(id: string) {
     this.currentHierarchy.set(id)
   }
 
   /**
-   * 初始化下级 Hierarchy 页面初始页(在初始化状态后立即执行)
+   * Initialize the sub-level Hierarchy page initial page (executed immediately after initialization)
    *
-   * 如果有被设置 `currentHierarchyIndex` 则取相应的 Hierarchy, 否则取第一个
+   * If `currentHierarchyIndex` is set, take the corresponding Hierarchy, otherwise take the first one
    */
   initHierarchyIndex() {
     const currentHierarchyIndex = this.currentHierarchyIndex()

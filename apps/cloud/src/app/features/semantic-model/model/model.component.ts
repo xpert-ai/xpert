@@ -356,44 +356,63 @@ export class ModelComponent {
     return event.dropContainer.id === CdkDragDropContainers.Tables
   }
 
-  dropCube(event: CdkDragDrop<Array<ModelCubeState>>) {
+  dropEntity(event: CdkDragDrop<Array<TableEntity>>) {
     if (
-      event.previousContainer.id === CdkDragDropContainers.Tables &&
-      event.container.id === CdkDragDropContainers.Cubes
+      event.previousContainer.id === CdkDragDropContainers.Tables
     ) {
-      this.createEntity(event.item.data, SemanticModelEntityType.CUBE)
+      this.createEntity(event.item.data)
     }
     // Move items in array
     if (event.previousContainer === event.container) {
-      this.modelService.moveItemInCubes(event)
+      if (event.item.data.type === SemanticModelEntityType.CUBE) {
+        this.modelService.moveItemInCubes(event)
+      } else if (event.item.data.type === SemanticModelEntityType.DIMENSION) {
+        this.modelService.moveItemInDimensions(event)
+      } else if (event.item.data.type === SemanticModelEntityType.VirtualCube) {
+        this.modelService.moveItemInVirtualCubes(event)
+      }
     }
   }
 
-  dropDimension(event: CdkDragDrop<Array<ModelDimensionState>>) {
-    if (
-      event.previousContainer.id === CdkDragDropContainers.Tables &&
-      event.container.id === CdkDragDropContainers.ShareDimensions
-    ) {
-      this.createEntity(event.item.data, SemanticModelEntityType.DIMENSION)
-    }
-    // Move items in array
-    if (event.previousContainer === event.container) {
-      this.modelService.moveItemInDimensions(event)
-    }
-  }
+  // dropCube(event: CdkDragDrop<Array<ModelCubeState>>) {
+  //   if (
+  //     event.previousContainer.id === CdkDragDropContainers.Tables &&
+  //     event.container.id === CdkDragDropContainers.Cubes
+  //   ) {
+  //     this.createEntity(event.item.data, SemanticModelEntityType.CUBE)
+  //   }
+  //   // Move items in array
+  //   if (event.previousContainer === event.container) {
+  //     this.modelService.moveItemInCubes(event)
+  //   }
+  // }
 
-  dropVirtualCube(event: CdkDragDrop<Array<VirtualCube>>) {
-    if (
-      event.previousContainer.id === CdkDragDropContainers.Tables &&
-      event.container.id === CdkDragDropContainers.VirtualCubes
-    ) {
-      this.createEntity(event.item.data, SemanticModelEntityType.VirtualCube)
-    }
-    // Move items in array
-    if (event.previousContainer === event.container) {
-      this.modelService.moveItemInVirtualCubes(event)
-    }
-  }
+  // dropDimension(event: CdkDragDrop<Array<ModelDimensionState>>) {
+  //   if (
+  //     event.previousContainer.id === CdkDragDropContainers.Tables 
+  //     // &&
+  //     // event.container.id === CdkDragDropContainers.ShareDimensions
+  //   ) {
+  //     this.createEntity(event.item.data, SemanticModelEntityType.DIMENSION)
+  //   }
+  //   // Move items in array
+  //   if (event.previousContainer === event.container) {
+  //     this.modelService.moveItemInDimensions(event)
+  //   }
+  // }
+
+  // dropVirtualCube(event: CdkDragDrop<Array<VirtualCube>>) {
+  //   if (
+  //     event.previousContainer.id === CdkDragDropContainers.Tables &&
+  //     event.container.id === CdkDragDropContainers.VirtualCubes
+  //   ) {
+  //     this.createEntity(event.item.data, SemanticModelEntityType.VirtualCube)
+  //   }
+  //   // Move items in array
+  //   if (event.previousContainer === event.container) {
+  //     this.modelService.moveItemInVirtualCubes(event)
+  //   }
+  // }
 
   onDragReleased(event: CdkDragRelease) {
     this.modelService.dragReleased$.next(event.source.dropContainer._dropListRef)

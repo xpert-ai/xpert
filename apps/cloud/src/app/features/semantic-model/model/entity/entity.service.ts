@@ -509,7 +509,7 @@ export class ModelEntityService {
   /**
    * New measure then navigate to attribute panel
    */
-  readonly newMeasure = this.updater((state, event?: { index: number; column?: string }) => {
+  readonly newMeasure = this.updater((state, event?: { index: number; column?: string; caption?: string }) => {
     state.measures = state.measures ?? []
     let __id__: string = null
     if (event) {
@@ -518,6 +518,7 @@ export class ModelEntityService {
         __id__,
         name: event.column,
         column: event.column,
+        caption: event.caption,
         aggregator: 'sum',
         visible: true
       })

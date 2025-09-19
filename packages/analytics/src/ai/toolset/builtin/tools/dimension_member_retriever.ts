@@ -91,7 +91,9 @@ export function buildDimensionMemberRetrieverTool(context: Partial<TBIContext>, 
 				type: ChatMessageStepCategory.Knowledges,
 				data: docs.map(([doc]) => doc)
 			})
-			return formatDocumentsAsString(docs.map(([doc]) => doc))
+			return docs.map(([doc]) => 
+				`- Caption: ${doc.metadata.caption || ''}; Key: \`${doc.metadata.key}\``
+			).join('\n')
 		},
 		{
 			name,
@@ -101,7 +103,7 @@ export function buildDimensionMemberRetrieverTool(context: Partial<TBIContext>, 
 				modelId: z.string().describe('The model ID'),
 				cube: z.string().describe('The cube name'),
 				query: z.string().describe('The keywords to look up members'),
-				dimension: z.string().optional().describe('The dimension to look up in the retriever'),
+				dimension: z.string().describe('The dimension to look up in the retriever'),
 				hierarchy: z.string().optional().describe('The hierarchy to look up in the retriever'),
 				level: z.string().optional().describe('The level to look up in the retriever'),
 				topK: z.number().optional().describe('Top k results'),

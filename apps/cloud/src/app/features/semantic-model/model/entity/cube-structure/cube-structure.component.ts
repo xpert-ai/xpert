@@ -454,7 +454,7 @@ export class ModelCubeStructureComponent {
 
     // Add shared dimension into this cube
     if (
-      event.previousContainer.id === CdkDragDropContainers.ShareDimensions &&
+      // event.previousContainer.id === CdkDragDropContainers.ShareDimensions &&
       previousItem.type === SemanticModelEntityType.DIMENSION &&
       event.container.id === CdkDragDropContainers.Dimensions
     ) {
@@ -467,18 +467,18 @@ export class ModelCubeStructureComponent {
     }
   }
 
-  async dropMeasure(event: CdkDragDrop<any[]>) {
+  dropMeasure(event: CdkDragDrop<any[]>) {
     if (event.previousContainer === event.container) {
       this.entityService.moveItemInMeasures(event)
     } else if (
       event.previousContainer.id === CdkDragDropContainers.FactTableMeasures ||
       event.previousContainer.id === CdkDragDropContainers.FactTableDimensions
     ) {
-      this.entityService.newMeasure({ index: event.currentIndex, column: event.item.data.name })
+      this.entityService.newMeasure({ index: event.currentIndex, column: event.item.data.name, caption: event.item.data.caption })
     }
   }
 
-  async dropCalcMembers(event: CdkDragDrop<Partial<CalculatedMember>[]>) {
+  dropCalcMembers(event: CdkDragDrop<Partial<CalculatedMember>[]>) {
     if (event.previousContainer === event.container) {
       this.entityService.moveItemInCalculatedMember(event)
     } else if (

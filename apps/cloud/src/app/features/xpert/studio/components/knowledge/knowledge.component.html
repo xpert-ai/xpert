@@ -17,7 +17,7 @@
   [title]="knowledge().description">{{knowledge().description}}</div>
 
 @if (executions()?.length) {
-  <div class="flex justify-start items-center px-3 pt-2 pb-3 h-10">
+  <div class="flex flex-wrap justify-start gap-1 px-3 pt-2 pb-3 h-10">
     @for (execution of executions(); track execution) {
       @switch (execution.data.status) {
         @case ('running') {

@@ -89,14 +89,6 @@ export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAcc
 
   @Input() validators: ValidatorFn | ValidatorFn[] | null
 
-  // @Input() get selectOptions(): ISelectOption[] {
-  //   return this._selectOptions$.value
-  // }
-  // set selectOptions(value) {
-  //   this._selectOptions$.next(value)
-  // }
-  // private _selectOptions$ = new BehaviorSubject<ISelectOption[]>([])
-
   readonly selectOptions = input<ISelectOption[]>([])
 
   @Input() get multiple(): boolean {

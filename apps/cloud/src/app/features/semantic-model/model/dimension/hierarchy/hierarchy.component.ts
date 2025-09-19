@@ -15,7 +15,7 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { ActivatedRoute } from '@angular/router'
 import { nonNullable } from '@metad/core'
 import { NgmCommonModule, ResizerModule, SplitterModule, SplitterType } from '@metad/ocap-angular/common'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { debouncedSignal, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   EntityCapacity,
   EntitySchemaNode,
@@ -252,6 +252,9 @@ export class ModelHierarchyComponent implements AfterViewInit {
     return null
   })
 
+  readonly limit = model<number>(1000)
+  readonly #dLimit = debouncedSignal(this.limit, 300)
+
   readonly queryOptions = computed(() => {
     const levelColumns = this.levelColumns()
     if (levelColumns) {
@@ -268,7 +271,10 @@ export class ModelHierarchyComponent implements AfterViewInit {
             by: column.level,
             order: OrderDirection.ASC
           }))
-        ]
+        ],
+        paging: {
+          top: this.#dLimit()
+        }
       } as QueryOptions
     }
     return null
