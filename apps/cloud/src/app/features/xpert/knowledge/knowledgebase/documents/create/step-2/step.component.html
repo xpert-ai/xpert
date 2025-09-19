@@ -21,7 +21,7 @@
       >
         <div icon>
           @if (transformerStrategy()?.icon; as icon) {
-            <div [innerHTML]="icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+            <div [innerHTML]="icon.svg | safe: 'html'" class="w-5 h-5 shrink-0 flex justify-center items-center mr-2"
               [style.color]="icon.color || '#14b8a6'"></div>
           }
         </div>
@@ -54,11 +54,11 @@
         </div>
         
         @if (transformerStrategy(); as transformerStrategy) {
-          <div class="flex-1 space-y-0.5 px-4">
+          <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
             <div class="text-text-secondary system-md-semibold">
               {{ transformerStrategy.label | i18n }}
             </div>
-            <div class="text-text-tertiary system-xs-regular truncate">
+            <div class="text-text-tertiary system-xs-regular truncate" [title]="transformerStrategy.description | i18n">
               {{ transformerStrategy.description | i18n }}
             </div>
           </div>
@@ -88,11 +88,11 @@
           </div>
         </div>
         
-        <div class="flex-1 space-y-0.5 py-3 pr-4">
+        <div class="flex-1 space-y-0.5 py-3 pr-4 overflow-hidden">
           <div class="text-text-secondary system-md-semibold">
             {{ textSplitterStrategy().label | i18n }}
           </div>
-          <div class="text-text-tertiary system-xs-regular">
+          <div class="text-text-tertiary system-xs-regular truncate" [title]="textSplitterStrategy().description | i18n">
             {{ textSplitterStrategy().description | i18n }}
           </div>
         </div>
