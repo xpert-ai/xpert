@@ -1,3 +1,4 @@
+import { CreateToolsetHandler } from "./create-toolset.handler";
 import { ToolsetGetToolsHandler } from "./get-tools.handler";
 import { MCPToolsBySchemaHandler } from "./mcp-tools-schema.handler";
 import { ParserODataSchemaHandler } from "./parser-odata-schema.handler";
@@ -7,5 +8,6 @@ export const CommandHandlers = [
     ToolsetGetToolsHandler, 
     ParserOpenAPISchemaHandler, 
     ParserODataSchemaHandler,
-    MCPToolsBySchemaHandler
+    MCPToolsBySchemaHandler,
+    CreateToolsetHandler
 ]

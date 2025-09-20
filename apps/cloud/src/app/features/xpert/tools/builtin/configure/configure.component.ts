@@ -184,18 +184,22 @@ export class XpertToolConfigureBuiltinComponent {
   }
 
   getToolEnabled(name: string) {
-    return this.tools()?.find((_) => _.name === name)?.enabled
+    const tool = this.tools()?.find((_) => _.name === name)
+    if (tool) {
+      return !tool.disabled
+    }
+    return false
   }
 
-  setToolEnabled(name: string, enabled: boolean, schema: IBuiltinTool) {
+  setToolEnabled(name: string, enabled: boolean, tool: IBuiltinTool) {
     this.tools.update((state) => {
       const existingTool = state?.find((tool) => tool.name === name);
       if (existingTool) {
-        existingTool.enabled = enabled;
-        existingTool.schema = existingTool.schema || schema;
+        existingTool.disabled = !enabled;
+        existingTool.schema = existingTool.schema || tool.schema;
         return [...state];
       } else {
-        return [...(state ?? []), { name, enabled, schema }];
+        return [...(state ?? []), { name, enabled, schema: tool.schema }];
       }
     })
 

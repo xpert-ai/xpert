@@ -73,7 +73,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 
 		switch (toolset.category) {
 			case XpertToolsetCategoryEnum.BUILTIN: {
-				const builtinToolset = createBuiltinToolset(
+				const builtinToolset = await createBuiltinToolset(
 					toolset.type,
 					{
 						...toolset,

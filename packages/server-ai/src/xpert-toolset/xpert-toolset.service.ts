@@ -17,6 +17,7 @@ import { I18nService, TranslateOptions } from 'nestjs-i18n';
 import { createBuiltinToolset } from './provider/builtin'
 import { EnvStateQuery } from '../environment'
 import { BuiltinToolset } from '../shared'
+import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 
 @Injectable()
 export class XpertToolsetService extends TenantOrganizationAwareCrudService<XpertToolset> {
@@ -24,6 +25,9 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 
 	@Inject(ConfigService)
 	private readonly configService: ConfigService
+
+	@Inject(ToolsetRegistry)
+	protected readonly toolsetRegistry: ToolsetRegistry
 
 	/**
 	 * @deprecated
@@ -114,7 +118,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		}
 
 		const envState = await this.queryBus.execute(new EnvStateQuery(entity.workspaceId))
-		const toolproviderController: BuiltinToolset = createBuiltinToolset(provider, null, {
+		const toolproviderController: BuiltinToolset = await createBuiltinToolset(provider, null, {
 			tenantId,
 			organizationId,
 			// toolsetService: this,

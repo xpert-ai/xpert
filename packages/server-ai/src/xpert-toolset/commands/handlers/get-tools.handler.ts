@@ -53,10 +53,10 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 			store: command.environment?.store
 		}
 
-		return toolsets.map((toolset) => {
+		return Promise.all(toolsets.map(async (toolset) => {
 			switch (toolset.category) {
 				case XpertToolsetCategoryEnum.BUILTIN: {
-					return createBuiltinToolset(toolset.type, toolset, context)
+					return await createBuiltinToolset(toolset.type, toolset, context)
 				}
 				case XpertToolsetCategoryEnum.API: {
 					switch (toolset.type) {
@@ -78,6 +78,6 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 					throw new ToolProviderNotFoundError(`Tool category '${toolset.category}' not found`)
 				}
 			}
-		})
+		}))
 	}
 }
