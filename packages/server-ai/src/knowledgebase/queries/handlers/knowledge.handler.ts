@@ -45,7 +45,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 					)
 					docs = chunks.map(([doc, score]) => ({ doc, score }))
 				} else {
-					docs = await this.similaritySearchWithScore(kb, query, topK, filter)
+					docs = await this.similaritySearchWithScore(kb, query, k ?? kb.recall.topK ?? 1000, filter)
 				}
 
 				return {
