@@ -1,16 +1,17 @@
-import { IDocumentChunk, IKnowledgeDocument, KBDocumentStatusEnum } from '@metad/contracts'
+import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum } from '@metad/contracts'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
-import { DocumentSourceRegistry } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, DocumentSourceRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { In, Repository } from 'typeorm'
 import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
+import { KnowledgeDocumentPage } from '../core'
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
@@ -19,9 +20,14 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	@Inject(DocumentSourceRegistry)
 	private readonly docSourceRegistry: DocumentSourceRegistry;
 
+	@InjectRepository(KnowledgeDocumentPage)
+	private readonly pageRepository: Repository<KnowledgeDocumentPage>
+
 	constructor(
 		@InjectRepository(KnowledgeDocument)
 		repository: Repository<KnowledgeDocument>,
+
+
 		private readonly storageFileService: StorageFileService,
 		private readonly knowledgebaseService: KnowledgebaseService,
 		private readonly commandBus: CommandBus,
@@ -59,6 +65,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 			: await this.repository.save(document)
 	}
 
+	async createPageBulk(documentId: string, pages: Partial<IKnowledgeDocumentPage<ChunkMetadata>>[]) {
+		return await this.pageRepository.save(pages.map((page) => ({ ...page, documentId })))
+	}
+
 	async deletePage(documentId: string, id: string) {
 		const document = await this.findOne(documentId, {
 			relations: ['pages', 'knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
@@ -75,7 +85,29 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
 		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
-		return await vectorStore.getChunks(id, params)
+		
+		const pages = await this.pageRepository.find({
+			where: { tenantId: document.tenantId, documentId: document.id },
+			take: params.take,
+			skip: params.skip,
+			order: { createdAt: 'DESC' }
+		})
+		const pageTotal = await this.pageRepository.count({
+			where: { tenantId: document.tenantId, documentId: document.id }
+		})
+		if (pages.length) {
+			for await (const page of pages) {
+				const result = await vectorStore.getChunks(id, {filter: {pageId: page.id}})
+				page.metadata.children = result.items
+			}
+			return {
+				items: pages,
+				total: pageTotal
+			}
+		}
+
+		const result = await vectorStore.getChunks(id, params)
+		return result
 	}
 
 	async createChunk(id: string, entity: IDocumentChunk) {

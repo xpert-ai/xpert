@@ -139,7 +139,8 @@ export class KnowledgeDocumentCreateStep2Component {
   readonly textSplitterStrategies = computed(() => this.createComponent.textSplitterStrategies()?.map((strategy) => ({
     value: strategy.name,
     label: strategy.label,
-    description: strategy.description
+    description: strategy.description,
+    icon: strategy.icon
   })))
 
   readonly textSplitterStrategy = computed(() => this.createComponent.textSplitterStrategies()?.find((strategy) => strategy.name === this.textSplitterType()))

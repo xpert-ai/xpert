@@ -1,8 +1,7 @@
 import { Document } from '@langchain/core/documents'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { Metadata } from './knowledge-doc.model'
 
-export interface IKnowledgeDocumentPage extends Document, IBasePerTenantAndOrganizationEntityModel {
+export interface IKnowledgeDocumentPage<Metadata extends Record<string, any> = Record<string, any>> extends Document, IBasePerTenantAndOrganizationEntityModel {
   metadata: Metadata
   pageContent: string
 }

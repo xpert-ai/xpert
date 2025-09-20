@@ -25,7 +25,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		private readonly transformerRegistry: DocumentTransformerRegistry
 	) {}
 
-	public async execute(command: KnowledgeDocLoadCommand): Promise<Document[]> {
+	public async execute(command: KnowledgeDocLoadCommand): Promise<{chunks: Document[]; pages?: Document[]}> {
 		const { doc } = command.input
 
 		if (doc.category === KBDocumentCategoryEnum.Sheet) {
@@ -43,7 +43,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 					})
 				)
 			}
-			return documents
+			return {chunks: documents}
 		}
 
 		if (doc.storageFileId) {
@@ -125,12 +125,14 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			document.parserConfig.textSplitterType || 'recursive-character'
 		)
 		if (textSplitter) {
-			return textSplitter.splitDocuments(data, {
+			const result = await textSplitter.splitDocuments(data, {
 				chunkSize,
 				chunkOverlap,
 				separators: delimiter?.split(' '),
 				...(document.parserConfig.textSplitter || {})
 			})
+
+			return result
 		}
 
 		const textSplitter1 = new RecursiveCharacterTextSplitter({
@@ -139,6 +141,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			separators: delimiter?.split(' ')
 		})
 
-		return await textSplitter1.splitDocuments(data)
+		return {
+			chunks: await textSplitter1.splitDocuments(data)
+		}
 	}
 }

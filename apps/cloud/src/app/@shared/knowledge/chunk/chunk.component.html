@@ -1,0 +1,74 @@
+<div class="flex h-4 w-4 cursor-pointer items-center justify-center rounded-[4px] shadow-xs shadow-shadow-shadow-3 border border-components-checkbox-border bg-components-checkbox-bg-unchecked hover:bg-components-checkbox-bg-unchecked-hover hover:border-components-checkbox-border-hover mt-3.5 shrink-0">
+</div>
+<div class="min-w-0 grow">
+  <div class="group/card w-full rounded-xl px-3 pb-2 pt-2.5 hover:bg-gray-100">
+    <div class="relative flex h-5 items-center justify-between">
+      <div class="flex items-center gap-x-2">
+        <div class="flex items-center">
+          <i class="ri-text-block mr-1 text-text-tertiary"></i>
+          <div class="system-xs-medium">{{'PAC.Knowledgebase.Chunk' | translate: {Default: 'Chunk'} }}-{{index() + 1}}</div>
+        </div>
+        <div class="system-xs-medium text-text-quaternary">·</div>
+        <div class="text-text-tertiary system-xs-medium">{{chunk().pageContent?.length}} {{'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</div>
+        <div class="system-xs-medium text-text-quaternary">·</div>
+        <!-- <div class="system-xs-medium text-text-tertiary">0 召回次数</div> -->
+      </div>
+      <div class="flex items-center">
+        <div class="flex items-center flex-row-reverse gap-1">
+          @if (chunk().metadata?.enabled) {
+            <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+            <span class="text-sm text-text-tertiary system-xs-regular">
+              {{'PAC.Knowledgebase.Enabled' | translate: {Default: 'Enabled'} }}
+            </span>
+          } @else {
+            <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-gray-300 flex'></span>
+            <span class="text-sm text-text-tertiary system-xs-regular">
+              {{'PAC.Knowledgebase.Disabled' | translate: {Default: 'Disabled'} }}
+            </span>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="font-body !mt-0.5 text-text-primary line-clamp-2">
+      <p>{{ chunk().pageContent }}</p>
+    </div>
+    
+    @if (chunk().metadata.children; as children) {
+      <div class="flex flex-col pb-2 pt-1">
+        <div class="flex items-center justify-between">
+          <div class="flex h-7 items-center rounded-lg pl-1 pr-3 cursor-pointer" (click)="expanded.set(!expanded())">
+            <i class="ri-arrow-right-s-line mr-0.5 text-text-secondary" [class.rotate-90]="expanded()"></i>
+            <span class="system-sm-semibold-uppercase text-text-secondary">{{children.length}} 子分段</span>
+            <span class="pl-1.5 text-xs font-medium text-text-quaternary hidden group-hover/card:inline-block">·</span>
+            <button type="button" class="btn btn-secondary btn-sm system-xs-semibold-uppercase px-1.5 py-0.5 hidden group-hover/card:inline-block">添加</button>
+          </div>
+        </div>
+        @if (expanded()) {
+          <div class="flex gap-x-0.5 items-center">
+            <div class="self-stretch">
+              <div class="h-full mx-[7px] w-[2px] bg-text-accent-secondary"></div>
+            </div>
+            <p class="flex w-full flex-col leading-6 gap-y-2">
+              @for (chunk of children; track chunk; let j = $index) {
+                <span class="group relative select-none align-bottom text-sm mr-0 block" style="overflow-wrap: break-word;">
+                  <span class="py-[3px] bg-state-base-hover-alt px-1 uppercase text-text-tertiary group-hover:bg-accent-500 group-hover:text-text-primary">
+                    <span class="text-nowrap text-[10px] font-semibold align-bottom leading-6">C-{{j + 1}}</span>
+                  </span>
+                  <span class="py-[3px] whitespace-pre-line break-all bg-state-base-hover px-1 font-body group-hover:bg-state-accent-hover-alt group-hover:text-text-primary leading-6 text-text-secondary"
+                    >{{chunk.pageContent}}</span>
+
+                  <div class="absolute right-2 -top-1 hidden group-hover:inline-block">
+                    <button type="button" class="w-6 h-6 flex justify-center items-center rounded-lg hover:bg-red-50 hover:text-text-destructive">
+                      <i class="ri-delete-bin-4-line"></i>
+                    </button>
+                  </div>
+                </span>
+              }
+            </p>
+          </div>
+        }
+      </div>
+    }
+  </div>
+  <div class="w-full px-3"><div class="w-full h-[0.5px] my-1 bg-divider-subtle"></div></div>
+</div>

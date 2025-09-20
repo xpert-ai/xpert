@@ -21,7 +21,7 @@ import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { MatButtonModule } from '@angular/material/button'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
-import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { KnowledgeChunkComponent, KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { NgModelChangeDebouncedDirective } from 'apps/cloud/src/app/@theme/directives'
 
 
@@ -31,9 +31,11 @@ import { NgModelChangeDebouncedDirective } from 'apps/cloud/src/app/@theme/direc
   templateUrl: './chunk.component.html',
   styleUrls: ['./chunk.component.scss'],
   imports: [
-    FormsModule, TranslateModule, MatButtonModule, MatTooltipModule, MatIconModule, WaIntersectionObserver, NgmCommonModule,
+    FormsModule, TranslateModule, MatButtonModule, MatTooltipModule, MatIconModule, WaIntersectionObserver,
+    NgmCommonModule,
     NgModelChangeDebouncedDirective,
     KnowledgeDocIdComponent,
+    KnowledgeChunkComponent
   ]
 })
 export class KnowledgeDocumentChunkComponent {

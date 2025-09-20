@@ -24,6 +24,7 @@ import {
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { ChunkMetadata, mergeParentChildChunks } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { Queue } from 'bull'
 import { In } from 'typeorm'
@@ -76,7 +77,8 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
 		try {
 			entity.category ??= isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
-			return await this.commandBus.execute(new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument}))
+			const result = await this.commandBus.execute<KnowledgeDocLoadCommand, { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }>(new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument}))
+			return result.pages?.length ? mergeParentChildChunks(result.pages, result.chunks) : result.chunks
 		} catch(err) {
 			throw new BadRequestException(getErrorMessage(err))
 		}

@@ -1,8 +1,12 @@
 import { EmbeddingsInterface } from '@langchain/core/embeddings'
 import { VectorStore } from '@langchain/core/vectorstores'
 
-
-export interface IVectorStoreStrategy<TConfig extends {collectionName?: string}, TInput = any> {
+/**
+ * Interface for VectorStore strategy。
+ * 
+ * 
+ */
+export interface IVectorStoreStrategy<TConfig extends {collectionName?: string}> {
   /**
    * Metadata about the strategy
    */

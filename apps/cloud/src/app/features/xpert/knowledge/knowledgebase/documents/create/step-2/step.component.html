@@ -15,9 +15,9 @@
           <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
         </a>
       }
-      <ngm-select class="flex-1" [placeholder]=" 'PAC.Knowledgebase.SelectTransformer' | translate: {Default: 'Select a transformer'} "
+      <ngm-select class="flex-1 w-52" [placeholder]=" 'PAC.Knowledgebase.SelectTransformer' | translate: {Default: 'Select a transformer'} "
         [(ngModel)]="transformerType"
-        [selectOptions]="documentTransformerStrategies()" class="w-52" [nullable]="false"
+        [selectOptions]="documentTransformerStrategies()"
       >
         <div icon>
           @if (transformerStrategy()?.icon; as icon) {
@@ -26,14 +26,14 @@
           }
         </div>
         <ng-template #option let-option>
-          <div class="relative flex gap-2">
+          <div class="relative flex">
             @if (option.icon) {
               <div [innerHTML]="option.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
                 [style.color]="option.icon.color || '#14b8a6'"></div>
             }
             <div class="flex flex-col gap-1">
               <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
-              <div class="text-text-secondary text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+              <div class="text-text-tertiary text-xs font-body leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
             </div>
           </div>
         </ng-template>
@@ -66,7 +66,7 @@
       </div>
       <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
         @if (transformerConfigSchema(); as transformerConfigSchema) {
-          <json-schema-form class="mt-2" [schema]="transformerConfigSchema" 
+          <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="transformerConfigSchema" 
             [(ngModel)]="transformer"
           />
         }
@@ -76,8 +76,38 @@
     <div class="w-full h-[1px] shrink-0 my-4 bg-divider-regular"></div>
 
     <div class="system-md-semibold mb-1 flex justify-between items-center">
-      {{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}
-      <ngm-select [(ngModel)]="textSplitterType" [selectOptions]="textSplitterStrategies()" class="w-52" [nullable]="false" />
+      <div class="flex-1">{{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}</div>
+
+      @if (textSplitterStrategy()?.helpUrl; as helpUrl) {
+        <a [href]="helpUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
+          {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+          <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+          <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+        </a>
+      }
+      <ngm-select class="w-52" [(ngModel)]="textSplitterType" [selectOptions]="textSplitterStrategies()" [nullable]="false">
+        <div icon>
+          @if (textSplitterStrategy()?.icon; as icon) {
+            <div [innerHTML]="icon.svg | safe: 'html'" class="w-5 h-5 shrink-0 flex justify-center items-center mr-2"
+              [style.color]="icon.color || '#14b8a6'"></div>
+          }
+        </div>
+        <ng-template #option let-option>
+          <div class="relative flex">
+            @if (option.icon) {
+              <div [innerHTML]="option.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+                [style.color]="option.icon.color || '#14b8a6'"></div>
+            }
+            <div class="flex flex-col gap-1">
+              <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
+              <div class="text-text-tertiary text-xs font-body leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+            </div>
+          </div>
+        </ng-template>
+      </ngm-select>
     </div>
 
     <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
@@ -134,7 +164,7 @@
 
               <div class="w-full h-[0.5px] my-4 bg-divider-subtle"></div>
 
-              <json-schema-form class="mt-2" [schema]="textSplitterConfigSchema()" 
+              <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="textSplitterConfigSchema()" 
                 [ngModel]="textSplitter()"
                 (ngModelChange)="textSplitter.set($event)"
               />
@@ -168,7 +198,7 @@
   </div>
 
   <div class="grow max-w-[60%] relative flex flex-col pl-4 py-4 border-l border-y border-solid border-divider-regular rounded-xl">
-    <header class="pl-5 pt-4 pr-4 pb-3 border-b border-divider-subtle">
+    <header class="pl-5 py-2 pr-4 border-b border-divider-subtle">
       <div class="">
         <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">
           {{ 'PAC.Knowledgebase.Preview' | translate: {Default: 'Preview'} }}
@@ -201,7 +231,7 @@
     </header>
 
     @if (selectedFile()) {
-      <xpert-knowledge-document-preview class="py-5 px-6 w-full grow space-y-6 overflow-auto" 
+      <xpert-knowledge-document-preview class="py-4 w-full grow space-y-6 overflow-auto" 
             [(item)]="selectedFile" 
             [parserConfig]="parserConfig()"
           />

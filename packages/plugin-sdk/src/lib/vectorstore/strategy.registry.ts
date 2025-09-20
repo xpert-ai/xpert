@@ -5,8 +5,8 @@ import { VECTOR_STORE_STRATEGY } from './strategy.decorator';
 import { IVectorStoreStrategy } from './strategy.interface';
 
 @Injectable()
-export class VectorStoreRegistry<TConfig = any, TInput = any>
-  extends BaseStrategyRegistry<IVectorStoreStrategy<TConfig, TInput>> 
+export class VectorStoreRegistry<TConfig = any>
+  extends BaseStrategyRegistry<IVectorStoreStrategy<TConfig>> 
 {
   constructor(
     discoveryService: DiscoveryService,

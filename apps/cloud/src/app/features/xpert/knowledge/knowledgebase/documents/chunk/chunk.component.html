@@ -90,8 +90,24 @@
       waIntersectionThreshold="0.5">
       <ul class="example-list-wrapping m-2">
         @for (chunk of chunks(); track chunk.id; let i = $index; let last = $last) {
-          <li class="relative w-full px-3 rounded-xl group/card pt-2.5 pb-2 hover:bg-black/5 dark:hover:bg-white/10">
-
+          <li class="relative group/chunk">
+            <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
+            <div class="absolute top-0.5 right-0.5 z-20 hidden group-hover/chunk:flex items-center gap-x-0.5 p-1 rounded-[10px] border-[0.5px] border-components-actionbar-border bg-components-actionbar-bg shadow-md backdrop-blur-[5px]">
+              <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-state-base-hover cursor-pointer"
+                (click)="editChunk.set(chunk)">
+                <i class="ri-edit-line text-text-tertiary"></i>
+              </div>
+              <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive cursor-pointer group/delete"
+                (click)="deleteChunk(chunk)"
+              >
+                <i class="ri-delete-bin-3-line"></i>
+              </div>
+              <div class="w-[1px] mx-2 h-3.5 bg-divider-deep"></div>
+              <div class="flex items-center">
+                <ngm-slide-toggle [ngModel]="chunk.metadata?.enabled" (ngModelChange)="enableChunk(chunk, $event)"/>
+              </div>
+            </div>
+<!-- 
             <div class="h-5 relative flex items-center justify-between">
               <div class="flex items-center gap-x-2">
                 <div class="flex items-center text-text-tertiary">
@@ -101,7 +117,6 @@
                 <div class="text-text-quaternary system-xs-medium">·</div>
                 <div class="text-text-tertiary system-xs-medium">{{chunk.pageContent?.length}} {{'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</div>
                 <div class="text-text-quaternary system-xs-medium">·</div>
-                <!-- <div class="text-text-tertiary system-xs-medium">0 召回次数</div> -->
               </div>
               <div class="flex items-center">
                 <div class="flex items-center flex-row-reverse gap-1">
@@ -118,25 +133,9 @@
                   }
                 </div>
               </div>
-            </div>
-
-            <div class="absolute -top-2 -right-2.5 z-20 hidden group-hover/card:flex items-center gap-x-0.5 p-1 rounded-[10px] border-[0.5px] border-components-actionbar-border bg-components-actionbar-bg shadow-md backdrop-blur-[5px]">
-              <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-state-base-hover cursor-pointer"
-                (click)="editChunk.set(chunk)">
-                <i class="ri-edit-line text-text-tertiary"></i>
-              </div>
-              <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive cursor-pointer group/delete"
-                (click)="deleteChunk(chunk)"
-              >
-                <i class="ri-delete-bin-3-line"></i>
-              </div>
-              <div class="w-[1px] mx-2 h-3.5 bg-divider-deep"></div>
-              <div class="flex items-center">
-                <ngm-slide-toggle [ngModel]="chunk.metadata?.enabled" (ngModelChange)="enableChunk(chunk, $event)"/>
-              </div>
-            </div>
+            </div> -->
           
-            <span class="text-sm line-clamp-3 text-zinc-500" [class.opacity-50]="chunk.metadata?.disabled">{{chunk.pageContent}}</span>
+            <!-- <span class="text-sm line-clamp-3 text-zinc-500" [class.opacity-50]="chunk.metadata?.disabled">{{chunk.pageContent}}</span> -->
           </li>
           @if (!last) {
             <div class="w-full px-3"><div class="w-full h-[0.5px] bg-divider-subtle my-1"></div></div>
@@ -149,7 +148,7 @@
   </div>
 
   @if (sideExpand() || editChunk()) {
-    <div class="shrink-0 w-[300px] md:w-[400px] lg:w-[500px] flex flex-col">
+    <div class="shrink-0 w-[300px] md:w-[400px] lg:w-[500px] flex flex-col absolute right-1 top-1 bottom-1 rounded-2xl border border-solid border-divider-subtle bg-components-card-bg shadow-lg z-20">
       <div class="flex items-center justify-between pt-3 pr-3 pl-4">
         <div class="flex flex-col">
           <div class="text-text-primary system-xl-semibold">

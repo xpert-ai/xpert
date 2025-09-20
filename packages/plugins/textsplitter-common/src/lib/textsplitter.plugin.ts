@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RecursiveCharacterStrategy } from './recursive-character.strategy';
 import { MarkdownRecursiveStrategy } from './markdown-recursive.strategy';
+import { ParentChildStrategy } from './parent-child.strategy';
 
 @XpertServerPlugin({
 	/**
@@ -18,7 +19,8 @@ import { MarkdownRecursiveStrategy } from './markdown-recursive.strategy';
 
 	providers: [
 		RecursiveCharacterStrategy,
-		MarkdownRecursiveStrategy
+		MarkdownRecursiveStrategy,
+		ParentChildStrategy
 	]
 })
 export class TextSplitterPlugin implements IOnPluginBootstrap, IOnPluginDestroy {
