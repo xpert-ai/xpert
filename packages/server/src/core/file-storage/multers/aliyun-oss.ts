@@ -26,9 +26,9 @@ export class StorageEngineOSS implements StorageEngine {
 		file.stream.on('data', (chunk) => {
 			size += Buffer.byteLength(chunk)
 		})
-		const result = await this.client.putStream(filename, file.stream)
-
+		
 		try {
+			const result = await this.client.putStream(filename, file.stream)
 			const { url, name } = result
 			const lastSlashIndex = name.lastIndexOf('/')
 			const path = name.substr(0, lastSlashIndex)
