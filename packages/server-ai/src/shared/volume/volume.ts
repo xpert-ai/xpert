@@ -39,6 +39,14 @@ export class VolumeClient {
 		}
 	}
 
+	static _getWorkspaceRoot(tenantId: string, type: 'projects' | 'users' | 'knowledges', id: string) {
+		if (environment.env.IS_DOCKER === 'true') {
+			return path.join(`/sandbox/${tenantId}`, `/${type}/${id}`)
+		} else {
+			return path.join(process.env.HOME || process.env.USERPROFILE, 'data')
+		}
+	}
+
 	static async getWorkspacePath(tenantId: string, projectId: string, userId: string, conversationId?: string): Promise<string> {
 		const dist = path.join(VolumeClient.getWorkspaceRoot(tenantId, projectId, userId), getWorkspace(projectId, conversationId) || '')
 		await fsPromises.mkdir(dist, { recursive: true })

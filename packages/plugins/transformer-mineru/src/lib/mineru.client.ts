@@ -9,7 +9,7 @@ interface CreateTaskOptions {
   enableFormula?: boolean;
   enableTable?: boolean;
   language?: string;
-  modelVersion?: string; // “vlm” 或 “pipeline”等
+  modelVersion?: string; // "vlm" or "pipeline" etc.
   dataId?: string;
   pageRanges?: string;
   extraFormats?: string[]; // e.g. ["docx","html"]
@@ -45,7 +45,7 @@ interface MineruTaskResult {
   code: number;
   msg: string;
   trace_id: string;
-  data: any;  // 可以根据具体返回结构定义类型
+  data: any;  // Can define the type according to the specific return structure
 }
 
 @Injectable()
@@ -74,7 +74,7 @@ export class MinerUClient {
   }
 
   /**
-   * 创建单个任务
+   * Creating a single task
    */
   async createTask(options: CreateTaskOptions): Promise<{ taskId: string }> {
     const url = `${this.baseUrl}/extract/task`;
@@ -106,7 +106,7 @@ export class MinerUClient {
   }
 
   /**
-   * 创建批量任务
+   * Creating batch tasks
    */
   async createBatchTask(options: CreateBatchTaskOptions): Promise<{ batchId: string; fileUrls?: string[] }> {
     const url = `${this.baseUrl}/extract/task/batch`;
@@ -141,7 +141,7 @@ export class MinerUClient {
   }
 
   /**
-   * 查询任务状态／结果（单个 task）
+   * Query task status/results (single task)
    */
   async getTaskResult(taskId: string, options?: TaskResultOptions): Promise<any> {
     const url = `${this.baseUrl}/extract/task/${taskId}`;
@@ -164,7 +164,7 @@ export class MinerUClient {
   }
 
   /**
-   * 查询批量任务状态／结果
+   * Query batch task status/results
    */
   async getBatchResult(batchId: string): Promise<any> {
     const url = `${this.baseUrl}/extract-results/batch/${batchId}`;
@@ -182,15 +182,15 @@ export class MinerUClient {
   }
 
   /**
-   * 等待任务完成并获取结果（轮询）
+   * Wait for a task to complete and get the result (polling)
    */
   async waitForTask(taskId: string, timeoutMs: number = 5 * 60 * 1000, intervalMs: number = 5000): Promise<any> {
     const start = Date.now();
     while (true) {
       const result = await this.getTaskResult(taskId);
-      // 根据 data 中是否包含最终 URL 或者状态判断任务是否完成
-      // 文档里说，当任务完成后，会有 full or zip 的 URL 在 data 里 ——你需要根据实际字段做判断
-      if (result.full_zip_url || result.full_url || result.content /* 或者别的字段 */) {
+      // Determine whether the task is complete based on whether the data contains the final URL or status.
+      // The documentation states that when a task is complete, a full or zip URL will be in the data - you need to determine this based on the actual fields.
+      if (result.full_zip_url || result.full_url || result.content /* Or other fields */) {
         return result;
       }
       if (Date.now() - start > timeoutMs) {

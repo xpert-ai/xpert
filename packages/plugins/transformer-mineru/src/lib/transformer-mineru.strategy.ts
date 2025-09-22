@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { DocumentTransformerStrategy, IDocumentTransformerStrategy } from '@xpert-ai/plugin-sdk'
+import { DocumentTransformerStrategy, IDocumentTransformerStrategy, TDocumentTransformerFile } from '@xpert-ai/plugin-sdk'
 import { MinerUClient } from './mineru.client'
 import { DocumentParseResult, MinerU, icon } from './types'
 import { MinerUResultParserService } from './result-parser.service'
@@ -101,23 +101,28 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<a
     throw new Error('Method not implemented.')
   }
 
-  async transformDocuments(files: string[], config: any): Promise<DocumentParseResult> {
-    const { taskId } = await this.mineru.createTask({
-      url: files[0],
-      isOcr: true,
-      enableFormula: true,
-      enableTable: true,
-      language: 'ch',
-      modelVersion: 'vlm'
-    })
+  async transformDocuments(files: TDocumentTransformerFile[], config: any): Promise<DocumentParseResult[]> {
+    const parsedResults: DocumentParseResult[] = []
+    for await (const file of files) {
+      const { taskId } = await this.mineru.createTask({
+        url: file.url,
+        isOcr: true,
+        enableFormula: true,
+        enableTable: true,
+        language: 'ch',
+        modelVersion: 'vlm'
+      })
 
-    // Waiting for completion
-    const result = await this.mineru.waitForTask(taskId, 5 * 60 * 1000, 5000)
+      // Waiting for completion
+      const result = await this.mineru.waitForTask(taskId, 5 * 60 * 1000, 5000)
 
-    console.log('MinerUTransformerStrategy transformDocuments result:', result)
+      console.log('MinerUTransformerStrategy transformDocuments result:', result)
 
-    const parsedResult = await this.resultParser.parseFromUrl(result.full_zip_url, taskId)
+      const parsedResult = await this.resultParser.parseFromUrl(result.full_zip_url, taskId)
 
-    return parsedResult
+      parsedResults.push(parsedResult)
+    }
+
+    return parsedResults
   }
 }

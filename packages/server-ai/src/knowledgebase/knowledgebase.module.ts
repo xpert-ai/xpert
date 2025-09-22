@@ -6,17 +6,18 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import {
 	DocumentSourceRegistry,
 	DocumentTransformerRegistry,
+	ImageUnderstandingRegistry,
 	KnowledgeStrategyRegistry,
 	TextSplitterRegistry
 } from '@xpert-ai/plugin-sdk'
 import { CopilotModule } from '../copilot/copilot.module'
+import { KnowledgeDocumentModule } from '../knowledge-document/document.module'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { CommandHandlers } from './commands/handlers'
 import { KnowledgebaseController } from './knowledgebase.controller'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { QueryHandlers } from './queries/handlers'
-import { KnowledgeDocumentModule } from '../knowledge-document/document.module'
 
 @Module({
 	imports: [
@@ -30,7 +31,7 @@ import { KnowledgeDocumentModule } from '../knowledge-document/document.module'
 		DatabaseModule,
 		forwardRef(() => XpertWorkspaceModule),
 		forwardRef(() => IntegrationModule),
-		forwardRef(() => KnowledgeDocumentModule),
+		forwardRef(() => KnowledgeDocumentModule)
 	],
 	controllers: [KnowledgebaseController],
 	providers: [
@@ -39,9 +40,16 @@ import { KnowledgeDocumentModule } from '../knowledge-document/document.module'
 		KnowledgeStrategyRegistry,
 		TextSplitterRegistry,
 		DocumentTransformerRegistry,
+		ImageUnderstandingRegistry,
 		...QueryHandlers,
 		...CommandHandlers
 	],
-	exports: [KnowledgebaseService, DocumentSourceRegistry, TextSplitterRegistry, DocumentTransformerRegistry]
+	exports: [
+		KnowledgebaseService,
+		DocumentSourceRegistry,
+		TextSplitterRegistry,
+		DocumentTransformerRegistry,
+		ImageUnderstandingRegistry
+	]
 })
 export class KnowledgebaseModule {}

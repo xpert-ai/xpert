@@ -50,7 +50,7 @@
         }
       </div>
     }
-    <ul cdkListbox useActiveDescendant [cdkListboxMultiple]="multiple()"
+    <ul class="space-y-1" cdkListbox useActiveDescendant [cdkListboxMultiple]="multiple()"
       [cdkListboxDisabled]="readonly()"
       [cdkListboxValue]="values()"
       (cdkListboxValueChange)="selectValues($event)">

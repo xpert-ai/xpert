@@ -3,7 +3,6 @@ import axios from 'axios'
 import { Document } from 'langchain/document'
 import path from 'path'
 import unzipper from 'unzipper'
-
 import { DocumentMetadata, DocumentParseResult, MinerU } from './types'
 
 @Injectable()
@@ -13,11 +12,11 @@ export class MinerUResultParserService {
   async parseFromUrl(fullZipUrl: string, taskId: string): Promise<DocumentParseResult> {
     this.logger.log(`Downloading MinerU result from: ${fullZipUrl}`)
 
-    // 1. 下载 zip 文件到内存
+    // 1. Download the zip file to memory
     const response = await axios.get(fullZipUrl, { responseType: 'arraybuffer' })
     const zipBuffer = Buffer.from(response.data)
 
-    // 2. 解压缩
+    // 2. Unzip the file
     const zipEntries: { entryName: string; data: Buffer }[] = []
     const directory = await unzipper.Open.buffer(zipBuffer)
     for (const entry of directory.files) {
@@ -32,6 +31,7 @@ export class MinerUResultParserService {
     let originPdfUrl: string | undefined
 
     for (const entry of zipEntries) {
+      console.log('MinerU zip entry:', entry.entryName)
       const fileName = entry.entryName
       const ext = path.extname(fileName)
 
@@ -46,7 +46,7 @@ export class MinerUResultParserService {
       }
     }
 
-    // 3. 解析 chunks（简单规则：按两行换行符切分）
+    // 3. Parse chunks (simple rule: split by two newlines)
     const chunks = [new Document({ pageContent: fullMd })]
 
     // 4. metadata

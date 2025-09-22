@@ -2,7 +2,11 @@
   <div class="grow max-w-[40%] flex flex-col px-8 py-4 overflow-auto">
     <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
       <div class="flex-1">
-        {{ 'PAC.Knowledgebase.TransformerSettings' | translate: {Default: 'Transformer Settings'} }}
+        <span>{{ 'PAC.Knowledgebase.TransformerSettings' | translate: {Default: 'Transformer Settings'} }}</span>
+
+        <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+          [matTooltip]=" 'PAC.Knowledgebase.TransformerSettingsDesc' | translate: {Default: 'Configure the document transformer to extract the file content.'} "
+          matTooltipPosition="above"></i>
       </div>
 
       @if (transformerStrategy()?.helpUrl; as helpUrl) {
@@ -75,8 +79,94 @@
 
     <div class="w-full h-[1px] shrink-0 my-4 bg-divider-regular"></div>
 
+    <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
+      <div class="flex-1">
+        <span>{{ 'PAC.Knowledgebase.ImageUnderstanding' | translate: {Default: 'Image Understanding'} }}</span>
+
+        <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+          [matTooltip]=" 'PAC.Knowledgebase.ImageUnderstandingDesc' | translate: {Default: 'Extract text and metadata from images using OCR and image recognition technologies.'} "
+          matTooltipPosition="above"></i>
+      </div>
+
+      @if (imageUnderstandingStrategy()?.helpUrl; as helpUrl) {
+        <a [href]="helpUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
+          {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+          <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+          <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+        </a>
+      }
+      <ngm-select class="flex-1 w-52" [placeholder]=" 'PAC.Knowledgebase.SelectImageUnderstandingTool' | translate: {Default: 'Select a image understanding tool'} "
+        [(ngModel)]="imageUnderstandingType"
+        [selectOptions]="imageUnderstandingStrategies()"
+      >
+        <div icon>
+          @if (imageUnderstandingStrategy()?.icon; as icon) {
+            <div [innerHTML]="icon.svg | safe: 'html'" class="w-5 h-5 shrink-0 flex justify-center items-center mr-2"
+              [style.color]="icon.color || '#14b8a6'"></div>
+          }
+        </div>
+        <ng-template #option let-option>
+          <div class="relative flex">
+            @if (option.icon) {
+              <div [innerHTML]="option.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+                [style.color]="option.icon.color || '#14b8a6'"></div>
+            }
+            <div class="flex flex-col gap-1">
+              <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
+              <div class="text-text-tertiary text-xs font-body leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+            </div>
+          </div>
+        </ng-template>
+      </ngm-select>
+    </div>
+
+    <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
+      <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer p-3">
+        <div class="flex justify-center items-center">
+          <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
+            @if (imageUnderstandingStrategy()?.icon; as icon) {
+              <div [innerHTML]="icon.svg | safe: 'html'" class="w-8 h-8 shrink-0 flex justify-center items-center"
+                [style.color]="icon.color || '#14b8a6'"></div>
+            } @else {
+              <i class="ri-equalizer-3-line"></i>
+            }
+          </div>
+        </div>
+        
+        @if (imageUnderstandingStrategy(); as imageUnderstandingStrategy) {
+          <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
+            <div class="text-text-secondary system-md-semibold">
+              {{ imageUnderstandingStrategy.label | i18n }}
+            </div>
+            <div class="text-text-tertiary system-xs-regular truncate" [title]="imageUnderstandingStrategy.description | i18n">
+              {{ imageUnderstandingStrategy.description | i18n }}
+            </div>
+          </div>
+        }
+      </div>
+      <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
+        @if (imageUnderstandingConfigSchema(); as imageUnderstandingConfigSchema) {
+          <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="imageUnderstandingConfigSchema" 
+            [(ngModel)]="imageUnderstanding"
+          />
+        }
+      </div>
+    </div>
+
+    <div class="w-full h-[1px] shrink-0 my-4 bg-divider-regular"></div>
+
     <div class="system-md-semibold mb-1 flex justify-between items-center">
-      <div class="flex-1">{{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}</div>
+      <div class="flex-1">
+        <span>
+          {{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}
+        </span>
+        <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+          [matTooltip]=" 'PAC.Knowledgebase.ChunkSettingsDesc' | translate: {Default: 'Configure text chunking mode and preprocessing rules.'} "
+          matTooltipPosition="above"></i>
+      </div>
 
       @if (textSplitterStrategy()?.helpUrl; as helpUrl) {
         <a [href]="helpUrl"

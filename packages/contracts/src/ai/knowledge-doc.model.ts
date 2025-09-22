@@ -18,6 +18,10 @@ export type DocumentParserConfig = {
   transformer?: {
     [key: string]: unknown
   }
+  imageUnderstandingType?: string
+  imageUnderstanding?: {
+    [key: string]: unknown
+  }
 }
 
 export type DocumentTextParserConfig = DocumentParserConfig & {

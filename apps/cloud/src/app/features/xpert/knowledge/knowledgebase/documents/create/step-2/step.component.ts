@@ -153,11 +153,25 @@ export class KnowledgeDocumentCreateStep2Component {
     icon: strategy.icon
   })))
 
-  readonly transformerType = attrModel(this.parserConfig, 'transformerType')
+  readonly transformerType = attrModel(this.parserConfig, 'transformerType', 'default')
   readonly transformer = attrModel(this.parserConfig, 'transformer')
 
   readonly transformerStrategy = computed(() => this.createComponent.documentTransformerStrategies()?.find((strategy) => strategy.name === this.transformerType()))
   readonly transformerConfigSchema = computed(() => this.transformerStrategy()?.configSchema || {} as JsonSchema7ObjectType)
+
+  // Image Understanding
+  readonly imageUnderstandingType = attrModel(this.parserConfig, 'imageUnderstandingType', 'vlm-default')
+  readonly imageUnderstanding = attrModel(this.parserConfig, 'imageUnderstanding')
+
+  readonly imageUnderstandingStrategies = computed(() => this.createComponent.imageUnderstandingStrategies()?.map((strategy) => ({
+    value: strategy.name,
+    label: strategy.label,
+    description: strategy.description,
+    icon: strategy.icon
+  })))
+
+  readonly imageUnderstandingStrategy = computed(() => this.createComponent.imageUnderstandingStrategies()?.find((strategy) => strategy.name === this.imageUnderstandingType()))
+  readonly imageUnderstandingConfigSchema = computed(() => this.imageUnderstandingStrategy()?.configSchema || {} as JsonSchema7ObjectType)
 
   constructor() {
     // effect(

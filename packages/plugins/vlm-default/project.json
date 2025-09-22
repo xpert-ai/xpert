@@ -1,0 +1,42 @@
+{
+  "name": "vlm-default",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/vlm-default/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "generatorOptions": {
+        "packageRoot": "dist/{projectRoot}",
+        "currentVersionResolver": "git-tag"
+      }
+    }
+  },
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugins/vlm-default",
+        "main": "packages/plugins/vlm-default/src/index.ts",
+        "tsConfig": "packages/plugins/vlm-default/tsconfig.lib.json",
+        "assets": [],
+        "project": "packages/plugins/vlm-default/package.json",
+        "compiler": "swc",
+        "format": ["cjs", "esm"]
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "packages/plugins/vlm-default/jest.config.ts"
+      }
+    }
+  }
+}

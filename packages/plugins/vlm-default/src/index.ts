@@ -1,0 +1,31 @@
+import { z } from 'zod';
+import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
+import { VlmDefaultPlugin } from './lib/vlm.plugin';
+
+const ConfigSchema = z.object({
+});
+
+const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
+  meta: {
+    name: '@xpert-ai/plugin-vlm-default',
+    version: '1.0.0',
+    displayName: 'VLM Default',
+    description: 'Provide VLM functionality using default settings',
+    keywords: ['pdf', 'markdown', 'json', 'vlm', 'default'],
+  },
+  config: {
+    schema: ConfigSchema,
+  },
+  register(ctx) {
+    ctx.logger.log('register VLM default plugin');
+    return { module: VlmDefaultPlugin, global: true };
+  },
+  async onStart(ctx) {
+    ctx.logger.log('vlm default plugin started');
+  },
+  async onStop(ctx) {
+    ctx.logger.log('vlm default plugin stopped');
+  },
+};
+
+export default plugin;

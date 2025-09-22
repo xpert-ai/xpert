@@ -69,8 +69,13 @@ export type TKnowledgebase = {
   copilotModel?: ICopilotModel
   copilotModelId?: string
 
+  // Rerank model for re-ranking retrieved chunks
   rerankModel?: ICopilotModel
   rerankModelId?: string
+
+  // Vision model for image understanding
+  visionModel?: ICopilotModel
+  visionModelId?: string
 
   documentNum?: number | null
   tokenNum?: number | null

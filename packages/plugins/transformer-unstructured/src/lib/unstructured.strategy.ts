@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { DocumentTransformerStrategy, IDocumentTransformerStrategy } from '@xpert-ai/plugin-sdk'
+import { DocumentTransformerStrategy, IDocumentTransformerStrategy, TDocumentTransformerFile } from '@xpert-ai/plugin-sdk'
 import { icon, Unstructured } from './types'
 import { UnstructuredClient } from './unstructured.client'
 
@@ -36,13 +36,17 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
     throw new Error('Method not implemented.')
   }
 
-  async transformDocuments(files: string[], config: any) {
-    const result = await this.client.parseFromFile(files[0])
+  async transformDocuments(files: TDocumentTransformerFile[], config: any) {
+    const results = []
+    for await (const file of files) {
+      const result = await this.client.parseFromFile(file.url)
 
-    console.log('Chunks count:', result.chunks.length)
-    console.log('First chunk:', result.chunks[0])
-    console.log('Metadata:', result.metadata)
+      console.log('Chunks count:', result.chunks.length)
+      console.log('First chunk:', result.chunks[0])
+      console.log('Metadata:', result.metadata)
+      results.push(result)
+    }
 
-    return result
+    return results
   }
 }

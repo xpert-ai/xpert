@@ -6,12 +6,12 @@ import {
 	KBDocumentCategoryEnum
 } from '@metad/contracts'
 import { pick } from '@metad/server-common'
-import { GetStorageFileQuery, StorageFile } from '@metad/server-core'
+import { GetStorageFileQuery, RequestContext, StorageFile } from '@metad/server-core'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { DocumentTransformerRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
-import { LoadStorageFileCommand, LoadStorageSheetCommand } from '../../../shared/'
+import { LoadStorageFileCommand, LoadStorageSheetCommand, VolumeClient } from '../../../shared/'
 import { KnowledgeDocumentService } from '../../document.service'
 import { KnowledgeDocLoadCommand } from '../load.command'
 
@@ -51,14 +51,18 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			const storageFile = await this.queryBus.execute<GetStorageFileQuery, StorageFile>(
 				new GetStorageFileQuery(doc.storageFileId)
 			)
-			if (doc.parserConfig?.transformerType) {
-				const transformer = this.transformerRegistry.get(doc.parserConfig.transformerType)
+			const transformerType = doc.parserConfig?.transformerType || 'default'
+			if (transformerType) {
+				const transformer = this.transformerRegistry.get(transformerType)
 				if (transformer) {
-					const transformed = await transformer.transformDocuments([storageFile.fileUrl], doc.parserConfig.transformer)
-					docs = transformed.chunks
-					console.log('Transformed metadata:', transformed.metadata)
+					const type = storageFile.originalName.split('.').pop()
+					const volume = VolumeClient._getWorkspaceRoot(RequestContext.currentTenantId(), 'knowledges', doc.knowledgebaseId)
+					const transformed = await transformer.transformDocuments([
+						{url: storageFile.fileUrl, filename: storageFile.originalName, extname: type}
+					], { ...(doc.parserConfig.transformer ?? {}), tempDir: volume + '/tmp/' })
+					docs = transformed.reduce((all, cur) => all.concat(cur.chunks), [])
 				} else {
-					throw new Error(`Transformer not found: ${doc.parserConfig.transformerType}`)
+					throw new Error(`Transformer not found: ${transformerType}`)
 				}
 			} else {
 				docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
