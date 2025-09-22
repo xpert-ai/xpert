@@ -2,7 +2,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIntegration } from '../integration.model'
 import { IStorageFile } from '../storage-file.model'
 import { IKnowledgeDocumentPage } from './knowledge-doc-page.model'
-import { IKnowledgebase } from './knowledgebase.model'
+import { DocumentMetadata, IKnowledgebase } from './knowledgebase.model'
 import { TRagWebOptions } from './rag-web'
 
 
@@ -165,12 +165,11 @@ export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAn
   parent?: IKnowledgeDocument | null
 }
 
-export interface IDocumentChunk {
+export interface IDocumentChunk<Metadata = DocumentMetadata> {
   id: string
   pageContent: string
-  metadata: {
+  metadata: Metadata & {
     knowledgeId?: string
-    [key: string]: any | null
   }
   collection_id: string
 }

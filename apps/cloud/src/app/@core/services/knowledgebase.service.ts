@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
 import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langchain/core/vectorstores'
-import { API_PREFIX, I18nObject, IKnowledgebase, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { API_PREFIX, DocumentMetadata, I18nObject, IKnowledgebase, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { switchMap } from 'rxjs/operators'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
@@ -49,7 +49,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   test(id: string, options: { query: string; k: number; score: number; filter?: Record<string, unknown> }) {
-    return this.httpClient.post<{ doc: DocumentInterface; score: number; relevanceScore?: number }[]>(
+    return this.httpClient.post<DocumentInterface<DocumentMetadata>[]>(
       this.apiBaseUrl + '/' + id + '/test',
       options
     )

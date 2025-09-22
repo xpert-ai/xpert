@@ -1,6 +1,6 @@
 import { IntegrationModule, StorageFileModule, TenantModule, UserModule } from '@metad/server-core'
 import { BullModule } from '@nestjs/bull'
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -25,8 +25,8 @@ import { JOB_EMBEDDING_DOCUMENT } from './types'
 		UserModule,
 		StorageFileModule,
 		CopilotModule,
-		KnowledgebaseModule,
 		IntegrationModule,
+		forwardRef(() => KnowledgebaseModule),
 
 		BullModule.registerQueue({
 			name: JOB_EMBEDDING_DOCUMENT
@@ -39,6 +39,9 @@ import { JOB_EMBEDDING_DOCUMENT } from './types'
 		...CommandHandlers,
 		...QueryHandlers
 	],
-	exports: [KnowledgeDocumentService]
+	exports: [
+		KnowledgeDocumentService,
+		TypeOrmModule
+	]
 })
 export class KnowledgeDocumentModule {}

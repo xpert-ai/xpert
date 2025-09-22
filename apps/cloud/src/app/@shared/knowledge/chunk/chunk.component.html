@@ -1,5 +1,7 @@
-<div class="flex h-4 w-4 cursor-pointer items-center justify-center rounded-[4px] shadow-xs shadow-shadow-shadow-3 border border-components-checkbox-border bg-components-checkbox-bg-unchecked hover:bg-components-checkbox-bg-unchecked-hover hover:border-components-checkbox-border-hover mt-3.5 shrink-0">
-</div>
+@if (editable()) {
+  <div class="flex h-4 w-4 cursor-pointer items-center justify-center rounded-[4px] shadow-xs shadow-shadow-shadow-3 border border-components-checkbox-border bg-components-checkbox-bg-unchecked hover:bg-components-checkbox-bg-unchecked-hover hover:border-components-checkbox-border-hover mt-3.5 shrink-0">
+  </div>
+}
 <div class="min-w-0 grow">
   <div class="group/card w-full rounded-xl px-3 pb-2 pt-2.5 hover:bg-gray-100">
     <div class="relative flex h-5 items-center justify-between">
@@ -14,19 +16,32 @@
         <!-- <div class="system-xs-medium text-text-tertiary">0 召回次数</div> -->
       </div>
       <div class="flex items-center">
-        <div class="flex items-center flex-row-reverse gap-1">
-          @if (chunk().metadata?.enabled) {
-            <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
-            <span class="text-sm text-text-tertiary system-xs-regular">
-              {{'PAC.Knowledgebase.Enabled' | translate: {Default: 'Enabled'} }}
-            </span>
-          } @else {
-            <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-gray-300 flex'></span>
-            <span class="text-sm text-text-tertiary system-xs-regular">
-              {{'PAC.Knowledgebase.Disabled' | translate: {Default: 'Disabled'} }}
-            </span>
-          }
-        </div>
+        @if (chunk().metadata.score; as score) {
+          <div class="relative shrink-0 items-center overflow-hidden border border-components-progress-bar-border px-[5px] h-[20px] rounded-md">
+            <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
+                border-primary-500 bg-primary-200/50"
+              [ngStyle]="{width: (score * 100) + '%'}"
+            ></div>
+            <div class="relative flex h-full items-center space-x-0.5 text-util-colors-blue-brand-blue-brand-700">
+              <div class="text-xs font-medium uppercase">score</div>
+              <div class="text-xs font-semibold">{{score | number:'0.0-2'}}</div>
+            </div>
+          </div>
+        } @else {
+          <div class="flex items-center flex-row-reverse gap-1">
+            @if (chunk().metadata?.enabled) {
+              <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+              <span class="text-sm text-text-tertiary system-xs-regular">
+                {{'PAC.Knowledgebase.Enabled' | translate: {Default: 'Enabled'} }}
+              </span>
+            } @else {
+              <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-gray-300 flex'></span>
+              <span class="text-sm text-text-tertiary system-xs-regular">
+                {{'PAC.Knowledgebase.Disabled' | translate: {Default: 'Disabled'} }}
+              </span>
+            }
+          </div>
+        }
       </div>
     </div>
     <div class="font-body !mt-0.5 text-text-primary line-clamp-2">
@@ -39,8 +54,10 @@
           <div class="flex h-7 items-center rounded-lg pl-1 pr-3 cursor-pointer" (click)="expanded.set(!expanded())">
             <i class="ri-arrow-right-s-line mr-0.5 text-text-secondary" [class.rotate-90]="expanded()"></i>
             <span class="system-sm-semibold-uppercase text-text-secondary">{{children.length}} 子分段</span>
-            <span class="pl-1.5 text-xs font-medium text-text-quaternary hidden group-hover/card:inline-block">·</span>
-            <button type="button" class="btn btn-secondary btn-sm system-xs-semibold-uppercase px-1.5 py-0.5 hidden group-hover/card:inline-block">添加</button>
+            @if (editable()) {
+              <span class="pl-1.5 text-xs font-medium text-text-quaternary hidden group-hover/card:inline-block">·</span>
+              <button type="button" class="btn btn-secondary btn-sm system-xs-semibold-uppercase px-1.5 py-0.5 hidden group-hover/card:inline-block">添加</button>
+            }
           </div>
         </div>
         @if (expanded()) {
@@ -51,17 +68,32 @@
             <p class="flex w-full flex-col leading-6 gap-y-2">
               @for (chunk of children; track chunk; let j = $index) {
                 <span class="group relative select-none align-bottom text-sm mr-0 block" style="overflow-wrap: break-word;">
-                  <span class="py-[3px] bg-state-base-hover-alt px-1 uppercase text-text-tertiary group-hover:bg-accent-500 group-hover:text-text-primary">
-                    <span class="text-nowrap text-[10px] font-semibold align-bottom leading-6">C-{{j + 1}}</span>
-                  </span>
+                  <div class="inline-flex items-center">
+                    <span class="bg-state-base-hover-alt px-1 uppercase text-text-tertiary border border-components-progress-bar-border group-hover:bg-accent-500 group-hover:text-text-primary">
+                      <span class="text-nowrap text-[10px] font-semibold align-bottom">C-{{j + 1}}</span>
+                    </span>
+                    @if (chunk.metadata.score; as score) {
+                      <div class="inline-block relative items-center overflow-hidden border border-components-progress-bar-border px-[5px] border-l-0">
+                        <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
+                          border-primary-500 bg-primary-200/50"
+                          [ngStyle]="{width: (score * 100) + '%'}"></div>
+                        <div class="relative flex h-full items-center space-x-0.5 text-util-colors-blue-brand-blue-brand-700">+
+                          <div class="system-2xs-medium-uppercase">score</div>
+                          <div class="system-xs-semibold">{{score | number:'0.0-2'}}</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
                   <span class="py-[3px] whitespace-pre-line break-all bg-state-base-hover px-1 font-body group-hover:bg-state-accent-hover-alt group-hover:text-text-primary leading-6 text-text-secondary"
                     >{{chunk.pageContent}}</span>
 
-                  <div class="absolute right-2 -top-1 hidden group-hover:inline-block">
-                    <button type="button" class="w-6 h-6 flex justify-center items-center rounded-lg hover:bg-red-50 hover:text-text-destructive">
-                      <i class="ri-delete-bin-4-line"></i>
-                    </button>
-                  </div>
+                  @if (editable()) {
+                    <div class="absolute right-2 -top-1 hidden group-hover:inline-block">
+                      <button type="button" class="w-6 h-6 flex justify-center items-center rounded-lg hover:bg-red-50 hover:text-text-destructive">
+                        <i class="ri-delete-bin-4-line"></i>
+                      </button>
+                    </div>
+                  }
                 </span>
               }
             </p>

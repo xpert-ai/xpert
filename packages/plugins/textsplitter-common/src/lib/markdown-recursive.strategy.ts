@@ -3,6 +3,7 @@ import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpe
 import { Document } from 'langchain/document'
 import { MarkdownRecursiveTextSplitter, MarkdownRecursiveTextSplitterOptions } from './MarkdownRecursiveTextSplitter'
 import { MarkdownRecursive } from './types'
+import { KnowledgeChunkStructureEnum } from '@metad/contracts'
 
 @Injectable()
 @TextSplitterStrategy(MarkdownRecursive)
@@ -12,7 +13,8 @@ export class MarkdownRecursiveStrategy
       Partial<Omit<MarkdownRecursiveTextSplitterOptions, 'headersToSplitOn'> & { headersToSplitOn: number }>
     >
 {
-  meta = {
+  readonly chunkStructure = KnowledgeChunkStructureEnum.General
+  readonly meta = {
     name: MarkdownRecursive,
     label: {
       en_US: 'Markdown Recursive',

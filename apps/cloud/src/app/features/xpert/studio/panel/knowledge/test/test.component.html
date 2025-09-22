@@ -44,16 +44,16 @@
                   bg-gray-50 hover:bg-white hover:border-gray-200"
         (click)="openChunk(item)"
       >
-        <div class="h-[140px] p-4 overflow-hidden text-ellipsis text-sm font-normal text-text-secondary">{{item.doc.pageContent}}</div>
+        <div class="h-[140px] p-4 overflow-hidden text-ellipsis text-sm font-normal text-text-secondary">{{item.pageContent}}</div>
 
         <div class="w-full h-[1px] bg-gray-100"></div>
         <div class="w-full bg-gray-50 group-hover:bg-white p-2">
           <div class="relative flex items-center w-full pb-1">
             <div class="flex items-center justify-start flex-1 gap-2 w-full text-sm text-text-tertiary group-hover:text-text-primary">
-              <div class="font-semibold px-2 border border-solid border-gray-100 rounded-lg shadow-sm bg-gray-50">{{(1-item.score) | number: '0.2-2'}}</div>
-              <div class=" px-2 border border-solid border-gray-100 rounded-lg shadow-sm bg-gray-50">{{item.doc.metadata.blobType}}</div>
-              @if (item.doc.metadata.loc?.lines) {
-                <div class=" px-2 border border-solid border-gray-100 rounded-lg shadow-sm bg-gray-50">Lines: {{item.doc.metadata.loc.lines.from}}-{{item.doc.metadata.loc.lines.to}}</div>
+              <div class="font-semibold px-2 border border-solid border-gray-100 rounded-lg shadow-sm bg-gray-50">{{(item.metadata.score) | number: '0.2-2'}}</div>
+              <div class=" px-2 border border-solid border-gray-100 rounded-lg shadow-sm bg-gray-50">{{item.metadata.blobType}}</div>
+              @if (item.metadata.loc?.lines) {
+                <div class=" px-2 border border-solid border-gray-100 rounded-lg shadow-sm bg-gray-50">Lines: {{item.metadata.loc.lines.from}}-{{item.metadata.loc.lines.to}}</div>
               }
               <span class="px-2 font-semibold ml-1 text-xs text-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">
               </span>

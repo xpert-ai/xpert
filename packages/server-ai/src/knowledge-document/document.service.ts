@@ -1,10 +1,10 @@
-import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum } from '@metad/contracts'
+import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum, KnowledgeChunkStructureEnum } from '@metad/contracts'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
-import { ChunkMetadata, DocumentSourceRegistry } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, DocumentSourceRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { In, Repository } from 'typeorm'
@@ -12,6 +12,7 @@ import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
 import { KnowledgeDocumentPage } from '../core'
+
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
@@ -23,10 +24,12 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	@InjectRepository(KnowledgeDocumentPage)
 	private readonly pageRepository: Repository<KnowledgeDocumentPage>
 
+	@Inject(TextSplitterRegistry)
+	private readonly textSplitterRegistry: TextSplitterRegistry
+
 	constructor(
 		@InjectRepository(KnowledgeDocument)
 		repository: Repository<KnowledgeDocument>,
-
 
 		private readonly storageFileService: StorageFileService,
 		private readonly knowledgebaseService: KnowledgebaseService,
@@ -56,6 +59,21 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		if (!documents?.length) {
 			return []
 		}
+
+		// Update chunkStructure
+		const textSplitterType = documents[0].parserConfig.textSplitterType
+		const textSplitterStrategy = this.textSplitterRegistry.get(textSplitterType)
+		if (textSplitterStrategy) {
+			const chunkStructure = textSplitterStrategy.chunkStructure
+			const knowledgebase = await this.knowledgebaseService.findOneByIdString(documents[0].knowledgebaseId)
+			if (knowledgebase.chunkStructure && knowledgebase.chunkStructure !== chunkStructure) {
+				throw new BadRequestException(`Inconsistent chunk structure between knowledgebase (${knowledgebase.chunkStructure}) and document (${chunkStructure})`)
+			}
+			if (!knowledgebase.chunkStructure) {
+				await this.knowledgebaseService.update(knowledgebase.id, { chunkStructure })
+			}
+		}
+
 		return await Promise.all(documents.map((document) => this.createDocument(document)))
 	}
 
@@ -86,28 +104,41 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
 		
-		const pages = await this.pageRepository.find({
-			where: { tenantId: document.tenantId, documentId: document.id },
-			take: params.take,
-			skip: params.skip,
-			order: { createdAt: 'DESC' }
-		})
-		const pageTotal = await this.pageRepository.count({
-			where: { tenantId: document.tenantId, documentId: document.id }
-		})
-		if (pages.length) {
-			for await (const page of pages) {
-				const result = await vectorStore.getChunks(id, {filter: {pageId: page.id}})
-				page.metadata.children = result.items
-			}
+		if (document.knowledgebase.chunkStructure === KnowledgeChunkStructureEnum.ParentChild && !params.search) {
+			const pages = await this.pageRepository.find({
+				where: { tenantId: document.tenantId, documentId: document.id },
+				take: params.take,
+				skip: params.skip,
+				order: { createdAt: 'DESC' }
+			})
+			const pageTotal = await this.pageRepository.count({
+				where: { tenantId: document.tenantId, documentId: document.id }
+			})
 			return {
-				items: pages,
-				total: pageTotal
+					items: pages,
+					total: pageTotal
+				}
+		} else {
+			const result = await vectorStore.getChunks(id, params)
+			if (document.knowledgebase.chunkStructure === KnowledgeChunkStructureEnum.ParentChild) {
+				const ids = result.items.map((item) => item.metadata?.pageId).filter(Boolean) as string[]
+				const pages = await this.pageRepository.find({
+					where: {
+						tenantId: document.tenantId,
+						documentId: document.id,
+						id: In(ids) 
+					},
+					take: params.take,
+					skip: params.skip,
+					order: { createdAt: 'DESC' },
+				})
+				return {
+					items: pages
+				}
 			}
-		}
 
-		const result = await vectorStore.getChunks(id, params)
-		return result
+			return result
+		}
 	}
 
 	async createChunk(id: string, entity: IDocumentChunk) {

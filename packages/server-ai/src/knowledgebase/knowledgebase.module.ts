@@ -16,6 +16,7 @@ import { KnowledgebaseController } from './knowledgebase.controller'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { QueryHandlers } from './queries/handlers'
+import { KnowledgeDocumentModule } from '../knowledge-document/document.module'
 
 @Module({
 	imports: [
@@ -28,7 +29,8 @@ import { QueryHandlers } from './queries/handlers'
 		CopilotModule,
 		DatabaseModule,
 		forwardRef(() => XpertWorkspaceModule),
-		forwardRef(() => IntegrationModule)
+		forwardRef(() => IntegrationModule),
+		forwardRef(() => KnowledgeDocumentModule),
 	],
 	controllers: [KnowledgebaseController],
 	providers: [

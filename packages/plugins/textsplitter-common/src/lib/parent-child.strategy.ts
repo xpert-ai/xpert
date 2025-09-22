@@ -4,11 +4,13 @@ import { encodingForModel } from 'js-tiktoken'
 import { Document } from 'langchain/document'
 import { v4 as uuid } from 'uuid'
 import { ParentChild, ChunkSplitConfig, TParentChildConfig } from './types'
+import { KnowledgeChunkStructureEnum } from '@metad/contracts'
 
 @Injectable()
 @TextSplitterStrategy(ParentChild)
 export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildConfig> {
-  meta = {
+  readonly chunkStructure = KnowledgeChunkStructureEnum.ParentChild
+  readonly meta = {
     name: ParentChild,
     label: {
       en_US: 'Parent-Child',

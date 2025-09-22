@@ -17,6 +17,12 @@ export enum KnowledgebaseTypeEnum {
   External = 'external'
 }
 
+export enum KnowledgeChunkStructureEnum {
+  General = 'general',
+  ParentChild = 'parent-child',
+  QA = 'qa'
+}
+
 export type KnowledgebaseParserConfig = {
   pages?: number[][]
   embeddingBatchSize?: number
@@ -82,6 +88,11 @@ export type TKnowledgebase = {
   parserConfig?: KnowledgebaseParserConfig
 
   /**
+   * Chunk structure determines how the knowledge base organizes and indexes your document content.
+   */
+  chunkStructure?: KnowledgeChunkStructureEnum
+
+  /**
    * Recall params for kb chunks
    */
   recall?: TKBRecallParams
@@ -126,3 +137,8 @@ export type TKBRecallParams = {
    */
   weight?: number
 }
+
+export type DocumentMetadata = {
+    score?: number; 
+    relevanceScore?: number
+} & Record<string, any>;

@@ -55,7 +55,8 @@ export class KnowledgeDocumentStore {
 	async getChunks(knowledgeId: string, options: TVectorSearchParams) {
 		const docs = await this.vStore.similaritySearch(options.search || '*', 10000, {
 			...(options.filter ?? {}),
-			knowledgeId},)
+			knowledgeId
+		})
 		const skip = options.skip ?? 0
 		return {
 			items: options.take ? docs.slice(skip, skip + options.take) : docs,

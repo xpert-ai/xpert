@@ -1,12 +1,25 @@
-import { ICopilotModel, IIntegration, IKnowledgebase, IKnowledgeDocument, IXpert, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar, TKBRecallParams } from '@metad/contracts'
+import {
+	ICopilotModel,
+	IIntegration,
+	IKnowledgebase,
+	IKnowledgeDocument,
+	IXpert,
+	KnowledgebaseParserConfig,
+	KnowledgebasePermission,
+	KnowledgebaseTypeEnum,
+	KnowledgeChunkStructureEnum,
+	TAvatar,
+	TKBRecallParams
+} from '@metad/contracts'
 import { Integration } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Transform, TransformFnParams } from 'class-transformer'
-import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
+import { IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
-import { CopilotModel, KnowledgeDocument, Xpert } from '../core/entities/internal'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
+import { CopilotModel, KnowledgeDocument, Xpert } from '../core/entities/internal'
 import { XpertIdentiDto } from '../xpert/dto'
+
 
 @Entity('knowledgebase')
 @Index(['tenantId', 'organizationId', 'name'], { unique: true })
@@ -17,9 +30,15 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	name: string
 
 	@ApiPropertyOptional({ enum: KnowledgebaseTypeEnum, enumName: 'KnowledgebaseTypeEnum' })
-	@IsString()
+	@IsEnum(KnowledgebaseTypeEnum)
 	@Column({ nullable: true, length: 20 })
 	type: KnowledgebaseTypeEnum
+
+	@ApiPropertyOptional({ enum: KnowledgeChunkStructureEnum, enumName: 'KnowledgeChunkStructureEnum' })
+	@IsEnum(KnowledgeChunkStructureEnum)
+	@IsOptional()
+	@Column({ nullable: true })
+	chunkStructure?: KnowledgeChunkStructureEnum
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -106,7 +125,7 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@IsOptional()
 	@Column({ nullable: true })
 	vectorSimilarityWeight?: number
-	
+
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
 	@IsOptional()
@@ -173,6 +192,6 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     |--------------------------------------------------------------------------
     */
 	@Transform((params: TransformFnParams) => params.value?.map((_) => new XpertIdentiDto(_)))
-	@ManyToMany(() => Xpert, xpert => xpert.knowledgebases)
+	@ManyToMany(() => Xpert, (xpert) => xpert.knowledgebases)
 	xperts?: IXpert[]
 }

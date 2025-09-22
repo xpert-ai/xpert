@@ -5,7 +5,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, mergeParentChildChunks } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
@@ -64,13 +64,14 @@ export class KnowledgeDocumentConsumer {
 
 				// Save pages into db, And associated with the chunk's metadata.
 				let chunks: Document<ChunkMetadata>[] = data?.chunks
-				let pages: IKnowledgeDocumentPage<ChunkMetadata>[] = []
 				if (data?.pages?.length) {
+					let pages = mergeParentChildChunks(data.pages, data.chunks)
 					pages = await this.service.createPageBulk(document.id, data.pages.map((page) => ({
 								pageContent: page.pageContent,
 								metadata: page.metadata,
 								tenantId: document.tenantId,
-								organizationId: document.organizationId
+								organizationId: document.organizationId,
+								knowledgebaseId: document.knowledgebaseId
 							})))
 					chunks = chunks.map((chunk) => {
 						const page = pages.find((p) => p.metadata.chunkId === chunk.metadata.parentId)

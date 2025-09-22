@@ -1,7 +1,7 @@
 <div class="pac-knowledgebase__test-container max-w-full lg:w-[400px] lg:max-w-[400px] rounded-lg flex flex-col gap-8 m-4 p-4">
   <h2>{{ 'PAC.Knowledgebase.RetrievalTest' | translate: {Default: 'Retrieval Test'} }}</h2>
 
-  <mat-divider></mat-divider>
+  <div class="w-full h-[1px] my-1 bg-divider-subtle"></div>
 
   <ngm-slider-input [label]=" 'PAC.Knowledgebase.SimilarityThreshold' | translate: {Default: 'Similarity Threshold'}"
     [(ngModel)]="score" 
@@ -15,7 +15,7 @@
     [min]="1" [max]="100" [step]="1"></ngm-slider-input>
   <!-- <ngm-slider-input [label]="'关键字相似度权重'" [min]="0" [max]="1" [step]="0.01"></ngm-slider-input> -->
 
-  <mat-divider></mat-divider>
+  <div class="w-full h-[1px] my-1 bg-divider-subtle"></div>
 
   <div class="flex flex-col items-end gap-4">
     <div class="flex-1 min-w-full flex flex-col">
@@ -32,23 +32,33 @@
 </div>
 
 <div class="flex-1 flex flex-col relative overflow-hidden">
+
+  <div class="flex h-full flex-col rounded-tl-2xl bg-background-body px-4 py-3">
+    <div class="mb-2 shrink-0 pl-2 font-semibold leading-6 text-text-primary">2 个召回段落</div>
+    <div class="grow space-y-2 overflow-y-auto">
+      @for (chunk of results(); track chunk.id; let i = $index) {
+        <xp-knowledge-chunk [chunk]="chunk" [index]="i"/>
+      }
+    </div>
+  </div>
+
   <div class="flex-1 overflow-y-auto">
     <mat-list class="m-4">
-      @for (item of results(); track item.doc.id) {
+      @for (item of results(); track item.id) {
         <mat-list-item lines="5" class="p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
           <span matListItemTitle>
             <div class="flex justify-end items-center gap-2" >
               <ngm-tags class="text-sm" [tags]="[
-                {caption: 'Score: '+item.score.toFixed(2)}
+                {caption: 'Score: '+item.metadata.score.toFixed(2)}
                 ]" color="green" />
-              @if (item.relevanceScore) {
+              @if (item.metadata.relevanceScore) {
                 <ngm-tags class="text-sm" [tags]="[
-                  {caption: 'RelevanceScore: '+item.relevanceScore.toFixed(2)}
+                  {caption: 'RelevanceScore: '+item.metadata.relevanceScore.toFixed(2)}
                   ]" color="blue" />
               }
             </div>
           </span>
-          <span>{{item.doc.pageContent}}</span>
+          <span>{{item.pageContent}}</span>
         </mat-list-item>
       }
     </mat-list>

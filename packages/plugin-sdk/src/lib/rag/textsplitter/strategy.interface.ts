@@ -1,4 +1,4 @@
-import { I18nObject } from '@metad/contracts'
+import { I18nObject, KnowledgeChunkStructureEnum } from '@metad/contracts'
 import { Document } from 'langchain/document'
 import { ChunkMetadata } from '../types'
 
@@ -18,6 +18,8 @@ export interface ITextSplitterStrategy<TConfig = any> {
       color: string
     }
   }
+
+  readonly chunkStructure: KnowledgeChunkStructureEnum
 
   /**
    * Validate the configuration

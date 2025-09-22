@@ -3,13 +3,15 @@ import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { RecursiveCharacter } from './types'
+import { KnowledgeChunkStructureEnum } from '@metad/contracts'
 
 @Injectable()
 @TextSplitterStrategy(RecursiveCharacter)
 export class RecursiveCharacterStrategy
   implements ITextSplitterStrategy<Partial<RecursiveCharacterTextSplitterParams>>
 {
-  meta = {
+  readonly chunkStructure = KnowledgeChunkStructureEnum.General
+  readonly meta = {
     name: RecursiveCharacter,
     label: {
       en_US: 'Recursive Character',
