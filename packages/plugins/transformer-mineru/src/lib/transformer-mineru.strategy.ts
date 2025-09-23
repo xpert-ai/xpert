@@ -1,19 +1,27 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { DocumentTransformerStrategy, IDocumentTransformerStrategy, TDocumentTransformerFile } from '@xpert-ai/plugin-sdk'
+import { DocumentTransformerStrategy, FileSystemPermission, IDocumentTransformerStrategy, TDocumentTransformerConfig, TDocumentTransformerFile } from '@xpert-ai/plugin-sdk'
 import { MinerUClient } from './mineru.client'
-import { DocumentParseResult, MinerU, icon } from './types'
+import { TDocumentParseResult, MinerU, icon } from './types'
 import { MinerUResultParserService } from './result-parser.service'
 
 @Injectable()
 @DocumentTransformerStrategy(MinerU)
-export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<any> {
+export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<TDocumentTransformerConfig> {
   @Inject(MinerUClient)
   private readonly mineru: MinerUClient
 
   @Inject(MinerUResultParserService)
   private readonly resultParser: MinerUResultParserService
 
-  meta = {
+  readonly permissions = [
+    {
+      type: 'filesystem',
+      operations: ['read', 'write', 'list'],
+      scope: []
+    } as FileSystemPermission
+  ]
+
+  readonly meta = {
     name: MinerU,
     label: {
       en_US: 'MinerU',
@@ -101,8 +109,8 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<a
     throw new Error('Method not implemented.')
   }
 
-  async transformDocuments(files: TDocumentTransformerFile[], config: any): Promise<DocumentParseResult[]> {
-    const parsedResults: DocumentParseResult[] = []
+  async transformDocuments(files: TDocumentTransformerFile[], config: TDocumentTransformerConfig): Promise<TDocumentParseResult[]> {
+    const parsedResults: TDocumentParseResult[] = []
     for await (const file of files) {
       const { taskId } = await this.mineru.createTask({
         url: file.url,
@@ -118,7 +126,7 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<a
 
       console.log('MinerUTransformerStrategy transformDocuments result:', result)
 
-      const parsedResult = await this.resultParser.parseFromUrl(result.full_zip_url, taskId)
+      const parsedResult = await this.resultParser.parseFromUrl(result.full_zip_url, taskId, config.permissions.fileSystem)
 
       parsedResults.push(parsedResult)
     }

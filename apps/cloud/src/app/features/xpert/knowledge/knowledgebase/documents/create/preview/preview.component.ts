@@ -8,19 +8,21 @@ import { of } from 'rxjs'
 import {
   DocumentParserConfig,
   DocumentSheetParserConfig,
+  getErrorMessage,
   injectToastr,
   KBDocumentCategoryEnum,
   KnowledgeDocumentService
 } from '@cloud/app/@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { TFileItem } from '../../types'
+import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
 
 @Component({
   standalone: true,
   selector: 'xpert-knowledge-document-preview',
   templateUrl: './preview.component.html',
   styleUrl: './preview.component.scss',
-  imports: [FormsModule, TranslateModule, NgmSpinComponent, NgmCheckboxComponent]
+  imports: [FormsModule, TranslateModule, NgmSpinComponent, NgmCheckboxComponent, KnowledgeChunkComponent]
 })
 export class KnowledgeDocumentPreviewComponent {
   eKBDocumentCategoryEnum = KBDocumentCategoryEnum
@@ -42,12 +44,14 @@ export class KnowledgeDocumentPreviewComponent {
       type: this.item()?.doc.type,
       category: this.category(),
       parserConfig: this.sheetParserConfig(),
-      storageFileId: this.item()?.doc.storageFile.id
+      storageFileId: this.item()?.doc.storageFile.id,
+      knowledgebaseId: this.knowledgebase().id
     } : {
       type: this.item()?.doc.type,
       category: this.category(),
       parserConfig: this.parserConfig(),
-      storageFileId: this.item()?.doc.storageFile.id
+      storageFileId: this.item()?.doc.storageFile.id,
+      knowledgebaseId: this.knowledgebase().id
     }),
     loader: ({ request }) => (request.storageFileId ? this.knowledgeDocumentService.estimate(request) : of(null))
   })

@@ -43,7 +43,8 @@ export class SandboxController {
 
 	@Public()
 	@Get('volume/*path')
-	async getVolumeFile(@Param('path') path: string, @Query('tenant') tenant: string, @Res() res: Response) {
+	async getVolumeFile(@Param('path') paths: string[], @Query('tenant') tenant: string, @Res() res: Response) {
+		let subpath = paths.join('/')
 		if (!tenant) {
 			tenant = RequestContext.currentTenantId()
 		}
@@ -55,15 +56,15 @@ export class SandboxController {
 
 		if (environment.envName === 'dev') {
 			// Remove leading "/users/{uuid}/" or "/projects/{uuid}/" from path if present
-			const leadingPathRegex = /^(users|projects)\/[0-9a-fA-F-]{36}\//
-			if (leadingPathRegex.test(path)) {
-				path = path.replace(leadingPathRegex, '')
+			const leadingPathRegex = /^(users|projects|knowledges)\/[0-9a-fA-F-]{36}\//
+			if (leadingPathRegex.test(subpath)) {
+				subpath = subpath.replace(leadingPathRegex, '')
 			}
 		}
 
-		const filePath = `${volume}/${path}`
+		const filePath = `${volume}/${subpath}`
 		// Extract the file extension
-		const fileName = path.split('?')[0].split('/').pop() || ''
+		const fileName = subpath.split('?')[0].split('/').pop() || ''
 		const mediaType = getMediaTypeWithCharset(filePath) || 'text/plain; charset=utf-8'
 
 		// Set the Content-Type header

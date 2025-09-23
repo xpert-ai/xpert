@@ -48,6 +48,16 @@ export interface KnowledgePermission extends BasePermission {
   scope?: string[]; // Restrict to certain KB IDs
 }
 
+/**
+ * 4. File System Permission
+ * Example: { type: 'filesystem', operations: ['read', 'write'], scope: ['/documents', '/images'] }
+ */
+export interface FileSystemPermission extends BasePermission {
+  type: 'filesystem';
+  operations: Array<'read' | 'write' | 'delete' | 'list'>;
+  scope?: string[]; // Restrict to certain directories or file types
+}
+
 // /**
 //  * 4. Document Permission
 //  * Example: { type: 'document', formats: ['pdf'], operations: ['load', 'transform'] }
@@ -76,6 +86,7 @@ export type Permission =
   | LLMPermission
   | VectorStorePermission
   | KnowledgePermission
+  | FileSystemPermission
 //   | DocumentPermission
 //   | ExternalPermission;
 

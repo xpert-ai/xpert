@@ -14,8 +14,9 @@
         <div class="text-text-tertiary system-xs-medium">{{chunk().pageContent?.length}} {{'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</div>
         <div class="system-xs-medium text-text-quaternary">·</div>
         <!-- <div class="system-xs-medium text-text-tertiary">0 召回次数</div> -->
+        <i class="ri-eye-fill cursor-pointer text-text-tertiary hover:text-text-primary" [class.!text-primary-500]="preview()" (click)="togglePreview()"></i>
       </div>
-      <div class="flex items-center">
+      <div class="flex items-center gap-1">
         @if (chunk().metadata.score; as score) {
           <div class="relative shrink-0 items-center overflow-hidden border border-components-progress-bar-border px-[5px] h-[20px] rounded-md">
             <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
@@ -44,8 +45,17 @@
         }
       </div>
     </div>
-    <div class="font-body !mt-0.5 text-text-primary line-clamp-2">
-      <p>{{ chunk().pageContent }}</p>
+    <div class="font-body !mt-0.5 text-text-primary">
+      @if (preview()) {
+        <markdown class="ngm-copilot-markdown"
+          [disableSanitizer]="true"
+          lineNumbers
+          [start]="5"
+          [data]="chunk().pageContent"
+        />
+      } @else {
+        <p class="line-clamp-2">{{ chunk().pageContent }}</p>
+      }
     </div>
     
     @if (chunk().metadata.children; as children) {
@@ -67,7 +77,7 @@
             </div>
             <p class="flex w-full flex-col leading-6 gap-y-2">
               @for (chunk of children; track chunk; let j = $index) {
-                <span class="group relative select-none align-bottom text-sm mr-0 block" style="overflow-wrap: break-word;">
+                <span class="group relative line-clamp-2 break-all">
                   <div class="inline-flex items-center">
                     <span class="bg-state-base-hover-alt px-1 uppercase text-text-tertiary border border-components-progress-bar-border group-hover:bg-accent-500 group-hover:text-text-primary">
                       <span class="text-nowrap text-[10px] font-semibold align-bottom">C-{{j + 1}}</span>
@@ -87,7 +97,7 @@
                   <span class="py-[3px] whitespace-pre-line break-all bg-state-base-hover px-1 font-body group-hover:bg-state-accent-hover-alt group-hover:text-text-primary leading-6 text-text-secondary"
                     >{{chunk.pageContent}}</span>
 
-                  @if (editable()) {
+                  @if (editable()) {  
                     <div class="absolute right-2 -top-1 hidden group-hover:inline-block">
                       <button type="button" class="w-6 h-6 flex justify-center items-center rounded-lg hover:bg-red-50 hover:text-text-destructive">
                         <i class="ri-delete-bin-4-line"></i>

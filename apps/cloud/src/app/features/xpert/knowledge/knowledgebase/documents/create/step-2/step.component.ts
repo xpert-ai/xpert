@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCheckboxComponent, NgmInputComponent } from '@metad/ocap-angular/common'
+import { NgmCheckboxComponent, NgmSlideToggleComponent, NgmInputComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
@@ -43,9 +43,10 @@ import { SafePipe } from '@metad/core'
     MatTooltipModule,
     MatProgressBarModule,
     SafePipe,
-    NgmCheckboxComponent,
     NgmInputComponent,
+    NgmSlideToggleComponent,
     NgmSelectComponent,
+    NgmCheckboxComponent,
     NgmI18nPipe,
     KnowledgeDocIdComponent,
     KnowledgeDocumentPreviewComponent,
@@ -162,6 +163,24 @@ export class KnowledgeDocumentCreateStep2Component {
   // Image Understanding
   readonly imageUnderstandingType = attrModel(this.parserConfig, 'imageUnderstandingType', 'vlm-default')
   readonly imageUnderstanding = attrModel(this.parserConfig, 'imageUnderstanding')
+  readonly enableImageUnderstanding = linkedModel({
+    initialValue: false,
+    compute: () => !!this.parserConfig().imageUnderstandingType,
+    update: (value) => {
+      this.parserConfig.update((state) => {
+        if (value) {
+          return {
+            ...state,
+            imageUnderstandingType: state.imageUnderstandingType || 'vlm-default',
+            imageUnderstanding: state.imageUnderstanding || {}
+          }
+        } else {
+          const { imageUnderstandingType, imageUnderstanding, ...rest } = state
+          return rest
+        }
+      })
+    }
+  })
 
   readonly imageUnderstandingStrategies = computed(() => this.createComponent.imageUnderstandingStrategies()?.map((strategy) => ({
     value: strategy.name,

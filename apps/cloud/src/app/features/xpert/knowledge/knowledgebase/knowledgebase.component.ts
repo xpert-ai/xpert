@@ -33,7 +33,7 @@ export class KnowledgebaseComponent {
         id
           ? this.refresh$.pipe(
               switchMap(() =>
-                this.knowledgebaseService.getOneById(id, { relations: ['copilotModel', 'rerankModel', 'xperts'] })
+                this.knowledgebaseService.getOneById(id, { relations: ['copilotModel', 'rerankModel', 'visionModel', 'xperts'] })
               )
             )
           : of(null)

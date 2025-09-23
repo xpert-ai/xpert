@@ -1,4 +1,4 @@
-import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters'
+import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
 	DocumentSheetParserConfig,
 	DocumentTextParserConfig,
@@ -7,26 +7,42 @@ import {
 } from '@metad/contracts'
 import { pick } from '@metad/server-common'
 import { GetStorageFileQuery, RequestContext, StorageFile } from '@metad/server-core'
+import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { DocumentTransformerRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
+import {
+	DocumentTransformerRegistry,
+	FileSystemPermission,
+	ImageUnderstandingRegistry,
+	TextSplitterRegistry,
+	XpFileSystem
+} from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
+import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
-import { LoadStorageFileCommand, LoadStorageSheetCommand, VolumeClient } from '../../../shared/'
-import { KnowledgeDocumentService } from '../../document.service'
+import { LoadStorageFileCommand, LoadStorageSheetCommand, sandboxVolumeUrl, VolumeClient } from '../../../shared/'
 import { KnowledgeDocLoadCommand } from '../load.command'
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {
+	@Inject(TextSplitterRegistry)
+	private readonly textSplitterRegistry: TextSplitterRegistry
+
+	@Inject(DocumentTransformerRegistry)
+	private readonly transformerRegistry: DocumentTransformerRegistry
+
+	@Inject(ImageUnderstandingRegistry)
+	private readonly imageUnderstandingRegistry: ImageUnderstandingRegistry
+
 	constructor(
-		private readonly service: KnowledgeDocumentService,
+		private readonly knowledgebaseService: KnowledgebaseService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		private readonly textSplitterRegistry: TextSplitterRegistry,
-		private readonly transformerRegistry: DocumentTransformerRegistry
+		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: KnowledgeDocLoadCommand): Promise<{chunks: Document[]; pages?: Document[]}> {
-		const { doc } = command.input
+	public async execute(command: KnowledgeDocLoadCommand): Promise<{ chunks: Document[]; pages?: Document[] }> {
+		const { doc, stage } = command.input
+
+		let visionModel: BaseChatModel = null
 
 		if (doc.category === KBDocumentCategoryEnum.Sheet) {
 			const parserConfig = doc.parserConfig as DocumentSheetParserConfig
@@ -43,7 +59,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 					})
 				)
 			}
-			return {chunks: documents}
+			return { chunks: documents }
 		}
 
 		if (doc.storageFileId) {
@@ -56,11 +72,84 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 				const transformer = this.transformerRegistry.get(transformerType)
 				if (transformer) {
 					const type = storageFile.originalName.split('.').pop()
-					const volume = VolumeClient._getWorkspaceRoot(RequestContext.currentTenantId(), 'knowledges', doc.knowledgebaseId)
-					const transformed = await transformer.transformDocuments([
-						{url: storageFile.fileUrl, filename: storageFile.originalName, extname: type}
-					], { ...(doc.parserConfig.transformer ?? {}), tempDir: volume + '/tmp/' })
-					docs = transformed.reduce((all, cur) => all.concat(cur.chunks), [])
+					const volume = VolumeClient._getWorkspaceRoot(
+						RequestContext.currentTenantId(),
+						'knowledges',
+						doc.knowledgebaseId
+					)
+					const fsPermission = transformer.permissions?.find(
+						(permission) => permission.type === 'filesystem'
+					) as FileSystemPermission
+					const permissions = {}
+					if (fsPermission) {
+						const folder = stage === 'test' ? 'temp/' : `${doc.id}/`
+						permissions['fileSystem'] = new XpFileSystem(
+							fsPermission,
+							volume + '/' + folder,
+							sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
+						)
+					}
+					const transformed = await transformer.transformDocuments(
+						[{ url: storageFile.fileUrl, filename: storageFile.originalName, extname: type }],
+						{
+							...(doc.parserConfig.transformer ?? {}),
+							stage,
+							tempDir: volume + '/tmp/',
+							permissions
+						}
+					)
+
+					const chunks = []
+					const pages = []
+					for await (const transItem of transformed) {
+						const splitted = await this.splitDocuments(doc, transItem.chunks)
+						// Image understanding
+						const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
+						if (images?.length && doc.parserConfig.imageUnderstandingType) {
+							if (!visionModel) {
+								visionModel = await this.knowledgebaseService.getVisionModel(doc.knowledgebaseId)
+							}
+							const imageUnderstanding = this.imageUnderstandingRegistry.get(
+								doc.parserConfig.imageUnderstandingType
+							)
+							const fsPermission = imageUnderstanding.permissions?.find(
+								(permission) => permission.type === 'filesystem'
+							) as FileSystemPermission
+							const permissions = {}
+							if (fsPermission) {
+								const folder = stage === 'test' ? 'temp/' : `${doc.id}/`
+								permissions['fileSystem'] = new XpFileSystem(
+									fsPermission,
+									volume + '/' + folder,
+									sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
+								)
+							}
+							const imgTransformed = await imageUnderstanding.understandImages(
+								{
+									files: images,
+									chunks: splitted.chunks,
+								},
+								{
+									...(doc.parserConfig.imageUnderstanding ?? {}),
+									stage,
+									visionModel,
+									permissions
+								}
+							)
+							chunks.push(...imgTransformed.chunks)
+							if (splitted.pages?.length) {
+								pages.push(...splitted.pages)
+							} else {
+								pages.push(...imgTransformed.pages)
+							}
+						} else {
+							chunks.push(...splitted.chunks)
+							if (splitted.pages?.length) {
+								pages.push(...splitted.pages)
+							}
+						}
+					}
+					return { chunks, pages: pages.length ? pages : undefined }
 				} else {
 					throw new Error(`Transformer not found: ${transformerType}`)
 				}
@@ -128,6 +217,11 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		const textSplitter = this.textSplitterRegistry.get(
 			document.parserConfig.textSplitterType || 'recursive-character'
 		)
+		if (!textSplitter) {
+			throw new Error(
+				`Text Splitter not found: ${document.parserConfig.textSplitterType || 'recursive-character'}`
+			)
+		}
 		if (textSplitter) {
 			const result = await textSplitter.splitDocuments(data, {
 				chunkSize,
@@ -139,14 +233,14 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			return result
 		}
 
-		const textSplitter1 = new RecursiveCharacterTextSplitter({
-			chunkSize,
-			chunkOverlap,
-			separators: delimiter?.split(' ')
-		})
+		// const textSplitter1 = new RecursiveCharacterTextSplitter({
+		// 	chunkSize,
+		// 	chunkOverlap,
+		// 	separators: delimiter?.split(' ')
+		// })
 
-		return {
-			chunks: await textSplitter1.splitDocuments(data)
-		}
+		// return {
+		// 	chunks: await textSplitter1.splitDocuments(data)
+		// }
 	}
 }

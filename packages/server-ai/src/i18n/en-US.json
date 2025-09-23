@@ -2,7 +2,8 @@
     "Error": {
         "AgentNotFound": "Agent '{{key}}' not found.",
         "PrimaryAgentNotFound": "Primary agent node not found",
-        "GitIntegrationNotProvided": "Git integration not provided"
+        "GitIntegrationNotProvided": "Git integration not provided",
+        "KBReqVisionModel": "Knowledgebase requires vision model to process images"
     },
     "tools": {
         "ListFiles": "List files",

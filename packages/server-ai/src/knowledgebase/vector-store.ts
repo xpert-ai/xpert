@@ -65,7 +65,7 @@ export class KnowledgeDocumentStore {
 	}
 
 	async getChunk(id: string) {
-		const docs = await this.vStore.similaritySearch('*', 1, {chunk_id: id})
+		const docs = await this.vStore.similaritySearch('*', 1, {chunkId: id})
 		return docs[0]
 	}
 
@@ -78,7 +78,7 @@ export class KnowledgeDocumentStore {
 		await this.vStore.delete({ ids: [id] })
 		chunk.pageContent ??= _chunk?.pageContent ?? ''
 		chunk.metadata = {...(_chunk?.metadata ?? {}), ...chunk.metadata}
-		chunk.metadata.chunk_id = id
+		chunk.metadata.chunkId = id
 		this.fillMetadata(chunk, document)
 		await this.vStore.addDocuments([chunk])
 	}
@@ -119,7 +119,7 @@ export class KnowledgeDocumentStore {
 		document.metadata.enabled ??= true
 		document.metadata.knowledgeId = knowledgeDocument.id
 		document.metadata.model = this.model
-		document.metadata.chunk_id ??= uuidv4()
+		document.metadata.chunkId ??= uuidv4()
 		document.metadata.source ??= "blob"
 		document.metadata.blobType ??= 'text/plain'
 		document.metadata.loc ??= {}

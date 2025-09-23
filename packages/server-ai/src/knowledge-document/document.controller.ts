@@ -77,7 +77,8 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
 		try {
 			entity.category ??= isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
-			const result = await this.commandBus.execute<KnowledgeDocLoadCommand, { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }>(new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument}))
+			const result = await this.commandBus.execute<KnowledgeDocLoadCommand, { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }>(
+				new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument, stage: 'test'}))
 			return result.pages?.length ? mergeParentChildChunks(result.pages, result.chunks) : result.chunks
 		} catch(err) {
 			throw new BadRequestException(getErrorMessage(err))

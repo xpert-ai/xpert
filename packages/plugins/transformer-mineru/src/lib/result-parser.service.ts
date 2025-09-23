@@ -1,15 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common'
+import { TDocumentAsset, XpFileSystem } from '@xpert-ai/plugin-sdk'
 import axios from 'axios'
 import { Document } from 'langchain/document'
 import path from 'path'
 import unzipper from 'unzipper'
-import { DocumentMetadata, DocumentParseResult, MinerU } from './types'
+import { MinerU, TDocumentParseResult } from './types'
 
 @Injectable()
 export class MinerUResultParserService {
   private readonly logger = new Logger(MinerUResultParserService.name)
 
-  async parseFromUrl(fullZipUrl: string, taskId: string): Promise<DocumentParseResult> {
+  async parseFromUrl(fullZipUrl: string, taskId: string, fileSystem: XpFileSystem): Promise<TDocumentParseResult> {
     this.logger.log(`Downloading MinerU result from: ${fullZipUrl}`)
 
     // 1. Download the zip file to memory
@@ -18,11 +19,21 @@ export class MinerUResultParserService {
 
     // 2. Unzip the file
     const zipEntries: { entryName: string; data: Buffer }[] = []
+    const assets: TDocumentAsset[] = []
     const directory = await unzipper.Open.buffer(zipBuffer)
     for (const entry of directory.files) {
       if (!entry.type || entry.type !== 'File') continue
       const data = await entry.buffer()
       zipEntries.push({ entryName: entry.path, data })
+      // Write images to local file system
+      if (entry.path.startsWith('images/')) {
+        const url = await fileSystem.writeFile(entry.path, data)
+        assets.push({
+          type: 'image',
+          url,
+          filePath: entry.path
+        })
+      }
     }
 
     let layoutJson: any = null
@@ -47,17 +58,22 @@ export class MinerUResultParserService {
     }
 
     // 3. Parse chunks (simple rule: split by two newlines)
-    const chunks = [new Document({ pageContent: fullMd })]
+    fullMd = fullMd.replace(/!\[(.*)\]\((images\/.+?)\)/g, (match, p1, p2) => {
+      const localPath = assets.find((asset) => asset.filePath === p2)?.url
+      return localPath ? `![${p1}](${localPath})` : match
+    })
+    const chunks = [new Document({ pageContent: fullMd, metadata: { parser: MinerU, taskId } })]
 
     // 4. metadata
-    const metadata: DocumentMetadata = {
+    const metadata: TDocumentParseResult['metadata'] = {
       parser: MinerU,
       taskId,
       originPdfUrl,
       mineruBackend: layoutJson?._backend,
       mineruVersion: layoutJson?._version_name,
       layoutJson,
-      contentListJson
+      contentListJson,
+      assets
     }
 
     return {

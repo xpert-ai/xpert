@@ -184,10 +184,11 @@ export class MinerUClient {
   /**
    * Wait for a task to complete and get the result (polling)
    */
-  async waitForTask(taskId: string, timeoutMs: number = 5 * 60 * 1000, intervalMs: number = 5000): Promise<any> {
+  async waitForTask(taskId: string, timeoutMs: number = 5 * 60 * 1000, intervalMs = 5000): Promise<any> {
     const start = Date.now();
     while (true) {
-      const result = await this.getTaskResult(taskId);
+      const result = await this.getTaskResult(taskId)
+      console.log('Mineru waiting task result:', result)
       // Determine whether the task is complete based on whether the data contains the final URL or status.
       // The documentation states that when a task is complete, a full or zip URL will be in the data - you need to determine this based on the actual fields.
       if (result.full_zip_url || result.full_url || result.content /* Or other fields */) {

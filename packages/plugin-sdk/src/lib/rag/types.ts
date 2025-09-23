@@ -3,6 +3,12 @@ import http from 'http'
 import https from 'https'
 import { Document } from 'langchain/document'
 
+export type TDocumentAsset = {
+  type: 'image' | 'video' | 'audio' | 'file'
+  url: string // remote url
+  filePath: string // local path
+}
+
 export interface ChunkMetadata {
   documentId: string // 原始文档 ID
   pageId?: string // 如果有分页，引用页 ID
@@ -13,7 +19,7 @@ export interface ChunkMetadata {
   endOffset: number // 原始文本结束位置
   type: 'parent' | 'child' // 分块类型
   children?: Document<ChunkMetadata>[]
-  images?: string[]; // 该文本块关联的图片路径
+  assets?: TDocumentAsset[]
   [key: string]: any // 允许插件扩展
 }
 
@@ -24,15 +30,22 @@ export interface ChunkMetadata {
  * @returns
  */
 export function mergeParentChildChunks(
-  chunks: Document<ChunkMetadata>[],
-  children: Document<ChunkMetadata>[]
+  chunks: Document<ChunkMetadata>[], // Parent chunks
+  children: Document<ChunkMetadata>[] // Child chunks
 ): Document<ChunkMetadata>[] {
   const chunkMap = new Map<string, Document<ChunkMetadata>>()
   for (const chunk of chunks) {
     chunkMap.set(chunk.metadata.chunkId, chunk)
   }
   for (const child of children) {
-    if (!child.metadata.parentId) continue
+    if (!child.metadata.parentId) {
+      if (chunkMap.has(child.metadata.chunkId)) {
+        console.warn(`Duplicate chunkId found: ${child.metadata.chunkId}, skipping...`)
+        continue
+      }
+      chunkMap.set(child.metadata.chunkId, child)
+      continue
+    }
     const parent = chunkMap.get(child.metadata.parentId)
     if (parent) {
       if (!parent.metadata.children) {

@@ -60,13 +60,13 @@ export class KnowledgeDocumentConsumer {
 				const data = await this.commandBus.execute<
 					KnowledgeDocLoadCommand,
 					{ chunks: Document<ChunkMetadata>[]; pages?: Document<ChunkMetadata>[] }
-				>(new KnowledgeDocLoadCommand({ doc: document }))
+				>(new KnowledgeDocLoadCommand({ doc: document, stage: 'prod' }))
 
 				// Save pages into db, And associated with the chunk's metadata.
 				let chunks: Document<ChunkMetadata>[] = data?.chunks
 				if (data?.pages?.length) {
-					let pages = mergeParentChildChunks(data.pages, data.chunks)
-					pages = await this.service.createPageBulk(document.id, data.pages.map((page) => ({
+					// let pages = mergeParentChildChunks(data.pages, data.chunks)
+					const pages = await this.service.createPageBulk(document.id, data.pages.map((page) => ({
 								pageContent: page.pageContent,
 								metadata: page.metadata,
 								tenantId: document.tenantId,

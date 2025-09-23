@@ -1,24 +1,30 @@
 import { I18nObject } from '@metad/contracts';
 import { Document } from 'langchain/document';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import { ChunkMetadata, TDocumentAsset } from '../types';
+import { Permissions, XpFileSystem } from '../../core/index';
 
 export type TImageUnderstandingConfig = {
-  chatModel: BaseChatModel
+  stage: 'test' | 'prod';
+  visionModel: BaseChatModel
+  permissions?: {
+    fileSystem?: XpFileSystem
+  }
 }
 
-export type TImageUnderstandingFile = {
-  path: string;       // 本地文件路径或远程URL
-  filename: string;   // 原始文件名
-  extname: string;    // 文件扩展名
-  parentChunkId?: string; // 父文档块ID（来自 Loader）
-};
+export type TImageUnderstandingInput = {
+  chunks: Document<ChunkMetadata>[];  // 来自 Loader 的初始文档块
+  files: TDocumentAsset[]; // 需要处理的图像文件
+}
 
 export type TImageUnderstandingResult = {
-  docs: Document[];   // OCR / VLM 生成的文档块
+  chunks: Document<Partial<ChunkMetadata>>[];
+  pages?: Document<Partial<ChunkMetadata>>[];
   metadata: any;      // 额外的元数据（例如模型名称、处理耗时）
 };
 
 export interface IImageUnderstandingStrategy<TConfig extends TImageUnderstandingConfig = TImageUnderstandingConfig> {
+  readonly permissions: Permissions
   /**
    * Metadata about this strategy
    */
@@ -41,7 +47,7 @@ export interface IImageUnderstandingStrategy<TConfig extends TImageUnderstanding
    * Understand image files (e.g., OCR, VLM, Chart Parsing)
    */
   understandImages(
-    files: TImageUnderstandingFile[],
+    params: TImageUnderstandingInput,
     config: TConfig
-  ): Promise<TImageUnderstandingResult[]>;
+  ): Promise<TImageUnderstandingResult>;
 }

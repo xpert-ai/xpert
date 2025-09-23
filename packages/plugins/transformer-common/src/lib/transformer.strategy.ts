@@ -13,12 +13,13 @@ import {
 import { Document } from 'langchain/document'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
 import fsPromises from 'fs/promises'
-import { Default, DocumentParseResult, icon, TDefaultTransformerConfig } from './types'
+import { Default, TDocumentParseResult, icon, TDefaultTransformerConfig } from './types'
 import path from 'path'
 
 @Injectable()
 @DocumentTransformerStrategy(Default)
 export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<TDefaultTransformerConfig> {
+  readonly permissions = []
   meta = {
     name: Default,
     label: {
@@ -47,7 +48,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
   async transformDocuments(
     files: TDocumentTransformerFile[],
     config: TDefaultTransformerConfig
-  ): Promise<DocumentParseResult[]> {
+  ): Promise<TDocumentParseResult[]> {
     const results = []
     for await (const file of files) {
       if (isRemoteFile(file.url)) {

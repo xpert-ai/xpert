@@ -9,6 +9,7 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
   @Inject(UnstructuredClient)
   private readonly client: UnstructuredClient
 
+  readonly permissions = []
   meta = {
     name: Unstructured,
     label: {

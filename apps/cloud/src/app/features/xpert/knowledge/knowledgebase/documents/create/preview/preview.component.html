@@ -39,7 +39,8 @@
   </table>
 } @else {
   @for (chunk of docs(); track chunk; let i = $index) {
-    <div class="group/card space-y-2 p-2 rounded-xl hover:bg-neutral-100">
+    <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
+    <!-- <div class="group/card space-y-2 p-2 rounded-xl hover:bg-neutral-100">
       <div class="flex items-center text-text-secondary text-sm font-medium">
         <i class="ri-text-block mr-1"></i>
         <p class="flex gap-2 ml-0.5">
@@ -83,9 +84,9 @@
               }
             </p>
           </div>
-        </div>
+        </div> 
       }
-    </div>
+    </div>-->
   } @empty {
     @if (error()) {
       <div class="text-text-warning">

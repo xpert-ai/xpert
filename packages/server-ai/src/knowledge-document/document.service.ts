@@ -4,7 +4,7 @@ import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
-import { ChunkMetadata, DocumentSourceRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, DocumentSourceRegistry, mergeParentChildChunks, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { In, Repository } from 'typeorm'
@@ -18,11 +18,11 @@ import { KnowledgeDocumentPage } from '../core'
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
 	readonly #logger = new Logger(KnowledgeDocumentService.name)
 
-	@Inject(DocumentSourceRegistry)
-	private readonly docSourceRegistry: DocumentSourceRegistry;
-
 	@InjectRepository(KnowledgeDocumentPage)
 	private readonly pageRepository: Repository<KnowledgeDocumentPage>
+
+	@Inject(DocumentSourceRegistry)
+	private readonly docSourceRegistry: DocumentSourceRegistry;
 
 	@Inject(TextSplitterRegistry)
 	private readonly textSplitterRegistry: TextSplitterRegistry
@@ -120,8 +120,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 				}
 		} else {
 			const result = await vectorStore.getChunks(id, params)
-			if (document.knowledgebase.chunkStructure === KnowledgeChunkStructureEnum.ParentChild) {
-				const ids = result.items.map((item) => item.metadata?.pageId).filter(Boolean) as string[]
+			// if (document.knowledgebase.chunkStructure === KnowledgeChunkStructureEnum.ParentChild) {
+			const ids = result.items.map((item) => item.metadata?.pageId).filter(Boolean) as string[]
+			if (ids.length) {
 				const pages = await this.pageRepository.find({
 					where: {
 						tenantId: document.tenantId,
@@ -133,7 +134,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 					order: { createdAt: 'DESC' },
 				})
 				return {
-					items: pages
+					items: mergeParentChildChunks(pages, result.items as Document<ChunkMetadata>[]),
 				}
 			}
 

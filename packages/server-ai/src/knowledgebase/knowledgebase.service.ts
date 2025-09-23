@@ -1,15 +1,16 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { AiBusinessRole, IKnowledgebase, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata } from '@metad/contracts'
+import { AiBusinessRole, DocumentMetadata, IKnowledgebase, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata } from '@metad/contracts'
 import { IntegrationService, RequestContext } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DocumentSourceRegistry, DocumentTransformerRegistry, ImageUnderstandingRegistry, KnowledgeStrategyRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, sortBy } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
+import { t } from 'i18next'
 import { In, IsNull, Not, Repository } from 'typeorm'
-import { CopilotModelGetEmbeddingsQuery, CopilotModelGetRerankQuery } from '../copilot-model/queries/index'
+import { CopilotModelGetChatModelQuery, CopilotModelGetEmbeddingsQuery, CopilotModelGetRerankQuery } from '../copilot-model/queries/index'
 import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
 import { Knowledgebase } from './knowledgebase.entity'
@@ -17,6 +18,7 @@ import { KnowledgeSearchQuery } from './queries'
 import { KnowledgeDocumentStore } from './vector-store'
 import { IRerank } from '../ai-model/types/rerank'
 import { RagCreateVStoreCommand } from '../rag-vstore'
+import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -126,7 +128,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
-		const results = await this.queryBus.execute<KnowledgeSearchQuery, [DocumentInterface, number][]>(
+		const results = await this.queryBus.execute<KnowledgeSearchQuery, DocumentInterface<DocumentMetadata>[]>(
 			new KnowledgeSearchQuery({
 				tenantId,
 				organizationId,
@@ -136,6 +138,21 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		)
 
 		return results
+	}
+
+	async getVisionModel(knowledgebaseId: string) {
+		const knowledgebase = await this.findOne(knowledgebaseId, { relations: ['visionModel', 'visionModel.copilot'] })
+		if (!knowledgebase?.visionModel?.copilot) {
+			throw new BadRequestException(t('server-ai:Error.KBReqVisionModel'))
+		}
+		const copilot = knowledgebase.visionModel.copilot
+		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(new CopilotModelGetChatModelQuery(copilot, knowledgebase.visionModel, {
+			usageCallback: (token) => {
+				// execution.tokens += (token ?? 0)
+			}
+		}))
+
+		return chatModel
 	}
 
 	async getVectorStore(

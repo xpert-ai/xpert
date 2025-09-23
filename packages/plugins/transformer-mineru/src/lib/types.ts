@@ -1,3 +1,4 @@
+import { TDocumentTransformerResult } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 
 
@@ -30,18 +31,14 @@ export const icon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"
 </svg>
 `
 
-
-export interface DocumentMetadata {
-  parser: 'mineru';
-  taskId: string;
-  originPdfUrl?: string;
-  mineruBackend?: string;
-  mineruVersion?: string;
-  layoutJson?: any;
-  contentListJson?: any;
-}
-
-export interface DocumentParseResult {
-  chunks: Document[];
-  metadata: DocumentMetadata;
+export type TDocumentParseResult = TDocumentTransformerResult & {
+  metadata: {
+    parser: 'mineru';
+    taskId: string;
+    originPdfUrl?: string;
+    mineruBackend?: string;
+    mineruVersion?: string;
+    layoutJson?: any;
+    contentListJson?: any;
+  }
 }

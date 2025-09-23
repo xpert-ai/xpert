@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import {
+  FileSystemPermission,
   IImageUnderstandingStrategy,
   ImageUnderstandingStrategy,
-  TImageUnderstandingFile,
+  TImageUnderstandingInput,
   TImageUnderstandingResult
 } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
@@ -10,6 +11,13 @@ import { Document } from 'langchain/document'
 @Injectable()
 @ImageUnderstandingStrategy('paddle-ocr')
 export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
+  readonly permissions = [
+    {
+      type: 'filesystem',
+      operations: ['read'],
+      scope: []
+    } as FileSystemPermission
+  ]
   readonly meta = {
     name: 'paddle-ocr',
     label: { en_US: 'PaddleOCR', zh_Hans: 'PaddleOCR 图片文字识别' },
@@ -36,28 +44,27 @@ export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
     }
   }
 
-  async understandImages(files: TImageUnderstandingFile[], config: any): Promise<TImageUnderstandingResult[]> {
-    const results: TImageUnderstandingResult[] = []
-
-    for (const file of files) {
-      const ocrText = await this.runPaddleOCR(file.path, config)
+  async understandImages(params: TImageUnderstandingInput, config: any): Promise<TImageUnderstandingResult> {
+    const chunks = []
+    for (const file of params.files) {
+      const ocrText = await this.runPaddleOCR(file.filePath, config)
 
       const doc = new Document({
         pageContent: ocrText,
         metadata: {
           chunkId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          parentChunkId: file.parentChunkId,
-          imagePath: file.path,
-          source: file.filename,
+          // parentChunkId: file.parentChunkId,
+          // imagePath: file.path,
+          // source: file.filename,
           type: 'ocr',
           engine: 'paddleocr'
         }
       })
 
-      results.push({ docs: [doc], metadata: { engine: 'paddleocr', file: file.filename } })
+      // results.push({ docs: [doc], metadata: { engine: 'paddleocr', } })
     }
 
-    return results
+    return {chunks, metadata: { engine: 'paddleocr' }}
   }
 
   private async runPaddleOCR(imagePath: string, config: any): Promise<string> {

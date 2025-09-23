@@ -1,18 +1,33 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { Injectable } from '@nestjs/common'
 import {
+  ChunkMetadata,
+  FileSystemPermission,
   IImageUnderstandingStrategy,
   ImageUnderstandingStrategy,
   TImageUnderstandingConfig,
-  TImageUnderstandingFile,
+  TImageUnderstandingInput,
   TImageUnderstandingResult
 } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
+import { v4 as uuid } from 'uuid'
+import sharp from 'sharp'
 import { VlmDefault } from './types'
+
+// Regex for markdown image tag: ![](image.png) or ![alt](image.png)
+const IMAGE_REGEX = /!\[[^\]]*\]\s*\(((?:https?:\/\/[^)]+|[^)\s]+))(\s*"[^"]*")?\)/g;
 
 @Injectable()
 @ImageUnderstandingStrategy(VlmDefault)
 export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
+  readonly permissions = [
+    {
+      type: 'filesystem',
+      operations: ['read'],
+      scope: []
+    } as FileSystemPermission
+  ]
+  
   readonly meta = {
     name: VlmDefault,
     label: { en_US: 'VLM', zh_Hans: '视觉语言模型' },
@@ -52,50 +67,93 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     }
   }
 
-  async validateConfig(config: any): Promise<void> {
-    if (!config.apiUrl) {
-      throw new Error('PaddleOCR requires `apiUrl` in config')
+  async validateConfig(config: TImageUnderstandingConfig): Promise<void> {
+    if (!config?.visionModel) {
+      throw new Error('Vision Model is required')
     }
   }
 
   async understandImages(
-    files: TImageUnderstandingFile[],
+    params: TImageUnderstandingInput,
     config: TImageUnderstandingConfig
-  ): Promise<TImageUnderstandingResult[]> {
-    const client = config.chatModel // ✅ 已由核心系统注入
-    const results: TImageUnderstandingResult[] = []
+  ): Promise<TImageUnderstandingResult> {
 
-    for (const file of files) {
-      const description = await this.runGPT4V(client, file.path, config)
+    await this.validateConfig(config)
 
-      const doc = new Document({
-        pageContent: description,
-        metadata: {
-          chunkId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          parentChunkId: file.parentChunkId,
-          imagePath: file.path,
-          source: file.filename,
-          type: 'vlm'
+    const client = config.visionModel // ✅ 已由核心系统注入
+    const chunks: Document<Partial<ChunkMetadata>>[] = []
+    const pages : Document<Partial<ChunkMetadata>>[] = []
+
+    for await (const chunk of params.chunks) {
+      const assets: string[] = []
+      chunk.metadata.chunkId ??= uuid()
+
+      // Find image tags inside the chunk
+      const matches = Array.from(chunk.pageContent.matchAll(IMAGE_REGEX))
+      for (const match of matches) {
+        const url = match[1] // image-url.png
+        const asset = params.files.find((a) => a.url === url)
+        if (asset && !assets.some((_) => _ === asset.url)) {
+          const description = await this.runV(client, chunk.pageContent, asset.filePath, config)
+          assets.push(asset.url)
+          chunks.push(new Document({
+            pageContent: description,
+            metadata: {
+              chunkId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              parentId: chunk.metadata.parentId ?? chunk.metadata.chunkId,
+              imagePath: asset.filePath,
+              // source: asset.filename,
+              parser: 'vlm'
+            }
+          }))
         }
-      })
+      }
 
-      results.push({
-        docs: [doc],
-        metadata: { file: file.filename }
-      })
+      if (assets.length === 0) {
+        chunks.push(chunk)
+      } else {
+        pages.push(chunk) // 原始块，保留图片引用
+        chunks.push(new Document({
+          pageContent: chunk.pageContent,
+          metadata: {
+            ...chunk.metadata,
+            assets: (chunk.metadata.assets || []).concat(params.files.filter((a) => assets.includes(a.url))),
+            chunkId: `txt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            parentId: chunk.metadata.parentId ?? chunk.metadata.chunkId,
+          }
+        }))
+      }
     }
 
-    return results
+    return {
+      chunks,
+      pages,
+      metadata: {}
+    }
   }
 
-  private async runGPT4V(client: BaseChatModel, imagePath: string, config: any): Promise<string> {
-    // client 已经是 openai client，由核心系统实例化
+  private async runV(client: BaseChatModel, context: string, imagePath: string, config: TImageUnderstandingConfig): Promise<string> {
+    const imageStr = await config.permissions.fileSystem.readFile(imagePath)
+    const sharped = sharp(imageStr)
+    const imageData = await sharped.resize(1024).toBuffer()
+    const fileInfo = await sharped.metadata()
+    const mimetype = fileInfo.format ? `image/${fileInfo.format}` : 'image/png'
+
     const response = await client.invoke([
+      {
+        role: 'system',
+        content: 'You are a professional assistant, helping people understand images in context. Please provide a narrative description of the image.'
+      },
       {
         role: 'user',
         content: [
-          { type: 'text', text: config.prompt || 'Describe this image in detail.' },
-          { type: 'image_url', image_url: { url: imagePath } }
+          // { type: 'text', text: context },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${mimetype};base64,${imageData.toString('base64')}`
+            }
+          }
         ]
       }
     ])
