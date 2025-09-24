@@ -2,6 +2,7 @@ import {
 	channelName,
 	getAgentVarGroup,
 	getCurrentGraph,
+	getWorkflowTriggers,
 	IWFNIterating,
 	IWFNKnowledgeRetrieval,
 	IWFNSubflow,
@@ -50,7 +51,8 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 	) {}
 
 	public async execute(command: XpertAgentVariablesQuery): Promise<TWorkflowVarGroup[]> {
-		const { xpertId, type, nodeKey, isDraft, environmentId } = command.options
+		const { xpertId, type, isDraft, environmentId } = command.options
+		let { nodeKey } = command.options
 
 		// const xpert = await this.xpertService.findOne(xpertId, { select: ['id', 'agentConfig', 'draft', 'graph'] })
 
@@ -221,6 +223,11 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 
 		// All agents output
 		const _graph = isDraft ? ({ ...(xpert.graph ?? {}), ...(xpert.draft ?? {}) } as TXpertGraph) : xpert.graph
+		// Pure workflow mode
+		if (xpert.agent?.options?.hidden && xpert.agent?.key === nodeKey) {
+			const chatStarters = getWorkflowTriggers(_graph, 'chat')
+			nodeKey = chatStarters.length ? chatStarters[0].key : nodeKey
+		}
 		const node = _graph.nodes?.find((_) => _.key === nodeKey)
 		const graph = _graph.nodes ? getCurrentGraph(_graph, nodeKey) : _graph
 

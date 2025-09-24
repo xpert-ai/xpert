@@ -37,6 +37,7 @@ export type TXpertVariablesOptions = {
   workflowKey?: string;
   agentKey?: string;
   type?: 'input' | 'output';
+  isDraft?: boolean;
   connections: string[];
 }
 
@@ -193,13 +194,17 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   /**
    * Get avaiable variables for agent or global variables
    */
-  getVariables(id: string, type: 'input' | 'output', agentKey?: string, environmentId?: string) {
+  getVariables(id: string, type: 'input' | 'output', options: {agentKey?: string; environmentId?: string; isDraft?: boolean}) {
+    const { agentKey, environmentId, isDraft } = options
     let params = new HttpParams()
     if (environmentId) {
       params = params.append('environment', environmentId)
     }
     if (type) {
       params = params.append('type', type)
+    }
+    if (isDraft != null) {
+      params = params.append('isDraft', isDraft)
     }
     return agentKey ? this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`, {params})
     : this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/variables`, {params})
@@ -220,7 +225,11 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     if (options.workflowKey) {
       return this.getWorkflowVariables(options.xpertId, options.workflowKey, options.environmentId)
     } else {
-      return this.getVariables(options.xpertId, options.type, options.agentKey, options.environmentId)
+      return this.getVariables(options.xpertId, options.type, {
+        agentKey: options.agentKey,
+        environmentId: options.environmentId,
+        isDraft: options.isDraft
+      })
     }
   }
 
