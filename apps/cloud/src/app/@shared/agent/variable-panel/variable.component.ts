@@ -15,7 +15,7 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TXpertVariablesOptions, XpertService } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmHighlightDirective, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { debouncedSignal, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -26,7 +26,7 @@ export { TXpertVariablesOptions } from '@cloud/app/@core/services'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, NgmSpinComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, NgmHighlightDirective, NgmSpinComponent],
   selector: 'xpert-variable-panel',
   templateUrl: './variable.component.html',
   styleUrls: ['./variable.component.scss'],
@@ -40,6 +40,7 @@ export class XpertVariablePanelComponent {
   readonly overlay = inject(Overlay)
   readonly elementRef = inject(ElementRef)
   readonly xpertAPI = inject(XpertService)
+  readonly i18nPipe = new NgmI18nPipe()
 
   // Inputs
   readonly options = input.required<TXpertVariablesOptions>()
@@ -75,14 +76,14 @@ export class XpertVariablePanelComponent {
     return this.variables()
       ?.map((group) => ({
         ...group,
-        variables: group.variables?.filter((variable) => {
+        variables: searchTerm ? group.variables?.filter((variable) => {
           const description = variable.description
-          return type
+          return (type
             ? variable.type === type
-            : true &&
+            : true) &&
                 (variable.name.toLowerCase().includes(searchTerm) ||
-                  (typeof description === 'string' ? description.toLowerCase().includes(searchTerm) : true))
-        })
+                  (this.i18nPipe.transform(description).toLowerCase().includes(searchTerm)))
+        }) : group.variables
       }))
       .filter((group) => group.variables?.length > 0)
   })
