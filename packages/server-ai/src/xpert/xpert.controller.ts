@@ -367,10 +367,12 @@ export class XpertController extends CrudController<Xpert> {
 		@Param('id') id: string, 
 		@Param('agent') agentKey: string, 
 		@Query('environment') environmentId: string,
+		@Query('isDraft') isDraft: string,
 		@Query('type') type: 'input' | 'output'
 	) {
 		try {
-			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type, nodeKey: agentKey, isDraft: true, environmentId}))
+			return await this.queryBus.execute(new XpertAgentVariablesQuery({
+				xpertId: id, type, nodeKey: agentKey, isDraft: !(isDraft === 'false'), environmentId}))
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
