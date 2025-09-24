@@ -31,9 +31,9 @@
         </div>
         <ng-template #option let-option>
           <div class="relative flex">
-            @if (option.icon) {
-              <div [innerHTML]="option.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
-                [style.color]="option.icon.color || '#14b8a6'"></div>
+            @if (option._icon) {
+              <div [innerHTML]="option._icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+                [style.color]="option._icon.color || '#14b8a6'"></div>
             }
             <div class="flex flex-col gap-1">
               <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
@@ -113,9 +113,9 @@
         </div>
         <ng-template #option let-option>
           <div class="relative flex">
-            @if (option.icon) {
-              <div [innerHTML]="option.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
-                [style.color]="option.icon.color || '#14b8a6'"></div>
+            @if (option._icon) {
+              <div [innerHTML]="option._icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+                [style.color]="option._icon.color || '#14b8a6'"></div>
             }
             <div class="flex flex-col gap-1">
               <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
@@ -192,9 +192,9 @@
         </div>
         <ng-template #option let-option>
           <div class="relative flex">
-            @if (option.icon) {
-              <div [innerHTML]="option.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
-                [style.color]="option.icon.color || '#14b8a6'"></div>
+            @if (option._icon) {
+              <div [innerHTML]="option._icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+                [style.color]="option._icon.color || '#14b8a6'"></div>
             }
             <div class="flex flex-col gap-1">
               <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>

@@ -2,7 +2,7 @@ import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
 import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langchain/core/vectorstores'
-import { API_PREFIX, DocumentMetadata, I18nObject, IDocumentSourceProvider, IKnowledgebase, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { API_PREFIX, DocumentMetadata, IDocumentChunkerProvider, IDocumentProcessorProvider, IDocumentSourceProvider, IDocumentUnderstandingProvider, IKnowledgebase, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { shareReplay, switchMap } from 'rxjs/operators'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
@@ -43,15 +43,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   getTextSplitterStrategies() {
-    return this.httpClient.get<{ name: string; label: I18nObject; description?: I18nObject; configSchema?: any; icon: any; helpUrl: string }[]>(this.apiBaseUrl + '/text-splitter/strategies')
+    return this.httpClient.get<IDocumentChunkerProvider[]>(this.apiBaseUrl + '/text-splitter/strategies')
   }
 
   getDocumentTransformerStrategies() {
-    return this.httpClient.get<{ name: string; label: I18nObject; description?: I18nObject; configSchema?: any; icon: any; helpUrl: string }[]>(this.apiBaseUrl + '/transformer/strategies')
+    return this.httpClient.get<IDocumentProcessorProvider[]>(this.apiBaseUrl + '/transformer/strategies')
   }
 
   getImageUnderstandingStrategies() {
-    return this.httpClient.get<{ name: string; label: I18nObject; description?: I18nObject; configSchema?: any; icon: any; helpUrl: string }[]>(this.apiBaseUrl + '/image-understanding/strategies')
+    return this.httpClient.get<IDocumentUnderstandingProvider[]>(this.apiBaseUrl + '/image-understanding/strategies')
   }
 
   getDocumentSourceStrategies() {

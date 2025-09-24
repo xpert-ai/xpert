@@ -32,7 +32,13 @@ import {
   XpertTypeEnum,
   KnowledgebaseService,
   IDocumentSourceProvider,
-  IWFNDataSource
+  IWFNSource,
+  IWFNProcessor,
+  IDocumentProcessorProvider,
+  IDocumentChunkerProvider,
+  IDocumentUnderstandingProvider,
+  IWFNChunker,
+  IWFNUnderstanding
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { shareReplay, Subscription } from 'rxjs'
@@ -52,7 +58,10 @@ import {
   genXpertAgentToolKey,
   genXpertTaskKey,
   genXpertTriggerKey,
-  genPipelineDatasourceKey
+  genPipelineSourceKey,
+  genPipelineProcessorKey,
+  genPipelineChunkerKey,
+  genPipelineUnderstandingKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
@@ -109,7 +118,7 @@ export class XpertStudioContextMenuComponent {
   readonly triggerProviders = this.apiService.triggerProviders
  
   // Knowledge Pipeline
-  readonly pipelineType = signal<'datasource' | 'processor' | 'chunker' | 'image' | 'embedder'>('datasource')
+  readonly pipelineType = signal<'source' | 'processor' | 'chunker' | 'understanding' | 'embedder'>('source')
   readonly dataSources$ = this.knowledgebaseAPI.documentSourceStrategies$
   readonly transformers$ = this.knowledgebaseAPI.documentTransformerStrategies$
   readonly imageUnderstandings$ = this.knowledgebaseAPI.imageUnderstandingStrategies$
@@ -374,11 +383,39 @@ export class XpertStudioContextMenuComponent {
   }
 
   // Knowledge Pipelines
-  addPipelineDatasource(provider: IDocumentSourceProvider) {
+  addPipelineSource(provider: IDocumentSourceProvider) {
     this.apiService.addBlock(this.root.contextMenuPosition, {
-      type: WorkflowNodeTypeEnum.DATASOURCE,
-      key: genPipelineDatasourceKey(),
-      title: this.#translate.instant('PAC.Xpert.Datasource', { Default: 'Datasource' }),
-    } as IWFNDataSource)
+      type: WorkflowNodeTypeEnum.SOURCE,
+      key: genPipelineSourceKey(),
+      title: this.#translate.instant('PAC.Xpert.Source', { Default: 'Source' }),
+      provider: provider.name,
+    } as IWFNSource)
+  }
+
+  addPipelineProcessor(provider: IDocumentProcessorProvider) {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.PROCESSOR,
+      key: genPipelineProcessorKey(),
+      title: this.#translate.instant('PAC.Xpert.Processor', { Default: 'Processor' }),
+      provider: provider.name,
+    } as IWFNProcessor)
+  }
+
+  addPipelineChunker(provider: IDocumentChunkerProvider) {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.CHUNKER,
+      key: genPipelineChunkerKey(),
+      title: this.#translate.instant('PAC.Xpert.Chunker', { Default: 'Chunker' }),
+      provider: provider.name,
+    } as IWFNChunker)
+  }
+
+  addPipelineUnderstanding(provider: IDocumentUnderstandingProvider) {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.UNDERSTANDING,
+      key: genPipelineUnderstandingKey(),
+      title: this.#translate.instant('PAC.Xpert.Understanding', { Default: 'Understanding' }),
+      provider: provider.name,
+    } as IWFNUnderstanding)
   }
 }

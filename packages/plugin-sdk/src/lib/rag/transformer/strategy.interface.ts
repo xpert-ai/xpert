@@ -1,4 +1,4 @@
-import { I18nObject } from '@metad/contracts'
+import { I18nObject, IDocumentProcessorProvider } from '@metad/contracts'
 import { Document } from 'langchain/document'
 import { XpFileSystem, Permissions } from '../../core/index'
 import { TDocumentAsset } from '../types'
@@ -28,15 +28,7 @@ export interface IDocumentTransformerStrategy<TConfig extends TDocumentTransform
   /**
    * Metadata about this transformer
    */
-  readonly meta: {
-    name: string
-    label: I18nObject
-    configSchema: any
-    icon: {
-      svg: string
-      color: string
-    }
-  }
+  readonly meta: IDocumentProcessorProvider
 
   readonly permissions: Permissions
 

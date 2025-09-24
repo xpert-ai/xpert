@@ -1,4 +1,4 @@
-import { I18nObject, KnowledgeChunkStructureEnum } from '@metad/contracts'
+import { IDocumentChunkerProvider, KnowledgeChunkStructureEnum } from '@metad/contracts'
 import { Document } from 'langchain/document'
 import { ChunkMetadata } from '../types'
 
@@ -9,15 +9,7 @@ export interface ITextSplitterStrategy<TConfig = any> {
   /**
    * Metadata about this splitter
    */
-  readonly meta: {
-    name: string
-    label: I18nObject
-    configSchema: any
-    icon: {
-      svg: string
-      color: string
-    }
-  }
+  readonly meta: IDocumentChunkerProvider
 
   readonly chunkStructure: KnowledgeChunkStructureEnum
 

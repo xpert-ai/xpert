@@ -85,6 +85,18 @@
   @case (eWorkflowNodeTypeEnum.NOTE) {
     <xpert-workflow-node-note class="px-3" [node]="node()" [entity]="entity()" />
   }
+  @case (eWorkflowNodeTypeEnum.SOURCE) {
+    <xpert-workflow-node-source class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.PROCESSOR) {
+    <xpert-workflow-node-processor class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.CHUNKER) {
+    <xpert-workflow-node-chunker class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.UNDERSTANDING) {
+    <xpert-workflow-node-understanding class="px-3" [node]="node()" [entity]="entity()" />
+  }
   @default {
     <div>Unimplement type ({{type()}})</div>
   }

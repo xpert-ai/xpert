@@ -18,6 +18,10 @@ import { createTriggerNode } from '../trigger'
 import { createCodeNode, WorkflowCodeValidator } from '../code/index'
 import { TStateChannel, TWorkflowGraphNode } from '../../../shared'
 import { createAnswerNode } from '../answer/node'
+import { createSourceNode } from '../source'
+import { createProcessorNode } from '../processor'
+import { createChunkerNode } from '../chunker'
+import { createUnderstandingNode } from '../understanding'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -200,6 +204,42 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					xpertId,
 					environment: options.environment,
 					conversationId: options.conversationId
+				})
+				break
+			}
+			case WorkflowNodeTypeEnum.SOURCE: {
+				workflow = createSourceNode(graph, node, {
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					xpertId,
+					environment: options.environment
+				})
+				break
+			}
+			case WorkflowNodeTypeEnum.PROCESSOR: {
+				workflow = createProcessorNode(graph, node, {
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					xpertId,
+					environment: options.environment
+				})
+				break
+			}
+			case WorkflowNodeTypeEnum.CHUNKER: {
+				workflow = createChunkerNode(graph, node, {
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					xpertId,
+					environment: options.environment
+				})
+				break
+			}
+			case WorkflowNodeTypeEnum.UNDERSTANDING: {
+				workflow = createUnderstandingNode(graph, node, {
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					xpertId,
+					environment: options.environment
 				})
 				break
 			}

@@ -95,8 +95,17 @@ export function genXpertNoteKey() {
   return letterStartSUID('Note_')
 }
 
-export function genPipelineDatasourceKey() {
-  return letterStartSUID('Datasource_')
+export function genPipelineSourceKey() {
+  return letterStartSUID('Source_')
+}
+export function genPipelineProcessorKey() {
+  return letterStartSUID('Processor_')
+}
+export function genPipelineChunkerKey() {
+  return letterStartSUID('Chunker_')
+}
+export function genPipelineUnderstandingKey() {
+  return letterStartSUID('Understanding_')
 }
 
 export function genWorkflowKey(type: WorkflowNodeTypeEnum) {

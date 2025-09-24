@@ -31,6 +31,10 @@ import { XpertWorkflowNodeAgentToolComponent } from './agent-tool/tool.component
 import { XpertWorkflowNodeTaskComponent } from './task/task.component'
 import { XpertWorkflowNodeTriggerComponent } from './trigger/trigger.component'
 import { SafePipe } from '@metad/core'
+import { XpertWorkflowNodeSourceComponent } from './source/source.component'
+import { XpertWorkflowNodeProcessorComponent } from './processor/processor.component'
+import { XpertWorkflowNodeChunkerComponent } from './chunker/chunker.component'
+import { XpertWorkflowNodeUnderstandingComponent } from './understanding/understanding.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -60,7 +64,11 @@ import { SafePipe } from '@metad/core'
     XpertWorkflowNodeAgentToolComponent,
     XpertWorkflowNodeAssignerComponent,
     XpertWorkflowNodeTaskComponent,
-    XpertWorkflowNodeTriggerComponent
+    XpertWorkflowNodeTriggerComponent,
+    XpertWorkflowNodeSourceComponent,
+    XpertWorkflowNodeProcessorComponent,
+    XpertWorkflowNodeChunkerComponent,
+    XpertWorkflowNodeUnderstandingComponent
   ],
   host: {
     '[class]': 'type()',

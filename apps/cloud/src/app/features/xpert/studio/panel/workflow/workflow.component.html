@@ -122,6 +122,18 @@
   @case (eWorkflowNodeTypeEnum.NOTE) {
     <xpert-workflow-note [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.SOURCE) {
+    <xpert-workflow-source [node]="node()" [entity]="wfNode()" />
+  }
+  @case (eWorkflowNodeTypeEnum.PROCESSOR) {
+    <xpert-workflow-processor [node]="node()" [entity]="wfNode()" />
+  }
+  @case (eWorkflowNodeTypeEnum.CHUNKER) {
+    <xpert-workflow-chunker [node]="node()" [entity]="wfNode()" />
+  }
+  @case (eWorkflowNodeTypeEnum.UNDERSTANDING) {
+    <xpert-workflow-understanding [node]="node()" [entity]="wfNode()" />
+  }
 }
 
 @if (loading()) {

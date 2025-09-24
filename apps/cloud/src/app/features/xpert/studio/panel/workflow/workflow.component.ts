@@ -6,6 +6,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { SafePipe } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IfAnimation,
@@ -38,7 +39,10 @@ import { XpertWorkflowAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowTaskComponent } from './task/task.component'
 import { XpertWorkflowTriggerComponent } from './trigger/trigger.component'
 import { XpertWorkflowTriggerTestComponent } from './trigger-test/trigger.component'
-import { SafePipe } from '@metad/core'
+import { XpertWorkflowSourceComponent } from './source/source.component'
+import { XpertWorkflowProcessorComponent } from './processor/processor.component'
+import { XpertWorkflowChunkerComponent } from './chunker/chunker.component'
+import { XpertWorkflowUnderstandingComponent } from './understanding/understanding.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -74,7 +78,11 @@ import { SafePipe } from '@metad/core'
     XpertWorkflowAssignerComponent,
     XpertWorkflowTaskComponent,
     XpertWorkflowTriggerComponent,
-    XpertWorkflowTriggerTestComponent
+    XpertWorkflowTriggerTestComponent,
+    XpertWorkflowSourceComponent,
+    XpertWorkflowProcessorComponent,
+    XpertWorkflowChunkerComponent,
+    XpertWorkflowUnderstandingComponent
   ],
   animations: [IfAnimation,]
 })

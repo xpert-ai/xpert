@@ -1,0 +1,21 @@
+<div class="relative bg-zinc-50 flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder"
+>
+  <div class="flex items-center gap-1">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="text-blue-600">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+    </svg>
+    <div>
+      @if (provider(); as provider) {
+        {{ provider | i18n }}
+      } @else {
+        {{'PAC.Workflow.Source' | translate: {Default: 'Source'} }}
+      }
+    </div>
+  </div>
+
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true">
+    <div class="inner-dot cursor-crosshair">
+      <ngm-plus-svg class="w-2 h-2 text-white" />
+    </div>
+  </div>
+</div>

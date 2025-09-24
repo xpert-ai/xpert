@@ -107,6 +107,30 @@
       <i class="ri-p2p-fill"></i>
     </div>
   }
+  @case (eWorkflowNodeTypeEnum.SOURCE) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-pink-600
+      w-full h-full rounded-lg shadow-sm shrink-0">
+      <i class="ri-database-2-line"></i>
+    </div>
+  }
+  @case (eWorkflowNodeTypeEnum.PROCESSOR) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-600
+      w-full h-full rounded-lg shadow-sm shrink-0">
+      <i class="ri-swap-2-line"></i>
+    </div>
+  }
+  @case (eWorkflowNodeTypeEnum.CHUNKER) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-emerald-600
+      w-full h-full rounded-lg shadow-sm shrink-0">
+      <i class="ri-split-cells-horizontal"></i>
+    </div>
+  }
+  @case (eWorkflowNodeTypeEnum.UNDERSTANDING) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-accent-600
+      w-full h-full rounded-lg shadow-sm shrink-0">
+      <i class="ri-image-ai-fill"></i>
+    </div>
+  }
   @case ('chat') {
     <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
       w-full h-full rounded-lg shadow-sm shrink-0">

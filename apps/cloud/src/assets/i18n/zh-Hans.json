@@ -3116,7 +3116,8 @@
       "Processor": "处理器",
       "Parser": "解析器",
       "Chunker": "分块器",
-      "Embedder": "嵌入器"
+      "Embedder": "嵌入器",
+      "ImageUnderstanding": "图像理解"
     },
     "MCP": {
       "Logs": "日志",

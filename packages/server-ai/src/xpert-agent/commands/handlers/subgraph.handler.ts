@@ -84,21 +84,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const thread_id = command.options.thread_id
 
 		// LLM
-		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
-			new GetXpertChatModelQuery(agent.team, agent, {
-				abortController: rootController,
-				usageCallback: assignExecutionUsage(execution)
-			})
-		)
+		let chatModel: BaseChatModel
+		if (!hiddenAgent) {
+			chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+				new GetXpertChatModelQuery(agent.team, agent, {
+					abortController: rootController,
+					usageCallback: assignExecutionUsage(execution)
+				})
+			)
 
-		// Record ai model info into execution
-		const copilotModel = agent.copilotModel ?? team.copilotModel
-		if (!copilotModel.copilot) {
-			throw new XpertConfigException(await this.i18nService.t('xpert.Error.CopilotModelConfigError', {lang: mapTranslationLanguage(RequestContext.getLanguageCode()), args: {model: copilotModel.model}}))
-		}
-		execution.metadata = {
-			provider: copilotModel.copilot.modelProvider?.providerName,
-			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
+			// Record ai model info into execution
+			const copilotModel = agent.copilotModel ?? team.copilotModel
+			if (!copilotModel?.copilot) {
+				throw new XpertConfigException(await this.i18nService.t('xpert.Error.CopilotModelConfigError', {lang: mapTranslationLanguage(RequestContext.getLanguageCode()), args: {model: copilotModel.model}}))
+			}
+			execution.metadata = {
+				provider: copilotModel.copilot.modelProvider?.providerName,
+				model: copilotModel.model || copilotModel.copilot.copilotModel?.model
+			}
 		}
 
 		// Create tools

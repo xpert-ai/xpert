@@ -141,7 +141,7 @@ export class KnowledgeDocumentCreateStep2Component {
     value: strategy.name,
     label: strategy.label,
     description: strategy.description,
-    icon: strategy.icon
+    _icon: strategy.icon
   })))
 
   readonly textSplitterStrategy = computed(() => this.createComponent.textSplitterStrategies()?.find((strategy) => strategy.name === this.textSplitterType()))
@@ -151,7 +151,7 @@ export class KnowledgeDocumentCreateStep2Component {
     value: strategy.name,
     label: strategy.label,
     description: strategy.description,
-    icon: strategy.icon
+    _icon: strategy.icon
   })))
 
   readonly transformerType = attrModel(this.parserConfig, 'transformerType', 'default')
@@ -186,7 +186,7 @@ export class KnowledgeDocumentCreateStep2Component {
     value: strategy.name,
     label: strategy.label,
     description: strategy.description,
-    icon: strategy.icon
+    _icon: strategy.icon
   })))
 
   readonly imageUnderstandingStrategy = computed(() => this.createComponent.imageUnderstandingStrategies()?.find((strategy) => strategy.name === this.imageUnderstandingType()))

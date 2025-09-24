@@ -46,13 +46,10 @@ export enum WorkflowNodeTypeEnum {
   TASK = 'task',
 
   // Knowledge Pipeline nodes
-  DATASOURCE = 'datasource',
+  SOURCE = 'source',
   PROCESSOR = 'processor',
-  // INDEXER = 'indexer',
-  // VECTORIZER = 'vectorizer',
-  // EMBEDDING = 'embedding',
-  // RETRIEVER = 'retriever',
-  // RANKER = 'ranker',
+  CHUNKER = 'chunker',
+  UNDERSTANDING = 'understanding',
 }
 
 export interface IWorkflowNode {

@@ -184,14 +184,14 @@
 </ng-template>
 
 <ng-template #toolsMenu>
-  <div cdkMenu class="cdk-menu__medium overflow-auto" [style.width.px]="toolMenuTrigger.offsetWidth" >
+  <div cdkMenu class="cdk-menu__medium" [style.width.px]="toolMenuTrigger.offsetWidth" >
     @for (tool of tools(); track tool.value) {
       <div cdkMenuItem class="flex flex-col items-start gap-1" (click)="onSelectTool(tool.value)">
         <div class="flex justify-between items-center gap-2 w-full">
           <span class="text-sm text-text-primary">{{ tool.label | i18n }}</span>
           <span class="text-sm font-mono text-text-primary">{{ tool.value }}</span>
         </div>
-        <div class="text-xs font-body text-text-secondary">
+        <div class="text-xs font-body text-text-secondary whitespace-normal line-clamp-2">
           {{ tool.description }}
         </div>
       </div>
