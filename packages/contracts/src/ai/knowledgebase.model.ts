@@ -108,6 +108,7 @@ export type TKnowledgebase = {
 
   integrationId?: string
   extKnowledgebaseId?: string
+  pipelineId?: string
 }
 
 /**

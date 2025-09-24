@@ -10,7 +10,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { Router } from '@angular/router'
 import { attrModel, effectAction, linkedModel } from '@metad/ocap-angular/core'
 import { calculateHash } from '@cloud/app/@shared/utils'
-import { EnvironmentService, KnowledgebaseService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import { EnvironmentService, KnowledgebaseService, ToastrService, XpertAPIService, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { isEqual, isNil, negate, omit, omitBy, pick } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -61,27 +61,27 @@ import {
 } from './node'
 import { PACCopilotService } from '../../../services'
 import { EReloadReason, IStudioStore, TStateHistory } from './types'
-import { XpertComponent } from '../../xpert'
 import { CreateTeamHandler, CreateTeamRequest, ExpandTeamRequest, ExpandTeamHandler, UpdateXpertHandler, UpdateXpertRequest } from './xpert'
 import { genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
+import { XpertService } from '../../xpert/xpert.service'
 
 
 const SaveDraftDebounceTime = 1 // s
 
 @Injectable()
 export class XpertStudioApiService {
-  readonly xpertService = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly copilotService = inject(PACCopilotService)
   readonly environmentService = inject(EnvironmentService)
   readonly #toastr = inject(ToastrService)
-  readonly xpertComponent = inject(XpertComponent)
   readonly getXpertTeam = injectGetXpertTeam()
   readonly getXpertsByWorkspace = injectGetXpertsByWorkspace()
   readonly #router = inject(Router)
   readonly #cdr = inject(ChangeDetectorRef)
+  readonly xpertService = inject(XpertService)
 
   readonly store = createStore({ name: 'xpertStudio' }, withProps<IStudioStore>({ draft: null }))
   readonly #stateHistory = stateHistory<Store, IStudioStore>(this.store, {
@@ -115,7 +115,9 @@ export class XpertStudioApiService {
   public get reload$(): Observable<EReloadReason> {
     return this.#reload.asObservable().pipe(filter((value) => value !== EReloadReason.MOVED))
   }
-  readonly paramId$ = this.xpertComponent.paramId$
+  // readonly paramId$ = this.xpertComponent.paramId$
+  readonly paramId$ = toObservable(this.xpertService.paramId)
+
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
   readonly savedEvent$ = new BehaviorSubject<boolean>(true)
@@ -127,7 +129,7 @@ export class XpertStudioApiService {
   readonly versions = toSignal(
     this.#refresh$.pipe(
       switchMap(() => this.paramId$.pipe(distinctUntilChanged())),
-      switchMap((id) => this.xpertService.getVersions(id))
+      switchMap((id) => this.xpertAPI.getVersions(id))
     )
   )
   readonly workspaceId = computed(() => this.team()?.workspaceId)
@@ -155,7 +157,7 @@ export class XpertStudioApiService {
   })
 
   // Workflow providers
-  readonly triggerProviders = toSignal(this.xpertService.getTriggerProviders(), { initialValue: [] })
+  readonly triggerProviders = toSignal(this.xpertAPI.getTriggerProviders(), { initialValue: [] })
 
   // knowledgebases
   readonly knowledgebases$ = toObservable(this.workspaceId).pipe(
@@ -317,7 +319,7 @@ export class XpertStudioApiService {
   }
 
   public resume() {
-    this.xpertService.update(this.team().id, { draft: null }).subscribe(() => {
+    this.xpertAPI.update(this.team().id, { draft: null }).subscribe(() => {
       this.refresh()
     })
   }
@@ -328,7 +330,7 @@ export class XpertStudioApiService {
 
   saveDraft() {
     const draft = this.storage
-    return this.xpertService.saveDraft(draft.team.id, draft).pipe(
+    return this.xpertAPI.saveDraft(draft.team.id, draft).pipe(
       tap((draft) => {
         this.unsaved.set(false)
         this.pristineDraft.set(draft)
@@ -682,9 +684,9 @@ export class XpertStudioApiService {
 
   getVariables(options: {xpertId: string; workflowKey?: string; agentKey?: string; type: 'input' | 'output'}) {
     if (options.workflowKey) {
-      return this.xpertService.getWorkflowVariables(options.xpertId, options.workflowKey, this.environmentId())
+      return this.xpertAPI.getWorkflowVariables(options.xpertId, options.workflowKey, this.environmentId())
     } else {
-      return this.xpertService.getVariables(options.xpertId, options.type, options.agentKey, this.environmentId())
+      return this.xpertAPI.getVariables(options.xpertId, options.type, options.agentKey, this.environmentId())
     }
   }
 }

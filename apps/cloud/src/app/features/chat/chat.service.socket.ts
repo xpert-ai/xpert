@@ -30,7 +30,7 @@ import {
   LanguagesEnum,
   XpertTypeEnum,
 } from '../../@core'
-import { ChatConversationService, XpertService, ToastrService } from '../../@core/services'
+import { ChatConversationService, XpertAPIService, ToastrService } from '../../@core/services'
 import { AppService } from '../../app.service'
 import { COMMON_COPILOT_ROLE } from './types'
 import { TranslateService } from '@ngx-translate/core'
@@ -42,7 +42,7 @@ import { ChatWebsocketServer } from '../../@core/services/chat.service.socket'
 export class ChatWebsocketService {
   readonly chatService = inject(ChatWebsocketServer)
   readonly conversationService = inject(ChatConversationService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly appService = inject(AppService)
   readonly #translate = inject(TranslateService)
   readonly #logger = inject(NGXLogger)

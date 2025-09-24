@@ -8,7 +8,7 @@ import { NgmCopilotService } from '@metad/copilot-angular'
 import { pick } from '@metad/ocap-core'
 import { environment } from '@cloud/environments/environment'
 import { BehaviorSubject, combineLatest, firstValueFrom, map } from 'rxjs'
-import { CopilotServerService, Store, XpertService } from '../../@core'
+import { CopilotServerService, Store, XpertAPIService } from '../../@core'
 import { AgentService } from '../../@core/services/agent.service'
 
 const baseUrl = environment.API_BASE_URL
@@ -20,7 +20,7 @@ export class PACCopilotService extends NgmCopilotService {
   readonly #store = inject(Store)
   readonly httpClient = inject(HttpClient)
   readonly authService = inject(AuthService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly router = inject(Router)
   readonly #agentService = inject(AgentService)
   readonly copilotServer = inject(CopilotServerService)

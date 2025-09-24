@@ -15,7 +15,7 @@ import {
   injectToastr,
   routeAnimations,
   TChatApi,
-  XpertService
+  XpertAPIService
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../develop'
 import { XpertComponent } from '../xpert.component'
@@ -39,7 +39,7 @@ import { XpertComponent } from '../xpert.component'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertAPIComponent {
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly xpertComponent = inject(XpertComponent)
   readonly #router = inject(Router)

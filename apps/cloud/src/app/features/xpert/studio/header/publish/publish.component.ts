@@ -8,7 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { nonBlank, SlideUpAnimation } from '@metad/core'
 import { injectConfirm, injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { getErrorMessage, IXpert, ToastrService, TSelectOption, XpertService } from '@cloud/app/@core'
+import { getErrorMessage, IXpert, ToastrService, TSelectOption, XpertAPIService } from '@cloud/app/@core'
 import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
@@ -35,7 +35,7 @@ import { NgmSelectComponent } from '@cloud/app/@shared/common'
 export class XpertPublishVersionComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly studioService = inject(XpertStudioApiService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly confirmDelete = injectConfirmDelete()
   readonly confirm = injectConfirm()
   readonly #translate = inject(TranslateService)

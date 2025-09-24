@@ -13,7 +13,7 @@ import {
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectToastr, TWFCase, WorkflowLogicalOperator, XpertService } from 'apps/cloud/src/app/@core'
+import { injectToastr, TWFCase, WorkflowLogicalOperator, XpertAPIService } from 'apps/cloud/src/app/@core'
 
 @Component({
   selector: 'xpert-workflow-case',
@@ -27,7 +27,7 @@ export class XpertWorkflowCaseComponent {
   eWorkflowLogicalOperator = WorkflowLogicalOperator
 
   readonly elementRef = inject(ElementRef)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
 
   // Inputs

@@ -7,7 +7,7 @@ import { NgmCommonModule, NgmConfirmDeleteComponent, TableColumn } from '@metad/
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, catchError, map, switchMap, tap } from 'rxjs'
-import { XpertService, IXpertRole, OrderTypeEnum, ToastrService, getErrorMessage, omitSystemProperty } from '../../../../@core'
+import { XpertAPIService, IXpertRole, OrderTypeEnum, ToastrService, getErrorMessage, omitSystemProperty } from '../../../../@core'
 import { AvatarComponent } from 'apps/cloud/src/app/@shared/files'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
@@ -32,7 +32,7 @@ type CopilotRoleRowType = Partial<IXpertRole> & { __edit__?: boolean }
 export class XpertRolesComponent extends TranslationBaseComponent {
   DisplayBehaviour = DisplayBehaviour
 
-  readonly roleService = inject(XpertService)
+  readonly roleService = inject(XpertAPIService)
   readonly _toastrService = inject(ToastrService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)

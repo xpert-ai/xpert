@@ -331,8 +331,20 @@ export type TXpertAttachment = {
 }
 
 export enum XpertTypeEnum {
+  /**
+   * Chat Agents
+   */
   Agent = 'agent',
-  Copilot = 'copilot'
+
+  /**
+   * Copilot in UI
+   */
+  Copilot = 'copilot',
+
+  /**
+   * Knowledge Workflow
+   */
+  Knowledge = 'knowledge',
 }
 
 export enum XpertParameterTypeEnum {
@@ -615,8 +627,15 @@ export function createXpertGraph(xpert: IXpert, position: IPoint) {
  */
 export function createXpertNodes(xpert: IXpert, position: IPoint) {
   const nodes: TXpertTeamNode[] = []
+  const agents = []
+  if (!xpert.agent.options?.hidden) {
+    agents.push(xpert.agent)
+  }
+  if (xpert.agents?.length) {
+    agents.push(...xpert.agents)
+  }
   // Agents
-  nodes.push(...[xpert.agent, ...(xpert.agents ?? [])].map((_) => {
+  nodes.push(...agents.map((_) => {
     return {
       type: 'agent',
       key: _.key,
@@ -661,7 +680,6 @@ export function createXpertNodes(xpert: IXpert, position: IPoint) {
       entity: x,
     } as TXpertTeamNode
   }))
-
 
   // Extract the area by positions of all nodes
   const positions = nodes.map((node) => node.position)

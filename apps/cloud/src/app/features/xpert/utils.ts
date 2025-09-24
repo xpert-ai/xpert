@@ -1,9 +1,9 @@
 import { inject } from '@angular/core'
 import { upperFirst } from 'lodash-es'
-import { letterStartSUID, OrderTypeEnum, WorkflowNodeTypeEnum, XpertService } from '../../@core'
+import { letterStartSUID, OrderTypeEnum, WorkflowNodeTypeEnum, XpertAPIService } from '../../@core'
 
 export function injectGetXpertTeam() {
-  const xpertService = inject(XpertService)
+  const xpertService = inject(XpertAPIService)
 
   return (id: string) => {
     return xpertService.getTeam(id, {
@@ -22,7 +22,7 @@ export function injectGetXpertTeam() {
 }
 
 export function injectGetXpertsByWorkspace() {
-  const xpertService = inject(XpertService)
+  const xpertService = inject(XpertAPIService)
 
   return (workspace: string) => {
     return xpertService.getAllByWorkspace(
@@ -93,6 +93,10 @@ export function genXpertTriggerKey() {
 
 export function genXpertNoteKey() {
   return letterStartSUID('Note_')
+}
+
+export function genPipelineDatasourceKey() {
+  return letterStartSUID('Datasource_')
 }
 
 export function genWorkflowKey(type: WorkflowNodeTypeEnum) {

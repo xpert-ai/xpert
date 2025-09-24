@@ -19,7 +19,7 @@ import {
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertParameterTypeEnum,
-  XpertService,
+  XpertAPIService,
   XpertToolService
 } from 'apps/cloud/src/app/@core'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
@@ -69,7 +69,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly studioService = inject(XpertStudioApiService)
   readonly toolService = inject(XpertToolService)
-  readonly xpertAPI = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
   readonly #dialog = inject(Dialog)
   readonly #clipboard = inject(Clipboard)
   readonly configureBuiltin = injectConfigureBuiltin()

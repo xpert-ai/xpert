@@ -17,7 +17,7 @@ import {
   injectToastr,
   routeAnimations,
   TChatApp,
-  XpertService
+  XpertAPIService
 } from '../../../../@core'
 import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 import { XpertDevelopAppComponent, XpertDevelopEmbeddedComponent } from '../develop'
@@ -44,7 +44,7 @@ import { XpertComponent } from '../xpert.component'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertAppComponent {
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly xpertComponent = inject(XpertComponent)
   readonly #router = inject(Router)

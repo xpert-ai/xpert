@@ -12,7 +12,7 @@ import {
   IXpertWorkspace,
   TAvatar,
   ToastrService,
-  XpertService,
+  XpertAPIService,
   XpertTypeEnum
 } from '../../../../@core'
 import { genAgentKey } from '../../utils'
@@ -40,7 +40,7 @@ export class XpertNewBlankComponent {
   eXpertTypeEnum = XpertTypeEnum
   readonly #dialogRef = inject(DialogRef<IXpert>)
   readonly #dialogData = inject<{ workspace: IXpertWorkspace; type: XpertTypeEnum }>(DIALOG_DATA)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = inject(ToastrService)
 
   readonly type = signal(this.#dialogData.type)

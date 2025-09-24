@@ -2555,6 +2555,7 @@
       "KnowledgeBaseNotFound": "知识库‘{{id}}’未找到！",
       "ClickAddToAddKB": "点击“+”按钮添加知识库",
       "Knowledge": "知识",
+      "KnowledgePipeline": "知识管道",
       "QueryVariable": "查询变量",
       "SelectReferenceKnowledge": "选择参考知识",
       "EditXpert": "编辑数字专家",
@@ -2759,6 +2760,7 @@
       "AddExternalExpert": "添加外部专家",
       "AddBlock": "添加模块",
       "AddWorkflow": "添加工作流",
+      "AddKnowledgePipeline": "添加知识管道",
       "Remove": "移除",
       "RemoveConnection": "移除连接",
       "PleaseEnter": "请输入",
@@ -3108,7 +3110,13 @@
       "Subflow": "子流程",
       "LocalUpload": "本地上传",
       "AddDescriptionPrefix": "添加描述前缀",
-      "AddDescriptionSuffix": "添加描述后缀"
+      "AddDescriptionSuffix": "添加描述后缀",
+      "DataSource": "数据源",
+      "DataSources": "数据源",
+      "Processor": "处理器",
+      "Parser": "解析器",
+      "Chunker": "分块器",
+      "Embedder": "嵌入器"
     },
     "MCP": {
       "Logs": "日志",

@@ -186,6 +186,16 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 			throw new InternalServerErrorException(getErrorMessage(err))
 		}
 	}
+
+	@Post(':id/pipeline')
+	async createPipeline(@Param('id') id: string) {
+		try {
+			return await this.service.createPipeline(id)
+		}
+		catch(err) {
+			throw new InternalServerErrorException(getErrorMessage(err))
+		}
+	}
 	
 	// Statistics
 

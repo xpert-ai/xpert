@@ -18,7 +18,7 @@ import {
   IChatConversation,
   OrderTypeEnum,
   ToastrService,
-  XpertService
+  XpertAPIService
 } from 'apps/cloud/src/app/@core'
 import { XpertExportDslComponent, XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { formatRelative } from 'date-fns'
@@ -61,7 +61,7 @@ import { ChecklistComponent } from '@cloud/app/@shared/common'
 })
 export class XpertStudioHeaderComponent {
   readonly xpertStudioComponent = inject(XpertStudioComponent)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly apiService = inject(XpertStudioApiService)
   readonly selectionService = inject(SelectionService)
   readonly executionService = inject(XpertExecutionService)

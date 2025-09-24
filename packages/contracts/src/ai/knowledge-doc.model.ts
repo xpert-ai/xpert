@@ -2,6 +2,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIntegration } from '../integration.model'
 import { IStorageFile } from '../storage-file.model'
 import { IKnowledgeDocumentPage } from './knowledge-doc-page.model'
+import { IKnowledgeDocumentTask } from './knowledge-doc-task.model'
 import { DocumentMetadata, IKnowledgebase } from './knowledgebase.model'
 import { TRagWebOptions } from './rag-web'
 
@@ -159,6 +160,7 @@ export type TKnowledgeDocument = {
   integration?: IIntegration
 
   pages?: IKnowledgeDocumentPage[]
+  tasks?: IKnowledgeDocumentTask[]
 }
 
 /**

@@ -1,8 +1,6 @@
-import { Component, computed, inject } from '@angular/core'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { MatTabsModule } from '@angular/material/tabs'
+import { Component, computed, inject, model } from '@angular/core'
 import { RouterModule } from '@angular/router'
+import { AppService } from '@cloud/app/app.service'
 import { TranslateModule } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -15,7 +13,7 @@ import { KnowledgebaseService, KnowledgebaseTypeEnum, ToastrService, routeAnimat
   selector: 'xpert-knowledgebase',
   templateUrl: './knowledgebase.component.html',
   styleUrls: ['./knowledgebase.component.scss'],
-  imports: [RouterModule, TranslateModule, MatDividerModule, MatTabsModule, MatIconModule, EmojiAvatarComponent],
+  imports: [RouterModule, TranslateModule, EmojiAvatarComponent],
   animations: [routeAnimations]
 })
 export class KnowledgebaseComponent {
@@ -24,6 +22,7 @@ export class KnowledgebaseComponent {
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly _toastrService = inject(ToastrService)
   readonly paramId = injectParams('id')
+  readonly appService = inject(AppService)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly knowledgebase = derivedFrom(
@@ -33,7 +32,9 @@ export class KnowledgebaseComponent {
         id
           ? this.refresh$.pipe(
               switchMap(() =>
-                this.knowledgebaseService.getOneById(id, { relations: ['copilotModel', 'rerankModel', 'visionModel', 'xperts'] })
+                this.knowledgebaseService.getOneById(id, {
+                  relations: ['copilotModel', 'rerankModel', 'visionModel', 'xperts']
+                })
               )
             )
           : of(null)
@@ -45,8 +46,18 @@ export class KnowledgebaseComponent {
   )
 
   readonly type = computed(() => this.knowledgebase()?.type)
+  readonly avatar = computed(() => this.knowledgebase()?.avatar)
+  readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
+
+  // Sidebar
+  readonly isMobile = this.appService.isMobile
+  readonly sideMenuOpened = model(!this.isMobile())
 
   refresh() {
     this.refresh$.next(true)
+  }
+
+  toggleSideMenu() {
+    this.sideMenuOpened.update((state) => !state)
   }
 }

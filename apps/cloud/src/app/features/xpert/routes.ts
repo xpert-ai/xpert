@@ -26,7 +26,7 @@ export const routes: Routes = [
     component: XpertStudioAPIToolComponent
   },
   {
-    path: ':id',
+    path: 'x',
     loadChildren: () => import('./xpert/routes').then((x) => x.routes)
   }
   // {

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { getErrorMessage, injectToastr, XpertService } from '@cloud/app/@core'
+import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
 import { SlideUpAnimation } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -20,7 +20,7 @@ import { TranslateModule } from '@ngx-translate/core'
 export class XpertExportDslComponent {
   readonly #data = inject<{ xpertId: string; slug: string; isDraft: boolean }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
-  readonly #xpertAPI = inject(XpertService)
+  readonly #xpertAPI = inject(XpertAPIService)
   readonly #toastr = injectToastr()
 
   readonly xpertId = signal(this.#data.xpertId)

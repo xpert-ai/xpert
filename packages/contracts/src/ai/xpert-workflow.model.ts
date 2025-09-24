@@ -43,7 +43,16 @@ export enum WorkflowNodeTypeEnum {
   /**
    * Task node, distribute tasks to sub-agents
    */
-  TASK = 'task'
+  TASK = 'task',
+
+  // Knowledge Pipeline nodes
+  DATASOURCE = 'datasource',
+  PROCESSOR = 'processor',
+  // INDEXER = 'indexer',
+  // VECTORIZER = 'vectorizer',
+  // EMBEDDING = 'embedding',
+  // RETRIEVER = 'retriever',
+  // RANKER = 'ranker',
 }
 
 export interface IWorkflowNode {

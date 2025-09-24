@@ -34,7 +34,7 @@ import {
   IChatConversation,
   injectToastr,
   OrderTypeEnum,
-  XpertService
+  XpertAPIService
 } from '../../@core'
 import { AppService } from '../../app.service'
 import { XpertHomeService } from '../home.service'
@@ -77,7 +77,7 @@ export class ChatConversationsComponent {
   readonly #router = inject(Router)
   readonly logger = inject(NGXLogger)
   readonly #dialogRef = inject(DialogRef)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly #data = inject<{xpertId?: string; xpertSlug: string; basePath: string; projectId?: string;}>(DIALOG_DATA)
 

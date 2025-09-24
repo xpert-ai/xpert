@@ -43,6 +43,14 @@
       </div>
     </li>
 
+    <li [cdkOption]="eXpertTypeEnum.Knowledge" [cdkOptionDisabled]="!!type()">
+      <i class="ri-contacts-book-fill text-xl text-green-700"></i>
+      
+      <div class="h-5 text-[13px] font-medium leading-[18px]">
+        {{ 'PAC.Xpert.KnowledgePipeline' | translate: {Default: 'Knowledge Pipeline'} }}
+      </div>
+    </li>
+<!-- 
     <li [cdkOption]="eXpertTypeEnum.Copilot" [cdkOptionDisabled]="!!type()">
       <svg
         width="24"
@@ -65,7 +73,7 @@
       <div class="h-5 text-[13px] font-medium leading-[18px]">
         {{ 'PAC.Xpert.Copilot' | translate: {Default: 'Copilot'} }}
       </div>
-    </li>
+    </li> -->
   </ul>
 </div>
 

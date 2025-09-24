@@ -13,7 +13,7 @@ import {
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
-  XpertService
+  XpertAPIService
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
@@ -52,7 +52,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly studioService = inject(XpertStudioApiService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly ItemParmaName = IteratingItemParameterName
 

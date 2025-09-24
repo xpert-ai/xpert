@@ -10,7 +10,7 @@ import {
   IWorkflowNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
-  XpertService
+  XpertAPIService
 } from 'apps/cloud/src/app/@core'
 import { CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertStudioApiService } from '../../../domain'
@@ -42,7 +42,7 @@ export class XpertStudioPanelWorkflowAnswerComponent extends XpertWorkflowBaseCo
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly studioService = inject(XpertStudioApiService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
 
   // Inputs

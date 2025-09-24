@@ -1,7 +1,7 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { AiBusinessRole, DocumentMetadata, IKnowledgebase, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata } from '@metad/contracts'
+import { AiBusinessRole, DocumentMetadata, IKnowledgebase, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata, XpertTypeEnum } from '@metad/contracts'
 import { IntegrationService, RequestContext } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -19,6 +19,8 @@ import { KnowledgeDocumentStore } from './vector-store'
 import { IRerank } from '../ai-model/types/rerank'
 import { RagCreateVStoreCommand } from '../rag-vstore'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import { XpertService } from '../xpert/xpert.service'
+import { shortuuid } from '@metad/server-common'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -38,6 +40,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	@Inject(DocumentSourceRegistry)
 	private readonly docSourceRegistry: DocumentSourceRegistry;
+
+	@Inject(XpertService)
+	private readonly xpertService: XpertService
 
 	constructor(
 		@InjectRepository(Knowledgebase)
@@ -138,6 +143,25 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		)
 
 		return results
+	}
+
+	async createPipeline(id: string) {
+		const knowledgebase = await this.findOne(id)
+		return await this.xpertService.create({
+			name: `${knowledgebase.name} Pipeline - ${shortuuid()}`,
+			workspaceId: knowledgebase.workspaceId,
+			type: XpertTypeEnum.Knowledge,
+			latest: true,
+			knowledgebase: {
+				id: knowledgebase.id
+			},
+			agent: {
+				key: shortuuid(),
+				options: {
+					hidden: true
+				}
+			}
+		})
 	}
 
 	async getVisionModel(knowledgebaseId: string) {

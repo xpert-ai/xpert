@@ -11,7 +11,7 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmTooltipDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
-import { injectApiBaseUrl, injectToastr, routeAnimations, XpertService } from '../../../../@core'
+import { injectApiBaseUrl, injectToastr, routeAnimations, XpertAPIService } from '../../../../@core'
 import { XpertAPIComponent } from '../api/api.component'
 import { XpertAppComponent } from '../app/app.component'
 import { XpertComponent } from '../xpert.component'
@@ -41,7 +41,7 @@ import { XpertStatisticsComponent } from './statistics/statistics.component'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertMonitorComponent {
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly xpertComponent = inject(XpertComponent)
   readonly #router = inject(Router)

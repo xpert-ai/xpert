@@ -1,10 +1,10 @@
-import { HttpClient, HttpParams } from '@angular/common/http'
+import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
 import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langchain/core/vectorstores'
-import { API_PREFIX, DocumentMetadata, I18nObject, IKnowledgebase, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { API_PREFIX, DocumentMetadata, I18nObject, IDocumentSourceProvider, IKnowledgebase, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
-import { switchMap } from 'rxjs/operators'
+import { shareReplay, switchMap } from 'rxjs/operators'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
 const API_KNOWLEDGEBASE = API_PREFIX + '/knowledgebase'
@@ -12,6 +12,12 @@ const API_KNOWLEDGEBASE = API_PREFIX + '/knowledgebase'
 @Injectable({ providedIn: 'root' })
 export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowledgebase> {
   readonly #logger = inject(NGXLogger)
+
+  // Package into hot stream + cache the last value
+  readonly documentSourceStrategies$ = this.getDocumentSourceStrategies().pipe(shareReplay(1))
+  readonly documentTransformerStrategies$ = this.getDocumentTransformerStrategies().pipe(shareReplay(1))
+  readonly imageUnderstandingStrategies$ = this.getImageUnderstandingStrategies().pipe(shareReplay(1))
+  readonly textSplitterStrategies$ = this.getTextSplitterStrategies().pipe(shareReplay(1))
 
   constructor() {
     super(API_KNOWLEDGEBASE)
@@ -49,7 +55,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   getDocumentSourceStrategies() {
-    return this.httpClient.get<{ name: string; label: I18nObject; description?: I18nObject; configSchema?: any; icon: any; helpUrl: string }[]>(this.apiBaseUrl + '/source/strategies')
+    return this.httpClient.get<IDocumentSourceProvider[]>(this.apiBaseUrl + '/source/strategies')
   }
 
   test(id: string, options: { query: string; k: number; score: number; filter?: Record<string, unknown> }) {
@@ -77,6 +83,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
 
   createExternal(entity: Partial<IKnowledgebase>) {
     return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + '/external', entity)
+  }
+
+  createPipeline(id: string) {
+    return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + `/${id}/pipeline`, {})
   }
 
   getStatisticsKnowledgebases(timeRange: string[]) {

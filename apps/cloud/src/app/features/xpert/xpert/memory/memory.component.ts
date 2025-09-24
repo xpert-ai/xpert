@@ -32,7 +32,7 @@ import {
   injectTranslate,
   LongTermMemoryTypeEnum,
   routeAnimations,
-  XpertService
+  XpertAPIService
 } from '../../../../@core'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertComponent } from '../xpert.component'
@@ -72,7 +72,7 @@ export class XpertMemoryComponent {
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly storeService = inject(CopilotStoreService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly xpertComponent = inject(XpertComponent)
   readonly #clipboard = inject(Clipboard)
 

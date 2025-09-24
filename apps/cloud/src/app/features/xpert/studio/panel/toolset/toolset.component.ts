@@ -18,7 +18,7 @@ import {
   IXpertToolset,
   TVariableAssigner,
   TXpertTeamNode,
-  XpertService,
+  XpertAPIService,
   XpertToolsetCategoryEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
@@ -64,7 +64,7 @@ export class XpertStudioPanelToolsetComponent {
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly toolsetService = inject(XpertToolsetService)
   readonly studioService = inject(XpertStudioApiService)
-  readonly xpertAPI = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
   readonly router = inject(Router)
   readonly dialog = inject(Dialog)
   readonly #toastr = injectToastr()

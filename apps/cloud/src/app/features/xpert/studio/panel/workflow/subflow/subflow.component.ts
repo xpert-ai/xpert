@@ -11,7 +11,7 @@ import {
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
-  XpertService
+  XpertAPIService
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
@@ -35,7 +35,7 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly studioService = inject(XpertStudioApiService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
 
   // Inputs
   readonly entity = input<IWorkflowNode>()

@@ -2,11 +2,11 @@ import { inject } from '@angular/core'
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, Routes } from '@angular/router'
 import { Store } from '@metad/cloud/state'
 import { firstValueFrom } from 'rxjs'
-import { XpertService } from '../@core'
+import { XpertAPIService } from '../@core'
 import { ChatHomeComponent } from './home/home.component'
 
 export const authGuard: CanActivateFn = async (route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => {
-  const xpertService = inject(XpertService)
+  const xpertService = inject(XpertAPIService)
   const router = inject(Router)
   const store = inject(Store)
 

@@ -18,6 +18,7 @@ import { KnowledgebaseController } from './knowledgebase.controller'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { QueryHandlers } from './queries/handlers'
+import { XpertModule } from '../xpert/xpert.module'
 
 @Module({
 	imports: [
@@ -31,7 +32,8 @@ import { QueryHandlers } from './queries/handlers'
 		DatabaseModule,
 		forwardRef(() => XpertWorkspaceModule),
 		forwardRef(() => IntegrationModule),
-		forwardRef(() => KnowledgeDocumentModule)
+		forwardRef(() => KnowledgeDocumentModule),
+		forwardRef(() => XpertModule),
 	],
 	controllers: [KnowledgebaseController],
 	providers: [

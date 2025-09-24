@@ -1,67 +1,98 @@
-<div class="pac-page-header overflow-hidden">
-
-  <div class="flex justify-start items-center gap-4 overflow-hidden">
-    <!-- <pac-avatar class="shrink-0 w-16 h-16 rounded-full overflow-hidden" [avatar]="knowledgebase()?.avatar"></pac-avatar> -->
-    <emoji-avatar [avatar]="knowledgebase()?.avatar" large class="shrink-0 rounded-md overflow-hidden shadow-sm" />
-
-    <div class="flex flex-col items-start overflow-hidden text-ellipsis">
-      <h2 class="pac-page-title truncate max-w-full">{{ knowledgebase()?.name }}</h2>
-
-      <div class="max-w-full line-clamp-2 text-text-secondary text-sm">{{knowledgebase()?.description}}</div>
+<div class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-neutral-50"
+  [class.w-[240px]]="sideMenuOpened()"
+>
+  <div class="group flex flex-col p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 pressable cursor-pointer">
+    <div class="flex justify-between items-center gap-2" [class.flex-col]="!sideMenuOpened()">
+      <div class="relative shrink-0" >
+        <emoji-avatar [avatar]="avatar()" [small]="!sideMenuOpened()" class="rounded-lg overflow-hidden" />
+      </div>
+  
+      <i class="ri-equalizer-2-line text-lg text-text-secondary group-hover:text-text-primary"></i>
     </div>
+
+    @if (sideMenuOpened()) {
+      <div class="grow mt-2">
+        <div class="flex justify-between items-center text-base leading-5 font-medium text-text-secondary">
+          <div class="truncate" >{{knowledgebase()?.name}}</div>
+        </div>
+        <div class="flex items-center text-xs leading-[18px] font-medium text-gray-500 gap-1">
+          <div class="shrink-0 px-1 border uppercase rounded-[5px] truncate">{{type()}}</div>
+        </div>
+      </div>
+    }
   </div>
 
-  <nav
-    mat-tab-nav-bar
-    class="pac-tab-nav-bar"
-    displayDensity="cosy"
-    color="accent"
-    mat-align-tabs="start"
-    mat-stretch-tabs="false"
-    disableRipple
-    [tabPanel]="tabPanel"
-  >
-    @if (type() !== eKnowledgebaseTypeEnum.External) {
-      <span
-        mat-tab-link
-        [routerLink]="['./documents']"
-        routerLinkActive
-        #rla1="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: false }"
-        [active]="rla1.isActive"
-      >
-        <mat-icon fontSet="material-icons-round">document_scanner</mat-icon>
-        <span class="ml-1">{{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}</span>
-      </span>
-    }
-    <span
-      mat-tab-link
-      [routerLink]="['./test']"
+  <div class="px-4"><div class="mx-auto mt-1 h-[1px] bg-divider-subtle"></div></div>
+
+  <nav class="grow space-y-1 px-2 py-4">
+    <a class="router-menu-item"
+      title=""
+      [routerLink]="['./', 'documents']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla1="routerLinkActive"
+      [class.active]="rla1.isActive"
+    >
+      <i class="ri-file-text-line mr-2 text-xl"></i>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Knowledgebase.Documents' | translate: {Default: 'Documents'} }}
+      }
+    </a>
+
+    <a class="router-menu-item"
+      title=""
+      [routerLink]="pipelineId() ? ['./', 'xpert', pipelineId()] : ['./', 'xpert']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla4="routerLinkActive"
+      [class.active]="rla4.isActive"
+    >
+      <i class="ri-robot-2-line mr-2 text-xl"></i>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Knowledgebase.Xpert' | translate: {Default: 'Xpert'} }}
+      }
+    </a>
+
+    <a class="router-menu-item"
+      title=""
+      [routerLink]="['./', 'test']"
+      [routerLinkActiveOptions]="{ exact: false }"
       routerLinkActive
       #rla2="routerLinkActive"
-      [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla2.isActive"
+      [class.active]="rla2.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined">quiz</mat-icon>
-      <span class="ml-1">{{ 'PAC.Knowledgebase.Test' | translate: { Default: 'Test' } }}</span>
-    </span>
-    <span
-      mat-tab-link
-      [routerLink]="['./configuration']"
+      <i class="ri-focus-2-line mr-2 text-xl"></i>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Knowledgebase.Test' | translate: {Default: 'Test'} }}
+      }
+    </a>
+
+    <a class="router-menu-item"
+      title=""
+      [routerLink]="['./', 'configuration']"
+      [routerLinkActiveOptions]="{ exact: false }"
       routerLinkActive
       #rla3="routerLinkActive"
-      [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla3.isActive"
+      [class.active]="rla3.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined">manufacturing</mat-icon>
-      <span class="ml-1">{{ 'PAC.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}</span>
-    </span>
+      <i class="ri-equalizer-2-line mr-2 text-xl"></i>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Knowledgebase.Configuration' | translate: {Default: 'Configuration'} }}
+      }
+    </a>
   </nav>
+
+  <div class="shrink-0 py-3 px-4">
+    <div class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-hover-bg" (click)="toggleSideMenu()">
+      @if (sideMenuOpened()) {
+        <i class="ri-sidebar-fold-line text-2xl"></i>
+      } @else {
+        <i class="ri-sidebar-unfold-line text-2xl"></i>
+      }
+    </div>
+  </div>
 </div>
 
-<mat-divider></mat-divider>
-  
-<mat-tab-nav-panel #tabPanel class="pac-page-body relative flex flex-col items-center"
-  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
+<div class="flex-1 relative flex overflow-hidden bg-components-card-bg" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</div>

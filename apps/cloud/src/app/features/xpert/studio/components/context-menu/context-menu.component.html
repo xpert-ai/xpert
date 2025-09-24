@@ -69,6 +69,25 @@
       <i class="ri-arrow-drop-right-fill ml-4"></i>
     </div>
 
+    @if (xpertType() === eXpertTypeEnum.Knowledge) {
+      <div cdkMenuItem class="!pr-1"
+        [cdkMenuTriggerFor]="pipelineMenu"
+        [cdkMenuPosition]="[
+          {
+            originX: 'end',
+            originY: 'top',
+            overlayX: 'start',
+            overlayY: 'top',
+            offsetX: 10,
+          }
+        ]"
+      >
+        <i class="ri-contacts-book-line mr-1"></i>
+        <span class="grow">{{ 'PAC.Xpert.AddKnowledgePipeline' | translate: {Default: 'Add Knowledge Pipeline'} }}</span>
+        <i class="ri-arrow-drop-right-fill ml-4"></i>
+      </div>
+    }
+
     @if (node) {
       <div cdkMenuItem class="danger" (click)="deleteNode(menu, node)">
         <i class="ri-delete-bin-3-line mr-1"></i><span>{{ 'PAC.Xpert.Remove' | translate: {Default: 'Remove'} }}</span>
@@ -132,7 +151,7 @@
         {{ 'PAC.Xpert.Router' | translate: {Default: 'Router'} }}
       </div>
     </div>
-    <!-- <div cdkMenuItem class="flex items-center px-3 w-full h-8 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <!-- <div cdkMenuItem class="flex items-center px-3 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowBlock(eWorkflowNodeTypeEnum.SPLITTER)"
     >
       <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-indigo-500
@@ -264,5 +283,103 @@
         </div>
       </div>
     }
+  </div>
+</ng-template>
+
+<ng-template #pipelineMenu>
+  <div cdkMenu class="bg-components-panel-bg-blur rounded-xl backdrop-blur-[5px] shadow-lg border-[0.5px] border-solid border-gray-300 !min-w-[200px]">
+    <div class="relative flex bg-neutral-100 pl-1.5 pt-1.5">
+      <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
+        [class.selected]="pipelineType() === 'datasource'"
+        (click)="pipelineType.set('datasource')"
+      >
+        {{ 'PAC.Xpert.DataSource' | translate: {Default: 'Data Source'} }}
+      </div>
+      <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
+        [class.selected]="pipelineType() === 'processor'"
+        (click)="pipelineType.set('processor')"
+      >
+        {{ 'PAC.Xpert.Processor' | translate: {Default: 'Processor'} }}
+      </div>
+      <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
+        [class.selected]="pipelineType() === 'chunker'"
+        (click)="pipelineType.set('chunker')"
+      >
+        {{ 'PAC.Xpert.Chunker' | translate: {Default: 'Chunker'} }}
+      </div>
+      <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
+        [class.selected]="pipelineType() === 'embedder'"
+        (click)="pipelineType.set('embedder')"
+      >
+        {{ 'PAC.Xpert.Embedder' | translate: {Default: 'Embedder'} }}
+      </div>
+    </div>
+    <div class="p-1.5">
+      @switch (pipelineType()) {
+        @case ('datasource') {
+          @for (provider of dataSources$ | async; track provider.name) {
+            <div cdkMenuItem class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+              (click)="addPipelineDatasource(provider)"
+            >
+              @if (provider.icon) {
+                <div [innerHTML]="provider.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+                  [style.color]="provider.icon.color || '#14b8a6'"></div>
+              }
+              <div class="text-text-primary">
+                {{ provider.label | i18n }}
+              </div>
+            </div>
+          }
+        }
+
+        @case ('processor') {
+          @for (provider of transformers$ | async; track provider.name) {
+            <div cdkMenuItem class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+              (click)="addWorkflowTrigger('chat')"
+            >
+              @if (provider.icon) {
+                <div [innerHTML]="provider.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+                  [style.color]="provider.icon.color || '#14b8a6'"></div>
+              }
+              <div class="text-text-primary">
+                {{ provider.label | i18n }}
+              </div>
+            </div>
+          }
+        }
+
+        @case ('chunker') {
+          @for (provider of textSplitters$ | async; track provider.name) {
+            <div cdkMenuItem class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+              (click)="addWorkflowTrigger('chat')"
+            >
+              @if (provider.icon) {
+                <div [innerHTML]="provider.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+                  [style.color]="provider.icon.color || '#14b8a6'"></div>
+              }
+              <div class="text-text-primary">
+                {{ provider.label | i18n }}
+              </div>
+            </div>
+          }
+        }
+
+        @case ('image') {
+          @for (provider of imageUnderstandings$ | async; track provider.name) {
+            <div cdkMenuItem class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+              (click)="addWorkflowTrigger('chat')"
+            >
+              @if (provider.icon) {
+                <div [innerHTML]="provider.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
+                  [style.color]="provider.icon.color || '#14b8a6'"></div>
+              }
+              <div class="text-text-primary">
+                {{ provider.label | i18n }}
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
   </div>
 </ng-template>

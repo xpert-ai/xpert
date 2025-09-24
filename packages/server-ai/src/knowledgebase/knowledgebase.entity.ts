@@ -184,6 +184,23 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 
 	/*
     |--------------------------------------------------------------------------
+    | @OneToOne
+    |--------------------------------------------------------------------------
+    */
+	// One-to-One with Xpert
+	@OneToOne(() => Xpert, (xpert) => xpert.knowledgebase, {
+		cascade: true, // 可选：保存 Knowledgebase 时级联保存 Xpert
+	})
+	@JoinColumn({ name: 'pipelineId' }) // 外键放在 Knowledgebase 表
+	pipeline?: IXpert
+
+	@IsOptional()
+	@IsString()
+	@Column({ nullable: true })
+	pipelineId?: string
+
+	/*
+    |--------------------------------------------------------------------------
     | @ManyToOne
     |--------------------------------------------------------------------------
     */

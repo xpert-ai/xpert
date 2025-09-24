@@ -1,6 +1,6 @@
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, computed, effect, inject, TemplateRef, ViewChild } from '@angular/core'
+import { ChangeDetectorRef, Component, computed, effect, inject, signal, TemplateRef, ViewChild } from '@angular/core'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,10 +28,14 @@ import {
   TASK_DESCRIPTION_PREFIX,
   TASK_DESCRIPTION_SUFFIX,
   IWFNTrigger,
-  TWorkflowTriggerMeta
+  TWorkflowTriggerMeta,
+  XpertTypeEnum,
+  KnowledgebaseService,
+  IDocumentSourceProvider,
+  IWFNDataSource
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { Subscription } from 'rxjs'
+import { shareReplay, Subscription } from 'rxjs'
 import {
   genXpertAnswerKey,
   genXpertAssignerKey,
@@ -47,7 +51,8 @@ import {
   genXpertToolKey,
   genXpertAgentToolKey,
   genXpertTaskKey,
-  genXpertTriggerKey
+  genXpertTriggerKey,
+  genPipelineDatasourceKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
@@ -56,6 +61,7 @@ import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.c
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
 import { SafePipe } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -77,7 +83,9 @@ import { NgmI18nPipe } from '@metad/ocap-angular/core'
 })
 export class XpertStudioContextMenuComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
+  eXpertTypeEnum = XpertTypeEnum
 
+  readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly apiService = inject(XpertStudioApiService)
   readonly selectionService = inject(SelectionService)
   private root = inject(XpertStudioComponent)
@@ -95,10 +103,17 @@ export class XpertStudioContextMenuComponent {
   readonly collaborators$ = this.apiService.collaborators$
   readonly nodes = computed(() => this.root.viewModel()?.nodes)
   readonly agents = computed(() => this.nodes()?.filter((n) => n.type === 'agent'))
+  readonly xpertType = computed(() => this.apiService.team()?.type)
 
   // Workflow providers
   readonly triggerProviders = this.apiService.triggerProviders
  
+  // Knowledge Pipeline
+  readonly pipelineType = signal<'datasource' | 'processor' | 'chunker' | 'image' | 'embedder'>('datasource')
+  readonly dataSources$ = this.knowledgebaseAPI.documentSourceStrategies$
+  readonly transformers$ = this.knowledgebaseAPI.documentTransformerStrategies$
+  readonly imageUnderstandings$ = this.knowledgebaseAPI.imageUnderstandingStrategies$
+  readonly textSplitters$ = this.knowledgebaseAPI.textSplitterStrategies$
 
   public ngOnInit(): void {
     this.subscriptions.add(this.subscribeToSelectionChanges())
@@ -356,5 +371,14 @@ export class XpertStudioContextMenuComponent {
 
   public dispose(): void {
     // this.selectionService.reset()
+  }
+
+  // Knowledge Pipelines
+  addPipelineDatasource(provider: IDocumentSourceProvider) {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.DATASOURCE,
+      key: genPipelineDatasourceKey(),
+      title: this.#translate.instant('PAC.Xpert.Datasource', { Default: 'Datasource' }),
+    } as IWFNDataSource)
   }
 }

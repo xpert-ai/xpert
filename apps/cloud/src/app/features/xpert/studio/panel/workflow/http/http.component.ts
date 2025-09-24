@@ -22,7 +22,7 @@ import {
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertParameterTypeEnum,
-  XpertService
+  XpertAPIService
 } from 'apps/cloud/src/app/@core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { XpertStudioApiService } from '../../../domain'
@@ -56,7 +56,7 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly studioService = inject(XpertStudioApiService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
 

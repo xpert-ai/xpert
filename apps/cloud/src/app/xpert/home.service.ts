@@ -7,7 +7,7 @@ import {
   injectToastr,
   ISemanticModel,
   IXpert,
-  XpertService
+  XpertAPIService
 } from '../@core'
 import { AppService } from '../app.service'
 
@@ -17,7 +17,7 @@ import { AppService } from '../app.service'
 @Injectable()
 export class XpertHomeService {
   readonly appService = inject(AppService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly conversationService = inject(ChatConversationService)
   readonly semanticModelService = inject(SemanticModelServerService)
   readonly #toastr = injectToastr()

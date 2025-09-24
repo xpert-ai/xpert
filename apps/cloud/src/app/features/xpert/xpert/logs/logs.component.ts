@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
-import { DateRelativePipe, OrderTypeEnum, routeAnimations, TChatConversationLog, XpertService } from '@cloud/app/@core'
+import { DateRelativePipe, OrderTypeEnum, routeAnimations, TChatConversationLog, XpertAPIService } from '@cloud/app/@core'
 import { XpertComponent } from '../xpert.component'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 import { ChatConversationPreviewComponent, ChatMessageExecutionPanelComponent } from '@cloud/app/@shared/chat'
@@ -39,7 +39,7 @@ import { ChatConversationPreviewComponent, ChatMessageExecutionPanelComponent } 
 })
 export class XpertLogsComponent {
   TimeRanges = TimeRangeOptions
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly xpertComponent = inject(XpertComponent)
 
   readonly xpert = this.xpertComponent.latestXpert

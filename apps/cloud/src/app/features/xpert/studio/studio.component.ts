@@ -39,6 +39,7 @@ import { effectAction } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NGXLogger } from 'ngx-logger'
+import { injectParams } from 'ngxtension/inject-params'
 import { Observable, of, Subscription } from 'rxjs'
 import { debounceTime, delay, map, tap } from 'rxjs/operators'
 import {
@@ -54,7 +55,7 @@ import {
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
-  XpertService,
+  XpertAPIService,
   XpertTypeEnum,
   XpertWorkspaceService
 } from '../../../@core'
@@ -78,7 +79,7 @@ import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioFeaturesComponent } from './features/features.component'
-import { XpertComponent } from '../xpert'
+import { XpertService } from '../xpert/xpert.service'
 
 
 @Component({
@@ -136,14 +137,15 @@ export class XpertStudioComponent {
   readonly logger = inject(NGXLogger)
   readonly #toastr = inject(ToastrService)
   readonly workspaceService = inject(XpertWorkspaceService)
-  readonly xpertRoleService = inject(XpertService)
+  readonly xpertRoleService = inject(XpertAPIService)
   readonly apiService = inject(XpertStudioApiService)
   readonly selectionService = inject(SelectionService)
   readonly executionService = inject(XpertExecutionService)
-  readonly xpertComponent = inject(XpertComponent)
   readonly helpUrl = injectHelpWebsite()
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #clipboard = inject(Clipboard)
+  readonly paramId = injectParams('id')
+  readonly xpertService = inject(XpertService)
 
   // Children
   readonly fFlowComponent = viewChild(FFlowComponent)
@@ -218,7 +220,7 @@ export class XpertStudioComponent {
     })
   })
 
-  public isSingleSelection: boolean = true
+  public isSingleSelection = true
 
   readonly viewModel = toSignal(this.apiService.store.pipe(map((state) => state.draft)))
   readonly xpert = computed(() => this.viewModel()?.team)
@@ -256,10 +258,10 @@ export class XpertStudioComponent {
 
   constructor() {
     effect(() => {
-      if (this.xpertComponent.xpert()) {
-        this.apiService.refresh()
+      if (this.paramId()) {
+        this.xpertService.paramId.set(this.paramId())
       }
-    })
+    }, { allowSignalWrites: true })
   }
 
   public ngOnInit(): void {

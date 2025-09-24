@@ -6,7 +6,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { getErrorMessage, injectToastr, injectUser, injectWorkspaceService, injectXpertService, IUser } from 'apps/cloud/src/app/@core'
+import { getErrorMessage, injectToastr, injectUser, injectWorkspaceService, injectXpertAPI, IUser } from 'apps/cloud/src/app/@core'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { switchMap, tap } from 'rxjs/operators'
 import { XpertComponent } from '../xpert.component'
@@ -33,7 +33,7 @@ import { Dialog } from '@angular/cdk/dialog'
   ]
 })
 export class XpertAuthorizationComponent {
-  readonly xpertService = injectXpertService()
+  readonly xpertService = injectXpertAPI()
   readonly workspaceService = injectWorkspaceService()
   readonly xpertComponent = inject(XpertComponent)
   readonly me = injectUser()

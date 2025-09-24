@@ -20,7 +20,7 @@ import {
   IntegrationService,
   IXpert,
   TIntegrationProvider,
-  XpertService
+  XpertAPIService
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
 import { IntegrationFormComponent } from '../../integration'
@@ -55,7 +55,7 @@ export class XpertPublishComponent {
   readonly #data = inject<{ xpert: IXpert }>(DIALOG_DATA)
   readonly #toastr = injectToastr()
   readonly integrationService = inject(IntegrationService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly i18n = new NgmI18nPipe()
 
   readonly xpertId = signal(this.#data.xpert.id)

@@ -42,7 +42,7 @@ export type TXpertVariablesOptions = {
 
 
 @Injectable({ providedIn: 'root' })
-export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
+export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   readonly #logger = inject(NGXLogger)
   readonly baseUrl = injectApiBaseUrl()
   readonly fetchEventSource = injectFetchEventSource()
@@ -384,8 +384,8 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
 }
 
-export function injectXpertService() {
-  return inject(XpertService)
+export function injectXpertAPI() {
+  return inject(XpertAPIService)
 }
 
 /**
@@ -417,7 +417,7 @@ function handleError(error: HttpErrorResponse): Observable<never> {
 }
 
 export function injectXperts() {
-  const xpertService = inject(XpertService)
+  const xpertService = inject(XpertAPIService)
   const preferences = injectXpertPreferences()
   const lang = injectLanguage()
 

@@ -14,7 +14,7 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TXpertVariablesOptions, XpertService } from '@cloud/app/@core'
+import { TXpertVariablesOptions, XpertAPIService } from '@cloud/app/@core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { debouncedSignal, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -39,7 +39,7 @@ export class XpertVariablePanelComponent {
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly overlay = inject(Overlay)
   readonly elementRef = inject(ElementRef)
-  readonly xpertAPI = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
 
   // Inputs
   readonly options = input.required<TXpertVariablesOptions>()

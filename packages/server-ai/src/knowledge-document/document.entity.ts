@@ -8,7 +8,8 @@ import {
 	KDocumentSourceType,
 	KBDocumentCategoryEnum,
 	DocumentTextParserConfig,
-	KBDocumentStatusEnum
+	KBDocumentStatusEnum,
+	IKnowledgeDocumentTask
 } from '@metad/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
@@ -16,6 +17,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { Knowledgebase, KnowledgeDocumentPage } from '../core/entities/internal'
+import { KnowledgeDocumentTask } from './task/document-task.entity'
 
 @Entity('knowledge_document')
 export class KnowledgeDocument extends TenantOrganizationBaseEntity implements IKnowledgeDocument {
@@ -241,5 +243,10 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
 	pages?: IKnowledgeDocumentPage[]
-	
+
+	@ApiProperty({ type: () => KnowledgeDocumentTask, isArray: true })
+	@OneToMany(() => KnowledgeDocumentTask, (task) => task.document, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	tasks?: IKnowledgeDocumentTask[]	
 }

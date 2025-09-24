@@ -11,7 +11,7 @@ import {
   ToastrService,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
-  XpertService
+  XpertAPIService
 } from 'apps/cloud/src/app/@core'
 import { ChatConversationPreviewComponent } from 'apps/cloud/src/app/@shared/chat'
 import { MarkdownModule } from 'ngx-markdown'
@@ -38,7 +38,7 @@ export class XpertStudioPreviewComponent {
   eExecutionStatusEnum = XpertAgentExecutionStatusEnum
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
 
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly apiService = inject(XpertStudioApiService)
   readonly executionService = inject(XpertExecutionService)
   readonly conversationService = inject(ChatConversationService)
