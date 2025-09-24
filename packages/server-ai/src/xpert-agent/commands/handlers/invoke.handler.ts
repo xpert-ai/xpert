@@ -9,6 +9,7 @@ import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	GRAPH_NODE_TITLE_CONVERSATION,
+	IKnowledgebaseTask,
 	IXpertAgent,
 	LanguagesEnum,
 	mapTranslationLanguage,
@@ -36,6 +37,7 @@ import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService } from '../../../environment'
 import { VolumeClient } from '../../../shared'
+import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -46,7 +48,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		private readonly queryBus: QueryBus,
 		private readonly checkpointSaver: CopilotCheckpointSaver,
 		private readonly envService: EnvironmentService,
-		private readonly i18nService: I18nService
+		private readonly i18nService: I18nService,
 	) {}
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
@@ -77,6 +79,15 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				mute
 			})
 		)
+
+		let task: IKnowledgebaseTask = null
+		if (xpert.knowledgebase) {
+			const taskService = await this.queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(new KnowledgeTaskServiceQuery())
+			task = await taskService.createTask(xpert.knowledgebase.id, {
+				taskType: 'ingest',
+				conversationId: options.conversationId
+			})
+		}
 		
 		const team = agent.team
 
@@ -173,6 +184,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						executionId: execution.id,
 						xpertId: xpert.id,
 						agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
+						knowledgebaseId: xpert.knowledgebase?.id,
+						knowledgeTaskId: task?.id,
+						/**
+						 * @deprecated use customEvents instead
+						 */
 						subscriber
 					},
 					recursionLimit,

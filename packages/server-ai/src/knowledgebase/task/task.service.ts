@@ -1,32 +1,32 @@
-import { TaskStep } from '@metad/contracts'
+import { IKnowledgebaseTask, IKnowledgeDocument, TaskStep } from '@metad/contracts'
 import { TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { KnowledgeDocument } from '../document.entity'
-import { KnowledgeDocumentTask } from './document-task.entity'
+import { KnowledgebaseTask } from './task.entity'
+import { Knowledgebase } from '../knowledgebase.entity'
 
 @Injectable()
-export class KnowledgeDocumentTaskService extends TenantOrganizationAwareCrudService<KnowledgeDocumentTask> {
-	readonly #logger = new Logger(KnowledgeDocumentTaskService.name)
+export class KnowledgebaseTaskService extends TenantOrganizationAwareCrudService<KnowledgebaseTask> {
+	readonly #logger = new Logger(KnowledgebaseTaskService.name)
 
-	@InjectRepository(KnowledgeDocument)
-	private readonly docRepo: Repository<KnowledgeDocument>
+	@InjectRepository(Knowledgebase)
+	private readonly baseRepo: Repository<Knowledgebase>
 
 	constructor(
-		@InjectRepository(KnowledgeDocumentTask)
-		private readonly taskRepo: Repository<KnowledgeDocumentTask>
+		@InjectRepository(KnowledgebaseTask)
+		private readonly taskRepo: Repository<KnowledgebaseTask>
 	) {
 		super(taskRepo)
 	}
 
 	/**
-	 * Create a new task for a document
+	 * Create a new task
 	 */
-	async createTask(documentId: string, taskType: string): Promise<KnowledgeDocumentTask> {
-		const document = await this.docRepo.findOneBy({ id: documentId })
-		if (!document) {
-			throw new Error(`Document ${documentId} not found`)
+	async createTask(knowledgebaseId: string, entity: Partial<IKnowledgebaseTask>): Promise<KnowledgebaseTask> {
+		const knowledgebase = await this.baseRepo.findOneBy({ id: knowledgebaseId })
+		if (!knowledgebase) {
+			throw new Error(`Knowledgebase ${knowledgebaseId} not found`)
 		}
 
 		const steps: TaskStep[] = [
@@ -38,8 +38,8 @@ export class KnowledgeDocumentTaskService extends TenantOrganizationAwareCrudSer
 		]
 
 		const task = await this.create({
-			document,
-			taskType,
+			...entity,
+			knowledgebase,
 			status: 'pending',
 			progress: 0,
 			steps,
@@ -58,7 +58,7 @@ export class KnowledgeDocumentTaskService extends TenantOrganizationAwareCrudSer
 		progress: number,
 		log?: string,
 		errorMessage?: string
-	): Promise<KnowledgeDocumentTask> {
+	): Promise<KnowledgebaseTask> {
 		const task = await this.taskRepo.findOneBy({ id: taskId })
 		if (!task) throw new Error(`Task ${taskId} not found`)
 
@@ -87,9 +87,9 @@ export class KnowledgeDocumentTaskService extends TenantOrganizationAwareCrudSer
 	 */
 	async updateTaskStatus(
 		taskId: string,
-		status: KnowledgeDocumentTask['status'],
+		status: KnowledgebaseTask['status'],
 		errorMessage?: string
-	): Promise<KnowledgeDocumentTask> {
+	): Promise<KnowledgebaseTask> {
 		const task = await this.taskRepo.findOneBy({ id: taskId })
 		if (!task) throw new Error(`Task ${taskId} not found`)
 
@@ -107,10 +107,20 @@ export class KnowledgeDocumentTaskService extends TenantOrganizationAwareCrudSer
 	/**
 	 * Get the latest task by documentId
 	 */
-	async getLatestTaskByDocumentId(documentId: string): Promise<KnowledgeDocumentTask | null> {
+	async getLatestTaskByDocumentId(documentId: string): Promise<KnowledgebaseTask | null> {
 		return this.taskRepo.findOne({
-			where: { document: { id: documentId } },
+			where: { knowledgebase: { id: documentId } },
 			order: { createdAt: 'DESC' }
 		})
 	}
+
+	async upsertDocuments(id: string, documents: Partial<IKnowledgeDocument>[]): Promise<void> {
+		const task = await this.taskRepo.findOneBy({ id })
+		if (!task) throw new Error(`Task ${id} not found`)
+		
+		task.context ??= {}
+		task.context.documents = documents
+		await this.taskRepo.save(task)
+	}
+
 }

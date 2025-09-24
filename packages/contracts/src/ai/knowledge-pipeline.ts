@@ -39,12 +39,14 @@ export interface IWFNProcessor extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.PROCESSOR,
   provider: string
   config: any;
+  input: string
 }
 
 export interface IWFNChunker extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.CHUNKER,
   provider: string
   config: any;
+  input: string
 }
 
 export interface IWFNUnderstanding extends IWorkflowNode {

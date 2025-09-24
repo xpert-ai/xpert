@@ -1,11 +1,11 @@
-import { I18nObject, IDocumentProcessorProvider } from '@metad/contracts'
+import { IDocumentProcessorProvider } from '@metad/contracts'
 import { Document } from 'langchain/document'
-import { XpFileSystem, Permissions } from '../../core/index'
+import { Permissions, XpFileSystem } from '../../core/index'
 import { TDocumentAsset } from '../types'
 
 export type TDocumentTransformerConfig = {
   stage: 'test' | 'prod'
-  tempDir?: string;
+  tempDir?: string
   permissions?: {
     fileSystem?: XpFileSystem
   }
@@ -16,6 +16,8 @@ export type TDocumentTransformerFile = {
   filename: string
   extname: string | undefined
 }
+
+export type TDocumentTransformerInput = TDocumentTransformerFile[] | string | string[]
 
 export type TDocumentTransformerResult = {
   chunks: Document[]
@@ -40,5 +42,5 @@ export interface IDocumentTransformerStrategy<TConfig extends TDocumentTransform
   /**
    * Transform documents (e.g., extract, OCR, normalize, enrich metadata)
    */
-  transformDocuments(files: TDocumentTransformerFile[], config: TConfig): Promise<TDocumentTransformerResult[]>
+  transformDocuments(files: TDocumentTransformerInput, config: TConfig): Promise<TDocumentTransformerResult[]>
 }

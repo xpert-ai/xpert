@@ -1,7 +1,6 @@
 :host {
-  @apply flex flex-col justify-start items-stretch pb-4;
+  @apply block;
 }
-
 :host::ng-deep {
   .icon-container svg {
     @apply max-h-full;

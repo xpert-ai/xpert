@@ -2,6 +2,12 @@
   @apply flex flex-col justify-start items-stretch;
 }
 
+:host::ng-deep {
+  .icon-container svg {
+    @apply max-h-full;
+  }
+}
+
 .f-component.f-node-output.right {
   border-radius: 0;
   width: 3px;

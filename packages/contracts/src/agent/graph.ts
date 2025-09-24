@@ -55,7 +55,12 @@ export type TAgentRunnableConfigurable = {
    * Execution id of agent workflow node
    */
   executionId: string
-
+  /**
+   * Knowledge xpert's knowledgebase
+   */
+  knowledgebaseId?: string
+  knowledgeTaskId?: string
+  
   signal?: AbortSignal
 }
 

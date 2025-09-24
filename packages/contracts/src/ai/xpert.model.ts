@@ -18,6 +18,23 @@ import { TInterruptCommand } from '../agent'
 
 export type ToolCall = LToolCall
 
+export enum XpertTypeEnum {
+  /**
+   * Chat Agents
+   */
+  Agent = 'agent',
+
+  /**
+   * Copilot in UI
+   */
+  Copilot = 'copilot',
+
+  /**
+   * Knowledge Workflow
+   */
+  Knowledge = 'knowledge',
+}
+
 export type TXpertFeatures = {
   opener: {
     enabled: boolean
@@ -156,6 +173,10 @@ export type TXpert = {
 export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
   environmentId?: string
 	environment?: IEnvironment
+  /**
+   * When type is 'knowledge', it must binding a knowledgebase
+   */
+  knowledgebase?: IKnowledgebase
 }
 
 export type TXpertOptions = {
@@ -330,23 +351,6 @@ export type TXpertAttachment = {
   fileTypes?: Array<TXpertAttachmentType>
 }
 
-export enum XpertTypeEnum {
-  /**
-   * Chat Agents
-   */
-  Agent = 'agent',
-
-  /**
-   * Copilot in UI
-   */
-  Copilot = 'copilot',
-
-  /**
-   * Knowledge Workflow
-   */
-  Knowledge = 'knowledge',
-}
-
 export enum XpertParameterTypeEnum {
   /**
    * @deprecated use string
@@ -363,6 +367,7 @@ export enum XpertParameterTypeEnum {
   ARRAY_STRING = 'array[string]',
   ARRAY = 'array[object]',
   ARRAY_FILE = 'array[file]',
+  ARRAY_DOCUMENT = 'array[document]',
 
   BOOLEAN = 'boolean',
   SECRET = 'secret',

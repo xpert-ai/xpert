@@ -1,3 +1,5 @@
 export * from './knowledge-search.query'
 export * from './statistics-knowledgebases.query'
 export * from './get-one.query'
+export * from './strategy.query'
+export * from './task-service.query'

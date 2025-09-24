@@ -21,9 +21,19 @@
 }
 
 <div class="p-4">
+
+  <div>
+    <div>输入文本<span class="text-text-destructive">*</span></div>
+    <xpert-state-variable-select
+      [variables]="variables()"
+      [(ngModel)]="input"
+    />
+  </div>
+
   <div class="font-bold mb-2">
     设置
   </div>
+
   @if (chunkerConfigSchema(); as chunkerConfigSchema) {
     <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="chunkerConfigSchema" 
       [(ngModel)]="chunkerConfig"

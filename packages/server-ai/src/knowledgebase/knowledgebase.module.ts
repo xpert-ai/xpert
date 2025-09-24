@@ -19,11 +19,13 @@ import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { QueryHandlers } from './queries/handlers'
 import { XpertModule } from '../xpert/xpert.module'
+import { KnowledgebaseTaskService } from './task/task.service'
+import { KnowledgebaseTask } from './task/task.entity'
 
 @Module({
 	imports: [
 		RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
-		TypeOrmModule.forFeature([Knowledgebase]),
+		TypeOrmModule.forFeature([Knowledgebase, KnowledgebaseTask]),
 		DiscoveryModule,
 		TenantModule,
 		CqrsModule,
@@ -38,6 +40,7 @@ import { XpertModule } from '../xpert/xpert.module'
 	controllers: [KnowledgebaseController],
 	providers: [
 		KnowledgebaseService,
+		KnowledgebaseTaskService,
 		DocumentSourceRegistry,
 		KnowledgeStrategyRegistry,
 		TextSplitterRegistry,
@@ -48,6 +51,7 @@ import { XpertModule } from '../xpert/xpert.module'
 	],
 	exports: [
 		KnowledgebaseService,
+		KnowledgebaseTaskService,
 		DocumentSourceRegistry,
 		TextSplitterRegistry,
 		DocumentTransformerRegistry,

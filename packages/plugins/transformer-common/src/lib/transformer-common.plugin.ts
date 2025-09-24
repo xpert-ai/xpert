@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-ai/plugin-sdk';
 import { ConfigModule } from '@nestjs/config';
 import { DefaultTransformerStrategy } from './transformer.strategy';
+import { TextTransformerStrategy } from './text-transformer.strategy';
 
 @XpertServerPlugin({
 	/**
@@ -16,6 +17,7 @@ import { DefaultTransformerStrategy } from './transformer.strategy';
 
 	providers: [
 		DefaultTransformerStrategy,
+		TextTransformerStrategy
 	]
 })
 export class DefaultTransformerPlugin implements IOnPluginBootstrap, IOnPluginDestroy {

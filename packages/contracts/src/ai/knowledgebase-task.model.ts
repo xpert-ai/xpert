@@ -1,20 +1,26 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { IKnowledgeDocument } from './knowledge-doc.model'
+import { IChatConversation } from './chat.model';
+import { IKnowledgeDocument } from './knowledge-doc.model';
 import { IKnowledgebase } from './knowledgebase.model'
 
 /**
- * Task executions of a knowledge document
+ * Task executions of a knowledgebase
  */
-export interface IKnowledgeDocumentTask extends IBasePerTenantAndOrganizationEntityModel {
-  documentId?: string
-  document?: IKnowledgeDocument
+export interface IKnowledgebaseTask extends IBasePerTenantAndOrganizationEntityModel {
   knowledgebaseId?: string
   knowledgebase?: IKnowledgebase
+
+  conversationId?: string;
+  conversation?: IChatConversation
 
   taskType: string; // preprocess / re-embed / cleanup ...
   status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
   steps: TaskStep[];
   error?: string;
+
+  context?: {
+		documents?: Partial<IKnowledgeDocument>[]
+	}
 }
 
 export interface TaskStep {

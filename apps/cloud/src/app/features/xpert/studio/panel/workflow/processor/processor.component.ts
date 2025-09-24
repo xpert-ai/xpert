@@ -1,14 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
+import { XpertWorkflowCustomIconComponent } from '@cloud/app/@shared/workflow'
 import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IWFNProcessor, IWorkflowNode, KnowledgebaseService } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { FormsModule } from '@angular/forms'
-import { SafePipe } from '@metad/core'
 
 @Component({
   selector: 'xpert-workflow-processor',
@@ -16,7 +17,15 @@ import { SafePipe } from '@metad/core'
   styleUrls: ['./processor.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatTooltipModule, TranslateModule, SafePipe, NgmI18nPipe, JSONSchemaFormComponent]
+  imports: [
+    FormsModule,
+    MatTooltipModule,
+    TranslateModule,
+    XpertWorkflowCustomIconComponent,
+    NgmI18nPipe,
+    JSONSchemaFormComponent,
+    StateVariableSelectComponent
+  ]
 })
 export class XpertWorkflowProcessorComponent extends XpertWorkflowBaseComponent {
   readonly studioService = inject(XpertStudioApiService)
@@ -37,6 +46,7 @@ export class XpertWorkflowProcessorComponent extends XpertWorkflowBaseComponent 
     }
   })
 
+  readonly input = attrModel(this.processor, 'input')
   readonly provider = attrModel(this.processor, 'provider')
   readonly documentTransformerStrategies = toSignal(this.knowledgebaseAPI.documentTransformerStrategies$)
   readonly transformerStrategy = computed(() =>

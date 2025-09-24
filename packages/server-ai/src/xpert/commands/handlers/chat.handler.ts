@@ -57,7 +57,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 		const timeStart = Date.now()
 
-		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
+		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent', 'knowledgebase'] })
 		const latestXpert = figureOutXpert(xpert, options?.isDraft)
 		const abortController = new AbortController()
 		const memory = latestXpert.memory

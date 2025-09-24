@@ -1,8 +1,9 @@
+import { DocumentInterface } from '@langchain/core/documents'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIntegration } from '../integration.model'
 import { IStorageFile } from '../storage-file.model'
 import { IKnowledgeDocumentPage } from './knowledge-doc-page.model'
-import { IKnowledgeDocumentTask } from './knowledge-doc-task.model'
+import { IKnowledgebaseTask } from './knowledgebase-task.model'
 import { DocumentMetadata, IKnowledgebase } from './knowledgebase.model'
 import { TRagWebOptions } from './rag-web'
 
@@ -160,7 +161,8 @@ export type TKnowledgeDocument = {
   integration?: IIntegration
 
   pages?: IKnowledgeDocumentPage[]
-  tasks?: IKnowledgeDocumentTask[]
+  task?: IKnowledgebaseTask
+  taskId?: string
 }
 
 /**
@@ -169,6 +171,10 @@ export type TKnowledgeDocument = {
 export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
   parentId?: string | null
   parent?: IKnowledgeDocument | null
+
+  // Temp
+  chunks?: DocumentInterface[]
+  metadata?: Metadata
 }
 
 export interface IDocumentChunk<Metadata = DocumentMetadata> {
