@@ -186,12 +186,13 @@ export class XpertStudioComponent {
   })
   readonly #connections = computed(() => {
     const viewModelConnections = [...(this.viewModel()?.connections ?? [])]
+    // Add connections from external xpert nodes
     this.viewModel()
       ?.nodes?.filter((_) => _.type === 'xpert')
       .forEach((node: any) => {
-        if (node.connections) {
-          viewModelConnections.push(...node.connections)
-        }
+        node.connections?.forEach((connection) => {
+          viewModelConnections.push({...connection, readonly: true})
+        })
       })
     return viewModelConnections
   })
@@ -439,7 +440,7 @@ function extractXpertNodes(nodes: TXpertTeamNode[], xpertNode: TXpertTeamNode & 
     if (node.type === 'xpert') {
       extractXpertNodes(nodes, node)
     } else {
-      nodes.push({ ...node, parentId: xpertNode.key })
+      nodes.push({ ...node, parentId: xpertNode.key, readonly: true })
     }
   })
 }

@@ -679,6 +679,9 @@
       "PasswordChangedSuccessfully": "密码修改成功"
     },
     "ACTIONS": {
+      "Collapse": "收起",
+      "Expand": "展开",
+      "Refresh": "刷新",
       "Export": "导出",
       "Change": "更改",
       "Disable": "禁用",

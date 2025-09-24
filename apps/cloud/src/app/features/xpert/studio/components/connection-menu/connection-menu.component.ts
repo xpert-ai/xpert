@@ -79,6 +79,8 @@ export class XpertStudioConnectionMenuComponent {
   readonly selectedAll = computed(() => this.#allTools()?.every((_) => this.availableTools().some((name) => name === _)))
 
   updateAvailableTools(tools: string[]) {
+    if (this.connection().readonly) return
+    
     const options = this.agent().options ?? {}
     this.studioService.updateXpertAgent(this.agentKey(), {
       options: {

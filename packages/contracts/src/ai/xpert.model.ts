@@ -400,6 +400,7 @@ export type TXpertTeamNode = {
   size?: ISize
   hash?: string
   parentId?: string
+  readonly?: boolean
 } & (
   | {
       type: 'agent'
@@ -449,6 +450,8 @@ export interface TXpertTeamConnection {
    * - others: Vertical Process, agent
    */
   type: 'edge' | TXpertTeamNodeType
+
+  readonly?: boolean
 }
 
 export enum ChatMessageTypeEnum {
