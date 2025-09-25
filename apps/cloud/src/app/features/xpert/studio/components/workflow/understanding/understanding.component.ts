@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { KnowledgebaseService } from '@cloud/app/@core'
@@ -49,18 +49,18 @@ export class XpertWorkflowNodeUnderstandingComponent {
 
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
-      .filter((_) => _.type !== 'toolset' && _.type !== 'knowledge' && _.key !== 'xpert')
-      .map((_) => _.key)
+      .filter((_) => _.type === 'agent' || _.type === 'workflow')
+      .map((_) => _.type === 'workflow' ? _.key + '/edge' : _.key)
   )
 
   // Understanding providers from knowledgebase service
-  readonly understandingProviders = toSignal(this.knowledgebaseService.imageUnderstandingStrategies$, {
+  readonly understandingProviders = toSignal(this.knowledgebaseService.understandingStrategies$, {
     initialValue: []
   })
   readonly understandingProvider = computed(() => {
     const providerName = this.provider()
     if (providerName && this.understandingProviders()) {
-      return this.understandingProviders().find((p) => p.name === providerName)
+      return this.understandingProviders().find((p) => p.meta.name === providerName)?.meta
     }
     return null
   })

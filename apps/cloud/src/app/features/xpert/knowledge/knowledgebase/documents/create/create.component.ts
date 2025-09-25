@@ -96,7 +96,7 @@ export class KnowledgeDocumentCreateComponent {
   readonly textSplitterStrategies = toSignal(this.knowledgebaseAPI.getTextSplitterStrategies())
   readonly documentTransformerStrategies = toSignal(this.knowledgebaseAPI.getDocumentTransformerStrategies())
   readonly documentSourceStrategies = toSignal(this.knowledgebaseAPI.getDocumentSourceStrategies())
-  readonly imageUnderstandingStrategies = toSignal(this.knowledgebaseAPI.getImageUnderstandingStrategies())
+  readonly understandingStrategies = toSignal(this.knowledgebaseAPI.understandingStrategies$)
 
   nextStep() {
     this.step.update((state) => ++state)

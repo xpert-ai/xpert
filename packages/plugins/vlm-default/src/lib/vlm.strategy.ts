@@ -5,6 +5,7 @@ import {
   FileSystemPermission,
   IImageUnderstandingStrategy,
   ImageUnderstandingStrategy,
+  LLMPermission,
   TImageUnderstandingConfig,
   TImageUnderstandingInput,
   TImageUnderstandingResult
@@ -25,7 +26,11 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
       type: 'filesystem',
       operations: ['read'],
       scope: []
-    } as FileSystemPermission
+    } as FileSystemPermission,
+    {
+      type: 'llm',
+      capability: 'vision',
+    } as LLMPermission
   ]
   
   readonly meta = {

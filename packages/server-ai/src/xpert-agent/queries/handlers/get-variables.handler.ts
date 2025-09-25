@@ -41,6 +41,7 @@ import { getXpertAgent } from '../../../xpert/utils'
 import { _BaseToolset } from '../../../shared'
 import { processorOutputVariables } from '../../workflow/processor'
 import { chunkerOutputVariables } from '../../workflow/chunker'
+import { understandingOutputVariables } from '../../workflow/understanding'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -347,6 +348,11 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					}
 					case WorkflowNodeTypeEnum.CHUNKER: {
 						variables.push(...chunkerOutputVariables(entity))
+						varGroups.push(varGroup)
+						break
+					}
+					case WorkflowNodeTypeEnum.UNDERSTANDING: {
+						variables.push(...understandingOutputVariables(entity))
 						varGroups.push(varGroup)
 						break
 					}

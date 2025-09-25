@@ -3,20 +3,25 @@ import { Annotation, END } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
+	IStorageFile,
 	IWFNProcessor,
 	IWorkflowNode,
+	STATE_VARIABLE_FILES,
+	STATE_VARIABLE_HUMAN,
 	TAgentRunnableConfigurable,
 	TXpertGraph,
 	TXpertTeamNode,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
-import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { IDocumentTransformerStrategy } from '@xpert-ai/plugin-sdk'
-import { get } from 'lodash'
-import { KnowledgeStrategyQuery, KnowledgeTaskServiceQuery } from '../../../knowledgebase/queries'
-import { AgentStateAnnotation, nextWorkflowNodes, stateWithEnvironment } from '../../../shared'
-import { KnowledgebaseTaskService } from '../../../knowledgebase'
 import { shortuuid } from '@metad/server-common'
+import { GetStorageFileQuery, RequestContext } from '@metad/server-core'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { FileSystemPermission, IDocumentTransformerStrategy, TDocumentTransformerFile, XpFileSystem } from '@xpert-ai/plugin-sdk'
+import { get } from 'lodash'
+import { KnowledgebaseTaskService } from '../../../knowledgebase'
+import { KnowledgeStrategyQuery, KnowledgeTaskServiceQuery } from '../../../knowledgebase/queries'
+import { AgentStateAnnotation, nextWorkflowNodes, sandboxVolumeUrl, stateWithEnvironment, VolumeClient } from '../../../shared'
+
 
 const ErrorChannelName = 'error'
 const DocumentsChannelName = 'documents'
@@ -29,22 +34,51 @@ export function createProcessorNode(
 		queryBus: QueryBus
 		xpertId: string
 		environment: IEnvironment
+		isDraft: boolean
 	}
 ) {
-	const { commandBus, queryBus, environment } = params
+	const { commandBus, queryBus, environment, isDraft } = params
 	const entity = node.entity as IWFNProcessor
 
 	return {
 		workflowNode: {
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
-				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, knowledgebaseId, knowledgeTaskId } =
-					configurable
+				const {
+					thread_id,
+					checkpoint_ns,
+					checkpoint_id,
+					subscriber,
+					executionId,
+					knowledgebaseId,
+					knowledgeTaskId
+				} = configurable
 				const stateEnv = stateWithEnvironment(state, environment)
 				// const value = await PromptTemplate.fromTemplate(entity.input, {templateFormat: 'mustache'}).format(stateEnv)
 
+				let input: string | string[] | TDocumentTransformerFile[] = null
 				// const variable = entity.input.replace(/^\{\{/, '').replace(/\}\}$/, '').trim()
 				const value = get(stateEnv, entity.input)
+				const humanFilesName = `${STATE_VARIABLE_HUMAN}.${STATE_VARIABLE_FILES}`
+
+				const files: TDocumentTransformerFile[] = []
+				if (entity.input === humanFilesName) {
+					const storageFiles = await queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
+						new GetStorageFileQuery(value.map((file) => file.id))
+					)
+					for (const file of storageFiles) {
+						const extname = file.originalName?.split('.').pop()?.toLowerCase()
+						files.push({
+							url: file.fileUrl,
+							filename: file.originalName,
+							extname
+						})
+					}
+
+					input = files
+				} else {
+					input = value
+				}
 
 				const strategy = await queryBus.execute<KnowledgeStrategyQuery, IDocumentTransformerStrategy>(
 					new KnowledgeStrategyQuery({
@@ -53,16 +87,36 @@ export function createProcessorNode(
 					})
 				)
 
-				if (!strategy) {
-					throw new Error(`Processor strategy ${entity.provider} not found`)
+				const volume = VolumeClient._getWorkspaceRoot(
+					RequestContext.currentTenantId(),
+					'knowledges',
+					knowledgebaseId
+				)
+				const fsPermission = strategy.permissions?.find(
+					(permission) => permission.type === 'filesystem'
+				) as FileSystemPermission
+				const permissions = {}
+				if (fsPermission) {
+					const folder = isDraft ? 'temp/' : `${knowledgeTaskId}/`
+					permissions['fileSystem'] = new XpFileSystem(
+						fsPermission,
+						volume + '/' + folder,
+						sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/${folder}`)
+					)
 				}
-
-				const results = await strategy.transformDocuments(value, entity.config)
+				const results = await strategy.transformDocuments(input, {
+					...(entity.config ?? {}),
+					stage: isDraft ? 'test' : 'prod',
+					tempDir: volume + '/tmp/',
+					permissions
+				})
 
 				console.log(JSON.stringify(results, null, 2))
 
 				// Update knowledge task progress
-				const taskService = await queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(new KnowledgeTaskServiceQuery())
+				const taskService = await queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(
+					new KnowledgeTaskServiceQuery()
+				)
 
 				const documents = results.map((result) => {
 					return {

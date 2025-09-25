@@ -36,7 +36,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	private readonly docTransformerRegistry: DocumentTransformerRegistry;
 
 	@Inject(ImageUnderstandingRegistry)
-	private readonly imageUnderstandingRegistry: ImageUnderstandingRegistry;
+	private readonly understandingRegistry: ImageUnderstandingRegistry;
 
 	@Inject(DocumentSourceRegistry)
 	private readonly docSourceRegistry: DocumentSourceRegistry;
@@ -120,8 +120,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		return this.docTransformerRegistry.list().map((strategy) => strategy.meta)
 	}
 
-	async getImageUnderstandingStrategies() {
-		return this.imageUnderstandingRegistry.list().map((strategy) => strategy.meta)
+	async getUnderstandingStrategies() {
+		return this.understandingRegistry.list().map((strategy) => ({meta: strategy.meta, requireVisionModel: strategy.permissions?.some(permission => permission.type === 'llm')}))
 	}
 
 	async getDocumentSourceStrategies() {

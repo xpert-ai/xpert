@@ -20,7 +20,7 @@ export interface BasePermission {
  */
 export interface LLMPermission extends BasePermission {
   type: 'llm';
-  provider: string; // e.g. "openai", "anthropic", "azure", "ollama"
+  provider?: string; // e.g. "openai", "anthropic", "azure", "ollama"
   capability: 'text' | 'chat' | 'vision' | 'embedding';
   scope?: string[]; // Allowed model names, e.g. ["gpt-4", "gpt-4-vision-preview"]
   maxTokens?: number; // Maximum output tokens allowed

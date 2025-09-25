@@ -1,5 +1,5 @@
 import { HumanMessage } from '@langchain/core/messages'
-import { TChatRequestHuman, TXpertAgentOptions } from '@metad/contracts'
+import { IStorageFile, TChatRequestHuman, TXpertAgentOptions } from '@metad/contracts'
 import { FileStorage, GetStorageFileQuery } from '@metad/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
@@ -21,11 +21,11 @@ export async function createHumanMessage(
 	const { input, files } = state
 
 	if (files?.length) {
+		const storageFiles = await queryBus.execute<GetStorageFileQuery, IStorageFile[]>(new GetStorageFileQuery(files.map((file) => file.id)))
 		return new HumanMessage({
 			content: [
 				...(await Promise.all(
-					files.map(async (_) => {
-						const file = await queryBus.execute(new GetStorageFileQuery(_.id))
+					storageFiles.map(async (file) => {
 						if (file.mimetype?.startsWith('image')) {
 							const provider = new FileStorage().getProvider(file.storageProvider)
 							let imageData = null

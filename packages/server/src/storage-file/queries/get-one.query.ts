@@ -1,7 +1,7 @@
 import { IQuery } from '@nestjs/cqrs'
 
 export class GetStorageFileQuery implements IQuery {
-	static readonly type = '[StorageFile] Get one'
+	static readonly type = '[StorageFile] Get files'
 
-	constructor(public readonly id: string,) {}
+	constructor(public readonly ids: string[],) {}
 }

@@ -46,10 +46,7 @@ export function createChunkerNode(
 				const taskService = await queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(
 					new KnowledgeTaskServiceQuery()
 				)
-
 				const task = await taskService.findOne(knowledgeTaskId)
-
-				console.log('Chunker task:', task)
 
 				const documents = task.context.documents.filter((doc) => value.includes(doc.id))
 
@@ -61,10 +58,6 @@ export function createChunkerNode(
 						name: entity.provider
 					})
 				)
-
-				if (!strategy) {
-					throw new Error(`Chunker strategy ${entity.provider} not found`)
-				}
 
 				for await (const doc of documents) {
 					const result = await strategy.splitDocuments(doc.chunks, entity.config)

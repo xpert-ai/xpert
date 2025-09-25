@@ -182,14 +182,14 @@ export class KnowledgeDocumentCreateStep2Component {
     }
   })
 
-  readonly imageUnderstandingStrategies = computed(() => this.createComponent.imageUnderstandingStrategies()?.map((strategy) => ({
+  readonly imageUnderstandingStrategies = computed(() => this.createComponent.understandingStrategies()?.map(({meta: strategy}) => ({
     value: strategy.name,
     label: strategy.label,
     description: strategy.description,
     _icon: strategy.icon
   })))
 
-  readonly imageUnderstandingStrategy = computed(() => this.createComponent.imageUnderstandingStrategies()?.find((strategy) => strategy.name === this.imageUnderstandingType()))
+  readonly imageUnderstandingStrategy = computed(() => this.createComponent.understandingStrategies()?.find((strategy) => strategy.meta.name === this.imageUnderstandingType())?.meta)
   readonly imageUnderstandingConfigSchema = computed(() => this.imageUnderstandingStrategy()?.configSchema || {} as JsonSchema7ObjectType)
 
   constructor() {

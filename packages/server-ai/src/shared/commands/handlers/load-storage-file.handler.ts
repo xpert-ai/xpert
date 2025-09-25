@@ -23,7 +23,7 @@ export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCo
 	public async execute(command: LoadStorageFileCommand) {
 		const { id } = command
 
-		const storageFile = await this.queryBus.execute<GetStorageFileQuery, StorageFile>(new GetStorageFileQuery(id))
+		const [storageFile] = await this.queryBus.execute<GetStorageFileQuery, StorageFile[]>(new GetStorageFileQuery([id]))
 
 		const type = storageFile.originalName.split('.').pop()
 		let data: Document[]

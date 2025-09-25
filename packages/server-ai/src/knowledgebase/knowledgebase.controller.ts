@@ -168,9 +168,9 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		return this.service.getDocumentTransformerStrategies()
 	}
 
-	@Get('image-understanding/strategies')
-	async getImageUnderstandingStrategies() {
-		return this.service.getImageUnderstandingStrategies()
+	@Get('understanding/strategies')
+	async getUnderstandingStrategies() {
+		return this.service.getUnderstandingStrategies()
 	}
 	
 	@Get('source/strategies')

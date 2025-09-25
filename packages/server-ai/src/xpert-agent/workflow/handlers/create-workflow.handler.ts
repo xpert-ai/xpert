@@ -221,7 +221,8 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
 					xpertId,
-					environment: options.environment
+					environment: options.environment,
+					isDraft: options.isDraft
 				})
 				break
 			}
@@ -239,7 +240,8 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
 					xpertId,
-					environment: options.environment
+					environment: options.environment,
+					isDraft: options.isDraft
 				})
 				break
 			}

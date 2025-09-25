@@ -41,7 +41,7 @@ import {
   IWFNUnderstanding
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { shareReplay, Subscription } from 'rxjs'
+import { map, Subscription } from 'rxjs'
 import {
   genXpertAnswerKey,
   genXpertAssignerKey,
@@ -121,7 +121,7 @@ export class XpertStudioContextMenuComponent {
   readonly pipelineType = signal<'source' | 'processor' | 'chunker' | 'understanding' | 'embedder'>('source')
   readonly dataSources$ = this.knowledgebaseAPI.documentSourceStrategies$
   readonly transformers$ = this.knowledgebaseAPI.documentTransformerStrategies$
-  readonly imageUnderstandings$ = this.knowledgebaseAPI.imageUnderstandingStrategies$
+  readonly imageUnderstandings$ = this.knowledgebaseAPI.understandingStrategies$.pipe(map((items) => items.map((_) => _.meta)))
   readonly textSplitters$ = this.knowledgebaseAPI.textSplitterStrategies$
 
   public ngOnInit(): void {

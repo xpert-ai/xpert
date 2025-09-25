@@ -13,7 +13,7 @@ export class LoadStorageSheetHandler implements ICommandHandler<LoadStorageSheet
 	public async execute(command: LoadStorageSheetCommand) {
 		const { id } = command
 
-		const storageFile = await this.queryBus.execute<GetStorageFileQuery, StorageFile>(new GetStorageFileQuery(id))
+		const [storageFile] = await this.queryBus.execute<GetStorageFileQuery, StorageFile[]>(new GetStorageFileQuery([id]))
 		const path = this.getFilePath(storageFile)
 		if (storageFile.file.endsWith('.csv')) {
 			return loadCsvWithAutoEncoding(path)

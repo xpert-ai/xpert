@@ -114,12 +114,28 @@ export class KnowledgebaseTaskService extends TenantOrganizationAwareCrudService
 		})
 	}
 
+	/**
+	 * Update or insert documents context cache into task
+	 * 
+	 * @param id 
+	 * @param documents 
+	 */
 	async upsertDocuments(id: string, documents: Partial<IKnowledgeDocument>[]): Promise<void> {
 		const task = await this.taskRepo.findOneBy({ id })
 		if (!task) throw new Error(`Task ${id} not found`)
 		
 		task.context ??= {}
-		task.context.documents = documents
+		// Upsert documents
+		const docMap = new Map(task.context.documents?.map(doc => [doc.id, doc]))
+		for (const doc of documents) {
+			if (doc.id) {
+				docMap.set(doc.id, doc as IKnowledgeDocument)
+			} else {
+				this.#logger.warn(`Document without id cannot be upserted into task ${id}`)
+			}
+		}
+		const updatedDocuments = Array.from(docMap.values())
+		task.context.documents = updatedDocuments
 		await this.taskRepo.save(task)
 	}
 

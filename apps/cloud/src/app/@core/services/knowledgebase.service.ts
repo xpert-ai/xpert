@@ -16,7 +16,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   // Package into hot stream + cache the last value
   readonly documentSourceStrategies$ = this.getDocumentSourceStrategies().pipe(shareReplay(1))
   readonly documentTransformerStrategies$ = this.getDocumentTransformerStrategies().pipe(shareReplay(1))
-  readonly imageUnderstandingStrategies$ = this.getImageUnderstandingStrategies().pipe(shareReplay(1))
+  readonly understandingStrategies$ = this.getUnderstandingStrategies().pipe(shareReplay(1))
   readonly textSplitterStrategies$ = this.getTextSplitterStrategies().pipe(shareReplay(1))
 
   constructor() {
@@ -50,8 +50,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     return this.httpClient.get<IDocumentProcessorProvider[]>(this.apiBaseUrl + '/transformer/strategies')
   }
 
-  getImageUnderstandingStrategies() {
-    return this.httpClient.get<IDocumentUnderstandingProvider[]>(this.apiBaseUrl + '/image-understanding/strategies')
+  getUnderstandingStrategies() {
+    return this.httpClient.get<{meta: IDocumentUnderstandingProvider; requireVisionModel: boolean}[]>(this.apiBaseUrl + '/understanding/strategies')
   }
 
   getDocumentSourceStrategies() {

@@ -55,10 +55,10 @@ export class XpertWorkflowNodeProcessorComponent {
 
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
 
-  readonly canBeConnectedInputs = computed(() =>
+   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
-      .filter((_) => _.type !== 'toolset' && _.type !== 'knowledge' && _.key !== 'xpert')
-      .map((_) => _.key)
+      .filter((_) => _.type === 'agent' || _.type === 'workflow')
+      .map((_) => _.type === 'workflow' ? _.key + '/edge' : _.key)
   )
 
   // Processor providers from knowledgebase service

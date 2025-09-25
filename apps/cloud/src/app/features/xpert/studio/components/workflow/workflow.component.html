@@ -1,5 +1,5 @@
 @if (!NoInputs.includes(type())) {
-  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left absolute"></div>
+  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" [fInputMultiple]="true" class="left absolute"></div>
 }
 
 <div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl">

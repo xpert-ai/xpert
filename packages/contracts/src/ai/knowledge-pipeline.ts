@@ -1,4 +1,5 @@
 import { I18nObject } from '../types'
+import { ICopilotModel } from './copilot-model.model'
 import { IWorkflowNode, WorkflowNodeTypeEnum } from './xpert-workflow.model'
 
 export interface IDocumentNodeProvider {
@@ -23,7 +24,9 @@ export interface IDocumentProcessorProvider extends IDocumentNodeProvider {}
 export interface IDocumentChunkerProvider extends IDocumentNodeProvider {}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface IDocumentUnderstandingProvider extends IDocumentNodeProvider {}
+export interface IDocumentUnderstandingProvider extends IDocumentNodeProvider {
+
+}
 
 
 /**
@@ -53,4 +56,6 @@ export interface IWFNUnderstanding extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.UNDERSTANDING,
   provider: string
   config: any;
+  input: string
+  visionModel?: ICopilotModel
 }

@@ -9,6 +9,7 @@ import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../copilot-user'
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../../core/errors'
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
+import { CopilotGetOneQuery } from '../../../copilot/queries'
 
 @QueryHandler(CopilotModelGetChatModelQuery)
 export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotModelGetChatModelQuery> {
@@ -22,12 +23,12 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 
 	public async execute(command: CopilotModelGetChatModelQuery) {
 		const { abortController, usageCallback } = command.options ?? {}
-		const copilot = command.copilot
+		let copilot = command.copilot
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
 
-		const copilotModel = command.copilotModel ?? copilot.copilotModel
+		const copilotModel = command.copilotModel ?? copilot?.copilotModel
 		if (!copilotModel) {
 			throw new CopilotModelNotFoundException(
 				await this.i18nService.t('copilot.Error.AIModelNotFound', {
@@ -36,6 +37,10 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 			)
 		}
 		const modelName = copilotModel.model
+
+		if (!copilot) {
+			copilot = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotModel.copilotId, ['modelProvider']))
+		}
 
 		// Check token limit
 		await this.commandBus.execute(
