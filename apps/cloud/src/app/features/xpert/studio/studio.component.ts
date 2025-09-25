@@ -40,7 +40,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NGXLogger } from 'ngx-logger'
 import { injectParams } from 'ngxtension/inject-params'
-import { Observable, of, Subscription } from 'rxjs'
+import { Observable, Subscription } from 'rxjs'
 import { debounceTime, delay, map, tap } from 'rxjs/operators'
 import {
   AiModelTypeEnum,
@@ -303,11 +303,20 @@ export class XpertStudioComponent {
       return
     }
 
-    this.apiService.createConnection(event.fOutputId, event.fInputId)
+    this.apiService.createConnection({
+      sourceId: event.fOutputId,
+      targetId: event.fInputId
+    })
   }
 
   public reassignConnection(event: FReassignConnectionEvent): void {
-    this.apiService.createConnection(event.newSourceId, event.newTargetId, event.oldTargetId)
+    this.apiService.removeConnection(event.oldSourceId, event.oldTargetId)
+    if (event.newTargetId) {
+      this.apiService.createConnection({
+        sourceId: event.newSourceId || event.oldSourceId,
+        targetId: event.newTargetId,
+      })
+    }
   }
 
   public moveNode({key, point}: {point: IPoint; key: string}) {
@@ -359,7 +368,10 @@ export class XpertStudioComponent {
   }
 
   removeConnection(connection: FConnectionComponent) {
-    this.apiService.createConnection(connection.fOutputId, null, connection.fInputId)
+    this.apiService.createConnection({
+      sourceId: connection.fOutputId,
+      targetId: connection.fInputId
+    })
   }
 
   onCanvasChange = effectAction((origin$: Observable<FCanvasChangeEvent>) => {

@@ -42,7 +42,7 @@ import {
   TXpertTeamDraft,
   TXpertTeamNode,
 } from '../../../../@core/types'
-import { CreateConnectionHandler, CreateConnectionRequest, ToConnectionViewModelHandler } from './connection'
+import { CreateConnectionHandler, CreateConnectionRequest, RemoveConnectionHandler, RemoveConnectionRequest, ToConnectionViewModelHandler } from './connection'
 import { LayoutHandler, LayoutRequest } from './layout'
 import {
   CreateNodeHandler,
@@ -445,8 +445,12 @@ export class XpertStudioApiService {
   }
 
   // Connections
-  public createConnection(outputId: string, inputId: string, oldFInputId?: string): void {
-    new CreateConnectionHandler(this.store).handle(new CreateConnectionRequest(outputId, inputId, oldFInputId))
+  public createConnection(connection: {sourceId: string; targetId: string}): void {
+    new CreateConnectionHandler(this.store).handle(new CreateConnectionRequest(connection))
+    this.#reload.next(EReloadReason.CONNECTION_CHANGED)
+  }
+  public removeConnection(sourceId: string, targetId: string): void {
+    new RemoveConnectionHandler(this.store).handle(new RemoveConnectionRequest(sourceId, targetId))
     this.#reload.next(EReloadReason.CONNECTION_CHANGED)
   }
 
