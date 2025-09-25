@@ -1,4 +1,4 @@
-import { IXpert, LongTermMemoryTypeEnum, mapTranslationLanguage, replaceAgentInDraft, TXpertTeamDraft } from '@metad/contracts'
+import { IXpert, IXpertAgent, LongTermMemoryTypeEnum, mapTranslationLanguage, TXpertTeamDraft } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -54,7 +54,9 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 		})
 
 		// Replace agent in draft
-		draft = replaceAgentInDraft(draft, draft.team.agent.key, xpert.agent)
+		if (!xpert.agent.options?.hidden) {
+			draft = replaceAgentInDraft(draft, draft.team.agent.key, xpert.agent)
+		}
 
 		// Update draft into xpert
 		await this.xpertService.update(xpert.id, {
@@ -93,11 +95,46 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 	}
 }
 
-function getLatestPrimaryAgent(draft: TXpertTeamDraft, key: string) {
+function getLatestPrimaryAgent(draft: TXpertTeamDraft, key: string): IXpertAgent {
 	const index = draft.nodes.findIndex((_) => _.type === 'agent' && _.key === key)
 	if (index > -1) {
-		return draft.nodes[index].entity
+		return draft.nodes[index].entity as IXpertAgent
 	} else {
-		throw new Error(t('server-ai:Error.AgentNotFound', {key}))
+		// This is pure workflow, no primary agent.
+		return {
+			key,
+			options: {
+				hidden: true
+			}
+		}
 	}
+}
+
+export function replaceAgentInDraft(draft: TXpertTeamDraft, key: string, agent: IXpertAgent) {
+  const index = draft.nodes.findIndex((_) => _.type === 'agent' && _.key === key)
+  if (index > -1) {
+    draft.nodes[index] = {
+      ...draft.nodes[index],
+      type: 'agent',
+      key: agent.key,
+      entity: agent
+    }
+  } else {
+    throw new Error(`Can't found agent for key: ${key}`)
+  }
+
+  // Replace agent in connections
+  if (key !== agent.key) {
+    draft.connections.forEach((conn) => {
+      if (conn.from === key) {
+        conn.from = agent.key
+        conn.key = `${conn.from}/${conn.to}`
+      } else if (conn.to === key) {
+        conn.to = agent.key
+        conn.key = `${conn.from}/${conn.to}`
+      }
+    })
+  }
+
+  return draft
 }
