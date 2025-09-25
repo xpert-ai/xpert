@@ -1,15 +1,15 @@
+import { KnowledgeStructureEnum } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
 import { encodingForModel } from 'js-tiktoken'
 import { Document } from 'langchain/document'
 import { v4 as uuid } from 'uuid'
 import { ParentChild, ChunkSplitConfig, TParentChildConfig } from './types'
-import { KnowledgeChunkStructureEnum } from '@metad/contracts'
 
 @Injectable()
 @TextSplitterStrategy(ParentChild)
 export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildConfig> {
-  readonly chunkStructure = KnowledgeChunkStructureEnum.ParentChild
+  readonly structure = KnowledgeStructureEnum.ParentChild
   readonly meta = {
     name: ParentChild,
     label: {

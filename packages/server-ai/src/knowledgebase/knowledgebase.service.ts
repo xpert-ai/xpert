@@ -1,7 +1,7 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { AiBusinessRole, DocumentMetadata, IKnowledgebase, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata, XpertTypeEnum } from '@metad/contracts'
+import { AiBusinessRole, DocumentMetadata, genPipelineKnowledgeBaseKey, genPipelineSourceKey, IKnowledgebase, IWFNKnowledgeBase, IWFNSource, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata, WorkflowNodeTypeEnum, XpertTypeEnum } from '@metad/contracts'
 import { IntegrationService, RequestContext } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -160,6 +160,29 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				options: {
 					hidden: true
 				}
+			},
+			draft: {
+				nodes: [
+					{
+						key: genPipelineSourceKey(),
+						type: 'workflow',
+						position: {x: -260, y: 0},
+						entity: {
+							title: 'Source',
+							type: WorkflowNodeTypeEnum.SOURCE,
+							provider: 'files',
+						} as IWFNSource
+					},
+					{
+						key: genPipelineKnowledgeBaseKey(),
+						type: 'workflow',
+						position: {x: 280, y: 0},
+						entity: {
+							title: 'Knowledge Base',
+							type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
+						} as IWFNKnowledgeBase
+					}
+				]
 			}
 		})
 	}

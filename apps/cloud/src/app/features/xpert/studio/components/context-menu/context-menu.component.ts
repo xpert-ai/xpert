@@ -38,7 +38,11 @@ import {
   IDocumentChunkerProvider,
   IDocumentUnderstandingProvider,
   IWFNChunker,
-  IWFNUnderstanding
+  IWFNUnderstanding,
+  genPipelineSourceKey,
+  genPipelineProcessorKey,
+  genPipelineChunkerKey,
+  genPipelineUnderstandingKey
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -58,10 +62,6 @@ import {
   genXpertAgentToolKey,
   genXpertTaskKey,
   genXpertTriggerKey,
-  genPipelineSourceKey,
-  genPipelineProcessorKey,
-  genPipelineChunkerKey,
-  genPipelineUnderstandingKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'

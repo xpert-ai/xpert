@@ -1,9 +1,9 @@
+import { KnowledgeStructureEnum } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { MarkdownRecursiveTextSplitter, MarkdownRecursiveTextSplitterOptions } from './MarkdownRecursiveTextSplitter'
 import { MarkdownRecursive } from './types'
-import { KnowledgeChunkStructureEnum } from '@metad/contracts'
 
 @Injectable()
 @TextSplitterStrategy(MarkdownRecursive)
@@ -13,7 +13,7 @@ export class MarkdownRecursiveStrategy
       Partial<Omit<MarkdownRecursiveTextSplitterOptions, 'headersToSplitOn'> & { headersToSplitOn: number }>
     >
 {
-  readonly chunkStructure = KnowledgeChunkStructureEnum.General
+  readonly structure = KnowledgeStructureEnum.General
   readonly meta = {
     name: MarkdownRecursive,
     label: {

@@ -1,3 +1,7 @@
+import ShortUniqueId from 'short-unique-id'
+
+export const uuid = new ShortUniqueId({ length: 10 })
+
 /**
  * @description
  * An entity ID. Represents a unique identifier as a string.
@@ -151,4 +155,8 @@ export interface ChecklistItem {
 
 export interface RuleValidator {
 	validate(input: any, params?: any): Promise<ChecklistItem[]>
+}
+
+export function letterStartSUID(start: string) {
+  return start + uuid()
 }

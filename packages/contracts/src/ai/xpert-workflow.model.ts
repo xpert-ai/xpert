@@ -50,6 +50,7 @@ export enum WorkflowNodeTypeEnum {
   PROCESSOR = 'processor',
   CHUNKER = 'chunker',
   UNDERSTANDING = 'understanding',
+  KNOWLEDGE_BASE = 'knowledgebase',
 }
 
 export interface IWorkflowNode {

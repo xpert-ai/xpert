@@ -1,0 +1,181 @@
+<div class="px-4 border-b border-divider-subtle py-3">
+  <div class="mb-0.5">
+    <div class="group/collapse flex items-center justify-between py-1">
+      <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
+        知识结构
+        <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
+          <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-ghost-accent btn-small"
+        #trigger="cdkMenuTriggerFor"
+        [cdkMenuTriggerFor]="strcutureMenu"
+      >
+        更改
+      </button>
+    </div>
+  </div>
+  <div
+    class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-sky-50 to-components-card-bg"
+  >
+    <div class="relative flex rounded-t-xl p-2">
+      <div class="mr-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+        @switch (structure()) {
+          @case (eKnowledgeStructureEnum.General) {
+            <i class="ri-list-check-2 text-lg text-text-tertiary"></i>
+          }
+          @case (eKnowledgeStructureEnum.ParentChild) {
+            <i class="ri-parent-line text-lg text-text-tertiary"></i>
+          }
+          @case (eKnowledgeStructureEnum.QA) {
+            <i class="ri-question-answer-line text-lg text-text-tertiary"></i>
+          }
+        }
+      </div>
+      <div class="grow py-1 pt-[1px]">
+        <div class="flex items-center">
+          <div class="system-sm-medium flex grow items-center text-text-secondary">
+            @switch (structure()) {
+              @case (eKnowledgeStructureEnum.General) {
+                通用
+              }
+              @case (eKnowledgeStructureEnum.ParentChild) {
+                父子分段
+              }
+              @case (eKnowledgeStructureEnum.QA) {
+                问答
+              }
+            }
+        </div>
+        </div>
+        <div class="system-xs-regular mt-1 text-text-tertiary">
+          @switch (structure()) {
+            @case (eKnowledgeStructureEnum.General) {
+              通用文本分块模式，检索和召回的块是相同的
+            }
+            @case (eKnowledgeStructureEnum.ParentChild) {
+              使用父子模式时，子块用于检索，父块用作上下文
+            }
+            @case (eKnowledgeStructureEnum.QA) {
+              使用 Q&amp;A 模式时，块将被拆分为问题和答案对。检索时将使用问题部分进行检索，答案部分将作为上下文返回。
+            }
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="p-4 space-y-3">
+  <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
+    分块
+    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
+      <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+    </div>
+  </div>
+  <div>
+    <xpert-state-variable-select [variables]="variables()" [(ngModel)]="input" />
+  </div>
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4 space-y-3">
+  <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
+    嵌入模型
+    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
+      <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+    </div>
+  </div>
+  <div>
+    <copilot-model-select [modelType]="eModelType.TEXT_EMBEDDING"
+      [(ngModel)]="copilotModel"
+    />
+  </div>
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4 space-y-3">
+  <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
+    检索设置
+    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
+      <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+    </div>
+  </div>
+  <div>
+    <copilot-model-select [modelType]="eModelType.RERANK"
+      [(ngModel)]="rerankModel"
+    />
+  </div>
+</div>
+
+<ng-template #strcutureMenu>
+  <div
+    cdkMenu
+    class="cdk-menu__large w-[420px] rounded-2xl"
+  >
+    <div class="font-semibold">更改知识结构</div>
+
+    <div class="space-y-1 pt-2">
+      <div
+        class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-indigo-50 to-components-card-bg cursor-pointer hover:shadow-xs
+          hover:from-indigo-100"
+        [class.!border-primary-500]="structure() === eKnowledgeStructureEnum.General"
+        (click)="structure.set(eKnowledgeStructureEnum.General);trigger.close()"
+      >
+        <div class="relative flex rounded-t-xl p-2">
+          <div class="mr-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+            <i class="ri-list-check-2 text-lg text-text-tertiary group-hover:text-indigo-600"></i>
+          </div>
+          <div class="grow py-1 pt-[1px]">
+            <div class="flex items-center">
+              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">通用</div>
+            </div>
+            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">通用文本分块模式，检索和召回的块是相同的</div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-green-50 to-components-card-bg cursor-pointer hover:shadow-xs
+          hover:from-green-100"
+        [class.!border-primary-500]="structure() === eKnowledgeStructureEnum.ParentChild"
+        (click)="structure.set(eKnowledgeStructureEnum.ParentChild);trigger.close()"
+      >
+        <div class="relative flex rounded-t-xl p-2">
+          <div class="mr-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+            <i class="ri-parent-line text-lg text-text-tertiary group-hover:text-green-700"></i>
+          </div>
+          <div class="grow py-1 pt-[1px]">
+            <div class="flex items-center">
+              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">父子分段</div>
+            </div>
+            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">使用父子模式时，子块用于检索，父块用作上下文</div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-sky-50 to-components-card-bg cursor-pointer hover:shadow-xs
+          hover:from-sky-100"
+        [class.!border-primary-500]="structure() === eKnowledgeStructureEnum.QA"
+        (click)="structure.set(eKnowledgeStructureEnum.QA);trigger.close()"
+      >
+        <div class="relative flex rounded-t-xl p-2">
+          <div class="mr-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+            <i class="ri-question-answer-line text-lg text-text-tertiary group-hover:text-sky-700"></i>
+          </div>
+          <div class="grow py-1 pt-[1px]">
+            <div class="flex items-center">
+              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">Q&amp;A</div>
+            </div>
+            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
+              使用 Q&amp;A 模式时，块将被拆分为问题和答案对。检索时将使用问题部分进行检索，答案部分将作为上下文返回。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>

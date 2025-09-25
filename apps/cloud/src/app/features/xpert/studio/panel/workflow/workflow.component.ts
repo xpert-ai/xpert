@@ -43,6 +43,7 @@ import { XpertWorkflowSourceComponent } from './source/source.component'
 import { XpertWorkflowProcessorComponent } from './processor/processor.component'
 import { XpertWorkflowChunkerComponent } from './chunker/chunker.component'
 import { XpertWorkflowUnderstandingComponent } from './understanding/understanding.component'
+import { XpertWorkflowKnowledgeBaseComponent } from './knowledge-base/knowledge-base.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -82,7 +83,8 @@ import { XpertWorkflowUnderstandingComponent } from './understanding/understandi
     XpertWorkflowSourceComponent,
     XpertWorkflowProcessorComponent,
     XpertWorkflowChunkerComponent,
-    XpertWorkflowUnderstandingComponent
+    XpertWorkflowUnderstandingComponent,
+    XpertWorkflowKnowledgeBaseComponent
   ],
   animations: [IfAnimation,]
 })

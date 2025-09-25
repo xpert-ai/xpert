@@ -35,6 +35,7 @@ import { XpertWorkflowNodeSourceComponent } from './source/source.component'
 import { XpertWorkflowNodeProcessorComponent } from './processor/processor.component'
 import { XpertWorkflowNodeChunkerComponent } from './chunker/chunker.component'
 import { XpertWorkflowNodeUnderstandingComponent } from './understanding/understanding.component'
+import { XpertWorkflowNodeKnowledgeBaseComponent } from './knowledge-base/knowledge-base.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -68,7 +69,8 @@ import { XpertWorkflowNodeUnderstandingComponent } from './understanding/underst
     XpertWorkflowNodeSourceComponent,
     XpertWorkflowNodeProcessorComponent,
     XpertWorkflowNodeChunkerComponent,
-    XpertWorkflowNodeUnderstandingComponent
+    XpertWorkflowNodeUnderstandingComponent,
+    XpertWorkflowNodeKnowledgeBaseComponent
   ],
   host: {
     '[class]': 'type()',

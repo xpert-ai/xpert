@@ -1,4 +1,4 @@
-import { IDocumentChunkerProvider, KnowledgeChunkStructureEnum } from '@metad/contracts'
+import { IDocumentChunkerProvider, KnowledgeStructureEnum } from '@metad/contracts'
 import { Document } from 'langchain/document'
 import { ChunkMetadata } from '../types'
 
@@ -11,7 +11,7 @@ export interface ITextSplitterStrategy<TConfig = any> {
    */
   readonly meta: IDocumentChunkerProvider
 
-  readonly chunkStructure: KnowledgeChunkStructureEnum
+  readonly structure: KnowledgeStructureEnum
 
   /**
    * Validate the configuration

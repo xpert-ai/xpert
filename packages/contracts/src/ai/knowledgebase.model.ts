@@ -17,7 +17,7 @@ export enum KnowledgebaseTypeEnum {
   External = 'external'
 }
 
-export enum KnowledgeChunkStructureEnum {
+export enum KnowledgeStructureEnum {
   General = 'general',
   ParentChild = 'parent-child',
   QA = 'qa'
@@ -93,9 +93,9 @@ export type TKnowledgebase = {
   parserConfig?: KnowledgebaseParserConfig
 
   /**
-   * Chunk structure determines how the knowledge base organizes and indexes your document content.
+   * Index structure determines how the knowledge base organizes and indexes your document content.
    */
-  chunkStructure?: KnowledgeChunkStructureEnum
+  structure?: KnowledgeStructureEnum
 
   /**
    * Recall params for kb chunks

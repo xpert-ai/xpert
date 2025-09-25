@@ -7,7 +7,7 @@ import {
 	KnowledgebaseParserConfig,
 	KnowledgebasePermission,
 	KnowledgebaseTypeEnum,
-	KnowledgeChunkStructureEnum,
+	KnowledgeStructureEnum,
 	TAvatar,
 	TKBRecallParams
 } from '@metad/contracts'
@@ -34,11 +34,11 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@Column({ nullable: true, length: 20 })
 	type: KnowledgebaseTypeEnum
 
-	@ApiPropertyOptional({ enum: KnowledgeChunkStructureEnum, enumName: 'KnowledgeChunkStructureEnum' })
-	@IsEnum(KnowledgeChunkStructureEnum)
+	@ApiPropertyOptional({ enum: KnowledgeStructureEnum, enumName: 'KnowledgeStructureEnum' })
+	@IsEnum(KnowledgeStructureEnum)
 	@IsOptional()
 	@Column({ nullable: true })
-	chunkStructure?: KnowledgeChunkStructureEnum
+	structure?: KnowledgeStructureEnum
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -189,9 +189,9 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     */
 	// One-to-One with Xpert
 	@OneToOne(() => Xpert, (xpert) => xpert.knowledgebase, {
-		cascade: true, // 可选：保存 Knowledgebase 时级联保存 Xpert
+		cascade: true,
 	})
-	@JoinColumn({ name: 'pipelineId' }) // 外键放在 Knowledgebase 表
+	@JoinColumn({ name: 'pipelineId' })
 	pipeline?: IXpert
 
 	@IsOptional()

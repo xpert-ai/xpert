@@ -1,5 +1,6 @@
-import { I18nObject } from '../types'
+import { I18nObject, letterStartSUID } from '../types'
 import { ICopilotModel } from './copilot-model.model'
+import { KnowledgeStructureEnum } from './knowledgebase.model'
 import { IWorkflowNode, WorkflowNodeTypeEnum } from './xpert-workflow.model'
 
 export interface IDocumentNodeProvider {
@@ -58,4 +59,38 @@ export interface IWFNUnderstanding extends IWorkflowNode {
   config: any;
   input: string
   visionModel?: ICopilotModel
+}
+
+export interface IWFNKnowledgeBase extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
+  structure?: KnowledgeStructureEnum
+  /**
+   * Documents input variable
+   */
+  input?: string
+  /**
+   * Embedding model
+   */
+  copilotModel?: ICopilotModel
+  /**
+   * (optional) Rerank model
+   */
+  rerankModel?: ICopilotModel
+  documents?: string[]
+}
+
+export function genPipelineSourceKey() {
+  return letterStartSUID('Source_')
+}
+export function genPipelineProcessorKey() {
+  return letterStartSUID('Processor_')
+}
+export function genPipelineChunkerKey() {
+  return letterStartSUID('Chunker_')
+}
+export function genPipelineUnderstandingKey() {
+  return letterStartSUID('Understanding_')
+}
+export function genPipelineKnowledgeBaseKey() {
+  return letterStartSUID('KnowledgeBase_')
 }

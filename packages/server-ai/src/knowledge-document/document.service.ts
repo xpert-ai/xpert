@@ -1,4 +1,4 @@
-import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum, KnowledgeChunkStructureEnum } from '@metad/contracts'
+import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum, KnowledgeStructureEnum } from '@metad/contracts'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -64,13 +64,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		const textSplitterType = documents[0].parserConfig.textSplitterType
 		const textSplitterStrategy = this.textSplitterRegistry.get(textSplitterType)
 		if (textSplitterStrategy) {
-			const chunkStructure = textSplitterStrategy.chunkStructure
+			const structure = textSplitterStrategy.structure
 			const knowledgebase = await this.knowledgebaseService.findOneByIdString(documents[0].knowledgebaseId)
-			if (knowledgebase.chunkStructure && knowledgebase.chunkStructure !== chunkStructure) {
-				throw new BadRequestException(`Inconsistent chunk structure between knowledgebase (${knowledgebase.chunkStructure}) and document (${chunkStructure})`)
+			if (knowledgebase.structure && knowledgebase.structure !== structure) {
+				throw new BadRequestException(`Inconsistent chunk structure between knowledgebase (${knowledgebase.structure}) and document (${structure})`)
 			}
-			if (!knowledgebase.chunkStructure) {
-				await this.knowledgebaseService.update(knowledgebase.id, { chunkStructure })
+			if (!knowledgebase.structure) {
+				await this.knowledgebaseService.update(knowledgebase.id, { structure })
 			}
 		}
 
@@ -104,7 +104,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
 		
-		if (document.knowledgebase.chunkStructure === KnowledgeChunkStructureEnum.ParentChild && !params.search) {
+		if (document.knowledgebase.structure === KnowledgeStructureEnum.ParentChild && !params.search) {
 			const pages = await this.pageRepository.find({
 				where: { tenantId: document.tenantId, documentId: document.id },
 				take: params.take,

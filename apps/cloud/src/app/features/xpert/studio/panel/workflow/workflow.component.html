@@ -134,6 +134,9 @@
   @case (eWorkflowNodeTypeEnum.UNDERSTANDING) {
     <xpert-workflow-understanding [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.KNOWLEDGE_BASE) {
+    <xpert-workflow-knowledge-base [node]="node()" [entity]="wfNode()" />
+  }
 }
 
 @if (loading()) {
