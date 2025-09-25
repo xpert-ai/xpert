@@ -5,9 +5,11 @@ import {
 	IEnvironment,
 	IWFNChunker,
 	IWorkflowNode,
+	IXpertAgentExecution,
 	TAgentRunnableConfigurable,
 	TXpertGraph,
 	TXpertTeamNode,
+	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -15,6 +17,7 @@ import { ITextSplitterStrategy } from '@xpert-ai/plugin-sdk'
 import { get } from 'lodash'
 import { KnowledgebaseTaskService, KnowledgeStrategyQuery, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { AgentStateAnnotation, nextWorkflowNodes, stateWithEnvironment } from '../../../shared'
+import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 const ErrorChannelName = 'error'
 const DocumentsChannelName = 'documents'
@@ -41,39 +44,67 @@ export function createChunkerNode(
 				const stateEnv = stateWithEnvironment(state, environment)
 				const value = get(stateEnv, entity.input) as string[]
 
-				console.log('Chunker input value:', value)
+				const execution: IXpertAgentExecution = {
+									category: 'workflow',
+									type: WorkflowNodeTypeEnum.CHUNKER,
+									inputs: value,
+									parentId: executionId,
+									threadId: thread_id,
+									checkpointNs: checkpoint_ns,
+									checkpointId: checkpoint_id,
+									agentKey: node.key,
+									title: entity.title
+								}
+				return await wrapAgentExecution(
+					async () => {
 
-				const taskService = await queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(
-					new KnowledgeTaskServiceQuery()
-				)
-				const task = await taskService.findOne(knowledgeTaskId)
+						console.log('Chunker input value:', value)
 
-				const documents = task.context.documents.filter((doc) => value.includes(doc.id))
+						const taskService = await queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(
+							new KnowledgeTaskServiceQuery()
+						)
+						const task = await taskService.findOne(knowledgeTaskId)
 
-				console.log('Chunker documents:', documents)
+						const documents = task.context.documents.filter((doc) => value.includes(doc.id))
 
-				const strategy = await queryBus.execute<KnowledgeStrategyQuery, ITextSplitterStrategy>(
-					new KnowledgeStrategyQuery({
-						type: 'chunker',
-						name: entity.provider
-					})
-				)
+						console.log('Chunker documents:', documents)
 
-				for await (const doc of documents) {
-					const result = await strategy.splitDocuments(doc.chunks, entity.config)
-					doc.chunks = result.chunks
-					doc.pages = result.pages
+						const strategy = await queryBus.execute<KnowledgeStrategyQuery, ITextSplitterStrategy>(
+							new KnowledgeStrategyQuery({
+								type: 'chunker',
+								name: entity.provider
+							})
+						)
 
-					console.log('Chunker result chunks:', result.chunks)
-				}
+						for await (const doc of documents) {
+							const result = await strategy.splitDocuments(doc.chunks, entity.config)
+							doc.chunks = result.chunks
+							doc.pages = result.pages
 
-				await taskService.upsertDocuments(knowledgeTaskId, documents)
+							console.log('Chunker result chunks:', result.chunks)
+						}
 
-				return {
-					[channelName(node.key)]: {
-						[DocumentsChannelName]: documents.map((doc) => doc.id)
-					}
-				}
+						await taskService.upsertDocuments(knowledgeTaskId, documents)
+
+						return {
+							state: {
+								[channelName(node.key)]: {
+									[DocumentsChannelName]: documents.map((doc) => doc.id)
+								}
+							},
+							output: JSON.stringify(documents.map((doc) => {
+								doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
+								doc.pages = doc.pages?.slice(0, 2)
+								return doc
+							}), null, 2)
+						}
+					},
+					{
+						commandBus: commandBus,
+						queryBus: queryBus,
+						subscriber: subscriber,
+						execution
+					})()
 			}),
 			ends: []
 		},
