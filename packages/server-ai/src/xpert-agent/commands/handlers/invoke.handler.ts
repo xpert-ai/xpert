@@ -9,6 +9,7 @@ import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	GRAPH_NODE_TITLE_CONVERSATION,
+	IStorageFile,
 	IXpertAgent,
 	LanguagesEnum,
 	mapTranslationLanguage,
@@ -20,7 +21,7 @@ import {
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
-import { RequestContext } from '@metad/server-core'
+import { GetStorageFileQuery, RequestContext } from '@metad/server-core'
 import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -137,6 +138,16 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				graphInput = new Command(pick(options.command, 'resume', 'update'))
 			}
 		} else if(input?.input) {
+			if (input.files?.length) {
+				const storageFiles = await Promise.all(input.files.map((file) => this.queryBus.execute<GetStorageFileQuery, IStorageFile>(new GetStorageFileQuery(file.id))))
+				input.files = storageFiles.map((file) => ({
+					id: file.id,
+					originalName: file.originalName,
+					fileUrl: file.fileUrl,
+					mimetype: file.mimetype,
+					size: file.size
+				}))
+			}
 			graphInput = {
 				...omit(input, 'input', 'files'),
 				/**
