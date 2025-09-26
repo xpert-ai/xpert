@@ -117,6 +117,7 @@ export type TKnowledgebase = {
 export interface IKnowledgebase extends TKnowledgebase, IBasePerWorkspaceEntityModel {
   xperts?: IXpert[]
   integration?: IIntegration
+  pipeline?: IXpert
 }
 
 export enum KnowledgebasePermission {

@@ -13,7 +13,7 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { CustomIconComponent, EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import omit from 'lodash-es/omit'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
@@ -58,7 +58,8 @@ import { NgmSelectComponent } from '@cloud/app/@shared/common'
     EmojiAvatarComponent,
     ParameterFormComponent,
     CardProComponent,
-    NgmI18nPipe
+    NgmI18nPipe,
+    CustomIconComponent
   ],
   animations: [routeAnimations]
 })
@@ -93,6 +94,7 @@ export class IntegrationComponent implements IsDirty {
       label: provider.label,
       description: provider.description,
       avatar: provider.avatar,
+      _icon: provider.icon,
     }))
   })
 

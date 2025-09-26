@@ -10,7 +10,7 @@
           "warn",
           {
             "enforceBuildableLibDependency": true,
-            "allow": [],
+            "allow": ["@cloud/**"],
             "depConstraints": [
               {
                 "sourceTag": "*",

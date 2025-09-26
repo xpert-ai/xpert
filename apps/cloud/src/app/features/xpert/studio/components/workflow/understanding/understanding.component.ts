@@ -4,7 +4,6 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { KnowledgebaseService } from '@cloud/app/@core'
 import { FFlowModule } from '@foblex/flow'
-import { SafePipe } from '@metad/core'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -16,6 +15,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
+import { CustomIconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-workflow-node-understanding',
@@ -23,7 +23,7 @@ import { XpertStudioApiService } from '../../../domain'
   styleUrls: ['./understanding.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FFlowModule, MatTooltipModule, TranslateModule, SafePipe, PlusSvgComponent, NgmI18nPipe],
+  imports: [CommonModule, FFlowModule, MatTooltipModule, TranslateModule, CustomIconComponent, PlusSvgComponent, NgmI18nPipe],
   host: {
     tabindex: '-1'
   }

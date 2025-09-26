@@ -12,10 +12,10 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { KnowledgebaseService } from '@cloud/app/@core'
-import { XpertStudioApiService } from '../../../domain'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
-import { SafePipe } from '@metad/core'
+import { CustomIconComponent } from '@cloud/app/@shared/avatar'
+import { XpertStudioApiService } from '../../../domain'
 
 @Component({
   selector: 'xpert-workflow-node-processor',
@@ -28,9 +28,9 @@ import { SafePipe } from '@metad/core'
     FFlowModule,
     MatTooltipModule,
     TranslateModule,
-    SafePipe,
     PlusSvgComponent,
     NgmI18nPipe,
+    CustomIconComponent
   ],
   host: {
     tabindex: '-1'
@@ -55,7 +55,7 @@ export class XpertWorkflowNodeProcessorComponent {
 
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
 
-   readonly canBeConnectedInputs = computed(() =>
+  readonly canBeConnectedInputs = computed(() =>
     this.nodes()
       .filter((_) => _.type === 'agent' || _.type === 'workflow')
       .map((_) => _.type === 'workflow' ? _.key + '/edge' : _.key)

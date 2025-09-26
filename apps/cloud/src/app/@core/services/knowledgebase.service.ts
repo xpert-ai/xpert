@@ -55,7 +55,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   getDocumentSourceStrategies() {
-    return this.httpClient.get<IDocumentSourceProvider[]>(this.apiBaseUrl + '/source/strategies')
+    return this.httpClient.get<{meta: IDocumentSourceProvider; integration: {service: string}}[]>(this.apiBaseUrl + '/source/strategies')
   }
 
   test(id: string, options: { query: string; k: number; score: number; filter?: Record<string, unknown> }) {

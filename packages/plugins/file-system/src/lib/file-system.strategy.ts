@@ -14,6 +14,7 @@ import { WebdavClient } from './webdav.client'
 @DocumentSourceStrategy(FileSystem)
 @Injectable()
 export class FileSystemStrategy implements IDocumentSourceStrategy<FileSystemConfig> {
+  readonly permissions = []
   readonly meta = {
     name: FileSystem,
     label: {

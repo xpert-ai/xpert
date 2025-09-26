@@ -39,4 +39,35 @@
   [class*=code-] {
     font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace
   }
+
+  .size-1 {
+    @apply w-1 h-1;
+  }
+  .size-2 {
+    @apply w-2 h-2;
+  }
+  .size-3 {
+    @apply w-3 h-3;
+  }
+  .size-4 {
+    @apply w-4 h-4;
+  }
+  .size-5 {
+    @apply w-5 h-5;
+  }
+  .size-6 {
+    @apply w-6 h-6;
+  }
+  .size-7 {
+    @apply w-7 h-7;
+  }
+  .size-8 {
+    @apply w-8 h-8;
+  }
+  .size-9 {
+    @apply w-9 h-9;
+  }
+  .size-10 {
+    @apply w-10 h-10;
+  }
 }

@@ -4,12 +4,12 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { XpertWorkflowCustomIconComponent } from '@cloud/app/@shared/workflow'
 import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IWFNProcessor, IWorkflowNode, KnowledgebaseService } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { CustomIconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-workflow-processor',
@@ -21,7 +21,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     FormsModule,
     MatTooltipModule,
     TranslateModule,
-    XpertWorkflowCustomIconComponent,
+    CustomIconComponent,
     NgmI18nPipe,
     JSONSchemaFormComponent,
     StateVariableSelectComponent

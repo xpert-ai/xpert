@@ -1,6 +1,5 @@
 import { IntegrationEnum, TIntegrationProvider } from '../integration.model'
 import { IntegrationDingTalkProvider } from './dingtalk'
-import { IntegrationFirecrawlProvider } from './firecrawl'
 import { IntegrationGitHubProvider } from './github'
 import { IntegrationLarkProvider } from './lark'
 import { IntegrationWeComProvider } from './wecom'
@@ -12,7 +11,7 @@ export const INTEGRATION_PROVIDERS: Partial<Record<IntegrationEnum, TIntegration
   [IntegrationEnum.LARK]: IntegrationLarkProvider,
   [IntegrationEnum.DINGTALK]: IntegrationDingTalkProvider,
   [IntegrationEnum.WECOM]: IntegrationWeComProvider,
-  [IntegrationEnum.FIRECRAWL]: IntegrationFirecrawlProvider,
+  // [IntegrationEnum.FIRECRAWL]: IntegrationFirecrawlProvider,
   [IntegrationEnum.GITHUB]: IntegrationGitHubProvider,
   // [IntegrationEnum.RAGFlow]: IntegrationRAGFlowProvider,
   // [IntegrationEnum.Dify]: IntegrationDifyProvider,

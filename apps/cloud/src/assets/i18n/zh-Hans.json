@@ -2317,6 +2317,7 @@
       "NewUpload": "新建/导入",
       "NewFolder": "新建文件夹",
       "Documents": "文档",
+      "CreateFromPipeline": "从知识管道创建",
       "Root": "根目录",
       "Files": "文件",
       "Test": "测试",

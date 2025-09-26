@@ -14,7 +14,8 @@ import {
 import { omit, pick } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { EventEmitter2 } from "@nestjs/event-emitter"
 import { groupBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { IsNull } from 'typeorm'
@@ -22,6 +23,7 @@ import { Xpert } from '../../xpert.entity'
 import { XpertService } from '../../xpert.service'
 import { XpertPublishCommand } from '../publish.command'
 import { XpertAgentService } from '../../../xpert-agent'
+import { EventName_XpertPublished } from "../../types"
 
 @CommandHandler(XpertPublishCommand)
 export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand> {
@@ -31,13 +33,13 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		private readonly xpertService: XpertService,
 		private readonly xpertAgentService: XpertAgentService,
 		private readonly i18nService: I18nService,
-		private readonly commandBus: CommandBus,
+		private readonly eventEmitter: EventEmitter2,
 	) {}
 
 	public async execute(command: XpertPublishCommand): Promise<Xpert> {
 		const {id, newVersion, environmentId, notes} = command
 		const xpert = await this.xpertService.findOne(id, { relations: [
-			'agent', 'copilotModel', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets'
+			'agent', 'copilotModel', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'knowledgebase'
 		] })
 
 		if (!xpert.draft) {
@@ -300,6 +302,8 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
 		// Publish triggers
 		await this.xpertService.publishTriggers(_xpert)
+
+		await this.eventEmitter.emitAsync(EventName_XpertPublished, _xpert)
 
 		return _xpert
 	}

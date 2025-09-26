@@ -214,13 +214,13 @@ export class KnowledgeDocumentCreateStep1Component {
 
   // File system
    readonly documentSourceStrategies = computed(() => this.createComponent.documentSourceStrategies()?.map((strategy) => ({
-    value: strategy.name,
-    label: strategy.label,
-    description: strategy.description,
-    icon: strategy.icon
+    value: strategy.meta.name,
+    label: strategy.meta.label,
+    description: strategy.meta.description,
+    icon: strategy.meta.icon
   })))
 
-  readonly fileSystemStrategy = computed(() => this.createComponent.documentSourceStrategies()?.find((strategy) => strategy.name === 'file-system'))
+  readonly fileSystemStrategy = computed(() => this.createComponent.documentSourceStrategies()?.find((strategy) => strategy.meta.name === 'file-system'))
 
   readonly files = signal<FileSystemItem[]>([])
 
@@ -380,7 +380,7 @@ export class KnowledgeDocumentCreateStep1Component {
   }
 
   connectRemoteFiles() {
-    this.knowledgeDocumentAPI.connect(this.fileSystemStrategy()?.name, this.sourceConfig()).subscribe({
+    this.knowledgeDocumentAPI.connect(this.fileSystemStrategy()?.meta.name, this.sourceConfig()).subscribe({
       next: (res) => {
         this.files.set(res)
       },

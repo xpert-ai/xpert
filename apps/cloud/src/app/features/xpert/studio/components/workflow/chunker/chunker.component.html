@@ -1,15 +1,10 @@
 <div fNodeInput [fInputId]="node().key" fInputConnectableSide="left" class="left absolute"></div>
 
-<div class="flex flex-col items-start justify-center">
+<div class="relative bg-zinc-50 flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder">
   @if (chunkerProvider(); as chunkerProvider) {
     <div class="flex items-center gap-1">
       <div class="w-7 h-7 flex items-center justify-center relative overflow-hidden rounded-lg bg-gray-100">
-        @if (chunkerProvider.icon; as icon) {
-          <div [innerHTML]="icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center"
-            [style.color]="icon.color || '#14b8a6'"></div>
-        } @else {
-          <i class="ri-equalizer-3-line"></i>
-        }
+        <xp-custom-icon class="!block w-5 h-5" [icon]="chunkerProvider.icon" />
       </div>
       <div class="text-xs font-medium text-gray-700">
         {{ chunkerProvider.label | i18n }}
@@ -25,14 +20,6 @@
       </div>
     </div>
   }
-</div>
-
-<div class="relative w-full flex h-8 p-1">
-  <div class="grow flex justify-end items-center">
-    <div class="text-[12px] font-semibold text-text-primary uppercase">
-      {{ 'PAC.Xpert.Next' | translate: {Default: 'Next'} }}
-    </div>
-  </div>
 
   <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true"
     [fCanBeConnectedInputs]="canBeConnectedInputs()">

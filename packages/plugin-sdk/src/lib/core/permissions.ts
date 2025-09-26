@@ -58,6 +58,17 @@ export interface FileSystemPermission extends BasePermission {
   scope?: string[]; // Restrict to certain directories or file types
 }
 
+/**
+ * 5. Integration Permission
+ * Example: { type: 'integration', service: 'feishu', operations: ['read', 'write'] }
+ */
+export interface IntegrationPermission extends BasePermission {
+  type: 'integration';
+  service: string; // e.g. 'slack', 'feishu', 'jira', 'sap', etc.
+  operations?: Array<'read' | 'write' | 'update' | 'delete'>;
+  scope?: string[];
+}
+
 // /**
 //  * 4. Document Permission
 //  * Example: { type: 'document', formats: ['pdf'], operations: ['load', 'transform'] }
@@ -68,17 +79,6 @@ export interface FileSystemPermission extends BasePermission {
 //   operations: Array<'load' | 'transform' | 'ocr' | 'imageUnderstanding'>;
 // }
 
-// /**
-//  * 5. External API Permission
-//  * Example: { type: 'external', service: 'feishu', operations: ['read', 'write'] }
-//  */
-// export interface ExternalPermission extends BasePermission {
-//   type: 'external';
-//   service: string; // 'slack' | 'feishu' | 'jira' | 'sap' | ...
-//   operations: Array<'read' | 'write' | 'update' | 'delete'>;
-//   scope?: string[];
-// }
-
 /**
  * Union type for all permissions
  */
@@ -87,6 +87,7 @@ export type Permission =
   | VectorStorePermission
   | KnowledgePermission
   | FileSystemPermission
+  | IntegrationPermission
 //   | DocumentPermission
 //   | ExternalPermission;
 

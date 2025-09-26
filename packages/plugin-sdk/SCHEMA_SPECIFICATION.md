@@ -156,3 +156,177 @@ configSchema: {
 * 前端 UI 渲染器只需要识别 `x-ui.component`，其余逻辑由 `x-ui` 字段驱动。
 * 插件开发者只需写 schema，就能自动获得智能化配置体验。
 * 扩展性强，可以统一适配未来的 Embedding、OCR、VLM、VectorStore 插件。
+
+## 如何表示 SECRET 的input 字段
+
+好问题 👍，**SECRET 类型的字段**（比如 API Key、Token、密码）在 schema UI 里需要特殊处理：
+
+1. **前端渲染时要显示为密码输入框**（`type="password"` 或遮罩）。
+2. **存储时需要区分**：不回显原始值，而是用 `"******"` 或空值占位。
+3. **Schema 中可以显式标记**，让前端 UI 渲染器知道这是一个密钥字段。
+
+---
+
+## 扩展规范方案
+
+在 `x-ui` 里增加 `component: "secretInput"`，并支持以下属性：
+
+| 字段名           | 类型      | 说明                          |
+| ------------- | ------- | --------------------------- |
+| `component`   | string  | 固定为 `"secretInput"`，渲染密码输入框 |
+| `label`       | string  | 字段标签                        |
+| `description` | string  | 字段说明                        |
+| `placeholder` | string  | 占位符（如 `请输入 API Key`）        |
+| `revealable`  | boolean | 是否允许用户点按钮临时查看明文             |
+| `maskSymbol`  | string  | 遮罩符号（默认 `*`）                |
+| `persist`     | boolean | 是否持久保存，false 时表示仅运行时使用，不落盘  |
+
+---
+
+## 示例 Schema
+
+```ts
+configSchema: {
+  type: 'object',
+  properties: {
+    apiKey: {
+      type: 'string',
+      description: 'OpenAI API Key',
+      'x-ui': {
+        component: 'secretInput',
+        label: 'API Key',
+        placeholder: '请输入您的 OpenAI API Key',
+        revealable: true,
+        maskSymbol: '*',
+        persist: true
+      }
+    },
+    provider: {
+      type: 'string',
+      enum: ['openai', 'anthropic', 'azure'],
+      'x-ui': {
+        component: 'modelProviderSelect',
+        label: 'Provider'
+      }
+    }
+  },
+  required: ['apiKey', 'provider']
+}
+```
+
+---
+
+## 前端渲染效果
+
+* `apiKey` 显示为 **密码输入框**，默认遮罩显示。
+* 如果 `revealable: true`，UI 上有 👁 按钮，用户可切换显示/隐藏。
+* 编辑配置时，如果后端返回 `"******"` 代表已有值，用户不改就继续使用原值。
+
+---
+
+## 额外安全考虑
+
+* 前端表单提交时，如果 `apiKey === "******"`，表示不修改，后端应保留旧值。
+* 如果提交了新值，则后端替换旧值。
+* 日志、导出配置时跳过 SECRET 字段。
+
+---
+
+要不要我帮你把 **SECRET 字段** 再抽象成一个通用接口（比如 `ISchemaSecretField`），这样和普通字段区分得更清晰？
+
+## 抽象成一个通用接口
+
+👌好的，我们把 **SECRET 字段**抽象成一个通用接口，既能和普通字段保持一致，又能明确标识“这是一个需要特殊处理的敏感字段”。
+
+---
+
+# 🔐 通用接口设计
+
+```ts
+/**
+ * 通用 UI Schema 字段定义
+ */
+export interface ISchemaUIBase {
+  component: string;       // UI 组件类型
+  label?: string;          // 字段标签
+  description?: string;    // 字段说明
+  placeholder?: string;    // 输入占位符
+  order?: number;          // UI 显示顺序
+  required?: boolean;      // 是否必填
+  visibleWhen?: Record<string, any>; // 条件渲染
+  enabledWhen?: Record<string, any>; // 条件启用
+}
+
+/**
+ * Secret 字段扩展
+ */
+export interface ISchemaSecretField extends ISchemaUIBase {
+  component: 'secretInput';   // 固定组件类型
+  revealable?: boolean;       // 是否允许明文显示（👁 按钮）
+  maskSymbol?: string;        // 遮罩符号（默认 *）
+  persist?: boolean;          // 是否持久保存，false 表示仅运行时使用
+}
+```
+
+这样 SECRET 字段就和普通 UI 字段继承同一套规范，只是 **多了一些敏感信息处理的扩展属性**。
+
+---
+
+# 🔧 使用示例
+
+```ts
+configSchema: {
+  type: 'object',
+  properties: {
+    apiKey: {
+      type: 'string',
+      description: 'OpenAI API Key',
+      'x-ui': <ISchemaSecretField>{
+        component: 'secretInput',
+        label: 'API Key',
+        placeholder: '请输入您的 OpenAI API Key',
+        revealable: true,
+        maskSymbol: '*',
+        persist: true
+      }
+    },
+    provider: {
+      type: 'string',
+      enum: ['openai', 'anthropic', 'azure'],
+      'x-ui': {
+        component: 'modelProviderSelect',
+        label: 'Provider'
+      }
+    }
+  },
+  required: ['apiKey', 'provider']
+}
+```
+
+---
+
+# 🔒 前端处理规范
+
+1. **渲染时**：
+
+   * `secretInput` 渲染为密码框（`type=password`）。
+   * 如果 `revealable: true`，增加 👁 切换按钮。
+
+2. **加载配置时**：
+
+   * 后端返回 `******` 代表已有值，前端不展示真实内容。
+
+3. **保存配置时**：
+
+   * 如果提交的值仍为 `******` → 保持旧值不变。
+   * 如果提交了新值 → 更新存储并覆盖旧值。
+
+4. **导出配置/日志**：
+
+   * 忽略 SECRET 字段或输出 `******`，避免泄露。
+
+---
+
+这样以后 `secretInput` 就是一个 **一级公民 UI 组件**，和 `textInput`、`select` 一样可以被 schema 统一驱动。
+
+要不要我再帮你定义一个 **完整的 ISchemaUIComponent 联合类型**，把所有 `x-ui` 组件（select、slider、secretInput、promptEditor 等）都规范起来？

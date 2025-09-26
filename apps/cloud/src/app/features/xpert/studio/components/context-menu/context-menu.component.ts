@@ -70,7 +70,7 @@ import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.c
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
 import { SafePipe } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { CustomIconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -85,7 +85,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
     XpertStudioKnowledgeMenuComponent,
     XpertStudioToolsetMenuComponent,
     XpertInlineProfileComponent,
-    XpertWorkflowIconComponent
+    XpertWorkflowIconComponent,
+    CustomIconComponent
   ],
   templateUrl: './context-menu.component.html',
   styleUrl: './context-menu.component.scss'

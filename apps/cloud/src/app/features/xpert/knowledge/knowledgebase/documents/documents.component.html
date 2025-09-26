@@ -255,15 +255,15 @@
   <div cdkMenu class="cdk-menu__large">
     <div class="p-2">{{ 'PAC.Knowledgebase.NewDocuments' | translate: {Default: 'New Documents' } }}</div>
     <div cdkMenuItem (click)="createFolder()">
-      <i class="ri-folder-add-line"></i>
+      <i class="ri-folder-add-line mr-1"></i>
       <span class="ml-2">{{ 'PAC.Knowledgebase.NewFolder' | translate: {Default: 'New Folder'} }}</span>
     </div>
-    <div cdkMenuItem (click)="createDocument()">
-      <i class="ri-file-add-line"></i>
-      <span class="ml-2">{{ 'PAC.Knowledgebase.CreateNewDocument' | translate: {Default: 'Create New Document'} }}</span>
+    <div cdkMenuItem (click)="createFromPipeline()">
+      <i class="ri-folder-transfer-line mr-1"></i>
+      <span class="ml-2">{{ 'PAC.Knowledgebase.CreateFromPipeline' | translate: {Default: 'Create From Pipeline'} }}</span>
     </div>
     <div cdkMenuItem (click)="uploadDocuments()">
-      <i class="ri-folder-shared-fill"></i>
+      <i class="ri-folder-shared-fill mr-1"></i>
       <span class="ml-2">{{ 'PAC.Knowledgebase.UploadDocument' | translate: {Default: 'Upload Document'} }}</span>
     </div>
   </div>

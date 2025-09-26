@@ -7,6 +7,7 @@ import { CopilotModelGetEmbeddingsQuery } from '../copilot-model'
 import { CopilotNotFoundException } from '../core/errors'
 
 export const EventNameXpertValidate = 'xpert.validate'
+export const EventName_XpertPublished = 'xpert.published'
 export const QUEUE_XPERT_TRIGGER = 'xpert-trigger'
 
 export type TTriggerJob = {

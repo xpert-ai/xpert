@@ -1,32 +1,5 @@
 <div fNodeInput [fInputId]="node().key" fInputConnectableSide="left" class="left absolute"></div>
 
-<div class="flex flex-col items-start justify-center">
-  @if (understandingProvider(); as understandingProvider) {
-    <div class="flex items-center gap-1">
-      <div class="w-7 h-7 flex items-center justify-center relative overflow-hidden rounded-lg bg-gray-100">
-        @if (understandingProvider.icon; as icon) {
-          <div [innerHTML]="icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center"
-            [style.color]="icon.color || '#14b8a6'"></div>
-        } @else {
-          <i class="ri-equalizer-3-line"></i>
-        }
-      </div>
-      <div class="text-xs font-medium text-gray-700">
-        {{ understandingProvider.label | i18n }}
-      </div>
-    </div>
-  } @else {
-    <div class="flex flex-col items-center gap-1">
-      <div class="w-6 h-6 flex items-center justify-center bg-gray-100 rounded text-gray-500">
-        <i class="ri-cpu-line"></i>
-      </div>
-      <div class="text-xs font-medium text-gray-500">
-        {{ 'PAC.Xpert.ImageUnderstanding' | translate: {Default: 'Image Understanding'} }}
-      </div>
-    </div>
-  }
-</div>
-
 <div class="relative w-full flex h-8 p-1">
   <div class="grow flex justify-end items-center">
     <div class="text-[12px] font-semibold text-text-primary uppercase">

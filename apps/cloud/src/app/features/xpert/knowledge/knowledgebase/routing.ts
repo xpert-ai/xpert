@@ -8,6 +8,7 @@ import { KnowledgeDocumentsComponent } from './documents/documents.component'
 import { KnowledgebaseComponent } from './knowledgebase.component'
 import { KnowledgePipelinesComponent } from './pipelines/pipelines.component'
 import { KnowledgeTestComponent } from './test/test.component'
+import { KnowledgeDocumentPipelineComponent } from './documents/pipeline/pipeline.component'
 
 export default [
   {
@@ -29,6 +30,10 @@ export default [
           {
             path: 'create',
             component: KnowledgeDocumentCreateComponent
+          },
+          {
+            path: 'create-from-pipeline',
+            component: KnowledgeDocumentPipelineComponent
           },
           {
             path: ':id',

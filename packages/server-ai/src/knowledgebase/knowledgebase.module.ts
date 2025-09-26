@@ -21,6 +21,7 @@ import { QueryHandlers } from './queries/handlers'
 import { XpertModule } from '../xpert/xpert.module'
 import { KnowledgebaseTaskService } from './task/task.service'
 import { KnowledgebaseTask } from './task/task.entity'
+import { LocalFileStrategy } from './plugins'
 
 @Module({
 	imports: [
@@ -46,6 +47,7 @@ import { KnowledgebaseTask } from './task/task.entity'
 		TextSplitterRegistry,
 		DocumentTransformerRegistry,
 		ImageUnderstandingRegistry,
+		LocalFileStrategy,
 		...QueryHandlers,
 		...CommandHandlers
 	],

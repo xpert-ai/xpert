@@ -1,3 +1,64 @@
-<div>
-  {{ documentSourceStrategy()?.label | i18n }}
+@if (documentSourceStrategy()?.integration && !integrationId()) {
+  <div class="px-4 pb-2">
+    <button #menuTrigger type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-full" [cdkMenuTriggerFor]="integrationMenu">
+      <i class="ri-add-line mr-1"></i>
+      绑定
+    </button>
+  </div>
+}
+
+<div class="flex items-center justify-between pl-4 pr-3 py-2">
+  <div class="flex justify-between">
+    {{ selectedIntegration()?.label | i18n }}
+  </div>
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small" [cdkMenuTriggerFor]="integrationMenu">
+    <div class="h-2 w-2 rounded-[3px] border border-solid shadow-sm
+      bg-green-500 border-green-600 shadow-green-300 mr-1.5"></div>
+    系统集成
+    <i class="ri-arrow-drop-down-line"></i>
+  </button>
 </div>
+<div class="h-[0.5px] bg-divider-subtle"></div>
+
+
+<div class="p-4">
+  <div class="font-bold mb-2">
+    设置
+  </div>
+  @if (configSchema(); as configSchema) {
+    <json-schema-form class="mt-2 grid grid-cols-1 gap-2" [schema]="configSchema" [variables]="variables()"
+      [(ngModel)]="config"
+    />
+  }
+</div>
+
+
+<ng-template #integrationMenu >
+  <div cdkMenu class="cdk-menu__large">
+    @for (option of integrations(); track option.value) {
+      <div cdkMenuItem class="group/item overflow-hidden"
+        [class.active]="option.value === integrationId()"
+        (click)="integrationId.set(option.value)"
+      >
+        <div class="relative flex items-start gap-2">
+          @if (option.icon) {
+            <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.icon">
+          }
+          <div class="max-w-full flex flex-col items-start overflow-hidden">
+            <div class="text-start">{{option.label | i18n}}</div>
+            <div class="text-start text-sm whitespace-normal line-clamp-2 opacity-60 group-hover/item:opacity-80">{{option.description}}</div>
+          </div>
+        </div>
+      </div>
+    } @empty {
+      <div class="p-4 text-center text-text-tertiary">
+        {{ 'PAC.Knowledgebase.NoIntegrationYet' | translate: {Default: 'No knowledge base integration yet!'} }}
+      </div>
+    }
+    <div class="border-t border-solid border-divider-regular my-1"></div>
+    <div cdkMenuItem (click)="openIntegrations()">
+      <i class="ri-add-line mr-1"></i>
+      {{ 'PAC.Knowledgebase.CreateKBIntegration' | translate: {Default: 'Create knowledgebase integration'} }}
+    </div>
+  </div>
+</ng-template>

@@ -248,8 +248,8 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
-  createDocument() {
-    //
+  createFromPipeline() {
+    this.#router.navigate(['create-from-pipeline'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 
   uploadDocuments() {

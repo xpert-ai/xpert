@@ -100,7 +100,11 @@ export type TIntegrationProvider = {
 	name: string
 	label: I18nObject
 	description?: I18nObject
-	avatar: string
+	avatar?: string
+	icon?: {
+		svg: string
+		color: string
+	}
 	webhook?: boolean
 	schema?: TParameterSchema
 	features?: IntegrationFeatureEnum[]

@@ -22,6 +22,7 @@ import { createSourceNode } from '../source'
 import { createProcessorNode } from '../processor'
 import { createChunkerNode } from '../chunker'
 import { createUnderstandingNode } from '../understanding'
+import { createKnowledgeBaseNode } from '../knowledge-base'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -237,6 +238,16 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			}
 			case WorkflowNodeTypeEnum.UNDERSTANDING: {
 				workflow = createUnderstandingNode(graph, node, {
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					xpertId,
+					environment: options.environment,
+					isDraft: options.isDraft
+				})
+				break
+			}
+			case WorkflowNodeTypeEnum.KNOWLEDGE_BASE: {
+				workflow = createKnowledgeBaseNode(graph, node, {
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
 					xpertId,

@@ -1,7 +1,7 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { AiBusinessRole, DocumentMetadata, genPipelineKnowledgeBaseKey, genPipelineSourceKey, IKnowledgebase, IWFNKnowledgeBase, IWFNSource, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata, WorkflowNodeTypeEnum, XpertTypeEnum } from '@metad/contracts'
+import { AiBusinessRole, DocumentMetadata, genPipelineKnowledgeBaseKey, genPipelineSourceKey, IKnowledgebase, IWFNKnowledgeBase, IWFNSource, IXpert, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata, TXpertTeamDraft, WorkflowNodeTypeEnum, XpertTypeEnum } from '@metad/contracts'
 import { IntegrationService, RequestContext } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -21,6 +21,8 @@ import { RagCreateVStoreCommand } from '../rag-vstore'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { XpertService } from '../xpert/xpert.service'
 import { shortuuid } from '@metad/server-common'
+import { OnEvent } from '@nestjs/event-emitter'
+import { EventName_XpertPublished } from '../xpert/types'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -125,7 +127,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	}
 
 	async getDocumentSourceStrategies() {
-		return this.docSourceRegistry.list().map((strategy) => strategy.meta)
+		return this.docSourceRegistry.list().map((strategy) => ({meta: strategy.meta, integration: strategy.permissions?.find(permission => permission.type === 'integration')}))
 	}
 
 	async test(id: string, options: { query: string; k?: number; filter?: Metadata }) {
@@ -145,8 +147,16 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		return results
 	}
 
+	/**
+	 * Init a pipeline (xpert) for knowledgebase
+	 * 
+	 * @param id 
+	 * @returns 
+	 */
 	async createPipeline(id: string) {
 		const knowledgebase = await this.findOne(id)
+		const sourceKey = genPipelineSourceKey()
+		const knowledgebaseKey = genPipelineKnowledgeBaseKey()
 		return await this.xpertService.create({
 			name: `${knowledgebase.name} Pipeline - ${shortuuid()}`,
 			workspaceId: knowledgebase.workspaceId,
@@ -164,20 +174,22 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			draft: {
 				nodes: [
 					{
-						key: genPipelineSourceKey(),
+						key: sourceKey,
 						type: 'workflow',
-						position: {x: -260, y: 0},
+						position: {x: 100, y: 300},
 						entity: {
+							key: sourceKey,
 							title: 'Source',
 							type: WorkflowNodeTypeEnum.SOURCE,
 							provider: 'files',
 						} as IWFNSource
 					},
 					{
-						key: genPipelineKnowledgeBaseKey(),
+						key: knowledgebaseKey,
 						type: 'workflow',
-						position: {x: 280, y: 0},
+						position: {x: 580, y: 300},
 						entity: {
+							key: knowledgebaseKey,
 							title: 'Knowledge Base',
 							type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
 						} as IWFNKnowledgeBase
@@ -346,4 +358,29 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		//
 	}
 
+	/**
+	 * Handle knowledgebase related xpert published event, update knowledgebase config from knowledge pipeline
+	 * 
+	 * @param xpert The knowledgebase related xpert
+	 * @returns 
+	 */
+	@OnEvent(EventName_XpertPublished)
+	async handle(xpert: IXpert) {
+		if (xpert.type !== XpertTypeEnum.Knowledge) return
+
+		const knowledgebaseNode = xpert.graph.nodes.find(
+			(node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE_BASE
+		)
+		if (!knowledgebaseNode) return
+
+		const knowledgebaseEntity = knowledgebaseNode.entity as IWFNKnowledgeBase
+		if (!xpert.knowledgebase?.id) return
+
+		this.#logger.log(`Clear knowledgebase ${knowledgebaseEntity.id} documents cache after published`)
+
+		await this.update(xpert.knowledgebase.id, {
+			copilotModel: knowledgebaseEntity.copilotModel,
+			rerankModel: knowledgebaseEntity.rerankModel,
+		})
+	}
 }

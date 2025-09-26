@@ -6,7 +6,6 @@ import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNChunker,
-  IWFNProcessor,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
@@ -16,7 +15,7 @@ import { KnowledgebaseService } from '@cloud/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
-import { SafePipe } from '@metad/core'
+import { CustomIconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-workflow-node-chunker',
@@ -29,7 +28,7 @@ import { SafePipe } from '@metad/core'
     FFlowModule,
     MatTooltipModule,
     TranslateModule,
-    SafePipe,
+    CustomIconComponent,
     PlusSvgComponent,
     NgmI18nPipe,
   ],

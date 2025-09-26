@@ -90,7 +90,7 @@
     @case (eKDocumentSourceType.REMOTE_FILE) {
       <div class="my-6 w-full flex flex-col gap-2">
         @if (fileSystemStrategy(); as fileSystemStrategy) {
-          <json-schema-form #fileSystemForm class="mt-2 grid grid-cols-2 gap-2" [schema]="fileSystemStrategy.configSchema" 
+          <json-schema-form #fileSystemForm class="mt-2 grid grid-cols-2 gap-2" [schema]="fileSystemStrategy.meta.configSchema" 
             [(ngModel)]="sourceConfig"
           />
         }

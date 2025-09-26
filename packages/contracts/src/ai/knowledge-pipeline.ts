@@ -37,6 +37,7 @@ export interface IWFNSource extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.SOURCE,
   provider: string
   config: any;
+  integrationId?: string
 }
 
 export interface IWFNProcessor extends IWorkflowNode {

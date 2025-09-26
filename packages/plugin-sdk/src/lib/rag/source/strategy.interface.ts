@@ -1,7 +1,9 @@
-import { IDocumentSourceProvider } from '@metad/contracts';
+import { IDocumentSourceProvider, IIntegration } from '@metad/contracts';
 import { Document } from 'langchain/document';
+import { Permissions } from '../../core';
 
 export interface IDocumentSourceStrategy<TConfig = any> {
+  readonly permissions: Permissions
   /**
    * Metadata about this document source
    */
@@ -22,5 +24,5 @@ export interface IDocumentSourceStrategy<TConfig = any> {
   /**
    * Load documents from the source
    */
-  loadDocuments(config: TConfig): Promise<Document[]>;
+  loadDocuments(config: TConfig, context?: {integration: IIntegration}): Promise<Document[]>;
 }
