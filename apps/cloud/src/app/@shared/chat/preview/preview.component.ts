@@ -239,6 +239,8 @@ export class ChatConversationPreviewComponent {
   }
 
   chat(options?: { input?: string; confirm?: boolean; reject?: boolean; retry?: boolean }) {
+    if (this.loading()) return
+
     this.suggestionQuestions.set([]) // Clear suggestions after selection
     this.loading.set(true)
 
@@ -441,6 +443,7 @@ export class ChatConversationPreviewComponent {
       if (event.isComposing || event.shiftKey || this.loading()) {
         return
       }
+      if (this.loading()) return
 
       this.chat({ input: this.input() })
       event.preventDefault()

@@ -241,9 +241,11 @@
               (onCreated)="onAttachCreated($event)"
             />
           }
-          <div class="p-[5.5px] max-h-[150px]">
+          <div class="p-[5.5px] min-h-[46px]">
             <textarea class="outline-none w-full pl-2 pr-16 disabled:cursor-not-allowed"
-              [disabled]="loading()"
+              cdkTextareaAutosize
+              cdkAutosizeMinRows="1"
+              cdkAutosizeMaxRows="8"
               [(ngModel)]="input"
               (keydown)="onKeydown($event)"
             ></textarea>
