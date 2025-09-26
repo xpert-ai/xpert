@@ -88,7 +88,11 @@ export class ToolNode<T = any> extends Runnable<T, T> {
               }
             }
           );
-          if (isBaseMessage(output) && output._getType() === "tool") {
+          if (isBaseMessage(output) && output.getType() === "tool") {
+            // Fix non-string content: should be fixed in langchain-mcp-adapters _convertCallToolResult line 367
+            if (!!output.content && typeof output.content !== 'string') {
+              output.content = JSON.stringify(output.content)
+            }
             if (this.variables) {
               const variables = this.variables.reduce((acc, curr) => {
                 if (curr.inputType === 'variable') {
