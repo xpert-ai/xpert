@@ -1,16 +1,26 @@
-import { channelName, IWFNCode, IWFNKnowledgeRetrieval, IWorkflowNode, STATE_VARIABLE_HUMAN, WorkflowNodeTypeEnum } from '@metad/contracts'
-import { Logger } from '@nestjs/common'
+import {
+	channelName,
+	IWFNCode,
+	IWFNKnowledgeRetrieval,
+	IWorkflowNode,
+	STATE_VARIABLE_HUMAN,
+	WorkflowNodeTypeEnum
+} from '@metad/contracts'
+import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
 import { SandboxVMCommand } from '../../../sandbox'
+import { AgentStateAnnotation } from '../../../shared'
 import { XpertService } from '../../../xpert/xpert.service'
 import { WorkflowTestNodeCommand } from '../test.command'
 import { createWorkflowRetriever } from './create-wn-knowledge-retrieval.handler'
-import { createSourceNode } from '../source'
-import { AgentStateAnnotation } from '../../../shared'
 
 @CommandHandler(WorkflowTestNodeCommand)
 export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNodeCommand> {
 	readonly #logger = new Logger(WorkflowTestNodeHandler.name)
+
+	@Inject(WorkflowNodeRegistry)
+	private readonly nodeRegistry: WorkflowNodeRegistry
 
 	constructor(
 		private readonly commandBus: CommandBus,
@@ -40,34 +50,41 @@ export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNode
 				}
 				case WorkflowNodeTypeEnum.KNOWLEDGE: {
 					const _entity = entity as IWFNKnowledgeRetrieval
-					
+
 					const retriever = createWorkflowRetriever(this.queryBus, _entity)
-					const documents = await retriever?.invoke(command.inputs.query) ?? []
-					
+					const documents = (await retriever?.invoke(command.inputs.query)) ?? []
+
 					return documents
 				}
-				case WorkflowNodeTypeEnum.SOURCE: {
-					const { workflowNode } = createSourceNode(graph, node as IWorkflowNode & { type: 'workflow' }, {
-						commandBus: this.commandBus,
-						queryBus: this.queryBus,
-						xpertId: command.xpertId,
-						environment: xpert.environment
-					})
+				default: {
+					try {
+						const creator = this.nodeRegistry.get(node.entity.type)
+						const result = creator.create({
+							graph,
+							node,
+							xpertId: xpert.id,
+							environment: xpert.environment
+						})
+						const state = await result.graph.invoke(
+							{
+								[STATE_VARIABLE_HUMAN]: {
+									input: `Hi there`
+								}
+							} as typeof AgentStateAnnotation.State,
+							{
+								configurable: {
+									knowledgebaseId: '123',
+									knowledgeTaskId: '123'
+								}
+							}
+						)
 
-					const state = await workflowNode.graph.invoke({
-						[STATE_VARIABLE_HUMAN]: {
-							input: `Hi there`
-						}
-					} as typeof AgentStateAnnotation.State, {
-						configurable: {
-							knowledgebaseId: '123',
-							knowledgeTaskId: '123',
-						}
-					})
+						console.log('State: ', state)
 
-					console.log('State: ', state)
-
-					return state[channelName(node.key)]
+						return state[channelName(node.key)]
+					} catch (error) {
+						throw new Error(`Unsupported workflow node type: ${node.entity?.type}: ${error.message}`)
+					}
 				}
 			}
 		}

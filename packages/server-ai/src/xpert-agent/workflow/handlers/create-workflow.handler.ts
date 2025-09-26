@@ -1,4 +1,4 @@
-import { Annotation } from '@langchain/langgraph'
+import { Annotation, END } from '@langchain/langgraph'
 import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -16,13 +16,13 @@ import { createAssignerNode } from '../assigner'
 import { createAgentToolNode } from '../agent-tool'
 import { createTriggerNode } from '../trigger'
 import { createCodeNode, WorkflowCodeValidator } from '../code/index'
-import { TStateChannel, TWorkflowGraphNode } from '../../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes, TStateChannel, TWorkflowGraphNode } from '../../../shared'
 import { createAnswerNode } from '../answer/node'
-import { createSourceNode } from '../source'
 import { createProcessorNode } from '../processor'
 import { createChunkerNode } from '../chunker'
 import { createUnderstandingNode } from '../understanding'
 import { createKnowledgeBaseNode } from '../knowledge-base'
+import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -30,6 +30,9 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 
 	@Inject(WorkflowCodeValidator)
 	private codeValidator: WorkflowCodeValidator
+
+	@Inject(WorkflowNodeRegistry)
+	private readonly nodeRegistry: WorkflowNodeRegistry
 
 	constructor(
 		private readonly commandBus: CommandBus,
@@ -208,15 +211,15 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				})
 				break
 			}
-			case WorkflowNodeTypeEnum.SOURCE: {
-				workflow = createSourceNode(graph, node, {
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment
-				})
-				break
-			}
+			// case WorkflowNodeTypeEnum.SOURCE: {
+			// 	workflow = createSourceNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment
+			// 	})
+			// 	break
+			// }
 			case WorkflowNodeTypeEnum.PROCESSOR: {
 				workflow = createProcessorNode(graph, node, {
 					commandBus: this.commandBus,
@@ -257,7 +260,33 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				break
 			}
 			default:
-				throw new Error(`Unsupported workflow node type: ${node.entity?.type}`)
+				try {
+					const creator = this.nodeRegistry.get(node.entity.type)
+
+					const result = creator.create({graph, node, xpertId, environment: options.environment})
+
+					workflow = {
+						workflowNode: {
+							name: result.name,
+							graph: result.graph,
+							ends: result.ends
+						},
+						channel: result.channel,
+						navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+									if (state[channelName(node.key)]['error']) {
+										return (
+											graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
+											END
+										)
+									}
+						
+									return nextWorkflowNodes(graph, node.key, state)
+								}
+					}
+					break
+				} catch (error) {
+				    throw new Error(`Unsupported workflow node type: ${node.entity?.type}: ${error.message}`)
+				}
 		}
 
 		return {

@@ -3,7 +3,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import { WorkflowNodeRegistry, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { EnvironmentModule } from '../environment'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
@@ -33,6 +33,7 @@ import { XpertAgentService } from './xpert-agent.service'
 	providers: [
 		XpertAgentService,
 		WorkflowTriggerRegistry,
+		WorkflowNodeRegistry,
 		...CommandHandlers,
 		...WorkflowCommandHandlers,
 		...QueryHandlers,

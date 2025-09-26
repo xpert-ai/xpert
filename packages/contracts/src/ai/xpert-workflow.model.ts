@@ -4,7 +4,7 @@ import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
 
-export type TWorkflowTriggerMeta = {
+export type TWorkflowNodeMeta = {
   name: string
   label: I18nObject
   icon: {
@@ -14,6 +14,8 @@ export type TWorkflowTriggerMeta = {
   }
   configSchema: any
 }
+
+export type TWorkflowTriggerMeta = TWorkflowNodeMeta
 
 export enum WorkflowNodeTypeEnum {
   /**
