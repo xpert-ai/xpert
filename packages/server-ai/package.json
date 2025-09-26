@@ -20,7 +20,6 @@
     "@langchain/google-genai": "0.2.16",
     "@langchain/ollama": "0.2.3",
     "@langchain/xai": "0.1.0",
-    "@mendable/firecrawl-js": "1.21.1",
     "@modelcontextprotocol/sdk": "^1.17.4",
     "@nestjs/schedule": "6.0.0",
     "@notionhq/client": "2.2.15",

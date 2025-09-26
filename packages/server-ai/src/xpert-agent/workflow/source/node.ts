@@ -3,7 +3,9 @@ import { Annotation, END } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
+	IIntegration,
 	IWFNCode,
+	IWFNSource,
 	IWorkflowNode,
 	TAgentRunnableConfigurable,
 	TXpertGraph,
@@ -12,6 +14,9 @@ import {
 } from '@metad/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { AgentStateAnnotation, nextWorkflowNodes, stateWithEnvironment } from '../../../shared'
+import { KnowledgeStrategyQuery } from '../../../knowledgebase'
+import { IDocumentSourceStrategy } from '@xpert-ai/plugin-sdk'
+import { GetIntegrationQuery } from '@metad/server-core'
 
 const ErrorChannelName = 'error'
 const LogsChannelName = 'logs'
@@ -27,17 +32,38 @@ export function createSourceNode(
 	}
 ) {
 	const { commandBus, queryBus, environment } = params
-	const entity = node.entity as IWFNCode
+	const entity = node.entity as IWFNSource
 
 	return {
 		workflowNode: {
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
-				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
+				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, knowledgebaseId, knowledgeTaskId } = configurable
 				const stateEnv = stateWithEnvironment(state, environment)
 
+				console.log('Source Node config', entity, knowledgebaseId, knowledgeTaskId)
+
+				const strategy = await queryBus.execute<KnowledgeStrategyQuery, IDocumentSourceStrategy>(
+											new KnowledgeStrategyQuery({
+												type: 'source',
+												name: entity.provider
+											})
+										)
+				const permissions: {integration?: IIntegration} = {}
+				if (strategy.permissions) {
+					const integrationPermission = strategy.permissions.find((permission) => permission.type === 'integration')
+					if (integrationPermission) {
+						const integration = await queryBus.execute<GetIntegrationQuery, IIntegration>(new GetIntegrationQuery(entity.integrationId))
+						permissions[integrationPermission.type] = integration
+					}
+				}
+
+				const results = await strategy.loadDocuments(entity.config, permissions)
+
 				return {
-					[channelName(node.key)]: {}
+					[channelName(node.key)]: {
+						results
+					}
 				}
 			}),
 			ends: []

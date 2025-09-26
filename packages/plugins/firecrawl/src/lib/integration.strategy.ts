@@ -1,11 +1,11 @@
 import { IIntegration, TIntegrationProvider } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { IntegrationStrategy, IntegrationStrategyKey, ISchemaSecretField, TIntegrationStrategyParams } from '@xpert-ai/plugin-sdk'
-import { Firecrawl, icon } from './types'
+import { Firecrawl, FirecrawlOptions, icon } from './types'
 
 @Injectable()
 @IntegrationStrategyKey(Firecrawl)
-export class FirecrawlIntegrationStrategy implements IntegrationStrategy {
+export class FirecrawlIntegrationStrategy implements IntegrationStrategy<FirecrawlOptions> {
   readonly meta: TIntegrationProvider = {
     name: Firecrawl,
     label: {
@@ -24,7 +24,7 @@ export class FirecrawlIntegrationStrategy implements IntegrationStrategy {
     schema: {
       type: 'object',
       properties: {
-        url: {
+        apiUrl: {
           type: 'string',
           title: {
             en_US: 'Base URL'
@@ -56,7 +56,7 @@ export class FirecrawlIntegrationStrategy implements IntegrationStrategy {
     helpUrl: ''
   }
 
-  execute(integration: IIntegration, payload: TIntegrationStrategyParams): Promise<any> {
+  execute(integration: IIntegration<FirecrawlOptions>, payload: TIntegrationStrategyParams): Promise<any> {
     throw new Error('Method not implemented.')
   }
 }

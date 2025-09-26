@@ -24,5 +24,5 @@ export interface IDocumentSourceStrategy<TConfig = any> {
   /**
    * Load documents from the source
    */
-  loadDocuments(config: TConfig, context?: {integration: IIntegration}): Promise<Document[]>;
+  loadDocuments(config: TConfig, context?: {integration?: IIntegration}): Promise<Document[]>;
 }

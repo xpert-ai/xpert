@@ -4,7 +4,7 @@ export type TIntegrationStrategyParams = {
   query: string
 }
 
-export interface IntegrationStrategy {
+export interface IntegrationStrategy<T = unknown> {
   meta: TIntegrationProvider
-  execute(integration: IIntegration, payload: TIntegrationStrategyParams): Promise<any>
+  execute(integration: IIntegration<T>, payload: TIntegrationStrategyParams): Promise<any>
 }

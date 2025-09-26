@@ -1,11 +1,12 @@
-import { IWFNCode, IWFNKnowledgeRetrieval, IWorkflowNode, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { channelName, IWFNCode, IWFNKnowledgeRetrieval, IWorkflowNode, STATE_VARIABLE_HUMAN, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { I18nService } from 'nestjs-i18n'
 import { SandboxVMCommand } from '../../../sandbox'
 import { XpertService } from '../../../xpert/xpert.service'
 import { WorkflowTestNodeCommand } from '../test.command'
 import { createWorkflowRetriever } from './create-wn-knowledge-retrieval.handler'
+import { createSourceNode } from '../source'
+import { AgentStateAnnotation } from '../../../shared'
 
 @CommandHandler(WorkflowTestNodeCommand)
 export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNodeCommand> {
@@ -14,7 +15,6 @@ export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNode
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService,
 		private readonly service: XpertService
 	) {}
 
@@ -45,6 +45,29 @@ export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNode
 					const documents = await retriever?.invoke(command.inputs.query) ?? []
 					
 					return documents
+				}
+				case WorkflowNodeTypeEnum.SOURCE: {
+					const { workflowNode } = createSourceNode(graph, node as IWorkflowNode & { type: 'workflow' }, {
+						commandBus: this.commandBus,
+						queryBus: this.queryBus,
+						xpertId: command.xpertId,
+						environment: xpert.environment
+					})
+
+					const state = await workflowNode.graph.invoke({
+						[STATE_VARIABLE_HUMAN]: {
+							input: `Hi there`
+						}
+					} as typeof AgentStateAnnotation.State, {
+						configurable: {
+							knowledgebaseId: '123',
+							knowledgeTaskId: '123',
+						}
+					})
+
+					console.log('State: ', state)
+
+					return state[channelName(node.key)]
 				}
 			}
 		}
