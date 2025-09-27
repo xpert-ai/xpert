@@ -4,8 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
-import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -28,8 +27,6 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     CdkMenuModule,
     MatTooltipModule,
     TranslateModule,
-    NgmI18nPipe,
-    JSONSchemaFormComponent,
     StateVariableSelectComponent,
     CopilotModelSelectComponent
   ]

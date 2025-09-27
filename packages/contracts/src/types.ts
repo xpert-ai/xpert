@@ -132,6 +132,11 @@ export interface ISize {
   height: number
 }
 
+export type _TFile = {
+  filePath: string;
+  url?: string;
+}
+
 /**
  * A recursive implementation of the Partial<T> type.
  * Source: https://stackoverflow.com/a/49936686/772859

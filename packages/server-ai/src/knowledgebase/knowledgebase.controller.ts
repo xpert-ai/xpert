@@ -22,7 +22,8 @@ import {
 	Query,
 	UseGuards,
 	UseInterceptors,
-	InternalServerErrorException
+	InternalServerErrorException,
+	UploadedFile
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -32,6 +33,9 @@ import { KnowledgebaseService } from './knowledgebase.service'
 import { StatisticsKnowledgebasesQuery } from './queries'
 import { WorkspaceGuard } from '../xpert-workspace'
 import { KnowledgebasePublicDTO } from './dto'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { VolumeClient } from '../shared'
+import { join } from 'path'
 
 
 @ApiTags('Knowledgebase')
@@ -195,6 +199,36 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		catch(err) {
 			throw new InternalServerErrorException(getErrorMessage(err))
 		}
+	}
+
+	@Get(':id/task/:taskId')
+	async getTask(@Param('id') id: string, @Param('taskId') taskId: string) {
+		return this.service.getTask(id, taskId)
+	}
+
+	/**
+	 * Upload a file to the kb volume.
+	 */
+	@Post(':id/file')
+	@UseInterceptors(FileInterceptor('file'))
+	async uploadFile(@Param('id') id: string,
+		@Body('path') path: string,
+		@UploadedFile() file: Express.Multer.File
+	) {
+		const client = new VolumeClient({
+			tenantId: RequestContext.currentTenantId(),
+			userId: RequestContext.currentUserId(),
+			catalog: 'knowledges',
+			knowledgeId: id
+		})
+
+		const targetFolder = path || ''
+		const filePath = join(targetFolder, file.originalname)
+		const url = await client.putFile(targetFolder, {
+			...file,
+			originalname: Buffer.from(file.originalname, 'latin1').toString('utf8')
+		})
+		return { url, filePath }
 	}
 	
 	// Statistics

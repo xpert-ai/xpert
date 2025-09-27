@@ -2,6 +2,7 @@ import { Annotation, END } from '@langchain/langgraph'
 import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { createHttpNode } from '../http'
@@ -21,8 +22,7 @@ import { createAnswerNode } from '../answer/node'
 import { createProcessorNode } from '../processor'
 import { createChunkerNode } from '../chunker'
 import { createUnderstandingNode } from '../understanding'
-import { createKnowledgeBaseNode } from '../knowledge-base'
-import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
+
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -249,16 +249,16 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				})
 				break
 			}
-			case WorkflowNodeTypeEnum.KNOWLEDGE_BASE: {
-				workflow = createKnowledgeBaseNode(graph, node, {
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment,
-					isDraft: options.isDraft
-				})
-				break
-			}
+			// case WorkflowNodeTypeEnum.KNOWLEDGE_BASE: {
+			// 	workflow = createKnowledgeBaseNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment,
+			// 		isDraft: options.isDraft
+			// 	})
+			// 	break
+			// }
 			default:
 				try {
 					const creator = this.nodeRegistry.get(node.entity.type)
@@ -273,15 +273,15 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 						},
 						channel: result.channel,
 						navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-									if (state[channelName(node.key)]['error']) {
-										return (
-											graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
-											END
-										)
-									}
-						
-									return nextWorkflowNodes(graph, node.key, state)
-								}
+							if (state[channelName(node.key)]['error']) {
+								return (
+									graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
+									END
+								)
+							}
+				
+							return nextWorkflowNodes(graph, node.key, state)
+						}
 					}
 					break
 				} catch (error) {

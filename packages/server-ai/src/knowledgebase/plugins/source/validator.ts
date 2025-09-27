@@ -4,8 +4,8 @@ import { OnEvent } from '@nestjs/event-emitter'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from '../../../xpert/types'
 
 @Injectable()
-export class WorkflowSourceValidator {
-    
+export class WorkflowSourceNodeValidator {
+
 	@OnEvent(EventNameXpertValidate)
 	handle(event: XpertDraftValidateEvent) {
 		const draft = event.draft
@@ -22,6 +22,18 @@ export class WorkflowSourceValidator {
 	check(node: TXpertTeamNode) {
 		const entity = node.entity as IWFNSource
 		const items: ChecklistItem[] = []
+
+		items.push({
+			node: node.key,
+			ruleCode: 'SOURCE_INTEGRATION_REQUIRED',
+			field: 'integration',
+			value: entity.integrationId,
+			message: {
+				en_US: `Integration for Source node "${entity.title || node.key}" is not defined`,
+				zh_Hans: `文档源节点 "${entity.title || node.key}" 中的集成未定义`
+			},
+			level: 'error'
+		})
 
 		return items
 	}

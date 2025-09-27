@@ -1,0 +1,62 @@
+<div class="w-full space-y-4">
+  <!-- Upload box -->
+  <div
+    class="border border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary-400 transition"
+    (drop)="onDrop($event)"
+    (dragover)="onDragOver($event)"
+  >
+    <input
+      type="file"
+      multiple
+      class="hidden"
+      #fileInput
+      (change)="handleFiles(fileInput.files)"
+    />
+    <div (click)="fileInput.click()" class="text-gray-600">
+      <p class="text-lg font-medium">
+        <i class="ri-upload-cloud-2-line"></i>
+        拖拽文件或文件夹至此，或者
+        <span class="text-blue-500 underline cursor-pointer">选择文件</span>
+      </p>
+      <p class="text-sm text-gray-400 mt-1">
+        支持 TXT、MARKDOWN、PDF、XLSX、DOCX 等格式
+      </p>
+    </div>
+  </div>
+
+  <!-- File list -->
+  @if (files().length > 0) {
+    <div class="space-y-2">
+      @for (file of files(); track $index) {
+        <div
+          class="flex items-center justify-between border rounded-lg px-4 py-2 bg-white shadow-sm"
+        >
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-blue-100 flex items-center justify-center rounded">
+              <span class="text-blue-600 text-sm font-bold">M↓</span>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">{{ file.file.name }}</p>
+              <p class="text-xs text-gray-500">
+                {{ file.file.type || 'FILE' }} · {{ formatSize(file.file.size) }}
+              </p>
+            </div>
+          </div>
+
+          @if (file.progress() < 100) {
+            <button class="w-6 h-6 flex justify-center items-center">
+              {{ file.progress() }}%
+            </button>
+          } @else {
+            <button
+              class="w-6 h-6 text-gray-400 hover:text-red-500 transition"
+              (click)="removeFile($index)"
+            >
+              🗑
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

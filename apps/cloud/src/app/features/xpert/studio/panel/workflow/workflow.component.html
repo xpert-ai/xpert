@@ -165,7 +165,7 @@
           <xpert-workflow-knowledge-test class="grow overflow-y-auto pb-4" [node]="node()" [entity]="wfNode()" />
         }
         @case (eWorkflowNodeTypeEnum.SOURCE) {
-          <xpert-workflow-source-test class="grow overflow-y-auto pb-4" [node]="node()" [entity]="wfNode()" />
+          <xpert-workflow-source-test class="grow overflow-y-auto pb-4" [node]="node()" [entity]="wfNode()" (closed)="testing.set(false)" />
         }
         @default {
           <div class="select-none rounded-lg bg-neutral-50 p-3 m-4 text-center text-text-tertiary">

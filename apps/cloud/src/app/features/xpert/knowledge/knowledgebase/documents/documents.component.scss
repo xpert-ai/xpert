@@ -50,7 +50,7 @@ tr.example-detail-row {
 :host::ng-deep {
   xpert-knowledge-document-chunk,
   xpert-knowledge-document-create,
-  xpert-knowledge-document-pipeline {
+  xp-knowledge-document-pipeline {
     @apply absolute w-full h-full;
     z-index: 110;
   }

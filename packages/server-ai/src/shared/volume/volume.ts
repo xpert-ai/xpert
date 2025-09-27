@@ -23,13 +23,13 @@ export class VolumeClient {
 		}
 	}
 
-	static getSandboxVolumePath(tenantId: string, userId: string, projectId: string): string {
-		const root = VolumeClient.getSandboxVolumeRoot(tenantId)
-		if (environment.envName === 'dev') {
-			return root
-		}
-		return path.join(root, sandboxVolume(projectId, userId))
-	}
+	// static getSandboxVolumePath(tenantId: string, userId: string, projectId: string): string {
+	// 	const root = VolumeClient.getSandboxVolumeRoot(tenantId)
+	// 	if (environment.envName === 'dev') {
+	// 		return root
+	// 	}
+	// 	return path.join(root, sandboxVolume(projectId, userId))
+	// }
 
 	static getWorkspaceRoot(tenantId: string, projectId: string, userId: string) {
 		if (environment.env.IS_DOCKER === 'true') {
@@ -57,16 +57,25 @@ export class VolumeClient {
 		return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId))
 	}
 
-	constructor(params: { tenantId: string; userId: string; projectId?: string }) {
+	constructor(params: { tenantId: string; catalog: 'projects' | 'users' | 'knowledges'; userId: string; knowledgeId?: string; projectId?: string }) {
 		this.tenantId = params.tenantId
 		this.userId = params.userId
 		this.projectId = params.projectId
+		
+		const subpath = params.catalog === 'knowledges' ? `/${params.catalog}/${params.knowledgeId}` :
+			  params.projectId ? `/projects/${params.projectId}` :
+			    `/users/${params.userId}`
+		// this.volumePath = VolumeClient.getSandboxVolumePath(this.tenantId, this.userId, this.projectId)
+		this.baseUrl = sandboxVolumeUrl(subpath)
 
-		this.volumePath = VolumeClient.getSandboxVolumePath(this.tenantId, this.userId, this.projectId)
-		this.baseUrl = sandboxVolumeUrl(sandboxVolume(this.projectId, this.userId))
+		const root = VolumeClient.getSandboxVolumeRoot(params.tenantId)
+		if (environment.envName === 'dev') {
+			this.volumePath = root
+		}
+		this.volumePath = path.join(root, subpath)
 	}
 
-	async putFile(folder = '', file: Express.Multer.File | {originalname: string; buffer: Buffer;}): Promise<string> {
+	async putFile(folder = '', file: {originalname: string; buffer: Buffer;} /*Express.Multer.File*/): Promise<string> {
 		const targetFolder = path.join(this.volumePath, folder)
 		const filePath = path.join(targetFolder, file.originalname)
 		await fsPromises.mkdir(targetFolder, { recursive: true })

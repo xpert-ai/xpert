@@ -10,6 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { BehaviorSubject } from 'rxjs'
 import {
+  DocumentSourceProviderCategoryEnum,
   injectIntegrationAPI,
   IWFNSource,
   KDocumentSourceType,
@@ -22,10 +23,11 @@ import {
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
 import { CustomIconComponent } from '@cloud/app/@shared/avatar'
+import { KnowledgeLocalFileComponent, KnowledgeWebCrawlComponent } from '@cloud/app/@shared/knowledge'
 
 @Component({
   standalone: true,
-  selector: 'xpert-knowledge-document-pipeline',
+  selector: 'xp-knowledge-document-pipeline',
   templateUrl: './pipeline.component.html',
   styleUrls: ['./pipeline.component.scss'],
   imports: [
@@ -36,11 +38,14 @@ import { CustomIconComponent } from '@cloud/app/@shared/avatar'
     MatTooltipModule,
     RouterModule,
     NgmI18nPipe,
-    CustomIconComponent
+    CustomIconComponent,
+    KnowledgeLocalFileComponent,
+    KnowledgeWebCrawlComponent
   ]
 })
 export class KnowledgeDocumentPipelineComponent {
   eKDocumentSourceType = KDocumentSourceType
+  eDocumentSourceProviderCategoryEnum = DocumentSourceProviderCategoryEnum
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly #toastr = inject(ToastrService)
@@ -53,6 +58,7 @@ export class KnowledgeDocumentPipelineComponent {
   readonly parentId = injectQueryParams('parentId')
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  readonly knowledgebaseId = this.knowledgebaseComponent.paramId
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
 
@@ -94,6 +100,7 @@ export class KnowledgeDocumentPipelineComponent {
   )
   readonly integration = computed(() => this.selectedStrategy()?.integration)
   readonly integrationService = computed(() => this.integration()?.service)
+  readonly providerCategory = computed(() => this.selectedStrategy()?.meta.category)
 
   readonly #integrations = myRxResource({
     request: () => this.integrationService(),
@@ -106,7 +113,7 @@ export class KnowledgeDocumentPipelineComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.integrations())
+      console.log(this.sourceStrategies(), this.strategies(), this.sources())
     })
   }
 

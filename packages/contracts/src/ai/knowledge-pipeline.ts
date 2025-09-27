@@ -15,8 +15,16 @@ export interface IDocumentNodeProvider {
   configSchema: any;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface IDocumentSourceProvider extends IDocumentNodeProvider {}
+export enum DocumentSourceProviderCategoryEnum {
+  LocalFile = 'local-file',
+  RemoteFile = 'remote-file',
+  WebCrawl = 'web-crawl',
+  Database = 'database'
+}
+
+export interface IDocumentSourceProvider extends IDocumentNodeProvider {
+  category: DocumentSourceProviderCategoryEnum
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IDocumentProcessorProvider extends IDocumentNodeProvider {}

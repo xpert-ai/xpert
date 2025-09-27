@@ -5,22 +5,26 @@ import {
 	IEnvironment,
 	IIntegration,
 	IWFNSource,
+	IWorkflowNode,
 	TAgentRunnableConfigurable,
 	TXpertGraph,
+	TXpertParameter,
 	TXpertTeamNode,
-	WorkflowNodeTypeEnum
+	WorkflowNodeTypeEnum,
+	XpertParameterTypeEnum,
+	KnowledgebaseChannel,
+	KnowledgeTask,
+	KnowledgeSources
 } from '@metad/contracts'
+import { shortuuid } from '@metad/server-common'
 import { GetIntegrationQuery } from '@metad/server-core'
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
-import {
-	IDocumentSourceStrategy,
-	IWorkflowNodeStrategy,
-	TWorkflowNodeParams,
-	WorkflowNodeStrategy
-} from '@xpert-ai/plugin-sdk'
-import { AgentStateAnnotation, stateWithEnvironment } from '../../shared'
-import { KnowledgeStrategyQuery } from '../queries'
+import { IDocumentSourceStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
+import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
+import { KnowledgeStrategyQuery } from '../../queries'
+import { KnowledgebaseTaskService } from '../../task/index'
+
 
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.SOURCE)
@@ -28,20 +32,22 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 	readonly meta = {
 		name: WorkflowNodeTypeEnum.SOURCE,
 		label: {
-			en_US: 'Schedule Trigger',
-			zh_Hans: '定时触发器'
+			en_US: 'Document Source',
+			zh_Hans: '文档源'
 		},
 		icon: {
-			svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6177 5.9681L19.0711 4.51472L20.4853 5.92893L19.0319 7.38231C20.2635 8.92199 21 10.875 21 13C21 17.9706 16.9706 22 12 22C7.02944 22 3 17.9706 3 13C3 8.02944 7.02944 4 12 4C14.125 4 16.078 4.73647 17.6177 5.9681ZM12 20C15.866 20 19 16.866 19 13C19 9.13401 15.866 6 12 6C8.13401 6 5 9.13401 5 13C5 16.866 8.13401 20 12 20ZM11 8H13V14H11V8ZM8 1H16V3H8V1Z"></path></svg>',
+			svg: '',
 			color: '#14b8a6'
 		},
 		configSchema: {
 			type: 'object',
-			properties: {
-			},
+			properties: {},
 			required: []
 		}
 	}
+
+	@Inject(KnowledgebaseTaskService)
+	private readonly taskService: KnowledgebaseTaskService
 
 	constructor(private readonly queryBus: QueryBus) {}
 
@@ -57,18 +63,17 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 		return {
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
-				const {
-					thread_id,
-					checkpoint_ns,
-					checkpoint_id,
-					subscriber,
-					executionId,
-					knowledgebaseId,
-					knowledgeTaskId
-				} = configurable
+				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 				const stateEnv = stateWithEnvironment(state, environment)
 
-				console.log('Source Node config', entity, knowledgebaseId, knowledgeTaskId)
+				const knowledgebaseState = state[KnowledgebaseChannel]
+				let KnowledgeTaskId = knowledgebaseState?.[KnowledgeTask]
+				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId']
+				const knowledgeSources = knowledgebaseState?.[KnowledgeSources] as string[]
+				// Skip this node if the source is not in the selected knowledge sources
+				if (knowledgeSources && !knowledgeSources.includes(node.key)) {
+					return {}
+				}
 
 				const strategy = await this.queryBus.execute<KnowledgeStrategyQuery, IDocumentSourceStrategy>(
 					new KnowledgeStrategyQuery({
@@ -95,9 +100,32 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 				console.log(JSON.stringify(results, null, 2))
 				console.log('================== Source Node End ===================')
 
+				results.forEach((doc) => {
+					doc.id = shortuuid()
+				})
+
+				if (!KnowledgeTaskId) {
+					// create a new task id if not exists
+					const task = await this.taskService.createTask(knowledgebaseId, {
+						taskType: 'preprocess',
+						context: {
+							documents: results
+						}
+					})
+
+					KnowledgeTaskId = task.id
+				} else {
+					await this.taskService.upsertDocuments(KnowledgeTaskId, results)
+				}
+
 				return {
 					[channelName(node.key)]: {
-						results
+						documents: results.map((doc) => doc.id)
+					},
+					[KnowledgebaseChannel]: {
+						[KnowledgeTask]: KnowledgeTaskId,
+						knowledgebaseId,
+
 					}
 				}
 			}),
@@ -118,10 +146,27 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 			}
 		}
 	}
-	execute(payload: TWorkflowNodeParams<any>): Promise<any> {
-		throw new Error('Method not implemented.')
-	}
-	stop?(payload: TWorkflowNodeParams<any>): void {
-		throw new Error('Method not implemented.')
+
+	outputVariables(entity: IWorkflowNode): TXpertParameter[] {
+		return [
+			{
+				type: XpertParameterTypeEnum.ARRAY_STRING,
+				name: 'documents',
+				title: 'Documents',
+				description: {
+					en_US: 'Documents IDs',
+					zh_Hans: '文档 IDs'
+				}
+			},
+			{
+				type: XpertParameterTypeEnum.STRING,
+				name: 'error',
+				title: 'Error',
+				description: {
+					en_US: 'Error info',
+					zh_Hans: '错误信息'
+				}
+			},
+		]
 	}
 }

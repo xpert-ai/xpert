@@ -4,6 +4,7 @@ import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IKnowledgeDocument } from './knowledge-doc.model'
 import { IXpert } from './xpert.model'
 import { IIntegration } from '../integration.model'
+import { channelName } from '../agent/graph'
 
 /**
  * Non-internal types should remain the same as IntegrationEnum.
@@ -149,3 +150,17 @@ export type DocumentMetadata = {
     score?: number; 
     relevanceScore?: number
 } & Record<string, any>;
+
+
+/**
+ * Channel name for knowledgebase pipeline
+ */
+export const KnowledgebaseChannel = channelName('knowledgebase')
+/**
+ * Task ID of a knowledgebase run
+ */
+export const KnowledgeTask = 'task_id'
+/**
+ * Specify the data source to run
+ */
+export const KnowledgeSources = 'sources'

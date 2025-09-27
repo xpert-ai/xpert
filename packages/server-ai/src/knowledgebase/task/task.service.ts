@@ -21,7 +21,7 @@ export class KnowledgebaseTaskService extends TenantOrganizationAwareCrudService
 	}
 
 	/**
-	 * Create a new task
+	 * Create a new task for a knowledgebase
 	 */
 	async createTask(knowledgebaseId: string, entity: Partial<IKnowledgebaseTask>): Promise<KnowledgebaseTask> {
 		const knowledgebase = await this.baseRepo.findOneBy({ id: knowledgebaseId })
@@ -120,7 +120,7 @@ export class KnowledgebaseTaskService extends TenantOrganizationAwareCrudService
 	 * @param id 
 	 * @param documents 
 	 */
-	async upsertDocuments(id: string, documents: Partial<IKnowledgeDocument>[]): Promise<void> {
+	async upsertDocuments(id: string, documents: Partial<IKnowledgeDocument>[]): Promise<IKnowledgebaseTask> {
 		const task = await this.taskRepo.findOneBy({ id })
 		if (!task) throw new Error(`Task ${id} not found`)
 		
@@ -136,7 +136,7 @@ export class KnowledgebaseTaskService extends TenantOrganizationAwareCrudService
 		}
 		const updatedDocuments = Array.from(docMap.values())
 		task.context.documents = updatedDocuments
-		await this.taskRepo.save(task)
+		return await this.taskRepo.save(task)
 	}
 
 }

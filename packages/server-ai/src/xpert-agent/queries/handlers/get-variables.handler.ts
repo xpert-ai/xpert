@@ -20,6 +20,8 @@ import {
 } from '@metad/contracts'
 import { omit } from '@metad/server-common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { Inject } from '@nestjs/common'
+import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
 import { EnvironmentService } from '../../../environment'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { XpertService } from '../../../xpert/xpert.service'
@@ -45,6 +47,10 @@ import { understandingOutputVariables } from '../../workflow/understanding'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
+	
+	@Inject(WorkflowNodeRegistry)
+	private readonly nodeRegistry: WorkflowNodeRegistry
+
 	constructor(
 		private readonly xpertService: XpertService,
 		private readonly environmentService: EnvironmentService,
@@ -355,6 +361,15 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						variables.push(...understandingOutputVariables(entity))
 						varGroups.push(varGroup)
 						break
+					}
+					default: {
+						try {
+							const creator = this.nodeRegistry.get(entity.type)
+							variables.push(...creator.outputVariables(entity))
+							varGroups.push(varGroup)
+						} catch (error) {
+							console.error(`Error processing node ${node.key}:`, error)
+						}
 					}
 				}
 			}

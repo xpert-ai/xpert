@@ -1,2 +1,2 @@
-export * from './node'
+export * from './strategy'
 export * from './validator'

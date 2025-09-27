@@ -1,10 +1,10 @@
 import {
-	channelName,
 	IWFNCode,
 	IWFNKnowledgeRetrieval,
 	IWorkflowNode,
 	STATE_VARIABLE_HUMAN,
-	WorkflowNodeTypeEnum
+	WorkflowNodeTypeEnum,
+	KnowledgebaseChannel
 } from '@metad/contracts'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -14,6 +14,7 @@ import { AgentStateAnnotation } from '../../../shared'
 import { XpertService } from '../../../xpert/xpert.service'
 import { WorkflowTestNodeCommand } from '../test.command'
 import { createWorkflowRetriever } from './create-wn-knowledge-retrieval.handler'
+
 
 @CommandHandler(WorkflowTestNodeCommand)
 export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNodeCommand> {
@@ -67,21 +68,22 @@ export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNode
 						})
 						const state = await result.graph.invoke(
 							{
+								[KnowledgebaseChannel]: {
+									knowledgebaseId: command.inputs.knowledgebaseId,
+								},
 								[STATE_VARIABLE_HUMAN]: {
-									input: `Hi there`
+									input: `Hi there`,
 								}
 							} as typeof AgentStateAnnotation.State,
 							{
 								configurable: {
 									knowledgebaseId: '123',
-									knowledgeTaskId: '123'
 								}
 							}
 						)
 
 						console.log('State: ', state)
-
-						return state[channelName(node.key)]
+						return state
 					} catch (error) {
 						throw new Error(`Unsupported workflow node type: ${node.entity?.type}: ${error.message}`)
 					}

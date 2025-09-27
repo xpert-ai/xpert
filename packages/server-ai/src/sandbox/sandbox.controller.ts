@@ -118,6 +118,7 @@ export class SandboxController {
 		const client = new VolumeClient({
 			tenantId: RequestContext.currentTenantId(),
 			userId: RequestContext.currentUserId(),
+			catalog: 'projects',
 			projectId: conversation.projectId
 		})
 

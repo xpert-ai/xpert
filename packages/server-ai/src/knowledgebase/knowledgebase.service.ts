@@ -23,6 +23,7 @@ import { XpertService } from '../xpert/xpert.service'
 import { shortuuid } from '@metad/server-common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { EventName_XpertPublished } from '../xpert/types'
+import { KnowledgebaseTaskService } from './task'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -50,6 +51,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		@InjectRepository(Knowledgebase)
 		repository: Repository<Knowledgebase>,
 		private readonly integrationService: IntegrationService,
+		private readonly taskService: KnowledgebaseTaskService,
 		private readonly knowledgeStrategyRegistry: KnowledgeStrategyRegistry,
 	) {
 		super(repository)
@@ -181,7 +183,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 							key: sourceKey,
 							title: 'Source',
 							type: WorkflowNodeTypeEnum.SOURCE,
-							provider: 'files',
+							provider: 'local-file',
 						} as IWFNSource
 					},
 					{
@@ -382,5 +384,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			copilotModel: knowledgebaseEntity.copilotModel,
 			rerankModel: knowledgebaseEntity.rerankModel,
 		})
+	}
+
+	// Pipeline
+	async getTask(knowledgebaseId: string, taskId: string) {
+		return this.taskService.findOneByWhereOptions({ id: taskId, knowledgebaseId })
 	}
 }

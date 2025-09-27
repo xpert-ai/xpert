@@ -1,4 +1,4 @@
-import { I18nObject } from '@metad/contracts'
+import { DocumentSourceProviderCategoryEnum, I18nObject } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { DocumentSourceStrategy, IDocumentSourceStrategy } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
@@ -17,6 +17,7 @@ export class FileSystemStrategy implements IDocumentSourceStrategy<FileSystemCon
   readonly permissions = []
   readonly meta = {
     name: FileSystem,
+    category: DocumentSourceProviderCategoryEnum.RemoteFile,
     label: {
       en_US: 'File System',
       zh_Hans: '文件系统'

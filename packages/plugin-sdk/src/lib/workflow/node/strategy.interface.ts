@@ -1,6 +1,6 @@
 import { Runnable } from '@langchain/core/runnables'
 import { BaseChannel } from '@langchain/langgraph'
-import { IEnvironment, TWorkflowNodeMeta, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { IEnvironment, IWorkflowNode, TWorkflowNodeMeta, TXpertGraph, TXpertParameter, TXpertTeamNode } from '@metad/contracts'
 
 export type TWorkflowNodeParams<TConfig = any> = {
   xpertId: string
@@ -36,13 +36,5 @@ export interface IWorkflowNodeStrategy<TConfig = any, TResult = any> {
     }
   }
 
-  /**
-   * Execute the node’s logic
-   */
-  execute(payload: TWorkflowNodeParams<TConfig>): Promise<TResult>
-
-  /**
-   * Stop or cleanup logic (optional, e.g. cancel running tasks)
-   */
-  stop?(payload: TWorkflowNodeParams<TConfig>): void
+  outputVariables(entity: IWorkflowNode): TXpertParameter[]
 }

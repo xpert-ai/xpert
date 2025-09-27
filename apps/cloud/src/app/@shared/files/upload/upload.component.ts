@@ -29,7 +29,7 @@ export type UploadFile = {
   templateUrl: './upload.component.html',
   styleUrls: ['./upload.component.scss']
 })
-export class UploadComponent {
+export class FilesUploadComponent {
 
   // Inputs
   readonly files = input<UploadFile[]>([])

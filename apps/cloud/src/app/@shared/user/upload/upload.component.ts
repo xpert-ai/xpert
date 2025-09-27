@@ -8,7 +8,7 @@ import { readExcelWorkSheets } from '@metad/core'
 import { NgmSpinComponent, NgmStepperComponent, NgmTableComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectToastr, IUserUpdateInput } from '../../../@core'
-import { UploadComponent, UploadFile } from '../../files'
+import { FilesUploadComponent, UploadFile } from '../../files'
 
 @Component({
   standalone: true,
@@ -18,7 +18,7 @@ import { UploadComponent, UploadFile } from '../../files'
     ReactiveFormsModule,
     TranslateModule,
     DragDropModule,
-    UploadComponent,
+    FilesUploadComponent,
     NgmStepperComponent,
     NgmTableComponent,
     NgmSpinComponent

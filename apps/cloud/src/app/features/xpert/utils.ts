@@ -15,7 +15,8 @@ export function injectGetXpertTeam() {
         'executors',
         'executors.agent',
         'executors.copilotModel',
-        'copilotModel'
+        'copilotModel',
+        'knowledgebase',
       ]
     })
   }

@@ -21,7 +21,7 @@ import { QueryHandlers } from './queries/handlers'
 import { XpertModule } from '../xpert/xpert.module'
 import { KnowledgebaseTaskService } from './task/task.service'
 import { KnowledgebaseTask } from './task/task.entity'
-import { WorkflowSourceNodeStrategy, LocalFileStrategy } from './plugins'
+import { WorkflowSourceNodeStrategy, WorkflowKnowledgeBaseNodeStrategy, LocalFileStrategy, Validators } from './plugins'
 
 @Module({
 	imports: [
@@ -49,8 +49,10 @@ import { WorkflowSourceNodeStrategy, LocalFileStrategy } from './plugins'
 		ImageUnderstandingRegistry,
 		LocalFileStrategy,
 		WorkflowSourceNodeStrategy,
+		WorkflowKnowledgeBaseNodeStrategy,
 		...QueryHandlers,
-		...CommandHandlers
+		...CommandHandlers,
+		...Validators
 	],
 	exports: [
 		KnowledgebaseService,

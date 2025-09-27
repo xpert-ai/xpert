@@ -1,11 +1,13 @@
-import { HttpParams } from '@angular/common/http'
-import { inject, Injectable } from '@angular/core'
+import { HttpEventType, HttpParams } from '@angular/common/http'
+import { inject, Injectable, signal } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
 import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langchain/core/vectorstores'
-import { API_PREFIX, DocumentMetadata, IDocumentChunkerProvider, IDocumentProcessorProvider, IDocumentSourceProvider, IDocumentUnderstandingProvider, IKnowledgebase, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { _TFile, API_PREFIX, DocumentMetadata, IDocumentChunkerProvider, IDocumentProcessorProvider, IDocumentSourceProvider, IDocumentUnderstandingProvider, IKnowledgebase, IKnowledgebaseTask, IStorageFile, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
-import { shareReplay, switchMap } from 'rxjs/operators'
+import { catchError, shareReplay, switchMap, tap } from 'rxjs/operators'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
+import { getErrorMessage } from '../types'
+import { of } from 'rxjs'
 
 const API_KNOWLEDGEBASE = API_PREFIX + '/knowledgebase'
 
@@ -105,4 +107,56 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     }
     return params
   }
+
+  // Pipeline
+  getTask(id: string, taskId: string) {
+    return this.httpClient.get<IKnowledgebaseTask>(this.apiBaseUrl + `/${id}/task/${taskId}`)
+  }
+
+  uploadFile(id: string, file: File, path = '') {
+    const formData = new FormData()
+    formData.append('file', file)
+    return this.httpClient.post<_TFile>(this.apiBaseUrl + `/${id}/file`, formData, {
+      observe: 'events',
+      reportProgress: true
+    })
+  }
+}
+
+export class KnowledgeFileUploader {
+
+  readonly progress = signal<number>(0)
+  readonly storageFile = signal<_TFile>(null)
+  readonly uploadedUrl = signal<string | null>(null)
+
+  readonly error = signal<string>(null)
+
+  constructor(
+    private readonly knowledgebaseId: string,
+    private readonly kbAPI: KnowledgebaseService,
+    public readonly file: File,
+    private readonly path = ''
+  ) {}
+
+  upload() {
+    this.kbAPI.uploadFile(this.knowledgebaseId, this.file, this.path).pipe(
+      tap((event) => {
+        switch (event.type) {
+          case HttpEventType.UploadProgress:
+            this.progress.set((event.loaded / event.total) * 100)
+            break
+          case HttpEventType.Response:
+            this.progress.set(100)
+            this.storageFile.set(event.body)
+            this.uploadedUrl.set(event.body.url); // Assuming response contains URL
+            break
+        }
+      }),
+      catchError((error) => {
+        this.error.set(getErrorMessage(error))
+        return of(null)
+      })
+    ).subscribe()
+  }
+
 }

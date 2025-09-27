@@ -11,7 +11,7 @@ import { uniqWith } from 'lodash-es'
 import { catchError, combineLatest, of, startWith, tap } from 'rxjs'
 import { IStorageFile, StorageFileService, ToastrService, getErrorMessage, listAnimation } from '../../../@core'
 import { MaterialModule } from '../../material.module'
-import { UploadComponent, UploadFile } from '../upload/upload.component'
+import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
 
 @Component({
   standalone: true,
@@ -29,7 +29,7 @@ import { UploadComponent, UploadFile } from '../upload/upload.component'
     AppearanceDirective,
     DensityDirective,
     NgmSearchComponent,
-    UploadComponent
+    FilesUploadComponent
   ],
   animations: [listAnimation]
 })

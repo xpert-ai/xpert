@@ -44,6 +44,7 @@ export class FileLocalSystem implements FilesSystem {
 
 		const client = new VolumeClient({
 			tenantId: this.params.tenantId,
+			catalog: 'projects',
 			projectId: this.params.projectId,
 			userId: this.params.userId
 		})
@@ -69,6 +70,7 @@ export class FileLocalSystem implements FilesSystem {
 		const { workspace_id, file_path, line_from, line_to } = req
 		const client = new VolumeClient({
 			tenantId: this.params.tenantId,
+			catalog: 'projects',
 			projectId: this.params.projectId,
 			userId: this.params.userId
 		})
@@ -85,6 +87,7 @@ export class FileLocalSystem implements FilesSystem {
 		const { workspace_id, file_path } = body
 		const client = new VolumeClient({
 			tenantId: this.params.tenantId,
+			catalog: 'projects',
 			projectId: this.params.projectId,
 			userId: this.params.userId
 		})

@@ -1,4 +1,4 @@
-import { I18nObject } from '@metad/contracts'
+import { DocumentSourceProviderCategoryEnum, I18nObject } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { DocumentSourceStrategy, IDocumentSourceStrategy } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
@@ -14,6 +14,7 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 	readonly permissions = []
 	readonly meta = {
 		name: 'local-file',
+		category: DocumentSourceProviderCategoryEnum.LocalFile,
 		label: {
 			en_US: 'Local File',
 			zh_Hans: '本地文件'

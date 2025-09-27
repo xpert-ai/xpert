@@ -1,4 +1,4 @@
-import { I18nObject, IIntegration } from '@metad/contracts'
+import { DocumentSourceProviderCategoryEnum, I18nObject, IIntegration } from '@metad/contracts'
 import { Inject, Injectable } from '@nestjs/common'
 import { DocumentSourceStrategy, IDocumentSourceStrategy, IntegrationPermission } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
@@ -21,6 +21,7 @@ export class FirecrawlSourceStrategy implements IDocumentSourceStrategy<Firecraw
 
   readonly meta = {
     name: Firecrawl,
+    category: DocumentSourceProviderCategoryEnum.WebCrawl,
     label: {
       en_US: 'Firecrawl',
       zh_Hans: 'Firecrawl'
