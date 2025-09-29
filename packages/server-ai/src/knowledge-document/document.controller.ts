@@ -58,6 +58,16 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		return await this.service.createBulk(entities)
 	}
 
+	@Put('bulk')
+	async updateBulk(@Body() entities: Partial<IKnowledgeDocument>[]) {
+		return await this.service.updateBulk(entities)
+	}
+
+	@Delete('bulk')
+	async deleteBulk(@Body('ids') ids: string[]) {
+		return await this.service.deleteBulk(ids)
+	}
+
 	@Post('process')
 	async start(@Body() body: { ids: string[] }) {
 		return await this.service.startProcessing(body.ids)
@@ -78,9 +88,10 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		try {
 			entity.category ??= isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
 			const result = await this.commandBus.execute<KnowledgeDocLoadCommand, { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }>(
-				new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument, stage: 'test'}))
+				new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument, stage: 'prod'}))
 			return result.pages?.length ? mergeParentChildChunks(result.pages, result.chunks) : result.chunks
 		} catch(err) {
+			console.error(err)
 			throw new BadRequestException(getErrorMessage(err))
 		}
 	}

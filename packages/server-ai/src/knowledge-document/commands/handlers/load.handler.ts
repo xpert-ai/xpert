@@ -5,8 +5,8 @@ import {
 	IKnowledgeDocument,
 	KBDocumentCategoryEnum
 } from '@metad/contracts'
-import { pick } from '@metad/server-common'
-import { GetStorageFileQuery, RequestContext, StorageFile } from '@metad/server-core'
+import { loadCsvWithAutoEncoding, loadExcel, pick } from '@metad/server-common'
+import { RequestContext } from '@metad/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
@@ -19,7 +19,7 @@ import {
 import { Document } from 'langchain/document'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
-import { LoadStorageFileCommand, LoadStorageSheetCommand, sandboxVolumeUrl, VolumeClient } from '../../../shared/'
+import { LoadStorageFileCommand, sandboxVolumeUrl, VolumeClient } from '../../../shared/'
 import { KnowledgeDocLoadCommand } from '../load.command'
 
 @CommandHandler(KnowledgeDocLoadCommand)
@@ -46,7 +46,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
 		if (doc.category === KBDocumentCategoryEnum.Sheet) {
 			const parserConfig = doc.parserConfig as DocumentSheetParserConfig
-			const data = await this.commandBus.execute(new LoadStorageSheetCommand(doc.storageFileId))
+			// const data = await this.commandBus.execute(new LoadStorageSheetCommand(doc.storageFileId))
+			const data = await this.loadSheet(doc)
 			const documents: Document[] = []
 			for (const row of data) {
 				const metadata = { raw: row, docId: doc.id }
@@ -62,39 +63,40 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			return { chunks: documents }
 		}
 
-		if (doc.storageFileId) {
+		if (doc.filePath || doc.fileUrl) {
 			let docs: Document[]
-			const [storageFile] = await this.queryBus.execute<GetStorageFileQuery, StorageFile[]>(
-				new GetStorageFileQuery([doc.storageFileId])
-			)
+			// const [storageFile] = await this.queryBus.execute<GetStorageFileQuery, StorageFile[]>(
+			// 	new GetStorageFileQuery([doc.storageFileId])
+			// )
 			const transformerType = doc.parserConfig?.transformerType || 'default'
 			if (transformerType) {
 				const transformer = this.transformerRegistry.get(transformerType)
 				if (transformer) {
-					const type = storageFile.originalName.split('.').pop()
-					const volume = VolumeClient._getWorkspaceRoot(
-						RequestContext.currentTenantId(),
-						'knowledges',
-						doc.knowledgebaseId
-					)
+					const type = doc.name?.split('.').pop()
+					const volumeClient = new VolumeClient({
+								tenantId: RequestContext.currentTenantId(),
+								catalog: 'knowledges',
+								userId: RequestContext.currentUserId(),
+								knowledgeId: doc.knowledgebaseId
+							})
 					const fsPermission = transformer.permissions?.find(
 						(permission) => permission.type === 'filesystem'
 					) as FileSystemPermission
 					const permissions = {}
 					if (fsPermission) {
-						const folder = stage === 'test' ? 'temp/' : `${doc.id}/`
+						const folder = stage === 'test' ? 'temp/' : `/`
 						permissions['fileSystem'] = new XpFileSystem(
 							fsPermission,
-							volume + '/' + folder,
+							volumeClient.getVolumePath(folder),
 							sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
 						)
 					}
 					const transformed = await transformer.transformDocuments(
-						[{ url: storageFile.fileUrl, filename: storageFile.originalName, extname: type }],
+						[{ fileUrl: doc.fileUrl, filePath: doc.filePath, filename: doc.name, extname: type }],
 						{
 							...(doc.parserConfig.transformer ?? {}),
 							stage,
-							tempDir: volume + '/tmp/',
+							tempDir: volumeClient.getVolumePath('tmp'),
 							permissions
 						}
 					)
@@ -117,10 +119,10 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 							) as FileSystemPermission
 							const permissions = {}
 							if (fsPermission) {
-								const folder = stage === 'test' ? 'temp/' : `${doc.id}/`
+								const folder = stage === 'test' ? 'temp/' : `/`
 								permissions['fileSystem'] = new XpFileSystem(
 									fsPermission,
-									volume + '/' + folder,
+									volumeClient.getVolumePath(folder),
 									sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
 								)
 							}
@@ -242,5 +244,13 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		// return {
 		// 	chunks: await textSplitter1.splitDocuments(data)
 		// }
+	}
+
+	async loadSheet(doc: IKnowledgeDocument): Promise<Record<string, any>[]> {
+		if (doc.name.endsWith('.csv')) {
+			return loadCsvWithAutoEncoding(doc.filePath)
+		}
+
+		return loadExcel(doc.filePath)
 	}
 }

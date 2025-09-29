@@ -57,7 +57,6 @@ export class FirecrawlSourceStrategy implements IDocumentSourceStrategy<Firecraw
     throw new Error('Method not implemented.')
   }
   async loadDocuments(config: FirecrawlParams, context?: { integration: IIntegration }): Promise<Document[]> {
-    console.log(config, context)
     const result = await this.firecrawlService.crawlUrl(context.integration, config)
     return result.webInfoList.map(
       (item) =>

@@ -13,6 +13,7 @@ import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { BehaviorSubject, combineLatest, of, switchMap, tap } from 'rxjs'
 import {
   getErrorMessage,
+  IKnowledgeDocument,
   IKnowledgeDocumentPage,
   KDocumentSourceType,
   KnowledgeDocumentService,
@@ -28,6 +29,7 @@ import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { JSONSchemaFormComponent } from "@cloud/app/@shared/forms";
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { SafePipe } from '@metad/core'
+import { omit } from 'lodash-es'
 
 @Component({
   standalone: true,
@@ -72,30 +74,34 @@ export class KnowledgeDocumentCreateStep2Component {
 
   readonly loading = signal(false)
 
-  readonly fileList = this.createComponent.fileList
+  // readonly fileList = this.createComponent.fileList
+  readonly files = this.createComponent.files
+
   readonly webResult = this.createComponent.webResult
   readonly selectedWebPages = this.createComponent.selectedWebPages
   readonly webDocs = computed(() =>
     this.selectedWebPages().map((id) => this.webResult()?.docs.find((doc) => doc.metadata.scrapeId === id))
   )
 
-  readonly selectedFileId = signal<string>(null)
-  readonly selectedFile = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.selectedFileId() ? this.fileList().find((_) => _.doc.storageFile.id === this.selectedFileId()) : null
-    },
-    update: (value) => {
-      this.fileList.update((state) => {
-        return state.map((item) => {
-          if (item.doc.storageFile.id === value.doc.storageFile.id) {
-            return { ...item, ...value }
-          }
-          return item
-        })
-      })
-    }
-  })
+  // readonly selectedFileId = signal<string>(null)
+  // readonly selectedFile = linkedModel({
+  //   initialValue: null,
+  //   compute: () => {
+  //     return this.selectedFileId() ? this.fileList().find((_) => _.doc.storageFile.id === this.selectedFileId()) : null
+  //   },
+  //   update: (value) => {
+  //     this.fileList.update((state) => {
+  //       return state.map((item) => {
+  //         if (item.doc.storageFile.id === value.doc.storageFile.id) {
+  //           return { ...item, ...value }
+  //         }
+  //         return item
+  //       })
+  //     })
+  //   }
+  // })
+  readonly selectedDocument = signal<Partial<IKnowledgeDocument>>(null)
+
   readonly selectedWebDoc = signal<IKnowledgeDocumentPage>(null)
 
   readonly parserConfig = this.createComponent.parserConfig
@@ -203,17 +209,19 @@ export class KnowledgeDocumentCreateStep2Component {
 
   save() {
     combineLatest([
-      this.fileList()?.length
+      this.files()?.length
         ? this.knowledgeDocumentService.createBulk(
-            this.fileList().map((item) => ({
+            this.files().map((item) => ({
+              ...omit(item.document(), 'id'),
               knowledgebaseId: this.knowledgebase().id,
               sourceType: KDocumentSourceType.FILE,
-              storageFileId: item.doc.storageFile.id,
-              parserConfig: item.doc.parserConfig ?? this.parserConfig(),
-              name: item.doc.storageFile.originalName,
-              category: item.doc.category,
-              type: item.doc.type,
-              parentId: this.createComponent.parentId() || null
+              parserConfig: this.parserConfig(),
+              // storageFileId: item.doc.storageFile.id,
+              // parserConfig: item.doc.parserConfig ?? this.parserConfig(),
+              // name: item.document().or,
+              // category: item.doc.category,
+              // type: item.doc.type,
+              parent: this.createComponent.parentId() ? { id: this.createComponent.parentId()} as IKnowledgeDocument : null
             }))
           )
         : of([]),
@@ -229,21 +237,21 @@ export class KnowledgeDocumentCreateStep2Component {
                 ...doc,
                 status: 'finish'
               })),
-              parentId: this.createComponent.parentId() || null
+              parent: this.createComponent.parentId() ? {id: this.createComponent.parentId()} as IKnowledgeDocument : null
             }
           ])
         : of([])
     ])
       .pipe(
         switchMap(([files, docs]) => {
-          this.fileList.update((state) => {
-            return state.map((item, i) => {
-              return {
-                ...item,
-                doc: files[i]
-              }
-            })
-          })
+          // this.fileList.update((state) => {
+          //   return state.map((item, i) => {
+          //     return {
+          //       ...item,
+          //       doc: files[i]
+          //     }
+          //   })
+          // })
 
           this.createComponent.documents.set([...files, ...docs])
 
@@ -267,9 +275,9 @@ export class KnowledgeDocumentCreateStep2Component {
   }
 
   preview() {
-    if (!this.selectedWebDoc() && !this.selectedFile()) {
-      if (this.fileList().length) {
-        this.selectedFile.set(this.fileList()[0])
+    if (!this.selectedWebDoc() && !this.selectedDocument()) {
+      if (this.files().length) {
+        this.selectedDocument.set(this.files()[0]?.document())
       } else if (this.webDocs().length) {
         this.selectedWebDoc.set(this.webDocs()[0])
       }

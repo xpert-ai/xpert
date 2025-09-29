@@ -1,7 +1,7 @@
 import { urlJoin } from '@metad/server-common'
 import { environment } from '@metad/server-config'
 import fsPromises from 'fs/promises'
-import path from 'path'
+import path, { join } from 'path'
 import { getWorkspace, listFiles, sandboxVolume, sandboxVolumeUrl } from '../utils'
 
 export class VolumeClient {
@@ -109,6 +109,9 @@ export class VolumeClient {
 		return await listFiles(folder || '/', deepth ?? 1, 0, { root: this.volumePath, baseUrl: this.baseUrl })
 	}
 
+	getVolumePath(path: string) {
+		return join(this.volumePath, path)
+	}
 	getPublicUrl(filePath: string) {
 		return urlJoin(this.baseUrl, filePath)
 	}

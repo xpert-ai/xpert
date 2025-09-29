@@ -164,3 +164,4 @@ export const KnowledgeTask = 'task_id'
  * Specify the data source to run
  */
 export const KnowledgeSources = 'sources'
+export const KnowledgeDocuments = 'documents'

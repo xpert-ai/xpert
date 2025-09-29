@@ -26,6 +26,16 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/bulk', entites)
   }
 
+  updateBulk(entites: Partial<IKnowledgeDocument>[]) {
+    return this.httpClient.put<IKnowledgeDocument[]>(this.apiBaseUrl + '/bulk', entites)
+  }
+
+  deleteBulk(ids: string[]) {
+    return this.httpClient.delete(this.apiBaseUrl + '/bulk', {
+      body: { ids }
+    })
+  }
+
   startParsing(id: string | string[]) {
     return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/process', {
       ids: Array.isArray(id) ? id : id ? [id] : []

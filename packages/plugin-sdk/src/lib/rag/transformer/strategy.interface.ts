@@ -1,7 +1,7 @@
+import { DocumentInterface } from '@langchain/core/documents'
 import { IDocumentProcessorProvider } from '@metad/contracts'
-import { Document } from 'langchain/document'
 import { Permissions, XpFileSystem } from '../../core/index'
-import { TDocumentAsset } from '../types'
+import { ChunkMetadata, TDocumentAsset } from '../types'
 
 export type TDocumentTransformerConfig = {
   stage: 'test' | 'prod'
@@ -12,7 +12,9 @@ export type TDocumentTransformerConfig = {
 }
 
 export type TDocumentTransformerFile = {
-  url: string
+  id?: string
+  fileUrl: string
+  filePath: string
   filename: string
   extname: string | undefined
 }
@@ -20,7 +22,8 @@ export type TDocumentTransformerFile = {
 export type TDocumentTransformerInput = TDocumentTransformerFile[] | string | string[]
 
 export type TDocumentTransformerResult = {
-  chunks: Document[]
+  id?: string
+  chunks: DocumentInterface<ChunkMetadata>[]
   metadata: {
     assets?: TDocumentAsset[]
   }

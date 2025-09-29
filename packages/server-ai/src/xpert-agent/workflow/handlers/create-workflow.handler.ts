@@ -19,9 +19,6 @@ import { createTriggerNode } from '../trigger'
 import { createCodeNode, WorkflowCodeValidator } from '../code/index'
 import { AgentStateAnnotation, nextWorkflowNodes, TStateChannel, TWorkflowGraphNode } from '../../../shared'
 import { createAnswerNode } from '../answer/node'
-import { createProcessorNode } from '../processor'
-import { createChunkerNode } from '../chunker'
-import { createUnderstandingNode } from '../understanding'
 
 
 @CommandHandler(CreateWorkflowNodeCommand)
@@ -220,35 +217,35 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			// 	})
 			// 	break
 			// }
-			case WorkflowNodeTypeEnum.PROCESSOR: {
-				workflow = createProcessorNode(graph, node, {
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment,
-					isDraft: options.isDraft
-				})
-				break
-			}
-			case WorkflowNodeTypeEnum.CHUNKER: {
-				workflow = createChunkerNode(graph, node, {
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment
-				})
-				break
-			}
-			case WorkflowNodeTypeEnum.UNDERSTANDING: {
-				workflow = createUnderstandingNode(graph, node, {
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment,
-					isDraft: options.isDraft
-				})
-				break
-			}
+			// case WorkflowNodeTypeEnum.PROCESSOR: {
+			// 	workflow = createProcessorNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment,
+			// 		isDraft: options.isDraft
+			// 	})
+			// 	break
+			// }
+			// case WorkflowNodeTypeEnum.CHUNKER: {
+			// 	workflow = createChunkerNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment
+			// 	})
+			// 	break
+			// }
+			// case WorkflowNodeTypeEnum.UNDERSTANDING: {
+			// 	workflow = createUnderstandingNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment,
+			// 		isDraft: options.isDraft
+			// 	})
+			// 	break
+			// }
 			// case WorkflowNodeTypeEnum.KNOWLEDGE_BASE: {
 			// 	workflow = createKnowledgeBaseNode(graph, node, {
 			// 		commandBus: this.commandBus,
@@ -263,7 +260,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				try {
 					const creator = this.nodeRegistry.get(node.entity.type)
 
-					const result = creator.create({graph, node, xpertId, environment: options.environment})
+					const result = creator.create({graph, node, xpertId, environment: options.environment, isDraft: options.isDraft})
 
 					workflow = {
 						workflowNode: {
@@ -272,7 +269,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 							ends: result.ends
 						},
 						channel: result.channel,
-						navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+						navigator: result.navigator ?? (async (state: typeof AgentStateAnnotation.State, config) => {
 							if (state[channelName(node.key)]['error']) {
 								return (
 									graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
@@ -281,7 +278,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 							}
 				
 							return nextWorkflowNodes(graph, node.key, state)
-						}
+						})
 					}
 					break
 				} catch (error) {

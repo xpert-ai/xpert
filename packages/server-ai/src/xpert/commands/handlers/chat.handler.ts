@@ -12,6 +12,7 @@ import {
 	LongTermMemoryTypeEnum,
 	messageContentText,
 	shortTitle,
+	STATE_VARIABLE_HUMAN,
 	TChatConversationStatus,
 	TChatRequestHuman,
 	TSensitiveOperation,
@@ -50,10 +51,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 	public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
 		const { options } = c
-		const { projectId, xpertId, input, conversationId, confirm, command, reject } = c.request
+		const { projectId, xpertId, conversationId, confirm, command, reject } = c.request
+		let { input, state } = c.request
 		const { taskId, from, fromEndUserId } = options ?? {}
 		let { execution } = options ?? {}
 		const userId = RequestContext.currentUserId()
+
+		if (!input) {
+			input = state?.[STATE_VARIABLE_HUMAN]
+		}
+		if (!state) {
+			state = { [STATE_VARIABLE_HUMAN]: input }
+		}
 
 		const timeStart = Date.now()
 
@@ -218,7 +227,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				if (!agentObservable) {
 					// No memory reply then create agents graph
 					agentObservable = await this.commandBus.execute<XpertAgentChatCommand, Promise<Observable<MessageEvent>>>(
-						new XpertAgentChatCommand(input, xpert.agent.key, xpert, {
+						new XpertAgentChatCommand(state, xpert.agent.key, xpert, {
 							...(options ?? {}),
 							store: memoryStore,
 							conversationId: conversation.id,

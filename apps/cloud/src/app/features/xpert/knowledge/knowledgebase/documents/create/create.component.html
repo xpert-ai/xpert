@@ -62,5 +62,8 @@
 }
 
 @if (step() === 2) {
-  <xpert-knowledge-document-create-step-3 class="grow overflow-auto" />
+  <xp-knowledge-document-create-step-3 class="grow overflow-auto"
+    [docs]="documents()"
+    [parserConfig]="parserConfig()"
+  />
 }

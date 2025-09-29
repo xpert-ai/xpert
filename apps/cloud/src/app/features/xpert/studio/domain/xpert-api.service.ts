@@ -216,6 +216,7 @@ export class XpertStudioApiService {
       switchMap(() =>
         combineLatest([
           this.paramId$.pipe(
+            filter(nonBlank),
             distinctUntilChanged(),
             switchMap((id) => this.getXpertTeam(id)),
             tap((xpert) => {

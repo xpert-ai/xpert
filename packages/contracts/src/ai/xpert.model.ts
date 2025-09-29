@@ -14,7 +14,7 @@ import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { IStorageFile } from '../storage-file.model'
-import { TInterruptCommand } from '../agent'
+import { STATE_VARIABLE_HUMAN, TInterruptCommand } from '../agent'
 
 export type ToolCall = LToolCall
 
@@ -513,6 +513,10 @@ export type TChatRequest = {
    * The human input, include parameters
    */
   input: TChatRequestHuman
+  /**
+   * Custom graph state
+   */
+  state?: {[STATE_VARIABLE_HUMAN]: TChatRequestHuman} & Record<string, any>
   xpertId: string
   agentKey?: string
   projectId?: string

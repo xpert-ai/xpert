@@ -134,6 +134,10 @@ export interface ISize {
 
 export type _TFile = {
   filePath: string;
+  fileUrl?: string;
+  /**
+   * @deprecated use fileUrl instead
+   */
   url?: string;
 }
 

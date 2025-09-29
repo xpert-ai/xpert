@@ -9,7 +9,7 @@ export class WorkflowTestNodeCommand implements ICommand {
 	constructor(
 		public readonly xpertId: string,
 		public readonly key: string,
-		public readonly inputs: any,
+		public readonly state: any,
 		public readonly isDraft = true
 	) {}
 }

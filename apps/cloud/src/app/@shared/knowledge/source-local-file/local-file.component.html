@@ -13,13 +13,13 @@
       (change)="handleFiles(fileInput.files)"
     />
     <div (click)="fileInput.click()" class="text-gray-600">
-      <p class="text-lg font-medium">
+      <p class="text-base font-medium">
         <i class="ri-upload-cloud-2-line"></i>
-        拖拽文件或文件夹至此，或者
-        <span class="text-blue-500 underline cursor-pointer">选择文件</span>
+        {{ 'PAC.Knowledgebase.DragDropOr' | translate: {Default: 'Drag and drop files here, or'} }}
+        <span class="text-blue-500 underline cursor-pointer">{{ 'PAC.Knowledgebase.SelectFiles' | translate: {Default: 'select files'} }}</span>
       </p>
-      <p class="text-sm text-gray-400 mt-1">
-        支持 TXT、MARKDOWN、PDF、XLSX、DOCX 等格式
+      <p class="text-sm font-body text-gray-400 mt-1">
+        {{ 'PAC.Knowledgebase.SupportFiles' | translate: {Default: 'Supports TXT, MARKDOWN, MDX, PDF, HTML, XLSX, XLS, DOCX, PPTX, CSV, EPUB, MD, HTM, CSV, ODT, ODP, ODS and each file does not exceed 15MB.'} }}
       </p>
     </div>
   </div>
@@ -28,33 +28,47 @@
   @if (files().length > 0) {
     <div class="space-y-2">
       @for (file of files(); track $index) {
-        <div
-          class="flex items-center justify-between border rounded-lg px-4 py-2 bg-white shadow-sm"
-        >
-          <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-blue-100 flex items-center justify-center rounded">
-              <span class="text-blue-600 text-sm font-bold">M↓</span>
+        <div class="relative flex flex-col border rounded-lg px-4 py-2 overflow-hidden bg-white shadow-sm hover:bg-gray-100 transition"
+          [class.border-primary-300]="selected() === file"
+          (click)="selected.set(file)">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 shrink-0 bg-blue-100 flex items-center justify-center rounded">
+                <span class="text-blue-600 text-sm font-bold">M↓</span>
+              </div>
+              <div>
+                <p class="text-sm font-medium line-clamp-2 text-gray-800">{{ file.file.name }}</p>
+                <p class="text-xs text-gray-500">
+                  <span class="truncate">{{ file.file.type || 'FILE' }}</span> · {{ file.formatSize() }}
+                </p>
+              </div>
             </div>
-            <div>
-              <p class="text-sm font-medium text-gray-800">{{ file.file.name }}</p>
-              <p class="text-xs text-gray-500">
-                {{ file.file.type || 'FILE' }} · {{ formatSize(file.file.size) }}
-              </p>
-            </div>
+
+            @if (file.progress() < 100) {
+              <button class="w-7 h-7 flex justify-center items-center">
+                {{ file.progress() | number:'0.0-0' }}%
+              </button>
+            } @else {
+              <button
+                class="w-7 h-7 flex justify-center items-center rounded-lg text-gray-400 hover:text-red-500 transition hover:bg-hover-bg"
+                (click)="removeFile($index)"
+              >
+                <i class="ri-delete-bin-5-line"></i>
+              </button>
+            }
           </div>
 
-          @if (file.progress() < 100) {
-            <button class="w-6 h-6 flex justify-center items-center">
-              {{ file.progress() }}%
-            </button>
-          } @else {
-            <button
-              class="w-6 h-6 text-gray-400 hover:text-red-500 transition"
-              (click)="removeFile($index)"
-            >
-              🗑
-            </button>
-          }
+           <!-- Progress bar -->
+          <div class="absolute left-0 bottom-0 w-full mt-3 h-[2px] bg-gray-100 rounded overflow-hidden">
+            <div
+              class="h-full rounded"
+              [style.width.%]="file.progress()"
+              [class.bg-blue-500]="file.status() === 'uploading' || file.status() === 'pending'"
+              [class.bg-green-500]="file.status() === 'done'"
+              [class.bg-red-500]="file.status() === 'error'"
+              >
+            </div>
+          </div>
         </div>
       }
     </div>

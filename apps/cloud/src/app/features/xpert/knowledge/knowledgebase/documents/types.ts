@@ -1,5 +1,8 @@
 import { IKnowledgeDocument } from "@cloud/app/@core/types"
 
+/**
+ * @deprecated
+ */
 export type TFileItem = {
   // storageFile?: IStorageFile
   file: File

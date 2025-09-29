@@ -113,7 +113,7 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<T
     const parsedResults: TDocumentParseResult[] = []
     for await (const file of files) {
       const { taskId } = await this.mineru.createTask({
-        url: file.url,
+        url: file.fileUrl,
         isOcr: true,
         enableFormula: true,
         enableTable: true,
@@ -124,10 +124,9 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<T
       // Waiting for completion
       const result = await this.mineru.waitForTask(taskId, 5 * 60 * 1000, 5000)
 
-      console.log('MinerUTransformerStrategy transformDocuments result:', result)
-
       const parsedResult = await this.resultParser.parseFromUrl(result.full_zip_url, taskId, config.permissions.fileSystem)
 
+      parsedResult.id = file.id
       parsedResults.push(parsedResult)
     }
 

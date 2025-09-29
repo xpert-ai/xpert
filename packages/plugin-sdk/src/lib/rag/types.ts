@@ -1,7 +1,7 @@
+import { DocumentInterface } from '@langchain/core/documents'
 import fs from 'fs'
 import http from 'http'
 import https from 'https'
-import { Document } from 'langchain/document'
 
 export type TDocumentAsset = {
   type: 'image' | 'video' | 'audio' | 'file'
@@ -10,15 +10,15 @@ export type TDocumentAsset = {
 }
 
 export interface ChunkMetadata {
-  documentId: string // 原始文档 ID
+  documentId?: string // 原始文档 ID
   pageId?: string // 如果有分页，引用页 ID
   chunkId: string // 当前块的唯一 ID
   parentId?: string // 如果是子块，引用父块 ID
-  chunkIndex: number // 在文档内或在父块内的序号
-  startOffset: number // 原始文本起始位置
-  endOffset: number // 原始文本结束位置
-  type: 'parent' | 'child' // 分块类型
-  children?: Document<ChunkMetadata>[]
+  chunkIndex?: number // 在文档内或在父块内的序号
+  startOffset?: number // 原始文本起始位置
+  endOffset?: number // 原始文本结束位置
+  type?: 'parent' | 'child' // 分块类型
+  children?: DocumentInterface<ChunkMetadata>[]
   assets?: TDocumentAsset[]
   [key: string]: any // 允许插件扩展
 }
@@ -30,10 +30,10 @@ export interface ChunkMetadata {
  * @returns
  */
 export function mergeParentChildChunks(
-  chunks: Document<ChunkMetadata>[], // Parent chunks
-  children: Document<ChunkMetadata>[] // Child chunks
-): Document<ChunkMetadata>[] {
-  const chunkMap = new Map<string, Document<ChunkMetadata>>()
+  chunks: DocumentInterface<ChunkMetadata>[], // Parent chunks
+  children: DocumentInterface<ChunkMetadata>[] // Child chunks
+): DocumentInterface<ChunkMetadata>[] {
+  const chunkMap = new Map<string, DocumentInterface<ChunkMetadata>>()
   for (const chunk of chunks) {
     chunkMap.set(chunk.metadata.chunkId, chunk)
   }

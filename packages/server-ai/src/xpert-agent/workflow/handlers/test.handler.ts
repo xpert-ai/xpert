@@ -2,9 +2,7 @@ import {
 	IWFNCode,
 	IWFNKnowledgeRetrieval,
 	IWorkflowNode,
-	STATE_VARIABLE_HUMAN,
 	WorkflowNodeTypeEnum,
-	KnowledgebaseChannel
 } from '@metad/contracts'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -42,7 +40,7 @@ export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNode
 				case WorkflowNodeTypeEnum.CODE: {
 					const _entity = entity as IWFNCode
 					const results = await this.commandBus.execute(
-						new SandboxVMCommand(_entity.code, command.inputs, null, _entity.language)
+						new SandboxVMCommand(_entity.code, command.state, null, _entity.language)
 					)
 					return {
 						...(typeof results?.result === 'object' ? results.result : { result: results?.result }),
@@ -53,7 +51,7 @@ export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNode
 					const _entity = entity as IWFNKnowledgeRetrieval
 
 					const retriever = createWorkflowRetriever(this.queryBus, _entity)
-					const documents = (await retriever?.invoke(command.inputs.query)) ?? []
+					const documents = (await retriever?.invoke(command.state.query)) ?? []
 
 					return documents
 				}
@@ -64,20 +62,13 @@ export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNode
 							graph,
 							node,
 							xpertId: xpert.id,
-							environment: xpert.environment
+							environment: xpert.environment,
+							isDraft: command.isDraft
 						})
 						const state = await result.graph.invoke(
-							{
-								[KnowledgebaseChannel]: {
-									knowledgebaseId: command.inputs.knowledgebaseId,
-								},
-								[STATE_VARIABLE_HUMAN]: {
-									input: `Hi there`,
-								}
-							} as typeof AgentStateAnnotation.State,
+							command.state as typeof AgentStateAnnotation.State,
 							{
 								configurable: {
-									knowledgebaseId: '123',
 								}
 							}
 						)

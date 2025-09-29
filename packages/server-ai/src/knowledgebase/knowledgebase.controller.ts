@@ -1,4 +1,4 @@
-import { AIPermissionsEnum, IKnowledgebase, IPagination, KnowledgebasePermission, Metadata, RolesEnum } from '@metad/contracts'
+import { AIPermissionsEnum, IKnowledgebase, IKnowledgebaseTask, IPagination, KnowledgebasePermission, Metadata, RolesEnum } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -23,7 +23,8 @@ import {
 	UseGuards,
 	UseInterceptors,
 	InternalServerErrorException,
-	UploadedFile
+	UploadedFile,
+	Inject
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -36,6 +37,8 @@ import { KnowledgebasePublicDTO } from './dto'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { VolumeClient } from '../shared'
 import { join } from 'path'
+import { KnowledgeDocumentService } from '../knowledge-document'
+import { KnowledgebaseTask } from './task/task.entity'
 
 
 @ApiTags('Knowledgebase')
@@ -44,6 +47,11 @@ import { join } from 'path'
 @Controller()
 export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	readonly #logger = new Logger(KnowledgebaseController.name)
+
+
+	@Inject(KnowledgeDocumentService)
+	private readonly documentService: KnowledgeDocumentService
+
 	constructor(
 		private readonly service: KnowledgebaseService,
 		private readonly commandBus: CommandBus,
@@ -201,20 +209,38 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		}
 	}
 
+	@Post(':id/task')
+	async createTask(@Param('id') id: string, @Body() body: Partial<IKnowledgebaseTask>) {
+		return this.service.createTask(id, body)
+	}
+
 	@Get(':id/task/:taskId')
-	async getTask(@Param('id') id: string, @Param('taskId') taskId: string) {
-		return this.service.getTask(id, taskId)
+	async getTask(@Param('id') id: string, @Param('taskId') taskId: string, @Query('data', ParseJsonPipe) params: PaginationParams<KnowledgebaseTask>,) {
+		return this.service.getTask(id, taskId, params)
+	}
+
+	@Post(':id/task/:taskId/process')
+	async processTask(@Param('id') id: string, @Param('taskId') taskId: string,
+		@Body() body: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview'| 'prod'; options?: any }) {
+		return this.service.processTask(id, taskId, body)
 	}
 
 	/**
 	 * Upload a file to the kb volume.
+	 * @param parentId The document ID of the parent folder.
 	 */
 	@Post(':id/file')
 	@UseInterceptors(FileInterceptor('file'))
 	async uploadFile(@Param('id') id: string,
-		@Body('path') path: string,
+		@Body('parentId') parentId: string,
 		@UploadedFile() file: Express.Multer.File
 	) {
+		let parentFolder = ''
+		if (parentId) {
+			const parents = await this.documentService.findAncestors(parentId)
+			parentFolder = parents.map((i) => i.name).join('/')
+		}
+		
 		const client = new VolumeClient({
 			tenantId: RequestContext.currentTenantId(),
 			userId: RequestContext.currentUserId(),
@@ -222,13 +248,19 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 			knowledgeId: id
 		})
 
-		const targetFolder = path || ''
-		const filePath = join(targetFolder, file.originalname)
+		const targetFolder = parentFolder || ''
+		const originalname = Buffer.from(file.originalname, 'latin1').toString('utf8')
+		const filePath = join(targetFolder, originalname)
 		const url = await client.putFile(targetFolder, {
 			...file,
-			originalname: Buffer.from(file.originalname, 'latin1').toString('utf8')
+			originalname
 		})
-		return { url, filePath }
+		return { url, filePath, fileUrl: url }
+	}
+
+	@Get(':id/file/:name/preview')
+	async previewFile(@Param('id') id: string, @Param('name') name: string) {
+		return this.service.previewFile(id, decodeURIComponent(name))
 	}
 	
 	// Statistics

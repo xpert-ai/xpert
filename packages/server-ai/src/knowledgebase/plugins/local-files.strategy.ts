@@ -1,16 +1,18 @@
-import { DocumentSourceProviderCategoryEnum, I18nObject } from '@metad/contracts'
+import { DocumentSourceProviderCategoryEnum, I18nObject, IStorageFile, STATE_VARIABLE_HUMAN, TChatRequestHuman } from '@metad/contracts'
+import { FileStorage, GetStorageFileQuery } from '@metad/server-core'
 import { Injectable } from '@nestjs/common'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { DocumentSourceStrategy, IDocumentSourceStrategy } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface LocalFileConfig {
-	//
+	[STATE_VARIABLE_HUMAN]: TChatRequestHuman
 }
 
 @DocumentSourceStrategy('local-file')
 @Injectable()
 export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfig> {
+
 	readonly permissions = []
 	readonly meta = {
 		name: 'local-file',
@@ -30,44 +32,41 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 		}
 	}
 
+	constructor(
+		private readonly commandBus: CommandBus,
+		private readonly queryBus: QueryBus) {}
+
 	async validateConfig(config: LocalFileConfig): Promise<void> {
 		//
 	}
 
-	async test(config: LocalFileConfig): Promise<any> {
-		await this.validateConfig(config)
-		return this.loadFromLocal(config)
+	async test(config: LocalFileConfig) {
+		//
 	}
 
 	async loadDocuments(config: LocalFileConfig): Promise<Document[]> {
-		return this.loadFromLocal(config)
-	}
+		const human = config[STATE_VARIABLE_HUMAN]
+		if (human?.files) {
+			const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
+											new GetStorageFileQuery(human.files.map((file) => file.id))
+										)
+			// const fileProvider = new FileStorage().getProvider()
+			return storageFiles.map((file) => {
+				// const fullPath = fileProvider.path(file.file)
+				return new Document({
+					pageContent: '',
+					metadata: {
+						source: 'file-system',
+						// filePath: fullPath,
+						fileUrl: file.fileUrl,
+						size: file.size,
+						originalName: file.originalName,
+						mimetype: file.mimetype
+					}
+				})
+			})
+		}
 
-	private createDoc(
-		content: string,
-		config: LocalFileConfig,
-		filePath: string,
-		size?: number,
-		modifiedAt?: Date,
-		kind: 'file' | 'directory' = 'file'
-	): Document {
-		return new Document({
-			pageContent: content,
-			metadata: {
-				source: 'file-system',
-				// system: config.type,
-				path: filePath,
-				size,
-				modifiedAt,
-				kind
-			}
-		})
-	}
-
-	/* ---------- Local ---------- */
-	private async loadFromLocal(config: LocalFileConfig): Promise<Document[]> {
-		const docs: Document[] = []
-
-		return docs
+		return []
 	}
 }

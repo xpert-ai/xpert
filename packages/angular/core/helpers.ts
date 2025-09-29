@@ -391,7 +391,7 @@ export function mergeOptions(obj1: unknown, ...objs: unknown[]) {
 export function omitBlank(obj) {
   if (Array.isArray(obj)) {
     return obj.map(value => omitBlank(value))
-  } else if (typeof obj === "object") {
+  } else if (isNotNil(obj) && typeof obj === "object") {
     return Object.entries(obj)
       .filter(([, v]) => !isBlank(v))
       .reduce((r, [key, value]) => ({ ...r, [key]: omitBlank(value) }), {})

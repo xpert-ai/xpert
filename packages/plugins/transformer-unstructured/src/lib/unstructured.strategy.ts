@@ -40,7 +40,7 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
   async transformDocuments(files: TDocumentTransformerFile[], config: any) {
     const results = []
     for await (const file of files) {
-      const result = await this.client.parseFromFile(file.url)
+      const result = await this.client.parseFromFile(file.fileUrl)
 
       console.log('Chunks count:', result.chunks.length)
       console.log('First chunk:', result.chunks[0])

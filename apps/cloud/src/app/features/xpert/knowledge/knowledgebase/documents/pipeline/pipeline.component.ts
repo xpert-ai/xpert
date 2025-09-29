@@ -1,20 +1,21 @@
-import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { BehaviorSubject } from 'rxjs'
 import {
+  _TFile,
+  DocumentParserConfig,
   DocumentSourceProviderCategoryEnum,
   injectIntegrationAPI,
   IWFNSource,
   KDocumentSourceType,
   KnowledgebaseService,
+  KnowledgeFileUploader,
   StorageFileService,
   ToastrService,
   TXpertTeamNode,
@@ -22,8 +23,9 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
-import { CustomIconComponent } from '@cloud/app/@shared/avatar'
-import { KnowledgeLocalFileComponent, KnowledgeWebCrawlComponent } from '@cloud/app/@shared/knowledge'
+import { KnowledgeDocumentPipelineStep1Component } from './step-1/step.component'
+import { KnowledgeDocumentPipelineStep2Component } from './step-2/step.component'
+import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
 
 @Component({
   standalone: true,
@@ -34,13 +36,10 @@ import { KnowledgeLocalFileComponent, KnowledgeWebCrawlComponent } from '@cloud/
     CommonModule,
     FormsModule,
     TranslateModule,
-    CdkMenuModule,
-    MatTooltipModule,
     RouterModule,
-    NgmI18nPipe,
-    CustomIconComponent,
-    KnowledgeLocalFileComponent,
-    KnowledgeWebCrawlComponent
+    KnowledgeDocumentPipelineStep1Component,
+    KnowledgeDocumentPipelineStep2Component,
+    KnowledgeDocumentCreateStep3Component
   ]
 })
 export class KnowledgeDocumentPipelineComponent {
@@ -64,7 +63,7 @@ export class KnowledgeDocumentPipelineComponent {
 
   readonly loading = signal(false)
 
-  readonly step = signal(0)
+  readonly step = signal(1)
 
   readonly #pipeline = toSignal(
     this.knowledgebaseAPI.getOneById(this.knowledgebaseComponent.paramId(), {
@@ -108,17 +107,33 @@ export class KnowledgeDocumentPipelineComponent {
   })
 
   readonly integrations = this.#integrations.value
-
   readonly integrationId = signal<string>(null)
+  readonly selectedIntegration = computed(() => this.integrations()?.find((i) => i.value === this.integrationId()))
+  readonly parserConfig = signal<DocumentParserConfig>({})
+
+  readonly taskId = signal<string>(null)
+  readonly #taskResource = myRxResource({
+    request: () => ({ knowledgebaseId: this.knowledgebase()?.id, taskId: this.taskId() }),
+    loader: ({ request }) => {
+      return request?.taskId ? this.knowledgebaseAPI.getTask(request.knowledgebaseId, request.taskId) : null
+    }
+  })
+  readonly documentIds = signal<string[]>([])
+  readonly documents = computed(() => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds()?.includes(doc.id)) || [])
+
+  readonly files = model<KnowledgeFileUploader[]>([])
 
   constructor() {
     effect(() => {
-      console.log(this.sourceStrategies(), this.strategies(), this.sources())
+      console.log('taskid: ', this.taskId())
     })
   }
 
-  openIntegrations() {
-    window.open('/settings/integration', '_blank')
+  nextStep() {
+    this.step.update((n) => n + 1)
   }
 
+  previousStep() {
+    this.step.update((n) => n - 1)
+  }
 }

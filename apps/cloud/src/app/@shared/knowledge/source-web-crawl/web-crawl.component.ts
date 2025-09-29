@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { Component } from '@angular/core'
+import { Component, model } from '@angular/core'
+import { IKnowledgeDocument } from '@cloud/app/@core'
 
 @Component({
   standalone: true,
@@ -9,5 +10,5 @@ import { Component } from '@angular/core'
   styleUrls: ['web-crawl.component.scss']
 })
 export class KnowledgeWebCrawlComponent {
-  
+  readonly documents = model<Partial<IKnowledgeDocument>[]>(null)
 }

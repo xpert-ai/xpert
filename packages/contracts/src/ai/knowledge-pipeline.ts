@@ -74,9 +74,9 @@ export interface IWFNKnowledgeBase extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
   structure?: KnowledgeStructureEnum
   /**
-   * Documents input variable
+   * Documents input variables
    */
-  input?: string
+  inputs?: string[]
   /**
    * Embedding model
    */

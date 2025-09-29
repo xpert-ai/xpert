@@ -300,13 +300,11 @@
         </div>
         <div class="flex items-center gap-1">
           <div class="flex items-center h-6 px-1 rounded-md hover:bg-state-base-hover select-none text-text-secondary"
-            [cdkMenuTriggerFor]="files"
+            [cdkMenuTriggerFor]="filesMenu"
           >
             <div class="flex items-center space-x-0.5">
-              @if (selectedFile()) {
-                @if (selectedFile().doc) {
-                  <knowledge-doc-id [doc]="selectedFile().doc" />
-                }
+              @if (selectedDocument(); as doc) {
+                <knowledge-doc-id [doc]="doc" />
               } @else if(selectedWebDoc()) {
                 <div>{{selectedWebDoc().metadata.title}}</div>
               }
@@ -325,11 +323,11 @@
       </div>
     </header>
 
-    @if (selectedFile()) {
-      <xpert-knowledge-document-preview class="py-4 w-full grow space-y-6 overflow-auto" 
-            [(item)]="selectedFile" 
-            [parserConfig]="parserConfig()"
-          />
+    @if (selectedDocument()) {
+      <xp-knowledge-document-preview class="py-4 w-full grow space-y-6 overflow-auto" 
+        [document]="selectedDocument()" 
+        [parserConfig]="parserConfig()"
+      />
     }
     @if (selectedWebDoc()) {
       <xpert-knowledge-document-webpages [item]="selectedWebDoc()" 
@@ -338,15 +336,15 @@
   </div>
 </div>
 
-<ng-template #files>
+<ng-template #filesMenu>
   <div cdkMenu class="cdk-menu__medium">
-    @for (file of fileList(); track file) {
-      <div cdkMenuItem (click)="selectedWebDoc.set(null);selectedFileId.set(file.doc.storageFile.id)">
+    @for (file of files(); track file) {
+      <div cdkMenuItem (click)="selectedWebDoc.set(null);selectedDocument.set(file.document())">
         {{ file.file.name }}
       </div>
     }
     @for (doc of webDocs(); track doc) {
-      <div cdkMenuItem (click)="selectedFileId.set(null);selectedWebDoc.set(doc)">
+      <div cdkMenuItem (click)="selectedDocument.set(null);selectedWebDoc.set(doc)">
         <div class="w-full flex flex-col items-start">
           <div>{{ doc.metadata.title }}</div>
           <div class="text-xs text-text-secondary">{{ doc.metadata.url }}</div>

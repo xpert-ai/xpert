@@ -40,53 +40,6 @@
 } @else {
   @for (chunk of docs(); track chunk; let i = $index) {
     <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
-    <!-- <div class="group/card space-y-2 p-2 rounded-xl hover:bg-neutral-100">
-      <div class="flex items-center text-text-secondary text-sm font-medium">
-        <i class="ri-text-block mr-1"></i>
-        <p class="flex gap-2 ml-0.5">
-            <span>Chunk-{{i}}</span>
-            <span>·</span>
-            <span>{{chunk.pageContent.length}} characters</span>
-        </p>
-      </div>
-      <div class="whitespace-pre-line text-text-secondary text-base font-body group-hover/card:text-text-primary">{{chunk.pageContent}}</div>
-      @if (chunk.metadata.children?.length) {
-        <div class="flex flex-col pb-2 pt-1">
-          <div class="flex items-center justify-between">
-            <div class="flex h-7 items-center rounded-lg pl-1 pr-3 cursor-pointer">
-              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="remixicon mr-0.5 h-4 w-4 text-text-secondary">
-                <path d="M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z"></path>
-              </svg>
-              <span class="system-sm-semibold-uppercase text-text-secondary">{{chunk.metadata.children.length}} 子分段</span>
-              <span class="pl-1.5 text-xs font-medium text-text-quaternary hidden group-hover/card:inline-block">·</span>
-              <button type="button" class="btn btn-secondary btn-sm system-xs-semibold-uppercase px-1.5 py-1 hidden group-hover/card:inline-block">添加</button>
-            </div>
-          </div>
-          <div class="flex gap-x-0.5 items-center">
-            <div class="self-stretch">
-              <div class="h-full mx-[7px] w-[2px] bg-text-accent-secondary"></div>
-            </div>
-            <p class="flex w-full flex-col leading-6 gap-y-2">
-              @for (chunk of chunk.metadata.children; track chunk; let j = $index) {
-                <span class="group relative select-none align-bottom text-sm mr-0 block" style="overflow: hidden; overflow-wrap: break-word;">
-                  <span class="py-[3px] bg-state-base-hover-alt px-1 uppercase text-text-tertiary group-hover:bg-accent-500 group-hover:text-text-primary">
-                    <span class="text-nowrap text-[10px] font-semibold align-bottom leading-6">C-{{j + 1}}</span>
-                  </span>
-                  <span class="py-[3px] whitespace-pre-line break-all bg-state-base-hover px-1 font-body group-hover:bg-state-accent-hover-alt group-hover:text-text-primary leading-6 text-text-secondary"
-                    >{{chunk.pageContent}}</span>
-
-                  <div class="absolute right-2 top-1 p-1 hidden group-hover:inline-block rounded-lg bg-components-card-bg">
-                    <button type="button" class="w-6 h-6 flex justify-center items-center hover:bg-red-50 hover:text-text-destructive">
-                      <i class="ri-delete-bin-4-line"></i>
-                    </button>
-                  </div>
-                </span>
-              }
-            </p>
-          </div>
-        </div> 
-      }
-    </div>-->
   } @empty {
     @if (error()) {
       <div class="text-text-warning">

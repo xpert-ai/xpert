@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { TDocumentAsset, XpFileSystem } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, TDocumentAsset, XpFileSystem } from '@xpert-ai/plugin-sdk'
 import axios from 'axios'
 import { Document } from 'langchain/document'
 import path from 'path'
 import unzipper from 'unzipper'
 import { MinerU, TDocumentParseResult } from './types'
+import { v4 as uuidv4 } from 'uuid'
 
 @Injectable()
 export class MinerUResultParserService {
@@ -62,7 +63,7 @@ export class MinerUResultParserService {
       const localPath = assets.find((asset) => asset.filePath === p2)?.url
       return localPath ? `![${p1}](${localPath})` : match
     })
-    const chunks = [new Document({ pageContent: fullMd, metadata: { parser: MinerU, taskId } })]
+    const chunks = [new Document<ChunkMetadata>({ pageContent: fullMd, metadata: { parser: MinerU, taskId, chunkId: uuidv4() } })]
 
     // 4. metadata
     const metadata: TDocumentParseResult['metadata'] = {

@@ -1,9 +1,6 @@
 import { WorkflowAgentToolValidator } from './agent-tool/index'
-import { WorkflowChunkerValidator } from './chunker'
 import { WorkflowCodeValidator } from './code/index'
-import { WorkflowProcessorValidator } from './processor'
 import { WorkflowTriggerValidator } from './trigger/index'
-import { WorkflowUnderstandingValidator } from './understanding'
 
 export * from './test.command'
 export * from './create-workflow.command'
@@ -24,7 +21,4 @@ export const Validators = [
     WorkflowCodeValidator,
     WorkflowTriggerValidator,
     WorkflowAgentToolValidator,
-    WorkflowProcessorValidator,
-    WorkflowChunkerValidator,
-    WorkflowUnderstandingValidator
 ]

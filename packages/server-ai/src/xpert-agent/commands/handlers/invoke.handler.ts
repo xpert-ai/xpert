@@ -11,6 +11,8 @@ import {
 	GRAPH_NODE_TITLE_CONVERSATION,
 	IKnowledgebaseTask,
 	IXpertAgent,
+	KnowledgebaseChannel,
+	KnowledgeTask,
 	LanguagesEnum,
 	mapTranslationLanguage,
 	STATE_VARIABLE_HUMAN,
@@ -52,7 +54,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 	) {}
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
-		const { input, agentKeyOrName, xpert, options } = command
+		const { state, agentKeyOrName, xpert, options } = command
 		const { execution, subscriber, reject, memories } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
@@ -82,11 +84,16 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
 		let task: IKnowledgebaseTask = null
 		if (xpert.knowledgebase) {
-			const taskService = await this.queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(new KnowledgeTaskServiceQuery())
-			task = await taskService.createTask(xpert.knowledgebase.id, {
-				taskType: 'ingest',
-				conversationId: options.conversationId
-			})
+			state[KnowledgebaseChannel] ??= {}
+			state[KnowledgebaseChannel]['knowledgebaseId'] ??= xpert.knowledgebase.id
+			if (!state[KnowledgebaseChannel][KnowledgeTask]) {
+				const taskService = await this.queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(new KnowledgeTaskServiceQuery())
+				task = await taskService.createTask(xpert.knowledgebase.id, {
+					taskType: 'ingest',
+					conversationId: options.conversationId
+				})
+				state[KnowledgebaseChannel][KnowledgeTask] = task.id
+			}
 		}
 		
 		const team = agent.team
@@ -147,13 +154,14 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			if (options.command.resume) {
 				graphInput = new Command(pick(options.command, 'resume', 'update'))
 			}
-		} else if(input?.input) {
+		} else if(state[STATE_VARIABLE_HUMAN]) {
 			graphInput = {
-				...omit(input, 'input', 'files'),
+				...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
 				/**
 				 * @deprecated use `human.input` instead
 				 */
-				input: input.input,
+				input: state[STATE_VARIABLE_HUMAN].input,
+				...(state ?? {}),
 				[STATE_VARIABLE_SYS]: {
 					language: languageCode,
 					user_email: user.email,
@@ -164,7 +172,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					workspace_url: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.conversationId)
 				},
 				[STATE_VARIABLE_HUMAN]: {
-					...input,
+					...state[STATE_VARIABLE_HUMAN],
 				},
 				memories
 			}
@@ -184,8 +192,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						executionId: execution.id,
 						xpertId: xpert.id,
 						agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
-						knowledgebaseId: xpert.knowledgebase?.id,
-						knowledgeTaskId: task?.id,
 						/**
 						 * @deprecated use customEvents instead
 						 */

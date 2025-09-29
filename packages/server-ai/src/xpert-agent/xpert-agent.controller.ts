@@ -53,9 +53,9 @@ export class XpertAgentController extends CrudController<XpertAgent> {
 	}
 
 	@Post('xpert/:id/test/:key')
-	async testNode(@Param('id') id: string, @Param('key') key: string, @Body() body: {parameters: any}) {
+	async testNode(@Param('id') id: string, @Param('key') key: string, @Body() body: {state: any}) {
 		try {
-			return await this.commandBus.execute(new WorkflowTestNodeCommand(id, key, body.parameters))
+			return await this.commandBus.execute(new WorkflowTestNodeCommand(id, key, body.state))
 		} catch(err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}

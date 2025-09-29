@@ -10,15 +10,18 @@ import {
 	DocumentTextParserConfig,
 	KBDocumentStatusEnum,
 	IKnowledgebaseTask,
+	Metadata,
 } from '@metad/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
+import { DocumentInterface } from '@langchain/core/documents'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, RelationId, Tree, TreeChildren, TreeParent } from 'typeorm'
 import { Knowledgebase, KnowledgebaseTask, KnowledgeDocumentPage } from '../core/entities/internal'
 
 @Entity('knowledge_document')
+@Tree('closure-table') 
 export class KnowledgeDocument extends TenantOrganizationBaseEntity implements IKnowledgeDocument {
 	@ApiProperty({ type: () => Boolean })
 	@IsBoolean()
@@ -118,7 +121,13 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsString()
 	@Optional()
 	@Column({ nullable: true })
-	location: string
+	filePath: string
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@Optional()
+	@Column({ nullable: true })
+	fileUrl: string
 
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
@@ -186,30 +195,30 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ type: 'json', nullable: true })
 	options?: TDocumentWebOptions
 
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	metadata?: Metadata
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	chunks?: DocumentInterface[]
+
 	/*
     |--------------------------------------------------------------------------
     | Parent-children relationship 
     |--------------------------------------------------------------------------
     */
+	@TreeChildren()
+	children: KnowledgeDocument[]
+
 	@ApiPropertyOptional({ type: () => KnowledgeDocument, description: 'Parent document' })
-	@ManyToOne(() => KnowledgeDocument, (parent) => parent.children, {
-		nullable: true,
-		onDelete: 'SET NULL'
-	})
-	@JoinColumn({ name: 'parentId' })
 	@IsOptional()
-	parent?: KnowledgeDocument
-
-	@ApiPropertyOptional({ type: () => String, description: 'Parent document ID' })
-	@RelationId((it: KnowledgeDocument) => it.parent)
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	parentId?: string
-
-	@ApiProperty({ type: () => KnowledgeDocument, isArray: true, description: 'Child documents' })
-	@OneToMany(() => KnowledgeDocument, (child) => child.parent)
-	children?: KnowledgeDocument[]
+	@TreeParent()
+	parent: KnowledgeDocument;
 
 	/*
     |--------------------------------------------------------------------------

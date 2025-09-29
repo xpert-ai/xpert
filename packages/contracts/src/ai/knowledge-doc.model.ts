@@ -78,7 +78,7 @@ export enum KBDocumentCategoryEnum {
 }
 
 export enum KBDocumentStatusEnum {
-  WASTED = 'wasted',
+  WAITED = 'waited',
   VALIDATE = 'validate',
   RUNNING = 'running',
   CANCEL = 'cancel',
@@ -96,7 +96,13 @@ export type TKnowledgeDocument = {
   knowledgebaseId?: string
   knowledgebase?: IKnowledgebase
 
+  /**
+   * @deprecated use fileUrl instead
+   */
   storageFileId?: string
+  /**
+   * @deprecated use fileUrl instead
+   */
   storageFile?: IStorageFile
 
   /**
@@ -127,9 +133,10 @@ export type TKnowledgeDocument = {
    */
   name: string
   /**
-   * where dose it store
+   * where does it store
    */
-  location: string
+  filePath: string
+  fileUrl?: string
 
   size: string
 
@@ -169,8 +176,9 @@ export type TKnowledgeDocument = {
  * Document, include file, web pages, folder, virtual, etc.
  */
 export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
-  parentId?: string | null
+  // parentId?: string | null
   parent?: IKnowledgeDocument | null
+  children?: IKnowledgeDocument[]
 
   // Temp
   chunks?: DocumentInterface[]

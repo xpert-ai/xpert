@@ -70,13 +70,28 @@
 
 <div class="p-4 space-y-3">
   <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
-    分块
-    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
-      <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+    <div>
+      分块
+      <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
+        <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+      </div>
     </div>
+
+    <button type="button" class="btn btn-ghost-accent btn-small ml-auto" (click)="addInput()">
+      <i class="ri-add-line"></i>
+    </button>
   </div>
-  <div>
-    <xpert-state-variable-select [variables]="variables()" [(ngModel)]="input" />
+  <div class="space-y-1">
+    @for (item of inputs(); track i; let i = $index) {
+      <div class="relative group p-0.5 border border-transparent rounded-xl hover:border-divider-subtle">
+        <xpert-state-variable-select [variables]="variables()" [ngModel]="item" (ngModelChange)="updateInput(i, $event)" />
+
+        <button type="button" class="absolute top-1 right-1 btn w-6 h-6 rounded-lg flex justify-center items-center danger opacity-0 group-hover:opacity-100 transition-opacity"
+          (click)="removeInput(i)">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    }
   </div>
 </div>
 

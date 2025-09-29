@@ -3,8 +3,8 @@ import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsObject, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { ChatConversation, Knowledgebase } from '../../core/entities/internal'
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
+import { ChatConversation, Knowledgebase, KnowledgeDocument } from '../../core/entities/internal'
 
 @Entity('knowledgebase_task')
 export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements IKnowledgebaseTask {
@@ -43,7 +43,7 @@ export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements I
 	conversationId?: string
 
 	@ApiProperty({ type: () => String })
-	@Column({ type: 'varchar', length: 50 })
+	@Column({ type: 'varchar', length: 50, default: 'embedding' })
 	taskType: string // preprocess / re-embed / cleanup ...
 
 	@ApiPropertyOptional({ type: () => String })
@@ -78,4 +78,16 @@ export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements I
 	context?: {
 		documents?: Partial<IKnowledgeDocument>[]
 	}
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToMany
+    |--------------------------------------------------------------------------
+    */
+	@ApiPropertyOptional({ type: () => KnowledgeDocument, isArray: true })
+	@IsOptional()
+	@OneToMany(() => KnowledgeDocument, (kd) => kd.task, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	documents?: IKnowledgeDocument[] | null
 }

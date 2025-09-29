@@ -21,6 +21,8 @@ export interface IKnowledgebaseTask extends IBasePerTenantAndOrganizationEntityM
   context?: {
 		documents?: Partial<IKnowledgeDocument>[]
 	}
+
+  documents?: IKnowledgeDocument[] 
 }
 
 export interface TaskStep {

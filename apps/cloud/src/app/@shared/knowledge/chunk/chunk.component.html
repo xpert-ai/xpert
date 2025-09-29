@@ -30,7 +30,7 @@
           </div>
         } @else {
           <div class="flex items-center flex-row-reverse gap-1">
-            @if (chunk().metadata?.enabled) {
+            @if (enabled()) {
               <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
               <span class="text-sm text-text-tertiary system-xs-regular">
                 {{'PAC.Knowledgebase.Enabled' | translate: {Default: 'Enabled'} }}

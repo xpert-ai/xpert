@@ -17,6 +17,7 @@ import {
   KDocumentWebTypeEnum,
   KnowledgebaseService,
   KnowledgeDocumentService,
+  KnowledgeFileUploader,
   StorageFileService,
   TDocumentWebOptions,
   ToastrService,
@@ -26,9 +27,8 @@ import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
 import { KnowledgeDocumentCreateStep1Component } from './step-1/step.component'
 import { KnowledgeDocumentCreateStep2Component } from './step-2/step.component'
-import { KnowledgeDocumentCreateStep3Component } from './step-3/step.component'
+import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
 import { TSelectOption } from '@metad/ocap-angular/core'
-import { TFileItem } from '../types'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { toSignal } from '@angular/core/rxjs-interop'
 
@@ -77,7 +77,10 @@ export class KnowledgeDocumentCreateComponent {
   // Step 1
   readonly sourceType = model<KDocumentSourceType[]>([KDocumentSourceType.FILE])
   readonly sourceConfig = model<any>(null)
-  readonly fileList = signal<TFileItem[]>([])
+
+  // readonly fileList = signal<TFileItem[]>([])
+  readonly files = model<KnowledgeFileUploader[]>([])
+  
   readonly webTypes = model<TSelectOption<KDocumentWebTypeEnum>[]>([])
   readonly integration = model<IIntegration>(null)
   readonly webOptions = model<TDocumentWebOptions>(null)
@@ -86,7 +89,7 @@ export class KnowledgeDocumentCreateComponent {
 
   // Step 2
   readonly parserConfig = model<DocumentTextParserConfig>({} as DocumentTextParserConfig)
-  readonly step2Avaiable = computed(() => this.fileList()?.length || this.webResult()?.docs?.length)
+  readonly step2Avaiable = computed(() => this.files()?.length || this.webResult()?.docs?.length)
 
   // Step 3
   readonly documents = signal<IKnowledgeDocument[]>([])
@@ -116,21 +119,21 @@ export class KnowledgeDocumentCreateComponent {
   }
 
   updateFileDocs(docs: IKnowledgeDocument[]) {
-    this.fileList.update((state) => {
-      docs.forEach((doc) => {
-        const index = state.findIndex((_) => _.doc?.id === doc.id)
-        if (index > -1) {
-          state[index] = {
-            ...state[index],
-            doc: {
-              ...state[index].doc,
-              ...doc
-            }
-          }
-        }
-      })
-      return Array.from(state)
-    })
+    // this.files.update((state) => {
+    //   docs.forEach((doc) => {
+    //     const index = state.findIndex((_) => _.doc?.id === doc.id)
+    //     if (index > -1) {
+    //       state[index] = {
+    //         ...state[index],
+    //         doc: {
+    //           ...state[index].doc,
+    //           ...doc
+    //         }
+    //       }
+    //     }
+    //   })
+    //   return Array.from(state)
+    // })
   }
 
   updateDocs(docs: IKnowledgeDocument[]) {

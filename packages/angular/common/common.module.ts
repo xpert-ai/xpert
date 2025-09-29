@@ -23,6 +23,7 @@ import { NgmCheckboxComponent } from './checkbox/checkbox.component'
 import { NgmSlideToggleComponent } from './slide-toggle/slide-toggle.component'
 import { NgmStepperComponent } from './stepper/stepper.component'
 import { NgmCopyComponent } from './copy/copy.component'
+import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.component'
 
 @NgModule({
   imports: [
@@ -57,7 +58,8 @@ import { NgmCopyComponent } from './copy/copy.component'
     NgmCheckboxComponent,
     NgmSlideToggleComponent,
     NgmStepperComponent,
-    NgmCopyComponent
+    NgmCopyComponent,
+    NgmProgressSpinnerComponent
   ],
   exports: [
     ResizerModule,
@@ -89,7 +91,8 @@ import { NgmCopyComponent } from './copy/copy.component'
     NgmCheckboxComponent,
     NgmSlideToggleComponent,
     NgmStepperComponent,
-    NgmCopyComponent
+    NgmCopyComponent,
+    NgmProgressSpinnerComponent
   ],
   declarations: [],
   providers: []

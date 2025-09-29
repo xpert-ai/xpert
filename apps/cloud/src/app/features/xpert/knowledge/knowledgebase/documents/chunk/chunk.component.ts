@@ -97,7 +97,7 @@ export class KnowledgeDocumentChunkComponent {
   }
 
   close() {
-    this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.document().parentId } })
+    this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.document().parent?.id } })
   }
 
   deleteChunk(chunk: IDocumentChunk) {

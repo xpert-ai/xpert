@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Next": "下一步",
       "Limit": "限制",
       "Help": "帮助",
       "LearnMore": "了解更多",
@@ -679,6 +680,8 @@
       "PasswordChangedSuccessfully": "密码修改成功"
     },
     "ACTIONS": {
+      "Rename": "重命名",
+      "Refresh": "刷新",
       "Export": "导出",
       "Change": "更改",
       "Disable": "禁用",
@@ -2308,6 +2311,16 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "AddDocuments": "添加文档",
+      "ChooseADataSource": "选择数据源",
+      "CreateSystemIntegration": "创建系统集成",
+      "Pipeline": "流水线",
+      "PleaseSelectADataSource": "请选择一个数据源",
+      "NoPagesFetched": "没有抓取到任何页面",
+      "DocumentsDescription": "知识库的所有文件都在这里显示，整个知识库都可以应用到数字专家智能体或项目空间。",
+      "ProcessingDocuments": "处理文档",
+      "SelectDocumentForPreview": "选择一个文档以预览其内容",
+      "EstimatedChunks": "估计块数",
       "RetrievalTestingResultsHere": "检索测试结果将在此处显示",
       "Index": "索引",
       "CreateKnowledgebase": "创建知识库",
@@ -2349,6 +2362,12 @@
       "Status_Finish": "完成",
       "Status_Error": "错误",
       "Status_NotStart": "未开始",
+      "Status_Processing": "处理中",
+      "Status_Stopped": "已停止",
+      "Status_Paused": "已暂停",
+      "Status_Parsing": "解析中",
+      "Status_Embedding": "嵌入中",
+      "Status_Waited": "排队中",
       "Input": "输入",
       "Permission_Private": "私有",
       "Permission_Organization": "组织内",

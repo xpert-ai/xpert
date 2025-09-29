@@ -1,16 +1,16 @@
-import { ChecklistItem, IWFNChunker, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { ChecklistItem, IWFNUnderstanding, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from '../../../xpert/types'
 
 @Injectable()
-export class WorkflowChunkerValidator {
+export class WorkflowUnderstandingNodeValidator {
 	
 	@OnEvent(EventNameXpertValidate)
 	handle(event: XpertDraftValidateEvent) {
 		const draft = event.draft
 		const codeNodes = draft.nodes.filter(
-			(node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.CHUNKER
+			(node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.UNDERSTANDING
 		)
 		const items: ChecklistItem[] = []
 		codeNodes.forEach((node) => {
@@ -20,7 +20,7 @@ export class WorkflowChunkerValidator {
 	}
 
 	check(node: TXpertTeamNode) {
-		const entity = node.entity as IWFNChunker
+		const entity = node.entity as IWFNUnderstanding
 		const items: ChecklistItem[] = []
 
 		return items

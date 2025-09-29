@@ -1,5 +1,4 @@
 import { TDocumentTransformerResult } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
 
 
 export const MinerU = 'mineru'

@@ -1,5 +1,5 @@
 import { Embeddings } from '@langchain/core/embeddings'
-import { AiProviderRole, ICopilot, IWFNTrigger, TLongTermMemory, TXpertTeamDraft } from '@metad/contracts'
+import { AiProviderRole, ICopilot, IWFNTrigger, TChatFrom, TLongTermMemory, TXpertTeamDraft } from '@metad/contracts'
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { CopilotGetOneQuery, CopilotOneByRoleQuery } from '../copilot'
@@ -12,8 +12,9 @@ export const QUEUE_XPERT_TRIGGER = 'xpert-trigger'
 
 export type TTriggerJob = {
 	userId: string
-	request: any
 	xpertId: string
+	from?: TChatFrom
+	state: any
 	trigger: IWFNTrigger
 }
 

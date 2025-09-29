@@ -8,18 +8,17 @@ import { of } from 'rxjs'
 import {
   DocumentParserConfig,
   DocumentSheetParserConfig,
-  getErrorMessage,
+  IKnowledgeDocument,
   injectToastr,
   KBDocumentCategoryEnum,
   KnowledgeDocumentService
 } from '@cloud/app/@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
-import { TFileItem } from '../../types'
 import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
 
 @Component({
   standalone: true,
-  selector: 'xpert-knowledge-document-preview',
+  selector: 'xp-knowledge-document-preview',
   templateUrl: './preview.component.html',
   styleUrl: './preview.component.scss',
   imports: [FormsModule, TranslateModule, NgmSpinComponent, NgmCheckboxComponent, KnowledgeChunkComponent]
@@ -35,25 +34,30 @@ export class KnowledgeDocumentPreviewComponent {
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
   // Inputs
-  readonly item = model<TFileItem>()
+  // readonly item = model<TFileItem>()
+  readonly document = model<Partial<IKnowledgeDocument>>()
   readonly parserConfig = model<DocumentParserConfig>()
 
   // Estimate embedding for file or webpage
   readonly estimateFile = myRxResource({
     request: () => (this.category() === KBDocumentCategoryEnum.Sheet ? {
-      type: this.item()?.doc.type,
+      type: this.document()?.type,
       category: this.category(),
       parserConfig: this.sheetParserConfig(),
-      storageFileId: this.item()?.doc.storageFile.id,
+      fileUrl: this.document()?.fileUrl,
+      filePath: this.document()?.filePath,
+      // storageFileId: this.document()?.storageFile?.id,
       knowledgebaseId: this.knowledgebase().id
     } : {
-      type: this.item()?.doc.type,
+      type: this.document()?.type,
       category: this.category(),
       parserConfig: this.parserConfig(),
-      storageFileId: this.item()?.doc.storageFile.id,
+      fileUrl: this.document()?.fileUrl,
+      filePath: this.document()?.filePath,
+      // storageFileId: this.document()?.storageFile?.id,
       knowledgebaseId: this.knowledgebase().id
     }),
-    loader: ({ request }) => (request.storageFileId ? this.knowledgeDocumentService.estimate(request) : of(null))
+    loader: ({ request }) => (request.fileUrl ? this.knowledgeDocumentService.estimate(request) : of(null))
   })
 
   readonly loading = computed(() => this.estimateFile.status() === 'loading')
@@ -62,22 +66,19 @@ export class KnowledgeDocumentPreviewComponent {
 
   readonly sheetParserConfig = linkedModel({
     initialValue: null,
-    compute: () => this.item()?.doc?.parserConfig as DocumentSheetParserConfig,
+    compute: () => this.document()?.parserConfig as DocumentSheetParserConfig,
     update: (value: DocumentSheetParserConfig) => {
-      this.item.update((state) => {
+      this.document.update((state) => {
         return {
           ...state,
-          doc: {
-            ...state.doc,
-            parserConfig: value
-          }
+          parserConfig: value
         }
       })
     }
   })
-  
-  readonly fileType = computed(() => this.item()?.doc?.type)
-  readonly category = computed(() => this.item()?.doc?.category)
+
+  readonly fileType = computed(() => this.document()?.type)
+  readonly category = computed(() => this.document()?.category)
 
   readonly fields = computed(() => {
     if (this.category() === KBDocumentCategoryEnum.Sheet) {

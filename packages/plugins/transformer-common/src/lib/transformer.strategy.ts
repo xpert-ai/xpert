@@ -6,20 +6,27 @@ import { Injectable } from '@nestjs/common'
 import {
   DocumentTransformerStrategy,
   downloadRemoteFile,
+  FileSystemPermission,
   IDocumentTransformerStrategy,
   isRemoteFile,
   TDocumentTransformerFile
 } from '@xpert-ai/plugin-sdk'
+import fsPromises from 'fs/promises'
 import { Document } from 'langchain/document'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
-import fsPromises from 'fs/promises'
-import { Default, TDocumentParseResult, icon, TDefaultTransformerConfig } from './types'
 import path from 'path'
+import { Default, icon, TDefaultTransformerConfig, TDocumentParseResult } from './types'
 
 @Injectable()
 @DocumentTransformerStrategy(Default)
 export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<TDefaultTransformerConfig> {
-  readonly permissions = []
+  readonly permissions = [
+    {
+      type: 'filesystem',
+      operations: ['read', 'write', 'list'],
+      scope: []
+    } as FileSystemPermission
+  ]
   meta = {
     name: Default,
     label: {
@@ -49,12 +56,16 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     files: TDocumentTransformerFile[],
     config: TDefaultTransformerConfig
   ): Promise<TDocumentParseResult[]> {
+    const xpFileSystem = config.permissions.fileSystem
+    console.log('Transforming documents with DefaultTransformerStrategy...')
+    console.log('Files:', files)
+
     const results = []
     for await (const file of files) {
-      if (isRemoteFile(file.url)) {
+      if (!file.filePath && isRemoteFile(file.fileUrl)) {
         const tempDir = config.tempDir || '/tmp/'
         const filePath = path.join(tempDir, file.filename)
-         // Ensure the temp directory exists
+        // Ensure the temp directory exists
         await fsPromises.mkdir(path.dirname(filePath), { recursive: true })
 
         // If file already exists, remove it
@@ -74,42 +85,45 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         }
 
         // Download the remote file to a local temporary directory
-        file.url = await downloadRemoteFile(file.url, filePath)
+        file.filePath = await downloadRemoteFile(file.fileUrl, filePath)
+      } else {
+        file.filePath = xpFileSystem.fullPath(file.filePath)
       }
       let data: Document[]
       switch (file.extname?.toLowerCase()) {
         case 'md':
         case 'mdx':
         case 'markdown':
-          data = await this.processMarkdown(file.url)
+          data = await this.processMarkdown(file.filePath)
           break
         case 'pdf':
-          data = await this.processPdf(file.url)
+          data = await this.processPdf(file.filePath)
           break
         case 'epub':
-          data = await this.processEpub(file.url)
+          data = await this.processEpub(file.filePath)
           break
         case 'doc':
         case 'docx':
-          data = await this.processDocx(file.url)
+          data = await this.processDocx(file.filePath)
           break
         case 'pptx':
-          data = await this.processPPT(file.url)
+          data = await this.processPPT(file.filePath)
           break
         case 'xlsx':
-          data = await this.processExcel(file.url)
+          data = await this.processExcel(file.filePath)
           break
         case 'odt':
         case 'ods':
         case 'odp':
-          data = await this.processOpenDocument(file.url)
+          data = await this.processOpenDocument(file.filePath)
           break
         default:
-          data = await this.processText(file.url)
+          data = await this.processText(file.filePath)
           break
       }
 
       results.push({
+        id: file.id,
         chunks: data
       })
     }

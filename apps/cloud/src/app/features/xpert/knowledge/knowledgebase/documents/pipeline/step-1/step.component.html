@@ -1,0 +1,279 @@
+<div class="h-full min-w-0 flex-1">
+  <div class="flex h-full flex-col px-14">
+    <div class="relative flex flex-col gap-y-0.5 pb-2 pt-4">
+      <div class="flex items-center gap-x-2">
+        <span class="text-xs font-semibold uppercase bg-gradient-to-br from-[rgba(11,165,236,0.95)] to-[rgba(21,90,239,0.95)] bg-clip-text text-transparent"
+          >{{ 'PAC.KnowledgeBase.AddDocuments' | translate: {Default: 'Add Documents'} }}</span
+        ><span class="system-2xs-regular text-divider-regular">/</span>
+        <div class="flex gap-x-1">
+          <div class="h-1 rounded-lg w-2 bg-primary-600"></div>
+          <div class="h-1 w-1 rounded-lg bg-divider-deep"></div>
+          <div class="h-1 w-1 rounded-lg bg-divider-deep"></div>
+        </div>
+      </div>
+      <div class="system-md-semibold text-text-primary">{{ 'PAC.KnowledgeBase.ChooseADataSource' | translate: {Default: 'Choose a Data Source'} }}</div>
+      <a [routerLink]="['../']" class="cursor-pointer">
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-secondary-accent btn-medium absolute -left-11 top-3.5 size-9 rounded-full p-0"
+        >
+          <i class="ri-arrow-left-line"></i>
+        </button></a>
+      <div class="absolute size-[112px] rounded-full bg-util-colors-blue-brand-blue-brand-500 blur-[80px] left-8 top-[-34px] opacity-20"></div>
+    </div>
+    <div class="grow overflow-y-auto">
+      <div class="flex flex-col gap-y-5 pt-4">
+        <div class="grid w-full grid-cols-4 gap-1">
+          @for (item of sourceStrategies(); track item.source.key) {
+            <div class="flex cursor-pointer items-center gap-2 rounded-xl border p-3 shadow-sm
+              border-gray-100 bg-components-card-bg ring-[0.5px] ring-inset ring-gray-50 hover:border-gray-200"
+              [class.!border-primary-600]="selectedSource() && selectedSource().key === item.source.key"
+              [class.!ring-primary-600]="selectedSource() && selectedSource().key === item.source.key"
+              (click)="selectedSource.set(item.source)">
+              <div
+                class="flex size-8 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-components-panel-border bg-background-default-dodge p-1.5"
+              >
+                <div class="flex items-center justify-center size-6 rounded-md shadow-xs">
+                  <xp-custom-icon class="contents" [icon]="item.strategy.meta.icon" />
+                </div>
+              </div>
+              <div class="system-sm-medium line-clamp-2 grow text-text-primary" [title]="item.strategy.meta.label | i18n">
+                {{ item.strategy.meta.label | i18n }}
+              </div>
+            </div>
+          }
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center justify-between gap-x-2">
+            @if (integration(); as integration) {
+              <div class="flex items-center gap-x-1 overflow-hidden">
+                <div class="grow overflow-hidden">
+                  <div class="flex cursor-pointer items-center gap-x-2 rounded-md p-1 pr-2 hover:bg-state-base-hover"
+                    [cdkMenuTriggerFor]="integrationMenu">
+                    <div class="flex grow items-center gap-x-1 overflow-hidden">
+                      @if (selectedIntegration(); as selectedIntegration) {
+                        <span class="system-md-semibold grow truncate text-text-secondary">{{selectedIntegration.label | i18n}}</span>
+                      } @else {
+                        <span class="system-md-semibold grow truncate text-text-secondary">{{integration.service}}</span>
+                      }<i class="ri-arrow-down-s-line"></i>
+                    </div>
+                  </div>
+                </div>
+                <div class="w-[1px] bg-divider-regular mx-1 h-3.5 shrink-0"></div>
+                @if (selectedIntegration(); as selectedIntegration) {
+                  <a [routerLink]="['/settings/integration', selectedIntegration.value]" class="cursor-pointer">
+                    <button
+                      type="button"
+                      class="btn disabled:btn-disabled btn-ghost btn-small size-6 shrink-0 px-1"
+                    >
+                      <i class="ri-equalizer-2-line"></i>
+                    </button>
+                  </a>
+                }
+              </div>
+
+              @if (selectedStrategy()?.meta.helpUrl; as url) {
+                <a [href]="url"
+                  class="system-xs-medium flex shrink-0 items-center gap-x-1 text-text-accent"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >
+                  <i class="ri-book-open-line"></i>
+                  {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+                </a>
+              }
+            }
+          </div>
+          @switch (providerCategory()) {
+            @case (eDocumentSourceProviderCategoryEnum.LocalFile) {
+              <xp-knowledge-local-file class="w-full p-4" [knowledgebaseId]="knowledgebaseId()"
+                [parentId]="parentId()"
+                [(files)]="files" 
+                [(selected)]="selectedFile" />
+            }
+            @case (eDocumentSourceProviderCategoryEnum.WebCrawl) {
+              <form class="w-full mt-2 rounded-xl border border-components-panel-border bg-background-default-subtle ng-star-inserted">
+                <div class="flex items-center gap-x-1 px-4 py-2">
+                  <div class="flex grow cursor-pointer select-none items-center gap-x-0.5">
+                    <span class="system-sm-semibold-uppercase text-text-secondary">{{ 'PAC.KEY_WORDS.Options' | translate: {Default: 'Options'} }}</span>
+                    <i class="ri-arrow-down-s-fill shrink-0 text-text-quaternary"></i>
+                  </div>
+                  <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 gap-x-0.5"
+                    (click)="runStep()">
+                    <i class="ri-play-line"></i>
+                    <span class="px-0.5">{{ 'PAC.KEY_WORDS.Run' | translate: {Default: 'Run'} }}</span>
+                  </button>
+                </div>
+                <div class="flex flex-col gap-3 border-t border-divider-subtle px-4 py-3">
+                  @if (documents()) {
+                    @if (testing()) {
+                      <bullet-list-content-loader></bullet-list-content-loader>
+                    } @else {
+                      @for (doc of documents(); track doc.id) {
+                        <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover"
+                          (click)="selectedWebDocument.set(doc)">
+                          <!-- <ngm-checkbox class="grow" [label]="doc.metadata.title"
+                            [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/> -->
+                          <div class="flex min-w-0 grow flex-col gap-y-0.5">
+                            <div class="system-sm-medium truncate text-text-secondary" [title]="doc.metadata.title">
+                              {{ doc.metadata.title }}
+                            </div>
+                            <div class="system-xs-regular truncate text-text-tertiary" [title]="doc.metadata.source">
+                              {{ doc.metadata.source }}
+                            </div>
+                          </div>
+                        </div>
+                      } @empty {
+                        <div class="py-4 text-center text-text-tertiary">
+                          {{ 'PAC.KnowledgeBase.NoPagesFetched' | translate: {Default: 'No pages fetched'} }}
+                        </div>
+                      }
+                    }
+                  } @else {
+                    ccc
+                  }
+                </div>
+              </form>
+            }
+            @default {
+              <div class="p-4 text-text-tertiary">
+                {{ 'PAC.KnowledgeBase.PleaseSelectADataSource' | translate: {Default: 'Please select a data source'} }}
+              </div>
+            }
+          }
+        </div>
+        <div class="flex items-center gap-x-2 overflow-hidden">
+          <div class="flex grow items-center justify-end gap-x-2">
+            <a [routerLink]="['../']" class="cursor-pointer">
+              <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium px-3 py-2">
+                {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
+              </button>
+            </a>
+            <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium gap-x-0.5"
+              [disabled]="!selectedSource() || !taskId() || testing()"
+              (click)="nextStep()">
+              <span class="px-0.5">{{ 'PAC.KEY_WORDS.Next' | translate: {Default: 'Next'} }}</span>
+              <i class="ri-arrow-right-line"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="h-full min-w-0 flex-1">
+  @switch (providerCategory()) {
+    @case (eDocumentSourceProviderCategoryEnum.LocalFile) {
+      @if (selectedFile(); as file) {
+        <div class="flex h-full flex-col pl-2 pt-2">
+          @if (file.preview$ | async; as doc) {
+            <div class="flex h-full w-full flex-col rounded-t-xl border-l border-t border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5">
+              <div class="flex gap-x-2 border-b border-divider-subtle pb-3 pl-6 pr-4 pt-4">
+                <div class="flex grow flex-col gap-y-1">
+                  <div class="system-2xs-semibold-uppercase text-text-accent">{{ 'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'} }}</div>
+                  <div class="title-md-semi-bold text-tex-primary">{{file.document$.value?.name}}</div>
+                  <div class="system-xs-medium flex items-center gap-x-1 text-text-tertiary">
+                    <svg
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="currentColor"
+                      class="remixicon text-[#309BEC] size-3.5 shrink-0"
+                    >
+                      <path
+                        d="M3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3ZM7 15.5V11.5L9 13.5L11 11.5V15.5H13V8.5H11L9 10.5L7 8.5H5V15.5H7ZM18 12.5V8.5H16V12.5H14L17 15.5L20 12.5H18Z"
+                      ></path>
+                    </svg>
+
+                    <p class="text-xs text-gray-500">
+                      <span class="truncate">{{ file.file.type || 'FILE' }}</span> · {{ file.formatSize() }}
+                      <span>·</span><span>{{ doc.pageContent.length}} {{ 'PAC.KEY_WORDS.Characters' | translate: {Default: 'Characters'} }}</span>
+                    </p>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-action flex h-8 w-8 shrink-0 items-center justify-center"
+                  (click)="closePreview()">
+                  <i class="ri-close-line"></i>
+                </button>
+              </div>
+              <div class="body-md-regular grow px-6 py-5 font-body text-text-secondary overflow-auto">
+                {{ doc.pageContent }}
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+    @case (eDocumentSourceProviderCategoryEnum.WebCrawl) {
+      <div class="flex h-full flex-col pl-2 pt-2">
+        @if (selectedWebDocument(); as doc) {
+          <div class="flex h-full w-full flex-col rounded-t-xl border-l border-t border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5">
+            <div class="flex gap-x-2 border-b border-divider-subtle pb-3 pl-6 pr-4 pt-4">
+              <div class="flex grow flex-col gap-y-1">
+                <div class="system-2xs-semibold-uppercase text-text-accent">{{ 'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'} }}</div>
+                <div class="title-md-semi-bold text-tex-primary">{{doc.metadata.title}}</div>
+                <div class="system-xs-medium flex items-center gap-x-1 text-text-tertiary">
+                  <svg
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="currentColor"
+                    class="remixicon text-[#309BEC] size-3.5 shrink-0"
+                  >
+                    <path
+                      d="M3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3ZM7 15.5V11.5L9 13.5L11 11.5V15.5H13V8.5H11L9 10.5L7 8.5H5V15.5H7ZM18 12.5V8.5H16V12.5H14L17 15.5L20 12.5H18Z"
+                    ></path>
+                  </svg>
+
+                  <p class="text-xs text-gray-500">
+                    <span class="truncate">{{ doc.metadata.source || 'WEB PAGE' }}</span> · {{ doc.pageContent.length}} {{ 'PAC.KEY_WORDS.Characters' | translate: {Default: 'Characters'} }}
+                  </p>
+                </div>
+              </div>
+              <button type="button" class="btn btn-action flex h-8 w-8 shrink-0 items-center justify-center"
+                (click)="selectedWebDocument.set(null)">
+                <i class="ri-close-line"></i>
+              </button>
+            </div>
+            <div class="body-md-regular grow px-6 py-5 font-body text-text-secondary overflow-auto">
+              @for (chunk of doc.chunks; track chunk; let i = $index) {
+                <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>
+
+
+<ng-template #integrationMenu >
+  <div cdkMenu class="cdk-menu__large" >
+    @for (option of integrations(); track option.value) {
+      <div cdkMenuItem class="group/item overflow-hidden"
+        [class.active]="option.value === integrationId()" (click)="integrationId.set(option.value)">
+        <div class="relative flex items-start gap-2">
+          @if (option.icon) {
+            <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.icon">
+          }
+          <div class="max-w-full flex flex-col items-start overflow-hidden">
+            <div class="text-start">{{option.label | i18n}}</div>
+            <div class="text-start text-sm whitespace-normal line-clamp-2 opacity-60 group-hover/item:opacity-80">{{option.description}}</div>
+          </div>
+        </div>
+      </div>
+    } @empty {
+      <div class="p-4 text-center text-text-tertiary">
+        {{ 'PAC.Knowledgebase.NoIntegrationYet' | translate: {Default: 'No knowledge base integration yet!'} }}
+      </div>
+    }
+    <div class="border-t border-solid border-divider-regular my-1"></div>
+    <div cdkMenuItem (click)="openIntegrations()">
+      <i class="ri-add-line mr-1"></i>
+      {{ 'PAC.Knowledgebase.CreateSystemIntegration' | translate: {Default: 'Create system integration'} }}
+    </div>
+  </div>
+</ng-template>

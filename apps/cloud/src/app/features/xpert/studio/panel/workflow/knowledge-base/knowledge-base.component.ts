@@ -54,8 +54,30 @@ export class XpertWorkflowKnowledgeBaseComponent extends XpertWorkflowBaseCompon
   })
 
   readonly structure = attrModel(this.knowledgeBaseNode, 'structure')
-  readonly input = attrModel(this.knowledgeBaseNode, 'input')
+  readonly inputs = attrModel(this.knowledgeBaseNode, 'inputs')
   readonly copilotModel = attrModel(this.knowledgeBaseNode, 'copilotModel')
   readonly rerankModel = attrModel(this.knowledgeBaseNode, 'rerankModel')
 
+  updateInput(index: number, value: string) {
+    this.inputs.update((inputs) => {
+      const newInputs = [...(inputs ?? [])]
+      newInputs[index] = value
+      return newInputs
+    })
+  }
+
+  addInput() {
+    this.inputs.update((inputs) => {
+      const newInputs = [...(inputs ?? []), '']
+      return newInputs
+    })
+  }
+
+  removeInput(index: number) {
+    this.inputs.update((inputs) => {
+      const newInputs = [...(inputs ?? [])]
+      newInputs.splice(index, 1)
+      return newInputs
+    })
+  }
 }

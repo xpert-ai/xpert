@@ -37,12 +37,16 @@ export class XpFileSystem {
     throw new Error(`Permission denied: path "${targetPath}" is out of scope`)
   }
 
+  fullPath(filePath: string): string {
+    return path.join(this.basePath, filePath)
+  }
+
   /**
    * Read file contents
    */
   async readFile(filePath: string, encoding: BufferEncoding = 'utf-8') {
     this.ensureAllowed('read')
-    const fullPath = path.join(this.basePath, filePath)
+    const fullPath = this.fullPath(filePath)
     this.ensureInScope(fullPath)
     return await fsPromises.readFile(fullPath)
   }
@@ -52,7 +56,7 @@ export class XpFileSystem {
    */
   async writeFile(filePath: string, content: string | Buffer): Promise<string> {
     this.ensureAllowed('write')
-    const fullPath = path.join(this.basePath, filePath)
+    const fullPath = this.fullPath(filePath)
     this.ensureInScope(fullPath)
     await fsPromises.mkdir(path.dirname(fullPath), { recursive: true })
     await fsPromises.writeFile(fullPath, content)

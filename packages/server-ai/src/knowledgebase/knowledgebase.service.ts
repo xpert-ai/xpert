@@ -1,29 +1,65 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
+import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { AiBusinessRole, DocumentMetadata, genPipelineKnowledgeBaseKey, genPipelineSourceKey, IKnowledgebase, IWFNKnowledgeBase, IWFNSource, IXpert, KnowledgebaseTypeEnum, KnowledgeProviderEnum, mapTranslationLanguage, Metadata, TXpertTeamDraft, WorkflowNodeTypeEnum, XpertTypeEnum } from '@metad/contracts'
-import { IntegrationService, RequestContext } from '@metad/server-core'
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
+import {
+	AiBusinessRole,
+	channelName,
+	DocumentMetadata,
+	genPipelineKnowledgeBaseKey,
+	genPipelineSourceKey,
+	IKnowledgebase,
+	IKnowledgebaseTask,
+	IWFNKnowledgeBase,
+	IWFNProcessor,
+	IWFNSource,
+	IXpert,
+	KnowledgebaseChannel,
+	KnowledgebaseTypeEnum,
+	KnowledgeProviderEnum,
+	KnowledgeSources,
+	KnowledgeTask,
+	mapTranslationLanguage,
+	Metadata,
+	STATE_VARIABLE_HUMAN,
+	WorkflowNodeTypeEnum,
+	XpertTypeEnum
+} from '@metad/contracts'
+import { getErrorMessage, shortuuid } from '@metad/server-common'
+import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common'
+import { OnEvent } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DocumentSourceRegistry, DocumentTransformerRegistry, ImageUnderstandingRegistry, KnowledgeStrategyRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
+import {
+	DocumentSourceRegistry,
+	DocumentTransformerRegistry,
+	FileSystemPermission,
+	ImageUnderstandingRegistry,
+	KnowledgeStrategyRegistry,
+	TextSplitterRegistry,
+	XpFileSystem
+} from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
 import { assign, sortBy } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { t } from 'i18next'
-import { In, IsNull, Not, Repository } from 'typeorm'
-import { CopilotModelGetChatModelQuery, CopilotModelGetEmbeddingsQuery, CopilotModelGetRerankQuery } from '../copilot-model/queries/index'
+import { FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm'
+import { IRerank } from '../ai-model/types/rerank'
+import {
+	CopilotModelGetChatModelQuery,
+	CopilotModelGetEmbeddingsQuery,
+	CopilotModelGetRerankQuery
+} from '../copilot-model/queries/index'
 import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
+import { RagCreateVStoreCommand } from '../rag-vstore'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
+import { EventName_XpertPublished } from '../xpert/types'
+import { XpertService } from '../xpert/xpert.service'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgeSearchQuery } from './queries'
+import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore } from './vector-store'
-import { IRerank } from '../ai-model/types/rerank'
-import { RagCreateVStoreCommand } from '../rag-vstore'
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { XpertService } from '../xpert/xpert.service'
-import { shortuuid } from '@metad/server-common'
-import { OnEvent } from '@nestjs/event-emitter'
-import { EventName_XpertPublished } from '../xpert/types'
-import { KnowledgebaseTaskService } from './task'
+import { sandboxVolumeUrl, VolumeClient } from '../shared'
+import { KnowledgeDocumentService } from '../knowledge-document'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -36,13 +72,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	private readonly textSplitterRegistry: TextSplitterRegistry
 
 	@Inject(DocumentTransformerRegistry)
-	private readonly docTransformerRegistry: DocumentTransformerRegistry;
+	private readonly docTransformerRegistry: DocumentTransformerRegistry
 
 	@Inject(ImageUnderstandingRegistry)
-	private readonly understandingRegistry: ImageUnderstandingRegistry;
+	private readonly understandingRegistry: ImageUnderstandingRegistry
 
 	@Inject(DocumentSourceRegistry)
-	private readonly docSourceRegistry: DocumentSourceRegistry;
+	private readonly docSourceRegistry: DocumentSourceRegistry
 
 	@Inject(XpertService)
 	private readonly xpertService: XpertService
@@ -52,7 +88,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		repository: Repository<Knowledgebase>,
 		private readonly integrationService: IntegrationService,
 		private readonly taskService: KnowledgebaseTaskService,
-		private readonly knowledgeStrategyRegistry: KnowledgeStrategyRegistry,
+		private readonly knowledgeStrategyRegistry: KnowledgeStrategyRegistry
 	) {
 		super(repository)
 	}
@@ -64,7 +100,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		})
 		if (exist.success) {
 			throw new BadRequestException(
-				await this.i18nService.t('xpert.Error.NameExists', {
+				this.i18nService.t('xpert.Error.NameExists', {
 					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
 				})
 			)
@@ -82,7 +118,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				})
 			)
 		}
-		
+
 		await this.searchExternalKnowledgebase(entity, 'test', 1, {})
 
 		return this.create({
@@ -91,9 +127,16 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		})
 	}
 
-	async searchExternalKnowledgebase(entity: Partial<IKnowledgebase>, query: string, k: number, filter?: Record<string, string>) {
+	async searchExternalKnowledgebase(
+		entity: Partial<IKnowledgebase>,
+		query: string,
+		k: number,
+		filter?: Record<string, string>
+	) {
 		const integration = await this.integrationService.findOne(entity.integrationId)
-		const knowledgeStrategy = this.knowledgeStrategyRegistry.get(integration.provider as unknown as KnowledgeProviderEnum)
+		const knowledgeStrategy = this.knowledgeStrategyRegistry.get(
+			integration.provider as unknown as KnowledgeProviderEnum
+		)
 		if (!knowledgeStrategy) {
 			throw new BadRequestException(
 				await this.i18nService.t('xpert.Error.KnowledgeStrategyNotFound', {
@@ -104,7 +147,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				})
 			)
 		}
-		return await knowledgeStrategy.execute(integration, {query, k, filter, options: {knowledgebaseId: entity.extKnowledgebaseId}})
+		return await knowledgeStrategy.execute(integration, {
+			query,
+			k,
+			filter,
+			options: { knowledgebaseId: entity.extKnowledgebaseId }
+		})
 	}
 
 	/**
@@ -125,11 +173,21 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	}
 
 	async getUnderstandingStrategies() {
-		return this.understandingRegistry.list().map((strategy) => ({meta: strategy.meta, requireVisionModel: strategy.permissions?.some(permission => permission.type === 'llm')}))
+		return this.understandingRegistry
+			.list()
+			.map((strategy) => ({
+				meta: strategy.meta,
+				requireVisionModel: strategy.permissions?.some((permission) => permission.type === 'llm')
+			}))
 	}
 
 	async getDocumentSourceStrategies() {
-		return this.docSourceRegistry.list().map((strategy) => ({meta: strategy.meta, integration: strategy.permissions?.find(permission => permission.type === 'integration')}))
+		return this.docSourceRegistry
+			.list()
+			.map((strategy) => ({
+				meta: strategy.meta,
+				integration: strategy.permissions?.find((permission) => permission.type === 'integration')
+			}))
 	}
 
 	async test(id: string, options: { query: string; k?: number; filter?: Metadata }) {
@@ -151,9 +209,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	/**
 	 * Init a pipeline (xpert) for knowledgebase
-	 * 
-	 * @param id 
-	 * @returns 
+	 *
+	 * @param id
+	 * @returns
 	 */
 	async createPipeline(id: string) {
 		const knowledgebase = await this.findOne(id)
@@ -178,22 +236,22 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 					{
 						key: sourceKey,
 						type: 'workflow',
-						position: {x: 100, y: 300},
+						position: { x: 100, y: 300 },
 						entity: {
 							key: sourceKey,
 							title: 'Source',
 							type: WorkflowNodeTypeEnum.SOURCE,
-							provider: 'local-file',
+							provider: 'local-file'
 						} as IWFNSource
 					},
 					{
 						key: knowledgebaseKey,
 						type: 'workflow',
-						position: {x: 580, y: 300},
+						position: { x: 580, y: 300 },
 						entity: {
 							key: knowledgebaseKey,
 							title: 'Knowledge Base',
-							type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
+							type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE
 						} as IWFNKnowledgeBase
 					}
 				]
@@ -207,19 +265,18 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			throw new BadRequestException(t('server-ai:Error.KBReqVisionModel'))
 		}
 		const copilot = knowledgebase.visionModel.copilot
-		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(new CopilotModelGetChatModelQuery(copilot, knowledgebase.visionModel, {
-			usageCallback: (token) => {
-				// execution.tokens += (token ?? 0)
-			}
-		}))
+		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
+			new CopilotModelGetChatModelQuery(copilot, knowledgebase.visionModel, {
+				usageCallback: (token) => {
+					// execution.tokens += (token ?? 0)
+				}
+			})
+		)
 
 		return chatModel
 	}
 
-	async getVectorStore(
-		knowledgebaseId: IKnowledgebase | string,
-		requiredEmbeddings = false,
-	) {
+	async getVectorStore(knowledgebaseId: IKnowledgebase | string, requiredEmbeddings = false) {
 		let knowledgebase: IKnowledgebase
 		if (typeof knowledgebaseId === 'string') {
 			if (requiredEmbeddings) {
@@ -290,9 +347,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			}
 		}
 
-		const store = await this.commandBus.execute(new RagCreateVStoreCommand(embeddings, {
-			collectionName: knowledgebase.id,
-		}))
+		const store = await this.commandBus.execute(
+			new RagCreateVStoreCommand(embeddings, {
+				collectionName: knowledgebase.id
+			})
+		)
 		const vStore = new KnowledgeDocumentStore(knowledgebase, store, rerankModel)
 
 		// const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings, rerankModel)
@@ -329,7 +388,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const documents: { doc: DocumentInterface<Record<string, any>>; score: number }[] = []
 		const kbs = await Promise.all(
 			_knowledgebases.map((kb) => {
-				return this.getVectorStore(kb.id, true,).then((vectorStore) => {
+				return this.getVectorStore(kb.id, true).then((vectorStore) => {
 					return vectorStore.similaritySearchWithScore(query, k, filter)
 				})
 			})
@@ -362,9 +421,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	/**
 	 * Handle knowledgebase related xpert published event, update knowledgebase config from knowledge pipeline
-	 * 
+	 *
 	 * @param xpert The knowledgebase related xpert
-	 * @returns 
+	 * @returns
 	 */
 	@OnEvent(EventName_XpertPublished)
 	async handle(xpert: IXpert) {
@@ -382,12 +441,89 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 		await this.update(xpert.knowledgebase.id, {
 			copilotModel: knowledgebaseEntity.copilotModel,
-			rerankModel: knowledgebaseEntity.rerankModel,
+			rerankModel: knowledgebaseEntity.rerankModel
 		})
 	}
 
 	// Pipeline
-	async getTask(knowledgebaseId: string, taskId: string) {
-		return this.taskService.findOneByWhereOptions({ id: taskId, knowledgebaseId })
+	async createTask(knowledgebaseId: string, task: Partial<IKnowledgebaseTask>) {
+		return this.taskService.createTask(knowledgebaseId, task)
+	}
+
+	async getTask(knowledgebaseId: string, taskId: string, params?: PaginationParams<KnowledgebaseTask>) {
+		const where = { ...(params?.where ?? {}), id: taskId, knowledgebaseId } as FindOptionsWhere<KnowledgebaseTask>
+
+		return this.taskService.findOneByOptions({
+			...(params ?? {}),
+			where
+		})
+	}
+
+	async processTask(knowledgebaseId: string, taskId: string, inputs: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview' | 'prod'; options?: any }) {
+		const kb = await this.findOne(knowledgebaseId, { relations: ['pipeline'] })
+		await this.taskService.update(taskId, { status: 'running' })
+		const sources = inputs.sources ? Object.keys(inputs.sources) : null
+		await this.xpertService.addTriggerJob(
+			kb.pipelineId,
+			RequestContext.currentUserId(),
+			{
+				[STATE_VARIABLE_HUMAN]: {
+					input: 'Process knowledges pipeline',
+				},
+				[KnowledgebaseChannel]: {
+					knowledgebaseId: knowledgebaseId,
+					[KnowledgeTask]: taskId,
+					[KnowledgeSources]: sources,
+					stage: inputs.stage
+				},
+				...(sources ?? []).reduce((obj, key) => ({ ...obj, [channelName(key)]: { documents: inputs.sources[key].documents } }), {})
+			},
+			null
+		)
+	}
+
+	async previewFile(id: string, filePath: string) {
+		try {
+			const results = await this.transformDocuments(id, {provider: 'default', config: {}} as IWFNProcessor, false, [
+				{
+					filePath,
+					extname: filePath.split('.').pop(),
+				}
+			])
+			return results[0].chunks[0]
+		} catch (error) {
+			throw new InternalServerErrorException(getErrorMessage(error))
+		}
+	}
+
+	async transformDocuments(knowledgebaseId: string, entity: IWFNProcessor, isDraft: boolean, input) {
+		const strategy = this.docTransformerRegistry.get(entity.provider) 
+		
+		const volumeClient = new VolumeClient({
+			tenantId: RequestContext.currentTenantId(),
+			catalog: 'knowledges',
+			userId: RequestContext.currentUserId(),
+			knowledgeId: knowledgebaseId
+		})
+		const fsPermission = strategy.permissions?.find(
+			(permission) => permission.type === 'filesystem'
+		) as FileSystemPermission
+		const permissions = {}
+		if (fsPermission) {
+			const folder = isDraft ? 'temp/' : `/`
+			permissions['fileSystem'] = new XpFileSystem(
+				fsPermission,
+				volumeClient.getVolumePath(folder),
+				sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/${folder}`)
+			)
+		}
+		const results = await strategy.transformDocuments(input, {
+			...(entity.config ?? {}),
+			stage: isDraft ? 'test' : 'prod',
+			tempDir: volumeClient.getVolumePath('tmp'),
+			permissions
+		})
+
+		return results
 	}
 }

@@ -7,7 +7,7 @@ import { InjectQueue } from '@nestjs/bull'
 import { ChunkMetadata, DocumentSourceRegistry, mergeParentChildChunks, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
-import { In, Repository } from 'typeorm'
+import { DataSource, In, Repository, TreeRepository } from 'typeorm'
 import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
@@ -29,14 +29,23 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
 	constructor(
 		@InjectRepository(KnowledgeDocument)
-		repository: Repository<KnowledgeDocument>,
+		private readonly treeRepo: TreeRepository<KnowledgeDocument>,
+
+		private readonly dataSource: DataSource,
 
 		private readonly storageFileService: StorageFileService,
 		private readonly knowledgebaseService: KnowledgebaseService,
 		private readonly commandBus: CommandBus,
 		@InjectQueue('embedding-document') private docQueue: Queue
 	) {
-		super(repository)
+		super(treeRepo)
+	}
+
+	async findAncestors(id: string) {
+		const treeRepo = this.dataSource.getTreeRepository(KnowledgeDocument)
+		const entity = await treeRepo.findOneBy({ id })
+		const parents = await treeRepo.findAncestors(entity, {depth: 5})
+		return parents
 	}
 
 	async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
@@ -61,20 +70,33 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		}
 
 		// Update chunkStructure
-		const textSplitterType = documents[0].parserConfig.textSplitterType
-		const textSplitterStrategy = this.textSplitterRegistry.get(textSplitterType)
-		if (textSplitterStrategy) {
-			const structure = textSplitterStrategy.structure
-			const knowledgebase = await this.knowledgebaseService.findOneByIdString(documents[0].knowledgebaseId)
-			if (knowledgebase.structure && knowledgebase.structure !== structure) {
-				throw new BadRequestException(`Inconsistent chunk structure between knowledgebase (${knowledgebase.structure}) and document (${structure})`)
-			}
-			if (!knowledgebase.structure) {
-				await this.knowledgebaseService.update(knowledgebase.id, { structure })
+		const textSplitterType = documents[0].parserConfig?.textSplitterType
+		if (textSplitterType) {
+			const textSplitterStrategy = this.textSplitterRegistry.get(textSplitterType)
+			if (textSplitterStrategy) {
+				const structure = textSplitterStrategy.structure
+				const knowledgebase = await this.knowledgebaseService.findOneByIdString(documents[0].knowledgebaseId)
+				if (knowledgebase.structure && knowledgebase.structure !== structure) {
+					throw new BadRequestException(`Inconsistent chunk structure between knowledgebase (${knowledgebase.structure}) and document (${structure})`)
+				}
+				if (!knowledgebase.structure) {
+					await this.knowledgebaseService.update(knowledgebase.id, { structure })
+				}
 			}
 		}
 
 		return await Promise.all(documents.map((document) => this.createDocument(document)))
+	}
+
+	async updateBulk(entities: Partial<IKnowledgeDocument>[]): Promise<void> {
+		if (!entities?.length) {
+			return
+		}
+		await Promise.all(entities.map((entity) => this.update(entity.id, entity)))
+	}
+
+	async deleteBulk(ids: string[]): Promise<void> {
+		await this.repository.delete(ids)
 	}
 
 	async save(document: KnowledgeDocument | KnowledgeDocument[]): Promise<KnowledgeDocument | KnowledgeDocument[]> {

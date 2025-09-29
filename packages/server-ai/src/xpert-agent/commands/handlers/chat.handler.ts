@@ -5,6 +5,7 @@ import {
 	ChatMessageTypeEnum,
 	IXpert,
 	messageContentText,
+	STATE_VARIABLE_HUMAN,
 	TChatRequestHuman,
 	TMessageContentComplex,
 	TSensitiveOperation,
@@ -31,7 +32,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 	) {}
 
 	public async execute(command: XpertAgentChatCommand): Promise<Observable<MessageEvent>> {
-		const { input, xpert, agentKey, options } = command
+		const { state, xpert, agentKey, options } = command
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars, prefer-const
 		let { language, execution, memories } = options
 		const timeStart = Date.now()
@@ -41,9 +42,8 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 				id: execution?.id,
 				xpert: { id: xpert.id } as IXpert,
 				agentKey,
-				inputs: input,
+				inputs: state,
 				status: XpertAgentExecutionStatusEnum.RUNNING,
-				// title: input.input
 			})
 		)
 
@@ -61,12 +61,15 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 
 			const destroy$ = new Subject<void>()
 			const logger = this.#logger
-			RunnableLambda.from(async (input: TChatRequestHuman) => {
+			RunnableLambda.from(async (state: {
+								[STATE_VARIABLE_HUMAN]: TChatRequestHuman
+								[key: string]: any
+							}) => {
 				let status = XpertAgentExecutionStatusEnum.SUCCESS
 				let error = null
 				let result = ''
 				const agentStream = await this.commandBus.execute<XpertAgentInvokeCommand, Observable<string | TMessageContentComplex>>(
-							new XpertAgentInvokeCommand(input, agentKey, xpert, {
+							new XpertAgentInvokeCommand(state, agentKey, xpert, {
 								...options,
 								store: options.store,
 								rootExecutionId: execution.id,
@@ -182,7 +185,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 							subscriber.complete()
 						}
 					})
-				}).invoke(input, {
+				}).invoke(state, {
 					callbacks: [
 						{
 							handleCustomEvent(eventName, data, runId) {
