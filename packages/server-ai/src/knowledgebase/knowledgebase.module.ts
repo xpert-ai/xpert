@@ -22,11 +22,12 @@ import { XpertModule } from '../xpert/xpert.module'
 import { KnowledgebaseTaskService } from './task/task.service'
 import { KnowledgebaseTask } from './task/task.entity'
 import { Validators, Strategies } from './plugins'
+import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 
 @Module({
 	imports: [
 		RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
-		TypeOrmModule.forFeature([Knowledgebase, KnowledgebaseTask]),
+		TypeOrmModule.forFeature([Knowledgebase, KnowledgebaseTask, KnowledgeRetrievalLog]),
 		DiscoveryModule,
 		TenantModule,
 		CqrsModule,
@@ -42,6 +43,7 @@ import { Validators, Strategies } from './plugins'
 	providers: [
 		KnowledgebaseService,
 		KnowledgebaseTaskService,
+		KnowledgeRetrievalLogService,
 		DocumentSourceRegistry,
 		KnowledgeStrategyRegistry,
 		TextSplitterRegistry,

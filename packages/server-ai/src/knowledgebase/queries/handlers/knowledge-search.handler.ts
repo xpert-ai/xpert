@@ -2,7 +2,7 @@ import { DocumentInterface } from '@langchain/core/documents'
 import { DocumentMetadata, IKnowledgebase, KnowledgebaseTypeEnum } from '@metad/contracts'
 import { getPythonErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
-import { InternalServerErrorException, Logger } from '@nestjs/common'
+import { Inject, InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
@@ -12,6 +12,7 @@ import { In, IsNull, Not, Repository } from 'typeorm'
 import { KnowledgeDocumentPage } from '../../../core/entities/internal'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeSearchQuery } from '../knowledge-search.query'
+import { KnowledgeRetrievalLogService } from '../../logs'
 
 @QueryHandler(KnowledgeSearchQuery)
 export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearchQuery> {
@@ -19,6 +20,9 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
 	@InjectRepository(KnowledgeDocumentPage)
 	private readonly pageRepository: Repository<KnowledgeDocumentPage>
+
+	@Inject(KnowledgeRetrievalLogService)
+	private readonly retrievalLogService: KnowledgeRetrievalLogService
 
 	constructor(private readonly knowledgebaseService: KnowledgebaseService) {}
 
@@ -51,6 +55,19 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 					docs = chunks.map(([doc, score]) => ({ doc, score }))
 				} else {
 					docs = await this.similaritySearchWithScore(kb, query, k ?? kb.recall?.topK ?? 1000, filter)
+				}
+
+				// Log the retrieval results
+				try {
+					await this.retrievalLogService.create({
+						query,
+						source: command.input.source,
+						knowledgebaseId: kb.id,
+						hitCount: docs.length,
+						requestId: command.input.id,
+					})
+				} catch (error) {
+					this.logger.error(`Failed to log retrieval results: ${getPythonErrorMessage(error)}`)
 				}
 
 				return {

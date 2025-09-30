@@ -8,7 +8,8 @@ import {
 	RequestContext,
 	RoleGuard,
 	Roles,
-	TransformInterceptor
+	TransformInterceptor,
+	transformWhere
 } from '@metad/server-core'
 import { getErrorMessage } from '@metad/server-common'
 import {
@@ -39,6 +40,7 @@ import { VolumeClient } from '../shared'
 import { join } from 'path'
 import { KnowledgeDocumentService } from '../knowledge-document'
 import { KnowledgebaseTask } from './task/task.entity'
+import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
 
 
 @ApiTags('Knowledgebase')
@@ -51,6 +53,9 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 
 	@Inject(KnowledgeDocumentService)
 	private readonly documentService: KnowledgeDocumentService
+
+	@Inject(KnowledgeRetrievalLogService)
+	private readonly retrievalLogService: KnowledgeRetrievalLogService
 
 	constructor(
 		private readonly service: KnowledgebaseService,
@@ -270,5 +275,17 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	@Get('statistics/knowledgebases')
 	async getStatisticsKnowledgebases(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsKnowledgebasesQuery(start, end))
+	}
+
+	// Logs
+	@Get(':id/logs')
+	async getLogs(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<KnowledgeRetrievalLog>) {
+		return this.retrievalLogService.findAll({
+			...(params ?? {}),
+			where: {
+				...(transformWhere(params?.where) ?? {}),
+				knowledgebaseId: id,
+			}
+		})
 	}
 }

@@ -1,14 +1,15 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed, inject, model } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { AppService } from '@cloud/app/app.service'
+import { NgmCopyComponent } from '@metad/ocap-angular/common'
+import { linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, of, pipe, switchMap } from 'rxjs'
 import { KnowledgebaseService, KnowledgebaseTypeEnum, ToastrService, routeAnimations } from '../../../../@core'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { NgmCopyComponent } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: true,

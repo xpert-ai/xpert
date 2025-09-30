@@ -13,6 +13,7 @@ import {
   IKnowledgebase,
   IKnowledgebaseTask,
   IKnowledgeDocument,
+  IKnowledgeRetrievalLog,
   PaginationParams,
   toHttpParams
 } from '@metad/cloud/state'
@@ -164,6 +165,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
 
   previewFile(id: string, name: string) {
     return this.httpClient.get<DocumentInterface>(this.apiBaseUrl + `/${id}/file/${encodeURIComponent(name)}/preview`)
+  }
+
+  getLogs(id: string, params: PaginationParams<any>) {
+    return this.httpClient.get<{items: IKnowledgeRetrievalLog[]}>(this.apiBaseUrl + `/${id}/logs`, {
+      params: params ? toHttpParams(params) : null
+    })
   }
 }
 

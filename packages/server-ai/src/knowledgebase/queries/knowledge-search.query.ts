@@ -13,6 +13,8 @@ export class KnowledgeSearchQuery implements IQuery {
 			k?: number
 			score?: number
 			filter?: Metadata
+			source: string
+			id?: string // Request ID for tracing the request
 		}
 	) {}
 }

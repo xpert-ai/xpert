@@ -190,6 +190,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			}))
 	}
 
+	/**
+	 * Test the hitting effect of the Knowledge based on the given query text.
+	 * 
+	 * @param id Knowledgebase ID
+	 * @param options Query options
+	 * @returns Document chunks
+	 */
 	async test(id: string, options: { query: string; k?: number; filter?: Metadata }) {
 		const knowledgebase = await this.findOne(id)
 		const tenantId = RequestContext.currentTenantId()
@@ -200,6 +207,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				tenantId,
 				organizationId,
 				knowledgebases: [knowledgebase.id],
+				source: 'hit_testing',
 				...options
 			})
 		)

@@ -1,0 +1,112 @@
+<div class="flex shrink-0 justify-between pl-3 pb-1 pt-1">
+  <div class="text-base font-semibold text-text-primary">
+    <div>{{ 'PAC.Knowledgebase.RetrievalSetting' | translate: {Default: 'Retrieval Setting'} }}</div>
+    <div class="text-xs font-normal leading-[18px] font-body text-text-tertiary">
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        [href]="helpUrl()"
+        class="text-text-accent"
+        >{{ 'PAC.KEY_WORDS.LearnMore' | translate: {Default: 'Learn more'} }}</a>
+      {{ 'PAC.Knowledgebase.AboutRetrievalMethod' | translate: {Default: ' about retrieval method.'} }}
+    </div>
+  </div>
+  <div class="flex">
+    <div class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-hover-bg"
+      (click)="cancel()">
+      <i class="ri-close-line"></i>
+    </div>
+  </div>
+</div>
+
+<div class="space-y-2 relative">
+  <div
+    class="cursor-pointer overflow-hidden rounded-xl bg-components-option-card-option-bg border border-components-option-card-option-selected-border ring-[1px] ring-components-option-card-option-selected-border"
+  >
+    <div class="relative flex rounded-t-xl p-2 gap-x-2">
+      <div
+        class="absolute left-[-2px] top-[-2px] h-14 w-14 rounded-full blur-[80px] bg-purple-600 opacity-80"
+      ></div>
+      <div class="flex size-6 shrink-0 items-center justify-center text-purple-600">
+        <i class="ri-focus-mode"></i>
+      </div>
+      <div class="flex grow flex-col gap-y-0.5 py-px">
+        <div class="flex items-center gap-x-1">
+          <span class="system-sm-medium text-text-secondary">
+            {{ 'PAC.Knowledgebase.VectorSearch' | translate: {Default: 'Vector Search'} }}
+          </span>
+        </div>
+        <div class="system-xs-regular font-body text-text-tertiary">
+          {{ 'PAC.Knowledgebase.VectorSearchDesc' | translate: {Default: 'Generate query embeddings and search for the text chunk most similar to its vector representation.'} }}
+        </div>
+      </div>
+    </div>
+    <div class="relative rounded-b-xl bg-components-panel-bg p-4">
+      <svg
+        width="24"
+        height="11"
+        viewBox="0 0 24 11"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        class="absolute left-[14px] top-[-10px] size-4 text-components-panel-bg"
+        aria-hidden="true"
+      >
+        <path
+          id="Arrow Shape"
+          d="M9.87868 1.12132C11.0503 -0.0502525 12.9497 -0.0502525 14.1213 1.12132L23.3137 10.3137H0.686292L9.87868 1.12132Z"
+          fill="currentColor"
+        ></path>
+      </svg>
+      <div>
+        <div>
+          <div class="mb-2 flex items-center space-x-2">
+            <ngm-slide-toggle [(ngModel)]="useRerank" />
+            <div class="flex items-center">
+              <span class="system-sm-semibold mr-0.5 text-text-secondary">{{ 'PAC.Knowledgebase.RerankModel' | translate: {Default: 'Rerank Model'} }}</span>
+              <div class="h-3.5 w-3.5 shrink-0 p-[1px] flex items-center text-text-tertiary hover:text-text-primary"
+                [matTooltip]="'PAC.Knowledgebase.RerankModelInfo' | translate: {Default: 'Rerank model will reorder the candidate document list based on the semantic match with user query, improving the results of semantic ranking.'}"
+                matTooltipPosition="above"
+              >
+                <i class="ri-information-2-line"></i>
+              </div>
+            </div>
+          </div>
+          @if (useRerank()) {
+            <copilot-model-select class="block mb-4" hiddenLabel
+              [modelType]="eAiModelTypeEnum.RERANK"
+              [(ngModel)]="rerankModel"
+              />
+          }
+        </div>
+        <div class="mt-4 flex justify-between space-x-4">
+          <div class="mt-1 flex items-center">
+            <ngm-slider-input [label]="'PAC.Knowledgebase.TopK' | translate: {Default: 'Top Count'}"
+              color="accent"
+              [(ngModel)]="topK"
+              [min]="1" [max]="100" [step]="1" />
+          </div>
+          <div class="mt-1 flex items-center">
+            <ngm-slider-input [label]=" 'PAC.Knowledgebase.SimilarityThreshold' | translate: {Default: 'Similarity Threshold'}"
+              color="accent"
+              [(ngModel)]="score" 
+              [min]="0" [max]="1" [step]="0.01">
+              <i class="ri-information-2-line text-text-tertiary hover:text-text-primary"
+                [matTooltip]="'PAC.Knowledgebase.SimilarityThresholdInfo' | translate: {Default: 'If the similarity between the query and the chunk is less than this threshold, the chunk will be filtered out.'}"></i>
+            </ngm-slider-input>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <ngm-spin class="absolute left-0 top-0 w-full h-full " />
+  }
+</div>
+
+<div class="flex justify-end px-2 pt-4 pb-2">
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2 shrink-0"
+    (click)="cancel()">{{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
+  <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0"
+    (click)="saveRetrievalSettings()">{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</button>
+</div>

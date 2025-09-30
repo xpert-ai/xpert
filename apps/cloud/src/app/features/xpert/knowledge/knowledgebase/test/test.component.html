@@ -1,70 +1,116 @@
-<div class="pac-knowledgebase__test-container max-w-full lg:w-[400px] lg:max-w-[400px] rounded-lg flex flex-col gap-8 m-4 p-4">
-  <h2>{{ 'PAC.Knowledgebase.RetrievalTest' | translate: {Default: 'Retrieval Test'} }}</h2>
+<div class="shrink-0 max-w-2xl flex flex-col px-6 py-3">
+  <div class="mb-4 flex flex-col justify-center">
+    <h1 class="text-lg font-semibold text-text-primary">
+      {{ 'PAC.Knowledgebase.RetrievalTest' | translate: {Default: 'Retrieval Test'} }}
+    </h1>
+    <p class="mt-0.5 text-[13px] font-body leading-4 text-text-tertiary">
+      {{ 'PAC.Knowledgebase.TestTheHittingEffect' | translate: {Default: 'Test the hitting effect of the Knowledge based on the given query text.'} }}
+    </p>
+  </div>
 
-  <div class="w-full h-[1px] my-1 bg-divider-subtle"></div>
-
-  <ngm-slider-input [label]=" 'PAC.Knowledgebase.SimilarityThreshold' | translate: {Default: 'Similarity Threshold'}"
-    [(ngModel)]="score" 
-    [min]="0" [max]="1" [step]="0.01">
-    <span class="font-notoColorEmoji" [matTooltip]="'PAC.Knowledgebase.SimilarityThresholdInfo' | translate: {Default: 'If the similarity between the query and the chunk is less than this threshold, the chunk will be filtered out.'}"
-      >💡</span>
-  </ngm-slider-input>
-
-  <ngm-slider-input [label]="'PAC.Knowledgebase.TopK' | translate: {Default: 'Top Count'}"
-    [(ngModel)]="topK"
-    [min]="1" [max]="100" [step]="1"></ngm-slider-input>
-  <!-- <ngm-slider-input [label]="'关键字相似度权重'" [min]="0" [max]="1" [step]="0.01"></ngm-slider-input> -->
-
-  <div class="w-full h-[1px] my-1 bg-divider-subtle"></div>
-
-  <div class="flex flex-col items-end gap-4">
-    <div class="flex-1 min-w-full flex flex-col">
-      <label class="ngm-input-label shrink-0">{{'PAC.Knowledgebase.Input' | translate: {Default: 'Input'} }}</label>
-      <textarea class="ngm-input-element" matInput [(ngModel)]="query" [disabled]="loading()"
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="2"
-        cdkAutosizeMaxRows="5">
-      </textarea>
+  <div class="relative bg-gradient-to-r from-blue-500 to-orange-500 rounded-[12px] p-[2px] mb-4 shadow-xs">
+    <div class="relative rounded-t-xl bg-neutral-100 pt-1.5">
+      <div class="flex h-8 items-center justify-between pb-1 pl-4 pr-1.5">
+        <span class="text-[13px] font-semibold uppercase leading-4 text-text-secondary">
+          {{ 'PAC.Knowledgebase.SourceText' | translate: {Default: 'Source text'} }}
+        </span>
+        <div
+          class="flex h-7 cursor-pointer items-center space-x-0.5 rounded-lg border-[0.5px] border-components-button-secondary-bg bg-components-button-secondary-bg px-1.5 shadow-xs backdrop-blur-[5px]
+            hover:bg-components-button-secondary-bg-hover"
+          [cdkMenuTriggerFor]="vectorMenu"
+          #cdkMenu="cdkMenuTriggerFor"
+        >
+          <i class="ri-focus-mode mr-1"></i>
+          <div class="text-xs font-medium uppercase text-text-secondary">
+            {{ 'PAC.Knowledgebase.VectorSearch' | translate: {Default: 'Vector Search'} }}
+          </div>
+          <i class="ri-equalizer-2-line"></i>
+        </div>
+      </div>
     </div>
 
-    <button mat-flat-button color="primary" [disabled]="loading() || !query()" (click)="test()">{{'PAC.Knowledgebase.Test' | translate: {Default: 'Test'} }}</button>
+    <div class="rounded-b-xl bg-white px-4 py-2 pb-11">
+      <textarea class="h-[160px] w-full resize-none border-none bg-transparent text-sm font-normal font-body text-text-secondary caret-[#295EFF]
+        placeholder:text-sm placeholder:font-normal placeholder:text-components-input-text-placeholder focus-visible:outline-none"
+        placeholder="Please enter a text, a short declarative sentence is recommended."
+        [(ngModel)]="query"
+        [disabled]="loading()"
+      ></textarea>
+      <div class="absolute inset-x-0 bottom-0 mx-4 mb-2 mt-2 flex items-center justify-between">
+        <div class="flex h-5 items-center rounded-md bg-background-section-burn px-1 text-xs font-medium text-text-tertiary">
+          {{query().length}}<span class="mx-0.5 text-divider-deep">/</span>200
+        </div>
+        <div>
+          <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-[88px]"
+            [disabled]="loading() || !query()" (click)="test()"
+          >{{'PAC.Knowledgebase.Test' | translate: {Default: 'Test'} }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="mb-3 mt-6 text-base font-semibold text-text-primary">
+    {{ 'PAC.Knowledgebase.TestRecords' | translate: {Default: 'Test Records'} }}
+  </div>
+  <div class="grow overflow-y-auto">
+    <table class="w-full border-collapse border-0 text-[13px] leading-4 text-text-secondary">
+      <thead class="sticky top-0 h-7 text-xs font-medium uppercase leading-7 text-text-tertiary backdrop-blur-[5px]">
+        <tr>
+          <td class="w-[128px] rounded-l-lg bg-background-section-burn pl-3">
+            {{ 'PAC.Knowledgebase.Source' | translate: {Default: 'Source'} }}
+          </td>
+          <td class="bg-background-section-burn">
+            {{ 'PAC.Knowledgebase.Text' | translate: {Default: 'Text'} }}
+          </td>
+          <td class="w-48 rounded-r-lg bg-background-section-burn pl-2">
+            {{ 'PAC.Knowledgebase.Time' | translate: {Default: 'Time'} }}
+          </td>
+        </tr>
+      </thead>
+      <tbody>
+        @for (log of logs(); track log.id; let i = $index) {
+          <tr class="group h-10 cursor-pointer border-b border-divider-subtle hover:bg-background-default-hover"
+            (click)="selectLog(log)">
+            <td class="w-[128px] pl-3">
+              <div class="flex items-center">
+                <i class="ri-focus-2-line"></i>
+                <span class="capitalize">
+                  @switch (log.source) {
+                    @case ('hit_testing') {
+                      {{ 'PAC.Knowledgebase.RetrievalTest' | translate: {Default: 'Retrieval Test'} }}
+                    }
+                    @case ('retriever') {
+                      {{ 'PAC.Knowledgebase.Retriever' | translate: {Default: 'Retriever'} }}
+                    }
+                    @default {
+                      {{ 'PAC.Knowledgebase.Unknown' | translate: {Default: 'unknown'} }}
+                    }
+                  }
+                </span>
+              </div>
+            </td>
+            <td class="max-w-xs py-2">{{ log.query }}</td>
+            <td class="w-36 pl-2">{{ log.createdAt | date: 'short' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
   </div>
 </div>
 
-<div class="flex-1 flex flex-col relative overflow-hidden">
-
-  <div class="flex h-full flex-col rounded-tl-2xl bg-background-body px-4 py-3">
-    <div class="mb-2 shrink-0 pl-2 font-semibold leading-6 text-text-primary">2 个召回段落</div>
-    <div class="grow space-y-2 overflow-y-auto">
-      @for (chunk of results(); track chunk.id; let i = $index) {
-        <xp-knowledge-chunk [chunk]="chunk" [index]="i"/>
-      }
+<div class="shrink-0 flex-1 flex flex-col pt-3 overflow-auto">
+  @if (results()) {
+    <div class="flex h-full flex-col rounded-tl-2xl bg-background-body px-4 py-3">
+      <div class="mb-2 shrink-0 pl-2 font-semibold leading-6 text-text-primary">{{ results().length }} {{ 'PAC.Knowledgebase.RecallParagraphs' | translate: {Default: 'recall paragraphs'} }}</div>
+      <div class="grow space-y-2">
+        @for (chunk of results(); track chunk.id; let i = $index) {
+          <xp-knowledge-chunk [chunk]="chunk" [index]="i"/>
+        }
+      </div>
     </div>
-  </div>
-
-  <div class="flex-1 overflow-y-auto">
-    <mat-list class="m-4">
-      @for (item of results(); track item.id) {
-        <mat-list-item lines="5" class="p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
-          <span matListItemTitle>
-            <div class="flex justify-end items-center gap-2" >
-              <ngm-tags class="text-sm" [tags]="[
-                {caption: 'Score: '+item.metadata.score.toFixed(2)}
-                ]" color="green" />
-              @if (item.metadata.relevanceScore) {
-                <ngm-tags class="text-sm" [tags]="[
-                  {caption: 'RelevanceScore: '+item.metadata.relevanceScore.toFixed(2)}
-                  ]" color="blue" />
-              }
-            </div>
-          </span>
-          <span>{{item.pageContent}}</span>
-        </mat-list-item>
-      }
-    </mat-list>
-  </div>
-
-  @if (!results()?.length) {
+  } @else {
     <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center gap-2 text-text-tertiary">
       <i class="ri-crosshair-2-line text-6xl" [class.animate-spin]="loading()"></i>
       <div class="">{{'PAC.Knowledgebase.RetrievalTestingResultsHere' | translate: {Default: 'Retrieval Testing results will show here'} }}
@@ -73,8 +119,13 @@
   }
 
   @if (loading()) {
-    <div class="absolute left-0 top-0 w-full h-full flex justify-center items-center">
-      <mat-progress-spinner [mode]="'indeterminate'" [diameter]="22" color="accent" />
-    </div>
+    <ngm-spin class="absolute left-0 top-0 w-full h-full " />
   }
 </div>
+
+
+<ng-template #vectorMenu>
+  <div  class="bg-components-card-bg rounded-2xl border border-divider-deep shadow-lg p-3">
+    <xp-knowledge-retrieval-settings [ngModel]="knowledgebase()" (close)="onClose($event);cdkMenu.close()" />
+  </div>
+</ng-template>
