@@ -105,6 +105,11 @@ export type TKnowledgebase = {
 
   status?: string
 
+  /**
+   * API service enabled
+   */
+  apiEnabled?: boolean
+
   documents?: IKnowledgeDocument[]
 
   integrationId?: string

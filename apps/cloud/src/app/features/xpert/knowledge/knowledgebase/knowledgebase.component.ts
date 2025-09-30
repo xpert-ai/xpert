@@ -7,13 +7,15 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, of, pipe, switchMap } from 'rxjs'
 import { KnowledgebaseService, KnowledgebaseTypeEnum, ToastrService, routeAnimations } from '../../../../@core'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { NgmCopyComponent } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: true,
   selector: 'xpert-knowledgebase',
   templateUrl: './knowledgebase.component.html',
   styleUrls: ['./knowledgebase.component.scss'],
-  imports: [RouterModule, TranslateModule, EmojiAvatarComponent],
+  imports: [RouterModule, TranslateModule, CdkMenuModule, NgmCopyComponent, EmojiAvatarComponent],
   animations: [routeAnimations]
 })
 export class KnowledgebaseComponent {
@@ -48,6 +50,7 @@ export class KnowledgebaseComponent {
   readonly type = computed(() => this.knowledgebase()?.type)
   readonly avatar = computed(() => this.knowledgebase()?.avatar)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
+  readonly serviceApiEnabled = computed(() => this.knowledgebase()?.apiEnabled)
 
   // Sidebar
   readonly isMobile = this.appService.isMobile

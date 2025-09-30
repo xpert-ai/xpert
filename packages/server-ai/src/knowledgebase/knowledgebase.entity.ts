@@ -14,7 +14,7 @@ import {
 import { Integration } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Transform, TransformFnParams } from 'class-transformer'
-import { IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
+import { IsBoolean, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 import { CopilotModel, KnowledgeDocument, Xpert } from '../core/entities/internal'
@@ -163,6 +163,12 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@IsOptional()
 	@Column({ nullable: true })
 	status?: string
+
+	@ApiProperty({ type: () => Boolean })
+	@IsBoolean()
+	@IsOptional()
+	@Column({ nullable: true, default: true })
+	apiEnabled?: boolean
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
