@@ -41,3 +41,8 @@ export type TDocumentParseResult = TDocumentTransformerResult & {
     contentListJson?: any;
   }
 }
+
+export type MinerUIntegrationOptions = {
+  apiUrl: string
+  apiKey: string
+}

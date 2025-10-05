@@ -25,4 +25,8 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 		]
 		return providers
 	}
+
+	getIntegrationStrategy(type: string) {
+		return this.strategyRegistry.get(type)
+	}
 }

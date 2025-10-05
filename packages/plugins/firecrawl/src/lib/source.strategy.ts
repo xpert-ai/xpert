@@ -14,7 +14,7 @@ export class FirecrawlSourceStrategy implements IDocumentSourceStrategy<Firecraw
   readonly permissions = [
     {
       type: 'integration',
-      service: 'firecrawl',
+      service: Firecrawl,
       description: 'Access to Firecrawl system integrations'
     } as IntegrationPermission
   ]

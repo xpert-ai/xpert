@@ -32,7 +32,7 @@
     <div class="rounded-b-xl bg-white px-4 py-2 pb-11">
       <textarea class="h-[160px] w-full resize-none border-none bg-transparent text-sm font-normal font-body text-text-secondary caret-[#295EFF]
         placeholder:text-sm placeholder:font-normal placeholder:text-components-input-text-placeholder focus-visible:outline-none"
-        placeholder="Please enter a text, a short declarative sentence is recommended."
+        [placeholder]="'PAC.Knowledgebase.EnterQueryText' | translate: {Default: 'Please enter a text, a short declarative sentence is recommended.'}"
         [(ngModel)]="query"
         [disabled]="loading()"
       ></textarea>
@@ -100,7 +100,7 @@
   </div>
 </div>
 
-<div class="shrink-0 flex-1 flex flex-col pt-3 overflow-auto">
+<div class="relative shrink-0 flex-1 flex flex-col pt-3 overflow-auto">
   @if (results()) {
     <div class="flex h-full flex-col rounded-tl-2xl bg-background-body px-4 py-3">
       <div class="mb-2 shrink-0 pl-2 font-semibold leading-6 text-text-primary">{{ results().length }} {{ 'PAC.Knowledgebase.RecallParagraphs' | translate: {Default: 'recall paragraphs'} }}</div>
@@ -110,16 +110,16 @@
         }
       </div>
     </div>
+
+    @if (loading()) {
+      <ngm-spin class="absolute left-0 top-0 w-full h-full " />
+    }
   } @else {
     <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center gap-2 text-text-tertiary">
       <i class="ri-crosshair-2-line text-6xl" [class.animate-spin]="loading()"></i>
       <div class="">{{'PAC.Knowledgebase.RetrievalTestingResultsHere' | translate: {Default: 'Retrieval Testing results will show here'} }}
       </div>
     </div>
-  }
-
-  @if (loading()) {
-    <ngm-spin class="absolute left-0 top-0 w-full h-full " />
   }
 </div>
 

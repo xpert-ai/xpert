@@ -3,6 +3,7 @@ import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-
 import { ConfigModule } from '@nestjs/config';
 import { UnstructuredTransformerStrategy } from './unstructured.strategy';
 import { UnstructuredClient } from './unstructured.client';
+import { UnstructuredIntegrationStrategy } from './integration.strategy';
 
 @XpertServerPlugin({
 	/**
@@ -16,6 +17,7 @@ import { UnstructuredClient } from './unstructured.client';
 	entities: [],
 
 	providers: [
+		UnstructuredIntegrationStrategy,
 		UnstructuredTransformerStrategy,
 		UnstructuredClient
 	]

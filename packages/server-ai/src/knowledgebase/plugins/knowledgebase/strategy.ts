@@ -32,6 +32,10 @@ import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeDocumentStore } from '../../vector-store'
 import { KnowledgebaseTaskService } from '../../task'
 
+
+const InfoChannelName = 'info'
+const TaskChannelName = 'task'
+
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.KNOWLEDGE_BASE)
 export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy {
@@ -105,10 +109,20 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 				}
 				return await wrapAgentExecution(
 					async () => {
+						let statisticsInformation = ''
+
 						if (isTest) {
 							await this.taskService.update(knowledgeTaskId, {status: 'success'})
+							statisticsInformation += `- This is a test run, no documents were processed. \n`
 							return {
-								state: {}
+								state: {
+									[channelName(node.key)]: {
+										[InfoChannelName]: statisticsInformation.trim(),
+										[TaskChannelName]: {
+											status: 'success',
+										}
+									}
+								}
 							}
 						}
 
@@ -120,10 +134,15 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 						try {
 							vectorStore = await this.knowledgebaseService.getVectorStore(knowledgebase, true)
 						} catch (err) {
+							statisticsInformation += `- Error initializing vector store: ${getErrorMessage(err)} \n`
 							return {
 								state: {
 									[channelName(node.key)]: {
-										error: `Knowledge base error: ${getErrorMessage(err)}`
+										error: `Knowledge base error: ${getErrorMessage(err)}`,
+										[InfoChannelName]: statisticsInformation.trim(),
+										[TaskChannelName]: {
+											status: 'error',
+										}
 									}
 								}
 							}
@@ -136,8 +155,9 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 							},
 							relations: ['pages']
 						})
-
+						
 						const tasks = documents.map((document, index) => async () => {
+							statisticsInformation += `- Document ${index + 1} - ${document.name}: \n`
 							try {
 								// Save pages into db, And associated with the chunk's metadata.
 								let chunks: Document<ChunkMetadata>[] = document?.chunks as Document<ChunkMetadata>[]
@@ -194,11 +214,13 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 									status: KBDocumentStatusEnum.FINISH,
 									processMsg: ''
 								})
+								statisticsInformation += ` - Embedded ${chunks?.length || 0} chunks. \n`
 							} catch (err) {
 								this.documentService.update(document.id, {
 									status: KBDocumentStatusEnum.ERROR,
 									processMsg: getErrorMessage(err)
 								})
+								statisticsInformation += ` - Error: ${getErrorMessage(err)} \n`
 							}
 						})
 
@@ -206,7 +228,13 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 
 						return {
 							state: {
-								[channelName(node.key)]: {}
+								[channelName(node.key)]: {
+									[InfoChannelName]: statisticsInformation.trim(),
+									[TaskChannelName]: {
+											status: 'success',
+										},
+									error: null
+								}
 							}
 						}
 					},
@@ -246,6 +274,36 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 					en_US: 'Error info',
 					zh_Hans: '错误信息'
 				}
+			},
+			{
+				type: XpertParameterTypeEnum.STRING,
+				name: InfoChannelName,
+				title: 'Information',
+				description: {
+					en_US: 'Statistics Information',
+					zh_Hans: '统计信息'
+				}
+			},
+			{
+				type: XpertParameterTypeEnum.OBJECT,
+				name: TaskChannelName,
+				title: 'Task',
+				description: {
+					en_US: 'Task Object',
+					zh_Hans: '任务对象'
+				},
+				item: [
+					{
+						type: XpertParameterTypeEnum.STRING,
+						name: 'status',
+						title: 'Status',
+						description: {
+							en_US: 'Task Status',
+							zh_Hans: '任务状态'
+						},
+						options: ['pending', 'processing', 'success', 'error', 'cancel'],
+					}
+				]
 			}
 		]
 	}

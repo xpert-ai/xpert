@@ -1,4 +1,5 @@
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { IIntegration } from '@metad/contracts';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { ENV_MINERU_API_BASE_URL, ENV_MINERU_API_TOKEN } from './types';
@@ -48,21 +49,22 @@ interface MineruTaskResult {
   data: any;  // Can define the type according to the specific return structure
 }
 
-@Injectable()
 export class MinerUClient {
   private readonly logger = new Logger(MinerUClient.name);
   private readonly baseUrl: string;
   private readonly token: string;
 
   constructor(
-    @Inject(forwardRef(() => ConfigService))
-		private readonly configService: ConfigService
+		private readonly configService: ConfigService,
+    private readonly integration?: IIntegration
   ) {
-    // Read configuration or environment variables
-    this.baseUrl = this.configService.get<string>(ENV_MINERU_API_BASE_URL) || 'https://mineru.net/api/v4';
-    this.token = this.configService.get<string>(ENV_MINERU_API_TOKEN);
-    if (!this.token) {
-      throw new Error('MINERU_API_TOKEN is not defined');
+    if (integration) {
+      this.baseUrl = integration.options?.apiUrl || 'https://mineru.net/api/v4';
+      this.token = integration.options?.apiKey;
+    } else {
+      // Read configuration or environment variables
+      this.baseUrl = this.configService.get<string>(ENV_MINERU_API_BASE_URL) || 'https://mineru.net/api/v4';
+      this.token = this.configService.get<string>(ENV_MINERU_API_TOKEN);
     }
   }
 

@@ -1,5 +1,5 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { IDocumentProcessorProvider } from '@metad/contracts'
+import { _TFile, IDocumentProcessorProvider, IIntegration } from '@metad/contracts'
 import { Permissions, XpFileSystem } from '../../core/index'
 import { ChunkMetadata, TDocumentAsset } from '../types'
 
@@ -8,13 +8,12 @@ export type TDocumentTransformerConfig = {
   tempDir?: string
   permissions?: {
     fileSystem?: XpFileSystem
+    integration?: IIntegration
   }
 }
 
-export type TDocumentTransformerFile = {
+export type TDocumentTransformerFile = _TFile & {
   id?: string
-  fileUrl: string
-  filePath: string
   filename: string
   extname: string | undefined
 }

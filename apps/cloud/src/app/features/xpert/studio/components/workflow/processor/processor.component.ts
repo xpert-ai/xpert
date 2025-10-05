@@ -66,7 +66,7 @@ export class XpertWorkflowNodeProcessorComponent {
   readonly processorProvider = computed(() => {
     const providerName = this.provider()
     if (providerName && this.processorProviders()) {
-      return this.processorProviders().find(p => p.name === providerName)
+      return this.processorProviders().find(p => p.meta.name === providerName)
     }
     return null
   })

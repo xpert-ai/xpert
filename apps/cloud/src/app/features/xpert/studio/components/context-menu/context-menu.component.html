@@ -332,15 +332,15 @@
         }
 
         @case ('processor') {
-          @for (provider of transformers$ | async; track provider.name) {
+          @for (provider of transformers$ | async; track provider.meta.name) {
             <div cdkMenuItem class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
-              (click)="addPipelineProcessor(provider)"
+              (click)="addPipelineProcessor(provider.meta)"
             >
-              @if (provider.icon) {
-                <xp-custom-icon [icon]="provider.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />
+              @if (provider.meta.icon) {
+                <xp-custom-icon [icon]="provider.meta.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />
               }
               <div class="">
-                {{ provider.label | i18n }}
+                {{ provider.meta.label | i18n }}
               </div>
             </div>
           }

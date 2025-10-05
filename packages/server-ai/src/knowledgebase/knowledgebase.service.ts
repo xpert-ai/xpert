@@ -59,7 +59,6 @@ import { KnowledgeSearchQuery } from './queries'
 import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore } from './vector-store'
 import { sandboxVolumeUrl, VolumeClient } from '../shared'
-import { KnowledgeDocumentService } from '../knowledge-document'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -169,7 +168,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	}
 
 	async getDocumentTransformerStrategies() {
-		return this.docTransformerRegistry.list().map((strategy) => strategy.meta)
+		return this.docTransformerRegistry.list().map((strategy) => {
+			return {
+				meta: strategy.meta,
+				integration: strategy.permissions?.find((permission) => permission.type === 'integration'),
+			}
+		})
 	}
 
 	async getUnderstandingStrategies() {
@@ -507,6 +511,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	async transformDocuments(knowledgebaseId: string, entity: IWFNProcessor, isDraft: boolean, input) {
 		const strategy = this.docTransformerRegistry.get(entity.provider) 
 		
+		const permissions = {}
 		const volumeClient = new VolumeClient({
 			tenantId: RequestContext.currentTenantId(),
 			catalog: 'knowledges',
@@ -516,7 +521,6 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const fsPermission = strategy.permissions?.find(
 			(permission) => permission.type === 'filesystem'
 		) as FileSystemPermission
-		const permissions = {}
 		if (fsPermission) {
 			const folder = isDraft ? 'temp/' : `/`
 			permissions['fileSystem'] = new XpFileSystem(
@@ -524,6 +528,24 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				volumeClient.getVolumePath(folder),
 				sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/${folder}`)
 			)
+		}
+
+		// Integration
+		const integrationPermission = strategy.permissions?.find(
+			(permission) => permission.type === 'integration'
+		)
+		if (integrationPermission && entity.integrationId) {
+			let integration = null
+			try {
+				integration = await this.integrationService.findOne(entity.integrationId)
+			} catch (error) {
+				throw new BadRequestException(
+					this.i18nService.t('xpert.Error.IntegrationNotFound', {
+						lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+					})
+				)
+			}
+			permissions['integration'] = integration
 		}
 		const results = await strategy.transformDocuments(input, {
 			...(entity.config ?? {}),

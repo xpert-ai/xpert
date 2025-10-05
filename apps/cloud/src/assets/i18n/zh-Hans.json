@@ -24,6 +24,8 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "NewSystemIntegration": "新建系统集成",
+      "SystemIntegrations": "系统集成",
       "Next": "下一步",
       "Limit": "限制",
       "Help": "帮助",
@@ -2311,6 +2313,7 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "Reprocess": "重新处理",
       "AddDocuments": "添加文档",
       "ChooseADataSource": "选择数据源",
       "CreateSystemIntegration": "创建系统集成",
@@ -2338,6 +2341,7 @@
       "Retriever": "检索器",
       "Unknown": "未知",
       "RecallParagraphs": "个召回段落",
+      "EnterQueryText": "请输入文本，建议使用简短的陈述句。",
       "Index": "索引",
       "CreateKnowledgebase": "创建知识库",
       "CreateKnowledgebaseDesc": "空知识库中还没有文档，你可以在今后任何时候上传文档至该知识库。",

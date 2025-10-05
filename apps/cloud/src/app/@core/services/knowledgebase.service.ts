@@ -63,7 +63,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   getDocumentTransformerStrategies() {
-    return this.httpClient.get<IDocumentProcessorProvider[]>(this.apiBaseUrl + '/transformer/strategies')
+    return this.httpClient.get<{meta: IDocumentProcessorProvider; integration: { service: string } }[]>(this.apiBaseUrl + '/transformer/strategies')
   }
 
   getUnderstandingStrategies() {

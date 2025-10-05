@@ -33,6 +33,7 @@ import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
 import { environment } from '@cloud/environments/environment'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 
 @Component({
   standalone: true,
@@ -76,6 +77,7 @@ export class IntegrationComponent implements IsDirty {
   readonly apiBaseUrl = injectApiBaseUrl()
   readonly i18n = new NgmI18nPipe()
   readonly integrationI18n = injectTranslate('PAC.Integration')
+  readonly _providerQuery = injectQueryParams('provider')
 
   readonly paramId = injectParams('id')
   readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
@@ -121,12 +123,13 @@ export class IntegrationComponent implements IsDirty {
     return this.formGroup.value?.name
   }
 
-  readonly provider = this.formGroup.get('provider')
-  readonly integrationProvider = toSignal<TIntegrationProvider>(
-    this.provider.valueChanges.pipe(
-      startWith(this.provider.value),
-      map((provider) => this.#providers().find((p) => p.name === provider))
-    )
+  readonly provider = toSignal(this.formGroup.get('provider').valueChanges.pipe(
+    startWith(this.formGroup.get('provider').value),
+    distinctUntilChanged()
+  ))
+
+  readonly integrationProvider = computed(() =>
+    this.#providers().find((p) => p.name === this.provider())
   )
 
   readonly schema = computed(() => this.integrationProvider()?.schema)
@@ -149,12 +152,19 @@ export class IntegrationComponent implements IsDirty {
   )
 
   constructor() {
+    effect(() => {
+      // Set provider from query when create new integration
+      if (this._providerQuery() && !this.paramId()) {
+        this.formGroup.get('provider').setValue(this._providerQuery())
+      }
+    }, { allowSignalWrites: true })
+
     effect(
       () => {
         if (this.integration()) {
           this.formGroup.patchValue(this.integration())
         } else {
-          this.formGroup.reset()
+          // this.formGroup.reset()
         }
         this.formGroup.markAsPristine()
         this.loading.set(false)

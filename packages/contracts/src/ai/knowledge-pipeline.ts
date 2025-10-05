@@ -53,6 +53,7 @@ export interface IWFNProcessor extends IWorkflowNode {
   provider: string
   config: any;
   input: string
+  integrationId?: string
 }
 
 export interface IWFNChunker extends IWorkflowNode {

@@ -17,3 +17,8 @@ export interface DocumentParseResult {
     chunks: Document[];
     metadata: DocumentMetadata;
 }
+
+export type UnstructuredIntegrationOptions = {
+    apiUrl: string;
+    apiKey: string;
+}

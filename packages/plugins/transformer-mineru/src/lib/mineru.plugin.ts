@@ -1,15 +1,20 @@
 import chalk from 'chalk';
 import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-ai/plugin-sdk';
 import { ConfigModule } from '@nestjs/config';
+import { RouterModule } from '@nestjs/core';
 import { MinerUTransformerStrategy } from './transformer-mineru.strategy';
-import { MinerUClient } from './mineru.client';
 import { MinerUResultParserService } from './result-parser.service';
+import { MinerUIntegrationStrategy } from './integration.strategy';
+import { MinerUController } from './mineru.controller';
 
 @XpertServerPlugin({
 	/**
 	 * An array of modules that will be imported and registered with the plugin.
 	 */
-	imports: [ConfigModule],
+	imports: [
+		ConfigModule,
+		RouterModule.register([{ path: '/mineru', module: MinerUPlugin }]),
+	],
 	/**
 	 * An array of Entity classes. The plugin (or ORM) will
 	 * register these entities for use within the application.
@@ -17,9 +22,12 @@ import { MinerUResultParserService } from './result-parser.service';
 	entities: [],
 
 	providers: [
+		MinerUIntegrationStrategy,
 		MinerUTransformerStrategy,
-		MinerUClient,
-		MinerUResultParserService
+		MinerUResultParserService,
+	],
+	controllers: [
+		MinerUController
 	]
 })
 export class MinerUPlugin implements IOnPluginBootstrap, IOnPluginDestroy {

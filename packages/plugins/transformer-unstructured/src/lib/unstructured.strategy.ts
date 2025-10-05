@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { DocumentTransformerStrategy, IDocumentTransformerStrategy, TDocumentTransformerFile } from '@xpert-ai/plugin-sdk'
+import {
+  DocumentTransformerStrategy,
+  IDocumentTransformerStrategy,
+  IntegrationPermission,
+  TDocumentTransformerConfig,
+  TDocumentTransformerFile
+} from '@xpert-ai/plugin-sdk'
 import { icon, Unstructured } from './types'
 import { UnstructuredClient } from './unstructured.client'
 
@@ -9,7 +15,13 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
   @Inject(UnstructuredClient)
   private readonly client: UnstructuredClient
 
-  readonly permissions = []
+  readonly permissions = [
+    {
+      type: 'integration',
+      service: Unstructured,
+      description: 'Access to Unstructured system integrations'
+    } as IntegrationPermission
+  ]
   meta = {
     name: Unstructured,
     label: {
@@ -37,7 +49,7 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
     throw new Error('Method not implemented.')
   }
 
-  async transformDocuments(files: TDocumentTransformerFile[], config: any) {
+  async transformDocuments(files: TDocumentTransformerFile[], config: TDocumentTransformerConfig) {
     const results = []
     for await (const file of files) {
       const result = await this.client.parseFromFile(file.fileUrl)

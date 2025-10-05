@@ -50,6 +50,9 @@ export interface IIntegrationMapSyncOrganization
 	sourceId: number;
 }
 
+/**
+ * @deprecated use Plugins instead
+ */
 export enum IntegrationEnum {
 	UPWORK = 'Upwork',
 	HUBSTAFF = 'Hubstaff',

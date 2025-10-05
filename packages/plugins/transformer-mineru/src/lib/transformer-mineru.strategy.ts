@@ -1,19 +1,32 @@
-import { Inject, Injectable } from '@nestjs/common'
-import { DocumentTransformerStrategy, FileSystemPermission, IDocumentTransformerStrategy, TDocumentTransformerConfig, TDocumentTransformerFile } from '@xpert-ai/plugin-sdk'
+import { forwardRef, Inject, Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import {
+  DocumentTransformerStrategy,
+  FileSystemPermission,
+  IDocumentTransformerStrategy,
+  IntegrationPermission,
+  TDocumentTransformerConfig,
+  TDocumentTransformerFile
+} from '@xpert-ai/plugin-sdk'
 import { MinerUClient } from './mineru.client'
-import { TDocumentParseResult, MinerU, icon } from './types'
 import { MinerUResultParserService } from './result-parser.service'
+import { icon, MinerU, TDocumentParseResult } from './types'
 
 @Injectable()
 @DocumentTransformerStrategy(MinerU)
 export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<TDocumentTransformerConfig> {
-  @Inject(MinerUClient)
-  private readonly mineru: MinerUClient
-
   @Inject(MinerUResultParserService)
   private readonly resultParser: MinerUResultParserService
 
+  @Inject(forwardRef(() => ConfigService))
+  private readonly configService: ConfigService
+
   readonly permissions = [
+    {
+      type: 'integration',
+      service: MinerU,
+      description: 'Access to MinerU system integrations'
+    } as IntegrationPermission,
     {
       type: 'filesystem',
       operations: ['read', 'write', 'list'],
@@ -109,10 +122,14 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<T
     throw new Error('Method not implemented.')
   }
 
-  async transformDocuments(files: TDocumentTransformerFile[], config: TDocumentTransformerConfig): Promise<TDocumentParseResult[]> {
+  async transformDocuments(
+    files: TDocumentTransformerFile[],
+    config: TDocumentTransformerConfig
+  ): Promise<TDocumentParseResult[]> {
+    const mineru: MinerUClient = new MinerUClient(this.configService, config.permissions?.integration)
     const parsedResults: TDocumentParseResult[] = []
     for await (const file of files) {
-      const { taskId } = await this.mineru.createTask({
+      const { taskId } = await mineru.createTask({
         url: file.fileUrl,
         isOcr: true,
         enableFormula: true,
@@ -122,9 +139,13 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<T
       })
 
       // Waiting for completion
-      const result = await this.mineru.waitForTask(taskId, 5 * 60 * 1000, 5000)
+      const result = await mineru.waitForTask(taskId, 5 * 60 * 1000, 5000)
 
-      const parsedResult = await this.resultParser.parseFromUrl(result.full_zip_url, taskId, config.permissions.fileSystem)
+      const parsedResult = await this.resultParser.parseFromUrl(
+        result.full_zip_url,
+        taskId,
+        config.permissions.fileSystem
+      )
 
       parsedResult.id = file.id
       parsedResults.push(parsedResult)

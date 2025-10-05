@@ -16,44 +16,42 @@
         从零开始创建一个自定义知识流水线，对数据处理和结构拥有完全控制权。
       </p>
     </div>
-    <div
-      class="group relative flex h-[132px] cursor-pointer flex-col rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-bg pb-3 shadow-xs shadow-shadow-shadow-3"
-    >
-      <div class="flex items-center gap-x-3 p-4 pb-2">
-        <div class="relative shrink-0">
-          <span
-            class="flex items-center justify-center relative grow-0 shrink-0 overflow-hidden border-[0.5px] border-divider-regular w-10 h-10 text-[24px] rounded-[10px]"
-            ><img
-              class="h-full w-full"
-              alt="app icon"
-              src="data:image/png;base64,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"
-          /></span>
-        </div>
-        <div class="flex grow flex-col gap-y-1 overflow-hidden py-px">
-          <div class="system-md-semibold truncate text-text-secondary" title="Simple Q&amp;A">Simple Q&amp;A</div>
-          <div class="system-2xs-medium-uppercase text-text-tertiary">问答</div>
-        </div>
-      </div>
-      <p
-        class="system-xs-regular line-clamp-3 grow px-4 py-1 text-text-tertiary"
-        title="This template generates structured Q&amp;A pairs by extracting selected columns from a table. These pairs are indexed by questions, enabling efficient retrieval of relevant answers based on query similarity."
-      >
-        This template generates structured Q&amp;A pairs by extracting selected columns from a table. These pairs are
-        indexed by questions, enabling efficient retrieval of relevant answers based on query similarity.
-      </p>
+
+    @for (template of templates(); track template) {
       <div
-        class="absolute bottom-0 left-0 z-10 hidden w-full items-center gap-x-1 bg-pipeline-template-card-hover-bg p-4 pt-8 group-hover:flex"
+        class="group relative flex h-[132px] cursor-pointer flex-col rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-bg pb-3 shadow-xs shadow-shadow-shadow-3"
       >
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium grow gap-x-0.5">
-          <i class="ri-add-line"></i>
-          <span class="px-0.5">选择</span>
-        </button>
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium grow gap-x-0.5">
-          <i class="ri-corner-right-up-line"></i>
-          <span class="px-0.5">详情</span>
-        </button>
+        <div class="flex items-center gap-x-3 p-4 pb-2">
+          <div class="relative shrink-0">
+            <span
+              class="flex items-center justify-center relative grow-0 shrink-0 overflow-hidden border-[0.5px] border-divider-regular w-10 h-10 text-[24px] rounded-[10px]"
+              >Q/A</span>
+          </div>
+          <div class="flex grow flex-col gap-y-1 overflow-hidden py-px">
+            <div class="system-md-semibold truncate text-text-secondary" [title]="template.name">{{ template.name }}</div>
+            <div class="system-2xs-medium-uppercase text-text-tertiary">{{ template.category }}</div>
+          </div>
+        </div>
+        <p
+          class="system-xs-regular line-clamp-3 grow px-4 py-1 text-text-tertiary"
+          [title]="template.description"
+        >
+          {{ template.description }}
+        </p>
+        <div
+          class="absolute bottom-0 left-0 z-10 hidden w-full items-center gap-x-1 bg-pipeline-template-card-hover-bg p-4 pt-8 group-hover:flex"
+        >
+          <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium grow gap-x-0.5">
+            <i class="ri-add-line"></i>
+            <span class="px-0.5">选择</span>
+          </button>
+          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium grow gap-x-0.5">
+            <i class="ri-corner-right-up-line"></i>
+            <span class="px-0.5">详情</span>
+          </button>
+        </div>
       </div>
-    </div>
+    }
   </div>
 </div>
 

@@ -7,6 +7,7 @@ import {
 	IWFNProcessor,
 	IWorkflowNode,
 	IXpertAgentExecution,
+	KBDocumentStatusEnum,
 	KnowledgebaseChannel,
 	KnowledgeTask,
 	STATE_VARIABLE_FILES,
@@ -18,7 +19,7 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
-import { shortuuid } from '@metad/server-common'
+import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, TDocumentTransformerFile, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
@@ -104,8 +105,8 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 				}
 				return await wrapAgentExecution(
 					async () => {
-						const humanFilesName = `${STATE_VARIABLE_HUMAN}.${STATE_VARIABLE_FILES}`
-						const files: TDocumentTransformerFile[] = []
+						// const humanFilesName = `${STATE_VARIABLE_HUMAN}.${STATE_VARIABLE_FILES}`
+						// const files: TDocumentTransformerFile[] = []
 						// if (entity.input === humanFilesName) {
 						// 	const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
 						// 		new GetStorageFileQuery(value.map((file) => file.id))
@@ -119,7 +120,6 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 						// 			extname
 						// 		})
 						// 	}
-
 						// 	input = files
 						// } else {
 						if (isTest) {
@@ -155,38 +155,8 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 						}
 						// }
 
-						// const strategy = await this.queryBus.execute<KnowledgeStrategyQuery, IDocumentTransformerStrategy>(
-						// 	new KnowledgeStrategyQuery({
-						// 		type: 'processor',
-						// 		name: entity.provider
-						// 	})
-						// )
-
-						// const volumeClient = new VolumeClient({
-						// 	tenantId: RequestContext.currentTenantId(),
-						// 	catalog: 'knowledges',
-						// 	userId: RequestContext.currentUserId(),
-						// 	knowledgeId: knowledgebaseId
-						// })
-						// const fsPermission = strategy.permissions?.find(
-						// 	(permission) => permission.type === 'filesystem'
-						// ) as FileSystemPermission
-						// const permissions = {}
-						// if (fsPermission) {
-						// 	const folder = isDraft ? 'temp/' : `/`
-						// 	permissions['fileSystem'] = new XpFileSystem(
-						// 		fsPermission,
-						// 		volumeClient.getVolumePath(folder),
-						// 		sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/${folder}`)
-						// 	)
-						// }
-						// const results = await strategy.transformDocuments(input, {
-						// 	...(entity.config ?? {}),
-						// 	stage: isDraft ? 'test' : 'prod',
-						// 	tempDir: volumeClient.getVolumePath('tmp'),
-						// 	permissions
-						// })
-
+						console.log('Processor input:', input)
+						
 						const results = await this.knowledgebaseService.transformDocuments(
 							knowledgebaseId,
 							entity,
@@ -194,7 +164,7 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							input
 						)
 
-						console.log(JSON.stringify(results, null, 2))
+						// console.log(JSON.stringify(results, null, 2))
 
 						const documentIds = []
 						// Update knowledge task progress
@@ -252,7 +222,14 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 						commandBus: this.commandBus,
 						queryBus: this.queryBus,
 						subscriber: subscriber,
-						execution
+						execution,
+						catchError: async (error) => {
+							if (!isTest) {
+								for await (const id of value) {
+									await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
+								}
+							}
+						}
 					}
 				)()
 			}),

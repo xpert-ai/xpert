@@ -276,6 +276,10 @@
 
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="reprocess(doc)">
+      <i class="ri-reset-right-line mr-2"></i>
+      <span class="ml-2">{{ 'PAC.Knowledgebase.Reprocess' | translate: {Default: 'Reprocess'} }}</span>
+    </div>
     <div cdkMenuItem (click)="renameDoc(doc)">
       <i class="ri-edit-line mr-2"></i>
       <span class="ml-2">{{ 'PAC.ACTIONS.Rename' | translate: {Default: 'Rename'} }}</span>

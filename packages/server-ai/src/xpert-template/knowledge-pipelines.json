@@ -1,0 +1,57 @@
+{
+	"en-US": {
+		"categories": ["Agent", "Workflow", "Browser", "Programming", "Thinking", "Assistant", "Utils", "Analysis"],
+		"templates": [
+			{
+				"name": "Crawl4AI",
+				"title": "Crawl4AI",
+				"description": "Open-Source LLM-Friendly Web Crawler & Scraper",
+				"author": "UncleCode",
+				"id": "crawl4ai-mcp",
+				"category": "Utils",
+				"type": "sse",
+				"icon": "https://docs.crawl4ai.com/img/favicon-32x32.png",
+				"explore": "https://docs.crawl4ai.com/core/docker-deployment/#mcp-model-context-protocol-support",
+				"copyright": null,
+				"privacyPolicy": null,
+				"tags": ["browser", "crawler", "productivity"],
+				"server": {
+					"type": "sse",
+					"url": "http://crawl4ai:11235/mcp/sse",
+					"toolNamePrefix": "mcp_crawl4ai"
+				},
+				"options": {
+					"disableToolDefault": true
+				}
+			}
+		]
+	},
+	"zh-Hans": {
+		"categories": ["Agent", "Workflow", "Browser", "Programming", "Thinking", "Assistant", "Utils", "Analysis"],
+		"templates": [
+			{
+				"name": "Crawl4AI",
+				"title": "Crawl4AI",
+				"description": "开源 LLM 友好的网络爬虫和抓取器",
+				"author": "UncleCode",
+				"id": "crawl4ai-mcp",
+				"category": "Utils",
+				"type": "sse",
+				"icon": "https://docs.crawl4ai.com/img/favicon-32x32.png",
+				"explore": "https://docs.crawl4ai.com/core/docker-deployment/#mcp-model-context-protocol-support",
+				"copyright": null,
+				"privacyPolicy": null,
+				"tags": ["browser", "crawler", "productivity"],
+				"server": {
+					"type": "sse",
+					"url": "http://crawl4ai:11235/mcp/sse",
+					"toolNamePrefix": "mcp_crawl4ai"
+				},
+				"options": {
+					"disableToolDefault": true
+				}
+			}
+			
+		]
+	}
+}

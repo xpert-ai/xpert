@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject, signal } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { getErrorMessage, injectToastr, KnowledgebaseService, routeAnimations } from '../../../../../@core'
+import { getErrorMessage, injectToastr, KnowledgebaseService, routeAnimations, XpertTemplateService } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
+import { myRxResource } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
-  selector: 'xpert-knowledgebase-pipelines',
+  selector: 'xp-knowledgebase-pipelines',
   templateUrl: './pipelines.component.html',
   styleUrls: ['./pipelines.component.scss'],
   imports: [CommonModule, RouterModule, NgmSpinComponent],
@@ -15,6 +16,7 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
 })
 export class KnowledgePipelinesComponent {
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
+  readonly xpertTemplateAPI = inject(XpertTemplateService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
@@ -22,6 +24,13 @@ export class KnowledgePipelinesComponent {
 
   // States
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  readonly #tempaltes = myRxResource({
+    request: () => ({}),
+    loader: ({request}) => {
+      return this.xpertTemplateAPI.getAllKnowledgePipelines({})
+    }
+  })
+  readonly templates = computed(() => this.#tempaltes.value()?.templates ?? [])
 
   readonly loading = signal(false)
 
