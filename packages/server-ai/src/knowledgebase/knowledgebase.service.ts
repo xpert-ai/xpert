@@ -14,6 +14,7 @@ import {
 	IWFNProcessor,
 	IWFNSource,
 	IXpert,
+	KBDocumentStatusEnum,
 	KnowledgebaseChannel,
 	KnowledgebaseTypeEnum,
 	KnowledgeProviderEnum,
@@ -59,6 +60,7 @@ import { KnowledgeSearchQuery } from './queries'
 import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore } from './vector-store'
 import { sandboxVolumeUrl, VolumeClient } from '../shared'
+import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -66,6 +68,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	@Inject(I18nService)
 	private readonly i18nService: I18nService
+
+	@Inject(KnowledgeDocumentService)
+	private readonly documentService: KnowledgeDocumentService
 
 	@Inject(TextSplitterRegistry)
 	private readonly textSplitterRegistry: TextSplitterRegistry
@@ -458,8 +463,32 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	}
 
 	// Pipeline
+
+	/**
+	 * Create a new task for a knowledgebase.
+	 * If the task status is running, start immediately.
+	 */
 	async createTask(knowledgebaseId: string, task: Partial<IKnowledgebaseTask>) {
-		return this.taskService.createTask(knowledgebaseId, task)
+		const {id} = await this.taskService.createTask(knowledgebaseId, task)
+		const _task = await this.taskService.findOne(id, { relations: ['documents'] })
+		if (task.status === 'running') {
+			_task.documents.forEach((doc) => {
+				doc.status = KBDocumentStatusEnum.WAITING
+			})
+			// Update task status to running
+			await this.documentService.save(_task.documents)
+			// Start immediately
+			await this.processTask(knowledgebaseId, _task.id, {
+				sources: _task.documents?.reduce((obj, doc) => ({
+					...obj,
+					[doc.sourceConfig.key]: {
+						documents: [...(obj[doc.sourceConfig.key]?.documents ?? []), doc.id]
+					}
+				}), {}),
+				stage: 'prod'
+			})
+		}
+		return _task
 	}
 
 	async getTask(knowledgebaseId: string, taskId: string, params?: PaginationParams<KnowledgebaseTask>) {
@@ -471,6 +500,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		})
 	}
 
+	/**
+	 * Process a task, start the knowledge ingestion pipeline
+	 */
 	async processTask(knowledgebaseId: string, taskId: string, inputs: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview' | 'prod'; options?: any }) {
 		const kb = await this.findOne(knowledgebaseId, { relations: ['pipeline'] })
 		await this.taskService.update(taskId, { status: 'running' })

@@ -11,13 +11,14 @@ import {
 	KBDocumentStatusEnum,
 	IKnowledgebaseTask,
 	Metadata,
+	TDocSourceConfig,
 } from '@metad/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { DocumentInterface } from '@langchain/core/documents'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, RelationId, Tree, TreeChildren, TreeParent } from 'typeorm'
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId, Tree, TreeChildren, TreeParent } from 'typeorm'
 import { Knowledgebase, KnowledgebaseTask, KnowledgeDocumentPage } from '../core/entities/internal'
 
 @Entity('knowledge_document')
@@ -39,7 +40,7 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	sourceConfig?: any
+	sourceConfig?: TDocSourceConfig
 
 	@ApiPropertyOptional({ enum: KBDocumentCategoryEnum, description: 'Category of the document' })
 	@IsEnum(KBDocumentCategoryEnum)
@@ -252,14 +253,14 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	})
 	pages?: IKnowledgeDocumentPage[]
 
-	@ApiProperty({ type: () => KnowledgebaseTask, isArray: true })
-	@ManyToOne(() => KnowledgebaseTask)
-	task?: IKnowledgebaseTask
-
-	@ApiProperty({ type: () => String })
-	@RelationId((it: KnowledgeDocument) => it.task)
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	taskId?: string
+	/*
+    |--------------------------------------------------------------------------
+    | Bi-directional @ManyToMany 
+    |--------------------------------------------------------------------------
+    */
+	@ManyToMany(() => KnowledgebaseTask, (t) => t.documents)
+	@JoinTable({
+		name: 'knowledgebase_task_document'
+	})
+    tasks?: IKnowledgebaseTask[]
 }

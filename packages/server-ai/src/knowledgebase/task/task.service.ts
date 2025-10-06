@@ -1,6 +1,6 @@
 import { IKnowledgebaseTask, IKnowledgeDocument, TaskStep } from '@metad/contracts'
 import { TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { KnowledgebaseTask } from './task.entity'
@@ -41,7 +41,6 @@ export class KnowledgebaseTaskService extends TenantOrganizationAwareCrudService
 			...entity,
 			knowledgebase,
 			status: 'pending',
-			progress: 0,
 			steps,
 		})
 
@@ -76,5 +75,4 @@ export class KnowledgebaseTaskService extends TenantOrganizationAwareCrudService
 		task.context.documents = updatedDocuments
 		return await this.taskRepo.save(task)
 	}
-
 }

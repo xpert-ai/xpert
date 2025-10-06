@@ -1,18 +1,24 @@
 import { animate, state, style, transition, trigger } from '@angular/animations'
+import { SelectionModel } from '@angular/cdk/collections'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { afterNextRender, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
-import { injectConfirmDelete, injectConfirmUnique, NgmCommonModule, NgmCountdownConfirmationComponent } from '@metad/ocap-angular/common'
+import {
+  injectConfirmDelete,
+  injectConfirmUnique,
+  NgmCommonModule,
+  NgmCountdownConfirmationComponent
+} from '@metad/ocap-angular/common'
+import { debouncedSignal } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { formatRelative } from 'date-fns/formatRelative'
 import { get } from 'lodash-es'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 import {
   BehaviorSubject,
   catchError,
@@ -35,15 +41,18 @@ import {
   IXpert,
   KBDocumentStatusEnum,
   KDocumentSourceType,
+  KnowledgebaseService,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
+  OrderTypeEnum,
   ToastrService
 } from '../../../../../@core'
-import { KnowledgeDocIdComponent } from '../../../../../@shared/knowledge'
+import { KnowledgeDocIdComponent, KnowledgeTaskComponent } from '../../../../../@shared/knowledge'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { SelectionModel } from '@angular/cdk/collections'
-import { debouncedSignal } from '@metad/ocap-angular/core'
+import { MatDialog } from '@angular/material/dialog'
+import { Dialog } from '@angular/cdk/dialog'
+
+const REFRESH_DEBOUNCE_TIME = 5000
 
 @Component({
   standalone: true,
@@ -55,7 +64,6 @@ import { debouncedSignal } from '@metad/ocap-angular/core'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatButtonModule,
     MatTooltipModule,
     NgmCommonModule,
     KnowledgeDocIdComponent,
@@ -73,9 +81,11 @@ export class KnowledgeDocumentsComponent {
   eKDocumentSourceType = KDocumentSourceType
   eKBDocumentStatusEnum = KBDocumentStatusEnum
 
+  readonly kbAPI = inject(KnowledgebaseService)
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly #dialog = inject(MatDialog)
+  readonly _dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
@@ -128,23 +138,35 @@ export class KnowledgeDocumentsComponent {
   })
 
   // Folders
-  readonly parentFolder = toSignal(this.parentId$.pipe(switchMap((parentId) => (parentId ? this.knowledgeDocumentAPI.getOneById(parentId, { relations: ['parent']}) : observableOf(null)))))
+  readonly parentFolder = toSignal(
+    this.parentId$.pipe(
+      switchMap((parentId) =>
+        parentId ? this.knowledgeDocumentAPI.getById(parentId, { relations: ['parent'] }) : observableOf(null)
+      )
+    )
+  )
   readonly grandParent = computed(() => this.parentFolder()?.parent ?? null)
 
   constructor() {
-    effect(() => {
-      if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
-        this.#router.navigate(['../test'], { relativeTo: this.#route })
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
+          this.#router.navigate(['../test'], { relativeTo: this.#route })
+        }
+      },
+      { allowSignalWrites: true }
+    )
 
     afterNextRender(() => {
       // If the user changes the sort order, reset back to the first page.
       // this.sort().sortChange.subscribe(() => (this.paginator().pageIndex = 0))
 
       merge(
-        // this.sort().sortChange, this.paginator().page, 
-        this.knowledgebase$, this.parentId$, this.refresh$)
+        // this.sort().sortChange, this.paginator().page,
+        this.knowledgebase$,
+        this.parentId$,
+        this.refresh$
+      )
         .pipe(
           startWith({}),
           debounceTime(100),
@@ -156,15 +178,20 @@ export class KnowledgeDocumentsComponent {
             //   : { createdAt: OrderTypeEnum.DESC }
             const where = {
               knowledgebaseId: this.knowledgebase().id,
-              parent: this.parentId() ? { id: this.parentId() } as IKnowledgeDocument : { $isNull: true }
+              parent: this.parentId() ? ({ id: this.parentId() } as IKnowledgeDocument) : { $isNull: true }
             }
-            return this.knowledgeDocumentAPI.getAll({
-              where,
-              take: this.pageSize(),
-              // skip: this.paginator().pageIndex,
-              relations: ['storageFile', 'pages'],
-              // order
-            }).pipe(catchError(() => observableOf(null)))
+            return this.knowledgeDocumentAPI
+              .getAll({
+                select: ['id', 'name', 'status', 'disabled', 'sourceType', 'createdAt', 'updatedAt', 'processMsg'],
+                where,
+                take: this.pageSize(),
+                // skip: this.paginator().pageIndex,
+                relations: ['storageFile'],
+                order: {
+                  updatedAt: OrderTypeEnum.DESC
+                }
+              })
+              .pipe(catchError(() => observableOf(null)))
           }),
           map((data) => {
             // Flip flag to show that loading has finished.
@@ -199,12 +226,16 @@ export class KnowledgeDocumentsComponent {
     })
 
     effect(() => {
-      if (this.#data()?.some((item) => item.status === 'running')) {
+      if (
+        this.#data()?.some(
+          (item) => item.status === KBDocumentStatusEnum.WAITING || item.status === KBDocumentStatusEnum.RUNNING
+        )
+      ) {
         this.delayRefresh$.next(true)
       }
     })
 
-    this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(5000)).subscribe(() => this.refresh())
+    this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(REFRESH_DEBOUNCE_TIME)).subscribe(() => this.refresh())
   }
 
   getValue(row: any, name: string) {
@@ -220,17 +251,21 @@ export class KnowledgeDocumentsComponent {
   }
 
   createFolder() {
-    this.confirmUnique({
-      title: this.#translate.instant('PAC.Knowledgebase.NewFolder', { Default: 'New Folder' }),
-    }, (name: string) => {
-      return name ? this.knowledgeDocumentAPI.create({
-        sourceType: KDocumentSourceType.FOLDER,
-        name: name,
-        knowledgebaseId: this.knowledgebase().id,
-        parent: this.parentId() ? { id: this.parentId() } as IKnowledgeDocument : null
-      }) : EMPTY
-    })
-    .subscribe({
+    this.confirmUnique(
+      {
+        title: this.#translate.instant('PAC.Knowledgebase.NewFolder', { Default: 'New Folder' })
+      },
+      (name: string) => {
+        return name
+          ? this.knowledgeDocumentAPI.create({
+              sourceType: KDocumentSourceType.FOLDER,
+              name: name,
+              knowledgebaseId: this.knowledgebase().id,
+              parent: this.parentId() ? ({ id: this.parentId() } as IKnowledgeDocument) : null
+            })
+          : EMPTY
+      }
+    ).subscribe({
       next: (doc) => {
         this.refresh()
       },
@@ -241,7 +276,10 @@ export class KnowledgeDocumentsComponent {
   }
 
   createFromPipeline() {
-    this.#router.navigate(['create-from-pipeline'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
+    this.#router.navigate(['create-from-pipeline'], {
+      relativeTo: this.#route,
+      queryParams: { parentId: this.parentId() }
+    })
   }
 
   uploadDocuments() {
@@ -402,17 +440,19 @@ export class KnowledgeDocumentsComponent {
 
   enableSelected() {
     this.isLoading.set(true)
-    this.knowledgeDocumentAPI.updateBulk(this.selectionModel.selected.map((id) => ({ id, disabled: false }))).subscribe({
-      next: () => {
-        this.isLoading.set(false)
-        this.selectionModel.clear()
-        this.refresh()
-      },
-      error: (err) => {
-        this.isLoading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
+    this.knowledgeDocumentAPI
+      .updateBulk(this.selectionModel.selected.map((id) => ({ id, disabled: false })))
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false)
+          this.selectionModel.clear()
+          this.refresh()
+        },
+        error: (err) => {
+          this.isLoading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
 
   disableSelected() {
@@ -431,13 +471,15 @@ export class KnowledgeDocumentsComponent {
   }
 
   renameDoc(doc: IKnowledgeDocument) {
-    this.confirmUnique({
-      title: this.#translate.instant('PAC.ACTIONS.Rename', { Default: 'Rename' }),
-      value: doc.name
-    }, (name: string) => {
-      return name ? this.knowledgeDocumentAPI.update(doc.id, { name }) : EMPTY
-    })
-    .subscribe({
+    this.confirmUnique(
+      {
+        title: this.#translate.instant('PAC.ACTIONS.Rename', { Default: 'Rename' }),
+        value: doc.name
+      },
+      (name: string) => {
+        return name ? this.knowledgeDocumentAPI.update(doc.id, { name }) : EMPTY
+      }
+    ).subscribe({
       next: () => {
         this.refresh()
       },
@@ -472,6 +514,34 @@ export class KnowledgeDocumentsComponent {
         this.isLoading.set(false)
         this.#toastr.error(getErrorMessage(err))
       }
+    })
+  }
+
+  reprocess(docs: string[]) {
+    this.kbAPI
+      .createTask(this.knowledgebase().id, {
+        taskType: 'document_reprocess',
+        status: 'running', // Start processing immediately
+        documents: docs.map((id) => ({ id } as IKnowledgeDocument))
+      })
+      .subscribe({
+        next: (task) => {
+          this.refresh()
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
+  openTask(doc: IKnowledgeDocument) {
+    this._dialog.open(KnowledgeTaskComponent, {
+      width: '800px',
+      data: {
+        knowledgebase: this.knowledgebase(),
+        documentId: doc.id
+      },
+      panelClass: 'xp-overlay-pane-share-sheet'
     })
   }
 }

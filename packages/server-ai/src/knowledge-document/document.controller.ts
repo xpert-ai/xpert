@@ -3,7 +3,7 @@ import {
 	CrudController,
 	IntegrationService,
 	ParseJsonPipe,
-	TransformInterceptor
+	TransformInterceptor,
 } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import {
@@ -43,6 +43,7 @@ import { JOB_EMBEDDING_DOCUMENT } from './types'
 @Controller()
 export class KnowledgeDocumentController extends CrudController<KnowledgeDocument> {
 	readonly #logger = new Logger(KnowledgeDocumentController.name)
+
 	constructor(
 		private readonly service: KnowledgeDocumentService,
 		private readonly integrationService: IntegrationService,

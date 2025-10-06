@@ -81,7 +81,7 @@ export class KnowledgeDocumentCreateStep3Component {
   })
   
   // Waiting job
-  readonly waited = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.WAITED))
+  readonly waited = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.WAITING))
   readonly running = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.RUNNING))
   readonly cancel = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.CANCEL))
   readonly delayRefresh$ = new Subject<boolean>()
@@ -90,7 +90,7 @@ export class KnowledgeDocumentCreateStep3Component {
     effect(() => {
       if (
         this.documents()?.some(
-          (item) => item.status === KBDocumentStatusEnum.WAITED || item.status === KBDocumentStatusEnum.RUNNING
+          (item) => item.status === KBDocumentStatusEnum.WAITING || item.status === KBDocumentStatusEnum.RUNNING
         )
       ) {
         this.delayRefresh$.next(true)
@@ -105,7 +105,7 @@ export class KnowledgeDocumentCreateStep3Component {
       .getStatus(
         compact(
           this.documents().map((item) =>
-            [KBDocumentStatusEnum.WAITED, KBDocumentStatusEnum.RUNNING].includes(item.status) ? item.id : null
+            [KBDocumentStatusEnum.WAITING, KBDocumentStatusEnum.RUNNING].includes(item.status) ? item.id : null
           )
         )
       )

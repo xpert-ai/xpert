@@ -3,7 +3,7 @@ import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsObject, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
 import { ChatConversation, Knowledgebase, KnowledgeDocument } from '../../core/entities/internal'
 
 @Entity('knowledgebase_task')
@@ -52,9 +52,6 @@ export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
 
-	@Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
-	progress: number // overall progress 0-100
-
 	@Column({ type: 'jsonb', nullable: true })
 	steps: TaskStep[]
 
@@ -80,14 +77,13 @@ export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements I
 	}
 
 	/*
-    |--------------------------------------------------------------------------
-    | @OneToMany
-    |--------------------------------------------------------------------------
-    */
-	@ApiPropertyOptional({ type: () => KnowledgeDocument, isArray: true })
-	@IsOptional()
-	@OneToMany(() => KnowledgeDocument, (kd) => kd.task, {
-		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	|--------------------------------------------------------------------------
+	| @ManyToMany 
+	|--------------------------------------------------------------------------
+	*/
+	@ManyToMany(() => KnowledgeDocument, {cascade: true})
+	@JoinTable({
+		name: 'knowledgebase_task_document'
 	})
 	documents?: IKnowledgeDocument[] | null
 }

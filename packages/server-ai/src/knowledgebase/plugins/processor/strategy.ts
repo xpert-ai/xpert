@@ -194,7 +194,11 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 											metadata: chunk.metadata
 										})),
 										knowledgebaseId,
-										taskId: knowledgeTaskId
+										tasks: [
+											{
+												id: knowledgeTaskId
+											}
+										]
 									})
 									documentIds.push(doc.id)
 								}

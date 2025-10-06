@@ -129,25 +129,32 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     })
   }
 
-  createTask(id: string, task: Partial<IKnowledgebaseTask>) {
-    return this.httpClient.post<IKnowledgebaseTask>(this.apiBaseUrl + `/${id}/task`, task)
+  /**
+   * Create a new task for the knowledgebase
+   */
+  createTask(kbId: string, task: Partial<IKnowledgebaseTask>) {
+    return this.httpClient.post<IKnowledgebaseTask>(this.apiBaseUrl + `/${kbId}/task`, task)
   }
 
+  /**
+   * Start processing a documents task
+   */
   processTask(id: string, taskId: string, body: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview'| 'prod';  options?: any }) {
     return this.httpClient.post<IKnowledgebaseTask>(this.apiBaseUrl + `/${id}/task/${taskId}/process`, body)
   }
 
   /**
+   * Poll the task status until it's done
    * 
    * @param taskId 
-   * @param period 每 2 秒轮询一次
+   * @param period Poll every 2 seconds
    * @returns 
    */
   pollTaskStatus(id: string, taskId: string, period = 2000) {
     return interval(period).pipe( 
       switchMap(() => this.getTask(id, taskId)),
       tap((res) => console.log('Current status:', res.status)),
-      takeWhile((res) => res.status === 'pending' || res.status === 'running', true) // true 表示包含 'done' 的最后一次
+      takeWhile((res) => res.status === 'pending' || res.status === 'running', true) // True if the last time 'done' was included
     )
   }
 

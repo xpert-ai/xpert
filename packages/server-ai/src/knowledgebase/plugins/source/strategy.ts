@@ -122,18 +122,33 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 								}
 							}
 							// Create as formal documents during non-testing phases
-							const task = await this.taskService.findOne(KnowledgeTaskId)
-							const _docs = task.context.documents.filter(doc => cachedDocuments.includes(doc.id))
-							if (_docs.length > 0) {
-								documents = await this.documentService.createBulk(_docs.map((doc) => {
-									return {
-										...omit(doc, 'id'),
-										status: KBDocumentStatusEnum.WAITED,
-										taskId: KnowledgeTaskId,
-										knowledgebaseId
-									}
-								}))
+							const task = await this.taskService.findOne(KnowledgeTaskId, { relations: ['documents'] })
+							if (task.context?.documents) {
+								const _docs = task.context.documents.filter(doc => cachedDocuments.includes(doc.id))
+								if (_docs.length > 0) {
+									documents = await this.documentService.createBulk(_docs.map((doc) => {
+										return {
+											...omit(doc, 'id'),
+											sourceConfig: {
+												key: node.key,
+											},
+											status: KBDocumentStatusEnum.WAITING,
+											taskId: KnowledgeTaskId,
+											knowledgebaseId
+										}
+									}))
+								}
+							} else {
+								documents = task.documents.filter(doc => cachedDocuments.includes(doc.id))
+								documents.forEach(doc => {
+									doc.sourceConfig = { key: node.key }
+									doc.status = KBDocumentStatusEnum.RUNNING
+								})
+								if (documents.length > 0) {
+								  await this.documentService.save(documents)
+								}
 							}
+							
 							return {
 								state: {
 									[channelName(node.key)]: {
@@ -182,7 +197,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							filePath: doc.metadata.filePath,
 							fileUrl: doc.metadata.fileUrl,
 							id: shortuuid(),
-							status: KBDocumentStatusEnum.WAITED,
+							status: KBDocumentStatusEnum.WAITING,
 							metadata: doc.metadata,
 							chunks: doc.pageContent ? [
 								{
@@ -210,7 +225,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							documents = await this.documentService.createBulk(documents.map((doc) => {
 								return {
 									...omit(doc, 'id'),
-									status: KBDocumentStatusEnum.WAITED,
+									status: KBDocumentStatusEnum.WAITING,
 									taskId: KnowledgeTaskId,
 									knowledgebaseId
 								}

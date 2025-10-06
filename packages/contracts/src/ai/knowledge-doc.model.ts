@@ -78,7 +78,7 @@ export enum KBDocumentCategoryEnum {
 }
 
 export enum KBDocumentStatusEnum {
-  WAITED = 'waited',
+  WAITING = 'waiting',
   VALIDATE = 'validate',
   RUNNING = 'running',
   CANCEL = 'cancel',
@@ -88,6 +88,10 @@ export enum KBDocumentStatusEnum {
 
 export type TDocumentWebOptions = TRagWebOptions & {
   //
+}
+
+export type TDocSourceConfig = {
+  key?: string
 }
 
 export type TKnowledgeDocument = {
@@ -119,7 +123,7 @@ export type TKnowledgeDocument = {
    * where dose this document come from
    */
   sourceType?: KDocumentSourceType | null
-  sourceConfig?: any
+  sourceConfig?: TDocSourceConfig
   /**
    * document type category
    */
@@ -168,8 +172,7 @@ export type TKnowledgeDocument = {
   integration?: IIntegration
 
   pages?: IKnowledgeDocumentPage[]
-  task?: IKnowledgebaseTask
-  taskId?: string
+  tasks?: IKnowledgebaseTask[]
 }
 
 /**
@@ -195,6 +198,19 @@ export interface IDocumentChunk<Metadata = DocumentMetadata> {
 }
 
 export type Metadata = Record<string, any>
+
+export interface IKnowledgeDocumentCreateInput
+	extends IKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {}
+
+export interface IKnowledgeDocumentUpdateInput
+	extends Partial<IKnowledgeDocumentCreateInput> {
+	id?: string;
+}
+
+export interface IKnowledgeDocumentFindInput
+	extends IBasePerTenantAndOrganizationEntityModel,
+		IKnowledgeDocument {}
+
 
 export function isDocumentSheet(type: string): boolean {
   return ['csv', 'xls', 'xlsx', 'ods'].includes(type)

@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common'
-import { HttpErrorResponse, HttpParams } from '@angular/common/http'
+import { HttpErrorResponse } from '@angular/common/http'
 import { Inject, Injectable, PLATFORM_ID, DebugElement, EventEmitter } from '@angular/core'
 import { compact, PivotColumn, uniqBy } from '@metad/ocap-core'
 import { includes, isNil, negate, isEqual, isEmpty, camelCase } from 'lodash-es'
@@ -7,6 +7,7 @@ import { Observable } from 'rxjs'
 import { filter, takeUntil, tap } from 'rxjs/operators'
 import { ZodType, ZodTypeDef } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
+import { isObject } from './utils/shared-utils'
 export { nonBlank, nonNullable } from '@metad/ocap-core'
 
 
@@ -101,16 +102,6 @@ export function cloneValue(value: any): any {
     return result
   }
   return value
-}
-
-/**
- * Checks if provided variable is Object
- * @param value Value to check
- * @returns true if provided variable is Object
- *@hidden
- */
-export function isObject(value: any): boolean {
-  return value && value.toString() === '[object Object]'
 }
 
 /**
@@ -382,43 +373,6 @@ export function splitByHighlight(text, highlight): Array<{value: string, match?:
 
   return [{value: text}]
 }
-
-export function toParams(query) {
-	let params: HttpParams = new HttpParams();
-	Object.keys(query).forEach((key) => {
-		if (isJsObject(query[key])) {
-			params = toSubParams(params, key, query[key]);
-		} else {
-			params = params.append(key.toString(), query[key]);
-		}
-	});
-	return params;
-}
-
-
-function isJsObject(object: any) {
-	return (
-		object !== null && object !== undefined && typeof object === 'object'
-	);
-}
-
-function toSubParams(params: HttpParams, key: string, object: any) {
-	Object.keys(object).forEach((childKey) => {
-		if (isJsObject(object[childKey])) {
-			params = toSubParams(
-				params,
-				`${key}[${childKey}]`,
-				object[childKey]
-			);
-		} else {
-			params = params.append(`${key}[${childKey}]`, object[childKey]);
-		}
-	});
-
-	return params;
-}
-
-
 
 export function createEventEmitter<T>(
   observable: Observable<T>,

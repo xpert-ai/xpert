@@ -103,7 +103,7 @@ export class KnowledgeDocumentPipelineStep1Component {
               context: {
                 documents: request.files.map((file) => ({
                   ...file,
-                  status: KBDocumentStatusEnum.WAITED,
+                  status: KBDocumentStatusEnum.WAITING,
                   parent: this.parentId() ? { id: this.parentId() } : null,
                 }))
               }

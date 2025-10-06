@@ -115,7 +115,7 @@
                 <knowledge-doc-id [doc]="element" [searchText]="search()" />
               </a>
             } @else {
-              <a [routerLink]="['.', element.id]">
+              <a [routerLink]="['.', element.id]" [queryParams]="{parentId: parentId()}">
                 <knowledge-doc-id [doc]="element" [searchText]="search()" />
               </a>
             }
@@ -143,34 +143,36 @@
           <!-- progress 列 -->
           <td class="px-6 py-2 w-36">
             @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
-              @switch (element.status) {
-                @case (eKBDocumentStatusEnum.RUNNING) {
-                  <div class="flex items-center gap-1">
-                    <ngm-progress-spinner class="w-7 h-7 shrink-0" [value]="element.progress" />
-                    <span>{{element.progress}}%</span>
-                  </div>
+              <div class="cursor-pointer" (click)="openTask(element)">
+                @switch (element.status) {
+                  @case (eKBDocumentStatusEnum.RUNNING) {
+                    <div class="flex items-center gap-1">
+                      <ngm-progress-spinner class="w-7 h-7 shrink-0" [value]="element.progress" />
+                      <span>{{element.progress}}%</span>
+                    </div>
+                  }
+                  @case (eKBDocumentStatusEnum.FINISH) {
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: {Default: 'Finish'} }]"
+                      color="green" />
+                  }
+                  @case (eKBDocumentStatusEnum.ERROR) {
+                    <ngm-tags class="text-sm" [matTooltip]="element.processMsg" matTooltipPosition="left"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: {Default: 'Error'} }]"
+                      color="red" />
+                  }
+                  @case (eKBDocumentStatusEnum.WAITING) {
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Waiting' | translate: {Default: 'Waiting'} }]"
+                      color="orange" />
+                  }
+                  @default {
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_NotStart' | translate: {Default: 'Not Start'} }]"
+                      color="gray" />
+                  }
                 }
-                @case (eKBDocumentStatusEnum.FINISH) {
-                  <ngm-tags class="text-sm"
-                    [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: {Default: 'Finish'} }]"
-                    color="green" />
-                }
-                @case (eKBDocumentStatusEnum.ERROR) {
-                  <ngm-tags class="text-sm" [matTooltip]="element.processMsg" matTooltipPosition="left"
-                    [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: {Default: 'Error'} }]"
-                    color="red" />
-                }
-                @case (eKBDocumentStatusEnum.WAITED) {
-                  <ngm-tags class="text-sm"
-                    [tags]="[{ caption: 'PAC.Knowledgebase.Status_Waited' | translate: {Default: 'Waited'} }]"
-                    color="orange" />
-                }
-                @default {
-                  <ngm-tags class="text-sm"
-                    [tags]="[{ caption: 'PAC.Knowledgebase.Status_NotStart' | translate: {Default: 'Not Start'} }]"
-                    color="gray" />
-                }
-              }
+              </div>
             }
           </td>
           <td class="px-6 py-2 w-28">
@@ -198,8 +200,8 @@
 </div>
 
 @if (selectionModel.hasValue()) {
-  <div class="absolute bottom-12 left-1/2 -translate-x-1/2 px-16 py-2 z-10">
-    <div class="rounded-xl flex justify-center items-center gap-4 p-2 shadow-lg border-[0.5px] border-solid border-primary-400 bg-primary-50">
+  <div class="absolute bottom-12 left-1/2 -translate-x-1/2 px-16 py-2 whitespace-nowrap z-10">
+    <div class="rounded-xl flex justify-center items-center gap-2 p-2 shadow-lg border-[0.5px] border-solid border-primary-400 bg-primary-50">
       <div class="inline-flex items-center gap-x-2 py-1 pl-2 pr-3">
         <span class="system-xs-medium flex h-5 w-5 items-center justify-center rounded-md bg-text-accent text-text-primary-on-surface">
           {{selectionModel.selected.length}}
@@ -218,6 +220,12 @@
         <i class="ri-close-circle-line mr-1"></i>
         {{ 'PAC.ACTIONS.Disable' | translate: {Default: "Disable"} }}
       </button>
+      <button type="button" class="btn btn-secondary btn-large" 
+        (click)="reprocess(selectionModel.selected)">
+        <i class="ri-reset-right-line mr-1"></i>
+        <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: {Default: 'Reprocess'} }}</span>
+      </button>
+      <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
       <button type="button" class="btn btn-large btn-secondary danger" (click)="deleteSelected()">
         <i class="ri-delete-bin-line mr-1"></i>
         {{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}
@@ -276,16 +284,16 @@
 
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="reprocess(doc)">
-      <i class="ri-reset-right-line mr-2"></i>
+    <div cdkMenuItem (click)="reprocess([doc.id])">
+      <i class="ri-reset-right-line mr-1"></i>
       <span class="ml-2">{{ 'PAC.Knowledgebase.Reprocess' | translate: {Default: 'Reprocess'} }}</span>
     </div>
     <div cdkMenuItem (click)="renameDoc(doc)">
-      <i class="ri-edit-line mr-2"></i>
+      <i class="ri-edit-line mr-1"></i>
       <span class="ml-2">{{ 'PAC.ACTIONS.Rename' | translate: {Default: 'Rename'} }}</span>
     </div>
     <div cdkMenuItem class="danger" (click)="deleteDocument(doc)">
-      <i class="ri-delete-bin-line mr-2"></i>
+      <i class="ri-delete-bin-line mr-1"></i>
       <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete' } }}</span>
     </div>
   </div>

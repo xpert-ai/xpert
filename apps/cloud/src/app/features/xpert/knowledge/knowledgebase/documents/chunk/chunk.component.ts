@@ -23,6 +23,7 @@ import {
   KnowledgeDocumentService
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 
 @Component({
   standalone: true,
@@ -49,6 +50,7 @@ export class KnowledgeDocumentChunkComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly #toastr = injectToastr()
   readonly paramId = injectParams('id')
+  readonly parentId = injectQueryParams('parentId')
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
@@ -57,7 +59,7 @@ export class KnowledgeDocumentChunkComponent {
   readonly document = toSignal(
     this.documentId$.pipe(
       filter(nonBlank),
-      switchMap((id) => this.knowledgeDocumentService.getOneById(id))
+      switchMap((id) => this.knowledgeDocumentService.getById(id))
     )
   )
   readonly refresh$ = new BehaviorSubject<boolean>(true)
@@ -97,7 +99,7 @@ export class KnowledgeDocumentChunkComponent {
   }
 
   close() {
-    this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.document().parent?.id } })
+    this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 
   deleteChunk(chunk: IDocumentChunk) {

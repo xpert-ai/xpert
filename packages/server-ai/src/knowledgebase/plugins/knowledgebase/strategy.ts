@@ -226,6 +226,11 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 
 						const results = await runWithConcurrencyLimit(tasks, 3)
 
+						// Update task status
+						await this.taskService.update(knowledgeTaskId, {
+							status: 'success'
+						})
+
 						return {
 							state: {
 								[channelName(node.key)]: {

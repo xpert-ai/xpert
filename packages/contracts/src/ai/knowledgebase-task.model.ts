@@ -18,11 +18,17 @@ export interface IKnowledgebaseTask extends IBasePerTenantAndOrganizationEntityM
   steps: TaskStep[];
   error?: string;
 
+  /**
+   * Temporary content: Documents not actually processed in the task yet
+   */
   context?: {
 		documents?: Partial<IKnowledgeDocument>[]
 	}
 
-  documents?: IKnowledgeDocument[] 
+  /**
+   * Many to Many of documents in task
+   */
+  documents?: IKnowledgeDocument[]
 }
 
 export interface TaskStep {

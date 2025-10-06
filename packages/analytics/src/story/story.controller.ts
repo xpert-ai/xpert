@@ -172,7 +172,7 @@ export class StoryController extends CrudController<Story> {
 	 */
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get(':id')
-	async findById(
+	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('$relations', ParseJsonPipe) relations: PaginationParams<Story>['relations'],
 		@Query('$query', ParseJsonPipe) options: FindOneOptions<Story>,

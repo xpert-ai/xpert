@@ -1,17 +1,17 @@
 import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum, KnowledgeStructureEnum } from '@metad/contracts'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
 import { ChunkMetadata, DocumentSourceRegistry, mergeParentChildChunks, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
-import { DataSource, In, Repository, TreeRepository } from 'typeorm'
+import { DataSource, DeepPartial, In, Repository } from 'typeorm'
 import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
-import { KnowledgeDocumentPage } from '../core'
+import { KnowledgeDocumentPage } from '../core/entities/internal'
 
 
 @Injectable()
@@ -29,16 +29,19 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
 	constructor(
 		@InjectRepository(KnowledgeDocument)
-		private readonly treeRepo: TreeRepository<KnowledgeDocument>,
+		readonly repo: Repository<KnowledgeDocument>,
 
 		private readonly dataSource: DataSource,
 
 		private readonly storageFileService: StorageFileService,
+
+		@Inject(forwardRef(() => KnowledgebaseService))
 		private readonly knowledgebaseService: KnowledgebaseService,
+		
 		private readonly commandBus: CommandBus,
 		@InjectQueue('embedding-document') private docQueue: Queue
 	) {
-		super(treeRepo)
+		super(repo)
 	}
 
 	async findAncestors(id: string) {
@@ -48,6 +51,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		return parents
 	}
 
+	/**
+	 * @deprecated
+	 */
 	async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
 		// Complete file type
 		if (!document.type) {
@@ -99,10 +105,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		await this.repository.delete(ids)
 	}
 
-	async save(document: KnowledgeDocument | KnowledgeDocument[]): Promise<KnowledgeDocument | KnowledgeDocument[]> {
-		return Array.isArray(document)
-			? await Promise.all(document.map((d) => this.repository.save(d)))
-			: await this.repository.save(document)
+	async save(document: DeepPartial<KnowledgeDocument>)
+	async save(document: DeepPartial<KnowledgeDocument>[])
+	async save(document) {
+		return await this.repository.save(document)
 	}
 
 	async createPageBulk(documentId: string, pages: Partial<IKnowledgeDocumentPage<ChunkMetadata>>[]) {

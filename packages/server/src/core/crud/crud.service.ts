@@ -7,7 +7,6 @@ import {
 	FindManyOptions,
 	FindOneOptions,
 	FindOptionsWhere,
-	In,
 	Repository,
 	SaveOptions,
 	SelectQueryBuilder,
@@ -47,9 +46,8 @@ export abstract class CrudService<T extends BaseEntity>
 	}
 
 	public async findAll(filter?: FindManyOptions<T>): Promise<IPagination<T>> {
-		const total = await this.repository.count(filter);
-		const items = await this.repository.find(filter);
-		return { items, total };
+		const [items, total] = await this.repository.findAndCount(filter)
+		return { items, total }
 	}
 
 	public async paginate(filter?: any): Promise<IPagination<T>> {
@@ -102,6 +100,63 @@ export abstract class CrudService<T extends BaseEntity>
 	|--------------------------------------------------------------------------
 	*/
 
+	/**
+	 * Finds first entity by a given find options.
+	 * If entity was not found in the database - rejects with error.
+	 *
+	 * @param id
+	 * @param options
+	 * @returns
+	 */
+	public async findOneOrFailByIdString(id: string, options?: IFindOneOptions<T>): Promise<ITryRequest<T>> {
+		try {
+			options = options as FindOneOptions<T>;
+			const record = await this.repository.findOneOrFail({
+				where: {
+					id,
+					...(options && options.where ? options.where : {})
+				},
+				...(options && options.select ? { select: options.select } : {}),
+				...(options && options.relations ? { relations: options.relations } : []),
+				...(options && options.order ? { order: options.order } : {})
+			} as FindOneOptions<T>);
+			return {
+				success: true,
+				record: this.serialize(record)
+			};
+		} catch (error) {
+			return {
+				success: false,
+				error
+			};
+		}
+	}
+
+	/**
+	 * Finds first entity by a given find options.
+	 * If entity was not found in the database - rejects with error.
+	 *
+	 * @param options
+	 * @returns
+	 */
+	public async findOneOrFailByOptions(options: IFindOneOptions<T>): Promise<ITryRequest<T>> {
+		try {
+			const record = await this.repository.findOneOrFail(options as FindOneOptions<T>);
+			return {
+				success: true,
+				record: this.serialize(record)
+			};
+		} catch (error) {
+			return {
+				success: false,
+				error
+			};
+		}
+	}
+
+	/**
+	 * @deprecated use findOneOrFailByIdString or findOneOrFailByOptions instead
+	 */
 	public async findOneOrFail(
 		id: string | number | FindOneOptions<T>,
 		options?: FindOneOptions<T>
@@ -143,9 +198,7 @@ export abstract class CrudService<T extends BaseEntity>
 	 */
 	public async findOneOrFailByWhereOptions(options: IFindWhereOptions<T>): Promise<ITryRequest<T>> {
 		try {
-			let record: T;
-
-			record = await this.repository.findOneByOrFail(options as FindOptionsWhere<T>);
+			const record = await this.repository.findOneByOrFail(options as FindOptionsWhere<T>);
 
 			return {
 				success: true,
@@ -240,7 +293,7 @@ export abstract class CrudService<T extends BaseEntity>
 	 * @returns
 	 */
 	public async findOneByWhereOptions(options: IFindWhereOptions<T>): Promise<T | null> {
-		let record: T = await this.repository.findOneBy(options as FindOptionsWhere<T>)
+		const record: T = await this.repository.findOneBy(options as FindOptionsWhere<T>)
 
 		if (!record) {
 			throw new NotFoundException(`The requested record was not found`);

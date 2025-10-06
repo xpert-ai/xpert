@@ -2387,7 +2387,7 @@
       "Status_Paused": "已暂停",
       "Status_Parsing": "解析中",
       "Status_Embedding": "嵌入中",
-      "Status_Waited": "排队中",
+      "Status_Waiting": "排队中",
       "Input": "输入",
       "Permission_Private": "私有",
       "Permission_Organization": "组织内",
@@ -2495,7 +2495,18 @@
       "ScoreTooltip": "用于设置文本块筛选的相似度阈值",
       "WeightTooltip": "在多知识库组合中的权重",
       "NewIntegration": "新建集成连接",
-      "Chunk": "分块"
+      "Chunk": "分块",
+      "TaskStatus": "任务状态",
+      "TaskType": "任务类型",
+      "Status": "状态",
+      "Success": "成功",
+      "Failed": "失败",
+      "Cancelled": "已取消",
+      "Running": "运行中",
+      "StepStatus_pending": "待处理",
+      "StepStatus_running": "运行中",
+      "StepStatus_success": "成功",
+      "StepStatus_failed": "失败"
     },
     "Integration": {
       "Integration": "集成",

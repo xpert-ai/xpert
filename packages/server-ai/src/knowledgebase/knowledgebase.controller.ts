@@ -214,6 +214,13 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		}
 	}
 
+	/**
+	 * Create a new task for a knowledgebase.
+	 * 
+	 * @param id Knowledgebase ID
+	 * @param body Partial task entity
+	 * @returns 
+	 */
 	@Post(':id/task')
 	async createTask(@Param('id') id: string, @Body() body: Partial<IKnowledgebaseTask>) {
 		return this.service.createTask(id, body)
