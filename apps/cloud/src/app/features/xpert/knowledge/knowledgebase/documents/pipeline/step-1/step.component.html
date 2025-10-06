@@ -3,7 +3,7 @@
     <div class="relative flex flex-col gap-y-0.5 pb-2 pt-4">
       <div class="flex items-center gap-x-2">
         <span class="text-xs font-semibold uppercase bg-gradient-to-br from-[rgba(11,165,236,0.95)] to-[rgba(21,90,239,0.95)] bg-clip-text text-transparent"
-          >{{ 'PAC.KnowledgeBase.AddDocuments' | translate: {Default: 'Add Documents'} }}</span
+          >{{ 'PAC.Knowledgebase.AddDocuments' | translate: {Default: 'Add Documents'} }}</span
         ><span class="system-2xs-regular text-divider-regular">/</span>
         <div class="flex gap-x-1">
           <div class="h-1 rounded-lg w-2 bg-primary-600"></div>
@@ -11,7 +11,7 @@
           <div class="h-1 w-1 rounded-lg bg-divider-deep"></div>
         </div>
       </div>
-      <div class="system-md-semibold text-text-primary">{{ 'PAC.KnowledgeBase.ChooseADataSource' | translate: {Default: 'Choose a Data Source'} }}</div>
+      <div class="system-md-semibold text-text-primary">{{ 'PAC.Knowledgebase.ChooseADataSource' | translate: {Default: 'Choose a Data Source'} }}</div>
       <a [routerLink]="['../']" class="cursor-pointer">
         <button
           type="button"
@@ -37,7 +37,7 @@
                   <xp-custom-icon class="contents" [icon]="item.strategy.meta.icon" />
                 </div>
               </div>
-              <div class="system-sm-medium line-clamp-2 grow text-text-primary" [title]="item.strategy.meta.label | i18n">
+              <div class="system-sm-medium truncate grow text-text-primary" [title]="item.strategy.meta.label | i18n">
                 {{ item.strategy.meta.label | i18n }}
               </div>
             </div>
@@ -49,13 +49,15 @@
               <div class="flex items-center gap-x-1 overflow-hidden">
                 <div class="grow overflow-hidden">
                   <div class="flex cursor-pointer items-center gap-x-2 rounded-md p-1 pr-2 hover:bg-state-base-hover"
-                    [cdkMenuTriggerFor]="integrationMenu">
+                    >
                     <div class="flex grow items-center gap-x-1 overflow-hidden">
                       @if (selectedIntegration(); as selectedIntegration) {
                         <span class="system-md-semibold grow truncate text-text-secondary">{{selectedIntegration.label | i18n}}</span>
                       } @else {
                         <span class="system-md-semibold grow truncate text-text-secondary">{{integration.service}}</span>
-                      }<i class="ri-arrow-down-s-line"></i>
+                      }
+                      
+                      <!-- <i class="ri-arrow-down-s-line"></i> -->
                     </div>
                   </div>
                 </div>
@@ -92,7 +94,7 @@
                 [(selected)]="selectedFile" />
             }
             @case (eDocumentSourceProviderCategoryEnum.WebCrawl) {
-              <form class="w-full mt-2 rounded-xl border border-components-panel-border bg-background-default-subtle ng-star-inserted">
+              <div class="w-full mt-2 rounded-xl border border-components-panel-border bg-background-default-subtle ng-star-inserted">
                 <div class="flex items-center gap-x-1 px-4 py-2">
                   <div class="flex grow cursor-pointer select-none items-center gap-x-0.5">
                     <span class="system-sm-semibold-uppercase text-text-secondary">{{ 'PAC.KEY_WORDS.Options' | translate: {Default: 'Options'} }}</span>
@@ -101,43 +103,41 @@
                   <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 gap-x-0.5"
                     (click)="runStep()">
                     <i class="ri-play-line"></i>
-                    <span class="px-0.5">{{ 'PAC.KEY_WORDS.Run' | translate: {Default: 'Run'} }}</span>
+                    <span class="px-0.5">{{ 'PAC.ACTIONS.Run' | translate: {Default: 'Run'} }}</span>
                   </button>
                 </div>
                 <div class="flex flex-col gap-3 border-t border-divider-subtle px-4 py-3">
-                  @if (documents()) {
-                    @if (testing()) {
-                      <bullet-list-content-loader></bullet-list-content-loader>
-                    } @else {
-                      @for (doc of documents(); track doc.id) {
-                        <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover"
-                          (click)="selectedWebDocument.set(doc)">
-                          <!-- <ngm-checkbox class="grow" [label]="doc.metadata.title"
-                            [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/> -->
-                          <div class="flex min-w-0 grow flex-col gap-y-0.5">
-                            <div class="system-sm-medium truncate text-text-secondary" [title]="doc.metadata.title">
-                              {{ doc.metadata.title }}
-                            </div>
-                            <div class="system-xs-regular truncate text-text-tertiary" [title]="doc.metadata.source">
-                              {{ doc.metadata.source }}
-                            </div>
+                  @if (testing()) {
+                    <bullet-list-content-loader></bullet-list-content-loader>
+                  } @else if (documents()) {
+                    @for (doc of documents(); track doc.id) {
+                      <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover"
+                        (click)="selectedWebDocument.set(doc)">
+                        <!-- <ngm-checkbox class="grow" [label]="doc.metadata.title"
+                          [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/> -->
+                        <div class="flex min-w-0 grow flex-col gap-y-0.5">
+                          <div class="system-sm-medium truncate text-text-secondary" [title]="doc.metadata.title">
+                            {{ doc.metadata.title }}
+                          </div>
+                          <div class="system-xs-regular truncate text-text-tertiary" [title]="doc.metadata.source">
+                            {{ doc.metadata.source }}
                           </div>
                         </div>
-                      } @empty {
-                        <div class="py-4 text-center text-text-tertiary">
-                          {{ 'PAC.KnowledgeBase.NoPagesFetched' | translate: {Default: 'No pages fetched'} }}
-                        </div>
-                      }
+                      </div>
+                    } @empty {
+                      <div class="py-4 text-center text-text-tertiary">
+                        {{ 'PAC.Knowledgebase.NoPagesFetched' | translate: {Default: 'No pages fetched'} }}
+                      </div>
                     }
                   } @else {
-                    ccc
+                    <json-schema-form [schema]="providerSchema()" [ngModel]="providerConfig()" readonly />
                   }
                 </div>
-              </form>
+              </div>
             }
             @default {
               <div class="p-4 text-text-tertiary">
-                {{ 'PAC.KnowledgeBase.PleaseSelectADataSource' | translate: {Default: 'Please select a data source'} }}
+                {{ 'PAC.Knowledgebase.PleaseSelectADataSource' | translate: {Default: 'Please select a data source'} }}
               </div>
             }
           }
@@ -228,7 +228,7 @@
                   </svg>
 
                   <p class="text-xs text-gray-500">
-                    <span class="truncate">{{ doc.metadata.source || 'WEB PAGE' }}</span> · {{ doc.pageContent.length}} {{ 'PAC.KEY_WORDS.Characters' | translate: {Default: 'Characters'} }}
+                    <span class="truncate">{{ doc.metadata.source || 'WEB PAGE' }}</span> · {{ doc.metadata.characters || 0}} {{ 'PAC.KEY_WORDS.Characters' | translate: {Default: 'Characters'} }}
                   </p>
                 </div>
               </div>
@@ -238,7 +238,7 @@
               </button>
             </div>
             <div class="body-md-regular grow px-6 py-5 font-body text-text-secondary overflow-auto">
-              @for (chunk of doc.chunks; track chunk; let i = $index) {
+              @for (chunk of doc.pages; track chunk; let i = $index) {
                 <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
               }
             </div>
@@ -250,7 +250,7 @@
 </div>
 
 
-<ng-template #integrationMenu >
+<!-- <ng-template #integrationMenu >
   <div cdkMenu class="cdk-menu__large" >
     @for (option of integrations(); track option.value) {
       <div cdkMenuItem class="group/item overflow-hidden"
@@ -276,4 +276,4 @@
       {{ 'PAC.Knowledgebase.CreateSystemIntegration' | translate: {Default: 'Create system integration'} }}
     </div>
   </div>
-</ng-template>
+</ng-template> -->

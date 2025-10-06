@@ -682,6 +682,7 @@
       "PasswordChangedSuccessfully": "密码修改成功"
     },
     "ACTIONS": {
+      "Run": "运行",
       "Rename": "重命名",
       "Refresh": "刷新",
       "Export": "导出",

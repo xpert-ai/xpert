@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, input } from '@angular/core'
+import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormGroup, FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,6 +28,9 @@ export class JSONSchemaFormComponent {
   // Inputs
   readonly schema = input<JsonSchema7ObjectType>()
   readonly variables = input<TWorkflowVarGroup[]>()
+  readonly readonly = input<boolean, string | boolean>(false, {
+      transform: booleanAttribute
+    })
 
   // Attrs
   get invalid() {

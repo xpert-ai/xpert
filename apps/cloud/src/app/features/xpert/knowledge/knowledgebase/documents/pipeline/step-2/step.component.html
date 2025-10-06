@@ -3,7 +3,7 @@
     <div class="relative flex flex-col gap-y-0.5 pb-2 pt-4">
       <div class="flex items-center gap-x-2">
         <span class="text-xs font-semibold uppercase bg-gradient-to-br from-[rgba(11,165,236,0.95)] to-[rgba(21,90,239,0.95)] bg-clip-text text-transparent"
-          >{{ 'PAC.KnowledgeBase.AddDocuments' | translate: {Default: 'Add Documents'} }}</span
+          >{{ 'PAC.Knowledgebase.AddDocuments' | translate: {Default: 'Add Documents'} }}</span
         ><span class="system-2xs-regular text-divider-regular">/</span>
         <div class="flex gap-x-1">
           <div class="h-1 w-1 rounded-lg bg-divider-deep"></div>
@@ -11,7 +11,7 @@
           <div class="h-1 w-1 rounded-lg bg-divider-deep"></div>
         </div>
       </div>
-      <div class="system-md-semibold text-text-primary">{{ 'PAC.KnowledgeBase.ProcessingDocuments' | translate: {Default: 'Processing Documents'} }}</div>
+      <div class="system-md-semibold text-text-primary">{{ 'PAC.Knowledgebase.ProcessingDocuments' | translate: {Default: 'Processing Documents'} }}</div>
       <a [routerLink]="['../']" class="cursor-pointer">
         <button
           type="button"
@@ -83,7 +83,7 @@
                   <div class="ml-1 flex flex-col items-start">
                     <div class="flex items-center space-x-0.5">
                       <span class="system-md-semibold max-w-[200px] truncate text-text-primary">
-                        {{ previewDocName() || ('PAC.KnowledgeBase.SelectDocumentForPreview' | translate: {Default: 'Select a document to preview its content'}) }}
+                        {{ previewDocName() || ('PAC.Knowledgebase.SelectDocumentForPreview' | translate: {Default: 'Select a document to preview its content'}) }}
                       </span>
                       <svg
                         viewBox="0 0 24 24"
@@ -104,7 +104,7 @@
               <div
                 class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] leading-3 text-text-tertiary system-2xs-medium-uppercase"
               >
-                0 {{ 'PAC.KnowledgeBase.EstimatedChunks' | translate: {Default: 'Estimated Chunks'} }}
+                0 {{ 'PAC.Knowledgebase.EstimatedChunks' | translate: {Default: 'Estimated Chunks'} }}
               </div>
             </div>
           </div>

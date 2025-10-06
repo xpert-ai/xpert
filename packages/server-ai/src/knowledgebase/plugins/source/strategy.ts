@@ -19,7 +19,9 @@ import {
 	KBDocumentStatusEnum,
 	IKnowledgeDocument,
 	IXpertAgentExecution,
-	STATE_VARIABLE_HUMAN
+	STATE_VARIABLE_HUMAN,
+	IKnowledgebaseTask,
+	KnowledgeFolderId
 } from '@metad/contracts'
 import { omit, shortuuid } from '@metad/server-common'
 import { GetIntegrationQuery } from '@metad/server-core'
@@ -91,6 +93,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 				const stage = knowledgebaseState?.['stage']
 				const isTest = stage === 'preview' || isDraft
 				const knowledgeSources = knowledgebaseState?.[KnowledgeSources] as string[]
+				const folderId = knowledgebaseState?.[KnowledgeFolderId] as string
 				// Skip this node if the source is not in the selected knowledge sources
 				if (knowledgeSources && !knowledgeSources.includes(node.key)) {
 					return new Command({
@@ -133,8 +136,9 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 												key: node.key,
 											},
 											status: KBDocumentStatusEnum.WAITING,
-											taskId: KnowledgeTaskId,
-											knowledgebaseId
+											knowledgebaseId,
+											pages: doc.pages?.map(page => omit(page, 'id')),
+											tasks: [{id: KnowledgeTaskId} as IKnowledgebaseTask]
 										}
 									}))
 								}
@@ -143,6 +147,9 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 								documents.forEach(doc => {
 									doc.sourceConfig = { key: node.key }
 									doc.status = KBDocumentStatusEnum.RUNNING
+									if (doc.tasks?.findIndex(t => t.id === KnowledgeTaskId) < 0) {
+										doc.tasks.push({id: KnowledgeTaskId} as IKnowledgebaseTask)
+									}
 								})
 								if (documents.length > 0) {
 								  await this.documentService.save(documents)
@@ -192,19 +199,20 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						// console.log('================== Source Node End ===================')
 
 						documents = results.map((doc) => ({
+							id: shortuuid(),
 							type: doc.metadata.type,
 							name: doc.metadata.originalName || doc.metadata.title,
 							filePath: doc.metadata.filePath,
 							fileUrl: doc.metadata.fileUrl,
-							id: shortuuid(),
 							status: KBDocumentStatusEnum.WAITING,
 							metadata: doc.metadata,
-							chunks: doc.pageContent ? [
+							pages: doc.pageContent ? [
 								{
 									...doc,
 									id: shortuuid(),
 								}
-							] : null
+							] : null,
+							parent: folderId ? { id: folderId } : null,
 						} as IKnowledgeDocument))
 						
 						if (isTest) {
@@ -226,8 +234,10 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 								return {
 									...omit(doc, 'id'),
 									status: KBDocumentStatusEnum.WAITING,
-									taskId: KnowledgeTaskId,
-									knowledgebaseId
+									// taskId: KnowledgeTaskId,
+									knowledgebaseId,
+									pages: doc.pages?.map(page => omit(page, 'id')),
+									tasks: [{id: KnowledgeTaskId} as IKnowledgebaseTask]
 								}
 							}))
 						}

@@ -75,7 +75,7 @@ export class KnowledgeDocumentPipelineComponent {
   readonly pipeline = computed(() => this.#pipeline()?.pipeline)
   readonly graph = computed(() => this.pipeline()?.graph)
   readonly sources = computed(() =>
-    this.graph()?.nodes.filter((node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.SOURCE)
+    this.graph()?.nodes.filter((node): node is TXpertTeamNode & {type: 'workflow'; entity: IWFNSource } => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.SOURCE)
   )
 
   readonly strategies = toSignal(this.knowledgebaseAPI.documentSourceStrategies$)
@@ -91,7 +91,7 @@ export class KnowledgeDocumentPipelineComponent {
       })
   )
 
-  readonly selectedSource = signal<TXpertTeamNode>(null)
+  readonly selectedSource = signal<TXpertTeamNode & {type: 'workflow'; entity: IWFNSource }>(null)
   readonly selectedStrategy = computed(
     () =>
       this.selectedSource() &&
@@ -107,7 +107,7 @@ export class KnowledgeDocumentPipelineComponent {
   })
 
   readonly integrations = this.#integrations.value
-  readonly integrationId = signal<string>(null)
+  readonly integrationId = computed(() => this.selectedSource()?.entity.integrationId)
   readonly selectedIntegration = computed(() => this.integrations()?.find((i) => i.value === this.integrationId()))
   readonly parserConfig = signal<DocumentParserConfig>({})
 
@@ -119,15 +119,15 @@ export class KnowledgeDocumentPipelineComponent {
     }
   })
   readonly documentIds = signal<string[]>([])
-  readonly documents = computed(() => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds()?.includes(doc.id)) || [])
+  readonly documents = computed(() => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds()?.includes(doc.id)))
 
   readonly files = model<KnowledgeFileUploader[]>([])
 
-  constructor() {
-    effect(() => {
-      console.log('taskid: ', this.taskId())
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log('taskid: ', this.taskId())
+  //   })
+  // }
 
   nextStep() {
     this.step.update((n) => n + 1)

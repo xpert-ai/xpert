@@ -30,11 +30,11 @@ export class KnowledgebaseTaskService extends TenantOrganizationAwareCrudService
 		}
 
 		const steps: TaskStep[] = [
-			{ name: 'load', status: 'pending', progress: 0 },
-			{ name: 'preprocess', status: 'pending', progress: 0 },
-			{ name: 'split', status: 'pending', progress: 0 },
-			{ name: 'embed', status: 'pending', progress: 0 },
-			{ name: 'store', status: 'pending', progress: 0 }
+			// { name: 'load', status: 'pending', progress: 0 },
+			// { name: 'preprocess', status: 'pending', progress: 0 },
+			// { name: 'split', status: 'pending', progress: 0 },
+			// { name: 'embed', status: 'pending', progress: 0 },
+			// { name: 'store', status: 'pending', progress: 0 }
 		]
 
 		const task = await this.create({

@@ -1,16 +1,17 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { Component, computed, effect, inject, input, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
+import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { compact } from 'lodash-es'
-import { BehaviorSubject, debounceTime, map, Subject } from 'rxjs'
+import { BehaviorSubject, debounceTime, Subject } from 'rxjs'
 import {
   DocumentTextParserConfig,
   getErrorMessage,
@@ -23,8 +24,6 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { linkedModel } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
@@ -70,16 +69,21 @@ export class KnowledgeDocumentCreateStep3Component {
   })
 
   readonly knowledgebaseId = computed(() => this.knowledgebase()?.id)
-  readonly #task = derivedAsync(() => {
-    return this.taskId() ? this.knowledgebaseAPI.getTask(this.knowledgebaseId(), this.taskId(), { relations: ['documents'] }) : null
-  })
-  readonly documents = linkedModel({
-    initialValue: null,
-    compute: () => this.docs() || this.#task()?.documents,
-    update: (docs) => {
+  readonly #task = myRxResource({
+    request: () => ({ knowledgebaseId: this.knowledgebaseId(), taskId: this.taskId() }),
+    loader: ({ request }) => {
+      return request.taskId
+        ? this.knowledgebaseAPI.getTask(request.knowledgebaseId, request.taskId, { relations: ['documents'] })
+        : null
     }
   })
-  
+
+  readonly documents = linkedModel({
+    initialValue: null,
+    compute: () => this.docs() || this.#task.value()?.documents || this.#task.value()?.context?.documents || [],
+    update: (docs) => {}
+  })
+
   // Waiting job
   readonly waited = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.WAITING))
   readonly running = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.RUNNING))
@@ -87,6 +91,17 @@ export class KnowledgeDocumentCreateStep3Component {
   readonly delayRefresh$ = new Subject<boolean>()
 
   constructor() {
+    effect(
+      () => {
+        if (this.#task.value() && !this.#task.value()?.documents?.length) {
+          setTimeout(() => {
+            this.#task.reload()
+          }, 2000)
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(() => {
       if (
         this.documents()?.some(

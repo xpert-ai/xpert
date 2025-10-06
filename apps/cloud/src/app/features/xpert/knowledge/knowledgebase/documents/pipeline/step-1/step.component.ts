@@ -1,7 +1,7 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -16,6 +16,7 @@ import {
   channelName,
   DocumentSourceProviderCategoryEnum,
   getErrorMessage,
+  IKnowledgeDocument,
   injectHelpWebsite,
   KBDocumentStatusEnum,
   KDocumentSourceType,
@@ -29,6 +30,7 @@ import {
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
+import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 
 @Component({
   standalone: true,
@@ -47,6 +49,7 @@ import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
     ContentLoaderModule,
     NgmI18nPipe,
     CustomIconComponent,
+    JSONSchemaFormComponent,
     KnowledgeChunkComponent,
     KnowledgeLocalFileComponent,
     KnowledgeWebCrawlComponent
@@ -86,6 +89,9 @@ export class KnowledgeDocumentPipelineStep1Component {
   readonly files = this.pipelineComponent.files
   readonly documentIds = this.pipelineComponent.documentIds
 
+  readonly providerSchema = computed(() => this.selectedStrategy()?.meta.configSchema)
+  readonly providerConfig = computed(() => this.selectedSource()?.entity.config)
+
   // local files
   readonly createFileTask = myRxResource({
     request: () => ({
@@ -115,7 +121,7 @@ export class KnowledgeDocumentPipelineStep1Component {
   readonly selectedFile = model<KnowledgeFileUploader | null>(null)
 
   // Web Crawl
-  readonly selectedWebDocument = model<any | null>(null)
+  readonly selectedWebDocument = model<Partial<IKnowledgeDocument> | null>(null)
 
   // Preview
   // readonly preview = signal<boolean>(true)
@@ -155,6 +161,7 @@ export class KnowledgeDocumentPipelineStep1Component {
         [KnowledgebaseChannel]: {
           knowledgebaseId: this.knowledgebase()?.id,
           task_id: this.taskId(),
+          folder_id: this.parentId(),
           stage: 'preview'
         }
       })
