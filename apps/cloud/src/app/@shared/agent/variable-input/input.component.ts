@@ -212,7 +212,7 @@ function parseTemplateString(str) {
   let lastWasVariable = false
 
   while ((match = regex.exec(str)) !== null) {
-    // 添加变量前的纯文本
+    // Plain text before adding variables
     if (match.index > lastIndex) {
       result.push({
         type: 'text',
@@ -221,9 +221,9 @@ function parseTemplateString(str) {
       lastWasVariable = false
     }
 
-    // 添加变量
+    // Add variables
     if (lastWasVariable) {
-      // 如果上一个也是变量，插入一个空的文本
+      // If the last one was also a variable, insert an empty text
       result.push({
         type: 'text',
         value: ''
@@ -235,11 +235,11 @@ function parseTemplateString(str) {
     })
     lastWasVariable = true
 
-    // 更新 lastIndex
+    // Update lastIndex
     lastIndex = regex.lastIndex
   }
 
-  // 结尾还有纯文本
+  // There is still plain text at the end
   if (lastIndex < str.length) {
     result.push({
       type: 'text',

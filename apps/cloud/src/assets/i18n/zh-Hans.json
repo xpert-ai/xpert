@@ -719,6 +719,8 @@
       "Run": "运行",
       "Rename": "重命名",
       "Refresh": "刷新",
+      "Collapse": "收起",
+      "Expand": "展开",
       "Export": "导出",
       "Change": "更改",
       "Disable": "禁用",

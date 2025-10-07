@@ -19,17 +19,27 @@ import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../.
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { FakeStreamingChatModel } from '../../agent'
 
+export const WORKFLOW_ANSWER_MESSAGE_CHANNEL = 'message'
 export const WORKFLOW_ANSWER_MESSAGES_CHANNEL = 'messages'
 
 export function answerOutputVariables(entity: IWorkflowNode) {
 	return [
 		{
+			type: XpertParameterTypeEnum.STRING,
+			name: WORKFLOW_ANSWER_MESSAGE_CHANNEL,
+			title: 'Message',
+			description: {
+				en_US: 'Latest Message',
+				zh_Hans: '最新消息'
+			}
+		},
+		{
 			type: XpertParameterTypeEnum.ARRAY,
 			name: WORKFLOW_ANSWER_MESSAGES_CHANNEL,
 			title: 'Messages',
 			description: {
-				en_US: 'AI Message',
-				zh_Hans: 'AI 消息'
+				en_US: 'AI Messages',
+				zh_Hans: 'AI 消息列表'
 			}
 		}
 	]
@@ -78,7 +88,8 @@ export function createAnswerNode(
 						return {
 							state: {
 								[channelName(node.key)]: {
-									[WORKFLOW_ANSWER_MESSAGES_CHANNEL]: [aiMessage]
+									[WORKFLOW_ANSWER_MESSAGES_CHANNEL]: [aiMessage],
+									[WORKFLOW_ANSWER_MESSAGE_CHANNEL]: aiMessage.content
 								},
 								// Append to main message channel
 								messages: [

@@ -155,6 +155,9 @@
         (fGroupSizeChange)="resizeXpertGroup($event, group.key)"
         (mousedown)="onMouseDown($event)"
         (click)="onSelectNode($event, group)"
+
+        [cdkContextMenuTriggerFor]="xpertMenu"
+        [cdkContextMenuTriggerData]="{node: group}"
       >
         <div class="group-title flex items-center gap-1">
           <emoji-avatar [avatar]="group.entity.avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
@@ -262,17 +265,40 @@
       </div>
     }
 
-    <div class="h-[1px] bg-divider-regular my-1"></div>
+    @if (!node.readonly) {
+      <div class="h-[1px] bg-divider-regular my-1"></div>
 
-    <div cdkMenuItem class="danger" (click)="deleteNode(node)">
-      <i class="ri-delete-bin-3-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</span>
-    </div>
+      <div cdkMenuItem class="danger" (click)="deleteNode(node)">
+        <i class="ri-delete-bin-3-line mr-1"></i>
+        <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</span>
+      </div>
+    }
 
     <div class="h-[1px] bg-divider-regular my-1"></div>
 
     <a cdkMenuItem [href]="helpUrl() + '/docs/ai/workflow/' + (node.type === 'workflow' ? node.entity.type : node.type)" target="_blank">
       <i class="ri-question-line mr-1"></i> {{ 'PAC.ACTIONS.HelpLink' | translate: {Default: 'Help Link'} }}
     </a>
+  </div>
+</ng-template>
+
+<ng-template #xpertMenu let-node="node">
+  <div cdkMenu class="cdk-menu__medium border-gray-300">
+    <div cdkMenuItem (click)="expandXpertTeam(node)">
+      @if (node.expanded) {
+        <i class="ri-collapse-vertical-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Collapse' | translate: {Default: 'Collapse'} }}
+      } @else {
+        <i class="ri-expand-vertical-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Expand' | translate: {Default: 'Expand'} }}
+      }
+    </div>
+
+    <div class="h-[1px] bg-divider-regular my-1"></div>
+
+    <div cdkMenuItem class="danger" (click)="removeNode(node.key)">
+      <i class="ri-delete-bin-3-line mr-1"></i>
+      <span>{{ 'PAC.ACTIONS.Remove' | translate: {Default: 'Remove'} }}</span>
+    </div>
   </div>
 </ng-template>

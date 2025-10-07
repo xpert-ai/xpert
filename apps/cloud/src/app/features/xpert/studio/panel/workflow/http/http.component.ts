@@ -64,7 +64,7 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
   readonly wfNode = input<IWorkflowNode>()
 
   // States
-  readonly variables = model<TWorkflowVarGroup[]>()
+  // readonly variables = model<TWorkflowVarGroup[]>()
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly entity = computed(() => this.wfNode() as IWFNHttp)
 

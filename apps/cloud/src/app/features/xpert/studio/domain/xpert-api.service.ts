@@ -691,7 +691,10 @@ export class XpertStudioApiService {
     if (options.workflowKey) {
       return this.xpertAPI.getWorkflowVariables(options.xpertId, options.workflowKey, this.environmentId())
     } else {
-      return this.xpertAPI.getVariables(options.xpertId, options.type, options.agentKey, this.environmentId())
+      return this.xpertAPI.getVariables(options.xpertId, options.type, {
+        agentKey: options.agentKey, 
+        environmentId: this.environmentId()
+      })
     }
   }
 }
