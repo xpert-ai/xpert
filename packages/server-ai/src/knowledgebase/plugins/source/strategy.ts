@@ -33,9 +33,7 @@ import { KnowledgeStrategyQuery } from '../../queries'
 import { KnowledgebaseTaskService } from '../../task/index'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
-
-const ErrorChannelName = 'error'
-const DocumentsChannelName = 'documents'
+import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
 
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.SOURCE)
@@ -103,7 +101,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 
 				const execution: IXpertAgentExecution = {
 									category: 'workflow',
-									type: WorkflowNodeTypeEnum.PROCESSOR,
+									type: WorkflowNodeTypeEnum.SOURCE,
 									inputs: entity.config,
 									parentId: executionId,
 									threadId: thread_id,
@@ -159,7 +157,8 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							return {
 								state: {
 									[channelName(node.key)]: {
-										documents: documents?.map((doc) => doc.id)
+										[DOCUMENTS_CHANNEL_NAME]: serializeDocuments(documents),
+										[ERROR_CHANNEL_NAME]: null
 									},
 								},
 								output: JSON.stringify(documents?.map((doc) => {
@@ -245,7 +244,8 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						return {
 							state: {
 								[channelName(node.key)]: {
-									documents: (documents ?? results).map((doc) => doc.id)
+									[DOCUMENTS_CHANNEL_NAME]: serializeDocuments((documents ?? results)),
+									[ERROR_CHANNEL_NAME]: null
 								},
 								[KnowledgebaseChannel]: {
 									[KnowledgeTask]: KnowledgeTaskId,
@@ -289,7 +289,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 					)
 				}
 
-				if (!state[channelName(node.key)][DocumentsChannelName]) {
+				if (!state[channelName(node.key)][DOCUMENTS_CHANNEL_NAME]) {
 					return END
 				}
 	
@@ -300,18 +300,10 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 
 	outputVariables(entity: IWorkflowNode): TXpertParameter[] {
 		return [
-			{
-				type: XpertParameterTypeEnum.ARRAY_STRING,
-				name: DocumentsChannelName,
-				title: 'Documents',
-				description: {
-					en_US: 'Documents IDs',
-					zh_Hans: '文档 IDs'
-				}
-			},
+			createDocumentsParameter(DOCUMENTS_CHANNEL_NAME),
 			{
 				type: XpertParameterTypeEnum.STRING,
-				name: ErrorChannelName,
+				name: ERROR_CHANNEL_NAME,
 				title: 'Error',
 				description: {
 					en_US: 'Error info',

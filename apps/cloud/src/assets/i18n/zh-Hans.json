@@ -462,6 +462,32 @@
       "AddAssignVariables": "添加要赋值的变量",
       "AggregatedResult": "汇总结果"
     },
+    "Pipeline": {
+      "AuthenticationMethod": "认证方式",
+      "Parameters": "参数",
+      "InputVariable": "输入变量",
+      "Configuration": "配置",
+      "VisionModel": "视觉模型",
+      "NoPluginConfig": "此插件无需配置。",
+      "Understanding": "理解",
+      "KnowledgeStructure": "知识结构",
+      "KnowledgeStructureTooltip": "选择用于将文档分成较小块的分段结构。",
+      "Change": "更改",
+      "General": "通用",
+      "ParentChild": "父子关系",
+      "QA": "问答",
+      "GeneralDesc": "通用文本分块模式，检索和回忆的块是相同的",
+      "ParentChildDesc": "父子分段模式，检索和回忆的块是不同的",
+      "QADesc": "问答分段模式，检索的块是原始文本，回忆的块是问答对",
+      "Chunk": "分块",
+      "ChunkVariableTooltip": "选择已处理好的分块进行存储。",
+      "EmbeddingModel": "嵌入模型",
+      "EmbeddingModelTooltip": "选择用于将分块嵌入成文本向量的模型。",
+      "RetrievalConfig": "检索配置",
+      "RetrievalConfigTooltip": "配置用于从向量数据库中检索相关分块的参数。",
+      "ChangeKnowledgeStructure": "更改知识结构"
+
+    },
     "Environment": {
       "Environment": "环境",
       "Environments": "环境",

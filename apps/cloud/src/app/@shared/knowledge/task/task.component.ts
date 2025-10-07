@@ -33,6 +33,7 @@ export class KnowledgeTaskComponent {
               id: true,
               taskType: true,
               status: true,
+              error: true,
               context: true,
               steps: true,
             }

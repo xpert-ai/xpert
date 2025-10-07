@@ -19,7 +19,7 @@
 
   <div class="flex justify-between mt-2">
     <div class="font-semibold uppercase">
-      认证方式
+      {{ 'PAC.Pipeline.AuthenticationMethod' | translate: {Default: 'Authentication method'} }}
     </div>
 
     <ngm-select class="w-48" [(ngModel)]="authMode" [nullable]="false" [selectOptions]="authModeOptions()"/>
@@ -39,13 +39,15 @@
 
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
 
-<div class="p-4">
+<div class="p-4 space-y-4">
   <div class="font-bold my-2">
-    输入参数
+    {{ 'PAC.Pipeline.Parameters' | translate: {Default: 'Parameters'} }}
   </div>
 
   <div>
-    <div>输入文本<span class="text-text-destructive">*</span></div>
+    <div>
+      {{ 'PAC.Pipeline.InputVariable' | translate: {Default: 'Input variable'} }}
+      <span class="text-text-destructive">*</span></div>
     <xpert-state-variable-select
       [variables]="variables()"
       [(ngModel)]="input"
@@ -53,7 +55,7 @@
   </div>
 
   <div class="font-bold mb-2">
-    设置
+    {{ 'PAC.Pipeline.Configuration' | translate: {Default: 'Configuration'} }}
   </div>
   @if (transformerConfigSchema(); as transformerConfigSchema) {
     <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="transformerConfigSchema" 

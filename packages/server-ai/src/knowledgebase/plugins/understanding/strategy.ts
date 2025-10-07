@@ -26,6 +26,7 @@ import { KnowledgebaseTaskService } from '../../task'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { RequestContext } from '@metad/server-core'
+import { createDocumentsParameter } from '../types'
 
 const ErrorChannelName = 'error'
 const DocumentsChannelName = 'documents'
@@ -194,6 +195,7 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 
 	outputVariables(entity: IWorkflowNode): TXpertParameter[] {
 		return [
+			createDocumentsParameter(DocumentsChannelName),
 			{
 				type: XpertParameterTypeEnum.STRING,
 				name: ErrorChannelName,
@@ -203,15 +205,6 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 					zh_Hans: '错误信息'
 				}
 			},
-			{
-				type: XpertParameterTypeEnum.ARRAY_STRING,
-				name: DocumentsChannelName,
-				title: 'Documents',
-				description: {
-					en_US: 'Document IDs',
-					zh_Hans: '文档IDs'
-				}
-			}
 		]
 	}
 }

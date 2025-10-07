@@ -15,7 +15,7 @@ export type TDocumentTransformerConfig = {
 export type TDocumentTransformerFile = _TFile & {
   id?: string
   filename: string
-  extname: string | undefined
+  extension: string | undefined
 }
 
 export type TDocumentTransformerInput = TDocumentTransformerFile[] | string | string[]

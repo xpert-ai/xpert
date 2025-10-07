@@ -407,37 +407,41 @@ export class XpertStudioContextMenuComponent {
 
   // Knowledge Pipelines
   addPipelineSource(provider: IDocumentSourceProvider) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.SOURCE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.SOURCE,
       key: genPipelineSourceKey(),
-      title: this.#translate.instant('PAC.Xpert.Source', { Default: 'Source' }),
+      title: this.#translate.instant('PAC.Xpert.Source', { Default: 'Source' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNSource)
   }
 
   addPipelineProcessor(provider: IDocumentProcessorProvider) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.PROCESSOR).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.PROCESSOR,
       key: genPipelineProcessorKey(),
-      title: this.#translate.instant('PAC.Xpert.Processor', { Default: 'Processor' }),
+      title: this.#translate.instant('PAC.Xpert.Processor', { Default: 'Processor' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNProcessor)
   }
 
   addPipelineChunker(provider: IDocumentChunkerProvider) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CHUNKER).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CHUNKER,
       key: genPipelineChunkerKey(),
-      title: this.#translate.instant('PAC.Xpert.Chunker', { Default: 'Chunker' }),
+      title: this.#translate.instant('PAC.Xpert.Chunker', { Default: 'Chunker' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNChunker)
   }
 
   addPipelineUnderstanding(provider: IDocumentUnderstandingProvider) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.UNDERSTANDING).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.UNDERSTANDING,
       key: genPipelineUnderstandingKey(),
-      title: this.#translate.instant('PAC.Xpert.Understanding', { Default: 'Understanding' }),
+      title: this.#translate.instant('PAC.Pipeline.Understanding', { Default: 'Understanding' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNUnderstanding)
   }

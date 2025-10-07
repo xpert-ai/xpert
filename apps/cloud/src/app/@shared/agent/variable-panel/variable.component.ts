@@ -20,7 +20,7 @@ import { debouncedSignal, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { of } from 'rxjs'
-import { getVariableSchema, TStateVariable, TStateVariableType, TWorkflowVarGroup } from '../../../@core/types'
+import { getVariableSchema, TStateVariable, TWorkflowVarGroup } from '../../../@core/types'
 
 export { TXpertVariablesOptions } from '@cloud/app/@core/services'
 

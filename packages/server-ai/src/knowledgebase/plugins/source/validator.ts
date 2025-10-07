@@ -23,17 +23,17 @@ export class WorkflowSourceNodeValidator {
 		const entity = node.entity as IWFNSource
 		const items: ChecklistItem[] = []
 
-		items.push({
-			node: node.key,
-			ruleCode: 'SOURCE_INTEGRATION_REQUIRED',
-			field: 'integration',
-			value: entity.integrationId,
-			message: {
-				en_US: `Integration for Source node "${entity.title || node.key}" is not defined`,
-				zh_Hans: `文档源节点 "${entity.title || node.key}" 中的集成未定义`
-			},
-			level: 'error'
-		})
+		// items.push({
+		// 	node: node.key,
+		// 	ruleCode: 'SOURCE_INTEGRATION_REQUIRED',
+		// 	field: 'integration',
+		// 	value: entity.integrationId,
+		// 	message: {
+		// 		en_US: `Integration for Source node "${entity.title || node.key}" is not defined`,
+		// 		zh_Hans: `文档源节点 "${entity.title || node.key}" 中的集成未定义`
+		// 	},
+		// 	level: 'error'
+		// })
 
 		return items
 	}

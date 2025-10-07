@@ -42,6 +42,9 @@
             }
           }
         </div>
+        <div class="font-medium">
+          {{ 'PAC.KEY_WORDS.Error' | translate: {Default: 'Error'} }}:
+          <span class="text-sm font-body text-text-destructive">{{ task.error }}</span></div>
         <!-- <div class="font-medium">文档:
           @for (doc of task.context?.documents; track doc) {
             <a class="text-sm text-blue-600 underline" [href]="doc.fileUrl" target="_blank">{{ doc.name }}</a>
@@ -50,7 +53,7 @@
         </div> -->
       </div>
 
-      <ul class="divide-y divide-gray-200 p-2 border border-gray-200 rounded-xl">
+      <!-- <ul class="divide-y divide-gray-200 p-2 border border-gray-200 rounded-xl">
         @for (step of task.steps; track step) {
           <li class="py-2 flex items-center">
             <span class="w-24 font-medium">{{ step.name }}</span>
@@ -62,7 +65,7 @@
             <span class="text-xs text-gray-500">{{ ('PAC.Knowledgebase.StepStatus_' + step.status) | translate: {Default: step.status} }}</span>
           </li>
         }
-      </ul>
+      </ul> -->
     </section>
   }
 </div>

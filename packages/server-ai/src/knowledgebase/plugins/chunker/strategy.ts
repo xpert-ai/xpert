@@ -3,6 +3,7 @@ import { Annotation, BaseChannel } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
+	IKnowledgeDocument,
 	IWFNChunker,
 	IWorkflowNode,
 	IXpertAgentExecution,
@@ -18,16 +19,15 @@ import {
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ITextSplitterStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
-import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
 import { get } from 'lodash'
+import { In } from 'typeorm'
+import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { KnowledgeStrategyQuery } from '../../queries'
 import { KnowledgebaseTaskService } from '../../task'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
-import { In } from 'typeorm'
+import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
 
-const ErrorChannelName = 'error'
-const DocumentsChannelName = 'documents'
 
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.CHUNKER)
@@ -75,7 +75,7 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } =
 					configurable
 				const stateEnv = stateWithEnvironment(state, environment)
-				const value = get(stateEnv, entity.input) as string[]
+				const value = get(stateEnv, entity.input) as Partial<IKnowledgeDocument>[]
 				const knowledgebaseState = state[KnowledgebaseChannel]
 				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId'] as string
 				const knowledgeTaskId = knowledgebaseState?.[KnowledgeTask] as string
@@ -100,22 +100,21 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 				return await wrapAgentExecution(
 					async () => {
 						console.log('Chunker input value:', entity.input, value)
+						const documentIds = value.map((v) => v.id)
 						let documents = []
 						if (isTest) {
 							const task = await this.taskService.findOne(knowledgeTaskId)
-							documents = task.context.documents.filter((doc) => value.includes(doc.id))
+							documents = task.context.documents.filter((doc) => documentIds.includes(doc.id))
 						} else {
 							const results = await this.documentService.findAll({
 								where: {
-									id: In(value),
+									id: In(documentIds),
 									knowledgebaseId,
 								},
 								relations: ['pages']
 							})
 							documents = results.items
 						}
-
-						// console.log('Chunker documents:', documents)
 
 						const strategy = await this.queryBus.execute<KnowledgeStrategyQuery, ITextSplitterStrategy>(
 							new KnowledgeStrategyQuery({
@@ -141,7 +140,8 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 						return {
 							state: {
 								[channelName(node.key)]: {
-									[DocumentsChannelName]: documents.map((doc) => doc.id)
+									[DOCUMENTS_CHANNEL_NAME]: serializeDocuments(documents),
+									[ERROR_CHANNEL_NAME]: null
 								}
 							},
 							output: JSON.stringify(documents.map((doc) => {
@@ -178,24 +178,16 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 
 	outputVariables(entity: IWorkflowNode): TXpertParameter[] {
 		return [
+			createDocumentsParameter(),
 			{
 				type: XpertParameterTypeEnum.STRING,
-				name: ErrorChannelName,
+				name: ERROR_CHANNEL_NAME,
 				title: 'Error',
 				description: {
 					en_US: 'Error info',
 					zh_Hans: '错误信息'
 				}
 			},
-			{
-				type: XpertParameterTypeEnum.ARRAY_STRING,
-				name: DocumentsChannelName,
-				title: 'Documents',
-				description: {
-					en_US: 'Document IDs',
-					zh_Hans: '文档IDs'
-				}
-			}
 		]
 	}
 }

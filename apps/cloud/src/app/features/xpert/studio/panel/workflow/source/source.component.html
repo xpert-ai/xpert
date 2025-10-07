@@ -1,7 +1,7 @@
 <div class="p-4">
   <div class="flex justify-between mt-2">
     <div class="font-semibold uppercase">
-      认证方式
+      {{ 'PAC.Pipeline.AuthenticationMethod' | translate: {Default: 'Authentication method'} }}
     </div>
 
     <ngm-select class="w-48" [(ngModel)]="authMode" [nullable]="false" [selectOptions]="authModeOptions()"/>
@@ -23,11 +23,15 @@
 
 <div class="p-4">
   <div class="font-bold mb-2">
-    设置
+    {{ 'PAC.Pipeline.Configuration' | translate: {Default: 'Configuration'} }}
   </div>
   @if (configSchema(); as configSchema) {
     <json-schema-form class="mt-2 grid grid-cols-1 gap-2" [schema]="configSchema" [variables]="variables()"
       [(ngModel)]="config"
     />
+  } @else {
+    <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
+      {{ 'PAC.Pipeline.NoPluginConfig' | translate: {Default: 'No configuration required for this plugin.'} }}
+    </div>
   }
 </div>

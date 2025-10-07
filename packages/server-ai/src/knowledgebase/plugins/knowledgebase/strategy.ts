@@ -4,6 +4,7 @@ import { Annotation, BaseChannel } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
+	IKnowledgeDocument,
 	IWFNKnowledgeBase,
 	IWorkflowNode,
 	IXpertAgentExecution,
@@ -31,6 +32,7 @@ import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeDocumentStore } from '../../vector-store'
 import { KnowledgebaseTaskService } from '../../task'
+import { ERROR_CHANNEL_NAME } from '../types'
 
 
 const InfoChannelName = 'info'
@@ -93,7 +95,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 				const stage = knowledgebaseState?.['stage']
 				const isTest = stage === 'preview' || isDraft
 
-				const values = entity.inputs.map((input) => get(stateEnv, input))
+				const values = entity.inputs.map((input) => get(stateEnv, input)) as Partial<IKnowledgeDocument[]>[]
 				console.log('Knowledge Base Input:', entity.inputs, values)
 
 				const execution: IXpertAgentExecution = {
@@ -150,7 +152,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 
 						const { items: documents } = await this.documentService.findAll({
 							where: {
-								id: In(values.filter((ids) => !!ids).flat() as string[]),
+								id: In(values.filter((docs) => !!docs).flat().map(({id}) => id) as string[]),
 								knowledgebaseId
 							},
 							relations: ['pages']
@@ -238,7 +240,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 									[TaskChannelName]: {
 											status: 'success',
 										},
-									error: null
+									[ERROR_CHANNEL_NAME]: null
 								}
 							}
 						}
@@ -273,7 +275,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 		return [
 			{
 				type: XpertParameterTypeEnum.STRING,
-				name: 'error',
+				name: ERROR_CHANNEL_NAME,
 				title: 'Error',
 				description: {
 					en_US: 'Error info',

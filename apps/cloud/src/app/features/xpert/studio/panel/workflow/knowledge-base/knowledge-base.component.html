@@ -2,8 +2,8 @@
   <div class="mb-0.5">
     <div class="group/collapse flex items-center justify-between py-1">
       <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
-        知识结构
-        <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
+        {{ 'PAC.Pipeline.KnowledgeStructure' | translate: {Default: 'Knowledge Structure'} }}
+        <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.KnowledgeStructureTooltip' | translate: {Default: 'Select the segmentation structure used to divide the document into smaller chunks.'}">
           <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
         </div>
       </div>
@@ -12,8 +12,7 @@
         class="btn disabled:btn-disabled btn-ghost-accent btn-small"
         #trigger="cdkMenuTriggerFor"
         [cdkMenuTriggerFor]="strcutureMenu"
-      >
-        更改
+      >{{ 'PAC.Pipeline.Change' | translate: {Default: 'Change'} }}
       </button>
     </div>
   </div>
@@ -39,13 +38,13 @@
           <div class="system-sm-medium flex grow items-center text-text-secondary">
             @switch (structure()) {
               @case (eKnowledgeStructureEnum.General) {
-                通用
+                {{ 'PAC.Pipeline.General' | translate: {Default: 'General'} }}
               }
               @case (eKnowledgeStructureEnum.ParentChild) {
-                父子分段
+                {{ 'PAC.Pipeline.ParentChild' | translate: {Default: 'Parent-Child'} }}
               }
               @case (eKnowledgeStructureEnum.QA) {
-                问答
+                {{ 'PAC.Pipeline.QA' | translate: {Default: 'Q&A'} }}
               }
             }
         </div>
@@ -53,13 +52,13 @@
         <div class="system-xs-regular mt-1 text-text-tertiary">
           @switch (structure()) {
             @case (eKnowledgeStructureEnum.General) {
-              通用文本分块模式，检索和召回的块是相同的
+              {{ 'PAC.Pipeline.GeneralDesc' | translate: {Default: 'General text chunking mode, the chunks retrieved and recalled are the same'} }}
             }
             @case (eKnowledgeStructureEnum.ParentChild) {
-              使用父子模式时，子块用于检索，父块用作上下文
+              {{ 'PAC.Pipeline.ParentChildDesc' | translate: {Default: 'Parent-Child chunking mode, the child chunks are used for retrieval and the parent chunks are used as context'} }}
             }
             @case (eKnowledgeStructureEnum.QA) {
-              使用 Q&amp;A 模式时，块将被拆分为问题和答案对。检索时将使用问题部分进行检索，答案部分将作为上下文返回。
+              {{ 'PAC.Pipeline.QADesc' | translate: {Default: 'Q&A chunking mode, the chunks are split into question and answer pairs. The question part is used for retrieval and the answer part is returned as context'} }}
             }
           }
         </div>
@@ -70,9 +69,9 @@
 
 <div class="p-4 space-y-3">
   <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
-    <div>
-      分块
-      <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
+    <div class="flex items-center">
+      {{ 'PAC.Pipeline.Chunk' | translate: {Default: 'Chunk'} }}
+      <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.ChunkVariableTooltip' | translate: {Default: 'Select the processed blocks for storage.'}">
         <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
       </div>
     </div>
@@ -99,8 +98,8 @@
 
 <div class="p-4 space-y-3">
   <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
-    嵌入模型
-    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
+    {{ 'PAC.Pipeline.EmbeddingModel' | translate: {Default: 'Embedding Model'} }}
+    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.EmbeddingModelTooltip' | translate: {Default: 'Select the model used for embedding chunks into vectors.'}">
       <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
     </div>
   </div>
@@ -115,8 +114,8 @@
 
 <div class="p-4 space-y-3">
   <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
-    检索设置
-    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'选择用于将文档分成较小块的分段结构。'">
+    {{ 'PAC.Pipeline.RetrievalConfig' | translate: {Default: 'Retrieval Config'} }}
+    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.RetrievalConfigTooltip' | translate: {Default: 'Select the model used for retrieving documents.'}">
       <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
     </div>
   </div>
@@ -132,7 +131,9 @@
     cdkMenu
     class="cdk-menu__large w-[420px] rounded-2xl"
   >
-    <div class="font-semibold">更改知识结构</div>
+    <div class="font-semibold">
+      {{ 'PAC.Pipeline.ChangeKnowledgeStructure' | translate: {Default: 'Change Knowledge Structure'} }}
+    </div>
 
     <div class="space-y-1 pt-2">
       <div
@@ -147,9 +148,13 @@
           </div>
           <div class="grow py-1 pt-[1px]">
             <div class="flex items-center">
-              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">通用</div>
+              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">
+                {{ 'PAC.Pipeline.General' | translate: {Default: 'General'} }}
+              </div>
             </div>
-            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">通用文本分块模式，检索和召回的块是相同的</div>
+            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
+              {{ 'PAC.Pipeline.GeneralDesc' | translate: {Default: 'General text chunking mode, the chunks retrieved and recalled are the same'} }}
+            </div>
           </div>
         </div>
       </div>
@@ -165,9 +170,13 @@
           </div>
           <div class="grow py-1 pt-[1px]">
             <div class="flex items-center">
-              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">父子分段</div>
+              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">
+                {{ 'PAC.Pipeline.ParentChild' | translate: {Default: 'Parent-Child'} }}
+              </div>
             </div>
-            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">使用父子模式时，子块用于检索，父块用作上下文</div>
+            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
+              {{ 'PAC.Pipeline.ParentChildDesc' | translate: {Default: 'When using the parent-child model, child chunks are used for retrieval, and parent chunks serve as context.'} }}
+            </div>
           </div>
         </div>
       </div>
@@ -183,10 +192,12 @@
           </div>
           <div class="grow py-1 pt-[1px]">
             <div class="flex items-center">
-              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">Q&amp;A</div>
+              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">
+                {{ 'PAC.Pipeline.QA' | translate: {Default: 'Q&A'} }}
+              </div>
             </div>
             <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
-              使用 Q&amp;A 模式时，块将被拆分为问题和答案对。检索时将使用问题部分进行检索，答案部分将作为上下文返回。
+              {{ 'PAC.Pipeline.QADesc' | translate: {Default: 'When using the Q&A model, chunks are split into question and answer pairs. The question part is used for retrieval, and the answer part is returned as context.'} }}
             </div>
           </div>
         </div>

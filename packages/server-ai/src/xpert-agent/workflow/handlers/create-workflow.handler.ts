@@ -7,7 +7,6 @@ import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { createHttpNode } from '../http'
 import { createRouterNode } from '../router/index'
-import { createSplitterNode } from '../splitter'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 import { createTemplateNode } from '../template'
@@ -90,10 +89,10 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				workflow = await this.commandBus.execute(new CreateWNClassifierCommand(xpert as IXpert, graph, node, options))
 				break
 			}
-			case WorkflowNodeTypeEnum.SPLITTER: {
-				workflow = createSplitterNode(graph, node)
-				break
-			}
+			// case WorkflowNodeTypeEnum.SPLITTER: {
+			// 	workflow = createSplitterNode(graph, node)
+			// 	break
+			// }
 			case WorkflowNodeTypeEnum.CODE: {
 				workflow = createCodeNode(graph, node, {
 					xpertId, 

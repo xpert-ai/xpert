@@ -20,9 +20,16 @@
   </div>
 }
 
-<div class="p-4">
+<div class="p-4 space-y-4">
+  <div class="font-bold my-2">
+    {{ 'PAC.Pipeline.Parameters' | translate: {Default: 'Parameters'} }}
+  </div>
+
   <div>
-    <div>输入文本<span class="text-text-destructive">*</span></div>
+    <div>
+      {{ 'PAC.Pipeline.InputVariable' | translate: {Default: 'Input variable'} }}
+      <span class="text-text-destructive">*</span>
+    </div>
     <xpert-state-variable-select
       [variables]="variables()"
       [(ngModel)]="input"
@@ -30,12 +37,16 @@
   </div>
 
   <div class="font-bold mb-2">
-    设置
+    {{ 'PAC.Pipeline.Configuration' | translate: {Default: 'Configuration'} }}
   </div>
 
   @if (chunkerConfigSchema(); as chunkerConfigSchema) {
     <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="chunkerConfigSchema" 
       [(ngModel)]="chunkerConfig"
     />
+  } @else {
+    <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
+      {{ 'PAC.Pipeline.NoPluginConfig' | translate: {Default: 'No configuration required for this plugin.'} }}
+    </div>
   }
 </div>

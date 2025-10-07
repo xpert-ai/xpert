@@ -10,8 +10,6 @@ import {
 	KBDocumentStatusEnum,
 	KnowledgebaseChannel,
 	KnowledgeTask,
-	STATE_VARIABLE_FILES,
-	STATE_VARIABLE_HUMAN,
 	TAgentRunnableConfigurable,
 	TXpertGraph,
 	TXpertParameter,
@@ -30,9 +28,8 @@ import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgebaseTaskService } from '../../task'
+import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
 
-const ErrorChannelName = 'error'
-const DocumentsChannelName = 'documents'
 
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.PROCESSOR)
@@ -85,7 +82,7 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 
 				const stateEnv = stateWithEnvironment(state, environment)
 				let input: string | string[] | TDocumentTransformerFile[] = null
-				const value = get(stateEnv, entity.input)
+				const value = get(stateEnv, entity.input) as Partial<IKnowledgeDocument>[]
 				const knowledgebaseState = state[KnowledgebaseChannel]
 				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId'] as string
 				const knowledgeTaskId = knowledgebaseState?.[KnowledgeTask] as string
@@ -105,26 +102,10 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 				}
 				return await wrapAgentExecution(
 					async () => {
-						// const humanFilesName = `${STATE_VARIABLE_HUMAN}.${STATE_VARIABLE_FILES}`
-						// const files: TDocumentTransformerFile[] = []
-						// if (entity.input === humanFilesName) {
-						// 	const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-						// 		new GetStorageFileQuery(value.map((file) => file.id))
-						// 	)
-						// 	for (const file of storageFiles) {
-						// 		const extname = file.originalName?.split('.').pop()?.toLowerCase()
-						// 		files.push({
-						// 			fileUrl: file.fileUrl,
-						// 			filePath: file.file,
-						// 			filename: file.originalName,
-						// 			extname
-						// 		})
-						// 	}
-						// 	input = files
-						// } else {
+						const documentIds = value.map((v) => v.id)
 						if (isTest) {
 							const task = await this.taskService.findOne(knowledgeTaskId)
-							const documents = task.context.documents.filter((doc) => value.includes(doc.id))
+							const documents = task.context.documents.filter((doc) => documentIds.includes(doc.id))
 							input = documents.map(
 								(doc) =>
 									({
@@ -132,13 +113,13 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 										fileUrl: doc.fileUrl,
 										filePath: doc.filePath,
 										filename: doc.name,
-										extname: doc.name?.split('.').pop()?.toLowerCase()
+										extension: doc.name?.split('.').pop()?.toLowerCase()
 									}) as TDocumentTransformerFile
 							)
 						} else {
 							const { items } = await this.documentService.findAll({
 								where: {
-									id: In(value)
+									id: In(documentIds),
 								}
 							})
 
@@ -149,13 +130,10 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 										fileUrl: doc.fileUrl,
 										filePath: doc.filePath,
 										filename: doc.name,
-										extname: doc.name?.split('.').pop()?.toLowerCase()
+										extension: doc.name?.split('.').pop()?.toLowerCase()
 									}) as TDocumentTransformerFile
 							)
 						}
-						// }
-
-						console.log('Processor input:', input)
 						
 						const results = await this.knowledgebaseService.transformDocuments(
 							knowledgebaseId,
@@ -164,12 +142,11 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							input
 						)
 
-						// console.log(JSON.stringify(results, null, 2))
-
-						const documentIds = []
+						// const documentIds = []
+						let documents = []
 						// Update knowledge task progress
 						if (isTest) {
-							const documents = results.map((result) => {
+							documents = results.map((result) => {
 								return {
 									id: result.id || shortuuid(),
 									chunks: result.chunks,
@@ -177,7 +154,7 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 								} as unknown as IKnowledgeDocument
 							})
 							await this.taskService.upsertDocuments(knowledgeTaskId, documents)
-							documentIds.push(...documents.map((doc) => doc.id))
+							// documentIds.push(...documents.map((doc) => doc.id))
 						} else {
 							for await (const result of results) {
 								if (result.id) {
@@ -185,7 +162,8 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 										metadata: result.metadata,
 										chunks: result.chunks
 									})
-									documentIds.push(result.id)
+									documents.push(result)
+									// documentIds.push(result.id)
 								} else {
 									const doc = await this.documentService.create({
 										metadata: result.metadata,
@@ -200,7 +178,8 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 											}
 										]
 									})
-									documentIds.push(doc.id)
+									documents.push(doc)
+									// documentIds.push(doc.id)
 								}
 							}
 						}
@@ -208,7 +187,8 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 						return {
 							state: {
 								[channelName(node.key)]: {
-									[DocumentsChannelName]: documentIds
+									[DOCUMENTS_CHANNEL_NAME]: serializeDocuments(documents),
+									[ERROR_CHANNEL_NAME]: null
 								}
 							},
 							output: JSON.stringify(
@@ -229,9 +209,10 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 						execution,
 						catchError: async (error) => {
 							if (!isTest) {
-								for await (const id of value) {
+								for await (const {id} of value) {
 									await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
 								}
+								await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
 							}
 						}
 					}
@@ -257,24 +238,16 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 
 	outputVariables(entity: IWorkflowNode): TXpertParameter[] {
 		return [
+			createDocumentsParameter(),
 			{
 				type: XpertParameterTypeEnum.STRING,
-				name: ErrorChannelName,
+				name: ERROR_CHANNEL_NAME,
 				title: 'Error',
 				description: {
 					en_US: 'Error info',
 					zh_Hans: '错误信息'
 				}
 			},
-			{
-				type: XpertParameterTypeEnum.ARRAY_STRING,
-				name: DocumentsChannelName,
-				title: 'Documents',
-				description: {
-					en_US: 'Document IDs',
-					zh_Hans: '文档IDs'
-				}
-			}
 		]
 	}
 }

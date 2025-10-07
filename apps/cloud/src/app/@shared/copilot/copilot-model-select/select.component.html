@@ -22,14 +22,14 @@
       @if (isInherit()) {
         <i class="ri-skip-up-line mx-1" [matTooltip]="'PAC.Copilot.Inherited' | translate: {Default: 'Inherited'}"></i>
       } @else if(!readonly()) {
-        <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable hover:text-red-500"
+        <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
           [matTooltip]="'PAC.Copilot.DelCopilotModelUseInherit' | translate: {Default: 'Delete current configuration, and use the inherited configuration if possible'}"
           (click)="$event.stopPropagation(); delete()">
           <i class="ri-close-line"></i>
         </button>
       }
     } @else if(!isInherit() && !readonly()) {
-      <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable hover:text-red-500"
+      <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
         (click)="$event.stopPropagation(); delete()">
         <i class="ri-close-line"></i>
       </button>

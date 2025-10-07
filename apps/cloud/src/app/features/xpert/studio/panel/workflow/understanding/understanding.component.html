@@ -21,12 +21,15 @@
 }
 
 <div class="p-4 space-y-4">
-  <div class="font-bold mb-2">
-    输入参数
+  <div class="font-bold my-2">
+    {{ 'PAC.Pipeline.Parameters' | translate: {Default: 'Parameters'} }}
   </div>
 
   <div>
-    <div>输入文档<span class="text-text-destructive">*</span></div>
+    <div>
+      {{ 'PAC.Pipeline.InputVariable' | translate: {Default: 'Input variable'} }}
+      <span class="text-text-destructive">*</span>
+    </div>
     <xpert-state-variable-select
       [variables]="variables()"
       [(ngModel)]="input"
@@ -35,7 +38,10 @@
 
   @if (requireVisionModel()) {
     <div>
-      <div>视觉模型<span class="text-text-destructive">*</span></div>
+      <div>
+        {{ 'PAC.Pipeline.VisionModel' | translate: {Default: 'Vision Model'} }}
+        <span class="text-text-destructive">*</span>
+      </div>
       <copilot-model-select [modelType]="eModelType.LLM" [features]="[eModelFeature.VISION]"
         [(ngModel)]="visionModel"
       />
@@ -43,11 +49,15 @@
   }
   
   <div class="font-bold mb-2">
-    设置
+    {{ 'PAC.Pipeline.Configuration' | translate: {Default: 'Configuration'} }}
   </div>
   @if (understandingConfigSchema(); as understandingConfigSchema) {
     <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="understandingConfigSchema" 
       [(ngModel)]="understandingConfig"
     />
+  } @else {
+    <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
+      {{ 'PAC.Pipeline.NoPluginConfig' | translate: {Default: 'No configuration required for this plugin.'} }}
+    </div>
   }
 </div>
