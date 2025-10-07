@@ -83,6 +83,12 @@
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
     <xpert-studio-panel-workflow-ifelse [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.LIST_OPERATOR) {
+    <xpert-workflow-list-operator [node]="node()" [entity]="wfNode()" />
+  }
+  @case (eWorkflowNodeTypeEnum.VARIABLE_AGGREGATOR) {
+    <xpert-workflow-variable-aggregator [node]="node()" [entity]="wfNode()" />
+  }
   @case (eWorkflowNodeTypeEnum.ASSIGNER) {
     <xpert-workflow-assigner [node]="node()" [entity]="wfNode()" />
   }

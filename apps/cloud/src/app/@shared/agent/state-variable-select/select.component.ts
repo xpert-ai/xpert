@@ -40,7 +40,7 @@ export class StateVariableSelectComponent {
 
   // Inputs
   readonly varOptions = input<TXpertVariablesOptions>()
-  readonly type = input<TStateVariableType>()
+  readonly type = input<string>() // TStateVariableType | string
   readonly inline = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

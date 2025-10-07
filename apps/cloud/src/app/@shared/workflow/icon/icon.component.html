@@ -6,7 +6,7 @@
     </div>
   }
   @case (eWorkflowNodeTypeEnum.ASSIGNER) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-500
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
       w-full h-full rounded-lg shadow-sm shrink-0">
       <i class="ri-equal-line"></i>
     </div>
@@ -20,15 +20,29 @@
       </svg>
     </div>
   }
-  @case (eWorkflowNodeTypeEnum.SPLITTER) {
+  @case (eWorkflowNodeTypeEnum.LIST_OPERATOR) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
+      w-full h-full rounded-lg shadow-sm
+      shrink-0">
+      <i class="ri-filter-2-fill"></i>
+    </div>
+  }
+  @case (eWorkflowNodeTypeEnum.VARIABLE_AGGREGATOR) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
+      w-full h-full rounded-lg shadow-sm
+      shrink-0">
+      <i class="ri-brackets-line"></i>
+    </div>
+  }
+  <!-- @case (eWorkflowNodeTypeEnum.SPLITTER) {
     <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-indigo-500
       w-full h-full rounded-lg shadow-sm
       shrink-0">
       <i class="ri-scissors-cut-fill"></i>
     </div>
-  }
+  } -->
   @case (eWorkflowNodeTypeEnum.ITERATING) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-indigo-500
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
       w-full h-full rounded-lg shadow-sm
       shrink-0">
       <i class="ri-repeat-2-line"></i>
@@ -49,13 +63,13 @@
     </div>
   }
    @case (eWorkflowNodeTypeEnum.CLASSIFIER) {
-    <div class="shrink-0 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-green-400
+    <div class="shrink-0 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
       w-full h-full rounded-lg shadow-sm">
       <i class="ri-list-radio"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.KNOWLEDGE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-green-400
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
       w-full h-full rounded-lg shadow-sm
       shrink-0">
       <i class="ri-book-shelf-line"></i>
@@ -96,7 +110,7 @@
     </div>
   }
   @case (eWorkflowNodeTypeEnum.AGENT_TOOL) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
       w-full h-full rounded-lg shadow-sm shrink-0">
       <i class="ri-tools-fill"></i>
     </div>

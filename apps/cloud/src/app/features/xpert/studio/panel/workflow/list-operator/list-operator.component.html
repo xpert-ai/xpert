@@ -1,0 +1,179 @@
+<div class="p-4 space-y-6">
+  <div>
+    <div class="uppercase font-semibold mb-2 flex items-center gap-1">
+      <span>{{ 'PAC.Xpert.InputVariable' | translate: {Default: 'Input Variable'} }}</span>
+      <span class="text-text-destructive">*</span>
+    </div>
+    <xpert-state-variable-select [type]="'array'"
+      [variables]="variables()"
+      [(ngModel)]="input"
+    />
+  </div>
+
+  <div class="space-y-2">
+    <div class="uppercase font-semibold mb-2 flex justify-between items-center gap-1">
+      <span>{{ 'PAC.Xpert.FilterBy' | translate: {Default: 'Filter By'} }}</span>
+      
+      <ngm-slide-toggle
+        [(ngModel)]="filterByEnabled"
+        [matTooltip]="'PAC.Xpert.EnableFilterBy' | translate: {Default: 'Enable Filter By'}"
+        matTooltipPosition="above"
+      />
+    </div>
+    @if (filterByEnabled()) {
+      @if (conditions()?.length > 0) {
+        @for (condition of conditions(); track condition.id; let i = $index) {
+          <xpert-workflow-condition-form 
+            [variables]="[{variables:inputVariableItems()}]"
+            [valueVariables]="envVariables()"
+            [condition]="condition"
+            (conditionChange)="updateCondition(i, $event)"
+            (deleted)="removeCondition(i)"
+          />
+        }
+      } @else {
+        <div class="p-2 border border-dashed border-border-secondary rounded-lg text-center cursor-pointer text-text-tertiary hover:bg-state-base-hover hover:text-text-primary"
+          (click)="addCondition()">
+          <i class="ri-add-line mr-1"></i>
+          {{ 'PAC.Xpert.NoConditions' | translate: {Default: 'No conditions. Please add conditions first.'} }}
+        </div>
+      }
+    }
+  </div>
+
+  <div>
+    <div class="uppercase font-semibold mb-2 flex justify-between items-center gap-1">
+      <span>{{ 'PAC.Xpert.ExtractTheNItem' | translate: {Default: 'Extract the Nth Item'} }}</span>
+      
+      <ngm-slide-toggle
+        [(ngModel)]="extractByEnabled"
+        [matTooltip]="'PAC.Xpert.EnableExtractTheNItem' | translate: {Default: 'Enable Extract The Nth Item'}"
+        matTooltipPosition="above"
+      />
+    </div>
+    @if (extractByEnabled()) {
+      <div class="space-y-2">
+        <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
+          {{ 'PAC.Xpert.ExtractTheNItemTip' | translate: {Default: 'Extract the Nth item from the list. For example, if you want to extract the first item, enter 1; if you want to extract the last item, enter -1.'} }}
+        </div>
+        <div class="w-full bg-gray-100 rounded-lg px-2 py-1">
+          <xpert-variable-input class="w-full"
+            [variables]="variables()"
+            [(ngModel)]="extractByIndex"
+            [placeholder]="'PAC.Xpert.EnterIndex' | translate: {Default: 'Enter index...'}"
+          />
+        </div>
+      </div>
+    }
+  </div>
+
+  <div>
+    <div class="uppercase font-semibold mb-2 flex justify-between items-center gap-1">
+      <span>{{ 'PAC.Xpert.TopN' | translate: {Default: 'Top N'} }}</span>
+      
+      <ngm-slide-toggle
+        [(ngModel)]="topNEnabled"
+        [matTooltip]="'PAC.Xpert.EnableTopN' | translate: {Default: 'Enable Top N'}"
+        matTooltipPosition="above"
+      />
+    </div>
+    @if (topNEnabled()) {
+      <div class="space-y-2">
+        <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
+          {{ 'PAC.Xpert.TopNTip' | translate: {Default: 'Extract the top N items from the list. For example, if you want to extract the top 3 items, enter 3.'} }}
+        </div>
+        <div class="w-full bg-gray-100 rounded-lg px-2 py-1">
+          <xpert-variable-input class="w-full"
+            [variables]="variables()"
+            [(ngModel)]="topNCount"
+            [placeholder]="'PAC.Xpert.EnterCount' | translate: {Default: 'Enter count...'}"
+          />
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="space-y-2">
+    <div class="uppercase font-semibold mb-2 flex justify-between items-center gap-1">
+      <span>{{ 'PAC.Xpert.SortBy' | translate: {Default: 'Sort By'} }}</span>
+      
+      <ngm-slide-toggle
+        [(ngModel)]="sortByEnabled"
+        [matTooltip]="'PAC.Xpert.EnableSortBy' | translate: {Default: 'Enable Sort By'}"
+        matTooltipPosition="above"
+      />
+    </div>
+    @if (sortByEnabled()) {
+      <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
+        {{ 'PAC.Xpert.SortByTip' | translate: {Default: 'Sort the items in the list. For example, you can sort by name or date.'} }}
+      </div>
+      <div class="flex items-center gap-2 space-x-2">
+        <div class="flex-1 bg-gray-100 rounded-lg px-1 py-0.5">
+          <xpert-state-variable-select class="w-full"
+            [variables]="[{variables:inputVariableItems()}]"
+            [(ngModel)]="sortByVariable"
+          />
+        </div>
+
+        <ngm-checkbox class="shrink-0"
+          [(ngModel)]="sortByDescending"
+          [matTooltip]="'PAC.Xpert.SortDescending' | translate: {Default: 'Sort Descending'}"
+          matTooltipPosition="above"
+        >
+          @if (sortByDescending()) {
+            <i class="ri-sort-desc"></i>
+          } @else {
+            <i class="ri-sort-asc"></i>
+          }
+        </ngm-checkbox>
+      </div>
+    }
+  </div>
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4">
+  <div class="flex items-center">
+    <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
+      <i class="ri-arrow-right-s-line" [class.rotate-90]="expandOutputVariables()"></i>
+    </div>
+    <div class="font-semibold uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+      (click)="toggleOutput()"
+    >{{ 'PAC.Workflow.OutputVariables' | translate: {Default: 'Output Variables'} }}
+    </div>
+  </div>
+  @if (expandOutputVariables()) {
+    <div class="px-4">
+      <div class="py-1">
+        <div class="flex items-center leading-[18px]">
+          <div class="code-sm-semibold text-text-secondary">result</div>
+          <div class="system-xs-regular ml-2 capitalize text-text-tertiary">{{ inputVariableType() }}</div>
+        </div>
+        <div class="system-xs-regular mt-0.5 text-text-tertiary">
+          {{ 'PAC.Workflow.FilterResult' | translate: {Default: 'Filter result'} }}
+        </div>
+      </div>
+
+      <div class="py-1">
+        <div class="flex items-center leading-[18px]">
+          <div class="code-sm-semibold text-text-secondary">first_record</div>
+          <div class="system-xs-regular ml-2 capitalize text-text-tertiary">{{ inputVariableItemType() }}</div>
+        </div>
+        <div class="system-xs-regular mt-0.5 text-text-tertiary">
+          {{ 'PAC.Workflow.FirstRecord' | translate: {Default: 'First record'} }}
+        </div>
+      </div>
+
+      <div class="py-1">
+        <div class="flex items-center leading-[18px]">
+          <div class="code-sm-semibold text-text-secondary">last_record</div>
+          <div class="system-xs-regular ml-2 capitalize text-text-tertiary">{{ inputVariableItemType() }}</div>
+        </div>
+        <div class="system-xs-regular mt-0.5 text-text-tertiary">
+          {{ 'PAC.Workflow.LastRecord' | translate: {Default: 'Last record'} }}
+        </div>
+      </div>
+    </div>
+  }
+</div>

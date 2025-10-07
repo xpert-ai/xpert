@@ -43,11 +43,14 @@
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
     <xpert-studio-node-workflow-ifelse class="px-3" [node]="node()" [entity]="entity()" />
   }
+  @case (eWorkflowNodeTypeEnum.LIST_OPERATOR) {
+    <xpert-workflow-node-list-operator class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.VARIABLE_AGGREGATOR) {
+    <xpert-workflow-node-variable-aggregator class="px-3" [node]="node()" [entity]="entity()" />
+  }
   @case (eWorkflowNodeTypeEnum.ASSIGNER) {
     <xpert-workflow-node-assigner class="px-3" [node]="node()" [entity]="entity()" />
-  }
-  @case (eWorkflowNodeTypeEnum.SPLITTER) {
-    <xpert-studio-node-workflow-splitter class="px-3" [node]="node()" [entity]="entity()" />
   }
   @case (eWorkflowNodeTypeEnum.ITERATING) {
     <xpert-studio-node-workflow-iterating class="px-3" [node]="node()" [entity]="entity()" />

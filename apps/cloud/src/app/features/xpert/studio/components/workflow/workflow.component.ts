@@ -18,7 +18,6 @@ import { XpertStudioNodeWorkflowAnswerComponent } from './answer/answer.componen
 import { XpertStudioNodeWorkflowCodeComponent } from './code/code.component'
 import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.component'
 import { XpertStudioNodeWorkflowIteratingComponent } from './iterating/iterating.component'
-import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.component'
 import { XpertStudioNodeWorkflowHttpComponent } from './http/http.component'
 import { XpertStudioNodeWorkflowKnowledgeComponent } from './knowledge/knowledge.component'
 import { XpertWorkflowNodeSubflowComponent } from './subflow/subflow.component'
@@ -36,6 +35,8 @@ import { XpertWorkflowNodeProcessorComponent } from './processor/processor.compo
 import { XpertWorkflowNodeChunkerComponent } from './chunker/chunker.component'
 import { XpertWorkflowNodeUnderstandingComponent } from './understanding/understanding.component'
 import { XpertWorkflowNodeKnowledgeBaseComponent } from './knowledge-base/knowledge-base.component'
+import { XpertWorkflowNodeListOperatorComponent } from './list-operator/list-operator.component'
+import { XpertWorkflowNodeVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -52,7 +53,6 @@ import { XpertWorkflowNodeKnowledgeBaseComponent } from './knowledge-base/knowle
     XpertWorkflowIconComponent,
     XpertStudioNodeWorkflowIfelseComponent,
     XpertStudioNodeWorkflowIteratingComponent,
-    XpertStudioNodeWorkflowSplitterComponent,
     XpertStudioNodeWorkflowAnswerComponent,
     XpertStudioNodeWorkflowCodeComponent,
     XpertStudioNodeWorkflowHttpComponent,
@@ -70,7 +70,9 @@ import { XpertWorkflowNodeKnowledgeBaseComponent } from './knowledge-base/knowle
     XpertWorkflowNodeProcessorComponent,
     XpertWorkflowNodeChunkerComponent,
     XpertWorkflowNodeUnderstandingComponent,
-    XpertWorkflowNodeKnowledgeBaseComponent
+    XpertWorkflowNodeKnowledgeBaseComponent,
+    XpertWorkflowNodeListOperatorComponent,
+    XpertWorkflowNodeVariableAggregatorComponent
   ],
   host: {
     '[class]': 'type()',

@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
-  IWFNAssigner,
+  IWFNVariableAggregator,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
@@ -14,14 +15,14 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 
 @Component({
-  selector: 'xpert-workflow-node-assigner',
-  templateUrl: './assigner.component.html',
-  styleUrls: ['./assigner.component.scss'],
+  selector: 'xpert-workflow-node-variable-aggregator',
+  templateUrl: './variable-aggregator.component.html',
+  styleUrls: ['./variable-aggregator.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent]
+  imports: [FFlowModule, FormsModule, MatTooltipModule, TranslateModule, PlusSvgComponent]
 })
-export class XpertWorkflowNodeAssignerComponent {
+export class XpertWorkflowNodeVariableAggregatorComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
   eModelType = AiModelTypeEnum
@@ -34,16 +35,15 @@ export class XpertWorkflowNodeAssignerComponent {
   readonly entity = input<IWorkflowNode>()
 
   // States
-  readonly assignerEntity = computed(() => this.entity() as IWFNAssigner)
+  readonly variableAggregator = computed(() => this.entity() as IWFNVariableAggregator)
+  readonly outputType = computed(() => this.variableAggregator()?.outputType || '')
 
-  readonly xpertCopilotModel = computed(() => this.studioService.viewModel()?.team.copilotModel)
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
-
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
-      .filter((_) => _.type === 'agent' || _.type === 'xpert')
-      .map((_) => _.key)
+      .filter((_) => _.type === 'agent' || _.type === 'workflow')
+      .map((_) => (_.type === 'workflow' ? _.key + '/edge' : _.key))
   )
 
-  readonly assigners = computed(() => this.assignerEntity()?.assigners)
+  readonly inputs = computed(() => this.variableAggregator()?.inputs)
 }

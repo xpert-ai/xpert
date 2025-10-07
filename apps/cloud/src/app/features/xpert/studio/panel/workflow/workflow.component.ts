@@ -45,6 +45,8 @@ import { XpertWorkflowChunkerComponent } from './chunker/chunker.component'
 import { XpertWorkflowUnderstandingComponent } from './understanding/understanding.component'
 import { XpertWorkflowKnowledgeBaseComponent } from './knowledge-base/knowledge-base.component'
 import { XpertWorkflowSourceTestComponent } from './source-test/source.component'
+import { XpertWorkflowListOperatorComponent } from './list-operator/list-operator.component'
+import { XpertWorkflowVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -86,7 +88,9 @@ import { XpertWorkflowSourceTestComponent } from './source-test/source.component
     XpertWorkflowProcessorComponent,
     XpertWorkflowChunkerComponent,
     XpertWorkflowUnderstandingComponent,
-    XpertWorkflowKnowledgeBaseComponent
+    XpertWorkflowKnowledgeBaseComponent,
+    XpertWorkflowListOperatorComponent,
+    XpertWorkflowVariableAggregatorComponent
   ],
   animations: [IfAnimation,]
 })

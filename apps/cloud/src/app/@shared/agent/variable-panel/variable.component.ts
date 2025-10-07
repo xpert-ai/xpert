@@ -43,7 +43,7 @@ export class XpertVariablePanelComponent {
 
   // Inputs
   readonly options = input.required<TXpertVariablesOptions>()
-  readonly type = input<TStateVariableType>()
+  readonly type = input<string>() // TStateVariableType | string
 
   /**
    * Use as variables cache, if not provided, will fetch variables from API by options
@@ -57,7 +57,7 @@ export class XpertVariablePanelComponent {
   readonly value$ = this.cva.value$
   readonly selected = computed(() => getVariableSchema(this.variables(), this.value$()))
   readonly variable = computed(() => this.selected().variable)
-  readonly selectedGroupName = computed(() => this.selected()?.group?.group.name)
+  readonly selectedGroupName = computed(() => this.selected()?.group?.group?.name)
 
   readonly #variables = myRxResource({
     request: () => (this.variables() ? null : this.options()),
@@ -78,7 +78,7 @@ export class XpertVariablePanelComponent {
         variables: group.variables?.filter((variable) => {
           const description = variable.description
           return type
-            ? variable.type === type
+            ? variable.type?.startsWith(type)
             : true &&
                 (variable.name.toLowerCase().includes(searchTerm) ||
                   (typeof description === 'string' ? description.toLowerCase().includes(searchTerm) : true))
@@ -108,6 +108,10 @@ export class XpertVariablePanelComponent {
       },
       { allowSignalWrites: true }
     )
+  }
+
+  isSelectedGroup(name: string) {
+    return this.selectedGroupName() ? this.selectedGroupName() === name : !name
   }
 
   focus() {

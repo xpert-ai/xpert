@@ -157,11 +157,11 @@ export class CopilotModelSelectComponent {
   readonly isInherit = computed(() => !this.__copilotModel())
   readonly statusChoose = computed(() => !this.selectedCopilotWithModels() && !!this.__copilotModel())
 
-  constructor() {
-    effect(() => {
-      console.log(this.copilotWithModels())
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log(this.copilotWithModels())
+  //   })
+  // }
 
   updateValue(value: ICopilotModel) {
     if (!this.readonly()) {

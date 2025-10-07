@@ -17,8 +17,8 @@
     }
     @for (item of g.variables; track item.name) {
       <li class="variable-item group/variable max-w-sm p-1 rounded-md cursor-pointer hover:bg-hover-bg" tabindex="0"
-        [class.text-primary-500]="selectedGroupName() === g.group?.name && item.name === variable()?.name"
-        [class.font-semibold]="selectedGroupName() === g.group?.name && item.name === variable()?.name"
+        [class.text-primary-500]="isSelectedGroup(g.group?.name) && item.name === variable()?.name"
+        [class.font-semibold]="isSelectedGroup(g.group?.name) && item.name === variable()?.name"
         (click)="selectVariable(g.group?.name, item);">
         <div class="w-full flex items-center space-x-2 truncate">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 

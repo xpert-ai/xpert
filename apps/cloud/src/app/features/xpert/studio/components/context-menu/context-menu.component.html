@@ -151,16 +151,6 @@
         {{ 'PAC.Xpert.Router' | translate: {Default: 'Router'} }}
       </div>
     </div>
-    <!-- <div cdkMenuItem class="flex items-center px-3 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
-      (click)="addWorkflowBlock(eWorkflowNodeTypeEnum.SPLITTER)"
-    >
-      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-indigo-500
-        w-5 h-5 rounded-md
-        shrink-0 mr-2">
-        <i class="ri-scissors-cut-fill text-sm"></i>
-      </div>
-      <div class="text-sm text-text-secondary">{{'PAC.Xpert.Splitter' | translate: {Default: 'Splitter'} }}</div>
-    </div> -->
 
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowIterating()"
@@ -175,10 +165,22 @@
       <div class="text-text-primary">{{'PAC.Xpert.Subflow' | translate: {Default: 'Subflow'} }}</div>
     </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
-      (click)="addWorkflowAnswer()"
+      (click)="addWorkflowListOperator()"
     >
-      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ANSWER" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Xpert.Answer' | translate: {Default: 'Answer'} }}</div>
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.LIST_OPERATOR" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Workflow.ListOperator' | translate: {Default: 'List Operator'} }}</div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowVariableAggregator()"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.VARIABLE_AGGREGATOR" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Workflow.VariableAggregator' | translate: {Default: 'Variable Aggregator'} }}</div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowVariableAssigner()"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ASSIGNER" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Workflow.VariableAssigner' | translate: {Default: 'Variable Assigner'} }}</div>
     </div>
     
     <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
@@ -208,10 +210,10 @@
       <div class="text-text-primary">{{'PAC.Xpert.Template' | translate: {Default: 'Template'} }}</div>
     </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
-      (click)="addWorkflowVariableAssigner()"
+      (click)="addWorkflowAnswer()"
     >
-      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ASSIGNER" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Workflow.VariableAssigner' | translate: {Default: 'Variable Assigner'} }}</div>
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ANSWER" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Xpert.Answer' | translate: {Default: 'Answer'} }}</div>
     </div>
 
 

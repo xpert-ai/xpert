@@ -4,7 +4,8 @@ import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  IWFNSplitter,
+  AiModelTypeEnum,
+  IWFNListOperator,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
@@ -13,27 +14,34 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 
 @Component({
-  selector: 'xpert-studio-node-workflow-splitter',
-  templateUrl: './splitter.component.html',
-  styleUrls: ['./splitter.component.scss'],
+  selector: 'xpert-workflow-node-list-operator',
+  templateUrl: './list-operator.component.html',
+  styleUrls: ['./list-operator.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent],
-  host: {
-    tabindex: '-1'
-  }
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent]
 })
-export class XpertStudioNodeWorkflowSplitterComponent {
+export class XpertWorkflowNodeListOperatorComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
+  eModelType = AiModelTypeEnum
 
   readonly elementRef = inject(ElementRef)
-  readonly apiService = inject(XpertStudioApiService)
+  readonly studioService = inject(XpertStudioApiService)
 
   // Inputs
   readonly node = input<TXpertTeamNode>()
   readonly entity = input<IWorkflowNode>()
 
   // States
-  readonly splitterEntity = computed(() => this.entity() as IWFNSplitter)
+  readonly listOperatorEntity = computed(() => this.entity() as IWFNListOperator)
+  readonly input = computed(() => this.listOperatorEntity()?.input)
+
+  readonly nodes = computed(() => this.studioService.viewModel().nodes)
+  readonly canBeConnectedInputs = computed(() =>
+    this.nodes()
+      .filter((_) => _.type === 'agent' || _.type === 'workflow')
+      .map((_) => _.type === 'workflow' ? _.key + '/edge' : _.key)
+  )
+
 }

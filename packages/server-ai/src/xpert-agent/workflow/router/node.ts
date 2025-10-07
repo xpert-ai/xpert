@@ -9,15 +9,14 @@ import {
 	TWFCaseCondition,
 	TXpertGraph,
 	TXpertTeamNode,
-	WorkflowComparisonOperator,
 	WorkflowLogicalOperator,
 	WorkflowNodeTypeEnum
 } from '@metad/contracts'
-import { isEmpty } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get } from 'lodash'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
+import { evaluateCondition } from '../../types'
 
 export function createRouterNode(
 	graph: TXpertGraph,
@@ -33,76 +32,12 @@ export function createRouterNode(
 	const evaluateCases = (state: typeof AgentStateAnnotation.State, config) => {
 		const cases = []
 		const stateEnv = stateToParameters(state, environment)
-		const evaluateCondition = (condition: TWFCaseCondition) => {
-			const stateValue = get(stateEnv, condition.variableSelector)
-			if (typeof stateValue === 'number') {
-				const conditionValue = Number(condition.value)
-				switch (condition.comparisonOperator) {
-					case WorkflowComparisonOperator.EQUAL:
-						return stateValue === conditionValue
-					case WorkflowComparisonOperator.NOT_EQUAL:
-						return stateValue !== conditionValue
-					case WorkflowComparisonOperator.GT:
-						return stateValue > conditionValue
-					case WorkflowComparisonOperator.LT:
-						return stateValue < conditionValue
-					case WorkflowComparisonOperator.GE:
-						return stateValue >= conditionValue
-					case WorkflowComparisonOperator.LE:
-						return stateValue <= conditionValue
-					case WorkflowComparisonOperator.EMPTY:
-						return stateValue == null
-					case WorkflowComparisonOperator.NOT_EMPTY:
-						return stateValue != null
-					default:
-						return false
-				}
-			} else if (typeof stateValue === 'string') {
-				switch (condition.comparisonOperator) {
-					case WorkflowComparisonOperator.EQUAL:
-						return stateValue === condition.value
-					case WorkflowComparisonOperator.NOT_EQUAL:
-						return stateValue !== condition.value
-					case WorkflowComparisonOperator.CONTAINS:
-						return stateValue.includes(condition.value)
-					case WorkflowComparisonOperator.NOT_CONTAINS:
-						return !stateValue.includes(condition.value)
-					case WorkflowComparisonOperator.STARTS_WITH:
-						return stateValue.startsWith(condition.value)
-					case WorkflowComparisonOperator.ENDS_WITH:
-						return stateValue.endsWith(condition.value)
-					case WorkflowComparisonOperator.EMPTY:
-						return isEmpty(stateValue)
-					case WorkflowComparisonOperator.NOT_EMPTY:
-						return !isEmpty(stateValue)
-					case WorkflowComparisonOperator.IS_TRUE:
-						return stateValue.toLowerCase() === 'true'
-					case WorkflowComparisonOperator.IS_FALSE:
-						return stateValue.toLowerCase() === 'false'
-					default:
-						return false
-				}
-			} else {
-				switch (condition.comparisonOperator) {
-					case WorkflowComparisonOperator.EMPTY:
-						return isEmpty(stateValue)
-					case WorkflowComparisonOperator.NOT_EMPTY:
-						return !isEmpty(stateValue)
-					case WorkflowComparisonOperator.IS_TRUE:
-						return !!stateValue
-					case WorkflowComparisonOperator.IS_FALSE:
-						return !stateValue
-					default:
-						return false
-				}
-			}
-		}
-
+		
 		const evaluateConditions = (conditions: TWFCaseCondition[], logicalOperator: WorkflowLogicalOperator) => {
 			cases[cases.length - 1].logical_operator = logicalOperator
 			cases[cases.length - 1].conditions = []
 			const condition = (condition: TWFCaseCondition) => {
-					const result = evaluateCondition(condition)
+					const result = evaluateCondition(condition, stateEnv)
 					const stateValue = get(stateEnv, condition.variableSelector)
 					cases[cases.length - 1].conditions.push({
 						variable: condition.variableSelector,

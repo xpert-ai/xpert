@@ -13,7 +13,6 @@ import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 import { createTemplateNode } from '../template'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
 import { createToolNode } from '../tool'
-import { createAssignerNode } from '../assigner'
 import { createAgentToolNode } from '../agent-tool'
 import { createTriggerNode } from '../trigger'
 import { createCodeNode, WorkflowCodeValidator } from '../code/index'
@@ -53,15 +52,15 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				})
 				break
 			}
-			case WorkflowNodeTypeEnum.ASSIGNER: {
-				workflow = createAssignerNode(graph, node, {
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment,
-				})
-				break
-			}
+			// case WorkflowNodeTypeEnum.ASSIGNER: {
+			// 	workflow = createAssignerNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment,
+			// 	})
+			// 	break
+			// }
 			case WorkflowNodeTypeEnum.IF_ELSE: {
 				workflow = createRouterNode(graph, node, {
 					commandBus: this.commandBus,

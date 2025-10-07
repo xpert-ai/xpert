@@ -15,6 +15,7 @@ import { WorkflowCommandHandlers } from './workflow/handlers'
 import { XpertAgentController } from './xpert-agent.controller'
 import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
+import { Strategies, Validators as PluginValidators } from './plugins'
 
 @Module({
 	imports: [
@@ -37,7 +38,9 @@ import { XpertAgentService } from './xpert-agent.service'
 		...CommandHandlers,
 		...WorkflowCommandHandlers,
 		...QueryHandlers,
-		...Validators
+		...Validators,
+		...PluginValidators,
+		...Strategies
 	],
 	exports: [XpertAgentService]
 })

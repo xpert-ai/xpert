@@ -24,6 +24,7 @@ export class XpertWorkflowBaseComponent {
   readonly key = computed(() => this.node()?.key)
   readonly xpert = this.xpertStudioComponent.xpert
   readonly xpertId = computed(() => this.xpert()?.id)
+  readonly workspaceId = computed(() => this.xpert()?.workspaceId)
 
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
 

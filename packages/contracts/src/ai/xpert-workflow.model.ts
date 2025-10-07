@@ -1,4 +1,4 @@
-import { I18nObject } from "../types"
+import { I18nObject, letterStartSUID } from "../types"
 import { ICopilotModel } from "./copilot-model.model"
 import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
@@ -30,7 +30,9 @@ export enum WorkflowNodeTypeEnum {
    * Router
    */
   IF_ELSE = 'if-else',
-  SPLITTER = 'splitter',
+  LIST_OPERATOR = 'list-operator',
+  VARIABLE_AGGREGATOR = 'variable-aggregator',
+  // SPLITTER = 'splitter',
   ITERATING = 'iterating',
   ANSWER = 'answer',
   CODE = 'code',
@@ -102,9 +104,56 @@ export interface IWFNIfElse extends IWorkflowNode {
   cases: TWFCase[]
 }
 
-export interface IWFNSplitter extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.SPLITTER
+/**
+ * The list operator can filter and extract attributes such as file format type, file name, and size,
+ * passing different format files to corresponding processing nodes to achieve precise control over different file processing flows.
+ */
+export interface IWFNListOperator extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.LIST_OPERATOR
+  // Input Variable *
+  input: string
+  // Variable type of items in the input array
+  itemVarType: string
+  // Filter condition
+  filterBy?: {
+    enabled: boolean
+    conditions: TWFCaseCondition[]
+    logicalOperator: WorkflowLogicalOperator
+  }
+  // Extract the N item
+  extractBy?: {
+    enabled: boolean
+    index: number
+  }
+  // Sort items by variable
+  sortBy?: {
+    enabled: boolean
+    variable: string
+    descending?: boolean
+  }
+  // Top N items
+  topN?: {
+    enabled: boolean
+    count: number
+  }
 }
+
+/**
+ * Aggregate variables from multiple branches into a single variable to achieve unified configuration for downstream nodes.
+ */
+export interface IWFNVariableAggregator extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR
+  // Input Variables *
+  inputs: string[]
+  // Output Variable type
+  outputType: string
+  // Aggregation method
+  // method?: 'concat' | 'merge' | 'custom'
+}
+
+// export interface IWFNSplitter extends IWorkflowNode {
+//   type: WorkflowNodeTypeEnum.SPLITTER
+// }
 
 export interface IWFNIterating extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.ITERATING
@@ -162,9 +211,14 @@ export enum WorkflowComparisonOperator {
   EMPTY = 'empty',
   NOT_EMPTY = 'not-empty',
   IS_TRUE = 'is-true',
-  IS_FALSE = 'is-false'
+  IS_FALSE = 'is-false',
+  LIKE = 'like',
+  NOT_LIKE = 'not-like'
 }
 
+/**
+ * Comparison condition for if-else and list-operator nodes
+ */
 export type TWFCaseCondition = {
   id: string
   comparisonOperator: WorkflowComparisonOperator
@@ -364,6 +418,14 @@ export interface IWFNTask extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.TASK,
   descriptionPrefix?: string
   descriptionSuffix?: string
+}
+
+export function genListOperatorKey() {
+  return letterStartSUID('ListOperator_')
+}
+
+export function genVariableAggregatorKey() {
+  return letterStartSUID('VariableAggregator_')
 }
 
 export function isAgentKey(key: string) {

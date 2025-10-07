@@ -42,7 +42,11 @@ import {
   genPipelineSourceKey,
   genPipelineProcessorKey,
   genPipelineChunkerKey,
-  genPipelineUnderstandingKey
+  genPipelineUnderstandingKey,
+  IWFNListOperator,
+  genListOperatorKey,
+  IWFNVariableAggregator,
+  genVariableAggregatorKey
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -334,6 +338,24 @@ export class XpertStudioContextMenuComponent {
       key: genXpertSubflowKey(),
       title: await this.#translate.instant('PAC.Workflow.Subflow', { Default: 'Subflow' }) + (length ? ` ${length + 1}` : '')
     } as IWFNSubflow)
+  }
+
+  addWorkflowListOperator() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.LIST_OPERATOR).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.LIST_OPERATOR,
+      key: genListOperatorKey(),
+      title: this.#translate.instant('PAC.Workflow.ListOperator', { Default: 'List Operator' }) + (length ? ` ${length + 1}` : '')
+    } as IWFNListOperator)
+  }
+
+  addWorkflowVariableAggregator() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR,
+      key: genVariableAggregatorKey(),
+      title: this.#translate.instant('PAC.Workflow.VariableAggregator', { Default: 'Variable Aggregator' }) + (length ? ` ${length + 1}` : '')
+    } as IWFNVariableAggregator)
   }
 
   addWorkflowAgentTool() {
