@@ -241,4 +241,43 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 			templates: template.templates
 		}
 	}
+
+	async getKnowledgePipeline(language: LanguagesEnum, id: string) {
+		const data = await this.readTemplates<TKnowledgePipelineTemplate>('knowledge-pipelines.json', 'xpert:knowledge-pipelines')
+
+		let template = null
+		if (data[language]?.['templates']?.length) {
+			template = data[language]
+		} else {
+			template = data['en-US']
+		}
+
+		const temp = template.templates?.find((_) => _.id === id)
+		if (temp) {
+			const {record} = await this.findOneOrFail({ where: { key: temp.id } })
+			if (!record) {
+				await this.create({
+					key: temp.id,
+					name: temp.name,
+					visitCount: 1,
+					lastVisitedAt: new Date()
+				})
+			} else {
+				await this.update(record.id, { visitCount: record.visitCount + 1, lastVisitedAt: new Date() })
+			}
+		}
+
+		// Get pipeline xpert DSL workflow
+		const templateFilePath = path.join(
+			this.configService.assetOptions.serverRoot,
+			currentPath + `/pipelines/${id}.yaml`
+		)
+
+		try {
+			temp.export_data = await fs.promises.readFile(templateFilePath, 'utf8')
+		} catch (err) {
+			throw new Error(`Unable to find template for ${id}`)
+		}
+		return temp
+	}
 }

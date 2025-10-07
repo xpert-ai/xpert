@@ -39,6 +39,11 @@ export class XpertTemplateController {
 		return await this.service.getKnowledgePipelines(LanguagesMap[language] ?? language, paginationParams)
 	}
 
+	@Get('pipelines/:id')
+	async getKnowledgePipeline(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
+		return await this.service.getKnowledgePipeline(LanguagesMap[language] ?? language, id)
+	}
+
 	@Get(':id')
 	async getTemplate(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
 		return await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language)

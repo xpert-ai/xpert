@@ -6,9 +6,9 @@ import { KnowledgeDocumentChunkComponent } from './documents/chunk/chunk.compone
 import { KnowledgeDocumentCreateComponent } from './documents/create/create.component'
 import { KnowledgeDocumentsComponent } from './documents/documents.component'
 import { KnowledgebaseComponent } from './knowledgebase.component'
-import { KnowledgePipelinesComponent } from './pipelines/pipelines.component'
 import { KnowledgeTestComponent } from './test/test.component'
 import { KnowledgeDocumentPipelineComponent } from './documents/pipeline/pipeline.component'
+import { KnowledgebasePipelinesComponent } from './pipelines/pipelines.component'
 
 export default [
   {
@@ -56,7 +56,7 @@ export default [
       },
       {
         path: 'xpert',
-        component: KnowledgePipelinesComponent
+        component: KnowledgebasePipelinesComponent
       }
     ]
   }

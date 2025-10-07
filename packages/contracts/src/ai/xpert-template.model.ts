@@ -11,36 +11,41 @@ export interface IXpertTemplate extends IBasePerTenantEntityModel {
   lastVisitedAt?: Date
 }
 
-export type TXpertTemplate = {
+export type TTemplate = {
   id: string
   name: string
   title: string
   description: string
-  avatar: TAvatar
-  type: XpertTypeEnum | 'project'
   category: string
-  copilotModel?: Partial<TCopilotModel>
   copyright: string
   privacyPolicy?: string
   export_data: string
 }
 
-export interface IXpertMCPTemplate {
+export type TXpertTemplate = TTemplate & {
+  avatar: TAvatar
+  type: XpertTypeEnum | 'project'
+  copilotModel?: Partial<TCopilotModel>
+}
+
+export interface IXpertMCPTemplate extends TTemplate {
   type: MCPServerType
-  name: string
-  title: string
-  description: string
   avatar: TAvatar
   author: string
-  id: string
-  category: string
   transport: MCPServerType
   icon: string
   explore: string
-  copyright: string | null
-  privacyPolicy?: string | null
   tags?: string[]
   visitCount?: number
   server: TMCPServer
   options?: any
+}
+
+export type TKnowledgePipelineTemplate = TTemplate & {
+  avatar: TAvatar
+  author: string
+  icon: string
+  explore: string
+  tags?: string[]
+  visitCount?: number
 }

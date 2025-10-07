@@ -171,19 +171,3 @@ export const KnowledgeTask = 'task_id'
 export const KnowledgeSources = 'sources'
 export const KnowledgeDocuments = 'documents'
 export const KnowledgeFolderId = 'folder_id'
-
-export type TKnowledgePipelineTemplate = {
-  name: string
-  title: string
-  description: string
-  avatar: TAvatar
-  author: string
-  id: string
-  category: string
-  icon: string
-  explore: string
-  copyright: string | null
-  privacyPolicy?: string | null
-  tags?: string[]
-  visitCount?: number
-}

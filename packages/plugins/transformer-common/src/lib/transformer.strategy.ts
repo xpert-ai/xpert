@@ -90,7 +90,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         file.filePath = xpFileSystem.fullPath(file.filePath)
       }
       let data: Document[]
-      switch (file.extname?.toLowerCase()) {
+      switch (file.extension?.toLowerCase()) {
         case 'md':
         case 'mdx':
         case 'markdown':
