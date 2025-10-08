@@ -80,7 +80,10 @@ module.exports = {
           '0%, 100%': { 'border-color': '#3b82f6' },
           '50%': { 'border-color': 'transparent' },
         }
-      }
+      },
+      backgroundImage: {
+        'hero-gradient': 'linear-gradient(0deg,rgba(249,250,251,1) 60.27%,rgba(249,250,251,0))',
+      },
     },
     fontFamily: {
       notoColorEmoji: "'Noto Color Emoji', sans-serif;"

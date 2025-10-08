@@ -1,0 +1,359 @@
+team:
+  name: 知识管道测试 Pipeline - 7HPpTscY2z
+  type: knowledge
+  title: null
+  description: null
+  avatar: null
+  starters: null
+  options:
+    position:
+      x: 333.258264125824
+      y: 39.230946361541726
+    scale: 0.7873620599746703
+    workflow:
+      Source_Qy8zhtBMLV:
+        position:
+          x: -40
+          y: 500
+      KnowledgeBase_KhDIYDGYeC:
+        position:
+          x: 980
+          y: 220
+      Source_zdDsuRRENp:
+        position:
+          x: -60
+          y: 20
+      Trigger_eIX1W3MP6b:
+        position:
+          x: -420
+          y: 220
+      Processor_arakWL1cpJ:
+        position:
+          x: -120
+          y: 500
+      Source_HsQpXWJvzL:
+        position:
+          x: -200
+          y: 500
+      Processor_gzYi9VfB1I:
+        position:
+          x: 20
+          y: 640
+      Chunker_ar36ymN0Jf:
+        position:
+          x: 340
+          y: 620
+      Chunker_vMGWw52xVK:
+        position:
+          x: 340
+          y: 120
+      Chunker_9PnscncHIp:
+        position:
+          x: 1040
+          y: 380
+      Processor_eQBAfSLaIu:
+        position:
+          x: 520
+          y: 400
+      ListOperator_NYZbXuuLYu:
+        position:
+          x: 140
+          y: 660
+      ListOperator_nBEQr2hF2L:
+        position:
+          x: 120
+          y: 440
+      Processor_D033jtpyXO:
+        position:
+          x: 440
+          y: 700
+      VariableAggregator_bYnycSe52J:
+        position:
+          x: 1000
+          y: 540
+      Understanding_unZTFBU5mw:
+        position:
+          x: 780
+          y: 760
+  agentConfig:
+    parameters:
+      - type: number
+        name: x_num
+        description: 分段数量
+        optional: null
+        maximum: null
+        options: null
+    mute:
+      - - Agent_d0Kuobe2AL
+  memory: null
+  summarize: null
+  features:
+    attachment:
+      enabled: true
+      maxNum: 3
+      fileTypes:
+        - document
+        - image
+        - others
+  version: "2"
+  agent:
+    key: qUKJh6ysj2
+  copilotModel: null
+  knowledgebases: []
+  toolsets: []
+  tags: []
+nodes:
+  - key: KnowledgeBase_KhDIYDGYeC
+    type: workflow
+    position:
+      x: 980
+      y: 220
+    entity:
+      key: KnowledgeBase_KhDIYDGYeC
+      title: Knowledge Base
+      type: knowledgebase
+      structure: general
+      input: chunker_9pnscnchip_channel.documents
+      copilotModel:
+        model: text-embedding-v4
+        copilotId: 0dd4a714-64a3-4e44-aa7c-e5737aeaa8b2
+        modelType: text-embedding
+      rerankModel:
+        model: gte-rerank
+        copilotId: 0dd4a714-64a3-4e44-aa7c-e5737aeaa8b2
+        modelType: rerank
+      inputs:
+        - chunker_vmgww52xvk_channel.documents
+        - chunker_9pnscnchip_channel.documents
+    hash: bc2d563fa3585ca9de1295e24d078a795481061e29a6f3eb7b0fe850af89fbed
+  - type: workflow
+    key: Source_zdDsuRRENp
+    position:
+      x: -60
+      y: 20
+    entity:
+      type: source
+      key: Source_zdDsuRRENp
+      title: Firecrawl源
+      provider: firecrawl
+      integrationId: 0297890e-ff4c-4b2b-af43-a1d9d13277e8
+      config:
+        url: https://docs.firecrawl.dev/introduction
+    hash: f5ead57791ee008ab9baa48d1b30fb251c32e71ce18e984d30e909765cad4ced
+  - type: workflow
+    key: Trigger_eIX1W3MP6b
+    position:
+      x: -420
+      y: 220
+    entity:
+      type: trigger
+      key: Trigger_eIX1W3MP6b
+      title: 触发器
+      from: chat
+      parameters:
+        - type: number
+          name: x_num
+          description: 分段数量
+          optional: null
+          maximum: null
+          options: null
+    hash: b5f1bce60263cf5ec0deacd0ad1852e0adb1761c3eeb3b714ddcb1e0b7d7857c
+  - type: workflow
+    key: Source_HsQpXWJvzL
+    position:
+      x: -200
+      y: 500
+    entity:
+      type: source
+      key: Source_HsQpXWJvzL
+      title: 本地文件源
+      provider: local-file
+    hash: 848abbd7d65d2e758d7b88844067e9ff98c89ac2ad480437dea740c0ea76c4f7
+  - type: workflow
+    key: Chunker_vMGWw52xVK
+    position:
+      x: 340
+      y: 120
+    entity:
+      type: chunker
+      key: Chunker_vMGWw52xVK
+      title: 分块器
+      provider: markdown-recursive
+      config:
+        addHeadersToChunk: true
+        headerToSplitOn: 3
+      input: source_zddsurrenp_channel.documents
+    hash: 3077e4dbccb947e8017b559d4c87f944a04454bf3d1ed383893762551087a5d1
+  - type: workflow
+    key: Chunker_9PnscncHIp
+    position:
+      x: 1040
+      y: 380
+    entity:
+      type: chunker
+      key: Chunker_9PnscncHIp
+      title: 分块器2
+      provider: markdown-recursive
+      config:
+        addHeadersToChunk: true
+        headerToSplitOn: 3
+      input: variableaggregator_bynycse52j_channel.result
+    hash: d6b677ce832e93e276cfa7e38a44c2f68142e57177473293f44d719b6d3d19f4
+  - type: workflow
+    key: Processor_eQBAfSLaIu
+    position:
+      x: 520
+      y: 400
+    entity:
+      type: processor
+      key: Processor_eQBAfSLaIu
+      title: 处理器
+      provider: default
+      input: listoperator_nbeqr2hf2l_channel.result
+    hash: adb79cd9d72dffd9d617f3aa53fd87dadd299b81c69df3aec176ba65a3de8464
+  - type: workflow
+    key: ListOperator_NYZbXuuLYu
+    position:
+      x: 140
+      y: 660
+    entity:
+      type: list-operator
+      key: ListOperator_NYZbXuuLYu
+      title: List Operator
+      input: source_hsqpxwjvzl_channel.documents
+      filterBy:
+        enabled: true
+        conditions:
+          - id: tQzg7wVblo
+            comparisonOperator: like
+            value: "[pdf|PDF]"
+            variableSelector: extension
+      extractBy:
+        enabled: false
+        index: ""
+      topN:
+        enabled: false
+        count: ""
+      sortBy:
+        enabled: false
+        descending: true
+        variable: /
+      itemVarType: document
+    hash: 711f7deccc106b9c2091285ac7bbd1844f43bd7f153a73f7fcd1a5ebe4178fa3
+  - type: workflow
+    key: ListOperator_nBEQr2hF2L
+    position:
+      x: 120
+      y: 440
+    entity:
+      type: list-operator
+      key: ListOperator_nBEQr2hF2L
+      title: List Operator 2
+      input: source_hsqpxwjvzl_channel.documents
+      itemVarType: document
+      filterBy:
+        enabled: true
+        conditions:
+          - id: 7klb4v0KCN
+            comparisonOperator: not-like
+            value: "[pdf|PDF]"
+            variableSelector: extension
+    hash: 231ed6963479491bc559a80272b3a0a7a7caddecfba394b395660ef4e6240102
+  - type: workflow
+    key: Processor_D033jtpyXO
+    position:
+      x: 440
+      y: 700
+    entity:
+      type: processor
+      key: Processor_D033jtpyXO
+      title: 处理器 MinerU
+      provider: mineru
+      config:
+        isOcr: true
+        enableFormula: true
+        enableTable: true
+        language: ch
+        modelVersion: pipeline
+      integrationId: 6eb4e2f6-189d-4019-996a-70e462b18661
+      input: listoperator_nyzbxuulyu_channel.result
+    hash: b834a2749839b89968f4da92c9d463e1745f9b7c0c1e9f17effeb381041208c0
+  - type: workflow
+    key: VariableAggregator_bYnycSe52J
+    position:
+      x: 1000
+      y: 540
+    entity:
+      type: variable-aggregator
+      key: VariableAggregator_bYnycSe52J
+      title: Variable Aggregator
+      inputs:
+        - processor_eqbafslaiu_channel.documents
+        - processor_d033jtpyxo_channel.documents
+      outputType: array[document]
+    hash: 8ad91e19c6726105c2d0c03c68a5773828151466668a8a217383afa719449018
+  - type: workflow
+    key: Understanding_unZTFBU5mw
+    position:
+      x: 780
+      y: 760
+    entity:
+      type: understanding
+      key: Understanding_unZTFBU5mw
+      title: Understanding
+      provider: vlm-default
+      visionModel:
+        model: qwen-vl-plus
+        copilotId: 0dd4a714-64a3-4e44-aa7c-e5737aeaa8b2
+        modelType: llm
+      input: processor_d033jtpyxo_channel.documents
+    hash: 50ca916d4dca30d9ac69daf61b14d54b3397af1f14e431e316d91671d4175439
+connections:
+  - type: edge
+    key: Trigger_eIX1W3MP6b/Source_HsQpXWJvzL
+    from: Trigger_eIX1W3MP6b
+    to: Source_HsQpXWJvzL
+  - type: edge
+    key: Chunker_vMGWw52xVK/KnowledgeBase_KhDIYDGYeC
+    from: Chunker_vMGWw52xVK
+    to: KnowledgeBase_KhDIYDGYeC
+  - type: edge
+    key: Source_zdDsuRRENp/Chunker_vMGWw52xVK
+    from: Source_zdDsuRRENp
+    to: Chunker_vMGWw52xVK
+  - type: edge
+    key: Chunker_9PnscncHIp/KnowledgeBase_KhDIYDGYeC
+    from: Chunker_9PnscncHIp
+    to: KnowledgeBase_KhDIYDGYeC
+  - type: edge
+    key: Source_HsQpXWJvzL/ListOperator_NYZbXuuLYu
+    from: Source_HsQpXWJvzL
+    to: ListOperator_NYZbXuuLYu
+  - type: edge
+    key: Source_HsQpXWJvzL/ListOperator_nBEQr2hF2L
+    from: Source_HsQpXWJvzL
+    to: ListOperator_nBEQr2hF2L
+  - type: edge
+    key: ListOperator_nBEQr2hF2L/Processor_eQBAfSLaIu
+    from: ListOperator_nBEQr2hF2L
+    to: Processor_eQBAfSLaIu
+  - type: edge
+    key: ListOperator_NYZbXuuLYu/Processor_D033jtpyXO
+    from: ListOperator_NYZbXuuLYu
+    to: Processor_D033jtpyXO
+  - type: edge
+    key: VariableAggregator_bYnycSe52J/Chunker_9PnscncHIp
+    from: VariableAggregator_bYnycSe52J
+    to: Chunker_9PnscncHIp
+  - type: edge
+    key: Processor_D033jtpyXO/Understanding_unZTFBU5mw
+    from: Processor_D033jtpyXO
+    to: Understanding_unZTFBU5mw
+  - type: edge
+    key: Processor_eQBAfSLaIu/VariableAggregator_bYnycSe52J
+    from: Processor_eQBAfSLaIu
+    to: VariableAggregator_bYnycSe52J
+  - type: edge
+    key: Understanding_unZTFBU5mw/VariableAggregator_bYnycSe52J
+    from: Understanding_unZTFBU5mw
+    to: VariableAggregator_bYnycSe52J

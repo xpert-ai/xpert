@@ -169,3 +169,108 @@ export interface RuleValidator {
 export function letterStartSUID(start: string) {
   return start + uuid()
 }
+
+/** 
+ * The type of icon to render.  
+ * Determines how the `value` field should be interpreted.
+ */
+export type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
+
+/**
+ * Defines a unified structure for representing different kinds of icons 
+ * in the frontend (image, SVG, font icon, emoji, Lottie animation, etc.).
+ * 
+ * ---
+ * 🧩 Supported icon types:
+ * 
+ * | Type     | Description                      | Example `value` |
+ * |-----------|----------------------------------|-----------------|
+ * | `image`  | Raster or Base64-encoded image    | `"https://cdn.example.com/logo.png"` or `"data:image/png;base64,..."` |
+ * | `svg`    | Inline SVG markup                 | `"<svg xmlns='http://www.w3.org/2000/svg'><path d='M12 2l4 20H8z'/></svg>"` |
+ * | `font`   | Font icon class name              | `"fa-solid fa-user"` or `"material-icons:home"` |
+ * | `emoji`  | Unicode emoji character           | `"🚀"` |
+ * | `lottie` | Lottie animation JSON URL         | `"https://assets.lottiefiles.com/packages/lf20_abc123.json"` |
+ * 
+ * ---
+ * 🧠 Example usages:
+ * 
+ * ```json
+ * {
+ *   "icon": {
+ *     "type": "image",
+ *     "value": "https://cdn.example.com/logo.png",
+ *     "alt": "Company logo"
+ *   }
+ * }
+ * 
+ * {
+ *   "icon": {
+ *     "type": "svg",
+ *     "value": "<svg xmlns='http://www.w3.org/2000/svg'><path d='M12 2l4 20H8z'/></svg>"
+ *   }
+ * }
+ * 
+ * {
+ *   "icon": {
+ *     "type": "font",
+ *     "value": "fa-solid fa-user",
+ *     "color": "#666",
+ *     "size": 20
+ *   }
+ * }
+ * 
+ * {
+ *   "icon": {
+ *     "type": "emoji",
+ *     "value": "🚀",
+ *     "size": 32
+ *   }
+ * }
+ * 
+ * {
+ *   "icon": {
+ *     "type": "lottie",
+ *     "value": "https://assets.lottiefiles.com/packages/lf20_abc123.json"
+ *   }
+ * }
+ * ```
+ * ---
+ */
+export interface IconDefinition {
+  /** 
+   * The type of icon to render.  
+   * Determines how the `value` field should be interpreted.
+   */
+  type: IconType
+
+  /** 
+   * The icon content or resource reference.
+   * Can be a URL, Base64 data, SVG markup, emoji, or animation file.
+   */
+  value: string
+
+  /** 
+   * Optional color for the icon.  
+   * Typically used for font, SVG, or emoji icons.
+   */
+  color?: string
+
+  /** 
+   * Optional size of the icon, in pixels.  
+   * Defines the intended rendered size (e.g. 24 → 24px).
+   */
+  size?: number
+
+  /** 
+   * Alternative text for accessibility.  
+   * Useful for image or SVG icons.
+   */
+  alt?: string
+
+  /** 
+   * Optional inline style definitions.  
+   * Can include any CSS-compatible properties 
+   * (e.g. `{ "borderRadius": "50%", "backgroundColor": "#f0f0f0" }`).
+   */
+  style?: Record<string, string>
+}

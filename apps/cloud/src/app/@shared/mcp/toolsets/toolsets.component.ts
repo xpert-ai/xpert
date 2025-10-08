@@ -133,7 +133,7 @@ export class MCPToolsetsComponent {
         type: template.server.type,
         schema: JSON.stringify({mcpServers: {'': mcpServer}}),
       }
-      if (template.icon) {
+      if (typeof template.icon === 'string') {
         toolset.avatar = {
           url: template.icon
         }

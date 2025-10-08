@@ -716,6 +716,7 @@
       "PasswordChangedSuccessfully": "密码修改成功"
     },
     "ACTIONS": {
+      "Back": "返回",
       "Run": "运行",
       "Rename": "重命名",
       "Refresh": "刷新",
@@ -2350,6 +2351,11 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "BlankKnowledgePipeline": "空白知识流水线",
+      "BlankKnowledgePipelineDesc": "从零开始创建一个自定义知识流水线，对数据处理和结构拥有完全控制权。",
+      "ImportFromDSLFile": "从 DSL 文件导入",
+      "Install": "安装",
+      "Details": "详情",
       "Reprocess": "重新处理",
       "AddDocuments": "添加文档",
       "ChooseADataSource": "选择数据源",

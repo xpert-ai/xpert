@@ -1,8 +1,8 @@
 import { IBasePerTenantEntityModel } from '../base-entity.model'
+import { IconDefinition, TAvatar } from '../types'
+import { TCopilotModel } from './copilot-model.model'
 import { MCPServerType, TMCPServer } from './xpert-tool-mcp.model'
 import { XpertTypeEnum } from './xpert.model'
-import { TAvatar } from '../types'
-import { TCopilotModel } from './copilot-model.model'
 
 export interface IXpertTemplate extends IBasePerTenantEntityModel {
   key: string
@@ -24,16 +24,19 @@ export type TTemplate = {
 
 export type TXpertTemplate = TTemplate & {
   avatar: TAvatar
+  // icon: IconDefinition | string
   type: XpertTypeEnum | 'project'
   copilotModel?: Partial<TCopilotModel>
 }
 
 export interface IXpertMCPTemplate extends TTemplate {
+  /**
+   * string is the backward compatible image file URL format
+   */
+  icon: IconDefinition | string
   type: MCPServerType
-  avatar: TAvatar
   author: string
   transport: MCPServerType
-  icon: string
   explore: string
   tags?: string[]
   visitCount?: number
@@ -42,9 +45,8 @@ export interface IXpertMCPTemplate extends TTemplate {
 }
 
 export type TKnowledgePipelineTemplate = TTemplate & {
-  avatar: TAvatar
+  icon: IconDefinition
   author: string
-  icon: string
   explore: string
   tags?: string[]
   visitCount?: number

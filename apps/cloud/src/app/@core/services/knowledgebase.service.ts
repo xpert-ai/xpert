@@ -14,6 +14,7 @@ import {
   IKnowledgebaseTask,
   IKnowledgeDocument,
   IKnowledgeRetrievalLog,
+  IXpert,
   PaginationParams,
   toHttpParams
 } from '@metad/cloud/state'
@@ -103,7 +104,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   createPipeline(id: string) {
-    return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + `/${id}/pipeline`, {})
+    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/pipeline`, {})
   }
 
   getStatisticsKnowledgebases(timeRange: string[]) {

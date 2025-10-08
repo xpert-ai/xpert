@@ -1,1 +1,10 @@
+<div class="system-md-semibold relative flex px-16 pb-2 pt-5 text-text-primary">
+  <span>{{ 'PAC.ACTIONS.Back' | translate: {Default: 'Back'} }}</span>
+  <a class="absolute bottom-0 left-5 cursor-pointer" (click)="goBack()">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium size-9 rounded-full p-0 flex items-center justify-center">
+      <i class="ri-corner-up-left-line"></i>
+    </button>
+  </a>
+</div>
+
 <xp-pipelines [workspaceId]="workspaceId()" (created)="onPipelineCreated($event)" />
