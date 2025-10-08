@@ -24,6 +24,13 @@
       "options": {
         "jestConfig": "packages/plugin-sdk/jest.config.ts"
       }
+    },
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "options": {
+        "packageRoot": "dist/packages/plugin-sdk",
+        "access": "public"
+      }
     }
   }
 }

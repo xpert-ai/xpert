@@ -1,4 +1,3 @@
-import { CalculatedProperty } from '@metad/ocap-core'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIndicator } from './indicator'
 import { ISemanticModel } from './semantic-model'
@@ -11,7 +10,7 @@ export type TQueryOptions = {
    * Indicators modified by the client
    */
   indicators?: IIndicator[]
-  calculatedMeasures?: CalculatedProperty[]
+  calculatedMeasures?: any[] // CalculatedProperty[]
 } & Record<string, any>
 
 export enum QueryStatusEnum {

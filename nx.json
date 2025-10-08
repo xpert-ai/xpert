@@ -86,9 +86,10 @@
     }
   },
   "release": {
-    "version": {
-      "preVersionCommand": "yarn nx run-many -t build"
-    }
+    "projects": [
+      "packages/contracts",
+      "packages/plugin-sdk"
+    ]
   },
   "plugins": [
     {

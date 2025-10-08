@@ -57,7 +57,7 @@ export abstract class BuiltinToolset<T extends StructuredToolInterface = Structu
 	constructor(
 		public providerName: string,
 		protected toolset?: IXpertToolset,
-		protected params?: TBuiltinToolsetParams
+		protected override params?: TBuiltinToolsetParams
 	) {
 		super(params)
 	}
