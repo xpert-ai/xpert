@@ -7,7 +7,7 @@ import {
   IFeatureOrganizationFindInput,
   IFeatureOrganizationUpdateInput,
   IPagination
-} from '@metad/contracts'
+} from '../../types'
 import { toParams } from '@metad/core'
 import { Observable } from 'rxjs'
 
@@ -23,9 +23,8 @@ export class FeatureService {
   }
 
   getParentFeatures(relations?: string[]): Observable<{ items: IFeature[]; total: number }> {
-    const data = { relations }
     return this.http.get<{ items: IFeature[]; total: number }>(`${this.API_URL}/parent`, {
-      params: toParams({ data })
+      params: toParams({ relations })
     })
   }
 

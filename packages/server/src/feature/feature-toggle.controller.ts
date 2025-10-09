@@ -4,7 +4,7 @@ import {
 	IPagination,
 	RolesEnum
 } from '@metad/contracts'
-import { Body, Controller, Get, HttpStatus, Post, Query, UseGuards } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Get, HttpStatus, Post, Query, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Public, Roles } from './../shared/decorators'
@@ -14,6 +14,7 @@ import { FeatureOrganizationService } from './feature-organization.service'
 import { Feature } from './feature.entity'
 import { FeatureService } from './feature.service'
 import { getFeatureToggleDefinitions } from './default-features'
+import { RelationsQueryDTO } from '../shared'
 
 @ApiTags('Feature')
 @Controller('toggle')
@@ -48,8 +49,12 @@ export class FeatureToggleController {
 		description: 'Record not found'
 	})
 	@Get('parent')
-	async getParentFeatureList(@Query('data') data: any) {
-		return this.featureService.getParentFeatures(data)
+	async getParentFeatureList(@Query() options: RelationsQueryDTO) {
+		try {
+			return await this.featureService.getParentFeatures(options.relations);
+		} catch (error) {
+			throw new BadRequestException(error);
+		}
 	}
 
 	@ApiOperation({ summary: 'Find all feature organizations.' })

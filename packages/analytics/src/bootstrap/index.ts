@@ -3,6 +3,7 @@ import { AppService, AuthGuard, getPluginModules, initI18next, PluginModule, reg
 import { IPluginConfig } from '@metad/server-common'
 import { Logger, LogLevel, Module } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
+import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import cookieParser from 'cookie-parser'
 import { json, text, urlencoded } from 'express'
@@ -28,9 +29,12 @@ export async function bootstrap(options: {title: string; version: string}) {
 	@Module({ imports: [PluginModule.init(), BootstrapModule] })
     class RootModule {}
 	
-	const app = await NestFactory.create(RootModule, {
+	const app = await NestFactory.create<NestExpressApplication>(RootModule, {
 		logger: LOGGER_LEVELS.slice(0, LoggerIndex + 1)
 	})
+
+	// Set query parser to extended (In Express v5, query parameters are no longer parsed using the qs library by default.)
+	app.set('query parser', 'extended');
 
 	app.use(middleware.handle(i18next)); // attach i18next middleware
 
@@ -120,6 +124,7 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
 }
 
 export async function preBootstrapPlugins() {
+	const plugins = process.env.PLUGINS?.split(',') || [];
 	const { modules } = await registerPluginsAsync({
 		plugins: [
 			'@xpert-ai/plugin-file-system',
@@ -139,7 +144,8 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-vlm-default',
 			'@xpert-ai/plugin-vstore-chroma',
 			'@xpert-ai/plugin-vstore-milvus',
-			'@xpert-ai/plugin-vstore-weaviate'
+			'@xpert-ai/plugin-vstore-weaviate',
+			...plugins
 		],
 		discovery: {
 			prefix: '@xpert-ai/plugin-',
