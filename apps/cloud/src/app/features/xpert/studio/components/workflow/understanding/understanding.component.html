@@ -1,0 +1,30 @@
+<div fNodeInput [fInputId]="node().key" fInputConnectableSide="left" class="left absolute"></div>
+
+<div class="relative bg-zinc-50 flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder">
+  @if (understandingProvider(); as understandingProvider) {
+    <div class="flex items-center gap-1">
+      <div class="w-7 h-7 flex items-center justify-center relative overflow-hidden rounded-lg bg-gray-100">
+        <xp-custom-icon class="!block w-5 h-5" [icon]="understandingProvider.icon" />
+      </div>
+      <div class="text-xs font-medium text-gray-700">
+        {{ understandingProvider.label | i18n }}
+      </div>
+    </div>
+  } @else {
+    <div class="flex flex-col items-center gap-1">
+      <div class="w-6 h-6 flex items-center justify-center bg-gray-100 rounded text-gray-500">
+        <i class="ri-cpu-line"></i>
+      </div>
+      <div class="text-xs font-medium text-gray-500">
+        {{ 'PAC.Xpert.ImageUnderstanding' | translate: {Default: 'Image Understanding'} }}
+      </div>
+    </div>
+  }
+
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()">
+    <div class="inner-dot cursor-crosshair">
+      <ngm-plus-svg class="w-2 h-2 text-white" />
+    </div>
+  </div>
+</div>

@@ -2,7 +2,7 @@ import { INTEGRATION_PROVIDERS, IntegrationEnum, IntegrationFeatureEnum } from '
 import { Controller, Get, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'
-import { FindConditions, Raw } from 'typeorm'
+import { FindOptionsWhere } from 'typeorm'
 import { TransformInterceptor } from '../core/interceptors'
 import { ParseJsonPipe } from '../shared/pipes'
 import { CrudController, PaginationParams } from './../core/crud'
@@ -33,7 +33,7 @@ export class IntegrationController extends CrudController<Integration> {
 	@Get('select-options')
 	async getSelectOptions(@Query('provider') provider: IntegrationEnum, @Query('features') features: string) {
 		const _features = features?.split(',') as IntegrationFeatureEnum[]
-		const where: FindConditions<Integration> = provider ? { provider } : {}
+		const where: FindOptionsWhere<Integration> = provider ? { provider } : {}
 		// if (_features?.length) {
 		// 	where.features = Raw((alias) => `${alias} @> :features`, { features: _features })
 		// }
@@ -44,5 +44,10 @@ export class IntegrationController extends CrudController<Integration> {
 			description: item.description,
 			icon: INTEGRATION_PROVIDERS[item.provider]?.avatar
 		}))
+	}
+
+	@Get('providers')
+	async getProviders() {
+		return this.service.getProviders()
 	}
 }

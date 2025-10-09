@@ -7,8 +7,9 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { getPositionMap } from '../../../core/utils'
 import { getBuiltinToolsetBaseUrl } from '../../provider/builtin'
-import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ListBuiltinToolsQuery } from '../list-builtin-tools.query'
+import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
+import zodToJsonSchema from 'zod-to-json-schema'
 
 @QueryHandler(ListBuiltinToolsQuery)
 export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQuery> {
@@ -19,7 +20,7 @@ export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQu
 
 	private readonly _builtinTools = new Map<string, IBuiltinTool[]>()
 
-	constructor(private readonly service: XpertToolsetService) {}
+	constructor(private readonly toolsetRegistry: ToolsetRegistry) {}
 
 	public async execute(command: ListBuiltinToolsQuery): Promise<IBuiltinTool[]> {
 		const { provider, names } = command
@@ -32,6 +33,35 @@ export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQu
 	private async getBuiltinTools(provider: string): Promise<IBuiltinTool[]> {
 		if (this._builtinTools.get(provider)) {
 			return this._builtinTools.get(provider)
+		}
+
+		try {
+			const pluginProvider = this.toolsetRegistry.get(provider)
+			if (pluginProvider) {
+				const tools = pluginProvider.createTools()
+				const builtinTools = tools.map((tool) => ({
+					identity: {
+						provider,
+						name: tool.name,
+						author: '',
+						label: {
+							en_US: tool.name,
+							zh_Hans: tool.name
+						}
+					},
+					description: {
+							human: {
+								en_US: tool.description,
+							},
+							llm: tool.description
+						},
+					schema: zodToJsonSchema(tool.schema)
+				}))
+
+				return builtinTools
+			}
+		} catch (error) {
+			//
 		}
 
 		const providerPath = this.getProviderServerPath(provider)

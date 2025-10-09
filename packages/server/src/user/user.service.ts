@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, InsertResult, SelectQueryBuilder, Like, Brackets, WhereExpressionBuilder } from 'typeorm';
+import { Repository, InsertResult, SelectQueryBuilder, Like, Brackets, WhereExpressionBuilder, In } from 'typeorm';
 import bcrypt from 'bcryptjs';
 import { environment as env } from '@metad/server-config'
 import { User } from './user.entity';
@@ -181,7 +181,6 @@ export class UserService extends TenantAwareCrudService<User> {
 	}
 
 	async getAdminUsers(tenantId: string): Promise<User[]> {
-		const roleNames =[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN];		
 		return await this.repository.find({
 			join: {
 				alias: 'user',
@@ -189,15 +188,13 @@ export class UserService extends TenantAwareCrudService<User> {
 					role: 'user.role'
 				},
 			},
-			where: (qb: SelectQueryBuilder<User>) => {
-					qb.andWhere(`"${qb.alias}"."tenantId" = :tenantId`, {
-						tenantId
-					});
-					qb.andWhere(`role.name IN (:...roleNames)`, {
-						roleNames
-					});
+			where: {
+				tenantId,
+				role: {
+					name: In([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])
 				}
-			});		
+			},
+		});	
 	}
 
 	/*

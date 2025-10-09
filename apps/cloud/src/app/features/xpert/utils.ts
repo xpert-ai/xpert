@@ -1,9 +1,9 @@
 import { inject } from '@angular/core'
 import { upperFirst } from 'lodash-es'
-import { letterStartSUID, OrderTypeEnum, WorkflowNodeTypeEnum, XpertService } from '../../@core'
+import { letterStartSUID, OrderTypeEnum, WorkflowNodeTypeEnum, XpertAPIService } from '../../@core'
 
 export function injectGetXpertTeam() {
-  const xpertService = inject(XpertService)
+  const xpertService = inject(XpertAPIService)
 
   return (id: string) => {
     return xpertService.getTeam(id, {
@@ -15,14 +15,15 @@ export function injectGetXpertTeam() {
         'executors',
         'executors.agent',
         'executors.copilotModel',
-        'copilotModel'
+        'copilotModel',
+        'knowledgebase',
       ]
     })
   }
 }
 
 export function injectGetXpertsByWorkspace() {
-  const xpertService = inject(XpertService)
+  const xpertService = inject(XpertAPIService)
 
   return (workspace: string) => {
     return xpertService.getAllByWorkspace(

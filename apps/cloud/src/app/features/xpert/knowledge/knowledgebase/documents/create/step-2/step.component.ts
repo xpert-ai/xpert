@@ -1,18 +1,19 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCheckboxComponent, NgmInputComponent } from '@metad/ocap-angular/common'
-import { linkedModel } from '@metad/ocap-angular/core'
+import { NgmCheckboxComponent, NgmSlideToggleComponent, NgmInputComponent } from '@metad/ocap-angular/common'
+import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { BehaviorSubject, combineLatest, of, switchMap, tap } from 'rxjs'
 import {
   getErrorMessage,
+  IKnowledgeDocument,
   IKnowledgeDocumentPage,
   KDocumentSourceType,
   KnowledgeDocumentService,
@@ -24,6 +25,11 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentCreateComponent } from '../create.component'
 import { KnowledgeDocumentPreviewComponent } from '../preview/preview.component'
 import { KnowledgeDocumentWebpagesComponent } from '../webpages/webpages.component'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { JSONSchemaFormComponent } from "@cloud/app/@shared/forms";
+import { JsonSchema7ObjectType } from 'zod-to-json-schema'
+import { SafePipe } from '@metad/core'
+import { omit } from 'lodash-es'
 
 @Component({
   standalone: true,
@@ -38,11 +44,16 @@ import { KnowledgeDocumentWebpagesComponent } from '../webpages/webpages.compone
     CdkListboxModule,
     MatTooltipModule,
     MatProgressBarModule,
-    NgmCheckboxComponent,
+    SafePipe,
     NgmInputComponent,
+    NgmSlideToggleComponent,
+    NgmSelectComponent,
+    NgmCheckboxComponent,
+    NgmI18nPipe,
     KnowledgeDocIdComponent,
     KnowledgeDocumentPreviewComponent,
-    KnowledgeDocumentWebpagesComponent
+    KnowledgeDocumentWebpagesComponent,
+    JSONSchemaFormComponent
   ]
 })
 export class KnowledgeDocumentCreateStep2Component {
@@ -63,30 +74,34 @@ export class KnowledgeDocumentCreateStep2Component {
 
   readonly loading = signal(false)
 
-  readonly fileList = this.createComponent.fileList
+  // readonly fileList = this.createComponent.fileList
+  readonly files = this.createComponent.files
+
   readonly webResult = this.createComponent.webResult
   readonly selectedWebPages = this.createComponent.selectedWebPages
   readonly webDocs = computed(() =>
     this.selectedWebPages().map((id) => this.webResult()?.docs.find((doc) => doc.metadata.scrapeId === id))
   )
 
-  readonly selectedFileId = signal<string>(null)
-  readonly selectedFile = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.selectedFileId() ? this.fileList().find((_) => _.doc.storageFile.id === this.selectedFileId()) : null
-    },
-    update: (value) => {
-      this.fileList.update((state) => {
-        return state.map((item) => {
-          if (item.doc.storageFile.id === value.doc.storageFile.id) {
-            return { ...item, ...value }
-          }
-          return item
-        })
-      })
-    }
-  })
+  // readonly selectedFileId = signal<string>(null)
+  // readonly selectedFile = linkedModel({
+  //   initialValue: null,
+  //   compute: () => {
+  //     return this.selectedFileId() ? this.fileList().find((_) => _.doc.storageFile.id === this.selectedFileId()) : null
+  //   },
+  //   update: (value) => {
+  //     this.fileList.update((state) => {
+  //       return state.map((item) => {
+  //         if (item.doc.storageFile.id === value.doc.storageFile.id) {
+  //           return { ...item, ...value }
+  //         }
+  //         return item
+  //       })
+  //     })
+  //   }
+  // })
+  readonly selectedDocument = signal<Partial<IKnowledgeDocument>>(null)
+
   readonly selectedWebDoc = signal<IKnowledgeDocumentPage>(null)
 
   readonly parserConfig = this.createComponent.parserConfig
@@ -124,12 +139,69 @@ export class KnowledgeDocumentCreateStep2Component {
     this.parserConfig.update((state) => ({ ...state, removeSensitive }))
   }
 
+  // Text Splitter
+  readonly textSplitterType = attrModel(this.parserConfig, 'textSplitterType', 'recursive-character')
+  readonly textSplitter = attrModel(this.parserConfig, 'textSplitter')
+
+  readonly textSplitterStrategies = computed(() => this.createComponent.textSplitterStrategies()?.map((strategy) => ({
+    value: strategy.name,
+    label: strategy.label,
+    description: strategy.description,
+    _icon: strategy.icon
+  })))
+
+  readonly textSplitterStrategy = computed(() => this.createComponent.textSplitterStrategies()?.find((strategy) => strategy.name === this.textSplitterType()))
+  readonly textSplitterConfigSchema = computed(() => this.textSplitterStrategy()?.configSchema || {} as JsonSchema7ObjectType)
+
+  readonly documentTransformerStrategies = computed(() => this.createComponent.documentTransformerStrategies()?.map((strategy) => ({
+    value: strategy.meta.name,
+    label: strategy.meta.label,
+    description: strategy.meta.description,
+    _icon: strategy.meta.icon
+  })))
+
+  readonly transformerType = attrModel(this.parserConfig, 'transformerType', 'default')
+  readonly transformer = attrModel(this.parserConfig, 'transformer')
+
+  readonly transformerStrategy = computed(() => this.createComponent.documentTransformerStrategies()?.find((strategy) => strategy.meta.name === this.transformerType()))
+  readonly transformerConfigSchema = computed(() => this.transformerStrategy()?.meta.configSchema || {} as JsonSchema7ObjectType)
+
+  // Image Understanding
+  readonly imageUnderstandingType = attrModel(this.parserConfig, 'imageUnderstandingType', 'vlm-default')
+  readonly imageUnderstanding = attrModel(this.parserConfig, 'imageUnderstanding')
+  readonly enableImageUnderstanding = linkedModel({
+    initialValue: false,
+    compute: () => !!this.parserConfig().imageUnderstandingType,
+    update: (value) => {
+      this.parserConfig.update((state) => {
+        if (value) {
+          return {
+            ...state,
+            imageUnderstandingType: state.imageUnderstandingType || 'vlm-default',
+            imageUnderstanding: state.imageUnderstanding || {}
+          }
+        } else {
+          const { imageUnderstandingType, imageUnderstanding, ...rest } = state
+          return rest
+        }
+      })
+    }
+  })
+
+  readonly imageUnderstandingStrategies = computed(() => this.createComponent.understandingStrategies()?.map(({meta: strategy}) => ({
+    value: strategy.name,
+    label: strategy.label,
+    description: strategy.description,
+    _icon: strategy.icon
+  })))
+
+  readonly imageUnderstandingStrategy = computed(() => this.createComponent.understandingStrategies()?.find((strategy) => strategy.meta.name === this.imageUnderstandingType())?.meta)
+  readonly imageUnderstandingConfigSchema = computed(() => this.imageUnderstandingStrategy()?.configSchema || {} as JsonSchema7ObjectType)
+
   constructor() {
     // effect(
     //   () => {
-    //     if (this.parserConfig()) {
-    //       this.estimateFiles.set({})
-    //     }
+    //     console.log(this.createComponent.textSplitterStrategies())
     //   },
     //   { allowSignalWrites: true }
     // )
@@ -137,16 +209,19 @@ export class KnowledgeDocumentCreateStep2Component {
 
   save() {
     combineLatest([
-      this.fileList()?.length
+      this.files()?.length
         ? this.knowledgeDocumentService.createBulk(
-            this.fileList().map((item) => ({
+            this.files().map((item) => ({
+              ...omit(item.document(), 'id'),
               knowledgebaseId: this.knowledgebase().id,
               sourceType: KDocumentSourceType.FILE,
-              storageFileId: item.doc.storageFile.id,
-              parserConfig: item.doc.parserConfig ?? this.parserConfig(),
-              name: item.doc.storageFile.originalName,
-              category: item.doc.category,
-              type: item.doc.type
+              parserConfig: this.parserConfig(),
+              // storageFileId: item.doc.storageFile.id,
+              // parserConfig: item.doc.parserConfig ?? this.parserConfig(),
+              // name: item.document().or,
+              // category: item.doc.category,
+              // type: item.doc.type,
+              parent: this.createComponent.parentId() ? { id: this.createComponent.parentId()} as IKnowledgeDocument : null
             }))
           )
         : of([]),
@@ -161,21 +236,22 @@ export class KnowledgeDocumentCreateStep2Component {
               pages: this.webDocs().map((doc) => ({
                 ...doc,
                 status: 'finish'
-              }))
+              })),
+              parent: this.createComponent.parentId() ? {id: this.createComponent.parentId()} as IKnowledgeDocument : null
             }
           ])
         : of([])
     ])
       .pipe(
         switchMap(([files, docs]) => {
-          this.fileList.update((state) => {
-            return state.map((item, i) => {
-              return {
-                ...item,
-                doc: files[i]
-              }
-            })
-          })
+          // this.fileList.update((state) => {
+          //   return state.map((item, i) => {
+          //     return {
+          //       ...item,
+          //       doc: files[i]
+          //     }
+          //   })
+          // })
 
           this.createComponent.documents.set([...files, ...docs])
 
@@ -199,9 +275,9 @@ export class KnowledgeDocumentCreateStep2Component {
   }
 
   preview() {
-    if (!this.selectedWebDoc() && !this.selectedFile()) {
-      if (this.fileList().length) {
-        this.selectedFile.set(this.fileList()[0])
+    if (!this.selectedWebDoc() && !this.selectedDocument()) {
+      if (this.files().length) {
+        this.selectedDocument.set(this.files()[0]?.document())
       } else if (this.webDocs().length) {
         this.selectedWebDoc.set(this.webDocs()[0])
       }

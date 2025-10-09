@@ -1,21 +1,26 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
-import { getRepository } from 'typeorm'
+import { getRepository, Repository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
 import { ChatConversationService } from '../../conversation.service'
 import { StatisticsTokenCostQuery } from '../statistics-token-cost.query'
 import { RequestContext } from '@metad/server-core'
+import { InjectRepository } from '@nestjs/typeorm'
 
 @QueryHandler(StatisticsTokenCostQuery)
 export class StatisticsTokenCostQueryHandler implements IQueryHandler<StatisticsTokenCostQuery>
 {
-	constructor(private readonly service: ChatConversationService) {}
+	constructor(
+        @InjectRepository(ChatConversation)
+        public repository: Repository<ChatConversation>,
+        private readonly service: ChatConversationService) {}
 
 	public async execute(command: StatisticsTokenCostQuery) {
 		const { xpertId, start, end } = command
         const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
-		const repository = getRepository(ChatConversation)
+		const repository = this.repository
+        
         const where = xpertId ? `AND cc."xpertId" = $7` : ''
 
         return await repository.manager.query(`SELECT 

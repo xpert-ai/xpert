@@ -5,16 +5,32 @@ import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { JsonSchema7StringType, JsonSchema7ArrayType, JsonSchema7Type, JsonSchema7TypeUnion, JsonSchema7ObjectType } from 'zod-to-json-schema'
-import { TWorkflowVarGroup } from '@cloud/app/@core'
+import {
+  JsonSchema7ArrayType,
+  JsonSchema7EnumType,
+  JsonSchema7ObjectType,
+  JsonSchema7StringType,
+  JsonSchema7Type,
+  JsonSchema7TypeUnion
+} from 'zod-to-json-schema'
 import { XpertVariableInputComponent } from '../../agent'
+import { NgmSelectComponent } from '../../common'
+import { TWorkflowVarGroup } from '../../../@core'
 
 /**
  *
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSlideToggleComponent, XpertVariableInputComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    NgmSlideToggleComponent,
+    NgmI18nPipe,
+    NgmSelectComponent,
+    XpertVariableInputComponent
+  ],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
   styleUrls: ['property.component.scss'],
@@ -49,26 +65,37 @@ export class JSONSchemaPropertyComponent {
   readonly stringSchema = computed(() => this.schema() as JsonSchema7StringType)
   readonly arraySchema = computed(() => this.schema() as JsonSchema7ArrayType)
   readonly objectSchema = computed(() => this.schema() as JsonSchema7ObjectType)
+  readonly enumSchema = computed(() => this.schema() as JsonSchema7EnumType)
 
-  readonly properties = computed(() => this.objectSchema()?.properties && 
-    Object.entries(this.objectSchema().properties).map(([name, value]) => ({
-      ...value,
-      name,
-    }))
+  readonly enum = computed(() => this.enumSchema()?.enum)
+  readonly enumOptions = computed(() => this.enum()?.map((value) => ({ label: value, value })))
+
+  readonly default = computed(() => this.meta()?.default)
+
+  readonly properties = computed(
+    () =>
+      this.objectSchema()?.properties &&
+      Object.entries(this.objectSchema().properties).map(([name, value]) => ({
+        ...value,
+        name
+      }))
   )
 
   readonly #invalid = computed(() => {
     return false
   })
 
+  // x-ui
+  readonly xUi = computed(() => (this.meta() as any)?.['x-ui'] || {})
+  readonly xUiInputType = computed(() => this.xUi()?.component === 'secretInput' ? 'password' : 'text')
+  readonly xUiRevealable = computed(() => this.xUi()?.revealable)
+
   constructor() {
     effect(
       () => {
-        // if (this.fields() && this.value$()) {
-        //   console.log(this.schema())
-        //   this.form.patchValue(this.value$)
-        //   assign(this.optionsModel, this.value$())
-        // }
+        if (this.value$() === null && this.default()) {
+          this.value$.set(this.default())
+        }
       },
       { allowSignalWrites: true }
     )

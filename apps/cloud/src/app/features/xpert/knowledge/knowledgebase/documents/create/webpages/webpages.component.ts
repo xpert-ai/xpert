@@ -1,17 +1,18 @@
 import { Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { myRxResource } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
+import { injectParams } from 'ngxtension/inject-params'
 import {
   DocumentParserConfig,
   IKnowledgeDocumentPage,
   injectToastr,
   KBDocumentCategoryEnum,
   KnowledgeDocumentService
-} from '@cloud/app/@core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { myRxResource } from '@metad/ocap-angular/core'
-import { TranslateModule } from '@ngx-translate/core'
-import { injectParams } from 'ngxtension/inject-params'
+} from '../../../../../../../@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
+
 
 @Component({
   standalone: true,
@@ -38,6 +39,7 @@ export class KnowledgeDocumentWebpagesComponent {
   readonly estimateFile = myRxResource({
     request: () => ({
       parserConfig: this.parserConfig(),
+      knowledgebaseId: this.knowledgebase().id,
       pages: [{ metadata: this.item().metadata, pageContent: '' }]
     }),
     loader: ({ request }) => this.knowledgeDocumentService.estimate(request)

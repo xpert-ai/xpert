@@ -8,7 +8,9 @@ export class ToConnectionViewModelHandler implements IHandler<void, TXpertTeamCo
     const xpert = this.team
     const connections: TXpertTeamConnection[] = []
 
-    connections.push(...createAgentConnections(xpert.agent, this.team.executors))
+    if (!xpert.agent.options?.hidden) {
+      connections.push(...createAgentConnections(xpert.agent, this.team.executors))
+    }
     for (const agent of xpert.agents ?? []) {
       connections.push(...createAgentConnections(agent, this.team.executors))
     }

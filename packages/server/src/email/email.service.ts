@@ -194,7 +194,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 			const languageCode = TranslationLanguageMap[locals.locale] ?? locals.locale
 
 			// Find email template for customized for given organization
-			let emailTemplate: IEmailTemplate = await this.emailTemplateRepository.findOne({
+			let emailTemplate: IEmailTemplate = await this.emailTemplateRepository.findOneBy({
 				name: view,
 				languageCode,
 				organizationId: locals.organizationId,
@@ -203,7 +203,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 
 			// Try to find default language `en` template
 			if (!emailTemplate) {
-				emailTemplate = await this.emailTemplateRepository.findOne({
+				emailTemplate = await this.emailTemplateRepository.findOneBy({
 					name: view,
 					languageCode: LanguagesEnum.English,
 					organizationId: locals.organizationId,
@@ -213,7 +213,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 
 			// if no email template present for given organization, use default email template
 			if (!emailTemplate) {
-				emailTemplate = await this.emailTemplateRepository.findOne({
+				emailTemplate = await this.emailTemplateRepository.findOneBy({
 					name: view,
 					languageCode,
 					organizationId: IsNull(),
@@ -222,7 +222,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 			}
 
 			if (!emailTemplate) {
-				emailTemplate = await this.emailTemplateRepository.findOne({
+				emailTemplate = await this.emailTemplateRepository.findOneBy({
 					name: view,
 					languageCode: LanguagesEnum.English,
 					organizationId: IsNull(),
@@ -292,9 +292,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 	) {
 		let organization: Organization;
 		if (organizationId) {
-			organization = await this.organizationRepository.findOne(
-				organizationId
-			);
+			organization = await this.organizationRepository.findOneBy({id: organizationId});
 		}
 		const tenantId = (organization) ? organization.tenantId : RequestContext.currentTenantId();
 		const sendOptions = {
@@ -342,9 +340,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 		) {
 		let organization: Organization;
 		if (organizationId) {
-			organization = await this.organizationRepository.findOne(
-				organizationId
-			);
+			organization = await this.organizationRepository.findOneBy({ id: organizationId });
 		}
 		const tenantId = user.tenantId || RequestContext.currentTenantId();
 		const sendOptions = {
@@ -401,9 +397,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 	) {
 		let organization: Organization;
 		if (organizationId) {
-			organization = await this.organizationRepository.findOne(
-				organizationId
-			);
+			organization = await this.organizationRepository.findOneBy({id: organizationId});
 		}
 		const tenantId = (organization) ? organization.tenantId : RequestContext.currentTenantId();
 		const sendOptions = {
@@ -514,7 +508,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 			user
 		} = createEmailOptions;
 		const tenantId = (organization) ? organization.tenantId : RequestContext.currentTenantId();
-		const emailTemplate = await this.emailTemplateRepository.findOne({
+		const emailTemplate = await this.emailTemplateRepository.findOneBy({
 			name: template + '/html',
 			languageCode: mapTranslationLanguage(languageCode)
 		});

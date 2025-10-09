@@ -10,7 +10,7 @@ export class UseApiKeyHandler implements IQueryHandler<UseApiKeyQuery> {
 	public async execute(command: UseApiKeyQuery): Promise<IApiKey> {
 		const token = command.token
 
-		const apiKey = await this.service.findOneByConditions({ token: token }, { relations: ['createdBy'] })
+		const apiKey = await this.service.findOneByOptions({ where: { token: token }, relations: ['createdBy'] })
 
 		await this.service.update(apiKey.id, { lastUsedAt: new Date() })
 

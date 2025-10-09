@@ -15,7 +15,8 @@ import { SlackToolset } from './slack/slack'
 import { TaskToolset } from './task/task'
 import { TavilyToolset } from './tavily/tavily'
 import { PlanningToolset } from './planning/planning'
-import { TBuiltinToolsetParams } from '../../../shared'
+import { CreateToolsetCommand } from '../../commands'
+import { TBuiltinToolsetParams } from '@xpert-ai/plugin-sdk'
 
 export * from './builtin-tool'
 
@@ -47,7 +48,7 @@ export function getBuiltinToolsetBaseUrl(name: string) {
 	return BUILTIN_TOOLSET_REPOSITORY.find((item) => item.providers.some((_) => _.provider === name))?.baseUrl
 }
 
-export function createBuiltinToolset(provider: string, toolset?: IXpertToolset, params?: TBuiltinToolsetParams) {
+export async function createBuiltinToolset(provider: string, toolset?: IXpertToolset, params?: TBuiltinToolsetParams) {
 	let providerTypeClass = null
 	BUILTIN_TOOLSET_REPOSITORY.find((item) => {
 		providerTypeClass = item.providers.find((_) => _.provider === provider)
@@ -56,6 +57,11 @@ export function createBuiltinToolset(provider: string, toolset?: IXpertToolset, 
 
 	if (providerTypeClass) {
 		return new providerTypeClass(toolset, params)
+	} else {
+		return await params?.commandBus.execute(new CreateToolsetCommand({
+			...(toolset ?? { type: provider } as IXpertToolset)
+		}, params))
 	}
+
 	throw new ToolProviderNotFoundError(`Builtin tool provider '${provider}' not found!`)
 }

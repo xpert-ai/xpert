@@ -22,7 +22,7 @@ export class StoryTrendsHandler implements IQueryHandler<StoryTrendsQuery> {
 		const { skip, take } = options ?? {}
 
 		const tenantId =
-			RequestContext.currentTenantId() ?? (await this.tenantService.findOne({ name: DEFAULT_TENANT }))?.id
+			RequestContext.currentTenantId() ?? (await this.tenantService.findOneByWhereOptions({ name: DEFAULT_TENANT }))?.id
 
 		let where: FindOneOptions['where'] = {
 			tenantId,

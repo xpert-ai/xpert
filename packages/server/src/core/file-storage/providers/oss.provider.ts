@@ -16,6 +16,7 @@ export interface IOSSConfig {
 	aliyun_access_key_secret: string
 	aliyun_default_region: string
 	aliyun_bucket: string
+	aliyun_endpoint: string
 }
 
 export class OSSProvider extends Provider<OSSProvider> {
@@ -35,7 +36,8 @@ export class OSSProvider extends Provider<OSSProvider> {
 			aliyun_access_key_id: environment.aliyunConfig.accessKeyId,
 			aliyun_access_key_secret: environment.aliyunConfig.accessKeySecret,
 			aliyun_default_region: environment.aliyunConfig.region,
-			aliyun_bucket: environment.aliyunConfig.oss.bucket
+			aliyun_bucket: environment.aliyunConfig.oss.bucket,
+			aliyun_endpoint: environment.aliyunConfig.oss.endpoint
 		}
 	}
 
@@ -144,7 +146,8 @@ export class OSSProvider extends Provider<OSSProvider> {
 			region: this.config.aliyun_default_region,
 			accessKeyId: this.config.aliyun_access_key_id,
 			accessKeySecret: this.config.aliyun_access_key_secret,
-			bucket: this.config.aliyun_bucket
+			bucket: this.config.aliyun_bucket,
+			endpoint: this.config.aliyun_endpoint || undefined
 		})
 	}
 

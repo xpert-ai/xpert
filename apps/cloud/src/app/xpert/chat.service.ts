@@ -32,7 +32,7 @@ import {
   ChatMessageService,
   ChatService as ChatServerService,
   ToastrService,
-  XpertService
+  XpertAPIService
 } from '../@core/services'
 import { AppService } from '../app.service'
 import { XpertHomeService } from './home.service'
@@ -47,7 +47,7 @@ export abstract class ChatService {
   readonly conversationService = inject(ChatConversationService)
   readonly feedbackService = inject(ChatMessageFeedbackService)
   readonly chatMessageService = inject(ChatMessageService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly appService = inject(AppService)
   readonly homeService = inject(XpertHomeService)
   readonly #logger = inject(NGXLogger)

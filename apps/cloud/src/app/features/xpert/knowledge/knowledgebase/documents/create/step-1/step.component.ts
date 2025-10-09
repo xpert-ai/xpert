@@ -2,7 +2,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { HttpEventType } from '@angular/common/http'
-import { Component, computed, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -11,22 +11,18 @@ import { NgmDndDirective, SafePipe } from '@metad/core'
 import { NgmCheckboxComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
+import { JSONSchemaFormComponent, ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { BehaviorSubject, catchError, of, pipe, switchMap, tap, map, startWith } from 'rxjs'
-import { Document } from 'langchain/document'
 import {
   getErrorMessage,
-  IKnowledgeDocument,
   IKnowledgeDocumentPage,
   injectHelpWebsite,
   IntegrationService,
-  isDocumentSheet,
-  IStorageFile,
-  KBDocumentCategoryEnum,
   KDocumentSourceType,
   KDocumentWebTypeOptions,
   KnowledgeDocumentService,
+  KnowledgeFileUploader,
   ParameterTypeEnum,
   StorageFileService,
   ToastrService,
@@ -38,8 +34,8 @@ import { KnowledgeDocumentCreateComponent } from '../create.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { isNil, uniq } from 'lodash-es'
-import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
-import { TFileItem } from '../../types'
+import { KnowledgeLocalFileComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { KnowledgeFileSystemComponent } from '../file-system/file-system.component'
 
 @Component({
   standalone: true,
@@ -56,18 +52,19 @@ import { TFileItem } from '../../types'
     MatProgressBarModule,
     ContentLoaderModule,
     NgmI18nPipe,
-    NgmDndDirective,
     NgmSpinComponent,
     SafePipe,
+    JSONSchemaFormComponent,
     ParameterComponent,
     NgmCheckboxComponent,
-    KnowledgeDocIdComponent
+    KnowledgeFileSystemComponent,
+    KnowledgeLocalFileComponent
   ]
 })
 export class KnowledgeDocumentCreateStep1Component {
   eKDocumentSourceType = KDocumentSourceType
 
-  readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
+  readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly integrationService = inject(IntegrationService)
   readonly #toastr = inject(ToastrService)
   readonly #router = inject(Router)
@@ -79,6 +76,12 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly website = injectHelpWebsite()
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  readonly knowledgebaseId = this.knowledgebaseComponent.paramId
+  readonly parentId = this.createComponent.parentId
+  readonly files = this.createComponent.files
+
+  // Children
+  readonly fileSystemForm = viewChild('fileSystemForm', {read: JSONSchemaFormComponent})
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
 
@@ -97,6 +100,17 @@ export class KnowledgeDocumentCreateStep1Component {
       description: {
         zh_Hans: '上传本地文档',
         en_US: 'Upload local files'
+      }
+    },
+    {
+      value: KDocumentSourceType.REMOTE_FILE,
+      label: {
+        zh_Hans: '远程文件',
+        en_US: 'Remote File'
+      },
+      description: {
+        zh_Hans: '读取远程文档',
+        en_US: 'Read remote files'
       }
     },
     {
@@ -120,7 +134,7 @@ export class KnowledgeDocumentCreateStep1Component {
     pipe(
       switchMap(([types]) => {
         if (types[0]) {
-          return this.knowledgeDocumentService.getWebOptions(types[0].value)
+          return this.knowledgeDocumentAPI.getWebOptions(types[0].value)
         }
         return of(null)
       })
@@ -128,16 +142,17 @@ export class KnowledgeDocumentCreateStep1Component {
     { initialValue: null }
   )
 
-  readonly fileList = this.createComponent.fileList
-  readonly previewFile = signal<TFileItem>(null)
-  readonly selectedFile = signal<TFileItem>(null)
+  // readonly fileList = this.createComponent.fileList
+  // readonly previewFile = signal<TFileItem>(null)
+  // readonly selectedFile = signal<TFileItem>(null)
+  readonly selectedFile = model<KnowledgeFileUploader | null>(null)
   readonly previewDoc = signal<IKnowledgeDocumentPage>(null)
-  readonly previewFileDocs = derivedAsync<{docs?: Document[]; loading: boolean;}>(() => {
-    return this.previewFile()?.doc?.storageFile?.id ? this.knowledgeDocumentService.previewFile(this.previewFile().doc.storageFile.id).pipe(
-      map((docs) => ({docs, loading: false})),
-      startWith({loading: true}),
-    ) : of(null)
-  })
+  // readonly previewFileDocs = derivedAsync<{docs?: Document[]; loading: boolean;}>(() => {
+  //   return this.previewFile()?.doc?.storageFile?.id ? this.knowledgeDocumentAPI.previewFile(this.previewFile().doc.storageFile.id).pipe(
+  //     map((docs) => ({docs, loading: false})),
+  //     startWith({loading: true}),
+  //   ) : of(null)
+  // })
 
   readonly expand = signal(false)
 
@@ -166,6 +181,7 @@ export class KnowledgeDocumentCreateStep1Component {
 
   readonly integration = this.createComponent.integration
 
+  readonly sourceConfig = this.createComponent.sourceConfig
   readonly webOptions = this.createComponent.webOptions
   /**
    * Actual value or default value
@@ -188,11 +204,23 @@ export class KnowledgeDocumentCreateStep1Component {
   // Available
   readonly nextStepAvailable = computed(() => {
     return this.sourceType()[0] === KDocumentSourceType.FILE 
-      ? this.fileList()?.length > 0 
+      ? this.files()?.length > 0 
       : this.sourceType()[0] === KDocumentSourceType.WEB 
         ? this.webDocs()?.length > 0 
-        : false
+        : this.sourceType()[0] === KDocumentSourceType.REMOTE_FILE ? !this.fileSystemForm()?.invalid : false
   })
+
+  // File system
+   readonly documentSourceStrategies = computed(() => this.createComponent.documentSourceStrategies()?.map((strategy) => ({
+    value: strategy.meta.name,
+    label: strategy.meta.label,
+    description: strategy.meta.description,
+    icon: strategy.meta.icon
+  })))
+
+  readonly fileSystemStrategy = computed(() => this.createComponent.documentSourceStrategies()?.find((strategy) => strategy.meta.name === 'file-system'))
+
+  // readonly files = signal<FileSystemItem[]>([])
 
   constructor() {
     effect(() => {
@@ -204,94 +232,94 @@ export class KnowledgeDocumentCreateStep1Component {
     return a?.value === b?.value
   }
 
-  /**
-   * on file drop handler
-   */
-  async onFileDropped(event) {
-    await this.uploadStorageFile(event)
-  }
+  // /**
+  //  * on file drop handler
+  //  */
+  // async onFileDropped(event) {
+  //   await this.uploadStorageFile(event)
+  // }
 
-  /**
-   * handle file from browsing
-   */
-  async fileBrowseHandler(event: EventTarget & { files?: FileList }) {
-    await this.uploadStorageFile(event.files)
-  }
+  // /**
+  //  * handle file from browsing
+  //  */
+  // async fileBrowseHandler(event: EventTarget & { files?: FileList }) {
+  //   await this.uploadStorageFile(event.files)
+  // }
 
-  async uploadStorageFile(files: FileList) {
-    const items = Array.from(files).map((file) => ({ file, extension: file.name.split('.').pop().toLowerCase() }))
-    this.fileList.update((state) => [...state, ...items])
+  // async uploadStorageFile(files: FileList) {
+  //   const items = Array.from(files).map((file) => ({ file, extension: file.name.split('.').pop().toLowerCase() }))
+  //   this.fileList.update((state) => [...state, ...items])
 
-    await Promise.all(items.map((item) => this.upload(item)))
-  }
+  //   await Promise.all(items.map((item) => this.upload(item)))
+  // }
 
-  async upload(item: TFileItem) {
-    let storageFile: IStorageFile = null
-    item.loading = true
-    this.storageFileService
-      .uploadFile(item.file)
-      .pipe(
-        tap((event) => {
-          switch (event.type) {
-            case HttpEventType.UploadProgress:
-              item.progress = (event.loaded / event.total) * 100
-              this.fileList.update((state) => [...state])
-              break
-            case HttpEventType.Response:
-              item.progress = 100
-              storageFile = event.body
-              break
-          }
-        }),
-        catchError((error) => {
-          item.error = getErrorMessage(error)
-          item.loading = false
-          this.fileList.update((state) => [...state])
-          return of(null)
-        })
-      )
-      .subscribe({
-        complete: () => {
-          const type = item.file.name.split('.').pop().toLowerCase()
-          item.loading = false
-          item.doc = {
-            storageFile,
-            sourceType: KDocumentSourceType.FILE,
-            type,
-            category: isDocumentSheet(type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
-          } as IKnowledgeDocument
-          this.fileList.update((state) => state.map((_) => {
-            if (_ === item) { // Refresh current item
-              return {..._}
-            }
-            return _
-          }))
-        }
-      })
-  }
+  // async upload(item: TFileItem) {
+  //   let storageFile: IStorageFile = null
+  //   item.loading = true
+  //   this.storageFileService
+  //     .uploadFile(item.file)
+  //     .pipe(
+  //       tap((event) => {
+  //         switch (event.type) {
+  //           case HttpEventType.UploadProgress:
+  //             item.progress = (event.loaded / event.total) * 100
+  //             this.fileList.update((state) => [...state])
+  //             break
+  //           case HttpEventType.Response:
+  //             item.progress = 100
+  //             storageFile = event.body
+  //             break
+  //         }
+  //       }),
+  //       catchError((error) => {
+  //         item.error = getErrorMessage(error)
+  //         item.loading = false
+  //         this.fileList.update((state) => [...state])
+  //         return of(null)
+  //       })
+  //     )
+  //     .subscribe({
+  //       complete: () => {
+  //         const type = item.file.name.split('.').pop().toLowerCase()
+  //         item.loading = false
+  //         item.doc = {
+  //           storageFile,
+  //           sourceType: KDocumentSourceType.FILE,
+  //           type,
+  //           category: isDocumentSheet(type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
+  //         } as IKnowledgeDocument
+  //         this.fileList.update((state) => state.map((_) => {
+  //           if (_ === item) { // Refresh current item
+  //             return {..._}
+  //           }
+  //           return _
+  //         }))
+  //       }
+  //     })
+  // }
 
-  removeFile(item: TFileItem) {
-    item.loading = true
-    this.fileList.update((state) => [...state])
-    this.storageFileService.delete(item.doc.storageFile.id).subscribe({
-      next: () => {
-        this.fileList.update((state) => {
-          const index = state.indexOf(item)
-          if (index > -1) {
-            state.splice(index, 1)
-          }
-          return [...state]
-        })
-      }
-    })
-  }
+  // removeFile(item: TFileItem) {
+  //   item.loading = true
+  //   this.fileList.update((state) => [...state])
+  //   this.storageFileService.delete(item.doc.storageFile.id).subscribe({
+  //     next: () => {
+  //       this.fileList.update((state) => {
+  //         const index = state.indexOf(item)
+  //         if (index > -1) {
+  //           state.splice(index, 1)
+  //         }
+  //         return [...state]
+  //       })
+  //     }
+  //   })
+  // }
 
-  selectFile(item: TFileItem) {
-    this.previewFile.set(item)
-  }
+  // selectFile(item: TFileItem) {
+  //   // this.previewFile.set(item)
+  // }
 
   closePreview() {
-    this.previewFile.set(null)
+    this.selectedFile.set(null)
   }
 
   nextStep() {
@@ -321,7 +349,7 @@ export class KnowledgeDocumentCreateStep1Component {
   loadRagWebPages() {
     this.webError.set(null)
     this.loadingWeb.set(true)
-    this.knowledgeDocumentService.loadRagWebPages(this.webTypes()[0].value, this.webOptions(), this.integration())
+    this.knowledgeDocumentAPI.loadRagWebPages(this.webTypes()[0].value, this.webOptions(), this.integration())
       .subscribe({
         next: (result) => {
           this.loadingWeb.set(false)
@@ -346,6 +374,17 @@ export class KnowledgeDocumentCreateStep1Component {
   togglePage(page: IKnowledgeDocumentPage, value: boolean) {
     this.selectedWebPages.update((state) => {
       return value ? uniq([...state, page.metadata.scrapeId]) : state.filter((id) => id !== page.metadata.scrapeId)
+    })
+  }
+
+  connectRemoteFiles() {
+    this.knowledgeDocumentAPI.connect(this.fileSystemStrategy()?.meta.name, this.sourceConfig()).subscribe({
+      next: (res) => {
+        this.files.set(res)
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
     })
   }
 }

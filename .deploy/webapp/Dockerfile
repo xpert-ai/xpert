@@ -35,6 +35,7 @@ RUN yarn config set network-timeout 300000
 
 COPY --chown=node:node .deploy/webapp/package.json ./package.json
 COPY --chown=node:node yarn.lock ./yarn.lock
+COPY --chown=node:node .eslintrc.json ./
 RUN yarn install
 
 COPY nx.json ./

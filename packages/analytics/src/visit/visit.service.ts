@@ -3,7 +3,7 @@ import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/serve
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { subDays } from 'date-fns'
-import { Brackets, In, IsNull, MoreThan, Not, Repository, SelectQueryBuilder, WhereExpressionBuilder } from 'typeorm'
+import { Brackets, FindOptionsWhereProperty, In, IsNull, MoreThan, Not, Repository, SelectQueryBuilder, WhereExpressionBuilder } from 'typeorm'
 import { StoryService } from '../story/story.service'
 import { VisitPublicDTO } from './dto/public.dto'
 import { Visit } from './visit.entity'
@@ -58,7 +58,8 @@ export class VisitService extends TenantOrganizationAwareCrudService<Visit> {
 			order: {
 				updatedAt: 'DESC'
 			},
-			where: (query: SelectQueryBuilder<Visit>) => {
+			// @todo Migrate to TypeORM 0.3.x find options to query builder
+			where: ((query: SelectQueryBuilder<Visit>) => {
 				const tenantId = RequestContext.currentTenantId()
 				const organizationId = RequestContext.getOrganizationId()
 				query.andWhere(
@@ -69,7 +70,7 @@ export class VisitService extends TenantOrganizationAwareCrudService<Visit> {
 				)
 				
 				query.andWhere(`"${query.alias}"."id" IN (${subQb.getQuery()})`)
-			}
+			}) as any
 		})
 
 		return items.map((item) => new VisitPublicDTO(item))

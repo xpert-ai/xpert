@@ -20,7 +20,7 @@ export class XMLA extends BaseHTTPQueryRunner<XmlaAdapterOptions> {
   protocol = DBProtocolEnum.XMLA
 
   // Inner status
-  private authCookie: string
+  private authCookie: string[]
 
   private authenticating: Promise<void> = null
 

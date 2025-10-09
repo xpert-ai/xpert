@@ -3,20 +3,21 @@ import { ConfigService } from '@metad/server-config'
 import { Injectable, Logger, NotFoundException, Type, Inject } from '@nestjs/common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
+import { FindOptionsWhere, IsNull, Not, Repository } from 'typeorm'
+import { XpertToolset } from './xpert-toolset.entity'
 import { ITag, IUser, IXpertToolset, mapTranslationLanguage, TagCategoryEnum, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { assign } from 'lodash'
-import { FindConditions, IsNull, Not, Repository } from 'typeorm'
-import { XpertToolset } from './xpert-toolset.entity'
 import { GetXpertWorkspaceQuery } from '../xpert-workspace'
 import { DEFAULT_TOOL_TAG_MAP, defaultToolTags } from './utils/tags'
 import { ListBuiltinToolProvidersQuery } from './queries'
 import { ToolProviderNotFoundError } from './errors'
 import { TToolsetProviderSchema } from './types'
 import { ToolProviderDTO } from './dto'
-import { I18nService, translateOptions } from 'nestjs-i18n'
+import { I18nService, TranslateOptions } from 'nestjs-i18n';
 import { createBuiltinToolset } from './provider/builtin'
 import { EnvStateQuery } from '../environment'
 import { BuiltinToolset } from '../shared'
+import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 
 @Injectable()
 export class XpertToolsetService extends TenantOrganizationAwareCrudService<XpertToolset> {
@@ -24,6 +25,9 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 
 	@Inject(ConfigService)
 	private readonly configService: ConfigService
+
+	@Inject(ToolsetRegistry)
+	protected readonly toolsetRegistry: ToolsetRegistry
 
 	/**
 	 * @deprecated
@@ -70,7 +74,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		where = where ?? {}
 		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
 			where = {
-				...(<FindConditions<XpertToolset>>where),
+				...(<FindOptionsWhere<XpertToolset>>where),
 				workspaceId: IsNull(),
 				createdById: user.id
 			}
@@ -81,7 +85,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 			}
 
 			where = {
-				...(<FindConditions<XpertToolset>>where),
+				...(<FindOptionsWhere<XpertToolset>>where),
 				workspaceId: workspaceId
 			}
 		}
@@ -114,7 +118,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		}
 
 		const envState = await this.queryBus.execute(new EnvStateQuery(entity.workspaceId))
-		const toolproviderController: BuiltinToolset = createBuiltinToolset(provider, null, {
+		const toolproviderController: BuiltinToolset = await createBuiltinToolset(provider, null, {
 			tenantId,
 			organizationId,
 			// toolsetService: this,
@@ -172,7 +176,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		return toolsets
 	}
 
-	async translate(key: string, options?: translateOptions) {
+	async translate(key: string, options?: TranslateOptions) {
 		options ??= {}
 		options.lang ??= mapTranslationLanguage(RequestContext.getLanguageCode())
 		return await this.i18n.t(key, options)

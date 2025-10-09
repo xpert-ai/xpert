@@ -1,0 +1,22 @@
+{
+  "name": "integration-github",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/integration-github/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugins/integration-github",
+        "main": "packages/plugins/integration-github/src/index.ts",
+        "tsConfig": "packages/plugins/integration-github/tsconfig.lib.json",
+        "assets": [],
+        "project": "packages/plugins/integration-github/package.json",
+        "compiler": "swc",
+        "format": ["cjs", "esm"]
+      }
+    }
+  }
+}

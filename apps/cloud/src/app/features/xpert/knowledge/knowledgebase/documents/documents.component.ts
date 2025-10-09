@@ -1,24 +1,24 @@
 import { animate, state, style, transition, trigger } from '@angular/animations'
+import { SelectionModel } from '@angular/cdk/collections'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { afterNextRender, Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
+import { afterNextRender, Component, computed, effect, inject, model, signal } from '@angular/core'
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSort, MatSortModule } from '@angular/material/sort'
-import { MatTableModule } from '@angular/material/table'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
-import { injectConfirmDelete, NgmCommonModule, NgmCountdownConfirmationComponent } from '@metad/ocap-angular/common'
+import {
+  injectConfirmDelete,
+  injectConfirmUnique,
+  NgmCommonModule,
+  NgmCountdownConfirmationComponent
+} from '@metad/ocap-angular/common'
+import { debouncedSignal } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { formatRelative } from 'date-fns/formatRelative'
 import { get } from 'lodash-es'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 import {
   BehaviorSubject,
   catchError,
@@ -40,18 +40,23 @@ import {
   injectToastr,
   IXpert,
   KBDocumentStatusEnum,
+  KDocumentSourceType,
+  KnowledgebaseService,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
   OrderTypeEnum,
-  Store,
   ToastrService
 } from '../../../../../@core'
-import { KnowledgeDocIdComponent } from '../../../../../@shared/knowledge'
+import { KnowledgeDocIdComponent, KnowledgeTaskComponent } from '../../../../../@shared/knowledge'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
+import { MatDialog } from '@angular/material/dialog'
+import { Dialog } from '@angular/cdk/dialog'
+
+const REFRESH_DEBOUNCE_TIME = 5000
 
 @Component({
   standalone: true,
-  selector: 'xpert-knowledgebase-documents',
+  selector: 'xp-knowledgebase-documents',
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.scss'],
   imports: [
@@ -59,14 +64,7 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatIconModule,
-    MatButtonModule,
     MatTooltipModule,
-    MatDividerModule,
-    MatSortModule,
-    MatPaginatorModule,
-    MatTableModule,
-    MatProgressSpinnerModule,
     NgmCommonModule,
     KnowledgeDocIdComponent,
     XpertInlineProfileComponent
@@ -80,37 +78,33 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
   ]
 })
 export class KnowledgeDocumentsComponent {
-  readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
+  eKDocumentSourceType = KDocumentSourceType
+  eKBDocumentStatusEnum = KBDocumentStatusEnum
+
+  readonly kbAPI = inject(KnowledgebaseService)
+  readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
-  readonly #store = inject(Store)
   readonly #dialog = inject(MatDialog)
+  readonly _dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly confirmDelete = injectConfirmDelete()
+  readonly confirmUnique = injectConfirmUnique()
   readonly #toastr = injectToastr()
   readonly #translate = inject(I18nService)
-
-  readonly paginator = viewChild(MatPaginator)
-  readonly sort = viewChild(MatSort)
+  readonly parentId = injectQueryParams('parentId')
 
   readonly pageSize = model(20)
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly knowledgebase$ = toObservable(this.knowledgebase)
   readonly xperts = computed(() => this.knowledgebase()?.xperts)
+  readonly parentId$ = toObservable(this.parentId)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly delayRefresh$ = new Subject<boolean>()
 
   columnsToDisplay = [
-    {
-      name: 'name',
-      caption: 'Name'
-    },
-    {
-      name: 'sourceType',
-      caption: 'Source Type'
-    },
     {
       name: 'type',
       caption: 'Type'
@@ -121,7 +115,7 @@ export class KnowledgeDocumentsComponent {
     },
     {
       name: 'disabled',
-      caption: 'Available'
+      caption: 'Enabled'
     },
     {
       name: 'processMsg',
@@ -133,39 +127,71 @@ export class KnowledgeDocumentsComponent {
 
   readonly isLoading = signal(false)
   isRateLimitReached = false
-  readonly data = signal<IKnowledgeDocument[]>([])
+  readonly #data = signal<IKnowledgeDocument[]>([])
   readonly total = signal<number>(0)
+  readonly selectionModel = new SelectionModel<string>(true, [])
+  readonly search = model<string>()
+  readonly searchTerm = debouncedSignal(this.search, 300)
+  readonly filteredData = computed(() => {
+    const filterValue = this.searchTerm()?.toLowerCase() ?? ''
+    return this.#data().filter((item) => item.name?.toLowerCase().includes(filterValue))
+  })
+
+  // Folders
+  readonly parentFolder = toSignal(
+    this.parentId$.pipe(
+      switchMap((parentId) =>
+        parentId ? this.knowledgeDocumentAPI.getById(parentId, { relations: ['parent'] }) : observableOf(null)
+      )
+    )
+  )
+  readonly grandParent = computed(() => this.parentFolder()?.parent ?? null)
 
   constructor() {
-    effect(() => {
-      if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
-        this.#router.navigate(['../test'], { relativeTo: this.#route })
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
+          this.#router.navigate(['../test'], { relativeTo: this.#route })
+        }
+      },
+      { allowSignalWrites: true }
+    )
 
     afterNextRender(() => {
       // If the user changes the sort order, reset back to the first page.
-      this.sort().sortChange.subscribe(() => (this.paginator().pageIndex = 0))
+      // this.sort().sortChange.subscribe(() => (this.paginator().pageIndex = 0))
 
-      merge(this.sort().sortChange, this.paginator().page, this.knowledgebase$, this.refresh$)
+      merge(
+        // this.sort().sortChange, this.paginator().page,
+        this.knowledgebase$,
+        this.parentId$,
+        this.refresh$
+      )
         .pipe(
           startWith({}),
           debounceTime(100),
           filter(() => !!this.knowledgebase()),
           switchMap(() => {
             this.isLoading.set(true)
-            const order = this.sort().active
-              ? { [this.sort().active]: this.sort().direction.toUpperCase() }
-              : { createdAt: OrderTypeEnum.DESC }
-            return this.knowledgeDocumentService!.getAll({
-              where: {
-                knowledgebaseId: this.knowledgebase().id
-              },
-              take: this.pageSize(),
-              skip: this.paginator().pageIndex,
-              relations: ['storageFile', 'pages'],
-              order
-            }).pipe(catchError(() => observableOf(null)))
+            // const order = this.sort().active
+            //   ? { [this.sort().active]: this.sort().direction.toUpperCase() }
+            //   : { createdAt: OrderTypeEnum.DESC }
+            const where = {
+              knowledgebaseId: this.knowledgebase().id,
+              parent: this.parentId() ? ({ id: this.parentId() } as IKnowledgeDocument) : { $isNull: true }
+            }
+            return this.knowledgeDocumentAPI
+              .getAll({
+                select: ['id', 'name', 'status', 'disabled', 'sourceType', 'createdAt', 'updatedAt', 'processMsg'],
+                where,
+                take: this.pageSize(),
+                // skip: this.paginator().pageIndex,
+                relations: ['storageFile'],
+                order: {
+                  updatedAt: OrderTypeEnum.DESC
+                }
+              })
+              .pipe(catchError(() => observableOf(null)))
           }),
           map((data) => {
             // Flip flag to show that loading has finished.
@@ -184,7 +210,7 @@ export class KnowledgeDocumentsComponent {
           })
         )
         .subscribe((data) =>
-          this.data.set(
+          this.#data.set(
             data.map(
               (item) =>
                 ({
@@ -200,12 +226,16 @@ export class KnowledgeDocumentsComponent {
     })
 
     effect(() => {
-      if (this.data()?.some((item) => item.status === 'running')) {
+      if (
+        this.#data()?.some(
+          (item) => item.status === KBDocumentStatusEnum.WAITING || item.status === KBDocumentStatusEnum.RUNNING
+        )
+      ) {
         this.delayRefresh$.next(true)
       }
     })
 
-    this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(5000)).subscribe(() => this.refresh())
+    this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(REFRESH_DEBOUNCE_TIME)).subscribe(() => this.refresh())
   }
 
   getValue(row: any, name: string) {
@@ -216,8 +246,44 @@ export class KnowledgeDocumentsComponent {
     this.refresh$.next(true)
   }
 
+  backHome() {
+    this.#router.navigate(['.'], { relativeTo: this.#route, queryParams: { parentId: null } })
+  }
+
+  createFolder() {
+    this.confirmUnique(
+      {
+        title: this.#translate.instant('PAC.Knowledgebase.NewFolder', { Default: 'New Folder' })
+      },
+      (name: string) => {
+        return name
+          ? this.knowledgeDocumentAPI.create({
+              sourceType: KDocumentSourceType.FOLDER,
+              name: name,
+              knowledgebaseId: this.knowledgebase().id,
+              parent: this.parentId() ? ({ id: this.parentId() } as IKnowledgeDocument) : null
+            })
+          : EMPTY
+      }
+    ).subscribe({
+      next: (doc) => {
+        this.refresh()
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  createFromPipeline() {
+    this.#router.navigate(['create-from-pipeline'], {
+      relativeTo: this.#route,
+      queryParams: { parentId: this.parentId() }
+    })
+  }
+
   uploadDocuments() {
-    this.#router.navigate(['create'], { relativeTo: this.#route })
+    this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 
   deleteDocument(doc: IKnowledgeDocument) {
@@ -226,7 +292,7 @@ export class KnowledgeDocumentsComponent {
         value: doc.id,
         information: doc.name
       },
-      this.knowledgeDocumentService.delete(doc.id)
+      this.knowledgeDocumentAPI.delete(doc.id)
     ).subscribe({
       next: () => {
         this.refresh()
@@ -238,12 +304,14 @@ export class KnowledgeDocumentsComponent {
   }
 
   updateParserConfig(document: IKnowledgeDocument, config: Partial<IKnowledgeDocument['parserConfig']>) {
-    this.knowledgeDocumentService
+    this.knowledgeDocumentAPI
       .update(document.id, {
         parserConfig: { ...(document.parserConfig ?? {}), ...config } as IKnowledgeDocument['parserConfig']
       })
       .subscribe({
-        next: () => {},
+        next: () => {
+          //
+        },
         error: (err) => {
           this.#toastr.error(getErrorMessage(err))
         }
@@ -252,7 +320,7 @@ export class KnowledgeDocumentsComponent {
 
   startParsing(row: IKnowledgeDocument) {
     row.status = KBDocumentStatusEnum.RUNNING
-    this.knowledgeDocumentService.startParsing(row.id).subscribe({
+    this.knowledgeDocumentAPI.startParsing(row.id).subscribe({
       next: () => {
         this.refresh()
       },
@@ -270,7 +338,7 @@ export class KnowledgeDocumentsComponent {
         }
       })
       .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.startParsing(id) : EMPTY)))
+      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentAPI.startParsing(id) : EMPTY)))
       .subscribe({
         next: () => {
           this.refresh()
@@ -289,7 +357,7 @@ export class KnowledgeDocumentsComponent {
         }
       })
       .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.stopParsing(id) : EMPTY)))
+      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentAPI.stopParsing(id) : EMPTY)))
       .subscribe({
         next: () => {
           this.refresh()
@@ -301,9 +369,9 @@ export class KnowledgeDocumentsComponent {
   }
 
   removePage(doc: IKnowledgeDocument, page: IKnowledgeDocumentPage) {
-    this.knowledgeDocumentService.removePage(doc, page).subscribe({
+    this.knowledgeDocumentAPI.removePage(doc, page).subscribe({
       next: () => {
-        this.data.update((docs) => {
+        this.#data.update((docs) => {
           return docs.map((doc) => {
             if (doc.pages?.some((_) => _.id === page.id)) {
               return {
@@ -322,6 +390,158 @@ export class KnowledgeDocumentsComponent {
   }
 
   openXpert(xpert: IXpert) {
-    window.open(['/xpert', xpert.id, 'agents'].join('/'), '_blank')
+    window.open(['/xpert/x', xpert.id, 'agents'].join('/'), '_blank')
+  }
+
+  isAllSelected() {
+    const numSelected = this.selectionModel.selected.length
+    const numRows = this.#data().length
+    return numRows > 0 && numSelected === numRows
+  }
+  isPartialSelected() {
+    return this.selectionModel.selected.length > 0 && this.selectionModel.selected.length < this.#data().length
+  }
+  selectAll(checked: boolean) {
+    if (checked) {
+      this.selectionModel.select(...this.#data().map((row) => row.id))
+    } else {
+      this.selectionModel.clear()
+    }
+  }
+
+  updateDocument(id: string, changes: Partial<IKnowledgeDocument>) {
+    this.isLoading.set(true)
+    this.knowledgeDocumentAPI.update(id, changes).subscribe({
+      next: () => {
+        this.isLoading.set(false)
+        this.refresh()
+      },
+      error: (err) => {
+        this.isLoading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  deleteSelected() {
+    this.isLoading.set(true)
+    this.knowledgeDocumentAPI.deleteBulk(this.selectionModel.selected).subscribe({
+      next: () => {
+        this.isLoading.set(false)
+        this.selectionModel.clear()
+        this.refresh()
+      },
+      error: (err) => {
+        this.isLoading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  enableSelected() {
+    this.isLoading.set(true)
+    this.knowledgeDocumentAPI
+      .updateBulk(this.selectionModel.selected.map((id) => ({ id, disabled: false })))
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false)
+          this.selectionModel.clear()
+          this.refresh()
+        },
+        error: (err) => {
+          this.isLoading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
+  disableSelected() {
+    this.isLoading.set(true)
+    this.knowledgeDocumentAPI.updateBulk(this.selectionModel.selected.map((id) => ({ id, disabled: true }))).subscribe({
+      next: () => {
+        this.isLoading.set(false)
+        this.selectionModel.clear()
+        this.refresh()
+      },
+      error: (err) => {
+        this.isLoading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  renameDoc(doc: IKnowledgeDocument) {
+    this.confirmUnique(
+      {
+        title: this.#translate.instant('PAC.ACTIONS.Rename', { Default: 'Rename' }),
+        value: doc.name
+      },
+      (name: string) => {
+        return name ? this.knowledgeDocumentAPI.update(doc.id, { name }) : EMPTY
+      }
+    ).subscribe({
+      next: () => {
+        this.refresh()
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  enableDoc(doc: IKnowledgeDocument) {
+    this.isLoading.set(true)
+    this.knowledgeDocumentAPI.update(doc.id, { disabled: false }).subscribe({
+      next: () => {
+        this.isLoading.set(false)
+        this.refresh()
+      },
+      error: (err) => {
+        this.isLoading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  disableDoc(doc: IKnowledgeDocument) {
+    this.isLoading.set(true)
+    this.knowledgeDocumentAPI.update(doc.id, { disabled: true }).subscribe({
+      next: () => {
+        this.isLoading.set(false)
+        this.refresh()
+      },
+      error: (err) => {
+        this.isLoading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  reprocess(docs: string[]) {
+    this.kbAPI
+      .createTask(this.knowledgebase().id, {
+        taskType: 'document_reprocess',
+        status: 'running', // Start processing immediately
+        documents: docs.map((id) => ({ id } as IKnowledgeDocument))
+      })
+      .subscribe({
+        next: (task) => {
+          this.refresh()
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
+  openTask(doc: IKnowledgeDocument) {
+    this._dialog.open(KnowledgeTaskComponent, {
+      width: '800px',
+      data: {
+        knowledgebase: this.knowledgebase(),
+        documentId: doc.id
+      },
+      panelClass: 'xp-overlay-pane-share-sheet'
+    })
   }
 }

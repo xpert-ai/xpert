@@ -1,0 +1,207 @@
+<div class="px-4 border-b border-divider-subtle py-3">
+  <div class="mb-0.5">
+    <div class="group/collapse flex items-center justify-between py-1">
+      <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
+        {{ 'PAC.Pipeline.KnowledgeStructure' | translate: {Default: 'Knowledge Structure'} }}
+        <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.KnowledgeStructureTooltip' | translate: {Default: 'Select the segmentation structure used to divide the document into smaller chunks.'}">
+          <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-ghost-accent btn-small"
+        #trigger="cdkMenuTriggerFor"
+        [cdkMenuTriggerFor]="strcutureMenu"
+      >{{ 'PAC.Pipeline.Change' | translate: {Default: 'Change'} }}
+      </button>
+    </div>
+  </div>
+  <div
+    class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-sky-50 to-components-card-bg"
+  >
+    <div class="relative flex rounded-t-xl p-2">
+      <div class="mr-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+        @switch (structure()) {
+          @case (eKnowledgeStructureEnum.General) {
+            <i class="ri-list-check-2 text-lg text-text-tertiary"></i>
+          }
+          @case (eKnowledgeStructureEnum.ParentChild) {
+            <i class="ri-parent-line text-lg text-text-tertiary"></i>
+          }
+          @case (eKnowledgeStructureEnum.QA) {
+            <i class="ri-question-answer-line text-lg text-text-tertiary"></i>
+          }
+        }
+      </div>
+      <div class="grow py-1 pt-[1px]">
+        <div class="flex items-center">
+          <div class="system-sm-medium flex grow items-center text-text-secondary">
+            @switch (structure()) {
+              @case (eKnowledgeStructureEnum.General) {
+                {{ 'PAC.Pipeline.General' | translate: {Default: 'General'} }}
+              }
+              @case (eKnowledgeStructureEnum.ParentChild) {
+                {{ 'PAC.Pipeline.ParentChild' | translate: {Default: 'Parent-Child'} }}
+              }
+              @case (eKnowledgeStructureEnum.QA) {
+                {{ 'PAC.Pipeline.QA' | translate: {Default: 'Q&A'} }}
+              }
+            }
+        </div>
+        </div>
+        <div class="system-xs-regular mt-1 text-text-tertiary">
+          @switch (structure()) {
+            @case (eKnowledgeStructureEnum.General) {
+              {{ 'PAC.Pipeline.GeneralDesc' | translate: {Default: 'General text chunking mode, the chunks retrieved and recalled are the same'} }}
+            }
+            @case (eKnowledgeStructureEnum.ParentChild) {
+              {{ 'PAC.Pipeline.ParentChildDesc' | translate: {Default: 'Parent-Child chunking mode, the child chunks are used for retrieval and the parent chunks are used as context'} }}
+            }
+            @case (eKnowledgeStructureEnum.QA) {
+              {{ 'PAC.Pipeline.QADesc' | translate: {Default: 'Q&A chunking mode, the chunks are split into question and answer pairs. The question part is used for retrieval and the answer part is returned as context'} }}
+            }
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="p-4 space-y-3">
+  <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
+    <div class="flex items-center">
+      {{ 'PAC.Pipeline.Chunk' | translate: {Default: 'Chunk'} }}
+      <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.ChunkVariableTooltip' | translate: {Default: 'Select the processed blocks for storage.'}">
+        <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-ghost-accent btn-small ml-auto" (click)="addInput()">
+      <i class="ri-add-line"></i>
+    </button>
+  </div>
+  <div class="space-y-1">
+    @for (item of inputs(); track i; let i = $index) {
+      <div class="relative group p-0.5 border border-transparent rounded-xl hover:border-divider-subtle">
+        <xpert-state-variable-select [variables]="variables()" [ngModel]="item" (ngModelChange)="updateInput(i, $event)" />
+
+        <button type="button" class="absolute top-1 right-1 btn w-6 h-6 rounded-lg flex justify-center items-center danger opacity-0 group-hover:opacity-100 transition-opacity"
+          (click)="removeInput(i)">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4 space-y-3">
+  <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
+    {{ 'PAC.Pipeline.EmbeddingModel' | translate: {Default: 'Embedding Model'} }}
+    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.EmbeddingModelTooltip' | translate: {Default: 'Select the model used for embedding chunks into vectors.'}">
+      <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+    </div>
+  </div>
+  <div>
+    <copilot-model-select [modelType]="eModelType.TEXT_EMBEDDING"
+      [(ngModel)]="copilotModel"
+    />
+  </div>
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4 space-y-3">
+  <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
+    {{ 'PAC.Pipeline.RetrievalConfig' | translate: {Default: 'Retrieval Config'} }}
+    <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.RetrievalConfigTooltip' | translate: {Default: 'Select the model used for retrieving documents.'}">
+      <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
+    </div>
+  </div>
+  <div>
+    <copilot-model-select [modelType]="eModelType.RERANK"
+      [(ngModel)]="rerankModel"
+    />
+  </div>
+</div>
+
+<ng-template #strcutureMenu>
+  <div
+    cdkMenu
+    class="cdk-menu__large w-[420px] rounded-2xl"
+  >
+    <div class="font-semibold">
+      {{ 'PAC.Pipeline.ChangeKnowledgeStructure' | translate: {Default: 'Change Knowledge Structure'} }}
+    </div>
+
+    <div class="space-y-1 pt-2">
+      <div
+        class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-indigo-50 to-components-card-bg cursor-pointer hover:shadow-xs
+          hover:from-indigo-100"
+        [class.!border-primary-500]="structure() === eKnowledgeStructureEnum.General"
+        (click)="structure.set(eKnowledgeStructureEnum.General);trigger.close()"
+      >
+        <div class="relative flex rounded-t-xl p-2">
+          <div class="mr-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+            <i class="ri-list-check-2 text-lg text-text-tertiary group-hover:text-indigo-600"></i>
+          </div>
+          <div class="grow py-1 pt-[1px]">
+            <div class="flex items-center">
+              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">
+                {{ 'PAC.Pipeline.General' | translate: {Default: 'General'} }}
+              </div>
+            </div>
+            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
+              {{ 'PAC.Pipeline.GeneralDesc' | translate: {Default: 'General text chunking mode, the chunks retrieved and recalled are the same'} }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-green-50 to-components-card-bg cursor-pointer hover:shadow-xs
+          hover:from-green-100"
+        [class.!border-primary-500]="structure() === eKnowledgeStructureEnum.ParentChild"
+        (click)="structure.set(eKnowledgeStructureEnum.ParentChild);trigger.close()"
+      >
+        <div class="relative flex rounded-t-xl p-2">
+          <div class="mr-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+            <i class="ri-parent-line text-lg text-text-tertiary group-hover:text-green-700"></i>
+          </div>
+          <div class="grow py-1 pt-[1px]">
+            <div class="flex items-center">
+              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">
+                {{ 'PAC.Pipeline.ParentChild' | translate: {Default: 'Parent-Child'} }}
+              </div>
+            </div>
+            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
+              {{ 'PAC.Pipeline.ParentChildDesc' | translate: {Default: 'When using the parent-child model, child chunks are used for retrieval, and parent chunks serve as context.'} }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-sky-50 to-components-card-bg cursor-pointer hover:shadow-xs
+          hover:from-sky-100"
+        [class.!border-primary-500]="structure() === eKnowledgeStructureEnum.QA"
+        (click)="structure.set(eKnowledgeStructureEnum.QA);trigger.close()"
+      >
+        <div class="relative flex rounded-t-xl p-2">
+          <div class="mr-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+            <i class="ri-question-answer-line text-lg text-text-tertiary group-hover:text-sky-700"></i>
+          </div>
+          <div class="grow py-1 pt-[1px]">
+            <div class="flex items-center">
+              <div class="system-sm-medium flex grow items-center text-text-secondary group-hover:text-text-primary">
+                {{ 'PAC.Pipeline.QA' | translate: {Default: 'Q&A'} }}
+              </div>
+            </div>
+            <div class="system-xs-regular mt-1 font-body text-text-tertiary group-hover:text-text-primary">
+              {{ 'PAC.Pipeline.QADesc' | translate: {Default: 'When using the Q&A model, chunks are split into question and answer pairs. The question part is used for retrieval, and the answer part is returned as context.'} }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>

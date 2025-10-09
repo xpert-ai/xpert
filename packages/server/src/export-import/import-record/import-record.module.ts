@@ -8,7 +8,7 @@ import { ImportRecordService } from './import-record.service';
 @Module({
 	imports: [
 		CqrsModule,
-		forwardRef(() => TypeOrmModule.forFeature([ ImportRecord ])),
+		TypeOrmModule.forFeature([ ImportRecord ]),
 	],
 	providers: [ ImportRecordService, ...CommandHandlers ],
 	exports: [ ImportRecordService ]

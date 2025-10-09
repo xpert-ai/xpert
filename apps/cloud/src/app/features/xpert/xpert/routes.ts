@@ -8,11 +8,10 @@ import { XpertLogsComponent } from './logs/logs.component'
 import { XpertMonitorComponent } from './monitor/monitor.component'
 import { XpertComponent } from './xpert.component'
 import { XpertMemoryComponent } from './memory/memory.component'
-import { dirtyCheckGuard } from '../../../@core/guards'
 
 export const routes: Routes = [
   {
-    path: '',
+    path: ':id',
     component: XpertComponent,
     children: [
       {

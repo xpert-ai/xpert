@@ -1,0 +1,77 @@
+<div class="p-4 space-y-6">
+  <div>
+    <div class="flex justify-between items-center">
+      <div class="uppercase font-semibold mb-2 flex items-center gap-1">
+        <span>{{ 'PAC.Workflow.AssignVariables' | translate: {Default: 'Assign variables'} }}</span>
+        <span class="text-text-destructive">*</span>
+      </div>
+
+      <div class="flex h-6 items-center space-x-2">
+        <div
+          class="system-2xs-medium capitalize flex h-[18px] items-center rounded-[5px] border border-divider-deep px-1 text-text-tertiary"
+        >{{ outputType() }}</div>
+        <div class="cursor-pointer select-none w-6 h-6 rounded-md p-1 flex justify-center items-center hover:bg-state-base-hover"
+          (click)="addInput()">
+          <i class="ri-add-line"></i>
+        </div>
+      </div>
+    </div>
+
+    @if (inputs()?.length > 0) {
+      <div class="space-y-2">
+        @for (input of inputs(); track input; let i = $index) {
+          <div class="flex items-center justify-between gap-2 rounded-[10px]">
+            <div class="flex-1 bg-gray-100 rounded-lg px-1 py-0.5">
+              <xpert-state-variable-select class="w-full"
+                [variables]="variables()"
+                [ngModel]="input"
+                (ngModelChange)="onUpdateInput(i, $event)"
+              />
+            </div>
+            <button type="button"
+              class="cursor-pointer select-none w-6 h-6 rounded-lg flex justify-center items-center hover:bg-state-base-hover text-text-tertiary hover:text-text-destructive"
+              (click)="removeInput(i)"
+            >
+              <i class="ri-delete-bin-line"></i>
+            </button>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="mt-1">
+        <div class="system-xs-regular flex min-h-[42px] w-full items-center justify-center rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 text-text-tertiary"
+          (click)="addInput()">
+          <i class="ri-add-line mr-1"></i>
+          {{ 'PAC.Workflow.AddAssignVariables' | translate: {Default: 'Add the variables to be assigned'} }}
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4">
+  <div class="flex items-center">
+    <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
+      <i class="ri-arrow-right-s-line" [class.rotate-90]="expandOutputVariables()"></i>
+    </div>
+    <div class="font-semibold uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+      (click)="toggleOutput()"
+    >{{ 'PAC.Workflow.OutputVariables' | translate: {Default: 'Output Variables'} }}
+    </div>
+  </div>
+  @if (expandOutputVariables()) {
+    <div class="px-4">
+      <div class="py-1">
+        <div class="flex items-center leading-[18px]">
+          <div class="code-sm-semibold text-text-secondary">result</div>
+        </div>
+        <div class="system-xs-regular mt-0.5 text-text-tertiary">
+          {{ 'PAC.Workflow.AggregatedResult' | translate: {Default: 'Aggregated Result'} }}
+        </div>
+      </div>
+
+    </div>
+  }
+</div>

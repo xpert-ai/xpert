@@ -25,12 +25,10 @@ export * from '../../tenant/tenant-setting/tenant-setting.entity';
 export * from '../../tenant/tenant.entity';
 export * from '../../language/language.entity'
 export * from '../../organization-language/organization-language.entity'
-export * from '../../organization-department/organization-department.entity'
 
 export * from './../../export-import/import-record/import-record.entity';
 export * from './../../user/email-verification/email-verification.entity';
 export * from '../../invite/invite.entity'
-export * from '../../organization-project/organization-project.entity'
 export * from '../../custom-smtp/custom-smtp.entity'
 export * from '../../language/language.entity'
 export * from '../../storage-file/storage-file.entity'

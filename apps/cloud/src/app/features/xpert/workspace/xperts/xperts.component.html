@@ -68,7 +68,7 @@
       [highlight]="searchText()"
       [xpert]="xpert"
       (delete)="deleteXpert(xpert)"
-      [routerLink]="['/xpert/', xpert.id, xpert.type === eXpertTypeEnum.Agent ? 'agents' : 'copilot']"
+      [routerLink]="['/xpert/x/', xpert.id, xpert.type === eXpertTypeEnum.Copilot ? 'copilot' : 'agents']"
     />
   }
 </div>

@@ -1,14 +1,13 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 import { FileStorageProviderEnum } from './file-provider'
+import { _TFile } from './types';
 
-export type TFile = {
-  filePath: string;
+export type TFile = _TFile & {
   fileType?: string;
   contents?: string;
   description?: string;
   size?: number
   createdAt?: Date
-  url?: string
 
   storageFileId?: string
 }

@@ -203,6 +203,11 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@Column({ nullable: true })
 	copilotModelId?: string
 
+	// Reverse One-to-One with Knowledgebase
+	@ApiProperty({ type: () => Knowledgebase })
+	@OneToOne(() => Knowledgebase, (knowledgebase) => knowledgebase.pipeline)
+	knowledgebase?: IKnowledgebase
+
 	/*
     |--------------------------------------------------------------------------
     | @OneToMany 

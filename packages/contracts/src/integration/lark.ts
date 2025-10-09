@@ -73,7 +73,7 @@ export const IntegrationLarkProvider: TIntegrationProvider = {
     required: ['appId', 'appSecret'],
     secret: ['appSecret', 'verificationToken', 'encryptKey']
   },
-  webhookUrl: (integration: IIntegration, baseUrl: string) => {
-    return `${baseUrl}/api/lark/webhook/${integration.id}`
-  }
+  // webhookUrl: (integration: IIntegration, baseUrl: string) => {
+  //   return `${baseUrl}/api/lark/webhook/${integration.id}`
+  // }
 }

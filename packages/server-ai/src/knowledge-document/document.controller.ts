@@ -3,7 +3,7 @@ import {
 	CrudController,
 	IntegrationService,
 	ParseJsonPipe,
-	TransformInterceptor
+	TransformInterceptor,
 } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import {
@@ -24,6 +24,7 @@ import {
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { ChunkMetadata, mergeParentChildChunks } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { Queue } from 'bull'
 import { In } from 'typeorm'
@@ -42,6 +43,7 @@ import { JOB_EMBEDDING_DOCUMENT } from './types'
 @Controller()
 export class KnowledgeDocumentController extends CrudController<KnowledgeDocument> {
 	readonly #logger = new Logger(KnowledgeDocumentController.name)
+
 	constructor(
 		private readonly service: KnowledgeDocumentService,
 		private readonly integrationService: IntegrationService,
@@ -57,12 +59,27 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		return await this.service.createBulk(entities)
 	}
 
+	@Put('bulk')
+	async updateBulk(@Body() entities: Partial<IKnowledgeDocument>[]) {
+		return await this.service.updateBulk(entities)
+	}
+
+	@Delete('bulk')
+	async deleteBulk(@Body('ids') ids: string[]) {
+		return await this.service.deleteBulk(ids)
+	}
+
 	@Post('process')
 	async start(@Body() body: { ids: string[] }) {
 		return await this.service.startProcessing(body.ids)
 	}
 
-	@Get('preview-file/:id') 
+	@Post('connect')
+	async connectDocumentSource(@Body('type') type: string, @Body('config') config: any) {
+		return this.service.connectDocumentSource(type, config)
+	}
+
+	@Get('preview-file/:id')
 	async previewFile(@Param('id') id: string): Promise<Document[]> {
 		return await this.service.previewFile(id)
 	}
@@ -71,8 +88,11 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
 		try {
 			entity.category ??= isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
-			return await this.commandBus.execute(new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument}))
+			const result = await this.commandBus.execute<KnowledgeDocLoadCommand, { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }>(
+				new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument, stage: 'prod'}))
+			return result.pages?.length ? mergeParentChildChunks(result.pages, result.chunks) : result.chunks
 		} catch(err) {
+			console.error(err)
 			throw new BadRequestException(getErrorMessage(err))
 		}
 	}

@@ -1,6 +1,6 @@
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { forwardRef, Module } from '@nestjs/common';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CustomSmtp } from './custom-smtp.entity';
 import { CustomSmtpController } from './custom-smtp.controller';
@@ -10,7 +10,7 @@ import { CommandHandlers } from './commands';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{ path: '/smtp', module: CustomSmtpModule }
 		]),
 		TypeOrmModule.forFeature([CustomSmtp]),

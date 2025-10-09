@@ -6,8 +6,8 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import * as path from 'path'
 import { BUILTIN_TOOLSET_REPOSITORY } from '../../provider/builtin'
 import { TToolsetProviderSchema } from '../../types'
-import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ListBuiltinToolProvidersQuery } from '../list-builtin-providers.query'
+import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 
 @QueryHandler(ListBuiltinToolProvidersQuery)
 export class ListBuiltinToolProvidersHandler implements IQueryHandler<ListBuiltinToolProvidersQuery> {
@@ -18,12 +18,12 @@ export class ListBuiltinToolProvidersHandler implements IQueryHandler<ListBuilti
 
 	private readonly _builtinProviders = new Map<string, TToolsetProviderSchema>()
 
-	constructor(private readonly service: XpertToolsetService) {}
+	constructor(private readonly toolsetRegistry: ToolsetRegistry) {}
 
 	public async execute(command: ListBuiltinToolProvidersQuery): Promise<TToolsetProviderSchema[]> {
 		const { names, tags } = command
 
-		const items = []
+		const items: TToolsetProviderSchema[] = []
 		BUILTIN_TOOLSET_REPOSITORY.forEach((repository) => {
 			items.push(
 				...repository.providers
@@ -46,6 +46,20 @@ export class ListBuiltinToolProvidersHandler implements IQueryHandler<ListBuilti
 						return true
 					})
 			)
+		})
+
+		const pluginProviders = this.toolsetRegistry.list()
+		pluginProviders.forEach((provider) => {
+			items.push({
+				identity: {
+					author: provider.meta.author,
+					tags: provider.meta.tags as ToolTagEnum[],
+					name: provider.meta.name,
+					label: provider.meta.label,
+					description: provider.meta.description,
+					icon: provider.meta.icon.svg,
+				}
+			})
 		})
 
 		return items

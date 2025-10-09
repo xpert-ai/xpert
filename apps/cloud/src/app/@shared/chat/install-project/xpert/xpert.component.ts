@@ -11,7 +11,7 @@ import {
   IXpert,
   IXpertProject,
   TXpertTeamDraft,
-  XpertService
+  XpertAPIService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertBasicDialogComponent } from '@cloud/app/@shared/xpert'
@@ -44,7 +44,7 @@ import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 
 })
 export class ProjectInstallXpertComponent {
   eAiModelTypeEnum = AiModelTypeEnum
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #dialog = inject(Dialog)

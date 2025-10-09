@@ -12,7 +12,7 @@ import {
   IKnowledgebase,
   KnowledgebaseService,
   ToastrService,
-  XpertService,
+  XpertAPIService,
   XpertTypeEnum
 } from '../../../../@core'
 
@@ -28,7 +28,7 @@ export class XpertNewKnowledgeComponent {
   eAiModelTypeEnum = AiModelTypeEnum
   readonly #dialogRef = inject(DialogRef<IKnowledgebase | undefined>)
   readonly #dialogData = inject<{ workspaceId: string }>(DIALOG_DATA)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = inject(ToastrService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
 

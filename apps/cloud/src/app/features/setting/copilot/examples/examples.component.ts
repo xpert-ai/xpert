@@ -18,7 +18,7 @@ import { BehaviorSubject, EMPTY, combineLatestWith, map, pipe, switchMap } from 
 import {
   AiBusinessRole,
   CopilotExampleService,
-  XpertService,
+  XpertAPIService,
   ICopilotKnowledge,
   IXpert,
   LanguagesEnum,
@@ -30,6 +30,9 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 
+/**
+ * @deprecated use Agent instead
+ */
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-examples',
@@ -41,7 +44,7 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
   DisplayBehaviour = DisplayBehaviour
 
   readonly exampleService = inject(CopilotExampleService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly _toastrService = inject(ToastrService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)

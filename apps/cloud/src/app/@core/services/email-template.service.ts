@@ -1,32 +1,36 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
+import { API_PREFIX, BaseOrgCrudService } from '@metad/cloud/state'
 import {
   ICustomizableEmailTemplate,
   ICustomizeEmailTemplateFindInput,
   IEmailTemplate,
   IEmailTemplateSaveInput
 } from '@metad/contracts'
-import { firstValueFrom } from 'rxjs'
+import { firstValueFrom, switchMap } from 'rxjs'
 import { API_EMAIL_TEMPLATE } from '../constants/app.constants'
 
 @Injectable({
   providedIn: 'root'
 })
-export class EmailTemplateService extends OrganizationBaseCrudService<IEmailTemplate> {
+export class EmailTemplateService extends BaseOrgCrudService<IEmailTemplate> {
   constructor(private http: HttpClient) {
     super(API_EMAIL_TEMPLATE)
   }
 
-  // getAll(
-  //   relations?: string[],
-  //   findInput?: IEmailTemplateFindInput
-  // ) {
-  //   const data = JSON.stringify({ relations, findInput })
-  //   return this.http.get<{ items: IEmailTemplate[]; total: number }>(`${API_PREFIX}/email-template`, {
-  //     params: { data }
-  //   })
-  // }
+  getAllInOrg() {
+    return this.selectOrganizationId().pipe(
+      switchMap((organizationId) =>
+        super.getAll({
+          where: {
+            organizationId: organizationId ? organizationId : {
+              $isNull: true
+            }
+          }
+        })
+      )
+    )
+  }
 
   getTemplate(findInput?: ICustomizeEmailTemplateFindInput): Promise<ICustomizableEmailTemplate> {
     const data = JSON.stringify({ findInput })
@@ -52,5 +56,4 @@ export class EmailTemplateService extends OrganizationBaseCrudService<IEmailTemp
       })
     )
   }
-
 }

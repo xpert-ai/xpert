@@ -1,6 +1,7 @@
 import { IChatConversation, mapTranslationLanguage } from '@metad/contracts'
 import { REDIS_OPTIONS, RequestContext, runWithRequestContext, UserService } from '@metad/server-core'
-import { CACHE_MANAGER, forwardRef, Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { forwardRef, Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import Bull from 'bull'
 import { Queue } from 'bull'

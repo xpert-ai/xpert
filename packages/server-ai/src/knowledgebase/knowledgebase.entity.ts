@@ -1,12 +1,25 @@
-import { ICopilotModel, IIntegration, IKnowledgebase, IKnowledgeDocument, IXpert, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar, TKBRecallParams } from '@metad/contracts'
+import {
+	ICopilotModel,
+	IIntegration,
+	IKnowledgebase,
+	IKnowledgeDocument,
+	IXpert,
+	KnowledgebaseParserConfig,
+	KnowledgebasePermission,
+	KnowledgebaseTypeEnum,
+	KnowledgeStructureEnum,
+	TAvatar,
+	TKBRecallParams
+} from '@metad/contracts'
 import { Integration } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Transform, TransformFnParams } from 'class-transformer'
-import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
+import { IsBoolean, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
-import { CopilotModel, KnowledgeDocument, Xpert } from '../core/entities/internal'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
+import { CopilotModel, KnowledgeDocument, Xpert } from '../core/entities/internal'
 import { XpertIdentiDto } from '../xpert/dto'
+
 
 @Entity('knowledgebase')
 @Index(['tenantId', 'organizationId', 'name'], { unique: true })
@@ -17,9 +30,15 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	name: string
 
 	@ApiPropertyOptional({ enum: KnowledgebaseTypeEnum, enumName: 'KnowledgebaseTypeEnum' })
-	@IsString()
+	@IsEnum(KnowledgebaseTypeEnum)
 	@Column({ nullable: true, length: 20 })
 	type: KnowledgebaseTypeEnum
+
+	@ApiPropertyOptional({ enum: KnowledgeStructureEnum, enumName: 'KnowledgeStructureEnum' })
+	@IsEnum(KnowledgeStructureEnum)
+	@IsOptional()
+	@Column({ nullable: true })
+	structure?: KnowledgeStructureEnum
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -74,6 +93,20 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@Column({ nullable: true })
 	rerankModelId?: string
 
+	@ApiProperty({ type: () => CopilotModel })
+	@OneToOne(() => CopilotModel, {
+		nullable: true,
+		cascade: true
+	})
+	@JoinColumn()
+	visionModel?: ICopilotModel
+
+	@ApiProperty({ type: () => String })
+	@RelationId((it: Knowledgebase) => it.visionModel)
+	@IsString()
+	@Column({ nullable: true })
+	visionModelId?: string
+
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
@@ -106,7 +139,7 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@IsOptional()
 	@Column({ nullable: true })
 	vectorSimilarityWeight?: number
-	
+
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
 	@IsOptional()
@@ -131,6 +164,12 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@Column({ nullable: true })
 	status?: string
 
+	@ApiProperty({ type: () => Boolean })
+	@IsBoolean()
+	@IsOptional()
+	@Column({ nullable: true, default: true })
+	apiEnabled?: boolean
+
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
@@ -148,6 +187,23 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
 	documents?: IKnowledgeDocument[] | null
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToOne
+    |--------------------------------------------------------------------------
+    */
+	// One-to-One with Xpert
+	@OneToOne(() => Xpert, (xpert) => xpert.knowledgebase, {
+		cascade: true,
+	})
+	@JoinColumn({ name: 'pipelineId' })
+	pipeline?: IXpert
+
+	@IsOptional()
+	@IsString()
+	@Column({ nullable: true })
+	pipelineId?: string
 
 	/*
     |--------------------------------------------------------------------------
@@ -173,6 +229,6 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     |--------------------------------------------------------------------------
     */
 	@Transform((params: TransformFnParams) => params.value?.map((_) => new XpertIdentiDto(_)))
-	@ManyToMany(() => Xpert, xpert => xpert.knowledgebases)
+	@ManyToMany(() => Xpert, (xpert) => xpert.knowledgebases)
 	xperts?: IXpert[]
 }

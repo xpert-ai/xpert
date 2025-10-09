@@ -141,12 +141,12 @@ export class IndicatorController extends CrudController<Indicator> {
 	}
 
 	@Get(':id')
-	async findById(
+	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('$relations', ParseJsonPipe) relations: PaginationParams<Indicator>['relations'],
-		@Query('$query', ParseJsonPipe) options: FindOneOptions<Indicator>
+		@Query('$query', ParseJsonPipe) options: FindOneOptions<Indicator>,
 	): Promise<Indicator> {
-		return this.indicatorService.findOne(id, {relations, ...options});
+		return this.indicatorService.findOneByIdString(id, {relations, ...options});
 	}
 
 	@Put(':id/draft')

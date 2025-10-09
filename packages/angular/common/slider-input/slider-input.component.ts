@@ -22,6 +22,10 @@ import {
 import { MatInputModule } from '@angular/material/input'
 import { MatSlider, MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
 
+
+/**
+ * @deprecated use headless components instead
+ */
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

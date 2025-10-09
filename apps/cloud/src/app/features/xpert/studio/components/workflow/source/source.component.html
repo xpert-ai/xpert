@@ -1,0 +1,23 @@
+<div class="relative bg-zinc-50 flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder">
+  <div class="flex items-center gap-1">
+    <div class="w-7 h-7 flex items-center justify-center relative overflow-hidden rounded-lg bg-gray-100">
+      @if (sourceProvider(); as sourceProvider) {
+        <xp-custom-icon class="!block w-5 h-5" [icon]="sourceProvider.meta.icon" />
+      }
+    </div>
+    <div>
+      @if (provider(); as provider) {
+        {{ provider | i18n }}
+      } @else {
+        {{'PAC.Workflow.Source' | translate: {Default: 'Source'} }}
+      }
+    </div>
+  </div>
+
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()">
+    <div class="inner-dot cursor-crosshair">
+      <ngm-plus-svg class="w-2 h-2 text-white" />
+    </div>
+  </div>
+</div>

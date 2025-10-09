@@ -2,7 +2,7 @@ import { IntegrationModule, TenantModule } from '@metad/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectController } from './project.controller'
 import { XpertProjectService } from './project.service'
@@ -16,7 +16,7 @@ import { IntegrationGithubModule } from '../integration-github'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/xpert-project', module: XpertProjectModule }]),
+		RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
 		TypeOrmModule.forFeature([
 			XpertProject,
 			XpertProjectTask,

@@ -1,5 +1,6 @@
 import { IntegrationEnum, TGithubAuth } from '@metad/contracts'
-import { CACHE_MANAGER, Inject, Logger } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
 import { differenceInSeconds, parseISO } from 'date-fns'

@@ -1,9 +1,8 @@
-import { DeepPartial, FindConditions, FindManyOptions, FindOneOptions, IsNull, ObjectLiteral, Repository, UpdateResult } from 'typeorm'
+import { DeepPartial, FindManyOptions, FindOneOptions, IsNull, Repository, UpdateResult } from 'typeorm'
 import { IBasePerTenantAndOrganizationEntityModel, IUser } from '@metad/contracts'
 import { BadRequestException } from '@nestjs/common'
-import { User } from '../../user/user.entity'
 import { RequestContext } from '../context'
-import { TenantOrganizationBaseEntity } from '../entities/internal'
+import { TenantOrganizationBaseEntity, User } from '../entities/internal'
 import { ICrudService } from './icrud.service'
 import { TenantAwareCrudService } from './tenant-aware-crud.service'
 import { ITryRequest } from './try-request'
@@ -47,8 +46,8 @@ export abstract class TenantOrganizationAwareCrudService<
 
 	protected findConditionsWithTenant(
 		user: User,
-		where?: FindConditions<T> | ObjectLiteral | FindConditions<T>[]
-	): FindConditions<T> | ObjectLiteral | FindConditions<T>[] {
+		where?: FindOptionsWhere<T> | FindOptionsWhere<T>[]
+	): FindOptionsWhere<T> | FindOptionsWhere<T>[] {
 		const organizationId = RequestContext.getOrganizationId()
 
 		if (Array.isArray(where)) {
@@ -72,7 +71,7 @@ export abstract class TenantOrganizationAwareCrudService<
 					tenant: {
 						id: user.tenantId,
 					},
-				} as FindConditions<T>
+				} as FindOptionsWhere<T>
 			})
 		}
 
@@ -93,30 +92,30 @@ export abstract class TenantOrganizationAwareCrudService<
 						id: user.tenantId,
 					},
 					...organizationWhere,
-			  } as FindConditions<T>)
+			  } as FindOptionsWhere<T>)
 			: ({
 					tenant: {
 						id: user.tenantId,
 					},
 					...organizationWhere,
-			  } as ObjectLiteral)
+			  } as FindOptionsWhere<T>)
 	}
 
 	private findConditionsWithoutOrgByUser(
 		user: IUser
-	): FindConditions<T>[] | FindConditions<T> | ObjectLiteral | string {
+	): FindOptionsWhere<T>[] | FindOptionsWhere<T> {
 		return {
 			tenant: {
 				id: user.tenantId,
 			},
 			organizationId: IsNull()
-		}
+		} as FindOptionsWhere<T>
 	}
 
 	private findConditionsWithoutOrg(
 		user: IUser,
-		where?: FindConditions<T> | ObjectLiteral | FindConditions<T>[]
-	): FindConditions<T> | ObjectLiteral | FindConditions<T>[] {
+		where?: FindOptionsWhere<T> | FindOptionsWhere<T>[]
+	): FindOptionsWhere<T> | FindOptionsWhere<T>[] {
 		if (Array.isArray(where)) {
 			return where.map((options) => {
 				options = {
@@ -128,7 +127,7 @@ export abstract class TenantOrganizationAwareCrudService<
 					tenant: {
 						id: user.tenantId,
 					},
-				} as FindConditions<T>
+				} as FindOptionsWhere<T>
 			})
 		}
 
@@ -139,13 +138,13 @@ export abstract class TenantOrganizationAwareCrudService<
 						id: user.tenantId,
 					},
 					organizationId: IsNull()
-			  } as FindConditions<T>)
+			  } as FindOptionsWhere<T>)
 			: ({
 					tenant: {
 						id: user.tenantId,
 					},
 					organizationId: IsNull()
-			  } as ObjectLiteral)
+			  } as FindOptionsWhere<T>)
 	}
 
 	private findManyWithoutOrganization(
@@ -188,39 +187,18 @@ export abstract class TenantOrganizationAwareCrudService<
 		return { items, total };
 	}
 
-	private async _findOneOrFail(
-		id: string | number | FindOneOptions<T> | FindConditions<T>,
-		options?: FindOneOptions<T>
-	): Promise<ITryRequest> {
-		try {
-			const record = await this.repository.findOneOrFail(
-				id as string,
-				options
-			);
-			return {
-				success: true,
-				record
-			};
-		} catch (error) {
-			return {
-				success: false,
-				error
-			};
-		}
-	}
-
 	public async findOneOrFailWithoutOrg(
-		id: string | number | FindOneOptions<T> | FindConditions<T>,
+		id: string | number | FindOneOptions<T> | FindOptionsWhere<T>,
 		options?: FindOneOptions<T>
 	): Promise<ITryRequest> {
 		if (typeof id === 'object') {
 			const firstOptions = id as FindOneOptions<T>;
-			return await this._findOneOrFail(
+			return await this.findOneOrFail(
 				this.findManyWithoutOrganization(firstOptions),
 				options
 			);
 		}
-		return await this._findOneOrFail(id, this.findManyWithoutOrganization(options));
+		return await this.findOneOrFail(id, this.findManyWithoutOrganization(options));
 	}
 
 	/**

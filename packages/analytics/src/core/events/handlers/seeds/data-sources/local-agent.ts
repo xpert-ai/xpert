@@ -13,7 +13,7 @@ export async function createLocalAgentDataSource(
 	dataSource.tenantId = employee.tenantId
 	dataSource.createdById = employee.userId
 	dataSource.organizationId = employee.organizationId
-	dataSource.type = await dstService.findOne({
+	dataSource.type = await dstService.findOneByWhereOptions({
 		tenantId: employee.tenantId,
 		type: 'agent',
 	})

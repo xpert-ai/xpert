@@ -1,9 +1,11 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { Subscriber } from 'rxjs'
-import { agentLabel, IWFNTrigger, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from '../ai'
+import { IWFNTrigger, TWorkflowVarGroup, WorkflowNodeTypeEnum } from '../ai/xpert-workflow.model'
 import { TMessageContentComplex } from '../ai/chat-message.model'
 import { I18nObject } from '../types'
+import { TStateVariable, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai/xpert.model'
+import { agentLabel, IXpertAgent } from '../ai/xpert-agent.model'
 
 /**
  * @deprecated can use getCurrentTaskInput instead?
@@ -53,7 +55,12 @@ export type TAgentRunnableConfigurable = {
    * Execution id of agent workflow node
    */
   executionId: string
-
+//   /**
+//    * Knowledge xpert's knowledgebase
+//    */
+//   knowledgebaseId?: string
+//   knowledgeTaskId?: string
+  
   signal?: AbortSignal
 }
 

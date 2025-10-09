@@ -10,7 +10,8 @@ import {
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
-import { CACHE_MANAGER, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { CommandBus, EventBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
@@ -139,7 +140,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	 * @returns
 	 */
 	async updateCatalogContent(id: string) {
-		const model = await this.repository.findOne(id, {
+		const model = await this.repository.findOne({
+			where: { id },
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 
@@ -159,14 +161,15 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 		// Clear cache for model
 		try {
-			await this.cacheService.delete({ modelId: model.id })
+			await this.cacheService.delete({ tenantId: model.tenantId, modelId: model.id })
 		} catch (err) {
 			//
 		}
 	}
 
 	async query(modelId: string, query: { statement: string }, options: Record<string, unknown>) {
-		const model = await this.repository.findOne(modelId, {
+		const model = await this.repository.findOne({
+			where: { id: modelId },
 			relations: ['dataSource', 'dataSource.type']
 		})
 		return this.dsService.query(model.dataSourceId, query.statement, {
@@ -176,14 +179,16 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	async import(modelId: string, body: any) {
-		const model = await this.repository.findOne(modelId, {
+		const model = await this.repository.findOne({
+			where: { id: modelId },
 			relations: ['dataSource', 'dataSource.type']
 		})
 		return this.dsService.import(model.dataSourceId, body, { catalog: model.catalog })
 	}
 
 	async dropTable(modelId: string, tableName: string) {
-		const model = await this.repository.findOne(modelId, {
+		const model = await this.repository.findOne({
+			where: { id: modelId },
 			relations: ['dataSource', 'dataSource.type']
 		})
 		return this.dsService.dropTable(model.dataSourceId, tableName, { catalog: model.catalog })
@@ -203,7 +208,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 		let key = ''
 
-		const model = await this.repository.findOne(modelId, {
+		const model = await this.repository.findOne({
+			where: { id: modelId },
 			relations: ['dataSource', 'dataSource.type', 'roles', 'roles.users']
 		})
 
@@ -556,9 +562,10 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
     |--------------------------------------------------------------------------
     */
 	async findPublicOne(id: string, options?: FindOneOptions) {
-		const model = await this.repository.findOne(id, {
+		const model = await this.repository.findOne({
 			relations: options?.relations,
 			where: {
+				id,
 				visibility: Visibility.Public
 			}
 		})

@@ -20,5 +20,5 @@ export * from './trigger/index'
 export const Validators = [
     WorkflowCodeValidator,
     WorkflowTriggerValidator,
-    WorkflowAgentToolValidator
+    WorkflowAgentToolValidator,
 ]

@@ -119,7 +119,7 @@ export class DataSourceController extends CrudController<DataSource> {
 		description: 'Record not found'
 	})
 	@Get(':id')
-	async findById(
+	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('$relations', ParseJsonPipe) relations: PaginationParams<DataSource>['relations'],
 		@Query('$query', ParseJsonPipe) options: FindOneOptions<DataSource>

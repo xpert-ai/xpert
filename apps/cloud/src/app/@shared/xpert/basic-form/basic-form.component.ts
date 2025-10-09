@@ -12,7 +12,7 @@ import {
   ICopilotModel,
   injectToastr,
   TAvatar,
-  XpertService
+  XpertAPIService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { nonBlank } from '@metad/copilot'
@@ -43,7 +43,7 @@ import { CopilotModelSelectComponent } from '../../copilot'
 })
 export class XpertBasicFormComponent {
   eAiModelTypeEnum = AiModelTypeEnum
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
 

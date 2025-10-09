@@ -69,6 +69,6 @@ export class StoryOneHandler implements IQueryHandler<StoryOneQuery> {
 			throw new NotFoundException(`The requested record was not found`)
 		}
 		
-		return await this.repository.findOne(id, { relations })
+		return await this.repository.findOne({ where: {id}, relations })
 	}
 }

@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
 import { SharedModule, TenantModule } from '@metad/server-core';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { SubscriptionController } from './subscription.controller';
 import { Subscription } from './subscription.entity';
 import { SubscriptionService } from './subscription.service';
@@ -10,10 +10,10 @@ import { SubscriptionService } from './subscription.service';
 
 @Module({
   imports: [
-    RouterModule.forRoutes([
+    RouterModule.register([
       { path: '/subscription', module: SubscriptionModule }
     ]),
-    forwardRef(() => TypeOrmModule.forFeature([ Subscription ])),
+    TypeOrmModule.forFeature([ Subscription ]),
     forwardRef(() => TenantModule),
     SharedModule,
     CqrsModule,

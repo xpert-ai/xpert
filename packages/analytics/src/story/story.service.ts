@@ -1,4 +1,4 @@
-import { BusinessAreaRole, StoryStatusEnum } from '@metad/contracts'
+import { BusinessAreaRole, StoryStatusEnum, Visibility } from '@metad/contracts'
 import {
 	RequestContext,
 	TenantOrganizationAwareCrudService,
@@ -91,10 +91,11 @@ export class StoryService extends TenantOrganizationAwareCrudService<Story> {
 	}
 
 	async findPublicOne(id: string, options: FindOneOptions) {
-		const story = await this.repository.findOne(id, {
+		const story = await this.repository.findOne({
 			relations: options?.relations,
 			where: {
-				visibility: 'public'
+				id,
+				visibility: Visibility.Public
 			}
 		})
 

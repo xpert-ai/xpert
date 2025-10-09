@@ -1,9 +1,7 @@
 import {
 	IInvite,
 	InviteStatusEnum,
-	IOrganizationDepartment,
 	IOrganizationContact,
-	IOrganizationProject,
 	IUser,
 	IRole
 } from '@metad/contracts';
@@ -21,8 +19,6 @@ import {
 } from 'typeorm';
 import {
 	OrganizationContact,
-	OrganizationDepartment,
-	OrganizationProject,
 	Role,
 	TenantOrganizationBaseEntity,
 	User
@@ -97,12 +93,6 @@ export class Invite extends TenantOrganizationBaseEntity implements IInvite {
     | @ManyToMany 
     |--------------------------------------------------------------------------
     */
-	@ApiPropertyOptional({ type: () => OrganizationProject })
-	@ManyToMany(() => OrganizationProject)
-	@JoinTable({
-		name: 'invite_organization_project'
-	})
-	projects?: IOrganizationProject[];
 
 	@ApiPropertyOptional({ type: () => OrganizationContact })
 	@ManyToMany(() => OrganizationContact)
@@ -111,10 +101,4 @@ export class Invite extends TenantOrganizationBaseEntity implements IInvite {
 	})
 	organizationContact?: IOrganizationContact[];
 
-	@ApiPropertyOptional({ type: () => OrganizationDepartment })
-	@ManyToMany(() => OrganizationDepartment)
-	@JoinTable({
-		name: 'invite_organization_department'
-	})
-	departments?: IOrganizationDepartment[];
 }

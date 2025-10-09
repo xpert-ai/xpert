@@ -1,0 +1,63 @@
+@if (understandingStrategy(); as strategy) {
+  <div class="flex items-start p-4">
+    <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
+      @if (strategy.icon; as icon) {
+        <div [innerHTML]="icon.svg | safe: 'html'" class="w-8 h-8 shrink-0 flex justify-center items-center"
+          [style.color]="icon.color || '#14b8a6'"></div>
+      } @else {
+        <i class="ri-equalizer-3-line"></i>
+      }
+    </div>
+
+    <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
+      <div class="text-text-secondary system-md-semibold">
+        {{ strategy.label | i18n }}
+      </div>
+      <div class="text-text-tertiary system-xs-regular truncate" [title]="strategy.description | i18n">
+        {{ strategy.description | i18n }}
+      </div>
+    </div>
+  </div>
+}
+
+<div class="p-4 space-y-4">
+  <div class="font-bold my-2">
+    {{ 'PAC.Pipeline.Parameters' | translate: {Default: 'Parameters'} }}
+  </div>
+
+  <div>
+    <div>
+      {{ 'PAC.Pipeline.InputVariable' | translate: {Default: 'Input variable'} }}
+      <span class="text-text-destructive">*</span>
+    </div>
+    <xpert-state-variable-select
+      [variables]="variables()"
+      [(ngModel)]="input"
+    />
+  </div>
+
+  @if (requireVisionModel()) {
+    <div>
+      <div>
+        {{ 'PAC.Pipeline.VisionModel' | translate: {Default: 'Vision Model'} }}
+        <span class="text-text-destructive">*</span>
+      </div>
+      <copilot-model-select [modelType]="eModelType.LLM" [features]="[eModelFeature.VISION]"
+        [(ngModel)]="visionModel"
+      />
+    </div>
+  }
+  
+  <div class="font-bold mb-2">
+    {{ 'PAC.Pipeline.Configuration' | translate: {Default: 'Configuration'} }}
+  </div>
+  @if (understandingConfigSchema(); as understandingConfigSchema) {
+    <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="understandingConfigSchema" 
+      [(ngModel)]="understandingConfig"
+    />
+  } @else {
+    <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
+      {{ 'PAC.Pipeline.NoPluginConfig' | translate: {Default: 'No configuration required for this plugin.'} }}
+    </div>
+  }
+</div>

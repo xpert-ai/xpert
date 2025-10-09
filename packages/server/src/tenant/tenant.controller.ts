@@ -27,12 +27,14 @@ import { Tenant } from './tenant.entity';
 import { TenantService } from './tenant.service';
 import { UserCreateCommand } from '../user/commands';
 import { FeatureBulkCreateCommand } from '../feature/commands';
-import { LanguageInitCommand } from '../language';
+import { LanguageInitCommand } from '../language/commands';
 
 @ApiTags('Tenant')
 @Controller()
 export class TenantController extends CrudController<Tenant> {
-	constructor(private readonly tenantService: TenantService, private readonly commandBus: CommandBus) {
+	constructor(
+		private readonly tenantService: TenantService,
+		private readonly commandBus: CommandBus) {
 		super(tenantService);
 	}
 
@@ -171,7 +173,7 @@ export class TenantController extends CrudController<Tenant> {
 	@HttpCode(HttpStatus.CREATED)
 	@Post('onboard')
 	async onboardDefault(@Body() entity: ITenantCreateInput): Promise<Tenant> {
-		const defaultTenant = await this.tenantService.findOneOrFail({name: entity.name})
+		const defaultTenant = await this.tenantService.findOneOrFailByWhereOptions({name: entity.name})
 		if (defaultTenant.success) {
 			throw new BadRequestException('Tenant already exists');
 		}

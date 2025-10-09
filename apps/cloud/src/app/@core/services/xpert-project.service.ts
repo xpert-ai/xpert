@@ -13,8 +13,8 @@ import { BehaviorSubject, switchMap } from 'rxjs'
 import { API_XPERT_PROJECT } from '../constants/app.constants'
 import { IXpertProject } from '../types'
 import { IXpertProjectVCS, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
-import { toParams } from '@metad/core'
 import { Endpoints } from '@octokit/types'
+import { toParams } from '@metad/core'
 
 type GitHubInstallationsResponse = Endpoints['GET /user/installations']['response']['data']
 
@@ -122,7 +122,8 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
       reportProgress: true,
     })
   }
-  getFiles(id: string, path: string = '') {
+
+  getFiles(id: string, path = '') {
     return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/files`, {
       params: toParams({
         path

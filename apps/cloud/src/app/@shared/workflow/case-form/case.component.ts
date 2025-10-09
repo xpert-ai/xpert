@@ -2,7 +2,7 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, Element
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectToastr, TWFCase, TWFCaseCondition, TWorkflowVarGroup, uuid, WorkflowComparisonOperator, WorkflowLogicalOperator, XpertService } from 'apps/cloud/src/app/@core'
+import { injectToastr, TWFCase, TWFCaseCondition, TWorkflowVarGroup, uuid, WorkflowComparisonOperator, WorkflowLogicalOperator, XpertAPIService } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowConditionFormComponent } from '../condition-form/condition.component'
 
 @Component({
@@ -20,7 +20,7 @@ export class XpertWorkflowCaseFormComponent {
   eWorkflowLogicalOperator = WorkflowLogicalOperator
 
   readonly elementRef = inject(ElementRef)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
 
   // Inputs

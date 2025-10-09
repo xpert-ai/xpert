@@ -1,9 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { getManager, Repository } from 'typeorm';
-import { CrudService } from '../core/crud/crud.service';
-import { Tenant } from './tenant.entity';
+import { Repository } from 'typeorm';
 import {
 	ITenantCreateInput,
 	RolesEnum,
@@ -13,12 +11,12 @@ import {
 	IOrganizationCreateInput
 } from '@metad/contracts';
 import { EventEmitter2 } from '@nestjs/event-emitter'
+import { CrudService } from '../core/crud/crud.service';
+import { Tenant } from './tenant.entity';
 import { UserService } from '../user/user.service';
-import { RoleService } from './../role/role.service';
 import { TenantRoleBulkCreateCommand } from '../role/commands/tenant-role-bulk-create.command';
 import { TenantFeatureOrganizationCreateCommand } from './commands/tenant-feature-organization.create.command';
-import { ImportRecordUpdateOrCreateCommand } from './../export-import/import-record';
-import { User } from './../core/entities/internal';
+import { Role } from './../core/entities/internal';
 import { TenantSettingSaveCommand } from './tenant-setting/commands';
 import { OrganizationCreateCommand } from '../organization/commands';
 import { TenantCreatedEvent } from './events';
@@ -28,9 +26,11 @@ import { TenantCreatedEvent } from './events';
 export class TenantService extends CrudService<Tenant> {
 	constructor(
 		@InjectRepository(Tenant)
-		private readonly tenantRepository: Repository<Tenant>,
+		readonly tenantRepository: Repository<Tenant>,
+		@Inject(forwardRef(() => UserService))
 		private readonly userService: UserService,
-		private readonly roleService: RoleService,
+		@InjectRepository(Role)
+		private readonly roleRepository: Repository<Role>,
 		private readonly commandBus: CommandBus,
 		private readonly eventEmitter: EventEmitter2
 	) {
@@ -67,7 +67,7 @@ export class TenantService extends CrudService<Tenant> {
 		);
 
 		//4. Find SUPER_ADMIN role to relative tenant.
-		const role = await this.roleService.findOne({
+		const role = await this.roleRepository.findOneBy({
 			tenant,
 			name: RolesEnum.SUPER_ADMIN
 		});
@@ -82,29 +82,29 @@ export class TenantService extends CrudService<Tenant> {
 			}
 		});
 
-		//6. Create Import Records while migrating for relative tenant.
-		if (isImporting && sourceId) {
-			const { sourceId, userSourceId } = entity;
-			await this.commandBus.execute(
-				new ImportRecordUpdateOrCreateCommand({
-					entityType: getManager().getRepository(Tenant).metadata.tableName,
-					sourceId,
-					destinationId: tenant.id,
-					tenantId: tenant.id
-				})
-			);
-			if (userSourceId) {
-				await this.commandBus.execute(
-					new ImportRecordUpdateOrCreateCommand({
-						entityType: getManager().getRepository(User).metadata.tableName,
-						sourceId: userSourceId,
-						destinationId: user.id
-					}, {
-						tenantId: tenant.id
-					})
-				);
-			}
-		}
+		// //6. Create Import Records while migrating for relative tenant.
+		// if (isImporting && sourceId) {
+		// 	const { sourceId, userSourceId } = entity;
+		// 	await this.commandBus.execute(
+		// 		new ImportRecordUpdateOrCreateCommand({
+		// 			entityType: getManager().getRepository(Tenant).metadata.tableName,
+		// 			sourceId,
+		// 			destinationId: tenant.id,
+		// 			tenantId: tenant.id
+		// 		})
+		// 	);
+		// 	if (userSourceId) {
+		// 		await this.commandBus.execute(
+		// 			new ImportRecordUpdateOrCreateCommand({
+		// 				entityType: getManager().getRepository(User).metadata.tableName,
+		// 				sourceId: userSourceId,
+		// 				destinationId: user.id
+		// 			}, {
+		// 				tenantId: tenant.id
+		// 			})
+		// 		);
+		// 	}
+		// }
 		
 		//7. Create default organization for tenant.
 		if (defaultOrganization) {

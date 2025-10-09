@@ -50,6 +50,9 @@ export interface IIntegrationMapSyncOrganization
 	sourceId: number;
 }
 
+/**
+ * @deprecated use Plugins instead
+ */
 export enum IntegrationEnum {
 	UPWORK = 'Upwork',
 	HUBSTAFF = 'Hubstaff',
@@ -100,7 +103,11 @@ export type TIntegrationProvider = {
 	name: string
 	label: I18nObject
 	description?: I18nObject
-	avatar: string
+	avatar?: string
+	icon?: {
+		svg: string
+		color: string
+	}
 	webhook?: boolean
 	schema?: TParameterSchema
 	features?: IntegrationFeatureEnum[]

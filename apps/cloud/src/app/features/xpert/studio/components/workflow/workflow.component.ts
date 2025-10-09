@@ -4,6 +4,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  IWFNTrigger,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
@@ -17,7 +18,6 @@ import { XpertStudioNodeWorkflowAnswerComponent } from './answer/answer.componen
 import { XpertStudioNodeWorkflowCodeComponent } from './code/code.component'
 import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.component'
 import { XpertStudioNodeWorkflowIteratingComponent } from './iterating/iterating.component'
-import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.component'
 import { XpertStudioNodeWorkflowHttpComponent } from './http/http.component'
 import { XpertStudioNodeWorkflowKnowledgeComponent } from './knowledge/knowledge.component'
 import { XpertWorkflowNodeSubflowComponent } from './subflow/subflow.component'
@@ -29,6 +29,14 @@ import { XpertWorkflowNodeAssignerComponent } from './assigner/assigner.componen
 import { XpertWorkflowNodeAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowNodeTaskComponent } from './task/task.component'
 import { XpertWorkflowNodeTriggerComponent } from './trigger/trigger.component'
+import { XpertWorkflowNodeSourceComponent } from './source/source.component'
+import { XpertWorkflowNodeProcessorComponent } from './processor/processor.component'
+import { XpertWorkflowNodeChunkerComponent } from './chunker/chunker.component'
+import { XpertWorkflowNodeUnderstandingComponent } from './understanding/understanding.component'
+import { XpertWorkflowNodeKnowledgeBaseComponent } from './knowledge-base/knowledge-base.component'
+import { XpertWorkflowNodeListOperatorComponent } from './list-operator/list-operator.component'
+import { XpertWorkflowNodeVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
+import { IconComponent } from "@cloud/app/@shared/avatar";
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -44,7 +52,6 @@ import { XpertWorkflowNodeTriggerComponent } from './trigger/trigger.component'
     XpertWorkflowIconComponent,
     XpertStudioNodeWorkflowIfelseComponent,
     XpertStudioNodeWorkflowIteratingComponent,
-    XpertStudioNodeWorkflowSplitterComponent,
     XpertStudioNodeWorkflowAnswerComponent,
     XpertStudioNodeWorkflowCodeComponent,
     XpertStudioNodeWorkflowHttpComponent,
@@ -57,8 +64,16 @@ import { XpertWorkflowNodeTriggerComponent } from './trigger/trigger.component'
     XpertWorkflowNodeAgentToolComponent,
     XpertWorkflowNodeAssignerComponent,
     XpertWorkflowNodeTaskComponent,
-    XpertWorkflowNodeTriggerComponent
-  ],
+    XpertWorkflowNodeTriggerComponent,
+    XpertWorkflowNodeSourceComponent,
+    XpertWorkflowNodeProcessorComponent,
+    XpertWorkflowNodeChunkerComponent,
+    XpertWorkflowNodeUnderstandingComponent,
+    XpertWorkflowNodeKnowledgeBaseComponent,
+    XpertWorkflowNodeListOperatorComponent,
+    XpertWorkflowNodeVariableAggregatorComponent,
+    IconComponent
+],
   host: {
     '[class]': 'type()',
   }
@@ -91,4 +106,10 @@ export class XpertStudioNodeWorkflowComponent {
     WorkflowNodeTypeEnum.TASK,
     WorkflowNodeTypeEnum.AGENT_TOOL
   ]
+
+  // Workflow providers
+  readonly triggerProviders = this.apiService.triggerProviders
+  readonly triggerEntity = computed(() => this.entity()?.type === WorkflowNodeTypeEnum.TRIGGER ? this.entity() as IWFNTrigger : null)
+  readonly from = computed(() => this.triggerEntity()?.from)
+  readonly provider = computed(() => this.triggerProviders()?.find((item) => item.name === this.from()))
 }

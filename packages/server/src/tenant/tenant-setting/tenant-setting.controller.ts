@@ -21,7 +21,7 @@ import { TenantSettingGetCommand, TenantSettingSaveCommand } from './commands';
 @Controller()
 export class TenantSettingController extends CrudController<TenantSetting> {
 	constructor(
-		private readonly tenantSettingService: TenantSettingService,
+		tenantSettingService: TenantSettingService,
 		private readonly commandBus: CommandBus
 	) {
 		super(tenantSettingService);

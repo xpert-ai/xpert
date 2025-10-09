@@ -4,3 +4,7 @@
 .ngm-cdk-menu-item {
     @apply p-2;
 }
+
+.pipeline-tab.selected {
+    @apply cursor-default bg-components-panel-bg text-text-accent;
+}

@@ -26,7 +26,9 @@ export class OrganizationService extends TenantAwareCrudService<Organization> {
 		select?: string,
 		relation?: string
 	): Promise<Organization> {
-		const findObj: FindOneOptions<Organization> = {};
+		const findObj: FindOneOptions<Organization> = {
+			where: { profile_link }
+		};
 
 		if (select) {
 			findObj['select'] = JSON.parse(select);
@@ -34,13 +36,12 @@ export class OrganizationService extends TenantAwareCrudService<Organization> {
 		}
 
 		return await this.organizationRepository.findOne(
-			{ profile_link },
 			findObj
 		);
 	}
 
 	public async generateDemo(id: string, options: OrgGenerateDemoOptions) {
-		const organization = await this.organizationRepository.findOne(id);
+		const organization = await this.organizationRepository.findOneBy({ id: id});
 
 		await this.commandBus.execute(
 			new OrganizationDemoCommand({

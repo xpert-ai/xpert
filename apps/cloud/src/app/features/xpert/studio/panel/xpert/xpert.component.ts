@@ -14,7 +14,7 @@ import {
   injectToastr,
   IXpert,
   TXpertTeamNode,
-  XpertService
+  XpertAPIService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
@@ -55,7 +55,7 @@ export class XpertStudioPanelXpertComponent {
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly panelComponent = inject(XpertStudioPanelComponent)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly studioService = inject(XpertStudioApiService)
   readonly #toastr = injectToastr()
 

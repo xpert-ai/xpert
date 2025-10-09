@@ -43,7 +43,7 @@ import {
   uuid,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
-  XpertService
+  XpertAPIService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
@@ -85,7 +85,7 @@ export class ChatConversationPreviewComponent {
   eExecutionStatusEnum = XpertAgentExecutionStatusEnum
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
 
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly conversationService = inject(ChatConversationService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
@@ -282,7 +282,7 @@ export class ChatConversationPreviewComponent {
           input: {
             ...(this.parameterValue() ?? {}),
             input: options?.input,
-            files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName}))
+            files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()}))
           },
           conversationId: this.conversation()?.id,
           xpertId: this.xpert().id,

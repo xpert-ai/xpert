@@ -7,11 +7,11 @@ import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
 import { AbstractInterruptComponent } from '../../agent'
 import { injectI18nService } from '../../i18n'
-import { UploadComponent, UploadFile } from '../upload/upload.component'
+import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, UploadComponent, NgmSpinComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, FilesUploadComponent, NgmSpinComponent],
   selector: 'xp-file-interrupt-slide',
   templateUrl: 'interrupt-slide.component.html',
   styleUrls: ['interrupt-slide.component.scss']

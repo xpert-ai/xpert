@@ -19,9 +19,8 @@ export class SecretTokenGetHandler
 		const { token } = input;
 
 		try {
-			return await this._stService.findOneByConditions({
-				token
-			}, {
+			return await this._stService.findOneByOptions({
+				where: { token },
 				order: {
 					createdAt: 'DESC'
 				}

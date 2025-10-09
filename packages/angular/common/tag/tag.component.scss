@@ -29,6 +29,9 @@
     &.gray {
       @apply text-gray-500 dark:text-gray-800;
     }
+    &.orange {
+      @apply text-orange-500 dark:text-orange-800;
+    }
   }
 
   &.selectable {
@@ -54,6 +57,9 @@
       &.gray.selected {
         @apply bg-gray-100;
       }
+      &.orange.selected {
+        @apply bg-orange-100;
+      }
     }
   }
 
@@ -76,6 +82,9 @@
       }
       &.gray {
         @apply bg-gray-100 dark:bg-gray-100/80;
+      }
+      &.orange {
+        @apply bg-orange-100 dark:bg-orange-100/80;
       }
     }
   }

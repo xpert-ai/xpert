@@ -21,6 +21,8 @@ import {
 } from '@metad/contracts'
 import { omit } from '@metad/server-common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { Inject } from '@nestjs/common'
+import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
 import { EnvironmentService } from '../../../environment'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { XpertService } from '../../../xpert/xpert.service'
@@ -43,6 +45,10 @@ import { _BaseToolset } from '../../../shared'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
+	
+	@Inject(WorkflowNodeRegistry)
+	private readonly nodeRegistry: WorkflowNodeRegistry
+
 	constructor(
 		private readonly xpertService: XpertService,
 		private readonly environmentService: EnvironmentService,
@@ -130,7 +136,57 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					description: {
 						en_US: 'Files',
 						zh_Hans: '文件'
-					}
+					},
+					item: [
+						{
+							name: 'name',
+							type: XpertParameterTypeEnum.STRING,
+							description: {
+								en_US: 'File name',
+								zh_Hans: '文件名'
+							}
+						},
+						{
+							name: 'fileUrl',
+							type: XpertParameterTypeEnum.STRING,
+							description: {
+								en_US: 'File URL',
+								zh_Hans: '文件 URL'
+							}
+						},
+						{
+							name: 'filePath',
+							type: XpertParameterTypeEnum.STRING,
+							description: {
+								en_US: 'File path',
+								zh_Hans: '文件路径'
+							}
+						},
+						{
+							name: 'size',
+							type: XpertParameterTypeEnum.NUMBER,
+							description: {
+								en_US: 'File size (in bytes)',
+								zh_Hans: '文件大小（字节）'
+							}
+						},
+						{
+							name: 'mimeType',
+							type: XpertParameterTypeEnum.STRING,
+							description: {
+								en_US: 'File MIME type',
+								zh_Hans: '文件 MIME 类型'
+							}
+						},
+						{
+							name: 'extension',
+							type: XpertParameterTypeEnum.STRING,
+							description: {
+								en_US: 'File extension',
+								zh_Hans: '文件扩展名'
+							}
+						}
+					]
 				}
 			]
 		})
@@ -344,6 +400,15 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						variables.push(...agentToolOutputVariables(entity))
 						varGroups.push(varGroup)
 						break
+					}
+					default: {
+						try {
+							const creator = this.nodeRegistry.get(entity.type)
+							variables.push(...creator.outputVariables(entity))
+							varGroups.push(varGroup)
+						} catch (error) {
+							console.error(`Error processing node ${node.key}:`, error)
+						}
 					}
 				}
 			}

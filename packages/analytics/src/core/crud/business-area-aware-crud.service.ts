@@ -45,6 +45,8 @@ export abstract class BusinessAreaAwareCrudService<
 
 		return {
 			...(conditions ?? {}),
+			// @todo TypeORM 0.3.x migration - find options to query builder
+			// https://typeorm.io/select-query-builder
 			where: (query: SelectQueryBuilder<T>) => {
 				query.andWhere(
 					new Brackets((qb: WhereExpressionBuilder) => { 
@@ -64,7 +66,7 @@ export abstract class BusinessAreaAwareCrudService<
 					},
 				])
 			},
-		}
+		} as unknown as FindManyOptions<T>
 	}
 
 	async findMy(conditions?: FindManyOptions<T>) {

@@ -1,1 +1,31 @@
-<ngm-select [selectOptions]="selectOptions()" [(ngModel)]="integration" />
+<label>{{ 'PAC.KEY_WORDS.SystemIntegrations' | translate: {Default: 'System Integrations'} }}</label>
+<ngm-select [selectOptions]="selectOptions()" [(ngModel)]="integrationId">
+  <div icon class="flex items-center">
+    <ng-content select="[icon]"></ng-content>
+    @if (integrationProvider(); as provider) {
+      @if (provider.icon) {
+        <xp-custom-icon [icon]="provider.icon" class="w-5 h-5 rounded-lg mr-1 bg-gray-100 flex justify-center items-center" />
+      } @else if (provider.avatar) {
+        <img class="w-5 h-5 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar">
+      }
+    }
+  </div>
+  <ng-template #option let-option>
+    <div class="relative flex gap-2">
+      @if (option.avatar) {
+        <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar">
+      } @else if (option._icon) {
+        <xp-custom-icon [icon]="option._icon" class="w-8 h-8 rounded-lg bg-gray-100 flex justify-center items-center" />
+      }
+      <div class="flex flex-col">
+        <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
+        <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+      </div>
+    </div>
+  </ng-template>
+
+  <div option class="px-4 py-1 mt-1 rounded-lg cursor-pointer hover:bg-gray-100" (click)="openIntegrations()">
+    <i class="ri-add-line mr-2"></i>
+    {{ 'PAC.KEY_WORDS.NewSystemIntegration' | translate: {Default: 'New system integration'} }}
+  </div>
+</ngm-select>

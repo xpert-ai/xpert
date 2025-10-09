@@ -69,8 +69,6 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
     avatar: new FormControl(null),
     language: new FormControl(null),
     permission: new FormControl<KnowledgebasePermission>(null),
-    // copilotId: new FormControl(null),
-    // embeddingModelId: new FormControl(null),
 
     parserConfig: new FormGroup({
       embeddingBatchSize: new FormControl(null),
@@ -85,6 +83,9 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
 
     rerankModel: new FormControl(null),
     rerankModelId: new FormControl(null),
+
+    visionModel: new FormControl(null),
+    visionModelId: new FormControl(null),
   })
 
   readonly loading = signal(false)

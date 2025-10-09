@@ -71,7 +71,7 @@ export class StoryPointController extends CrudController<StoryPoint> {
 	 * @returns 
 	 */
 	@Get(':id')
-	async findById(
+	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('$relations', ParseJsonPipe) relations: PaginationParams<StoryPoint>['relations'],
 		@Query('$query', ParseJsonPipe) options: FindOneOptions<StoryPoint>,

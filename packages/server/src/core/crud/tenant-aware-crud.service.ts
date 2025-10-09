@@ -2,10 +2,9 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
 	DeepPartial,
 	DeleteResult,
-	FindConditions,
+	FindOptionsWhere,
 	FindManyOptions,
 	FindOneOptions,
-	ObjectLiteral,
 	Repository,
 	UpdateResult
 } from 'typeorm';
@@ -15,7 +14,6 @@ import { TenantBaseEntity, User } from '../entities/internal';
 import { CrudService } from './crud.service';
 import { ICrudService } from './icrud.service';
 import { ITryRequest } from './try-request';
-import { FindOptionsWhere } from './FindOptionsWhere';
 
 /**
  * This abstract class adds tenantId to all query filters if a user is available in the current RequestContext
@@ -34,22 +32,23 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 	protected findConditionsWithTenantByUser(
 		user: IUser		
 	): FindOptionsWhere<T> {		
-		return {
+		return user ? {
 					tenant: {
 						id: user.tenantId
 					}
-			  } as FindOptionsWhere<T>;
+			  } as FindOptionsWhere<T>
+			  : {}
 	}
 
 	protected findConditionsWithTenant(
 		user: User,
-		where?: FindConditions<T>[] | FindConditions<T> | ObjectLiteral
-	): FindConditions<T>[] | FindConditions<T> | ObjectLiteral {
+		where?: FindOptionsWhere<T>[] | FindOptionsWhere<T>
+	): FindOptionsWhere<T>[] | FindOptionsWhere<T> {
 
 		
 		if (where && Array.isArray(where)) {
-			const wheres: FindConditions<T>[] = [];
-			// where.forEach((options: FindConditions<T>) => {
+			const wheres: FindOptionsWhere<T>[] = [];
+			// where.forEach((options: FindOptionsWhere<T>) => {
 			for (const options of where) {
 				wheres.push({
 					...options,
@@ -151,7 +150,7 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 	}
 
 	public async findOneOrFail(
-		id: string | number | FindOneOptions<T> | FindConditions<T>,
+		id: string | number | FindOneOptions<T> | FindOptionsWhere<T>,
 		options?: FindOneOptions<T>
 	): Promise<ITryRequest<T>> {
 		if (typeof id === 'object') {
@@ -165,7 +164,7 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 	}
 
 	public async findOne(
-		id: string | number | FindOneOptions<T> | FindConditions<T>,
+		id: string | number | FindOneOptions<T>,
 		options?: FindOneOptions<T>
 	): Promise<T> {
 		if (typeof id === 'object') {
@@ -191,23 +190,6 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 		options?: FindOneOptions<T>
 	): Promise<T> {
 		return await super.findOneByIdString(
-			id,
-			this.findOneWithTenant(options)
-		);
-	}
-
-	/**
-	 * Finds first entity that matches given conditions and options with current tenant.
-	 *
-	 * @param id
-	 * @param options
-	 * @returns
-	 */
-	public async findOneByConditions(
-		id: FindConditions<T>,
-		options?: FindOneOptions<T>
-	): Promise<T> {
-		return await super.findOneByConditions(
 			id,
 			this.findOneWithTenant(options)
 		);
@@ -256,22 +238,30 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 
 	/**
 	 * DELETE source related to tenant
-	 * 
-	 * @param criteria 
-	 * @param options 
-	 * @returns 
+	 *
+	 * @param criteria - A string ID or a set of conditions to identify which record to delete.
+	 * @param options - Additional options for querying, such as extra conditions or query parameters.
+	 * @returns {Promise<DeleteResult>} - The result of the delete operation.
 	 */
-	public async delete(
-		criteria: string | number | FindConditions<T>,
-		options?: FindOneOptions<T>
-	): Promise<DeleteResult> {
+	public async delete(criteria: string | FindOptionsWhere<T>, options?: FindOneOptions<T>): Promise<DeleteResult> {
 		try {
-			const record = await this.findOne(criteria, options);
-			if (!record) {
-				throw new NotFoundException(`The requested record was not found`);
+			// Merge additional where conditions from options into criteria if needed
+			let where: FindOptionsWhere<T> =
+				typeof criteria === 'string' ? ({ id: criteria } as FindOptionsWhere<T>) : { ...criteria };
+
+			if (options?.where) {
+				where = { ...where, ...options.where };
 			}
-			return await super.delete(criteria);
+
+			const user = RequestContext.currentUser();
+
+			// Proceed with the delete operation using the merged criteria
+			return await super.delete({
+				...where,
+				...this.findConditionsWithTenantByUser(user)
+			});
 		} catch (err) {
+			console.error('Error during delete operation:', err);
 			throw new NotFoundException(`The record was not found`, err);
 		}
 	}
@@ -290,7 +280,7 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 
 	protected findConditionsWithUser(
 		user: IUser,
-		where?: FindManyOptions['where'] // FindConditions<T> | ObjectLiteral | FindConditions<T>[]
+		where?: FindManyOptions['where'] // FindOptionsWhere<T> | ObjectLiteral | FindOptionsWhere<T>[]
 	): FindManyOptions['where'] {
 
 		if (Array.isArray(where)) {

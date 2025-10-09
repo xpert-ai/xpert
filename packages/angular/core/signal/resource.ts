@@ -1,5 +1,6 @@
 import { computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core'
 import { Observable, Subscription } from 'rxjs'
+import { getErrorMessage } from '../helpers'
 
 export type ResourceStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -62,7 +63,7 @@ interface RxResourceOptions<TReq, TRes> {
  */
 export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>) {
   const valueSig = signal<TRes | null>(null)
-  const errorSig = signal<string | null>(null)
+  const errorSig = signal<unknown | null>(null)
   const statusSig = signal<ResourceStatus>('idle')
   const refreshTrigger = signal(0)
 
@@ -115,7 +116,7 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
 
   return {
     value: computed(() => valueSig()),
-    error: computed(() => errorSig()),
+    error: computed(() => getErrorMessage(errorSig())),
     status: computed(() => statusSig()),
     reload: () => refreshTrigger.set(refreshTrigger() + 1)
   }

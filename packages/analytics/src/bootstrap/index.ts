@@ -1,9 +1,11 @@
 import { environment as env, getConfig, setConfig } from '@metad/server-config'
-import { AppService, AuthGuard, initI18next, ServerAppModule } from '@metad/server-core'
+import { AppService, AuthGuard, getPluginModules, initI18next, PluginModule, registerPluginsAsync, ServerAppModule, SharedModule } from '@metad/server-core'
 import { IPluginConfig } from '@metad/server-common'
-import { Logger, LogLevel } from '@nestjs/common'
+import { Logger, LogLevel, Module } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
+import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { useContainer } from 'class-validator';
 import cookieParser from 'cookie-parser'
 import { json, text, urlencoded } from 'express'
 import expressSession from 'express-session'
@@ -24,10 +26,16 @@ export async function bootstrap(options: {title: string; version: string}) {
 
 	const baseDir = config.assetOptions.serverRoot
 	await initI18next(path.join(baseDir, 'packages'))
+
+	@Module({ imports: [PluginModule.init(), BootstrapModule] })
+    class RootModule {}
 	
-	const app = await NestFactory.create(BootstrapModule, {
+	const app = await NestFactory.create<NestExpressApplication>(RootModule, {
 		logger: LOGGER_LEVELS.slice(0, LoggerIndex + 1)
 	})
+
+	// Set query parser to extended (In Express v5, query parameters are no longer parsed using the qs library by default.)
+	app.set('query parser', 'extended');
 
 	app.use(middleware.handle(i18next)); // attach i18next middleware
 
@@ -82,6 +90,11 @@ export async function bootstrap(options: {title: string; version: string}) {
 	// const subscriptionService = app.select(ServerAppModule).get(SubscriptionService)
 	// subscriptionService.setupJobs()
 
+	/**
+	 * Dependency injection with class-validator
+	 */
+	useContainer(app.select(SharedModule), { fallbackOnErrors: true });
+
 	// Setup Swagger Module
 	const swagger = new DocumentBuilder().setTitle(options.title).setVersion(options.version).addBearerAuth().build()
 
@@ -111,7 +124,41 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
 		setConfig(applicationConfig);
 	}
 
+	await preBootstrapPlugins();
+
 	return getConfig()
+}
+
+export async function preBootstrapPlugins() {
+	const plugins = process.env.PLUGINS?.split(',') || [];
+	const { modules } = await registerPluginsAsync({
+		plugins: [
+			'@xpert-ai/plugin-file-system',
+			'@xpert-ai/plugin-firecrawl',
+			'@xpert-ai/plugin-integration-dify',
+			'@xpert-ai/plugin-integration-fastgpt',
+			'@xpert-ai/plugin-integration-ragflow',
+			'@xpert-ai/plugin-integration-github',
+			'@xpert-ai/plugin-ocr-paddle',
+			'@xpert-ai/plugin-trigger-schedule',
+			'@xpert-ai/plugin-textsplitter-common',
+			'@xpert-ai/plugin-retriever-common',
+			'@xpert-ai/plugin-tool-calculator',
+			'@xpert-ai/plugin-transformer-common',
+			'@xpert-ai/plugin-transformer-mineru',
+			'@xpert-ai/plugin-transformer-unstructured',
+			'@xpert-ai/plugin-vlm-default',
+			'@xpert-ai/plugin-vstore-chroma',
+			'@xpert-ai/plugin-vstore-milvus',
+			'@xpert-ai/plugin-vstore-weaviate',
+			...plugins
+		],
+		discovery: {
+			prefix: '@xpert-ai/plugin-',
+		}
+	});
+
+	setConfig({plugins: modules});
 }
 
 function origins(url: string) {

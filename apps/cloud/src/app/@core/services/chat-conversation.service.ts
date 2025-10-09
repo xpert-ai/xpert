@@ -48,7 +48,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
 
   // Files
 
-  getFiles(id: string, path: string = '') {
+  getFiles(id: string, path = '') {
     return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/files`, {
       params: toParams({
         path

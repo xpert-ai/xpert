@@ -18,5 +18,12 @@ for folder in $folders; do
 done
 # ---------------------------------------
 
+if [ -n "$PLUGINS" ]; then
+  echo "Installing plugins: $PLUGINS"
+  # Replace commas with spaces to separate plugin names
+  PLUGINS_LIST=$(echo "$PLUGINS" | tr ',' ' ')
+  npm install $PLUGINS_LIST --legacy-peer-deps
+fi
+
 # Then execute the main command
 exec "$@"

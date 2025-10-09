@@ -18,7 +18,9 @@ export class RemoveNodeHandler implements IHandler<RemoveNodeRequest> {
       )
 
       if (node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER && (<IWFNTrigger>node.entity).from === 'chat') {
-        delete draft.team.agentConfig.parameters
+        if (draft.team.agentConfig?.parameters) {
+          delete draft.team.agentConfig.parameters
+        }
       }
 
       return {

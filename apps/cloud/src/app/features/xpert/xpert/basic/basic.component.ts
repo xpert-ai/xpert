@@ -18,7 +18,7 @@ import {
   ToastrService,
   TXpertTeamDraft,
   XpertParameterTypeEnum,
-  XpertService,
+  XpertAPIService,
   XpertTypeEnum
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
@@ -61,7 +61,7 @@ export class XpertBasicComponent implements IsDirty {
   eXpertParameterTypeEnum = XpertParameterTypeEnum
 
   readonly xpertComponent = inject(XpertComponent)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly getXpertTeam = injectGetXpertTeam()
   readonly #fb = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)

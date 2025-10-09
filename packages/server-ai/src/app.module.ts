@@ -16,7 +16,6 @@ import { CopilotStoreModule } from './copilot-store/copilot-store.module'
 import { CopilotUserModule } from './copilot-user'
 import { EventHandlers } from './core/events'
 import { GraphragModule } from './graphrag/graphrag.module'
-import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.module'
 import { IntegrationLarkModule } from './integration-lark/index'
 import { KnowledgeDocumentModule } from './knowledge-document/index'
 import { KnowledgebaseModule } from './knowledgebase/index'
@@ -34,9 +33,7 @@ import { XpertWorkspaceModule } from './xpert-workspace'
 import { CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
-import { IntegrationRAGFlowModule } from './integration-ragflow'
-import { IntegrationDifyModule } from './integration-dify'
-import { IntegrationFastGPTModule } from './integration-fastgpt'
+import { EnvironmentModule } from './environment'
 
 @Module({
 	imports: [
@@ -55,6 +52,7 @@ import { IntegrationFastGPTModule } from './integration-fastgpt'
 		CopilotOrganizationModule,
 		CopilotProviderModule,
 		CopilotStoreModule,
+		EnvironmentModule,
 		GraphragModule,
 		XpertModule,
 		XpertAgentModule,
@@ -68,11 +66,7 @@ import { IntegrationFastGPTModule } from './integration-fastgpt'
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
 		IntegrationLarkModule,
-		IntegrationFirecrawlModule,
 		IntegrationGithubModule,
-		IntegrationRAGFlowModule,
-		IntegrationDifyModule,
-		IntegrationFastGPTModule,
 		RagVStoreModule,
 		RagWebModule,
 		SandboxModule,

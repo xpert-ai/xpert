@@ -1,8 +1,8 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
-import { TenantModule, UserModule } from '@metad/server-core'
+import { DiscoveryModule, RouterModule } from '@nestjs/core'
+import { RedisModule, TenantModule, UserModule } from '@metad/server-core'
 import { XpertController } from './xpert.controller'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
@@ -15,13 +15,19 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { CopilotStoreModule } from '../copilot-store/copilot-store.module'
 import { AnonymousStrategy } from './auth/anonymous.strategy'
 import { EnvironmentModule } from '../environment'
+import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import { BullModule } from '@nestjs/bull'
+import { QUEUE_XPERT_TRIGGER } from './types'
+import { XpertTriggerConsumer } from './jobs/trigger.job'
 
 @Module({
     imports: [
-        RouterModule.forRoutes([{ path: '/xpert', module: XpertModule }]),
+        RouterModule.register([{ path: '/xpert', module: XpertModule }]),
         TypeOrmModule.forFeature([Xpert]),
+        DiscoveryModule,
         TenantModule,
         CqrsModule,
+        RedisModule,
         forwardRef(() => KnowledgebaseModule),
         forwardRef(() => XpertAgentModule),
         forwardRef(() => UserModule),
@@ -29,9 +35,12 @@ import { EnvironmentModule } from '../environment'
         forwardRef(() => EnvironmentModule),
         CopilotCheckpointModule,
         CopilotStoreModule,
+        BullModule.registerQueue({
+                    name: QUEUE_XPERT_TRIGGER,
+                  })
     ],
     controllers: [XpertController],
-    providers: [XpertService, AnonymousStrategy, ...CommandHandlers, ...QueryHandlers],
+    providers: [XpertService, AnonymousStrategy, WorkflowTriggerRegistry, XpertTriggerConsumer, ...CommandHandlers, ...QueryHandlers],
     exports: [XpertService]
 })
 export class XpertModule { }

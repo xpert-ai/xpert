@@ -112,7 +112,7 @@ export class ApprovalPolicyService extends TenantAwareCrudService<ApprovalPolicy
 		entity: IApprovalPolicyCreateInput
 	): Promise<ApprovalPolicy> {
 		try {
-			const approvalPolicy = await this.approvalPolicyRepository.findOne({
+			const approvalPolicy = await this.approvalPolicyRepository.findOneBy({
 				id: id
 			});
 			// 新函数

@@ -67,6 +67,12 @@
       text-zinc-600;
   }
 
+  .btn-secondary-accent {
+    @apply border-[0.5px] border-[--color-components-button-secondary-border] bg-[--color-components-button-secondary-bg] shadow-sm
+      hover:border-[--color-components-button-secondary-border-hover] hover:bg-[--color-components-button-secondary-bg-hover]
+      text-text-accent;
+  }
+
   .btn-tertiary {
     @apply bg-gray-200 text-text-tertiary hover:text-text-primary;
   }

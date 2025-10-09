@@ -1,5 +1,6 @@
 import { Document } from '@langchain/core/documents'
-import { CACHE_MANAGER, Inject, Logger } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
 import { RagWebLoadCommand } from '../../commands'

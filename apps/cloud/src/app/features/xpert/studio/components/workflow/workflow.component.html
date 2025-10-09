@@ -1,13 +1,28 @@
 @if (!NoInputs.includes(type())) {
-  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left absolute"></div>
+  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" [fInputMultiple]="true" class="left absolute"></div>
 }
 
 <div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
-  <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" 
-    [matTooltip]="key()"
-    matTooltipPosition="above"
-  />
-  
+  @switch(type()) {
+    @case (eWorkflowNodeTypeEnum.TRIGGER) {
+      @if (provider()?.icon; as icon) {
+        <xp-icon [icon]="icon" size="18" class="w-6 h-6 shrink-0 mr-2" 
+          [matTooltip]="key()"
+          matTooltipPosition="above" />
+      } @else {
+        <div class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
+          rounded-lg shadow-sm">
+          <i class="ri-message-3-fill"></i>
+        </div>
+      }
+    }
+    @default {
+      <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" 
+        [matTooltip]="key()"
+        matTooltipPosition="above"
+      />
+    }
+  }
   <div [title]="title()" class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center">
     <div>{{title()}}</div>
   </div>
@@ -29,11 +44,14 @@
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
     <xpert-studio-node-workflow-ifelse class="px-3" [node]="node()" [entity]="entity()" />
   }
+  @case (eWorkflowNodeTypeEnum.LIST_OPERATOR) {
+    <xpert-workflow-node-list-operator class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.VARIABLE_AGGREGATOR) {
+    <xpert-workflow-node-variable-aggregator class="px-3" [node]="node()" [entity]="entity()" />
+  }
   @case (eWorkflowNodeTypeEnum.ASSIGNER) {
     <xpert-workflow-node-assigner class="px-3" [node]="node()" [entity]="entity()" />
-  }
-  @case (eWorkflowNodeTypeEnum.SPLITTER) {
-    <xpert-studio-node-workflow-splitter class="px-3" [node]="node()" [entity]="entity()" />
   }
   @case (eWorkflowNodeTypeEnum.ITERATING) {
     <xpert-studio-node-workflow-iterating class="px-3" [node]="node()" [entity]="entity()" />
@@ -70,6 +88,21 @@
   }
   @case (eWorkflowNodeTypeEnum.NOTE) {
     <xpert-workflow-node-note class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.SOURCE) {
+    <xpert-workflow-node-source class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.PROCESSOR) {
+    <xpert-workflow-node-processor class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.CHUNKER) {
+    <xpert-workflow-node-chunker class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.UNDERSTANDING) {
+    <xpert-workflow-node-understanding class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.KNOWLEDGE_BASE) {
+    <xpert-workflow-node-knowledge-base class="px-3" [node]="node()" [entity]="entity()" />
   }
   @default {
     <div>Unimplement type ({{type()}})</div>

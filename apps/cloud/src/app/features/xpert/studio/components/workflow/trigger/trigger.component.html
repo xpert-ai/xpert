@@ -1,7 +1,11 @@
 <div class="relative bg-zinc-50 flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder"
 >
   <div>
-    {{'PAC.Workflow.Chat' | translate: {Default: 'Chat'} }}
+    @if (provider(); as provider) {
+      {{ provider.label | i18n }}
+    } @else {
+      {{'PAC.Workflow.Chat' | translate: {Default: 'Chat'} }}
+    }
   </div>
 
   <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true">

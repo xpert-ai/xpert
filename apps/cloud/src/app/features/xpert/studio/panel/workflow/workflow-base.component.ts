@@ -1,6 +1,6 @@
 import { Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { injectToastr, TXpertTeamNode, XpertService } from '@cloud/app/@core'
+import { injectToastr, TXpertTeamNode, XpertAPIService } from '@cloud/app/@core'
 import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { myRxResource } from '@metad/ocap-angular/core'
 import { isEqual } from 'lodash-es'
@@ -15,7 +15,7 @@ import { XpertStudioComponent } from '../../studio.component'
 })
 export class XpertWorkflowBaseComponent {
   readonly studioService = inject(XpertStudioApiService)
-  readonly xpertAPI = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly _toastr = injectToastr()
 
@@ -24,6 +24,7 @@ export class XpertWorkflowBaseComponent {
   readonly key = computed(() => this.node()?.key)
   readonly xpert = this.xpertStudioComponent.xpert
   readonly xpertId = computed(() => this.xpert()?.id)
+  readonly workspaceId = computed(() => this.xpert()?.workspaceId)
 
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
 

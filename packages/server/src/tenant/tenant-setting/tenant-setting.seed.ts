@@ -1,5 +1,5 @@
 import { FileStorageProviderEnum, ITenant } from "@metad/contracts";
-import { TenantSetting } from "../../core";
+import { TenantSetting } from "../../core/entities/internal";
 import { Connection } from "typeorm";
 
 export const createDefaultTenantSetting = async (

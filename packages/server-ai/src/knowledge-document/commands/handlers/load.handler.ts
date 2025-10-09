@@ -1,32 +1,53 @@
+import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
 	DocumentSheetParserConfig,
 	DocumentTextParserConfig,
 	IKnowledgeDocument,
 	KBDocumentCategoryEnum
 } from '@metad/contracts'
-import { pick } from '@metad/server-common'
+import { loadCsvWithAutoEncoding, loadExcel, pick } from '@metad/server-common'
+import { RequestContext } from '@metad/server-core'
+import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import {
+	DocumentTransformerRegistry,
+	FileSystemPermission,
+	ImageUnderstandingRegistry,
+	TextSplitterRegistry,
+	XpFileSystem
+} from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
-import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
+import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
-import { LoadStorageFileCommand, LoadStorageSheetCommand } from '../../../shared/'
-import { KnowledgeDocumentService } from '../../document.service'
+import { LoadStorageFileCommand, sandboxVolumeUrl, VolumeClient } from '../../../shared/'
 import { KnowledgeDocLoadCommand } from '../load.command'
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {
+	@Inject(TextSplitterRegistry)
+	private readonly textSplitterRegistry: TextSplitterRegistry
+
+	@Inject(DocumentTransformerRegistry)
+	private readonly transformerRegistry: DocumentTransformerRegistry
+
+	@Inject(ImageUnderstandingRegistry)
+	private readonly imageUnderstandingRegistry: ImageUnderstandingRegistry
+
 	constructor(
-		private readonly service: KnowledgeDocumentService,
+		private readonly knowledgebaseService: KnowledgebaseService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: KnowledgeDocLoadCommand): Promise<Document[]> {
-		const { doc } = command.input
+	public async execute(command: KnowledgeDocLoadCommand): Promise<{ chunks: Document[]; pages?: Document[] }> {
+		const { doc, stage } = command.input
+
+		let visionModel: BaseChatModel = null
 
 		if (doc.category === KBDocumentCategoryEnum.Sheet) {
 			const parserConfig = doc.parserConfig as DocumentSheetParserConfig
-			const data = await this.commandBus.execute(new LoadStorageSheetCommand(doc.storageFileId))
+			// const data = await this.commandBus.execute(new LoadStorageSheetCommand(doc.storageFileId))
+			const data = await this.loadSheet(doc)
 			const documents: Document[] = []
 			for (const row of data) {
 				const metadata = { raw: row, docId: doc.id }
@@ -39,11 +60,105 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 					})
 				)
 			}
-			return documents
+			return { chunks: documents }
 		}
 
-		if (doc.storageFileId) {
-			const docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
+		if (doc.filePath || doc.fileUrl) {
+			let docs: Document[]
+			// const [storageFile] = await this.queryBus.execute<GetStorageFileQuery, StorageFile[]>(
+			// 	new GetStorageFileQuery([doc.storageFileId])
+			// )
+			const transformerType = doc.parserConfig?.transformerType || 'default'
+			if (transformerType) {
+				const transformer = this.transformerRegistry.get(transformerType)
+				if (transformer) {
+					const type = doc.name?.split('.').pop()
+					const volumeClient = new VolumeClient({
+								tenantId: RequestContext.currentTenantId(),
+								catalog: 'knowledges',
+								userId: RequestContext.currentUserId(),
+								knowledgeId: doc.knowledgebaseId
+							})
+					const fsPermission = transformer.permissions?.find(
+						(permission) => permission.type === 'filesystem'
+					) as FileSystemPermission
+					const permissions = {}
+					if (fsPermission) {
+						const folder = stage === 'test' ? 'temp/' : `/`
+						permissions['fileSystem'] = new XpFileSystem(
+							fsPermission,
+							volumeClient.getVolumePath(folder),
+							sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
+						)
+					}
+					const transformed = await transformer.transformDocuments(
+						[{ fileUrl: doc.fileUrl, filePath: doc.filePath, filename: doc.name, extension: type }],
+						{
+							...(doc.parserConfig.transformer ?? {}),
+							stage,
+							tempDir: volumeClient.getVolumePath('tmp'),
+							permissions
+						}
+					)
+
+					const chunks = []
+					const pages = []
+					for await (const transItem of transformed) {
+						const splitted = await this.splitDocuments(doc, transItem.chunks)
+						// Image understanding
+						const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
+						if (images?.length && doc.parserConfig.imageUnderstandingType) {
+							if (!visionModel) {
+								visionModel = await this.knowledgebaseService.getVisionModel(doc.knowledgebaseId)
+							}
+							const imageUnderstanding = this.imageUnderstandingRegistry.get(
+								doc.parserConfig.imageUnderstandingType
+							)
+							const fsPermission = imageUnderstanding.permissions?.find(
+								(permission) => permission.type === 'filesystem'
+							) as FileSystemPermission
+							const permissions = {}
+							if (fsPermission) {
+								const folder = stage === 'test' ? 'temp/' : `/`
+								permissions['fileSystem'] = new XpFileSystem(
+									fsPermission,
+									volumeClient.getVolumePath(folder),
+									sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
+								)
+							}
+							const imgTransformed = await imageUnderstanding.understandImages(
+								{
+									files: images,
+									chunks: splitted.chunks,
+								},
+								{
+									...(doc.parserConfig.imageUnderstanding ?? {}),
+									stage,
+									visionModel,
+									permissions
+								}
+							)
+							chunks.push(...imgTransformed.chunks)
+							if (splitted.pages?.length) {
+								pages.push(...splitted.pages)
+							} else {
+								pages.push(...imgTransformed.pages)
+							}
+						} else {
+							chunks.push(...splitted.chunks)
+							if (splitted.pages?.length) {
+								pages.push(...splitted.pages)
+							}
+						}
+					}
+					return { chunks, pages: pages.length ? pages : undefined }
+				} else {
+					throw new Error(`Transformer not found: ${transformerType}`)
+				}
+			} else {
+				docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
+			}
+
 			return await this.splitDocuments(doc, docs)
 		}
 
@@ -67,7 +182,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
 	/**
 	 * Split documents into smaller chunks for processing by `parserConfig`.
-	 * 
+	 *
 	 * @param document The original knowledge document entity.
 	 * @param data The document data to split.
 	 * @param parserConfig custom parser configuration.
@@ -100,12 +215,42 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			chunkOverlap = 100
 		}
 		const delimiter = document.parserConfig?.delimiter || parserConfig?.delimiter
-		const textSplitter = new RecursiveCharacterTextSplitter({
-			chunkSize,
-			chunkOverlap,
-			separators: delimiter?.split(' ')
-		})
 
-		return await textSplitter.splitDocuments(data)
+		const textSplitter = this.textSplitterRegistry.get(
+			document.parserConfig.textSplitterType || 'recursive-character'
+		)
+		if (!textSplitter) {
+			throw new Error(
+				`Text Splitter not found: ${document.parserConfig.textSplitterType || 'recursive-character'}`
+			)
+		}
+		if (textSplitter) {
+			const result = await textSplitter.splitDocuments(data, {
+				chunkSize,
+				chunkOverlap,
+				separators: delimiter?.split(' '),
+				...(document.parserConfig.textSplitter || {})
+			})
+
+			return result
+		}
+
+		// const textSplitter1 = new RecursiveCharacterTextSplitter({
+		// 	chunkSize,
+		// 	chunkOverlap,
+		// 	separators: delimiter?.split(' ')
+		// })
+
+		// return {
+		// 	chunks: await textSplitter1.splitDocuments(data)
+		// }
+	}
+
+	async loadSheet(doc: IKnowledgeDocument): Promise<Record<string, any>[]> {
+		if (doc.name.endsWith('.csv')) {
+			return loadCsvWithAutoEncoding(doc.filePath)
+		}
+
+		return loadExcel(doc.filePath)
 	}
 }

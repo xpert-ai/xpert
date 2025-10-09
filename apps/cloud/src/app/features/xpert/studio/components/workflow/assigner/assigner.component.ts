@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -20,7 +19,7 @@ import { XpertStudioApiService } from '../../../domain'
   styleUrls: ['./assigner.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent, NgmI18nPipe]
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent]
 })
 export class XpertWorkflowNodeAssignerComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

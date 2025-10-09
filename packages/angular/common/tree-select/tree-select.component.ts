@@ -57,6 +57,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ThemePalette } from '@angular/material/core'
 
 /**
+ * @deprecated use headless components instead
+ * 
  * TreeSelect 组件分为三种展示模式:
  * 1. Select 形式, 树型选项列表以弹出列表的形式.
  * 2. Autocomplete 形式, 输入框可输入搜索条件进行过滤, 树型选项列表以下拉列表的形式展示.

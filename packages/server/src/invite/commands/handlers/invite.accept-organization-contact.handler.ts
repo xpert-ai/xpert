@@ -90,7 +90,7 @@ export class InviteAcceptOrganizationContactHandler
 		});
 
 		// 7. Find SUPER_ADMIN role to relative tenant.
-		const role = await this.roleService.findOneByConditions({
+		const role = await this.roleService.findOneByWhereOptions({
 			tenant,
 			name: RolesEnum.SUPER_ADMIN
 		});

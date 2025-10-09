@@ -4,22 +4,24 @@ import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IKnowledgeDocument } from './knowledge-doc.model'
 import { IXpert } from './xpert.model'
 import { IIntegration } from '../integration.model'
+import { channelName } from '../agent/graph'
 
 /**
  * Non-internal types should remain the same as IntegrationEnum.
  */
 export enum KnowledgeProviderEnum {
   Internal = 'internal',
-  // IntegrationEnum.RAGFlow
-  RAGFlow = 'ragflow',
-  // IntegrationEnum.Dify
-  Dify = 'dify',
-  FastGPT = 'fastgpt'
 }
 
 export enum KnowledgebaseTypeEnum {
   Standard = 'standard',
   External = 'external'
+}
+
+export enum KnowledgeStructureEnum {
+  General = 'general',
+  ParentChild = 'parent-child',
+  QA = 'qa'
 }
 
 export type KnowledgebaseParserConfig = {
@@ -68,8 +70,13 @@ export type TKnowledgebase = {
   copilotModel?: ICopilotModel
   copilotModelId?: string
 
+  // Rerank model for re-ranking retrieved chunks
   rerankModel?: ICopilotModel
   rerankModelId?: string
+
+  // Vision model for image understanding
+  visionModel?: ICopilotModel
+  visionModelId?: string
 
   documentNum?: number | null
   tokenNum?: number | null
@@ -87,16 +94,27 @@ export type TKnowledgebase = {
   parserConfig?: KnowledgebaseParserConfig
 
   /**
+   * Index structure determines how the knowledge base organizes and indexes your document content.
+   */
+  structure?: KnowledgeStructureEnum
+
+  /**
    * Recall params for kb chunks
    */
   recall?: TKBRecallParams
 
   status?: string
 
+  /**
+   * API service enabled
+   */
+  apiEnabled?: boolean
+
   documents?: IKnowledgeDocument[]
 
   integrationId?: string
   extKnowledgebaseId?: string
+  pipelineId?: string
 }
 
 /**
@@ -105,6 +123,7 @@ export type TKnowledgebase = {
 export interface IKnowledgebase extends TKnowledgebase, IBasePerWorkspaceEntityModel {
   xperts?: IXpert[]
   integration?: IIntegration
+  pipeline?: IXpert
 }
 
 export enum KnowledgebasePermission {
@@ -131,3 +150,24 @@ export type TKBRecallParams = {
    */
   weight?: number
 }
+
+export type DocumentMetadata = {
+    score?: number; 
+    relevanceScore?: number
+} & Record<string, any>;
+
+
+/**
+ * Channel name for knowledgebase pipeline
+ */
+export const KnowledgebaseChannel = channelName('knowledgebase')
+/**
+ * Task ID of a knowledgebase run
+ */
+export const KnowledgeTask = 'task_id'
+/**
+ * Specify the data source to run
+ */
+export const KnowledgeSources = 'sources'
+export const KnowledgeDocuments = 'documents'
+export const KnowledgeFolderId = 'folder_id'

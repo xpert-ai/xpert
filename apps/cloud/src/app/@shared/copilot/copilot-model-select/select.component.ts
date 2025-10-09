@@ -59,6 +59,7 @@ export class CopilotModelSelectComponent {
 
   // Inputs
   readonly modelType = input<AiModelTypeEnum>()
+  readonly features = input<ModelFeature[]>()
   readonly inheritModel = input<ICopilotModel>()
   readonly copilotModel = input<ICopilotModel>()
   
@@ -96,7 +97,18 @@ export class CopilotModelSelectComponent {
   readonly searchText = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300), map((text) => text.toLowerCase())))
   readonly searchedModels = computed(() => {
     const searchText = this.searchText()
-    const copilots = this.copilotWithModels()
+    const copilots = this.features()?.length ? this.copilotWithModels()?.map((_) => {
+      return {
+        ..._,
+        providerWithModels: {
+          ..._.providerWithModels,
+          models: _.providerWithModels.models.filter((m) =>
+            this.features().every((feature) => m.features?.includes(feature))
+          )
+        }
+      }
+    }).filter((_) => _.providerWithModels.models.length) : this.copilotWithModels()
+    
     return searchText
       ? copilots
           ?.map((_) => {
@@ -145,11 +157,11 @@ export class CopilotModelSelectComponent {
   readonly isInherit = computed(() => !this.__copilotModel())
   readonly statusChoose = computed(() => !this.selectedCopilotWithModels() && !!this.__copilotModel())
 
-  constructor() {
-    effect(() => {
-      // console.log(this.searchedModels())
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log(this.copilotWithModels())
+  //   })
+  // }
 
   updateValue(value: ICopilotModel) {
     if (!this.readonly()) {

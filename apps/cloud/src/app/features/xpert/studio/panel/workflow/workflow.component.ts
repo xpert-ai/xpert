@@ -11,6 +11,7 @@ import {
   IfAnimation,
   injectHelpWebsite,
   injectToastr,
+  IWFNTrigger,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum
@@ -37,6 +38,15 @@ import { XpertWorkflowAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowTaskComponent } from './task/task.component'
 import { XpertWorkflowTriggerComponent } from './trigger/trigger.component'
 import { XpertWorkflowTriggerTestComponent } from './trigger-test/trigger.component'
+import { XpertWorkflowSourceComponent } from './source/source.component'
+import { XpertWorkflowProcessorComponent } from './processor/processor.component'
+import { XpertWorkflowChunkerComponent } from './chunker/chunker.component'
+import { XpertWorkflowUnderstandingComponent } from './understanding/understanding.component'
+import { XpertWorkflowKnowledgeBaseComponent } from './knowledge-base/knowledge-base.component'
+import { XpertWorkflowSourceTestComponent } from './source-test/source.component'
+import { XpertWorkflowListOperatorComponent } from './list-operator/list-operator.component'
+import { XpertWorkflowVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -53,6 +63,7 @@ import { XpertWorkflowTriggerTestComponent } from './trigger-test/trigger.compon
     TextFieldModule,
     NgmDensityDirective,
     NgmSpinComponent,
+    IconComponent,
     XpertStudioPanelWorkflowIfelseComponent,
     XpertStudioPanelWorkflowIteratingComponent,
     XpertStudioPanelWorkflowAnswerComponent,
@@ -71,7 +82,15 @@ import { XpertWorkflowTriggerTestComponent } from './trigger-test/trigger.compon
     XpertWorkflowAssignerComponent,
     XpertWorkflowTaskComponent,
     XpertWorkflowTriggerComponent,
-    XpertWorkflowTriggerTestComponent
+    XpertWorkflowTriggerTestComponent,
+    XpertWorkflowSourceComponent,
+    XpertWorkflowSourceTestComponent,
+    XpertWorkflowProcessorComponent,
+    XpertWorkflowChunkerComponent,
+    XpertWorkflowUnderstandingComponent,
+    XpertWorkflowKnowledgeBaseComponent,
+    XpertWorkflowListOperatorComponent,
+    XpertWorkflowVariableAggregatorComponent
   ],
   animations: [IfAnimation,]
 })
@@ -110,6 +129,12 @@ export class XpertStudioPanelWorkflowComponent {
 
 
   readonly testing = signal(false)
+
+  // Workflow providers
+  readonly triggerProviders = this.studioService.triggerProviders
+  readonly triggerEntity = computed(() => this.wfNode()?.type === WorkflowNodeTypeEnum.TRIGGER ? this.wfNode() as IWFNTrigger : null)
+  readonly from = computed(() => this.triggerEntity()?.from)
+  readonly provider = computed(() => this.triggerProviders()?.find((item) => item.name === this.from()))
 
   openTest() {
     this.testing.set(true)

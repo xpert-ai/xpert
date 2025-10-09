@@ -41,7 +41,7 @@ import {
   routeAnimations,
   TagCategoryEnum,
   ToastrService,
-  XpertService,
+  XpertAPIService,
   XpertToolsetCategoryEnum,
   XpertToolsetService,
   XpertTypeEnum,
@@ -93,7 +93,7 @@ export class XpertWorkspaceHomeComponent {
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly workspaceService = inject(XpertWorkspaceService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly toolsetService = inject(XpertToolsetService)
   // Xpert's tags
   readonly xpertTags = injectTags(TagCategoryEnum.XPERT)

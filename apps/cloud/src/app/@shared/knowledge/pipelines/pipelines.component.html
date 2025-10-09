@@ -1,0 +1,82 @@
+<div class="grow gap-y-1 overflow-y-auto px-16 pb-[60px] pt-1">
+  <div class="grid grid-cols-1 gap-3 py-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div
+      class="group relative flex h-[132px] cursor-pointer flex-col rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-bg pb-3 shadow-xs shadow-shadow-shadow-3"
+      (click)="createPipeline()"
+    >
+      <div class="flex items-center gap-x-3 p-4 pb-2">
+        <div
+          class="flex w-10 h-10 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-divider-regular bg-background-section group-hover:border-accent-200 group-hover:bg-accent-50"
+        >
+          <i class="ri-add-circle-line text-2xl text-text-quaternary group-hover:text-text-accent"></i>
+        </div>
+        <div class="system-md-semibold truncate text-text-primary">
+          {{ 'PAC.Knowledgebase.BlankKnowledgePipeline' | translate: {Default: 'Blank Knowledge Pipeline'} }}
+        </div>
+      </div>
+      <p class="system-xs-regular line-clamp-3 px-4 py-1 text-text-tertiary font-body">
+        {{ 'PAC.Knowledgebase.BlankKnowledgePipelineDesc' | translate: {Default: 'Create a custom knowledge pipeline from scratch with full control over data processing and structure.'} }}
+      </p>
+    </div>
+
+    @for (template of templates(); track template) {
+      <div
+        class="group relative flex h-[132px] cursor-pointer flex-col rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-bg pb-3 shadow-xs shadow-shadow-shadow-3"
+      >
+        <div class="flex items-center gap-x-3 p-4 pb-2">
+          <div class="relative shrink-0">
+            @if (template.icon) {
+              <xp-icon [icon]="template.icon" class="block w-10 h-10 rounded-[10px] border-[0.5px] border-divider-regular bg-background-section" />
+            } @else {
+              <div
+                class="flex items-center justify-center relative grow-0 shrink-0 overflow-hidden border-[0.5px] border-divider-regular w-10 h-10 text-[24px] rounded-[10px] bg-pipeline-template-default-icon-bg text-text-secondary"
+              >
+                <i class="ri-file-list-3-line"></i>
+              </div>
+            }
+          </div>
+          <div class="flex grow flex-col gap-y-1 overflow-hidden py-px">
+            <div class="system-md-semibold truncate text-text-secondary" [title]="template.name">{{ template.name }}</div>
+            <div class="system-2xs-medium-uppercase text-text-tertiary">{{ template.category }}</div>
+          </div>
+        </div>
+        <p
+          class="system-xs-regular line-clamp-3 grow px-4 py-1 text-text-tertiary"
+          [title]="template.description"
+        >
+          {{ template.description }}
+        </p>
+        <div
+          class="absolute bottom-0 left-0 z-10 hidden w-full items-center gap-x-1 bg-hero-gradient p-4 pt-8 group-hover:flex"
+        >
+          <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium grow gap-x-0.5"
+            (click)="installTemplate(template)">
+            <i class="ri-add-line"></i>
+            <span class="px-0.5">{{ 'PAC.Knowledgebase.Install' | translate: {Default: 'Install'} }}</span>
+          </button>
+          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium grow gap-x-0.5"
+            disabled>
+            <i class="ri-corner-right-up-line"></i>
+            <span class="px-0.5">{{ 'PAC.Knowledgebase.Details' | translate: {Default: 'Details'} }}</span>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<div
+  class="absolute bottom-0 left-0 right-0 z-10 flex flex-col gap-y-4 bg-knowledge-pipeline-creation-footer-bg px-16 pb-6 backdrop-blur-[6px]"
+>
+  <div class="h-[0.5px] bg-divider-regular my-0 w-8"></div>
+  <button type="button" class="system-md-medium flex items-center gap-x-3 text-text-primary hover:text-text-accent">
+    <i class="ri-contacts-book-upload-line w-5 h-5 text-xl flex justify-center items-center"></i>
+    <span>
+      {{ 'PAC.Knowledgebase.ImportFromDSLFile' | translate: {Default: 'Import from DSL File'} }}
+    </span>
+  </button>
+</div>
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+}

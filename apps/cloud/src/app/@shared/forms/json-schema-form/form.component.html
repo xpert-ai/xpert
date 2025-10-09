@@ -1,5 +1,5 @@
 @for (param of properties(); track param.name) {
-  <json-schema-property class="mb-1" [schema]="param" [name]="param.name"
+  <json-schema-property class="mb-1" [readonly]="readonly()" [schema]="param" [name]="param.name"
     [required]="isRequired(param.name)"
     [variables]="variables()"
     [ngModel]="value$()?.[param.name]"

@@ -709,6 +709,15 @@ export class FeaturesComponent implements OnInit {
               permissionKeys: [RolesEnum.SUPER_ADMIN]
             }
           },
+          {
+            title: 'Plugins',
+            matIcon: 'extension',
+            link: '/settings/plugins',
+            data: {
+              translationKey: 'Plugins',
+              permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+            }
+          },
           ...(org ? [] : [
             {
               title: 'Tenant',

@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { BusinessAreaModule } from '../business-area'
 import { BusinessAreaUserModule } from '../business-area-user/index'
 import { DataSourceModule } from '../data-source/data-source.module'
@@ -23,8 +23,8 @@ import { ModelQueryLogModule } from '../model-query-log'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/semantic-model', module: SemanticModelModule }]),
-		forwardRef(() => TypeOrmModule.forFeature([SemanticModel])),
+		RouterModule.register([{ path: '/semantic-model', module: SemanticModelModule }]),
+		TypeOrmModule.forFeature([SemanticModel]),
 		BullModule.registerQueue({
 			name: QUERY_QUEUE_NAME
 		}),

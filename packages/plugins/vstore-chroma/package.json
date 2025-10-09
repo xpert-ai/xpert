@@ -1,0 +1,14 @@
+{
+  "name": "@xpert-ai/plugin-vstore-chroma",
+  "version": "0.0.1",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "dependencies": {
+    "chromadb": "^3.0.15"
+  },
+  "peerDependencies": {
+    "@langchain/community": "*",
+    "@langchain/core": "*",
+    "@xpert-ai/plugin-sdk": "*"
+  }
+}

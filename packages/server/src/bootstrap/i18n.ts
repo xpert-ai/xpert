@@ -6,10 +6,11 @@ import glob from 'glob'
 import { I18nJsonParser } from './i18n-parser'
 
 export function provideI18nModule(baseDir: string) {
+    console.log('I18nModule', baseDir)
     return I18nModule.forRoot({
         fallbackLanguage: LanguagesEnum.English,
-        parser: I18nJsonParser,
-        parserOptions: {
+        loader: I18nJsonParser,
+        loaderOptions: {
             paths: resolveTranslationPaths(baseDir),
             watch: !environment.production
         },
@@ -19,7 +20,7 @@ export function provideI18nModule(baseDir: string) {
 
 export function resolveTranslationPaths(baseDir: string) {
   // Find the i18n/** directory under all modules
-  const matches = glob.sync(path.join(baseDir, '**/i18n/'));
+  const matches = glob.sync(path.join(baseDir, 'packages', '**/i18n/'));
 
   // If you build with nest-cli, this returns the actual path to the dist directory
   return matches;

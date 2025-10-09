@@ -20,7 +20,11 @@ export class CrudService<T> {
       .get<{ items: T[]; total: number }>(this.apiBaseUrl + '/my', { params: toHttpParams(options) })
   }
 
-  getById(id: string, options?: {select?: (keyof T)[]; relations?: string[]}) {
+  getById(id: string, options?: {
+    select?: (keyof T)[] | {
+        [P in keyof T]?: P extends "toString" ? unknown : any;
+      };
+    relations?: string[]}) {
     return this.httpClient.get<T>(this.apiBaseUrl + `/${id}`, { params: toHttpParams(options) })
   }
 

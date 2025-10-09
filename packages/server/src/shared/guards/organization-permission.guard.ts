@@ -43,7 +43,8 @@ export class OrganizationPermissionGuard implements CanActivate {
 
 			console.log(`employeeId`, employeeId)
 
-			const employee = await this.employeeRepository.findOne(employeeId, {
+			const employee = await this.employeeRepository.findOne({
+				where: { id: employeeId },
 				relations: ['organization']
 			})
 

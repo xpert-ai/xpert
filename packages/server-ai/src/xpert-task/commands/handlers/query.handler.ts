@@ -3,7 +3,7 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
-import { FindConditions } from 'typeorm'
+import { FindOptionsWhere } from 'typeorm'
 import { XpertTask } from '../../xpert-task.entity'
 import { XpertTaskService } from '../../xpert-task.service'
 import { QueryXpertTaskCommand } from '../query.command'
@@ -20,7 +20,7 @@ export class QueryXpertTaskHandler implements ICommandHandler<QueryXpertTaskComm
 	) {}
 
 	public async execute(command: QueryXpertTaskCommand) {
-		const where = { createdById: RequestContext.currentUserId() } as FindConditions<XpertTask>
+		const where = { createdById: RequestContext.currentUserId() } as FindOptionsWhere<XpertTask>
 		if (command.xpertId) {
 			where.xpertId = command.xpertId
 		}

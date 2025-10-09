@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotAcceptableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CommandBus } from '@nestjs/cqrs';
-import { Repository, FindConditions, UpdateResult, getManager } from 'typeorm';
+import { FindOptionsWhere, Repository, UpdateResult, getManager } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import {
 	RolesEnum,
@@ -10,7 +10,8 @@ import {
 	IRolePermission,
 	IImportRecord,
 	IRolePermissionMigrateInput,
-	PermissionsEnum
+	PermissionsEnum,
+	ID
 } from '@metad/contracts';
 import { environment } from '@metad/server-config';
 import { TenantAwareCrudService } from './../core/crud';
@@ -33,7 +34,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 	}
 
 	public async updatePermission(
-		id: string | number | FindConditions<IRolePermission>,
+		id: ID,
 		partialEntity: QueryDeepPartialEntity<IRolePermission>
 	): Promise<UpdateResult | IRolePermission> {
 		try {
@@ -53,7 +54,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 		}
 	}
 
-	public async deletePermission(id: string | number) {
+	public async deletePermission(id: ID) {
 		try {
 			const { role } = await this.repository.findOne({
 				where: { id },
@@ -151,7 +152,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 		permissions: IRolePermissionMigrateInput[]
 	) {
 		const records: IImportRecord[] = [];
-		const roles: IRole[] = await getManager().getRepository(Role).find({
+		const roles: IRole[] = await getManager().getRepository(Role).findBy({
 			tenantId: RequestContext.currentTenantId(),
 		});
 		for await (const item of permissions) {
@@ -159,7 +160,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 			if (isImporting && sourceId) {
 				const { permission, role: name } = item;
 				const role = roles.find((role: IRole) => role.name === name);
-				const destinantion = await this.rolePermissionRepository.findOne({
+				const destinantion = await this.rolePermissionRepository.findOneBy({
 					tenantId: RequestContext.currentTenantId(), 
 					permission,
 					role

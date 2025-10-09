@@ -1,13 +1,35 @@
-import { IKnowledgeDocument, IKnowledgeDocumentPage, Metadata } from '@metad/contracts'
+import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentPage } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { KnowledgeDocument } from '../document.entity'
+import { Knowledgebase } from '../../core/entities/internal'
 
 @Entity('knowledge_document_page')
-export class KnowledgeDocumentPage extends TenantOrganizationBaseEntity implements IKnowledgeDocumentPage {
+export class KnowledgeDocumentPage
+	extends TenantOrganizationBaseEntity
+	implements IKnowledgeDocumentPage<ChunkMetadata>
+{
+	@ApiProperty({ type: () => Knowledgebase, readOnly: true })
+	@ManyToOne(() => Knowledgebase, {
+		nullable: true,
+		onUpdate: 'CASCADE',
+		onDelete: 'CASCADE'
+	})
+	@JoinColumn()
+	@IsOptional()
+	knowledgebase?: IKnowledgebase
+
+	@ApiProperty({ type: () => String, readOnly: true })
+	@RelationId((it: KnowledgeDocumentPage) => it.knowledgebase)
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	knowledgebaseId?: string
+
 	@ApiProperty({ type: () => KnowledgeDocument, readOnly: true })
 	@ManyToOne(() => KnowledgeDocument, {
 		nullable: true,
@@ -35,7 +57,7 @@ export class KnowledgeDocumentPage extends TenantOrganizationBaseEntity implemen
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	metadata: Metadata
+	metadata: ChunkMetadata
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

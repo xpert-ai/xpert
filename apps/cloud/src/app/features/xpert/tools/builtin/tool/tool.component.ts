@@ -62,7 +62,7 @@ export class XpertToolBuiltinToolComponent {
           tool: {
             name: tool.identity.name,
             description: this.i18n.transform(tool.description.human),
-            schema: tool,
+            schema: tool.schema || tool,
             toolsetId: this.toolset()?.id,
             toolset: this.toolset()
           }

@@ -41,14 +41,15 @@ export class XpertWorkflowConditionFormComponent {
 
   // Inputs
   readonly condition = model<TWFCaseCondition>()
-  // readonly varOptions = input.required<TXpertVariablesOptions>()
+  readonly variables = model<TWorkflowVarGroup[]>(null)
+  readonly valueVariables = input<TWorkflowVarGroup[]>(null)
 
   // Outputs
   readonly deleted = output<void>()
 
   // States
   readonly loading = signal(false)
-  readonly variables = model<TWorkflowVarGroup[]>(null)
+  
   readonly _variableSelector = attrModel(this.condition, 'variableSelector')
 
   readonly variableSelector = computed(() => {
@@ -67,7 +68,7 @@ export class XpertWorkflowConditionFormComponent {
   readonly groupVariables = computed(() => {
     return this.variables()
   })
-  readonly envVariables = computed(() => this.variables()?.filter((g) => g.group?.name === 'env'))
+  readonly envVariables = computed(() => this.valueVariables() || this.variables()?.filter((g) => g.group?.name === 'env'))
 
   readonly hoverDelete = signal(false)
 
@@ -229,6 +230,20 @@ export class XpertWorkflowConditionFormComponent {
             label: {
               zh_Hans: '不为空',
               en_US: 'is not empty'
+            }
+          },
+          {
+            value: WorkflowComparisonOperator.LIKE,
+            label: {
+              zh_Hans: '类似',
+              en_US: 'like'
+            }
+          },
+          {
+            value: WorkflowComparisonOperator.NOT_LIKE,
+            label: {
+              zh_Hans: '不类似',
+              en_US: 'not like'
             }
           }
         ]

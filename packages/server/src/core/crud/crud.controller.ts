@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { IPagination } from '@metad/contracts';
-import { DeepPartial } from 'typeorm';
+import { DeepPartial, FindOptionsWhere } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { BaseEntity } from '../entities/internal';
 import { ICrudService } from './icrud.service';
@@ -20,6 +20,7 @@ import { OptionsSelect, PaginationParams } from './pagination-params';
 import { AbstractValidationPipe, ParseJsonPipe, UUIDValidationPipe } from './../../shared/pipes';
 import { isNil, omitBy } from 'lodash';
 import { TenantOrganizationBaseDTO } from '../dto';
+import { transformWhere } from './transform-where';
 
 @ApiResponse({ 
 	status: HttpStatus.UNAUTHORIZED,
@@ -32,18 +33,24 @@ import { TenantOrganizationBaseDTO } from '../dto';
 @ApiBearerAuth()
 export abstract class CrudController<T extends BaseEntity> {
 	protected constructor(private readonly crudService: ICrudService<T>) {}
-
-	@ApiOperation({ summary: 'Find all records counts' })
+	
+	/**
+	 * Get the total count of all records.
+	 *
+	 * This endpoint retrieves the total count of all records for the given entity.
+	 *
+	 * @param options Optional query options for filtering records.
+	 * @returns A promise resolving to the count of all records.
+	 */
+	@ApiOperation({ summary: 'Get total record count' })
 	@ApiResponse({
 		status: HttpStatus.OK,
-		description: 'Found records count'
+		description: 'Total record count retrieved successfully'
 	})
 	@Get('count')
-    async getCount(
-		filter?: PaginationParams<T>
-	): Promise<number | void> {
-        return await this.crudService.count(filter);
-    }
+	async getCount(@Query() options?: FindOptionsWhere<T>): Promise<number | void> {
+		return await this.crudService.countBy(options);
+	}
 
 	@ApiOperation({ summary: 'Find all records using pagination' })
 	@ApiResponse({
@@ -75,7 +82,7 @@ export abstract class CrudController<T extends BaseEntity> {
 		...options: any[]
 	): Promise<IPagination<T>> {
 		return this.crudService.findAll(omitBy({
-			where: where ?? filter?.where,
+			where: transformWhere(where ?? filter?.where),
 			relations: relations ?? filter?.relations,
 			order: order ?? filter?.order,
 			take: take ?? filter?.take,
@@ -108,9 +115,10 @@ export abstract class CrudController<T extends BaseEntity> {
 	async findById(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<T>['relations'],
+		@Query('$select', ParseJsonPipe) select?: PaginationParams<T>['select'],
 		...options: any[]
 	): Promise<T> {
-		return this.crudService.findOne(id, { relations });
+		return this.crudService.findOneByIdString(id, { select, relations });
 	}
 
 	@ApiOperation({ summary: 'Create new record' })

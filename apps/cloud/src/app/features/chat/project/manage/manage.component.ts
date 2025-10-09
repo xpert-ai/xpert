@@ -2,7 +2,6 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
@@ -18,8 +17,8 @@ import {
   AiModelTypeEnum,
   AiProviderRole,
   getErrorMessage,
+  IIntegration,
   injectCopilots,
-  injectIntegrationAPI,
   injectToastr,
   injectUser,
   IXpertProject,
@@ -57,7 +56,7 @@ export class ChatProjectManageComponent {
   readonly confirmDelete = injectConfirmDelete()
   readonly i18nService = injectI18nService()
   readonly #copilots = injectCopilots()
-  readonly integrationAPI = injectIntegrationAPI()
+  // readonly integrationAPI = injectIntegrationAPI()
   readonly API_BASE_URL = inject(PAC_API_BASE_URL)
 
   // States
@@ -81,7 +80,8 @@ export class ChatProjectManageComponent {
     () => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)?.copilotModel
   )
 
-  readonly integrations = toSignal(this.integrationAPI.getAllInOrg().pipe(map(({ items }) => items)))
+  readonly integrations = model<IIntegration[]>(null)
+  // readonly integrations = toSignal(this.integrationAPI.getAllInOrg().pipe(map(({ items }) => items)))
   readonly vcs = attrModel(this.project, 'vcs')
   readonly integrationId = attrModel(this.vcs, 'integrationId')
 

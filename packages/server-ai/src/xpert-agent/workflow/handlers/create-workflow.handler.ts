@@ -1,23 +1,23 @@
-import { Annotation } from '@langchain/langgraph'
+import { Annotation, END } from '@langchain/langgraph'
 import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { createHttpNode } from '../http'
 import { createRouterNode } from '../router/index'
-import { createSplitterNode } from '../splitter'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 import { createTemplateNode } from '../template'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
 import { createToolNode } from '../tool'
-import { createAssignerNode } from '../assigner'
 import { createAgentToolNode } from '../agent-tool'
 import { createTriggerNode } from '../trigger'
 import { createCodeNode, WorkflowCodeValidator } from '../code/index'
-import { TStateChannel, TWorkflowGraphNode } from '../../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes, TStateChannel, TWorkflowGraphNode } from '../../../shared'
 import { createAnswerNode } from '../answer/node'
+
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -25,6 +25,9 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 
 	@Inject(WorkflowCodeValidator)
 	private codeValidator: WorkflowCodeValidator
+
+	@Inject(WorkflowNodeRegistry)
+	private readonly nodeRegistry: WorkflowNodeRegistry
 
 	constructor(
 		private readonly commandBus: CommandBus,
@@ -48,15 +51,15 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				})
 				break
 			}
-			case WorkflowNodeTypeEnum.ASSIGNER: {
-				workflow = createAssignerNode(graph, node, {
-					commandBus: this.commandBus,
-					queryBus: this.queryBus,
-					xpertId,
-					environment: options.environment,
-				})
-				break
-			}
+			// case WorkflowNodeTypeEnum.ASSIGNER: {
+			// 	workflow = createAssignerNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment,
+			// 	})
+			// 	break
+			// }
 			case WorkflowNodeTypeEnum.IF_ELSE: {
 				workflow = createRouterNode(graph, node, {
 					commandBus: this.commandBus,
@@ -86,10 +89,10 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				workflow = await this.commandBus.execute(new CreateWNClassifierCommand(xpert as IXpert, graph, node, options))
 				break
 			}
-			case WorkflowNodeTypeEnum.SPLITTER: {
-				workflow = createSplitterNode(graph, node)
-				break
-			}
+			// case WorkflowNodeTypeEnum.SPLITTER: {
+			// 	workflow = createSplitterNode(graph, node)
+			// 	break
+			// }
 			case WorkflowNodeTypeEnum.CODE: {
 				workflow = createCodeNode(graph, node, {
 					xpertId, 
@@ -203,8 +206,82 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				})
 				break
 			}
+			// case WorkflowNodeTypeEnum.SOURCE: {
+			// 	workflow = createSourceNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment
+			// 	})
+			// 	break
+			// }
+			// case WorkflowNodeTypeEnum.PROCESSOR: {
+			// 	workflow = createProcessorNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment,
+			// 		isDraft: options.isDraft
+			// 	})
+			// 	break
+			// }
+			// case WorkflowNodeTypeEnum.CHUNKER: {
+			// 	workflow = createChunkerNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment
+			// 	})
+			// 	break
+			// }
+			// case WorkflowNodeTypeEnum.UNDERSTANDING: {
+			// 	workflow = createUnderstandingNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment,
+			// 		isDraft: options.isDraft
+			// 	})
+			// 	break
+			// }
+			// case WorkflowNodeTypeEnum.KNOWLEDGE_BASE: {
+			// 	workflow = createKnowledgeBaseNode(graph, node, {
+			// 		commandBus: this.commandBus,
+			// 		queryBus: this.queryBus,
+			// 		xpertId,
+			// 		environment: options.environment,
+			// 		isDraft: options.isDraft
+			// 	})
+			// 	break
+			// }
 			default:
-				throw new Error(`Unsupported workflow node type: ${node.entity?.type}`)
+				try {
+					const creator = this.nodeRegistry.get(node.entity.type)
+
+					const result = creator.create({graph, node, xpertId, environment: options.environment, isDraft: options.isDraft})
+
+					workflow = {
+						workflowNode: {
+							name: result.name,
+							graph: result.graph,
+							ends: result.ends
+						},
+						channel: result.channel,
+						navigator: result.navigator ?? (async (state: typeof AgentStateAnnotation.State, config) => {
+							if (state[channelName(node.key)]['error']) {
+								return (
+									graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
+									END
+								)
+							}
+				
+							return nextWorkflowNodes(graph, node.key, state)
+						})
+					}
+					break
+				} catch (error) {
+				    throw new Error(`Unsupported workflow node type: ${node.entity?.type}: ${error.message}`)
+				}
 		}
 
 		return {

@@ -16,7 +16,7 @@ import {
 } from 'typeorm'
 import { User } from './internal'
 import { Transform } from 'class-transformer'
-import { UserPublicDTO } from '../../user/dto'
+import { UserPublicDTO } from '../dto/user-public.dto'
 
 export abstract class Model {
 	constructor(input?: any) {
@@ -35,7 +35,7 @@ export abstract class Model {
 	 * @param input 
 	 * @returns 
 	 */
-	instanceOf(input?: any) {
+	instanceOf?(input?: any) {
 		if (input) {
 			for (const [key, value] of Object.entries(input)) {
 				;(this as any)[key] = value

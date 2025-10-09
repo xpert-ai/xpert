@@ -25,7 +25,7 @@ import {
   TXpertProjectDSL,
   TXpertTeamDraft,
   XpertProjectService,
-  XpertService,
+  XpertAPIService,
   XpertTemplateService,
   XpertWorkspaceService
 } from 'apps/cloud/src/app/@core'
@@ -64,7 +64,7 @@ export class XpertProjectInstallComponent {
   readonly projectService = inject(XpertProjectService)
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly templateService = inject(XpertTemplateService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly myXperts = injectXperts()
   readonly #copilots = injectCopilots()

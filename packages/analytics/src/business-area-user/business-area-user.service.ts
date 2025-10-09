@@ -62,7 +62,7 @@ export class BusinessAreaUserService extends TenantOrganizationAwareCrudService<
 	async createBulk(businessAreaId: string, users: {id: string, role: BusinessAreaRole}[]) {
 		const entities = []
 		for (const {id, role} of users) {
-			const user = await this.userRepository.findOne(id)
+			const user = await this.userRepository.findOneBy({id})
 			const exists = await this.findOneOrFail({where: {
 				businessAreaId: businessAreaId,
 				userId: user.id,

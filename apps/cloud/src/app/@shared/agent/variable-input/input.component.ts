@@ -20,7 +20,7 @@ import { linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { myRxResource } from '@metad/ocap-angular/core'
-import { XpertService } from '@cloud/app/@core'
+import { XpertAPIService } from '@cloud/app/@core'
 import { of } from 'rxjs'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
 import { StateVariableSelectComponent } from '../state-variable-select/select.component'
@@ -46,7 +46,7 @@ export class XpertVariableInputComponent {
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly overlay = inject(Overlay)
   readonly #vcr = inject(ViewContainerRef)
-  readonly xpertAPI = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
 
   // Inputs
   readonly variables = model<TWorkflowVarGroup[]>()

@@ -9,6 +9,6 @@ export class FindApiKeyHandler implements IQueryHandler<FindApiKeyQuery> {
 
 	public async execute(command: FindApiKeyQuery): Promise<IApiKey> {
 		const token = command.input
-		return await this.service.findOneByConditions({ token: token }, { relations: ['createdBy']})
+		return await this.service.findOneByOptions({ where: { token: token }, relations: ['createdBy']})
 	}
 }

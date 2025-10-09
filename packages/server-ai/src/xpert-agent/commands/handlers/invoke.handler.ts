@@ -9,8 +9,10 @@ import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	GRAPH_NODE_TITLE_CONVERSATION,
-	IStorageFile,
+	IKnowledgebaseTask,
 	IXpertAgent,
+	KnowledgebaseChannel,
+	KnowledgeTask,
 	LanguagesEnum,
 	mapTranslationLanguage,
 	STATE_VARIABLE_HUMAN,
@@ -21,7 +23,7 @@ import {
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
-import { GetStorageFileQuery, RequestContext } from '@metad/server-core'
+import { RequestContext } from '@metad/server-core'
 import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -37,6 +39,7 @@ import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService } from '../../../environment'
 import { VolumeClient } from '../../../shared'
+import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -47,11 +50,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		private readonly queryBus: QueryBus,
 		private readonly checkpointSaver: CopilotCheckpointSaver,
 		private readonly envService: EnvironmentService,
-		private readonly i18nService: I18nService
+		private readonly i18nService: I18nService,
 	) {}
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
-		const { input, agentKeyOrName, xpert, options } = command
+		const { state, agentKeyOrName, xpert, options } = command
 		const { execution, subscriber, reject, memories } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
@@ -78,6 +81,20 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				mute
 			})
 		)
+
+		let task: IKnowledgebaseTask = null
+		if (xpert.knowledgebase) {
+			state[KnowledgebaseChannel] ??= {}
+			state[KnowledgebaseChannel]['knowledgebaseId'] ??= xpert.knowledgebase.id
+			if (!state[KnowledgebaseChannel][KnowledgeTask]) {
+				const taskService = await this.queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(new KnowledgeTaskServiceQuery())
+				task = await taskService.createTask(xpert.knowledgebase.id, {
+					taskType: 'ingest',
+					conversationId: options.conversationId
+				})
+				state[KnowledgebaseChannel][KnowledgeTask] = task.id
+			}
+		}
 		
 		const team = agent.team
 
@@ -137,23 +154,14 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			if (options.command.resume) {
 				graphInput = new Command(pick(options.command, 'resume', 'update'))
 			}
-		} else if(input?.input) {
-			if (input.files?.length) {
-				const storageFiles = await Promise.all(input.files.map((file) => this.queryBus.execute<GetStorageFileQuery, IStorageFile>(new GetStorageFileQuery(file.id))))
-				input.files = storageFiles.map((file) => ({
-					id: file.id,
-					originalName: file.originalName,
-					fileUrl: file.fileUrl,
-					mimetype: file.mimetype,
-					size: file.size
-				}))
-			}
+		} else if(state[STATE_VARIABLE_HUMAN]) {
 			graphInput = {
-				...omit(input, 'input', 'files'),
+				...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
 				/**
 				 * @deprecated use `human.input` instead
 				 */
-				input: input.input,
+				input: state[STATE_VARIABLE_HUMAN].input,
+				...(state ?? {}),
 				[STATE_VARIABLE_SYS]: {
 					language: languageCode,
 					user_email: user.email,
@@ -164,7 +172,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					workspace_url: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.conversationId)
 				},
 				[STATE_VARIABLE_HUMAN]: {
-					...input,
+					...state[STATE_VARIABLE_HUMAN],
 				},
 				memories
 			}
@@ -184,6 +192,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						executionId: execution.id,
 						xpertId: xpert.id,
 						agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
+						/**
+						 * @deprecated use customEvents instead
+						 */
 						subscriber
 					},
 					recursionLimit,

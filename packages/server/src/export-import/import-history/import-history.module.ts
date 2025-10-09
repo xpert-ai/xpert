@@ -8,7 +8,7 @@ import { ImportHistoryService } from './import-history.service';
 @Module({
 	imports: [
 		CqrsModule,
-		forwardRef(() => TypeOrmModule.forFeature([ ImportHistory ])),
+		TypeOrmModule.forFeature([ ImportHistory ]),
 	],
 	providers: [ ImportHistoryService, ...CommandHandlers ],
 	exports: [ ImportHistoryService ]

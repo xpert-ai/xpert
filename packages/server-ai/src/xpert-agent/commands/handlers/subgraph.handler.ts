@@ -14,7 +14,7 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, getWorkflowTriggers, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IWFNAgentTool, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertAgentConfig, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, getWorkflowTriggers, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IWFNAgentTool, IXpert, IXpertAgent, IXpertAgentExecution, KnowledgebaseChannel, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertAgentConfig, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -84,21 +84,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const thread_id = command.options.thread_id
 
 		// LLM
-		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
-			new GetXpertChatModelQuery(agent.team, agent, {
-				abortController: rootController,
-				usageCallback: assignExecutionUsage(execution)
-			})
-		)
+		let chatModel: BaseChatModel
+		if (!hiddenAgent) {
+			chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+				new GetXpertChatModelQuery(agent.team, agent, {
+					abortController: rootController,
+					usageCallback: assignExecutionUsage(execution)
+				})
+			)
 
-		// Record ai model info into execution
-		const copilotModel = agent.copilotModel ?? team.copilotModel
-		if (!copilotModel.copilot) {
-			throw new XpertConfigException(await this.i18nService.t('xpert.Error.CopilotModelConfigError', {lang: mapTranslationLanguage(RequestContext.getLanguageCode()), args: {model: copilotModel.model}}))
-		}
-		execution.metadata = {
-			provider: copilotModel.copilot.modelProvider?.providerName,
-			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
+			// Record ai model info into execution
+			const copilotModel = agent.copilotModel ?? team.copilotModel
+			if (!copilotModel?.copilot) {
+				throw new XpertConfigException(await this.i18nService.t('xpert.Error.CopilotModelConfigError', {lang: mapTranslationLanguage(RequestContext.getLanguageCode()), args: {model: copilotModel.model}}))
+			}
+			execution.metadata = {
+				provider: copilotModel.copilot.modelProvider?.providerName,
+				model: copilotModel.model || copilotModel.copilot.copilotModel?.model
+			}
 		}
 
 		// Create tools
@@ -424,6 +427,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (!nextNodes.length) {
 					workflowNodeEnds.push(END)
 				}
+				if (workflowNode.ends?.length) {
+					workflowNodeEnds.push(...workflowNode.ends)
+				}
 				// Tool
 				if (tool) {
 					workflowTools.push({tool, parentKey})
@@ -494,7 +500,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// State
+		// State channel for knowledgebase pipeline
+		if (xpert.knowledgebase) {
+			channels.push({
+				name: KnowledgebaseChannel,
+				annotation: Annotation<Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b ? {
+								...a,
+								...b,
+							} : a
+						},
+						default: () => ({})
+					})
+			})
+		}
+		// All workflow channels in local agent graph
 		const workflowNodes = allChannels(graph, agent.key)
+		// Collect channels used in the graph
 		const SubgraphStateAnnotation = Annotation.Root({
 			// Temp parameters
 			...(variables?.reduce((state, schema) => {

@@ -21,9 +21,10 @@ export function wrapAgentExecution<T>(
 		queryBus: QueryBus
 		subscriber: Subscriber<MessageEvent>
 		execution: Partial<IXpertAgentExecution>
+		catchError?: (error) => Promise<void>
 	}
 ) {
-	const { commandBus, queryBus, subscriber, execution } = params
+	const { commandBus, queryBus, subscriber, execution, catchError } = params
 	return async () => {
 		// Record start time
 		const timeStart = Date.now()
@@ -36,7 +37,7 @@ export function wrapAgentExecution<T>(
 		)
 		execution.id = subexecution.id
 		// Start agent execution event
-		subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, new XpertAgentExecutionDTO(subexecution)))
+		subscriber?.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, new XpertAgentExecutionDTO(subexecution)))
 
 		let status = XpertAgentExecutionStatusEnum.SUCCESS
 		let error = null
@@ -49,6 +50,11 @@ export function wrapAgentExecution<T>(
 		} catch (err) {
 			status = XpertAgentExecutionStatusEnum.ERROR
 			error = getErrorMessage(err)
+			if (catchError) {
+				catchError(err).catch(() => {
+					// ignore
+				})
+			}
 			throw err
 		} finally {
 			const timeEnd = Date.now()
@@ -71,7 +77,7 @@ export function wrapAgentExecution<T>(
 			subexecution = await queryBus.execute(new XpertAgentExecutionOneQuery(subexecution.id))
 
 			// End agent execution event
-			subscriber.next(
+			subscriber?.next(
 				messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, new XpertAgentExecutionDTO(subexecution))
 			)
 		}

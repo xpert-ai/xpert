@@ -14,7 +14,7 @@ import { groupBy } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { CreationTable, getErrorMessage } from '../../../@core'
 import { UploadSheetType, WorkBook, convertExcelDate2ISO, readExcelJson } from '../types'
-import { UploadComponent, UploadFile } from '../../../@shared/files'
+import { FilesUploadComponent, UploadFile } from '../../../@shared/files'
 import { MaterialModule } from '../../../@shared/material.module'
 import { createTimer } from '../../../@shared/timer'
 
@@ -31,7 +31,7 @@ import { createTimer } from '../../../@shared/timer'
     TranslateModule,
     NgmInputComponent,
     OcapCoreModule,
-    UploadComponent
+    FilesUploadComponent
   ]
 })
 export class ModelUploadComponent {

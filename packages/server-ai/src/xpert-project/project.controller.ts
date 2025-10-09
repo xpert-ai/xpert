@@ -194,6 +194,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		const client = new VolumeClient({
 			tenantId: project.tenantId,
 			userId: project.ownerId,
+			catalog: 'projects',
 			projectId: project.id
 		})
 
@@ -213,6 +214,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		const client = new VolumeClient({
 			tenantId: RequestContext.currentTenantId(),
 			userId: RequestContext.currentUserId(),
+			catalog: 'projects',
 			projectId: id
 		})
 
@@ -235,6 +237,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		const client = new VolumeClient({
 			tenantId: RequestContext.currentTenantId(),
 			userId: RequestContext.currentUserId(),
+			catalog: 'projects',
 			projectId: id
 		})
 		try {

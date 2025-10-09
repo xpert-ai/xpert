@@ -1,5 +1,5 @@
 import { Embeddings } from '@langchain/core/embeddings'
-import { AiProviderRole, ICopilot, TLongTermMemory, TXpertTeamDraft } from '@metad/contracts'
+import { AiProviderRole, ICopilot, IWFNTrigger, TChatFrom, TLongTermMemory, TXpertTeamDraft } from '@metad/contracts'
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { CopilotGetOneQuery, CopilotOneByRoleQuery } from '../copilot'
@@ -7,6 +7,16 @@ import { CopilotModelGetEmbeddingsQuery } from '../copilot-model'
 import { CopilotNotFoundException } from '../core/errors'
 
 export const EventNameXpertValidate = 'xpert.validate'
+export const EventName_XpertPublished = 'xpert.published'
+export const QUEUE_XPERT_TRIGGER = 'xpert-trigger'
+
+export type TTriggerJob = {
+	userId: string
+	xpertId: string
+	from?: TChatFrom
+	state: any
+	trigger: IWFNTrigger
+}
 
 export class XpertDraftValidateEvent {
   constructor(

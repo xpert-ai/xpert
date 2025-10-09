@@ -1,2 +1,6 @@
 <!-- Parameters part -->
-<xpert-parameters-edit [(ngModel)]="parameters" />
+@if (from() === 'chat') {
+  <xpert-parameters-edit [(ngModel)]="parameters" />
+} @else if (provider()) {
+  <json-schema-form [schema]="provider()?.configSchema" [(ngModel)]="config" />
+}

@@ -138,7 +138,7 @@ export class ChatInputComponent {
     this.promptControl.setValue('')
 
     // Send message
-    this.chatService.chat({ id, content, files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName})) })
+    this.chatService.chat({ id, content, files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()})) })
 
     // Clear
     this.attachments.set([])

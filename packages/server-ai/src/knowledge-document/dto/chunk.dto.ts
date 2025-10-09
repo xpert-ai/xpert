@@ -38,6 +38,6 @@ export class DocumentChunkDTO implements IDocumentChunk {
 
 	constructor(partial: Partial<DocumentChunkDTO>) {
 		Object.assign(this, partial)
-		this.id = partial.id || partial.metadata.chunk_id
+		this.id = partial.id || partial.metadata.chunkId
 	}
 }

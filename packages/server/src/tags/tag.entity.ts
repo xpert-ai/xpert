@@ -3,10 +3,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
 	IEmployee,
 	IOrganization,
-	IOrganizationDepartment,
 	ITag,
 	IUser,
-	IOrganizationProject,
 	TagCategoryEnum,
 	I18nObject,
 } from '@metad/contracts';
@@ -15,8 +13,6 @@ import {
 	Organization,
 	TenantOrganizationBaseEntity,
 	User,
-	OrganizationDepartment,
-	OrganizationProject
 } from '../core/entities/internal';
 import { IsEnum, IsJSON, IsOptional } from 'class-validator';
 
@@ -57,12 +53,6 @@ export class Tag extends TenantOrganizationBaseEntity implements ITag {
 	@Column({ default: false })
 	isSystem?: boolean;
 
-	@ManyToMany(
-		() => OrganizationDepartment,
-		(organizationDepartment) => organizationDepartment.tags
-	)
-	organizationDepartment?: IOrganizationDepartment[];
-
 	@ManyToMany(() => User)
 	@JoinTable({
 		name: 'tag_user'
@@ -75,13 +65,4 @@ export class Tag extends TenantOrganizationBaseEntity implements ITag {
 		name: 'tag_organization'
 	})
     organizations?: IOrganization[];
-
-	/**
-	 * OrganizationProject
-	 */
-	@ApiProperty({ type: () => OrganizationProject, isArray: true })
-	@ManyToMany(() => OrganizationProject, (organizationProject) => organizationProject.tags, {
-		onDelete: 'CASCADE'
-	})
-	organizationProjects?: IOrganizationProject[];
 }

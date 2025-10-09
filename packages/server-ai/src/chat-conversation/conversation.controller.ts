@@ -109,7 +109,8 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		const conversation = await this.service.findOne(id)
 		const client = new VolumeClient({
 			tenantId: conversation.tenantId,
-			userId: conversation.createdById
+			catalog: 'users',
+			userId: conversation.createdById,
 		})
 
 		return await client.list({ path: path || conversation.threadId, deepth })

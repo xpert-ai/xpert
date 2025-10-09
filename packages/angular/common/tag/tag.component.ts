@@ -36,7 +36,7 @@ export class NgmTagsComponent implements ControlValueAccessor {
 
   @Input() tags: ITagOption<string>[] = []
   @Input() exclude = false
-  @Input() color: 'primary' | 'blue' | 'green' | 'yellow' | 'red' | 'gray'
+  @Input() color: 'primary' | 'blue' | 'green' | 'yellow' | 'red' | 'gray' | 'orange'
   @HostBinding('class.selectable')
   @Input()
   get selectable() {

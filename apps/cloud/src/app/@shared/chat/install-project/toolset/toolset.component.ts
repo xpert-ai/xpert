@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { AiModelTypeEnum, injectToastr, IXpertProject, IXpertToolset, XpertService, XpertToolsetService } from '@cloud/app/@core'
+import { AiModelTypeEnum, injectToastr, IXpertProject, IXpertToolset, XpertAPIService, XpertToolsetService } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -32,7 +32,7 @@ import { map } from 'rxjs/operators'
 })
 export class ProjectInstallToolsetComponent {
   eAiModelTypeEnum = AiModelTypeEnum
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #dialog = inject(Dialog)

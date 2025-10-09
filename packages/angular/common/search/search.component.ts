@@ -5,7 +5,9 @@ import { MatInputModule } from '@angular/material/input'
 import { DisplayDensity } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
-
+/**
+ * @deprecated use headless components instead
+ */
 @Component({
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MatInputModule],

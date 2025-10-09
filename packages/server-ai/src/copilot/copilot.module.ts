@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { TenantModule } from '@metad/server-core'
 import { UserModule } from '@metad/server-core'
 import { CopilotController } from './copilot.controller'
@@ -13,7 +13,7 @@ import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/copilot', module: CopilotModule }]),
+		RouterModule.register([{ path: '/copilot', module: CopilotModule }]),
 		TypeOrmModule.forFeature([Copilot]),
 		TenantModule,
 		CqrsModule,

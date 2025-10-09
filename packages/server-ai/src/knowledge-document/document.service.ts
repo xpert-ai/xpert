@@ -1,31 +1,59 @@
-import { IDocumentChunk, IKnowledgeDocument, KBDocumentStatusEnum } from '@metad/contracts'
+import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum, KnowledgeStructureEnum } from '@metad/contracts'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { BadRequestException, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
+import { ChunkMetadata, DocumentSourceRegistry, mergeParentChildChunks, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
-import { In, Repository } from 'typeorm'
+import { DataSource, DeepPartial, In, Repository } from 'typeorm'
 import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
+import { KnowledgeDocumentPage } from '../core/entities/internal'
+
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
 	readonly #logger = new Logger(KnowledgeDocumentService.name)
 
+	@InjectRepository(KnowledgeDocumentPage)
+	private readonly pageRepository: Repository<KnowledgeDocumentPage>
+
+	@Inject(DocumentSourceRegistry)
+	private readonly docSourceRegistry: DocumentSourceRegistry;
+
+	@Inject(TextSplitterRegistry)
+	private readonly textSplitterRegistry: TextSplitterRegistry
+
 	constructor(
 		@InjectRepository(KnowledgeDocument)
-		repository: Repository<KnowledgeDocument>,
+		readonly repo: Repository<KnowledgeDocument>,
+
+		private readonly dataSource: DataSource,
+
 		private readonly storageFileService: StorageFileService,
+
+		@Inject(forwardRef(() => KnowledgebaseService))
 		private readonly knowledgebaseService: KnowledgebaseService,
+		
 		private readonly commandBus: CommandBus,
 		@InjectQueue('embedding-document') private docQueue: Queue
 	) {
-		super(repository)
+		super(repo)
 	}
 
+	async findAncestors(id: string) {
+		const treeRepo = this.dataSource.getTreeRepository(KnowledgeDocument)
+		const entity = await treeRepo.findOneBy({ id })
+		const parents = await treeRepo.findAncestors(entity, {depth: 5})
+		return parents
+	}
+
+	/**
+	 * @deprecated
+	 */
 	async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
 		// Complete file type
 		if (!document.type) {
@@ -46,13 +74,45 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		if (!documents?.length) {
 			return []
 		}
+
+		// Update chunkStructure
+		const textSplitterType = documents[0].parserConfig?.textSplitterType
+		if (textSplitterType) {
+			const textSplitterStrategy = this.textSplitterRegistry.get(textSplitterType)
+			if (textSplitterStrategy) {
+				const structure = textSplitterStrategy.structure
+				const knowledgebase = await this.knowledgebaseService.findOneByIdString(documents[0].knowledgebaseId)
+				if (knowledgebase.structure && knowledgebase.structure !== structure) {
+					throw new BadRequestException(`Inconsistent chunk structure between knowledgebase (${knowledgebase.structure}) and document (${structure})`)
+				}
+				if (!knowledgebase.structure) {
+					await this.knowledgebaseService.update(knowledgebase.id, { structure })
+				}
+			}
+		}
+
 		return await Promise.all(documents.map((document) => this.createDocument(document)))
 	}
 
-	async save(document: KnowledgeDocument | KnowledgeDocument[]): Promise<KnowledgeDocument | KnowledgeDocument[]> {
-		return Array.isArray(document)
-			? await Promise.all(document.map((d) => this.repository.save(d)))
-			: await this.repository.save(document)
+	async updateBulk(entities: Partial<IKnowledgeDocument>[]): Promise<void> {
+		if (!entities?.length) {
+			return
+		}
+		await Promise.all(entities.map((entity) => this.update(entity.id, entity)))
+	}
+
+	async deleteBulk(ids: string[]): Promise<void> {
+		await this.repository.delete(ids)
+	}
+
+	async save(document: DeepPartial<KnowledgeDocument>)
+	async save(document: DeepPartial<KnowledgeDocument>[])
+	async save(document) {
+		return await this.repository.save(document)
+	}
+
+	async createPageBulk(documentId: string, pages: Partial<IKnowledgeDocumentPage<ChunkMetadata>>[]) {
+		return await this.pageRepository.save(pages.map((page) => ({ ...page, documentId })))
 	}
 
 	async deletePage(documentId: string, id: string) {
@@ -71,7 +131,43 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
 		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
-		return await vectorStore.getChunks(id, params)
+		
+		if (document.knowledgebase.structure === KnowledgeStructureEnum.ParentChild && !params.search) {
+			const pages = await this.pageRepository.find({
+				where: { tenantId: document.tenantId, documentId: document.id },
+				take: params.take,
+				skip: params.skip,
+				order: { createdAt: 'DESC' }
+			})
+			const pageTotal = await this.pageRepository.count({
+				where: { tenantId: document.tenantId, documentId: document.id }
+			})
+			return {
+					items: pages,
+					total: pageTotal
+				}
+		} else {
+			const result = await vectorStore.getChunks(id, params)
+			// if (document.knowledgebase.chunkStructure === KnowledgeChunkStructureEnum.ParentChild) {
+			const ids = result.items.map((item) => item.metadata?.pageId).filter(Boolean) as string[]
+			if (ids.length) {
+				const pages = await this.pageRepository.find({
+					where: {
+						tenantId: document.tenantId,
+						documentId: document.id,
+						id: In(ids) 
+					},
+					take: params.take,
+					skip: params.skip,
+					order: { createdAt: 'DESC' },
+				})
+				return {
+					items: mergeParentChildChunks(pages, result.items as Document<ChunkMetadata>[]),
+				}
+			}
+
+			return result
+		}
 	}
 
 	async createChunk(id: string, entity: IDocumentChunk) {
@@ -154,5 +250,22 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		await vectorStore.deleteKnowledgeDocument(document)
 		const result = await super.delete(id)
 		return result
+	}
+
+	// Document source connection
+	async connectDocumentSource(type: string, config: any) {
+		const documentSource = this.docSourceRegistry.get(type)
+		if (!documentSource) {
+			throw new BadRequestException(`Document source '${type}' not found`)
+		}
+
+		try {
+			const docs = await documentSource.test(config)
+			
+			return docs
+		} catch (err) {
+			this.#logger.error(`Failed to connect document source '${type}'`, err)
+			throw new BadRequestException(`Failed to connect document source '${type}': ${err.message}`)
+		}
 	}
 }

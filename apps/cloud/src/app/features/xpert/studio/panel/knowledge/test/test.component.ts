@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, model, output, signal } from '@angular/core'
-import { getErrorMessage, IKnowledgebase, KnowledgebaseService, TKBRecallParams, ToastrService } from 'apps/cloud/src/app/@core'
+import { DocumentMetadata, getErrorMessage, IKnowledgebase, KnowledgebaseService, TKBRecallParams, ToastrService } from 'apps/cloud/src/app/@core'
 import { CommonModule } from '@angular/common'
 import { Subscription } from 'rxjs'
 import { FormsModule } from '@angular/forms'
@@ -31,7 +31,7 @@ export class XpertKnowledgeTestComponent {
 
   // States
   readonly query = model<string>()
-  readonly docs = signal<{ doc: DocumentInterface; score: number }[]>([])
+  readonly docs = signal<DocumentInterface<DocumentMetadata>[]>([])
 
   readonly running = signal(false)
   #runSubscription: Subscription = null

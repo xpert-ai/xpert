@@ -15,7 +15,7 @@
         "assets": [
           {
             "glob": "README.md",
-            "input": ".",
+            "input": "packages/contracts/",
             "output": "."
           }
         ],
@@ -39,6 +39,13 @@
       "outputs": ["{workspaceRoot}/coverage/packages/contracts"],
       "options": {
         "jestConfig": "packages/contracts/jest.config.ts"
+      }
+    },
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "options": {
+        "packageRoot": "dist/packages/contracts",
+        "access": "public"
       }
     }
   },

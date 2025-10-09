@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
-import { injectApiBaseUrl, injectToastr, XpertService } from '../../../../../@core'
+import { injectApiBaseUrl, injectToastr, XpertAPIService } from '../../../../../@core'
 import { XpertComponent } from '../../xpert.component'
 import { StatisticsChartComponent, StatisticsTokenUsageComponent } from 'apps/cloud/src/app/@shared/charts'
 
@@ -37,7 +37,7 @@ import { StatisticsChartComponent, StatisticsTokenUsageComponent } from 'apps/cl
 })
 export class XpertStatisticsComponent {
   TimeRanges = TimeRangeOptions
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly xpertComponent = inject(XpertComponent)
   readonly apiBaseUrl = injectApiBaseUrl()

@@ -3,7 +3,7 @@ import { DatabaseModule, SharedModule, TenantModule } from '@metad/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { SemanticModelModule } from '../model/model.module'
 import { ModelMemberController } from './member.controller'
 import { SemanticModelMember } from './member.entity'
@@ -14,8 +14,8 @@ import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/semantic-model-member', module: SemanticModelMemberModule }]),
-		forwardRef(() => TypeOrmModule.forFeature([SemanticModelMember])),
+		RouterModule.register([{ path: '/semantic-model-member', module: SemanticModelMemberModule }]),
+		TypeOrmModule.forFeature([SemanticModelMember]),
 		forwardRef(() => TenantModule),
 		SharedModule,
 		CqrsModule,

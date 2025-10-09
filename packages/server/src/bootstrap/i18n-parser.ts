@@ -8,9 +8,9 @@ import {
   merge as ObservableMerge,
   from as ObservableFrom,
 } from 'rxjs';
-import chokidar from 'chokidar';
+import * as chokidar from 'chokidar';
 import { switchMap } from 'rxjs/operators';
-import { I18N_PARSER_OPTIONS, I18nParser, I18nTranslation } from 'nestjs-i18n';
+import { I18N_LOADER_OPTIONS, I18nLoader, I18nTranslation } from 'nestjs-i18n';
 const readFile = promisify(fs.readFile);
 const exists = promisify(fs.exists);
 const readdir = promisify(fs.readdir);
@@ -27,13 +27,14 @@ const defaultOptions: Partial<I18nJsonParserOptions> = {
   watch: false,
 };
 
-export class I18nJsonParser extends I18nParser implements OnModuleDestroy {
+export class I18nJsonParser extends I18nLoader implements OnModuleDestroy {
+
   private watcher?: chokidar.FSWatcher;
 
   private events: Subject<string> = new Subject();
 
   constructor(
-    @Inject(I18N_PARSER_OPTIONS)
+    @Inject(I18N_LOADER_OPTIONS)
     private options: I18nJsonParserOptions,
   ) {
     super();
@@ -73,7 +74,7 @@ export class I18nJsonParser extends I18nParser implements OnModuleDestroy {
     return Array.from(new Set(languageSets.flat()));
   }
 
-  async parse(): Promise<I18nTranslation | Observable<I18nTranslation>> {
+  async load(): Promise<I18nTranslation | Observable<I18nTranslation>> {
     if (this.options.watch) {
       return ObservableMerge(
         ObservableFrom(this.parseTranslations()),

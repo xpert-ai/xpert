@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { CommandHandlers } from './commands/handlers'
 import { ChatConversationController } from './conversation.controller'
 import { ChatConversation } from './conversation.entity'
@@ -14,7 +14,7 @@ import { ChatMessageModule } from '../chat-message/chat-message.module'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/chat-conversation', module: ChatConversationModule }]),
+		RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
 		TypeOrmModule.forFeature([ChatConversation]),
 		SharedModule,
 		CqrsModule,

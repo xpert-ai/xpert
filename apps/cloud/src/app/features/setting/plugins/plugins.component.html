@@ -1,0 +1,130 @@
+<div class="pac-page-header">
+  <div class="w-full flex justify-between items-center">
+    <div class="pac-page-title">{{ 'PAC.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}</div>
+  </div>
+</div>
+
+<div class="flex flex-col items-start justify-center gap-3 self-stretch px-12 pb-3 pt-1">
+  <div class="h-px self-stretch bg-divider-subtle"></div>
+  <div class="flex items-center gap-2 self-stretch">
+    <ngm-select class="inline-block w-[160px]" multiple [selectOptions]="categoriesOptions()"
+      [placeholder]="'PAC.Plugin.AllCategories' | translate: { Default: 'All Categories' }"
+      [(ngModel)]="categories" />
+    <ngm-select class="inline-block w-[160px]" multiple searchable [selectOptions]="keywordsOptions()"
+      [placeholder]="'PAC.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
+      [(ngModel)]="keywords" />
+
+    <div class="relative flex w-[200px] items-center rounded-lg">
+      <i class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
+      <input
+        class="w-full appearance-none border border-transparent py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px] bg-components-input-bg-normal"
+        [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+        [(ngModel)]="searchText"
+      />
+    </div>
+  </div>
+</div>
+
+<div class="flex grow flex-wrap content-start items-start justify-center gap-2 self-stretch overflow-y-auto px-12">
+  <div class="w-full">
+    <div class="pb-3">
+      <div class="grid grid-cols-2 gap-3">
+        @for (plugin of filteredPlugins(); track plugin.name) {
+          <div
+            class="relative overflow-hidden rounded-xl border-[1.5px] border-background-section-burn p-1 bg-gray-100"
+          >
+            <div
+              class="relative z-10 rounded-xl border-[0.5px]
+                bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
+            >
+              <div class="absolute right-0 top-0 flex pl-[13px]">
+                <svg
+                  width="13"
+                  height="18"
+                  viewBox="0 0 13 20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="-mr-[1px] text-gray-100"
+                >
+                  <path
+                    id="Shape"
+                    d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
+                    fill="currentColor"
+                  ></path>
+                </svg>
+                <div
+                  class="text-xs font-semibold font-body uppercase h-[19px] rounded-tr-xl bg-gray-100 pr-2 leading-5 text-text-tertiary"
+                >
+                  {{ plugin.meta.category }}
+                </div>
+              </div>
+              <div class="flex">
+                <xp-icon [icon]="plugin.meta.icon" size="24" class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-components-panel-border-subtle"/>
+                <div class="ml-3 w-0 grow">
+                  <div class="flex h-5 items-center">
+                    <div class="system-md-semibold truncate text-text-primary" [title]="plugin.meta.displayName"
+                      [ngmHighlight]="searchText()" [content]="plugin.meta.displayName">{{plugin.meta.displayName}}</div>
+                    <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
+                    <div
+                      class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
+                    >
+                      {{ plugin.meta.version }}
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm text-text-tertiary font-body truncate" [title]="plugin.meta.description"
+                      [ngmHighlight]="searchText()" [content]="plugin.meta.description">{{plugin.meta.description}}</div>
+                    <!-- <div>
+                      <div class="flex space-x-1">
+                        <button
+                          type="button"
+                          class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive"
+                          data-state="closed"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            fill="currentColor"
+                            class="remixicon h-4 w-4"
+                          >
+                            <path
+                              d="M17 6H22V8H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V8H2V6H7V3C7 2.44772 7.44772 2 8 2H16C16.5523 2 17 2.44772 17 3V6ZM18 8H6V20H18V8ZM9 11H11V17H9V11ZM13 11H15V17H13V11ZM9 4V6H15V4H9Z"
+                            ></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div> -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mb-1 mt-2 flex h-4 items-center gap-x-2 px-2">
+              <div class="flex grow items-center overflow-hidden">
+                <div class="flex h-4 items-center space-x-0.5">
+                  <span class="system-xs-regular shrink-0 text-text-tertiary">{{plugin.meta.author}}</span>
+                  <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
+                  <span class="system-xs-regular shrink-0 grow truncate text-text-tertiary w-auto max-w-[250px] font-mono">
+                    {{plugin.meta.name}}</span
+                  >
+                </div>
+              </div>
+              <div class="flex shrink-0 items-center">
+                <div class="flex w-full items-center gap-1 overflow-hidden text-text-tertiary">
+                  @for (keyword of plugin.meta.keywords; track keyword) {
+                    <div class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-gray-50 px-[5px] py-[1px] hover:bg-gray-100"
+                      [ngClass]="{'text-primary-500': keywords().includes(keyword)}"
+                      (click)="toggleKeyword(keyword)">
+                      <div class="text-xs font-medium uppercase font-body text-nowrap"># {{keyword}}</div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

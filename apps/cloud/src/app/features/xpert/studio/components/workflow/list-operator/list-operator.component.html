@@ -1,0 +1,14 @@
+<div fNodeInput [fInputId]="node().key" fInputConnectableSide="left" class="left absolute"></div>
+
+<div class="relative bg-zinc-50 flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder">
+  <div class="rounded-md px-2 py-1 bg-zinc-50 text-primary-500 font-mono truncate text-left text-sm" [title]="input()">
+    {{ input() }}
+  </div>
+
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()">
+    <div class="inner-dot cursor-crosshair">
+      <ngm-plus-svg class="w-2 h-2 text-white" />
+    </div>
+  </div>
+</div>

@@ -5,9 +5,6 @@ import { AuthService } from '../../../auth/auth.service';
 import { getUserDummyImage } from '../../../core';
 import { Employee } from '../../../employee/employee.entity';
 import { OrganizationService } from '../../../organization/organization.service';
-import { OrganizationContactService } from '../../../organization-contact/organization-contact.service';
-import { OrganizationDepartmentService } from '../../../organization-department/organization-department.service';
-import { OrganizationProjectService } from '../../../organization-project/organization-project.service';
 import { InviteService } from '../../invite.service';
 import { InviteAcceptEmployeeCommand } from '../invite.accept-employee.command';
 
@@ -21,11 +18,7 @@ export class InviteAcceptEmployeeHandler
 	implements ICommandHandler<InviteAcceptEmployeeCommand> {
 	constructor(
 		private readonly inviteService: InviteService,
-		// private readonly employeeService: EmployeeService,
 		private readonly organizationService: OrganizationService,
-		private readonly organizationProjectService: OrganizationProjectService,
-		private readonly organizationContactService: OrganizationContactService,
-		private readonly organizationDepartmentsService: OrganizationDepartmentService,
 		private readonly authService: AuthService
 	) {}
 
@@ -93,43 +86,6 @@ export class InviteAcceptEmployeeHandler
 	}
 
 	updateEmployeeMemberships = (invite: IInvite, employee: Employee) => {
-		// //Update project members
-		// if (invite.projects) {
-		// 	invite.projects.forEach((project) => {
-		// 		let members = project.members || [];
-		// 		members = [...members, employee];
-		// 		//This will call save() on the project (and not really create a new organization project)
-		// 		this.organizationProjectService.create({
-		// 			...project,
-		// 			members
-		// 		});
-		// 	});
-		// }
-			
-		// //Update organization Contacts members
-		// if (invite.organizationContacts) {
-		// 	invite.organizationContacts.forEach((organizationContact) => {
-		// 		let members = organizationContact.members || [];
-		// 		members = [...members, employee];
-		// 		//This will call save() on the organizationContacts (and not really create a new organization Contacts)
-		// 		this.organizationContactService.create({
-		// 			...organizationContact,
-		// 			members
-		// 		});
-		// 	});
-		// }
-
-		//Update department members
-		if (invite.departments) {
-			invite.departments.forEach((department) => {
-				let members = department.members || [];
-				members = [...members, employee];
-				//This will call save() on the department (and not really create a new organization department)
-				this.organizationDepartmentsService.create({
-					...department,
-					members
-				});
-			});
-		}
+		// //Update project members	
 	};
 }

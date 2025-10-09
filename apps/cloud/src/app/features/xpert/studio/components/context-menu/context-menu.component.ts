@@ -1,7 +1,6 @@
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, computed, inject, TemplateRef, ViewChild } from '@angular/core'
-import { MatTabsModule } from '@angular/material/tabs'
+import { ChangeDetectorRef, Component, computed, effect, inject, signal, TemplateRef, ViewChild } from '@angular/core'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,10 +27,29 @@ import {
   IWFNAgentTool,
   TASK_DESCRIPTION_PREFIX,
   TASK_DESCRIPTION_SUFFIX,
-  IWFNTrigger
+  IWFNTrigger,
+  TWorkflowTriggerMeta,
+  XpertTypeEnum,
+  KnowledgebaseService,
+  IDocumentSourceProvider,
+  IWFNSource,
+  IWFNProcessor,
+  IDocumentProcessorProvider,
+  IDocumentChunkerProvider,
+  IDocumentUnderstandingProvider,
+  IWFNChunker,
+  IWFNUnderstanding,
+  genPipelineSourceKey,
+  genPipelineProcessorKey,
+  genPipelineChunkerKey,
+  genPipelineUnderstandingKey,
+  IWFNListOperator,
+  genListOperatorKey,
+  IWFNVariableAggregator,
+  genVariableAggregatorKey
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { Subscription } from 'rxjs'
+import { map, Subscription } from 'rxjs'
 import {
   genXpertAnswerKey,
   genXpertAssignerKey,
@@ -47,13 +65,15 @@ import {
   genXpertToolKey,
   genXpertAgentToolKey,
   genXpertTaskKey,
-  genXpertTriggerKey
+  genXpertTriggerKey,
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { CustomIconComponent, IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -63,18 +83,22 @@ import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.compone
     CommonModule,
     CdkMenuModule,
     TranslateModule,
-    MatTabsModule,
+    NgmI18nPipe,
+    IconComponent,
     XpertStudioKnowledgeMenuComponent,
     XpertStudioToolsetMenuComponent,
     XpertInlineProfileComponent,
-    XpertWorkflowIconComponent
+    XpertWorkflowIconComponent,
+    CustomIconComponent
   ],
   templateUrl: './context-menu.component.html',
   styleUrl: './context-menu.component.scss'
 })
 export class XpertStudioContextMenuComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
+  eXpertTypeEnum = XpertTypeEnum
 
+  readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly apiService = inject(XpertStudioApiService)
   readonly selectionService = inject(SelectionService)
   private root = inject(XpertStudioComponent)
@@ -92,6 +116,17 @@ export class XpertStudioContextMenuComponent {
   readonly collaborators$ = this.apiService.collaborators$
   readonly nodes = computed(() => this.root.viewModel()?.nodes)
   readonly agents = computed(() => this.nodes()?.filter((n) => n.type === 'agent'))
+  readonly xpertType = computed(() => this.apiService.team()?.type)
+
+  // Workflow providers
+  readonly triggerProviders = this.apiService.triggerProviders
+ 
+  // Knowledge Pipeline
+  readonly pipelineType = signal<'source' | 'processor' | 'chunker' | 'understanding' | 'embedder'>('source')
+  readonly dataSources$ = this.knowledgebaseAPI.documentSourceStrategies$
+  readonly transformers$ = this.knowledgebaseAPI.documentTransformerStrategies$
+  readonly imageUnderstandings$ = this.knowledgebaseAPI.understandingStrategies$.pipe(map((items) => items.map((_) => _.meta)))
+  readonly textSplitters$ = this.knowledgebaseAPI.textSplitterStrategies$
 
   public ngOnInit(): void {
     this.subscriptions.add(this.subscribeToSelectionChanges())
@@ -304,6 +339,24 @@ export class XpertStudioContextMenuComponent {
     } as IWFNSubflow)
   }
 
+  addWorkflowListOperator() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.LIST_OPERATOR).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.LIST_OPERATOR,
+      key: genListOperatorKey(),
+      title: this.#translate.instant('PAC.Workflow.ListOperator', { Default: 'List Operator' }) + (length ? ` ${length + 1}` : '')
+    } as IWFNListOperator)
+  }
+
+  addWorkflowVariableAggregator() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR,
+      key: genVariableAggregatorKey(),
+      title: this.#translate.instant('PAC.Workflow.VariableAggregator', { Default: 'Variable Aggregator' }) + (length ? ` ${length + 1}` : '')
+    } as IWFNVariableAggregator)
+  }
+
   addWorkflowAgentTool() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.AGENT_TOOL).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
@@ -324,12 +377,12 @@ export class XpertStudioContextMenuComponent {
     } as IWFNTask)
   }
 
-  addWorkflowTrigger(from: string) {
+  addWorkflowTrigger(from: string | TWorkflowTriggerMeta) {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TRIGGER,
       key: genXpertTriggerKey(),
       title: this.#translate.instant('PAC.Workflow.Trigger', { Default: 'Trigger' }),
-      from
+      from: typeof from === 'string' ? from : from.name
     } as IWFNTrigger)
   }
 
@@ -349,5 +402,46 @@ export class XpertStudioContextMenuComponent {
 
   public dispose(): void {
     // this.selectionService.reset()
+  }
+
+  // Knowledge Pipelines
+  addPipelineSource(provider: IDocumentSourceProvider) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.SOURCE).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.SOURCE,
+      key: genPipelineSourceKey(),
+      title: this.#translate.instant('PAC.Xpert.Source', { Default: 'Source' }) + (length ? ` ${length + 1}` : ''),
+      provider: provider.name,
+    } as IWFNSource)
+  }
+
+  addPipelineProcessor(provider: IDocumentProcessorProvider) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.PROCESSOR).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.PROCESSOR,
+      key: genPipelineProcessorKey(),
+      title: this.#translate.instant('PAC.Xpert.Processor', { Default: 'Processor' }) + (length ? ` ${length + 1}` : ''),
+      provider: provider.name,
+    } as IWFNProcessor)
+  }
+
+  addPipelineChunker(provider: IDocumentChunkerProvider) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CHUNKER).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.CHUNKER,
+      key: genPipelineChunkerKey(),
+      title: this.#translate.instant('PAC.Xpert.Chunker', { Default: 'Chunker' }) + (length ? ` ${length + 1}` : ''),
+      provider: provider.name,
+    } as IWFNChunker)
+  }
+
+  addPipelineUnderstanding(provider: IDocumentUnderstandingProvider) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.UNDERSTANDING).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.UNDERSTANDING,
+      key: genPipelineUnderstandingKey(),
+      title: this.#translate.instant('PAC.Pipeline.Understanding', { Default: 'Understanding' }) + (length ? ` ${length + 1}` : ''),
+      provider: provider.name,
+    } as IWFNUnderstanding)
   }
 }

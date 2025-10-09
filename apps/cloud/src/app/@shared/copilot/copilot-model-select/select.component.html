@@ -22,14 +22,14 @@
       @if (isInherit()) {
         <i class="ri-skip-up-line mx-1" [matTooltip]="'PAC.Copilot.Inherited' | translate: {Default: 'Inherited'}"></i>
       } @else if(!readonly()) {
-        <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable hover:text-red-500"
+        <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
           [matTooltip]="'PAC.Copilot.DelCopilotModelUseInherit' | translate: {Default: 'Delete current configuration, and use the inherited configuration if possible'}"
           (click)="$event.stopPropagation(); delete()">
           <i class="ri-close-line"></i>
         </button>
       }
     } @else if(!isInherit() && !readonly()) {
-      <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable hover:text-red-500"
+      <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
         (click)="$event.stopPropagation(); delete()">
         <i class="ri-close-line"></i>
       </button>
@@ -170,7 +170,7 @@
         @for (item of copilot.providerWithModels?.models; track item.model) {
           <button type="button" class="w-full flex justify-start items-center gap-1 px-4 py-2 rounded-xl cursor-pointer 
             enabled:hover:bg-neutral-100/50 hover:text-primary-500 disabled:cursor-not-allowed"
-            [ngClass]="(model() === item.model && modelType() === item.model_type) ? 'bg-neutral-100/50 text-primary-600 font-semibold' : ''"
+            [ngClass]="(copilot.id === copilotId() && model() === item.model && modelType() === item.model_type) ? 'bg-neutral-100/50 text-primary-600 font-semibold' : ''"
             [class.opacity-60]="item.deprecated"
             [matTooltip]="item.deprecated ? ('PAC.Copilot.Deprecated' | translate: {Default: 'Deprecated'}) : ''"
             matTooltipPosition="before"

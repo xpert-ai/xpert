@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -19,7 +20,7 @@ import { XpertStudioApiService } from '../../../domain'
   styleUrls: ['./trigger.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent]
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent, NgmI18nPipe]
 })
 export class XpertWorkflowNodeTriggerComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -36,6 +37,7 @@ export class XpertWorkflowNodeTriggerComponent {
   // States
   readonly triggerEntity = computed(() => this.entity() as IWFNTrigger)
 
+  readonly from = computed(() => this.triggerEntity()?.from)
   readonly xpertCopilotModel = computed(() => this.studioService.viewModel()?.team.copilotModel)
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
 
@@ -44,4 +46,8 @@ export class XpertWorkflowNodeTriggerComponent {
       .filter((_) => _.type === 'agent' || _.type === 'xpert')
       .map((_) => _.key)
   )
+
+  readonly triggerProviders = this.studioService.triggerProviders
+
+  readonly provider = computed(() => this.triggerProviders()?.find((item) => item.name === this.from()))
 }

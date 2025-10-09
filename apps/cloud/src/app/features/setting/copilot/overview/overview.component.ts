@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectCopilotServer, KnowledgebaseService, XpertService } from 'apps/cloud/src/app/@core'
+import { injectCopilotServer, KnowledgebaseService, XpertAPIService } from 'apps/cloud/src/app/@core'
 import { StatisticsChartComponent, StatisticsPieChartComponent, StatisticsTokenUsageComponent } from 'apps/cloud/src/app/@shared/charts'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -32,7 +32,7 @@ export class CopilotOverviewComponent {
   TimeRanges = TimeRangeOptions
 
   readonly copilotService = injectCopilotServer()
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
 
   readonly timeRangeValue = model<TimeRangeEnum>(TimeRangeEnum.Last7Days)

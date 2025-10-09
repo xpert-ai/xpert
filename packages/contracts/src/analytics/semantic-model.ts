@@ -1,4 +1,3 @@
-import { PropertyHierarchy, Schema } from '@metad/ocap-core'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ITag } from '../tag-entity.model'
 import { ChecklistItem, IPoint, ISize } from '../types'
@@ -37,7 +36,7 @@ export interface ISemanticModelPreferences {
 /**
  * Model Schema Structured Data
  */
-export type TSemanticModelOptions<T = Schema> = {
+export type TSemanticModelOptions<T = any /*Schema*/> = {
   /**
    * The schema for MDX cube, dimension and virtual cube
    */
@@ -81,7 +80,7 @@ export type TSemanticModelSettings = {
   /**
    * @experimental A hierarchy of intermediate states that are not yet fixed
    */
-  hierarchies?: PropertyHierarchy[]
+  hierarchies?: any[] // PropertyHierarchy[]
 
   /**
    * Ignore unknown property when query model in story

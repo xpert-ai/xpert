@@ -144,6 +144,11 @@ export class XpertController extends CrudController<Xpert> {
 			label: xpertLabel(item)
 		}))
 	}
+
+	@Get('triggers/providers')
+	async getTriggerProviders() {
+		return this.service.getTriggerProviders()
+	}
 	
 	@Get('slug/:slug')
 	async getOneBySlug(@Param('slug') slug: string,) {
@@ -450,7 +455,7 @@ export class XpertController extends CrudController<Xpert> {
 				where: {
 					...(where ?? {}),
 					xpertId: id,
-					createdAt: start ? Between(start, end) : LessThanOrEqual(end)
+					createdAt: start ? Between(new Date(start), new Date(end)) : LessThanOrEqual(new Date(end))
 				},
 			},
 		))

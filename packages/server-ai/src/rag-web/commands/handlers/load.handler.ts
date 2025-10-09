@@ -1,6 +1,7 @@
 import { mapTranslationLanguage, TRagWebResult } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
-import { CACHE_MANAGER, Inject, InternalServerErrorException } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Inject, InternalServerErrorException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { Cache } from 'cache-manager'

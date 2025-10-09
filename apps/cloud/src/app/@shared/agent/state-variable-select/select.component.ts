@@ -2,7 +2,7 @@ import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input, model, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { XpertService } from '@cloud/app/@core'
+import { XpertAPIService } from '@cloud/app/@core'
 import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -36,11 +36,11 @@ export class StateVariableSelectComponent {
   agentLabel = agentLabel
 
   protected cva = inject<NgxControlValueAccessor<string>>(NgxControlValueAccessor)
-  readonly xpertAPI = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
 
   // Inputs
   readonly varOptions = input<TXpertVariablesOptions>()
-  readonly type = input<TStateVariableType>()
+  readonly type = input<string>() // TStateVariableType | string
   readonly inline = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

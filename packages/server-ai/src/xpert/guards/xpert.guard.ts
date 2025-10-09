@@ -1,5 +1,6 @@
 import { RequestContext } from '@metad/server-core'
-import { CACHE_MANAGER, CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { Cache } from 'cache-manager'
 import { XpertWorkspaceService } from '../../xpert-workspace/workspace.service'

@@ -17,7 +17,7 @@ import {
   OrderTypeEnum,
   TAvatar,
   ToastrService,
-  XpertService,
+  XpertAPIService,
   XpertToolsetService
 } from '../../../../@core'
 import { KnowledgebaseListComponent, ToolsetListComponent } from '../../../../@shared/copilot'
@@ -48,7 +48,7 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 export class XpertRoleComponent extends UpsertEntityComponent<IXpertRole> {
   DisplayBehaviour = DisplayBehaviour
 
-  readonly roleService = inject(XpertService)
+  readonly roleService = inject(XpertAPIService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly rolesComponent = inject(XpertRolesComponent)
@@ -123,7 +123,7 @@ export class XpertRoleComponent extends UpsertEntityComponent<IXpertRole> {
       this.xpertRole.set(role)
     })
 
-  constructor(roleService: XpertService) {
+  constructor(roleService: XpertAPIService) {
     super(roleService)
 
     effect(

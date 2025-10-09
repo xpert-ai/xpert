@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { SecretTokenModule, SharedModule, TenantModule } from '@metad/server-core'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { CaslModule } from '../core/index'
 import { StoryPointModule } from '../story-point/story-point.module'
 import { StoryWidgetModule } from '../story-widget/story-widget.module'
@@ -15,7 +15,7 @@ import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/stories', module: StoryModule }]),
+		RouterModule.register([{ path: '/stories', module: StoryModule }]),
 		TypeOrmModule.forFeature([Story]),
 		TenantModule,
 		SharedModule,

@@ -1,0 +1,14 @@
+@switch (step()) {
+  @case (1) {
+    <xp-knowledge-document-pipeline-step-1 class="relative flex h-[calc(100vh-56px)] w-full min-w-[1024px] overflow-x-auto" />
+  }
+  @case (2) {
+    <xp-knowledge-document-pipeline-step-2 class="relative flex h-[calc(100vh-56px)] w-full min-w-[1024px] overflow-x-auto"/>
+  }
+  @case (3) {
+    <xp-knowledge-document-create-step-3 class="relative flex h-[calc(100vh-56px)] w-full min-w-[1024px] overflow-x-auto"
+      [taskId]="taskId()"
+      [parserConfig]="parserConfig()"
+    />
+  }
+}

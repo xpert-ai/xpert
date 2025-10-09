@@ -1,8 +1,10 @@
+import { DocumentInterface } from '@langchain/core/documents'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIntegration } from '../integration.model'
 import { IStorageFile } from '../storage-file.model'
 import { IKnowledgeDocumentPage } from './knowledge-doc-page.model'
-import { IKnowledgebase } from './knowledgebase.model'
+import { IKnowledgebaseTask } from './knowledgebase-task.model'
+import { DocumentMetadata, IKnowledgebase } from './knowledgebase.model'
 import { TRagWebOptions } from './rag-web'
 
 
@@ -10,6 +12,18 @@ export type DocumentParserConfig = {
   pages?: number[][]
   replaceWhitespace?: boolean
   removeSensitive?: boolean
+  textSplitterType?: string
+  textSplitter?: {
+    [key: string]: unknown
+  }
+  transformerType?: string
+  transformer?: {
+    [key: string]: unknown
+  }
+  imageUnderstandingType?: string
+  imageUnderstanding?: {
+    [key: string]: unknown
+  }
 }
 
 export type DocumentTextParserConfig = DocumentParserConfig & {
@@ -38,9 +52,17 @@ export enum KDocumentSourceType {
    */
   FILE = 'file',
   /**
+   * Remote files (FTP, SFTP, etc.)
+   */
+  REMOTE_FILE = 'remote-file',
+  /**
    * Web documents
    */
-  WEB = 'web'
+  WEB = 'web',
+  /**
+   * Folder, parent of other documents
+   */
+  FOLDER = 'folder',
 }
 
 /**
@@ -56,7 +78,7 @@ export enum KBDocumentCategoryEnum {
 }
 
 export enum KBDocumentStatusEnum {
-  WASTED = 'wasted',
+  WAITING = 'waiting',
   VALIDATE = 'validate',
   RUNNING = 'running',
   CANCEL = 'cancel',
@@ -68,13 +90,23 @@ export type TDocumentWebOptions = TRagWebOptions & {
   //
 }
 
+export type TDocSourceConfig = {
+  key?: string
+}
+
 export type TKnowledgeDocument = {
   disabled?: boolean
   
   knowledgebaseId?: string
   knowledgebase?: IKnowledgebase
 
+  /**
+   * @deprecated use fileUrl instead
+   */
   storageFileId?: string
+  /**
+   * @deprecated use fileUrl instead
+   */
   storageFile?: IStorageFile
 
   /**
@@ -91,6 +123,7 @@ export type TKnowledgeDocument = {
    * where dose this document come from
    */
   sourceType?: KDocumentSourceType | null
+  sourceConfig?: TDocSourceConfig
   /**
    * document type category
    */
@@ -104,9 +137,10 @@ export type TKnowledgeDocument = {
    */
   name: string
   /**
-   * where dose it store
+   * where does it store
    */
-  location: string
+  filePath: string
+  fileUrl?: string
 
   size: string
 
@@ -138,23 +172,45 @@ export type TKnowledgeDocument = {
   integration?: IIntegration
 
   pages?: IKnowledgeDocumentPage[]
+  tasks?: IKnowledgebaseTask[]
 }
 
+/**
+ * Document, include file, web pages, folder, virtual, etc.
+ */
 export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
-  //
+  // parentId?: string | null
+  parent?: IKnowledgeDocument | null
+  children?: IKnowledgeDocument[]
+
+  // Temp
+  chunks?: DocumentInterface[]
+  metadata?: Metadata
 }
 
-export interface IDocumentChunk {
+export interface IDocumentChunk<Metadata = DocumentMetadata> {
   id: string
   pageContent: string
-  metadata: {
+  metadata: Metadata & {
     knowledgeId?: string
-    [key: string]: any | null
   }
   collection_id: string
 }
 
 export type Metadata = Record<string, any>
+
+export interface IKnowledgeDocumentCreateInput
+	extends IKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {}
+
+export interface IKnowledgeDocumentUpdateInput
+	extends Partial<IKnowledgeDocumentCreateInput> {
+	id?: string;
+}
+
+export interface IKnowledgeDocumentFindInput
+	extends IBasePerTenantAndOrganizationEntityModel,
+		IKnowledgeDocument {}
+
 
 export function isDocumentSheet(type: string): boolean {
   return ['csv', 'xls', 'xlsx', 'ods'].includes(type)

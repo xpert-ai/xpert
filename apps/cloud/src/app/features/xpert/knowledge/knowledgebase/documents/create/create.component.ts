@@ -10,14 +10,14 @@ import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
 import {
-  DocumentParserConfig,
   DocumentTextParserConfig,
   IIntegration,
   IKnowledgeDocument,
-  IStorageFile,
   KDocumentSourceType,
   KDocumentWebTypeEnum,
+  KnowledgebaseService,
   KnowledgeDocumentService,
+  KnowledgeFileUploader,
   StorageFileService,
   TDocumentWebOptions,
   ToastrService,
@@ -27,9 +27,10 @@ import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
 import { KnowledgeDocumentCreateStep1Component } from './step-1/step.component'
 import { KnowledgeDocumentCreateStep2Component } from './step-2/step.component'
-import { KnowledgeDocumentCreateStep3Component } from './step-3/step.component'
+import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
 import { TSelectOption } from '@metad/ocap-angular/core'
-import { TFileItem } from '../types'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 
 @Component({
@@ -55,6 +56,7 @@ import { TFileItem } from '../types'
 export class KnowledgeDocumentCreateComponent {
   eKDocumentSourceType = KDocumentSourceType
 
+  readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly #toastr = inject(ToastrService)
   readonly #router = inject(Router)
@@ -62,6 +64,7 @@ export class KnowledgeDocumentCreateComponent {
   readonly storageFileService = inject(StorageFileService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly documentsComponent = inject(KnowledgeDocumentsComponent)
+  readonly parentId = injectQueryParams('parentId')
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
@@ -73,7 +76,11 @@ export class KnowledgeDocumentCreateComponent {
 
   // Step 1
   readonly sourceType = model<KDocumentSourceType[]>([KDocumentSourceType.FILE])
-  readonly fileList = signal<TFileItem[]>([])
+  readonly sourceConfig = model<any>(null)
+
+  // readonly fileList = signal<TFileItem[]>([])
+  readonly files = model<KnowledgeFileUploader[]>([])
+  
   readonly webTypes = model<TSelectOption<KDocumentWebTypeEnum>[]>([])
   readonly integration = model<IIntegration>(null)
   readonly webOptions = model<TDocumentWebOptions>(null)
@@ -82,13 +89,17 @@ export class KnowledgeDocumentCreateComponent {
 
   // Step 2
   readonly parserConfig = model<DocumentTextParserConfig>({} as DocumentTextParserConfig)
-  readonly step2Avaiable = computed(() => this.fileList()?.length || this.webResult()?.docs?.length)
+  readonly step2Avaiable = computed(() => this.files()?.length || this.webResult()?.docs?.length)
 
   // Step 3
   readonly documents = signal<IKnowledgeDocument[]>([])
   readonly step3Avaiable = computed(() => this.step2Avaiable())
 
-  constructor() {}
+  // Strategies
+  readonly textSplitterStrategies = toSignal(this.knowledgebaseAPI.getTextSplitterStrategies())
+  readonly documentTransformerStrategies = toSignal(this.knowledgebaseAPI.getDocumentTransformerStrategies())
+  readonly documentSourceStrategies = toSignal(this.knowledgebaseAPI.getDocumentSourceStrategies())
+  readonly understandingStrategies = toSignal(this.knowledgebaseAPI.understandingStrategies$)
 
   nextStep() {
     this.step.update((state) => ++state)
@@ -99,7 +110,7 @@ export class KnowledgeDocumentCreateComponent {
   }
 
   close() {
-    this.#router.navigate(['..'], { relativeTo: this.#route })
+    this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 
   apply() {
@@ -108,21 +119,21 @@ export class KnowledgeDocumentCreateComponent {
   }
 
   updateFileDocs(docs: IKnowledgeDocument[]) {
-    this.fileList.update((state) => {
-      docs.forEach((doc) => {
-        const index = state.findIndex((_) => _.doc?.id === doc.id)
-        if (index > -1) {
-          state[index] = {
-            ...state[index],
-            doc: {
-              ...state[index].doc,
-              ...doc
-            }
-          }
-        }
-      })
-      return Array.from(state)
-    })
+    // this.files.update((state) => {
+    //   docs.forEach((doc) => {
+    //     const index = state.findIndex((_) => _.doc?.id === doc.id)
+    //     if (index > -1) {
+    //       state[index] = {
+    //         ...state[index],
+    //         doc: {
+    //           ...state[index].doc,
+    //           ...doc
+    //         }
+    //       }
+    //     }
+    //   })
+    //   return Array.from(state)
+    // })
   }
 
   updateDocs(docs: IKnowledgeDocument[]) {

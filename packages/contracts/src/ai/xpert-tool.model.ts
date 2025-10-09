@@ -127,8 +127,18 @@ export interface IBuiltinTool {
     human: I18nObject
     llm: string
   }
-  parameters: TToolParameter[]
-  entity: string
+  /**
+   * Definition of input parameters (yaml schema)
+   */
+  parameters?: TToolParameter[]
+  /**
+   * Schema of tool (zod/json-schema)
+   */
+  schema?: any
+  /**
+   * @deprecated how to use?
+   */
+  entity?: string
 }
 
 // Types for OData

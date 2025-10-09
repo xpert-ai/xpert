@@ -3,8 +3,9 @@ import { IOrganization } from './organization.model'
 import { ID } from './types'
 import { IUser } from './user.model'
 
+// Common properties for entities with relations
 export interface IBaseRelationsEntityModel {
-  readonly relations?: string[]
+	relations?: string[]; // List of related entities
 }
 
 export interface IBaseSoftDeleteEntityModel {

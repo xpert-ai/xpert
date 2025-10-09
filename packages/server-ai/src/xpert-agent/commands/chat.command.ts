@@ -1,5 +1,5 @@
 import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
-import { IXpert, IXpertAgentExecution, TChatOptions, TInterruptCommand } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, STATE_VARIABLE_HUMAN, TChatOptions, TChatRequestHuman, TInterruptCommand } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -9,10 +9,10 @@ export class XpertAgentChatCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Chat'
 
 	constructor(
-		public readonly input: {
-			input?: string
-			[key: string]: unknown
-		},
+		public readonly state: {
+					[STATE_VARIABLE_HUMAN]: TChatRequestHuman
+					[key: string]: any
+				},
 		public readonly agentKey: string,
 		public readonly xpert: IXpert,
 		public readonly options: TChatOptions & {

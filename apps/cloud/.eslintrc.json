@@ -4,13 +4,13 @@
   "overrides": [
     {
       "files": ["*.ts"],
-      "extends": ["plugin:@angular-eslint", "plugin:@angular-eslint/template/process-inline-templates"],
+      "extends": ["plugin:@angular-eslint/recommended", "plugin:@angular-eslint/template/process-inline-templates"],
       "rules": {
         "@angular-eslint/directive-selector": [
           "error",
           {
             "type": "attribute",
-            "prefix": "pac",
+            "prefix": "xp|ngm|xpert|pac",
             "style": "camelCase"
           }
         ],
@@ -18,7 +18,7 @@
           "error",
           {
             "type": "element",
-            "prefix": "pac",
+            "prefix": "xp|ngm|xpert|pac",
             "style": "kebab-case"
           }
         ]

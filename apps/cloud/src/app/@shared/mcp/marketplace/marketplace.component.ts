@@ -134,7 +134,7 @@ export class MCPMarketplaceComponent {
         schema: JSON.stringify({mcpServers: {'': mcpServer}}),
         options: template.options
       }
-      if (template.icon) {
+      if (typeof template.icon === 'string') {
         toolset.avatar = {
           url: template.icon
         }

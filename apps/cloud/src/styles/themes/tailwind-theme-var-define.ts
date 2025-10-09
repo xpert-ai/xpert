@@ -38,6 +38,7 @@ const vars = {
   'danger-bg': 'var(--color-danger-bg)',
   'state-base-hover': 'var(--color-hover-bg)',
   'state-destructive-hover': 'var(--color-state-destructive-hover)',
+  'background-default-hover': 'var(--color-hover-bg)',
 
   'token-main-surface-primary': 'var(--main-surface-primary)',
   'token-main-surface-secondary': 'var(--main-surface-secondary)',
@@ -53,6 +54,8 @@ const vars = {
   'components-button-primary-text': 'var(--color-components-button-primary-text)',
   'components-button-primary-border': 'var(--color-components-button-primary-border)',
   'components-button-primary-bg': 'var(--color-components-button-primary-bg)',
+  'components-button-secondary-bg': 'var(--color-components-button-secondary-bg)',
+  'components-button-secondary-bg-hover': 'var(--color-components-button-secondary-bg-hover)',
   'components-dropzone-bg': 'var(--color-components-dropzone-bg)',
   'components-input-bg': 'var(--color-components-input-bg)',
   'components-input-bg-normal': 'var(--color-components-input-bg-normal)',

@@ -2,7 +2,7 @@ import { SharedModule, TenantModule } from '@metad/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { BusinessAreaModule } from '../business-area'
 import { QueryHandlers } from './queries/handlers'
 import { StoryPointController } from './story-point.controller'
@@ -11,8 +11,8 @@ import { StoryPointService } from './story-point.service'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/story-point', module: StoryPointModule }]),
-		forwardRef(() => TypeOrmModule.forFeature([StoryPoint])),
+		RouterModule.register([{ path: '/story-point', module: StoryPointModule }]),
+		TypeOrmModule.forFeature([StoryPoint]),
 		TenantModule,
 		SharedModule,
 		CqrsModule,

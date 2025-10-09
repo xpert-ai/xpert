@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { MulterModule } from '@nestjs/platform-express';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getConfig } from '@metad/server-config';
@@ -13,7 +13,7 @@ import { ImportHistoryModule } from './../import-history';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{
 				path: '/import',
 				module: ImportAllModule

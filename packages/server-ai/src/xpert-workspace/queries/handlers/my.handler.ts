@@ -2,7 +2,7 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Brackets, Repository } from 'typeorm'
+import { Brackets, FindOptionsRelationByString, Repository } from 'typeorm'
 import { MyXpertWorkspaceQuery } from '../my.query'
 import { XpertWorkspace } from '../../workspace.entity'
 
@@ -16,7 +16,7 @@ export class MyXpertWorkspaceHandler implements IQueryHandler<MyXpertWorkspaceQu
 
 	async execute(query: MyXpertWorkspaceQuery) {
 		const { userId, input } = query
-		const relations = input?.relations
+		const relations = input?.relations as FindOptionsRelationByString
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 

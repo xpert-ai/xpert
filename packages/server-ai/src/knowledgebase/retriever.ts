@@ -47,6 +47,7 @@ export class KnowledgeRetriever extends BaseRetriever {
 					query,
 					score: this.options?.score,
 					k: this.options?.topK,
+					source: 'retriever',
 				})
 			)
 			// const docs = results.filter(({score}) => this.options?.score ? score >= this.options.score : true).map(({ doc }) => doc)

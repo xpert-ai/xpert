@@ -1,189 +1,238 @@
-<div class="filter-bar p-2 flex justify-between items-center gap-4">
-  <div class="system-xs-medium-uppercase px-2 py-1 rounded-lg inline-flex cursor-pointer items-center space-x-1 text-text-secondary"
-    [cdkMenuTriggerFor]="xpertsMenu"
-  >
-    <span>{{xperts()?.length ?? 0}} {{ 'PAC.Knowledgebase.RelatedExperts' | translate: {Default: 'related experts'} }}</span>
-    <i class="ri-information-2-line"></i>
+<div class="flex flex-col justify-center gap-1 px-6 pt-4">
+  @if (parentId()) {
+    <nav class="flex" aria-label="Breadcrumb">
+      <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+        <li class="inline-flex items-center">
+          <a class="inline-flex items-center font-medium cursor-pointer text-gray-700 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
+            (click)="backHome()">
+            <i class="ri-home-2-line"></i>
+            {{ 'PAC.Knowledgebase.Root' | translate: {Default: 'Root'} }}
+          </a>
+        </li>
+        @if (grandParent(); as grand) {
+          <li>
+            <div class="flex items-center">
+              <i class="ri-arrow-right-s-line text-lg text-gray-400 mx-1"></i>
+              <i class="ri-folder-2-line text-gray-400"></i>
+              <a [routerLink]="['.']" [queryParams]="{parentId: grand.id}" class="ms-1 font-medium text-gray-700 hover:text-blue-600 md:ms-2 dark:text-gray-400 dark:hover:text-white">
+                {{ grand.name }}
+              </a>
+            </div>
+          </li>
+        }
+        <li aria-current="page">
+          <div class="flex items-center">
+            <i class="ri-arrow-right-s-line text-lg text-gray-400 mx-1"></i>
+            <i class="ri-folder-2-line text-gray-400"></i>
+            <span class="ms-1 font-medium text-gray-500 md:ms-2 dark:text-gray-400">
+              {{ parentFolder()?.name }}
+            </span>
+          </div>
+        </li>
+      </ol>
+    </nav>
+  } @else {
+    <h1 class="text-lg font-semibold text-text-primary">{{ 'PAC.Knowledgebase.Files' | translate: {Default: 'Files'} }}</h1>
+  }
+  <div class="flex items-center space-x-0.5 text-sm font-normal text-text-tertiary">
+    <span>
+      {{ 'PAC.Knowledgebase.DocumentsDescription' | translate: {Default: 'All files in the knowledge base are displayed here, and the entire knowledge base can be applied to the digital expert agent or project space.' } }}
+    </span>
+    <a class="flex items-center text-text-accent" target="_blank" href="">
+      <span>{{ 'PAC.KEY_WORDS.LearnMore' | translate: {Default: 'Learn more'} }}</span>
+      <i class="ri-corner-right-up-line "></i>
+    </a>
   </div>
-  
-  <div ngmButtonGroup >
-    <button mat-mini-fab [matTooltip]=" 'PAC.Knowledgebase.NewDocuments' | translate: {Default: 'New Documents' }"
+</div>
+
+<div class="flex items-center justify-between flex-column md:flex-row flex-wrap space-y-4 md:space-y-0 p-4 bg-white dark:bg-gray-900">
+  <div class="relative w-[160px]">
+    <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
+    <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+      [placeholder]="'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'}"
+      [(ngModel)]="search"
+    >
+    @if (search()) {
+      <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+        (click)="search.set('')"></i>
+    }
+  </div>
+
+  <div class="flex items-center gap-4">
+    <div class="system-xs-medium-uppercase px-2 py-1 rounded-lg inline-flex cursor-pointer items-center space-x-1 text-text-secondary"
+      [cdkMenuTriggerFor]="xpertsMenu"
+    >
+      <span>{{xperts()?.length ?? 0}} {{ 'PAC.Knowledgebase.RelatedExperts' | translate: {Default: 'related experts'} }}</span>
+      <i class="ri-information-2-line"></i>
+    </div>
+    <button type="button" class="btn btn-primary btn-large flex justify-center items-center gap-2"
+      [matTooltip]=" 'PAC.Knowledgebase.NewDocuments' | translate: {Default: 'New Documents' }"
       matTooltipPosition="before"
-      (click)="uploadDocuments()">
-      <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+      [cdkMenuTriggerFor]="docMenu"
+    >
+      <i class="ri-folder-shared-fill"></i>
+      <span>{{ 'PAC.Knowledgebase.NewUpload' | translate: {Default: 'New / Upload'} }}</span>
     </button>
   </div>
 </div>
+<div class="relative px-4 overflow-x-auto">
+  <table class="table-fixed w-full text-sm text-left text-gray-500 dark:text-gray-400">
+    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+      <tr>
+        <th scope="col" class="px-6 py-3 w-20">
+          <ngm-checkbox class="shrink-0" [indeterminate]="isPartialSelected()"
+            [ngModel]="isAllSelected()" (ngModelChange)="selectAll($event)"
+            >#</ngm-checkbox>
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
+        </th>
+        @for (column of columnsToDisplay; track column.name) {
+          <th scope="col" class="px-6 py-3 w-36">
+            {{ 'PAC.KEY_WORDS.' + column.caption | translate: {Default: column.caption} }}
+          </th>
+        }
+        <th scope="col" class="px-6 py-3 w-28">
+          {{ 'PAC.Knowledgebase.ParsingProgress' | translate: {Default: 'Parsing Progress'} }}
+        </th>
+        <th scope="col" class="px-6 py-3 w-28">
+          {{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}
+        </th>
+      </tr>
+    </thead>
 
-<div class="flex-1 overflow-y-auto">
-  <table mat-table class="flex-1"
-    [dataSource]="data()" multiTemplateDataRows matSort matSortActive="createdAt" matSortDisableClear matSortDirection="desc">
-    @for (column of columnsToDisplay; track column.name) {
-      <ng-container matColumnDef="{{column.name}}">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header> {{'PAC.KEY_WORDS.' + column.caption | translate: {Default: column.caption} }} </th>
-        <td mat-cell *matCellDef="let element">
-          @switch (column.name) {
-            @case ('name') {
-              <a [routerLink]="['.', element.id]"><knowledge-doc-id [doc]="element" /></a>
+    <tbody>
+      @for (element of filteredData(); track element.id; let i = $index) {
+        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+          <td class="px-6 py-2">
+            <ngm-checkbox class="shrink-0" [ngModel]="selectionModel.isSelected(element.id)" (ngModelChange)="selectionModel.toggle(element.id)">
+              {{i + 1}}
+            </ngm-checkbox> 
+          </td>
+          <td class="px-6 py-2">
+            @if (element.sourceType === eKDocumentSourceType.FOLDER) {
+              <a [routerLink]="['.']" [queryParams]="{parentId: element.id}">
+                <knowledge-doc-id [doc]="element" [searchText]="search()" />
+              </a>
+            } @else {
+              <a [routerLink]="['.', element.id]" [queryParams]="{parentId: parentId()}">
+                <knowledge-doc-id [doc]="element" [searchText]="search()" />
+              </a>
             }
-            @case ('sourceType') {
-              <span class="uppercase">{{element.sourceType}}</span>
-            }
-            @case ('disabled') {
-              <div class="flex items-center text-sm">
-                @if (element.disabled) {
-                  <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-gray-300 flex'></span>
-                  <span class="">{{ 'PAC.Knowledgebase.Disabled' | translate: {Default: 'Disabled'} }}</span>
-                } @else {
-                  <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
-                  <span class="text-emerald-500">{{ 'PAC.Knowledgebase.Available' | translate: {Default: 'Available'} }}</span>
+          </td>
+          @for (column of columnsToDisplay; track column.name) {
+            <td class="px-6 py-2 w-32">
+              @switch (column.name) {
+                @case ('disabled') {
+                  <div class="flex items-center text-sm">
+                    <ngm-slide-toggle [ngModel]="!element.disabled" (ngModelChange)="updateDocument(element.id, { disabled: !$event })" />
+                  </div>
+                }
+                @case ('processMsg') {
+                  <div class="max-w-sm truncate text-sm text-red-600 dark:text-red-400" [title]="element.processMsg">
+                    {{element.processMsg}}
+                  </div>
+                }
+                @default {
+                  {{ getValue(element, column.name) }}
+                }
+              }
+            </td>
+          }
+
+          <!-- progress 列 -->
+          <td class="px-6 py-2 w-36">
+            @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
+              <div class="cursor-pointer" (click)="openTask(element)">
+                @switch (element.status) {
+                  @case (eKBDocumentStatusEnum.RUNNING) {
+                    <div class="flex items-center gap-1">
+                      <ngm-progress-spinner class="w-7 h-7 shrink-0" [value]="element.progress" />
+                      <span>{{element.progress}}%</span>
+                    </div>
+                  }
+                  @case (eKBDocumentStatusEnum.FINISH) {
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: {Default: 'Finish'} }]"
+                      color="green" />
+                  }
+                  @case (eKBDocumentStatusEnum.ERROR) {
+                    <ngm-tags class="text-sm" [matTooltip]="element.processMsg" matTooltipPosition="left"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: {Default: 'Error'} }]"
+                      color="red" />
+                  }
+                  @case (eKBDocumentStatusEnum.WAITING) {
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Waiting' | translate: {Default: 'Waiting'} }]"
+                      color="orange" />
+                  }
+                  @default {
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_NotStart' | translate: {Default: 'Not Start'} }]"
+                      color="gray" />
+                  }
                 }
               </div>
             }
-            @case ('processMsg') {
-              <div class="max-w-sm truncate text-sm text-text-destructive" [title]="element.processMsg">{{element.processMsg}}</div>
-            }
-            @default {
-              {{getValue(element, column.name)}}
-            }
-          }
-        </td>
-      </ng-container>
-    }
-
-    <ng-container matColumnDef="progress">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> {{'PAC.Knowledgebase.ParsingProgress' | translate: {Default: 'Parsing Progress'} }} </th>
-      <td mat-cell *matCellDef="let element">
-        @switch (element.status) {
-          @case ('running') {
-            <div class="flex items-center gap-1">
-              <mat-progress-spinner
-                mode="determinate" diameter="24" color="accent"
-                [value]="element.progress">
-              </mat-progress-spinner>
-  
-              <span>{{element.progress}}%</span>
+          </td>
+          <td class="px-6 py-2 w-28">
+            <div class="flex items-center">
+              <button class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
+                [cdkMenuTriggerFor]="settingsMenu"
+                [cdkMenuTriggerData]="{ doc: element }">
+                <i class="ri-equalizer-2-line"></i>
+              </button>
+              <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
+              <button
+                class="w-6 h-6 shrink-0 mr-2 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
+                type="button"
+                [cdkMenuTriggerFor]="rowMenu"
+                [cdkMenuTriggerData]="{ doc: element }"
+              >
+                <i class="ri-more-fill"></i>
+              </button>
             </div>
-          }
-          @case('finish') {
-            <ngm-tags class="text-sm" [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: {Default: 'Finish'} }]" color="green" />
-          }
-          @case('error') {
-            <ngm-tags class="text-sm" [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: {Default: 'Error'} }]" color="red" />
-          }
-          @default {
-            <ngm-tags class="text-sm" [tags]="[{caption: 'PAC.Knowledgebase.Status_NotStart' | translate: {Default: 'Not Start'} }]" color="gray" />
-          }
-        }
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="expand">
-      <th mat-header-cell *matHeaderCellDef aria-label="row actions">&nbsp;</th>
-      <td mat-cell *matCellDef="let element">
-        <div class="flex items-center gap-2 opacity-50 group-hover:opacity-100" displayDensity="cosy" >
-          <button mat-icon-button aria-label="expand row" (click)="(expandedElement = expandedElement?.id === element.id ? null : element); $event.stopPropagation()">
-            @if (expandedElement?.id === element.id) {
-              <mat-icon>keyboard_arrow_up</mat-icon>
-            } @else {
-              <mat-icon>keyboard_arrow_down</mat-icon>
-            }
-          </button>
-
-          @if (element.status === 'finish') {
-            <button mat-icon-button [matTooltip]="'PAC.Knowledgebase.RestartParsing' | translate: {Default: 'Restart parsing'}" matTooltipPosition="above"
-              (click)="restartParsing(element.id)"
-            >
-              <mat-icon fontSet="material-icons-outlined">restart_alt</mat-icon>
-            </button>
-          } @else if(element.status === 'running') {
-            <button mat-icon-button [matTooltip]="'PAC.Knowledgebase.StopParsing' | translate: {Default: 'Stop parsing'}" matTooltipPosition="above"
-              (click)="stopParsing(element.id)"
-            >
-              <mat-icon fontSet="material-icons-outlined">stop_circle</mat-icon>
-            </button>
-          } @else {
-            <button mat-icon-button [matTooltip]="'PAC.Knowledgebase.StartParsing' | translate: {Default: 'Start parsing'}" matTooltipPosition="above"
-              (click)="startParsing(element)"
-            >
-              <mat-icon fontSet="material-icons-outlined">play_circle</mat-icon>
-            </button>
-          }
-
-          <mat-divider vertical style="height: 20px;" />
-          <button mat-icon-button ngmAppearance="danger" [matTooltip]="'PAC.Knowledgebase.DeleteKnowledgeDocument' | translate: {Default: 'Delete Knowledge Document'}" matTooltipPosition="above"
-            (click)="deleteDocument(element)"
-          >
-            <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
-          </button>
-        </div>
-      </td>
-    </ng-container>
-
-    <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-    <ng-container matColumnDef="expandedDetail">
-      <td mat-cell *matCellDef="let element" [attr.colspan]="columnsToDisplayWithExpand.length">
-        <div class="example-element-detail" displayDensity="compact"
-            [@detailExpand]="element.id === expandedElement?.id ? 'expanded' : 'collapsed'">
-          <div class="example-element-diagram flex flex-col justify-center items-center border-2 border-solid border-neutral-500">
-            <div class="uppercase text-lg"> {{element.type}} </div>
-          </div>
-
-          <div class="w-full flex flex-col p-4">
-            <div class="flex-1 flex flex-wrap gap-2">
-              <ngm-slider-input [label]=" 'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'} "
-                class="w-[300px]"
-                [ngModel]="element.parserConfig.chunkSize"
-                (ngModelChange)="element.parserConfig.chunkSize = $event"
-                (changeEnd)="updateParserConfig(element, {chunkSize: element.parserConfig.chunkSize})"
-                [min]="0"
-                [max]="10000"
-              />
-  
-              <ngm-slider-input [label]=" 'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'} "
-                class="w-[300px]"
-                [ngModel]="element.parserConfig.chunkOverlap"
-                (ngModelChange)="element.parserConfig.chunkOverlap = $event"
-                (changeEnd)="updateParserConfig(element, {chunkOverlap: element.parserConfig.chunkOverlap})"
-                [min]="0"
-                [max]="1000"
-              />
-  
-              <ngm-input [label]="'PAC.Knowledgebase.Delimiter' | translate: {Default: 'Delimiter'}"
-                class="w-[200px]"
-                [ngModel]="element.parserConfig.delimiter" (ngModelChange)="updateParserConfig(element, {delimiter: $event})" />
-            </div>
-
-            @if (element.pages?.length) {
-              <div>{{'PAC.Knowledgebase.Pages' | translate: {Default: 'Pages'} }}</div>
-              <ul class="flex flex-col gap-1">
-                @for (page of element.pages; track page.id) {
-                  <li class="group flex justify-between items-center text-sm rounded-md px-2 py-1 text-text-secondary hover:bg-hover-bg">
-                    <span class="group-hover:text-text-primary">{{page.metadata?.title}}</span>
-
-                    <button type="button" class="opacity-0 group-hover:opacity-100 btn danger btn-small w-6 h-6 justify-center"
-                      (click)="removePage(element, page)">
-                      <i class="ri-delete-bin-line"></i>
-                    </button>
-                  </li>
-                }
-              </ul>
-            }
-          </div>
-        </div>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="columnsToDisplayWithExpand"></tr>
-    <tr mat-row *matRowDef="let element; columns: columnsToDisplayWithExpand;"
-        class="example-element-row group"
-        [class.example-expanded-row]="expandedElement?.id === element.id"
-      >
-    </tr>
-    <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
+          </td>
+        </tr>
+      }
+    </tbody>
   </table>
 </div>
-<mat-paginator [length]="total()" [pageSize]="pageSize()" [pageSizeOptions]="[20, 50, 100, 500, 1000]" />
+
+@if (selectionModel.hasValue()) {
+  <div class="absolute bottom-12 left-1/2 -translate-x-1/2 px-16 py-2 whitespace-nowrap z-10">
+    <div class="rounded-xl flex justify-center items-center gap-2 p-2 shadow-lg border-[0.5px] border-solid border-primary-400 bg-primary-50">
+      <div class="inline-flex items-center gap-x-2 py-1 pl-2 pr-3">
+        <span class="system-xs-medium flex h-5 w-5 items-center justify-center rounded-md bg-text-accent text-text-primary-on-surface">
+          {{selectionModel.selected.length}}
+        </span>
+        <span class="system-sm-semibold text-text-accent">已选择</span>
+      </div>
+      <button type="button" class="btn btn-secondary btn-large"
+        (click)="enableSelected()"
+        >
+        <i class="ri-checkbox-circle-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Enable' | translate: {Default: "Enable"} }}
+      </button>
+      <button type="button" class="btn btn-secondary btn-large" 
+        (click)="disableSelected()"
+        >
+        <i class="ri-close-circle-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Disable' | translate: {Default: "Disable"} }}
+      </button>
+      <button type="button" class="btn btn-secondary btn-large" 
+        (click)="reprocess(selectionModel.selected)">
+        <i class="ri-reset-right-line mr-1"></i>
+        <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: {Default: 'Reprocess'} }}</span>
+      </button>
+      <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
+      <button type="button" class="btn btn-large btn-secondary danger" (click)="deleteSelected()">
+        <i class="ri-delete-bin-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}
+      </button>
+    </div>
+  </div>
+}
 
 @if (isLoading()) {
   <ngm-spin class="absolute top-0 left-0 w-full h-full" />
@@ -200,5 +249,52 @@
         <i class="ri-corner-right-up-line ml-8 opacity-0 group-hover:opacity-100 transition-opacity"></i>
       </div>
     }
+  </div>
+</ng-template>
+
+<ng-template #docMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="createFolder()">
+      <i class="ri-folder-add-fill mr-1 text-xl text-text-accent"></i>
+      <span class="ml-2">{{ 'PAC.Knowledgebase.NewFolder' | translate: {Default: 'New Folder'} }}</span>
+    </div>
+    <div cdkMenuItem (click)="createFromPipeline()">
+      <i class="ri-flow-chart mr-1 text-xl text-primary-600"></i>
+      <span class="ml-2">{{ 'PAC.Knowledgebase.CreateFromPipeline' | translate: {Default: 'Create From Pipeline'} }}</span>
+    </div>
+    <div cdkMenuItem (click)="uploadDocuments()">
+      <i class="ri-folder-shared-fill mr-1 text-xl text-text-success"></i>
+      <span class="ml-2">{{ 'PAC.Knowledgebase.NewDocuments' | translate: {Default: 'New Documents' } }}</span>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #settingsMenu let-doc="doc">
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="enableDoc(doc)">
+      <i class="ri-checkbox-circle-line mr-1"></i>
+      {{ 'PAC.ACTIONS.Enable' | translate: {Default: "Enable"} }}
+    </div>
+    <div cdkMenuItem class="danger" (click)="disableDoc(doc)">
+      <i class="ri-close-circle-line mr-1"></i>
+      {{ 'PAC.ACTIONS.Disable' | translate: {Default: "Disable"} }}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #rowMenu let-doc="doc">
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="reprocess([doc.id])">
+      <i class="ri-reset-right-line mr-1"></i>
+      <span class="ml-2">{{ 'PAC.Knowledgebase.Reprocess' | translate: {Default: 'Reprocess'} }}</span>
+    </div>
+    <div cdkMenuItem (click)="renameDoc(doc)">
+      <i class="ri-edit-line mr-1"></i>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Rename' | translate: {Default: 'Rename'} }}</span>
+    </div>
+    <div cdkMenuItem class="danger" (click)="deleteDocument(doc)">
+      <i class="ri-delete-bin-line mr-1"></i>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete' } }}</span>
+    </div>
   </div>
 </ng-template>

@@ -74,7 +74,7 @@ export const createRandomSuperAdminUsers = async (
 	const superAdmins: IUser[] = [];
 
 	for await (const tenant of tenants) {
-		const superAdminRole = await connection.manager.findOne(Role, {
+		const superAdminRole = await connection.manager.findOneBy(Role, {
 			tenant,
 			name: RolesEnum.SUPER_ADMIN
 		});
@@ -235,7 +235,7 @@ const seedSuperAdminUsers = async (
 	tenant: ITenant
 ): Promise<IUser[]> => {
 	const superAdmins: Promise<IUser>[] = [];
-	const superAdminRole = await connection.manager.findOne(Role, {
+	const superAdminRole = await connection.manager.findOneBy(Role, {
 		tenant,
 		name: RolesEnum.SUPER_ADMIN
 	});
@@ -257,7 +257,7 @@ const seedAdminUsers = async (
 	tenant: ITenant
 ): Promise<IUser[]> => {
 	const admins: Promise<IUser>[] = [];
-	const adminRole = await connection.manager.findOne(Role, {
+	const adminRole = await connection.manager.findOneBy(Role, {
 		tenant,
 		name: RolesEnum.ADMIN
 	});
@@ -279,7 +279,7 @@ const seedDefaultEmployeeUsers = async (
 	tenant: ITenant,
 	employees: any[]
 ): Promise<IUser[]> => {
-	const employeeRole = await connection.manager.findOne(Role, {
+	const employeeRole = await connection.manager.findOneBy(Role, {
 		tenant,
 		name: RolesEnum.EMPLOYEE
 	});
@@ -300,7 +300,7 @@ const seedRandomUsers = async (
 	tenant: ITenant,
 	maxUserCount: number
 ): Promise<IUser[]> => {
-	const role = await connection.manager.findOne(Role, {
+	const role = await connection.manager.findOneBy(Role, {
 		tenant,
 		name: roleEnum
 	});
@@ -319,7 +319,7 @@ const seedDefaultCandidateUsers = async (
 	connection: Connection,
 	tenant: ITenant
 ): Promise<IUser[]> => {
-	const candidateRole = await connection.manager.findOne(Role, {
+	const candidateRole = await connection.manager.findOneBy(Role, {
 		tenant,
 		name: RolesEnum.CANDIDATE
 	});

@@ -7,6 +7,7 @@ import { PACAccountComponent } from './account/account.component'
 import { PACAccountPasswordComponent } from './account/password.component'
 import { PACAccountProfileComponent } from './account/profile.component'
 import { PACSettingComponent } from './settings.component'
+import { PluginsComponent } from './plugins/plugins.component'
 
 const routes: Routes = [
   {
@@ -202,6 +203,18 @@ const routes: Routes = [
             redirectTo
           }
         },
+      },
+      {
+        path: 'plugins',
+        component: PluginsComponent,
+        canActivate: [NgxPermissionsGuard],
+        data: {
+          title: 'settings/plugins',
+          permissions: {
+            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
+            redirectTo
+          }
+        }
       }
     ]
   }

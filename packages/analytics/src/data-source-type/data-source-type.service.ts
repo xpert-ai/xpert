@@ -29,7 +29,7 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 	async handleTenantCreatedEvent(event: TenantCreatedEvent) {
 		this.logger.debug('Tenant Created Event: seed dataSource types')
 		const { tenantId } = event
-		const tenant = await this.entityManager.findOne(Tenant, tenantId)
+		const tenant = await this.entityManager.findOne(Tenant, {where: { id: tenantId }})
 		await seedDefaultDataSourceTypes(this.entityManager.connection, tenant)
 	}
 

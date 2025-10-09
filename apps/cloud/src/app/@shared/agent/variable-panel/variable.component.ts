@@ -14,13 +14,13 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TXpertVariablesOptions, XpertService } from '@cloud/app/@core'
+import { TXpertVariablesOptions, XpertAPIService } from '@cloud/app/@core'
 import { NgmHighlightDirective, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { debouncedSignal, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { of } from 'rxjs'
-import { getVariableSchema, TStateVariable, TStateVariableType, TWorkflowVarGroup } from '../../../@core/types'
+import { getVariableSchema, TStateVariable, TWorkflowVarGroup } from '../../../@core/types'
 
 export { TXpertVariablesOptions } from '@cloud/app/@core/services'
 
@@ -39,12 +39,12 @@ export class XpertVariablePanelComponent {
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly overlay = inject(Overlay)
   readonly elementRef = inject(ElementRef)
-  readonly xpertAPI = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
   readonly i18nPipe = new NgmI18nPipe()
 
   // Inputs
   readonly options = input.required<TXpertVariablesOptions>()
-  readonly type = input<TStateVariableType>()
+  readonly type = input<string>() // TStateVariableType | string
 
   /**
    * Use as variables cache, if not provided, will fetch variables from API by options
@@ -58,7 +58,7 @@ export class XpertVariablePanelComponent {
   readonly value$ = this.cva.value$
   readonly selected = computed(() => getVariableSchema(this.variables(), this.value$()))
   readonly variable = computed(() => this.selected().variable)
-  readonly selectedGroupName = computed(() => this.selected()?.group?.group.name)
+  readonly selectedGroupName = computed(() => this.selected()?.group?.group?.name)
 
   readonly #variables = myRxResource({
     request: () => (this.variables() ? null : this.options()),
@@ -79,7 +79,7 @@ export class XpertVariablePanelComponent {
         variables: searchTerm ? group.variables?.filter((variable) => {
           const description = variable.description
           return (type
-            ? variable.type === type
+            ? variable.type?.startsWith(type)
             : true) &&
                 (variable.name.toLowerCase().includes(searchTerm) ||
                   (this.i18nPipe.transform(description).toLowerCase().includes(searchTerm)))
@@ -109,6 +109,10 @@ export class XpertVariablePanelComponent {
       },
       { allowSignalWrites: true }
     )
+  }
+
+  isSelectedGroup(name: string) {
+    return this.selectedGroupName() ? this.selectedGroupName() === name : !name
   }
 
   focus() {

@@ -1,49 +1,109 @@
-import { Component, inject, model, signal } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
+import { KnowledgeChunkComponent, KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
 import { DocumentInterface } from '@langchain/core/documents'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { KnowledgebaseService, Store, ToastrService, getErrorMessage, routeAnimations } from '../../../../../@core'
+import {
+  AiModelTypeEnum,
+  DocumentMetadata,
+  IKnowledgeRetrievalLog,
+  KnowledgebaseService,
+  OrderTypeEnum,
+  ToastrService,
+  getErrorMessage,
+  routeAnimations
+} from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
-  selector: 'xpert-knowledgebase-test',
+  selector: 'xp-knowledgebase-test',
   templateUrl: './test.component.html',
   styleUrls: ['./test.component.scss'],
-  imports: [RouterModule, FormsModule, TranslateModule, MaterialModule, NgmCommonModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    TranslateModule,
+    CdkMenuModule,
+    MatTooltipModule,
+    NgmCommonModule,
+    KnowledgeChunkComponent,
+    KnowledgeRetrievalSettingsComponent
+  ],
   animations: [routeAnimations]
 })
-export class KnowledgeTestComponent extends TranslationBaseComponent {
-  readonly knowledgebaseService = inject(KnowledgebaseService)
+export class KnowledgeTestComponent {
+  eAiModelTypeEnum = AiModelTypeEnum
+
+  readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly _toastrService = inject(ToastrService)
-  readonly #store = inject(Store)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
+  
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
-  readonly score = model<number>(null)
-  readonly topK = model<number>(null)
-  readonly query = model<string>('')
-  readonly results = signal<{ doc: DocumentInterface; score: number; relevanceScore?: number }[]>([])
 
-  readonly loading = signal<boolean>(false)
+  readonly recall = computed(() => this.knowledgebase()?.recall)
+  readonly score = computed(() => this.recall()?.score)
+  readonly topK = computed(() => this.recall()?.topK)
+
+  readonly query = model<string>('')
+  readonly results = signal<DocumentInterface<DocumentMetadata>[]>(null)
+
+  readonly #loading = signal<boolean>(false)
+
+  readonly #logs = myRxResource({
+    request: () => ({
+      id: this.knowledgebase().id,
+      params: {
+        order: {
+          createdAt: OrderTypeEnum.DESC
+        },
+        skip: 0,
+        take: 20,
+      }
+    }),
+    loader: ({ request }) => {
+      return this.knowledgebaseAPI.getLogs(request.id, request.params)
+    }
+  })
+  readonly logs = computed(() => this.#logs.value()?.items)
+
+  readonly loading = computed(() => this.#loading() || this.#logs.status() === 'loading')
 
   test() {
-    this.loading.set(true)
-    this.knowledgebaseService
+    this.#loading.set(true)
+    this.knowledgebaseAPI
       .test(this.knowledgebase().id, { query: this.query(), k: this.topK() ?? 10, score: this.score() })
       .subscribe({
         next: (results) => {
           this.results.set(results)
-          this.loading.set(false)
+          this.#loading.set(false)
         },
         error: (err) => {
           this._toastrService.error(getErrorMessage(err))
-          this.loading.set(false)
+          this.#loading.set(false)
+        },
+        complete: () => {
+          this.#logs.reload()
         }
       })
+  }
+
+  selectLog(log: IKnowledgeRetrievalLog) {
+    this.query.set(log.query)
+    this.results.set(null)
+  }
+
+  onClose(reload?: boolean | void) {
+    if (reload) {
+      this.knowledgebaseComponent.refresh()
+    }
   }
 }

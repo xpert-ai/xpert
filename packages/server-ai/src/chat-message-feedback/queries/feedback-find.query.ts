@@ -1,6 +1,6 @@
 import { IChatMessageFeedback } from '@metad/contracts'
+import { FindOptionsWhere } from '@metad/server-core'
 import { IQuery } from '@nestjs/cqrs'
-import { FindConditions } from 'typeorm'
 
 /**
  * Find feedbacks by conditions
@@ -9,7 +9,7 @@ export class FindMessageFeedbackQuery implements IQuery {
 	static readonly type = '[Chat Message Feedback] Find all'
 
 	constructor(
-		public readonly conditions: FindConditions<IChatMessageFeedback>,
+		public readonly conditions: FindOptionsWhere<IChatMessageFeedback>,
 		public readonly relations?: string[]
 	) {}
 }

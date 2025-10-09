@@ -25,7 +25,7 @@ import {
   PAC_SERVER_DEFAULT_OPTIONS,
   routeAnimations,
   Store,
-  XpertService
+  XpertAPIService
 } from '../../@core'
 import { ChatAppService } from '../chat-app.service'
 import { ChatService } from '../chat.service'
@@ -84,7 +84,7 @@ export class ChatHomeComponent {
   readonly store = inject(Store)
   readonly chatService = inject(ChatService)
   readonly conversationService = inject(ChatConversationService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #dialog = inject(Dialog)
   readonly #vcr = inject(ViewContainerRef)
   readonly #toastr = injectToastr()

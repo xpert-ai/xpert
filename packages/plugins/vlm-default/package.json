@@ -1,0 +1,9 @@
+{
+  "name": "@xpert-ai/plugin-vlm-default",
+  "version": "0.0.1",
+  "dependencies": {
+    "sharp": "^0.34.4"
+  },
+  "main": "./index.cjs",
+  "module": "./index.js"
+}

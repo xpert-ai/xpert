@@ -7,7 +7,7 @@ import { SemanticModelCacheService } from './cache.service'
 
 @Module({
 	imports: [
-		forwardRef(() => TypeOrmModule.forFeature([SemanticModelCache])),
+		TypeOrmModule.forFeature([SemanticModelCache]),
 		forwardRef(() => TenantModule),
 		SharedModule,
 		CqrsModule,

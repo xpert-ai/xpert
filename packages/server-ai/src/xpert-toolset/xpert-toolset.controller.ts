@@ -11,6 +11,7 @@ import {
 	UUIDValidationPipe
 } from '@metad/server-core'
 import { ConfigService } from '@metad/server-config'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import {
 	Body,
 	Controller,
@@ -26,7 +27,6 @@ import {
 	Inject,
 	UseGuards,
 	InternalServerErrorException,
-	CACHE_MANAGER,
 	Header,
 	Sse
 } from '@nestjs/common'

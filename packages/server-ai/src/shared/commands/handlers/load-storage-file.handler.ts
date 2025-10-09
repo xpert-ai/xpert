@@ -9,6 +9,9 @@ import { Document } from 'langchain/document'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { LoadStorageFileCommand } from '../load-storage-file.command'
 
+/**
+ * @deprecated use DefaultTransformerStrategy instead
+ */
 @CommandHandler(LoadStorageFileCommand)
 export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCommand> {
 	readonly #logger = new Logger(LoadStorageFileHandler.name)
@@ -20,7 +23,7 @@ export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCo
 	public async execute(command: LoadStorageFileCommand) {
 		const { id } = command
 
-		const storageFile = await this.queryBus.execute<GetStorageFileQuery, StorageFile>(new GetStorageFileQuery(id))
+		const [storageFile] = await this.queryBus.execute<GetStorageFileQuery, StorageFile[]>(new GetStorageFileQuery([id]))
 
 		const type = storageFile.originalName.split('.').pop()
 		let data: Document[]

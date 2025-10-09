@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { API_PREFIX, PaginationParams, TKnowledgePipelineTemplate, toHttpParams } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { IXpertMCPTemplate, IXpertTemplate, TXpertTemplate } from '../types'
 
@@ -25,5 +25,15 @@ export class XpertTemplateService {
 
   getMCPTemplate(id: string) {
     return this.#httpClient.get<IXpertMCPTemplate>(API_PREFIX + `/xpert-template/mcps/${id}`)
+  }
+
+  getAllKnowledgePipelines(paginationParams: PaginationParams<IXpertTemplate>) {
+    return this.#httpClient.get<{categories: string[]; templates: TKnowledgePipelineTemplate[]}>(API_PREFIX + `/xpert-template/pipelines`, {
+      params: toHttpParams(paginationParams)
+    })
+  }
+
+  getKnowledgePipelineTemplate(id: string) {
+    return this.#httpClient.get<TKnowledgePipelineTemplate>(API_PREFIX + `/xpert-template/pipelines/${id}`)
   }
 }

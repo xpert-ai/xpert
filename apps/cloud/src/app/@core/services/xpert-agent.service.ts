@@ -25,7 +25,7 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
     }))
   }
 
-  test(xpertId: string, nodeKey: string, parameters: any) {
-    return this.httpClient.post(this.apiBaseUrl + `/xpert/${xpertId}/test/${nodeKey}`, {parameters})
+  test(xpertId: string, nodeKey: string, state: any) {
+    return this.httpClient.post(this.apiBaseUrl + `/xpert/${xpertId}/test/${nodeKey}`, {state})
   }
 }

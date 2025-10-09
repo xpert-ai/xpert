@@ -54,6 +54,6 @@ export class XpertCardComponent {
   )
 
   edit() {
-    this.#router.navigate(['/xpert', this.xpert().id])
+    this.#router.navigate(['/xpert/x', this.xpert().id])
   }
 }

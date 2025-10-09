@@ -23,7 +23,7 @@ import {
   TAvatar,
   TXpertParameter,
   XpertAgentExecutionService,
-  XpertService,
+  XpertAPIService,
   agentUniqueName,
   injectToastr,
   getErrorMessage,
@@ -109,7 +109,7 @@ export class XpertStudioPanelAgentComponent {
   readonly elementRef = inject(ElementRef)
   readonly appService = inject(AppService)
   readonly apiService = inject(XpertStudioApiService)
-  readonly xpertAPI = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
   readonly agentService = inject(XpertAgentService)
   readonly executionService = inject(XpertAgentExecutionService)
   readonly panelComponent = inject(XpertStudioPanelComponent)

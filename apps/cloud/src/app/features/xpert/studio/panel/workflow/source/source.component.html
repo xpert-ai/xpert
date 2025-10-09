@@ -1,0 +1,37 @@
+<div class="p-4">
+  <div class="flex justify-between mt-2">
+    <div class="font-semibold uppercase">
+      {{ 'PAC.Pipeline.AuthenticationMethod' | translate: {Default: 'Authentication method'} }}
+    </div>
+
+    <ngm-select class="w-48" [(ngModel)]="authMode" [nullable]="false" [selectOptions]="authModeOptions()"/>
+  </div>
+  @switch (authMode()) {
+    @case ('integration') {
+      <xp-integration-select class="grow" [provider]="integrationProvider()" [(ngModel)]="integrationId">
+        @if (integrationId()) {
+          <div icon class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm
+          bg-green-500 border-green-600 shadow-green-300 mr-1.5">
+          </div>
+        }
+      </xp-integration-select>
+    }
+  }
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4">
+  <div class="font-bold mb-2">
+    {{ 'PAC.Pipeline.Configuration' | translate: {Default: 'Configuration'} }}
+  </div>
+  @if (configSchema(); as configSchema) {
+    <json-schema-form class="mt-2 grid grid-cols-1 gap-2" [schema]="configSchema" [variables]="variables()"
+      [(ngModel)]="config"
+    />
+  } @else {
+    <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
+      {{ 'PAC.Pipeline.NoPluginConfig' | translate: {Default: 'No configuration required for this plugin.'} }}
+    </div>
+  }
+</div>

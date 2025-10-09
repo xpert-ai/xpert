@@ -16,7 +16,7 @@ import {
   TXpertTemplate,
   TAvatar,
   TXpertTeamDraft,
-  XpertService,
+  XpertAPIService,
   XpertTemplateService,
   XpertWorkspaceService,
   OrderTypeEnum
@@ -49,7 +49,7 @@ export class XpertInstallComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly templateService = inject(XpertTemplateService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
   readonly selectedWorkspace = injectWorkspace()
@@ -110,7 +110,7 @@ export class XpertInstallComponent {
         next: (xpert) => {
           this.loading.set(false)
           this.close()
-          this.#router.navigate(['/xpert/', xpert.id])
+          this.#router.navigate(['/xpert/x/', xpert.id])
         },
         error: (err) => {
           this.loading.set(false)

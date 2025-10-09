@@ -15,6 +15,6 @@ export class CopilotGetOneHandler implements IQueryHandler<CopilotGetOneQuery> {
 	public async execute(command: CopilotGetOneQuery): Promise<ICopilot> {
 		const tenantId = command.tenantId
 		// Regardless of organization restrictions when get copilot by id
-		return await this.repository.findOne(command.id, { where: { tenantId }, relations: command.relations })
+		return await this.repository.findOne({ where: { id: command.id, tenantId }, relations: command.relations })
 	}
 }

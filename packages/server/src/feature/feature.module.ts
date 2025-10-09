@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
-import { RouterModule } from 'nest-router';
+import { RouterModule } from '@nestjs/core';
 import { Feature } from './feature.entity';
 import { FeatureOrganization } from './feature-organization.entity';
 import { FeatureToggleController } from './feature-toggle.controller';
@@ -13,7 +13,7 @@ import { FeatureController } from './feature.controller';
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{ path: '/feature', module: FeatureModule },
 		]),
 		TypeOrmModule.forFeature([Feature, FeatureOrganization]),

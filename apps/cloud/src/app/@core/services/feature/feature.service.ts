@@ -7,9 +7,9 @@ import {
   IFeatureOrganizationFindInput,
   IFeatureOrganizationUpdateInput,
   IPagination
-} from '@metad/contracts'
-import { toParams } from '@metad/core'
+} from '../../types'
 import { Observable } from 'rxjs'
+import { toParams } from '@metad/core'
 
 @Injectable()
 export class FeatureService {
@@ -23,9 +23,8 @@ export class FeatureService {
   }
 
   getParentFeatures(relations?: string[]): Observable<{ items: IFeature[]; total: number }> {
-    const data = { relations }
     return this.http.get<{ items: IFeature[]; total: number }>(`${this.API_URL}/parent`, {
-      params: toParams({ data })
+      params: toParams({ relations })
     })
   }
 
@@ -34,14 +33,13 @@ export class FeatureService {
   }
 
   getFeatureOrganizations(
-    findInput?: IFeatureOrganizationFindInput,
-    relations?: string[]
-  ): Observable<IPagination<IFeatureOrganization>> {
-    const data = { relations, findInput }
-    return this.http.get<IPagination<IFeatureOrganization>>(`${this.API_URL}/organizations`, {
-      params: toParams({ data })
-    })
-  }
+		where?: IFeatureOrganizationFindInput,
+		relations?: string[]
+	): Observable<IPagination<IFeatureOrganization>> {
+		return this.http.get<IPagination<IFeatureOrganization>>(`${this.API_URL}/organizations`, {
+			params: toParams({ relations, ...where })
+		});
+	}
 
   featureToggle(payload: IFeatureOrganizationUpdateInput) {
     return this.http.post(`${this.API_URL}`, payload)

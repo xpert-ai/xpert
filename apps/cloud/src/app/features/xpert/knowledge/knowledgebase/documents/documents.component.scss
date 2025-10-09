@@ -1,56 +1,16 @@
 :host {
-  --mat-table-row-item-container-height: 38px;
   @apply relative w-full flex-1 flex flex-col overflow-hidden;
-}
-
-.cdk-header-cell,
-.cdk-cell {
-  white-space: nowrap;
-}
-
-.cdk-column-name {
-  max-width: 280px;
-}
-
-tr.example-detail-row {
-  height: 0;
-}
-
-.example-element-row td {
-  border-bottom-width: 0;
-}
-
-.example-element-detail {
-  overflow: hidden;
-  display: flex;
-}
-
-.example-element-diagram {
-  min-width: 80px;
-  padding: 8px;
-  font-weight: lighter;
-  margin: 8px 0;
-  height: 104px;
-}
-
-.example-element-symbol {
-  font-weight: bold;
-  font-size: 40px;
-  line-height: normal;
-}
-
-.example-element-description {
-  padding: 16px;
-}
-
-.example-element-description-attribution {
-  opacity: 0.5;
 }
 
 :host::ng-deep {
   xpert-knowledge-document-chunk,
-  xpert-knowledge-document-create {
+  xpert-knowledge-document-create,
+  xp-knowledge-document-pipeline {
     @apply absolute w-full h-full;
     z-index: 110;
   }
+}
+
+tr td {
+  @apply whitespace-nowrap truncate;
 }

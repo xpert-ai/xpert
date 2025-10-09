@@ -1,10 +1,10 @@
-import { CacheModule, CacheStore } from '@nestjs/common'
-import { redisStore } from 'cache-manager-redis-yet'
+import { CacheModule } from '@nestjs/cache-manager'
+import { createKeyv } from '@keyv/redis'
 import { RedisOptions } from 'ioredis'
-import { REDIS_OPTIONS, RedisModule } from '../core/redis.module'
+import { REDIS_OPTIONS, RedisModule } from '../core/redis'
 
 /**
- * https://docs.nestjs.com/v8/techniques/caching
+ * https://docs.nestjs.com/techniques/caching
  * 
  * @returns 
  */
@@ -13,7 +13,7 @@ export function provideCacheModule() {
         isGlobal: true,
         imports: [RedisModule],
         useFactory: async (redisOptions: RedisOptions) => {
-            const store = await redisStore({
+            const store = createKeyv({
                 socket: {
                     host: redisOptions.host,
                     port: redisOptions.port
@@ -23,7 +23,9 @@ export function provideCacheModule() {
             })
 
             return {
-                store: store as unknown as CacheStore,
+                stores: [
+                    store
+                ],
                 ttl: 3 * 60 // 3 minutes
                 // ttl: configService.get('CACHE_TTL'),
             }

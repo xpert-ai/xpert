@@ -95,6 +95,6 @@ export class XpertStudioConnectionMenuComponent {
 
   removeConnection() {
     const connection: FConnectionComponent = this.connectionComponent()
-    this.studioService.createConnection(connection.fOutputId, null, connection.fInputId)
+    this.studioService.removeConnection(connection.fOutputId, connection.fInputId)
   }
 }

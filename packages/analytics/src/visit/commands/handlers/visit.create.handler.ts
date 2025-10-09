@@ -41,11 +41,11 @@ export class VisitCreateHandler implements ICommandHandler<VisitCreateCommand> {
 			visit.visits = 1
 
 			if (visit.entity === VisitEntityEnum.Story) {
-				visit.story = await this.storyRepo.findOne(visit.entityId)
+				visit.story = await this.storyRepo.findOneBy({id: visit.entityId})
 			} else if (visit.entity === VisitEntityEnum.SemanticModel) {
-				visit.model = await this.modelRepo.findOne(visit.entityId)
+				visit.model = await this.modelRepo.findOneBy({id: visit.entityId})
 			} else if (visit.entity === VisitEntityEnum.Indicator) {
-				visit.indicator = await this.indicatorRepo.findOne(visit.entityId)
+				visit.indicator = await this.indicatorRepo.findOneBy({id: visit.entityId})
 			}
 
 			this.visitService.create(visit)

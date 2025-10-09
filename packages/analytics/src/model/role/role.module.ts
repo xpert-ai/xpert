@@ -8,7 +8,7 @@ import { SemanticModelRoleService } from './role.service'
 
 @Module({
 	imports: [
-		forwardRef(() => TypeOrmModule.forFeature([SemanticModelRole])),
+		TypeOrmModule.forFeature([SemanticModelRole]),
 		forwardRef(() => TenantModule),
 		SharedModule,
 		CqrsModule,

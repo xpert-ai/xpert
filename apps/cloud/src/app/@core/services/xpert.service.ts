@@ -1,6 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { injectXpertPreferences, LanguagesEnum, LongTermMemoryTypeEnum, PaginationParams, TCopilotStore, timeRangeToParams, TMemoryQA, TMemoryUserProfile, toHttpParams } from '@metad/cloud/state'
+import { injectXpertPreferences, LanguagesEnum, LongTermMemoryTypeEnum, PaginationParams, TCopilotStore, timeRangeToParams, TMemoryQA, TMemoryUserProfile, toHttpParams, TWorkflowTriggerMeta } from '@metad/cloud/state'
 import { toParams } from '@metad/ocap-angular/core'
 import { HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -43,7 +43,7 @@ export type TXpertVariablesOptions = {
 
 
 @Injectable({ providedIn: 'root' })
-export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
+export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   readonly #logger = inject(NGXLogger)
   readonly baseUrl = injectApiBaseUrl()
   readonly fetchEventSource = injectFetchEventSource()
@@ -307,6 +307,10 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     )
   }
 
+  getTriggerProviders() {
+    return this.httpClient.get<TWorkflowTriggerMeta[]>(this.apiBaseUrl + `/triggers/providers`)
+  }
+
   // Statistics
 
   getDailyConversations(id: string, timeRange: string[]) {
@@ -389,8 +393,8 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
 }
 
-export function injectXpertService() {
-  return inject(XpertService)
+export function injectXpertAPI() {
+  return inject(XpertAPIService)
 }
 
 /**
@@ -422,7 +426,7 @@ function handleError(error: HttpErrorResponse): Observable<never> {
 }
 
 export function injectXperts() {
-  const xpertService = inject(XpertService)
+  const xpertService = inject(XpertAPIService)
   const preferences = injectXpertPreferences()
   const lang = injectLanguage()
 

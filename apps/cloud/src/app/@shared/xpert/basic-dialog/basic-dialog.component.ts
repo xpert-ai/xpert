@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ICopilotModel, injectToastr, TAvatar, XpertService } from 'apps/cloud/src/app/@core'
+import { ICopilotModel, injectToastr, TAvatar, XpertAPIService } from 'apps/cloud/src/app/@core'
 import { XpertBasicFormComponent } from '../basic-form/basic-form.component'
 
 @Component({
@@ -28,7 +28,7 @@ import { XpertBasicFormComponent } from '../basic-form/basic-form.component'
 export class XpertBasicDialogComponent {
   readonly #data = inject<{ name: string; avatar: TAvatar; description: string; title: string; copilotModel: ICopilotModel }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #fb = inject(FormBuilder)
   readonly #toastr = injectToastr()
 

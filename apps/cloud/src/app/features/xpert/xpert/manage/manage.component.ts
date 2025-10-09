@@ -9,7 +9,7 @@ import { Router } from '@angular/router'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { pick } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { getErrorMessage, IfAnimation, injectToastr, IXpert, XpertService } from 'apps/cloud/src/app/@core'
+import { getErrorMessage, IfAnimation, injectToastr, IXpert, XpertAPIService } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertBasicDialogComponent, XpertExportDslComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { EMPTY } from 'rxjs'
@@ -43,7 +43,7 @@ import { XpertComponent } from '../xpert.component'
 export class XpertBasicManageComponent {
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
-  readonly #xpertService = inject(XpertService)
+  readonly #xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly #router = inject(Router)
   readonly xpertComponent = inject(XpertComponent)
@@ -133,7 +133,7 @@ export class XpertBasicManageComponent {
       .subscribe({
         next: (xpert) => {
           this.loading.set(false)
-          this.#router.navigate(['/xpert/', xpert.id])
+          this.#router.navigate(['/xpert/x/', xpert.id])
           this.#toastr.success(
             this.#translate.instant('PAC.Xpert.DuplicateSuccess', { Default: 'Duplicate successfully' })
           )

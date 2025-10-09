@@ -3,15 +3,15 @@ import { IntegrationModule, SharedModule, TenantModule } from '@metad/server-cor
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { ChatBIModelController } from './chatbi-model.controller'
 import { ChatBIModel } from './chatbi-model.entity'
 import { ChatBIModelService } from './chatbi-model.service'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([{ path: '/chatbi-model', module: ChatBIModelModule }]),
-		forwardRef(() => TypeOrmModule.forFeature([ChatBIModel])),
+		RouterModule.register([{ path: '/chatbi-model', module: ChatBIModelModule }]),
+		TypeOrmModule.forFeature([ChatBIModel]),
 		forwardRef(() => TenantModule),
 		SharedModule,
 		CqrsModule,

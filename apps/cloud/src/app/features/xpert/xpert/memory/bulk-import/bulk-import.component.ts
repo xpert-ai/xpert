@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { getErrorMessage, injectToastr, XpertService } from '@cloud/app/@core'
+import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
 import { LongTermMemoryTypeEnum } from '@metad/contracts'
 import { NgmDndDirective, OverlayAnimation1, readExcelWorkSheets } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -23,7 +23,7 @@ export class XpertMemoryBulkImportComponent {
 
   readonly #data = inject<{ xpertId: string; type: LongTermMemoryTypeEnum }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
-  readonly #xpertAPI = inject(XpertService)
+  readonly #xpertAPI = inject(XpertAPIService)
   readonly #toastr = injectToastr()
 
   readonly xpertId = signal(this.#data.xpertId)

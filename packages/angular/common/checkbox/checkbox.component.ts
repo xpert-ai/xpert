@@ -37,4 +37,8 @@ export class NgmCheckboxComponent {
   })
 
   readonly value$ = this.cva.value$
+
+  toggle() {
+    this.value$.update((state) => !state)
+  }
 }

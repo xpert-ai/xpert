@@ -348,6 +348,9 @@ export function splitByHighlight(text: string, highlight: string | string[]): Ar
   return [{value: text}]
 }
 
+/**
+ * @deprecated Do not place non-pure front-end components in this package
+ */
 export function toParams(query) {
 	let params: HttpParams = new HttpParams();
 	Object.keys(query).forEach((key) => {
@@ -391,7 +394,7 @@ export function mergeOptions(obj1: unknown, ...objs: unknown[]) {
 export function omitBlank(obj) {
   if (Array.isArray(obj)) {
     return obj.map(value => omitBlank(value))
-  } else if (typeof obj === "object") {
+  } else if (isNotNil(obj) && typeof obj === "object") {
     return Object.entries(obj)
       .filter(([, v]) => !isBlank(v))
       .reduce((r, [key, value]) => ({ ...r, [key]: omitBlank(value) }), {})

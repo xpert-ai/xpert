@@ -1,7 +1,7 @@
 import { StorageFileModule, TenantModule } from '@metad/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 import { CopilotModule } from '../copilot'
 import { CopilotOrganizationModule } from '../copilot-organization/index'
 import { CopilotUserModule } from '../copilot-user/index'
@@ -19,7 +19,7 @@ import { StoreController } from './store.controller'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
+		RouterModule.register([
 			{
 				path: '/ai',
 				module: AIModule

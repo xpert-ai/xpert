@@ -1,0 +1,44 @@
+<ul class="space-y-1">
+  @for (item of items(); track item.metadata.path) {
+    <li>
+      @if (item.metadata.type === 'directory') {
+        <!-- Directory -->
+        <div
+          class="flex items-center cursor-pointer hover:bg-gray-100 rounded-lg px-2 py-1"
+          (click)="toggleDirectory(item)"
+        >
+          <span class="mr-2">
+            @if (!item.expanded) {
+              <i class="ri-folder-line text-text-secondary"></i>
+            } @else {
+              <i class="ri-folder-open-line text-text-secondary"></i>
+            }
+          </span>
+          <span class="text-text-secondary">
+            {{ item.metadata.name }}
+          </span>
+        </div>
+
+        <!-- Children -->
+        @if (item.expanded && item.children) {
+          <ul class="ml-6 mt-1 space-y-1 border-l border-gray-200 pl-4">
+            <xp-knowledge-file-system [items]="item.children" />
+          </ul>
+        }
+      } @else {
+        <!-- File -->
+        <div
+          class="flex items-center px-2 py-1 hover:bg-gray-50 rounded-lg"
+        >
+          <span class="mr-2">
+            <i class="ri-file-text-line text-text-secondary"></i>
+          </span>
+          <span class="text-gray-700">{{ item.metadata.name }}</span>
+          <span class="ml-auto text-xs text-gray-400">
+            {{ item.metadata.size | number }} bytes
+          </span>
+        </div>
+      }
+    </li>
+  }
+</ul>

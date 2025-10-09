@@ -17,9 +17,15 @@ export class FeatureService extends CrudService<Feature> {
 		super(featureRepository)
 	}
 
-	async getParentFeatures(request: any): Promise<IPagination<IFeature>> {
-		const { relations = [] } = request
-		return await this.findAll({
+	/**
+	 * Retrieves top-level features (those with no parent) from the database. Allows specifying related entities
+	 * to be included in the result. Features are ordered by their creation time in ascending order.
+	 *
+	 * @param relations An array of strings indicating which related entities to include in the result.
+	 * @returns A promise resolving to a paginated response containing top-level IFeature objects.
+	 */
+	async getParentFeatures(relations: string[] = []): Promise<IPagination<IFeature>> {
+		return await super.findAll({
 			where: {
 				parentId: IsNull()
 			},
@@ -27,7 +33,7 @@ export class FeatureService extends CrudService<Feature> {
 			order: {
 				createdAt: 'ASC'
 			}
-		})
+		});
 	}
 
 	async seedDB() {

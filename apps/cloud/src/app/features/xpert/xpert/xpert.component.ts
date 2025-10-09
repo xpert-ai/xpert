@@ -16,6 +16,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { AppService } from '../../../app.service'
 import { injectGetXpertTeam } from '../utils'
 import { XpertBasicManageComponent } from './manage/manage.component'
+import { XpertService } from './xpert.service'
 
 @Component({
   standalone: true,
@@ -36,6 +37,7 @@ import { XpertBasicManageComponent } from './manage/manage.component'
   styleUrl: 'xpert.component.scss',
   animations: [routeAnimations, ...OverlayAnimations, DisappearSlideLeft],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [ XpertService ]
 })
 export class XpertComponent {
   eXpertTypeEnum = XpertTypeEnum

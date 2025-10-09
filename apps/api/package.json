@@ -1,6 +1,6 @@
 {
   "name": "@metad/xpert-api",
-  "version": "3.5.5",
+  "version": "3.6.0-beta.2",
   "description": "Xpert API",
   "license": "AGPL-3.0",
   "homepage": "https://mtda.cloud",
@@ -37,15 +37,15 @@
     "seed:prod:build": "yarn ng run api:seed -c=production"
   },
   "dependencies": {
-    "@nestjs/platform-socket.io": "^8.1.2",
-    "@nestjs/websockets": "^8.1.2"
+    "@nestjs/platform-socket.io": "^11.1.6",
+    "@nestjs/websockets": "^11.1.6"
   },
   "devDependencies": {
     "@types/socket.io": "3.0.1",
     "@types/socket.io-redis": "1.0.27",
     "@types/ws": "7.4.7",
-    "@nestjs/schematics": "^7.1.2",
-    "@nestjs/testing": "^7.4.4",
+    "@nestjs/schematics": "^11.0.7",
+    "@nestjs/testing": "^11.1.6",
     "nodemon": "^3.1.0",
     "pm2": "^5.3.1",
     "dotenv": "^8.2.0",

@@ -25,7 +25,7 @@ export class XpertStudioPanelToolsetSectionComponent {
   readonly toolsets = this.agentComponent.toolsets
 
   remove(node: TXpertTeamNode) {
-    // Remove connection by simulate a drop event
-    this.apiService.createConnection(this.key(), null, node.key)
+    // Remove connection
+    this.apiService.removeConnection(this.key(), node.key)
   }
 }

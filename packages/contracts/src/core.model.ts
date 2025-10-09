@@ -30,6 +30,35 @@ export interface IListQueryInput<T> {
 	readonly where?: any;
 }
 
+/**
+ * Describes generic pagination params
+ */
+export interface IPaginationParam extends IOptionParams {
+	/**
+	 * Limit (paginated) - max number of entities should be taken.
+	 */
+	readonly take?: number;
+	/**
+	 * Offset (paginated) where from entities should be taken.
+	 */
+	readonly skip?: number;
+}
+
+export interface IOptionParams {
+	/**
+	 * Order, in which entities should be ordered.
+	 */
+	readonly order?: Record<string, any>;
+	/**
+	 * Simple condition that should be applied to match entities.
+	 */
+	readonly where: Record<string, any>;
+	/**
+	 * Indicates if soft-deleted rows should be included in entity result.
+	 */
+	readonly withDeleted?: boolean;
+}
+
 export enum OrderTypeEnum {
 	DESC = 'DESC',
 	ASC = 'ASC'
@@ -63,7 +92,9 @@ export type SmartWhere<T> = Partial<{
 }>
 
 export type PaginationParams<T> = {
-  select?: (keyof T)[]
+  select?: (keyof T)[] | {
+        [P in keyof T]?: P extends "toString" ? unknown : NonNullable<T[P]>;
+    }
   take?: number
   skip?: number
   where?: SmartWhere<T>

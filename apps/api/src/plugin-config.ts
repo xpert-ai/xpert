@@ -4,13 +4,16 @@ import {
 	DEFAULT_API_HOST,
 	DEFAULT_API_BASE_URL
 } from '@metad/server-common';
+import chalk from 'chalk';
 import { ConnectionOptions } from 'typeorm';
 import * as path from 'path';
+import { version } from './../version';
 
 let assetPath;
 let assetPublicPath;
 let serverRoot;
 
+console.log(chalk.magenta(`API Version %s`), version);
 console.log('Plugin Config -> __dirname: ' + __dirname);
 console.log('Plugin Config -> process.cwd: ' + process.cwd());
 

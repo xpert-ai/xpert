@@ -14,7 +14,7 @@ import {
   injectApiBaseUrl,
   injectToastr,
   routeAnimations,
-  XpertService
+  XpertAPIService
 } from '../../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../../xpert/develop'
 
@@ -37,7 +37,7 @@ import { XpertDevelopApiKeyComponent } from '../../../xpert/develop'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertKBAPIComponent {
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)

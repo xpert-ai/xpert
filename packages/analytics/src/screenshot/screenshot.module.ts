@@ -6,14 +6,14 @@ import { ScreenshotController } from './screenshot.controller';
 import { ScreenshotService } from './screenshot.service';
 import { CommandHandlers } from './commands/handlers';
 import { TenantModule, UserModule } from '@metad/server-core';
-import { RouterModule } from 'nest-router'
+import { RouterModule } from '@nestjs/core'
 
 @Module({
 	controllers: [
 		ScreenshotController
 	],
 	imports: [
-		RouterModule.forRoutes([{ path: '/screenshot', module: ScreenshotModule }]),
+		RouterModule.register([{ path: '/screenshot', module: ScreenshotModule }]),
 		TypeOrmModule.forFeature([ Screenshot ]),
 		TenantModule,
 		CqrsModule,
@@ -24,7 +24,6 @@ import { RouterModule } from 'nest-router'
 		...CommandHandlers
 	],
 	exports: [
-		TypeOrmModule,
 		ScreenshotService
 	]
 })

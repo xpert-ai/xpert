@@ -12,6 +12,11 @@
         <div class="system-md-semibold text-text-secondary group-hover:text-text-accent">{{ 'PAC.Knowledgebase.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'} }}</div>
       </div>
     </a>
+    <a type="button" class="flex w-full items-center gap-x-2 rounded-lg bg-transparent px-4 py-2 text-text-tertiary shadow-shadow-shadow-3 hover:bg-background-default-dodge hover:text-text-secondary hover:shadow-xs"
+      >
+      <i class="ri-mind-map"></i>
+      <span class="system-sm-medium grow text-left">Create from Knowledge Pipeline</span>
+    </a>
     <div class="system-xs-regular p-4 pt-0 font-body text-text-tertiary">{{ 'PAC.Knowledgebase.AddKnowledgebaseDesc' | translate: {Default: 'Import your own text data or online web content data to enhance the context of LLM.'} }}</div>
     <a class="group flex cursor-pointer items-center gap-1 rounded-b-xl border-t-[0.5px] border-neutral-100 p-4 text-text-tertiary hover:text-text-accent"
       [routerLink]="['/xpert/knowledges/connect']">

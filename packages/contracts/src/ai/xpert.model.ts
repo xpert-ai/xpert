@@ -14,9 +14,26 @@ import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { IStorageFile } from '../storage-file.model'
-import { TInterruptCommand } from '../agent'
+import { STATE_VARIABLE_HUMAN, TInterruptCommand } from '../agent'
 
 export type ToolCall = LToolCall
+
+export enum XpertTypeEnum {
+  /**
+   * Chat Agents
+   */
+  Agent = 'agent',
+
+  /**
+   * Copilot in UI
+   */
+  Copilot = 'copilot',
+
+  /**
+   * Knowledge Workflow
+   */
+  Knowledge = 'knowledge',
+}
 
 export type TXpertFeatures = {
   opener: {
@@ -156,6 +173,10 @@ export type TXpert = {
 export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
   environmentId?: string
 	environment?: IEnvironment
+  /**
+   * When type is 'knowledge', it must binding a knowledgebase
+   */
+  knowledgebase?: IKnowledgebase
 }
 
 export type TXpertOptions = {
@@ -330,11 +351,6 @@ export type TXpertAttachment = {
   fileTypes?: Array<TXpertAttachmentType>
 }
 
-export enum XpertTypeEnum {
-  Agent = 'agent',
-  Copilot = 'copilot'
-}
-
 export enum XpertParameterTypeEnum {
   /**
    * @deprecated use string
@@ -351,6 +367,7 @@ export enum XpertParameterTypeEnum {
   ARRAY_STRING = 'array[string]',
   ARRAY = 'array[object]',
   ARRAY_FILE = 'array[file]',
+  ARRAY_DOCUMENT = 'array[document]',
 
   BOOLEAN = 'boolean',
   SECRET = 'secret',
@@ -499,6 +516,10 @@ export type TChatRequest = {
    * The human input, include parameters
    */
   input: TChatRequestHuman
+  /**
+   * Custom graph state
+   */
+  state?: {[STATE_VARIABLE_HUMAN]: TChatRequestHuman} & Record<string, any>
   xpertId: string
   agentKey?: string
   projectId?: string
@@ -618,8 +639,15 @@ export function createXpertGraph(xpert: IXpert, position: IPoint) {
  */
 export function createXpertNodes(xpert: IXpert, position: IPoint) {
   const nodes: TXpertTeamNode[] = []
+  const agents = []
+  if (!xpert.agent.options?.hidden) {
+    agents.push(xpert.agent)
+  }
+  if (xpert.agents?.length) {
+    agents.push(...xpert.agents)
+  }
   // Agents
-  nodes.push(...[xpert.agent, ...(xpert.agents ?? [])].map((_) => {
+  nodes.push(...agents.map((_) => {
     return {
       type: 'agent',
       key: _.key,
@@ -664,7 +692,6 @@ export function createXpertNodes(xpert: IXpert, position: IPoint) {
       entity: x,
     } as TXpertTeamNode
   }))
-
 
   // Extract the area by positions of all nodes
   const positions = nodes.map((node) => node.position)

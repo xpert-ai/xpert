@@ -47,6 +47,11 @@
       formControlName="rerankModel"
     />
 
+    <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.VisionModel' | translate: {Default: 'Vision Model'}"
+      [modelType]="eModelType.LLM"
+      formControlName="visionModel"
+    />
+
     <div formGroupName="parserConfig">
       <ngm-input [label]=" 'PAC.Knowledgebase.EmbeddingBatchSize' | translate: {Default: 'Embedding Batch Size'} " formControlName="embeddingBatchSize" />
       <ngm-input [label]=" 'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'} " formControlName="chunkSize" />

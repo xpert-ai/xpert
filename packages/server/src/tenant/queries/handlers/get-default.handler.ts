@@ -1,4 +1,5 @@
-import { CACHE_MANAGER, Inject, Logger } from '@nestjs/common'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
 import { TenantService } from '../../tenant.service'

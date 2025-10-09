@@ -22,7 +22,7 @@ import {
   routeAnimations,
   ToastrService,
   TXpertTeamDraft,
-  XpertService,
+  XpertAPIService,
   XpertTypeEnum,
   XpertWorkspaceService
 } from '../../../../@core'
@@ -65,7 +65,7 @@ export class XpertWorkspaceXpertsComponent {
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly workspaceService = inject(XpertWorkspaceService)
-  readonly xpertService = inject(XpertService)
+  readonly xpertService = inject(XpertAPIService)
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
   readonly i18n = new NgmI18nPipe()
   readonly confirmUnique = injectConfirmUnique()
@@ -133,9 +133,9 @@ export class XpertWorkspaceXpertsComponent {
       })
       .closed.subscribe((xpert) => {
         if (xpert?.type === XpertTypeEnum.Agent) {
-          this.router.navigate(['/xpert/', xpert.id, 'agents'])
+          this.router.navigate(['/xpert/x/', xpert.id, 'agents'])
         } else if (xpert?.type === XpertTypeEnum.Copilot) {
-          this.router.navigate(['/xpert/', xpert.id, 'copilot'])
+          this.router.navigate(['/xpert/x/', xpert.id, 'copilot'])
         }
       })
   }
@@ -227,7 +227,7 @@ export class XpertWorkspaceXpertsComponent {
       .subscribe({
         next: (xpert) => {
           this.#loading.set(false)
-          this.router.navigate(['/xpert/', xpert.id])
+          this.router.navigate(['/xpert/x/', xpert.id])
           this.#toastr.success(
             this.#translate.instant('PAC.Xpert.ImportSuccess', { Default: 'DSL file imported successfully' })
           )

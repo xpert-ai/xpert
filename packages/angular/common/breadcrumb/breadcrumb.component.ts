@@ -12,6 +12,9 @@ export interface Step {
   active?: boolean
 }
 
+/**
+ * @deprecated use headless components instead
+ */
 @Component({
   standalone: true,
   selector: 'ngm-breadcrumb-bar',
