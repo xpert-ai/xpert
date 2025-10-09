@@ -42,7 +42,7 @@ export class PluginsComponent {
       )
     }
     if (searchText) {
-      plugins = this.plugins().filter(
+      plugins = plugins.filter(
         (plugin) =>
           plugin.meta.description?.toLowerCase().includes(searchText) ||
           plugin.meta.displayName?.toLowerCase().includes(searchText) ||
