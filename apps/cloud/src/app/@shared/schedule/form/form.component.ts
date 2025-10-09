@@ -8,6 +8,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker'
 import { TaskFrequency, TScheduleOptions } from '@cloud/app/@core'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { format, parse } from 'date-fns'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
 @Component({
@@ -55,9 +56,19 @@ export class ScheduleFormComponent {
     }
   })
   readonly time = attrModel(this.options, 'time')
-  readonly date = attrModel(this.options, 'date')
   readonly dayOfWeek = attrModel(this.options, 'dayOfWeek')
   readonly dayOfMonth = attrModel(this.options, 'dayOfMonth')
+
+  readonly date = linkedModel({
+    initialValue: null,
+    compute: () => parse(this.options().date, 'yyyy-MM-dd', new Date()),
+    update: (value) => {
+      this.options.update((opt) => ({
+        ...opt,
+        date: format(value, 'yyyy-MM-dd')
+      }))
+    }
+  })
 
   readonly dayLabel = computed(
     () => this.WEEKLY_OPTIONS.find((option) => option.value === this.dayOfWeek())?.label || 'Select Day'
