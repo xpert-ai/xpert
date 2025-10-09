@@ -201,7 +201,8 @@
   "resolutions": {
     "@langchain/core": "0.3.72",
     "langchain": "0.3.31",
-    "zod": "3.25.67"
+    "zod": "3.25.67",
+    "minimatch": "9.0.4"
   },
   "nx": {
     "includedScripts": []
