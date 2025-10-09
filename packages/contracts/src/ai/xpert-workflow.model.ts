@@ -1,4 +1,4 @@
-import { I18nObject, letterStartSUID } from "../types"
+import { I18nObject, IconDefinition, letterStartSUID } from "../types"
 import { ICopilotModel } from "./copilot-model.model"
 import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
@@ -7,11 +7,7 @@ import { TStateVariable, TXpertParameter } from "./xpert.model"
 export type TWorkflowNodeMeta = {
   name: string
   label: I18nObject
-  icon: {
-    svg?: string
-    remixicon?: string
-    color?: string
-  }
+  icon: IconDefinition
   configSchema: any
 }
 

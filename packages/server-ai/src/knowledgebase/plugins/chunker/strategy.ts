@@ -38,10 +38,7 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 			en_US: 'Chunker',
 			zh_Hans: '分块器'
 		},
-		icon: {
-			svg: '',
-			color: '#14b8a6'
-		},
+		icon: null,
 		configSchema: {
 			type: 'object',
 			properties: {},

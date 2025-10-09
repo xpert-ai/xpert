@@ -72,9 +72,8 @@ import { SelectionService } from '../../domain/selection.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
-import { SafePipe } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { CustomIconComponent } from '@cloud/app/@shared/avatar'
+import { CustomIconComponent, IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -84,8 +83,8 @@ import { CustomIconComponent } from '@cloud/app/@shared/avatar'
     CommonModule,
     CdkMenuModule,
     TranslateModule,
-    SafePipe,
     NgmI18nPipe,
+    IconComponent,
     XpertStudioKnowledgeMenuComponent,
     XpertStudioToolsetMenuComponent,
     XpertInlineProfileComponent,

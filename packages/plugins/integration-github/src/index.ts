@@ -9,9 +9,16 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
   meta: {
     name: '@xpert-ai/plugin-integration-github',
     version: '1.0.0',
+    category: 'integration',
+    icon: {
+      type: 'image',
+      value: `/assets/images/integrations/github.svg`
+    },
     displayName: 'GitHub Integration',
     description: 'Provide GitHub integration strategy',
     keywords: ['integration', 'github'],
+    author: 'XpertAI Team',
+    homepage: 'https://xpertai.cloud',
   },
   config: {
     schema: ConfigSchema,

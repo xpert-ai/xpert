@@ -32,10 +32,7 @@ export class WorkflowVariableAggregatorNodeStrategy implements IWorkflowNodeStra
 			en_US: 'Variable aggregator',
 			zh_Hans: '变量聚合器'
 		},
-		icon: {
-			svg: '',
-			color: '#14b8a6'
-		},
+		icon: null,
 		configSchema: {
 			type: 'object',
 			properties: {},

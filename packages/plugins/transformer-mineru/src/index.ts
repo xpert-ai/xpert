@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
 import { MinerUPlugin } from './lib/mineru.plugin';
+import { icon } from './lib/types';
 
 const ConfigSchema = z.object({
 });
@@ -9,9 +10,16 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
   meta: {
     name: '@xpert-ai/plugin-transformer-mineru',
     version: '1.0.0',
+    category: 'set',
+    icon: {
+      type: 'svg',
+      value: icon
+    },
     displayName: 'MinerU Transformer',
     description: 'Provide PDF to Markdown and JSON transformation functionality',
     keywords: ['integration', 'pdf', 'markdown', 'json', 'transformer'],
+    author: 'XpertAI Team',
+    homepage: 'https://xpertai.cloud',
   },
   config: {
     schema: ConfigSchema,

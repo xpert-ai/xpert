@@ -5,9 +5,10 @@
 <div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
   @switch(type()) {
     @case (eWorkflowNodeTypeEnum.TRIGGER) {
-      @if (provider()?.icon.svg) {
-        <div [innerHTML]="provider().icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 mr-2"
-          [style.color]="provider().icon.color || '#14b8a6'"></div>
+      @if (provider()?.icon; as icon) {
+        <xp-icon [icon]="icon" size="18" class="w-6 h-6 shrink-0 mr-2" 
+          [matTooltip]="key()"
+          matTooltipPosition="above" />
       } @else {
         <div class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
           rounded-lg shadow-sm">

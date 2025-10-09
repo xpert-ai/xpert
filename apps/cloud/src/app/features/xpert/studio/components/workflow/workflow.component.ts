@@ -29,7 +29,6 @@ import { XpertWorkflowNodeAssignerComponent } from './assigner/assigner.componen
 import { XpertWorkflowNodeAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowNodeTaskComponent } from './task/task.component'
 import { XpertWorkflowNodeTriggerComponent } from './trigger/trigger.component'
-import { SafePipe } from '@metad/core'
 import { XpertWorkflowNodeSourceComponent } from './source/source.component'
 import { XpertWorkflowNodeProcessorComponent } from './processor/processor.component'
 import { XpertWorkflowNodeChunkerComponent } from './chunker/chunker.component'
@@ -37,6 +36,7 @@ import { XpertWorkflowNodeUnderstandingComponent } from './understanding/underst
 import { XpertWorkflowNodeKnowledgeBaseComponent } from './knowledge-base/knowledge-base.component'
 import { XpertWorkflowNodeListOperatorComponent } from './list-operator/list-operator.component'
 import { XpertWorkflowNodeVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
+import { IconComponent } from "@cloud/app/@shared/avatar";
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -49,7 +49,6 @@ import { XpertWorkflowNodeVariableAggregatorComponent } from './variable-aggrega
     CdkMenuModule,
     MatTooltipModule,
     TranslateModule,
-    SafePipe,
     XpertWorkflowIconComponent,
     XpertStudioNodeWorkflowIfelseComponent,
     XpertStudioNodeWorkflowIteratingComponent,
@@ -72,8 +71,9 @@ import { XpertWorkflowNodeVariableAggregatorComponent } from './variable-aggrega
     XpertWorkflowNodeUnderstandingComponent,
     XpertWorkflowNodeKnowledgeBaseComponent,
     XpertWorkflowNodeListOperatorComponent,
-    XpertWorkflowNodeVariableAggregatorComponent
-  ],
+    XpertWorkflowNodeVariableAggregatorComponent,
+    IconComponent
+],
   host: {
     '[class]': 'type()',
   }

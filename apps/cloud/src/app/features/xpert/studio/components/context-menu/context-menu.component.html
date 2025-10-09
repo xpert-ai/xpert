@@ -276,10 +276,10 @@
       <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
         (click)="addWorkflowTrigger(provider)"
       >
-        @if (provider.icon.svg) {
-          <div [innerHTML]="provider.icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 mr-2"
-            [style.color]="provider.icon.color || '#14b8a6'"></div>
+        @if (provider.icon) {
+          <xp-icon [icon]="provider.icon" class="w-6 h-6 shrink-0 mr-2" />
         }
+       
         <div class="text-text-primary">
           {{ provider.label | i18n }}
         </div>

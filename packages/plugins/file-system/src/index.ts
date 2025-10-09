@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
 import { FileSystemPlugin } from './lib/file-system.plugin';
+import { svg } from './lib/types';
 
 const ConfigSchema = z.object({
 });
@@ -9,9 +10,13 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
   meta: {
     name: '@xpert-ai/plugin-file-system',
     version: '1.0.0',
+    category: 'doc-source',
+    icon: { type: 'svg', value: svg },
     displayName: 'Document File System',
     description: 'Provide Remote and Local File System Document Source functionality',
-    keywords: ['local', 'smb', 'sftp', 'ftp', 'webdav', 'file system', 'document source'],
+    keywords: ['smb', 'sftp', 'ftp', 'webdav', 'document source'],
+    author: 'XpertAI Team',
+    homepage: 'https://xpertai.cloud',
   },
   config: {
     schema: ConfigSchema,

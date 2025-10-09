@@ -40,10 +40,7 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 			en_US: 'Processor',
 			zh_Hans: '处理器'
 		},
-		icon: {
-			svg: '',
-			color: '#14b8a6'
-		},
+		icon: null,
 		configSchema: {
 			type: 'object',
 			properties: {},

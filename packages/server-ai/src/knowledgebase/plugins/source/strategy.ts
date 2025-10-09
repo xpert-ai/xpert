@@ -44,10 +44,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 			en_US: 'Document Source',
 			zh_Hans: '文档源'
 		},
-		icon: {
-			svg: '',
-			color: '#14b8a6'
-		},
+		icon: null,
 		configSchema: {
 			type: 'object',
 			properties: {},

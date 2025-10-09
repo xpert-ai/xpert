@@ -9,9 +9,16 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
   meta: {
     name: '@xpert-ai/plugin-integration-fastgpt',
     version: '1.0.0',
+    category: 'integration',
+    icon: {
+      type: 'image',
+      value: `/assets/images/integrations/fastgpt.svg`
+    },
     displayName: 'FastGPT Integration',
     description: 'Provide FastGPT integration strategy',
     keywords: ['integration', 'fastgpt'],
+    author: 'XpertAI Team',
+    homepage: 'https://xpertai.cloud',
   },
   config: {
     schema: ConfigSchema,

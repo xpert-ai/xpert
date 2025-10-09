@@ -14,8 +14,23 @@ import {
   routeAnimations
 } from '../../@core'
 import { AppService } from '../../app.service'
+import { CommonModule } from '@angular/common'
+import { RouterModule } from '@angular/router'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { TranslateModule } from '@ngx-translate/core'
+import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { MatIconModule } from '@angular/material/icon'
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatTooltipModule,
+    MatIconModule,
+    TranslateModule,
+    NgmCommonModule
+  ],
   selector: 'pac-settings',
   templateUrl: `settings.component.html`,
   styleUrl: './settings.component.scss',
@@ -160,6 +175,14 @@ export class PACSettingComponent {
         icon: 'corporate_fare',
         data: {
           permissionKeys: [RolesEnum.SUPER_ADMIN]
+        }
+      },
+      {
+        link: 'plugins',
+        label: 'Plugins',
+        icon: 'extension',
+        data: {
+          permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
         }
       }
     ]

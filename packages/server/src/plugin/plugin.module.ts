@@ -2,17 +2,25 @@ import { DynamicModule, Inject, Module, OnModuleDestroy, OnModuleInit } from '@n
 import { ModuleRef } from '@nestjs/core';
 import { ConfigModule, ConfigService, getConfig } from '@metad/server-config';
 import chalk from 'chalk';
-import { PluginLifecycleMethods } from '@xpert-ai/plugin-sdk';
+import { PluginLifecycleMethods, XpertPlugin } from '@xpert-ai/plugin-sdk';
 import { getPluginModules, hasLifecycleMethod } from './plugin.helper';
 import { discoverPlugins } from './plugin-discovery';
 import { loadPlugin } from './plugin-loader';
 import { buildConfig } from './config';
 import { createPluginContext } from './lifecycle';
+import { PluginController } from './plugin.controller';
+import { LOADED_PLUGINS } from './types';
+
+
+const loaded: {name: string; instance: XpertPlugin; ctx: any}[] = [];
 
 @Module({
 	imports: [ConfigModule],
+	controllers: [PluginController],
 	exports: [],
-	providers: []
+	providers: [
+		{ provide: LOADED_PLUGINS, useValue: loaded }
+	]
 })
 export class PluginModule implements OnModuleInit, OnModuleDestroy {
 	/**
@@ -110,7 +118,6 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
     const pluginNames = opts.plugins?.length ? opts.plugins : discoverPlugins(process.cwd(), opts.discovery);
 
     const modules: DynamicModule[] = [];
-    const loaded: any[] = [];
 
     for (const name of pluginNames) {
       const plugin = await loadPlugin(name);
@@ -123,13 +130,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
       loaded.push({ name: plugin.meta.name, instance: plugin, ctx });
     }
 
-    // 通过全局 provider 暴露已加载插件列表，供生命周期控制
-    const LOADED_PLUGINS = 'XPERT_LOADED_PLUGINS';
-
     return {
       modules,
-      providers: [
-        { provide: LOADED_PLUGINS, useValue: loaded },
-      ],
     };
-  }
+}

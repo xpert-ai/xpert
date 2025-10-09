@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, input } from '@angular/core'
+import { Component, computed, input, numberAttribute } from '@angular/core'
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
 import { IconDefinition } from '@cloud/app/@core'
 
@@ -78,12 +78,6 @@ import { IconDefinition } from '@cloud/app/@core'
       object-fit: contain;
     }
 
-    .icon-svg svg {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
     .icon-font {
       display: inline-flex;
       align-items: center;
@@ -103,18 +97,31 @@ import { IconDefinition } from '@cloud/app/@core'
       background: rgba(0, 0, 0, 0.05);
       border-radius: 4px;
     }
+
+    :host {
+      ::ng-deep {
+        .icon-svg svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+      }
+    }
   `],
 })
 export class IconComponent {
   /** Input signal for the icon definition. */
   icon = input<IconDefinition | null>(null)
+  size = input<number, number | string>(null, {
+    transform: numberAttribute
+  })
 
   constructor(private sanitizer: DomSanitizer) {}
 
   /** Derived size string (e.g., "24px"). */
   readonly sizePx = computed(() => {
     const v = this.icon()
-    return v?.size ? `${v.size}px` : undefined
+    return this.size() ? `${this.size()}px` : v?.size ? `${v.size}px` : undefined
   })
 
   /** Combined inline style object. */

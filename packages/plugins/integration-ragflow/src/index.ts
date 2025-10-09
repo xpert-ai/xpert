@@ -9,9 +9,16 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
   meta: {
     name: '@xpert-ai/plugin-integration-ragflow',
     version: '1.0.0',
+    category: 'integration',
+    icon: {
+      type: 'image',
+      value: `/assets/images/integrations/ragflow.svg`
+    },
     displayName: 'RAGFlow Integration',
     description: 'Provide RAGFlow integration strategy',
     keywords: ['integration', 'ragflow'],
+    author: 'XpertAI Team',
+    homepage: 'https://xpertai.cloud',
   },
   config: {
     schema: ConfigSchema,

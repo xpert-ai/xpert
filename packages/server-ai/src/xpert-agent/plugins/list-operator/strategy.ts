@@ -37,10 +37,7 @@ export class WorkflowListOperatorNodeStrategy implements IWorkflowNodeStrategy {
 			en_US: 'List operator',
 			zh_Hans: '列表操作符'
 		},
-		icon: {
-			svg: '',
-			color: '#14b8a6'
-		},
+		icon: null,
 		configSchema: {
 			type: 'object',
 			properties: {},

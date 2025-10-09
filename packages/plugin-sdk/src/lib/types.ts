@@ -1,17 +1,6 @@
+import { PluginMeta } from '@metad/contracts';
 import type { DynamicModule, INestApplicationContext } from '@nestjs/common';
 import type { ZodSchema } from 'zod';
-
-export type PluginName = string;
-
-export interface PluginMeta {
-  name: PluginName;
-  version: string;
-  displayName?: string;
-  description?: string;
-  keywords?: string[];
-  author?: string;
-  homepage?: string;
-}
 
 export interface PluginLifecycle {
   /** 在模块注册完成但应用启动前调用 */

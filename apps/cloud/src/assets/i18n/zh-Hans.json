@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Plugins": "插件",
       "NewSystemIntegration": "新建系统集成",
       "SystemIntegrations": "系统集成",
       "Next": "下一步",
@@ -508,7 +509,13 @@
       "DeleteEnv": "删除此环境及其所有的环境变量",
       "SelectEnv": "选择环境"
     },
+    "Plugin": {
+      "Plugins": "插件",
+      "AllCategories": "所有类别",
+      "AllKeywords": "所有标签"
+    },
     "MENU": {
+      "Plugins": "插件",
       "IsLatest": "已是最新版本。",
       "Certification": "认证",
       "Chat": "聊天",

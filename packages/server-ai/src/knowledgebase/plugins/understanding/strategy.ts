@@ -40,10 +40,7 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 			en_US: 'Understanding',
 			zh_Hans: '图像理解'
 		},
-		icon: {
-			svg: '',
-			color: '#14b8a6'
-		},
+		icon: null,
 		configSchema: {
 			type: 'object',
 			properties: {},

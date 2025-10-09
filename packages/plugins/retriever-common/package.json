@@ -1,0 +1,7 @@
+{
+  "name": "@xpert-ai/plugin-retriever-common",
+  "version": "0.0.1",
+  "dependencies": {},
+  "main": "./index.cjs",
+  "module": "./index.js"
+}

@@ -33,10 +33,7 @@ export class WorkflowAssignerNodeStrategy implements IWorkflowNodeStrategy {
 			en_US: 'Assigner',
 			zh_Hans: '分配器'
 		},
-		icon: {
-			svg: '',
-			color: '#14b8a6'
-		},
+		icon: null,
 		configSchema: {
 			type: 'object',
 			properties: {},

@@ -6,7 +6,6 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
-import { SafePipe } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IfAnimation,
@@ -47,6 +46,7 @@ import { XpertWorkflowKnowledgeBaseComponent } from './knowledge-base/knowledge-
 import { XpertWorkflowSourceTestComponent } from './source-test/source.component'
 import { XpertWorkflowListOperatorComponent } from './list-operator/list-operator.component'
 import { XpertWorkflowVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -63,7 +63,7 @@ import { XpertWorkflowVariableAggregatorComponent } from './variable-aggregator/
     TextFieldModule,
     NgmDensityDirective,
     NgmSpinComponent,
-    SafePipe,
+    IconComponent,
     XpertStudioPanelWorkflowIfelseComponent,
     XpertStudioPanelWorkflowIteratingComponent,
     XpertStudioPanelWorkflowAnswerComponent,

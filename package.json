@@ -228,6 +228,7 @@
     "@types/resize-observer-browser": "^0.1.7",
     "@typescript-eslint/eslint-plugin": "7.9.0",
     "@typescript-eslint/parser": "7.9.0",
+    "@xpert-ai/my-plugin": "0.0.4",
     "ajv-formats": "^2.1.1",
     "archiver": "^7.0.1",
     "autoprefixer": "^10.4.0",
