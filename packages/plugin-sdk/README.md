@@ -1,6 +1,5 @@
-# plugin-sdk
+# Plugin SDK
 
-This library was generated with [Nx](https://nx.dev).
 
 ## Building
 

@@ -12,7 +12,13 @@
         "outputPath": "dist/packages/plugin-sdk",
         "main": "packages/plugin-sdk/src/index.ts",
         "tsConfig": "packages/plugin-sdk/tsconfig.lib.json",
-        "assets": [],
+        "assets": [
+          {
+            "glob": "*.md",
+            "input": "packages/plugin-sdk/",
+            "output": "."
+          }
+        ],
         "project": "packages/plugin-sdk/package.json",
         "compiler": "swc",
         "format": ["cjs", "esm"],

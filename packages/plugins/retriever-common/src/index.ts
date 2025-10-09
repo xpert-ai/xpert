@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
 import { CommonRetrieverPlugin } from './lib/retriever.plugin';
+import { svg } from './lib/types';
 
 const ConfigSchema = z.object({
 });
@@ -11,8 +12,9 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
     version: '1.0.0',
     category: 'tools',
     icon: {
-      type: 'image',
-      value: `/assets/images/plugins/retriever-common.svg`
+      type: 'svg',
+      value: svg,
+      color: '#6C63FF',
     },
     displayName: 'Common Retriever',
     description: 'Provide common retrieval functionality',

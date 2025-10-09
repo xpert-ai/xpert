@@ -1,23 +1,23 @@
 /**
- * 通用 UI Schema 字段定义
+ * Common UI Schema field definitions
  */
 export interface ISchemaUIBase {
-  component: string;       // UI 组件类型
-  label?: string;          // 字段标签
-  description?: string;    // 字段说明
-  placeholder?: string;    // 输入占位符
-  order?: number;          // UI 显示顺序
-  required?: boolean;      // 是否必填
-  visibleWhen?: Record<string, any>; // 条件渲染
-  enabledWhen?: Record<string, any>; // 条件启用
+  component: string;       // UI component type
+  label?: string;          // Field label
+  description?: string;    // Field description
+  placeholder?: string;    // Input placeholder
+  order?: number;          // UI display order
+  required?: boolean;      // Whether the field is required
+  visibleWhen?: Record<string, any>; // Conditional rendering
+  enabledWhen?: Record<string, any>; // Conditional enabling
 }
 
 /**
- * Secret 字段扩展
+ * Secret field extensions
  */
 export interface ISchemaSecretField extends ISchemaUIBase {
-  component: 'secretInput';   // 固定组件类型
-  revealable?: boolean;       // 是否允许明文显示（👁 按钮）
-  maskSymbol?: string;        // 遮罩符号（默认 *）
-  persist?: boolean;          // 是否持久保存，false 表示仅运行时使用
+  component: 'secretInput';   // Fixed component type
+  revealable?: boolean;       // Whether plaintext display is allowed (👁 button)
+  maskSymbol?: string;        // Mask symbol (default *)
+  persist?: boolean;          // Whether to persist, false means only used at runtime
 }

@@ -15,5 +15,5 @@ npx nx build plugin-sdk
 Then publish the packages:
 
 ```bash
-npx nx run plugin-sdk:nx-release-publish --access public --otp=637574
+npx nx run plugin-sdk:nx-release-publish --access public --otp=<one-time-password-if-needed>
 ```
