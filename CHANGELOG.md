@@ -1,3 +1,23 @@
+## 3.6.0 (2025-10-09)
+
+
+### 🚀 Features
+
+- publish sdk packages ([fc35f95a2](https://github.com/xpert-ai/xpert/commit/fc35f95a2))
+- plugins page ([c912d6b68](https://github.com/xpert-ai/xpert/commit/c912d6b68))
+- New query dto parameter mode ([b3039a59e](https://github.com/xpert-ai/xpert/commit/b3039a59e))
+- validators of dto ([1a5aec52f](https://github.com/xpert-ai/xpert/commit/1a5aec52f))
+- plugin sdk ([c139f8c91](https://github.com/xpert-ai/xpert/commit/c139f8c91))
+
+### 🩹 Fixes
+
+- search filter of plugins ([0fc5b31c2](https://github.com/xpert-ai/xpert/commit/0fc5b31c2))
+- date str for task ([f174316f3](https://github.com/xpert-ai/xpert/commit/f174316f3))
+
+### ❤️  Thank You
+
+- Tiven Wang
+
 ## 0.0.1 (2025-10-08)
 
 
