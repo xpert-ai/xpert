@@ -2,19 +2,22 @@ import {
 	IFeatureOrganization,
 	IFeatureOrganizationUpdateInput,
 	IPagination,
+	PermissionsEnum,
 	RolesEnum
 } from '@metad/contracts'
 import { BadRequestException, Body, Controller, Get, HttpStatus, Post, Query, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Public, Roles } from './../shared/decorators'
-import { RoleGuard, TenantPermissionGuard } from './../shared/guards'
+import { PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards'
+import { Permissions } from './../shared/decorators';
 import { FeatureToggleUpdateCommand } from './commands'
 import { FeatureOrganizationService } from './feature-organization.service'
 import { Feature } from './feature.entity'
 import { FeatureService } from './feature.service'
 import { getFeatureToggleDefinitions } from './default-features'
-import { RelationsQueryDTO } from '../shared'
+import { RelationsQueryDTO, UseValidationPipe } from '../shared'
+import { FeatureOrganizationQueryDTO } from './dto/feature-organization-query.dto'
 
 @ApiTags('Feature')
 @Controller('toggle')
@@ -67,14 +70,32 @@ export class FeatureToggleController {
 		status: HttpStatus.NOT_FOUND,
 		description: 'Record not found'
 	})
-	@UseGuards(TenantPermissionGuard)
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_VIEW)
 	@Get('/organizations')
-	async getFeaturesOrganization(@Query('data') data: any): Promise<IPagination<IFeatureOrganization>> {
-		const { relations = [], findInput = {} } = data ?? {}
-		return await this._featureOrganizationService.findAll({
-			where: findInput,
-			relations
-		})
+	@UseValidationPipe({ transform: true, whitelist: true })
+	async getFeaturesOrganization(
+		@Query() params: FeatureOrganizationQueryDTO
+	): Promise<IPagination<IFeatureOrganization>> {
+		try {
+			return await this._featureOrganizationService.findAll({
+				where: {
+					...(params.tenantId
+						? {
+								tenantId: params.tenantId
+						  }
+						: {}),
+					...(params.organizationId
+						? {
+								organizationId: params.organizationId
+						  }
+						: {})
+				},
+				relations: params.relations || []
+			});
+		} catch (error) {
+			throw new BadRequestException(error);
+		}
 	}
 
 	@ApiOperation({ summary: 'Find all features.' })

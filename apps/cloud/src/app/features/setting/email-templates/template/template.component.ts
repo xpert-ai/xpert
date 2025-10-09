@@ -1,56 +1,59 @@
-import { AfterViewInit, ChangeDetectorRef, Component, computed, inject, output, SecurityContext, signal } from '@angular/core'
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
-import { EmailTemplateNameEnum, IOrganization, LanguagesMap } from '../../../../@core/types'
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
-import { isEqual } from 'lodash-es'
-import { Subject, combineLatest } from 'rxjs'
-import { debounceTime, distinctUntilChanged, filter, map, tap } from 'rxjs/operators'
-import { EmailTemplateService, Store, ToastrService } from '../../../../@core/'
-import { TranslationBaseComponent } from '../../../../@shared/language'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { EditorThemeMap } from '@metad/ocap-angular/formula'
 import { CommonModule } from '@angular/common'
-import { TranslateModule } from '@ngx-translate/core'
-import { MonacoEditorModule } from 'ngx-monaco-editor'
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  inject,
+  output,
+  SecurityContext,
+  signal
+} from '@angular/core'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
+import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
+import { EditorThemeMap } from '@metad/ocap-angular/formula'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { isEqual } from 'lodash-es'
+import { MonacoEditorModule } from 'ngx-monaco-editor'
+import { combineLatest, Subject } from 'rxjs'
+import { debounceTime, distinctUntilChanged, filter, map, tap } from 'rxjs/operators'
+import { EmailTemplateService, Store, ToastrService } from '../../../../@core/'
+import { EmailTemplateNameEnum, IOrganization, LanguagesMap } from '../../../../@core/types'
 import { EmailTemplatesComponent } from '../email-templates.component'
-
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
-		FormsModule,
-		ReactiveFormsModule,
-		TranslateModule,
-		
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+
     MatButtonModule,
     MatIconModule,
-		MonacoEditorModule,
-		
-		ButtonGroupDirective,
+    MonacoEditorModule,
+
+    ButtonGroupDirective
   ],
   selector: 'pac-email-template',
   templateUrl: './template.component.html',
   styleUrls: ['./template.component.scss']
 })
-export class EmailTemplateComponent extends TranslationBaseComponent implements AfterViewInit {
-
+export class EmailTemplateComponent implements AfterViewInit {
   readonly homeComponent = inject(EmailTemplatesComponent)
+  readonly translate = inject(TranslateService)
 
   // Outputs
   readonly closed = output<void>()
 
   // Signals
-  readonly languageCode = computed(() =>
-    this.homeComponent.languageCodes()[0]
-  )
-  readonly name = computed(() =>
-    this.homeComponent.name()
-  )
-  
+  readonly languageCode = computed(() => this.homeComponent.languageCodes()[0])
+  readonly name = computed(() => this.homeComponent.name())
+
   previewSubject: SafeHtml
   organization: IOrganization
 
@@ -88,7 +91,7 @@ export class EmailTemplateComponent extends TranslationBaseComponent implements 
         this.form.patchValue({ languageCode: LanguagesMap[language] ?? language })
       }),
       tap(() => this.subject$.next(true)),
-	  takeUntilDestroyed()
+      takeUntilDestroyed()
     )
     .subscribe()
   constructor(
@@ -98,10 +101,7 @@ export class EmailTemplateComponent extends TranslationBaseComponent implements 
     private readonly toastrService: ToastrService,
     private readonly emailTemplateService: EmailTemplateService,
     private _cdr: ChangeDetectorRef
-  ) {
-    super()
-
-  }
+  ) {}
 
   ngAfterViewInit() {
     this.form
@@ -211,5 +211,9 @@ export class EmailTemplateComponent extends TranslationBaseComponent implements 
 
   close() {
     this.closed.emit()
+  }
+
+  getTranslation(prefix: string, params?: Object) {
+    return this.translate.instant(prefix, params)
   }
 }

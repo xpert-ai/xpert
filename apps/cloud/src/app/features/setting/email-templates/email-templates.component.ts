@@ -127,7 +127,7 @@ export class EmailTemplatesComponent {
 
     this.dialogRef.closed.subscribe({
       next: () => {
-
+        //
       }
     })
   }

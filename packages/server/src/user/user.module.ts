@@ -6,7 +6,6 @@ import { CommandHandlers } from './commands/handlers';
 import { User } from './user.entity';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { SharedModule } from '../shared';
 import { TenantModule } from '../tenant/tenant.module';
 import { FactoryResetModule } from './factory-reset/factory-reset.module';
 import { EventHandlers } from './events/handlers';
@@ -20,7 +19,6 @@ import { RoleModule } from '../role';
 		]),
 		TypeOrmModule.forFeature([ User, EmailVerification ]),
 		forwardRef(() => TenantModule),
-		SharedModule,
 		CqrsModule,
 		RoleModule,
 		FactoryResetModule,

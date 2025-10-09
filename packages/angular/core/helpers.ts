@@ -348,6 +348,9 @@ export function splitByHighlight(text: string, highlight: string | string[]): Ar
   return [{value: text}]
 }
 
+/**
+ * @deprecated Do not place non-pure front-end components in this package
+ */
 export function toParams(query) {
 	let params: HttpParams = new HttpParams();
 	Object.keys(query).forEach((key) => {

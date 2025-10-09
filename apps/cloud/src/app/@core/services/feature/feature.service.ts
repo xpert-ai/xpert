@@ -8,8 +8,8 @@ import {
   IFeatureOrganizationUpdateInput,
   IPagination
 } from '../../types'
-import { toParams } from '@metad/core'
 import { Observable } from 'rxjs'
+import { toParams } from '@metad/core'
 
 @Injectable()
 export class FeatureService {
@@ -33,14 +33,13 @@ export class FeatureService {
   }
 
   getFeatureOrganizations(
-    findInput?: IFeatureOrganizationFindInput,
-    relations?: string[]
-  ): Observable<IPagination<IFeatureOrganization>> {
-    const data = { relations, findInput }
-    return this.http.get<IPagination<IFeatureOrganization>>(`${this.API_URL}/organizations`, {
-      params: toParams({ data })
-    })
-  }
+		where?: IFeatureOrganizationFindInput,
+		relations?: string[]
+	): Observable<IPagination<IFeatureOrganization>> {
+		return this.http.get<IPagination<IFeatureOrganization>>(`${this.API_URL}/organizations`, {
+			params: toParams({ relations, ...where })
+		});
+	}
 
   featureToggle(payload: IFeatureOrganizationUpdateInput) {
     return this.http.post(`${this.API_URL}`, payload)

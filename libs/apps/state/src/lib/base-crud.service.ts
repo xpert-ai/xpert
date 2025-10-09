@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http'
 import { inject } from '@angular/core'
 import { PaginationParams } from '@metad/contracts'
 import { toParams } from '@metad/core'
+import { Store } from './store.service'
+import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
 
 
 export abstract class BaseCrudService<T> {
@@ -47,5 +49,29 @@ export abstract class BaseCrudService<T> {
 
   softRecover(id: string) {
     return this.httpClient.put(`${this.apiBaseUrl}/${id}/recover`, {})
+  }
+}
+
+
+export class BaseOrgCrudService<T> extends BaseCrudService<T> {
+  protected store = inject(Store)
+
+  private readonly organizationId$ = this.store.selectedOrganization$.pipe(
+    map((org) => org?.id),
+    distinctUntilChanged()
+  )
+
+  selectOrganizationId() {
+    return this.organizationId$
+  }
+
+  getOneById(id: string, options?: PaginationParams<T>) {
+    return this.selectOrganizationId().pipe(
+      switchMap(() => this.httpClient.get<T>(this.apiBaseUrl + '/' + id, { params: toParams(options) }))
+    )
+  }
+
+  getAllInOrg(options?: PaginationParams<T>) {
+    return this.selectOrganizationId().pipe(switchMap(() => super.getAll(options)))
   }
 }

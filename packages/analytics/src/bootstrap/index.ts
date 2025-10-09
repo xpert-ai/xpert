@@ -1,10 +1,11 @@
 import { environment as env, getConfig, setConfig } from '@metad/server-config'
-import { AppService, AuthGuard, getPluginModules, initI18next, PluginModule, registerPluginsAsync, ServerAppModule } from '@metad/server-core'
+import { AppService, AuthGuard, getPluginModules, initI18next, PluginModule, registerPluginsAsync, ServerAppModule, SharedModule } from '@metad/server-core'
 import { IPluginConfig } from '@metad/server-common'
 import { Logger, LogLevel, Module } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { useContainer } from 'class-validator';
 import cookieParser from 'cookie-parser'
 import { json, text, urlencoded } from 'express'
 import expressSession from 'express-session'
@@ -88,6 +89,11 @@ export async function bootstrap(options: {title: string; version: string}) {
 
 	// const subscriptionService = app.select(ServerAppModule).get(SubscriptionService)
 	// subscriptionService.setupJobs()
+
+	/**
+	 * Dependency injection with class-validator
+	 */
+	useContainer(app.select(SharedModule), { fallbackOnErrors: true });
 
 	// Setup Swagger Module
 	const swagger = new DocumentBuilder().setTitle(options.title).setVersion(options.version).addBearerAuth().build()
