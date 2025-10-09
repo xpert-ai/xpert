@@ -619,7 +619,7 @@ export class Milvus extends VectorStore {
    * @param dbConfig Optional configuration for the Milvus database.
    * @returns Promise resolving to a new Milvus instance.
    */
-  static async fromTexts(
+  static override async fromTexts(
     texts: string[],
     metadatas: object[] | object,
     embeddings: EmbeddingsInterface,
@@ -644,7 +644,7 @@ export class Milvus extends VectorStore {
    * @param dbConfig Optional configuration for the Milvus database.
    * @returns Promise resolving to a new Milvus instance.
    */
-  static async fromDocuments(
+  static override async fromDocuments(
     docs: Document[],
     embeddings: EmbeddingsInterface,
     dbConfig?: MilvusLibArgs
@@ -679,7 +679,7 @@ export class Milvus extends VectorStore {
    * @param params Object containing a filter to apply to the deletion.
    * @returns Promise resolving to void.
    */
-  async delete(params: { filter?: string; ids?: string[] }): Promise<void> {
+  override async delete(params: { filter?: string; ids?: string[] }): Promise<void> {
     const hasColResp = await this.client.hasCollection({
       collection_name: this.collectionName,
     });
@@ -804,7 +804,7 @@ function createFieldTypeForMetadata(
 }
 
 function genCollectionName(): string {
-  return `${MILVUS_COLLECTION_NAME_PREFIX}_${uuid.v4().replaceAll("-", "")}`;
+  return `${MILVUS_COLLECTION_NAME_PREFIX}_${uuid.v4().replace(/-/g, "")}`;
 }
 
 function getTextFieldMaxLength(documents: Document[]) {

@@ -5584,10 +5584,10 @@
   dependencies:
     "@types/mdx" "^2.0.0"
 
-"@mendable/firecrawl-js@^4.3.6":
-  version "4.3.6"
-  resolved "https://registry.yarnpkg.com/@mendable/firecrawl-js/-/firecrawl-js-4.3.6.tgz#c5bb04cd04549c628643a45cfa1b2d19f608c178"
-  integrity sha512-gha1nICp+yJJt/fjLj1EsptTvlYdjkJRa66clEV+R2F5hJlDOWOjdGAPUU7IO/RXJ+coR1JmxUJ3P6R/ziPyLg==
+"@mendable/firecrawl-js@^4.3.8":
+  version "4.3.8"
+  resolved "https://registry.yarnpkg.com/@mendable/firecrawl-js/-/firecrawl-js-4.3.8.tgz#9c131854e9c284fa661c269386c437c6eb4c7a53"
+  integrity sha512-eVzpav78JQhv6YdQAngp4oVq6AzKtTVXdUj/F7YmPOK4TU3jEpDmwAX5P1L4Ijm/M6h/EM7OLW+rbocgCRgkAw==
   dependencies:
     axios "^1.12.2"
     typescript-event-target "^1.1.1"

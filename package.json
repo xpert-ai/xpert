@@ -40,6 +40,7 @@
     "w:sb:tw": "npx tailwindcss -c packages/angular/tailwind.config.js -i ./packages/angular/_index.scss -o ./packages/angular/.storybook/index.css -m1 --watch",
     "w:sb:ocap-angular": "npx nx storybook ocap-angular",
     "prebuild": "rimraf dist coverage",
+    "build:plugins": "yarn nx build file-system && yarn nx build firecrawl && yarn nx build integration-dify && yarn nx build integration-fastgpt && yarn nx build integration-github && yarn nx build integration-ragflow && yarn nx build ocr-paddle && yarn nx build retriever-common && yarn nx build textsplitter-common && yarn nx build tool-calculator && yarn nx build transformer-common && yarn nx build transformer-mineru && yarn nx build transformer-unstructured && yarn nx build trigger-schedule && yarn nx build vlm-default && yarn nx build vstore-chroma && yarn nx build vstore-milvus && yarn nx build vstore-weaviate",
     "build": "yarn nx build store && yarn nx build core && yarn nx build echarts && yarn nx build sql && yarn nx build xmla && yarn --cwd ./packages/duckdb build:release && yarn nx build duckdb && yarn b:p:copilot && yarn b:p:angular",
     "b:p:duckdb": "yarn --cwd ./packages/duckdb build:release && yarn nx build duckdb",
     "b:p:contracts": "yarn nx build contracts",

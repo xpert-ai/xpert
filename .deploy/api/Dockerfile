@@ -5,7 +5,7 @@ ARG LOG_LEVEL
 FROM node:20-alpine AS build
 
 LABEL maintainer="meta.digital.cloud@gmail.com"
-LABEL org.opencontainers.image.source https://github.com/xpert-ai/xpert
+LABEL org.opencontainers.image.source=https://github.com/xpert-ai/xpert
 
 ENV CI=true
 
@@ -30,10 +30,10 @@ COPY --chown=node:node packages/server-ai/package.json ./packages/server-ai/
 COPY --chown=node:node packages/adapter/package.json ./packages/adapter/
 COPY --chown=node:node packages/analytics/package.json ./packages/analytics/
 COPY --chown=node:node packages/plugin-sdk/package.json ./packages/plugin-sdk/
-COPY --chown=node:node packages/plugins/integration-github/package.json ./packages/plugins/integration-github/
 
 COPY --chown=node:node .deploy/api/package.json ./
 COPY --chown=node:node yarn.lock ./
+COPY --chown=node:node .eslintrc.json ./
 
 RUN npm install --legacy-peer-deps
 
@@ -41,6 +41,11 @@ COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
 COPY --chown=node:node apps/api ./apps/api
+# Remove frontend related packages
+RUN rm -rf packages/angular packages/copilot-angular
+
+# Reinstall built-in plugins dependencies
+RUN npm install --legacy-peer-deps
 RUN yarn build:plugins
 RUN yarn nx build api
 
@@ -99,7 +104,7 @@ RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 # RUN yarn config set network-timeout 300000
 RUN npm install --legacy-peer-deps && \
     touch ormlogs.log && chown -R node:node /srv/pangolin
-COPY --chown=node:node --from=build /srv/pangolin/plugins_node_modules/ ./node_modules/
+COPY --chown=node:node --from=build /srv/pangolin/plugins_node_modules/@xpert-ai/* ./node_modules/@xpert-ai/
 
 USER node:node
 

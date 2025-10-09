@@ -1,7 +1,9 @@
 {
   "name": "@xpert-ai/plugin-transformer-common",
   "version": "0.0.1",
-  "dependencies": {},
+  "dependencies": {
+    "@langchain/community": "0.3.53"
+  },
   "main": "./index.cjs",
   "module": "./index.js"
 }
