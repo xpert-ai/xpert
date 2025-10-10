@@ -8,7 +8,7 @@ import { ScheduleTriggerStrategy } from './trigger-schedule.strategy';
 	/**
 	 * An array of modules that will be imported and registered with the plugin.
 	 */
-	imports: [ConfigModule, ScheduleModule],
+	imports: [ConfigModule, ScheduleModule.forRoot()],
 	/**
 	 * An array of Entity classes. The plugin (or ORM) will
 	 * register these entities for use within the application.

@@ -55,7 +55,7 @@ export class ScheduleTriggerStrategy implements IWorkflowTriggerStrategy<TSchedu
   async validate(payload: TWorkflowTriggerParams<TScheduleTriggerConfig>) {
     const { xpertId, node, config } = payload
     const items: ChecklistItem[] = []
-    if (!config.cron) {
+    if (!config?.cron) {
       items.push({
         node: node.key,
         ruleCode: 'TRIGGER_PROVIDER_NOT_FOUND',

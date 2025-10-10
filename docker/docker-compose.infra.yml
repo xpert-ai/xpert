@@ -157,7 +157,6 @@ services:
 
   pgweb:
     image: sosedoff/pgweb
-    container_name: pgweb
     restart: always
     depends_on:
       - db
