@@ -1,5 +1,5 @@
 :host {
-  @apply w-full flex p-8 overflow-auto;
+  @apply w-full flex flex-col overflow-auto;
 }
 
 :host::ng-deep {

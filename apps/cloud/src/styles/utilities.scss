@@ -70,4 +70,12 @@
   .size-10 {
     @apply w-10 h-10;
   }
+
+  .badge {
+    @apply inline-flex items-center justify-center border border-solid border-text-tertiary;
+  }
+
+  .badge-s {
+    @apply rounded-md gap-0.5 min-w-[18px];
+  }
 }

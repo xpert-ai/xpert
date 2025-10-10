@@ -5,19 +5,21 @@ import { FormsModule } from '@angular/forms'
 import { routeAnimations } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { InDevelopmentComponent } from '@cloud/app/@theme'
 import { PluginAPIService } from '@metad/cloud/state'
+import { OverlayAnimations } from '@metad/core'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { debouncedSignal } from '@metad/ocap-angular/core'
+import { debouncedSignal, NgmTooltipDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, FormsModule, NgmSelectComponent, NgmHighlightDirective, IconComponent],
+  imports: [CommonModule, TranslateModule, FormsModule, NgmSelectComponent, NgmHighlightDirective, IconComponent, NgmTooltipDirective, InDevelopmentComponent],
   selector: 'xp-settings-plugins',
   templateUrl: './plugins.component.html',
   styleUrls: ['./plugins.component.scss'],
-  animations: [routeAnimations]
+  animations: [routeAnimations, ...OverlayAnimations],
 })
 export class PluginsComponent {
   readonly pluginAPI = inject(PluginAPIService)
