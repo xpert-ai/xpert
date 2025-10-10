@@ -15,7 +15,16 @@
         "assets": [],
         "project": "packages/plugins/integration-github/package.json",
         "compiler": "swc",
-        "format": ["cjs", "esm"]
+        "format": ["cjs", "esm"],
+        "external": [
+          "@nestjs/common",
+          "@nestjs/core",
+          "@nestjs/microservices",
+          "kafkajs",
+          "amqplib",
+          "mqtt",
+          "nats"
+        ]
       }
     }
   }

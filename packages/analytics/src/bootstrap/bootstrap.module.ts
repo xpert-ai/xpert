@@ -10,12 +10,14 @@ import {
 	ServerAppModule
 } from '@metad/server-core'
 import { ConfigModule, getConfig } from '@metad/server-config'
-import { Logger, MiddlewareConsumer, Module, NestModule, OnApplicationShutdown } from '@nestjs/common'
+import { Global, Logger, MiddlewareConsumer, Module, NestModule, OnApplicationShutdown } from '@nestjs/common'
+import { ScheduleModule } from '@nestjs/schedule'
 import { AnalyticsModule } from '../app.module'
 export * from '../ai/index'
 
 const baseDir = getConfig().assetOptions.serverRoot
 
+@Global()
 @Module({
 	imports: [
 		ConfigModule,
@@ -29,6 +31,9 @@ const baseDir = getConfig().assetOptions.serverRoot
 		ServerAIModule,
 		AnalyticsModule,
 		SeederModule
+	],
+	exports: [
+		ScheduleModule
 	]
 })
 export class BootstrapModule implements NestModule, OnApplicationShutdown {
