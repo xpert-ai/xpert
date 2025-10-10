@@ -2359,6 +2359,11 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "KnowledgebaseSettings": "知识库设置",
+      "KnowledgebaseSettingsDescription": "在这里，您可以修改此知识库的属性和检索设置。",
+      "NameAndIcon": "名称和图标",
+      "ModelConfiguration": "模型配置",
+      "RetrievalSettings": "检索设置",
       "BlankKnowledgePipeline": "空白知识流水线",
       "BlankKnowledgePipelineDesc": "从零开始创建一个自定义知识流水线，对数据处理和结构拥有完全控制权。",
       "ImportFromDSLFile": "从 DSL 文件导入",

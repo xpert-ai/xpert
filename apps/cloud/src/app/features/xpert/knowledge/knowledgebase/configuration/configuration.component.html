@@ -1,27 +1,139 @@
 <div class="flex flex-col gap-y-0.5 px-6 pb-2 pt-3">
-  <div class="system-xl-semibold text-text-primary">知识库设置</div>
-  <div class="system-sm-regular text-text-tertiary">在这里，您可以修改此知识库的属性和检索设置</div>
+  <div class="system-xl-semibold text-text-primary">
+    {{ 'PAC.Knowledgebase.KnowledgebaseSettings' | translate: {Default: 'Knowledgebase Settings'} }}
+  </div>
+  <div class="system-sm-regular text-text-tertiary">
+    {{ 'PAC.Knowledgebase.KnowledgebaseSettingsDescription' | translate: {Default: 'Here you can modify the properties and search settings for this knowledge base.'} }}
+  </div>
 </div>
 
-<div class="w-full p-8 flex flex-col">
+<div class="flex flex-col gap-y-4 px-20 py-8 sm:w-[960px]">
 
-  <form [formGroup]="formGroup"  class="flex flex-col gap-4">
-
-    <!-- <pac-avatar-editor formControlName="avatar" class="w-48 h-48 self-center" /> -->
-    <emoji-avatar formControlName="avatar" editable class="knowledgebase-avatar self-center shadow-md" />
-
-    <ngm-input [label]=" 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} " formControlName="name" />
-
-    <div class="flex-1 min-w-full flex flex-col">
-      <label class="ngm-input-label shrink-0">{{'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</label>
-      <textarea class="ngm-input-element" matInput formControlName="description"
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="1"
-        cdkAutosizeMaxRows="5">
-      </textarea>
+  <div class="flex gap-x-1">
+    <div class="flex items-center shrink-0 w-[180px] h-7 pt-1">
+      <div class="font-semibold text-text-secondary">{{ 'PAC.Knowledgebase.NameAndIcon' | translate: {Default: 'Name and Icon'} }}</div>
     </div>
+    <div class="flex grow items-center gap-x-2">
+      <emoji-avatar [(ngModel)]="avatar" editable class="w-12 h-12 shrink-0 shadow-sm rounded-lg overflow-hidden" />
+      <div class="relative w-full">
+        <input
+          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+          [placeholder]="'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'}"
+          [(ngModel)]="name"
+        />
+      </div>
+    </div>
+  </div>
 
-    <ngm-select [label]=" 'PAC.KEY_WORDS.Language' | translate: {Default: 'Language'} " formControlName="language"
+  <div class="flex gap-x-1">
+    <div class="flex items-center shrink-0 w-[180px] h-7 pt-1">
+      <div class="font-semibold text-text-secondary">{{'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</div>
+    </div>
+    <div class="grow">
+      <textarea
+        class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular resize-none"
+        [(ngModel)]="description"
+      ></textarea>
+    </div>
+  </div>
+
+  <div class="flex gap-x-1">
+    <div class="flex items-center shrink-0 w-[180px] h-7 pt-1">
+      <div class="font-semibold text-text-secondary">{{'PAC.KEY_WORDS.Permission' | translate: {Default: 'Permission'} }}</div>
+    </div>
+    <div class="grow">
+      <ngm-select [selectOptions]="permissions()" [(ngModel)]="permission" />
+    </div>
+  </div>
+
+  <div class="w-full my-1 h-px bg-divider-subtle"></div>
+
+  <div class="flex gap-x-1">
+    <div class="flex items-center shrink-0 w-[180px] h-7 pt-1">
+      <div class="font-semibold text-text-secondary">
+        {{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}
+      </div>
+    </div>
+    <div class="grow flex flex-col space-y-2">
+      <div class="relative w-full">
+        <label>{{ 'PAC.Knowledgebase.EmbeddingBatchSize' | translate: {Default: 'Embedding Batch Size'} }}</label>
+        <input
+          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+          type="number"
+          [placeholder]="'PAC.Knowledgebase.EmbeddingBatchSize' | translate: {Default: 'Embedding Batch Size'}"
+          [(ngModel)]="embeddingBatchSize"
+        />
+      </div>
+      <div class="relative w-full">
+        <label>{{ 'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'} }}</label>
+        <input
+          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+          type="number"
+          [placeholder]="'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'}"
+          [(ngModel)]="chunkSize"
+        />
+      </div>
+      <div class="relative w-full">
+        <label>{{ 'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'} }}</label>
+        <input
+          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+          type="number"
+          [placeholder]="'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'}"
+          [(ngModel)]="chunkOverlap"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="w-full my-1 h-px bg-divider-subtle"></div>
+
+  <div class="flex gap-x-1">
+    <div class="flex items-center shrink-0 w-[180px] h-7 pt-1">
+      <div class="font-semibold text-text-secondary">
+        {{ 'PAC.Knowledgebase.ModelConfiguration' | translate: {Default: 'Model Configuration'} }}
+      </div>
+    </div>
+    <div class="grow flex flex-col space-y-2">
+      <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'}"
+        [modelType]="eModelType.TEXT_EMBEDDING"
+        [(ngModel)]="copilotModel"
+      />
+
+      <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.VisionModel' | translate: {Default: 'Vision Model'}"
+        [modelType]="eModelType.LLM"
+        [(ngModel)]="visionModel"
+      />
+    </div>
+  </div>
+
+  <div class="w-full my-1 h-px bg-divider-subtle"></div>
+
+  <div class="flex gap-x-1">
+    <div class="flex items-center shrink-0 w-[180px] h-7 pt-1">
+      <div class="font-semibold text-text-secondary">
+        {{ 'PAC.Knowledgebase.RetrievalSettings' | translate: {Default: 'Retrieval Settings'} }}
+      </div>
+    </div>
+    <div class="grow">
+      <xp-knowledge-retrieval-settings [(ngModel)]="retrieval" />
+    </div>
+  </div>
+
+  <div class="w-full my-1 h-px bg-divider-subtle"></div>
+
+  <div class="flex gap-x-1">
+    <div class="flex items-center shrink-0 w-[180px] h-7 pt-1"></div>
+    <div class="grow">
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium min-w-[96px]"
+        [disabled]="loading() || pristine()"
+        (click)="save()"
+      >{{ 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}</button>
+    </div>
+  </div>
+
+
+  <!-- <form [formGroup]="formGroup"  class="flex flex-col gap-4"> -->
+    <!-- <ngm-select [label]=" 'PAC.KEY_WORDS.Language' | translate: {Default: 'Language'} " formControlName="language"
       valueKey="key"
       [selectOptions]="[
         {
@@ -33,55 +145,29 @@
           caption: 'Chinese'
         },
       ]"
-    />
-    <div class="flex-1 min-w-full flex flex-col">
+    /> -->
+    <!-- <div class="flex-1 min-w-full flex flex-col">
       <label class="ngm-input-label shrink-0">{{'PAC.KEY_WORDS.Permission' | translate: {Default: 'Permission'} }}</label>
       <mat-radio-group formControlName="permission" aria-label="Select an permission">
         <mat-radio-button [value]="KnowledgebasePermission.Private">{{'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}</mat-radio-button>
         <mat-radio-button [value]="KnowledgebasePermission.Organization">{{'PAC.Knowledgebase.Permission_Organization' | translate: {Default:'Organization'} }}</mat-radio-button>
         <mat-radio-button [value]="KnowledgebasePermission.Public">{{'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}</mat-radio-button>
       </mat-radio-group>
-    </div>
+    </div> -->
 
-    <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'}"
-      [modelType]="eModelType.TEXT_EMBEDDING"
-      formControlName="copilotModel"
-    />
+    <!-- <div formGroupName="parserConfig">
+      
+    </div> -->
 
-    <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.RerankModel' | translate: {Default: 'Rerank Model'}"
-      [modelType]="eModelType.RERANK"
-      formControlName="rerankModel"
-    />
-
-    <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.VisionModel' | translate: {Default: 'Vision Model'}"
-      [modelType]="eModelType.LLM"
-      formControlName="visionModel"
-    />
-
-    <div formGroupName="parserConfig">
-      <ngm-input [label]=" 'PAC.Knowledgebase.EmbeddingBatchSize' | translate: {Default: 'Embedding Batch Size'} " formControlName="embeddingBatchSize" />
-      <ngm-input [label]=" 'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'} " formControlName="chunkSize" />
-      <ngm-input [label]=" 'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'} " formControlName="chunkOverlap" />
-    </div>
-
-    <ngm-slider-input [label]=" 'PAC.Knowledgebase.SimilarityThreshold' | translate: {Default: 'Similarity Threshold'}"
+    <!-- <ngm-slider-input [label]=" 'PAC.Knowledgebase.SimilarityThreshold' | translate: {Default: 'Similarity Threshold'}"
       formControlName="similarityThreshold"
       [min]="0" [max]="1" [step]="0.01">
       <span class="font-notoColorEmoji" [matTooltip]="'PAC.Knowledgebase.SimilarityThresholdInfo' | translate: {Default: 'If the similarity between the query and the chunk is less than this threshold, the chunk will be filtered out.'}"
         >💡</span>
-    </ngm-slider-input>
-
-    <div class="flex justify-end gap-2">
-      <button mat-flat-button type="button" (click)="cancel()">
-        {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
-      </button>
-      <button mat-raised-button color="primary" [disabled]="loading() || formGroup.invalid || formGroup.pristine" (click)="save()">
-        {{ 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}
-      </button>
-    </div>
-  </form>
-
+    </ngm-slider-input> -->
+  <!-- </form> -->
 </div>
+
 <!-- 
 <div class="grow flex flex-col justify-start pl-8">
   <xpert-knowledgebase-api class="w-full sticky top-6" [id]="knowledgebase()?.id" />

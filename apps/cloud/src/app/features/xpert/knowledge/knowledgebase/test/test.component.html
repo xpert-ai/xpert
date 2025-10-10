@@ -1,4 +1,4 @@
-<div class="shrink-0 max-w-2xl flex flex-col px-6 py-3">
+<div class="shrink-0 w-[588px] max-w-2xl flex flex-col px-6 py-3">
   <div class="mb-4 flex flex-col justify-center">
     <h1 class="text-lg font-semibold text-text-primary">
       {{ 'PAC.Knowledgebase.RetrievalTest' | translate: {Default: 'Retrieval Test'} }}
@@ -125,7 +125,27 @@
 
 
 <ng-template #vectorMenu>
-  <div  class="bg-components-card-bg rounded-2xl border border-divider-deep shadow-lg p-3">
-    <xp-knowledge-retrieval-settings [ngModel]="knowledgebase()" (close)="onClose($event);cdkMenu.close()" />
+  <div class="bg-components-card-bg rounded-2xl border border-divider-deep shadow-lg p-3">
+    <div class="flex shrink-0 justify-between pl-3 pb-1 pt-1">
+      <div class="text-base font-semibold text-text-primary">
+        <div>{{ 'PAC.Knowledgebase.RetrievalSetting' | translate: {Default: 'Retrieval Setting'} }}</div>
+        <div class="text-xs font-normal leading-[18px] font-body text-text-tertiary">
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            [href]="helpUrl()"
+            class="text-text-accent"
+            >{{ 'PAC.KEY_WORDS.LearnMore' | translate: {Default: 'Learn more'} }}</a>
+          {{ 'PAC.Knowledgebase.AboutRetrievalMethod' | translate: {Default: ' about retrieval method.'} }}
+        </div>
+      </div>
+      <div class="flex">
+        <div class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-hover-bg"
+          (click)="onClose(false);cdkMenu.close()">
+          <i class="ri-close-line"></i>
+        </div>
+      </div>
+    </div>
+    <xp-knowledge-retrieval-settings savable [ngModel]="knowledgebase()" (close)="onClose($event);cdkMenu.close()" />
   </div>
 </ng-template>

@@ -16,6 +16,7 @@ import {
   OrderTypeEnum,
   ToastrService,
   getErrorMessage,
+  injectHelpWebsite,
   routeAnimations
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
@@ -45,6 +46,7 @@ export class KnowledgeTestComponent {
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly _toastrService = inject(ToastrService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
+  readonly helpUrl = injectHelpWebsite('/docs/ai/knowledge/retrieval')
   
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase

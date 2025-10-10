@@ -1,9 +1,9 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, output, signal } from '@angular/core'
+import { booleanAttribute, Component, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { getErrorMessage, injectHelpWebsite, injectToastr, KnowledgebaseService } from '@cloud/app/@core'
+import { getErrorMessage, injectToastr, KnowledgebaseService } from '@cloud/app/@core'
 import { AiModelTypeEnum, IKnowledgebase } from '../../../@core/types'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
@@ -37,7 +37,11 @@ export class KnowledgeRetrievalSettingsComponent {
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly #toastrService = injectToastr()
-  readonly helpUrl = injectHelpWebsite('/docs/ai/knowledge/retrieval')
+  
+  // Inputs
+  readonly savable = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   readonly knowledgebase = this.cva.value$
 

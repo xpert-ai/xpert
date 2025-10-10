@@ -1,30 +1,30 @@
-import { ChangeDetectorRef, Component, computed, effect, inject, signal } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { ChangeDetectorRef, Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { I18nService } from '@cloud/app/@shared/i18n'
+import { KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
+import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
+import { omit } from 'lodash-es'
 import {
+  AiModelTypeEnum,
   IKnowledgebase,
   KnowledgebasePermission,
   KnowledgebaseService,
-  AiModelTypeEnum,
   Store,
   ToastrService,
   getErrorMessage,
   routeAnimations
 } from '../../../../../@core'
-import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { EmojiAvatarComponent } from "../../../../../@shared/avatar/emoji-avatar/avatar.component";
+import { EmojiAvatarComponent } from '../../../../../@shared/avatar/'
 import { PACCopilotService } from '../../../../services'
-import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatRadioModule } from '@angular/material/radio'
-import { MatInputModule } from '@angular/material/input'
-import { MatButtonModule } from '@angular/material/button'
-import { XpertKBAPIComponent } from '../api/api.component'
+import { KnowledgebaseComponent } from '../knowledgebase.component'
 
 @Component({
   standalone: true,
@@ -32,21 +32,20 @@ import { XpertKBAPIComponent } from '../api/api.component'
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss'],
   imports: [
+    CommonModule,
     RouterModule,
+    FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     MatTooltipModule,
-    MatRadioModule,
-    MatInputModule,
-    MatButtonModule,
-    NgmCommonModule,
+    NgmSelectComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
-    XpertKBAPIComponent
-],
+    KnowledgeRetrievalSettingsComponent
+  ],
   animations: [routeAnimations]
 })
-export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
+export class KnowledgeConfigurationComponent {
   KnowledgebasePermission = KnowledgebasePermission
   DisplayBehaviour = DisplayBehaviour
   eModelType = AiModelTypeEnum
@@ -59,78 +58,75 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly copilotService = inject(PACCopilotService)
   readonly #cdr = inject(ChangeDetectorRef)
+  readonly #translate = inject(I18nService)
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
-  readonly formGroup = new FormGroup({
-    name: new FormControl('', [Validators.required]),
-    description: new FormControl(''),
-    avatar: new FormControl(null),
-    language: new FormControl(null),
-    permission: new FormControl<KnowledgebasePermission>(null),
+  readonly pristine = signal(true)
+  readonly knowledgebaseModel = linkedModel({
+    initialValue: null,
+    compute: () => this.knowledgebase(),
+    update: (knowledgebase) => {
+      this.pristine.set(false)
+    }
+  })
 
-    parserConfig: new FormGroup({
-      embeddingBatchSize: new FormControl(null),
-      chunkSize: new FormControl(null),
-      chunkOverlap: new FormControl(null)
-    }),
+  readonly avatar = attrModel(this.knowledgebaseModel, 'avatar')
+  readonly name = attrModel(this.knowledgebaseModel, 'name')
+  readonly description = attrModel(this.knowledgebaseModel, 'description')
+  readonly visionModel = attrModel(this.knowledgebaseModel, 'visionModel')
+  readonly copilotModel = attrModel(this.knowledgebaseModel, 'copilotModel')
+  readonly permission = attrModel(this.knowledgebaseModel, 'permission')
+  readonly parserConfig = attrModel(this.knowledgebaseModel, 'parserConfig')
+  readonly chunkSize = attrModel(this.parserConfig, 'chunkSize')
+  readonly chunkOverlap = attrModel(this.parserConfig, 'chunkOverlap')
+  readonly embeddingBatchSize = attrModel(this.parserConfig, 'embeddingBatchSize')
 
-    similarityThreshold: new FormControl(null),
+  readonly retrieval = linkedModel({
+    initialValue: null,
+    compute: () => this.knowledgebase(),
+    update: (retrieval) => {
+      this.knowledgebaseModel.update((kb) => {
+        kb.recall = retrieval?.recall
+        kb.rerankModel = retrieval?.rerankModel
+        kb.rerankModelId = retrieval?.rerankModelId
+        return { ...kb }
+      })
+    }
+  })
 
-    copilotModel: new FormControl(null),
-    copilotModelId: new FormControl(null),
-
-    rerankModel: new FormControl(null),
-    rerankModelId: new FormControl(null),
-
-    visionModel: new FormControl(null),
-    visionModelId: new FormControl(null),
+  readonly permissions = computed(() => {
+    const language = this.#translate.language()
+    return [
+      {
+        value: KnowledgebasePermission.Private,
+        label: this.#translate.instant('PAC.Knowledgebase.Permission_Private', { Default: 'Private' })
+      },
+      {
+        value: KnowledgebasePermission.Organization,
+        label: this.#translate.instant('PAC.Knowledgebase.Permission_Organization', { Default: 'Organization' })
+      },
+      {
+        value: KnowledgebasePermission.Public,
+        label: this.#translate.instant('PAC.Knowledgebase.Permission_Public', { Default: 'Public' })
+      }
+    ]
   })
 
   readonly loading = signal(false)
 
-  private avatarSub = this.formGroup.get('avatar').valueChanges.subscribe(() => {
-    this.#cdr.detectChanges()
-  })
-
-  constructor() {
-    super()
-
-    effect(
-      () => {
-        const knowledgebase = this.knowledgebase()
-        if (knowledgebase && this.formGroup.pristine) {
-          this.formGroup.patchValue(knowledgebase)
-        }
-      },
-      { allowSignalWrites: true }
-    )
-
-    effect(
-      () => {
-        if (this.loading()) {
-          this.formGroup.disable()
-        } else {
-          this.formGroup.enable()
-        }
-      },
-      { allowSignalWrites: true }
-    )
-  }
 
   save() {
     this.loading.set(true)
     this.knowledgebaseService
-      .update(this.knowledgebase().id, {
-        ...this.formGroup.value,
-      } as Partial<IKnowledgebase>)
+      .update(this.knowledgebase().id, omit(this.knowledgebaseModel(), 'id') as Partial<IKnowledgebase>)
       .subscribe({
         next: () => {
-          this.formGroup.markAsPristine()
           this.loading.set(false)
           this._toastrService.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
           this.knowledgebaseComponent.refresh()
+          this.pristine.set(true)
         },
         error: (error) => {
           this._toastrService.error(getErrorMessage(error))
