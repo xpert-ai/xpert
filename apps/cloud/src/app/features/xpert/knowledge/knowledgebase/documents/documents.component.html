@@ -59,12 +59,12 @@
   </div>
 
   <div class="flex items-center gap-4">
-    <div class="system-xs-medium-uppercase px-2 py-1 rounded-lg inline-flex cursor-pointer items-center space-x-1 text-text-secondary"
+    <!-- <div class="system-xs-medium-uppercase px-2 py-1 rounded-lg inline-flex cursor-pointer items-center space-x-1 text-text-secondary"
       [cdkMenuTriggerFor]="xpertsMenu"
     >
       <span>{{xperts()?.length ?? 0}} {{ 'PAC.Knowledgebase.RelatedExperts' | translate: {Default: 'related experts'} }}</span>
       <i class="ri-information-2-line"></i>
-    </div>
+    </div> -->
     <button type="button" class="btn btn-primary btn-large flex justify-center items-center gap-2"
       [matTooltip]=" 'PAC.Knowledgebase.NewDocuments' | translate: {Default: 'New Documents' }"
       matTooltipPosition="before"
@@ -239,18 +239,6 @@
 }
 
 <router-outlet #o="outlet"></router-outlet>
-
-<ng-template #xpertsMenu>
-  <div cdkMenu class="cdk-menu__large">
-    <div class="p-2">{{xperts()?.length ?? 0}} {{ 'PAC.Knowledgebase.RelatedExperts' | translate: {Default: 'related experts'} }}</div>
-    @for (item of xperts(); track item.id) {
-      <div cdkMenuItem class="group" (click)="openXpert(item)">
-        <xpert-inline-profile [xpert]="item" class="grow" />
-        <i class="ri-corner-right-up-line ml-8 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-      </div>
-    }
-  </div>
-</ng-template>
 
 <ng-template #docMenu>
   <div cdkMenu class="cdk-menu__large">
