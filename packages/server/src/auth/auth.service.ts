@@ -16,12 +16,11 @@ import bcrypt from 'bcryptjs'
 import { nanoid } from 'nanoid'
 import { I18nService } from 'nestjs-i18n'
 import { JsonWebTokenError, sign, verify } from 'jsonwebtoken'
-import { FindOptionsWhere, getManager } from 'typeorm'
+import { FindOptionsWhere } from 'typeorm'
 import { EmailService } from '../email/email.service'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
 import { User } from '../user/user.entity'
 import { UserService } from '../user/user.service'
-import { ImportRecordUpdateOrCreateCommand } from './../export-import/import-record'
 import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
 import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
@@ -318,17 +317,17 @@ export class AuthService extends SocialAuthService {
 		}
 
 		//6. Create Import Records while migrating for relative user.
-		const { isImporting = false, sourceId = null } = input
-		if (isImporting && sourceId) {
-			const { sourceId } = input
-			await this.commandBus.execute(
-				new ImportRecordUpdateOrCreateCommand({
-					entityType: getManager().getRepository(User).metadata.tableName,
-					sourceId,
-					destinationId: user.id,
-				})
-			)
-		}
+		// const { isImporting = false, sourceId = null } = input
+		// if (isImporting && sourceId) {
+		// 	const { sourceId } = input
+		// 	await this.commandBus.execute(
+		// 		new ImportRecordUpdateOrCreateCommand({
+		// 			entityType: getManager().getRepository(User).metadata.tableName,
+		// 			sourceId,
+		// 			destinationId: user.id,
+		// 		})
+		// 	)
+		// }
 
 		this.emailService.welcomeUser(
 			user,

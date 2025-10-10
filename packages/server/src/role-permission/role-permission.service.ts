@@ -1,14 +1,11 @@
 import { Injectable, BadRequestException, NotAcceptableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CommandBus } from '@nestjs/cqrs';
-import { FindOptionsWhere, Repository, UpdateResult, getManager } from 'typeorm';
+import { Repository, UpdateResult } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import {
 	RolesEnum,
 	ITenant,
-	IRole,
 	IRolePermission,
-	IImportRecord,
 	IRolePermissionMigrateInput,
 	PermissionsEnum,
 	ID
@@ -16,7 +13,6 @@ import {
 import { environment } from '@metad/server-config';
 import { TenantAwareCrudService } from './../core/crud';
 import { RequestContext } from './../core/context';
-import { ImportRecordUpdateOrCreateCommand } from './../export-import/import-record';
 import { RolePermission } from './role-permission.entity';
 import { Role } from '../role/role.entity';
 import { DEFAULT_ROLE_PERMISSIONS } from './default-role-permissions';
@@ -28,7 +24,6 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 		@InjectRepository(RolePermission)
 		private readonly rolePermissionRepository: Repository<RolePermission>,
 		private readonly roleService: RoleService,
-		private readonly _commandBus: CommandBus
 	) {
 		super(rolePermissionRepository);
 	}
@@ -148,39 +143,39 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 		return payload;
 	}
 
-	public async migrateImportRecord(
-		permissions: IRolePermissionMigrateInput[]
-	) {
-		const records: IImportRecord[] = [];
-		const roles: IRole[] = await getManager().getRepository(Role).findBy({
-			tenantId: RequestContext.currentTenantId(),
-		});
-		for await (const item of permissions) {
-			const { isImporting, sourceId } = item;
-			if (isImporting && sourceId) {
-				const { permission, role: name } = item;
-				const role = roles.find((role: IRole) => role.name === name);
-				const destinantion = await this.rolePermissionRepository.findOneBy({
-					tenantId: RequestContext.currentTenantId(), 
-					permission,
-					role
-				});
-				if (destinantion) {
-					records.push(
-						await this._commandBus.execute(
-							new ImportRecordUpdateOrCreateCommand({
-								entityType: getManager().getRepository(RolePermission).metadata.tableName,
-								sourceId,
-								destinationId: destinantion.id,
-								tenantId: RequestContext.currentTenantId()
-							})
-						)
-					);
-				}
-			}
-		}
-		return records;
-	}
+	// public async migrateImportRecord(
+	// 	permissions: IRolePermissionMigrateInput[]
+	// ) {
+	// 	const records: IImportRecord[] = [];
+	// 	const roles: IRole[] = await getManager().getRepository(Role).findBy({
+	// 		tenantId: RequestContext.currentTenantId(),
+	// 	});
+	// 	for await (const item of permissions) {
+	// 		const { isImporting, sourceId } = item;
+	// 		if (isImporting && sourceId) {
+	// 			const { permission, role: name } = item;
+	// 			const role = roles.find((role: IRole) => role.name === name);
+	// 			const destinantion = await this.rolePermissionRepository.findOneBy({
+	// 				tenantId: RequestContext.currentTenantId(), 
+	// 				permission,
+	// 				role
+	// 			});
+	// 			if (destinantion) {
+	// 				records.push(
+	// 					await this._commandBus.execute(
+	// 						new ImportRecordUpdateOrCreateCommand({
+	// 							entityType: getManager().getRepository(RolePermission).metadata.tableName,
+	// 							sourceId,
+	// 							destinationId: destinantion.id,
+	// 							tenantId: RequestContext.currentTenantId()
+	// 						})
+	// 					)
+	// 				);
+	// 			}
+	// 		}
+	// 	}
+	// 	return records;
+	// }
 
 	/**
 	 * Checks if the given role permissions are valid for the current tenant.
