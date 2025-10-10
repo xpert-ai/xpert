@@ -124,7 +124,7 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
 		setConfig(applicationConfig);
 	}
 
-	await preBootstrapPlugins();
+	// await preBootstrapPlugins();
 
 	return getConfig()
 }

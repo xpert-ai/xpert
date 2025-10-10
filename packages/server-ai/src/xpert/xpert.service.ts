@@ -447,8 +447,12 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 			.map((node) => node.entity as IWFNTrigger)
 			.filter((node) => node.from && node.from !== 'chat')
 		for await (const node of triggers) {
-			const provider = this.triggerRegistry.get(node.from)
-			if (!provider) continue
+			let provider
+			try {
+				provider = this.triggerRegistry.get(node.from)
+			} catch (err) {
+				continue
+			}
 			provider.publish(
 				{
 					xpertId: xpert.id,

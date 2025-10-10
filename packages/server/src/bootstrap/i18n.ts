@@ -6,7 +6,6 @@ import glob from 'glob'
 import { I18nJsonParser } from './i18n-parser'
 
 export function provideI18nModule(baseDir: string) {
-    console.log('I18nModule', baseDir)
     return I18nModule.forRoot({
         fallbackLanguage: LanguagesEnum.English,
         loader: I18nJsonParser,
