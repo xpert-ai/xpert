@@ -114,7 +114,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 	}
 
 	async getAllByWorkspace(workspaceId: string, data: PaginationParams<Xpert>, published: boolean, user: IUser) {
-		const { relations, order, take } = data ?? {}
+		const { select, relations, order, take } = data ?? {}
 		let { where } = data ?? {}
 		where = transformWhere(where ?? {})
 		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
@@ -139,6 +139,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 		}
 
 		return this.findAll({
+			select,
 			where,
 			relations,
 			order,
