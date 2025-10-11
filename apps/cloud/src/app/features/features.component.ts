@@ -715,7 +715,7 @@ export class FeaturesComponent implements OnInit {
             link: '/settings/plugins',
             data: {
               translationKey: 'Plugins',
-              permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+              permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL]
             }
           },
           ...(org ? [] : [

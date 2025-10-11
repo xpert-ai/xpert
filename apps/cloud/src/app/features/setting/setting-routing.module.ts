@@ -211,7 +211,7 @@ const routes: Routes = [
         data: {
           title: 'settings/plugins',
           permissions: {
-            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
+            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL],
             redirectTo
           }
         }
