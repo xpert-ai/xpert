@@ -27,7 +27,7 @@ export class XpertToolset extends WorkspaceBaseEntity implements IXpertToolset {
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 500 })
+	@Column({ nullable: true })
 	description?: string
 
 	@ApiPropertyOptional({ type: () => Object })

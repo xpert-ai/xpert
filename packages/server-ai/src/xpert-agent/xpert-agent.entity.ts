@@ -26,7 +26,7 @@ export class XpertAgent extends TenantOrganizationBaseEntity implements IXpertAg
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 500 })
+	@Column({ nullable: true })
 	description?: string
 
 	@ApiPropertyOptional({ type: () => Object })

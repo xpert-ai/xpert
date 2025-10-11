@@ -64,7 +64,7 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 500 })
+	@Column({ nullable: true })
 	description?: string
 
 	@ApiPropertyOptional({ type: () => Boolean })
