@@ -56,18 +56,6 @@ export class JSONSchemaFormComponent {
     return false
   })
 
-  // constructor() {
-  //   effect(
-  //     () => {
-        // if (this.fields() && this.value$()) {
-        //   console.log(this.schema())
-        //   this.form.patchValue(this.value$)
-        //   assign(this.optionsModel, this.value$())
-        // }
-  //     },
-  //     { allowSignalWrites: true }
-  //   )
-  // }
 
   updateValue(name: string, value: unknown) {
     this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))

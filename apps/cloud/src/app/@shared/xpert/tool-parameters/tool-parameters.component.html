@@ -28,6 +28,6 @@
       </div>
     }
   </div>
-} @else {
+} @else if (jsonSchema()) {
   <json-schema-form [schema]="jsonSchema()" [variables]="variables()" [(ngModel)]="parameters" />
 }

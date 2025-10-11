@@ -91,14 +91,15 @@ export class JSONSchemaPropertyComponent {
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
 
   constructor() {
-    effect(
-      () => {
-        if (this.value$() === null && this.default()) {
+    // Waiting NgxControlValueAccessor has been initialized
+    setTimeout(() => {
+      if (this.value$() === null && this.default() != null) {
+        // Waiting all controls have been initialized then update the default value, because other's value$() will be undefined (not null) when updated
+        setTimeout(() => {
           this.value$.set(this.default())
-        }
-      },
-      { allowSignalWrites: true }
-    )
+        })
+      }
+    })
   }
 
   update(value: unknown) {
