@@ -497,6 +497,9 @@ export class XpertStudioApiService {
     new CreateNodeHandler(this.store).handle(new CreateNodeRequest('agent', position, agent))
     this.#reload.next(EReloadReason.AGENT_CREATED)
   }
+  /**
+   * Add external expert as collaborator at specific position
+   */
   public async createCollaborator(position: IPoint, team: IXpert) {
     this.getXpertTeam(team.id).subscribe({
       next: (xpert) => {

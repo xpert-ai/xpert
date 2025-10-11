@@ -97,8 +97,10 @@ export class XpertPipelinesComponent {
             ? of({ draft, knowledgebase: this.knowledgebase() })
             : this.knowledgebaseAPI
                 .create({
+                  workspaceId: this.workspaceId(),
                   type: KnowledgebaseTypeEnum.Standard,
-                  name: template.name + ` - ${uuid()}`
+                  name: template.name + ` - ${uuid()}`,
+                  description: template.description
                 })
                 .pipe(map((knowledgebase) => ({ draft, knowledgebase })))
         }),

@@ -401,6 +401,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						varGroups.push(varGroup)
 						break
 					}
+					case WorkflowNodeTypeEnum.IF_ELSE: {
+						break
+					}
 					default: {
 						try {
 							const creator = this.nodeRegistry.get(entity.type)

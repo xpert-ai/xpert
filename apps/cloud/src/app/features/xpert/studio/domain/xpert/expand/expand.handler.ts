@@ -3,17 +3,17 @@ import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
 import {
   createXpertGraph,
-  IWFNTrigger,
   IXpert,
   TXpertGraph,
   TXpertTeamDraft,
   TXpertTeamNode,
-  WorkflowNodeTypeEnum
 } from 'apps/cloud/src/app/@core'
+import { assign } from 'lodash'
 import { firstValueFrom } from 'rxjs'
 import { IStudioStore } from '../../types'
 import { XpertStudioApiService } from '../../xpert-api.service'
 import { ExpandTeamRequest } from './expand.request'
+import { createXpertNode } from '../types'
 
 export class ExpandTeamHandler implements IHandler<ExpandTeamRequest> {
   constructor(
@@ -46,31 +46,8 @@ export class ExpandTeamHandler implements IHandler<ExpandTeamRequest> {
           node.size = size
           node.hash = calculateHash(JSON.stringify(size))
         } else {
-          const agentKey = (<IXpert>node.entity).agent?.key
-          let primaryNode = node.nodes.find((_) => _.key === agentKey)
-          if (!primaryNode) {
-            primaryNode = node.nodes.find(
-              (_) =>
-                _.type === 'workflow' &&
-                _.entity.type === WorkflowNodeTypeEnum.TRIGGER &&
-                (<IWFNTrigger>_.entity).from === 'chat'
-            )
-          }
-          node.nodes = primaryNode ? [primaryNode] : []
+          assign(node, createXpertNode(node.entity as IXpert, node.position))
           node.connections = null
-          node.size = {
-            width: (primaryNode?.size?.width ?? 240) + 40,
-            height: (primaryNode?.size?.height ?? 160) + 50
-          }
-          node.hash = calculateHash(JSON.stringify(node.size))
-          if (node.position && primaryNode) {
-            primaryNode.position = {
-              x: node.position.x + 20,
-              y: node.position.y + 40
-            }
-
-            primaryNode.hash = calculateHash(JSON.stringify(primaryNode))
-          }
         }
       }
 
