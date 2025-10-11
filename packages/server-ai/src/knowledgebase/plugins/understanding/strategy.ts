@@ -3,9 +3,11 @@ import { Annotation, BaseChannel } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
+	IKnowledgeDocument,
 	IWFNUnderstanding,
 	IWorkflowNode,
 	IXpertAgentExecution,
+	KNOWLEDGE_STAGE_NAME,
 	KnowledgebaseChannel,
 	KnowledgeTask,
 	TAgentRunnableConfigurable,
@@ -15,18 +17,20 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileSystemPermission, IImageUnderstandingStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy, XpFileSystem } from '@xpert-ai/plugin-sdk'
 import { AgentStateAnnotation, sandboxVolumeUrl, stateWithEnvironment, VolumeClient } from '../../../shared'
 import { get } from 'lodash'
+import { In } from 'typeorm'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
-import { KnowledgeStrategyQuery, KnowledgeTaskServiceQuery } from '../../queries'
+import { KnowledgeStrategyQuery } from '../../queries'
 import { KnowledgebaseTaskService } from '../../task'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { RequestContext } from '@metad/server-core'
-import { createDocumentsParameter } from '../types'
+import { createDocumentsParameter, serializeDocuments } from '../types'
+import { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
 
 const ErrorChannelName = 'error'
 const DocumentsChannelName = 'documents'
@@ -48,6 +52,11 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 		}
 	}
 
+	@Inject(KnowledgebaseTaskService)
+	private readonly taskService: KnowledgebaseTaskService
+	@Inject(KnowledgeDocumentService)
+	private readonly documentService: KnowledgeDocumentService
+
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus) {}
@@ -67,9 +76,12 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, } = configurable
 				const stateEnv = stateWithEnvironment(state, environment)
-				const value = get(stateEnv, entity.input) as string[]
+				const value = get(stateEnv, entity.input) as Partial<IKnowledgeDocument>[]
+				const knowledgebaseState = state[KnowledgebaseChannel]
 				const knowledgebaseId = state[KnowledgebaseChannel]?.['knowledgebaseId'] as string
 				const knowledgeTaskId = state[KnowledgebaseChannel]?.[KnowledgeTask] as string
+				const stage = knowledgebaseState?.[KNOWLEDGE_STAGE_NAME]
+				const isTest = stage === 'preview' || isDraft
 
 				const execution: IXpertAgentExecution = {
 									category: 'workflow',
@@ -84,19 +96,21 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 								}
 				return await wrapAgentExecution(
 					async () => {
-
-						console.log('Image understanding input value:', value)
-
-						const taskService = await this.queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(
-							new KnowledgeTaskServiceQuery()
-						)
-						const task = await taskService.findOne(knowledgeTaskId)
-						if (!task.context?.documents) {
-							throw new Error('No documents in knowledge task')
+						const documentIds = value.map((v) => v.id)
+						let documents = []
+						if (isTest) {
+							const task = await this.taskService.findOne(knowledgeTaskId)
+							documents = task.context.documents.filter((doc) => documentIds.includes(doc.id))
+						} else {
+							const results = await this.documentService.findAll({
+								where: {
+									id: In(documentIds),
+									knowledgebaseId,
+								},
+								relations: ['pages']
+							})
+							documents = results.items
 						}
-						const documents = task.context.documents.filter((doc) => value.includes(doc.id))
-
-						console.log('Image understanding documents:', documents)
 						
 						const strategy = await this.queryBus.execute<KnowledgeStrategyQuery, IImageUnderstandingStrategy>(
 							new KnowledgeStrategyQuery({
@@ -151,19 +165,20 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 							console.log('Chunker result chunks:', result.chunks)
 						}
 
-						await taskService.upsertDocuments(knowledgeTaskId, documents)
+						await this.taskService.upsertDocuments(knowledgeTaskId, documents)
 
 						return {
 							state: {
 								[channelName(node.key)]: {
-									[DocumentsChannelName]: documents.map((doc) => doc.id)
+									[DocumentsChannelName]: serializeDocuments(documents),
+									[ErrorChannelName]: null
 								}
 							},
-							output: JSON.stringify(documents.map((doc) => {
+							output: documents.map((doc) => {
 								doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
 								doc.pages = doc.pages?.slice(0, 2)
 								return doc
-							}), null, 2)
+							})
 						}
 					}, {
 						commandBus: this.commandBus,

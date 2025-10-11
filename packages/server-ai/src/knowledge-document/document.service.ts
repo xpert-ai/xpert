@@ -130,7 +130,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		const document = await this.findOne(id, {
 			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
 		})
-		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
+		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase, true)
 		
 		if (document.knowledgebase.structure === KnowledgeStructureEnum.ParentChild && !params.search) {
 			const pages = await this.pageRepository.find({

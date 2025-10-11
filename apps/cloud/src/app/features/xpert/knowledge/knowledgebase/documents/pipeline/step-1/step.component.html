@@ -248,32 +248,3 @@
     }
   }
 </div>
-
-
-<!-- <ng-template #integrationMenu >
-  <div cdkMenu class="cdk-menu__large" >
-    @for (option of integrations(); track option.value) {
-      <div cdkMenuItem class="group/item overflow-hidden"
-        [class.active]="option.value === integrationId()" (click)="integrationId.set(option.value)">
-        <div class="relative flex items-start gap-2">
-          @if (option.icon) {
-            <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.icon">
-          }
-          <div class="max-w-full flex flex-col items-start overflow-hidden">
-            <div class="text-start">{{option.label | i18n}}</div>
-            <div class="text-start text-sm whitespace-normal line-clamp-2 opacity-60 group-hover/item:opacity-80">{{option.description}}</div>
-          </div>
-        </div>
-      </div>
-    } @empty {
-      <div class="p-4 text-center text-text-tertiary">
-        {{ 'PAC.Knowledgebase.NoIntegrationYet' | translate: {Default: 'No knowledge base integration yet!'} }}
-      </div>
-    }
-    <div class="border-t border-solid border-divider-regular my-1"></div>
-    <div cdkMenuItem (click)="openIntegrations()">
-      <i class="ri-add-line mr-1"></i>
-      {{ 'PAC.Knowledgebase.CreateSystemIntegration' | translate: {Default: 'Create system integration'} }}
-    </div>
-  </div>
-</ng-template> -->

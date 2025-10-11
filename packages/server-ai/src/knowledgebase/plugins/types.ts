@@ -76,6 +76,6 @@ export function createDocumentsParameter(name = DOCUMENTS_CHANNEL_NAME): TXpertP
 	}
 }
 
-export function serializeDocuments(documents: any[]) {
-	return instanceToPlain(documents.map((doc) => new DocumentVariableDTO(doc)))
+export function serializeDocuments(documents: any[]): Partial<IKnowledgeDocument>[] {
+	return instanceToPlain(documents.map((doc) => new DocumentVariableDTO(doc))) as Partial<IKnowledgeDocument>[]
 }

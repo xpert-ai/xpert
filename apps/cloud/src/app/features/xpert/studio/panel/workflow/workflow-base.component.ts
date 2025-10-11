@@ -19,8 +19,10 @@ export class XpertWorkflowBaseComponent {
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly _toastr = injectToastr()
 
+  // Inputs
   readonly node = input<TXpertTeamNode>()
 
+  // States
   readonly key = computed(() => this.node()?.key)
   readonly xpert = this.xpertStudioComponent.xpert
   readonly xpertId = computed(() => this.xpert()?.id)

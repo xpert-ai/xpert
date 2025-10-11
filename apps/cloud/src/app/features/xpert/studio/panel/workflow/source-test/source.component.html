@@ -1,55 +1,79 @@
 <div class="flex items-center justify-between gap-x-2">
   <div class="flex items-center gap-x-1 overflow-hidden">
     <div class="grow overflow-hidden" data-state="closed">
-      <div class="flex cursor-pointer items-center gap-x-2 rounded-md p-1 pr-2 hover:bg-state-base-hover">
-        <div
-          class="flex shrink-0 items-center justify-center rounded-md border border-divider-regular bg-components-icon-bg-pink-solid"
-          style="width: 20px; height: 20px"
-        >
-          <span
-            class="bg-gradient-to-b from-components-avatar-shape-fill-stop-0 to-components-avatar-shape-fill-stop-100 bg-clip-text text-[13px] font-semibold leading-[1.2] text-transparent opacity-90"
-          >
-            A</span
-          >
-        </div>
-        <div class="flex grow items-center gap-x-1 overflow-hidden">
-          <span class="system-md-semibold grow truncate text-text-secondary">API KEY 1 的 Firecrawl</span>
-          <i class="ri-arrow-down-s-fill shrink-0 text-text-quaternary"></i>
-        </div>
-      </div>
     </div>
     <div class="w-[1px] bg-divider-regular mx-1 h-3.5 shrink-0"></div>
   </div>
-  <a
-    class="system-xs-medium flex shrink-0 items-center gap-x-1 text-text-accent"
-    target="_blank"
-    rel="noopener noreferrer"
-    ><i class="ri-book-open-line"></i>
-    <span title="Docs">Docs</span>
-  </a>
+
+  @if (selectedStrategy()?.meta.helpUrl; as url) {
+    <a [href]="url"
+      class="system-xs-medium flex shrink-0 items-center gap-x-1 text-text-accent"
+      target="_blank"
+      rel="noopener noreferrer"
+      >
+      <i class="ri-book-open-line"></i>
+      {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+    </a>
+  }
 </div>
 
 <div class="mt-2 rounded-xl border border-components-panel-border bg-background-default-subtle">
-  <form class="w-full">
+  <div class="w-full">
     <div class="flex items-center gap-x-1 px-4 py-2">
       <div class="flex grow cursor-pointer select-none items-center gap-x-0.5">
-        <span class="system-sm-semibold-uppercase text-text-secondary">选项</span>
+        <span class="system-sm-semibold-uppercase text-text-secondary">{{ 'PAC.KEY_WORDS.Options' | translate: {Default: 'Options'} }}</span>
         <i class="ri-arrow-down-s-fill shrink-0 text-text-quaternary"></i>
       </div>
       <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 gap-x-0.5"
-        (click)="test()">
+        (click)="run()">
         <i class="ri-play-line"></i>
-        <span class="px-0.5">运行</span>
+        <span class="px-0.5">{{ 'PAC.ACTIONS.Run' | translate: {Default: 'Run'} }}</span>
       </button>
     </div>
-    <div class="flex flex-col gap-3 border-t border-divider-subtle px-4 py-3"></div>
-  </form>
+    <div class="flex flex-col gap-3 border-t border-divider-subtle px-4 py-3">
+      @if (parameters()?.length) {
+        <xpert-parameters-form class="w-full" [parameters]="parameters()" [(ngModel)]="parameterValue" />
+      }
+
+      @switch (providerCategory()) {
+        @case (eDocumentSourceProviderCategoryEnum.LocalFile) {
+          <xp-knowledge-local-file class="w-full" [knowledgebaseId]="knowledgebaseId()"
+            path="temp"
+            [(files)]="files" 
+            [(selected)]="selectedFile"
+          />
+        }
+      }
+    </div>
+  </div>
 </div>
 
 <div class="relative flex flex-col">
-  <div class="flex flex-col gap-y-2 mt-2">
-    <div class="system-sm-medium pt-2 text-text-primary">总共在 5.6 秒 内抓取了 {{ documents().length }} 个页面</div>
-    <div class="relative overflow-hidden rounded-xl border border-components-panel-border bg-components-panel-bg">
+  @switch (providerCategory()) {
+    @case (eDocumentSourceProviderCategoryEnum.WebCrawl) {
+      @if (testing()) {
+        <bullet-list-content-loader></bullet-list-content-loader>
+      } @else if (documents()) {
+        @for (doc of documents(); track doc.id) {
+          <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover"
+            >
+            <div class="flex min-w-0 grow flex-col gap-y-0.5">
+              <div class="system-sm-medium truncate text-text-secondary" [title]="doc.metadata.title">
+                {{ doc.metadata.title }}
+              </div>
+              <div class="system-xs-regular truncate text-text-tertiary" [title]="doc.metadata.source">
+                {{ doc.metadata.source }}
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="py-4 text-center text-text-tertiary">
+            {{ 'PAC.Knowledgebase.NoPagesFetched' | translate: {Default: 'No pages fetched'} }}
+          </div>
+        }
+      }
+    }
+    @default {
       <div class="flex flex-col gap-y-px border-t border-divider-subtle bg-background-default-subtle p-2">
         @for (doc of documents(); track doc.id) {
           <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover">
@@ -69,16 +93,22 @@
       @if (busing()) {
         <ngm-spin class="absolute left-0 top-0 w-full h-full" />
       }
-    </div>
-  </div>
+    }
+  }
 </div>
 
 <div class="flex justify-end gap-x-2">
   <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
     (click)="close()"
-  >取消</button>
+  >{{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
   <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-    [disabled]="!taskId() || busing()"
+    [disabled]="!taskId() || busing() || successMessage()"
     (click)="start()"
-  >开始运行</button>
+  >{{ 'PAC.ACTIONS.Start' | translate: {Default: 'Start'} }}</button>
 </div>
+
+@if (successMessage(); as message) {
+  <div class="mt-2 rounded-xl border border-green-400 bg-green-50/50 p-4 text-sm font-body text-green-700">
+    {{ message }}
+  </div>
+}

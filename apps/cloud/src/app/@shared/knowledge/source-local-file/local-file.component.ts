@@ -18,6 +18,7 @@ export class KnowledgeLocalFileComponent {
   readonly knowledgebaseId = input.required<string>()
   readonly files = model<KnowledgeFileUploader[]>([])
   readonly parentId = input<string>(null)
+  readonly path = input<string>(null)
 
   readonly selected = model<KnowledgeFileUploader | null>(null)
 
@@ -27,7 +28,10 @@ export class KnowledgeLocalFileComponent {
   handleFiles(selectedFiles: FileList | null) {
     if (!selectedFiles) return
     const newFiles: KnowledgeFileUploader[] = Array.from(selectedFiles).map((file) => {
-      const uploader = new KnowledgeFileUploader(this.knowledgebaseId(), this.kbAPI, file, this.parentId())
+      const uploader = new KnowledgeFileUploader(this.knowledgebaseId(), this.kbAPI, file, {
+        parentId: this.parentId(),
+        path: this.path()
+      })
       uploader.upload()
       return uploader
     })

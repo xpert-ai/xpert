@@ -107,22 +107,28 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 									agentKey: node.key,
 									title: entity.title
 								}
-				return await wrapAgentExecution(
+				return await wrapAgentExecution<any>(
 					async () => {
 						let documents: IKnowledgeDocument[] = null
 
 						// If the node has already loaded documents
 						const cachedDocuments = state[channelName(node.key)]?.[KnowledgeDocuments] as string[]
 						if (cachedDocuments?.length) {
-							if (isTest) {
-								return {
-									state: {}
-								}
-							}
 							// Create as formal documents during non-testing phases
 							const task = await this.taskService.findOne(KnowledgeTaskId, { relations: ['documents'] })
+							const _docs = task.context?.documents?.filter(doc => cachedDocuments.includes(doc.id)) ?? []
+							if (isTest) {
+								return {
+									state: {
+										[channelName(node.key)]: {
+											[DOCUMENTS_CHANNEL_NAME]: serializeDocuments(_docs),
+											[ERROR_CHANNEL_NAME]: null
+										},
+									}
+								}
+							}
+
 							if (task.context?.documents) {
-								const _docs = task.context.documents.filter(doc => cachedDocuments.includes(doc.id))
 								if (_docs.length > 0) {
 									documents = await this.documentService.createBulk(_docs.map((doc) => {
 										return {

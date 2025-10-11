@@ -7,6 +7,7 @@ import {
 	IWFNChunker,
 	IWorkflowNode,
 	IXpertAgentExecution,
+	KNOWLEDGE_STAGE_NAME,
 	KnowledgebaseChannel,
 	KnowledgeTask,
 	TAgentRunnableConfigurable,
@@ -76,7 +77,7 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 				const knowledgebaseState = state[KnowledgebaseChannel]
 				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId'] as string
 				const knowledgeTaskId = knowledgebaseState?.[KnowledgeTask] as string
-				const stage = knowledgebaseState?.['stage']
+				const stage = knowledgebaseState?.[KNOWLEDGE_STAGE_NAME]
 				const isTest = stage === 'preview' || isDraft
 
 				// console.log('================== Chunker Node state ===================')
@@ -141,11 +142,11 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 									[ERROR_CHANNEL_NAME]: null
 								}
 							},
-							output: JSON.stringify(documents.map((doc) => {
+							output: documents.map((doc) => {
 								doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
 								doc.pages = doc.pages?.slice(0, 2)
 								return doc
-							}), null, 2)
+							})
 						}
 					},
 					{

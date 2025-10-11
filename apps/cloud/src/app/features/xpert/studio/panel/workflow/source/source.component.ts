@@ -5,13 +5,14 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectIntegrationAPI, IWFNSource, IWorkflowNode, KnowledgebaseService, TSelectOption } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
+import { XpertParametersEditComponent } from '@cloud/app/@shared/xpert'
 
 @Component({
   selector: 'xpert-workflow-source',
@@ -25,7 +26,7 @@ import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
     CdkMenuModule,
     MatTooltipModule,
     TranslateModule,
-    NgmI18nPipe,
+    XpertParametersEditComponent,
     JSONSchemaFormComponent,
     NgmSelectComponent,
     IntegrationSelectComponent
@@ -53,6 +54,7 @@ export class XpertWorkflowSourceComponent extends XpertWorkflowBaseComponent {
 
   readonly provider = attrModel(this.source, 'provider')
   readonly integrationId = attrModel(this.source, 'integrationId')
+  readonly parameters = attrModel(this.source, 'parameters')
   readonly config = attrModel(this.source, 'config')
 
   readonly documentSourceStrategies = toSignal(this.knowledgebaseAPI.documentSourceStrategies$)

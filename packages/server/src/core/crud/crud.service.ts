@@ -19,6 +19,7 @@ import { ICrudService, IFindOneOptions, IFindWhereOptions } from './icrud.servic
 import { ITryRequest } from './try-request';
 import { filterQuery } from './query-builder';
 import { RequestContext } from '../context';
+import { transformWhere } from './transform-where';
 
 export abstract class CrudService<T extends BaseEntity>
 	implements ICrudService<T> {
@@ -46,6 +47,9 @@ export abstract class CrudService<T extends BaseEntity>
 	}
 
 	public async findAll(filter?: FindManyOptions<T>): Promise<IPagination<T>> {
+		if (filter?.where) {
+			filter.where = Array.isArray(filter.where) ? filter.where.map(item => transformWhere(item)) : transformWhere(filter.where);
+		}
 		const [items, total] = await this.repository.findAndCount(filter)
 		return { items, total }
 	}

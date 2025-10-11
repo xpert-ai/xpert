@@ -1,23 +1,39 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  output,
+  signal
+} from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { KnowledgeLocalFileComponent } from '@cloud/app/@shared/knowledge'
+import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource, omitBlank } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   channelName,
+  DocumentSourceProviderCategoryEnum,
   getErrorMessage,
   injectIntegrationAPI,
-  injectToastr,
   IWFNSource,
   IWorkflowNode,
+  KBDocumentStatusEnum,
   KnowledgebaseService,
+  KnowledgeFileUploader,
   XpertAgentService
 } from 'apps/cloud/src/app/@core'
-import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { nonNullable } from '@metad/core'
+import { ContentLoaderModule } from '@ngneat/content-loader'
 
 @Component({
   selector: 'xpert-workflow-source-test',
@@ -25,18 +41,29 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./source.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, CdkMenuModule, MatTooltipModule, TranslateModule, NgmSpinComponent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    CdkMenuModule,
+    MatTooltipModule,
+    TranslateModule,
+    NgmSpinComponent,
+    XpertParametersFormComponent,
+    KnowledgeLocalFileComponent,
+    ContentLoaderModule
+  ]
 })
 export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent {
-  readonly studioService = inject(XpertStudioApiService)
+  eDocumentSourceProviderCategoryEnum = DocumentSourceProviderCategoryEnum
+
   readonly integrationAPI = injectIntegrationAPI()
   readonly agentAPI = inject(XpertAgentService)
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
-  readonly #toastr = injectToastr()
 
   // Inputs
   readonly entity = input<IWorkflowNode>()
 
+  // outputs
   readonly closed = output()
 
   // States
@@ -53,10 +80,13 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
 
   readonly provider = attrModel(this.source, 'provider')
   readonly integrationId = attrModel(this.source, 'integrationId')
+  readonly parameters = attrModel(this.source, 'parameters')
   readonly config = attrModel(this.source, 'config')
+  readonly parameterValue = model<Record<string, unknown>>()
 
   readonly pristineXpert = this.studioService.team
   readonly knowledgebase = computed(() => this.pristineXpert()?.knowledgebase)
+  readonly knowledgebaseId = computed(() => this.knowledgebase()?.id)
   readonly taskId = signal<string>(null)
   readonly #taskResource = myRxResource({
     request: () => ({ knowledgebaseId: this.knowledgebase()?.id, taskId: this.taskId() }),
@@ -65,17 +95,34 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
     }
   })
   readonly documentIds = signal<string[]>([])
-  readonly documents = computed(() => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds()?.includes(doc.id)) || [])
+  readonly documents = computed(
+    () => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds()?.includes(doc.id)) || []
+  )
 
   readonly testing = signal(false)
 
   readonly busing = computed(() => this.testing() || this.#taskResource.status() === 'loading')
 
-  constructor() {
-    super()
-    effect(() => {
-      console.log(this.documents())
-    })
+  readonly strategies = toSignal(this.knowledgebaseAPI.documentSourceStrategies$)
+  readonly selectedStrategy = computed(() => this.strategies()?.find((s) => s.meta.name === this.provider()))
+  readonly providerCategory = computed(() => this.selectedStrategy()?.meta.category)
+
+  readonly files = model<KnowledgeFileUploader[]>([])
+  readonly selectedFile = model<KnowledgeFileUploader | null>(null)
+    
+  readonly successMessage = signal<string>(null)
+
+  run() {
+    switch (this.providerCategory()) {
+      case DocumentSourceProviderCategoryEnum.LocalFile: {
+        this.createFilesTask()
+        break
+      }
+      case DocumentSourceProviderCategoryEnum.WebCrawl: {
+        this.test()
+        break
+      }
+    }
   }
 
   test() {
@@ -91,17 +138,65 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
           const channel = channelName(this.key())
           this.documentIds.set(results[channel]?.documents ?? [])
           console.log('Test results: ', results)
-          this.#toastr.success('XPERT.Agent.TestSuccessfully')
+          this._toastr.success('XPERT.Agent.TestSuccessfully')
         },
         error: (err) => {
           this.testing.set(false)
           console.error(err)
-          this.#toastr.danger(getErrorMessage(err), 'XPERT.Agent.TestFailed')
+          this._toastr.danger(getErrorMessage(err), 'XPERT.Agent.TestFailed')
         }
       })
   }
 
-  start() {}
+  createFilesTask() {
+    this.testing.set(true)
+    this.knowledgebaseAPI.createTask(
+      this.knowledgebaseId(),
+      omitBlank({
+        context: {
+          documents: this.files()
+                  .map((file) => file.document())
+                  .filter(nonNullable).map((file) => ({
+                    ...file,
+                    status: KBDocumentStatusEnum.WAITING,
+                  }))
+        }
+      })
+    ).subscribe({
+      next: (task) => {
+        this.testing.set(false)
+        this.taskId.set(task.id)
+        this.documentIds.set(task.context?.documents?.map((doc) => doc.id) ?? [])
+        this.successMessage.set(null)
+      },
+      error: (err) => {
+        this.testing.set(false)
+        console.error(err)
+        this._toastr.danger(getErrorMessage(err))
+      }
+    })
+  }
+
+  start() {
+    this.knowledgebaseAPI
+      .processTask(this.knowledgebase().id, this.taskId(), {
+        sources: {
+          [this.key()]: {
+            documents: this.documentIds()
+          }
+        },
+        stage: 'preview'
+      })
+      .subscribe({
+        next: (task) => {
+          console.log(task)
+          this.successMessage.set(`已添加至后台任务，请在聊天记录中查看消息详细日志。`)
+        },
+        error: (err) => {
+          this._toastr.error(getErrorMessage(err))
+        }
+      })
+  }
 
   close() {
     this.closed.emit()

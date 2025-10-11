@@ -2,7 +2,7 @@ import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import {
   DocumentTransformerStrategy,
   downloadRemoteFile,
@@ -20,6 +20,8 @@ import { Default, icon, TDefaultTransformerConfig, TDocumentParseResult } from '
 @Injectable()
 @DocumentTransformerStrategy(Default)
 export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<TDefaultTransformerConfig> {
+  readonly #logger = new Logger(DefaultTransformerStrategy.name)
+
   readonly permissions = [
     {
       type: 'filesystem',
@@ -57,8 +59,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     config: TDefaultTransformerConfig
   ): Promise<TDocumentParseResult[]> {
     const xpFileSystem = config.permissions.fileSystem
-    console.log('Transforming documents with DefaultTransformerStrategy...')
-    console.log('Files:', files)
+    this.#logger.debug('Transforming documents:')
+    this.#logger.debug('Files:', files)
 
     const results = []
     for await (const file of files) {

@@ -159,11 +159,14 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     )
   }
 
-  uploadFile(id: string, file: File, parentId = '') {
+  uploadFile(id: string, file: File, params: { parentId: string; path: string }) {
     const formData = new FormData()
     formData.append('file', file)
-    if (parentId) {
-      formData.append('parentId', parentId)
+    if (params.parentId) {
+      formData.append('parentId', params.parentId)
+    }
+    if (params.path) {
+      formData.append('path', params.path)
     }
     return this.httpClient.post<_TFile>(this.apiBaseUrl + `/${id}/file`, formData, {
       observe: 'events',
@@ -208,14 +211,17 @@ export class KnowledgeFileUploader {
     private readonly knowledgebaseId: string,
     private readonly kbAPI: KnowledgebaseService,
     public readonly file: File,
-    private readonly parentId = ''
+    private readonly params: {
+      parentId: string
+      path: string
+    }
   ) {}
 
   upload() {
     this.status.set('uploading')
     this.error.set(null)
     this.kbAPI
-      .uploadFile(this.knowledgebaseId, this.file, this.parentId)
+      .uploadFile(this.knowledgebaseId, this.file, this.params)
       .pipe(
         tap((event) => {
           switch (event.type) {
@@ -229,7 +235,10 @@ export class KnowledgeFileUploader {
                 id: uuid(),
                 name: this.file.name,
                 size: `${this.file.size}`,
-                type: this.file.type?.split('/').pop() || 'unknown'
+                type: this.file.type?.split('/').pop() || 'unknown',
+                metadata: {
+                  title: this.file.name,
+                }
               })
               this.document.set(this.document$.value)
               this.uploadedUrl.set(event.body.fileUrl) // Assuming response contains URL

@@ -724,6 +724,7 @@
       "PasswordChangedSuccessfully": "密码修改成功"
     },
     "ACTIONS": {
+      "Start": "开始",
       "Back": "返回",
       "Run": "运行",
       "Rename": "重命名",

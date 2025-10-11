@@ -245,6 +245,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	@UseInterceptors(FileInterceptor('file'))
 	async uploadFile(@Param('id') id: string,
 		@Body('parentId') parentId: string,
+		@Body('path') subpath: string,
 		@UploadedFile() file: Express.Multer.File
 	) {
 		let parentFolder = ''
@@ -260,7 +261,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 			knowledgeId: id
 		})
 
-		const targetFolder = parentFolder || ''
+		const targetFolder = join(parentFolder || '', subpath || '')
 		const originalname = Buffer.from(file.originalname, 'latin1').toString('utf8')
 		const filePath = join(targetFolder, originalname)
 		const url = await client.putFile(targetFolder, {
