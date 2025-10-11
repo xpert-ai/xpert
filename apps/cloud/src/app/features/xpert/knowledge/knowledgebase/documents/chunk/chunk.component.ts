@@ -195,6 +195,7 @@ export class KnowledgeDocumentChunkComponent {
                 return _
               })
             })
+            this.cancelEdit()
           },
           error: (error) => {
             this.loading.set(false)

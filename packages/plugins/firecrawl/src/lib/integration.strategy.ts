@@ -27,7 +27,8 @@ export class FirecrawlIntegrationStrategy implements IntegrationStrategy<Firecra
         apiUrl: {
           type: 'string',
           title: {
-            en_US: 'Base URL'
+            en_US: 'Base URL',
+            zh_Hans: '基础 URL'
           },
           description: {
             en_US: 'https://api.firecrawl.dev',
@@ -36,7 +37,8 @@ export class FirecrawlIntegrationStrategy implements IntegrationStrategy<Firecra
         apiKey: {
           type: 'string',
           title: {
-            en_US: 'API Key'
+            en_US: 'API Key',
+            zh_Hans: 'API 密钥'
           },
           description: {
             en_US: 'The API Key of the Firecrawl server'

@@ -102,7 +102,7 @@
     (click)="close()"
   >{{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
   <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-    [disabled]="!taskId() || busing() || successMessage()"
+    [disabled]="!taskId() || !documentIds()?.length || busing() || successMessage()"
     (click)="start()"
   >{{ 'PAC.ACTIONS.Start' | translate: {Default: 'Start'} }}</button>
 </div>

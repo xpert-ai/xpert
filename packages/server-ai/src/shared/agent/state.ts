@@ -320,3 +320,44 @@ export async function updateToolCalls(graph: CompiledStateGraph<any, any, any>, 
 		)
 	}
 }
+
+
+/**
+ * Recursively traverse an object and transform all string values
+ *
+ * @param obj The object to process
+ * @param x   The function to apply to string values
+ * @returns   A new object with transformed string values
+ * @generator GPT
+ */
+export async function deepTransformValue<T>(obj: T, x: (val: string) => Promise<string>): Promise<T> {
+	if (typeof obj === 'string') {
+		// If it's a string, transform it directly
+		return (await x(obj)) as unknown as T
+	}
+
+	if (Array.isArray(obj)) {
+		// If it's an array, map each element recursively
+		return (await Promise.all(obj.map((item) => deepTransformValue(item, x)))) as unknown as T
+	}
+
+	if (obj !== null && typeof obj === 'object') {
+		// If it's an object, process each key
+		const result: Record<string, unknown> = {}
+		for (const key in obj) {
+			// Omit blank values
+			if (
+				Object.prototype.hasOwnProperty.call(obj, key) &&
+				obj[key] !== null &&
+				obj[key] !== undefined &&
+				obj[key] !== ''
+			) {
+				result[key] = await deepTransformValue((obj as Record<string, unknown>)[key], x)
+			}
+		}
+		return result as T
+	}
+
+	// If it's neither string, array nor object, return as-is
+	return obj
+}

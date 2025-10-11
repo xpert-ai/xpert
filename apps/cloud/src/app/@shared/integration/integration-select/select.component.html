@@ -1,5 +1,5 @@
 <label>{{ 'PAC.KEY_WORDS.SystemIntegrations' | translate: {Default: 'System Integrations'} }}</label>
-<ngm-select [selectOptions]="selectOptions()" [(ngModel)]="integrationId">
+<ngm-select [placeholder]="placeholder()" [selectOptions]="selectOptions()" [(ngModel)]="integrationId">
   <div icon class="flex items-center">
     <ng-content select="[icon]"></ng-content>
     @if (integrationProvider(); as provider) {

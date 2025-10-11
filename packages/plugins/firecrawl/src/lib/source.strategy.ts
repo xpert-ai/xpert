@@ -36,8 +36,8 @@ export class FirecrawlSourceStrategy implements IDocumentSourceStrategy<Firecraw
             zh_Hans: 'URL'
           } as I18nObject,
           description: {
-            en_US: 'The URL of the Firecrawl instance.',
-            zh_Hans: 'Firecrawl 实例的 URL。'
+            en_US: 'The URL to crawl.',
+            zh_Hans: '要抓取的 URL。'
           } as I18nObject,
           default: 'https://docs.firecrawl.dev/introduction'
         }

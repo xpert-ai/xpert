@@ -11,7 +11,7 @@ import { myRxResource, NgmI18nPipe, omitBlank } from '@metad/ocap-angular/core'
 import { nonNullable } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
-import { KnowledgeChunkComponent, KnowledgeLocalFileComponent, KnowledgeWebCrawlComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { KnowledgeChunkComponent, KnowledgeLocalFileComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import {
   channelName,
   DocumentSourceProviderCategoryEnum,
@@ -30,7 +30,7 @@ import {
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
-import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
+import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 
 @Component({
   standalone: true,
@@ -49,10 +49,9 @@ import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
     ContentLoaderModule,
     NgmI18nPipe,
     CustomIconComponent,
-    JSONSchemaFormComponent,
     KnowledgeChunkComponent,
     KnowledgeLocalFileComponent,
-    KnowledgeWebCrawlComponent
+    XpertParametersFormComponent
   ]
 })
 export class KnowledgeDocumentPipelineStep1Component {
@@ -89,8 +88,9 @@ export class KnowledgeDocumentPipelineStep1Component {
   readonly files = this.pipelineComponent.files
   readonly documentIds = this.pipelineComponent.documentIds
 
-  readonly providerSchema = computed(() => this.selectedStrategy()?.meta.configSchema)
-  readonly providerConfig = computed(() => this.selectedSource()?.entity.config)
+  readonly sourceKey = computed(() => this.selectedSource()?.key)
+  readonly parameters = computed(() => this.selectedSource()?.entity.parameters)
+  readonly parameterValue = model<Record<string, unknown>>()
 
   // local files
   readonly createFileTask = myRxResource({
@@ -163,21 +163,22 @@ export class KnowledgeDocumentPipelineStep1Component {
           task_id: this.taskId(),
           folder_id: this.parentId(),
           stage: 'preview'
+        },
+        [channelName(this.sourceKey())]: {
+          ...(this.parameterValue() ?? {}),
         }
       })
       .subscribe({
         next: (results) => {
           this.testing.set(false)
-          this.taskId.set(results['knowledgebase_channel'].task_id)
+          this.taskId.set(results[KnowledgebaseChannel].task_id)
           const channel = channelName(this.selectedSource().key)
-          this.pipelineComponent.documentIds.set(results[channel]?.documents ?? [])
-          console.log('Test results: ', results)
-          this.#toastr.success('XPERT.Agent.TestSuccessfully')
+          this.pipelineComponent.documentIds.set(results[channel]?.documents?.map((doc) => doc.id) ?? [])
         },
         error: (err) => {
           this.testing.set(false)
           console.error(err)
-          this.#toastr.danger(getErrorMessage(err), 'XPERT.Agent.TestFailed')
+          this.#toastr.danger(getErrorMessage(err))
         }
       })
   }

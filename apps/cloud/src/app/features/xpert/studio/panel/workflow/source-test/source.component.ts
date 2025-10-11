@@ -27,6 +27,7 @@ import {
   IWFNSource,
   IWorkflowNode,
   KBDocumentStatusEnum,
+  KnowledgebaseChannel,
   KnowledgebaseService,
   KnowledgeFileUploader,
   XpertAgentService
@@ -129,21 +130,24 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
     this.testing.set(true)
     this.agentAPI
       .test(this.xpert().id, this.key(), {
-        knowledgebaseId: this.knowledgebase()?.id
+        [KnowledgebaseChannel]: {
+          knowledgebaseId: this.knowledgebase()?.id
+        },
+        [channelName(this.key())]: {
+          ...(this.parameterValue() ?? {}),
+        }
       })
       .subscribe({
         next: (results) => {
           this.testing.set(false)
-          this.taskId.set(results['knowledgebase_channel'].task_id)
+          this.taskId.set(results[KnowledgebaseChannel].task_id)
           const channel = channelName(this.key())
-          this.documentIds.set(results[channel]?.documents ?? [])
-          console.log('Test results: ', results)
-          this._toastr.success('XPERT.Agent.TestSuccessfully')
+          this.documentIds.set(results[channel]?.documents?.map((doc) => doc.id) ?? [])
         },
         error: (err) => {
           this.testing.set(false)
           console.error(err)
-          this._toastr.danger(getErrorMessage(err), 'XPERT.Agent.TestFailed')
+          this._toastr.danger(getErrorMessage(err))
         }
       })
   }
@@ -190,7 +194,9 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
       .subscribe({
         next: (task) => {
           console.log(task)
-          this.successMessage.set(`已添加至后台任务，请在聊天记录中查看消息详细日志。`)
+          this.successMessage.set(this.i18nService.instant('PAC.Pipeline.SourceTestSuccessMessage', {
+            Default: `Added to background task, please check the message detailed log in chat history.`
+          }))
         },
         error: (err) => {
           this._toastr.error(getErrorMessage(err))

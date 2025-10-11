@@ -330,7 +330,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		}
 
 		// Workflow nodes
-		const workflowNodes = graph?.nodes?.filter((_) => _.type === 'workflow' && _.key !== nodeKey)
+		const workflowNodes = graph?.nodes?.filter((_) => _.type === 'workflow' && (_.entity.type === WorkflowNodeTypeEnum.SOURCE || _.key !== nodeKey))
 		if (workflowNodes) {
 			for await (const node of workflowNodes) {
 				const entity = node.entity as IWorkflowNode
@@ -416,7 +416,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			}
 		}
-
+		
 		return varGroups
 	}
 

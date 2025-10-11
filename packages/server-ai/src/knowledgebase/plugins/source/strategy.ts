@@ -28,12 +28,13 @@ import { GetIntegrationQuery } from '@metad/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IDocumentSourceStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
-import { AgentStateAnnotation, nextWorkflowNodes, stateWithEnvironment } from '../../../shared'
+import { AgentStateAnnotation, deepTransformValue, nextWorkflowNodes, stateWithEnvironment } from '../../../shared'
 import { KnowledgeStrategyQuery } from '../../queries'
 import { KnowledgebaseTaskService } from '../../task/index'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
+import { PromptTemplate } from '@langchain/core/prompts'
 
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.SOURCE)
@@ -190,9 +191,13 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 								permissions[integrationPermission.type] = integration
 							}
 						}
+						
+						const parameters = entity.config ? await deepTransformValue(entity.config, async (v) => {
+							return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
+						}) : {}
 
 						const results = await strategy.loadDocuments({
-							...(entity.config??{}),
+							...parameters,
 							[STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN]
 						}, permissions)
 
@@ -302,7 +307,9 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 	}
 
 	outputVariables(entity: IWorkflowNode): TXpertParameter[] {
+		const source = entity as IWFNSource
 		return [
+			...(source.parameters ?? []),
 			createDocumentsParameter(DOCUMENTS_CHANNEL_NAME),
 			{
 				type: XpertParameterTypeEnum.STRING,

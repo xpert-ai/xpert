@@ -66,6 +66,8 @@
               <mat-progress-bar class="absolute bottom-0 left-0 w-full" mode="determinate" [value]="item.progress" [color]="item.progress === 100 ? 'primary' : 'accent'" />
             }
           </div>
+        } @empty {
+          <bullet-list-content-loader></bullet-list-content-loader>
         }
       </div>
       <hr class="my-3 h-[1px] bg-divider-subtle border-0" />

@@ -1,20 +1,24 @@
-import { FireCrawlLoader } from '@langchain/community/document_loaders/web/firecrawl'
-import FirecrawlApp from '@mendable/firecrawl-js'
+import { Document } from '@langchain/core/documents'
+import { default as Firecrawl } from '@mendable/firecrawl-js'
 import { IIntegration, LanguagesEnum } from '@metad/contracts'
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { FirecrawlOptions, FirecrawlParams, WebsiteCrawlMessage } from './types'
 
 @Injectable()
 export class FirecrawlService {
+
+  createApp(integration: IIntegration<FirecrawlOptions>) {
+    return new Firecrawl({
+      apiUrl: integration.options.apiUrl,
+      apiKey: integration.options.apiKey
+    })
+}
+
   async test(integration: IIntegration<FirecrawlOptions>, languageCode: LanguagesEnum) {
     try {
-      const loader = new FireCrawlLoader({
-        apiKey: integration.options.apiKey,
-        apiUrl: integration.options.apiUrl,
-        url: 'https://mtda.cloud/',
-        mode: 'scrape'
-      })
-      return await loader.load()
+      const app = this.createApp(integration)
+
+      return await this.load(app, 'scrape', 'https://docs.firecrawl.dev/introduction', { formats: ['markdown'] })
     } catch (error: any) {
       const errorMessage = {
         [LanguagesEnum.English]: 'Failed to connect to Firecrawl. Please check your API Key and URL.',
@@ -25,10 +29,7 @@ export class FirecrawlService {
   }
 
   async crawlUrl(integration: IIntegration<FirecrawlOptions>, config: FirecrawlParams) {
-    const app = new FirecrawlApp({
-      apiKey: integration.options.apiKey,
-      apiUrl: integration.options.apiUrl
-    })
+    const app = this.createApp(integration)
 
     const crawlResult = await app.startCrawl(config.url, {
       limit: 100,
@@ -75,5 +76,40 @@ export class FirecrawlService {
     }
 
     return result
+  }
+
+  /**
+   * Loads data from Firecrawl.
+   * @returns An array of Documents representing the retrieved data.
+   * @throws An error if the data could not be loaded.
+   */
+  async load(app: Firecrawl, mode, url, params) {
+    let firecrawlDocs = []
+    if (mode === 'scrape') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await app.scrape(url, params)
+      firecrawlDocs = [response]
+    } else if (mode === 'crawl') {
+      const response = await app.crawl(url, params)
+      firecrawlDocs = [response]
+    } else if (mode === 'map') {
+      const response = await app.map(url, params)
+      firecrawlDocs = [response]
+      return firecrawlDocs.map(
+        (doc) =>
+          new Document({
+            pageContent: JSON.stringify(doc)
+          })
+      )
+    } else {
+      throw new Error(`Unrecognized mode '${mode}'. Expected one of 'crawl', 'scrape'.`)
+    }
+    return firecrawlDocs.map(
+      (doc) =>
+        new Document({
+          pageContent: doc.markdown || doc.html || doc.rawHtml || '',
+          metadata: doc.metadata || {}
+        })
+    )
   }
 }

@@ -486,8 +486,9 @@
       "EmbeddingModelTooltip": "选择用于将分块嵌入成文本向量的模型。",
       "RetrievalConfig": "检索配置",
       "RetrievalConfigTooltip": "配置用于从向量数据库中检索相关分块的参数。",
-      "ChangeKnowledgeStructure": "更改知识结构"
-
+      "ChangeKnowledgeStructure": "更改知识结构",
+      "SelectDocIntegration": "选择文档源集成系统",
+      "SourceTestSuccessMessage": "已添加至后台任务，请在聊天记录中查看消息详细日志。"
     },
     "Environment": {
       "Environment": "环境",

@@ -8,6 +8,9 @@
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {
+    "@langchain/core": "*",
+    "@metad/contracts": "*",
+    "@nestjs/common": "*",
     "i18next": "*"
   }
 }

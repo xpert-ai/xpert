@@ -8,7 +8,8 @@
   </div>
   @switch (authMode()) {
     @case ('integration') {
-      <xp-integration-select class="grow" [provider]="integrationProvider()" [(ngModel)]="integrationId">
+      <xp-integration-select class="grow" [provider]="integrationProvider()" [(ngModel)]="integrationId"
+        [placeholder]="'PAC.Pipeline.SelectDocIntegration' | translate: {Default: 'Select a document source integration system'}">
         @if (integrationId()) {
           <div icon class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm
           bg-green-500 border-green-600 shadow-green-300 mr-1.5">
