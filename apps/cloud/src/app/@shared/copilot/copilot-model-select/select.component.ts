@@ -2,15 +2,15 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
-import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { toObservable } from '@angular/core/rxjs-interop'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmHighlightDirective, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
+import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { debouncedSignal, NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { debounceTime, map } from 'rxjs'
+import { map } from 'rxjs'
 import {
   AiModelTypeEnum,
   CopilotServerService,
@@ -33,7 +33,6 @@ import { ModelParameterInputComponent } from '../model-parameter-input/input.com
     CdkMenuModule,
     CdkListboxModule,
     MatTooltipModule,
-    NgmSearchComponent,
     NgmI18nPipe,
     NgmHighlightDirective,
     ModelParameterInputComponent
@@ -93,10 +92,10 @@ export class CopilotModelSelectComponent {
   })
   readonly copilotWithModels$ = toObservable(this.copilotWithModels)
 
-  readonly searchControl = new FormControl()
-  readonly searchText = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300), map((text) => text.toLowerCase())))
+  readonly searchTerm = model('')
+  readonly #searchTerm = debouncedSignal(this.searchTerm, 300)
   readonly searchedModels = computed(() => {
-    const searchText = this.searchText()
+    const searchText = this.#searchTerm()
     const copilots = this.features()?.length ? this.copilotWithModels()?.map((_) => {
       return {
         ..._,
