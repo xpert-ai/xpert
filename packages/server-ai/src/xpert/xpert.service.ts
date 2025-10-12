@@ -9,6 +9,7 @@ import {
 	LongTermMemoryTypeEnum,
 	OrderTypeEnum,
 	STATE_VARIABLE_HUMAN,
+	TChatFrom,
 	TMemoryQA,
 	TMemoryUserProfile,
 	TXpertTeamDraft,
@@ -114,7 +115,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 	}
 
 	async getAllByWorkspace(workspaceId: string, data: PaginationParams<Xpert>, published: boolean, user: IUser) {
-		const { relations, order, take } = data ?? {}
+		const { select, relations, order, take } = data ?? {}
 		let { where } = data ?? {}
 		where = transformWhere(where ?? {})
 		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
@@ -139,6 +140,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 		}
 
 		return this.findAll({
+			select,
 			where,
 			relations,
 			order,
@@ -447,8 +449,12 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 			.map((node) => node.entity as IWFNTrigger)
 			.filter((node) => node.from && node.from !== 'chat')
 		for await (const node of triggers) {
-			const provider = this.triggerRegistry.get(node.from)
-			if (!provider) continue
+			let provider
+			try {
+				provider = this.triggerRegistry.get(node.from)
+			} catch (err) {
+				continue
+			}
 			provider.publish(
 				{
 					xpertId: xpert.id,
@@ -457,7 +463,11 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 				(payload) => {
 					// Handle the payload if needed
 					console.log(`Trigger '${node.from}' executed with payload:`, payload)
-					this.addTriggerJob(xpert.id, null, payload, node).catch((err) => {
+					this.addTriggerJob(xpert.id, null, payload, {
+						trigger: node,
+						isDraft: false,
+						from: 'job'
+					}).catch((err) => {
 						this.#logger.error(`Add trigger job error: ${getErrorMessage(err)}`)
 					})
 				}
@@ -472,14 +482,19 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 			[STATE_VARIABLE_HUMAN]: Record<string, any>
 			[key: string]: any
 		},
-		trigger: IWFNTrigger
+		params: {
+			trigger: IWFNTrigger
+			isDraft: boolean,
+			from: TChatFrom
+		}
 	) {
 		await this.triggerQueue.add({
 			userId: userId,
 			xpertId,
+			isDraft: params.isDraft,
 			state,
-			from: 'knowledge',
-			trigger: trigger
+			from: params.from,
+			trigger: params.trigger
 		})
 	}
 }

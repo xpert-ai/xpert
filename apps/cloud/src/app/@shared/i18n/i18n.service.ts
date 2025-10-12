@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { LanguagesMap, Store } from '@metad/cloud/state'
 import { TranslateService } from '@ngx-translate/core'
 import i18next from 'i18next'
@@ -24,6 +25,9 @@ export class I18nService {
   get initialized(): boolean {
     return i18next.isInitialized
   }
+
+  // Signals
+  readonly language = toSignal(this.#translate.onLangChange.pipe(map(({ lang }) => lang)))
 
   /**
    * Translate in `i18next`

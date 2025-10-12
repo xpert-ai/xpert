@@ -1,7 +1,7 @@
 <div tabindex="0"
   #menuTrigger
   #trigger="cdkMenuTriggerFor"
-  class="select-trigger grow flex items-center rounded-lg cursor-pointer hover:bg-gray-200"
+  class="select-trigger group grow flex items-center rounded-lg cursor-pointer hover:bg-gray-200"
   [cdkMenuTriggerFor]="menu"
   [cdkMenuTriggerData]="{ trigger: trigger }"
 >
@@ -19,10 +19,10 @@
         ,
       }
     } @empty {
-      <div class="text-text-tertiary">{{ placeholder() }}</div>
+      <div class="text-text-tertiary group-hover:text-text-primary">{{ placeholder() }}</div>
     }
   </div>
-  <i class="ri-arrow-down-s-line w-4 h-4 flex justify-center items-center"></i>
+  <i class="ri-arrow-down-s-line w-4 h-4 flex justify-center items-center text-text-tertiary group-hover:text-text-primary"></i>
 
   @if (nullable() && values()?.length) {
     <div class="w-4 h-4 flex justify-center items-center cursor-pointer text-text-quaternary hover:text-text-tertiary" (click)="clear();$event.stopPropagation()">

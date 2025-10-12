@@ -8,6 +8,7 @@ import { of } from 'rxjs'
 import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
 
 @Component({
   selector: '',
@@ -18,9 +19,12 @@ export class XpertWorkflowBaseComponent {
   readonly xpertAPI = inject(XpertAPIService)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly _toastr = injectToastr()
+  readonly i18nService = injectI18nService()
 
+  // Inputs
   readonly node = input<TXpertTeamNode>()
 
+  // States
   readonly key = computed(() => this.node()?.key)
   readonly xpert = this.xpertStudioComponent.xpert
   readonly xpertId = computed(() => this.xpert()?.id)

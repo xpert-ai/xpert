@@ -1,11 +1,53 @@
-<div class="pac-page-header">
-  <div class="w-full flex justify-between items-center">
-    <div class="pac-page-title">{{ 'PAC.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}</div>
+<div class="flex justify-between items-center px-8 py-4">
+  <div class="flex justify-between items-center">
+    <div class="pac-page-title mr-2">{{ 'PAC.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}</div>
+    <div
+      class="relative inline-flex items-center justify-center rounded-[10px] h-10 bg-neutral-100 p-0.5"
+      [ngmTooltip]="inDevelopment"
+      [hideDelay]="100"
+    >
+      <div
+        class="shadows-shadow-xs absolute bottom-0.5 left-0 right-0 top-0.5 rounded-[10px]
+          bg-components-panel-bg transition-transform duration-300 ease-in-out"
+        style="transform: translateX(2px); width: 77px"
+      ></div>
+      <div
+        id="tab-0"
+        class="relative z-10 flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-primary"
+      >
+        插件
+        <div class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">28</div>
+      </div>
+      <div
+        id="tab-1"
+        class="relative z-10 flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
+      >
+        探索 Marketplace
+      </div>
+    </div>
+  </div>
+
+  <div class="flex shrink-0 items-center gap-1">
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-secondary btn-medium p-2 text-components-button-secondary-text"
+      [ngmTooltip]="inDevelopment"
+      [hideDelay]="100"
+    >
+      <i class="ri-add-line"></i>
+      <span class="pl-1">安装插件</span>
+    </button>
+    <!-- <button
+      type="button"
+      class="btn disabled:btn-disabled btn-secondary btn-medium group p-2 text-components-button-secondary-text"
+    >
+      <i class="ri-equalizer-2-line"></i>
+    </button> -->
   </div>
 </div>
 
+
 <div class="flex flex-col items-start justify-center gap-3 self-stretch px-12 pb-3 pt-1">
-  <div class="h-px self-stretch bg-divider-subtle"></div>
   <div class="flex items-center gap-2 self-stretch">
     <ngm-select class="inline-block w-[160px]" multiple [selectOptions]="categoriesOptions()"
       [placeholder]="'PAC.Plugin.AllCategories' | translate: { Default: 'All Categories' }"
@@ -128,3 +170,7 @@
     </div>
   </div>
 </div>
+
+<ng-template #inDevelopment>
+  <pac-in-development @overlayAnimation1 [feature]="'PAC.Plugin.InstallPlugins' | translate: {Default: 'Installing plugins...'}" class="w-80" />
+</ng-template>

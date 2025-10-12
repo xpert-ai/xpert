@@ -93,7 +93,12 @@ export class XpertWorkspaceXpertsComponent {
       return request ? this.xpertService.getAllByWorkspace(request.workspaceId, {
           where: omitBy(request.where, isNil),
           order: { updatedAt: OrderTypeEnum.DESC },
-          relations: ['createdBy', 'tags']
+          relations: ['createdBy', 'tags', 'knowledgebase'],
+          select: {
+            knowledgebase: {
+              id: true,
+            } as any
+          }
         }).pipe(map(({ items }) => items.filter((item) => item.latest))) : null
     }
   })

@@ -172,6 +172,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 				items: result.items.map((item) => new DocumentChunkDTO(item))
 			}
 		} catch (err) {
+			console.error(err)
 			throw new InternalServerErrorException(getErrorMessage(err))
 		}
 	}

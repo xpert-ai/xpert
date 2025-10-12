@@ -182,7 +182,7 @@ export class PACSettingComponent {
         label: 'Plugins',
         icon: 'extension',
         data: {
-          permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+          permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL]
         }
       }
     ]

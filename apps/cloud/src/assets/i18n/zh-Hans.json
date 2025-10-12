@@ -486,8 +486,9 @@
       "EmbeddingModelTooltip": "选择用于将分块嵌入成文本向量的模型。",
       "RetrievalConfig": "检索配置",
       "RetrievalConfigTooltip": "配置用于从向量数据库中检索相关分块的参数。",
-      "ChangeKnowledgeStructure": "更改知识结构"
-
+      "ChangeKnowledgeStructure": "更改知识结构",
+      "SelectDocIntegration": "选择文档源集成系统",
+      "SourceTestSuccessMessage": "已添加至后台任务，请在聊天记录中查看消息详细日志。"
     },
     "Environment": {
       "Environment": "环境",
@@ -512,7 +513,8 @@
     "Plugin": {
       "Plugins": "插件",
       "AllCategories": "所有类别",
-      "AllKeywords": "所有标签"
+      "AllKeywords": "所有标签",
+      "InstallPlugins": "安装插件"
     },
     "MENU": {
       "Plugins": "插件",
@@ -723,6 +725,7 @@
       "PasswordChangedSuccessfully": "密码修改成功"
     },
     "ACTIONS": {
+      "Start": "开始",
       "Back": "返回",
       "Run": "运行",
       "Rename": "重命名",
@@ -2358,9 +2361,20 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "KnowledgebaseSettings": "知识库设置",
+      "KnowledgebaseSettingsDescription": "在这里，您可以修改此知识库的属性和检索设置。",
+      "NameAndIcon": "名称和图标",
+      "ModelConfiguration": "模型配置",
+      "RetrievalSettings": "检索设置",
       "BlankKnowledgePipeline": "空白知识流水线",
       "BlankKnowledgePipelineDesc": "从零开始创建一个自定义知识流水线，对数据处理和结构拥有完全控制权。",
+      "DownloadPipeline": "下载流水线",
+      "ServiceAPI": "后端服务 API",
+      "InService": "在服务中",
+      "OutofService": "不在服务中",
+      "ServiceAPIEndpoint": "服务 API 端点",
       "ImportFromDSLFile": "从 DSL 文件导入",
+      "LinkedExperts": "个关联专家",
       "Install": "安装",
       "Details": "详情",
       "Reprocess": "重新处理",

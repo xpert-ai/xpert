@@ -24,6 +24,7 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
+import { ContentLoaderModule } from '@ngneat/content-loader'
 
 @Component({
   standalone: true,
@@ -36,6 +37,7 @@ import { KnowledgeDocumentsComponent } from '../documents.component'
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
+    ContentLoaderModule,
     MatTooltipModule,
     MatProgressBarModule,
     KnowledgeDocIdComponent

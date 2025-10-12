@@ -28,6 +28,7 @@ export class IntegrationSelectComponent {
   // Inputs
   readonly integrationList = model<IIntegration[]>()
   readonly provider = input<string | null>(null)
+  readonly placeholder = input<string | null>(null)
   readonly features = input<IntegrationFeatureEnum[] | null>(null)
 
   // States

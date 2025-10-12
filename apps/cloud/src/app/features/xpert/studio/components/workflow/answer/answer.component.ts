@@ -11,6 +11,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
+import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow-answer',
@@ -23,16 +24,7 @@ import { XpertStudioApiService } from '../../../domain'
     tabindex: '-1'
   }
 })
-export class XpertStudioNodeWorkflowAnswerComponent {
-  eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
-  eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
-
-  readonly elementRef = inject(ElementRef)
-  readonly apiService = inject(XpertStudioApiService)
-
-  // Inputs
-  readonly node = input<TXpertTeamNode>()
-  readonly entity = input<IWorkflowNode>()
+export class XpertStudioNodeWorkflowAnswerComponent extends WorkflowBaseNodeComponent {
 
   // States
   readonly answerEntity = computed(() => this.entity() as IWFNAnswer)

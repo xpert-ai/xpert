@@ -44,7 +44,8 @@ export class XpertTriggerConsumer {
 						state: job.data.state,
 					},
 					{
-						from: job.data.from
+						from: job.data.from,
+						isDraft: job.data.isDraft
 					}
 				)
 			)

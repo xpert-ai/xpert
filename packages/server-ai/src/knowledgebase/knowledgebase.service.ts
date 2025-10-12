@@ -474,6 +474,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		if (task.status === 'running') {
 			_task.documents.forEach((doc) => {
 				doc.status = KBDocumentStatusEnum.WAITING
+				doc.processMsg = null
 			})
 			// Update task status to running
 			await this.documentService.save(_task.documents)
@@ -510,6 +511,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		await this.xpertService.addTriggerJob(
 			kb.pipelineId,
 			RequestContext.currentUserId(),
+			
 			{
 				[STATE_VARIABLE_HUMAN]: {
 					input: 'Process knowledges pipeline',
@@ -522,7 +524,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				},
 				...(sources ?? []).reduce((obj, key) => ({ ...obj, [channelName(key)]: { documents: inputs.sources[key].documents } }), {})
 			},
-			null
+			{
+				trigger: null,
+				isDraft: inputs.stage === 'preview',
+				from: 'knowledge'
+			}
 		)
 	}
 
@@ -554,11 +560,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			(permission) => permission.type === 'filesystem'
 		) as FileSystemPermission
 		if (fsPermission) {
-			const folder = isDraft ? 'temp/' : `/`
 			permissions['fileSystem'] = new XpFileSystem(
 				fsPermission,
-				volumeClient.getVolumePath(folder),
-				sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/${folder}`)
+				volumeClient.getVolumePath(''),
+				sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/`)
 			)
 		}
 
@@ -571,11 +576,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			try {
 				integration = await this.integrationService.findOne(entity.integrationId)
 			} catch (error) {
-				throw new BadRequestException(
-					this.i18nService.t('xpert.Error.IntegrationNotFound', {
-						lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-					})
-				)
+				throw new BadRequestException(t('server-ai:Error.IntegrationNotFound', { id: entity.integrationId }))
 			}
 			permissions['integration'] = integration
 		}

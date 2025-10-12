@@ -150,8 +150,15 @@
 
 <ng-template #modelsMenu let-mt="mt">
   <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu pl-2" [style.width.px]="menuTrigger.offsetWidth">
-    <div class="p-1 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-deep z-10">
-      <ngm-search class="w-full mt-1 rounded-lg overflow-hidden" [formControl]="searchControl" />
+    <div class="px-1 py-2 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-regular z-10">
+      <div class="w-full relative">
+        <i class="ri-search-2-line absolute left-1.5 top-1"></i>
+        <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular pl-[26px]" 
+          [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: {Default: 'Search term'}" tabindex="0"
+          [(ngModel)]="searchTerm"
+          [ngModelOptions]="{standalone: true}"
+        >
+      </div>
     </div>
 
     <div class="pr-2">
@@ -181,7 +188,7 @@
             <img [src]="(copilot.providerWithModels.icon_small | i18n)" class="w-4 h-4 inline-block">
           }
             <span class="truncate" [title]="item.model"
-              [ngmHighlight]="searchText()"
+              [ngmHighlight]="searchTerm()"
               [content]="item.model"
               customClasses="text-primary-600">{{item.model}}</span>
             @if (item.model_type === 'llm') {

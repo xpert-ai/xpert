@@ -2,6 +2,7 @@ import { I18nObject, letterStartSUID } from '../types'
 import { ICopilotModel } from './copilot-model.model'
 import { KnowledgeStructureEnum } from './knowledgebase.model'
 import { IWorkflowNode, WorkflowNodeTypeEnum } from './xpert-workflow.model'
+import { TXpertParameter } from './xpert.model'
 
 export interface IDocumentNodeProvider {
   name: string
@@ -44,6 +45,7 @@ export interface IDocumentUnderstandingProvider extends IDocumentNodeProvider {
 export interface IWFNSource extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.SOURCE,
   provider: string
+  parameters?: TXpertParameter[];
   config: any;
   integrationId?: string
 }

@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -68,9 +68,12 @@ export class TenantService extends CrudService<Tenant> {
 
 		//4. Find SUPER_ADMIN role to relative tenant.
 		const role = await this.roleRepository.findOneBy({
-			tenant,
+			tenantId,
 			name: RolesEnum.SUPER_ADMIN
 		});
+		if (!role) {
+			throw new InternalServerErrorException(`Cannot find ${RolesEnum.SUPER_ADMIN} role for tenant ${tenant.name}`);
+		}
 
 		//5. Assign tenant and role to user.
 		await this.userService.update(user.id, {

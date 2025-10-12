@@ -143,7 +143,7 @@ export class WorkflowListOperatorNodeStrategy implements IWorkflowNodeStrategy {
 									[ErrorChannelName]: null
 								}
 							},
-							output: JSON.stringify(result)
+							output: result
 						}
 					},
 					{

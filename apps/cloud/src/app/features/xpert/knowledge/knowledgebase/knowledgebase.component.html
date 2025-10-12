@@ -1,13 +1,18 @@
 <div class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-neutral-50"
   [class.w-[240px]]="sideMenuOpened()"
 >
-  <div class="group flex flex-col p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 pressable cursor-pointer">
+  <div class="group flex flex-col p-2 mx-2 mt-2 ">
     <div class="flex justify-between items-center gap-2" [class.flex-col]="!sideMenuOpened()">
       <div class="relative shrink-0" >
-        <emoji-avatar [avatar]="avatar()" [small]="!sideMenuOpened()" class="rounded-lg overflow-hidden" />
+        <emoji-avatar large [avatar]="avatar()" [small]="!sideMenuOpened()" class="rounded-xl overflow-hidden" />
       </div>
   
-      <i class="ri-equalizer-2-line text-lg text-text-secondary group-hover:text-text-primary"></i>
+      <div class="ml-auto">
+        <button type="button" class="action-btn action-btn-m size-8 rounded-lg" [cdkMenuTriggerFor]="menu">
+          <i class="ri-more-fill"></i>
+        </button>
+      </div>
+      
     </div>
 
     @if (sideMenuOpened()) {
@@ -15,9 +20,11 @@
         <div class="flex justify-between items-center text-base leading-5 font-medium text-text-secondary">
           <div class="truncate" >{{knowledgebase()?.name}}</div>
         </div>
-        <div class="flex items-center text-xs leading-[18px] font-medium text-gray-500 gap-1">
-          <div class="shrink-0 px-1 border uppercase rounded-[5px] truncate">{{type()}}</div>
-        </div>
+        @if (type(); as type) {
+          <div class="flex items-center text-xs leading-[18px] font-medium text-gray-500 gap-1">
+            <div class="shrink-0 px-1 border uppercase rounded-[5px] truncate">{{type}}</div>
+          </div>
+        }
       </div>
     }
   </div>
@@ -92,6 +99,30 @@
     </div>
   </div>
 
+  @if (sideMenuOpened()) {
+    <div class="flex items-center gap-x-0.5 p-2 pb-0">
+      <div class="flex grow flex-col px-2 pb-1.5 pt-1">
+        <div class="system-md-semibold-uppercase text-text-secondary">{{ documentNum() }}</div>
+        <div class="text-xs font-medium uppercase text-text-tertiary">
+          {{ 'PAC.Knowledgebase.Documents' | translate: {Default: 'Documents'} }}
+        </div>
+      </div>
+      <div class="py-2 pl-0.5 pr-1.5">
+        <div class="my-2 bg-divider-regular text-test-divider-regular h-full w-fit"></div>
+      </div>
+      <div class="flex grow flex-col px-2 pb-1.5 pt-1">
+        <div class="system-md-semibold-uppercase text-text-secondary">{{ xpertCount() }}</div>
+        <div
+          class="text-xs font-medium uppercase flex cursor-pointer items-center gap-x-0.5 text-text-tertiary"
+          [cdkMenuTriggerFor]="xpertsMenu"
+        >
+          <span>{{ 'PAC.Knowledgebase.LinkedExperts' | translate: {Default: 'Linked Experts'} }}</span>
+          <i class="ri-information-line"></i>
+        </div>
+      </div>
+    </div>
+  }
+
   <div class="p-3 pt-2">
     <div
       class="relative w-full flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-components-panel-border px-3 hover:bg-state-base-hover"
@@ -112,34 +143,60 @@
       </svg>
       @if (sideMenuOpened()) {
         <div class="system-sm-medium grow text-text-secondary">Service API</div>
-        @if (serviceApiEnabled()) {
-          <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
-            bg-green-500 border-green-600 shadow-green-300 shrink-0"
-          ></div>
-        }
+      }
+      @if (apiEnabled()) {
+        <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
+          bg-green-500 border-green-600 shadow-green-300 shrink-0"
+          [ngClass]="sideMenuOpened() ? '' : 'absolute -right-1 -top-1'"
+        ></div>
       } @else {
-        @if (serviceApiEnabled()) {
-          <div class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
-            bg-green-500 border-green-600 shadow-green-300 shrink-0"
-          ></div>
-        }
+        <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
+          bg-neutral-500 border-neutral-600 shadow-neutral-300 shrink-0"
+          [ngClass]="sideMenuOpened() ? '' : 'absolute -right-1 -top-1'"
+        ></div>
       }
     </div>
   </div>
 
 </div>
 
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+}
+
 <div class="flex-1 relative flex overflow-hidden bg-components-card-bg" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
   <router-outlet #o="outlet"></router-outlet>
 </div>
 
+<ng-template #menu>
+  <div cdkMenu class="cdk-menu__large">
+    <!-- <button cdkMenuItem
+      type="button"
+      (click)="downloadPipeline()"
+    >
+      <i class="ri-download-2-line mr-1"></i>
+      <span>
+        {{ 'PAC.Knowledgebase.DownloadPipeline' | translate: {Default: 'Download Pipeline'} }}</span>
+    </button> -->
+    
+    <button cdkMenuItem
+      type="button" class="danger"
+      (click)="deleteKnowledgebase()"
+    >
+      <i class="ri-delete-bin-6-line mr-1"></i>
+      <span>{{'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</span>
+    </button>
+  </div>
+</ng-template>
+
 <ng-template #serviceApiMenu >
-  <div cdkMenu class="flex w-[360px] flex-col rounded-xl border border-components-panel-border bg-components-panel-bg shadow-lg shadow-shadow-shadow-1">
+  <div cdkMenu @overlayAnimation1 class="flex w-[360px] flex-col rounded-xl border border-components-panel-border bg-components-panel-bg shadow-lg shadow-shadow-shadow-1">
     <div class="flex flex-col gap-y-3 p-4">
       <div class="flex items-center gap-x-3">
         <div class="flex grow items-center gap-x-2">
           <div
-            class="flex size-7 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-divider-subtle bg-util-colors-blue-brand-blue-brand-500 shadow-md shadow-shadow-shadow-5"
+            class="flex size-8 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-divider-subtle 
+              bg-primary-500 shadow-md"
           >
             <svg
               width="16"
@@ -147,7 +204,7 @@
               viewBox="0 0 16 16"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              class="size-5 text-text-primary"
+              class="size-5 text-white"
             >
               <path
                 d="M5.92578 11.0094C5.92578 10.0174 5.12163 9.21256 4.12956 9.21256C3.13752 9.2126 2.33333 10.0174 2.33333 11.0094C2.33349 12.0014 3.13762 12.8056 4.12956 12.8057C5.12153 12.8057 5.92562 12.0014 5.92578 11.0094ZM13.6667 11.0094C13.6667 10.0174 12.8625 9.2126 11.8704 9.21256C10.8784 9.21256 10.0742 10.0174 10.0742 11.0094C10.0744 12.0014 10.8785 12.8057 11.8704 12.8057C12.8624 12.8056 13.6665 12.0014 13.6667 11.0094ZM9.79622 4.32389C9.79619 3.33186 8.99205 2.52767 8 2.52767C7.00796 2.52767 6.20382 3.33186 6.20378 4.32389C6.20378 5.31596 7.00793 6.12012 8 6.12012C8.99207 6.12012 9.79622 5.31596 9.79622 4.32389ZM11.1296 4.32389C11.1296 5.82351 10.0748 7.07628 8.66667 7.38184V7.9196L9.74284 8.71387C10.3012 8.19607 11.0489 7.87923 11.8704 7.87923C13.5989 7.87927 15 9.28101 15 11.0094C14.9998 12.7377 13.5988 14.139 11.8704 14.139C10.1421 14.139 8.74104 12.7378 8.74089 11.0094C8.74089 10.5837 8.82585 10.1776 8.97982 9.80762L8 9.08366L7.01953 9.80762C7.17356 10.1777 7.25911 10.5836 7.25911 11.0094C7.25896 12.7378 5.85791 14.139 4.12956 14.139C2.40124 14.139 1.00016 12.7377 1 11.0094C1 9.28101 2.40114 7.87927 4.12956 7.87923C4.95094 7.87923 5.69819 8.19627 6.25651 8.71387L7.33333 7.9196V7.38184C5.92523 7.07628 4.87044 5.82351 4.87044 4.32389C4.87048 2.59548 6.27158 1.19434 8 1.19434C9.72843 1.19434 11.1295 2.59548 11.1296 4.32389Z"
@@ -155,60 +212,69 @@
               ></path>
             </svg>
           </div>
-          <div class="system-sm-semibold grow truncate text-text-secondary">Backend service api</div>
+          <div class="system-sm-semibold grow truncate text-text-secondary">
+            {{ 'PAC.Knowledgebase.ServiceAPI' | translate: {Default: 'Backend Service API'} }}
+          </div>
         </div>
         <div class="flex items-center gap-x-1">
-          <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
-            bg-green-500 border-green-600 shadow-green-300 shrink-0"
-          ></div>
-          <div class="system-xs-semibold-uppercase text-text-success">In Service</div>
+          @if (apiEnabled()) {
+            <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
+              bg-green-500 border-green-600 shadow-green-300 shrink-0"
+            ></div>
+            <div class="system-xs-semibold-uppercase text-text-success">
+              {{ 'PAC.Knowledgebase.InService' | translate: {Default: 'In Service'} }}
+            </div>
+          } @else {
+            <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
+              bg-neutral-500 border-neutral-600 shadow-neutral-300 shrink-0"
+            ></div>
+            <div class="system-xs-semibold-uppercase text-text-secondary">
+              {{ 'PAC.Knowledgebase.OutofService' | translate: {Default: 'Out of Service'} }}
+            </div>
+          }
         </div>
-        <button
-          class="h-4 w-7 bg-components-toggle-bg relative inline-flex shrink-0 cursor-pointer rounded-[5px] border-2 border-transparent transition-colors duration-200 ease-in-out"
-          role="switch"
-          type="button"
-          tabindex="-1"
-          aria-checked="true"
-        >
-          <span
-            aria-hidden="true"
-            class="h-3 w-3 translate-x-3 pointer-events-none inline-block rounded-[3px] bg-components-toggle-knob shadow ring-0 transition duration-200 ease-in-out"
-          ></span>
-        </button>
+        <ngm-slide-toggle [(ngModel)]="apiEnabled" />
       </div>
       <div class="flex flex-col">
-        <div class="system-xs-regular leading-6 text-text-tertiary">Service API Endpoint</div>
+        <div class="system-xs-regular leading-6 text-text-tertiary">
+          {{ 'PAC.Knowledgebase.ServiceAPIEndpoint' | translate: {Default: 'Service API Endpoint'} }}
+        </div>
         <div class="flex h-8 items-center gap-0.5 rounded-lg bg-components-input-bg-normal p-1 pl-2">
           <div class="flex h-4 min-w-0 flex-1 items-start justify-start gap-2 px-1">
-            <div class="system-xs-medium truncate text-text-secondary">https://api.mtda.cloud/api/</div>
+            <div class="system-xs-medium truncate text-text-secondary">{{ apiUrl() }}</div>
           </div>
-          <ngm-copy [content]="'https://api.mtda.cloud/api/'" />
+          <ngm-copy [content]="apiUrl()" />
         </div>
       </div>
     </div>
     <div class="flex gap-x-1 border-t-[0.5px] border-divider-subtle p-4">
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-ghost btn-small gap-x-px text-text-tertiary"
-        tabindex="-1"
+      <button type="button"
+        class="btn disabled:btn-disabled btn-ghost btn-small gap-x-px text-text-tertiary hover:text-text-primary"
+        (click)="openApiKey()"
       >
         <i class="ri-key-2-line"></i>
-        <span class="system-xs-medium px-[3px]">API Key</span></button
-      ><a
-        target="_blank"
-        rel="noopener noreferrer"
-        href="https://mtda.cloud/docs/"
-        tabindex="-1"
-        >
-        <button
-          type="button"
-          class="btn disabled:btn-disabled btn-ghost btn-small gap-x-px text-text-tertiary"
-          tabindex="-1"
-        >
-          <i class="ri-book-open-line"></i>
-          <span class="system-xs-medium px-[3px]">API Reference</span>
-        </button></a
+        <span class="system-xs-medium px-[3px]">API Key</span>
+      </button>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-ghost btn-small gap-x-px text-text-tertiary hover:text-text-primary"
+        (click)="openApiReference()"
       >
+        <i class="ri-book-open-line"></i>
+        <span class="system-xs-medium px-[3px]">API Reference</span>
+      </button>
     </div>
+  </div>
+</ng-template>
+
+<ng-template #xpertsMenu>
+  <div cdkMenu @overlayAnimation1 class="cdk-menu__large">
+    <div class="p-2">{{xperts()?.length ?? 0}} {{ 'PAC.Knowledgebase.RelatedExperts' | translate: {Default: 'related experts'} }}</div>
+    @for (item of xperts(); track item.id) {
+      <div cdkMenuItem class="group" (click)="openXpert(item)">
+        <xpert-inline-profile [xpert]="item" class="grow" />
+        <i class="ri-corner-right-up-line ml-8 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+      </div>
+    }
   </div>
 </ng-template>

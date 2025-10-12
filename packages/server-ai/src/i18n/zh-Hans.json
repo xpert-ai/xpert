@@ -3,7 +3,8 @@
         "AgentNotFound": "Agent‘{{key}}’未找到。",
         "PrimaryAgentNotFound": "主智能体节点未找到",
         "GitIntegrationNotProvided": "未提供 Git 集成",
-        "KBReqVisionModel": "知识库需要视觉模型来处理图像"
+        "KBReqVisionModel": "知识库需要视觉模型来处理图像",
+        "IntegrationNotFound": "未找到集成‘{id}}’"
     },
     "tools": {
         "ListFiles": "列出文件",

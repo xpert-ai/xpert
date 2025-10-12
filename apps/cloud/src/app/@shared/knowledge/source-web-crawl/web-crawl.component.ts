@@ -2,6 +2,9 @@ import { CommonModule } from '@angular/common'
 import { Component, model } from '@angular/core'
 import { IKnowledgeDocument } from '@cloud/app/@core'
 
+/**
+ * @deprecated Not used yet
+ */
 @Component({
   standalone: true,
   imports: [CommonModule],

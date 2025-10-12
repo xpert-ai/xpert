@@ -13,6 +13,7 @@ export const QUEUE_XPERT_TRIGGER = 'xpert-trigger'
 export type TTriggerJob = {
 	userId: string
 	xpertId: string
+	isDraft: boolean
 	from?: TChatFrom
 	state: any
 	trigger: IWFNTrigger

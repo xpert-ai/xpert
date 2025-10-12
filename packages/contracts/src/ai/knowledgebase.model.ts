@@ -87,6 +87,7 @@ export type TKnowledgebase = {
   similarityThreshold?: number
   vectorSimilarityWeight?: number
   /**
+   * @deprecated
    * default parser ID
    */
   parserId?: string
@@ -126,9 +127,22 @@ export interface IKnowledgebase extends TKnowledgebase, IBasePerWorkspaceEntityM
   pipeline?: IXpert
 }
 
+/**
+ * Knowledgebase permission levels
+ */
 export enum KnowledgebasePermission {
+  /**
+   * Only visible to you
+   * @default
+   */
   Private = 'private',
+  /**
+   * Visible to all members in the organization
+   */
   Organization = 'organization',
+  /**
+   * Visible to all members in the tenant
+   */
   Public = 'public'
 }
 
@@ -171,3 +185,4 @@ export const KnowledgeTask = 'task_id'
 export const KnowledgeSources = 'sources'
 export const KnowledgeDocuments = 'documents'
 export const KnowledgeFolderId = 'folder_id'
+export const KNOWLEDGE_STAGE_NAME = 'stage'

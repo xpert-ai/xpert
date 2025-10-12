@@ -1,9 +1,8 @@
 import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
-import { ToConnectionViewModelHandler } from '../../connection'
 import { IStudioStore } from '../../types'
 import { CreateTeamRequest } from './create.request'
-import { createXpertGraph } from '../../../../../../@core/types'
+import { createXpertNode } from '../types'
 
 export class CreateTeamHandler implements IHandler<CreateTeamRequest> {
   constructor(private store: Store<StoreDef, IStudioStore>) {}
@@ -14,18 +13,17 @@ export class CreateTeamHandler implements IHandler<CreateTeamRequest> {
 
       // Create sub graph for xpert
       const xpert = request.team
-
-      const {nodes, connections, size} = createXpertGraph(xpert, request.position)
-
+      
       draft.nodes.push({
+        ...createXpertNode(xpert, request.position),
         type: 'xpert',
         key: request.team.id,
         position: request.position,
-        size: size,
+        // size: size,
         entity: request.team,
-        nodes,
-        connections,
-        expanded: true
+        // nodes,
+        // connections,
+        expanded: false
       })
 
       return {

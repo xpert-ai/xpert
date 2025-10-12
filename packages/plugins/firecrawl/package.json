@@ -2,11 +2,15 @@
   "name": "@xpert-ai/plugin-firecrawl",
   "version": "0.0.1",
   "dependencies": {
-    "@mendable/firecrawl-js": "^4.3.8"
+    "@mendable/firecrawl-js": "^4.3.8",
+    "hbs": "^4.2.0"
   },
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {
+    "@langchain/core": "*",
+    "@metad/contracts": "*",
+    "@nestjs/common": "*",
     "i18next": "*"
   }
 }

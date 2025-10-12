@@ -1,4 +1,4 @@
-import { ChatMessageEventTypeEnum, IXpertAgentExecution, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, IXpertAgentExecution, JSONValue, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
@@ -15,7 +15,7 @@ import { messageEvent } from '../../xpert-agent/agent'
  * @returns 
  */
 export function wrapAgentExecution<T>(
-	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{ output?: string; state: T }>,
+	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{ output?: string | JSONValue; state: T }>,
 	params: {
 		commandBus: CommandBus
 		queryBus: QueryBus
