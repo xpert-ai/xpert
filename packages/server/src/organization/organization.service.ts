@@ -40,6 +40,9 @@ export class OrganizationService extends TenantAwareCrudService<Organization> {
 		);
 	}
 
+	/**
+	 * Generate demo data for the organization (e.g. demo projects, demo dashboards, etc.)
+	 */
 	public async generateDemo(id: string, options: OrgGenerateDemoOptions) {
 		const organization = await this.organizationRepository.findOneBy({ id: id});
 

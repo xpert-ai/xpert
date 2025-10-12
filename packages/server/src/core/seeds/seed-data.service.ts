@@ -514,7 +514,7 @@ export class SeedDataService {
 			this.roles = await (await this.connection.getRepository(Role)).find({
 				relations: ['tenant'],
 				where: {
-					tenant: this.tenant
+					tenantId: this.tenant.id
 				}
 			})
 

@@ -144,6 +144,7 @@ export class OrganizationController extends CrudController<Organization> {
 		try {
 			return await this.organizationService.generateDemo(id, body)
 		} catch(err) {
+			console.error(err)
 			throw new InternalServerErrorException(err.message)
 		}
 	}
