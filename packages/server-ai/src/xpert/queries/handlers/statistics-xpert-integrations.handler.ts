@@ -1,18 +1,19 @@
 import { Integration, RequestContext } from '@metad/server-core'
-import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { getRepository } from 'typeorm'
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { DataSource } from 'typeorm'
 import { StatisticsXpertIntegrationsQuery } from '../statistics-xpert-integrations.query'
 
 @QueryHandler(StatisticsXpertIntegrationsQuery)
 export class StatisticsXpertIntegrationsHandler implements IQueryHandler<StatisticsXpertIntegrationsQuery> {
-	constructor(private readonly queryBus: QueryBus) {}
+	constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
 	public async execute(command: StatisticsXpertIntegrationsQuery) {
 		const { start, end } = command
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
-		const repository = getRepository(Integration)
+		const repository = this.dataSource.getRepository(Integration)
 
 		const query = repository
 			.createQueryBuilder('integration')

@@ -1,16 +1,16 @@
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
-import { getRepository } from 'typeorm'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { DataSource } from 'typeorm'
 import { Knowledgebase } from '../../knowledgebase.entity'
-import { KnowledgebaseService } from '../../knowledgebase.service'
 import { StatisticsKnowledgebasesQuery } from '../statistics-knowledgebases.query'
 
 @QueryHandler(StatisticsKnowledgebasesQuery)
 export class StatisticsKnowledgebasesHandler implements IQueryHandler<StatisticsKnowledgebasesQuery> {
 	private readonly logger = new Logger(StatisticsKnowledgebasesHandler.name)
 
-	constructor(private readonly knowledgebaseService: KnowledgebaseService) {}
+	constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
 	public async execute(command: StatisticsKnowledgebasesQuery) {
 		const { start, end } = command
@@ -18,7 +18,7 @@ export class StatisticsKnowledgebasesHandler implements IQueryHandler<Statistics
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
-		const repository = getRepository(Knowledgebase)
+		const repository = this.dataSource.getRepository(Knowledgebase)
 
 		const queryBuilder = repository
 			.createQueryBuilder('knowledgebase')
