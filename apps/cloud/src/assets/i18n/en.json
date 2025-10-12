@@ -87,6 +87,12 @@
         "ERROR": "Error"
       }
     },
+    "Onboarding": {
+      "FeatureCategory_ai": "AI Platform Features",
+      "FeatureCategory_bi": "BI Platform Features",
+      "FeatureCategoryDesc_ai": "Features related to AI, including workflows, digital expert agents, knowledge bases, project spaces, etc.",
+      "FeatureCategoryDesc_bi": "Features related to BI data analysis, including semantic models, indicators, story dashboards, etc."
+    },
     "INDICATOR": {
       "REGISTER": {
         "CODE": "Code",

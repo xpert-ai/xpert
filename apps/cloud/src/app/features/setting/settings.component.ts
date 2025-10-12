@@ -1,5 +1,11 @@
+import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { MatIconModule } from '@angular/material/icon'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { RouterModule } from '@angular/router'
+import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
 import { distinctUntilChanged } from 'rxjs/operators'
 import {
@@ -14,23 +20,10 @@ import {
   routeAnimations
 } from '../../@core'
 import { AppService } from '../../app.service'
-import { CommonModule } from '@angular/common'
-import { RouterModule } from '@angular/router'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { TranslateModule } from '@ngx-translate/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { MatIconModule } from '@angular/material/icon'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatTooltipModule,
-    MatIconModule,
-    TranslateModule,
-    NgmCommonModule
-  ],
+  imports: [CommonModule, RouterModule, MatTooltipModule, MatIconModule, TranslateModule, NgmCommonModule],
   selector: 'pac-settings',
   templateUrl: `settings.component.html`,
   styleUrl: './settings.component.scss',
@@ -72,11 +65,11 @@ export class PACSettingComponent {
         label: 'Knowledgebase',
         icon: 'school',
         data: {
-          featureKey: AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE,
-          permissionKeys: [
-            RolesEnum.SUPER_ADMIN,
-            RolesEnum.ADMIN
-          ]
+          featureKey: [
+            AiFeatureEnum.FEATURE_COPILOT,
+            AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE
+          ],
+          permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
         }
       },
       {
@@ -84,7 +77,8 @@ export class PACSettingComponent {
         label: 'Data Sources',
         icon: 'topic',
         data: {
-          permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT]
+          permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
+          featureKey: AnalyticsFeatures.FEATURE_MODEL
         }
       },
       {
@@ -93,7 +87,10 @@ export class PACSettingComponent {
         icon: 'mms',
         data: {
           permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
-          featureKey: AiFeatureEnum.FEATURE_XPERT
+          featureKey: [
+            AiFeatureEnum.FEATURE_XPERT,
+            AnalyticsFeatures.FEATURE_MODEL
+          ]
         }
       },
       {
@@ -200,7 +197,8 @@ export class PACSettingComponent {
 
     return menus.filter((item: any) => {
       if (item.data?.featureKey) {
-        if (!this.store.hasFeatureEnabled(item.data.featureKey)) {
+        const featureKey = Array.isArray(item.data.featureKey) ? item.data.featureKey : [item.data.featureKey]
+        if (!featureKey.every((key) => this.store.hasFeatureEnabled(key))) {
           return false
         }
       }

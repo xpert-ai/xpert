@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router'
-import { FeatureToggleComponent } from '../../../@shared/feature-toggle'
+import { FeatureToggleComponent } from '../../../@shared/features/feature-toggle'
 import { PACFeaturesComponent } from './features.component'
 
 export default [

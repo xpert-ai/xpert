@@ -1,8 +1,8 @@
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { Component, ViewChild, inject, signal } from '@angular/core'
+import { Component, ViewChild, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatListModule } from '@angular/material/list'
@@ -11,18 +11,19 @@ import { MatRadioModule } from '@angular/material/radio'
 import { MatStepper, MatStepperModule } from '@angular/material/stepper'
 import { Router } from '@angular/router'
 import { matchWithValidator } from '@metad/cloud/auth'
-import { DataSourceService, DataSourceTypesService, Store } from '@metad/cloud/state'
+import { DataSourceService, DataSourceTypesService, IFeatureOrganizationUpdateInput, injectOrganization, ITenant, Store } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { omit } from '@metad/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, startWith } from 'rxjs'
+import { BehaviorSubject, combineLatest, firstValueFrom, map, startWith } from 'rxjs'
 import {
   AuthStrategy,
   BonusTypeEnum,
   CurrenciesEnum,
   DEFAULT_TENANT,
   DefaultValueDateTypeEnum,
+  FeatureService,
   IDataSourceType,
   IOrganization,
   OrganizationDemoNetworkEnum,
@@ -35,7 +36,7 @@ import {
   injectHelpWebsite,
   injectLanguage
 } from '../../@core'
-
+import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
 
 @Component({
   standalone: true,
@@ -44,19 +45,22 @@ import {
   styleUrls: ['./tenant-details.component.scss'],
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     TranslateModule,
+    CdkListboxModule,
     MatStepperModule,
     MatFormFieldModule,
-    MatButtonModule,
     MatInputModule,
     MatListModule,
     MatRadioModule,
     MatProgressBarModule,
     FormlyModule,
+    FeatureCategoryComponent,
 
-    NgmCommonModule
-  ]
+    NgmCommonModule,
+  ],
+  providers: [FeatureService]
 })
 export class TenantDetailsComponent {
   OrganizationDemoNetworkEnum = OrganizationDemoNetworkEnum
@@ -66,6 +70,7 @@ export class TenantDetailsComponent {
   private readonly typesService = inject(DataSourceTypesService)
   private readonly dataSourceService = inject(DataSourceService)
   private readonly organizationsService = inject(OrganizationsService)
+  readonly #featureAPI = inject(FeatureService)
   private readonly serverAgent? = inject(ServerAgent, { optional: true })
   private readonly authStrategy = inject(AuthStrategy)
   private readonly _formBuilder = inject(FormBuilder)
@@ -74,14 +79,9 @@ export class TenantDetailsComponent {
   private readonly toastrService = inject(ToastrService)
   readonly currentLanguage = injectLanguage()
   readonly helpWebsite = injectHelpWebsite()
+  readonly selectedOrganization = injectOrganization()
 
   @ViewChild('stepper') stepper: MatStepper
-
-  // Languages = Object.values(LanguagesEnum).filter((lang) => lang !== LanguagesEnum.Chinese)
-
-  // preferredLanguageFormGroup: FormGroup = this._formBuilder.group({
-  //   preferredLanguage: [[this.translateService.currentLang], [Validators.required]]
-  // })
 
   readonly password = this._formBuilder.control('', [Validators.required, Validators.minLength(8)])
   userFormGroup: FormGroup = this._formBuilder.group({
@@ -92,6 +92,11 @@ export class TenantDetailsComponent {
     password: this.password,
     confirmPassword: ['', [Validators.required, Validators.minLength(8), matchWithValidator(this.password)]]
   })
+
+  // Features
+  readonly features = model<{feature: IFeatureOrganizationUpdateInput; category: 'ai' | 'bi'}[]>([])
+  readonly hasSemanticModel = computed(() => this.features().some(({category, feature}) => category === 'bi' && feature.isEnabled))
+
   demoFormGroup: FormGroup = this._formBuilder.group({
     source: [OrganizationDemoNetworkEnum.github, Validators.required]
   })
@@ -104,7 +109,7 @@ export class TenantDetailsComponent {
     return this.dataSourceTypeFormGroup.get('type').value?.[0]
   }
 
-  defaultOrganization = signal<IOrganization>(null)
+  // defaultOrganization = signal<IOrganization>(null)
 
   loading = signal(false)
   tenantCompleted = signal(false)
@@ -122,7 +127,7 @@ export class TenantDetailsComponent {
     )
   )
 
-  formlyFields = toSignal(
+  readonly formlyFields = toSignal(
     combineLatest([
       this.translateService.stream('PAC.DataSources.Schema'),
       this.dataSourceTypeFormGroup.get('type').valueChanges
@@ -131,16 +136,11 @@ export class TenantDetailsComponent {
 
   model = {}
 
-  // private preferredLanguageSub = this.preferredLanguageFormGroup
-  //   .get('preferredLanguage')
-  //   .valueChanges.pipe(
-  //     map((languages) => languages?.[0]),
-  //     filter(nonNullable),
-  //     takeUntilDestroyed()
-  //   )
-  //   .subscribe((language) => {
-  //     this.translateService.use(language)
-  //   })
+  constructor() {
+    effect(() => {
+      console.log(this.selectedOrganization())
+    })
+  }
 
   minlengthError() {
     return this.userFormGroup.get('password').getError('minlength')
@@ -156,8 +156,9 @@ export class TenantDetailsComponent {
 
   async onboard() {
     this.loading.set(true)
+    let tenant: ITenant
     try {
-      const tenant = await this.tenantService.onboard({
+      tenant = await this.tenantService.onboard({
         name: DEFAULT_TENANT,
         superAdmin: {
           firstName: this.userFormGroup.get('firstName').value,
@@ -183,7 +184,7 @@ export class TenantDetailsComponent {
 
       this.tenantCompleted.set(true)
 
-      this.defaultOrganization.set(tenant.organizations[0])
+      // this.defaultOrganization.set(tenant.organizations[0])
     } catch (error) {
       console.error(error)
       this.loading.set(false)
@@ -192,7 +193,7 @@ export class TenantDetailsComponent {
     }
 
     try {
-      await this.afterOnboard()
+      await this.afterOnboard(tenant.organizations[0])
     } catch (error) {
       console.error(error)
       this.toastrService.error(getErrorMessage(error))
@@ -202,7 +203,7 @@ export class TenantDetailsComponent {
     this.stepper.next()
   }
 
-  async afterOnboard() {
+  async afterOnboard(organization: IOrganization) {
     await firstValueFrom(
       this.authStrategy.login({
         email: this.userFormGroup.get('email').value,
@@ -210,8 +211,25 @@ export class TenantDetailsComponent {
       })
     )
 
-    this.#store.selectedOrganization = this.defaultOrganization()
+    this.#store.selectedOrganization = organization
     this.dataSourceTypes$.next(await firstValueFrom(this.typesService.getAll()))
+  }
+
+  enableFeatures() {
+    this.loading.set(true)
+    this.#featureAPI.featuresToggle(this.features().map(({feature}) => feature)).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.toastrService.success('PAC.Onboarding.EnableFeaturesSuccess', {
+          Default: 'Features enabled successfully!'
+        })
+        this.stepper.next()
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.toastrService.error(getErrorMessage(err))
+      }
+    })
   }
 
   /**
@@ -222,7 +240,7 @@ export class TenantDetailsComponent {
       this.demoError.set(null)
       this.loading.set(true)
       await firstValueFrom(
-        this.organizationsService.demo(this.defaultOrganization().id, {
+        this.organizationsService.demo(this.selectedOrganization().id, {
           source: this.demoFormGroup.get('source').value,
           importData: true
         })

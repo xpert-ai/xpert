@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { API_PREFIX } from '@metad/cloud/state'
+import { toParams } from '@metad/core'
 import {
   IFeature,
   IFeatureOrganization,
@@ -8,8 +9,7 @@ import {
   IFeatureOrganizationUpdateInput,
   IPagination
 } from '../../types'
-import { Observable } from 'rxjs'
-import { toParams } from '@metad/core'
+import { map, Observable } from 'rxjs'
 
 @Injectable()
 export class FeatureService {
@@ -42,7 +42,11 @@ export class FeatureService {
 	}
 
   featureToggle(payload: IFeatureOrganizationUpdateInput) {
-    return this.http.post(`${this.API_URL}`, payload)
+    return this.http.post<boolean[]>(`${this.API_URL}`, [payload]).pipe(map((res: boolean[]) => res[0]))
+  }
+
+  featuresToggle(payload: IFeatureOrganizationUpdateInput[]) {
+    return this.http.post<boolean[]>(`${this.API_URL}`, payload)
   }
 
   upgrade() {

@@ -3,20 +3,19 @@ import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatDialog } from '@angular/material/dialog'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { IFeature, IFeatureOrganization } from '@metad/contracts'
-import { NgmCountdownConfirmationComponent } from '@metad/ocap-angular/common'
+import { injectConfirm } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectRouteData } from 'ngxtension/inject-route-data'
 import { of, pipe } from 'rxjs'
 import { map, switchMap, tap } from 'rxjs/operators'
-import { environment } from '../../../environments/environment'
-import { FeatureService, FeatureStoreService, Store } from '../../@core/services'
+import { environment } from '../../../../environments/environment'
+import { FeatureService, FeatureStoreService, Store } from '../../../@core/services'
+import { injectI18nService } from '../../i18n'
 
 @Component({
   standalone: true,
@@ -25,7 +24,6 @@ import { FeatureService, FeatureStoreService, Store } from '../../@core/services
     TranslateModule,
     CdkMenuModule,
     MatExpansionModule,
-    MatSlideToggleModule,
     MatListModule,
     MatCheckboxModule,
     MatProgressSpinnerModule
@@ -39,8 +37,9 @@ export class FeatureToggleComponent {
   private readonly _featureService = inject(FeatureService)
   private readonly _featureStoreService = inject(FeatureStoreService)
   private readonly _storeService = inject(Store)
-  private readonly _matDialog = inject(MatDialog)
   readonly destroyRef = inject(DestroyRef)
+  readonly confirm = injectConfirm()
+  readonly translate = injectI18nService()
 
   readonly isOrganization = injectRouteData('isOrganization')
 
@@ -105,22 +104,15 @@ export class FeatureToggleComponent {
   }
 
   featureChanged(isEnabled: boolean, feature: IFeature) {
-    this._matDialog
-      .open(NgmCountdownConfirmationComponent, {
-        data: {
-          recordType: feature.description,
-          isEnabled: isEnabled
-        }
-      })
-      .afterClosed()
-      .pipe(
-        switchMap((result) => {
-          if (result) {
-            return this.emitFeatureToggle({ feature, isEnabled: !!isEnabled })
-          }
-        })
+    this.confirm({
+      title: isEnabled ? this.translate.instant('PAC.Feature.EnableFeature', {Default: 'Enable feature'}) : this.translate.instant('PAC.Feature.DisableFeature', {Default: 'Disable feature'}),
+      information: this.translate.instant(
+        'PAC.Feature.Features.' +  feature.code + '.Name',
+        { Default: feature.name }) + ': ' + this.translate.instant(
+        'PAC.Feature.Features.' +  feature.code + '.Description',
+        { Default: feature.description }
       )
-      .subscribe()
+    }, this.emitFeatureToggle({ feature, isEnabled: !!isEnabled })).subscribe()
   }
 
   emitFeatureToggle({ feature, isEnabled }: { feature: IFeature; isEnabled: boolean }) {

@@ -1,9 +1,8 @@
 import {
+	IFeature,
 	IFeatureOrganization,
-	IFeatureOrganizationUpdateInput,
 	IPagination,
 	PermissionsEnum,
-	RolesEnum
 } from '@metad/contracts'
 import { BadRequestException, Body, Controller, Get, HttpStatus, Post, Query, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -17,15 +16,15 @@ import { Feature } from './feature.entity'
 import { FeatureService } from './feature.service'
 import { getFeatureToggleDefinitions } from './default-features'
 import { RelationsQueryDTO, UseValidationPipe } from '../shared'
-import { FeatureOrganizationQueryDTO } from './dto/feature-organization-query.dto'
+import { CreateFeatureToggleDTO, FeatureOrganizationQueryDTO } from './dto'
 
 @ApiTags('Feature')
 @Controller('toggle')
 export class FeatureToggleController {
 	constructor(
-		private readonly featureService: FeatureService,
+		private readonly _featureService: FeatureService,
 		private readonly _featureOrganizationService: FeatureOrganizationService,
-		private readonly commandBus: CommandBus
+		private readonly _commandBus: CommandBus
 	) {}
 
 	@Get('definition')
@@ -54,7 +53,7 @@ export class FeatureToggleController {
 	@Get('parent')
 	async getParentFeatureList(@Query() options: RelationsQueryDTO) {
 		try {
-			return await this.featureService.getParentFeatures(options.relations);
+			return await this._featureService.getParentFeatures(options.relations);
 		} catch (error) {
 			throw new BadRequestException(error);
 		}
@@ -108,9 +107,15 @@ export class FeatureToggleController {
 		status: HttpStatus.NOT_FOUND,
 		description: 'Record not found'
 	})
-	@Get()
-	async findAll() {
-		return await this.featureService.findAll()
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_VIEW)
+	@Get('/')
+	async findAll(): Promise<IPagination<IFeature>> {
+		try {
+			return await this._featureService.findAll();
+		} catch (error) {
+			throw new BadRequestException(error);
+		}
 	}
 
 	@ApiOperation({ summary: 'Enabled or disabled features' })
@@ -122,10 +127,13 @@ export class FeatureToggleController {
 		status: HttpStatus.BAD_REQUEST,
 		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
-	@UseGuards(TenantPermissionGuard, RoleGuard)
-	@Roles(RolesEnum.SUPER_ADMIN)
-	@Post()
-	async enabledDisabledFeature(@Body() input: IFeatureOrganizationUpdateInput) {
-		return await this.commandBus.execute(new FeatureToggleUpdateCommand(input))
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_EDIT)
+	@Post('/')
+	@UseValidationPipe({ transform: true, whitelist: true })
+	async enabledDisabledFeature(@Body() input: CreateFeatureToggleDTO[]): Promise<boolean[]> {
+		return await Promise.all(
+			input.map(item => this._commandBus.execute(new FeatureToggleUpdateCommand(item)))
+		)
 	}
 }
