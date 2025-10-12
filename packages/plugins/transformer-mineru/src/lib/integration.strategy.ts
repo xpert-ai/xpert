@@ -18,7 +18,8 @@ export class MinerUIntegrationStrategy implements IntegrationStrategy<MinerUInte
         ''
     },
     icon: {
-      svg: icon,
+      type: 'svg',
+      value: icon,
       color: '#4CAF50'
     },
     schema: {

@@ -13,7 +13,7 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { CustomIconComponent, EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { EmojiAvatarComponent, IconComponent } from 'apps/cloud/src/app/@shared/avatar'
 import omit from 'lodash-es/omit'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
@@ -60,7 +60,7 @@ import { injectQueryParams } from 'ngxtension/inject-query-params'
     ParameterFormComponent,
     CardProComponent,
     NgmI18nPipe,
-    CustomIconComponent
+    IconComponent
   ],
   animations: [routeAnimations]
 })

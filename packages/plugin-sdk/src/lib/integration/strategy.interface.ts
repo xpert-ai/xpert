@@ -7,4 +7,5 @@ export type TIntegrationStrategyParams = {
 export interface IntegrationStrategy<T = unknown> {
   meta: TIntegrationProvider
   execute(integration: IIntegration<T>, payload: TIntegrationStrategyParams): Promise<any>
+  validateConfig?(config: T): Promise<void>
 }

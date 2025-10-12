@@ -1,0 +1,7 @@
+{
+    "Error": {
+        "CredentialsFailed": "凭证验证失败",
+        "BotPermission": "可能尚未添加机器人能力或权限",
+        "LarkConfigurationRequired": "飞书配置是必需的"
+    }
+}

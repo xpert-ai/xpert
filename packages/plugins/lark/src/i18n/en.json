@@ -1,0 +1,7 @@
+{
+    "Error": {
+        "CredentialsFailed": "Credentials verification failed",
+        "BotPermission": "Maybe the bot capabilities or permissions have not been added",
+        "LarkConfigurationRequired": "Lark configuration is required"
+    }
+}

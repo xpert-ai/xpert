@@ -6,7 +6,6 @@
   "dependencies": {
     "@casl/ability": "^5.4.3",
     "@keyv/redis": "^5.1.1",
-    "@larksuiteoapi/node-sdk": "^1.30.0",
     "@nestjs/bull": "^11.0.3",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.1.6",

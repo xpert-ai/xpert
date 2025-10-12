@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
+import { NgmRemoteSelectComponent, NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -29,7 +29,8 @@ import { TWorkflowVarGroup } from '../../../@core'
     NgmSlideToggleComponent,
     NgmI18nPipe,
     NgmSelectComponent,
-    XpertVariableInputComponent
+    XpertVariableInputComponent,
+    NgmRemoteSelectComponent
   ],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
@@ -68,7 +69,7 @@ export class JSONSchemaPropertyComponent {
   readonly enumSchema = computed(() => this.schema() as JsonSchema7EnumType)
 
   readonly enum = computed(() => this.enumSchema()?.enum)
-  readonly enumOptions = computed(() => this.enum()?.map((value) => ({ label: value, value })))
+  readonly enumOptions = computed(() => this.enum()?.map((value) => ({ label: this.xUi()?.enumLabels?.[value], value })))
 
   readonly default = computed(() => this.meta()?.default)
 
@@ -87,6 +88,7 @@ export class JSONSchemaPropertyComponent {
 
   // x-ui
   readonly xUi = computed(() => (this.meta() as any)?.['x-ui'] || {})
+  readonly xUiComponent = computed(() => this.xUi()?.component)
   readonly xUiInputType = computed(() => this.xUi()?.component === 'secretInput' ? 'password' : 'text')
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
 

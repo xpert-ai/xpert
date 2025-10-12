@@ -18,7 +18,8 @@ export class UnstructuredIntegrationStrategy implements IntegrationStrategy<Unst
         ''
     },
     icon: {
-      svg: icon,
+      type: 'svg',
+      value: icon,
       color: '#4CAF50'
     },
     schema: {
