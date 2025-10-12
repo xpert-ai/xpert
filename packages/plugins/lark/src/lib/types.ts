@@ -11,3 +11,7 @@ export type TLarkProviderConfig = {
     xpertId?: string
     preferLanguage?: 'en' | 'zh'
 }
+
+export type LarkDocumentsParams = {
+    url: string
+}

@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-ai/plugin-sdk';
 import { LarkIntegrationStrategy } from './integration.strategy';
 import { LarkController } from './lark.controller';
+import { LarkSourceStrategy } from './source.strategy';
 
 @XpertServerPlugin({
 	imports: [
@@ -11,7 +12,8 @@ import { LarkController } from './lark.controller';
 		LarkController
 	],
 	providers: [
-		LarkIntegrationStrategy
+		LarkIntegrationStrategy,
+		LarkSourceStrategy
 	]
 })
 export class LarkModule implements IOnPluginBootstrap, IOnPluginDestroy {

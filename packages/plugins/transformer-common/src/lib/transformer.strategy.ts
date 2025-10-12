@@ -16,6 +16,7 @@ import { Document } from 'langchain/document'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
 import path from 'path'
 import { Default, icon, TDefaultTransformerConfig, TDocumentParseResult } from './types'
+import { IconType } from '@metad/contracts'
 
 @Injectable()
 @DocumentTransformerStrategy(Default)
@@ -40,7 +41,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
       zh_Hans: '默认文本转换器。'
     },
     icon: {
-      svg: icon,
+      type: 'svg' as IconType,
+      value: icon,
       color: '#14b8a6'
     },
     configSchema: {

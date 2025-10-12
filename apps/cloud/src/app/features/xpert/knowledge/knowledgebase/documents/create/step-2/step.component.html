@@ -25,15 +25,13 @@
       >
         <div icon>
           @if (transformerStrategy()?.meta.icon; as icon) {
-            <div [innerHTML]="icon.svg | safe: 'html'" class="w-5 h-5 shrink-0 flex justify-center items-center mr-2"
-              [style.color]="icon.color || '#14b8a6'"></div>
+            <xp-icon class="!block w-5 h-5 shrink-0 mr-2" [icon]="icon" />
           }
         </div>
         <ng-template #option let-option>
           <div class="relative flex">
-            @if (option._icon) {
-              <div [innerHTML]="option._icon.svg | safe: 'html'" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2"
-                [style.color]="option._icon.color || '#14b8a6'"></div>
+            @if (option._icon; as icon) {
+              <xp-icon class="!block w-6 h-6 shrink-0 mr-2" [icon]="icon" />
             }
             <div class="flex flex-col gap-1">
               <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
@@ -49,8 +47,7 @@
         <div class="flex justify-center items-center">
           <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
             @if (transformerStrategy()?.meta.icon; as icon) {
-              <div [innerHTML]="icon.svg | safe: 'html'" class="w-8 h-8 shrink-0 flex justify-center items-center"
-                [style.color]="icon.color || '#14b8a6'"></div>
+              <xp-icon class="!block w-8 h-8 shrink-0" [icon]="icon" />
             } @else {
               <i class="ri-equalizer-3-line"></i>
             }
@@ -107,8 +104,7 @@
       >
         <div icon>
           @if (imageUnderstandingStrategy()?.icon; as icon) {
-            <div [innerHTML]="icon.svg | safe: 'html'" class="w-5 h-5 shrink-0 flex justify-center items-center mr-2"
-              [style.color]="icon.color || '#14b8a6'"></div>
+            <xp-icon class="!block w-5 h-5 shrink-0 mr-2" [icon]="icon" />
           }
         </div>
         <ng-template #option let-option>
@@ -132,8 +128,7 @@
           <div class="flex justify-center items-center">
             <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
               @if (imageUnderstandingStrategy()?.icon; as icon) {
-                <div [innerHTML]="icon.svg | safe: 'html'" class="w-8 h-8 shrink-0 flex justify-center items-center"
-                  [style.color]="icon.color || '#14b8a6'"></div>
+                <xp-icon class="!block w-8 h-8 shrink-0" [icon]="icon" />
               } @else {
                 <i class="ri-equalizer-3-line"></i>
               }
@@ -186,8 +181,7 @@
       <ngm-select class="w-52" [(ngModel)]="textSplitterType" [selectOptions]="textSplitterStrategies()" [nullable]="false">
         <div icon>
           @if (textSplitterStrategy()?.icon; as icon) {
-            <div [innerHTML]="icon.svg | safe: 'html'" class="w-5 h-5 shrink-0 flex justify-center items-center mr-2"
-              [style.color]="icon.color || '#14b8a6'"></div>
+            <xp-icon class="!block w-5 h-5 shrink-0 mr-2" [icon]="icon" />
           }
         </div>
         <ng-template #option let-option>

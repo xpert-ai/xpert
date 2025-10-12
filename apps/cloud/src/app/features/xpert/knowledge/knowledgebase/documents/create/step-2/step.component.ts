@@ -30,6 +30,7 @@ import { JSONSchemaFormComponent } from "@cloud/app/@shared/forms";
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { SafePipe } from '@metad/core'
 import { omit } from 'lodash-es'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   standalone: true,
@@ -53,7 +54,8 @@ import { omit } from 'lodash-es'
     KnowledgeDocIdComponent,
     KnowledgeDocumentPreviewComponent,
     KnowledgeDocumentWebpagesComponent,
-    JSONSchemaFormComponent
+    JSONSchemaFormComponent,
+    IconComponent
   ]
 })
 export class KnowledgeDocumentCreateStep2Component {

@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CustomIconComponent } from '@cloud/app/@shared/avatar'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 import { myRxResource, NgmI18nPipe, omitBlank } from '@metad/ocap-angular/core'
 import { nonNullable } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -48,7 +48,7 @@ import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
     MatProgressBarModule,
     ContentLoaderModule,
     NgmI18nPipe,
-    CustomIconComponent,
+    IconComponent,
     KnowledgeChunkComponent,
     KnowledgeLocalFileComponent,
     XpertParametersFormComponent

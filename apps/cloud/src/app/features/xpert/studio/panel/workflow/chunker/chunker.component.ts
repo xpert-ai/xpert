@@ -10,6 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IWFNChunker, IWorkflowNode, KnowledgebaseService } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-workflow-chunker',
@@ -24,7 +25,8 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     SafePipe,
     NgmI18nPipe,
     JSONSchemaFormComponent,
-    StateVariableSelectComponent
+    StateVariableSelectComponent,
+    IconComponent
   ]
 })
 export class XpertWorkflowChunkerComponent extends XpertWorkflowBaseComponent {

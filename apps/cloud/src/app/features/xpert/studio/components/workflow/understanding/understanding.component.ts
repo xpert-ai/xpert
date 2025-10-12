@@ -15,7 +15,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
-import { CustomIconComponent } from '@cloud/app/@shared/avatar'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-workflow-node-understanding',
@@ -23,7 +23,7 @@ import { CustomIconComponent } from '@cloud/app/@shared/avatar'
   styleUrls: ['./understanding.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FFlowModule, MatTooltipModule, TranslateModule, CustomIconComponent, PlusSvgComponent, NgmI18nPipe],
+  imports: [CommonModule, FFlowModule, MatTooltipModule, TranslateModule, IconComponent, PlusSvgComponent, NgmI18nPipe],
   host: {
     tabindex: '-1'
   }

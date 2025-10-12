@@ -73,7 +73,7 @@ import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { CustomIconComponent, IconComponent } from '@cloud/app/@shared/avatar'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -89,7 +89,6 @@ import { CustomIconComponent, IconComponent } from '@cloud/app/@shared/avatar'
     XpertStudioToolsetMenuComponent,
     XpertInlineProfileComponent,
     XpertWorkflowIconComponent,
-    CustomIconComponent
   ],
   templateUrl: './context-menu.component.html',
   styleUrl: './context-menu.component.scss'

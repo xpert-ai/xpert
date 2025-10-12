@@ -3,10 +3,18 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/plugin-sdk/src",
   "projectType": "library",
+  "release": {
+    "version": {
+      "generatorOptions": {
+        "packageRoot": "dist/{projectRoot}",
+        "currentVersionResolver": "git-tag"
+      }
+    }
+  },
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/rollup:rollup",
+      "executor": "@nx/js:swc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/plugin-sdk",
@@ -18,18 +26,6 @@
             "input": "packages/plugin-sdk/",
             "output": "."
           }
-        ],
-        "project": "packages/plugin-sdk/package.json",
-        "compiler": "swc",
-        "format": ["cjs", "esm"],
-        "external": [
-          "@nestjs/common",
-          "@nestjs/core",
-          "@nestjs/microservices",
-          "kafkajs",
-          "amqplib",
-          "mqtt",
-          "nats"
         ]
       }
     },
@@ -41,7 +37,6 @@
       }
     },
     "nx-release-publish": {
-      "executor": "@nx/js:release-publish",
       "options": {
         "packageRoot": "dist/packages/plugin-sdk",
         "access": "public"

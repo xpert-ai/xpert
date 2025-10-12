@@ -14,25 +14,14 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/rollup:rollup",
+      "executor": "@nx/js:swc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/plugins/firecrawl",
         "main": "packages/plugins/firecrawl/src/index.ts",
         "tsConfig": "packages/plugins/firecrawl/tsconfig.lib.json",
         "assets": [],
-        "project": "packages/plugins/firecrawl/package.json",
-        "compiler": "swc",
-        "format": ["cjs", "esm"],
-        "external": [
-          "@nestjs/common",
-          "@nestjs/core",
-          "@nestjs/microservices",
-          "kafkajs",
-          "amqplib",
-          "mqtt",
-          "nats"
-        ]
+        "project": "packages/plugins/firecrawl/package.json"
       }
     },
     "nx-release-publish": {

@@ -119,7 +119,7 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
         this.createFilesTask()
         break
       }
-      case DocumentSourceProviderCategoryEnum.WebCrawl: {
+      default: {
         this.test()
         break
       }

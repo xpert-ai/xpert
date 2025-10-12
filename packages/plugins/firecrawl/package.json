@@ -5,8 +5,9 @@
     "@mendable/firecrawl-js": "^4.3.8",
     "hbs": "^4.2.0"
   },
-  "main": "./index.cjs",
-  "module": "./index.js",
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "typings": "./src/index.d.ts",
   "peerDependencies": {
     "@langchain/core": "*",
     "@metad/contracts": "*",

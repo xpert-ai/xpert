@@ -11,6 +11,7 @@ import {
 import { MinerUClient } from './mineru.client'
 import { MinerUResultParserService } from './result-parser.service'
 import { icon, MinerU, TDocumentParseResult } from './types'
+import { IconType } from '@metad/contracts'
 
 @Injectable()
 @DocumentTransformerStrategy(MinerU)
@@ -45,7 +46,8 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<T
       zh_Hans: '一站式开源高质量数据提取工具，将PDF转换成Markdown和JSON格式。'
     },
     icon: {
-      svg: icon,
+      type: 'svg' as IconType,
+      value: icon,
       color: '#14b8a6'
     },
     helpUrl: 'https://mineru.net/apiManage/docs',

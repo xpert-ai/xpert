@@ -15,7 +15,7 @@ import { KnowledgebaseService } from '@cloud/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
-import { CustomIconComponent } from '@cloud/app/@shared/avatar'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-workflow-node-chunker',
@@ -28,7 +28,7 @@ import { CustomIconComponent } from '@cloud/app/@shared/avatar'
     FFlowModule,
     MatTooltipModule,
     TranslateModule,
-    CustomIconComponent,
+    IconComponent,
     PlusSvgComponent,
     NgmI18nPipe,
   ],

@@ -1,4 +1,4 @@
-import { KnowledgeStructureEnum } from '@metad/contracts'
+import { IconType, KnowledgeStructureEnum } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
 import { encodingForModel } from 'js-tiktoken'
@@ -21,7 +21,8 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
       zh_Hans: '通过识别父子关系将文档拆分为块。'
     },
     icon: {
-      svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" height="16" width="16" fill="currentColor">
+      type: 'svg' as IconType,
+      value: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" height="16" width="16" fill="currentColor">
   <defs></defs>
   <title>parent-child</title>
   <path d="M14 6a1 1 0 0 0 1 -1V2a1 1 0 0 0 -1 -1H2a1 1 0 0 0 -1 1v3a1 1 0 0 0 1 1h5.5v2H4.5a1 1 0 0 0 -1 1v2H2a1 1 0 0 0 -1 1v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1H4.5v-2h7v2h-1.5a1 1 0 0 0 -1 1v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1h-1.5v-2a1 1 0 0 0 -1 -1h-3v-2ZM6 14H2v-2h4Zm8 0h-4v-2h4ZM2 2h12v3H2Z" stroke-width="1"></path>

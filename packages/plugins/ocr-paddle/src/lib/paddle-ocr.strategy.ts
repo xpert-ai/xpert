@@ -1,3 +1,4 @@
+import { IDocumentUnderstandingProvider } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   FileSystemPermission,
@@ -19,12 +20,17 @@ export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
       scope: []
     } as FileSystemPermission
   ]
-  readonly meta = {
+  readonly meta: IDocumentUnderstandingProvider = {
     name: 'paddle-ocr',
     label: { en_US: 'PaddleOCR', zh_Hans: 'PaddleOCR 图片文字识别' },
     description: {
       en_US: 'Use PaddleOCR to extract text from images. Requires a deployed PaddleOCR service.',
       zh_Hans: '使用 PaddleOCR 从图片中提取文字。需要部署 PaddleOCR 服务。'
+    },
+    icon: {
+      type: 'svg',
+      value: svg,
+      color: '#2d8cf0'
     },
     configSchema: {
       type: 'object',
@@ -33,10 +39,6 @@ export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
         apiUrl: { type: 'string', description: 'PaddleOCR 服务 API 地址' }
       }
     },
-    icon: {
-      svg,
-      color: '#2d8cf0'
-    }
   }
 
   async validateConfig(config: any): Promise<void> {

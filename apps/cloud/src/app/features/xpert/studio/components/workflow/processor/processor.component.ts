@@ -14,7 +14,7 @@ import {
 import { KnowledgebaseService } from '@cloud/app/@core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
-import { CustomIconComponent } from '@cloud/app/@shared/avatar'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 import { XpertStudioApiService } from '../../../domain'
 
 @Component({
@@ -30,7 +30,7 @@ import { XpertStudioApiService } from '../../../domain'
     TranslateModule,
     PlusSvgComponent,
     NgmI18nPipe,
-    CustomIconComponent
+    IconComponent
   ],
   host: {
     tabindex: '-1'

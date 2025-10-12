@@ -11,6 +11,7 @@ import { AiModelTypeEnum, IWFNUnderstanding, IWorkflowNode, KnowledgebaseService
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-workflow-understanding',
@@ -27,6 +28,7 @@ import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
     JSONSchemaFormComponent,
     StateVariableSelectComponent,
     CopilotModelSelectComponent,
+    IconComponent
 ]
 })
 export class XpertWorkflowUnderstandingComponent extends XpertWorkflowBaseComponent {

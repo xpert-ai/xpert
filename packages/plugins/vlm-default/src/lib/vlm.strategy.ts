@@ -14,6 +14,7 @@ import { Document } from 'langchain/document'
 import { v4 as uuid } from 'uuid'
 import sharp from 'sharp'
 import { VlmDefault } from './types'
+import { IconType } from '@metad/contracts'
 
 // Regex for markdown image tag: ![](image.png) or ![alt](image.png)
 const IMAGE_REGEX = /!\[[^\]]*\]\s*\(((?:https?:\/\/[^)]+|[^)\s]+))(\s*"[^"]*")?\)/g;
@@ -45,7 +46,8 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
       properties: {}
     },
     icon: {
-      svg: `<?xml version="1.0" encoding="utf-8"?>
+      type: 'svg' as IconType,
+      value: `<?xml version="1.0" encoding="utf-8"?>
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 960 960" style="enable-background:new 0 0 960 960;" xml:space="preserve">
 <style type="text/css">

@@ -15,8 +15,9 @@ import { FeatureOrganizationService } from './feature-organization.service'
 import { Feature } from './feature.entity'
 import { FeatureService } from './feature.service'
 import { getFeatureToggleDefinitions } from './default-features'
-import { RelationsQueryDTO, UseValidationPipe } from '../shared'
+import { UseValidationPipe } from '../shared/pipes'
 import { CreateFeatureToggleDTO, FeatureOrganizationQueryDTO } from './dto'
+import { RelationsQueryDTO } from '../shared/dto'
 
 @ApiTags('Feature')
 @Controller('toggle')
