@@ -1,5 +1,5 @@
 import { DeepPartial, FindManyOptions, FindOneOptions, IsNull, Repository, UpdateResult } from 'typeorm'
-import { IBasePerTenantAndOrganizationEntityModel, IUser } from '@metad/contracts'
+import { IBasePerTenantAndOrganizationEntityModel, ID, IUser } from '@metad/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { RequestContext } from '../context'
 import { TenantOrganizationBaseEntity, User } from '../entities/internal'
@@ -26,21 +26,9 @@ export abstract class TenantOrganizationAwareCrudService<
 		user: User
 	): FindOptionsWhere<T> {
 		const organizationId = RequestContext.getOrganizationId()
-		const organizationWhere = organizationId
-			? {
-					organization: {
-						id: organizationId,
-					},
-			  }
-			: {
-				organizationId: IsNull()
-			}
-
 		return {
-			tenant: {
-				id: user.tenantId,
-			},
-			...organizationWhere,
+			tenantId: user.tenantId,
+			organizationId: organizationId || IsNull(),
 		} as FindOptionsWhere<T>
 	}
 
@@ -60,26 +48,20 @@ export abstract class TenantOrganizationAwareCrudService<
 				if (organizationId) {
 					options = {
 						...options,
-						organization: {
-							id: organizationId || null,
-						},
+						organizationId: organizationId || null,
 					}
 				}
 
 				return {
 					...options,
-					tenant: {
-						id: user.tenantId,
-					},
+					tenantId: user.tenantId,
 				} as FindOptionsWhere<T>
 			})
 		}
 
 		const organizationWhere = organizationId
 			? {
-					organization: {
-						id: organizationId,
-					},
+					organizationId
 			  }
 			: {
 				organizationId: IsNull()
@@ -180,6 +162,12 @@ export abstract class TenantOrganizationAwareCrudService<
 		return filter;
 	}
 
+	/*
+	|--------------------------------------------------------------------------
+	| @WithoutOrganization
+	|--------------------------------------------------------------------------
+	*/
+
 	async findAllWithoutOrganization(filter?: FindManyOptions<T>) {
 		filter = this.findManyWithoutOrganization(filter)
 		const total = await this.repository.count(filter);
@@ -187,19 +175,27 @@ export abstract class TenantOrganizationAwareCrudService<
 		return { items, total };
 	}
 
+	/**
+	 * @internal
+	 */
 	public async findOneOrFailWithoutOrg(
-		id: string | number | FindOneOptions<T> | FindOptionsWhere<T>,
+		id: ID | FindOneOptions<T> | FindOptionsWhere<T>,
 		options?: FindOneOptions<T>
 	): Promise<ITryRequest> {
 		if (typeof id === 'object') {
 			const firstOptions = id as FindOneOptions<T>;
-			return await this.findOneOrFail(
+			return await this._findOneOrFailByOptions(
 				this.findManyWithoutOrganization(firstOptions),
-				options
 			);
 		}
-		return await this.findOneOrFail(id, this.findManyWithoutOrganization(options));
+		return await this._findOneOrFailByIdString(id, this.findManyWithoutOrganization(options));
 	}
+
+	/*
+	|--------------------------------------------------------------------------
+	| @OrganizationOrTenant
+	|--------------------------------------------------------------------------
+	*/
 
 	/**
 	 * Try to find T entity in organization or tenant

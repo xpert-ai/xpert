@@ -43,11 +43,16 @@ export class EmployeeController extends CrudController<Employee> {
 		@Query('data', ParseJsonPipe) data?: any
 	): Promise<ITryRequest> {
 		const { relations = [] } = data
-		return this.employeeService.findOneOrFail({
+		const { success, record, error } = await this.employeeService.findOneOrFailByOptions({
 			where: {
 				userId
 			},
 			relations
 		})
+		if (success) {
+			return { success, record }
+		} else {
+			return { success, record: null }
+		}
 	}
 }
