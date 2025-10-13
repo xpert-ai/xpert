@@ -178,14 +178,14 @@ export type TKnowledgeDocument = {
 /**
  * Document, include file, web pages, folder, virtual, etc.
  */
-export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
+export interface IKnowledgeDocument<T = Metadata> extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
   // parentId?: string | null
   parent?: IKnowledgeDocument | null
   children?: IKnowledgeDocument[]
 
   // Temp
   chunks?: DocumentInterface[]
-  metadata?: Metadata
+  metadata?: T
 }
 
 export interface IDocumentChunk<Metadata = DocumentMetadata> {

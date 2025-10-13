@@ -7,6 +7,7 @@ import {
 	IWFNProcessor,
 	IWorkflowNode,
 	IXpertAgentExecution,
+	JSONValue,
 	KBDocumentStatusEnum,
 	KnowledgebaseChannel,
 	KnowledgeTask,
@@ -20,7 +21,7 @@ import {
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { IWorkflowNodeStrategy, TDocumentTransformerFile, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
+import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { get } from 'lodash'
 import { In } from 'typeorm'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
@@ -78,7 +79,7 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 
 				const stateEnv = stateWithEnvironment(state, environment)
-				let input: string | string[] | TDocumentTransformerFile[] = null
+				
 				const value = get(stateEnv, entity.input) as Partial<IKnowledgeDocument>[]
 				const knowledgebaseState = state[KnowledgebaseChannel]
 				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId'] as string
@@ -99,20 +100,22 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 				}
 				return await wrapAgentExecution(
 					async () => {
+						let input: Partial<IKnowledgeDocument>[] = null
 						const documentIds = value.map((v) => v.id)
 						if (isTest) {
 							const task = await this.taskService.findOne(knowledgeTaskId)
 							const documents = task.context.documents.filter((doc) => documentIds.includes(doc.id))
-							input = documents.map(
-								(doc) =>
-									({
-										id: doc.id,
-										fileUrl: doc.fileUrl,
-										filePath: doc.filePath,
-										filename: doc.name,
-										extension: doc.name?.split('.').pop()?.toLowerCase()
-									}) as TDocumentTransformerFile
-							)
+							input = documents
+							// .map(
+							// 	(doc) =>
+							// 		({
+							// 			id: doc.id,
+							// 			fileUrl: doc.fileUrl,
+							// 			filePath: doc.filePath,
+							// 			filename: doc.name,
+							// 			extension: doc.name?.split('.').pop()?.toLowerCase()
+							// 		}) as TDocumentTransformerFile
+							// )
 						} else {
 							const { items } = await this.documentService.findAll({
 								where: {
@@ -120,16 +123,17 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 								}
 							})
 
-							input = items.map(
-								(doc) =>
-									({
-										id: doc.id,
-										fileUrl: doc.fileUrl,
-										filePath: doc.filePath,
-										filename: doc.name,
-										extension: doc.name?.split('.').pop()?.toLowerCase()
-									}) as TDocumentTransformerFile
-							)
+							input = items
+							// .map(
+							// 	(doc) =>
+							// 		({
+							// 			id: doc.id,
+							// 			fileUrl: doc.fileUrl,
+							// 			filePath: doc.filePath,
+							// 			filename: doc.name,
+							// 			extension: doc.name?.split('.').pop()?.toLowerCase()
+							// 		}) as TDocumentTransformerFile
+							// )
 						}
 						
 						const results = await this.knowledgebaseService.transformDocuments(
@@ -139,7 +143,6 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							input
 						)
 
-						// const documentIds = []
 						let documents = []
 						// Update knowledge task progress
 						if (isTest) {
@@ -151,7 +154,6 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 								} as unknown as IKnowledgeDocument
 							})
 							await this.taskService.upsertDocuments(knowledgeTaskId, documents)
-							// documentIds.push(...documents.map((doc) => doc.id))
 						} else {
 							for await (const result of results) {
 								if (result.id) {
@@ -160,7 +162,6 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 										chunks: result.chunks
 									})
 									documents.push(result)
-									// documentIds.push(result.id)
 								} else {
 									const doc = await this.documentService.create({
 										metadata: result.metadata,
@@ -176,7 +177,6 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 										]
 									})
 									documents.push(doc)
-									// documentIds.push(doc.id)
 								}
 							}
 						}
@@ -188,15 +188,11 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 									[ERROR_CHANNEL_NAME]: null
 								}
 							},
-							output: JSON.stringify(
-								results.map((doc) => {
+							output: results.map((doc) => {
 									doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
-									// doc.pages = doc.pages?.slice(0, 2)
+									doc.pages = doc.pages?.slice(0, 2)
 									return doc
-								}),
-								null,
-								2
-							)
+								}) as JSONValue
 						}
 					},
 					{

@@ -4,11 +4,10 @@ import {
   IDocumentTransformerStrategy,
   IntegrationPermission,
   TDocumentTransformerConfig,
-  TDocumentTransformerFile
 } from '@xpert-ai/plugin-sdk'
 import { icon, Unstructured } from './types'
 import { UnstructuredClient } from './unstructured.client'
-import { IconType } from '@metad/contracts'
+import { IconType, IKnowledgeDocument } from '@metad/contracts'
 
 @Injectable()
 @DocumentTransformerStrategy(Unstructured)
@@ -51,7 +50,7 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
     throw new Error('Method not implemented.')
   }
 
-  async transformDocuments(files: TDocumentTransformerFile[], config: TDocumentTransformerConfig) {
+  async transformDocuments(files: Partial<IKnowledgeDocument>[], config: TDocumentTransformerConfig) {
     const results = []
     for await (const file of files) {
       const result = await this.client.parseFromFile(file.fileUrl)

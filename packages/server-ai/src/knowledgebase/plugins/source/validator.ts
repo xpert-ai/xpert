@@ -1,39 +1,49 @@
 import { ChecklistItem, IWFNSource, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
-import { Injectable } from '@nestjs/common'
+import { GetIntegrationQuery } from '@metad/server-core'
+import { Inject, Injectable } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
 import { OnEvent } from '@nestjs/event-emitter'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from '../../../xpert/types'
 
 @Injectable()
 export class WorkflowSourceNodeValidator {
+	@Inject(QueryBus)
+	private readonly queryBus: QueryBus
 
 	@OnEvent(EventNameXpertValidate)
-	handle(event: XpertDraftValidateEvent) {
+	async handle(event: XpertDraftValidateEvent) {
 		const draft = event.draft
 		const codeNodes = draft.nodes.filter(
 			(node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.SOURCE
 		)
 		const items: ChecklistItem[] = []
-		codeNodes.forEach((node) => {
-			items.push(...this.check(node))
-		})
+		for await (const node of codeNodes) {
+			items.push(...(await this.check(node)))
+		}
 		return items
 	}
 
-	check(node: TXpertTeamNode) {
+	async check(node: TXpertTeamNode) {
 		const entity = node.entity as IWFNSource
 		const items: ChecklistItem[] = []
 
-		// items.push({
-		// 	node: node.key,
-		// 	ruleCode: 'SOURCE_INTEGRATION_REQUIRED',
-		// 	field: 'integration',
-		// 	value: entity.integrationId,
-		// 	message: {
-		// 		en_US: `Integration for Source node "${entity.title || node.key}" is not defined`,
-		// 		zh_Hans: `文档源节点 "${entity.title || node.key}" 中的集成未定义`
-		// 	},
-		// 	level: 'error'
-		// })
+		if (entity.integrationId) {
+			try {
+				const integration = await this.queryBus.execute(new GetIntegrationQuery(entity.integrationId))
+			} catch (error) {
+				items.push({
+					node: node.key,
+					field: 'integrationId',
+					value: entity.integrationId,
+					message: {
+						en_US: `System integration not found`,
+						zh_Hans: `未找到系统集成`
+					},
+					level: 'error',
+					ruleCode: 'KNOWLEDGEBASE_SOURCE_INTEGRATION_NOT_FOUND'
+				})
+			}
+		}
 
 		return items
 	}

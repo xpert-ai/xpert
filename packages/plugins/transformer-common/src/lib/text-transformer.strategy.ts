@@ -1,11 +1,11 @@
+import { IconType, IKnowledgeDocument } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   DocumentTransformerStrategy,
   IDocumentTransformerStrategy,
 } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
-import { Text, TDocumentParseResult, TDefaultTransformerConfig } from './types'
-import { IconType } from '@metad/contracts'
+import { Text, TDefaultTransformerConfig } from './types'
 
 @Injectable()
 @DocumentTransformerStrategy(Text)
@@ -38,23 +38,23 @@ export class TextTransformerStrategy implements IDocumentTransformerStrategy<TDe
   }
 
   async transformDocuments(
-    texts: string[] | string,
+    texts: Partial<IKnowledgeDocument>[],
     config: TDefaultTransformerConfig
-  ): Promise<TDocumentParseResult[]> {
-    const results = []
-    const textsArray = Array.isArray(texts) ? texts : [texts]
-    textsArray.forEach((text) => {
-        results.push(
-            {
-                chunks: [
-                    new Document({
-                        pageContent: text,
-                        metadata: {}
-                    })
-                ],
-            }
-        )
-    })
-    return results
+  ): Promise<Partial<IKnowledgeDocument>[]> {
+    // const results = []
+    // const textsArray = Array.isArray(texts) ? texts : [texts]
+    // textsArray.forEach((text) => {
+    //     results.push(
+    //         {
+    //             chunks: [
+    //                 new Document({
+    //                     pageContent: text,
+    //                     metadata: {}
+    //                 })
+    //             ],
+    //         }
+    //     )
+    // })
+    return texts
   }
 }

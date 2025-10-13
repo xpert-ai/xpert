@@ -86,14 +86,13 @@
               }
             }
           </div>
-          @switch (providerCategory()) {
-            @case (eDocumentSourceProviderCategoryEnum.LocalFile) {
+          @if (providerCategory(); as category) {
+            @if (category === eDocumentSourceProviderCategoryEnum.LocalFile) {
               <xp-knowledge-local-file class="w-full p-4" [knowledgebaseId]="knowledgebaseId()"
                 [parentId]="parentId()"
                 [(files)]="files" 
                 [(selected)]="selectedFile" />
-            }
-            @case (eDocumentSourceProviderCategoryEnum.WebCrawl) {
+            } @else {
               <div class="w-full mt-2 rounded-xl border border-components-panel-border bg-background-default-subtle ng-star-inserted">
                 <div class="flex items-center gap-x-1 px-4 py-2">
                   <div class="flex grow cursor-pointer select-none items-center gap-x-0.5">
@@ -106,18 +105,30 @@
                     <span class="px-0.5">{{ 'PAC.ACTIONS.Run' | translate: {Default: 'Run'} }}</span>
                   </button>
                 </div>
-                <div class="flex flex-col gap-3 border-t border-divider-subtle px-4 py-3">
+                <div class="flex flex-col gap-1 border-t border-divider-subtle px-4 py-3">
                   @if (parameters()?.length) {
                     <xpert-parameters-form class="w-full" [parameters]="parameters()" [(ngModel)]="parameterValue" />
                   }
                   @if (testing()) {
                     <bullet-list-content-loader></bullet-list-content-loader>
+                  } @else if (error()) {
+                    <div class="px-2 border border-solid border-divider-regular rounded-xl">
+                      <div class="py-2 text-text-destructive">{{ 'PAC.KEY_WORDS.Error' | translate: {Default: 'Error'} }}</div>
+                      <markdown class="ngm-copilot-markdown block overflow-x-hidden text-sm text-zinc-500"
+                        [disableSanitizer]="true"
+                        lineNumbers
+                        [start]="5"
+                        [data]="error()"
+                      />
+                    </div>
                   } @else if (documents()) {
                     @for (doc of documents(); track doc.id) {
                       <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover"
-                        (click)="selectedWebDocument.set(doc)">
-                        <!-- <ngm-checkbox class="grow" [label]="doc.metadata.title"
-                          [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/> -->
+                        (click)="selectedDocument.set(doc)">
+                        <ngm-checkbox class="shrink-0"
+                          [ngModel]="documentIds.isSelected(doc.id)"
+                          (ngModelChange)="documentIds.toggle(doc.id)"
+                        />
                         <div class="flex min-w-0 grow flex-col gap-y-0.5">
                           <div class="system-sm-medium truncate text-text-secondary" [title]="doc.metadata.title">
                             {{ doc.metadata.title }}
@@ -136,11 +147,10 @@
                 </div>
               </div>
             }
-            @default {
-              <div class="p-4 text-text-tertiary">
-                {{ 'PAC.Knowledgebase.PleaseSelectADataSource' | translate: {Default: 'Please select a data source'} }}
-              </div>
-            }
+          } @else {
+            <div class="p-4 text-text-tertiary">
+              {{ 'PAC.Knowledgebase.PleaseSelectADataSource' | translate: {Default: 'Please select a data source'} }}
+            </div>
           }
         </div>
         <div class="flex items-center gap-x-2 overflow-hidden">
@@ -208,7 +218,7 @@
     }
     @case (eDocumentSourceProviderCategoryEnum.WebCrawl) {
       <div class="flex h-full flex-col pl-2 pt-2">
-        @if (selectedWebDocument(); as doc) {
+        @if (selectedDocument(); as doc) {
           <div class="flex h-full w-full flex-col rounded-t-xl border-l border-t border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5">
             <div class="flex gap-x-2 border-b border-divider-subtle pb-3 pl-6 pr-4 pt-4">
               <div class="flex grow flex-col gap-y-1">
@@ -234,7 +244,7 @@
                 </div>
               </div>
               <button type="button" class="btn btn-action flex h-8 w-8 shrink-0 items-center justify-center"
-                (click)="selectedWebDocument.set(null)">
+                (click)="selectedDocument.set(null)">
                 <i class="ri-close-line"></i>
               </button>
             </div>

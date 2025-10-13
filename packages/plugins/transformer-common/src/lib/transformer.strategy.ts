@@ -2,6 +2,7 @@ import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
+import { IconType, IKnowledgeDocument } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import {
   DocumentTransformerStrategy,
@@ -9,14 +10,12 @@ import {
   FileSystemPermission,
   IDocumentTransformerStrategy,
   isRemoteFile,
-  TDocumentTransformerFile
 } from '@xpert-ai/plugin-sdk'
 import fsPromises from 'fs/promises'
 import { Document } from 'langchain/document'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
 import path from 'path'
-import { Default, icon, TDefaultTransformerConfig, TDocumentParseResult } from './types'
-import { IconType } from '@metad/contracts'
+import { Default, icon, TDefaultTransformerConfig, TDefaultTransformerMetadata } from './types'
 
 @Injectable()
 @DocumentTransformerStrategy(Default)
@@ -57,9 +56,9 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
   }
 
   async transformDocuments(
-    files: TDocumentTransformerFile[],
+    files: Partial<IKnowledgeDocument>[],
     config: TDefaultTransformerConfig
-  ): Promise<TDocumentParseResult[]> {
+  ): Promise<Partial<IKnowledgeDocument<TDefaultTransformerMetadata>>[]> {
     const xpFileSystem = config.permissions.fileSystem
     this.#logger.debug('Transforming documents:')
     this.#logger.debug('Files:', files)
@@ -68,7 +67,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     for await (const file of files) {
       if (!file.filePath && isRemoteFile(file.fileUrl)) {
         const tempDir = config.tempDir || '/tmp/'
-        const filePath = path.join(tempDir, file.filename)
+        const filePath = path.join(tempDir, file.filePath)
         // Ensure the temp directory exists
         await fsPromises.mkdir(path.dirname(filePath), { recursive: true })
 
@@ -94,7 +93,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         file.filePath = xpFileSystem.fullPath(file.filePath)
       }
       let data: Document[]
-      switch (file.extension?.toLowerCase()) {
+      const extension = file.name?.split('.').pop()
+      switch (extension?.toLowerCase()) {
         case 'md':
         case 'mdx':
         case 'markdown':

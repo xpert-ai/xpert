@@ -1,3 +1,4 @@
+import { IconType, IKnowledgeDocument } from '@metad/contracts'
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
@@ -6,12 +7,10 @@ import {
   IDocumentTransformerStrategy,
   IntegrationPermission,
   TDocumentTransformerConfig,
-  TDocumentTransformerFile
 } from '@xpert-ai/plugin-sdk'
 import { MinerUClient } from './mineru.client'
 import { MinerUResultParserService } from './result-parser.service'
-import { icon, MinerU, TDocumentParseResult } from './types'
-import { IconType } from '@metad/contracts'
+import { icon, MinerU } from './types'
 
 @Injectable()
 @DocumentTransformerStrategy(MinerU)
@@ -125,11 +124,11 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<T
   }
 
   async transformDocuments(
-    files: TDocumentTransformerFile[],
+    files: Partial<IKnowledgeDocument>[],
     config: TDocumentTransformerConfig
-  ): Promise<TDocumentParseResult[]> {
+  ): Promise<Partial<IKnowledgeDocument>[]> {
     const mineru: MinerUClient = new MinerUClient(this.configService, config.permissions?.integration)
-    const parsedResults: TDocumentParseResult[] = []
+    const parsedResults: Partial<IKnowledgeDocument>[] = []
     for await (const file of files) {
       const { taskId } = await mineru.createTask({
         url: file.fileUrl,

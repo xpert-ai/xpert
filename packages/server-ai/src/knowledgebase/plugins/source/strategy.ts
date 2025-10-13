@@ -201,12 +201,8 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							[STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN]
 						}, permissions)
 
-						// console.log('================== Source Node results ===================')
-						// console.log(JSON.stringify(results, null, 2))
-						// console.log('================== Source Node End ===================')
-
 						documents = results.map((doc) => ({
-							id: shortuuid(),
+							id: doc.id || shortuuid(),
 							type: doc.metadata.type,
 							name: doc.metadata.originalName || doc.metadata.title,
 							filePath: doc.metadata.filePath,
@@ -216,7 +212,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							pages: doc.pageContent ? [
 								{
 									...doc,
-									id: shortuuid(),
+									id: doc.id || shortuuid(),
 								}
 							] : null,
 							parent: folderId ? { id: folderId } : null,

@@ -25,4 +25,12 @@ export interface IDocumentSourceStrategy<TConfig = any> {
    * Load documents from the source
    */
   loadDocuments(config: TConfig, context?: {integration?: IIntegration}): Promise<Document[]>;
+  /**
+   * Load a single document by its ID
+   * 
+   * @deprecated Planning
+   * @param documentId 
+   * @param context 
+   */
+  loadDocument?(document: Document, context: {integration?: IIntegration}): Promise<Document>;
 }

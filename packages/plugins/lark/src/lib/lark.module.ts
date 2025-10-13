@@ -3,6 +3,7 @@ import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-
 import { LarkIntegrationStrategy } from './integration.strategy';
 import { LarkController } from './lark.controller';
 import { LarkSourceStrategy } from './source.strategy';
+import { LarkDocTransformerStrategy } from './transformer.strategy';
 
 @XpertServerPlugin({
 	imports: [
@@ -13,7 +14,8 @@ import { LarkSourceStrategy } from './source.strategy';
 	],
 	providers: [
 		LarkIntegrationStrategy,
-		LarkSourceStrategy
+		LarkSourceStrategy,
+		LarkDocTransformerStrategy
 	]
 })
 export class LarkModule implements IOnPluginBootstrap, IOnPluginDestroy {

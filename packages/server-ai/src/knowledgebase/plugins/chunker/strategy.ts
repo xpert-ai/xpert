@@ -7,6 +7,7 @@ import {
 	IWFNChunker,
 	IWorkflowNode,
 	IXpertAgentExecution,
+	KBDocumentStatusEnum,
 	KNOWLEDGE_STAGE_NAME,
 	KnowledgebaseChannel,
 	KnowledgeTask,
@@ -28,6 +29,7 @@ import { KnowledgeStrategyQuery } from '../../queries'
 import { KnowledgebaseTaskService } from '../../task'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
+import { getErrorMessage } from '@metad/server-common'
 
 
 @Injectable()
@@ -153,7 +155,15 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 						commandBus: this.commandBus,
 						queryBus: this.queryBus,
 						subscriber: subscriber,
-						execution
+						execution,
+						catchError: async (error) => {
+							if (!isTest) {
+								for await (const {id} of value) {
+									await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
+								}
+								await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
+							}
+						}
 					})()
 			}),
 			ends: [],

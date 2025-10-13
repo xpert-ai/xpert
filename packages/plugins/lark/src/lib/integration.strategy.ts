@@ -3,11 +3,11 @@ import { ForbiddenException, Injectable } from '@nestjs/common'
 import { IntegrationStrategy, IntegrationStrategyKey, TIntegrationStrategyParams } from '@xpert-ai/plugin-sdk'
 import { translate } from './i18n'
 import { LarkClient } from './lark.client'
-import { LarkName, TLarkProviderConfig, iconImage } from './types'
+import { LarkName, TLarkIntegrationConfig, iconImage } from './types'
 
 @Injectable()
 @IntegrationStrategyKey(LarkName)
-export class LarkIntegrationStrategy implements IntegrationStrategy<TLarkProviderConfig> {
+export class LarkIntegrationStrategy implements IntegrationStrategy<TLarkIntegrationConfig> {
   meta: TIntegrationProvider = {
     name: LarkName,
     label: {
@@ -88,7 +88,7 @@ export class LarkIntegrationStrategy implements IntegrationStrategy<TLarkProvide
     throw new Error('Method not implemented.')
   }
 
-  async validateConfig(config: TLarkProviderConfig) {
+  async validateConfig(config: TLarkIntegrationConfig) {
     if (!config) {
       throw new Error(translate('Error.LarkConfigurationRequired'))
     }

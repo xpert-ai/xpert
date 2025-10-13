@@ -1,5 +1,5 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { _TFile, IDocumentProcessorProvider, IIntegration } from '@metad/contracts'
+import { _TFile, IDocumentProcessorProvider, IIntegration, IKnowledgeDocument } from '@metad/contracts'
 import { Permissions, XpFileSystem } from '../../core/index'
 import { ChunkMetadata, TDocumentAsset } from '../types'
 
@@ -12,21 +12,21 @@ export type TDocumentTransformerConfig = {
   }
 }
 
-export type TDocumentTransformerFile = _TFile & {
-  id?: string
-  filename: string
-  extension: string | undefined
-}
+// export type TDocumentTransformerFile = _TFile & {
+//   id?: string
+//   filename: string
+//   extension: string | undefined
+// }
 
-export type TDocumentTransformerInput = TDocumentTransformerFile[] | string | string[]
+// export type TDocumentTransformerInput = TDocumentTransformerFile[] | string | string[]
 
-export type TDocumentTransformerResult = {
-  id?: string
-  chunks: DocumentInterface<ChunkMetadata>[]
-  metadata: {
-    assets?: TDocumentAsset[]
-  }
-}
+// export type TDocumentTransformerResult = {
+//   id?: string
+//   chunks: DocumentInterface<ChunkMetadata>[]
+//   metadata: {
+//     assets?: TDocumentAsset[]
+//   }
+// }
 
 export interface IDocumentTransformerStrategy<TConfig extends TDocumentTransformerConfig = TDocumentTransformerConfig> {
   /**
@@ -44,5 +44,5 @@ export interface IDocumentTransformerStrategy<TConfig extends TDocumentTransform
   /**
    * Transform documents (e.g., extract, OCR, normalize, enrich metadata)
    */
-  transformDocuments(files: TDocumentTransformerInput, config: TConfig): Promise<TDocumentTransformerResult[]>
+  transformDocuments(files: Partial<IKnowledgeDocument>[], config: TConfig): Promise<Partial<IKnowledgeDocument>[]>
 }

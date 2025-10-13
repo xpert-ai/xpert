@@ -22,8 +22,13 @@
         "tsConfig": "packages/plugins/lark/tsconfig.lib.json",
         "assets": [
           {
-						"glob": "**/*.(csv|json|svg|png|jpg|yaml|yml)",
+						"glob": "**/*.(csv|gql|hbs|mjml|md)",
 						"input": "packages/plugins/lark/",
+						"output": "./"
+					},
+					{
+						"glob": "**/*.json",
+						"input": "packages/plugins/lark/src",
 						"output": "./"
 					}
         ],

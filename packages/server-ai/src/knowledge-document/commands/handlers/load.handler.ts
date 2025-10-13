@@ -92,7 +92,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 						)
 					}
 					const transformed = await transformer.transformDocuments(
-						[{ fileUrl: doc.fileUrl, filePath: doc.filePath, filename: doc.name, extension: type }],
+						[doc],
 						{
 							...(doc.parserConfig.transformer ?? {}),
 							stage,

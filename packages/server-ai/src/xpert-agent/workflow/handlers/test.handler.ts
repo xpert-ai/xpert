@@ -56,28 +56,28 @@ export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNode
 					return documents
 				}
 				default: {
+					let creator = null
 					try {
-						const creator = this.nodeRegistry.get(node.entity.type)
-						const result = creator.create({
-							graph,
-							node,
-							xpertId: xpert.id,
-							environment: xpert.environment,
-							isDraft: command.isDraft
-						})
-						const state = await result.graph.invoke(
-							command.state as typeof AgentStateAnnotation.State,
-							{
-								configurable: {
-								}
-							}
-						)
-
-						console.log('State: ', state)
-						return state
+						creator = this.nodeRegistry.get(node.entity.type)
 					} catch (error) {
 						throw new Error(`Unsupported workflow node type: ${node.entity?.type}: ${error.message}`)
 					}
+
+					const result = creator.create({
+						graph,
+						node,
+						xpertId: xpert.id,
+						environment: xpert.environment,
+						isDraft: command.isDraft
+					})
+					const state = await result.graph.invoke(
+						command.state as typeof AgentStateAnnotation.State,
+						{
+							configurable: {
+							}
+						}
+					)
+					return state
 				}
 			}
 		}

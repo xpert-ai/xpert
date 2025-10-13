@@ -4,14 +4,18 @@ import axios from 'axios'
 import { Document } from 'langchain/document'
 import path from 'path'
 import unzipper from 'unzipper'
-import { MinerU, TDocumentParseResult } from './types'
+import { MinerU, MinerUDocumentMetadata } from './types'
 import { v4 as uuidv4 } from 'uuid'
 
 @Injectable()
 export class MinerUResultParserService {
   private readonly logger = new Logger(MinerUResultParserService.name)
 
-  async parseFromUrl(fullZipUrl: string, taskId: string, fileSystem: XpFileSystem): Promise<TDocumentParseResult> {
+  async parseFromUrl(fullZipUrl: string, taskId: string, fileSystem: XpFileSystem): Promise<{
+    id?: string
+    chunks: Document<ChunkMetadata>[]
+    metadata: MinerUDocumentMetadata
+  }> {
     this.logger.log(`Downloading MinerU result from: ${fullZipUrl}`)
 
     // 1. Download the zip file to memory
@@ -66,7 +70,7 @@ export class MinerUResultParserService {
     const chunks = [new Document<ChunkMetadata>({ pageContent: fullMd, metadata: { parser: MinerU, taskId, chunkId: uuidv4() } })]
 
     // 4. metadata
-    const metadata: TDocumentParseResult['metadata'] = {
+    const metadata: MinerUDocumentMetadata = {
       parser: MinerU,
       taskId,
       originPdfUrl,
