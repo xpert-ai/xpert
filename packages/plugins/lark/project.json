@@ -14,13 +14,31 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/js:swc",
+      "executor": "@nx/rollup:rollup",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/plugins/lark",
         "main": "packages/plugins/lark/src/index.ts",
         "tsConfig": "packages/plugins/lark/tsconfig.lib.json",
-        "assets": ["packages/plugins/lark/*.md"]
+        "assets": [
+          {
+						"glob": "**/*.(csv|json|svg|png|jpg|yaml|yml)",
+						"input": "packages/plugins/lark/",
+						"output": "./"
+					}
+        ],
+        "project": "packages/plugins/lark/package.json",
+        "compiler": "swc",
+        "format": ["cjs", "esm"],
+        "external": [
+          "@nestjs/common",
+          "@nestjs/core",
+          "@nestjs/microservices",
+          "kafkajs",
+          "amqplib",
+          "mqtt",
+          "nats"
+        ]
       }
     },
     "nx-release-publish": {

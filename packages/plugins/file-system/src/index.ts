@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
+import { XpertPlugin } from '@xpert-ai/plugin-sdk';
 import { FileSystemPlugin } from './lib/file-system.plugin';
 import { svg } from './lib/types';
 
