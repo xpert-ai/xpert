@@ -2781,6 +2781,7 @@
       "ParameterName": "技术名称",
       "ParameterTitle": "标题",
       "ParameterDescription": "描述",
+      "ParameterDefault": "默认值",
       "ExecutionsHistories": "执行记录",
       "CreateNewWorkspace": "创建新工作空间",
       "SystemPromptTooltip": "提示通过指令和约束引导 AI 响应。插入参数如 {{input}}。此提示对用户不可见。",

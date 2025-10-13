@@ -382,6 +382,7 @@ export type TXpertParameter = {
   title?: string
   description?: string | I18nObject
   optional?: boolean
+  default?: any
   maximum?: number
   options?: string[]
   item?: TXpertParameter[]

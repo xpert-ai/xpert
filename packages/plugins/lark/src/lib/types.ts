@@ -19,6 +19,7 @@ export type TLarkIntegrationConfig = {
 
 export type LarkDocumentsParams = {
   folderToken: string
+  types: string[]
 }
 
 export type LarkDocumentMetadata = LarkFile & {

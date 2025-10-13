@@ -5,4 +5,8 @@
       @apply opacity-100
     }
   }
+
+  input::placeholder {
+    font-size: 0.875em;
+  }
 }

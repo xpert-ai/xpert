@@ -69,7 +69,7 @@ export class JSONSchemaPropertyComponent {
   readonly enumSchema = computed(() => this.schema() as JsonSchema7EnumType)
 
   readonly enum = computed(() => this.enumSchema()?.enum)
-  readonly enumOptions = computed(() => this.enum()?.map((value) => ({ label: this.xUi()?.enumLabels?.[value], value })))
+  readonly enumOptions = computed(() => this.enum()?.map((value) => ({ label: this.xUi()?.enumLabels?.[value] ?? value, value })))
 
   readonly default = computed(() => this.meta()?.default)
 

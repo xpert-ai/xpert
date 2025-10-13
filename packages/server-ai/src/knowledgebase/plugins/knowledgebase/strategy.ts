@@ -121,7 +121,8 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 											status: 'success',
 										}
 									}
-								}
+								},
+								output: statisticsInformation.trim()
 							}
 						}
 
