@@ -1,12 +1,13 @@
 <div class="pac-page-header">
-  <div class="pac-page-title">{{ 'PAC.MENU.MANAGE_FEATURES' | translate: {Default: "Manage Features"} }}</div>
-
-  <div class="flex justify-end items-center p-2">
-    <button type="menu" class="btn btn-large btn-primary"
+  <div class="w-full flex justify-between items-center">
+    <div class="pac-page-title">{{ 'PAC.MENU.MANAGE_FEATURES' | translate: {Default: "Manage Features"} }}</div>
+    <div class="flex justify-end items-center p-2">
+      <button type="menu" class="btn btn-large btn-secondary"
       (click)="upgrade()"
-    >{{ 'PAC.KEY_WORDS.Upgrade' | translate: {Default: 'Upgrade'} }}</button>
+      ><i class="ri-loop-left-line mr-1"></i>{{ 'PAC.KEY_WORDS.Upgrade' | translate: {Default: 'Upgrade'} }}</button>
+    </div>
   </div>
-
+    
   <nav mat-tab-nav-bar class="pac-tab-nav-bar" color="accent" mat-align-tabs="start" mat-stretch-tabs="false" disableRipple
     [tabPanel]="tabPanel"
   >

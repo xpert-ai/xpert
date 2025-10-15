@@ -14,7 +14,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
-import { CustomIconComponent } from '@cloud/app/@shared/avatar'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-workflow-node-source',
@@ -28,7 +28,7 @@ import { CustomIconComponent } from '@cloud/app/@shared/avatar'
     TranslateModule,
     PlusSvgComponent,
     NgmI18nPipe,
-    CustomIconComponent
+    IconComponent
   ]
 })
 export class XpertWorkflowNodeSourceComponent {

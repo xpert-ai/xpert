@@ -1,3 +1,51 @@
+## 3.6.0 (2025-10-15)
+
+
+### 🚀 Features
+
+- publish sdk packages ([fc35f95a2](https://github.com/xpert-ai/xpert/commit/fc35f95a2))
+- plugins page ([c912d6b68](https://github.com/xpert-ai/xpert/commit/c912d6b68))
+- New query dto parameter mode ([b3039a59e](https://github.com/xpert-ai/xpert/commit/b3039a59e))
+- validators of dto ([1a5aec52f](https://github.com/xpert-ai/xpert/commit/1a5aec52f))
+- plugin sdk ([c139f8c91](https://github.com/xpert-ai/xpert/commit/c139f8c91))
+- plugins page ([2a5f716e8](https://github.com/xpert-ai/xpert/commit/2a5f716e8))
+- kb configuration page ([f5829a780](https://github.com/xpert-ai/xpert/commit/f5829a780))
+- kb home page ([35fd8d783](https://github.com/xpert-ai/xpert/commit/35fd8d783))
+- kb ([39e0dcd7e](https://github.com/xpert-ai/xpert/commit/39e0dcd7e))
+- web port for build docker compose ([9e6b9bd89](https://github.com/xpert-ai/xpert/commit/9e6b9bd89))
+- search component in ai model select ([af58b5379](https://github.com/xpert-ai/xpert/commit/af58b5379))
+- router of knowledgebase xpert ([4938947ed](https://github.com/xpert-ai/xpert/commit/4938947ed))
+- add unstructured infra ([145c52646](https://github.com/xpert-ai/xpert/commit/145c52646))
+- description length of xpert agent entity ([786ca493c](https://github.com/xpert-ai/xpert/commit/786ca493c))
+- xperts workflow ([115e8c252](https://github.com/xpert-ai/xpert/commit/115e8c252))
+- workflow base node ([be4133fb5](https://github.com/xpert-ai/xpert/commit/be4133fb5))
+- test doc source node ([17e72b2d4](https://github.com/xpert-ai/xpert/commit/17e72b2d4))
+- pipeline workflow ([d07bbfb19](https://github.com/xpert-ai/xpert/commit/d07bbfb19))
+- show plugins page to trial account ([230e2e2ce](https://github.com/xpert-ai/xpert/commit/230e2e2ce))
+- add toggle features in onboarding page ([9fd74d630](https://github.com/xpert-ai/xpert/commit/9fd74d630))
+- new plugin-lark ([35680450c](https://github.com/xpert-ai/xpert/commit/35680450c))
+- plugins ([1476cb0e5](https://github.com/xpert-ai/xpert/commit/1476cb0e5))
+- pipeline ([ca98a4768](https://github.com/xpert-ai/xpert/commit/ca98a4768))
+- parameters default and feishu ([043e0e5ba](https://github.com/xpert-ai/xpert/commit/043e0e5ba))
+
+### 🩹 Fixes
+
+- search filter of plugins ([0fc5b31c2](https://github.com/xpert-ai/xpert/commit/0fc5b31c2))
+- date str for task ([f174316f3](https://github.com/xpert-ai/xpert/commit/f174316f3))
+- build api docker image ([c16934e14](https://github.com/xpert-ai/xpert/commit/c16934e14))
+- minimatch version ([24cde0ef0](https://github.com/xpert-ai/xpert/commit/24cde0ef0))
+- remove getManager of typeorm ([25efc231e](https://github.com/xpert-ai/xpert/commit/25efc231e))
+- remove firecrawl from server-ai ([bd1e1fc36](https://github.com/xpert-ai/xpert/commit/bd1e1fc36))
+- plugin dependecy ([6b76fc2a0](https://github.com/xpert-ai/xpert/commit/6b76fc2a0))
+- disable plugins ([ee6b7b0b9](https://github.com/xpert-ai/xpert/commit/ee6b7b0b9))
+- trigger schedule ([5461b3d10](https://github.com/xpert-ai/xpert/commit/5461b3d10))
+- update default value of json schema ([4e606ae11](https://github.com/xpert-ai/xpert/commit/4e606ae11))
+- executor rollup ([c9199a227](https://github.com/xpert-ai/xpert/commit/c9199a227))
+
+### ❤️  Thank You
+
+- Tiven Wang
+
 ## 0.0.1 (2025-10-08)
 
 

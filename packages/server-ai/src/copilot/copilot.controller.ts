@@ -223,49 +223,49 @@ export class CopilotController extends CrudController<Copilot> {
 	// Statistics
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/daily-conversations')
 	async getStatisticsDailyConversations(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsDailyConvQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/daily-end-users')
 	async getStatisticsDailyEndUsers(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsDailyEndUsersQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/average-session-interactions')
 	async getStatisticsAverageSessionInteractions(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsAverageSessionInteractionsQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/daily-messages')
 	async getStatisticsDailyMessages(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsDailyMessagesQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/tokens-per-second')
 	async getStatisticsTokensPerSecond(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsTokensPerSecondQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/user-satisfaction-rate')
 	async getStatisticsUserSatisfactionRate(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/token-costs')
 	async getStatisticsTokenCost(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsTokenCostQuery(start, end))

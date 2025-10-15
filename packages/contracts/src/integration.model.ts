@@ -4,7 +4,7 @@ import {
 import { IOrganizationProjectsUpdateInput } from './organization-projects.model';
 import { IOrganizationUpdateInput } from './organization.model';
 import { ITag } from './tag-entity.model';
-import { I18nObject, TAvatar, TParameterSchema } from './types';
+import { I18nObject, IconDefinition, TAvatar, TParameterSchema } from './types';
 
 
 export interface IIntegration<T = any> extends IBasePerTenantAndOrganizationEntityModel {
@@ -104,10 +104,7 @@ export type TIntegrationProvider = {
 	label: I18nObject
 	description?: I18nObject
 	avatar?: string
-	icon?: {
-		svg: string
-		color: string
-	}
+	icon?: IconDefinition
 	webhook?: boolean
 	schema?: TParameterSchema
 	features?: IntegrationFeatureEnum[]

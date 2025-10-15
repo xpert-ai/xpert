@@ -76,13 +76,16 @@
     @default {
       <div class="flex flex-col gap-y-px border-t border-divider-subtle bg-background-default-subtle p-2">
         @for (doc of documents(); track doc.id) {
-          <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover">
-            <div class="size-4 rounded-full border-[5px] border-components-radio-border-checked hover:border-components-radio-border-checked-hover bg-components-radio-bg shadow-xs shadow-shadow-shadow-3 hover:bg-components-radio-bg-hover"></div>
+          <div class="relative flex gap-x-1 rounded-xl px-2 py-1 group hover:bg-state-base-hover">
+            <ngm-checkbox class="shrink-0"
+              [ngModel]="documentIds.isSelected(doc.id)"
+              (ngModelChange)="documentIds.toggle(doc.id)"
+            />
             <div class="flex min-w-0 grow flex-col gap-y-0.5">
-              <div class="system-sm-medium truncate text-text-secondary" title="Quickstart | Firecrawl">
+              <div class="system-sm-medium truncate text-text-secondary" [title]="doc.metadata.title">
                 {{ doc.metadata.title }}
               </div>
-              <div class="system-xs-regular truncate text-text-tertiary" title="https://docs.firecrawl.dev/introduction">
+              <div class="system-xs-regular truncate text-text-tertiary" [title]="doc.metadata.source">
                 {{ doc.metadata.source }}
               </div>
             </div>
@@ -102,7 +105,7 @@
     (click)="close()"
   >{{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
   <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-    [disabled]="!taskId() || !documentIds()?.length || busing() || successMessage()"
+    [disabled]="!taskId() || !documentIds.selected.length || busing() || successMessage()"
     (click)="start()"
   >{{ 'PAC.ACTIONS.Start' | translate: {Default: 'Start'} }}</button>
 </div>

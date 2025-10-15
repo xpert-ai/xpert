@@ -133,6 +133,7 @@ export async function preBootstrapPlugins() {
 	const plugins = process.env.PLUGINS?.split(',') || [];
 	const { modules } = await registerPluginsAsync({
 		plugins: [
+			//'@xpert-ai/plugin-lark',
 			'@xpert-ai/plugin-file-system',
 			'@xpert-ai/plugin-firecrawl',
 			'@xpert-ai/plugin-integration-dify',

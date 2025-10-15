@@ -9,12 +9,12 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map } from 'rxjs/operators'
 import { IIntegration, IntegrationFeatureEnum, OrderTypeEnum, TSelectOption } from '../../../@core/types'
-import { CustomIconComponent } from '../../avatar'
+import { IconComponent } from '../../avatar'
 import { NgmSelectComponent } from '../../common'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSelectComponent, CustomIconComponent, NgmI18nPipe],
+  imports: [CommonModule, FormsModule, TranslateModule, NgmSelectComponent, IconComponent, NgmI18nPipe],
   selector: 'xp-integration-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],

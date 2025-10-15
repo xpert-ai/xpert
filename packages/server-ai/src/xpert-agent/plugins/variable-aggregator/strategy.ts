@@ -19,6 +19,7 @@ import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sd
 import { get } from 'lodash'
 import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
+import { nonNullable } from '@metad/server-common'
 
 const ErrorChannelName = 'error'
 const ResultChannelName = 'result'
@@ -76,7 +77,7 @@ export class WorkflowVariableAggregatorNodeStrategy implements IWorkflowNodeStra
 				}
 				return await wrapAgentExecution(
 					async () => {
-						const result = values.flat()
+						const result = values.flat().filter(nonNullable)
 						return {
 							state: {
 								[channelName(node.key)]: {
@@ -84,7 +85,7 @@ export class WorkflowVariableAggregatorNodeStrategy implements IWorkflowNodeStra
 									[ErrorChannelName]: null
 								}
 							},
-							output: JSON.stringify(result)
+							output: result
 						}
 					},
 					{

@@ -26,6 +26,8 @@
           "@nestjs/common",
           "@nestjs/core",
           "@nestjs/microservices",
+          "i18next-fs-backend",
+          "i18next",
           "kafkajs",
           "amqplib",
           "mqtt",

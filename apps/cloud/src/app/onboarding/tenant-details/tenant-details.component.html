@@ -5,9 +5,11 @@
 <div class="w-full border-b border-solid border-divider-regular"></div>
 
 <mat-vertical-stepper class="w-[600px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" #stepper>
-  <mat-step [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
+  <mat-step #step1 [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4">
       <ng-template matStepLabel> {{ 'PAC.Onboarding.WhatCallYou' | translate: {Default: 'What should we call you'} }}?</ng-template>
+
+      <div class="description mb-4">{{ 'PAC.Onboarding.CreateAdminAndOrg' | translate: {Default: 'Create your super admin account and default organization.'} }}</div>
 
       <div class="relative grid grid-cols-2 gap-2">
         <mat-form-field>
@@ -49,103 +51,141 @@
       </div>
 
       <div class="flex items-center gap-4">
-        <button mat-flat-button color="primary" [disabled]="userFormGroup.invalid || loading()"
-          (click)="onboard()"
-        >{{ 'PAC.Onboarding.Next' | translate: {Default: 'Next'} }}</button>
+        <button type="button" class="btn btn-primary btn-large" [disabled]="userFormGroup.invalid || loading()"
+          (click)="onboard()">
+          {{ 'PAC.Onboarding.Next' | translate: {Default: 'Next'} }}
+        </button>
       </div>
     </form>
   </mat-step>
 
-  <mat-step [stepControl]="demoFormGroup" [editable]="!demoCompleted() && !loading()">
-    <ng-template matStepLabel>{{ 'PAC.Onboarding.WantGenerateDemo' | translate: {Default: 'Do you want to generate samples'} }}?</ng-template>
+  <mat-step [editable]="selectedOrganization() && !loading() && step1.completed">
+    <ng-template matStepLabel>{{ 'PAC.Onboarding.EnableFeatures' | translate: {Default: 'Enable Features'} }}</ng-template>
 
-    <div class="description my-8">{{ 'PAC.Onboarding.GenerateDemoDescription' | translate: {Default: 'The system will download the demo data file from the server link, import the data into the system database, and create the corresponding samples'} }}.</div>
+    <div class="description">{{ 'PAC.Onboarding.EnableFeaturesDesc' | translate: {Default: 'Select the feature modules you want to enable, which can also be configured later in the system settings.'} }}</div>
 
-    <form [formGroup]="demoFormGroup" class="flex flex-col">
-      <label>{{ 'PAC.Onboarding.SelectNetwork' | translate: {Default: 'Select Network'} }}</label>
-      <mat-radio-group formControlName="source" [disabled]="loading()">
-        <mat-radio-button [value]="OrganizationDemoNetworkEnum.github">GitHub</mat-radio-button>
-        <mat-radio-button [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun oss</mat-radio-button>
-      </mat-radio-group>
-    </form>
-
-    <div class="flex justify-center items-center w-full h-24">
-      <mat-progress-bar *ngIf="loading()" class="w-full" mode="query"></mat-progress-bar>
-      <mat-error *ngIf="demoError()" class="max-h-full max-w-full overflow-auto">{{demoError()}}</mat-error>
+    <div class="relative my-8">
+      @if (selectedOrganization()) {
+        <xp-feature-category [(ngModel)]="features" />
+      }
+      @if (loading()) {
+        <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
+      }
     </div>
 
     <div class="flex items-center gap-4">
-      <button mat-flat-button matStepperNext>{{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}</button>
-      <button mat-flat-button color="primary" [disabled]="demoFormGroup.invalid || loading()"
-        (click)="generateDemo()"
-      >
-        <span *ngIf="!demoError()">{{ 'PAC.Onboarding.Generate' | translate: {Default: 'Generate'} }}</span>
-        <span *ngIf="demoError()">{{ 'PAC.Onboarding.Retry' | translate: {Default: 'Retry'} }}</span>
+      <button type="button" class="btn btn-primary btn-large"
+        (click)="enableFeatures()">
+        {{ 'PAC.Onboarding.SaveAndNext' | translate: {Default: 'Save and Next'} }}
       </button>
     </div>
   </mat-step>
 
-  <mat-step [editable]="!loading() && !connectionCompleted()">
-    <ng-template matStepLabel>{{ 'PAC.Onboarding.AddYourData' | translate: {Default: 'Add your data'} }}</ng-template>
+  @if (hasSemanticModel()) {
+    
+    <mat-step [stepControl]="demoFormGroup" [editable]="!demoCompleted() && !loading()" >
+      <ng-template matStepLabel>{{ 'PAC.Onboarding.WantGenerateDemo' | translate: {Default: 'Do you want to generate samples'} }}?</ng-template>
 
-    <div class="w-full flex flex-col gap-4">
-      <div class="description">
-        <p>{{ 'PAC.Onboarding.ReadyExploringYourData' | translate: {Default: 'Are you ready to start exploring your data? Add it below.'} }}</p>
-        <p>{{ 'PAC.Onboarding.NotReadySample' | translate: {Default: 'Not ready? Skip and play around with our Samples.'} }}</p>
-      </div>
+      <div class="description my-4">{{ 'PAC.Onboarding.GenerateDemoDescription' | translate: {Default: 'The system will download the demo data file from the server link, import the data into the system database, and create the corresponding samples'} }}.</div>
 
-      <ngm-search class="w-full" [formControl]="searchControl"></ngm-search>
-      <form [formGroup]="dataSourceTypeFormGroup" class="w-full flex flex-col gap-4">
-        <div class="max-h-80 w-full overflow-auto">
-          <mat-selection-list formControlName="type" disableRipple [multiple]="false" [compareWith]="compareTypeFn" >
-            <mat-list-option *ngFor="let item of filteredDataSourceTypes()" [value]="item" class="rounded-lg mb-1">
-                <span>
-                    <img src="assets/images/db-logos/{{item.type}}.png" width="32" height="32" class="m-0 inline-block">
-                    {{item.name}}
-                </span>
-            </mat-list-option>
-          </mat-selection-list>
-        </div>
-
-        <ng-container *ngIf="type">
-          <div class="flex justify-center items-center">
-            <img src="assets/images/db-logos/{{type.type}}.png" width="64" height="64" class="m-0 inline-block">
-            <div class="text-lg">{{type.name}}</div>
-          </div>
-          <mat-form-field appearance="fill">
-              <mat-label>
-                  {{ 'PAC.Onboarding.DisplayName' | translate: {Default: 'Display Name'} }}
-              </mat-label>
-              <input matInput formControlName="name">
-              <mat-error *ngIf="dataSourceNameError()">
-                  {{ 'PAC.Onboarding.NameRequired' | translate: {Default: 'Name Required'} }}
-              </mat-error>
-          </mat-form-field>
-
-          <formly-form
-            [form]="dataSourceTypeFormGroup"
-            [fields]="formlyFields()"
-            [model]="model"
-            (modelChange)="onModelChange($event)"
-            >
-        </formly-form>
-        </ng-container>
+      <form [formGroup]="demoFormGroup" class="flex flex-col">
+        <label>{{ 'PAC.Onboarding.SelectNetwork' | translate: {Default: 'Select Network'} }}</label>
+        <mat-radio-group formControlName="source" [disabled]="loading()">
+          <mat-radio-button [value]="OrganizationDemoNetworkEnum.github">GitHub</mat-radio-button>
+          <mat-radio-button [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun OSS</mat-radio-button>
+        </mat-radio-group>
       </form>
 
-      <div *ngIf="type" class="flex justify-end items-center gap-4">
-        <button mat-flat-button matStepperNext>{{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}</button>
-        <button mat-flat-button color="primary" [disabled]="dataSourceTypeFormGroup.invalid || loading()"
-          (click)="connectDatabase()"
-        >{{ 'PAC.Onboarding.ConnectDatabase' | translate: {Default: 'Connect database'} }}</button>
+      <div class="flex justify-center items-center w-full h-24">
+        <mat-progress-bar *ngIf="loading()" class="w-full" mode="query"></mat-progress-bar>
+        <mat-error *ngIf="demoError()" class="max-h-full max-w-full overflow-auto">{{demoError()}}</mat-error>
       </div>
 
-      <div *ngIf="!type">
-        <a class="cursor-pointer" (click)="stepper.next()">
-          {{ 'PAC.Onboarding.AddDataLater' | translate: {Default: 'I\'ll add my data later'} }}
-          </a>
+      <div class="flex items-center gap-4">
+        <button type="button" class="btn btn-secondary btn-large" matStepperNext>
+          {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
+        </button>
+        <button type="button" class="btn btn-primary btn-large" [disabled]="demoFormGroup.invalid || loading()"
+          (click)="generateDemo()"
+        >
+          @if (demoError()) {
+            <span>{{ 'PAC.Onboarding.Retry' | translate: {Default: 'Retry'} }}</span>
+          } @else {
+            <span>{{ 'PAC.Onboarding.Generate' | translate: {Default: 'Generate'} }}</span>
+          }
+        </button>
       </div>
-    </div>
-  </mat-step>
+    </mat-step>
+
+    <mat-step [editable]="!loading() && !connectionCompleted()">
+      <ng-template matStepLabel>{{ 'PAC.Onboarding.AddYourData' | translate: {Default: 'Add your data'} }}</ng-template>
+
+      <div class="w-full flex flex-col gap-4">
+        <div class="description">
+          <p>{{ 'PAC.Onboarding.ReadyExploringYourData' | translate: {Default: 'Are you ready to start exploring your data? Add it below.'} }}</p>
+          <p>{{ 'PAC.Onboarding.NotReadySample' | translate: {Default: 'Not ready? Skip and play around with our Samples.'} }}</p>
+        </div>
+
+        <div class="w-full relative">
+          <i class="ri-search-2-line absolute left-1.5 top-1"></i>
+          <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular pl-[26px]" 
+            [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: {Default: 'Search term'}" tabindex="0"
+            [formControl]="searchControl"
+          >
+        </div>
+        <form [formGroup]="dataSourceTypeFormGroup" class="w-full flex flex-col gap-4">
+          <div class="max-h-80 w-full overflow-auto">
+            <mat-selection-list formControlName="type" disableRipple [multiple]="false" [compareWith]="compareTypeFn" >
+              <mat-list-option *ngFor="let item of filteredDataSourceTypes()" [value]="item" class="rounded-lg mb-1">
+                  <span>
+                      <img src="assets/images/db-logos/{{item.type}}.png" width="32" height="32" class="m-0 inline-block">
+                      {{item.name}}
+                  </span>
+              </mat-list-option>
+            </mat-selection-list>
+          </div>
+
+          @if (type) {
+            <div class="flex justify-center items-center">
+              <img src="assets/images/db-logos/{{type.type}}.png" width="64" height="64" class="m-0 inline-block">
+              <div class="text-lg">{{type.name}}</div>
+            </div>
+            <mat-form-field appearance="fill">
+                <mat-label>
+                    {{ 'PAC.Onboarding.DisplayName' | translate: {Default: 'Display Name'} }}
+                </mat-label>
+                <input matInput formControlName="name">
+                <mat-error *ngIf="dataSourceNameError()">
+                    {{ 'PAC.Onboarding.NameRequired' | translate: {Default: 'Name Required'} }}
+                </mat-error>
+            </mat-form-field>
+
+            <formly-form
+              [form]="dataSourceTypeFormGroup"
+              [fields]="formlyFields()"
+              [model]="model"
+              (modelChange)="onModelChange($event)"
+            />
+          }
+        </form>
+
+        @if (type) {
+          <div class="flex justify-end items-center gap-4">
+            <button mat-flat-button matStepperNext>{{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}</button>
+            <button mat-flat-button color="primary" [disabled]="dataSourceTypeFormGroup.invalid || loading()"
+              (click)="connectDatabase()"
+            >{{ 'PAC.Onboarding.ConnectDatabase' | translate: {Default: 'Connect database'} }}</button>
+          </div>
+        }
+
+        <div>
+          <button type="button" class="btn btn-secondary btn-large" matStepperNext>
+            {{ 'PAC.Onboarding.AddDataLater' | translate: {Default: 'I\'ll add my data later'} }}
+          </button>
+        </div>
+      </div>
+    </mat-step>
+  }
 
   <mat-step [editable]="!loading()">
     <ng-template matStepLabel>{{ 'PAC.Onboarding.Done' | translate: {Default: 'Done'} }}</ng-template>
@@ -155,7 +195,7 @@
       <div class="w-full border-b border-solid border-divider-regular"></div>
 
       <div class="p-8">
-        <button type="button" class="flex justify-center items-center rounded-lg text-lg font-semibold px-4 py-1.5 shadow-sm border text-white border-gray-200 bg-primary-500 hover:bg-primary-600 hover:shadow-lg"
+        <button type="button" class="flex justify-center items-center btn btn-large btn-primary hover:shadow-md"
           (click)="navigateHome()">
           {{ 'PAC.Onboarding.TakeMetoXpertAiPlatform' | translate: {Default: 'Take me to Xpert AI Platform'} }}
         </button>

@@ -1,5 +1,4 @@
-import { TDocumentTransformerResult } from '@xpert-ai/plugin-sdk'
-
+import { TDocumentAsset } from "@xpert-ai/plugin-sdk"
 
 export const MinerU = 'mineru'
 
@@ -30,16 +29,15 @@ export const icon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"
 </svg>
 `
 
-export type TDocumentParseResult = TDocumentTransformerResult & {
-  metadata: {
-    parser: 'mineru';
-    taskId: string;
-    originPdfUrl?: string;
-    mineruBackend?: string;
-    mineruVersion?: string;
-    layoutJson?: any;
-    contentListJson?: any;
-  }
+export type MinerUDocumentMetadata = {
+  parser: 'mineru';
+  assets?: TDocumentAsset[];
+  taskId: string;
+  originPdfUrl?: string;
+  mineruBackend?: string;
+  mineruVersion?: string;
+  layoutJson?: any;
+  contentListJson?: any;
 }
 
 export type MinerUIntegrationOptions = {

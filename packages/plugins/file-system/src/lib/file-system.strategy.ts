@@ -1,4 +1,4 @@
-import { DocumentSourceProviderCategoryEnum, I18nObject } from '@metad/contracts'
+import { DocumentSourceProviderCategoryEnum, I18nObject, IDocumentSourceProvider } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { DocumentSourceStrategy, IDocumentSourceStrategy } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
@@ -15,9 +15,14 @@ import { WebdavClient } from './webdav.client'
 @Injectable()
 export class FileSystemStrategy implements IDocumentSourceStrategy<FileSystemConfig> {
   readonly permissions = []
-  readonly meta = {
+  readonly meta: IDocumentSourceProvider = {
     name: FileSystem,
-    category: DocumentSourceProviderCategoryEnum.RemoteFile,
+    category: DocumentSourceProviderCategoryEnum.FileSystem,
+    icon: {
+      type: 'svg',
+      value: svg,
+      color: '#4CAF50'
+    },
     label: {
       en_US: 'File System',
       zh_Hans: '文件系统'
@@ -119,10 +124,6 @@ export class FileSystemStrategy implements IDocumentSourceStrategy<FileSystemCon
         }
       },
       required: ['type', 'filePath']
-    },
-    icon: {
-      svg,
-      color: '#4CAF50'
     }
   }
 

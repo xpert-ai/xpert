@@ -2215,7 +2215,16 @@
       "SelectNetwork": "选择所需网络",
       "GenerateDemoSuccess": "演示数据和样例生成成功！",
       "UnknownSystemStatus": "无法获取系统状态，请检查安装配置的环境参数。",
-      "faqs_domain": "常见问题 （域名配置）"
+      "faqs_domain": "常见问题 （域名配置）",
+      "FeatureCategory_ai": "AI 平台功能",
+      "FeatureCategory_bi": "BI 平台功能",
+      "FeatureCategoryDesc_ai": "AI 相关的功能，包括工作流，数字专家智能体，知识库，项目空间等",
+      "FeatureCategoryDesc_bi": "BI 数据分析相关的功能，包括语义模型，指标，故事仪表板等",
+      "CreateAdminAndOrg": "创建您的超级管理员账户及默认组织。",
+      "EnableFeatures": "启用功能模块",
+      "EnableFeaturesDesc": "选择您想要启用的功能模块，稍后也可以在系统设置中进行配置。",
+      "SaveAndNext": "保存并下一步",
+      "EnableFeaturesSuccess": "功能模块设置成功！"
     },
     "Languages": {
       "en": "English",
@@ -2229,6 +2238,8 @@
       "NoMoreOrganizations": "没有更多的组织可添加"
     },
     "Feature": {
+      "EnableFeature": "启用功能",
+      "DisableFeature": "禁用功能",
       "Features": {
         "FEATURE_HOME": {
           "Name": "首页",
@@ -2527,6 +2538,9 @@
       "PdfExtractor": "PDF 提取器",
       "ChunkSettings": "分块设置",
       "ChunkSettingsDesc": "配置文本分块模式和预处理规则。",
+      "PreviewDocHint": "点击左侧的“预览块”按钮来加载预览",
+      "PreviewChunks": "预览分块",
+      "SaveAndProcess": "保存并处理",
       "General": "通用",
       "GeneralDesc": "通用文本分块模式，检索和回忆的块是相同的",
       "ChunkDelimiter": "分块标识符",
@@ -2767,6 +2781,7 @@
       "ParameterName": "技术名称",
       "ParameterTitle": "标题",
       "ParameterDescription": "描述",
+      "ParameterDefault": "默认值",
       "ExecutionsHistories": "执行记录",
       "CreateNewWorkspace": "创建新工作空间",
       "SystemPromptTooltip": "提示通过指令和约束引导 AI 响应。插入参数如 {{input}}。此提示对用户不可见。",

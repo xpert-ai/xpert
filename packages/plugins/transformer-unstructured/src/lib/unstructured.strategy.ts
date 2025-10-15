@@ -4,10 +4,10 @@ import {
   IDocumentTransformerStrategy,
   IntegrationPermission,
   TDocumentTransformerConfig,
-  TDocumentTransformerFile
 } from '@xpert-ai/plugin-sdk'
 import { icon, Unstructured } from './types'
 import { UnstructuredClient } from './unstructured.client'
+import { IconType, IKnowledgeDocument } from '@metad/contracts'
 
 @Injectable()
 @DocumentTransformerStrategy(Unstructured)
@@ -34,7 +34,8 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
       zh_Hans: '专为将多格式文档转为“对 LLM 友好”结构化段落/元素而设计，模块化、面向现代 LLM 流水线。'
     },
     icon: {
-      svg: icon,
+      type: 'svg' as IconType,
+      value: icon,
       color: '#14b8a6'
     },
     helpUrl: 'https://github.com/Unstructured-IO/unstructured',
@@ -49,7 +50,7 @@ export class UnstructuredTransformerStrategy implements IDocumentTransformerStra
     throw new Error('Method not implemented.')
   }
 
-  async transformDocuments(files: TDocumentTransformerFile[], config: TDocumentTransformerConfig) {
+  async transformDocuments(files: Partial<IKnowledgeDocument>[], config: TDocumentTransformerConfig) {
     const results = []
     for await (const file of files) {
       const result = await this.client.parseFromFile(file.fileUrl)

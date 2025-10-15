@@ -20,16 +20,14 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
 		const { input } = command
 		const { copilot, tenantId, organizationId, userId } = input
 
-		const existing = await this.copilotUserService.findOneOrFail({
-			where: {
+		const existing = await this.copilotUserService.findOneOrFailByWhereOptions({
 				tenantId,
 				organizationId,
 				orgId: copilot.organizationId ?? IsNull(),
 				userId,
 				provider: copilot.modelProvider.providerName,
 				model: input.model
-			}
-		})
+			})
 
 		if (existing.success) {
 			if (existing.record.tokenLimit && existing.record.tokenUsed >= existing.record.tokenLimit) {

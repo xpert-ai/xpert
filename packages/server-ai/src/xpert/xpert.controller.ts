@@ -573,35 +573,35 @@ export class XpertController extends CrudController<Xpert> {
 	// Statistics
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/xperts')
 	async getStatisticsXperts(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsXpertsQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/xpert-conversations')
 	async getStatisticsXpertConversations(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsXpertConversationsQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/xpert-messages')
 	async getStatisticsXpertMessages(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsXpertMessagesQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/xpert-tokens')
 	async getStatisticsXpertTokens(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsXpertTokensQuery(start, end))
 	}
 
 	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
 	@Get('statistics/xpert-integrations')
 	async getStatisticsXpertIntegrations(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsXpertIntegrationsQuery(start, end))

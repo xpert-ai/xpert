@@ -18,7 +18,8 @@ export class FirecrawlIntegrationStrategy implements IntegrationStrategy<Firecra
         'Firecrawl 是一个 API 服务，它接受一个 URL，爬取它，并将其转换为干净的 markdown 或结构化数据。我们爬取所有可访问的子页面，并为每个页面提供干净的数据。'
     },
     icon: {
-      svg: icon,
+      type: 'svg',
+      value: icon,
       color: '#4CAF50'
     },
     schema: {

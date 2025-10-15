@@ -1,13 +1,14 @@
-import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { getRepository } from 'typeorm'
+import { RequestContext } from '@metad/server-core'
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { DataSource } from 'typeorm'
 import { ChatConversation } from '../../../core/entities/internal'
 import { StatisticsXpertMessagesQuery } from '../statistics-xpert-messages.query'
-import { RequestContext } from '@metad/server-core'
 
 @QueryHandler(StatisticsXpertMessagesQuery)
 export class StatisticsXpertMessagesHandler implements IQueryHandler<StatisticsXpertMessagesQuery> {
 	constructor(
-		private readonly queryBus: QueryBus
+		@InjectDataSource() private readonly dataSource: DataSource
 	) {}
 
 	public async execute(command: StatisticsXpertMessagesQuery) {
@@ -15,7 +16,7 @@ export class StatisticsXpertMessagesHandler implements IQueryHandler<StatisticsX
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
-		const repository = getRepository(ChatConversation)
+		const repository = this.dataSource.getRepository(ChatConversation)
 
 		const query = repository
 			.createQueryBuilder('conversation')

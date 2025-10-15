@@ -1,4 +1,4 @@
-import { I18nObject, letterStartSUID } from '../types'
+import { I18nObject, IconDefinition, letterStartSUID } from '../types'
 import { ICopilotModel } from './copilot-model.model'
 import { KnowledgeStructureEnum } from './knowledgebase.model'
 import { IWorkflowNode, WorkflowNodeTypeEnum } from './xpert-workflow.model'
@@ -7,19 +7,40 @@ import { TXpertParameter } from './xpert.model'
 export interface IDocumentNodeProvider {
   name: string
   label: I18nObject
-  icon?: {
-    svg?: string
-    color?: string
-  }
+  icon?: IconDefinition
   description?: I18nObject
   helpUrl?: string
   configSchema: any;
 }
 
+/**
+ * Category of document source provider
+ */
 export enum DocumentSourceProviderCategoryEnum {
+  /**
+   * Local files uploaded directly to the system
+   */
   LocalFile = 'local-file',
-  RemoteFile = 'remote-file',
+
+  /**
+   * Remote file systems, e.g. S3, FTP, etc.
+   */
+  FileSystem = 'file-system',
+
+  /**
+   * Online documents, e.g. public URLs, Google Docs, etc.
+   */
+  OnlineDocument = 'online-document',
+
+  /**
+   * Web crawling from public websites
+   */
   WebCrawl = 'web-crawl',
+
+  /**
+   * Database connections, e.g. MySQL, PostgreSQL, etc.
+   * @deprecated Planning
+   */
   Database = 'database'
 }
 

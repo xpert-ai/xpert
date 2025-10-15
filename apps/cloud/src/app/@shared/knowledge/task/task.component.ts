@@ -5,10 +5,11 @@ import { IKnowledgebase, KnowledgeDocumentService } from '@cloud/app/@core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { MarkdownModule } from 'ngx-markdown'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmSpinComponent],
+  imports: [CommonModule, TranslateModule, MarkdownModule, NgmSpinComponent],
   selector: 'xp-knowledge-task',
   templateUrl: 'task.component.html',
   styleUrls: ['task.component.scss']

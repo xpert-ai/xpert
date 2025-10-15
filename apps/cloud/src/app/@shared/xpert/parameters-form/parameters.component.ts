@@ -6,6 +6,7 @@ import { SlashSvgComponent, VariableSvgComponent } from '@metad/ocap-angular/com
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TSelectOption, TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
 import { NgmSelectComponent } from '../../common'
@@ -55,6 +56,18 @@ export class XpertParametersFormComponent {
       return parameter
     })
   })
+
+  constructor() {
+    // If the initial value is null, but there are parameters with default values, set the value to those defaults
+    setTimeout(() => {
+      if (this.cva.value == null && this.parameters()?.some((param) => !isNil(param.default))) {
+        this.cva.writeValue(
+          this.parameters().reduce((acc, cur) => ({ ...acc, [cur.name]: cur.default ?? null }), {})
+        )
+      }
+    })
+  }
+
 
   getParameter(name: string) {
     return this.cva.value?.[name]

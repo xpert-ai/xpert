@@ -7,6 +7,7 @@ import {
 	IWFNUnderstanding,
 	IWorkflowNode,
 	IXpertAgentExecution,
+	KBDocumentStatusEnum,
 	KNOWLEDGE_STAGE_NAME,
 	KnowledgebaseChannel,
 	KnowledgeTask,
@@ -31,6 +32,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { RequestContext } from '@metad/server-core'
 import { createDocumentsParameter, serializeDocuments } from '../types'
 import { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
+import { getErrorMessage } from '@metad/server-common'
 
 const ErrorChannelName = 'error'
 const DocumentsChannelName = 'documents'
@@ -119,12 +121,14 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 							})
 						)
 
-						const visionModel = entity.visionModel ? await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(new CopilotModelGetChatModelQuery(
-							null, entity.visionModel, {
-									usageCallback: (token) => {
-										// execution.tokens += (token ?? 0)
-									}
-								})) : null
+						const visionModel = entity.visionModel ? await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
+							new CopilotModelGetChatModelQuery(
+								null, entity.visionModel, {
+										usageCallback: (token) => {
+											// execution.tokens += (token ?? 0)
+										}
+									})
+							) : null
 						
 						const volume = VolumeClient._getWorkspaceRoot(
 												RequestContext.currentTenantId(),
@@ -184,7 +188,15 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 						commandBus: this.commandBus,
 						queryBus: this.queryBus,
 						subscriber: subscriber,
-						execution
+						execution,
+						catchError: async (error) => {
+							if (!isTest) {
+								for await (const {id} of value) {
+									await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
+								}
+								await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
+							}
+						}
 					})()
 			}),
 			ends: [],

@@ -25,12 +25,14 @@
       <div class="flex flex-col gap-y-4 pt-4">
         <div class="flex w-full flex-col rounded-lg border border-components-panel-border bg-components-panel-bg">
           <div class="flex items-center gap-x-1 px-4 py-2">
-            <div class="system-sm-semibold-uppercase grow text-text-secondary">分段设置</div>
-            <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium" disabled="">重置</button>
+            <div class="system-sm-semibold-uppercase grow text-text-secondary">{{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}</div>
+            <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium" disabled="">
+              {{ 'PAC.ACTIONS.Reset' | translate: {Default: 'Reset'} }}
+            </button>
             <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium gap-x-0.5"
               (click)="previewChunks()">
               <i class="ri-eye-2-line"></i>
-              <span class="px-0.5">预览分段</span>
+              <span class="px-0.5">{{ 'PAC.Knowledgebase.PreviewChunks' | translate: {Default: 'Preview Chunks'} }}</span>
             </button>
           </div>
           <div class="flex flex-col gap-3 border-t border-divider-subtle px-4 py-3">
@@ -46,10 +48,10 @@
           <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium gap-x-0.5"
             (click)="previousStep()">
             <i class="ri-arrow-left-line"></i>
-            <span class="px-0.5">数据源</span>
+            <span class="px-0.5">{{ 'PAC.Knowledgebase.DocumentSource' | translate: {Default: 'Document Source'} }}</span>
           </button>
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-            (click)="saveAndProcess()">保存并处理</button>
+            (click)="saveAndProcess()">{{ 'PAC.Knowledgebase.SaveAndProcess' | translate: {Default: 'Save and Process'} }}</button>
         </div>
       </div>
     </div>
@@ -120,9 +122,11 @@
             <div class="flex h-full w-full items-center justify-center">
               <div class="flex flex-col items-center justify-center gap-3 pb-4">
                 <i class="ri-eye-2-line text-2xl"></i>
-                <p class="text-sm text-text-tertiary">点击左侧的“预览块”按钮来加载预览</p>
+                <p class="text-sm text-text-tertiary">
+                  {{ 'PAC.Knowledgebase.PreviewDocHint' | translate: {Default: 'Click the "Document" button on the left to load a preview'} }}
+                </p>
                 <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
-                  (click)="previewChunks()">预览分段</button>
+                  (click)="previewChunks()">{{ 'PAC.Knowledgebase.PreviewChunks' | translate: {Default: 'Preview Chunks'} }}</button>
               </div>
             </div>
           }

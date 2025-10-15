@@ -23,6 +23,19 @@ export class WorkflowUnderstandingNodeValidator {
 		const entity = node.entity as IWFNUnderstanding
 		const items: ChecklistItem[] = []
 
+		if (entity.visionModel && !entity.visionModel.copilotId) {
+			items.push({
+				node: node.key,
+				field: 'visionModel',
+				message: {
+					en_US: `Vision model is required`,
+					zh_Hans: `视觉模型是必需的`
+				},
+				level: 'error',
+				ruleCode: 'KNOWLEDGEBASE_UNDERSTANDING_VISION_MODEL_REQUIRED'
+			})
+		}
+
 		return items
 	}
 }

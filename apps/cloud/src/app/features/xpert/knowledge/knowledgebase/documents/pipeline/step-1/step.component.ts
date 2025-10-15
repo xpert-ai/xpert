@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CustomIconComponent } from '@cloud/app/@shared/avatar'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 import { myRxResource, NgmI18nPipe, omitBlank } from '@metad/ocap-angular/core'
 import { nonNullable } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -31,6 +31,9 @@ import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
+import { MarkdownModule } from 'ngx-markdown'
+import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
+
 
 @Component({
   standalone: true,
@@ -47,8 +50,10 @@ import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
     MatTooltipModule,
     MatProgressBarModule,
     ContentLoaderModule,
+    MarkdownModule,
     NgmI18nPipe,
-    CustomIconComponent,
+    NgmCheckboxComponent,
+    IconComponent,
     KnowledgeChunkComponent,
     KnowledgeLocalFileComponent,
     XpertParametersFormComponent
@@ -121,18 +126,18 @@ export class KnowledgeDocumentPipelineStep1Component {
   readonly selectedFile = model<KnowledgeFileUploader | null>(null)
 
   // Web Crawl
-  readonly selectedWebDocument = model<Partial<IKnowledgeDocument> | null>(null)
+  readonly selectedDocument = model<Partial<IKnowledgeDocument> | null>(null)
 
   // Preview
-  // readonly preview = signal<boolean>(true)
   readonly testing = signal<boolean>(false)
+  readonly error = signal<string>(null)
 
   constructor() {
     effect(
       () => {
         if (this.createFileTask.value()) {
           this.taskId.set(this.createFileTask.value().id)
-          this.documentIds.set(this.createFileTask.value().context?.documents?.map((doc) => doc.id) ?? [])
+          this.setSelection(this.createFileTask.value().context?.documents?.map((doc) => doc.id) ?? [])
         }
       },
       { allowSignalWrites: true }
@@ -153,6 +158,7 @@ export class KnowledgeDocumentPipelineStep1Component {
 
   runStep() {
     this.testing.set(true)
+    this.error.set(null)
     this.agentAPI
       .test(this.pipeline().id, this.selectedSource().key, {
         [STATE_VARIABLE_HUMAN]: {
@@ -173,13 +179,19 @@ export class KnowledgeDocumentPipelineStep1Component {
           this.testing.set(false)
           this.taskId.set(results[KnowledgebaseChannel].task_id)
           const channel = channelName(this.selectedSource().key)
-          this.pipelineComponent.documentIds.set(results[channel]?.documents?.map((doc) => doc.id) ?? [])
+          this.setSelection(results[channel]?.documents?.map((doc) => doc.id) ?? [])
+          this.pipelineComponent.reloadTasks()
         },
         error: (err) => {
           this.testing.set(false)
-          console.error(err)
+          this.error.set(getErrorMessage(err))
           this.#toastr.danger(getErrorMessage(err))
         }
       })
+  }
+
+  setSelection(ids: string[]) {
+    this.documentIds.clear()
+    this.documentIds.select(...ids)
   }
 }

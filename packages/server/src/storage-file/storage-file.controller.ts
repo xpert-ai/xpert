@@ -18,7 +18,7 @@ import path from 'path'
 import { StorageFileService } from './storage-file.service'
 import { FileStorage, UploadedFileStorage } from '../core/file-storage'
 import { StorageFile } from './storage-file.entity'
-import { UUIDValidationPipe } from '../shared'
+import { UUIDValidationPipe } from '../shared/pipes'
 import { LazyFileInterceptor } from '../core/interceptors'
 
 @ApiTags('StorageFile')

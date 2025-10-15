@@ -8,7 +8,7 @@ import {
 	Repository,
 	UpdateResult
 } from 'typeorm';
-import { IBasePerTenantEntityModel, IPagination, IUser } from '@metad/contracts';
+import { IBasePerTenantEntityModel, ID, IPagination, IUser } from '@metad/contracts';
 import { RequestContext } from '../context';
 import { TenantBaseEntity, User } from '../entities/internal';
 import { CrudService } from './crud.service';
@@ -149,18 +149,48 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 		return await super.findAll(this.findManyWithTenant(filter));
 	}
 
-	public async findOneOrFail(
-		id: string | number | FindOneOptions<T> | FindOptionsWhere<T>,
-		options?: FindOneOptions<T>
-	): Promise<ITryRequest<T>> {
-		if (typeof id === 'object') {
-			const firstOptions = id as FindOneOptions<T>;
-			return await super.findOneOrFail(
-				this.findManyWithTenant(firstOptions),
-				options
-			);
-		}
-		return await super.findOneOrFail(id, this.findManyWithTenant(options));
+	/*
+	|--------------------------------------------------------------------------
+	| @FindOneOrFail
+	|--------------------------------------------------------------------------
+	*/
+
+	/**
+	 * Finds first entity by a given find options with current tenant.
+	 * If entity was not found in the database - rejects with error.
+	 *
+	 * @param id
+	 * @param options
+	 * @returns
+	 */
+	public async findOneOrFailByIdString(id: ID, options?: FindOneOptions<T>): Promise<ITryRequest<T>> {
+		return await super.findOneOrFailByIdString(id, this.findOneWithTenant(options));
+	}
+
+	/**
+	 * Finds first entity that matches given options with current tenant.
+	 * If entity was not found in the database - rejects with error.
+	 *
+	 * @param options
+	 * @returns
+	 */
+	public async findOneOrFailByOptions(options?: FindOneOptions<T>): Promise<ITryRequest<T>> {
+		return await super.findOneOrFailByOptions(this.findOneWithTenant(options));
+	}
+
+	/**
+	 * Finds first entity that matches given where condition with current tenant.
+	 * If entity was not found in the database - rejects with error.
+	 *
+	 * @param options
+	 * @returns
+	 */
+	public async findOneOrFailByWhereOptions(options: FindOptionsWhere<T>): Promise<ITryRequest<T>> {
+		const user = RequestContext.currentUser();
+		return await super.findOneOrFailByWhereOptions({
+			...options,
+			...this.findConditionsWithTenantByUser(user)
+		});
 	}
 
 	public async findOne(

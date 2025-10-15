@@ -103,34 +103,33 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 		}
 	}
 }
-
 export interface XpertPluginModuleOptions {
-  /** 明确的插件包名列表（优先） */
-  plugins?: string[];
-  /** 自动发现选项（当未显式传入 plugins 时生效） */
-  discovery?: { prefix?: string; manifestPath?: string };
-  /** 主应用注入的配置表（按插件名索引） */
-  configs?: Record<string, unknown>;
+	/** Explicit list of plugin package names (takes precedence) */
+	plugins?: string[];
+	/** Auto-discovery options (effective when plugins are not explicitly provided) */
+	discovery?: { prefix?: string; manifestPath?: string };
+	/** Configuration map injected by the main app (indexed by plugin name) */
+	configs?: Record<string, unknown>;
 }
 
 export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) {
-    // 注意：Nest 的 registerAsync 通常返回同步对象。这里提供一个工厂函数供上层调用时先 await。
-    const pluginNames = opts.plugins?.length ? opts.plugins : discoverPlugins(process.cwd(), opts.discovery);
+	// Note: Nest's registerAsync usually returns a synchronous object. Here we provide a factory function for the caller to await first.
+	const pluginNames = opts.plugins?.length ? opts.plugins : discoverPlugins(process.cwd(), opts.discovery);
 
-    const modules: DynamicModule[] = [];
+	const modules: DynamicModule[] = [];
 
-    for (const name of pluginNames) {
-      const plugin = await loadPlugin(name);
-      const cfgRaw = opts.configs?.[plugin.meta.name] ?? {};
-      const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config);
-      // 先构造一个临时 ctx，占位，真正 app 上线后再补全 app 实例
-      const ctx = createPluginContext<any>({} as any, plugin.meta.name, cfg);
-      const mod = plugin.register(ctx);
-      modules.push(mod);
-      loaded.push({ name: plugin.meta.name, instance: plugin, ctx });
-    }
+	for (const name of pluginNames) {
+		const plugin = await loadPlugin(name);
+		const cfgRaw = opts.configs?.[plugin.meta.name] ?? {};
+		const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config);
+		// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
+		const ctx = createPluginContext<any>({} as any, plugin.meta.name, cfg);
+		const mod = plugin.register(ctx);
+		modules.push(mod);
+		loaded.push({ name: plugin.meta.name, instance: plugin, ctx });
+	}
 
-    return {
-      modules,
-    };
+	return {
+		modules,
+	};
 }

@@ -16,7 +16,7 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { KnowledgeLocalFileComponent } from '@cloud/app/@shared/knowledge'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmCheckboxComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, myRxResource, omitBlank } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -32,9 +32,10 @@ import {
   KnowledgeFileUploader,
   XpertAgentService
 } from 'apps/cloud/src/app/@core'
-import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { nonNullable } from '@metad/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
+import { SelectionModel } from '@angular/cdk/collections'
+import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
 @Component({
   selector: 'xpert-workflow-source-test',
@@ -51,7 +52,8 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
     NgmSpinComponent,
     XpertParametersFormComponent,
     KnowledgeLocalFileComponent,
-    ContentLoaderModule
+    ContentLoaderModule,
+    NgmCheckboxComponent
   ]
 })
 export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent {
@@ -95,9 +97,9 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
       return request?.taskId ? this.knowledgebaseAPI.getTask(request.knowledgebaseId, request.taskId) : null
     }
   })
-  readonly documentIds = signal<string[]>([])
+  readonly documentIds = new SelectionModel<string>(true, [])
   readonly documents = computed(
-    () => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds()?.includes(doc.id)) || []
+    () => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds?.isSelected(doc.id)) || []
   )
 
   readonly testing = signal(false)
@@ -119,7 +121,7 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
         this.createFilesTask()
         break
       }
-      case DocumentSourceProviderCategoryEnum.WebCrawl: {
+      default: {
         this.test()
         break
       }
@@ -142,7 +144,7 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
           this.testing.set(false)
           this.taskId.set(results[KnowledgebaseChannel].task_id)
           const channel = channelName(this.key())
-          this.documentIds.set(results[channel]?.documents?.map((doc) => doc.id) ?? [])
+          this.setDocumentIds(results[channel]?.documents?.map((doc) => doc.id) ?? [])
         },
         error: (err) => {
           this.testing.set(false)
@@ -170,7 +172,7 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
       next: (task) => {
         this.testing.set(false)
         this.taskId.set(task.id)
-        this.documentIds.set(task.context?.documents?.map((doc) => doc.id) ?? [])
+        this.setDocumentIds(task.context?.documents?.map((doc) => doc.id) ?? [])
         this.successMessage.set(null)
       },
       error: (err) => {
@@ -186,7 +188,7 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
       .processTask(this.knowledgebase().id, this.taskId(), {
         sources: {
           [this.key()]: {
-            documents: this.documentIds()
+            documents: this.documentIds.selected
           }
         },
         stage: 'preview'
@@ -208,6 +210,11 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
     this.closed.emit()
     this.testing.set(false)
     this.taskId.set(null)
-    this.documentIds.set([])
+    this.documentIds.clear()
+  }
+
+  setDocumentIds(ids: string[]) {
+    this.documentIds.clear()
+    this.documentIds.setSelection(...ids)
   }
 }

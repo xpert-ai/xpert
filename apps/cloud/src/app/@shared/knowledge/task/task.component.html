@@ -42,9 +42,16 @@
             }
           }
         </div>
-        <div class="font-medium">
-          {{ 'PAC.KEY_WORDS.Error' | translate: {Default: 'Error'} }}:
-          <span class="text-sm font-body text-text-destructive">{{ task.error }}</span></div>
+        <div>
+          <span class="font-medium">{{ 'PAC.KEY_WORDS.Error' | translate: {Default: 'Error'} }}:</span>
+          <markdown  class="block mt-1 p-2 rounded-xl overflow-hidden border border-solid border-text-destructive" 
+            [disableSanitizer]="true"
+            lineNumbers
+            [start]="5"
+            [data]="task.error"
+          />
+        </div>
+
         <!-- <div class="font-medium">文档:
           @for (doc of task.context?.documents; track doc) {
             <a class="text-sm text-blue-600 underline" [href]="doc.fileUrl" target="_blank">{{ doc.name }}</a>

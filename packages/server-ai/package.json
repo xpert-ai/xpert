@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-ai",
-  "version": "3.6.0-beta.3",
+  "version": "3.6.0-beta.6",
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {
@@ -20,6 +20,7 @@
     "@langchain/google-genai": "0.2.16",
     "@langchain/ollama": "0.2.3",
     "@langchain/xai": "0.1.0",
+    "@larksuiteoapi/node-sdk": "^1.30.0",
     "@modelcontextprotocol/sdk": "^1.17.4",
     "@nestjs/schedule": "6.0.0",
     "@notionhq/client": "2.2.15",

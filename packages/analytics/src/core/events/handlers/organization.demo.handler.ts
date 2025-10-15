@@ -343,8 +343,8 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		// Remove existing data sources with the same name
 		const dataSources = await this.dsRepository.find({
 			where: {
-				tenant: this.tenant,
-				organization: this.organization,
+				tenantId: this.tenant.id,
+				organizationId: this.organization.id,
 				name: _dataSource.name
 			}
 		})
@@ -390,8 +390,8 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		// Remove existing data sources with the same name
 		const dataSources = await this.dsRepository.find({
 			where: {
-				tenant: this.tenant,
-				organization: this.organization,
+				tenantId: this.tenant.id,
+				organizationId: this.organization.id,
 				name: _dataSource.name
 			}
 		})
@@ -439,8 +439,8 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		// Remove existing data sources with the same name
 		const dataSources = await this.dsRepository.find({
 			where: {
-				tenant: this.tenant,
-				organization: this.organization,
+				tenantId: this.tenant.id,
+				organizationId: this.organization.id,
 				name: dataSource.name
 			}
 		})
@@ -452,7 +452,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		// Create new data source
 		const type = await this.dstRepository.findOne({
 			where: {
-				tenant: this.tenant,
+				tenantId: this.tenant.id,
 				type: dataSource.type as string
 			}
 		})

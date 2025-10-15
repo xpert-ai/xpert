@@ -1,0 +1,22 @@
+<ol class="grid grid-cols-2 gap-2 items-start" cdkListbox cdkListboxMultiple [(ngModel)]="features">
+  @for (option of featureCategories(); track option.value) {
+    <li #opt="cdkOption" class="type-option group relative flex flex-col h-24 max-w-xs border-2 border-solid border-gray-100 rounded-2xl p-2 cursor-pointer
+      hover:border-gray-200 hover:bg-gray-50 hover:shadow-sm"
+      [cdkOption]="option.value"
+      [class.active]="opt.isSelected()"
+    >
+      <div class="flex justify-start items-center gap-1 pb-2">
+        @if (opt.isSelected()) {
+          <i class="ri-checkbox-circle-line text-2xl leading-none text-primary-500"></i>
+        }
+        <h4 class="text-base font-semibold capitalize text-text-secondary group-hover:text-text-primary">
+          {{ 'PAC.Onboarding.FeatureCategory_' + option.value | translate }}
+        </h4>
+      </div>
+      
+      <p class="grow text-sm font-normal font-body leading-5 line-clamp-2 text-text-tertiary group-hover:text-text-secondary" [title]="'PAC.Onboarding.FeatureCategoryDesc_' + option.value | translate">
+        {{ 'PAC.Onboarding.FeatureCategoryDesc_' + option.value | translate }}
+      </p>
+    </li>
+  }
+</ol>

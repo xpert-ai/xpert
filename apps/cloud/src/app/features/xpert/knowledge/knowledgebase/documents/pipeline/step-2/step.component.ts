@@ -101,7 +101,7 @@ export class KnowledgeDocumentPipelineStep2Component {
       .processTask(this.knowledgebase().id, this.taskId(), {
         sources: {
           [this.selectedSource().key]: {
-            documents: this.documentIds()
+            documents: this.documentIds.selected
           }
         },
         stage: 'prod'
@@ -122,7 +122,7 @@ export class KnowledgeDocumentPipelineStep2Component {
       .processTask(this.knowledgebase().id, this.taskId(), {
         sources: {
           [this.selectedSource().key]: {
-            documents: this.documentIds()
+            documents: this.documentIds.selected
           }
         },
         stage: 'preview'

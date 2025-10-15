@@ -1,3 +1,4 @@
+import { IconType, IKnowledgeDocument } from '@metad/contracts'
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
@@ -6,11 +7,10 @@ import {
   IDocumentTransformerStrategy,
   IntegrationPermission,
   TDocumentTransformerConfig,
-  TDocumentTransformerFile
 } from '@xpert-ai/plugin-sdk'
 import { MinerUClient } from './mineru.client'
 import { MinerUResultParserService } from './result-parser.service'
-import { icon, MinerU, TDocumentParseResult } from './types'
+import { icon, MinerU } from './types'
 
 @Injectable()
 @DocumentTransformerStrategy(MinerU)
@@ -45,7 +45,8 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<T
       zh_Hans: '一站式开源高质量数据提取工具，将PDF转换成Markdown和JSON格式。'
     },
     icon: {
-      svg: icon,
+      type: 'svg' as IconType,
+      value: icon,
       color: '#14b8a6'
     },
     helpUrl: 'https://mineru.net/apiManage/docs',
@@ -123,11 +124,11 @@ export class MinerUTransformerStrategy implements IDocumentTransformerStrategy<T
   }
 
   async transformDocuments(
-    files: TDocumentTransformerFile[],
+    files: Partial<IKnowledgeDocument>[],
     config: TDocumentTransformerConfig
-  ): Promise<TDocumentParseResult[]> {
+  ): Promise<Partial<IKnowledgeDocument>[]> {
     const mineru: MinerUClient = new MinerUClient(this.configService, config.permissions?.integration)
-    const parsedResults: TDocumentParseResult[] = []
+    const parsedResults: Partial<IKnowledgeDocument>[] = []
     for await (const file of files) {
       const { taskId } = await mineru.createTask({
         url: file.fileUrl,

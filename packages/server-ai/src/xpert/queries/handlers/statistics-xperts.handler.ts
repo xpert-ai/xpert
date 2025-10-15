@@ -1,12 +1,15 @@
+import { RequestContext } from '@metad/server-core'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { getRepository } from 'typeorm'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
 import { StatisticsXpertsQuery } from '../statistics-xperts.query'
 import { Xpert } from '../../xpert.entity'
-import { RequestContext } from '@metad/server-core'
 
 @QueryHandler(StatisticsXpertsQuery)
 export class StatisticsXpertsHandler implements IQueryHandler<StatisticsXpertsQuery> {
 	constructor(
+		@InjectRepository(Xpert)
+		private readonly repository: Repository<Xpert>,
 		private readonly queryBus: QueryBus
 	) {}
 
@@ -15,9 +18,7 @@ export class StatisticsXpertsHandler implements IQueryHandler<StatisticsXpertsQu
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
-		const repository = getRepository(Xpert)
-
-		const query = repository
+		const query = this.repository
 			.createQueryBuilder('xpert')
 			.select('COUNT(DISTINCT xpert.id) AS count')
 			.where('xpert.tenantId = :tenantId', {tenantId})

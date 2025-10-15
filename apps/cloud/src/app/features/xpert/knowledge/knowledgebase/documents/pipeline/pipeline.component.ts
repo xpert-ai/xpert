@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common'
+import { SelectionModel } from '@angular/cdk/collections'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -118,8 +119,8 @@ export class KnowledgeDocumentPipelineComponent {
       return request?.taskId ? this.knowledgebaseAPI.getTask(request.knowledgebaseId, request.taskId) : null
     }
   })
-  readonly documentIds = signal<string[]>([])
-  readonly documents = computed(() => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds()?.includes(doc.id)))
+  readonly documentIds = new SelectionModel<string>(true, [])
+  readonly documents = computed(() => this.#taskResource.value()?.context?.documents?.filter((doc) => this.documentIds.isSelected(doc.id)))
 
   readonly files = model<KnowledgeFileUploader[]>([])
 
@@ -135,5 +136,9 @@ export class KnowledgeDocumentPipelineComponent {
 
   previousStep() {
     this.step.update((n) => n - 1)
+  }
+
+  reloadTasks() {
+    this.#taskResource.reload()
   }
 }

@@ -1,13 +1,15 @@
-import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { getRepository } from 'typeorm'
-import { ChatConversation } from '../../../core/entities/internal'
-import { StatisticsXpertTokensQuery } from '../statistics-xpert-tokens.query'
 import { RequestContext } from '@metad/server-core'
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
+import { Xpert } from '../../xpert.entity'
+import { StatisticsXpertTokensQuery } from '../statistics-xpert-tokens.query'
 
 @QueryHandler(StatisticsXpertTokensQuery)
 export class StatisticsXpertTokensHandler implements IQueryHandler<StatisticsXpertTokensQuery> {
 	constructor(
-		private readonly queryBus: QueryBus
+        @InjectRepository(Xpert)
+        private readonly repository: Repository<Xpert>,
 	) {}
 
 	public async execute(command: StatisticsXpertTokensQuery) {
@@ -15,9 +17,8 @@ export class StatisticsXpertTokensHandler implements IQueryHandler<StatisticsXpe
         const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
-		const repository = getRepository(ChatConversation)
 
-		return await repository.manager.query(`SELECT 
+		return await this.repository.manager.query(`SELECT 
     slug, 
     SUM(tokens) AS tokens,
     SUM(latency) AS latency,

@@ -105,14 +105,9 @@ export abstract class CrudService<T extends BaseEntity>
 	*/
 
 	/**
-	 * Finds first entity by a given find options.
-	 * If entity was not found in the database - rejects with error.
-	 *
-	 * @param id
-	 * @param options
-	 * @returns
+	 * @internal
 	 */
-	public async findOneOrFailByIdString(id: string, options?: IFindOneOptions<T>): Promise<ITryRequest<T>> {
+	protected async _findOneOrFailByIdString(id: string, options?: IFindOneOptions<T>): Promise<ITryRequest<T>> {
 		try {
 			options = options as FindOneOptions<T>;
 			const record = await this.repository.findOneOrFail({
@@ -126,7 +121,37 @@ export abstract class CrudService<T extends BaseEntity>
 			} as FindOneOptions<T>);
 			return {
 				success: true,
-				record: this.serialize(record)
+				record
+			};
+		} catch (error) {
+			return {
+				success: false,
+				error
+			};
+		}
+	}
+
+	/**
+	 * Finds first entity by a given find options.
+	 * If entity was not found in the database - rejects with error.
+	 *
+	 * @param id
+	 * @param options
+	 * @returns
+	 */
+	public async findOneOrFailByIdString(id: string, options?: IFindOneOptions<T>): Promise<ITryRequest<T>> {
+		return this._findOneOrFailByIdString(id, options);
+	}
+
+	/**
+	 * @internal
+	 */
+	protected async _findOneOrFailByOptions(options: IFindOneOptions<T>): Promise<ITryRequest<T>> {
+		try {
+			const record = await this.repository.findOneOrFail(options as FindOneOptions<T>);
+			return {
+				success: true,
+				record: record
 			};
 		} catch (error) {
 			return {
@@ -144,18 +169,7 @@ export abstract class CrudService<T extends BaseEntity>
 	 * @returns
 	 */
 	public async findOneOrFailByOptions(options: IFindOneOptions<T>): Promise<ITryRequest<T>> {
-		try {
-			const record = await this.repository.findOneOrFail(options as FindOneOptions<T>);
-			return {
-				success: true,
-				record: this.serialize(record)
-			};
-		} catch (error) {
-			return {
-				success: false,
-				error
-			};
-		}
+		return this._findOneOrFailByOptions(options);
 	}
 
 	/**
@@ -206,7 +220,7 @@ export abstract class CrudService<T extends BaseEntity>
 
 			return {
 				success: true,
-				record: this.serialize(record)
+				record: record
 			};
 		} catch (error) {
 			return {
@@ -302,7 +316,7 @@ export abstract class CrudService<T extends BaseEntity>
 		if (!record) {
 			throw new NotFoundException(`The requested record was not found`);
 		}
-		return this.serialize(record);
+		return record
 	}
 	
 
@@ -441,15 +455,4 @@ export abstract class CrudService<T extends BaseEntity>
 			throw new NotFoundException(`An error occurred during restoring entity: ${error.message}`);
 		}
 	}
-
-	/**
-	 * Serializes the provided entity based on the ORM type.
-	 * @param entity The entity to be serialized.
-	 * @returns The serialized entity.
-	 */
-	protected serialize(entity: T): T {
-		// If using other ORM types, return the entity as is
-		return entity;
-	}
-
 }

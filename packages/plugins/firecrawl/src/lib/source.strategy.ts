@@ -1,4 +1,4 @@
-import { DocumentSourceProviderCategoryEnum, I18nObject, IIntegration } from '@metad/contracts'
+import { DocumentSourceProviderCategoryEnum, I18nObject, IDocumentSourceProvider, IIntegration } from '@metad/contracts'
 import { Inject, Injectable } from '@nestjs/common'
 import { DocumentSourceStrategy, IDocumentSourceStrategy, IntegrationPermission } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
@@ -19,7 +19,7 @@ export class FirecrawlSourceStrategy implements IDocumentSourceStrategy<Firecraw
     } as IntegrationPermission
   ]
 
-  readonly meta = {
+  readonly meta: IDocumentSourceProvider = {
     name: Firecrawl,
     category: DocumentSourceProviderCategoryEnum.WebCrawl,
     label: {
@@ -45,7 +45,8 @@ export class FirecrawlSourceStrategy implements IDocumentSourceStrategy<Firecraw
       required: []
     },
     icon: {
-      svg: icon,
+      type: 'svg',
+      value: icon,
       color: '#4CAF50'
     }
   }
