@@ -91,10 +91,7 @@
     }
   },
   "release": {
-    "projects": ["packages/contracts", "packages/plugin-sdk", "lark"],
-    "version": {
-      "preVersionCommand": "yarn nx run-many -t build"
-    }
+    "projects": ["packages/contracts", "packages/server", "packages/plugin-sdk"]
   },
   "plugins": [
     {

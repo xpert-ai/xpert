@@ -38,7 +38,8 @@
   },
   "dependencies": {
     "@nestjs/platform-socket.io": "^11.1.6",
-    "@nestjs/websockets": "^11.1.6"
+    "@nestjs/websockets": "^11.1.6",
+    "@xpert-ai/plugin-lark": "0.0.4"
   },
   "devDependencies": {
     "@types/socket.io": "3.0.1",

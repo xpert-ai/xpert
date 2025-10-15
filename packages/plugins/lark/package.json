@@ -1,7 +1,0 @@
-{
-  "name": "@xpert-ai/plugin-lark",
-  "version": "0.0.1",
-  "dependencies": {},
-  "main": "./index.cjs",
-  "module": "./index.js"
-}
