@@ -2,9 +2,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 export interface DiscoveryOptions {
-  /** 包名前缀约定，如 '@xpert-ai/plugin-' 或 'xpert-plugin-' */
+  /** Package name prefix convention, such as '@xpert-ai/plugin-' or 'xpert-plugin-' */
   prefix?: string;
-  /** 指定清单文件路径（JSON），优先于前缀扫描 */
+  /** Specify manifest file path (JSON), takes precedence over prefix scanning */
   manifestPath?: string; // e.g. ./plugins.json
 }
 
@@ -12,18 +12,18 @@ export function discoverPlugins(cwd = process.cwd(), opts: DiscoveryOptions = {}
   const nodeModules = path.join(cwd, 'node_modules');
   const out = new Set<string>();
 
-  // 1) 清单优先
+  // 1) Manifest takes precedence
   if (opts.manifestPath && fs.existsSync(opts.manifestPath)) {
     const list = JSON.parse(fs.readFileSync(opts.manifestPath, 'utf8')) as string[];
     list.forEach((p) => out.add(p));
     return Array.from(out);
   }
 
-  // 2) 前缀扫描（仅扫描顶层与作用域包）
+  // 2) Prefix scanning (only scan top-level and scoped packages)
   if (!fs.existsSync(nodeModules)) return [];
   const prefix = opts.prefix ?? '@xpert-ai/plugin-';
   for (const entry of fs.readdirSync(nodeModules)) {
-    // 作用域包
+    // Scoped packages
     if (entry.startsWith('@')) {
       const scopeDir = path.join(nodeModules, entry);
       for (const scoped of fs.readdirSync(scopeDir)) {
@@ -34,7 +34,7 @@ export function discoverPlugins(cwd = process.cwd(), opts: DiscoveryOptions = {}
       }
       continue;
     }
-    // 顶层包
+    // Top-level packages
     if (entry.startsWith(prefix)) out.add(entry);
   }
   return Array.from(out);

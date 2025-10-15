@@ -1,6 +1,6 @@
 {
   "name": "@metad/xpert-api",
-  "version": "3.6.0-beta.4",
+  "version": "3.6.0-beta.6",
   "description": "Xpert API",
   "license": "AGPL-3.0",
   "homepage": "https://mtda.cloud",
@@ -38,8 +38,7 @@
   },
   "dependencies": {
     "@nestjs/platform-socket.io": "^11.1.6",
-    "@nestjs/websockets": "^11.1.6",
-    "@xpert-ai/plugin-lark": "0.0.4"
+    "@nestjs/websockets": "^11.1.6"
   },
   "devDependencies": {
     "@types/socket.io": "3.0.1",
