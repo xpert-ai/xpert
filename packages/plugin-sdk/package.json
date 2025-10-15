@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-sdk",
-  "version": "3.6.0-beta.4",
+  "version": "3.6.0",
   "license": "AGPL-3.0",
   "dependencies": {},
   "main": "./index.cjs",
