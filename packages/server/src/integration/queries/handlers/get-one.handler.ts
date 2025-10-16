@@ -14,6 +14,6 @@ export class GetIntegrationHandler implements IQueryHandler<GetIntegrationQuery>
 
 	public async execute(command: GetIntegrationQuery) {
 		const { id } = command
-		return this.service.findOne(id)
+		return this.service.findOne(id, command.params)
 	}
 }

@@ -56,6 +56,11 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
+    },
+    "@nx/js:tsc": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
     }
   },
   "namedInputs": {
@@ -91,7 +96,10 @@
     }
   },
   "release": {
-    "projects": ["packages/contracts", "packages/server", "packages/plugin-sdk"]
+    "projects": ["packages/contracts", "packages/server", "packages/plugin-sdk", "lark"],
+    "version": {
+      "preVersionCommand": "yarn nx run-many -t build"
+    }
   },
   "plugins": [
     {

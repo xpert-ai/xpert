@@ -1,3 +1,4 @@
+import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -6,6 +7,8 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { environment } from '@cloud/environments/environment'
 import { IsDirty } from '@metad/core'
 import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -14,10 +17,13 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EmojiAvatarComponent, IconComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
+import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import omit from 'lodash-es/omit'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
-import { BehaviorSubject, distinctUntilChanged, EMPTY, map, pipe, startWith, switchMap } from 'rxjs'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
+import { BehaviorSubject, distinctUntilChanged, EMPTY, pipe, startWith, switchMap } from 'rxjs'
 import {
   getErrorMessage,
   injectApiBaseUrl,
@@ -25,15 +31,8 @@ import {
   IntegrationService,
   routeAnimations,
   Store,
-  TIntegrationProvider,
-  ToastrService,
+  ToastrService
 } from '../../../../@core'
-import { TextFieldModule } from '@angular/cdk/text-field'
-import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
-import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
-import { environment } from '@cloud/environments/environment'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { injectQueryParams } from 'ngxtension/inject-query-params'
 
 @Component({
   standalone: true,
@@ -83,7 +82,7 @@ export class IntegrationComponent implements IsDirty {
   readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
 
   // Childs
-  readonly optionsForm = viewChild('optionsForm', {read: ParameterFormComponent})
+  readonly optionsForm = viewChild('optionsForm', { read: ParameterFormComponent })
 
   // States
   readonly organizationId$ = this.#store.selectOrganizationId()
@@ -96,7 +95,7 @@ export class IntegrationComponent implements IsDirty {
       label: provider.label,
       description: provider.description,
       avatar: provider.avatar,
-      _icon: provider.icon,
+      _icon: provider.icon
     }))
   })
 
@@ -108,7 +107,7 @@ export class IntegrationComponent implements IsDirty {
     slug: new FormControl(null),
     provider: new FormControl(null),
     options: new FormControl(null),
-    features: new FormControl([]),
+    features: new FormControl([])
   })
 
   get optionsControl() {
@@ -123,14 +122,13 @@ export class IntegrationComponent implements IsDirty {
     return this.formGroup.value?.name
   }
 
-  readonly provider = toSignal(this.formGroup.get('provider').valueChanges.pipe(
-    startWith(this.formGroup.get('provider').value),
-    distinctUntilChanged()
-  ))
-
-  readonly integrationProvider = computed(() =>
-    this.#providers().find((p) => p.name === this.provider())
+  readonly provider = toSignal(
+    this.formGroup
+      .get('provider')
+      .valueChanges.pipe(startWith(this.formGroup.get('provider').value), distinctUntilChanged())
   )
+
+  readonly integrationProvider = computed(() => this.#providers().find((p) => p.name === this.provider()))
 
   readonly schema = computed(() => this.integrationProvider()?.schema)
 
@@ -147,17 +145,24 @@ export class IntegrationComponent implements IsDirty {
 
   readonly loading = signal(true)
 
-  readonly webhookUrl = computed(() =>
-    this.integration() && this.integrationProvider()?.webhookUrl ? this.integrationProvider().webhookUrl(this.integration(), this.apiBaseUrl) : null
-  )
+  readonly webhookUrl = computed(() => {
+    const webhookUrl = this.integrationProvider()?.webhookUrl
+    if (this.integration() && webhookUrl) {
+      return webhookUrl.replace('{{apiBaseUrl}}', this.apiBaseUrl).replace('{{integrationId}}', this.integration().id)
+    }
+    return null
+  })
 
   constructor() {
-    effect(() => {
-      // Set provider from query when create new integration
-      if (this._providerQuery() && !this.paramId()) {
-        this.formGroup.get('provider').setValue(this._providerQuery())
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        // Set provider from query when create new integration
+        if (this._providerQuery() && !this.paramId()) {
+          this.formGroup.get('provider').setValue(this._providerQuery())
+        }
+      },
+      { allowSignalWrites: true }
+    )
 
     effect(
       () => {
@@ -172,11 +177,14 @@ export class IntegrationComponent implements IsDirty {
       { allowSignalWrites: true }
     )
 
-    effect(() => {
-      if (this.integrationProvider()) {
-        this.formGroup.get('features').setValue(this.integrationProvider().features || [])
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.integrationProvider()) {
+          this.formGroup.get('features').setValue(this.integrationProvider().features || [])
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   isDirty(): boolean {
@@ -194,7 +202,7 @@ export class IntegrationComponent implements IsDirty {
         this.formGroup.patchValue(result)
         this.formGroup.markAsDirty()
         this.loading.set(false)
-        this.#toastr.success('PAC.Messages.TestSuccessfully', {Default: 'Test successfully!'})
+        this.#toastr.success('PAC.Messages.TestSuccessfully', { Default: 'Test successfully!' })
       },
       error: (error) => {
         this.#toastr.danger(getErrorMessage(error))
@@ -204,7 +212,7 @@ export class IntegrationComponent implements IsDirty {
   }
 
   upsert() {
-    (this.formGroup.value.id
+    ;(this.formGroup.value.id
       ? this.integrationAPI.update(this.formGroup.value.id, {
           ...this.formGroup.value
         })
@@ -228,5 +236,4 @@ export class IntegrationComponent implements IsDirty {
   close(refresh = false) {
     this.#router.navigate(['../'], { relativeTo: this.#route })
   }
-
 }
