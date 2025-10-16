@@ -46,6 +46,7 @@ export class KnowledgeDocumentPreviewComponent {
       parserConfig: this.sheetParserConfig(),
       fileUrl: this.document()?.fileUrl,
       filePath: this.document()?.filePath,
+      name: this.document()?.name,
       // storageFileId: this.document()?.storageFile?.id,
       knowledgebaseId: this.knowledgebase().id
     } : {
@@ -54,6 +55,7 @@ export class KnowledgeDocumentPreviewComponent {
       parserConfig: this.parserConfig(),
       fileUrl: this.document()?.fileUrl,
       filePath: this.document()?.filePath,
+      name: this.document()?.name,
       // storageFileId: this.document()?.storageFile?.id,
       knowledgebaseId: this.knowledgebase().id
     }),

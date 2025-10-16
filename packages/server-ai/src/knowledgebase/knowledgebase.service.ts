@@ -10,6 +10,7 @@ import {
 	genPipelineSourceKey,
 	IKnowledgebase,
 	IKnowledgebaseTask,
+	IKnowledgeDocument,
 	IWFNKnowledgeBase,
 	IWFNProcessor,
 	IWFNSource,
@@ -537,7 +538,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			const results = await this.transformDocuments(id, {provider: 'default', config: {}} as IWFNProcessor, false, [
 				{
 					filePath,
-					extname: filePath.split('.').pop(),
+					name: filePath.split('/').pop()
 				}
 			])
 			return results[0].chunks[0]
@@ -546,7 +547,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		}
 	}
 
-	async transformDocuments(knowledgebaseId: string, entity: IWFNProcessor, isDraft: boolean, input) {
+	async transformDocuments(knowledgebaseId: string, entity: IWFNProcessor, isDraft: boolean, input: Partial<IKnowledgeDocument<Metadata>>[]) {
 		const strategy = this.docTransformerRegistry.get(entity.provider) 
 		
 		const permissions = {}
