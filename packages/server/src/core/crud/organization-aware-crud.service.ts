@@ -27,7 +27,7 @@ export abstract class TenantOrganizationAwareCrudService<
 	): FindOptionsWhere<T> {
 		const organizationId = RequestContext.getOrganizationId()
 		return {
-			tenantId: user.tenantId,
+			tenantId: user?.tenantId,
 			organizationId: organizationId || IsNull(),
 		} as FindOptionsWhere<T>
 	}

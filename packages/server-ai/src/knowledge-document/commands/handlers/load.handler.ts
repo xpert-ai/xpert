@@ -65,9 +65,6 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
 		if (doc.filePath || doc.fileUrl) {
 			let docs: Document[]
-			// const [storageFile] = await this.queryBus.execute<GetStorageFileQuery, StorageFile[]>(
-			// 	new GetStorageFileQuery([doc.storageFileId])
-			// )
 			const transformerType = doc.parserConfig?.transformerType || 'default'
 			if (transformerType) {
 				const transformer = this.transformerRegistry.get(transformerType)
