@@ -22,15 +22,22 @@ module.exports = composePlugins(withNx({
 		const targetNodeModulesDir = path.resolve(__dirname, '../../../dist/apps/api/node_modules/@metad');
 
 		// Get copy patterns from utility function
-		console.time('✔️ Copying all built package folders to dist node_modules');
-		// const packagePatterns = getCopyPatterns(distPackagesDir, targetNodeModulesDir);
+		// console.time('✔️ Copying all built package folders to dist node_modules');
+		// const packagePatterns = []  // getCopyPatterns(distPackagesDir, targetNodeModulesDir);
+		// packagePatterns.push(
+		// 	...getCopyPatterns(
+		// 		path.resolve(__dirname, '../../../dist/packages/plugin-sdk'),
+		// 		path.resolve(__dirname, '../../../node_modules/@xpert-ai')
+		// 	)
+		// )
 		// packagePatterns.push(
 		// 	...getCopyPatterns(
 		// 		path.resolve(__dirname, '../../../dist/packages/plugins'),
 		// 		path.resolve(__dirname, '../../../node_modules/@xpert-ai')
 		// 	)
 		// )
-		console.timeEnd('✔️ Copying all built package folders to dist node_modules');
+		// console.log('Copy Patterns:', packagePatterns);
+		// console.timeEnd('✔️ Copying all built package folders to dist node_modules');
 
 		// Add CopyWebpackPlugin with the generated patterns
 		// config.plugins.push(
