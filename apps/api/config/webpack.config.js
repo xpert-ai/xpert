@@ -18,21 +18,21 @@ module.exports = composePlugins(withNx({
 		};
 
 		// Source directory where packages are built
-		const distPackagesDir = path.resolve(__dirname, '../../../dist/packages');
-		const targetNodeModulesDir = path.resolve(__dirname, '../../../dist/apps/api/node_modules/@metad');
+		// const distPackagesDir = path.resolve(__dirname, '../../../dist/packages');
+		// const targetNodeModulesDir = path.resolve(__dirname, '../../../dist/apps/api/node_modules/@metad');
 
-		// Get copy patterns from utility function
-		console.time('✔️ Copying all built package folders to dist node_modules');
-		// const packagePatterns = getCopyPatterns(distPackagesDir, targetNodeModulesDir);
+		// // Get copy patterns from utility function
+		// console.time('✔️ Copying all built package folders to dist node_modules');
+		// const packagePatterns = [] // getCopyPatterns(distPackagesDir, targetNodeModulesDir);
 		// packagePatterns.push(
 		// 	...getCopyPatterns(
 		// 		path.resolve(__dirname, '../../../dist/packages/plugins'),
-		// 		path.resolve(__dirname, '../../../node_modules/@xpert-ai')
+		// 		path.resolve(__dirname, '../../../dist/apps/api/node_modules/@xpert-ai')
 		// 	)
 		// )
-		console.timeEnd('✔️ Copying all built package folders to dist node_modules');
+		// console.timeEnd('✔️ Copying all built package folders to dist node_modules');
 
-		// Add CopyWebpackPlugin with the generated patterns
+		// // Add CopyWebpackPlugin with the generated patterns
 		// config.plugins.push(
 		// 	new CopyWebpackPlugin({ patterns: packagePatterns })
 		// );
