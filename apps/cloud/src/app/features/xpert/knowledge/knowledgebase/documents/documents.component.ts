@@ -5,14 +5,13 @@ import { afterNextRender, Component, computed, effect, inject, model, signal } f
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { Dialog } from '@angular/cdk/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 import {
   injectConfirmDelete,
   injectConfirmUnique,
   NgmCommonModule,
-  NgmCountdownConfirmationComponent
 } from '@metad/ocap-angular/common'
 import { debouncedSignal } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -22,11 +21,13 @@ import { injectQueryParams } from 'ngxtension/inject-query-params'
 import {
   BehaviorSubject,
   catchError,
+  combineLatest,
   debounceTime,
   EMPTY,
   filter,
   map,
   merge,
+  Observable,
   of as observableOf,
   startWith,
   Subject,
@@ -49,8 +50,7 @@ import {
 } from '../../../../../@core'
 import { KnowledgeDocIdComponent, KnowledgeTaskComponent } from '../../../../../@shared/knowledge'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { MatDialog } from '@angular/material/dialog'
-import { Dialog } from '@angular/cdk/dialog'
+
 
 const REFRESH_DEBOUNCE_TIME = 5000
 
@@ -67,7 +67,6 @@ const REFRESH_DEBOUNCE_TIME = 5000
     MatTooltipModule,
     NgmCommonModule,
     KnowledgeDocIdComponent,
-    XpertInlineProfileComponent
   ],
   animations: [
     trigger('detailExpand', [
@@ -84,7 +83,6 @@ export class KnowledgeDocumentsComponent {
   readonly kbAPI = inject(KnowledgebaseService)
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
-  readonly #dialog = inject(MatDialog)
   readonly _dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
@@ -182,7 +180,7 @@ export class KnowledgeDocumentsComponent {
             }
             return this.knowledgeDocumentAPI
               .getAll({
-                select: ['id', 'name', 'status', 'disabled', 'sourceType', 'createdAt', 'updatedAt', 'processMsg'],
+                select: ['id', 'name', 'status', 'disabled', 'sourceType', 'createdAt', 'updatedAt', 'processMsg', 'sourceConfig'],
                 where,
                 take: this.pageSize(),
                 // skip: this.paginator().pageIndex,
@@ -328,44 +326,6 @@ export class KnowledgeDocumentsComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
-  }
-
-  restartParsing(id: string) {
-    this.#dialog
-      .open(NgmCountdownConfirmationComponent, {
-        data: {
-          recordType: 'Restart parsing job?'
-        }
-      })
-      .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentAPI.startParsing(id) : EMPTY)))
-      .subscribe({
-        next: () => {
-          this.refresh()
-        },
-        error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
-  }
-
-  stopParsing(id: string) {
-    this.#dialog
-      .open(NgmCountdownConfirmationComponent, {
-        data: {
-          recordType: 'Stop the parsing job?'
-        }
-      })
-      .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentAPI.stopParsing(id) : EMPTY)))
-      .subscribe({
-        next: () => {
-          this.refresh()
-        },
-        error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
   }
 
   removePage(doc: IKnowledgeDocument, page: IKnowledgeDocumentPage) {
@@ -518,13 +478,25 @@ export class KnowledgeDocumentsComponent {
   }
 
   reprocess(docs: string[]) {
-    this.kbAPI
-      .createTask(this.knowledgebase().id, {
-        taskType: 'document_reprocess',
-        status: 'running', // Start processing immediately
-        documents: docs.map((id) => ({ id } as IKnowledgeDocument))
-      })
-      .subscribe({
+    const calls: Observable<any>[] = []
+    const documents = docs.map((id) => this.#data().find((doc) => doc.id === id)).filter((doc) => !!doc) as IKnowledgeDocument[]
+    const standDocs = documents.filter((doc) => !doc.sourceConfig)
+    if (standDocs.length) {
+      calls.push(this.knowledgeDocumentAPI.startParsing(standDocs.map((doc) => doc.id)))
+    }
+    const pipelineDocs = documents.filter((doc) => !!doc.sourceConfig)
+    if (pipelineDocs.length) {
+      calls.push(
+        this.kbAPI
+              .createTask(this.knowledgebase().id, {
+                taskType: 'document_reprocess',
+                status: 'running', // Start processing immediately
+                documents: pipelineDocs.map((doc) => ({ id: doc.id } as IKnowledgeDocument))
+              })
+      )
+    }
+    if (calls.length > 0) {
+      combineLatest(calls).subscribe({
         next: (task) => {
           this.refresh()
         },
@@ -532,6 +504,7 @@ export class KnowledgeDocumentsComponent {
           this.#toastr.error(getErrorMessage(err))
         }
       })
+    }
   }
 
   openTask(doc: IKnowledgeDocument) {
@@ -543,5 +516,9 @@ export class KnowledgeDocumentsComponent {
       },
       panelClass: 'xp-overlay-pane-share-sheet'
     })
+  }
+
+  openChunkSettings(document: IKnowledgeDocument) {
+    this.#router.navigate(['./', document.id, 'settings'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 }

@@ -94,6 +94,8 @@ export class NgmSelectComponent {
     }
   })
 
+  readonly _disabled = this.cva.disabled$
+
   selectValues(event: ListboxValueChangeEvent<unknown>) {
     if (this.multiple()) {
       this.cva.value$.set([...event.value])

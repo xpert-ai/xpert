@@ -13,6 +13,9 @@ import { KnowledgeDocLoadCommand } from './commands'
 import { KnowledgeDocumentService } from './document.service'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 
+/**
+ * @todo 需要在 RequestContext 中执行
+ */
 @Processor({
 	name: JOB_EMBEDDING_DOCUMENT
 	// scope: Scope.REQUEST

@@ -1,0 +1,48 @@
+<div class="system-md-semibold relative flex items-center px-4 pb-2 pt-5 text-text-primary">
+  <a class="cursor-pointer mr-2" (click)="backToDocuments()">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium size-9 rounded-full p-0 flex items-center justify-center">
+      <i class="ri-corner-up-left-line"></i>
+    </button>
+  </a>
+
+  <div class="flex flex-col">
+    <span class="text-sm font-semibold font-body bg-gradient-to-br from-[rgba(11,165,236,0.95)] to-[rgba(21,90,239,0.95)] bg-clip-text text-transparent">
+      {{ 'PAC.Knowledgebase.DocumentsSettings' | translate: {Default: 'Document Settings'} }}
+    </span>
+    <span class="text-base font-medium text-text-secondary">
+      {{ 'PAC.Knowledgebase.ProcessDocuments' | translate: {Default: 'Process Documents'} }}
+    </span>
+  </div>
+
+  <div class="absolute w-[100px] h-[100px] rounded-full bg-blue-500 blur-[80px] left-16 -top-10 opacity-30 z-0"></div>
+</div>
+
+@if (sourceConfig()) {
+  <xp-knowledge-document-pipeline-settings class="flex-1 overflow-hidden"
+    [knowledgebase]="knowledgebase()"
+    [pipeline]="pipeline()"
+    [documents]="documents()"
+    [(parametersValue)]="parametersValue"
+    >
+    <div actions class="w-full flex justify-end">
+      <button type="button" class="btn btn-primary btn-large" (click)="saveAndProcess()">
+        {{ 'PAC.Knowledgebase.SaveAndProcess' | translate: {Default: 'Save and Process'} }}
+      </button>
+    </div>
+  </xp-knowledge-document-pipeline-settings>
+} @else if(document()) {
+  <xp-knowledge-document-create-settings class="flex overflow-hidden"
+    [(documents)]="documents"
+    [(parserConfig)]="parserConfig"
+  >
+    <div actions class="w-full flex justify-end">
+      <button type="button" class="btn btn-primary btn-large" (click)="processDocuments()">
+        {{ 'PAC.Knowledgebase.SaveAndProcess' | translate: {Default: 'Save and Process'} }}
+      </button>
+    </div>
+  </xp-knowledge-document-create-settings>
+}
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+}

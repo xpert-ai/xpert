@@ -1,14 +1,13 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { HttpEventType } from '@angular/common/http'
 import { Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmDndDirective, SafePipe } from '@metad/core'
-import { NgmCheckboxComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { SafePipe } from '@metad/core'
+import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaFormComponent, ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
@@ -39,7 +38,7 @@ import { KnowledgeFileSystemComponent } from '../file-system/file-system.compone
 
 @Component({
   standalone: true,
-  selector: 'xpert-knowledge-document-create-step-1',
+  selector: 'xp-knowledge-document-create-step-1',
   templateUrl: './step.component.html',
   styleUrls: ['./step.component.scss'],
   imports: [
@@ -52,7 +51,6 @@ import { KnowledgeFileSystemComponent } from '../file-system/file-system.compone
     MatProgressBarModule,
     ContentLoaderModule,
     NgmI18nPipe,
-    NgmSpinComponent,
     SafePipe,
     JSONSchemaFormComponent,
     ParameterComponent,

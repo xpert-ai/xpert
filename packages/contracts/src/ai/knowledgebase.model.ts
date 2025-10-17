@@ -182,7 +182,7 @@ export const KnowledgeTask = 'task_id'
 /**
  * Specify the data source to run
  */
-export const KnowledgeSources = 'sources'
-export const KnowledgeDocuments = 'documents'
-export const KnowledgeFolderId = 'folder_id'
+export const KNOWLEDGE_SOURCES_NAME = 'sources'
+export const KNOWLEDGE_DOCUMENTS_NAME = 'documents'
+export const KNOWLEDGE_FOLDER_ID_NAME = 'folder_id'
 export const KNOWLEDGE_STAGE_NAME = 'stage'

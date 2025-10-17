@@ -2372,6 +2372,8 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "DocumentsSettings": "文档设置",
+      "ProcessDocuments": "处理文档",
       "KnowledgebaseSettings": "知识库设置",
       "KnowledgebaseSettingsDescription": "在这里，您可以修改此知识库的属性和检索设置。",
       "NameAndIcon": "名称和图标",

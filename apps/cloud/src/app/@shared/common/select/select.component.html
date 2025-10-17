@@ -2,7 +2,7 @@
   #menuTrigger
   #trigger="cdkMenuTriggerFor"
   class="select-trigger group grow flex items-center rounded-lg cursor-pointer hover:bg-gray-200"
-  [cdkMenuTriggerFor]="menu"
+  [cdkMenuTriggerFor]="_disabled() ? null : menu"
   [cdkMenuTriggerData]="{ trigger: trigger }"
 >
   @if (icon()) {
@@ -12,7 +12,7 @@
   }
   <ng-content select="[icon]"></ng-content>
   
-  <div class="grow mr-2 text-sm truncate">
+  <div class="grow mr-2 text-sm truncate" [class.text-text-tertiary]="_disabled()">
     @for (option of selectedOptions(); track option.value; let last = $last) {
       {{(option.label | i18n) || option.value}}
       @if (!last) {

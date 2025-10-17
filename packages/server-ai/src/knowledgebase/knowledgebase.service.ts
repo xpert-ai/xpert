@@ -19,7 +19,7 @@ import {
 	KnowledgebaseChannel,
 	KnowledgebaseTypeEnum,
 	KnowledgeProviderEnum,
-	KnowledgeSources,
+	KNOWLEDGE_SOURCES_NAME,
 	KnowledgeTask,
 	mapTranslationLanguage,
 	Metadata,
@@ -520,7 +520,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				[KnowledgebaseChannel]: {
 					knowledgebaseId: knowledgebaseId,
 					[KnowledgeTask]: taskId,
-					[KnowledgeSources]: sources,
+					[KNOWLEDGE_SOURCES_NAME]: sources,
 					stage: inputs.stage
 				},
 				...(sources ?? []).reduce((obj, key) => ({ ...obj, [channelName(key)]: { documents: inputs.sources[key].documents } }), {})

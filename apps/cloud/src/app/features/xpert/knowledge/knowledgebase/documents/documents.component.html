@@ -178,8 +178,7 @@
           <td class="px-6 py-2 w-28">
             <div class="flex items-center">
               <button class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
-                [cdkMenuTriggerFor]="settingsMenu"
-                [cdkMenuTriggerData]="{ doc: element }">
+                (click)="openChunkSettings(element)">
                 <i class="ri-equalizer-2-line"></i>
               </button>
               <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
@@ -206,7 +205,9 @@
         <span class="system-xs-medium flex h-5 w-5 items-center justify-center rounded-md bg-text-accent text-text-primary-on-surface">
           {{selectionModel.selected.length}}
         </span>
-        <span class="system-sm-semibold text-text-accent">已选择</span>
+        <span class="system-sm-semibold text-text-accent">
+          {{ 'PAC.KEY_WORDS.Selected' | translate: {Default: 'Selected'} }}
+        </span>
       </div>
       <button type="button" class="btn btn-secondary btn-large"
         (click)="enableSelected()"
@@ -257,7 +258,7 @@
   </div>
 </ng-template>
 
-<ng-template #settingsMenu let-doc="doc">
+<!-- <ng-template #settingsMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
     <div cdkMenuItem (click)="enableDoc(doc)">
       <i class="ri-checkbox-circle-line mr-1"></i>
@@ -268,21 +269,30 @@
       {{ 'PAC.ACTIONS.Disable' | translate: {Default: "Disable"} }}
     </div>
   </div>
-</ng-template>
+</ng-template> -->
 
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
     <div cdkMenuItem (click)="reprocess([doc.id])">
-      <i class="ri-reset-right-line mr-1"></i>
-      <span class="ml-2">{{ 'PAC.Knowledgebase.Reprocess' | translate: {Default: 'Reprocess'} }}</span>
+      <i class="ri-reset-right-line mr-2"></i>
+      <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: {Default: 'Reprocess'} }}</span>
     </div>
+    <div cdkMenuItem (click)="enableDoc(doc)">
+      <i class="ri-checkbox-circle-line mr-2"></i>
+      {{ 'PAC.ACTIONS.Enable' | translate: {Default: "Enable"} }}
+    </div>
+    <div cdkMenuItem class="danger" (click)="disableDoc(doc)">
+      <i class="ri-close-circle-line mr-2"></i>
+      {{ 'PAC.ACTIONS.Disable' | translate: {Default: "Disable"} }}
+    </div>
+    <div class="w-full border-t border-solid border-divider-regular my-1"></div>
     <div cdkMenuItem (click)="renameDoc(doc)">
-      <i class="ri-edit-line mr-1"></i>
-      <span class="ml-2">{{ 'PAC.ACTIONS.Rename' | translate: {Default: 'Rename'} }}</span>
+      <i class="ri-edit-line mr-2"></i>
+      <span>{{ 'PAC.ACTIONS.Rename' | translate: {Default: 'Rename'} }}</span>
     </div>
     <div cdkMenuItem class="danger" (click)="deleteDocument(doc)">
-      <i class="ri-delete-bin-line mr-1"></i>
-      <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete' } }}</span>
+      <i class="ri-delete-bin-line mr-2"></i>
+      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete' } }}</span>
     </div>
   </div>
 </ng-template>

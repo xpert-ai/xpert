@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common'
 import { NgmOptionContent } from './option-content'
 import { NgmInputComponent } from './input.component'
 
+/**
+ * @deprecated use headless components instead
+ */
 @NgModule({
   declarations: [],
   imports: [CommonModule, NgmOptionContent, NgmInputComponent],

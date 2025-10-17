@@ -220,6 +220,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		}
 	}
 
+	/**
+	 * Start processing documents which is not in RUNNING status
+	 */
 	async startProcessing(ids: string[], kbId?: string) {
 		const userId = RequestContext.currentUserId()
 		const where = kbId ? { knowledgebaseId: kbId, id: In(ids) } : {id: In(ids)}
