@@ -38,6 +38,7 @@ import {
   getErrorMessage,
   IKnowledgeDocument,
   IKnowledgeDocumentPage,
+  injectHelpWebsite,
   injectToastr,
   IXpert,
   KBDocumentStatusEnum,
@@ -92,6 +93,7 @@ export class KnowledgeDocumentsComponent {
   readonly #toastr = injectToastr()
   readonly #translate = inject(I18nService)
   readonly parentId = injectQueryParams('parentId')
+  readonly helpUrl = injectHelpWebsite('/docs/ai/knowledge/knowledgebase')
 
   readonly pageSize = model(20)
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase

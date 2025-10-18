@@ -38,7 +38,7 @@
     <span>
       {{ 'PAC.Knowledgebase.DocumentsDescription' | translate: {Default: 'All files in the knowledge base are displayed here, and the entire knowledge base can be applied to the digital expert agent or project space.' } }}
     </span>
-    <a class="flex items-center text-text-accent" target="_blank" href="">
+    <a class="flex items-center text-text-accent" target="_blank" [href]="helpUrl()">
       <span>{{ 'PAC.KEY_WORDS.LearnMore' | translate: {Default: 'Learn more'} }}</span>
       <i class="ri-corner-right-up-line "></i>
     </a>
