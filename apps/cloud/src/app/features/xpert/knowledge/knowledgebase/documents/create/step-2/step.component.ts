@@ -92,6 +92,10 @@ export class KnowledgeDocumentCreateStep2Component {
           sourceType: KDocumentSourceType.WEB,
           name: this.createComponent.webOptions().url,
           options: this.createComponent.webOptions(),
+          metadata: {
+            // title: this.createComponent.webOptions().url,
+            url: this.createComponent.webOptions().url,
+          },
           pages: this.webDocs().map((doc) => ({
             ...doc,
             status: 'finish'
@@ -226,8 +230,8 @@ export class KnowledgeDocumentCreateStep2Component {
         true
       )
       .subscribe({
-        next: () => {
-          // this.createComponent.documents.set([])
+        next: (docs) => {
+          this.createComponent.documents.set(docs)
           this.createComponent.step.set(2)
         },
         error: (error) => {
