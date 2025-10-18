@@ -1,6 +1,5 @@
 # Plugin SDK
 
-
 ## Building
 
 Run `nx build plugin-sdk` to build the library.

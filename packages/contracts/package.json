@@ -4,5 +4,7 @@
   "license": "AGPL-3.0",
   "scripts": {
     "docs": "yarn typedoc --out ./.docs"
-  }
+  },
+  "module": "./index.esm.js",
+  "main": "./index.cjs.js"
 }

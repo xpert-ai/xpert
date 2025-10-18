@@ -8,7 +8,7 @@
       "executor": "@nx/rollup:rollup",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/packages/contracts",
+        "outputPath": "packages/contracts/dist",
         "project": "packages/contracts/package.json",
         "main": "packages/contracts/src/index.ts",
         "tsConfig": "packages/contracts/tsconfig.lib.json",
