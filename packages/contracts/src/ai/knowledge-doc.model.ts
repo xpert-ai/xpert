@@ -213,5 +213,5 @@ export interface IKnowledgeDocumentFindInput
 
 
 export function isDocumentSheet(type: string): boolean {
-  return ['csv', 'xls', 'xlsx', 'ods'].includes(type)
+  return ['csv', 'xls', 'xlsx', 'ods', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(type)
 }

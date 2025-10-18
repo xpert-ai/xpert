@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, model, signal } from "@angular/cor
 import { toSignal } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { MatTooltipModule } from "@angular/material/tooltip";
-import { DocumentTextParserConfig, IKnowledgeDocument, KDocumentSourceType, KnowledgebaseService } from "@cloud/app/@core";
+import { DocumentTextParserConfig, IKnowledgeDocument, KBDocumentCategoryEnum, KDocumentSourceType, KnowledgebaseService } from "@cloud/app/@core";
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { attrModel, linkedModel, NgmI18nPipe } from "@metad/ocap-angular/core";
 import { TranslateModule } from "@ngx-translate/core";
@@ -41,6 +41,7 @@ import { KnowledgeDocumentWebpagesComponent } from "../webpages/webpages.compone
 })
 export class KnowledgeDocumentCreateSettingsComponent {
   eKDocumentSourceType = KDocumentSourceType
+  eKBDocumentCategoryEnum = KBDocumentCategoryEnum
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
 
@@ -120,20 +121,34 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly replaceWhitespace = attrModel(this.parserConfig, 'replaceWhitespace', true)
   readonly removeSensitive = attrModel(this.parserConfig, 'removeSensitive', false)
 
-  // Preview
-  readonly selectedDocument = signal<Partial<IKnowledgeDocument>>(null)
-  // readonly selectedWebDoc = signal<IKnowledgeDocumentPage>(null)
+  readonly onlySheet = computed(() => this.documents()?.every((item) => item.category === KBDocumentCategoryEnum.Sheet))
 
-  constructor() {
-    effect(() => {
-        // console.log(this.documents())
-    })
-  }
+  // Preview
+  readonly selectedDocIndex = signal(null)
+  readonly selectedDocument = linkedModel({
+    initialValue: null,
+    compute: () => {
+      const index = this.selectedDocIndex()
+      return index === null ? null : this.documents()?.[index]
+    },
+    update: (document: Partial<IKnowledgeDocument>) => {
+      this.documents.update((docs) => {
+        docs[this.selectedDocIndex()] = document
+        return [...docs]
+      })
+    }
+  })
+
+  // constructor() {
+  //   effect(() => {
+  //     this.preview()
+  //   }, { allowSignalWrites: true })
+  // }
 
   preview() {
     if (!this.selectedDocument()) {
       if (this.documents().length) {
-        this.selectedDocument.set(this.documents()[0])
+        this.selectedDocIndex.set(0)
       }
     }
   }

@@ -14,7 +14,9 @@ import {
   IKnowledgebaseTask,
   IKnowledgeDocument,
   IKnowledgeRetrievalLog,
+  isDocumentSheet,
   IXpert,
+  KBDocumentCategoryEnum,
   PaginationParams,
   toHttpParams
 } from '@metad/cloud/state'
@@ -228,14 +230,16 @@ export class KnowledgeFileUploader {
             case HttpEventType.UploadProgress:
               this.progress.set((event.loaded / event.total) * 100)
               break
-            case HttpEventType.Response:
+            case HttpEventType.Response: {
               this.progress.set(100)
+              const type = this.file.type?.split('/').pop().toLowerCase() || 'unknown'
               this.document$.next({
                 ...event.body,
                 id: uuid(),
                 name: this.file.name,
                 size: `${this.file.size}`,
-                type: this.file.type?.split('/').pop() || 'unknown',
+                type,
+                category: isDocumentSheet(type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text,
                 metadata: {
                   title: this.file.name,
                 }
@@ -244,6 +248,7 @@ export class KnowledgeFileUploader {
               this.uploadedUrl.set(event.body.fileUrl) // Assuming response contains URL
               this.status.set('done')
               break
+            }
           }
         }),
         catchError((error) => {

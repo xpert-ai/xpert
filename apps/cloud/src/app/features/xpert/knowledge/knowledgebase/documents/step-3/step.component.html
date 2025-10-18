@@ -1,20 +1,7 @@
 <div class="flex justify-center w-full max-h-full h-full overflow-y-auto">
   <div class="grow shrink-0 h-full max-w-[960px] overflow-y-auto px-14 sm:px-16">
 
-    <div class="relative flex flex-col gap-y-0.5 pb-2 pt-4">
-      <div class="flex items-center gap-x-2">
-        <span class="text-xs font-semibold uppercase bg-gradient-to-br from-[rgba(11,165,236,0.95)] to-[rgba(21,90,239,0.95)] bg-clip-text text-transparent"
-          >{{ 'PAC.Knowledgebase.AddDocuments' | translate: {Default: 'Add Documents'} }}</span
-        ><span class="system-2xs-regular text-divider-regular">/</span>
-        <div class="flex gap-x-1">
-          <div class="h-1 w-1 rounded-lg bg-divider-deep"></div>
-          <div class="h-1 w-1 rounded-lg bg-divider-deep"></div>
-          <div class="h-1 rounded-lg w-2 bg-primary-600"></div>
-        </div>
-      </div>
-      <div class="system-md-semibold text-text-primary">{{ 'PAC.Knowledgebase.ProcessingDocuments' | translate: {Default: 'Processing Documents'} }}</div>
-      <div class="absolute size-[112px] rounded-full bg-util-colors-blue-brand-blue-brand-500 blur-[80px] left-8 top-[-34px] opacity-20"></div>
-    </div>
+    <ng-content select="[header]"></ng-content>
 
     <div class="mx-auto max-w-[640px]">
       <div class="pt-10">

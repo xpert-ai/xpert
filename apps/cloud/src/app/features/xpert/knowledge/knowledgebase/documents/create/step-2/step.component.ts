@@ -13,6 +13,7 @@ import { BehaviorSubject } from 'rxjs'
 import {
   getErrorMessage,
   IKnowledgeDocument,
+  KBDocumentCategoryEnum,
   KDocumentSourceType,
   KnowledgeDocumentService,
   StorageFileService,
@@ -69,7 +70,7 @@ export class KnowledgeDocumentCreateStep2Component {
   readonly documents = linkedModel({
     initialValue: [] as Partial<IKnowledgeDocument>[],
     compute: () => {
-      const docs =
+      const docs: Partial<IKnowledgeDocument>[] =
         this.files()?.map((item) => ({
           ...omit(item.document(), 'id'),
           knowledgebaseId: this.knowledgebase().id,
@@ -78,7 +79,7 @@ export class KnowledgeDocumentCreateStep2Component {
           // storageFileId: item.doc.storageFile.id,
           // parserConfig: item.doc.parserConfig ?? this.parserConfig(),
           // name: item.document().or,
-          // category: item.doc.category,
+          category: item.document().category,
           // type: item.doc.type,
           parent: this.createComponent.parentId()
             ? ({ id: this.createComponent.parentId() } as IKnowledgeDocument)
@@ -219,7 +220,7 @@ export class KnowledgeDocumentCreateStep2Component {
         this.documents().map((doc) => {
           return {
             ...doc,
-            parserConfig: this.parserConfig()
+            parserConfig: doc.category === KBDocumentCategoryEnum.Sheet ? doc.parserConfig : this.parserConfig()
           }
         }),
         true

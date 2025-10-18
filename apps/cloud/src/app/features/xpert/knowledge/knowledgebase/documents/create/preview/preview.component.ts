@@ -13,8 +13,8 @@ import {
   KBDocumentCategoryEnum,
   KnowledgeDocumentService
 } from '@cloud/app/@core'
-import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
+import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 
 @Component({
   standalone: true,
@@ -34,7 +34,6 @@ export class KnowledgeDocumentPreviewComponent {
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
   // Inputs
-  // readonly item = model<TFileItem>()
   readonly document = model<Partial<IKnowledgeDocument>>()
   readonly parserConfig = model<DocumentParserConfig>()
 
@@ -43,7 +42,7 @@ export class KnowledgeDocumentPreviewComponent {
     request: () => (this.category() === KBDocumentCategoryEnum.Sheet ? {
       type: this.document()?.type,
       category: this.category(),
-      parserConfig: this.sheetParserConfig(),
+      parserConfig: this.document()?.parserConfig,
       fileUrl: this.document()?.fileUrl,
       filePath: this.document()?.filePath,
       name: this.document()?.name,

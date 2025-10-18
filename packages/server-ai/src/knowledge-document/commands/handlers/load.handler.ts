@@ -43,11 +43,17 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		const { doc, stage } = command.input
 
 		let visionModel: BaseChatModel = null
+		const volumeClient = new VolumeClient({
+								tenantId: RequestContext.currentTenantId(),
+								catalog: 'knowledges',
+								userId: RequestContext.currentUserId(),
+								knowledgeId: doc.knowledgebaseId
+							})
 
 		if (doc.category === KBDocumentCategoryEnum.Sheet) {
 			const parserConfig = doc.parserConfig as DocumentSheetParserConfig
 			// const data = await this.commandBus.execute(new LoadStorageSheetCommand(doc.storageFileId))
-			const data = await this.loadSheet(doc)
+			const data = await this.loadSheet(doc, volumeClient)
 			const documents: Document[] = []
 			for (const row of data) {
 				const metadata = { raw: row, docId: doc.id }
@@ -69,13 +75,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			if (transformerType) {
 				const transformer = this.transformerRegistry.get(transformerType)
 				if (transformer) {
-					const type = doc.name?.split('.').pop()
-					const volumeClient = new VolumeClient({
-								tenantId: RequestContext.currentTenantId(),
-								catalog: 'knowledges',
-								userId: RequestContext.currentUserId(),
-								knowledgeId: doc.knowledgebaseId
-							})
+					const type = doc.name?.split('.').pop()?.toLowerCase()
 					const fsPermission = transformer.permissions?.find(
 						(permission) => permission.type === 'filesystem'
 					) as FileSystemPermission
@@ -243,11 +243,12 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		// }
 	}
 
-	async loadSheet(doc: IKnowledgeDocument): Promise<Record<string, any>[]> {
+	async loadSheet(doc: IKnowledgeDocument, volumeClient: VolumeClient): Promise<Record<string, any>[]> {
+		const filePath = volumeClient.getVolumePath(doc.filePath)
 		if (doc.name.endsWith('.csv')) {
-			return loadCsvWithAutoEncoding(doc.filePath)
+			return loadCsvWithAutoEncoding(filePath)
 		}
 
-		return loadExcel(doc.filePath)
+		return loadExcel(filePath)
 	}
 }
