@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Service": "服务",
       "Plugins": "插件",
       "NewSystemIntegration": "新建系统集成",
       "SystemIntegrations": "系统集成",
@@ -2372,6 +2373,8 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "CreateEmptyKnowledgebase": "创建空知识库",
+      "CreateEmptyKnowledgebaseDesc": "空知识库中还没有文档，你可以在今后任何时候上传文档至该知识库。",
       "DocumentsSettings": "文档设置",
       "ProcessDocuments": "处理文档",
       "KnowledgebaseSettings": "知识库设置",

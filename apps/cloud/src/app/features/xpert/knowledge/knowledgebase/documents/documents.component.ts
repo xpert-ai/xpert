@@ -251,7 +251,7 @@ export class KnowledgeDocumentsComponent {
   }
 
   createFolder() {
-    this.confirmUnique(
+    this.confirmUnique<IKnowledgeDocument>(
       {
         title: this.#translate.instant('PAC.Knowledgebase.NewFolder', { Default: 'New Folder' })
       },

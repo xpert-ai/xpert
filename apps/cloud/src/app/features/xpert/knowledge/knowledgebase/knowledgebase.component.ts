@@ -2,18 +2,18 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
-import { AppService } from '@cloud/app/app.service'
 import { NgmCopyComponent, NgmSlideToggleComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { injectParams } from 'ngxtension/inject-params'
 import { Dialog } from '@angular/cdk/dialog'
 import { OverlayAnimation1 } from '@metad/core'
-import { IXpert, KnowledgebaseService, KnowledgebaseTypeEnum, ToastrService, injectApiBaseUrl, routeAnimations } from '../../../../@core'
-import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
+import { AppService } from '@cloud/app/app.service'
+import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
+import { IXpert, KnowledgebaseService, KnowledgebaseTypeEnum, ToastrService, injectApiBaseUrl, injectHelpWebsite, routeAnimations } from '../../../../@core'
 
 @Component({
   standalone: true,
@@ -43,6 +43,7 @@ export class KnowledgebaseComponent {
   readonly appService = inject(AppService)
   readonly #dialog = inject(Dialog)
   readonly apiBaseUrl = injectApiBaseUrl()
+  readonly apiHelpUrl = injectHelpWebsite('/docs/ai/knowledge/api/')
 
   readonly #knowledgebase = myRxResource({
     request: () => ({
@@ -128,7 +129,7 @@ export class KnowledgebaseComponent {
   }
 
   openApiReference() {
-    window.open(this.apiBaseUrl + '/swg', '_blank')
+    window.open(this.apiHelpUrl(), '_blank')
   }
 
   openApiKey() {

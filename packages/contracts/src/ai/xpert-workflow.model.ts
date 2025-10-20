@@ -416,6 +416,10 @@ export interface IWFNTask extends IWorkflowNode {
   descriptionSuffix?: string
 }
 
+export function genXpertTriggerKey() {
+  return letterStartSUID('Trigger_')
+}
+
 export function genListOperatorKey() {
   return letterStartSUID('ListOperator_')
 }

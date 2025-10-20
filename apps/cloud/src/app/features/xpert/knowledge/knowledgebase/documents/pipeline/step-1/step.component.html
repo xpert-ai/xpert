@@ -18,7 +18,8 @@
           class="btn disabled:btn-disabled btn-secondary-accent btn-medium absolute -left-11 top-3.5 size-9 rounded-full p-0"
         >
           <i class="ri-corner-up-left-line"></i>
-        </button></a>
+        </button>
+      </a>
       <div class="absolute w-[100px] h-[100px] rounded-full bg-blue-500 blur-[80px] left-8 top-0 opacity-20"></div>
     </div>
     <div class="grow overflow-y-auto">
@@ -88,7 +89,7 @@
           </div>
           @if (providerCategory(); as category) {
             @if (category === eDocumentSourceProviderCategoryEnum.LocalFile) {
-              <xp-knowledge-local-file class="w-full p-4" [knowledgebaseId]="knowledgebaseId()"
+              <xp-knowledge-local-file class="w-full" [knowledgebaseId]="knowledgebaseId()"
                 [parentId]="parentId()"
                 [(files)]="files" 
                 [(selected)]="selectedFile" />

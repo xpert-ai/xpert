@@ -4,7 +4,8 @@
         "PrimaryAgentNotFound": "Primary agent node not found",
         "GitIntegrationNotProvided": "Git integration not provided",
         "KBReqVisionModel": "Knowledgebase requires vision model to process images",
-        "IntegrationNotFound": "Integration '{{id}}' not found"
+        "IntegrationNotFound": "Integration '{{id}}' not found",
+        "NoTriggerNodes": "No trigger nodes available to start the agent. Please add a trigger node."
     },
     "tools": {
         "ListFiles": "List files",

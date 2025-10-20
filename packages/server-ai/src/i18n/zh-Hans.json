@@ -4,7 +4,8 @@
         "PrimaryAgentNotFound": "主智能体节点未找到",
         "GitIntegrationNotProvided": "未提供 Git 集成",
         "KBReqVisionModel": "知识库需要视觉模型来处理图像",
-        "IntegrationNotFound": "未找到集成‘{id}}’"
+        "IntegrationNotFound": "未找到集成‘{id}}’",
+        "NoTriggerNodes": "没有可用的触发节点来启动智能体。请添加一个触发节点。"
     },
     "tools": {
         "ListFiles": "列出文件",

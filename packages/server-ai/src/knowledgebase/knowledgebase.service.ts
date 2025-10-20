@@ -25,7 +25,10 @@ import {
 	Metadata,
 	STATE_VARIABLE_HUMAN,
 	WorkflowNodeTypeEnum,
-	XpertTypeEnum
+	XpertTypeEnum,
+	genXpertTriggerKey,
+	IWFNTrigger,
+	KnowledgeStructureEnum
 } from '@metad/contracts'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
@@ -235,6 +238,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const knowledgebase = await this.findOne(id)
 		const sourceKey = genPipelineSourceKey()
 		const knowledgebaseKey = genPipelineKnowledgeBaseKey()
+		const triggerKey = genXpertTriggerKey()
 		return await this.xpertService.create({
 			name: `${knowledgebase.name} Pipeline - ${shortuuid()}`,
 			workspaceId: knowledgebase.workspaceId,
@@ -252,12 +256,23 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			draft: {
 				nodes: [
 					{
+						key: triggerKey,
+						type: 'workflow',
+						position: { x: 20, y: 320 },
+						entity: {
+							key: triggerKey,
+							title: 'Trigger',
+							type: WorkflowNodeTypeEnum.TRIGGER,
+							from: 'chat'
+						} as IWFNTrigger
+					},
+					{
 						key: sourceKey,
 						type: 'workflow',
-						position: { x: 100, y: 300 },
+						position: { x: 300, y: 320 },
 						entity: {
 							key: sourceKey,
-							title: 'Source',
+							title: 'Documents Source',
 							type: WorkflowNodeTypeEnum.SOURCE,
 							provider: 'local-file'
 						} as IWFNSource
@@ -265,12 +280,21 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 					{
 						key: knowledgebaseKey,
 						type: 'workflow',
-						position: { x: 580, y: 300 },
+						position: { x: 680, y: 320 },
 						entity: {
 							key: knowledgebaseKey,
 							title: 'Knowledge Base',
-							type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE
+							type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
+							structure: KnowledgeStructureEnum.General,
 						} as IWFNKnowledgeBase
+					}
+				],
+				connections: [
+					{
+						type: 'edge',
+						key: `${triggerKey}/${sourceKey}`,
+						from: triggerKey,
+						to: sourceKey
 					}
 				]
 			}

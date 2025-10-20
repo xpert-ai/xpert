@@ -55,6 +55,35 @@ export class WorkflowKnowledgeBaseNodeValidator {
 			})
 		}
 
+		if (!entity.inputs || entity.inputs.length === 0) {
+			items.push({
+				ruleCode: 'PIPELINE_KB_INPUT_MISSING',
+				node: node.key,
+				field: 'inputs',
+				value: JSON.stringify(entity.inputs),
+				level: 'error',
+				message: {
+					en_US: `At least one input is required.`,
+					zh_Hans: `至少需要一个输入。`
+				}
+			})
+		}
+
+		// Embedding model must be specified
+		if (!entity.copilotModel) {
+			items.push({
+				ruleCode: 'PIPELINE_KB_EMBEDDING_MODEL_MISSING',
+				node: node.key,
+				field: 'copilotModel',
+				value: '',
+				level: 'error',
+				message: {
+					en_US: `Embedding model must be specified.`,
+					zh_Hans: `必须指定嵌入模型。`
+				}
+			})
+		}
+
 		return items
 	}
 }
