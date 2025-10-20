@@ -7,5 +7,18 @@
   "module": "./index.js",
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "@langchain/core": "*",
+    "@metad/contracts": "*",
+    "@nestjs/common": "*",
+    "@nestjs/core": "*",
+    "@nestjs/microservices": "*",
+    "lodash-es": "*",
+    "i18next-fs-backend": "*",
+    "i18next": "*",
+    "zod": "*",
+    "fs": "*",
+    "path": "*"
   }
 }

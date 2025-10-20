@@ -40,6 +40,7 @@
     "@swc/helpers": "0.5.3",
     "idb-keyval": "^6.2.1",
     "langchain": "0.3.31",
+    "lodash-es": "^4.17.21",
     "money-clip": "^3.0.5",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",

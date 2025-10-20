@@ -16,6 +16,7 @@
     "@langchain/ollama": "0.2.3",
     "@langchain/openai": "0.6.9",
     "@swc/helpers": "0.5.3",
+    "lodash-es": "^4.17.21",
     "idb-keyval": "^6.2.1",
     "keyv": "^5.5.0",
     "langchain": "0.3.31",
