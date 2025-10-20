@@ -14,7 +14,7 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/rollup:rollup",
+      "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/plugins/file-system",
@@ -22,8 +22,7 @@
         "tsConfig": "packages/plugins/file-system/tsconfig.lib.json",
         "assets": [],
         "project": "packages/plugins/file-system/package.json",
-        "compiler": "swc",
-        "format": ["cjs", "esm"]
+        "compiler": "swc"
       }
     },
     "nx-release-publish": {

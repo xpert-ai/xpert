@@ -23,6 +23,8 @@
         "compiler": "swc",
         "format": ["cjs", "esm"],
         "external": [
+          "@langchain/core",
+          "@metad/contracts",
           "@nestjs/common",
           "@nestjs/core",
           "@nestjs/microservices",
@@ -32,7 +34,9 @@
           "amqplib",
           "mqtt",
           "nats",
-          "zod"
+          "zod",
+          "fs",
+          "path"
         ]
       }
     },

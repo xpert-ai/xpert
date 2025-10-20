@@ -38,7 +38,9 @@
   },
   "dependencies": {
     "@nestjs/platform-socket.io": "^11.1.6",
-    "@nestjs/websockets": "^11.1.6"
+    "@nestjs/websockets": "^11.1.6",
+    "@xpert-ai/plugin-firecrawl": "^0.0.1",
+    "@xpert-ai/plugin-mineru": "^0.0.1"
   },
   "devDependencies": {
     "@types/socket.io": "3.0.1",

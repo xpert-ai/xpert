@@ -14,25 +14,14 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/rollup:rollup",
+      "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/plugins/integration-dify",
         "main": "packages/plugins/integration-dify/src/index.ts",
         "tsConfig": "packages/plugins/integration-dify/tsconfig.lib.json",
         "assets": [],
-        "project": "packages/plugins/integration-dify/package.json",
-        "compiler": "swc",
-        "format": ["cjs", "esm"],
-        "external": [
-          "@nestjs/common",
-          "@nestjs/core",
-          "@nestjs/microservices",
-          "kafkajs",
-          "amqplib",
-          "mqtt",
-          "nats"
-        ]
+        "project": "packages/plugins/integration-dify/package.json"
       }
     },
     "nx-release-publish": {
