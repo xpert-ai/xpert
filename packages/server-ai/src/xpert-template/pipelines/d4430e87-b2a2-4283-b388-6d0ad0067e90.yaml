@@ -1,0 +1,141 @@
+team:
+  name: 基础流水线 Pipeline - ORLhddvvEB
+  type: knowledge
+  title: null
+  description: null
+  avatar: null
+  starters: null
+  options:
+    position:
+      x: 46.13201367187514
+      y: 67.96464453125003
+    scale: 0.7177999999999999
+    workflow:
+      Source_907sYpOjJJ:
+        position:
+          x: 300
+          y: 320
+      KnowledgeBase_5xyaixsnQA:
+        position:
+          x: 1240
+          y: 320
+      Processor_JoMkueHmh5:
+        position:
+          x: 620
+          y: 320
+      Chunker_eKtCAnEjpq:
+        position:
+          x: 940
+          y: 320
+      Trigger_W8sdaD3ahT:
+        position:
+          x: 0
+          y: 320
+  agentConfig: null
+  memory: null
+  summarize: null
+  features: null
+  version: "1"
+  agent:
+    key: LpLDEiMzc0
+  copilotModel: null
+  knowledgebases: []
+  toolsets: []
+  tags: []
+nodes:
+  - key: Source_907sYpOjJJ
+    type: workflow
+    position:
+      x: 300
+      y: 320
+    entity:
+      key: Source_907sYpOjJJ
+      title: 文档源
+      type: source
+      provider: local-file
+      config:
+        fileExtensions:
+          - markdown
+          - vtt
+          - doc
+          - docx
+          - eml
+          - msg
+          - pptx
+          - epub
+          - md
+  - key: KnowledgeBase_5xyaixsnQA
+    type: workflow
+    position:
+      x: 1240
+      y: 320
+    entity:
+      key: KnowledgeBase_5xyaixsnQA
+      title: 知识库
+      type: knowledgebase
+      structure: general
+      inputs:
+        - chunker_pg4w31qbuo_channel.documents
+      copilotModel:
+        model: text-embedding-v4
+        modelType: text-embedding
+      rerankModel:
+        model: gte-rerank-v2
+        modelType: rerank
+    hash: 3ed185a79ddfd452e89d4bee0276fa1f48b0862e7e4d375c4d2e8a2e94065c42
+  - type: workflow
+    key: Processor_JoMkueHmh5
+    position:
+      x: 620
+      y: 320
+    entity:
+      type: processor
+      key: Processor_JoMkueHmh5
+      title: 处理器
+      provider: default
+      input: source_907sypojjj_channel.documents
+    hash: 614231bb1e63510811eaccf34677b5631d9fc89b5282353fea08636cfe3fc2f4
+  - type: workflow
+    key: Trigger_W8sdaD3ahT
+    position:
+      x: 0
+      y: 320
+    entity:
+      type: trigger
+      key: Trigger_W8sdaD3ahT
+      title: 触发器
+      from: chat
+    hash: 670ffafb114962318c082631778d88dfd3c1f10b5e2f3bf7267c8955f8470d17
+  - type: workflow
+    key: Chunker_pG4w31qbUo
+    position:
+      x: 940
+      y: 320
+    entity:
+      type: chunker
+      key: Chunker_pG4w31qbUo
+      title: 分块器
+      provider: recursive-character
+      config:
+        chunkSize: 1000
+        chunkOverlap: 200
+        separators: \n\n,\n, ,
+      input: processor_jomkuehmh5_channel.documents
+    hash: 59daf0cdbfc9ff871a19a5ccebb557e237d12c08d38846b9b8874dd96afe41c3
+connections:
+  - type: edge
+    key: Source_907sYpOjJJ/Processor_JoMkueHmh5
+    from: Source_907sYpOjJJ
+    to: Processor_JoMkueHmh5
+  - type: edge
+    key: Trigger_W8sdaD3ahT/Source_907sYpOjJJ
+    from: Trigger_W8sdaD3ahT
+    to: Source_907sYpOjJJ
+  - type: edge
+    key: Processor_JoMkueHmh5/Chunker_pG4w31qbUo
+    from: Processor_JoMkueHmh5
+    to: Chunker_pG4w31qbUo
+  - type: edge
+    key: Chunker_pG4w31qbUo/KnowledgeBase_5xyaixsnQA
+    from: Chunker_pG4w31qbUo
+    to: KnowledgeBase_5xyaixsnQA

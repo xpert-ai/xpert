@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject, input, model, signal } from '@angular/core'
+import { Component, computed, inject, input, model } from '@angular/core'
 import { KnowledgebaseService, KnowledgeFileUploader } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -19,10 +19,21 @@ export class KnowledgeLocalFileComponent {
   readonly files = model<KnowledgeFileUploader[]>([])
   readonly parentId = input<string>(null)
   readonly path = input<string>(null)
+  readonly accepts = input<string[]>(null)
 
   readonly selected = model<KnowledgeFileUploader | null>(null)
 
   // States
+  readonly extensions = computed(() => {
+    const exts = this.accepts()
+    if (exts && exts.length) {
+      return exts.filter(Boolean).map((ext) => ext.startsWith('.') ? ext.slice(1) : ext)
+    }
+    return ['txt', 'markdown', 'mdx', 'pdf', 'html', 'xlsx', 'xls', 'docx', 'pptx', 'csv', 'epub', 'md', 'htm', 'csv', 'odt', 'odp', 'ods']
+  })
+
+  readonly extensionStr = computed(() => this.extensions()?.join(', '))
+  readonly acceptsStr = computed(() => this.accepts()?.join(', '))
 
   // Handle file input (from drag or select)
   handleFiles(selectedFiles: FileList | null) {

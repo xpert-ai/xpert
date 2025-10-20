@@ -194,9 +194,7 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     |--------------------------------------------------------------------------
     */
 	// One-to-One with Xpert
-	@OneToOne(() => Xpert, (xpert) => xpert.knowledgebase, {
-		cascade: true,
-	})
+	@OneToOne(() => Xpert, (xpert) => xpert.knowledgebase)
 	@JoinColumn({ name: 'pipelineId' })
 	pipeline?: IXpert
 

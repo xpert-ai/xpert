@@ -17,6 +17,7 @@ export type TTriggerJob = {
 	from?: TChatFrom
 	state: any
 	trigger: IWFNTrigger
+	executionId?: string
 }
 
 export class XpertDraftValidateEvent {

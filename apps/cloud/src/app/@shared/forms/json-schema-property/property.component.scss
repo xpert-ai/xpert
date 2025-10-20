@@ -1,3 +1,7 @@
 :host {
   @apply flex flex-col justify-start;
+
+  input::placeholder {
+    font-size: 0.875em;
+  }
 }

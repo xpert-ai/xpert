@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { Component, computed, inject } from '@angular/core'
+import { Component, computed, inject, output } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, nonBlank } from '@metad/core'
@@ -56,6 +56,10 @@ export class XpertWorkspaceKnowledgesComponent {
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
   readonly #dialog = inject(Dialog)
 
+  // Outputs
+  readonly deleted = output<IKnowledgebase>()
+
+  // States
   readonly organizationId$ = this.#store.selectOrganizationId()
 
   readonly workspace = this.homeComponent.workspace
@@ -126,6 +130,7 @@ export class XpertWorkspaceKnowledgesComponent {
     ).subscribe({
       next: () => {
         this.refresh()
+        this.deleted.emit(item)
         this._toastrService.success('PAC.Messages.DeletedSuccessfully', 'Deleted Successfully')
       },
       error: (error) => {

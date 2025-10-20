@@ -82,6 +82,32 @@ export class WorkflowKnowledgeBaseNodeValidator {
 					zh_Hans: `必须指定嵌入模型。`
 				}
 			})
+		} else if (!entity.copilotModel.copilotId) {
+			items.push({
+				ruleCode: 'PIPELINE_KB_EMBEDDING_MODEL_PROVIDER_MISSING',
+				node: node.key,
+				field: 'copilotModel.copilotId',
+				value: '',
+				level: 'error',
+				message: {
+					en_US: `Embedding model provider must be specified.`,
+					zh_Hans: `必须指定嵌入模型的提供商。`
+				}
+			})
+		}
+
+		if (entity.rerankModel && !entity.rerankModel.copilotId) {
+			items.push({
+				ruleCode: 'PIPELINE_KB_RERANK_MODEL_PROVIDER_MISSING',
+				node: node.key,
+				field: 'rerankModel.copilotId',
+				value: '',
+				level: 'error',
+				message: {
+					en_US: `Rerank model provider must be specified.`,
+					zh_Hans: `必须指定重排序模型的提供商。`
+				}
+			})
 		}
 
 		return items

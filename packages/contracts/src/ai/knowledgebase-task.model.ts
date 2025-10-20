@@ -2,6 +2,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model';
 import { IKnowledgeDocument } from './knowledge-doc.model';
 import { IKnowledgebase } from './knowledgebase.model'
+import { IXpertAgentExecution } from './xpert-agent-execution.model';
 
 /**
  * Task executions of a knowledgebase
@@ -12,6 +13,9 @@ export interface IKnowledgebaseTask extends IBasePerTenantAndOrganizationEntityM
 
   conversationId?: string;
   conversation?: IChatConversation
+
+  executionId?: string;
+  execution?: IXpertAgentExecution;
 
   taskType: string; // preprocess / re-embed / cleanup ...
   status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled';

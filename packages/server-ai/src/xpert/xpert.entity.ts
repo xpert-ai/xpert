@@ -205,7 +205,11 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 
 	// Reverse One-to-One with Knowledgebase
 	@ApiProperty({ type: () => Knowledgebase })
-	@OneToOne(() => Knowledgebase, (knowledgebase) => knowledgebase.pipeline)
+	@OneToOne(() => Knowledgebase, (knowledgebase) => knowledgebase.pipeline, {
+		cascade: true,
+		onDelete: 'CASCADE',
+		onUpdate: 'CASCADE',
+	})
 	knowledgebase?: IKnowledgebase
 
 	/*

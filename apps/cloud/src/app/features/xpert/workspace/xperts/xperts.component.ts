@@ -17,6 +17,7 @@ import { EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import {
   getErrorMessage,
+  IKnowledgebase,
   IXpert,
   OrderTypeEnum,
   routeAnimations,
@@ -246,5 +247,11 @@ export class XpertWorkspaceXpertsComponent {
           )
         }
       })
+  }
+
+  onKnowledgeDeleted(event: IKnowledgebase) {
+    if (event.pipelineId) {
+      this.refresh()
+    }
   }
 }

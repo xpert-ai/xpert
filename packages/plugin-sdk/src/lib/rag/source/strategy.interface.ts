@@ -1,5 +1,5 @@
 import { IDocumentSourceProvider, IIntegration } from '@metad/contracts';
-import { Document } from 'langchain/document';
+import { Document } from '@langchain/core/documents';
 import { Permissions } from '../../core';
 
 export interface IDocumentSourceStrategy<TConfig = any> {

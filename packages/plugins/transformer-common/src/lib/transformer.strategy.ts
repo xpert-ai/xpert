@@ -12,7 +12,7 @@ import {
   isRemoteFile,
 } from '@xpert-ai/plugin-sdk'
 import fsPromises from 'fs/promises'
-import { Document } from 'langchain/document'
+import { Document } from '@langchain/core/documents'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
 import path from 'path'
 import { Default, icon, TDefaultTransformerConfig, TDefaultTransformerMetadata } from './types'
@@ -29,7 +29,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
       scope: []
     } as FileSystemPermission
   ]
-  meta = {
+  
+  readonly meta = {
     name: Default,
     label: {
       en_US: 'Default',
@@ -46,7 +47,30 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     },
     configSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        replaceWhitespace: {
+          type: 'boolean',
+          title: {
+            en_US: 'Replace Whitespace',
+            zh_Hans: '替换空白字符'
+          },
+          description: {
+            en_US: 'Whether to replace all whitespace characters with a single space. Replace consecutive spaces, newlines, and tabs.',
+            zh_Hans: '是否将所有空白字符替换为单个空格。替换掉连续的空格、换行符和制表符。'
+          },
+        },
+        removeSensitive: {
+          type: 'boolean',
+          title: {
+            en_US: 'Remove Sensitive Information',
+            zh_Hans: '移除敏感信息'
+          },
+          description: {
+            en_US: 'Whether to remove sensitive information from the document. Remove all URLs and email addresses.',
+            zh_Hans: '是否从文档中移除敏感信息。删除所有 URL 和电子邮件地址。'
+          },
+        }
+      },
       required: []
     }
   }
@@ -60,7 +84,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     config: TDefaultTransformerConfig
   ): Promise<Partial<IKnowledgeDocument<TDefaultTransformerMetadata>>[]> {
     const xpFileSystem = config.permissions.fileSystem
-    this.#logger.debug('Transforming documents:')
+    this.#logger.debug('Transforming common documents:')
     this.#logger.debug('Files:', files)
 
     const results = []
@@ -125,6 +149,17 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
           data = await this.processText(file.filePath)
           break
       }
+
+      // Text Preprocessing
+      data.forEach((doc) => {
+        if (config?.replaceWhitespace) {
+          doc.pageContent = doc.pageContent.replace(/[\s\n\t]+/g, ' ') // Replace consecutive spaces, newlines, and tabs
+        }
+        if (config?.removeSensitive) {
+          doc.pageContent = doc.pageContent.replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
+          doc.pageContent = doc.pageContent.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '') // Remove email addresses
+        }
+      })
 
       results.push({
         id: file.id,

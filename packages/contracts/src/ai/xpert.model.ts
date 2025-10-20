@@ -544,7 +544,13 @@ export type TChatRequest = {
 
 export type TChatOptions = {
   conversationId?: string
+  /**
+   * @deprecated
+   */
   knowledgebases?: string[]
+  /**
+   * @deprecated
+   */
   toolsets?: string[]
   /**
    * The language used by the current browser page

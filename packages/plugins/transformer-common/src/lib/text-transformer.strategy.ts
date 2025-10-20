@@ -4,7 +4,6 @@ import {
   DocumentTransformerStrategy,
   IDocumentTransformerStrategy,
 } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
 import { Text, TDefaultTransformerConfig } from './types'
 
 @Injectable()

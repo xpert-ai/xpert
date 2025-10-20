@@ -45,7 +45,8 @@ export class XpertTriggerConsumer {
 					},
 					{
 						from: job.data.from,
-						isDraft: job.data.isDraft
+						isDraft: job.data.isDraft,
+						execution: job.data.executionId ? { id: job.data.executionId } : null
 					}
 				)
 			)

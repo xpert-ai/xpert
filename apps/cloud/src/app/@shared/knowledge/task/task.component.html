@@ -1,83 +1,96 @@
-<header class="px-6 py-4 flex justify-between">
-  <span class="font-semibold text-xl">
-    {{ 'PAC.Knowledgebase.TaskStatus' | translate: {Default: 'Task Status'} }}
-  </span>
-  <button type="button" class="w-8 h-8 flex justify-center items-center rounded-full text-sm text-gray-500 hover:text-gray-700 hover:bg-state-base-hover"
-    (click)="onClose()">
-    <i class="ri-close-large-line"></i>
-  </button>
-</header>
+<div class="grow flex flex-col overflow-hidden">
+  <header class="px-6 py-4 flex justify-between">
+    <span class="font-semibold text-xl">
+      {{ 'PAC.Knowledgebase.TaskStatus' | translate: {Default: 'Task Status'} }}
+    </span>
+    <button type="button" class="w-8 h-8 flex justify-center items-center rounded-full text-sm text-gray-500 hover:text-gray-700 hover:bg-state-base-hover"
+      (click)="onClose()">
+      <i class="ri-close-large-line"></i>
+    </button>
+  </header>
 
-<div class="flex flex-col px-4 space-y-4 divide-y divide-gray-200 overflow-y-auto max-h-[70vh] relative">
-  @for (task of document()?.tasks; track task) {
-    <section class="flex flex-col pt-4">
-      <div class="mb-4 px-2">
-        <div class="font-medium">
-          {{ 'PAC.Knowledgebase.TaskType' | translate: {Default: 'Task Type'} }}:
-          <span class="text-gray-700">{{ task.taskType }}</span></div>
-        <div class="font-medium">
-          <span class="mr-2">{{ 'PAC.Knowledgebase.Status' | translate: {Default: 'Status'} }}: </span>
-          @switch (task.status) {
-            @case ('success') {
-              <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-green-500 border-green-600 shadow shadow-green-300 mr-2"></div>
-              <span class="text-sm text-green-600">
-                {{ 'PAC.Knowledgebase.Success' | translate: {Default: 'Success'} }}
-              </span>
+  <div class="flex flex-col px-4 space-y-4 divide-y divide-gray-200 overflow-y-auto relative">
+    @for (task of tasks(); track task) {
+      <section class="flex flex-col pt-4">
+        <div class="mb-4 px-2">
+          <div>
+            <span class="font-medium">{{ 'PAC.Knowledgebase.TaskType' | translate: {Default: 'Task Type'} }}</span>:
+            <span class="font-body text-text-secondary">{{ task.taskType }}</span>
+          </div>
+          <div >
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.CreatedAt' | translate: {Default: 'Created At'} }}</span>:
+            <span class="font-body text-text-secondary">{{ task.createdAt | relative }}</span>
+          </div>
+          <div class="relative">
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.Logs' | translate: {Default: 'Logs'} }}</span>:
+            <a class="font-body text-text-secondary cursor-pointer hover:underline" (click)="openExecution(task.executionId)">{{ task.executionId }}</a>
+
+            @if (executionId() && executionId() === task.executionId) {
+              <i class="ri-arrow-right-s-fill text-lg absolute -right-4 text-text-secondary"></i>
             }
-            @case ('pending') {
-              <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-yellow-500 border-yellow-600 shadow shadow-yellow-300 mr-2"></div>
-              <span class="text-sm text-yellow-600">{{ 'PAC.Knowledgebase.Pending' | translate: {Default: 'Pending'} }}</span>
+          </div>
+          <div class="font-medium">
+            <span class="mr-2">{{ 'PAC.Knowledgebase.Status' | translate: {Default: 'Status'} }}: </span>
+            @switch (task.status) {
+              @case ('success') {
+                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-green-500 border-green-600 shadow shadow-green-300 mr-2"></div>
+                <span class="text-sm text-green-600">
+                  {{ 'PAC.Knowledgebase.Success' | translate: {Default: 'Success'} }}
+                </span>
+              }
+              @case ('pending') {
+                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-yellow-500 border-yellow-600 shadow shadow-yellow-300 mr-2"></div>
+                <span class="text-sm text-yellow-600">{{ 'PAC.Knowledgebase.Pending' | translate: {Default: 'Pending'} }}</span>
+              }
+              @case ('running') {
+                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-blue-500 border-blue-600 shadow shadow-blue-300 mr-2"></div>
+                <span class="text-sm text-blue-600">{{ 'PAC.Knowledgebase.Running' | translate: {Default: 'Running'} }}</span>
+              }
+              @case ('failed') {
+                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-red-500 border-red-600 shadow shadow-red-300 mr-2"></div>
+                <span class="text-sm text-red-600">{{ 'PAC.Knowledgebase.Failed' | translate: {Default: 'Failed'} }}</span>
+              }
+              @default {
+                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-gray-300 mr-2"></div>
+                <span class="text-sm text-gray-600">{{ 'PAC.Knowledgebase.Unknown' | translate: {Default: 'Unknown'} }}</span>
+              }
             }
-            @case ('running') {
-              <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-blue-500 border-blue-600 shadow shadow-blue-300 mr-2"></div>
-              <span class="text-sm text-blue-600">{{ 'PAC.Knowledgebase.Running' | translate: {Default: 'Running'} }}</span>
-            }
-            @case ('failed') {
-              <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-red-500 border-red-600 shadow shadow-red-300 mr-2"></div>
-              <span class="text-sm text-red-600">{{ 'PAC.Knowledgebase.Failed' | translate: {Default: 'Failed'} }}</span>
-            }
-            @default {
-              <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-gray-300 mr-2"></div>
-              <span class="text-sm text-gray-600">{{ 'PAC.Knowledgebase.Unknown' | translate: {Default: 'Unknown'} }}</span>
-            }
+          </div>
+          @if (task.status === 'failed') {
+            <div>
+              <span class="font-medium">{{ 'PAC.KEY_WORDS.Error' | translate: {Default: 'Error'} }}:</span>
+              <markdown class="block mt-1 p-2 rounded-xl overflow-hidden border border-solid border-text-destructive font-body" 
+                [disableSanitizer]="true"
+                lineNumbers
+                [start]="5"
+                [data]="task.error"
+              />
+            </div>
           }
         </div>
-        @if (task.status === 'failed') {
-          <div>
-            <span class="font-medium">{{ 'PAC.KEY_WORDS.Error' | translate: {Default: 'Error'} }}:</span>
-            <markdown  class="block mt-1 p-2 rounded-xl overflow-hidden border border-solid border-text-destructive" 
-              [disableSanitizer]="true"
-              lineNumbers
-              [start]="5"
-              [data]="task.error"
-            />
-          </div>
-        }
-
-        <!-- <div class="font-medium">文档:
-          @for (doc of task.context?.documents; track doc) {
-            <a class="text-sm text-blue-600 underline" [href]="doc.fileUrl" target="_blank">{{ doc.name }}</a>
-            <span class="text-xs text-gray-500 ml-2">({{ doc.size | number }} bytes)</span>
-          }
-        </div> -->
-      </div>
-
-      <!-- <ul class="divide-y divide-gray-200 p-2 border border-gray-200 rounded-xl">
-        @for (step of task.steps; track step) {
-          <li class="py-2 flex items-center">
-            <span class="w-24 font-medium">{{ step.name }}</span>
-            <span class="flex-1 mx-2">
-              <span class="block h-2 bg-gray-200 rounded">
-                <span class="block h-2 rounded bg-blue-500" [style.width.%]="step.progress"></span>
+        <!-- <ul class="divide-y divide-gray-200 p-2 border border-gray-200 rounded-xl">
+          @for (step of task.steps; track step) {
+            <li class="py-2 flex items-center">
+              <span class="w-24 font-medium">{{ step.name }}</span>
+              <span class="flex-1 mx-2">
+                <span class="block h-2 bg-gray-200 rounded">
+                  <span class="block h-2 rounded bg-blue-500" [style.width.%]="step.progress"></span>
+                </span>
               </span>
-            </span>
-            <span class="text-xs text-gray-500">{{ ('PAC.Knowledgebase.StepStatus_' + step.status) | translate: {Default: step.status} }}</span>
-          </li>
-        }
-      </ul> -->
-    </section>
-  }
+              <span class="text-xs text-gray-500">{{ ('PAC.Knowledgebase.StepStatus_' + step.status) | translate: {Default: step.status} }}</span>
+            </li>
+          }
+        </ul> -->
+      </section>
+    }
+  </div>
 </div>
+
+@if (executionId()) {
+  <chat-message-execution-panel class="shrink-0 w-[400px] pt-2 transition-all duration-300 overflow-y-auto"
+    [id]="executionId()"
+  />
+}
 
 @if (isLoading()) {
   <ngm-spin class="absolute inset-0 flex items-center justify-center" />

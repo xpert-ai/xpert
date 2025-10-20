@@ -28,7 +28,8 @@ import {
 	XpertTypeEnum,
 	genXpertTriggerKey,
 	IWFNTrigger,
-	KnowledgeStructureEnum
+	KnowledgeStructureEnum,
+	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
@@ -65,6 +66,7 @@ import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore } from './vector-store'
 import { sandboxVolumeUrl, VolumeClient } from '../shared'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
+import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -531,12 +533,17 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	 */
 	async processTask(knowledgebaseId: string, taskId: string, inputs: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview' | 'prod'; options?: any }) {
 		const kb = await this.findOne(knowledgebaseId, { relations: ['pipeline'] })
-		await this.taskService.update(taskId, { status: 'running' })
+		const execution = await this.commandBus.execute(
+					new XpertAgentExecutionUpsertCommand({
+						// threadId: conversation.threadId,
+						status: XpertAgentExecutionStatusEnum.RUNNING
+					})
+				)
+		await this.taskService.update(taskId, { status: 'running', executionId: execution.id })
 		const sources = inputs.sources ? Object.keys(inputs.sources) : null
 		await this.xpertService.addTriggerJob(
 			kb.pipelineId,
 			RequestContext.currentUserId(),
-			
 			{
 				[STATE_VARIABLE_HUMAN]: {
 					input: 'Process knowledges pipeline',
@@ -552,7 +559,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			{
 				trigger: null,
 				isDraft: inputs.stage === 'preview',
-				from: 'knowledge'
+				from: 'knowledge',
+				executionId: execution.id
 			}
 		)
 	}

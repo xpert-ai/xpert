@@ -63,11 +63,11 @@ export interface IDocumentUnderstandingProvider extends IDocumentNodeProvider {
 /**
  * Knowledge Pipeline Source Node
  */
-export interface IWFNSource extends IWorkflowNode {
+export interface IWFNSource<T = any> extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.SOURCE,
   provider: string
   parameters?: TXpertParameter[];
-  config: any;
+  config: T;
   integrationId?: string
 }
 

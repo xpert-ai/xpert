@@ -8,7 +8,7 @@ import { RecursiveCharacter } from './types'
 @Injectable()
 @TextSplitterStrategy(RecursiveCharacter)
 export class RecursiveCharacterStrategy
-  implements ITextSplitterStrategy<Partial<RecursiveCharacterTextSplitterParams>>
+  implements ITextSplitterStrategy<Partial<Omit<RecursiveCharacterTextSplitterParams, 'separators'>> & { separators?: string }>
 {
   readonly structure = KnowledgeStructureEnum.General
   readonly meta = {
@@ -28,7 +28,44 @@ export class RecursiveCharacterStrategy
     },
     configSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        chunkSize: {
+          type: 'number',
+          title: {
+            en_US: 'Chunk Size',
+            zh_Hans: '块大小'
+          },
+          description: {
+            en_US: 'The maximum size of each chunk.',
+            zh_Hans: '每个块的最大大小。'
+          },
+          default: 1000
+        },
+        chunkOverlap: {
+          type: 'number',
+          title: {
+            en_US: 'Chunk Overlap',
+            zh_Hans: '块重叠'
+          },
+          description: {
+            en_US: 'The number of overlapping characters between chunks.',
+            zh_Hans: '块之间重叠的字符数。'
+          },
+          default: 200
+        },
+        separators: {
+          type: 'string',
+          title: {
+            en_US: 'Separators',
+            zh_Hans: '分隔符'
+          },
+          description: {
+            en_US: 'Comma-separated list of delimiters to use for splitting. Double commas are escaped as commas',
+            zh_Hans: '用于拆分的分隔符列表，以逗号分隔。双逗号转义为逗号'
+          },
+          default: `\\n\\n,\\n, ,`
+        }
+      },
       required: []
     }
   }
@@ -37,8 +74,14 @@ export class RecursiveCharacterStrategy
     throw new Error('Method not implemented.')
   }
 
-  async splitDocuments(documents: Document[], options: Partial<RecursiveCharacterTextSplitterParams>) {
-    const splitter = new RecursiveCharacterTextSplitter(options)
+  async splitDocuments(documents: Document[], options: Partial<Omit<RecursiveCharacterTextSplitterParams, 'separators'>> & { separators?: string }): Promise<{ chunks: Document<ChunkMetadata>[] }> {
+    const separators = options.separators
+      ? options.separators
+          .replace(/,,/g, '\0')
+          .split(',')
+          .map((s) => s.replace(/\0/g, ','))
+      : [`\n\n`, `\n`, ' ', '']
+    const splitter = new RecursiveCharacterTextSplitter({...options, separators })
     const chunks = await splitter.splitDocuments(documents)
     return {
       chunks: chunks as Document<ChunkMetadata>[]

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject } from '@angular/core'
+import { Component, effect, inject } from '@angular/core'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpertPipelinesComponent } from '@cloud/app/@shared/knowledge'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
@@ -24,6 +24,14 @@ export class KnowledgebasePipelinesComponent {
 
   // States
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+
+  constructor() {
+    effect(() => {
+      if (this.knowledgebase()?.pipelineId) {
+        this.router.navigate(['./', this.knowledgebase()?.pipelineId], { relativeTo: this.route })
+      }
+    })
+  }
 
   onPipelineCreated(pipeline: IXpert) {
     this.router.navigate(['./', pipeline.id], { relativeTo: this.route })

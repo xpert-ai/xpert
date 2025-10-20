@@ -92,7 +92,9 @@
               <xp-knowledge-local-file class="w-full" [knowledgebaseId]="knowledgebaseId()"
                 [parentId]="parentId()"
                 [(files)]="files" 
-                [(selected)]="selectedFile" />
+                [(selected)]="selectedFile"
+                [accepts]="fileExtensions()"
+              />
             } @else {
               <div class="w-full mt-2 rounded-xl border border-components-panel-border bg-background-default-subtle ng-star-inserted">
                 <div class="flex items-center gap-x-1 px-4 py-2">

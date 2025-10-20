@@ -115,7 +115,7 @@
                 <knowledge-doc-id [doc]="element" [searchText]="search()" />
               </a>
             } @else {
-              <a [routerLink]="['.', element.id]" [queryParams]="{parentId: parentId()}">
+              <a [routerLink]="['.', element.id]" [queryParams]="{parentId: parentId()}" class="cursor-pointer hover:underline">
                 <knowledge-doc-id [doc]="element" [searchText]="search()" />
               </a>
             }

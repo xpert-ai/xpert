@@ -1,6 +1,6 @@
 import { VectorStore } from '@langchain/core/vectorstores'
 import { I18nObject } from '@metad/contracts'
-import { Document } from 'langchain/document'
+import { Document } from '@langchain/core/documents'
 
 export type TRetrieverConfig = {
   vectorStore: VectorStore

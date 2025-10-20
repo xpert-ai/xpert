@@ -59,13 +59,14 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 		}
 
 		// Update draft into xpert
-		await this.xpertService.update(xpert.id, {
-			draft: {
+		await this.xpertService.saveDraft(xpert.id, {
 				...omit(draft, 'memories'),
 				team: xpert
-			},
-			graph: pick(draft, 'connections', 'nodes')
-		})
+			})
+		// await this.xpertService.update(xpert.id, {
+		// 	draft: ,
+		// 	// graph: pick(draft, 'connections', 'nodes') // Graph will be available after publishing
+		// })
 
 		// Memories
 		if (draft.memories?.length) {
