@@ -90,7 +90,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				const taskService = await this.queryBus.execute<KnowledgeTaskServiceQuery, KnowledgebaseTaskService>(new KnowledgeTaskServiceQuery())
 				task = await taskService.createTask(xpert.knowledgebase.id, {
 					taskType: 'ingest',
-					conversationId: options.conversationId
+					conversationId: options.conversationId,
+					executionId: execution?.id
 				})
 				state[KnowledgebaseChannel][KnowledgeTask] = task.id
 			}
