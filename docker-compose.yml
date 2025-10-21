@@ -19,7 +19,7 @@ services:
       # HOST: ${API_HOST:-api}
       # PORT: ${API_PORT:-3000}
       NODE_OPTIONS: "--max-old-space-size=8192"
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: db
       REDIS_HOST: redis
       REDIS_PORT: 6379

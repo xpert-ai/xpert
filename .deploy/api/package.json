@@ -28,7 +28,7 @@
     "start": "nx serve",
     "build": "nx build",
     "test": "nx test",
-    "build:plugins": "yarn nx build file-system && yarn nx build integration-dify && yarn nx build integration-fastgpt && yarn nx build integration-github && yarn nx build integration-ragflow && yarn nx build ocr-paddle && yarn nx build retriever-common && yarn nx build textsplitter-common && yarn nx build tool-calculator && yarn nx build transformer-common && yarn nx build transformer-unstructured && yarn nx build trigger-schedule && yarn nx build vlm-default && yarn nx build vstore-chroma && yarn nx build vstore-milvus && yarn nx build vstore-weaviate",
+    "build:plugins": "yarn nx build integration-fastgpt && yarn nx build integration-github && yarn nx build integration-ragflow && yarn nx build ocr-paddle && yarn nx build retriever-common && yarn nx build textsplitter-common && yarn nx build tool-calculator && yarn nx build transformer-common && yarn nx build transformer-unstructured && yarn nx build trigger-schedule && yarn nx build vlm-default && yarn nx build vstore-chroma && yarn nx build vstore-milvus && yarn nx build vstore-weaviate",
     "build:all": "yarn rimraf dist && yarn nx build contracts && yarn nx build common && yarn nx build config && yarn nx build auth && yarn nx build server && yarn nx build adapter && yarn nx build plugin-sdk && yarn nx build integration-github && yarn nx build analytics && yarn nx build api"
   },
   "dependencies": {
