@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
+import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmRemoteSelectComponent, NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -26,6 +27,7 @@ import { TWorkflowVarGroup } from '../../../@core'
     CommonModule,
     FormsModule,
     TranslateModule,
+    MatTooltipModule,
     NgmSlideToggleComponent,
     NgmI18nPipe,
     NgmSelectComponent,
@@ -69,7 +71,16 @@ export class JSONSchemaPropertyComponent {
   readonly enumSchema = computed(() => this.schema() as JsonSchema7EnumType)
 
   readonly enum = computed(() => this.enumSchema()?.enum)
-  readonly enumOptions = computed(() => this.enum()?.map((value) => ({ label: this.xUi()?.enumLabels?.[value] ?? value, value })))
+  readonly enumOptions = computed(() => {
+    const items = this.enum()?.map((value) => ({ label: this.xUi()?.enumLabels?.[value] ?? value, value })) ?? []
+    const values = Array.isArray(this.value$()) ? this.value$() : this.value$() != null ? [this.value$()] : []
+    values.forEach((element) => {
+      if (!items.some((_) => _.value === element)) {
+        items.push({ label: element as string, value: element })
+      }
+    })
+    return items
+  })
 
   readonly default = computed(() => this.meta()?.default)
 

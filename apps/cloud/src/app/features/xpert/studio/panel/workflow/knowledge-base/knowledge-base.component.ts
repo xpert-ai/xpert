@@ -53,7 +53,7 @@ export class XpertWorkflowKnowledgeBaseComponent extends XpertWorkflowBaseCompon
     }
   })
 
-  readonly structure = attrModel(this.knowledgeBaseNode, 'structure')
+  readonly structure = attrModel(this.knowledgeBaseNode, 'structure', KnowledgeStructureEnum.General)
   readonly inputs = attrModel(this.knowledgeBaseNode, 'inputs')
   readonly copilotModel = attrModel(this.knowledgeBaseNode, 'copilotModel')
   readonly rerankModel = attrModel(this.knowledgeBaseNode, 'rerankModel')

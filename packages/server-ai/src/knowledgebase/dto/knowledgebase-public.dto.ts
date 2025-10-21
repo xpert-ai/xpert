@@ -27,6 +27,12 @@ export class KnowledgebasePublicDTO implements Partial<IKnowledgebase> {
 	@Expose()
 	declare createdBy?: IUser
 
+	@Expose()
+	pipelineId?: string
+
+	@Expose()
+	declare createdAt: Date
+
 	constructor(partial: IKnowledgebase) {
 		Object.assign(this, partial)
 	}

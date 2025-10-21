@@ -8,6 +8,9 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
+import { TSelectOption } from '@metad/ocap-angular/core'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { BehaviorSubject } from 'rxjs'
 import {
   DocumentTextParserConfig,
@@ -28,9 +31,6 @@ import { KnowledgeDocumentsComponent } from '../documents.component'
 import { KnowledgeDocumentCreateStep1Component } from './step-1/step.component'
 import { KnowledgeDocumentCreateStep2Component } from './step-2/step.component'
 import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
-import { TSelectOption } from '@metad/ocap-angular/core'
-import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { toSignal } from '@angular/core/rxjs-interop'
 
 
 @Component({

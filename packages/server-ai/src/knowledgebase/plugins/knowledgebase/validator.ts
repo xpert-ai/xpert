@@ -55,6 +55,61 @@ export class WorkflowKnowledgeBaseNodeValidator {
 			})
 		}
 
+		if (!entity.inputs || entity.inputs.length === 0) {
+			items.push({
+				ruleCode: 'PIPELINE_KB_INPUT_MISSING',
+				node: node.key,
+				field: 'inputs',
+				value: JSON.stringify(entity.inputs),
+				level: 'error',
+				message: {
+					en_US: `At least one input is required.`,
+					zh_Hans: `至少需要一个输入。`
+				}
+			})
+		}
+
+		// Embedding model must be specified
+		if (!entity.copilotModel) {
+			items.push({
+				ruleCode: 'PIPELINE_KB_EMBEDDING_MODEL_MISSING',
+				node: node.key,
+				field: 'copilotModel',
+				value: '',
+				level: 'error',
+				message: {
+					en_US: `Embedding model must be specified.`,
+					zh_Hans: `必须指定嵌入模型。`
+				}
+			})
+		} else if (!entity.copilotModel.copilotId) {
+			items.push({
+				ruleCode: 'PIPELINE_KB_EMBEDDING_MODEL_PROVIDER_MISSING',
+				node: node.key,
+				field: 'copilotModel.copilotId',
+				value: '',
+				level: 'error',
+				message: {
+					en_US: `Embedding model provider must be specified.`,
+					zh_Hans: `必须指定嵌入模型的提供商。`
+				}
+			})
+		}
+
+		if (entity.rerankModel && !entity.rerankModel.copilotId) {
+			items.push({
+				ruleCode: 'PIPELINE_KB_RERANK_MODEL_PROVIDER_MISSING',
+				node: node.key,
+				field: 'rerankModel.copilotId',
+				value: '',
+				level: 'error',
+				message: {
+					en_US: `Rerank model provider must be specified.`,
+					zh_Hans: `必须指定重排序模型的提供商。`
+				}
+			})
+		}
+
 		return items
 	}
 }

@@ -18,7 +18,7 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ITextSplitterStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { get } from 'lodash'
@@ -35,6 +35,8 @@ import { getErrorMessage } from '@metad/server-common'
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.CHUNKER)
 export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
+	readonly logger = new Logger(WorkflowChunkerNodeStrategy.name)
+
 	readonly meta = {
 		name: WorkflowNodeTypeEnum.CHUNKER,
 		label: {
@@ -82,9 +84,9 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 				const stage = knowledgebaseState?.[KNOWLEDGE_STAGE_NAME]
 				const isTest = stage === 'preview' || isDraft
 
-				// console.log('================== Chunker Node state ===================')
-				// console.log(JSON.stringify(state, null, 2))
-				// console.log('================== Chunker Node End ===================')
+				if (!entity.input) {
+					throw new Error('Chunker node input is not defined')
+				}
 
 				const execution: IXpertAgentExecution = {
 									category: 'workflow',
@@ -99,7 +101,11 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 								}
 				return await wrapAgentExecution(
 					async () => {
-						console.log('Chunker input value:', entity.input, value)
+						this.logger.debug('Chunker input value:', entity.input, value)
+						if (!Array.isArray(value)) {
+							throw new Error('Chunker node input value is not an array')
+						}
+
 						const documentIds = value.map((v) => v.id)
 						let documents = []
 						if (isTest) {

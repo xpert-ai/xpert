@@ -486,6 +486,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 			trigger: IWFNTrigger
 			isDraft: boolean,
 			from: TChatFrom
+			executionId?: string
 		}
 	) {
 		await this.triggerQueue.add({
@@ -494,7 +495,8 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 			isDraft: params.isDraft,
 			state,
 			from: params.from,
-			trigger: params.trigger
+			trigger: params.trigger,
+			executionId: params.executionId
 		})
 	}
 }

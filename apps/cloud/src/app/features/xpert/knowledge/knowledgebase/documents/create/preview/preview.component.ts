@@ -13,8 +13,8 @@ import {
   KBDocumentCategoryEnum,
   KnowledgeDocumentService
 } from '@cloud/app/@core'
-import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
+import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 
 @Component({
   standalone: true,
@@ -34,7 +34,6 @@ export class KnowledgeDocumentPreviewComponent {
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
   // Inputs
-  // readonly item = model<TFileItem>()
   readonly document = model<Partial<IKnowledgeDocument>>()
   readonly parserConfig = model<DocumentParserConfig>()
 
@@ -43,9 +42,10 @@ export class KnowledgeDocumentPreviewComponent {
     request: () => (this.category() === KBDocumentCategoryEnum.Sheet ? {
       type: this.document()?.type,
       category: this.category(),
-      parserConfig: this.sheetParserConfig(),
+      parserConfig: this.document()?.parserConfig,
       fileUrl: this.document()?.fileUrl,
       filePath: this.document()?.filePath,
+      name: this.document()?.name,
       // storageFileId: this.document()?.storageFile?.id,
       knowledgebaseId: this.knowledgebase().id
     } : {
@@ -54,6 +54,7 @@ export class KnowledgeDocumentPreviewComponent {
       parserConfig: this.parserConfig(),
       fileUrl: this.document()?.fileUrl,
       filePath: this.document()?.filePath,
+      name: this.document()?.name,
       // storageFileId: this.document()?.storageFile?.id,
       knowledgebaseId: this.knowledgebase().id
     }),
@@ -61,7 +62,8 @@ export class KnowledgeDocumentPreviewComponent {
   })
 
   readonly loading = computed(() => this.estimateFile.status() === 'loading')
-  readonly docs = computed(() => this.estimateFile.value())
+  // Estimate file content chunks or web pages chunks
+  readonly docs = computed(() => this.estimateFile.value() ?? this.document()?.pages)
   readonly error = computed(() => this.estimateFile.error())
 
   readonly sheetParserConfig = linkedModel({

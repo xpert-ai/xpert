@@ -10,6 +10,7 @@
       multiple
       class="hidden"
       #fileInput
+      [accept]="acceptsStr()"
       (change)="handleFiles(fileInput.files)"
     />
     <div (click)="fileInput.click()" class="text-gray-600">
@@ -18,8 +19,10 @@
         {{ 'PAC.Knowledgebase.DragDropOr' | translate: {Default: 'Drag and drop files here, or'} }}
         <span class="text-blue-500 underline cursor-pointer">{{ 'PAC.Knowledgebase.SelectFiles' | translate: {Default: 'select files'} }}</span>
       </p>
-      <p class="text-sm font-body text-gray-400 mt-1">
-        {{ 'PAC.Knowledgebase.SupportFiles' | translate: {Default: 'Supports TXT, MARKDOWN, MDX, PDF, HTML, XLSX, XLS, DOCX, PPTX, CSV, EPUB, MD, HTM, CSV, ODT, ODP, ODS and each file does not exceed 15MB.'} }}
+      <p class="text-sm font-body text-gray-400 mt-1 uppercase">
+        {{ 'PAC.Knowledgebase.Supports' | translate: {Default: 'Supports'} }}
+        {{ extensionStr() }}
+        {{ 'PAC.Knowledgebase.FileMaxSize' | translate: {Default: 'and each file does not exceed 15MB.'} }}
       </p>
     </div>
   </div>

@@ -20,6 +20,7 @@ import { ITryRequest } from './try-request';
 import { filterQuery } from './query-builder';
 import { RequestContext } from '../context';
 import { transformWhere } from './transform-where';
+import { isForeignKeyConstraintError } from '../utils/db';
 
 export abstract class CrudService<T extends BaseEntity>
 	implements ICrudService<T> {
@@ -391,6 +392,9 @@ export abstract class CrudService<T extends BaseEntity>
 		try {
 			return await this.repository.delete(criteria);
 		} catch (err) {
+			if (isForeignKeyConstraintError(err)) {
+				throw new BadRequestException('Cannot delete: record is still referenced by another table.');
+			}
 			throw new NotFoundException(`The record was not found`, err);
 		}
 	}
@@ -411,6 +415,9 @@ export abstract class CrudService<T extends BaseEntity>
 			// Perform soft delete using TypeORM
 			return await this.repository.softDelete(criteria)
 		} catch (error) {
+			if (isForeignKeyConstraintError(error)) {
+				throw new BadRequestException('Cannot delete: record is still referenced by another table.');
+			}
 			throw new NotFoundException(`The record was not found or could not be soft-deleted`, error);
 		}
 	}

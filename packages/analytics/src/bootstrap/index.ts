@@ -130,13 +130,12 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
 }
 
 export async function preBootstrapPlugins() {
-	const plugins = process.env.PLUGINS?.split(',') || [];
+	const plugins = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || [];
 	const { modules } = await registerPluginsAsync({
 		plugins: [
-			//'@xpert-ai/plugin-lark',
-			'@xpert-ai/plugin-file-system',
-			// '@xpert-ai/plugin-firecrawl',
-			'@xpert-ai/plugin-integration-dify',
+			// '@xpert-ai/plugin-lark',
+			'@xpert-ai/plugin-firecrawl',
+			'@xpert-ai/plugin-mineru',
 			'@xpert-ai/plugin-integration-fastgpt',
 			'@xpert-ai/plugin-integration-ragflow',
 			'@xpert-ai/plugin-integration-github',
@@ -146,7 +145,6 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-retriever-common',
 			'@xpert-ai/plugin-tool-calculator',
 			'@xpert-ai/plugin-transformer-common',
-			// '@xpert-ai/plugin-transformer-mineru',
 			'@xpert-ai/plugin-transformer-unstructured',
 			'@xpert-ai/plugin-vlm-default',
 			'@xpert-ai/plugin-vstore-chroma',

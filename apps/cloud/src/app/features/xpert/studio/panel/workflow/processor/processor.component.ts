@@ -87,7 +87,7 @@ export class XpertWorkflowProcessorComponent extends XpertWorkflowBaseComponent 
         }
       }
     ]
-    if (this.integration()) {
+    if (this.integration() || this.authMode() === 'integration') {
       options.push({
         value: 'integration',
         label: {

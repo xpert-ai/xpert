@@ -24,6 +24,8 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Logs": "日志",
+      "Service": "服务",
       "Plugins": "插件",
       "NewSystemIntegration": "新建系统集成",
       "SystemIntegrations": "系统集成",
@@ -2372,8 +2374,16 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "NoTitle": "无标题",
+      "Supports": "支持",
+      "FileMaxSize": "且每个文件不超过15MB。",
+      "CreateEmptyKnowledgebase": "创建空知识库",
+      "CreateEmptyKnowledgebaseDesc": "空知识库中还没有文档，你可以在今后任何时候上传文档至该知识库。",
+      "DocumentsSettings": "文档设置",
+      "ProcessDocuments": "处理文档",
       "KnowledgebaseSettings": "知识库设置",
       "KnowledgebaseSettingsDescription": "在这里，您可以修改此知识库的属性和检索设置。",
+      "OnlyIndexedFields": "只有被索引的字段能被检索到，包含其他的全量字段在 metadata 中展示。",
       "NameAndIcon": "名称和图标",
       "ModelConfiguration": "模型配置",
       "RetrievalSettings": "检索设置",

@@ -1,0 +1,337 @@
+<div class="py-4 flex w-full grow overflow-hidden">
+  <div class="grow max-w-[40%] flex flex-col px-8 py-4 overflow-auto">
+    @if (onlySheet()) {
+      <div class="flex px-4 py-2 font-body bg-yellow-50 border border-yellow-200 rounded-xl mb-4 text-text-secondary">
+        {{ 'PAC.Knowledgebase.OnlyIndexedFields' | translate: {Default: 'Only indexed fields can be searched, other full fields are displayed in metadata.'} }}
+      </div>
+    } @else {
+      <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
+        <div class="flex-1">
+          <span>{{ 'PAC.Knowledgebase.TransformerSettings' | translate: {Default: 'Transformer Settings'} }}</span>
+
+          <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+            [matTooltip]=" 'PAC.Knowledgebase.TransformerSettingsDesc' | translate: {Default: 'Configure the document transformer to extract the file content.'} "
+            matTooltipPosition="above"></i>
+        </div>
+
+        @if (transformerStrategy()?.meta.helpUrl; as helpUrl) {
+          <a [href]="helpUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
+            {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+            <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+            <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+          </a>
+        }
+        <ngm-select class="flex-1 w-52" [placeholder]=" 'PAC.Knowledgebase.SelectTransformer' | translate: {Default: 'Select a transformer'} "
+          [(ngModel)]="transformerType"
+          [selectOptions]="documentTransformerStrategies()"
+        >
+          <div icon>
+            @if (transformerStrategy()?.meta.icon; as icon) {
+              <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
+            }
+          </div>
+          <ng-template #option let-option>
+            <div class="relative flex">
+              @if (option._icon; as icon) {
+                <xp-icon class="flex w-8 h-8 shrink-0 mr-2" [icon]="icon" size="24" />
+              }
+              <div class="flex flex-col gap-1">
+                <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
+                <div class="text-text-tertiary text-xs font-body leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+              </div>
+            </div>
+          </ng-template>
+        </ngm-select>
+      </div>
+
+      <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
+        <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer p-3">
+          <div class="flex justify-center items-center">
+            <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
+              @if (transformerStrategy()?.meta.icon; as icon) {
+                <xp-icon class="!block w-8 h-8 shrink-0" [icon]="icon" />
+              } @else {
+                <i class="ri-equalizer-3-line"></i>
+              }
+            </div>
+          </div>
+          
+          @if (transformerStrategy(); as transformerStrategy) {
+            <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
+              <div class="text-text-secondary system-md-semibold">
+                {{ transformerStrategy.meta.label | i18n }}
+              </div>
+              <div class="text-text-tertiary system-xs-regular truncate" [title]="transformerStrategy.meta.description | i18n">
+                {{ transformerStrategy.meta.description | i18n }}
+              </div>
+            </div>
+          }
+        </div>
+        <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
+          @if (transformerConfigSchema(); as transformerConfigSchema) {
+            <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="transformerConfigSchema" 
+              [(ngModel)]="transformer"
+            />
+          }
+        </div>
+      </div>
+
+      <div class="w-full h-[1px] shrink-0 my-4 bg-divider-regular"></div>
+
+      <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
+        <div class="flex-1">
+          <ngm-slide-toggle class="inline-flex items-center mr-1"
+            [(ngModel)]="enableImageUnderstanding" />
+          <span>{{ 'PAC.Knowledgebase.ImageUnderstanding' | translate: {Default: 'Image Understanding'} }}</span>
+
+          <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+            [matTooltip]=" 'PAC.Knowledgebase.ImageUnderstandingDesc' | translate: {Default: 'Extract text and metadata from images using OCR and image recognition technologies.'} "
+            matTooltipPosition="above"></i>
+        </div>
+
+        @if (imageUnderstandingStrategy()?.helpUrl; as helpUrl) {
+          <a [href]="helpUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
+            {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+            <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+            <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+          </a>
+        }
+        <ngm-select class="flex-1 w-52" [placeholder]=" 'PAC.Knowledgebase.SelectImageUnderstandingTool' | translate: {Default: 'Select a image understanding tool'} "
+          [(ngModel)]="imageUnderstandingType"
+          [disabled]="!enableImageUnderstanding()"
+          [selectOptions]="imageUnderstandingStrategies()"
+        >
+          <div icon>
+            @if (imageUnderstandingStrategy()?.icon; as icon) {
+              <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
+            }
+          </div>
+          <ng-template #option let-option>
+            <div class="relative flex">
+              @if (option._icon) {
+                <xp-icon class="flex w-8 h-8 shrink-0 mr-2" [icon]="option._icon" size="24" />
+              }
+              <div class="flex flex-col gap-1">
+                <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
+                <div class="text-text-tertiary text-xs font-body leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+              </div>
+            </div>
+          </ng-template>
+        </ngm-select>
+      </div>
+
+      @if (enableImageUnderstanding()) {
+        <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
+          <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer p-3">
+            <div class="flex justify-center items-center">
+              <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
+                @if (imageUnderstandingStrategy()?.icon; as icon) {
+                  <xp-icon class="!block w-8 h-8 shrink-0" [icon]="icon" />
+                } @else {
+                  <i class="ri-equalizer-3-line"></i>
+                }
+              </div>
+            </div>
+            
+            @if (imageUnderstandingStrategy(); as imageUnderstandingStrategy) {
+              <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
+                <div class="text-text-secondary system-md-semibold">
+                  {{ imageUnderstandingStrategy.label | i18n }}
+                </div>
+                <div class="text-text-tertiary system-xs-regular truncate" [title]="imageUnderstandingStrategy.description | i18n">
+                  {{ imageUnderstandingStrategy.description | i18n }}
+                </div>
+              </div>
+            }
+          </div>
+          <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
+            @if (imageUnderstandingConfigSchema(); as imageUnderstandingConfigSchema) {
+              <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="imageUnderstandingConfigSchema" 
+                [(ngModel)]="imageUnderstanding"
+              />
+            }
+          </div>
+        </div>
+      }
+
+      <div class="w-full h-[1px] shrink-0 my-4 bg-divider-regular"></div>
+
+      <div class="system-md-semibold mb-1 flex justify-between items-center">
+        <div class="flex-1">
+          <span>
+            {{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}
+          </span>
+          <i class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+            [matTooltip]=" 'PAC.Knowledgebase.ChunkSettingsDesc' | translate: {Default: 'Configure text chunking mode and preprocessing rules.'} "
+            matTooltipPosition="above"></i>
+        </div>
+
+        @if (textSplitterStrategy()?.helpUrl; as helpUrl) {
+          <a [href]="helpUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600">
+            {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+            <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+            <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+          </a>
+        }
+        <ngm-select class="w-52" [(ngModel)]="textSplitterType" [selectOptions]="textSplitterStrategies()" [nullable]="false">
+          <div icon>
+            @if (textSplitterStrategy()?.icon; as icon) {
+              <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
+            }
+          </div>
+          <ng-template #option let-option>
+            <div class="relative flex">
+              @if (option._icon) {
+                <xp-icon class="flex w-8 h-8 shrink-0 mr-2" [icon]="option._icon" size="24" />
+              }
+              <div class="flex flex-col gap-1">
+                <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
+                <div class="text-text-tertiary text-xs font-body leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+              </div>
+            </div>
+          </ng-template>
+        </ngm-select>
+      </div>
+
+      <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
+        @if (textSplitterStrategy(); as textSplitterStrategy) {
+          <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer">
+            <div class="px-2 flex justify-center items-center">
+              <div class="w-8 h-8 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
+                <i class="ri-equalizer-3-line"></i>
+              </div>
+            </div>
+            
+            <div class="flex-1 space-y-0.5 py-3 pr-4 overflow-hidden">
+              <div class="text-text-secondary system-md-semibold">
+                {{ textSplitterStrategy.label | i18n }}
+              </div>
+              <div class="text-text-tertiary system-xs-regular truncate" [title]="textSplitterStrategy.description | i18n">
+                {{ textSplitterStrategy.description | i18n }}
+              </div>
+            </div>
+          </div>
+        }
+        <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
+          <div class="flex flex-col gap-y-4">
+            <div class="flex gap-3">
+              <div class="space-y-2 flex-1">
+                <ngm-input [label]="'PAC.Knowledgebase.ChunkDelimiter' | translate: {Default: 'Delimiter'}"
+                  [placeholder]="'PAC.Knowledgebase.ChunkDelimiterDefault' | translate: {Default: '\\n\\n \\n &quot; &quot;'}"
+                  [(ngModel)]="delimiter" />
+              </div>
+              <div class="space-y-2 flex-1">
+                <ngm-input [label]="'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'}" type="number" 
+                  [placeholder]="'PAC.Knowledgebase.ChunkSizeDefault' | translate: {Default: 'default 1000'}"
+                  [(ngModel)]="chunkSize" />
+              </div>
+              <div class="space-y-2 flex-1">
+                <ngm-input [label]="'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'}" type="number" 
+                  [placeholder]="'PAC.Knowledgebase.ChunkOverlapDefault' | translate: {Default: 'default 100'}"
+                  [(ngModel)]="chunkOverlap" />
+              </div>
+            </div>
+            <div class="w-full flex flex-col">
+              <div class="flex items-center gap-x-2">
+                <div class="inline-flex shrink-0">
+                  <label class="text-text-secondary system-sm-semibold">
+                    {{ 'PAC.Knowledgebase.TextPreprocessingRules' | translate: {Default: 'Text preprocessing rules'} }}
+                  </label>
+                </div>
+                <div class="w-full h-[0.5px] my-2 bg-gradient-to-r from-divider-regular grow"></div>
+              </div>
+              <div class="mt-1">
+                <ngm-checkbox [label]="'PAC.Knowledgebase.ReplaceWhiteChar' | translate: {Default: 'Replace consecutive spaces, newlines, and tabs'} " class="mb-4"
+                  [(ngModel)]="replaceWhitespace" />
+                <ngm-checkbox [label]="'PAC.Knowledgebase.RemoveEmailUrls' | translate: {Default: 'Remove all URLs and email addresses'}" class="mb-2"
+                  [(ngModel)]="removeSensitive"
+                />
+
+                <div class="w-full h-[0.5px] my-4 bg-divider-subtle"></div>
+
+                <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="textSplitterConfigSchema()" 
+                  [ngModel]="textSplitter()"
+                  (ngModelChange)="textSplitter.set($event)"
+                />
+
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-4">
+            <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium"
+              (click)="preview()">
+              <i class="ri-search-eye-line"></i>
+              {{ 'PAC.Knowledgebase.PreviewChunk' | translate: {Default: 'Preview Chunk'} }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+    <ng-content select="[actions]"></ng-content>
+  </div>
+
+  <div class="grow max-w-[60%] relative flex flex-col pl-4 border-l border-y border-solid border-divider-regular rounded-xl">
+    <header class="py-2 pr-4 border-b border-divider-subtle">
+      <div class="">
+        <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">
+          {{ 'PAC.Knowledgebase.Preview' | translate: {Default: 'Preview'} }}
+        </div>
+        <div class="flex items-center gap-1">
+          <div class="flex items-center h-6 px-1 rounded-md hover:bg-state-base-hover select-none text-text-secondary"
+            [cdkMenuTriggerFor]="docsMenu"
+          >
+            <div class="flex items-center space-x-0.5 font-body text-sm text-text-secondary hover:text-text-primary">
+          <!-- @else if(selectedWebDoc()) {
+                <div>{{selectedWebDoc().metadata.title}}</div>
+              } -->
+              @if (selectedDocument(); as doc) {
+                <knowledge-doc-id [doc]="doc" />
+              } @else {
+                <div>{{ 'PAC.Knowledgebase.SelectFilePreview' | translate: {Default: 'Select file to preview'} }}</div>
+              }
+              <i class="ri-arrow-down-s-line"></i>
+            </div>
+          </div>
+          <!-- @if (estimateFile()) {
+            <div class="inline-flex items-center px-[5px] h-5 rounded-[5px] border border-divider-deep leading-3 text-text-tertiary system-2xs-medium-uppercase">
+              {{estimateFile().docs.length}} {{'PAC.Knowledgebase.EstimationChunk' | translate: {Default: 'Estimation Chunk'} }}
+            </div>
+          } -->
+        </div>
+      </div>
+    </header>
+
+    @if (selectedDocument()) {
+      <xp-knowledge-document-preview class="pb-4 w-full grow space-y-6 overflow-auto" 
+        [(document)]="selectedDocument" 
+        [parserConfig]="parserConfig()"
+      />
+    }
+    <!-- @if (selectedWebDoc()) {
+      <xpert-knowledge-document-webpages [item]="selectedWebDoc()" 
+            [parserConfig]="parserConfig()"/>
+    } -->
+  </div>
+</div>
+
+<ng-template #docsMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    @for (doc of documents(); track doc; let i = $index) {
+      <div cdkMenuItem (click)="selectedDocIndex.set(i);">
+        <div class="w-full flex flex-col items-start">
+          <div>{{ doc.metadata.title }}</div>
+          <div class="text-xs text-text-secondary">{{ doc.metadata.url }}</div>
+        </div>
+      </div>
+    }
+  </div>
+</ng-template>

@@ -46,7 +46,8 @@ import {
   IWFNListOperator,
   genListOperatorKey,
   IWFNVariableAggregator,
-  genVariableAggregatorKey
+  genVariableAggregatorKey,
+  genXpertTriggerKey
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -65,7 +66,6 @@ import {
   genXpertToolKey,
   genXpertAgentToolKey,
   genXpertTaskKey,
-  genXpertTriggerKey,
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'

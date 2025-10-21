@@ -9,6 +9,7 @@ import { KnowledgebaseComponent } from './knowledgebase.component'
 import { KnowledgeTestComponent } from './test/test.component'
 import { KnowledgeDocumentPipelineComponent } from './documents/pipeline/pipeline.component'
 import { KnowledgebasePipelinesComponent } from './pipelines/pipelines.component'
+import { KnowledgeDocumentSettingsComponent } from './documents/settings/settings.component'
 
 export default [
   {
@@ -38,6 +39,10 @@ export default [
           {
             path: ':id',
             component: KnowledgeDocumentChunkComponent
+          },
+          {
+            path: ':id/settings',
+            component: KnowledgeDocumentSettingsComponent
           }
         ]
       },

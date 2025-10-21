@@ -71,6 +71,7 @@
   <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
     <div class="flex items-center">
       {{ 'PAC.Pipeline.Chunk' | translate: {Default: 'Chunk'} }}
+      <span class="ml-1 text-text-warning">*</span>
       <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.ChunkVariableTooltip' | translate: {Default: 'Select the processed blocks for storage.'}">
         <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
       </div>
@@ -99,12 +100,13 @@
 <div class="p-4 space-y-3">
   <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
     {{ 'PAC.Pipeline.EmbeddingModel' | translate: {Default: 'Embedding Model'} }}
+    <span class="ml-1 text-text-warning">*</span>
     <div class="w-4 h-4 ml-1 flex items-center" [matTooltip]="'PAC.Pipeline.EmbeddingModelTooltip' | translate: {Default: 'Select the model used for embedding chunks into vectors.'}">
       <i class="ri-information-2-line text-text-quaternary hover:text-text-tertiary"></i>
     </div>
   </div>
   <div>
-    <copilot-model-select [modelType]="eModelType.TEXT_EMBEDDING"
+    <copilot-model-select hiddenLabel [modelType]="eModelType.TEXT_EMBEDDING"
       [(ngModel)]="copilotModel"
     />
   </div>
@@ -120,7 +122,7 @@
     </div>
   </div>
   <div>
-    <copilot-model-select [modelType]="eModelType.RERANK"
+    <copilot-model-select [label]="'PAC.Knowledgebase.RerankModel' | translate: {Default: 'Rerank Model'}" [modelType]="eModelType.RERANK"
       [(ngModel)]="rerankModel"
     />
   </div>

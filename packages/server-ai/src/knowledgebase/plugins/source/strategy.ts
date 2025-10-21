@@ -14,15 +14,16 @@ import {
 	XpertParameterTypeEnum,
 	KnowledgebaseChannel,
 	KnowledgeTask,
-	KnowledgeSources,
-	KnowledgeDocuments,
+	KNOWLEDGE_SOURCES_NAME,
+	KNOWLEDGE_DOCUMENTS_NAME,
 	KBDocumentStatusEnum,
 	IKnowledgeDocument,
 	IXpertAgentExecution,
 	STATE_VARIABLE_HUMAN,
 	IKnowledgebaseTask,
-	KnowledgeFolderId
+	KNOWLEDGE_FOLDER_ID_NAME
 } from '@metad/contracts'
+import { PromptTemplate } from '@langchain/core/prompts'
 import { omit, shortuuid } from '@metad/server-common'
 import { GetIntegrationQuery } from '@metad/server-core'
 import { Inject, Injectable } from '@nestjs/common'
@@ -34,7 +35,6 @@ import { KnowledgebaseTaskService } from '../../task/index'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
-import { PromptTemplate } from '@langchain/core/prompts'
 
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.SOURCE)
@@ -88,8 +88,8 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId']
 				const stage = knowledgebaseState?.['stage']
 				const isTest = stage === 'preview' || isDraft
-				const knowledgeSources = knowledgebaseState?.[KnowledgeSources] as string[]
-				const folderId = knowledgebaseState?.[KnowledgeFolderId] as string
+				const knowledgeSources = knowledgebaseState?.[KNOWLEDGE_SOURCES_NAME] as string[]
+				const folderId = knowledgebaseState?.[KNOWLEDGE_FOLDER_ID_NAME] as string
 				// Skip this node if the source is not in the selected knowledge sources
 				if (knowledgeSources && !knowledgeSources.includes(node.key)) {
 					return new Command({
@@ -113,7 +113,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						let documents: IKnowledgeDocument[] = null
 
 						// If the node has already loaded documents
-						const cachedDocuments = state[channelName(node.key)]?.[KnowledgeDocuments] as string[]
+						const cachedDocuments = state[channelName(node.key)]?.[KNOWLEDGE_DOCUMENTS_NAME] as string[]
 						if (cachedDocuments?.length) {
 							// Create as formal documents during non-testing phases
 							const task = await this.taskService.findOne(KnowledgeTaskId, { relations: ['documents'] })

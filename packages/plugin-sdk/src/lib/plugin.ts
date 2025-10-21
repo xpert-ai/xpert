@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MODULE_METADATA } from '@nestjs/common/constants';
-import { pick } from 'underscore';
+import { pick } from 'lodash-es';
 import { PluginMetadata } from './plugin.interface';
 import { PLUGIN_METADATA } from './plugin-metadata';
 

@@ -22,12 +22,16 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     super(API_KNOWLEDGE_DOCUMENT)
   }
 
-  createBulk(entites: Partial<IKnowledgeDocument>[]) {
-    return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/bulk', entites)
+  createBulk(entites: Partial<IKnowledgeDocument>[], process?: boolean) {
+    return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/bulk', entites, {
+      params: { process }
+    })
   }
 
-  updateBulk(entites: Partial<IKnowledgeDocument>[]) {
-    return this.httpClient.put<IKnowledgeDocument[]>(this.apiBaseUrl + '/bulk', entites)
+  updateBulk(entites: Partial<IKnowledgeDocument>[], process?: boolean) {
+    return this.httpClient.put<IKnowledgeDocument[]>(this.apiBaseUrl + '/bulk', entites, {
+      params: { process }
+    })
   }
 
   deleteBulk(ids: string[]) {

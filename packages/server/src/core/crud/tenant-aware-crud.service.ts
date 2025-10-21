@@ -292,7 +292,7 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 			});
 		} catch (err) {
 			console.error('Error during delete operation:', err);
-			throw new NotFoundException(`The record was not found`, err);
+			throw err
 		}
 	}
 

@@ -1,11 +1,24 @@
 {
   "name": "@xpert-ai/plugin-sdk",
-  "version": "3.6.0-beta.6",
+  "version": "3.6.0-beta.7",
   "license": "AGPL-3.0",
   "dependencies": {},
   "main": "./index.cjs",
   "module": "./index.js",
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "@langchain/core": "*",
+    "@metad/contracts": "*",
+    "@nestjs/common": "*",
+    "@nestjs/core": "*",
+    "@nestjs/microservices": "*",
+    "lodash-es": "*",
+    "i18next-fs-backend": "*",
+    "i18next": "*",
+    "zod": "*",
+    "fs": "*",
+    "path": "*"
   }
 }

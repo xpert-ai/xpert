@@ -9,4 +9,7 @@ export type TDefaultTransformerMetadata = {
   parser: 'default'
 }
 
-export type TDefaultTransformerConfig = TDocumentTransformerConfig
+export type TDefaultTransformerConfig = TDocumentTransformerConfig & {
+  replaceWhitespace?: boolean
+  removeSensitive?: boolean
+}

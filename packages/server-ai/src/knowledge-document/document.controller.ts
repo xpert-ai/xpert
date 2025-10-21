@@ -16,6 +16,7 @@ import {
 	InternalServerErrorException,
 	Logger,
 	Param,
+	ParseBoolPipe,
 	Post,
 	Put,
 	Query,
@@ -55,13 +56,38 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	}
 
 	@Post('bulk')
-	async createBulk(@Body() entities: Partial<IKnowledgeDocument>[]) {
-		return await this.service.createBulk(entities)
+	async createBulk(@Body() entities: Partial<IKnowledgeDocument>[], @Query('process', ParseBoolPipe) process?: boolean) {
+		entities.forEach((entity) => {
+			entity.status = KBDocumentStatusEnum.WAITING
+			entity.progress = 0
+			entity.processMsg = null
+		})
+		const docs = await this.service.createBulk(entities)
+		if (process) {
+			await this.service.startProcessing(docs.map(doc => doc.id))
+		}
+		return docs
 	}
 
+	/**
+	 * Update existing documents and re-process it if requested.
+	 * 
+	 * @param entities 
+	 * @param process 
+	 */
 	@Put('bulk')
-	async updateBulk(@Body() entities: Partial<IKnowledgeDocument>[]) {
-		return await this.service.updateBulk(entities)
+	async updateBulk(@Body() entities: Partial<IKnowledgeDocument>[], @Query('process', ParseBoolPipe) process?: boolean) {
+		if (process) {
+			entities.forEach((entity) => {
+				entity.status = KBDocumentStatusEnum.WAITING
+				entity.progress = 0
+				entity.processMsg = null
+			})
+		}
+		await this.service.updateBulk(entities)
+		if (process) {
+			await this.service.startProcessing(entities.map(doc => doc.id))
+		}
 	}
 
 	@Delete('bulk')

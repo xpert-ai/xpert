@@ -7,9 +7,9 @@ team:
   starters: null
   options:
     position:
-      x: 333.258264125824
-      y: 39.230946361541726
-    scale: 0.7873620599746703
+      x: 217.0898536037759
+      y: 194.57186205431492
+    scale: 0.4301620599746697
     workflow:
       Source_Qy8zhtBMLV:
         position:
@@ -17,16 +17,16 @@ team:
           y: 500
       KnowledgeBase_KhDIYDGYeC:
         position:
-          x: 980
-          y: 220
+          x: 1640
+          y: 160
       Source_zdDsuRRENp:
         position:
-          x: -60
-          y: 20
+          x: -200
+          y: 60
       Trigger_eIX1W3MP6b:
         position:
-          x: -420
-          y: 220
+          x: -520
+          y: 260
       Processor_arakWL1cpJ:
         position:
           x: -120
@@ -45,19 +45,19 @@ team:
           y: 620
       Chunker_vMGWw52xVK:
         position:
-          x: 340
-          y: 120
+          x: 120
+          y: 60
       Chunker_9PnscncHIp:
         position:
-          x: 1040
-          y: 380
+          x: 1360
+          y: 440
       Processor_eQBAfSLaIu:
         position:
-          x: 520
-          y: 400
+          x: 440
+          y: 440
       ListOperator_NYZbXuuLYu:
         position:
-          x: 140
+          x: 120
           y: 660
       ListOperator_nBEQr2hF2L:
         position:
@@ -66,20 +66,21 @@ team:
       Processor_D033jtpyXO:
         position:
           x: 440
-          y: 700
+          y: 660
       VariableAggregator_bYnycSe52J:
         position:
-          x: 1000
-          y: 540
+          x: 1020
+          y: 440
       Understanding_unZTFBU5mw:
         position:
-          x: 780
-          y: 760
+          x: 760
+          y: 660
   agentConfig:
     parameters:
       - type: number
-        name: x_num
-        description: 分段数量
+        name: crawl_url
+        description: 抓取链接
+        default: null
         optional: null
         maximum: null
         options: null
@@ -95,9 +96,9 @@ team:
         - document
         - image
         - others
-  version: "2"
+  version: "1"
   agent:
-    key: qUKJh6ysj2
+    key: 9wX1r4RepS
   copilotModel: null
   knowledgebases: []
   toolsets: []
@@ -106,8 +107,8 @@ nodes:
   - key: KnowledgeBase_KhDIYDGYeC
     type: workflow
     position:
-      x: 980
-      y: 220
+      x: 1640
+      y: 160
     entity:
       key: KnowledgeBase_KhDIYDGYeC
       title: Knowledge Base
@@ -116,35 +117,41 @@ nodes:
       input: chunker_9pnscnchip_channel.documents
       copilotModel:
         model: text-embedding-v4
-        copilotId: 0dd4a714-64a3-4e44-aa7c-e5737aeaa8b2
+        copilotId: ce723cf6-333c-4283-aac4-c864f03f4c6b
         modelType: text-embedding
-      rerankModel:
-        model: gte-rerank
-        copilotId: 0dd4a714-64a3-4e44-aa7c-e5737aeaa8b2
-        modelType: rerank
+      rerankModel: null
       inputs:
         - chunker_vmgww52xvk_channel.documents
         - chunker_9pnscnchip_channel.documents
-    hash: bc2d563fa3585ca9de1295e24d078a795481061e29a6f3eb7b0fe850af89fbed
+    hash: f6316374e42726011bb4803a8d03fe648008e5d7d8fc50d394d01200364f1c23
   - type: workflow
     key: Source_zdDsuRRENp
     position:
-      x: -60
-      y: 20
+      x: -200
+      y: 60
     entity:
       type: source
       key: Source_zdDsuRRENp
       title: Firecrawl源
       provider: firecrawl
-      integrationId: 0297890e-ff4c-4b2b-af43-a1d9d13277e8
+      integrationId: 1eda7466-ac93-40d9-8887-802d3bf7f1b4
       config:
-        url: https://docs.firecrawl.dev/introduction
-    hash: f5ead57791ee008ab9baa48d1b30fb251c32e71ce18e984d30e909765cad4ced
+        url: "{{source_zddsurrenp_channel.crawl_url}}{{trigger_eix1w3mp6b_channel.crawl\
+          _url}}"
+      parameters:
+        - type: text
+          name: crawl_url
+          description: Crawl URL
+          default: null
+          optional: null
+          maximum: null
+          options: null
+    hash: c4971fcfdd922a197fee768ec0627ec2a908b55d15ceded3da3991c3429cba4e
   - type: workflow
     key: Trigger_eIX1W3MP6b
     position:
-      x: -420
-      y: 220
+      x: -520
+      y: 260
     entity:
       type: trigger
       key: Trigger_eIX1W3MP6b
@@ -152,12 +159,13 @@ nodes:
       from: chat
       parameters:
         - type: number
-          name: x_num
-          description: 分段数量
+          name: crawl_url
+          description: 抓取链接
+          default: null
           optional: null
           maximum: null
           options: null
-    hash: b5f1bce60263cf5ec0deacd0ad1852e0adb1761c3eeb3b714ddcb1e0b7d7857c
+    hash: 515c5d668e7c413f0bf139536b9b9195d5b0488f6cec9e32365c2e03b50216a4
   - type: workflow
     key: Source_HsQpXWJvzL
     position:
@@ -172,8 +180,8 @@ nodes:
   - type: workflow
     key: Chunker_vMGWw52xVK
     position:
-      x: 340
-      y: 120
+      x: 120
+      y: 60
     entity:
       type: chunker
       key: Chunker_vMGWw52xVK
@@ -183,12 +191,12 @@ nodes:
         addHeadersToChunk: true
         headerToSplitOn: 3
       input: source_zddsurrenp_channel.documents
-    hash: 3077e4dbccb947e8017b559d4c87f944a04454bf3d1ed383893762551087a5d1
+    hash: 4b92a6f6ad8d1941d5e9a95b2b32719fd50f41eeb16e0ec401d82a4db341e449
   - type: workflow
     key: Chunker_9PnscncHIp
     position:
-      x: 1040
-      y: 380
+      x: 1360
+      y: 440
     entity:
       type: chunker
       key: Chunker_9PnscncHIp
@@ -198,23 +206,23 @@ nodes:
         addHeadersToChunk: true
         headerToSplitOn: 3
       input: variableaggregator_bynycse52j_channel.result
-    hash: d6b677ce832e93e276cfa7e38a44c2f68142e57177473293f44d719b6d3d19f4
+    hash: 699954aa0f3cb75cbf196e08eda88c0706bbb206408e6c43ba6cedc6b4457aa7
   - type: workflow
     key: Processor_eQBAfSLaIu
     position:
-      x: 520
-      y: 400
+      x: 440
+      y: 440
     entity:
       type: processor
       key: Processor_eQBAfSLaIu
       title: 处理器
       provider: default
       input: listoperator_nbeqr2hf2l_channel.result
-    hash: adb79cd9d72dffd9d617f3aa53fd87dadd299b81c69df3aec176ba65a3de8464
+    hash: 1b45b2faf2b0c39a58b1ed05f23aec41e87d8f1d2cd4804a8a57d5b93dd453a6
   - type: workflow
     key: ListOperator_NYZbXuuLYu
     position:
-      x: 140
+      x: 120
       y: 660
     entity:
       type: list-operator
@@ -226,7 +234,7 @@ nodes:
         conditions:
           - id: tQzg7wVblo
             comparisonOperator: like
-            value: "[pdf|PDF]"
+            value: pdf$|PDF$
             variableSelector: extension
       extractBy:
         enabled: false
@@ -239,7 +247,7 @@ nodes:
         descending: true
         variable: /
       itemVarType: document
-    hash: 711f7deccc106b9c2091285ac7bbd1844f43bd7f153a73f7fcd1a5ebe4178fa3
+    hash: 3ef7f30ce30333c8a6b1d57ef845f7207a2edd9c6db089307ecc180f2089a093
   - type: workflow
     key: ListOperator_nBEQr2hF2L
     position:
@@ -256,14 +264,14 @@ nodes:
         conditions:
           - id: 7klb4v0KCN
             comparisonOperator: not-like
-            value: "[pdf|PDF]"
+            value: pdf$|PDF$
             variableSelector: extension
     hash: 231ed6963479491bc559a80272b3a0a7a7caddecfba394b395660ef4e6240102
   - type: workflow
     key: Processor_D033jtpyXO
     position:
       x: 440
-      y: 700
+      y: 660
     entity:
       type: processor
       key: Processor_D033jtpyXO
@@ -275,14 +283,14 @@ nodes:
         enableTable: true
         language: ch
         modelVersion: pipeline
-      integrationId: 6eb4e2f6-189d-4019-996a-70e462b18661
+      integrationId: dece9992-ee62-4731-a440-8b45c9622514
       input: listoperator_nyzbxuulyu_channel.result
-    hash: b834a2749839b89968f4da92c9d463e1745f9b7c0c1e9f17effeb381041208c0
+    hash: 02c60b82ce07e950995844715bdcd146193e4203298b2575379cd7c7ddbe386e
   - type: workflow
     key: VariableAggregator_bYnycSe52J
     position:
-      x: 1000
-      y: 540
+      x: 1020
+      y: 440
     entity:
       type: variable-aggregator
       key: VariableAggregator_bYnycSe52J
@@ -291,12 +299,12 @@ nodes:
         - processor_eqbafslaiu_channel.documents
         - processor_d033jtpyxo_channel.documents
       outputType: array[document]
-    hash: 8ad91e19c6726105c2d0c03c68a5773828151466668a8a217383afa719449018
+    hash: 96da171e4e46b1645a033129fdabaa79f5bd920738420598db54509b0d334690
   - type: workflow
     key: Understanding_unZTFBU5mw
     position:
-      x: 780
-      y: 760
+      x: 760
+      y: 660
     entity:
       type: understanding
       key: Understanding_unZTFBU5mw
@@ -304,10 +312,10 @@ nodes:
       provider: vlm-default
       visionModel:
         model: qwen-vl-plus
-        copilotId: 0dd4a714-64a3-4e44-aa7c-e5737aeaa8b2
+        copilotId: ce723cf6-333c-4283-aac4-c864f03f4c6b
         modelType: llm
       input: processor_d033jtpyxo_channel.documents
-    hash: 50ca916d4dca30d9ac69daf61b14d54b3397af1f14e431e316d91671d4175439
+    hash: a3c3470646b0d9b5a56ffe72bc343862a89d6031191cfedcfa0e99f73c61eb5b
 connections:
   - type: edge
     key: Trigger_eIX1W3MP6b/Source_HsQpXWJvzL
@@ -357,3 +365,7 @@ connections:
     key: Understanding_unZTFBU5mw/VariableAggregator_bYnycSe52J
     from: Understanding_unZTFBU5mw
     to: VariableAggregator_bYnycSe52J
+  - type: edge
+    key: Trigger_eIX1W3MP6b/Source_zdDsuRRENp
+    from: Trigger_eIX1W3MP6b
+    to: Source_zdDsuRRENp

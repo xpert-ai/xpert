@@ -69,12 +69,15 @@
   class="absolute bottom-0 left-0 right-0 z-10 flex flex-col gap-y-4 bg-knowledge-pipeline-creation-footer-bg px-16 pb-6 backdrop-blur-[6px]"
 >
   <div class="h-[0.5px] bg-divider-regular my-0 w-8"></div>
-  <button type="button" class="system-md-medium flex items-center gap-x-3 text-text-primary hover:text-text-accent">
+  <input type="file" #fileDropRef id="fileDropRef" class="invisible"
+    (change)="fileBrowseHandler($event.target)"
+    (click)="fileDropRef.value=null;"/>
+  <label for="fileDropRef" class="system-md-medium flex items-center gap-x-3 cursor-pointer text-text-primary hover:text-text-accent">
     <i class="ri-contacts-book-upload-line w-5 h-5 text-xl flex justify-center items-center"></i>
     <span>
       {{ 'PAC.Knowledgebase.ImportFromDSLFile' | translate: {Default: 'Import from DSL File'} }}
     </span>
-  </button>
+  </label>
 </div>
 
 @if (loading()) {

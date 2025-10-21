@@ -1,5 +1,5 @@
 import { IDocumentChunkerProvider, KnowledgeStructureEnum } from '@metad/contracts'
-import { Document } from 'langchain/document'
+import { Document } from '@langchain/core/documents'
 import { ChunkMetadata } from '../types'
 
 /**

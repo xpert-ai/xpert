@@ -8,7 +8,7 @@
     </div>
   }
 
-  @if (type() === 'array') {
+  @if (type() === 'array' && !enum()) {
     <button class="btn btn-small justify-center w-6 h-6" (click)="addArray()">
       <i class="ri-add-line"></i>
     </button>
@@ -24,7 +24,9 @@
   }
   @default {
     @if (enum()) {
-      <ngm-select class="w-full h-9" [selectOptions]="enumOptions()" [placeholder]="((meta().description || meta().title || '' ) | i18n) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )" [(ngModel)]="value$" />
+      <ngm-select class="w-full h-9" [selectOptions]="enumOptions()" [placeholder]="((meta().description || meta().title || '' ) | i18n) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )" [(ngModel)]="value$"
+        [multiple]="type() === 'array'"
+      />
     } @else {
       @switch (type()) {
         @case ('string') {
@@ -98,7 +100,12 @@
           <ngm-slide-toggle [disabled]="readonly()"
             [ngModel]="value$()"
             (ngModelChange)="update($event)" 
-          />
+          >
+            @if (meta().description) {
+              <i class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
+                [matTooltip]="meta().description | i18n"></i>
+            }
+          </ngm-slide-toggle>
         }
         @case ('object') {
           <div class="rounded-lg border border-divider-regular px-2">

@@ -97,6 +97,9 @@ export class KnowledgeDocumentPipelineStep1Component {
   readonly parameters = computed(() => this.selectedSource()?.entity.parameters)
   readonly parameterValue = model<Record<string, unknown>>()
 
+  // States
+  readonly fileExtensions = computed(() => this.selectedSource()?.entity?.config?.fileExtensions?.filter(Boolean).map((ext) => `.${ext}`))
+
   // local files
   readonly createFileTask = myRxResource({
     request: () => ({

@@ -1,10 +1,10 @@
-import { IChatConversation, IKnowledgebase, IKnowledgebaseTask, IKnowledgeDocument, TaskStep } from '@metad/contracts'
+import { IChatConversation, IKnowledgebase, IKnowledgebaseTask, IKnowledgeDocument, IXpertAgentExecution, TaskStep } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
-import { ChatConversation, Knowledgebase, KnowledgeDocument } from '../../core/entities/internal'
+import { ChatConversation, Knowledgebase, KnowledgeDocument, XpertAgentExecution } from '../../core/entities/internal'
 
 @Entity('knowledgebase_task')
 export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements IKnowledgebaseTask {
@@ -86,4 +86,17 @@ export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements I
 		name: 'knowledgebase_task_document'
 	})
 	documents?: IKnowledgeDocument[] | null
+
+	@ApiProperty({ type: () => XpertAgentExecution })
+	@ManyToOne(() => XpertAgentExecution, {
+		onDelete: 'CASCADE'
+	})
+	@JoinColumn()
+	execution?: IXpertAgentExecution
+
+	@ApiProperty({ type: () => String })
+	@RelationId((it: KnowledgebaseTask) => it.execution)
+	@IsString()
+	@Column({ nullable: true })
+	executionId?: string
 }

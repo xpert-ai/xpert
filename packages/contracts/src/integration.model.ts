@@ -109,7 +109,11 @@ export type TIntegrationProvider = {
 	schema?: TParameterSchema
 	features?: IntegrationFeatureEnum[]
 	helpUrl?: string
-	
-	webhookUrl?: (integration: IIntegration, baseUrl: string) => string
+	/**
+	 * Webhook URL generator, for example:
+	 * `{{apiBaseUrl}}/api/integration/webhook/{{integrationId}}`
+	 */
+	webhookUrl?: string
+	// webhookUrl?: (integration: IIntegration, baseUrl: string) => string
 	pro?: boolean
 }

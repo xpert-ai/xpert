@@ -10,6 +10,7 @@ import {
 	genPipelineSourceKey,
 	IKnowledgebase,
 	IKnowledgebaseTask,
+	IKnowledgeDocument,
 	IWFNKnowledgeBase,
 	IWFNProcessor,
 	IWFNSource,
@@ -18,13 +19,17 @@ import {
 	KnowledgebaseChannel,
 	KnowledgebaseTypeEnum,
 	KnowledgeProviderEnum,
-	KnowledgeSources,
+	KNOWLEDGE_SOURCES_NAME,
 	KnowledgeTask,
 	mapTranslationLanguage,
 	Metadata,
 	STATE_VARIABLE_HUMAN,
 	WorkflowNodeTypeEnum,
-	XpertTypeEnum
+	XpertTypeEnum,
+	genXpertTriggerKey,
+	IWFNTrigger,
+	KnowledgeStructureEnum,
+	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
@@ -61,6 +66,7 @@ import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore } from './vector-store'
 import { sandboxVolumeUrl, VolumeClient } from '../shared'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
+import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -234,6 +240,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const knowledgebase = await this.findOne(id)
 		const sourceKey = genPipelineSourceKey()
 		const knowledgebaseKey = genPipelineKnowledgeBaseKey()
+		const triggerKey = genXpertTriggerKey()
 		return await this.xpertService.create({
 			name: `${knowledgebase.name} Pipeline - ${shortuuid()}`,
 			workspaceId: knowledgebase.workspaceId,
@@ -251,12 +258,23 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			draft: {
 				nodes: [
 					{
+						key: triggerKey,
+						type: 'workflow',
+						position: { x: 20, y: 320 },
+						entity: {
+							key: triggerKey,
+							title: 'Trigger',
+							type: WorkflowNodeTypeEnum.TRIGGER,
+							from: 'chat'
+						} as IWFNTrigger
+					},
+					{
 						key: sourceKey,
 						type: 'workflow',
-						position: { x: 100, y: 300 },
+						position: { x: 300, y: 320 },
 						entity: {
 							key: sourceKey,
-							title: 'Source',
+							title: 'Documents Source',
 							type: WorkflowNodeTypeEnum.SOURCE,
 							provider: 'local-file'
 						} as IWFNSource
@@ -264,12 +282,21 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 					{
 						key: knowledgebaseKey,
 						type: 'workflow',
-						position: { x: 580, y: 300 },
+						position: { x: 680, y: 320 },
 						entity: {
 							key: knowledgebaseKey,
 							title: 'Knowledge Base',
-							type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE
+							type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
+							structure: KnowledgeStructureEnum.General,
 						} as IWFNKnowledgeBase
+					}
+				],
+				connections: [
+					{
+						type: 'edge',
+						key: `${triggerKey}/${sourceKey}`,
+						from: triggerKey,
+						to: sourceKey
 					}
 				]
 			}
@@ -506,12 +533,17 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	 */
 	async processTask(knowledgebaseId: string, taskId: string, inputs: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview' | 'prod'; options?: any }) {
 		const kb = await this.findOne(knowledgebaseId, { relations: ['pipeline'] })
-		await this.taskService.update(taskId, { status: 'running' })
+		const execution = await this.commandBus.execute(
+					new XpertAgentExecutionUpsertCommand({
+						// threadId: conversation.threadId,
+						status: XpertAgentExecutionStatusEnum.RUNNING
+					})
+				)
+		await this.taskService.update(taskId, { status: 'running', executionId: execution.id })
 		const sources = inputs.sources ? Object.keys(inputs.sources) : null
 		await this.xpertService.addTriggerJob(
 			kb.pipelineId,
 			RequestContext.currentUserId(),
-			
 			{
 				[STATE_VARIABLE_HUMAN]: {
 					input: 'Process knowledges pipeline',
@@ -519,7 +551,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				[KnowledgebaseChannel]: {
 					knowledgebaseId: knowledgebaseId,
 					[KnowledgeTask]: taskId,
-					[KnowledgeSources]: sources,
+					[KNOWLEDGE_SOURCES_NAME]: sources,
 					stage: inputs.stage
 				},
 				...(sources ?? []).reduce((obj, key) => ({ ...obj, [channelName(key)]: { documents: inputs.sources[key].documents } }), {})
@@ -527,7 +559,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			{
 				trigger: null,
 				isDraft: inputs.stage === 'preview',
-				from: 'knowledge'
+				from: 'knowledge',
+				executionId: execution.id
 			}
 		)
 	}
@@ -537,7 +570,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			const results = await this.transformDocuments(id, {provider: 'default', config: {}} as IWFNProcessor, false, [
 				{
 					filePath,
-					extname: filePath.split('.').pop(),
+					name: filePath.split('/').pop()
 				}
 			])
 			return results[0].chunks[0]
@@ -546,7 +579,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		}
 	}
 
-	async transformDocuments(knowledgebaseId: string, entity: IWFNProcessor, isDraft: boolean, input) {
+	async transformDocuments(knowledgebaseId: string, entity: IWFNProcessor, isDraft: boolean, input: Partial<IKnowledgeDocument<Metadata>>[]) {
 		const strategy = this.docTransformerRegistry.get(entity.provider) 
 		
 		const permissions = {}

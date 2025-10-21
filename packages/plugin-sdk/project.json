@@ -9,7 +9,7 @@
       "executor": "@nx/rollup:rollup",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/packages/plugin-sdk",
+        "outputPath": "packages/plugin-sdk/dist",
         "main": "packages/plugin-sdk/src/index.ts",
         "tsConfig": "packages/plugin-sdk/tsconfig.lib.json",
         "assets": [
@@ -23,15 +23,21 @@
         "compiler": "swc",
         "format": ["cjs", "esm"],
         "external": [
+          "@langchain/core",
+          "@metad/contracts",
           "@nestjs/common",
           "@nestjs/core",
           "@nestjs/microservices",
+          "lodash-es",
           "i18next-fs-backend",
           "i18next",
           "kafkajs",
           "amqplib",
           "mqtt",
-          "nats"
+          "nats",
+          "zod",
+          "fs",
+          "path"
         ]
       }
     },

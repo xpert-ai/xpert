@@ -93,12 +93,12 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 				const isTest = stage === 'preview' || isDraft
 
 				const values = entity.inputs.map((input) => get(stateEnv, input)) as Partial<IKnowledgeDocument[]>[]
-				console.log('Knowledge Base Input:', entity.inputs, values)
+				const inputDocuments = values.filter((docs) => !!docs).flat()
 
 				const execution: IXpertAgentExecution = {
 					category: 'workflow',
 					type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
-					inputs: values,
+					inputs: inputDocuments,
 					parentId: executionId,
 					threadId: thread_id,
 					checkpointNs: checkpoint_ns,
@@ -135,22 +135,23 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 							vectorStore = await this.knowledgebaseService.getVectorStore(knowledgebase, true)
 						} catch (err) {
 							statisticsInformation += `- Error initializing vector store: ${getErrorMessage(err)} \n`
-							return {
-								state: {
-									[channelName(node.key)]: {
-										error: `Knowledge base error: ${getErrorMessage(err)}`,
-										[InfoChannelName]: statisticsInformation.trim(),
-										[TaskChannelName]: {
-											status: 'error',
-										}
-									}
-								}
-							}
+							// return {
+							// 	state: {
+							// 		[channelName(node.key)]: {
+							// 			error: `Knowledge base error: ${getErrorMessage(err)}`,
+							// 			[InfoChannelName]: statisticsInformation.trim(),
+							// 			[TaskChannelName]: {
+							// 				status: 'error',
+							// 			}
+							// 		}
+							// 	}
+							// }
+							throw new Error(`Error initializing vector store: ${getErrorMessage(err)}`)
 						}
 
 						const { items: documents } = await this.documentService.findAll({
 							where: {
-								id: In(values.filter((docs) => !!docs).flat().map(({id}) => id) as string[]),
+								id: In(inputDocuments.map(({id}) => id) as string[]),
 								knowledgebaseId
 							},
 							relations: ['pages']
@@ -247,7 +248,15 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 						commandBus: this.commandBus,
 						queryBus: this.queryBus,
 						subscriber: subscriber,
-						execution
+						execution,
+						catchError: async (error) => {
+							if (!isTest) {
+								for await (const {id} of inputDocuments) {
+									await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
+								}
+								await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
+							}
+						}
 					}
 				)()
 			}),

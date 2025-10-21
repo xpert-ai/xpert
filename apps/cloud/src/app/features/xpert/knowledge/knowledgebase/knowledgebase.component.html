@@ -142,7 +142,9 @@
         ></path>
       </svg>
       @if (sideMenuOpened()) {
-        <div class="system-sm-medium grow text-text-secondary">Service API</div>
+        <div class="system-sm-medium grow text-text-secondary">
+          {{'PAC.KEY_WORDS.Service' | translate: {Default: 'Service'} }}
+          API</div>
       }
       @if (apiEnabled()) {
         <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
@@ -261,7 +263,7 @@
         (click)="openApiReference()"
       >
         <i class="ri-book-open-line"></i>
-        <span class="system-xs-medium px-[3px]">API Reference</span>
+        <span class="system-xs-medium px-[3px]">API {{'PAC.KEY_WORDS.Reference' | translate: {Default: 'Reference'} }}</span>
       </button>
     </div>
   </div>

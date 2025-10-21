@@ -85,6 +85,7 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
   readonly integrationId = attrModel(this.source, 'integrationId')
   readonly parameters = attrModel(this.source, 'parameters')
   readonly config = attrModel(this.source, 'config')
+  readonly acceptedFileTypes = computed(() => this.config()?.fileExtensions?.filter(Boolean).map((ext) => `.${ext}`))
   readonly parameterValue = model<Record<string, unknown>>()
 
   readonly pristineXpert = this.studioService.team
@@ -110,9 +111,10 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
   readonly selectedStrategy = computed(() => this.strategies()?.find((s) => s.meta.name === this.provider()))
   readonly providerCategory = computed(() => this.selectedStrategy()?.meta.category)
 
+  // Files model
   readonly files = model<KnowledgeFileUploader[]>([])
   readonly selectedFile = model<KnowledgeFileUploader | null>(null)
-    
+  
   readonly successMessage = signal<string>(null)
 
   run() {

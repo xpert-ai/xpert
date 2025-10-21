@@ -5,7 +5,6 @@ import { EventNameXpertValidate, XpertDraftValidateEvent } from '../../../xpert/
 
 @Injectable()
 export class WorkflowChunkerNodeValidator {
-	
 	@OnEvent(EventNameXpertValidate)
 	handle(event: XpertDraftValidateEvent) {
 		const draft = event.draft
@@ -22,6 +21,20 @@ export class WorkflowChunkerNodeValidator {
 	check(node: TXpertTeamNode) {
 		const entity = node.entity as IWFNChunker
 		const items: ChecklistItem[] = []
+
+		if (!entity.input) {
+			items.push({
+				node: node.key,
+				field: 'input',
+				value: entity.input,
+				level: 'error',
+				message: {
+					en_US: `Input is required for Chunker node`,
+					zh_Hans: `分块器节点的输入是必需的`
+				},
+				ruleCode: 'KNOWLEDGEBASE_CHUNKER_INPUT_REQUIRED'
+			})
+		}
 
 		return items
 	}

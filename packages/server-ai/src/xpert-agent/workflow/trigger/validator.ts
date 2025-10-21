@@ -19,10 +19,11 @@ export class WorkflowTriggerValidator {
 		const items: ChecklistItem[] = []
 		for await (const node of triggerNodes) {
 			const entity = <IWFNTrigger>node.entity
-			if (entity.from === 'chat') {
+			if (!entity.from || entity.from === 'chat') {
 				items.push(...this.check(node, draft))
 				continue
 			}
+
 			const provider = this.triggerRegistry.get(entity.from)
 			if (!provider) {
 				items.push({

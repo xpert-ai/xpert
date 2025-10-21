@@ -1,5 +1,5 @@
 import { IIntegration } from '@metad/contracts'
-import { Document } from 'langchain/document'
+import { Document } from '@langchain/core/documents'
 
 export type TKnowledgeStrategyParams = {
 	query: string;

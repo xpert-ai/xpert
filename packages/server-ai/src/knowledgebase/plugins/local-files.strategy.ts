@@ -1,11 +1,12 @@
+import { Document } from '@langchain/core/documents'
 import { DocumentSourceProviderCategoryEnum, I18nObject, IDocumentSourceProvider, IStorageFile, STATE_VARIABLE_HUMAN, TChatRequestHuman } from '@metad/contracts'
 import { GetStorageFileQuery } from '@metad/server-core'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { DocumentSourceStrategy, IDocumentSourceStrategy } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
 
 interface LocalFileConfig {
+	fileExtensions: string[]
 	[STATE_VARIABLE_HUMAN]: TChatRequestHuman
 }
 
@@ -23,7 +24,40 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 		} as I18nObject,
 		configSchema: {
 			type: 'object',
-			properties: {},
+			properties: {
+				fileExtensions: {
+					type: 'array',
+					title: {
+						en_US: `File Extensions`,
+						zh_Hans: '文件扩展名'
+					} as I18nObject,
+					description: {
+						en_US: `Specify the file extensions to be loaded from local files.`,
+						zh_Hans: '指定要从本地文件加载的文件扩展名。'
+					} ,
+					enum: [
+						"txt",
+						"markdown",
+						"mdx",
+						"pdf",
+						"html",
+						"xlsx",
+						"xls",
+						"vtt",
+						"properties",
+						"doc",
+						"docx",
+						"csv",
+						"eml",
+						"msg",
+						"pptx",
+						"xml",
+						"epub",
+						"ppt",
+						"md",
+					]
+				}
+			},
 			required: []
 		},
 		icon: {

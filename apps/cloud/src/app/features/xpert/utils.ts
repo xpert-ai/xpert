@@ -88,9 +88,6 @@ export function genXpertAgentToolKey() {
 export function genXpertTaskKey() {
   return letterStartSUID('Task_')
 }
-export function genXpertTriggerKey() {
-  return letterStartSUID('Trigger_')
-}
 
 export function genXpertNoteKey() {
   return letterStartSUID('Note_')

@@ -13,6 +13,7 @@ import { EMPTY, Observable, switchMap } from 'rxjs'
 
 export type TConfirmUniqueInfo = {
   title?: string;
+  description?: string;
   value?: any;
   validators?: Array<(value: string) => Promise<ValidationErrors>>
 }
@@ -79,11 +80,16 @@ export class CdkConfirmUniqueComponent implements OnInit {
 export function injectConfirmUnique() {
   const dialog = inject(Dialog)
 
-  return <T>(info: TConfirmUniqueInfo, execution: (value: string) => Observable<T>) => {
-    return dialog.open<string>(CdkConfirmUniqueComponent, {
+  return <T>(info: TConfirmUniqueInfo, execution?: (value: string) => Observable<T>) => {
+    const dialogRef = dialog.open<string>(CdkConfirmUniqueComponent, {
       data: info
-    }).closed.pipe(
-      switchMap((value) => value ? execution(value) : EMPTY)
-    )
+    }).closed
+
+    if (execution) {
+      return dialogRef.pipe(
+        switchMap((value) => value ? execution(value) : EMPTY)
+      )
+    }
+    return dialogRef as Observable<T>;
   }
 }

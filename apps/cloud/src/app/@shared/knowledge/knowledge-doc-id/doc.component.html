@@ -34,7 +34,13 @@
 <div class="grow flex items-center gap-1"
   [title]="label()"
 >
-  <div class="text-sm truncate"
-    [ngmHighlight]="searchText()"
-    [content]="label()">{{label()}}</div>
+  @if (label()) {
+    <div class="text-sm truncate"
+      [ngmHighlight]="searchText()"
+      [content]="label()">{{label()}}</div>
+  } @else {
+    <div class="text-sm truncate">
+      [{{ 'PAC.Knowledgebase.NoTitle' | translate: { Default: 'No Title' } }}]
+    </div>
+  }
 </div>

@@ -68,7 +68,7 @@
       [highlight]="searchText()"
       [xpert]="xpert"
       (delete)="deleteXpert(xpert)"
-      [routerLink]="xpert.type === eXpertTypeEnum.Knowledge ? ['/xpert/knowledges', xpert.knowledgebase.id, 'xpert', xpert.id] :
+      [routerLink]="xpert.type === eXpertTypeEnum.Knowledge ? ['/xpert/knowledges', xpert.knowledgebase?.id, 'xpert', xpert.id] :
         ['/xpert/x/', xpert.id, xpert.type === eXpertTypeEnum.Copilot ? 'copilot' : 'agents']"
     />
   }

@@ -92,6 +92,8 @@ RUN npm install pm2 -g
 COPY --chown=node:node wait ./
 # COPY dist and dependencies
 COPY --chown=node:node --from=build /srv/pangolin/dist/packages ./packages
+COPY --chown=node:node --from=build /srv/pangolin/packages/contracts/dist ./packages/contracts
+COPY --chown=node:node --from=build /srv/pangolin/packages/plugin-sdk/dist ./packages/plugin-sdk
 COPY --chown=node:node --from=build /srv/pangolin/dist/apps/api .
 COPY --chown=node:node --from=build /srv/pangolin/tsconfig.base.json ./
 COPY --chown=node:node --from=build /srv/pangolin/package-lock.json .
@@ -104,7 +106,6 @@ RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 # RUN yarn config set network-timeout 300000
 RUN npm install --legacy-peer-deps && \
     touch ormlogs.log && chown -R node:node /srv/pangolin
-# COPY --chown=node:node --from=build /srv/pangolin/plugins_node_modules/@xpert-ai/. ./node_modules/@xpert-ai/
 
 USER node:node
 
