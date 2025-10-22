@@ -2374,6 +2374,9 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "CreatePipelineFirst": "请先创建知识流水线",
+      "AddDocumentFromPipeline": "使用流水线创建文档并进行转换",
+      "AddDocumentFixedConfig": "新增文档并用固定配置进行转换",
       "NoTitle": "无标题",
       "Supports": "支持",
       "FileMaxSize": "且每个文件不超过15MB。",

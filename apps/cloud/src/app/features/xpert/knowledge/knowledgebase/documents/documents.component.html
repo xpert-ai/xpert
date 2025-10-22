@@ -88,7 +88,7 @@
           {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
         </th>
         @for (column of columnsToDisplay; track column.name) {
-          <th scope="col" class="px-6 py-3 w-36">
+          <th scope="col" class="px-6 py-3 w-40">
             {{ 'PAC.KEY_WORDS.' + column.caption | translate: {Default: column.caption} }}
           </th>
         }
@@ -121,7 +121,7 @@
             }
           </td>
           @for (column of columnsToDisplay; track column.name) {
-            <td class="px-6 py-2 w-32">
+            <td class="px-6 py-2 w-40">
               @switch (column.name) {
                 @case ('disabled') {
                   <div class="flex items-center text-sm">
@@ -247,11 +247,19 @@
       <i class="ri-folder-add-fill mr-1 text-xl text-text-accent"></i>
       <span class="ml-2">{{ 'PAC.Knowledgebase.NewFolder' | translate: {Default: 'New Folder'} }}</span>
     </div>
-    <div cdkMenuItem (click)="createFromPipeline()">
+    <div cdkMenuItem [cdkMenuItemDisabled]="!pipelineId()"
+      [matTooltip]="pipelineId() ? ('PAC.Knowledgebase.AddDocumentFromPipeline' | translate: {Default: 'Use pipelines to create documents and convert them'}) : ('PAC.Knowledgebase.CreatePipelineFirst' | translate: {Default: 'Create a knowledge pipeline first.'})"
+      matTooltipPosition="left"
+      [class.opacity-50]="!pipelineId()"
+      [class.!cursor-pointer]="!pipelineId()"
+      (click)="pipelineId()&&createFromPipeline()">
       <i class="ri-flow-chart mr-1 text-xl text-primary-600"></i>
       <span class="ml-2">{{ 'PAC.Knowledgebase.CreateFromPipeline' | translate: {Default: 'Create From Pipeline'} }}</span>
     </div>
-    <div cdkMenuItem (click)="uploadDocuments()">
+    <div cdkMenuItem
+      [matTooltip]="'PAC.Knowledgebase.AddDocumentFixedConfig' | translate: {Default: 'Add a new document and convert it with a fixed configuration.'}"
+      matTooltipPosition="left"
+      (click)="uploadDocuments()">
       <i class="ri-folder-shared-fill mr-1 text-xl text-text-success"></i>
       <span class="ml-2">{{ 'PAC.Knowledgebase.NewDocuments' | translate: {Default: 'New Documents' } }}</span>
     </div>
