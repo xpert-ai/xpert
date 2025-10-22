@@ -58,8 +58,7 @@ export class KnowledgeDocumentPipelineStep2Component {
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly loading = signal(false)
   
-  readonly task = signal<IKnowledgebaseTask>(null)
-  readonly _documents = computed(() => this.task()?.context?.documents)
+
   
   readonly parametersValue = model<Partial<Record<string, unknown>>>({})
 
