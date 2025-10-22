@@ -17,6 +17,7 @@ import { AssistantsController } from './assistant.controller'
 import { XpertModule } from '../xpert'
 import { StoreController } from './store.controller'
 import { ContextsController } from './context.controller'
+import { KnowledgesController } from './knowledge.controller'
 
 @Module({
 	imports: [
@@ -34,9 +35,18 @@ import { ContextsController } from './context.controller'
 		forwardRef(() => KnowledgebaseModule),
 		forwardRef(() => KnowledgeDocumentModule),
 		forwardRef(() => StorageFileModule),
-		forwardRef(() => XpertModule),
+		forwardRef(() => XpertModule)
 	],
-	controllers: [AIController, AIV1Controller, ContextsController, AssistantsController, ThreadsController, StoreController],
+	controllers: [
+		AIController,
+		AIV1Controller,
+		ContextsController,
+		KnowledgesController,
+		AssistantsController,
+		ThreadsController,
+		StoreController,
+		
+	],
 	providers: [AiService, ...CommandHandlers, ...QueryHandlers]
 })
 export class AIModule {}

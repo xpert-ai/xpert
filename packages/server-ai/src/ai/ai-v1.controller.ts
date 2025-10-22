@@ -1,4 +1,4 @@
-import { IApiKey, IKnowledgeDocument, TChatOptions, TChatRequest, UploadedFile } from '@metad/contracts'
+import { IApiKey, TChatOptions, TChatRequest, UploadedFile } from '@metad/contracts'
 import { keepAlive, takeUntilClose } from '@metad/server-common'
 import {
 	ApiKeyAuthGuard,

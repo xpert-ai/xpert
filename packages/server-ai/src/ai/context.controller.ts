@@ -13,7 +13,9 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import path from 'path'
 
-
+/**
+ * Context APIs for AI (files, documents, etc.)
+ */
 @ApiTags('AI/Contexts')
 @ApiBearerAuth()
 @Public()
