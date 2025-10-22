@@ -2374,6 +2374,7 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "NoIntegrationUseEnv": "默认使用环境配置",
       "CreatePipelineFirst": "请先创建知识流水线",
       "AddDocumentFromPipeline": "使用流水线创建文档并进行转换",
       "AddDocumentFixedConfig": "新增文档并用固定配置进行转换",

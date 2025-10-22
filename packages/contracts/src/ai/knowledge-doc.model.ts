@@ -17,10 +17,12 @@ export type DocumentParserConfig = {
     [key: string]: unknown
   }
   transformerType?: string
+  transformerIntegration?: string
   transformer?: {
     [key: string]: unknown
   }
   imageUnderstandingType?: string
+  imageUnderstandingIntegration?: string
   imageUnderstanding?: {
     [key: string]: unknown
   }

@@ -15,6 +15,7 @@ import { NgmCheckboxComponent, NgmInputComponent, NgmSlideToggleComponent } from
 import { KnowledgeDocIdComponent } from "@cloud/app/@shared/knowledge";
 import { KnowledgeDocumentPreviewComponent } from "../preview/preview.component";
 import { KnowledgeDocumentWebpagesComponent } from "../webpages/webpages.component";
+import { IntegrationSelectComponent } from "@cloud/app/@shared/integration";
 
 @Component({
   standalone: true,
@@ -35,6 +36,7 @@ import { KnowledgeDocumentWebpagesComponent } from "../webpages/webpages.compone
     IconComponent,
     JSONSchemaFormComponent,
     KnowledgeDocIdComponent,
+    IntegrationSelectComponent,
     KnowledgeDocumentPreviewComponent,
     KnowledgeDocumentWebpagesComponent,
   ]
@@ -70,11 +72,14 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly textSplitterStrategy = computed(() => this.#textSplitterStrategies()?.find((strategy) => strategy.name === this.textSplitterType()))
   readonly textSplitterConfigSchema = computed(() => this.textSplitterStrategy()?.configSchema || {} as JsonSchema7ObjectType)
 
-
+  // Document Transformer
   readonly transformerType = attrModel(this.parserConfig, 'transformerType', 'default')
   readonly transformer = attrModel(this.parserConfig, 'transformer')
+  readonly transformerIntegrationId = attrModel(this.parserConfig, 'transformerIntegration')
   readonly transformerStrategy = computed(() => this.#documentTransformerStrategies()?.find((strategy) => strategy.meta.name === this.transformerType()))
   readonly transformerConfigSchema = computed(() => this.transformerStrategy()?.meta.configSchema || {} as JsonSchema7ObjectType)
+  readonly transformerIntegration = computed(() => this.transformerStrategy()?.integration)
+  readonly transformerIntegrationProvider = computed(() => this.transformerIntegration()?.service)
 
   readonly documentTransformerStrategies = computed(() => this.#documentTransformerStrategies()?.map((strategy) => ({
     value: strategy.meta.name,
@@ -86,6 +91,7 @@ export class KnowledgeDocumentCreateSettingsComponent {
   // Image Understanding
   readonly imageUnderstandingType = attrModel(this.parserConfig, 'imageUnderstandingType', 'vlm-default')
   readonly imageUnderstanding = attrModel(this.parserConfig, 'imageUnderstanding')
+  readonly imageUnderstandingIntegrationId = attrModel(this.parserConfig, 'imageUnderstandingIntegration')
   readonly enableImageUnderstanding = linkedModel({
     initialValue: false,
     compute: () => !!this.parserConfig().imageUnderstandingType,
@@ -112,8 +118,10 @@ export class KnowledgeDocumentCreateSettingsComponent {
     _icon: strategy.icon
   })))
 
-  readonly imageUnderstandingStrategy = computed(() => this.#understandingStrategies()?.find((strategy) => strategy.meta.name === this.imageUnderstandingType())?.meta)
-  readonly imageUnderstandingConfigSchema = computed(() => this.imageUnderstandingStrategy()?.configSchema || {} as JsonSchema7ObjectType)
+  readonly imageUnderstandingStrategy = computed(() => this.#understandingStrategies()?.find((strategy) => strategy.meta.name === this.imageUnderstandingType()))
+  readonly imageUnderstandingConfigSchema = computed(() => this.imageUnderstandingStrategy()?.meta.configSchema || {} as JsonSchema7ObjectType)
+  readonly imageUnderstandingIntegration = computed(() => this.imageUnderstandingStrategy()?.integration)
+  readonly imageUnderstandingIntegrationProvider = computed(() => this.imageUnderstandingIntegration()?.service)
 
   readonly delimiter = attrModel(this.parserConfig, 'delimiter', '\n\n')
   readonly chunkSize = attrModel(this.parserConfig, 'chunkSize', 1000)

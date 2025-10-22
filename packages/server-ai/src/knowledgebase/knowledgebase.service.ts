@@ -39,11 +39,9 @@ import { InjectRepository } from '@nestjs/typeorm'
 import {
 	DocumentSourceRegistry,
 	DocumentTransformerRegistry,
-	FileSystemPermission,
 	ImageUnderstandingRegistry,
 	KnowledgeStrategyRegistry,
 	TextSplitterRegistry,
-	XpFileSystem
 } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { assign, sortBy } from 'lodash'
@@ -64,9 +62,10 @@ import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgeSearchQuery } from './queries'
 import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore } from './vector-store'
-import { sandboxVolumeUrl, VolumeClient } from '../shared'
+import { VolumeClient } from '../shared'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
+import { PluginPermissionsCommand } from './commands'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -582,41 +581,51 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	async transformDocuments(knowledgebaseId: string, entity: IWFNProcessor, isDraft: boolean, input: Partial<IKnowledgeDocument<Metadata>>[]) {
 		const strategy = this.docTransformerRegistry.get(entity.provider) 
 		
-		const permissions = {}
-		const volumeClient = new VolumeClient({
-			tenantId: RequestContext.currentTenantId(),
-			catalog: 'knowledges',
-			userId: RequestContext.currentUserId(),
-			knowledgeId: knowledgebaseId
-		})
-		const fsPermission = strategy.permissions?.find(
-			(permission) => permission.type === 'filesystem'
-		) as FileSystemPermission
-		if (fsPermission) {
-			permissions['fileSystem'] = new XpFileSystem(
-				fsPermission,
-				volumeClient.getVolumePath(''),
-				sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/`)
-			)
-		}
+		const permissions = await this.commandBus.execute(new PluginPermissionsCommand(strategy.permissions, {
+			knowledgebaseId: knowledgebaseId,
+			integrationId: entity.integrationId,
+			folder: ''
+		}))
+		// const permissions = {}
+		// const volumeClient = new VolumeClient({
+		// 	tenantId: RequestContext.currentTenantId(),
+		// 	catalog: 'knowledges',
+		// 	userId: RequestContext.currentUserId(),
+		// 	knowledgeId: knowledgebaseId
+		// })
+		// const fsPermission = strategy.permissions?.find(
+		// 	(permission) => permission.type === 'filesystem'
+		// ) as FileSystemPermission
+		// if (fsPermission) {
+		// 	permissions['fileSystem'] = new XpFileSystem(
+		// 		fsPermission,
+		// 		volumeClient.getVolumePath(''),
+		// 		sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/`)
+		// 	)
+		// }
 
-		// Integration
-		const integrationPermission = strategy.permissions?.find(
-			(permission) => permission.type === 'integration'
-		)
-		if (integrationPermission && entity.integrationId) {
-			let integration = null
-			try {
-				integration = await this.integrationService.findOne(entity.integrationId)
-			} catch (error) {
-				throw new BadRequestException(t('server-ai:Error.IntegrationNotFound', { id: entity.integrationId }))
-			}
-			permissions['integration'] = integration
-		}
+		// // Integration
+		// const integrationPermission = strategy.permissions?.find(
+		// 	(permission) => permission.type === 'integration'
+		// )
+		// if (integrationPermission && entity.integrationId) {
+		// 	let integration = null
+		// 	try {
+		// 		integration = await this.integrationService.findOne(entity.integrationId)
+		// 	} catch (error) {
+		// 		throw new BadRequestException(t('server-ai:Error.IntegrationNotFound', { id: entity.integrationId }))
+		// 	}
+		// 	permissions['integration'] = integration
+		// }
 		const results = await strategy.transformDocuments(input, {
 			...(entity.config ?? {}),
 			stage: isDraft ? 'test' : 'prod',
-			tempDir: volumeClient.getVolumePath('tmp'),
+			tempDir: new VolumeClient({
+			tenantId: RequestContext.currentTenantId(),
+						catalog: 'knowledges',
+						userId: RequestContext.currentUserId(),
+						knowledgeId: knowledgebaseId
+					}).getVolumePath('tmp'),
 			permissions
 		})
 

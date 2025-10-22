@@ -11,16 +11,15 @@ import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
 	DocumentTransformerRegistry,
-	FileSystemPermission,
 	ImageUnderstandingRegistry,
 	TextSplitterRegistry,
-	XpFileSystem
 } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
-import { LoadStorageFileCommand, sandboxVolumeUrl, VolumeClient } from '../../../shared/'
+import { LoadStorageFileCommand, VolumeClient } from '../../../shared/'
 import { KnowledgeDocLoadCommand } from '../load.command'
+import { PluginPermissionsCommand } from '../../../knowledgebase/commands'
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {
@@ -75,19 +74,40 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			if (transformerType) {
 				const transformer = this.transformerRegistry.get(transformerType)
 				if (transformer) {
-					const type = doc.name?.split('.').pop()?.toLowerCase()
-					const fsPermission = transformer.permissions?.find(
-						(permission) => permission.type === 'filesystem'
-					) as FileSystemPermission
-					const permissions = {}
-					if (fsPermission) {
-						const folder = stage === 'test' ? 'temp/' : `/`
-						permissions['fileSystem'] = new XpFileSystem(
-							fsPermission,
-							volumeClient.getVolumePath(folder),
-							sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
-						)
-					}
+					// const type = doc.name?.split('.').pop()?.toLowerCase()
+
+					// File system permission
+					// const fsPermission = transformer.permissions?.find(
+					// 	(permission) => permission.type === 'filesystem'
+					// ) as FileSystemPermission
+					// const permissions = {}
+					// if (fsPermission) {
+					// 	const folder = stage === 'test' ? 'temp/' : `/`
+					// 	permissions['fileSystem'] = new XpFileSystem(
+					// 		fsPermission,
+					// 		volumeClient.getVolumePath(folder),
+					// 		sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
+					// 	)
+					// }
+					// // Integration permission
+					// const integrationPermission = transformer.permissions?.find(
+					// 	(permission) => permission.type === 'integration'
+					// )
+					// if (integrationPermission && doc.parserConfig?.transformerIntegration) {
+					// 	let integration = null
+					// 	try {
+					// 		integration = await this.integrationService.findOne(doc.parserConfig.transformerIntegration)
+					// 	} catch (error) {
+					// 		throw new BadRequestException(t('server-ai:Error.IntegrationNotFound', { id: doc.parserConfig.transformerIntegration }))
+					// 	}
+					// 	permissions['integration'] = integration
+					// }
+
+					const permissions = await this.commandBus.execute(new PluginPermissionsCommand(transformer.permissions, {
+							knowledgebaseId: doc.knowledgebaseId,
+							integrationId: doc.parserConfig?.transformerIntegration,
+							folder: stage === 'test' ? 'temp/' : `/`
+						}))
 					const transformed = await transformer.transformDocuments(
 						[doc],
 						{
@@ -111,18 +131,23 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 							const imageUnderstanding = this.imageUnderstandingRegistry.get(
 								doc.parserConfig.imageUnderstandingType
 							)
-							const fsPermission = imageUnderstanding.permissions?.find(
-								(permission) => permission.type === 'filesystem'
-							) as FileSystemPermission
-							const permissions = {}
-							if (fsPermission) {
-								const folder = stage === 'test' ? 'temp/' : `/`
-								permissions['fileSystem'] = new XpFileSystem(
-									fsPermission,
-									volumeClient.getVolumePath(folder),
-									sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
-								)
-							}
+
+							// const fsPermission = imageUnderstanding.permissions?.find(
+							// 	(permission) => permission.type === 'filesystem'
+							// ) as FileSystemPermission
+							const permissions = await this.commandBus.execute(new PluginPermissionsCommand(imageUnderstanding.permissions, {
+								knowledgebaseId: doc.knowledgebaseId,
+								integrationId: doc.parserConfig?.imageUnderstandingIntegration,
+								folder: stage === 'test' ? 'temp/' : `/`
+							}))
+							// if (fsPermission) {
+							// 	const folder = stage === 'test' ? 'temp/' : `/`
+							// 	permissions['fileSystem'] = new XpFileSystem(
+							// 		fsPermission,
+							// 		volumeClient.getVolumePath(folder),
+							// 		sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
+							// 	)
+							// }
 							const imgTransformed = await imageUnderstanding.understandImages(
 								{
 									files: images,
@@ -152,9 +177,10 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 				} else {
 					throw new Error(`Transformer not found: ${transformerType}`)
 				}
-			} else {
-				docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
 			}
+			// else {
+			// 	docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
+			// }
 
 			return await this.splitDocuments(doc, docs)
 		}

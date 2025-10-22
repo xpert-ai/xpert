@@ -80,7 +80,7 @@ export class VolumeClient {
 		const filePath = path.join(targetFolder, file.originalname)
 		await fsPromises.mkdir(targetFolder, { recursive: true })
 		await fsPromises.writeFile(filePath, file.buffer as unknown as string)
-		return urlJoin(this.baseUrl, folder, file.originalname)
+		return urlJoin(this.baseUrl, path.join(folder, file.originalname))
 	}
 
 	async readFile(filePath: string) {
