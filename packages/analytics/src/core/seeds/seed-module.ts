@@ -1,5 +1,6 @@
 import { IPluginConfig } from '@metad/server-common'
 import { registerPluginConfig } from '@metad/server-core'
+import { INestApplicationContext } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import chalk from 'chalk'
 import yargs from 'yargs'
@@ -9,12 +10,19 @@ import { SeederModule } from './seeder.module'
 
 export async function seedModule(devConfig: Partial<IPluginConfig>) {
 	prepare()
-
 	await registerPluginConfig(devConfig)
 
-	const app = await NestFactory.createApplicationContext(SeederModule.forPluings(), {
-		logger: false
-	})
+	let app: INestApplicationContext
+	try {
+		app = await NestFactory.createApplicationContext(SeederModule.forPluings(), {
+			logger: ['log', 'error', 'warn', 'debug', 'verbose']
+		})
+	} catch (error) {
+	  console.error(error)
+	}
+
+	console.log(chalk.green('Seeding Module...'))
+
 	const seeder = app.get(SeedDataService)
 	const argv: any = yargs(process.argv).argv
 	const module = argv.name

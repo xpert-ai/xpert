@@ -1,6 +1,10 @@
-import { DatabaseModule, RedisModule, TenantModule } from '@metad/server-core'
+import { LanguagesEnum } from '@metad/contracts'
+import { environment } from '@metad/server-config'
+import { DatabaseModule, provideBullModule, provideCacheModule, provideEventEmitterModule, RedisModule, TenantModule } from '@metad/server-core'
 import { DynamicModule, Module, forwardRef } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import { HeaderResolver, I18nModule } from 'nestjs-i18n'
+import path from 'path'
 import { SeedDataService } from './seed-data.service'
 
 /**
@@ -21,10 +25,24 @@ import { SeedDataService } from './seed-data.service'
 })
 export class SeederModule {
 	static forPluings(): DynamicModule {
+		const i18nLoaderOptions = {
+			path: path.resolve(__dirname, '../../i18n/'),
+			watch: !environment.production
+		}
 		return {
 			module: SeederModule,
 			providers: [],
-			imports: [ DatabaseModule ],
+			imports: [
+				I18nModule.forRoot({
+					fallbackLanguage: LanguagesEnum.English,
+					loaderOptions: i18nLoaderOptions,
+					resolvers: [new HeaderResolver(['language'])]
+				}),
+				provideCacheModule(),
+				provideBullModule(),
+				provideEventEmitterModule(),
+				DatabaseModule
+			],
 			exports: []
 		} as DynamicModule
 	}

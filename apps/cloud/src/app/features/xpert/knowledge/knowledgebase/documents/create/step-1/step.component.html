@@ -225,7 +225,7 @@
                       [class.active]="previewDoc()?.metadata?.scrapeId === page.metadata.scrapeId"
                     >
                       <div class="flex justify-between items-center h-5">
-                        <ngm-checkbox class="grow" [label]="page.metadata.title" [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/>
+                        <ngm-checkbox class="grow truncate" [label]="page.metadata.title" [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/>
                         
                         <div class="hidden group-hover:flex shrink-0 items-center h-6 px-2 text-sm rounded-md font-medium text-gray-500 uppercase hover:bg-gray-50"
                           (click)="previewDoc.set(page)"

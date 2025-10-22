@@ -20,7 +20,7 @@ export const createDefaultUsersOrganizations = async (
 		for (const user of users) {
 			userOrganization = new UserOrganization();
 			userOrganization.organization = organization;
-			userOrganization.tenant = tenant;
+			userOrganization.tenantId = tenant.id;
 			userOrganization.user = user;
 			usersOrganizations.push(userOrganization);
 		}

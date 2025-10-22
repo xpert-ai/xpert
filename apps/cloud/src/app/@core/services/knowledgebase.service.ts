@@ -70,7 +70,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   getUnderstandingStrategies() {
-    return this.httpClient.get<{ meta: IDocumentUnderstandingProvider; requireVisionModel: boolean }[]>(
+    return this.httpClient.get<{ meta: IDocumentUnderstandingProvider; requireVisionModel: boolean; integration: { service: string } }[]>(
       this.apiBaseUrl + '/understanding/strategies'
     )
   }

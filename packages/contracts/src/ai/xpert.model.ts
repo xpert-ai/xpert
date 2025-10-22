@@ -72,14 +72,35 @@ export type TXpertFeatures = {
 }
 
 export type TXpert = {
+  /**
+   * Unique slug identifier, generated from name
+   */
   slug: string
+  /**
+   * Expert name
+   */
   name: string
+  /**
+   * Expert type
+   */
   type: XpertTypeEnum
   title?: string
+  /**
+   * @deprecated use title
+   */
   titleCN?: string
+  /**
+   * Expert description
+   */
   description?: string
 
+  /**
+   * Is active
+   */
   active?: boolean
+  /**
+   * Avatar Object
+   */
   avatar?: TAvatar
 
   /**
@@ -121,9 +142,11 @@ export type TXpert = {
 
   /**
    * Draft on current version
-   * Draft on current version
    */
   draft?: TXpertTeamDraft
+  /**
+   * Published graph
+   */
   graph?: TXpertGraph
 
   api?: TChatApi
@@ -131,6 +154,9 @@ export type TXpert = {
   userId?: string
   user?: IUser
 
+  /**
+   * Primary agent for this expert
+   */
   agent?: IXpertAgent
 
   // Many to one

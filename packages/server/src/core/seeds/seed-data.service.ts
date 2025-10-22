@@ -62,7 +62,6 @@ import { createCurrencies } from '../../currency/currency.seed';
 import {
 	createDefaultFeatureToggle,
 	createFeatures,
-	createRandomFeatureToggle
 } from '../../feature/feature.seed';
 import { DEFAULT_EMPLOYEES, DEFAULT_PEANUT_EMPLOYEES } from './../../employee';
 import { createLanguages } from '../../language/language.seed';
@@ -375,7 +374,7 @@ export class SeedDataService {
 	}
 
 	/**
-	 * 创建新的 Tenant 并初始化相应默认数据
+	 * Create a new Tenant and initialize the corresponding default data
 	 * 
 	 * @param tenantName 
 	 */

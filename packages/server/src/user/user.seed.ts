@@ -12,8 +12,9 @@ import {
 	IUser,
 	DEFAULT_TENANT
 } from '@metad/contracts';
+import chalk from 'chalk';
 import { User } from './user.entity';
-import { getUserDummyImage, Role } from '../core';
+import { generateRandomPassword, getUserDummyImage, Role } from '../core';
 import { DEFAULT_EMPLOYEES, DEFAULT_PEANUT_EMPLOYEES } from '../employee/default-employees';
 import { DEFAULT_SUPER_ADMINS, DEFAULT_ADMINS, EMAIL_ADDRESS } from './default-users';
 
@@ -234,44 +235,48 @@ const seedSuperAdminUsers = async (
 	connection: Connection,
 	tenant: ITenant
 ): Promise<IUser[]> => {
-	const superAdmins: Promise<IUser>[] = [];
+	const superAdmins: IUser[] = [];
 	const superAdminRole = await connection.manager.findOneBy(Role, {
-		tenant,
+		tenantId: tenant.id,
 		name: RolesEnum.SUPER_ADMIN
 	});
 	
 	// Generate default super admins
-	for (const superAdmin of DEFAULT_SUPER_ADMINS) {
-		const superAdminUser: Promise<IUser> = generateDefaultUser(
+	for await (const superAdmin of DEFAULT_SUPER_ADMINS) {
+		superAdmin.password = generateRandomPassword()
+		const superAdminUser: IUser = await generateDefaultUser(
 			superAdmin,
 			superAdminRole,
 			tenant
 		);
 		superAdmins.push(superAdminUser);
+		console.log(chalk.magenta(`✅ Created user '${superAdminUser.email}:${superAdmin.password}'`));
 	}
-	return Promise.all(superAdmins);
+	return superAdmins
 };
 
 const seedAdminUsers = async (
 	connection: Connection,
 	tenant: ITenant
 ): Promise<IUser[]> => {
-	const admins: Promise<IUser>[] = [];
+	const admins: IUser[] = [];
 	const adminRole = await connection.manager.findOneBy(Role, {
-		tenant,
+		tenantId: tenant.id,
 		name: RolesEnum.ADMIN
 	});
 
 	// Generate default admins
-	for (const admin of DEFAULT_ADMINS) {
-		const adminUser: Promise<IUser> = generateDefaultUser(
+	for await (const admin of DEFAULT_ADMINS) {
+		admin.password = generateRandomPassword()
+		const adminUser = await generateDefaultUser(
 			admin, 
 			adminRole, 
 			tenant
 		);
 		admins.push(adminUser);
+		console.log(chalk.magenta(`✅ Created user '${adminUser.email}:${admin.password}'`));
 	}
-	return Promise.all(admins);
+	return admins
 };
 
 const seedDefaultEmployeeUsers = async (

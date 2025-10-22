@@ -24,7 +24,7 @@ import {
 	KNOWLEDGE_FOLDER_ID_NAME
 } from '@metad/contracts'
 import { PromptTemplate } from '@langchain/core/prompts'
-import { omit, shortuuid } from '@metad/server-common'
+import { getErrorMessage, omit, shortuuid } from '@metad/server-common'
 import { GetIntegrationQuery } from '@metad/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -84,7 +84,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 				console.log(JSON.stringify(state, null, 2))
 				console.log('================== Source Node End ===================')
 
-				let KnowledgeTaskId = knowledgebaseState?.[KnowledgeTask]
+				let knowledgeTaskId = knowledgebaseState?.[KnowledgeTask]
 				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId']
 				const stage = knowledgebaseState?.['stage']
 				const isTest = stage === 'preview' || isDraft
@@ -116,7 +116,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						const cachedDocuments = state[channelName(node.key)]?.[KNOWLEDGE_DOCUMENTS_NAME] as string[]
 						if (cachedDocuments?.length) {
 							// Create as formal documents during non-testing phases
-							const task = await this.taskService.findOne(KnowledgeTaskId, { relations: ['documents'] })
+							const task = await this.taskService.findOne(knowledgeTaskId, { relations: ['documents'] })
 							const _docs = task.context?.documents?.filter(doc => cachedDocuments.includes(doc.id)) ?? []
 							if (isTest) {
 								return {
@@ -140,7 +140,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 											status: KBDocumentStatusEnum.WAITING,
 											knowledgebaseId,
 											pages: doc.pages?.map(page => omit(page, 'id')),
-											tasks: [{id: KnowledgeTaskId} as IKnowledgebaseTask]
+											tasks: [{id: knowledgeTaskId} as IKnowledgebaseTask]
 										}
 									}))
 								}
@@ -149,8 +149,8 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 								documents.forEach(doc => {
 									doc.sourceConfig = { key: node.key }
 									doc.status = KBDocumentStatusEnum.RUNNING
-									if (doc.tasks?.findIndex(t => t.id === KnowledgeTaskId) < 0) {
-										doc.tasks.push({id: KnowledgeTaskId} as IKnowledgebaseTask)
+									if (doc.tasks?.findIndex(t => t.id === knowledgeTaskId) < 0) {
+										doc.tasks.push({id: knowledgeTaskId} as IKnowledgebaseTask)
 									}
 								})
 								if (documents.length > 0) {
@@ -219,7 +219,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						} as IKnowledgeDocument))
 						
 						if (isTest) {
-							if (!KnowledgeTaskId) {
+							if (!knowledgeTaskId) {
 								// create a new task id if not exists
 								const task = await this.taskService.createTask(knowledgebaseId, {
 									taskType: 'preprocess',
@@ -228,9 +228,9 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 									}
 								})
 
-								KnowledgeTaskId = task.id
+								knowledgeTaskId = task.id
 							} else {
-								await this.taskService.upsertDocuments(KnowledgeTaskId, documents)
+								await this.taskService.upsertDocuments(knowledgeTaskId, documents)
 							}
 						} else {
 							documents = await this.documentService.createBulk(documents.map((doc) => {
@@ -240,7 +240,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 									// taskId: KnowledgeTaskId,
 									knowledgebaseId,
 									pages: doc.pages?.map(page => omit(page, 'id')),
-									tasks: [{id: KnowledgeTaskId} as IKnowledgebaseTask]
+									tasks: [{id: knowledgeTaskId} as IKnowledgebaseTask]
 								}
 							}))
 						}
@@ -252,7 +252,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 									[ERROR_CHANNEL_NAME]: null
 								},
 								[KnowledgebaseChannel]: {
-									[KnowledgeTask]: KnowledgeTaskId,
+									[KnowledgeTask]: knowledgeTaskId,
 									knowledgebaseId,
 								}
 							},
@@ -267,7 +267,15 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						commandBus: this.commandBus,
 						queryBus: this.queryBus,
 						subscriber: subscriber,
-						execution
+						execution,
+						catchError: async (error) => {
+							if (!isTest) {
+								// for await (const {id} of value) {
+								// 	await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
+								// }
+							}
+							await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
+						}
 					})()
 			}),
 			ends: [END],

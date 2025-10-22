@@ -148,6 +148,52 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 		})
 	}
 
+	async countMy(where: FindOptionsWhere<Xpert>) {
+		const userId = RequestContext.currentUserId()
+		const { items: userWorkspaces } = await this.queryBus.execute(new MyXpertWorkspaceQuery(userId, {}))
+
+		where = {
+			...(<FindOptionsWhere<Xpert>>where ?? {}),
+			publishAt: Not(IsNull()),
+			createdById: userId
+		}
+
+		const xpertsCreatedByUser = await this.findAll({
+			select: ['id'],
+			where,
+		})
+
+		const baseQuery = this.repository
+			.createQueryBuilder('xpert')
+			.innerJoin('xpert.managers', 'manager', 'manager.id = :userId', { userId })
+
+		const xpertsManagedByUser = await baseQuery
+			.where({
+				...(where ?? {}),
+				publishAt: Not(IsNull()),
+				tenantId: RequestContext.currentTenantId(),
+				organizationId: RequestContext.getOrganizationId()
+			})
+			.select(['xpert.id'])
+			.getMany()
+
+		const xpertsInUserWorkspaces = await this.repository.find({
+			where: {
+				...(where ?? {}),
+				publishAt: Not(IsNull()),
+				workspaceId: In(userWorkspaces.map((workspace) => workspace.id))
+			},
+			select: ['id']
+		})
+
+		const allXperts = uniqBy(
+			[...xpertsCreatedByUser.items, ...xpertsManagedByUser, ...xpertsInUserWorkspaces],
+			'id'
+		)
+
+		return allXperts.length
+	}
+
 	async getMyAll(params: PaginationParams<Xpert>) {
 		const userId = RequestContext.currentUserId()
 		const { items: userWorkspaces } = await this.queryBus.execute(new MyXpertWorkspaceQuery(userId, {}))

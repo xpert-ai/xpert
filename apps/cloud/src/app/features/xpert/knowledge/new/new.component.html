@@ -15,6 +15,7 @@
   <div class="my-4">
     <div class="text-text-secondary font-semibold">
       {{'PAC.Knowledgebase.KnowledgebaseName' | translate: {Default: 'Knowledgebase Name'} }}
+      <span class="mx-1 text-text-destructive">*</span>
     </div>
     <div class="relative w-full">
       <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular" 
@@ -22,7 +23,7 @@
     </div>
   </div>
 
-  <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'}"
+  <copilot-model-select class="block mb-4" required [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'}"
     [modelType]="eAiModelTypeEnum.TEXT_EMBEDDING"
     [(ngModel)]="copilotModel"
   />
@@ -39,6 +40,7 @@
     (click)="close()"
   >{{ 'PAC.Xpert.Cancel' | translate: {Default: 'Cancel'} }}</button>
   <button type="button" class="btn disabled:btn-disabled btn-primary btn-large justify-center w-24"
+    [disabled]="invalid() || loading()"
     (click)="create()"
   >{{ 'PAC.Xpert.Create' | translate: {Default: 'Create'} }}</button>
 </div>

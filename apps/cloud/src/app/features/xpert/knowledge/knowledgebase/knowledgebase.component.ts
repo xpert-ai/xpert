@@ -1,19 +1,28 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
-import { RouterModule } from '@angular/router'
+import { FormsModule } from '@angular/forms'
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
+import { AppService } from '@cloud/app/app.service'
+import { OverlayAnimation1 } from '@metad/core'
 import { NgmCopyComponent, NgmSlideToggleComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectParams } from 'ngxtension/inject-params'
-import { Dialog } from '@angular/cdk/dialog'
-import { OverlayAnimation1 } from '@metad/core'
-import { CommonModule } from '@angular/common'
-import { FormsModule } from '@angular/forms'
-import { AppService } from '@cloud/app/app.service'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { injectParams } from 'ngxtension/inject-params'
+import { catchError, EMPTY } from 'rxjs'
+import {
+  injectApiBaseUrl,
+  injectHelpWebsite,
+  IXpert,
+  KnowledgebaseService,
+  KnowledgebaseTypeEnum,
+  routeAnimations,
+  ToastrService
+} from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
-import { IXpert, KnowledgebaseService, KnowledgebaseTypeEnum, ToastrService, injectApiBaseUrl, injectHelpWebsite, routeAnimations } from '../../../../@core'
 
 @Component({
   standalone: true,
@@ -42,6 +51,8 @@ export class KnowledgebaseComponent {
   readonly paramId = injectParams('id')
   readonly appService = inject(AppService)
   readonly #dialog = inject(Dialog)
+  readonly #router = inject(Router)
+  readonly #route = inject(ActivatedRoute)
   readonly apiBaseUrl = injectApiBaseUrl()
   readonly apiHelpUrl = injectHelpWebsite('/docs/ai/knowledge/api/')
 
@@ -50,20 +61,28 @@ export class KnowledgebaseComponent {
       id: this.paramId()
     }),
     loader: ({ request }) => {
-      return this.knowledgebaseAPI.getOneById(request.id, {
-        relations: ['copilotModel', 'rerankModel', 'visionModel', 'xperts', 'documents'],
-        select: {
-          xperts: {
-            id: true,
-            slug: true,
-            name: true,
-            description: true
-          },
-          documents: {
-            id: true
-          }
-        } as any
-      })
+      return this.knowledgebaseAPI
+        .getOneById(request.id, {
+          relations: ['copilotModel', 'rerankModel', 'visionModel', 'xperts', 'documents'],
+          select: {
+            xperts: {
+              id: true,
+              slug: true,
+              name: true,
+              description: true
+            },
+            documents: {
+              id: true
+            }
+          } as any
+        })
+        .pipe(
+          catchError((err) => {
+            this._toastrService.danger(err)
+            this.#router.navigate(['/xpert/w'])
+            return EMPTY
+          })
+        )
     }
   })
   readonly knowledgebase = this.#knowledgebase.value
@@ -89,18 +108,20 @@ export class KnowledgebaseComponent {
     compute: () => this.knowledgebase()?.apiEnabled,
     update: (value) => {
       this.#loading.set(true)
-      this.knowledgebaseAPI.update(this.knowledgebase().id, {
-        apiEnabled: value
-      }).subscribe({
-        next: () => {
-          this.#loading.set(false)
-          this._toastrService.success('PAC.Knowledgebase.ApiStatusChanged', { Default: 'API status changed' })
-        },
-        error: (err) => {
-          this.#loading.set(false)
-          this._toastrService.danger(err)
-        }
-      })
+      this.knowledgebaseAPI
+        .update(this.knowledgebase().id, {
+          apiEnabled: value
+        })
+        .subscribe({
+          next: () => {
+            this.#loading.set(false)
+            this._toastrService.success('PAC.Knowledgebase.ApiStatusChanged', { Default: 'API status changed' })
+          },
+          error: (err) => {
+            this.#loading.set(false)
+            this._toastrService.danger(err)
+          }
+        })
     }
   })
 
@@ -115,8 +136,12 @@ export class KnowledgebaseComponent {
   deleteKnowledgebase() {
     this.#loading.set(true)
     this.knowledgebaseAPI.delete(this.knowledgebase().id).subscribe({
-      next: () => {},
+      next: () => {
+        this.#loading.set(false)
+        this.#router.navigate(['/xpert/w'])
+      },
       error: (err) => {
+        this.#loading.set(false)
         this._toastrService.danger(err)
       }
     })

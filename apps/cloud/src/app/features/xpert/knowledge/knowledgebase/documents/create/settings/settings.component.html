@@ -52,7 +52,7 @@
           <div class="flex justify-center items-center">
             <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
               @if (transformerStrategy()?.meta.icon; as icon) {
-                <xp-icon class="!block w-8 h-8 shrink-0" [icon]="icon" />
+                <xp-icon class="!flex w-8 h-8 shrink-0 justify-center items-center" [icon]="icon" />
               } @else {
                 <i class="ri-equalizer-3-line"></i>
               }
@@ -68,6 +68,19 @@
                 {{ transformerStrategy.meta.description | i18n }}
               </div>
             </div>
+
+            @if (transformerIntegration(); as integration) {
+              <div class="w-48 shrink-0">
+                <xp-integration-select class="grow" [placeholder]="'PAC.Knowledgebase.NoIntegrationUseEnv' | translate: {Default: 'Default environment configuration will be used'}"
+                  [provider]="transformerIntegrationProvider()" [(ngModel)]="transformerIntegrationId">
+                  @if (transformerIntegrationId()) {
+                    <div icon class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm
+                    bg-green-500 border-green-600 shadow-green-300 mr-1.5">
+                    </div>
+                  }
+                </xp-integration-select>
+              </div>
+            }
           }
         </div>
         <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
@@ -92,7 +105,7 @@
             matTooltipPosition="above"></i>
         </div>
 
-        @if (imageUnderstandingStrategy()?.helpUrl; as helpUrl) {
+        @if (imageUnderstandingStrategy()?.meta.helpUrl; as helpUrl) {
           <a [href]="helpUrl"
             target="_blank"
             rel="noopener noreferrer"
@@ -108,7 +121,7 @@
           [selectOptions]="imageUnderstandingStrategies()"
         >
           <div icon>
-            @if (imageUnderstandingStrategy()?.icon; as icon) {
+            @if (imageUnderstandingStrategy()?.meta.icon; as icon) {
               <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
             }
           </div>
@@ -131,8 +144,8 @@
           <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer p-3">
             <div class="flex justify-center items-center">
               <div class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
-                @if (imageUnderstandingStrategy()?.icon; as icon) {
-                  <xp-icon class="!block w-8 h-8 shrink-0" [icon]="icon" />
+                @if (imageUnderstandingStrategy()?.meta.icon; as icon) {
+                  <xp-icon class="!flex w-8 h-8 shrink-0 justify-center items-center" [icon]="icon" />
                 } @else {
                   <i class="ri-equalizer-3-line"></i>
                 }
@@ -142,12 +155,25 @@
             @if (imageUnderstandingStrategy(); as imageUnderstandingStrategy) {
               <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
                 <div class="text-text-secondary system-md-semibold">
-                  {{ imageUnderstandingStrategy.label | i18n }}
+                  {{ imageUnderstandingStrategy.meta.label | i18n }}
                 </div>
-                <div class="text-text-tertiary system-xs-regular truncate" [title]="imageUnderstandingStrategy.description | i18n">
-                  {{ imageUnderstandingStrategy.description | i18n }}
+                <div class="text-text-tertiary system-xs-regular truncate" [title]="imageUnderstandingStrategy.meta.description | i18n">
+                  {{ imageUnderstandingStrategy.meta.description | i18n }}
                 </div>
               </div>
+
+              @if (imageUnderstandingIntegration(); as integration) {
+                <div class="w-48 shrink-0">
+                  <xp-integration-select class="grow" [placeholder]="'PAC.Knowledgebase.NoIntegrationUseEnv' | translate: {Default: 'Default environment configuration will be used'}"
+                    [provider]="imageUnderstandingIntegrationProvider()" [(ngModel)]="imageUnderstandingIntegrationId">
+                    @if (imageUnderstandingIntegrationId()) {
+                      <div class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm
+                      bg-green-500 border-green-600 shadow-green-300 mr-1.5">
+                      </div>
+                    }
+                  </xp-integration-select>
+                </div>
+              }
             }
           </div>
           <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">

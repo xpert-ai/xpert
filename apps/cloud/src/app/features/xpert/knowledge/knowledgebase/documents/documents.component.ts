@@ -100,6 +100,7 @@ export class KnowledgeDocumentsComponent {
   readonly knowledgebase$ = toObservable(this.knowledgebase)
   readonly xperts = computed(() => this.knowledgebase()?.xperts)
   readonly parentId$ = toObservable(this.parentId)
+  readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly delayRefresh$ = new Subject<boolean>()
@@ -236,6 +237,10 @@ export class KnowledgeDocumentsComponent {
     })
 
     this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(REFRESH_DEBOUNCE_TIME)).subscribe(() => this.refresh())
+
+    effect(() => {
+      console.log(this.pipelineId())
+    })
   }
 
   getValue(row: any, name: string) {

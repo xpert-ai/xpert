@@ -163,7 +163,7 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+  <ngm-spin class="absolute left-0 top-0 w-full h-full z-10" />
 }
 
 <div class="flex-1 relative flex overflow-hidden bg-components-card-bg" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">

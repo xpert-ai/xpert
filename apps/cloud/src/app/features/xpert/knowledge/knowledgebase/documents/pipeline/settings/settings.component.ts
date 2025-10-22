@@ -58,10 +58,9 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   readonly previewing = signal(false)
   readonly loading = signal(false)
   private previewSub: Subscription
-  readonly task = signal<IKnowledgebaseTask>(null)
   readonly previewDocName = signal('')
   readonly previewDocChunks = computed(() => {
-    const docs = this.documents()
+    const docs = this._documents()
     if (!docs?.length) {
       return []
     }
@@ -70,6 +69,9 @@ export class KnowledgeDocumentPipelineSettingsComponent {
     }
     return docs[0]?.chunks || []
   })
+
+  readonly task = signal<IKnowledgebaseTask>(null)
+  readonly _documents = computed(() => this.task()?.context?.documents)
 
   constructor() {
     effect(() => {
