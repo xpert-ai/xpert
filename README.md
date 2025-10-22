@@ -73,7 +73,7 @@ A cloud-based agile data analysis platform supporting multidimensional modeling,
 ## 🚀 Quick Start
 
 > Before installing Xpert, make sure your machine meets the following minimum system requirements:
-> 
+>
 > - CPU >= 2 Core
 > - RAM >= 4 GiB
 > - Node.js (ESM and CommonJS) - 18.x, 19.x, 20.x, 22.x
@@ -90,7 +90,6 @@ docker compose up -d
 ```
 
 After running, you can access the Xpert dashboard in your browser at [http://localhost/onboarding](http://localhost/onboarding) and start the initialization process.
-
 
 Please check our [Wiki - Development](https://github.com/xpert-ai/xpert/wiki/Development) to get started quickly.
 
@@ -130,6 +129,7 @@ __Empowering enterprises with intelligent collaboration and data-driven insights
 Xpert AI Platform Demo at <https://app.mtda.cloud>.
 
 Notes:
+
 - You can generate samples data in the home dashbaord page.
 
 ### Production (SaaS)
@@ -156,11 +156,20 @@ For Production, we recommend:
 - [PostgreSQL](https://www.postgresql.org)
 - [PM2](https://github.com/Unitech/pm2)
 
-#### See also README.md and CREDITS.md files in relevant folders for lists of libraries and software included in the Platform, information about licenses, and other details
+## 🗺️ Roadmap
 
-## 📄 Documentation
-
-Please refer to our official [Platform Documentation](https://mtda.cloud/en/docs/) and to our [Wiki](https://github.com/xpert-ai/xpert/wiki) (WIP).
+- [ ] **SDK (TypeScript / Python)** – streamlines access api of the XpertAI platform.
+  - [x] digital experts
+  - [x] long-term memory storage
+  - [x] contextual files
+  - [ ] knowledge bases
+  - [ ] Python version
+- [ ] **Plugins** – extensible plugin system.
+  - [x] Plugins system
+  - [ ] Marketplace to showcase the plugins ecosystem.
+- [ ] **Chatkit** – front-end component library for embedding digital expert chat dialog.
+- [ ] **Widgets** – UI widgets that let large-model responses drive richer interface experiences.
+- [ ] **Agent Skills** – lightweight agent skills for rapid custom capability integration, offering a quicker alternative to MCP tools.
 
 ## 💌 Contact Us
 

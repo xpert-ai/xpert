@@ -138,7 +138,20 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 - [PostgreSQL](https://www.postgresql.org)
 - [PM2](https://github.com/Unitech/pm2)
 
-#### 请参阅相应文件夹中的 README.md 和 CREDITS.md 文件以获取包含在平台中的库和软件列表，有关许可证的信息以及其他详细信息
+## 🗺️ 路线图
+
+- [ ] **SDK（TypeScript / Python）** —— 简化访问 XpertAI 平台的 API。
+  - [x] 数字专家
+  - [x] 长期记忆存储
+  - [x] 上下文文件
+  - [ ] 知识库
+  - [ ] Python 版本
+- [ ] **插件** —— 可扩展的插件系统。
+  - [x] 插件系统
+  - [ ] 展示插件生态的市场
+- [ ] **Chatkit** —— 用于嵌入数字专家聊天对话的前端组件库。
+- [ ] **小部件** —— 让大模型响应驱动更丰富界面体验的 UI 小部件。
+- [ ] **Agent Skills** —— 轻量级智能体技能，快速集成自定义能力，提供比 MCP 工具更快捷的替代方案。
 
 ## 💌 联系我们
 
