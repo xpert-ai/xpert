@@ -1,7 +1,8 @@
 import { Document } from '@langchain/core/documents'
-import { IKnowledgeDocument, KBDocumentStatusEnum } from '@metad/contracts'
+import { IKnowledgebase, IKnowledgeDocument, KBDocumentStatusEnum, Metadata } from '@metad/contracts'
 import { estimateTokenUsage } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
+import { runWithRequestContext, UserService } from '@metad/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -13,9 +14,7 @@ import { KnowledgeDocLoadCommand } from './commands'
 import { KnowledgeDocumentService } from './document.service'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 
-/**
- * @todo 需要在 RequestContext 中执行
- */
+
 @Processor({
 	name: JOB_EMBEDDING_DOCUMENT
 	// scope: Scope.REQUEST
@@ -27,25 +26,34 @@ export class KnowledgeDocumentConsumer {
 		@Inject(JOB_REF) jobRef: Job,
 		private readonly knowledgebaseService: KnowledgebaseService,
 		private readonly service: KnowledgeDocumentService,
+		private readonly userService: UserService,
 		private readonly commandBus: CommandBus
 	) {}
 
 	@Process({ concurrency: 5 })
 	async process(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>) {
-		const userId = job.data.userId
+		const user = await this.userService.findOne(job.data.userId, { relations: ['role'] })
 		const knowledgebaseId = job.data.docs[0]?.knowledgebaseId
 		const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, {
 			relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']
 		})
+
+		runWithRequestContext({ user, headers: { ['organization-id']: knowledgebase.organizationId } }, () => {
+			this._processJob(knowledgebase, job.data.docs, job).catch((err) => {
+				this.logger.error(err)
+			})
+		})
+	}
+
+	async _processJob(knowledgebase: IKnowledgebase, docs: IKnowledgeDocument<Metadata>[], job: Job) {
 		const copilot = knowledgebase?.copilotModel?.copilot
 		let vectorStore: KnowledgeDocumentStore
 		try {
 			// const doc = job.data.docs[0]
-
 			vectorStore = await this.knowledgebaseService.getVectorStore(knowledgebase, true)
 		} catch (err) {
 			await Promise.all(
-				job.data.docs.map((doc) =>
+				docs.map((doc) =>
 					this.service.update(doc.id, {
 						status: KBDocumentStatusEnum.ERROR,
 						processMsg: getErrorMessage(err)
@@ -69,13 +77,16 @@ export class KnowledgeDocumentConsumer {
 				let chunks: Document<ChunkMetadata>[] = data?.chunks
 				if (data?.pages?.length) {
 					// let pages = mergeParentChildChunks(data.pages, data.chunks)
-					const pages = await this.service.createPageBulk(document.id, data.pages.map((page) => ({
-								pageContent: page.pageContent,
-								metadata: page.metadata,
-								tenantId: document.tenantId,
-								organizationId: document.organizationId,
-								knowledgebaseId: document.knowledgebaseId
-							})))
+					const pages = await this.service.createPageBulk(
+						document.id,
+						data.pages.map((page) => ({
+							pageContent: page.pageContent,
+							metadata: page.metadata,
+							tenantId: document.tenantId,
+							organizationId: document.organizationId,
+							knowledgebaseId: document.knowledgebaseId
+						}))
+					)
 					chunks = chunks.map((chunk) => {
 						const page = pages.find((p) => p.metadata.chunkId === chunk.metadata.parentId)
 						if (page) {
@@ -99,7 +110,7 @@ export class KnowledgeDocumentConsumer {
 							new CopilotTokenRecordCommand({
 								tenantId: knowledgebase.tenantId,
 								organizationId: knowledgebase.organizationId,
-								userId,
+								userId: job.data.userId,
 								copilotId: copilot.id,
 								tokenUsed,
 								model: vectorStore.embeddingModel
