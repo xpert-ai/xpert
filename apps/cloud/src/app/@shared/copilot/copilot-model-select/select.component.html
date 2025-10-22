@@ -6,6 +6,10 @@
       } @else {
         <div class="">{{'PAC.Copilot.Models' | translate: {Default: 'Models'} }}</div>
       }
+
+      @if (required()) {
+        <span class="mx-1 text-text-destructive">*</span>
+      }
     </div>
     <div class="flex"></div>
   </div>

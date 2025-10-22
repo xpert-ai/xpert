@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { Component, inject, model, signal } from '@angular/core'
+import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { TranslateModule } from '@ngx-translate/core'
@@ -38,6 +38,8 @@ export class XpertNewKnowledgeComponent {
   readonly rerankModel = model<ICopilotModel>()
 
   readonly loading = signal(false)
+
+  readonly invalid = computed(() => !this.copilotModel() || !this.name().trim())
 
   create() {
     this.knowledgebaseService

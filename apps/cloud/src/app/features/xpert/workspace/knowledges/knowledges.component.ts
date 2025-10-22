@@ -27,7 +27,7 @@ import { XpertNewKnowledgeComponent } from '../../knowledge'
 
 @Component({
   standalone: true,
-  selector: 'xpert-workspace-knowledges',
+  selector: 'xp-xpert-workspace-knowledges',
   templateUrl: './knowledges.component.html',
   styleUrls: ['./knowledges.component.scss'],
   imports: [

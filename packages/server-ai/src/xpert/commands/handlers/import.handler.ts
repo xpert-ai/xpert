@@ -42,20 +42,20 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 			)
 		}
 
-		if (!draft.team.agent) {
+		if (!team.agent) {
 			throw new BadRequestException(t('server-ai:Error.PrimaryAgentNotFound'))
 		}
 
 		const xpert = await this.xpertService.create({
-			...omit(draft.team, 'draft', 'agent', 'agents', 'toolsets', 'knowledgebases', ...SYSTEM_FIELDS),
+			...omit(team, 'draft', 'agent', 'agents', 'toolsets', 'knowledgebases', ...SYSTEM_FIELDS),
 			latest: true,
 			version: null,
-			agent: omit(getLatestPrimaryAgent(draft, draft.team.agent.key), ...SYSTEM_FIELDS)
+			agent: omit(getLatestPrimaryAgent(draft, team.agent.key), ...SYSTEM_FIELDS)
 		})
 
 		// Replace agent in draft
 		if (!xpert.agent.options?.hidden) {
-			draft = replaceAgentInDraft(draft, draft.team.agent.key, xpert.agent)
+			draft = replaceAgentInDraft(draft, team.agent.key, xpert.agent)
 		}
 
 		// Update draft into xpert

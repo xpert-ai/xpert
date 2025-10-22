@@ -71,6 +71,9 @@ export class CopilotModelSelectComponent {
   readonly hiddenLabel = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+  readonly required = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   readonly label = input<string>()
 
