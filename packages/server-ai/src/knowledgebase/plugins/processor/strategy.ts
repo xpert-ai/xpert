@@ -119,7 +119,7 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							knowledgebaseId,
 							entity,
 							isDraft,
-							input.map((doc) => ({...doc, fileUrl: `https://api.mtda.cloud/api/sandbox/volume/knowledges/2a0d2697-a363-4fa7-8bb2-d74a3a6b8265/知识库测试.pdf`}))
+							input // .map((doc) => ({...doc, fileUrl: `https://api.mtda.cloud/api/sandbox/volume/knowledges/2a0d2697-a363-4fa7-8bb2-d74a3a6b8265/知识库测试.pdf`}))
 						)
 
 						let documents = []
