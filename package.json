@@ -59,7 +59,7 @@
     "b:p:all": "yarn nx build contracts && yarn nx build common && yarn nx build config && yarn nx build auth && yarn nx build server && yarn nx build server-ai && yarn nx build adapter && yarn nx build analytics && yarn build:plugins",
     "localpack": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=12288 node tools/scripts/build.mjs",
     "seed:module": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=7000 yarn ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json ./apps/api/src/seed-module.ts --name",
-    "bootstrap": "yarn install",
+    "bootstrap": "yarn install --ignore-engines && yarn nx build contracts && yarn nx build plugin-sdk",
     "b:sb:ocap-angular": "yarn nx run ocap-angular:build-storybook",
     "b:docs": "concurrently \"yarn --cwd ./packages/store docs\" \"yarn --cwd ./packages/core docs\" \"yarn --cwd ./packages/xmla docs\" \"yarn --cwd ./packages/sql docs\" \"yarn --cwd ./packages/echarts docs\" \"yarn --cwd ./packages/duckdb docs\" \"yarn --cwd ./packages/copilot docs\" \"yarn b:sb:ocap-angular\"",
     "b:stats": "yarn nx build cloud --stats-json",
