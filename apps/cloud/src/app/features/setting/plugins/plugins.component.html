@@ -15,14 +15,14 @@
         id="tab-0"
         class="relative z-10 flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-primary"
       >
-        插件
+        {{ 'PAC.Plugin.Plugins' | translate: { Default: 'Plugins' } }}
         <div class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">28</div>
       </div>
       <div
         id="tab-1"
         class="relative z-10 flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
       >
-        探索 Marketplace
+        {{ 'PAC.Plugin.ExploreMarketplace' | translate: { Default: 'Explore Marketplace' } }}
       </div>
     </div>
   </div>
@@ -35,7 +35,7 @@
       [hideDelay]="100"
     >
       <i class="ri-add-line"></i>
-      <span class="pl-1">安装插件</span>
+      <span class="pl-1">{{ 'PAC.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}</span>
     </button>
     <!-- <button
       type="button"
@@ -147,9 +147,10 @@
                 <div class="flex h-4 items-center space-x-0.5">
                   <span class="system-xs-regular shrink-0 text-text-tertiary">{{plugin.meta.author}}</span>
                   <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
-                  <span class="system-xs-regular shrink-0 grow truncate text-text-tertiary w-auto max-w-[250px] font-mono">
-                    {{plugin.meta.name}}</span
-                  >
+                  <a class="system-xs-regular shrink-0 grow truncate text-text-tertiary w-auto max-w-[250px] font-mono hover:underline hover:text-primary-500"
+                    [href]="plugin.meta.homepage || ('https://www.npmjs.com/package/' + plugin.meta.name)" target="_blank" rel="noopener noreferrer">
+                    {{plugin.meta.name}}
+                  </a>
                 </div>
               </div>
               <div class="flex shrink-0 items-center">

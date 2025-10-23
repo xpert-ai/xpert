@@ -1,4 +1,4 @@
-import { INTEGRATION_PROVIDERS } from '@metad/contracts'
+import { IIntegration, INTEGRATION_PROVIDERS } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -28,5 +28,10 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 
 	getIntegrationStrategy(type: string) {
 		return this.strategyRegistry.get(type)
+	}
+
+	async test(integration: IIntegration) {
+		const strategy = this.getIntegrationStrategy(integration.provider)
+		return strategy.validateConfig(integration.options)
 	}
 }
