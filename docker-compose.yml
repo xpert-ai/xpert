@@ -46,9 +46,9 @@ services:
     ports:
       - '${API_PORT:-3000}:3000'
     volumes:
-      - ./docker/api/public:/srv/pangolin/public
-      - ./docker/api/ms-playwright:/ms-playwright
-      - ./docker/api/sandbox/:/sandbox/
+      - ./docker/volumes/api/public:/srv/pangolin/public
+      - ./docker/volumes/api/ms-playwright:/ms-playwright
+      - ./docker/volumes/api/sandbox/:/sandbox/
     networks:
       - overlay
 
