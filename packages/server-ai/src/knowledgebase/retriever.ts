@@ -4,7 +4,7 @@ import { BaseRetriever } from '@langchain/core/retrievers'
 import { Logger } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch"
-import { ChatMessageEventTypeEnum, TKBRecallParams } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, DocumentMetadata, TKBRecallParams } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { KnowledgeSearchQuery } from './queries'
 
@@ -35,10 +35,7 @@ export class KnowledgeRetriever extends BaseRetriever {
 		try {
 			const results = await this.queryBus.execute<
 				KnowledgeSearchQuery,
-				{
-					doc: DocumentInterface<Record<string, any>>
-					score: number
-				}[]
+				DocumentInterface<DocumentMetadata>[]
 			>(
 				new KnowledgeSearchQuery({
 					tenantId: this.tenantId,
@@ -51,7 +48,7 @@ export class KnowledgeRetriever extends BaseRetriever {
 				})
 			)
 			// const docs = results.filter(({score}) => this.options?.score ? score >= this.options.score : true).map(({ doc }) => doc)
-			return results.map(({ doc }) => doc)
+			return results // .map(({ doc }) => doc)
 		} catch(error) {
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR, {knowledgebaseId: this.knowledgebaseId, error: getErrorMessage(error)})
 			throw error
