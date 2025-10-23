@@ -7,14 +7,14 @@ import {
   ImageUnderstandingStrategy,
   LLMPermission,
   TImageUnderstandingConfig,
-  TImageUnderstandingInput,
   TImageUnderstandingResult
 } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
-import { v4 as uuid } from 'uuid'
+import { IconType, IKnowledgeDocument } from '@metad/contracts'
+import { Document, DocumentInterface } from '@langchain/core/documents'
+import { join } from 'path'
 import sharp from 'sharp'
-import { VlmDefault } from './types'
-import { IconType } from '@metad/contracts'
+import { v4 as uuid } from 'uuid'
+import { SvgIcon, VlmDefault } from './types'
 
 // Regex for markdown image tag: ![](image.png) or ![alt](image.png)
 const IMAGE_REGEX = /!\[[^\]]*\]\s*\(((?:https?:\/\/[^)]+|[^)\s]+))(\s*"[^"]*")?\)/g;
@@ -47,29 +47,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     },
     icon: {
       type: 'svg' as IconType,
-      value: `<?xml version="1.0" encoding="utf-8"?>
-<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 960 960" style="enable-background:new 0 0 960 960;" xml:space="preserve">
-<style type="text/css">
-	.st0{fill:#135468;}
-	.st1{fill:#FFFFFF;}
-	.st2{fill:#6DBCDB;}
-	.st3{fill:#333333;}
-	.st4{fill:none;stroke:#FFFFFF;stroke-width:22.1618;stroke-linecap:round;stroke-miterlimit:10;}
-</style>
-<g>
-	<circle class="st0" cx="480" cy="480" r="300.9"/>
-	<path class="st1" d="M750.4,480c0,0-121.1,130-270.4,130S209.6,480,209.6,480S330.7,350,480,350S750.4,480,750.4,480z"/>
-	<path class="st1" d="M750.4,480c0,0-121.1,130-270.4,130S209.6,480,209.6,480S330.7,350,480,350S750.4,480,750.4,480z"/>
-	<circle class="st2" cx="480" cy="478.4" r="102.8"/>
-	<circle class="st3" cx="480" cy="478.4" r="58.6"/>
-	<circle class="st1" cx="441.2" cy="444.1" r="24.3"/>
-	<line class="st4" x1="363.1" y1="323.7" x2="328.1" y2="286.8"/>
-	<line class="st4" x1="631.9" y1="286.8" x2="596.9" y2="323.7"/>
-	<line class="st4" x1="482.7" y1="300.9" x2="482.7" y2="256.8"/>
-</g>
-</svg>
-`,
+      value: SvgIcon,
       color: '#2d8cf0'
     }
   }
@@ -81,19 +59,20 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
   }
 
   async understandImages(
-    params: TImageUnderstandingInput,
+    doc: IKnowledgeDocument<ChunkMetadata>,
     config: TImageUnderstandingConfig
   ): Promise<TImageUnderstandingResult> {
 
     await this.validateConfig(config)
 
     const client = config.visionModel // ✅ 已由核心系统注入
+    const params = {files: doc.metadata?.assets?.filter((asset) => asset.type === 'image'), chunks: doc.chunks as DocumentInterface<ChunkMetadata>[]}
     const chunks: Document<Partial<ChunkMetadata>>[] = []
     const pages : Document<Partial<ChunkMetadata>>[] = []
 
     for await (const chunk of params.chunks) {
       const assets: string[] = []
-      chunk.metadata.chunkId ??= uuid()
+      chunk.metadata['chunkId'] ??= uuid()
 
       // Find image tags inside the chunk
       const matches = Array.from(chunk.pageContent.matchAll(IMAGE_REGEX))
@@ -101,13 +80,14 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
         const url = match[1] // image-url.png
         const asset = params.files.find((a) => a.url === url)
         if (asset && !assets.some((_) => _ === asset.url)) {
-          const description = await this.runV(client, chunk.pageContent, asset.filePath, config)
+          const description = await this.runV(client, chunk.pageContent, join(doc.folder || '', asset.filePath), config)
           assets.push(asset.url)
           chunks.push(new Document({
             pageContent: description,
             metadata: {
+              mediaType: 'image',
               chunkId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-              parentId: chunk.metadata.parentId ?? chunk.metadata.chunkId,
+              parentId: chunk.metadata['parentId'] ?? chunk.metadata['chunkId'],
               imagePath: asset.filePath,
               // source: asset.filename,
               parser: 'vlm'

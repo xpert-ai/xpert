@@ -586,6 +586,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			integrationId: entity.integrationId,
 			folder: ''
 		}))
+		
 		// const permissions = {}
 		// const volumeClient = new VolumeClient({
 		// 	tenantId: RequestContext.currentTenantId(),
@@ -621,11 +622,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			...(entity.config ?? {}),
 			stage: isDraft ? 'test' : 'prod',
 			tempDir: new VolumeClient({
-			tenantId: RequestContext.currentTenantId(),
-						catalog: 'knowledges',
-						userId: RequestContext.currentUserId(),
-						knowledgeId: knowledgebaseId
-					}).getVolumePath('tmp'),
+				tenantId: RequestContext.currentTenantId(),
+				catalog: 'knowledges',
+				userId: RequestContext.currentUserId(),
+				knowledgeId: knowledgebaseId
+			}).getVolumePath('tmp'),
 			permissions
 		})
 

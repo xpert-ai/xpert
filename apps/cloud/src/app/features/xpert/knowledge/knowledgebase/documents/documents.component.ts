@@ -183,7 +183,7 @@ export class KnowledgeDocumentsComponent {
             }
             return this.knowledgeDocumentAPI
               .getAll({
-                select: ['id', 'name', 'status', 'disabled', 'sourceType', 'createdAt', 'updatedAt', 'processMsg', 'sourceConfig'],
+                select: ['id', 'name', 'status', 'disabled', 'sourceType', 'createdAt', 'updatedAt', 'processMsg', 'sourceConfig', 'folder'],
                 where,
                 take: this.pageSize(),
                 // skip: this.paginator().pageIndex,

@@ -10,6 +10,7 @@ import { RequestContext } from '@metad/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
+	ChunkMetadata,
 	DocumentTransformerRegistry,
 	ImageUnderstandingRegistry,
 	TextSplitterRegistry,
@@ -148,11 +149,10 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 							// 		sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
 							// 	)
 							// }
-							const imgTransformed = await imageUnderstanding.understandImages(
-								{
-									files: images,
-									chunks: splitted.chunks,
-								},
+							const imgTransformed = await imageUnderstanding.understandImages({
+									...transItem,
+									chunks: splitted.chunks
+								} as IKnowledgeDocument<ChunkMetadata>,
 								{
 									...(doc.parserConfig.imageUnderstanding ?? {}),
 									stage,

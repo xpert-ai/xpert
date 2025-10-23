@@ -1,6 +1,7 @@
 import { IconType, IKnowledgeDocument } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import {
+  ChunkMetadata,
   DocumentTransformerStrategy,
   IDocumentTransformerStrategy,
 } from '@xpert-ai/plugin-sdk'
@@ -37,9 +38,9 @@ export class TextTransformerStrategy implements IDocumentTransformerStrategy<TDe
   }
 
   async transformDocuments(
-    texts: Partial<IKnowledgeDocument>[],
+    texts: Partial<IKnowledgeDocument<ChunkMetadata>>[],
     config: TDefaultTransformerConfig
-  ): Promise<Partial<IKnowledgeDocument>[]> {
+  ): Promise<Partial<IKnowledgeDocument<ChunkMetadata>>[]> {
     // const results = []
     // const textsArray = Array.isArray(texts) ? texts : [texts]
     // textsArray.forEach((text) => {

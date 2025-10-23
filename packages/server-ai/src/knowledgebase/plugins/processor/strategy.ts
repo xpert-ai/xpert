@@ -106,41 +106,20 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							const task = await this.taskService.findOne(knowledgeTaskId)
 							const documents = task.context.documents.filter((doc) => documentIds.includes(doc.id))
 							input = documents
-							// .map(
-							// 	(doc) =>
-							// 		({
-							// 			id: doc.id,
-							// 			fileUrl: doc.fileUrl,
-							// 			filePath: doc.filePath,
-							// 			filename: doc.name,
-							// 			extension: doc.name?.split('.').pop()?.toLowerCase()
-							// 		}) as TDocumentTransformerFile
-							// )
 						} else {
 							const { items } = await this.documentService.findAll({
 								where: {
 									id: In(documentIds),
 								}
 							})
-
 							input = items
-							// .map(
-							// 	(doc) =>
-							// 		({
-							// 			id: doc.id,
-							// 			fileUrl: doc.fileUrl,
-							// 			filePath: doc.filePath,
-							// 			filename: doc.name,
-							// 			extension: doc.name?.split('.').pop()?.toLowerCase()
-							// 		}) as TDocumentTransformerFile
-							// )
 						}
 						
 						const results = await this.knowledgebaseService.transformDocuments(
 							knowledgebaseId,
 							entity,
 							isDraft,
-							input
+							input.map((doc) => ({...doc, fileUrl: `https://api.mtda.cloud/api/sandbox/volume/knowledges/2a0d2697-a363-4fa7-8bb2-d74a3a6b8265/知识库测试.pdf`}))
 						)
 
 						let documents = []

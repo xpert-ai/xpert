@@ -1,5 +1,6 @@
 import { IDocumentProcessorProvider, IIntegration, IKnowledgeDocument } from '@metad/contracts'
 import { Permissions, XpFileSystem } from '../../core/index'
+import { ChunkMetadata } from '../types'
 
 export type TDocumentTransformerConfig = {
   stage: 'test' | 'prod'
@@ -26,5 +27,8 @@ export interface IDocumentTransformerStrategy<TConfig extends TDocumentTransform
   /**
    * Transform documents (e.g., extract, OCR, normalize, enrich metadata)
    */
-  transformDocuments(files: Partial<IKnowledgeDocument>[], config: TConfig): Promise<Partial<IKnowledgeDocument>[]>
+  transformDocuments(
+    files: Partial<IKnowledgeDocument>[],
+    config: TConfig
+  ): Promise<Partial<IKnowledgeDocument<ChunkMetadata>>[]>
 }

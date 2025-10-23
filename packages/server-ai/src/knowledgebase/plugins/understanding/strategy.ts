@@ -1,3 +1,4 @@
+import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
 import { Annotation, BaseChannel } from '@langchain/langgraph'
 import {
@@ -18,21 +19,20 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { FileSystemPermission, IImageUnderstandingStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy, XpFileSystem } from '@xpert-ai/plugin-sdk'
-import { AgentStateAnnotation, sandboxVolumeUrl, stateWithEnvironment, VolumeClient } from '../../../shared'
-import { get } from 'lodash'
+import { IImageUnderstandingStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
+import { get } from 'lodash-es'
 import { In } from 'typeorm'
+import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { KnowledgeStrategyQuery } from '../../queries'
 import { KnowledgebaseTaskService } from '../../task'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { RequestContext } from '@metad/server-core'
 import { createDocumentsParameter, serializeDocuments } from '../types'
 import { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
-import { getErrorMessage } from '@metad/server-common'
+import { PluginPermissionsCommand } from '../../commands'
 
 const ErrorChannelName = 'error'
 const DocumentsChannelName = 'documents'
@@ -56,6 +56,7 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 
 	@Inject(KnowledgebaseTaskService)
 	private readonly taskService: KnowledgebaseTaskService
+
 	@Inject(KnowledgeDocumentService)
 	private readonly documentService: KnowledgeDocumentService
 
@@ -129,34 +130,18 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 										}
 									})
 							) : null
-						
-						const volume = VolumeClient._getWorkspaceRoot(
-												RequestContext.currentTenantId(),
-												'knowledges',
-												knowledgebaseId
-											)
-						const fsPermission = strategy.permissions?.find(
-								(permission) => permission.type === 'filesystem'
-							) as FileSystemPermission
-							const permissions = {}
-							if (fsPermission) {
-								const folder = isDraft ? 'temp/' : `${knowledgeTaskId}/`
-								permissions['fileSystem'] = new XpFileSystem(
-									fsPermission,
-									volume + '/' + folder,
-									sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/${folder}`)
-								)
-							}
+
+						const permissions = await this.commandBus.execute(new PluginPermissionsCommand(strategy.permissions, {
+									knowledgebaseId: knowledgebaseId,
+									// integrationId: entity.integrationId,
+									folder: isDraft ? 'temp/' : ''
+								}))
 						for await (const doc of documents) {
-							const images = doc.metadata?.assets?.filter((asset) => asset.type === 'image')
-							const result = await strategy.understandImages({
-									chunks: doc.chunks as any,
-									files: images
-								}, 
+							const result = await strategy.understandImages(doc,
 								{
 									...(entity.config ?? {}),
 									stage: isDraft ? 'test' : 'prod',
-									tempDir: volume + '/tmp/',
+									// tempDir: permissions.fileSystem.fullPath('tmp'),
 									permissions,
 									visionModel
 								}
@@ -166,10 +151,24 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 							if (result.pages) {
 								doc.pages = (doc.pages ?? []).concat(result.pages)
 							}
-							console.log('Chunker result chunks:', result.chunks)
+							// console.log('Chunker result chunks:', result.chunks)
 						}
 
-						await this.taskService.upsertDocuments(knowledgeTaskId, documents)
+						if (isTest) {
+							await this.taskService.upsertDocuments(knowledgeTaskId, documents)
+						} else {
+							for await (const doc of documents) {
+								if (doc.id) {
+									if (doc.pages?.length) {
+										await this.documentService.createPageBulk(doc.id, doc.pages)
+									}
+									await this.documentService.update(doc.id, {
+										metadata: doc.metadata,
+										chunks: doc.chunks
+									})
+								}
+							}
+						}
 
 						return {
 							state: {

@@ -130,6 +130,12 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	fileUrl: string
 
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@Optional()
+	@Column({ nullable: true })
+	folder?: string
+
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@Optional()

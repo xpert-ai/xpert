@@ -8,7 +8,7 @@ export class PluginPermissionsCommand implements ICommand {
         public readonly permissions: Permissions,
         public readonly context: {
             knowledgebaseId: string;
-            integrationId: string;
+            integrationId?: string;
             folder?: string;
         }
     ) {}

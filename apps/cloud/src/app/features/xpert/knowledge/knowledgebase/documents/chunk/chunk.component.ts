@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import { nonBlank } from '@metad/ocap-core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -14,6 +14,7 @@ import { KnowledgeChunkComponent, KnowledgeDocIdComponent } from 'apps/cloud/src
 import { NgModelChangeDebouncedDirective } from 'apps/cloud/src/app/@theme/directives'
 import { get } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { BehaviorSubject, distinctUntilChanged, filter, switchMap, tap } from 'rxjs'
 import {
   getErrorMessage,
@@ -23,7 +24,6 @@ import {
   KnowledgeDocumentService
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
-import { injectQueryParams } from 'ngxtension/inject-query-params'
 
 @Component({
   standalone: true,
@@ -51,6 +51,7 @@ export class KnowledgeDocumentChunkComponent {
   readonly #toastr = injectToastr()
   readonly paramId = injectParams('id')
   readonly parentId = injectQueryParams('parentId')
+  readonly confirmDelete = injectConfirmDelete()
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
@@ -75,6 +76,7 @@ export class KnowledgeDocumentChunkComponent {
   // Side
   readonly sideExpand = model(false)
   readonly editChunk = signal<IDocumentChunk>(null)
+  readonly preview = signal(false)
 
   // Search
   readonly search = model<string>()
@@ -88,6 +90,10 @@ export class KnowledgeDocumentChunkComponent {
       },
       { allowSignalWrites: true }
     )
+
+    // effect(() => {
+    //   console.log(this.editChunk())
+    // })
   }
 
   getValue(row: any, name: string) {
@@ -102,15 +108,23 @@ export class KnowledgeDocumentChunkComponent {
     this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 
+  toggleAllPreview() {
+    this.preview.update((state) => !state)
+  }
+
   deleteChunk(chunk: IDocumentChunk) {
-    this.knowledgeDocumentService.deleteChunk(chunk.metadata.knowledgeId, chunk.id).subscribe({
-      next: () => {
-        this.chunks.update((items) => items.filter((item) => item.id !== chunk.id))
-      },
-      error: (error) => {
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
+    this.confirmDelete({
+        value: chunk.id,
+        information: chunk.pageContent.substring(0, 100)
+      }, this.knowledgeDocumentService.deleteChunk(chunk.metadata.knowledgeId, chunk.id))
+      .subscribe({
+        next: () => {
+          this.chunks.update((items) => items.filter((item) => item.id !== chunk.id))
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
   }
 
   onSearch(value: string) {

@@ -65,8 +65,14 @@
   <div class="grow shrink-1 flex flex-col justify-start overflow-hidden">
     <div class="flex justify-between items-center px-8 py-4">
       <div>{{'PAC.Knowledgebase.Chunks' | translate: {Default: 'Chunks'} }}: {{total()}} {{'PAC.Knowledgebase.Pieces' | translate: {Default: 'Pieces'} }}</div>
+      <i class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
+        [class.!text-primary-500]="preview()"
+        [matTooltip]="'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'}"
+        matTooltipPosition="above"
+        (click)="toggleAllPreview()"
+      ></i>
 
-      <div class="flex gap-2">
+      <div class="grow flex justify-end items-center gap-2">
         <div class="relative w-52">
           <i class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
           <input class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 rounded-lg system-sm-regular px-[26px]"
@@ -91,7 +97,7 @@
       <ul class="example-list-wrapping m-2">
         @for (chunk of chunks(); track chunk.id; let i = $index; let last = $last) {
           <li class="relative group/chunk">
-            <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
+            <xp-knowledge-chunk [chunk]="chunk" [index]="i" [preview]="preview()"/>
             <div class="absolute top-0.5 right-0.5 z-20 hidden group-hover/chunk:flex items-center gap-x-0.5 p-1 rounded-[10px] border-[0.5px] border-components-actionbar-border bg-components-actionbar-bg shadow-md backdrop-blur-[5px]">
               <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-state-base-hover cursor-pointer"
                 (click)="editChunk.set(chunk)">

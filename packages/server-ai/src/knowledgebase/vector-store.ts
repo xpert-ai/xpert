@@ -52,6 +52,9 @@ export class KnowledgeDocumentStore {
 		}
 	}
 
+	/**
+	 * Find all chunks of a document, filter by metadata
+	 */
 	async getChunks(knowledgeId: string, options: TVectorSearchParams) {
 		const docs = await this.vStore.similaritySearch(options.search || '*', 10000, {
 			...(options.filter ?? {}),
