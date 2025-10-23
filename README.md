@@ -158,12 +158,14 @@ For Production, we recommend:
 
 ## 🗺️ Roadmap
 
-- [ ] **SDK (TypeScript / Python)** – streamlines access api of the XpertAI platform.
-  - [x] digital experts
-  - [x] long-term memory storage
-  - [x] contextual files
-  - [ ] knowledge bases
-  - [ ] Python version
+- [ ] **SDK** – streamlines access api of the XpertAI platform.
+  - [ ] [SDK (TypeScript)](https://github.com/xpert-ai/xpert-sdk-js)
+    - [x] digital experts
+    - [x] long-term memory storage
+    - [x] contextual files
+    - [ ] knowledge bases
+  - [ ] [SDK (Python)](https://github.com/xpert-ai/xpert-sdk-py)
+
 - [ ] **Plugins** – extensible plugin system.
   - [x] Plugins system
   - [ ] Marketplace to showcase the plugins ecosystem.
@@ -174,7 +176,7 @@ For Production, we recommend:
 ## 💌 Contact Us
 
 - For business inquiries: <mailto:service@mtda.cloud>
-- [Xpert AI Platform @ Twitter](https://twitter.com/CloudMtda)
+- [Xpert AI Platform @ Twitter](https://x.com/xpertai_cloud)
 
 ## 🛡️ License
 
