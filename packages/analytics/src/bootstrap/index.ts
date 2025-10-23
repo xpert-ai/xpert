@@ -137,7 +137,7 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-dify',
 			'@xpert-ai/plugin-file-system',
 			'@xpert-ai/plugin-firecrawl',
-			'@xpert-ai/plugin-mineru',
+			// '@xpert-ai/plugin-mineru',
 			'@xpert-ai/plugin-integration-fastgpt',
 			'@xpert-ai/plugin-integration-ragflow',
 			'@xpert-ai/plugin-integration-github',

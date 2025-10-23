@@ -41,7 +41,6 @@
     "@nestjs/websockets": "^11.1.6",
     "@xpert-ai/plugin-file-system": "^0.0.2",
     "@xpert-ai/plugin-firecrawl": "^0.0.1",
-    "@xpert-ai/plugin-mineru": "^0.0.1",
     "@xpert-ai/plugin-dify": "^0.0.3"
   },
   "devDependencies": {
