@@ -31,8 +31,8 @@ export function createTriggerNode(
 		workflowNode: {
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
-				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, projectId, agentKey } =
-					configurable
+				//const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, projectId, agentKey } =
+				//	configurable
 				const stateEnv = stateToParameters(state, environment)
 
 				const values =
