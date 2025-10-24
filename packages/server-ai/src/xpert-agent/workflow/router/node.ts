@@ -179,20 +179,20 @@ export function createRouterNode(
 			}),
 			ends: []
 		},
-		channel: {
-			name: channelName(node.key),
-			annotation: Annotation<Record<string, unknown>>({
-				reducer: (a, b) => {
-					return b
-						? {
-							...a,
-							...b
-						}
-						: a
-				},
-				default: () => ({})
-			})
-		},
+		// channel: {
+		// 	name: channelName(node.key),
+		// 	annotation: Annotation<Record<string, unknown>>({
+		// 		reducer: (a, b) => {
+		// 			return b
+		// 				? {
+		// 					...a,
+		// 					...b
+		// 				}
+		// 				: a
+		// 		},
+		// 		default: () => ({})
+		// 	})
+		// },
 		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
 			const result = (<{ router: string }>state[channelName(node.key)])?.router
 			return nextWorkflowNodes(graph, result, state)

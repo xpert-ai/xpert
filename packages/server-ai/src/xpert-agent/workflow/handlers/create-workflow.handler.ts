@@ -36,7 +36,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 		const { xpert } = options
 		
 		let workflow = {} as any
-		let channel: TStateChannel = {
+		const channel: TStateChannel = {
 					name: channelName(node.key),
 					annotation: Annotation<Record<string, unknown>>({
 						reducer: (a, b) => {
@@ -111,20 +111,20 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					environment: options.environment,
 					validator: this.codeValidator
 				})
-				channel = {
-					name: channelName(node.key),
-					annotation: Annotation<Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b
-									}
-								: a
-						},
-						default: () => ({})
-					})
-				}
+				// channel = {
+				// 	name: channelName(node.key),
+				// 	annotation: Annotation<Record<string, unknown>>({
+				// 		reducer: (a, b) => {
+				// 			return b
+				// 				? {
+				// 						...a,
+				// 						...b
+				// 					}
+				// 				: a
+				// 		},
+				// 		default: () => ({})
+				// 	})
+				// }
 				break
 			}
 			case WorkflowNodeTypeEnum.HTTP: {
@@ -134,56 +134,56 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					queryBus: this.queryBus,
 					environment: options.environment
 				})
-				channel = {
-					name: channelName(node.key),
-					annotation: Annotation<Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b
-									}
-								: a
-						},
-						default: () => ({})
-					})
-				}
+				// channel = {
+				// 	name: channelName(node.key),
+				// 	annotation: Annotation<Record<string, unknown>>({
+				// 		reducer: (a, b) => {
+				// 			return b
+				// 				? {
+				// 						...a,
+				// 						...b
+				// 					}
+				// 				: a
+				// 		},
+				// 		default: () => ({})
+				// 	})
+				// }
 				break
 			}
 			case WorkflowNodeTypeEnum.KNOWLEDGE: {
 				workflow =  await this.commandBus.execute(new CreateWNKnowledgeRetrievalCommand(xpertId, graph, node, options))
-				channel = {
-					name: channelName(node.key),
-					annotation: Annotation<Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b
-									}
-								: a
-						},
-						default: () => ({})
-					})
-				}
+				// channel = {
+				// 	name: channelName(node.key),
+				// 	annotation: Annotation<Record<string, unknown>>({
+				// 		reducer: (a, b) => {
+				// 			return b
+				// 				? {
+				// 						...a,
+				// 						...b
+				// 					}
+				// 				: a
+				// 		},
+				// 		default: () => ({})
+				// 	})
+				// }
 				break
 			}
 			case WorkflowNodeTypeEnum.SUBFLOW: {
 				workflow =  await this.commandBus.execute(new CreateWNSubflowCommand(xpertId, graph, node, options))
-				channel = {
-					name: channelName(node.key),
-					annotation: Annotation<Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b
-									}
-								: a
-						},
-						default: () => ({})
-					})
-				}
+				// channel = {
+				// 	name: channelName(node.key),
+				// 	annotation: Annotation<Record<string, unknown>>({
+				// 		reducer: (a, b) => {
+				// 			return b
+				// 				? {
+				// 						...a,
+				// 						...b
+				// 					}
+				// 				: a
+				// 		},
+				// 		default: () => ({})
+				// 	})
+				// }
 				break
 			}
 			case WorkflowNodeTypeEnum.TEMPLATE: {

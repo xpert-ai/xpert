@@ -14,7 +14,7 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, getWorkflowTriggers, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IWFNAgentTool, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertAgentConfig, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, getWorkflowTriggers, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IWFNAgentTool, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -305,7 +305,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Conditional Edges
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
 		// Fixed Edge
-		const edges: Record<string, string> = {}
+		const edges: Record<string, string | string[]> = {}
 		// Add task nodes and edges
 		taskTools.tools.forEach((_) => {
 			nodes[_.tool.name] = {graph: _.graph, ends: []}
@@ -433,7 +433,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						workflowNodeEnds.push(parentKey)
 					}
 				}
-				conditionalEdges[graphNodeName] = [navigator, workflowNodeEnds]
+				if (navigator) {
+					conditionalEdges[graphNodeName] = [navigator, workflowNodeEnds]
+				} else {
+					edges[graphNodeName] = nextNodes.map((n) => n.key)
+				}
 
 				for await (const nNode of nextNodes ?? []) {
 					await createSubgraph(nNode, null, finalReturn)
@@ -859,7 +863,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 																	}
 																)
 									  )
-			Object.keys(edges).forEach((name) => subgraphBuilder.addEdge(name, edges[name]))
+			Object.entries(edges).forEach(([name, value]) => {
+				const ends: string[] = Array.isArray(value) ? value : [value]
+				ends.forEach((end) => subgraphBuilder.addEdge(name, end))
+			})
 			Object.keys(conditionalEdges).forEach((name) => subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0] as any, conditionalEdges[name][1]))
 		}
 
