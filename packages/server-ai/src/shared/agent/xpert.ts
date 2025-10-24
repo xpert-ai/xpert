@@ -151,7 +151,7 @@ export class XpertCollaborator implements IXpertSubAgent {
 						let result = ''
 						const subState = {
 							...state,
-							// ...call.args,
+							...call.args,
 							[STATE_VARIABLE_HUMAN]: {
 								...call.args
 							}

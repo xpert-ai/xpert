@@ -495,6 +495,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// State
+		const parameters: TXpertParameter[] = []
+		if (!hiddenAgent && agent.parameters?.length) {
+			parameters.push(...agent.parameters)
+		}
+		if (team.agentConfig?.parameters?.length) {
+			parameters.push(...team.agentConfig.parameters)
+		}
 		const workflowNodes = allChannels(graph, agent.key)
 		const SubgraphStateAnnotation = Annotation.Root({
 			// Temp parameters
@@ -513,10 +520,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				  })
 				return acc
 			}, {}) ?? {}),
-			...(agent.parameters?.reduce((acc, parameter) => {
+			...parameters.reduce((acc, parameter) => {
 				acc[parameter.name] = Annotation(stateVariable(parameter))
 				return acc
-			}, {}) ?? {}),
+			}, {}),
 			// Default channels for nodes
 			...Object.fromEntries(uniq([...(hiddenAgent ? [] : [agent.key]), ...workflowNodes]).map((key) => {
 				// for agent

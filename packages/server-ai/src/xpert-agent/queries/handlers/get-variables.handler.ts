@@ -220,6 +220,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		if (stateVariables) {
 			variables.push(...stateVariables)
 		}
+		if (agentConfig?.parameters?.length) {
+			variables.push(...agentConfig.parameters)
+		}
 
 		// All agents output
 		const _graph = isDraft ? ({ ...(xpert.graph ?? {}), ...(xpert.draft ?? {}) } as TXpertGraph) : xpert.graph
