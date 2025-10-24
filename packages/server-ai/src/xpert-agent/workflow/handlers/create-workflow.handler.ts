@@ -36,7 +36,20 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 		const { xpert } = options
 		
 		let workflow = {} as any
-		let channel: TStateChannel = null
+		let channel: TStateChannel = {
+					name: channelName(node.key),
+					annotation: Annotation<Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b
+								? {
+										...a,
+										...b
+									}
+								: a
+						},
+						default: () => ({})
+					})
+				}
 		switch (node.entity.type) {
 			case WorkflowNodeTypeEnum.TRIGGER: {
 				workflow = createTriggerNode(graph, node, {
