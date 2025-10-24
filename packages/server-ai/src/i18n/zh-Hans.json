@@ -2,7 +2,8 @@
     "Error": {
         "AgentNotFound": "Agent‘{{key}}’未找到。",
         "PrimaryAgentNotFound": "主智能体节点未找到",
-        "GitIntegrationNotProvided": "未提供 Git 集成"
+        "GitIntegrationNotProvided": "未提供 Git 集成",
+        "NoTriggerNodeAdded": "未添加触发器节点"
     },
     "tools": {
         "ListFiles": "列出文件",

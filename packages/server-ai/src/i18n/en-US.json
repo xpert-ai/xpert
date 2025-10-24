@@ -2,7 +2,8 @@
     "Error": {
         "AgentNotFound": "Agent '{{key}}' not found.",
         "PrimaryAgentNotFound": "Primary agent node not found",
-        "GitIntegrationNotProvided": "Git integration not provided"
+        "GitIntegrationNotProvided": "Git integration not provided",
+        "NoTriggerNodeAdded": "No trigger node added"
     },
     "tools": {
         "ListFiles": "List files",

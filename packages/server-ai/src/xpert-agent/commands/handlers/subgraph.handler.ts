@@ -24,6 +24,7 @@ import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
+import { t } from 'i18next'
 import z from 'zod'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
@@ -744,8 +745,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			} else {
 				subgraphBuilder.addEdge(START, startNodes[0])
 			}
-		} else {
+		} else if (!hiddenAgent) {
 			subgraphBuilder.addEdge(START, agentKey)
+		} else {
+			throw new XpertConfigException(t('server-ai:Error.NoTriggerNodeAdded'))
 		}
 
 		// Add nodes for tools
