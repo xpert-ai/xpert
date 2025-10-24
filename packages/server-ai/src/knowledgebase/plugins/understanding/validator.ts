@@ -43,7 +43,7 @@ export class WorkflowUnderstandingNodeValidator {
 		}
 
 		if (entity.visionModel?.copilotId) {
-			const copilot = this.queryBus.execute(
+			const copilot = await this.queryBus.execute(
 				new CopilotGetOneQuery(RequestContext.currentTenantId(), entity.visionModel.copilotId)
 			)
 			if (!copilot) {
