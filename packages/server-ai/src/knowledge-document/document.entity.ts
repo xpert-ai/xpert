@@ -12,14 +12,14 @@ import {
 	IKnowledgebaseTask,
 	Metadata,
 	TDocSourceConfig,
+	IKnowledgeDocumentChunk,
 } from '@metad/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
-import { DocumentInterface } from '@langchain/core/documents'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId, Tree, TreeChildren, TreeParent } from 'typeorm'
-import { Knowledgebase, KnowledgebaseTask, KnowledgeDocumentPage } from '../core/entities/internal'
+import { Knowledgebase, KnowledgebaseTask, KnowledgeDocumentChunk, KnowledgeDocumentPage } from '../core/entities/internal'
 
 @Entity('knowledge_document')
 @Tree('closure-table') 
@@ -208,12 +208,6 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ type: 'json', nullable: true })
 	metadata?: Metadata
 
-	@ApiPropertyOptional({ type: () => Object })
-	@IsJSON()
-	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	chunks?: DocumentInterface[]
-
 	/*
     |--------------------------------------------------------------------------
     | Parent-children relationship 
@@ -253,11 +247,21 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
     | @OneToMany 
     |--------------------------------------------------------------------------
     */
+
+	/**
+	 * @deprecated use chunks instead
+	 */
 	@ApiProperty({ type: () => KnowledgeDocumentPage, isArray: true })
 	@OneToMany(() => KnowledgeDocumentPage, (page) => page.document, {
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
 	pages?: IKnowledgeDocumentPage[]
+
+	@ApiProperty({ type: () => KnowledgeDocumentChunk, isArray: true })
+	@OneToMany(() => KnowledgeDocumentChunk, (chunk) => chunk.document, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	chunks?: IKnowledgeDocumentChunk[]
 
 	/*
     |--------------------------------------------------------------------------

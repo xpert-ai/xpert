@@ -1,4 +1,4 @@
-import { IDocumentChunk, IIntegration, IKnowledgeDocument, isDocumentSheet, KBDocumentCategoryEnum, KBDocumentStatusEnum, TRagWebOptions } from '@metad/contracts'
+import { buildChunkTree, IIntegration, IKnowledgeDocument, IKnowledgeDocumentChunk, isDocumentSheet, KBDocumentCategoryEnum, KBDocumentStatusEnum, TRagWebOptions } from '@metad/contracts'
 import {
 	CrudController,
 	IntegrationService,
@@ -25,7 +25,7 @@ import {
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { ChunkMetadata, mergeParentChildChunks } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { Queue } from 'bull'
 import { In } from 'typeorm'
@@ -50,7 +50,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		private readonly integrationService: IntegrationService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		@InjectQueue(JOB_EMBEDDING_DOCUMENT) private docQueue: Queue
+		@InjectQueue(JOB_EMBEDDING_DOCUMENT) private docQueue: Queue,
 	) {
 		super(service)
 	}
@@ -112,11 +112,12 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
 	@Post('estimate')
 	async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
+		entity.parserConfig ??= {}
 		try {
 			entity.category ??= isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
 			const result = await this.commandBus.execute<KnowledgeDocLoadCommand, { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }>(
 				new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument, stage: 'prod'}))
-			return result.pages?.length ? mergeParentChildChunks(result.pages, result.chunks) : result.chunks
+			return buildChunkTree(result.chunks)
 		} catch(err) {
 			console.error(err)
 			throw new BadRequestException(getErrorMessage(err))
@@ -218,7 +219,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		/**
 		 * Chunk info
 		 */
-		@Body() entity: IDocumentChunk
+		@Body() entity: IKnowledgeDocumentChunk
 	) {
 		try {
 			return await this.service.createChunk(docId, entity)
@@ -228,7 +229,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	}
 
 	@Put(':docId/chunk/:id')
-	async updateChunk(@Param('docId') docId: string, @Param('id') id: string, @Body() entity: IDocumentChunk) {
+	async updateChunk(@Param('docId') docId: string, @Param('id') id: string, @Body() entity: IKnowledgeDocumentChunk) {
 		try {
 			await this.service.updateChunk(docId, id, entity)
 		} catch (err) {

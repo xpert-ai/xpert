@@ -1,4 +1,4 @@
-import { IDocumentChunk } from '@metad/contracts'
+import { IDocChunkMetadata, IKnowledgeDocumentChunk } from '@metad/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose } from 'class-transformer'
 import { IsJSON, IsNotEmpty, IsString } from 'class-validator'
@@ -7,7 +7,7 @@ import { IsJSON, IsNotEmpty, IsString } from 'class-validator'
  * Document chunk public dto
  */
 @Exclude()
-export class DocumentChunkDTO implements IDocumentChunk {
+export class DocumentChunkDTO implements IKnowledgeDocumentChunk {
 
 	@Expose()
 	@ApiProperty({ type: () => String })
@@ -25,10 +25,7 @@ export class DocumentChunkDTO implements IDocumentChunk {
 	@ApiProperty({ type: () => Object })
 	@IsNotEmpty()
 	@IsJSON()
-	metadata: {
-		knowledgeId?: string
-		[key: string]: any | null
-	}
+	metadata: IDocChunkMetadata
 
 	@Expose()
 	@ApiProperty({ type: () => String })

@@ -25,7 +25,7 @@ export class KnowledgeDocumentConsumer {
 	constructor(
 		@Inject(JOB_REF) jobRef: Job,
 		private readonly knowledgebaseService: KnowledgebaseService,
-		private readonly service: KnowledgeDocumentService,
+		private readonly documentService: KnowledgeDocumentService,
 		private readonly userService: UserService,
 		private readonly commandBus: CommandBus
 	) {}
@@ -54,7 +54,7 @@ export class KnowledgeDocumentConsumer {
 		} catch (err) {
 			await Promise.all(
 				docs.map((doc) =>
-					this.service.update(doc.id, {
+					this.documentService.update(doc.id, {
 						status: KBDocumentStatusEnum.ERROR,
 						processMsg: getErrorMessage(err)
 					})
@@ -65,39 +65,42 @@ export class KnowledgeDocumentConsumer {
 		}
 
 		for await (const doc of job.data.docs) {
-			const document = await this.service.findOne(doc.id, { relations: ['pages'] })
+			const document = await this.documentService.findOne(doc.id, { relations: ['chunks'] })
 
 			try {
 				const data = await this.commandBus.execute<
 					KnowledgeDocLoadCommand,
-					{ chunks: Document<ChunkMetadata>[]; pages?: Document<ChunkMetadata>[] }
+					{ chunks: Document<ChunkMetadata>[]; }
 				>(new KnowledgeDocLoadCommand({ doc: document, stage: 'prod' }))
 
 				// Save pages into db, And associated with the chunk's metadata.
-				let chunks: Document<ChunkMetadata>[] = data?.chunks
-				if (data?.pages?.length) {
-					// let pages = mergeParentChildChunks(data.pages, data.chunks)
-					const pages = await this.service.createPageBulk(
-						document.id,
-						data.pages.map((page) => ({
-							pageContent: page.pageContent,
-							metadata: page.metadata,
-							tenantId: document.tenantId,
-							organizationId: document.organizationId,
-							knowledgebaseId: document.knowledgebaseId
-						}))
-					)
-					chunks = chunks.map((chunk) => {
-						const page = pages.find((p) => p.metadata.chunkId === chunk.metadata.parentId)
-						if (page) {
-							chunk.metadata.pageId = page.id
-						}
-						return chunk
-					})
-				}
-
+				// let chunks: Document<ChunkMetadata>[] = data?.chunks
+				// if (data?.pages?.length) {
+				// 	// let pages = mergeParentChildChunks(data.pages, data.chunks)
+				// 	const pages = await this.service.createPageBulk(
+				// 		document.id,
+				// 		data.pages.map((page) => ({
+				// 			pageContent: page.pageContent,
+				// 			metadata: page.metadata,
+				// 			tenantId: document.tenantId,
+				// 			organizationId: document.organizationId,
+				// 			knowledgebaseId: document.knowledgebaseId
+				// 		}))
+				// 	)
+				// 	chunks = chunks.map((chunk) => {
+				// 		const page = pages.find((p) => p.metadata.chunkId === chunk.metadata.parentId)
+				// 		if (page) {
+				// 			chunk.metadata.pageId = page.id
+				// 		}
+				// 		return chunk
+				// 	})
+				// }
+				let chunks = data?.chunks // .map(transformDocument2Chunk)
 				if (chunks) {
 					this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
+					document.chunks = await this.documentService.coverChunks({...document, chunks}, vectorStore)
+					chunks = await this.documentService.findAllLeaves(document)
+
 					// Clear history chunks
 					await vectorStore.deleteKnowledgeDocument(document)
 					const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
@@ -127,16 +130,16 @@ export class KnowledgeDocumentConsumer {
 							this.logger.debug(`[Job: entity '${job.id}'] Cancelled`)
 							return
 						}
-						await this.service.update(doc.id, { progress: Number(progress) })
+						await this.documentService.update(doc.id, { progress: Number(progress) })
 					}
 				}
 
-				await this.service.update(doc.id, { status: KBDocumentStatusEnum.FINISH, processMsg: '' })
+				await this.documentService.update(doc.id, { status: KBDocumentStatusEnum.FINISH, processMsg: '' })
 
 				this.logger.debug(`[Job: entity '${job.id}'] End!`)
 			} catch (err) {
 				this.logger.debug(`[Job: entity '${job.id}'] Error!`)
-				this.service.update(document.id, {
+				this.documentService.update(document.id, {
 					status: KBDocumentStatusEnum.ERROR,
 					processMsg: getErrorMessage(err)
 				})
@@ -149,7 +152,7 @@ export class KnowledgeDocumentConsumer {
 
 	async checkIfJobCancelled(docId: string): Promise<boolean> {
 		// Check database/cache for cancellation flag
-		const doc = await this.service.findOne(docId)
+		const doc = await this.documentService.findOne(docId)
 		if (doc) {
 			return doc?.status === KBDocumentStatusEnum.CANCEL
 		}

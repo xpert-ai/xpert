@@ -1,8 +1,9 @@
+import { Document } from '@langchain/core/documents'
 import { RecursiveCharacterTextSplitter, RecursiveCharacterTextSplitterParams } from '@langchain/textsplitters'
 import { IconType, KnowledgeStructureEnum } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
+import { v4 as uuid } from 'uuid'
 import { RecursiveCharacter } from './types'
 
 @Injectable()
@@ -84,7 +85,13 @@ export class RecursiveCharacterStrategy
     const splitter = new RecursiveCharacterTextSplitter({...options, separators })
     const chunks = await splitter.splitDocuments(documents)
     return {
-      chunks: chunks as Document<ChunkMetadata>[]
+      chunks: chunks.map((chunk) => ({
+        ...chunk,
+        metadata: {
+          ...chunk.metadata,
+          chunkId: chunk.metadata?.['chunkId'] ?? uuid()
+        }
+      })) as Document<ChunkMetadata>[]
     }
   }
 }

@@ -1,4 +1,4 @@
-import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum, KDocumentSourceType, KnowledgeStructureEnum } from '@metad/contracts'
+import { IDocChunkMetadata, IKnowledgeDocument, IKnowledgeDocumentChunk, IKnowledgeDocumentPage, KBDocumentStatusEnum, KDocumentSourceType, KnowledgeStructureEnum } from '@metad/contracts'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -9,10 +9,11 @@ import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { compact, uniq } from 'lodash-es'
 import { DataSource, DeepPartial, In, Repository } from 'typeorm'
-import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
+import { KnowledgebaseService, KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
 import { KnowledgeDocumentPage } from '../core/entities/internal'
+import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 
 
 @Injectable()
@@ -27,6 +28,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
 	@Inject(TextSplitterRegistry)
 	private readonly textSplitterRegistry: TextSplitterRegistry
+
+	@Inject(KnowledgeDocumentChunkService)
+	private readonly chunkService: KnowledgeDocumentChunkService
 
 	constructor(
 		@InjectRepository(KnowledgeDocument)
@@ -125,10 +129,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		return await this.repository.save(document)
 	}
 
+	/**
+	 * @deprecated use Chunks
+	 */
 	async createPageBulk(documentId: string, pages: Partial<IKnowledgeDocumentPage<ChunkMetadata>>[]) {
 		return await this.pageRepository.save(pages.map((page) => ({ ...page, documentId })))
 	}
 
+	/**
+	 * @deprecated use Chunks
+	 */
 	async deletePage(documentId: string, id: string) {
 		const document = await this.findOne(documentId, {
 			relations: ['pages', 'knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
@@ -148,6 +158,18 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	 * @returns 
 	 */
 	async getChunks(id: string, params: TVectorSearchParams) {
+		if (!params.search) {
+			const chunks = await this.chunkService.findAll({
+				where: {
+					...(params.filter ?? {}),
+					documentId: id,
+				},
+				skip: params.skip,
+				take: params.take,
+			})
+
+			return chunks
+		}
 		const document = await this.findOne(id, {
 			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
 		})
@@ -193,17 +215,17 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		}
 	}
 
-	async createChunk(id: string, entity: IDocumentChunk) {
+	async createChunk(id: string, entity: IKnowledgeDocumentChunk) {
 		const { vectorStore, document } = await this.getDocumentVectorStore(id)
 		await vectorStore.addKnowledgeDocument(document, [
 			{
-				metadata: entity.metadata ?? {},
+				metadata: entity.metadata ?? {} as IDocChunkMetadata,
 				pageContent: entity.pageContent
 			}
 		])
 	}
 
-	async updateChunk(documentId: string, id: string, entity: IDocumentChunk) {
+	async updateChunk(documentId: string, id: string, entity: IKnowledgeDocumentChunk) {
 		try {
 			const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
 			return await vectorStore.updateChunk(id, {
@@ -218,6 +240,21 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	async deleteChunk(documentId: string, id: string) {
 		const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
 		return await vectorStore.deleteChunk(id)
+	}
+
+	async coverChunks(document: IKnowledgeDocument, vectorStore: KnowledgeDocumentStore) {
+		await this.chunkService.deleteByDocumentId(document.id)
+		return await this.chunkService.upsertBulk(document.chunks.map((_) => {
+			return {
+				..._,
+				documentId: document.id,
+				knowledgebaseId: document.knowledgebaseId
+			}
+		}))
+	}
+
+	async findAllLeaves(document: IKnowledgeDocument) {
+		return this.chunkService.findAllLeaves(document.chunks)
 	}
 
 	async getDocumentVectorStore(id: string) {

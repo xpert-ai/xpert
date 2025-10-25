@@ -1,10 +1,10 @@
-import { Document } from '@langchain/core/documents'
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
 import { Annotation, BaseChannel } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
 	IKnowledgeDocument,
+	IKnowledgeDocumentChunk,
 	IWFNKnowledgeBase,
 	IWorkflowNode,
 	IXpertAgentExecution,
@@ -33,6 +33,7 @@ import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeDocumentStore } from '../../vector-store'
 import { KnowledgebaseTaskService } from '../../task'
 import { ERROR_CHANNEL_NAME } from '../types'
+import { TDocChunkMetadata } from 'packages/server-ai/src/knowledge-document/types'
 
 
 const InfoChannelName = 'info'
@@ -154,14 +155,14 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 								id: In(inputDocuments.map(({id}) => id) as string[]),
 								knowledgebaseId
 							},
-							relations: ['pages']
+							relations: ['pages', 'chunks']
 						})
 						
 						const tasks = documents.map((document, index) => async () => {
 							statisticsInformation += `- Document ${index + 1} - ${document.name}: \n`
 							try {
 								// Save pages into db, And associated with the chunk's metadata.
-								let chunks: Document<ChunkMetadata>[] = document?.chunks as Document<ChunkMetadata>[]
+								let chunks = document?.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
 								if (document?.pages?.length) {
 									const pages = document?.pages
 									chunks = chunks.map((chunk) => {
@@ -175,8 +176,12 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 
 								if (chunks) {
 									this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
+									document.chunks = await this.documentService.coverChunks({...document, chunks}, vectorStore)
+									chunks = await this.documentService.findAllLeaves(document)
+
 									// Clear history chunks
 									await vectorStore.deleteKnowledgeDocument(document)
+
 									const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
 									let count = 0
 									while (batchSize * count < chunks.length) {
@@ -206,7 +211,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 											`Embeddings document '${document.name}' progress: ${progress}%`
 										)
 										if (await this.checkIfJobCancelled(document.id)) {
-											return
+											throw KBDocumentStatusEnum.CANCEL
 										}
 										await this.documentService.update(document.id, { progress: Number(progress) })
 									}
@@ -217,6 +222,10 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 								})
 								statisticsInformation += ` - Embedded ${chunks?.length || 0} chunks. \n`
 							} catch (err) {
+								if (err === KBDocumentStatusEnum.CANCEL) {
+									statisticsInformation += ` - Cancelled by user. \n`
+									return
+								}
 								this.documentService.update(document.id, {
 									status: KBDocumentStatusEnum.ERROR,
 									processMsg: getErrorMessage(err)
@@ -324,7 +333,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 
 	async checkIfJobCancelled(docId: string): Promise<boolean> {
 		// Check database/cache for cancellation flag
-		const doc = await this.documentService.findOne(docId)
+		const doc = await this.documentService.findOne(docId, {select: ['status']})
 		if (doc) {
 			return doc?.status === KBDocumentStatusEnum.CANCEL
 		}

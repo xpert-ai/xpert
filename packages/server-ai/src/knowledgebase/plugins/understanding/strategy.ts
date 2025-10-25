@@ -148,9 +148,9 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 							)
 
 							doc.chunks = result.chunks
-							if (result.pages) {
-								doc.pages = (doc.pages ?? []).concat(result.pages)
-							}
+							// if (result.pages) {
+							// 	doc.pages = (doc.pages ?? []).concat(result.pages)
+							// }
 							// console.log('Chunker result chunks:', result.chunks)
 						}
 

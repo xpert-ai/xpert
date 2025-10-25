@@ -5,6 +5,7 @@ import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
 import { IconType, IKnowledgeDocument } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import {
+  ChunkMetadata,
   DocumentTransformerStrategy,
   downloadRemoteFile,
   FileSystemPermission,
@@ -12,8 +13,9 @@ import {
   isRemoteFile,
 } from '@xpert-ai/plugin-sdk'
 import fsPromises from 'fs/promises'
-import { Document } from '@langchain/core/documents'
+import { Document, DocumentInterface } from '@langchain/core/documents'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
+import { v4 as uuid } from 'uuid'
 import path from 'path'
 import { Default, icon, TDefaultTransformerConfig, TDefaultTransformerMetadata } from './types'
 
@@ -85,7 +87,6 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
   ): Promise<Partial<IKnowledgeDocument<TDefaultTransformerMetadata>>[]> {
     const xpFileSystem = config.permissions.fileSystem
     this.#logger.debug('Transforming common documents:')
-    this.#logger.debug('Files:', files)
 
     const results = []
     for await (const file of files) {
@@ -116,7 +117,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
       } else {
         file.filePath = xpFileSystem.fullPath(file.filePath)
       }
-      let data: Document[]
+      let data: DocumentInterface[]
       const extension = file.name?.split('.').pop()
       switch (extension?.toLowerCase()) {
         case 'md':
@@ -149,21 +150,23 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
           data = await this.processText(file.filePath)
           break
       }
-
-      // Text Preprocessing
-      data.forEach((doc) => {
-        if (config?.replaceWhitespace) {
-          doc.pageContent = doc.pageContent.replace(/[\s\n\t]+/g, ' ') // Replace consecutive spaces, newlines, and tabs
-        }
-        if (config?.removeSensitive) {
-          doc.pageContent = doc.pageContent.replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
-          doc.pageContent = doc.pageContent.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '') // Remove email addresses
-        }
-      })
-
+      
       results.push({
         id: file.id,
-        chunks: data
+        chunks: data.map((_) => {
+          const doc = _ as DocumentInterface<ChunkMetadata>
+          doc.metadata['chunkId'] ??= uuid()
+
+          // Text Preprocessing
+          if (config?.replaceWhitespace) {
+            doc.pageContent = doc.pageContent.replace(/[\s\n\t]+/g, ' ') // Replace consecutive spaces, newlines, and tabs
+          }
+          if (config?.removeSensitive) {
+            doc.pageContent = doc.pageContent.replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
+            doc.pageContent = doc.pageContent.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '') // Remove email addresses
+          }
+          return doc
+        })
       })
     }
 

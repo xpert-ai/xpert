@@ -33,9 +33,8 @@ export interface ChunkMetadata {
 
 /**
  * Merge parent chunks with their child chunks based on metadata (parentId and chunkId)
- * @param chunks
- * @param children
- * @returns
+ * 
+ * @deprecated use buildChunkTreeAndFindLeaves instead
  */
 export function mergeParentChildChunks(
   chunks: DocumentInterface<ChunkMetadata>[], // Parent chunks

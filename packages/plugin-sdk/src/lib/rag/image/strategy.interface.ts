@@ -1,4 +1,4 @@
-import { Document } from '@langchain/core/documents'
+import { DocumentInterface } from '@langchain/core/documents'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { IDocumentUnderstandingProvider, IKnowledgeDocument } from '@metad/contracts'
 import { Permissions, XpFileSystem } from '../../core/index'
@@ -13,8 +13,8 @@ export type TImageUnderstandingConfig = {
 }
 
 export type TImageUnderstandingResult = {
-  chunks: Document<Partial<ChunkMetadata>>[]
-  pages?: Document<Partial<ChunkMetadata>>[]
+  chunks: DocumentInterface<Partial<ChunkMetadata>>[]
+  // pages?: Document<Partial<ChunkMetadata>>[]
   metadata: any // Additional metadata (e.g. model name, processing time)
 }
 

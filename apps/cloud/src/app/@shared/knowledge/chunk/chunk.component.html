@@ -59,57 +59,59 @@
     </div>
     
     @if (chunk().metadata.children; as children) {
-      <div class="flex flex-col pb-2 pt-1">
-        <div class="flex items-center justify-between">
-          <div class="flex h-7 items-center rounded-lg pl-1 pr-3 cursor-pointer" (click)="expanded.set(!expanded())">
-            <i class="ri-arrow-right-s-line mr-0.5 text-text-secondary" [class.rotate-90]="expanded()"></i>
-            <span class="system-sm-semibold-uppercase text-text-secondary">{{children.length}} 子分段</span>
-            @if (editable()) {
-              <span class="pl-1.5 text-xs font-medium text-text-quaternary hidden group-hover/card:inline-block">·</span>
-              <button type="button" class="btn btn-secondary btn-sm system-xs-semibold-uppercase px-1.5 py-0.5 hidden group-hover/card:inline-block">添加</button>
-            }
-          </div>
-        </div>
-        @if (expanded()) {
-          <div class="flex gap-x-0.5 items-center">
-            <div class="self-stretch">
-              <div class="h-full mx-[7px] w-[2px] bg-text-accent-secondary"></div>
+      @if (children.length > 0) {
+        <div class="flex flex-col pb-2 pt-1">
+          <div class="flex items-center justify-between">
+            <div class="flex h-7 items-center rounded-lg pl-1 pr-3 cursor-pointer" (click)="expanded.set(!expanded())">
+              <i class="ri-arrow-right-s-line mr-0.5 text-text-secondary" [class.rotate-90]="expanded()"></i>
+              <span class="system-sm-semibold-uppercase text-text-secondary">{{children.length}} 子分段</span>
+              @if (editable()) {
+                <span class="pl-1.5 text-xs font-medium text-text-quaternary hidden group-hover/card:inline-block">·</span>
+                <button type="button" class="btn btn-secondary btn-sm system-xs-semibold-uppercase px-1.5 py-0.5 hidden group-hover/card:inline-block">添加</button>
+              }
             </div>
-            <p class="flex w-full flex-col leading-6 gap-y-2">
-              @for (chunk of children; track chunk; let j = $index) {
-                <span class="group relative line-clamp-2 break-all">
-                  <div class="inline-flex items-center">
-                    <span class="bg-state-base-hover-alt px-1 uppercase text-text-tertiary border border-components-progress-bar-border group-hover:bg-accent-500 group-hover:text-text-primary">
-                      <span class="text-nowrap text-[10px] font-semibold align-bottom">C-{{j + 1}}</span>
-                    </span>
-                    @if (chunk.metadata.score; as score) {
-                      <div class="inline-block relative items-center overflow-hidden border border-components-progress-bar-border px-[5px] border-l-0">
-                        <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
-                          border-primary-500 bg-primary-200/50"
-                          [ngStyle]="{width: (score * 100) + '%'}"></div>
-                        <div class="relative flex h-full items-center space-x-0.5 text-util-colors-blue-brand-blue-brand-700">+
-                          <div class="system-2xs-medium-uppercase">score</div>
-                          <div class="system-xs-semibold">{{score | number:'0.0-2'}}</div>
+          </div>
+          @if (expanded()) {
+            <div class="flex gap-x-0.5 items-center">
+              <div class="self-stretch">
+                <div class="h-full mx-[7px] w-[2px] bg-text-accent-secondary"></div>
+              </div>
+              <p class="flex w-full flex-col leading-6 gap-y-2">
+                @for (chunk of children; track chunk; let j = $index) {
+                  <span class="group relative break-all">
+                    <div class="inline-flex items-center">
+                      <span class="bg-state-base-hover-alt px-1 uppercase text-text-tertiary border border-components-progress-bar-border group-hover:bg-accent-500 group-hover:text-text-primary">
+                        <span class="text-nowrap text-[10px] font-semibold align-bottom">C-{{j + 1}}</span>
+                      </span>
+                      @if (chunk.metadata.score; as score) {
+                        <div class="inline-block relative items-center overflow-hidden border border-components-progress-bar-border px-[5px] border-l-0">
+                          <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
+                            border-primary-500 bg-primary-200/50"
+                            [ngStyle]="{width: (score * 100) + '%'}"></div>
+                          <div class="relative flex h-full items-center space-x-0.5 text-util-colors-blue-brand-blue-brand-700">+
+                            <div class="system-2xs-medium-uppercase">score</div>
+                            <div class="system-xs-semibold">{{score | number:'0.0-2'}}</div>
+                          </div>
                         </div>
+                      }
+                    </div>
+                    <span class="py-[3px] whitespace-pre-line break-all bg-state-base-hover px-1 font-body group-hover:bg-state-accent-hover-alt group-hover:text-text-primary leading-6 text-text-secondary"
+                      >{{chunk.pageContent}}</span>
+
+                    @if (editable()) {  
+                      <div class="absolute right-2 -top-1 hidden group-hover:inline-block">
+                        <button type="button" class="w-6 h-6 flex justify-center items-center rounded-lg hover:bg-red-50 hover:text-text-destructive">
+                          <i class="ri-delete-bin-4-line"></i>
+                        </button>
                       </div>
                     }
-                  </div>
-                  <span class="py-[3px] whitespace-pre-line break-all bg-state-base-hover px-1 font-body group-hover:bg-state-accent-hover-alt group-hover:text-text-primary leading-6 text-text-secondary"
-                    >{{chunk.pageContent}}</span>
-
-                  @if (editable()) {  
-                    <div class="absolute right-2 -top-1 hidden group-hover:inline-block">
-                      <button type="button" class="w-6 h-6 flex justify-center items-center rounded-lg hover:bg-red-50 hover:text-text-destructive">
-                        <i class="ri-delete-bin-4-line"></i>
-                      </button>
-                    </div>
-                  }
-                </span>
-              }
-            </p>
-          </div>
-        }
-      </div>
+                  </span>
+                }
+              </p>
+            </div>
+          }
+        </div>
+      }
     }
   </div>
   <div class="w-full px-3"><div class="w-full h-[0.5px] my-1 bg-divider-subtle"></div></div>

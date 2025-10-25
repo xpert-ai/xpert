@@ -1,11 +1,11 @@
-import { DocumentInterface } from '@langchain/core/documents'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIntegration } from '../integration.model'
 import { IStorageFile } from '../storage-file.model'
 import { IKnowledgeDocumentPage } from './knowledge-doc-page.model'
 import { IKnowledgebaseTask } from './knowledgebase-task.model'
-import { DocumentMetadata, IKnowledgebase } from './knowledgebase.model'
+import { IKnowledgebase } from './knowledgebase.model'
 import { TRagWebOptions } from './rag-web'
+import { IKnowledgeDocumentChunk } from './knowledge-doc-chunk.model'
 
 
 export type DocumentParserConfig = {
@@ -191,18 +191,18 @@ export interface IKnowledgeDocument<T = Metadata> extends TKnowledgeDocument, IB
   knowledgebase?: IKnowledgebase
 
   // Temp
-  chunks?: DocumentInterface[]
+  chunks?: IKnowledgeDocumentChunk[]
   metadata?: T
 }
 
-export interface IDocumentChunk<Metadata = DocumentMetadata> {
-  id: string
-  pageContent: string
-  metadata: Metadata & {
-    knowledgeId?: string
-  }
-  collection_id: string
-}
+// export interface IDocumentChunk<Metadata = DocumentMetadata> {
+//   id: string
+//   pageContent: string
+//   metadata: Metadata & {
+//     knowledgeId?: string
+//   }
+//   collection_id: string
+// }
 
 export type Metadata = Record<string, any>
 
