@@ -14,7 +14,7 @@
         <div class="text-text-tertiary system-xs-medium">{{chunk().pageContent?.length}} {{'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</div>
         <div class="system-xs-medium text-text-quaternary">·</div>
         <!-- <div class="system-xs-medium text-text-tertiary">0 召回次数</div> -->
-        <i class="ri-eye-fill cursor-pointer text-text-tertiary hover:text-text-primary" [class.!text-primary-500]="preview()" (click)="togglePreview()"></i>
+        <i class="ri-eye-fill cursor-pointer text-text-tertiary hover:text-text-primary" [class.!text-primary-500]="_preview()" (click)="togglePreview()"></i>
       </div>
       <div class="flex items-center gap-1">
         @if (chunk().metadata.score; as score) {
@@ -46,7 +46,7 @@
       </div>
     </div>
     <div class="font-body !mt-0.5 text-text-primary">
-      @if (preview()) {
+      @if (_preview()) {
         <markdown class="ngm-copilot-markdown"
           [disableSanitizer]="true"
           lineNumbers

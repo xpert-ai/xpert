@@ -80,9 +80,9 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 				const stateEnv = stateWithEnvironment(state, environment)
 
 				const knowledgebaseState = state[KnowledgebaseChannel]
-				console.log('================== Source Node state ===================')
-				console.log(JSON.stringify(state, null, 2))
-				console.log('================== Source Node End ===================')
+				// console.log('================== Source Node state ===================')
+				// console.log(JSON.stringify(state, null, 2))
+				// console.log('================== Source Node End ===================')
 
 				let knowledgeTaskId = knowledgebaseState?.[KnowledgeTask]
 				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId']
@@ -165,11 +165,11 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 										[ERROR_CHANNEL_NAME]: null
 									},
 								},
-								output: JSON.stringify(documents?.map((doc) => {
+								output: documents?.map((doc) => {
 									doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
 									doc.pages = doc.pages?.slice(0, 2)
 									return doc
-								}), null, 2)
+								})
 							}
 						}
 
@@ -256,11 +256,11 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 									knowledgebaseId,
 								}
 							},
-							output: JSON.stringify((documents ?? results).map((doc) => {
+							output: (documents ?? results).map((doc) => {
 								doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
 								doc.pages = doc.pages?.slice(0, 2)
 								return doc
-							}), null, 2)
+							})
 						}
 					},
 					{

@@ -1,25 +1,31 @@
 import { ChecklistItem, IWFNKnowledgeBase, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
-import { Injectable } from '@nestjs/common'
+import { RequestContext } from '@metad/server-core'
+import { Inject, Injectable } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
+import { QueryBus } from '@nestjs/cqrs'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from '../../../xpert/types'
+import { CopilotGetOneQuery } from '../../../copilot'
 
 @Injectable()
 export class WorkflowKnowledgeBaseNodeValidator {
 
+	@Inject(QueryBus)
+	private readonly queryBus: QueryBus
+
 	@OnEvent(EventNameXpertValidate)
-	handle(event: XpertDraftValidateEvent) {
+	async handle(event: XpertDraftValidateEvent) {
 		const draft = event.draft
 		const codeNodes = draft.nodes.filter(
 			(node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE_BASE
 		)
 		const items: ChecklistItem[] = []
-		codeNodes.forEach((node) => {
-			items.push(...this.check(node))
-		})
+		for await (const node of codeNodes) {
+			items.push(...(await this.check(node)))
+		}
 		return items
 	}
 
-	check(node: TXpertTeamNode) {
+	async check(node: TXpertTeamNode) {
 		const entity = node.entity as IWFNKnowledgeBase
 		const items: ChecklistItem[] = []
 
@@ -94,6 +100,25 @@ export class WorkflowKnowledgeBaseNodeValidator {
 					zh_Hans: `必须指定嵌入模型的提供商。`
 				}
 			})
+		}
+
+		if (entity.copilotModel?.copilotId) {
+			const copilot = this.queryBus.execute(
+					new CopilotGetOneQuery(RequestContext.currentTenantId(), entity.copilotModel.copilotId)
+				)
+			if (!copilot) {
+				items.push({
+					ruleCode: 'PIPELINE_KB_EMBEDDING_MODEL_PROVIDER_NOT_FOUND',
+					node: node.key,
+					field: 'copilotModel.copilotId',
+					value: entity.copilotModel.copilotId,
+					level: 'error',
+					message: {
+						en_US: `Embedding model provider not found.`,
+						zh_Hans: `未找到嵌入模型的提供商。`
+					}
+				})
+			}
 		}
 
 		if (entity.rerankModel && !entity.rerankModel.copilotId) {

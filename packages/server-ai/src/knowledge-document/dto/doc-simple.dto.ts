@@ -43,6 +43,10 @@ export class DocumentSimpleDTO implements Partial<IKnowledgeDocument> {
 	@ApiProperty({ type: () => String, description: 'The ID of the knowledgebase this document belongs to' })
 	knowledgebaseId: string
 
+	@Expose()
+	@ApiProperty({ type: () => String })
+	folder?: string
+
 	constructor(partial: Partial<DocumentSimpleDTO>) {
 		Object.assign(this, partial)
 	}

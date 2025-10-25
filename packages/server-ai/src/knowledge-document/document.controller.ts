@@ -188,7 +188,13 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get(':id/chunk')
 	async getChunks(
+		/**
+		 * Document ID
+		 */
 		@Param('id') id: string,
+		/**
+		 * Vector Search Params
+		 */
 		@Query('data', ParseJsonPipe) params: TVectorSearchParams
 	) {
 		try {
@@ -204,7 +210,16 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	}
 
 	@Post(':id/chunk')
-	async createChunk(@Param('id') docId: string, @Body() entity: IDocumentChunk) {
+	async createChunk(
+		/**
+		 * Document ID
+		 */
+		@Param('id') docId: string,
+		/**
+		 * Chunk info
+		 */
+		@Body() entity: IDocumentChunk
+	) {
 		try {
 			return await this.service.createChunk(docId, entity)
 		} catch (err) {

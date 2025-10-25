@@ -9,6 +9,6 @@ export class CopilotGetOneQuery implements IQuery {
 	constructor(
 		public readonly tenantId: string,
 		public readonly id: string,
-		public readonly relations: string[]
+		public readonly relations?: string[]
 	) {}
 }

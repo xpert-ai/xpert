@@ -29,6 +29,7 @@ export class PluginPermissionsHandler implements ICommandHandler<PluginPermissio
 				userId: RequestContext.currentUserId(),
 				knowledgeId: command.context.knowledgebaseId
 			})
+			
 			permissions['fileSystem'] = new XpFileSystem(
 				fsPermission,
 				volumeClient.getVolumePath(command.context.folder),

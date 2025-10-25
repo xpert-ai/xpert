@@ -56,13 +56,13 @@ export class SandboxController {
 
 		if (environment.envName === 'dev') {
 			// Remove leading "/users/{uuid}/" or "/projects/{uuid}/" from path if present
-			const leadingPathRegex = /^(users|projects|knowledges)\/[0-9a-fA-F-]{36}\//
+			const leadingPathRegex = /^(users|projects)\/[0-9a-fA-F-]{36}\//
 			if (leadingPathRegex.test(subpath)) {
 				subpath = subpath.replace(leadingPathRegex, '')
 			}
 		}
 
-		const filePath = `${volume}/${subpath}`
+		const filePath = join(volume, subpath)
 		// Extract the file extension
 		const fileName = subpath.split('?')[0].split('/').pop() || ''
 		const mediaType = getMediaTypeWithCharset(filePath) || 'text/plain; charset=utf-8'

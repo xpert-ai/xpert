@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, input, signal } from '@angular/core'
+import { booleanAttribute, Component, computed, effect, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
@@ -22,14 +22,21 @@ export class KnowledgeChunkComponent {
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+  readonly preview = input<boolean>()
 
   // States
   readonly expanded = signal(false)
-  readonly preview = signal(false)
+  readonly _preview = signal(false)
 
   readonly enabled = computed(() => this.chunk()?.metadata?.enabled ?? true)
 
+  constructor() {
+    effect(() => {
+      this._preview.set(this.preview())
+    }, { allowSignalWrites: true })
+  }
+
   togglePreview() {
-    this.preview.set(!this.preview())
+    this._preview.update((state) => !state)
   }
 }

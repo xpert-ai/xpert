@@ -10,17 +10,25 @@ export type TDocumentAsset = {
 }
 
 export interface ChunkMetadata {
-  documentId?: string // 原始文档 ID
-  pageId?: string // 如果有分页，引用页 ID
-  chunkId: string // 当前块的唯一 ID
-  parentId?: string // 如果是子块，引用父块 ID
-  chunkIndex?: number // 在文档内或在父块内的序号
-  startOffset?: number // 原始文本起始位置
-  endOffset?: number // 原始文本结束位置
-  type?: 'parent' | 'child' // 分块类型
+  documentId?: string // Original document ID
+  pageId?: string // Page ID if paginated
+  chunkId: string // Unique ID for this chunk
+  parentId?: string // References parent chunkId if this is a child chunk
+  chunkIndex?: number // Index within the document or parent chunk
+  startOffset?: number // Start position in the original text
+  endOffset?: number // End position in the original text
+  type?: 'parent' | 'child' // Chunk type
+  /**
+   * Default to 'text'. Indicates the original media type of the chunk.
+   * @default text
+   */
+  mediaType?: 'text' | 'image' | 'video' | 'audio' // Media type of the chunk
   children?: DocumentInterface<ChunkMetadata>[]
+  /**
+   * Associated assets like images, videos, etc.
+   */
   assets?: TDocumentAsset[]
-  [key: string]: any // 允许插件扩展
+  [key: string]: any // Allow plugin extensions
 }
 
 /**

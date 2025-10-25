@@ -11180,19 +11180,31 @@
   resolved "https://registry.yarnpkg.com/@xmldom/xmldom/-/xmldom-0.8.11.tgz#b79de2d67389734c57c52595f7a7305e30c2d608"
   integrity sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==
 
-"@xpert-ai/plugin-firecrawl@0.0.1":
+"@xpert-ai/plugin-dify@^0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@xpert-ai/plugin-dify/-/plugin-dify-0.0.3.tgz#404e89251c10fbe98219281fd438f047e613fb66"
+  integrity sha512-f0F6wmMLwpGE4Kz48KBR6UECAw6M9rpdd3NJwfExlbza7LE7jprYRNUjpjsoHjIWoappEZ0tTcaZpf9fd7xl8A==
+  dependencies:
+    tslib "^2.3.0"
+
+"@xpert-ai/plugin-file-system@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@xpert-ai/plugin-file-system/-/plugin-file-system-0.0.2.tgz#c775dbf4909c9b49c539df12d345da761f7e7f54"
+  integrity sha512-TtDOhEzGrmdHakfWCor4ue5UaJvUDbnP076t9EOlmoV/x0sPKTYqPcYcQQIkPqGa0QXPJktAi0u4oDrB/TJxKw==
+  dependencies:
+    "@awo00/smb2" "^1.1.1"
+    basic-ftp "^5.0.5"
+    smb2 "^0.2.11"
+    ssh2-sftp-client "^12.0.1"
+    tslib "^2.3.0"
+    webdav "^5.8.0"
+
+"@xpert-ai/plugin-firecrawl@^0.0.1":
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/@xpert-ai/plugin-firecrawl/-/plugin-firecrawl-0.0.1.tgz#612f9a905d1b5af60855cdb061757540f70e11f7"
   integrity sha512-ac0oHTvzy4ZmuMvKFxOxHkN/d9HKusBzTsjk0+wN7E9FJjYbThvufxq5X2QLnuh71nRE/N2w2u3w7Qz6/4qf8w==
   dependencies:
     "@mendable/firecrawl-js" "^4.3.8"
-    tslib "^2.3.0"
-
-"@xpert-ai/plugin-mineru@0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@xpert-ai/plugin-mineru/-/plugin-mineru-0.0.1.tgz#d1f304b4306cd1226a9332c8c667a343255d9fca"
-  integrity sha512-4Gt7xwCElwL3yRgVAFJtmGtSQ3qK4Im/wUDli7xCeR6M1g1oQUbxw96r6o5U6xk2dzT71Lq5ifebumNeZ+6v9w==
-  dependencies:
     tslib "^2.3.0"
 
 "@xtuc/ieee754@^1.2.0":

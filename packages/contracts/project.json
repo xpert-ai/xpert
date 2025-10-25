@@ -44,7 +44,7 @@
     "nx-release-publish": {
       "executor": "@nx/js:release-publish",
       "options": {
-        "packageRoot": "dist/packages/contracts",
+        "packageRoot": "packages/contracts/dist",
         "access": "public"
       }
     }

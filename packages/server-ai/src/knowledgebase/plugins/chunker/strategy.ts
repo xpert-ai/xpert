@@ -18,6 +18,7 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ITextSplitterStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
@@ -29,7 +30,6 @@ import { KnowledgeStrategyQuery } from '../../queries'
 import { KnowledgebaseTaskService } from '../../task'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
-import { getErrorMessage } from '@metad/server-common'
 
 
 @Injectable()
@@ -130,12 +130,29 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 						)
 
 						for await (const doc of documents) {
-							const result = await strategy.splitDocuments(doc.chunks ?? doc.pages, entity.config)
-							doc.chunks = result.chunks
-							doc.pages = result.pages
-							// console.log('Chunker result chunks:', result.chunks)
+							const chunks = []
+							const splitDocs = [];
+							(doc.chunks ?? doc.pages)?.forEach((chunk) => {
+								// only chunk text chunks
+								if (chunk.metadata.mediaType !== 'image') {
+									splitDocs.push(chunk)
+								} else {
+									chunks.push(chunk)
+								}
+							})
+							if (!splitDocs?.length) {
+								continue
+							}
+							const result = await strategy.splitDocuments(splitDocs, entity.config)
+							if (result?.chunks) {
+								chunks.push(...result.chunks)
+							}
+							doc.chunks = chunks
 							if (!isTest) {
-								await this.documentService.update(doc.id, { chunks: doc.chunks, pages: doc.pages })
+								if (result.pages?.length) {
+									await this.documentService.createPageBulk(doc.id, result.pages)
+								}
+								await this.documentService.update(doc.id, { chunks: doc.chunks })
 							}
 						}
 

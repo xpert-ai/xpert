@@ -1,13 +1,13 @@
-import { IDocumentUnderstandingProvider } from '@metad/contracts'
+import { Document } from '@langchain/core/documents'
+import { IDocumentUnderstandingProvider, IKnowledgeDocument } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import {
+  ChunkMetadata,
   FileSystemPermission,
   IImageUnderstandingStrategy,
   ImageUnderstandingStrategy,
-  TImageUnderstandingInput,
   TImageUnderstandingResult
 } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
 import { svg } from './types'
 
 @Injectable()
@@ -47,9 +47,10 @@ export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
     }
   }
 
-  async understandImages(params: TImageUnderstandingInput, config: any): Promise<TImageUnderstandingResult> {
+  async understandImages(doc: IKnowledgeDocument<ChunkMetadata>, config: any): Promise<TImageUnderstandingResult> {
+    const images = doc.metadata?.assets?.filter((asset) => asset.type === 'image')
     const chunks = []
-    for (const file of params.files) {
+    for (const file of images) {
       const ocrText = await this.runPaddleOCR(file.filePath, config)
 
       const doc = new Document({

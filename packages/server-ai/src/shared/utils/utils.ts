@@ -81,6 +81,10 @@ export function getMediaTypeWithCharset(filePath: string): string {
 export function sandboxVolumeUrl(volume: string, workspaceId?: string) {
     return `${environment.baseUrl}/api/sandbox/volume${volume}` + (workspaceId ? `/${workspaceId}` : '')
 }
+/**
+ * 
+ * @deprecated Unable to meet unified volume classification
+ */
 export function sandboxVolume(projectId: string, userId: string) {
 	return projectId ? `/projects/${projectId}` : `/users/${userId}`
 }

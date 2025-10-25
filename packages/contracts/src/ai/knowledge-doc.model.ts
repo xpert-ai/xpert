@@ -100,7 +100,6 @@ export type TKnowledgeDocument = {
   disabled?: boolean
   
   knowledgebaseId?: string
-  knowledgebase?: IKnowledgebase
 
   /**
    * @deprecated use fileUrl instead
@@ -118,6 +117,7 @@ export type TKnowledgeDocument = {
 
   /**
    * default parser ID
+   * @deprecated unused
    */
   parserId: string
   parserConfig: DocumentTextParserConfig
@@ -143,6 +143,11 @@ export type TKnowledgeDocument = {
    */
   filePath: string
   fileUrl?: string
+  /**
+   * Folder path in server for this document file.
+   * Init it in creating document entity.
+   */
+  folder?: string
 
   size: string
 
@@ -181,9 +186,9 @@ export type TKnowledgeDocument = {
  * Document, include file, web pages, folder, virtual, etc.
  */
 export interface IKnowledgeDocument<T = Metadata> extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
-  // parentId?: string | null
   parent?: IKnowledgeDocument | null
   children?: IKnowledgeDocument[]
+  knowledgebase?: IKnowledgebase
 
   // Temp
   chunks?: DocumentInterface[]

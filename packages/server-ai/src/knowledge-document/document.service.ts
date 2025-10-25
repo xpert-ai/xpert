@@ -1,4 +1,4 @@
-import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum, KnowledgeStructureEnum } from '@metad/contracts'
+import { IDocumentChunk, IKnowledgeDocument, IKnowledgeDocumentPage, KBDocumentStatusEnum, KDocumentSourceType, KnowledgeStructureEnum } from '@metad/contracts'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -7,6 +7,7 @@ import { InjectQueue } from '@nestjs/bull'
 import { ChunkMetadata, DocumentSourceRegistry, mergeParentChildChunks, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
+import { compact, uniq } from 'lodash-es'
 import { DataSource, DeepPartial, In, Repository } from 'typeorm'
 import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
@@ -52,7 +53,6 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	}
 
 	/**
-	 * @deprecated
 	 */
 	async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
 		// Complete file type
@@ -65,11 +65,25 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 				document.type = 'html'
 			}
 		}
-		return await this.create({
-			...document
+		
+		const doc = await this.create({
+			...document,
 		})
+		// Init folder path for document entity
+		const parents = await this.findAncestors(doc.id)
+		const folder = parents.map((i) => i.sourceType === KDocumentSourceType.FOLDER ? i.name : i.id).join('/')
+		doc.folder = folder
+		await this.repository.save(doc)
+		
+		return doc
 	}
 
+	/**
+	 * Create documents in bulk.
+	 * 
+	 * @param documents 
+	 * @returns 
+	 */
 	async createBulk(documents: Partial<IKnowledgeDocument>[]): Promise<KnowledgeDocument[]> {
 		if (!documents?.length) {
 			return []
@@ -126,6 +140,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		await this.save(document)
 	}
 
+	/**
+	 * Find all chunks of a document, filter by metadata
+	 * 
+	 * @param id Document ID
+	 * @param params Vector Search Params
+	 * @returns 
+	 */
 	async getChunks(id: string, params: TVectorSearchParams) {
 		const document = await this.findOne(id, {
 			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
@@ -148,21 +169,23 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 				}
 		} else {
 			const result = await vectorStore.getChunks(id, params)
-			// if (document.knowledgebase.chunkStructure === KnowledgeChunkStructureEnum.ParentChild) {
-			const ids = result.items.map((item) => item.metadata?.pageId).filter(Boolean) as string[]
-			if (ids.length) {
-				const pages = await this.pageRepository.find({
-					where: {
-						tenantId: document.tenantId,
-						documentId: document.id,
-						id: In(ids) 
-					},
-					take: params.take,
-					skip: params.skip,
-					order: { createdAt: 'DESC' },
-				})
-				return {
-					items: mergeParentChildChunks(pages, result.items as Document<ChunkMetadata>[]),
+			// @todo
+			if (document.knowledgebase.structure === KnowledgeStructureEnum.ParentChild) {
+				const ids = uniq(compact(result.items.map((item) => item.metadata?.pageId).filter(Boolean) as string[]))
+				if (ids.length) {
+					const pages = await this.pageRepository.find({
+						where: {
+							tenantId: document.tenantId,
+							documentId: document.id,
+							id: In(ids) 
+						},
+						take: params.take,
+						skip: params.skip,
+						order: { createdAt: 'DESC' },
+					})
+					return {
+						items: mergeParentChildChunks(pages, result.items as Document<ChunkMetadata>[]),
+					}
 				}
 			}
 

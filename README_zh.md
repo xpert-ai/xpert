@@ -140,12 +140,13 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 
 ## 🗺️ 路线图
 
-- [ ] **SDK（TypeScript / Python）** —— 简化访问 XpertAI 平台的 API。
-  - [x] 数字专家
-  - [x] 长期记忆存储
-  - [x] 上下文文件
-  - [ ] 知识库
-  - [ ] Python 版本
+- [ ] **SD​​K** – 简化 XpertAI 平台的 API 访问。
+  - [ ] [SDK (TypeScript)](https://github.com/xpert-ai/xpert-sdk-js)
+    - [x] 数字专家
+    - [x] 长期记忆存储
+    - [x] 上下文文件
+    - [ ] 知识库
+  - [ ] [SDK (Python)](https://github.com/xpert-ai/xpert-sdk-py)
 - [ ] **插件** —— 可扩展的插件系统。
   - [x] 插件系统
   - [ ] 展示插件生态的市场
@@ -156,7 +157,9 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 ## 💌 联系我们
 
 - 商务合作： <mailto:service@mtda.cloud>
-- [Xpert AI 平台 @ Twitter](https://twitter.com/CloudMtda)
+- [XpertAI 平台 @ Twitter](https://x.com/xpertai_cloud)
+- +微信：xpertai
+- [+飞书](https://www.feishu.cn/invitation/page/add_contact/?token=d31n417e-fa7e-4e88-970c-15e502b6de0a)
 
 ## 🛡️ 许可证
 

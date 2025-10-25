@@ -41,6 +41,7 @@ import { join } from 'path'
 import { KnowledgeDocumentService } from '../knowledge-document'
 import { KnowledgebaseTask } from './task/task.entity'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
+import moment from 'moment'
 
 
 @ApiTags('Knowledgebase')
@@ -262,11 +263,24 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		})
 
 		const targetFolder = join(parentFolder || '', subpath || '')
+		
+		// Filename
 		const originalname = Buffer.from(file.originalname, 'latin1').toString('utf8')
-		const filePath = join(targetFolder, originalname)
+		let fileNameString = '';
+		const fileNameParts = originalname.split('.');
+		const ext = fileNameParts.length > 1 ? fileNameParts.pop() : '';
+		fileNameString = `${fileNameParts.join('.')}-${moment().unix()}-${parseInt(
+			'' + Math.random() * 1000,
+			10
+		)}`;
+		if (ext) {
+			fileNameString += `.${ext}`;
+		}
+		// Put file
+		const filePath = join(targetFolder, fileNameString)
 		const url = await client.putFile(targetFolder, {
 			...file,
-			originalname
+			originalname: fileNameString
 		})
 		return { url, filePath, fileUrl: url }
 	}

@@ -134,8 +134,10 @@ export async function preBootstrapPlugins() {
 	const { modules } = await registerPluginsAsync({
 		plugins: [
 			// '@xpert-ai/plugin-lark',
+			'@xpert-ai/plugin-dify',
+			'@xpert-ai/plugin-file-system',
 			'@xpert-ai/plugin-firecrawl',
-			'@xpert-ai/plugin-mineru',
+			// '@xpert-ai/plugin-mineru',
 			'@xpert-ai/plugin-integration-fastgpt',
 			'@xpert-ai/plugin-integration-ragflow',
 			'@xpert-ai/plugin-integration-github',
