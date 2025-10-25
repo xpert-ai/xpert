@@ -42,6 +42,6 @@ import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 		...CommandHandlers,
 		...QueryHandlers
 	],
-	exports: [KnowledgeDocumentService, TypeOrmModule]
+	exports: [KnowledgeDocumentService, KnowledgeDocumentChunkService, TypeOrmModule]
 })
 export class KnowledgeDocumentModule {}

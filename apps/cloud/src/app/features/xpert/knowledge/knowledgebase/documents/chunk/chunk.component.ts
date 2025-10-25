@@ -19,6 +19,7 @@ import { BehaviorSubject, distinctUntilChanged, filter, switchMap, tap } from 'r
 import {
   buildChunkTree,
   getErrorMessage,
+  IDocChunkMetadata,
   IKnowledgeDocument,
   IKnowledgeDocumentChunk,
   injectToastr,
@@ -236,7 +237,7 @@ export class KnowledgeDocumentChunkComponent {
 
   enableChunk(chunk: IKnowledgeDocumentChunk, event: boolean) {
     this.loading.set(true)
-    this.knowledgeDocumentService.updateChunk(this.documentId(), chunk.id, { metadata: { enabled: event } }).subscribe({
+    this.knowledgeDocumentService.updateChunk(this.documentId(), chunk.id, { metadata: { enabled: event } as IDocChunkMetadata }).subscribe({
       next: () => {
         this.loading.set(false)
         this.#chunks.update((chunks) => {

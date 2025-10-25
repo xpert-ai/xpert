@@ -67,8 +67,8 @@ export class KnowledgeDocumentPreviewComponent {
   })
 
   readonly loading = computed(() => this.estimateFile.status() === 'loading')
-  // Estimate file content chunks or web pages chunks
-  readonly docs = computed(() => this.estimateFile.value() ?? this.document()?.pages)
+  // Estimate file content chunks
+  readonly docs = this.estimateFile.value
   readonly error = computed(() => this.estimateFile.error())
 
   readonly sheetParserConfig = linkedModel({

@@ -13,6 +13,8 @@ export interface IDocChunkMetadata {
    * Whether the chunk is represented as a vector in the vector store
    */
   isVector?: boolean
+  score?: number
+  relevanceScore?: number
 
   [key: string]: any
 }

@@ -8,21 +8,28 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { sortBy } from 'lodash'
-import { In, IsNull, Not, Repository } from 'typeorm'
+import { In, IsNull, Not, Raw, Repository } from 'typeorm'
 import { KnowledgeDocumentPage } from '../../../core/entities/internal'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeSearchQuery } from '../knowledge-search.query'
 import { KnowledgeRetrievalLogService } from '../../logs'
+import { KnowledgeDocumentChunkService } from '../../../knowledge-document/chunk/chunk.service'
 
 @QueryHandler(KnowledgeSearchQuery)
 export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearchQuery> {
 	private readonly logger = new Logger(KnowledgeSearchQueryHandler.name)
 
+	/**
+	 * @deprecated use chunks
+	 */
 	@InjectRepository(KnowledgeDocumentPage)
 	private readonly pageRepository: Repository<KnowledgeDocumentPage>
 
 	@Inject(KnowledgeRetrievalLogService)
 	private readonly retrievalLogService: KnowledgeRetrievalLogService
+
+	@Inject(KnowledgeDocumentChunkService)
+	private readonly chunkService: KnowledgeDocumentChunkService
 
 	constructor(private readonly knowledgebaseService: KnowledgebaseService) {}
 
@@ -100,23 +107,60 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 			`SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.modelProvider?.providerName}' and model='${vectorStore.embeddingModel}'`
 		)
 		const items = await vectorStore.similaritySearchWithScore(query, k, filter)
-		let docs = items.map(([doc, score]) => {
+		const chunkMap = new Map<string, Document<ChunkMetadata>>()
+		const parentIds = new Set<string>()
+		const docs: Document<ChunkMetadata>[] = []
+		items.forEach(([doc, score]) => {
 				doc.metadata.score = 1 - score
-				return doc
-			})
-		// Parent-child
-		// if (kb.chunkStructure === KnowledgeChunkStructureEnum.ParentChild) {
-		const ids = items.map(([doc]) => doc.metadata?.pageId).filter(Boolean) as string[]
-		if (ids.length > 0) {
-			const pages = await this.pageRepository.find({
-				where: {
-					tenantId: kb.tenantId,
-					knowledgebaseId: kb.id,
-					id: In(ids)
+				chunkMap.set(doc.metadata.chunkId, doc as Document<ChunkMetadata>)
+				if (doc.metadata.parentId) {
+					parentIds.add(doc.metadata.parentId)
+				} else {
+					docs.push(doc as Document<ChunkMetadata>)
 				}
 			})
-			docs = mergePageChunks(pages.map((_) => new Document({..._, metadata: {..._.metadata, children: null}})), docs as Document<ChunkMetadata>[])
+
+		if (parentIds.size > 0) {
+			const { items: chunks } = await this.chunkService.findAll({
+					where: {
+						knowledgebaseId: kb.id,
+						metadata: Raw((alias) => `${alias} ->> 'chunkId' = ANY(:ids)`, {
+							ids: Array.from(parentIds)
+						}),
+					},
+					relations: ['children'],
+				})
+			chunks.forEach((chunk) => {
+				chunk.children.forEach((child) => {
+					const doc = chunkMap.get(child.metadata.chunkId)
+					if (doc) {
+						child.metadata.score = doc.metadata.score
+						if (!chunk.metadata.score || chunk.metadata.score < doc.metadata.score) {
+							chunk.metadata.score = doc.metadata.score
+						}
+					}
+				})
+			})
+			docs.push(...chunks)
 		}
+		
+		// Parent-child
+		// if (kb.chunkStructure === KnowledgeChunkStructureEnum.ParentChild) {
+		// const ids = items.map(([doc]) => doc.metadata?.pageId).filter(Boolean) as string[]
+		// if (ids.length > 0) {
+		// 	const pages = await this.pageRepository.find({
+		// 		where: {
+		// 			tenantId: kb.tenantId,
+		// 			knowledgebaseId: kb.id,
+		// 			id: In(ids)
+		// 		}
+		// 	})
+		// 	docs = mergePageChunks(
+		// 		pages.map((_) => new Document({..._, metadata: {..._.metadata, children: null}})),
+		// 		docs as Document<ChunkMetadata>[]
+		// 	)
+		// }
+
 		// Rerank the documents if a rerank model is set
 		if (kb.rerankModelId) {
 			try {
@@ -136,6 +180,13 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 	}
 }
 
+/**
+ * 
+ * @deprecated use chunks
+ * @param pages 
+ * @param chunks 
+ * @returns 
+ */
 function mergePageChunks(pages: KnowledgeDocumentPage[], chunks: Document<ChunkMetadata>[]): Document[] {
 	const chunkMap = new Map<string, Document<ChunkMetadata>>()
 	for (const page of pages) {
