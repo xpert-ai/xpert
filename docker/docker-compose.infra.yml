@@ -36,9 +36,10 @@ services:
       test: ['CMD-SHELL', 'redis-cli -h localhost -p 6379 PING']
       interval: 1s
       timeout: 30s
-    command: ["sh", "-c", "redis-server --requirepass $${REDIS_PASSWORD}"]
+    # command: ["sh", "-c", "redis-server --requirepass $${REDIS_PASSWORD}"]
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_ARGS: "--requirepass ${REDIS_PASSWORD}"
     networks:
       - overlay
 
