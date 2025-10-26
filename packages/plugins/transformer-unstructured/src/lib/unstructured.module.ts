@@ -1,25 +1,22 @@
-import chalk from 'chalk';
+import { ConfigModule } from '@nestjs/config'
 import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-ai/plugin-sdk';
-import { ConfigModule } from '@nestjs/config';
+import chalk from 'chalk';
 import { UnstructuredTransformerStrategy } from './unstructured.strategy';
-import { UnstructuredClient } from './unstructured.client';
 import { UnstructuredIntegrationStrategy } from './integration.strategy';
+import { UnstructuredController } from './unstructured.controller';
+import { UnstructuredService } from './unstructured.service';
 
 @XpertServerPlugin({
-	/**
-	 * An array of modules that will be imported and registered with the plugin.
-	 */
-	imports: [ConfigModule],
-	/**
-	 * An array of Entity classes. The plugin (or ORM) will
-	 * register these entities for use within the application.
-	 */
-	entities: [],
-
+	imports: [
+		ConfigModule
+	],
+	controllers: [
+		UnstructuredController,
+	],
 	providers: [
+		UnstructuredService,
 		UnstructuredIntegrationStrategy,
 		UnstructuredTransformerStrategy,
-		UnstructuredClient
 	]
 })
 export class UnstructuredPlugin implements IOnPluginBootstrap, IOnPluginDestroy {
