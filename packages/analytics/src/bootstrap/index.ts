@@ -137,7 +137,6 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-dify',
 			'@xpert-ai/plugin-file-system',
 			'@xpert-ai/plugin-firecrawl',
-			'@xpert-ai/plugin-integration-ragflow',
 			'@xpert-ai/plugin-integration-github',
 			'@xpert-ai/plugin-ocr-paddle',
 			'@xpert-ai/plugin-trigger-schedule',
