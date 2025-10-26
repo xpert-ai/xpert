@@ -144,7 +144,6 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-retriever-common',
 			'@xpert-ai/plugin-tool-calculator',
 			'@xpert-ai/plugin-transformer-common',
-			'@xpert-ai/plugin-transformer-unstructured',
 			'@xpert-ai/plugin-vlm-default',
 			'@xpert-ai/plugin-vstore-chroma',
 			'@xpert-ai/plugin-vstore-milvus',
