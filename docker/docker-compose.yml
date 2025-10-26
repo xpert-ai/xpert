@@ -1,9 +1,6 @@
 include:
   - ./docker-compose.infra.yml
 
-volumes:
-  api_data:
-
 services:
 
   # OLAP Services
