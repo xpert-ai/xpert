@@ -50,6 +50,8 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
         const getOrCreateParent = async (chunk: IKnowledgeDocumentChunk): Promise<IKnowledgeDocumentChunk | null> => {
             if (chunk.metadata.parentId) {
                 const parentChunk = chunkMap.get(chunk.metadata.parentId)
+                if (!parentChunk) return null
+                
                 if (parentChunk.id) {
                     return parentChunk
                 }

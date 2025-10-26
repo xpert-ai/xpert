@@ -22,7 +22,7 @@ import { estimateTokenUsage } from '@metad/copilot'
 import { getErrorMessage, runWithConcurrencyLimit } from '@metad/server-common'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ChunkMetadata, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
+import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { get } from 'lodash'
 import { In } from 'typeorm'
 import { CopilotTokenRecordCommand } from '../../../copilot-user'
@@ -33,7 +33,7 @@ import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeDocumentStore } from '../../vector-store'
 import { KnowledgebaseTaskService } from '../../task'
 import { ERROR_CHANNEL_NAME } from '../types'
-import { TDocChunkMetadata } from 'packages/server-ai/src/knowledge-document/types'
+import { TDocChunkMetadata } from '../../../knowledge-document/types'
 
 
 const InfoChannelName = 'info'
@@ -155,28 +155,29 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 								id: In(inputDocuments.map(({id}) => id) as string[]),
 								knowledgebaseId
 							},
-							relations: ['pages', 'chunks']
+							// relations: ['chunks']
 						})
 						
 						const tasks = documents.map((document, index) => async () => {
 							statisticsInformation += `- Document ${index + 1} - ${document.name}: \n`
 							try {
 								// Save pages into db, And associated with the chunk's metadata.
-								let chunks = document?.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-								if (document?.pages?.length) {
-									const pages = document?.pages
-									chunks = chunks.map((chunk) => {
-										const page = pages.find((p) => p.metadata.chunkId === chunk.metadata.parentId)
-										if (page) {
-											chunk.metadata.pageId = page.id
-										}
-										return chunk
-									})
-								}
+								let chunks = document.draft?.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
+								// if (document?.pages?.length) {
+								// 	const pages = document?.pages
+								// 	chunks = chunks.map((chunk) => {
+								// 		const page = pages.find((p) => p.metadata.chunkId === chunk.metadata.parentId)
+								// 		if (page) {
+								// 			chunk.metadata.pageId = page.id
+								// 		}
+								// 		return chunk
+								// 	})
+								// }
 
 								if (chunks) {
 									this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
 									document.chunks = await this.documentService.coverChunks({...document, chunks}, vectorStore)
+									await this.documentService.update(document.id, { status: KBDocumentStatusEnum.EMBEDDING, progress: 0, draft: null })
 									chunks = await this.documentService.findAllLeaves(document)
 
 									// Clear history chunks

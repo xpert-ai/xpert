@@ -19,7 +19,6 @@
 		"@nestjs/platform-socket.io": "^11.1.6",
 		"@nestjs/typeorm": "^11.0.0",
 		"@nestjs/websockets": "^11.1.6",
-		"@xpert-ai/plugin-mineru": "^0.0.3",
 		"async-mutex": "^0.5.0",
 		"bull": "^4.12.6",
 		"core-js": "3.41.0",

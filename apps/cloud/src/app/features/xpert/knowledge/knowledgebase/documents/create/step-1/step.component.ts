@@ -90,7 +90,7 @@ export class KnowledgeDocumentCreateStep1Component {
 
   readonly fileTypeOptions: TSelectOption[] = [
     {
-      value: KDocumentSourceType.FILE,
+      value: KDocumentSourceType.LocalFile,
       label: {
         zh_Hans: '文件',
         en_US: 'File'
@@ -101,7 +101,7 @@ export class KnowledgeDocumentCreateStep1Component {
       }
     },
     {
-      value: KDocumentSourceType.REMOTE_FILE,
+      value: KDocumentSourceType.FileSystem,
       label: {
         zh_Hans: '远程文件',
         en_US: 'Remote File'
@@ -112,7 +112,7 @@ export class KnowledgeDocumentCreateStep1Component {
       }
     },
     {
-      value: KDocumentSourceType.WEB,
+      value: KDocumentSourceType.WebCrawl,
       label: {
         zh_Hans: '网络',
         en_US: 'Web'
@@ -201,11 +201,11 @@ export class KnowledgeDocumentCreateStep1Component {
 
   // Available
   readonly nextStepAvailable = computed(() => {
-    return this.sourceType()[0] === KDocumentSourceType.FILE 
+    return this.sourceType()[0] === KDocumentSourceType.LocalFile 
       ? this.files()?.length > 0 
-      : this.sourceType()[0] === KDocumentSourceType.WEB 
+      : this.sourceType()[0] === KDocumentSourceType.WebCrawl 
         ? this.webDocs()?.length > 0 
-        : this.sourceType()[0] === KDocumentSourceType.REMOTE_FILE ? !this.fileSystemForm()?.invalid : false
+        : this.sourceType()[0] === KDocumentSourceType.FileSystem ? !this.fileSystemForm()?.invalid : false
   })
 
   // File system

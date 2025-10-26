@@ -5,7 +5,6 @@ import {
 	IKnowledgeDocument,
 	IKnowledgeDocumentPage,
 	IStorageFile,
-	KDocumentSourceType,
 	KBDocumentCategoryEnum,
 	DocumentTextParserConfig,
 	KBDocumentStatusEnum,
@@ -13,6 +12,9 @@ import {
 	Metadata,
 	TDocSourceConfig,
 	IKnowledgeDocumentChunk,
+	TKnowledgeDocument,
+	DocumentSourceProviderCategoryEnum,
+	DocumentTypeEnum,
 } from '@metad/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
@@ -30,11 +32,9 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	disabled?: boolean
 
-	@ApiPropertyOptional({ enum: KDocumentSourceType, description: 'Source type of the document' })
-	@IsEnum(KDocumentSourceType)
 	@Optional()
 	@Column({ nullable: true, length: 20 })
-	sourceType?: KDocumentSourceType
+	sourceType?: DocumentSourceProviderCategoryEnum | DocumentTypeEnum
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
@@ -178,12 +178,6 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	processDuation?: number
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	run?: string
-
 	@ApiPropertyOptional({ enum: KBDocumentStatusEnum, description: 'Status of the document process' })
 	@IsEnum(KBDocumentStatusEnum)
 	@Optional()
@@ -208,6 +202,12 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ type: 'json', nullable: true })
 	metadata?: Metadata
 
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	draft?: TKnowledgeDocument
+	
 	/*
     |--------------------------------------------------------------------------
     | Parent-children relationship 

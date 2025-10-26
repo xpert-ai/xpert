@@ -23,7 +23,7 @@ export interface IDocChunkMetadata {
 /**
  * Segmented chunk of a knowledge document
  */
-export interface IKnowledgeDocumentChunk<Metadata extends IDocChunkMetadata = IDocChunkMetadata>
+export interface IKnowledgeDocumentChunk<Metadata extends IDocChunkMetadata = any>
   extends DocumentInterface<Metadata>,
     IBasePerTenantAndOrganizationEntityModel {
   documentId?: string

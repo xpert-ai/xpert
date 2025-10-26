@@ -164,6 +164,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 					...(params.filter ?? {}),
 					documentId: id,
 				},
+				relations: ['document'],
+				select: {
+					document: {
+						id: true,
+						name: true,
+						sourceType: true,
+						type: true,
+						category: true,
+					}
+				},
 				skip: params.skip,
 				take: params.take,
 			})
@@ -215,8 +225,19 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		}
 	}
 
+	/**
+	 * Create a chunk in document.
+	 * 
+	 * @param id Document ID
+	 * @param entity Chunk entity
+	 */
 	async createChunk(id: string, entity: IKnowledgeDocumentChunk) {
 		const { vectorStore, document } = await this.getDocumentVectorStore(id)
+		this.chunkService.create({
+			...entity,
+			documentId: id,
+			knowledgebaseId: document.knowledgebaseId,
+		})
 		await vectorStore.addKnowledgeDocument(document, [
 			{
 				metadata: entity.metadata ?? {} as IDocChunkMetadata,
@@ -225,9 +246,18 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		])
 	}
 
+	/**
+	 * Update a chunk in document.
+	 * 
+	 * @param documentId Document ID
+	 * @param id Chunk ID
+	 * @param entity Chunk entity
+	 * @returns 
+	 */
 	async updateChunk(documentId: string, id: string, entity: IKnowledgeDocumentChunk) {
 		try {
 			const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
+			await this.chunkService.update(id, entity)
 			return await vectorStore.updateChunk(id, {
 				metadata: entity.metadata,
 				pageContent: entity.pageContent
@@ -237,9 +267,19 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		}
 	}
 
+	/**
+	 * Delete chunk by id in document.
+	 * 
+	 * @param documentId Document ID
+	 * @param id Chunk ID
+	 * @returns 
+	 */
 	async deleteChunk(documentId: string, id: string) {
 		const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
-		return await vectorStore.deleteChunk(id)
+		// Delete entity
+		await this.chunkService.delete(id)
+		// Delete vector
+		await vectorStore.deleteChunk(id)
 	}
 
 	async coverChunks(document: IKnowledgeDocument, vectorStore: KnowledgeDocumentStore) {
@@ -249,7 +289,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 				..._,
 				documentId: document.id,
 				knowledgebaseId: document.knowledgebaseId
-			}
+			} as IKnowledgeDocumentChunk
 		}))
 	}
 

@@ -1,6 +1,6 @@
-<div class="shrink-0 flex justify-center items-center w-6">
+<div class="shrink-0 flex justify-start items-center w-6">
 @switch(sourceType()) {
-  @case(eKDocumentSourceType.FILE) {
+  @case(eKDocumentSourceType.LocalFile) {
     @switch (type()) {
       @case ('docx') {
         <i class="ri-file-word-fill text-lg leading-4 text-blue-500"></i>
@@ -22,7 +22,7 @@
       }
     }
   }
-  @case(eKDocumentSourceType.WEB) {
+  @case(eKDocumentSourceType.WebCrawl) {
     <i class="ri-html5-line text-lg leading-4 text-orange-500"></i>
   }
   @case(eKDocumentSourceType.FOLDER) {

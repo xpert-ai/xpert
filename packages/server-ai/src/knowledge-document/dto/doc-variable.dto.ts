@@ -1,4 +1,4 @@
-import { IKnowledgeDocument, KBDocumentCategoryEnum, KBDocumentStatusEnum, KDocumentSourceType } from '@metad/contracts'
+import { DocumentSourceProviderCategoryEnum, DocumentTypeEnum, IKnowledgeDocument, KBDocumentCategoryEnum, KBDocumentStatusEnum, KDocumentSourceType } from '@metad/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose } from 'class-transformer'
 
@@ -17,7 +17,7 @@ export class DocumentVariableDTO implements Partial<IKnowledgeDocument> {
 
 	@Expose()
 	@ApiProperty({ type: () => String, enum: KDocumentSourceType })
-	sourceType: KDocumentSourceType
+	sourceType: DocumentSourceProviderCategoryEnum | DocumentTypeEnum
 
 	@Expose()
 	@ApiProperty({ type: () => String, enum: KBDocumentCategoryEnum })

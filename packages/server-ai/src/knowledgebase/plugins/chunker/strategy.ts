@@ -117,7 +117,7 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 									id: In(documentIds),
 									knowledgebaseId,
 								},
-								relations: ['pages']
+								relations: ['chunks']
 							})
 							documents = results.items
 						}
@@ -132,7 +132,7 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 						for await (const doc of documents) {
 							const chunks = []
 							const splitDocs = [];
-							(doc.chunks ?? doc.pages)?.forEach((chunk) => {
+							doc.draft?.chunks?.forEach((chunk) => {
 								// only chunk text chunks
 								if (chunk.metadata.mediaType !== 'image') {
 									splitDocs.push(chunk)
@@ -152,7 +152,7 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 								// if (result.pages?.length) {
 								// 	await this.documentService.createPageBulk(doc.id, result.pages)
 								// }
-								await this.documentService.update(doc.id, { chunks: doc.chunks })
+								await this.documentService.update(doc.id, {draft: { chunks }, status: KBDocumentStatusEnum.SPLITTED })
 							}
 						}
 
@@ -169,7 +169,7 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 							},
 							output: documents.map((doc) => {
 								doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
-								doc.pages = doc.pages?.slice(0, 2)
+								// doc.pages = doc.pages?.slice(0, 2)
 								return doc
 							})
 						}

@@ -1,12 +1,12 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { DocumentMetadata, IKnowledgebase, KnowledgebaseTypeEnum } from '@metad/contracts'
+import { DocumentMetadata, IKnowledgebase, IKnowledgeDocumentChunk, KnowledgebaseTypeEnum } from '@metad/contracts'
 import { getPythonErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Inject, InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
+import { Document } from '@langchain/core/documents'
 import { sortBy } from 'lodash'
 import { In, IsNull, Not, Raw, Repository } from 'typeorm'
 import { KnowledgeDocumentPage } from '../../../core/entities/internal'
@@ -108,27 +108,64 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		)
 		const items = await vectorStore.similaritySearchWithScore(query, k, filter)
 		const chunkMap = new Map<string, Document<ChunkMetadata>>()
-		const parentIds = new Set<string>()
-		const docs: Document<ChunkMetadata>[] = []
+		const parentChunkIds = new Set<string>()
+		const chunkIds: string[] = []
+		const docs: IKnowledgeDocumentChunk<ChunkMetadata>[] = []
 		items.forEach(([doc, score]) => {
 				doc.metadata.score = 1 - score
 				chunkMap.set(doc.metadata.chunkId, doc as Document<ChunkMetadata>)
 				if (doc.metadata.parentId) {
-					parentIds.add(doc.metadata.parentId)
+					parentChunkIds.add(doc.metadata.parentId)
 				} else {
-					docs.push(doc as Document<ChunkMetadata>)
+					// docs.push(doc as Document<ChunkMetadata>)
+					chunkIds.push(doc.metadata.chunkId)
 				}
 			})
-
-		if (parentIds.size > 0) {
+		if (chunkIds.length > 0) {
 			const { items: chunks } = await this.chunkService.findAll({
 					where: {
 						knowledgebaseId: kb.id,
 						metadata: Raw((alias) => `${alias} ->> 'chunkId' = ANY(:ids)`, {
-							ids: Array.from(parentIds)
+							ids: Array.from(chunkIds)
 						}),
 					},
-					relations: ['children'],
+					relations: ['document'],
+					select: {
+						document: {
+							id: true,
+							name: true,
+							sourceType: true,
+							type: true,
+							category: true,
+						}
+					}
+				})
+			chunks.forEach((chunk) => {
+				const doc = chunkMap.get(chunk.metadata.chunkId)
+				if (doc) {
+					chunk.metadata.score = doc.metadata.score
+				}
+				docs.push(chunk)
+			})
+		}
+		if (parentChunkIds.size > 0) {
+			const { items: chunks } = await this.chunkService.findAll({
+					where: {
+						knowledgebaseId: kb.id,
+						metadata: Raw((alias) => `${alias} ->> 'chunkId' = ANY(:ids)`, {
+							ids: Array.from(parentChunkIds)
+						}),
+					},
+					relations: ['children', 'document'],
+					select: {
+						document: {
+							id: true,
+							name: true,
+							sourceType: true,
+							type: true,
+							category: true,
+						}
+					}
 				})
 			chunks.forEach((chunk) => {
 				chunk.children.forEach((child) => {
@@ -168,7 +205,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 				return rerankedDocs.map(({ index, relevanceScore }) => {
 					return {
 						...docs[index],
-						metadata: { ...docs[index].metadata, ...{ score: 1 - items[index][1], relevanceScore } }
+						metadata: { ...docs[index].metadata, relevanceScore }
 					}
 				})
 			} catch (error) {
@@ -180,45 +217,45 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 	}
 }
 
-/**
- * 
- * @deprecated use chunks
- * @param pages 
- * @param chunks 
- * @returns 
- */
-function mergePageChunks(pages: KnowledgeDocumentPage[], chunks: Document<ChunkMetadata>[]): Document[] {
-	const chunkMap = new Map<string, Document<ChunkMetadata>>()
-	for (const page of pages) {
-		chunkMap.set(page.metadata.chunkId, page)
-	}
-	for (const child of chunks) {
-		if (!child.metadata.parentId) {
-			if (chunkMap.has(child.metadata.chunkId)) {
-				console.warn(`Duplicate chunkId found: ${child.metadata.chunkId}, skipping...`)
-				continue
-			}
-			chunkMap.set(child.metadata.chunkId, child)
-			continue
-		}
-		const parent = chunkMap.get(child.metadata.parentId)
-		if (parent) {
-			if (!parent.metadata.children) {
-				parent.metadata.children = []
-			}
-			parent.metadata.children.push(child)
-		} else {
-			chunkMap.set(child.metadata.chunkId, child)
-		}
-	}
-	return Array.from(chunkMap.values()).map((chunk) => {
-		return chunk.metadata.children?.length ? new Document({
-			id: chunk.id,
-			pageContent: chunk.pageContent,
-			metadata: {
-				...chunk.metadata,
-				score: Math.max(...chunk.metadata.children.map(c => c.metadata.score))
-			}
-		}) : chunk
-	})
-}
+// /**
+//  * 
+//  * @deprecated use chunks
+//  * @param pages 
+//  * @param chunks 
+//  * @returns 
+//  */
+// function mergePageChunks(pages: KnowledgeDocumentPage[], chunks: Document<ChunkMetadata>[]): Document[] {
+// 	const chunkMap = new Map<string, Document<ChunkMetadata>>()
+// 	for (const page of pages) {
+// 		chunkMap.set(page.metadata.chunkId, page)
+// 	}
+// 	for (const child of chunks) {
+// 		if (!child.metadata.parentId) {
+// 			if (chunkMap.has(child.metadata.chunkId)) {
+// 				console.warn(`Duplicate chunkId found: ${child.metadata.chunkId}, skipping...`)
+// 				continue
+// 			}
+// 			chunkMap.set(child.metadata.chunkId, child)
+// 			continue
+// 		}
+// 		const parent = chunkMap.get(child.metadata.parentId)
+// 		if (parent) {
+// 			if (!parent.metadata.children) {
+// 				parent.metadata.children = []
+// 			}
+// 			parent.metadata.children.push(child)
+// 		} else {
+// 			chunkMap.set(child.metadata.chunkId, child)
+// 		}
+// 	}
+// 	return Array.from(chunkMap.values()).map((chunk) => {
+// 		return chunk.metadata.children?.length ? new Document({
+// 			id: chunk.id,
+// 			pageContent: chunk.pageContent,
+// 			metadata: {
+// 				...chunk.metadata,
+// 				score: Math.max(...chunk.metadata.children.map(c => c.metadata.score))
+// 			}
+// 		}) : chunk
+// 	})
+// }

@@ -21,7 +21,8 @@ import {
 	IXpertAgentExecution,
 	STATE_VARIABLE_HUMAN,
 	IKnowledgebaseTask,
-	KNOWLEDGE_FOLDER_ID_NAME
+	KNOWLEDGE_FOLDER_ID_NAME,
+	DocumentSourceProviderCategoryEnum
 } from '@metad/contracts'
 import { PromptTemplate } from '@langchain/core/prompts'
 import { getErrorMessage, omit, shortuuid } from '@metad/server-common'
@@ -139,7 +140,8 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 											},
 											status: KBDocumentStatusEnum.WAITING,
 											knowledgebaseId,
-											pages: doc.pages?.map(page => omit(page, 'id')),
+											sourceType: entity.provider as DocumentSourceProviderCategoryEnum,
+											// pages: doc.pages?.map(page => omit(page, 'id')),
 											tasks: [{id: knowledgeTaskId} as IKnowledgebaseTask]
 										}
 									}))
@@ -147,6 +149,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							} else {
 								documents = task.documents.filter(doc => cachedDocuments.includes(doc.id))
 								documents.forEach(doc => {
+									doc.sourceType = entity.provider as DocumentSourceProviderCategoryEnum
 									doc.sourceConfig = { key: node.key }
 									doc.status = KBDocumentStatusEnum.RUNNING
 									if (doc.tasks?.findIndex(t => t.id === knowledgeTaskId) < 0) {
@@ -167,7 +170,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 								},
 								output: documents?.map((doc) => {
 									doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
-									doc.pages = doc.pages?.slice(0, 2)
+									// doc.pages = doc.pages?.slice(0, 2)
 									return doc
 								})
 							}
@@ -203,18 +206,25 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 
 						documents = results.map((doc) => ({
 							id: doc.id || shortuuid(),
+							sourceType: entity.provider as DocumentSourceProviderCategoryEnum,
 							type: doc.metadata.type,
 							name: doc.metadata.originalName || doc.metadata.title,
 							filePath: doc.metadata.filePath,
 							fileUrl: doc.metadata.fileUrl,
 							status: KBDocumentStatusEnum.WAITING,
 							metadata: doc.metadata,
-							pages: doc.pageContent ? [
+							draft: doc.pageContent ?
 								{
-									...doc,
-									id: doc.id || shortuuid(),
-								}
-							] : null,
+									chunks: [
+										{
+											pageContent: doc.pageContent,
+											metadata: {
+												...(doc.metadata || {}),
+												chunkId: shortuuid(),
+											},
+										}
+									]
+								} : null,
 							parent: folderId ? { id: folderId } : null,
 						} as IKnowledgeDocument))
 						
@@ -239,7 +249,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 									status: KBDocumentStatusEnum.WAITING,
 									// taskId: KnowledgeTaskId,
 									knowledgebaseId,
-									pages: doc.pages?.map(page => omit(page, 'id')),
+									// pages: doc.pages?.map(page => omit(page, 'id')),
 									tasks: [{id: knowledgeTaskId} as IKnowledgebaseTask]
 								}
 							}))
@@ -258,7 +268,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							},
 							output: (documents ?? results).map((doc) => {
 								doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
-								doc.pages = doc.pages?.slice(0, 2)
+								// doc.pages = doc.pages?.slice(0, 2)
 								return doc
 							})
 						}
@@ -269,11 +279,6 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						subscriber: subscriber,
 						execution,
 						catchError: async (error) => {
-							if (!isTest) {
-								// for await (const {id} of value) {
-								// 	await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
-								// }
-							}
 							await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
 						}
 					})()

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { KnowledgeChunkComponent, KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
@@ -10,6 +11,7 @@ import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
+  DateRelativePipe,
   DocumentMetadata,
   IKnowledgeRetrievalLog,
   KnowledgebaseService,
@@ -20,7 +22,7 @@ import {
   routeAnimations
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { CdkMenuModule } from '@angular/cdk/menu'
+
 
 @Component({
   standalone: true,
@@ -35,6 +37,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     CdkMenuModule,
     MatTooltipModule,
     NgmCommonModule,
+    DateRelativePipe,
     KnowledgeChunkComponent,
     KnowledgeRetrievalSettingsComponent
   ],
@@ -62,7 +65,7 @@ export class KnowledgeTestComponent {
 
   readonly #logs = myRxResource({
     request: () => ({
-      id: this.knowledgebase().id,
+      id: this.knowledgebase()?.id,
       params: {
         order: {
           createdAt: OrderTypeEnum.DESC
@@ -72,7 +75,7 @@ export class KnowledgeTestComponent {
       }
     }),
     loader: ({ request }) => {
-      return this.knowledgebaseAPI.getLogs(request.id, request.params)
+      return request.id ? this.knowledgebaseAPI.getLogs(request.id, request.params) : null
     }
   })
   readonly logs = computed(() => this.#logs.value()?.items)

@@ -6,10 +6,11 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { DocumentMetadata, IKnowledgeDocumentChunk } from '../../../@core'
+import { KnowledgeDocIdComponent } from '../knowledge-doc-id/doc.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, MarkdownModule],
+  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, MarkdownModule, KnowledgeDocIdComponent],
   selector: 'xp-knowledge-chunk',
   templateUrl: 'chunk.component.html',
   styleUrls: ['chunk.component.scss']
@@ -29,6 +30,7 @@ export class KnowledgeChunkComponent {
 
   readonly enabled = computed(() => this.chunk()?.metadata?.enabled ?? true)
   readonly children = computed(() => this.chunk()?.children || this.chunk()?.metadata?.children)
+  readonly document = computed(() => this.chunk()?.document)
 
   constructor() {
     effect(() => {

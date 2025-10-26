@@ -115,21 +115,6 @@ export class KnowledgeDocumentChunkComponent {
     this.preview.update((state) => !state)
   }
 
-  deleteChunk(chunk: IKnowledgeDocumentChunk) {
-    this.confirmDelete({
-        value: chunk.id,
-        information: chunk.pageContent.substring(0, 100)
-      }, this.knowledgeDocumentService.deleteChunk(chunk.metadata.knowledgeId, chunk.id))
-      .subscribe({
-        next: () => {
-          this.#chunks.update((items) => items.filter((item) => item.id !== chunk.id))
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
-  }
-
   onSearch(value: string) {
     this.search.set(value)
     this.reset()
@@ -264,6 +249,22 @@ export class KnowledgeDocumentChunkComponent {
 
   addChunk() {
     this.editChunk.set({} as IKnowledgeDocumentChunk)
+  }
+
+  deleteChunk(chunk: IKnowledgeDocumentChunk) {
+    this.confirmDelete({
+        value: chunk.id,
+        information: chunk.pageContent.substring(0, 100)
+      }, this.knowledgeDocumentService.deleteChunk(this.documentId(), chunk.id))
+      .subscribe({
+        next: () => {
+          this.#chunks.update((items) => items.filter((item) => item.id !== chunk.id))
+          this.total.update((total) => total - 1)
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
   }
 
   updateDoc(entity: Partial<IKnowledgeDocument>) {

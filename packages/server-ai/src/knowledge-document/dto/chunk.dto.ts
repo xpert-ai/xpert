@@ -1,15 +1,15 @@
-import { IDocChunkMetadata, IKnowledgeDocumentChunk } from '@metad/contracts'
+import { IDocChunkMetadata } from '@metad/contracts'
 import { DeepPartial } from '@metad/server-common'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose } from 'class-transformer'
 import { IsJSON, IsNotEmpty, IsString } from 'class-validator'
+import { DocumentSimpleDTO } from './doc-simple.dto'
 
 /**
  * Document chunk public dto
  */
 @Exclude()
-export class DocumentChunkDTO implements IKnowledgeDocumentChunk {
-
+export class DocumentChunkDTO {
 	@Expose()
 	@ApiProperty({ type: () => String })
 	@IsNotEmpty()
@@ -34,8 +34,14 @@ export class DocumentChunkDTO implements IKnowledgeDocumentChunk {
 	@IsString()
 	collection_id: string
 
+	@Expose()
+	document?: DocumentSimpleDTO
+
 	constructor(partial: DeepPartial<DocumentChunkDTO>) {
 		Object.assign(this, partial)
 		this.id = partial.id || partial.metadata.chunkId
+		if (partial.document) {
+			this.document = new DocumentSimpleDTO(partial.document)
+		}
 	}
 }

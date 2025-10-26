@@ -113,6 +113,12 @@
         </div>
       }
     }
+
+    <div class="w-full border-t border-solid border-divider-deep px-1 pt-1 mt-1 text-text-secondary">
+      @if (document(); as document) {
+        <knowledge-doc-id [doc]="document" />
+      }
+    </div>
   </div>
   <div class="w-full px-3"><div class="w-full h-[0.5px] my-1 bg-divider-subtle"></div></div>
 </div>

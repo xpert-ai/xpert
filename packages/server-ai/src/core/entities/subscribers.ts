@@ -1,6 +1,7 @@
 import { ChatConversationSubscriber } from '../../chat-conversation/conversation.subscriber'
 import { ChatMessageSubscriber } from '../../chat-message/chat-message.subscriber'
 import { CopilotModelSubscriber } from '../../copilot-model/copilot-model.subscriber'
+import { KnowledgeDocumentSubscriber } from '../../knowledge-document/document.subscriber'
 import { KnowledgebaseSubscriber } from '../../knowledgebase/knowledgebase.subscriber'
 import { XpertProjectTaskSubscriber } from '../../xpert-project/entities/project-task.subscriber'
 import { XpertProjectSubscriber } from '../../xpert-project/project.subscriber'
@@ -21,4 +22,5 @@ export const AiSubscribers = [
 	CopilotModelSubscriber,
 	ChatConversationSubscriber,
 	ChatMessageSubscriber,
+	KnowledgeDocumentSubscriber
 ]

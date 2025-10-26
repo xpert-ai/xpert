@@ -4,16 +4,17 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
+import { injectExportXpertDsl, XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 import { AppService } from '@cloud/app/app.service'
 import { OverlayAnimation1 } from '@metad/core'
-import { NgmCopyComponent, NgmSlideToggleComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, NgmCopyComponent, NgmSlideToggleComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { injectParams } from 'ngxtension/inject-params'
 import { catchError, EMPTY } from 'rxjs'
 import {
+  getErrorMessage,
   injectApiBaseUrl,
   injectHelpWebsite,
   IXpert,
@@ -53,6 +54,8 @@ export class KnowledgebaseComponent {
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
+  readonly exportXpertDsl = injectExportXpertDsl()
+  readonly confirmDelete = injectConfirmDelete()
   readonly apiBaseUrl = injectApiBaseUrl()
   readonly apiHelpUrl = injectHelpWebsite('/docs/ai/knowledge/api/')
 
@@ -63,7 +66,7 @@ export class KnowledgebaseComponent {
     loader: ({ request }) => {
       return this.knowledgebaseAPI
         .getOneById(request.id, {
-          relations: ['copilotModel', 'rerankModel', 'visionModel', 'xperts', 'documents'],
+          relations: ['copilotModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline'],
           select: {
             xperts: {
               id: true,
@@ -71,8 +74,10 @@ export class KnowledgebaseComponent {
               name: true,
               description: true
             },
-            documents: {
-              id: true
+            pipeline: {
+              id: true,
+              publishAt: true,
+              version: true
             }
           } as any
         })
@@ -90,7 +95,14 @@ export class KnowledgebaseComponent {
   readonly type = computed(() => this.knowledgebase()?.type)
   readonly avatar = computed(() => this.knowledgebase()?.avatar)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
-  readonly documentNum = computed(() => this.knowledgebase()?.documentNum || 0)
+  readonly pipeline = computed(() => this.knowledgebase()?.pipeline)
+  readonly documentNum = linkedModel({
+    initialValue: 0,
+    compute: () => this.knowledgebase()?.documentNum || 0,
+    update: (value) => {
+      //
+    }
+  })
   readonly xpertCount = computed(() => this.knowledgebase()?.xperts.length || 0)
   readonly xperts = computed(() => this.knowledgebase()?.xperts || [])
 
@@ -134,20 +146,42 @@ export class KnowledgebaseComponent {
   }
 
   deleteKnowledgebase() {
+    const knowledgebase = this.knowledgebase()
+    this.confirmDelete({
+        value: knowledgebase.name,
+        information: knowledgebase.description
+      }, () => {
+        this.#loading.set(true)
+        return this.knowledgebaseAPI.delete(knowledgebase.id)
+      })
+      .subscribe({
+        next: () => {
+          this.#loading.set(false)
+          this.#router.navigate(['/xpert/w'])
+        },
+        error: (err) => {
+          this.#loading.set(false)
+          this._toastrService.danger(err)
+        }
+      })
+  }
+
+  downloadPipeline(id: string) {
     this.#loading.set(true)
-    this.knowledgebaseAPI.delete(this.knowledgebase().id).subscribe({
+    this.exportXpertDsl(id, {
+      isDraft: false,
+      includeMemory: false,
+      slug: this.knowledgebase().name,
+    }).subscribe({
       next: () => {
         this.#loading.set(false)
-        this.#router.navigate(['/xpert/w'])
       },
       error: (err) => {
         this.#loading.set(false)
-        this._toastrService.danger(err)
+        this._toastrService.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
       }
     })
   }
-
-  downloadPipeline() {}
 
   openXpert(xpert: IXpert) {
     window.open(['/xpert/x', xpert.id, 'agents'].join('/'), '_blank')

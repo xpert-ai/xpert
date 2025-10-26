@@ -7,6 +7,7 @@ import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core
 import { SlideUpAnimation } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { tap } from 'rxjs/operators'
 
 @Component({
   standalone: true,
@@ -20,7 +21,7 @@ import { TranslateModule } from '@ngx-translate/core'
 export class XpertExportDslComponent {
   readonly #data = inject<{ xpertId: string; slug: string; isDraft: boolean }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
-  readonly #xpertAPI = inject(XpertAPIService)
+  readonly exportXpertDsl = injectExportXpertDsl()
   readonly #toastr = injectToastr()
 
   readonly xpertId = signal(this.#data.xpertId)
@@ -35,15 +36,12 @@ export class XpertExportDslComponent {
 
   exportDsl() {
     this.loading.set(true)
-    this.#xpertAPI.exportDSL(this.xpertId(), {isDraft: this.isDraft(), includeMemory: this.includeMemory()}).subscribe({
-      next: (result) => {
-        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `xpert-${this.#data.slug}.yaml`
-        a.click()
-        window.URL.revokeObjectURL(url)
+    this.exportXpertDsl(this.xpertId(), {
+      isDraft: this.isDraft(),
+      includeMemory: this.includeMemory(),
+      slug: this.#data.slug
+    }).subscribe({
+      next: () => {
         this.loading.set(false)
         this.close()
       },
@@ -52,5 +50,22 @@ export class XpertExportDslComponent {
         this.#toastr.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
       }
     })
+  }
+}
+
+export function injectExportXpertDsl() {
+  const xpertAPI = inject(XpertAPIService)
+  return (xpertId: string, params: { isDraft: boolean; includeMemory: boolean; slug?: string }) => {
+    return xpertAPI.exportDSL(xpertId, { isDraft: params.isDraft, includeMemory: params.includeMemory }).pipe(
+      tap((result) => {
+        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `xpert-${params.slug || xpertId}.yaml`
+        a.click()
+        window.URL.revokeObjectURL(url)
+      })
+    )
   }
 }
