@@ -42,7 +42,7 @@
     />
   }
 
-  @for (submessage of contents(); track submessage; let i = $index; let last = $last) {
+  @for (submessage of contents(); track submessage.id; let i = $index; let last = $last) {
     <chat-message-avatar #avatar class="group sticky top-14 z-10 bg-surface-container"
       [prevContent]="contents()[i - 1]"
       [message]="message()"

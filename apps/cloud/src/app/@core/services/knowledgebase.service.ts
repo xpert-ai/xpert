@@ -5,6 +5,7 @@ import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langch
 import {
   _TFile,
   API_PREFIX,
+  classificateDocumentCategory,
   DocumentMetadata,
   IDocumentChunkerProvider,
   IDocumentProcessorProvider,
@@ -14,9 +15,7 @@ import {
   IKnowledgebaseTask,
   IKnowledgeDocument,
   IKnowledgeRetrievalLog,
-  isDocumentSheet,
   IXpert,
-  KBDocumentCategoryEnum,
   PaginationParams,
   toHttpParams
 } from '@metad/cloud/state'
@@ -239,7 +238,7 @@ export class KnowledgeFileUploader {
                 name: this.file.name,
                 size: `${this.file.size}`,
                 type,
-                category: isDocumentSheet(type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text,
+                category: classificateDocumentCategory({type}),
                 metadata: {
                   title: this.file.name,
                 }
