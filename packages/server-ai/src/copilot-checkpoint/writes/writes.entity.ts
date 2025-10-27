@@ -5,6 +5,7 @@ import { IsNumber, IsString } from 'class-validator'
 import { Column, Entity, Index } from 'typeorm'
 
 @Entity('copilot_checkpoint_writes')
+@Index(['thread_id', 'checkpoint_ns', 'checkpoint_id'])
 @Index(['organizationId', 'thread_id', 'checkpoint_ns', 'checkpoint_id', 'task_id', 'idx'], {unique: true})
 export class CopilotCheckpointWrites extends TenantOrganizationBaseEntity implements ICopilotCheckpointWrites {
 	@ApiPropertyOptional({ type: () => String })

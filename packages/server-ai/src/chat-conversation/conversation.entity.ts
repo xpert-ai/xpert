@@ -13,10 +13,11 @@ import {
 import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
 import { ChatMessage, Xpert, XpertProject, XpertTask } from '../core/entities/internal'
 
 @Entity('chat_conversation')
+@Index(['tenantId', 'organizationId', 'id'])
 export class ChatConversation extends TenantOrganizationBaseEntity implements IChatConversation {
 	@ApiProperty({ type: () => String })
 	@IsString()
