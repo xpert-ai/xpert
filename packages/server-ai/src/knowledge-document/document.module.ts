@@ -14,11 +14,13 @@ import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDocumentPage } from './page/document-page.entity'
 import { QueryHandlers } from './queries/handlers'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
+import { KnowledgeDocumentChunk } from './chunk/chunk.entity'
+import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 
 @Module({
 	imports: [
 		RouterModule.register([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
-		TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage]),
+		TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage, KnowledgeDocumentChunk]),
 		DiscoveryModule,
 		TenantModule,
 		CqrsModule,
@@ -35,10 +37,11 @@ import { JOB_EMBEDDING_DOCUMENT } from './types'
 	controllers: [KnowledgeDocumentController],
 	providers: [
 		KnowledgeDocumentService,
+		KnowledgeDocumentChunkService,
 		KnowledgeDocumentConsumer,
 		...CommandHandlers,
 		...QueryHandlers
 	],
-	exports: [KnowledgeDocumentService, TypeOrmModule]
+	exports: [KnowledgeDocumentService, KnowledgeDocumentChunkService, TypeOrmModule]
 })
 export class KnowledgeDocumentModule {}

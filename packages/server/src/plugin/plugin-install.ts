@@ -15,7 +15,7 @@ export function installPlugins() {
         }
         process.stdout.write('\n')
         try {
-            execSync(`npm install --legacy-peer-deps ${plugins.join(' ')}`, { stdio: 'inherit' });
+            execSync(`npm install --legacy-peer-deps --no-save ${plugins.join(' ')}`, { stdio: 'inherit' });
             console.log(chalk.green(`Installed plugins: ${plugins.join(', ')}`));
         } catch (error) {
             console.error('Failed to install plugins via npm:', error);

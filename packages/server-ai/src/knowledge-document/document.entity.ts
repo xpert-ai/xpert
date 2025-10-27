@@ -5,21 +5,23 @@ import {
 	IKnowledgeDocument,
 	IKnowledgeDocumentPage,
 	IStorageFile,
-	KDocumentSourceType,
 	KBDocumentCategoryEnum,
 	DocumentTextParserConfig,
 	KBDocumentStatusEnum,
 	IKnowledgebaseTask,
 	Metadata,
 	TDocSourceConfig,
+	IKnowledgeDocumentChunk,
+	TKnowledgeDocument,
+	DocumentSourceProviderCategoryEnum,
+	DocumentTypeEnum,
 } from '@metad/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
-import { DocumentInterface } from '@langchain/core/documents'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId, Tree, TreeChildren, TreeParent } from 'typeorm'
-import { Knowledgebase, KnowledgebaseTask, KnowledgeDocumentPage } from '../core/entities/internal'
+import { Knowledgebase, KnowledgebaseTask, KnowledgeDocumentChunk, KnowledgeDocumentPage } from '../core/entities/internal'
 
 @Entity('knowledge_document')
 @Tree('closure-table') 
@@ -30,11 +32,9 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	disabled?: boolean
 
-	@ApiPropertyOptional({ enum: KDocumentSourceType, description: 'Source type of the document' })
-	@IsEnum(KDocumentSourceType)
 	@Optional()
 	@Column({ nullable: true, length: 20 })
-	sourceType?: KDocumentSourceType
+	sourceType?: DocumentSourceProviderCategoryEnum | DocumentTypeEnum
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
@@ -178,12 +178,6 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	processDuation?: number
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	run?: string
-
 	@ApiPropertyOptional({ enum: KBDocumentStatusEnum, description: 'Status of the document process' })
 	@IsEnum(KBDocumentStatusEnum)
 	@Optional()
@@ -212,8 +206,8 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	chunks?: DocumentInterface[]
-
+	draft?: TKnowledgeDocument
+	
 	/*
     |--------------------------------------------------------------------------
     | Parent-children relationship 
@@ -253,11 +247,21 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
     | @OneToMany 
     |--------------------------------------------------------------------------
     */
+
+	/**
+	 * @deprecated use chunks instead
+	 */
 	@ApiProperty({ type: () => KnowledgeDocumentPage, isArray: true })
 	@OneToMany(() => KnowledgeDocumentPage, (page) => page.document, {
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
 	pages?: IKnowledgeDocumentPage[]
+
+	@ApiProperty({ type: () => KnowledgeDocumentChunk, isArray: true })
+	@OneToMany(() => KnowledgeDocumentChunk, (chunk) => chunk.document, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	chunks?: IKnowledgeDocumentChunk[]
 
 	/*
     |--------------------------------------------------------------------------

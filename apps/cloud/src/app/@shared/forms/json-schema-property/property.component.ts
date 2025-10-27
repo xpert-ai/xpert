@@ -102,6 +102,7 @@ export class JSONSchemaPropertyComponent {
   readonly xUiComponent = computed(() => this.xUi()?.component)
   readonly xUiInputType = computed(() => this.xUi()?.component === 'secretInput' ? 'password' : 'text')
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
+  readonly xUiHelp = computed(() => this.xUi()?.help)
 
   constructor() {
     // Waiting NgxControlValueAccessor has been initialized

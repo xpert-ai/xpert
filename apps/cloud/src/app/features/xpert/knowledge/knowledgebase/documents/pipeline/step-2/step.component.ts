@@ -8,7 +8,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
 import {
   getErrorMessage,
-  IKnowledgebaseTask,
   KDocumentSourceType,
   KnowledgebaseService,
   ToastrService,

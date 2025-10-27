@@ -8,6 +8,7 @@ import {
 	IWFNUnderstanding,
 	IWorkflowNode,
 	IXpertAgentExecution,
+	JSONValue,
 	KBDocumentStatusEnum,
 	KNOWLEDGE_STAGE_NAME,
 	KnowledgebaseChannel,
@@ -22,7 +23,7 @@ import {
 import { getErrorMessage } from '@metad/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { IImageUnderstandingStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, IImageUnderstandingStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { get } from 'lodash-es'
 import { In } from 'typeorm'
 import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
@@ -100,10 +101,10 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 				return await wrapAgentExecution(
 					async () => {
 						const documentIds = value.map((v) => v.id)
-						let documents = []
+						let documents: IKnowledgeDocument<ChunkMetadata>[] = []
 						if (isTest) {
 							const task = await this.taskService.findOne(knowledgeTaskId)
-							documents = task.context.documents.filter((doc) => documentIds.includes(doc.id))
+							documents = task.context.documents.filter((doc) => documentIds.includes(doc.id)) as IKnowledgeDocument<ChunkMetadata>[]
 						} else {
 							const results = await this.documentService.findAll({
 								where: {
@@ -137,7 +138,7 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 									folder: isDraft ? 'temp/' : ''
 								}))
 						for await (const doc of documents) {
-							const result = await strategy.understandImages(doc,
+							const result = await strategy.understandImages({...doc, ...(doc.draft ?? {})},
 								{
 									...(entity.config ?? {}),
 									stage: isDraft ? 'test' : 'prod',
@@ -148,9 +149,9 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 							)
 
 							doc.chunks = result.chunks
-							if (result.pages) {
-								doc.pages = (doc.pages ?? []).concat(result.pages)
-							}
+							// if (result.pages) {
+							// 	doc.pages = (doc.pages ?? []).concat(result.pages)
+							// }
 							// console.log('Chunker result chunks:', result.chunks)
 						}
 
@@ -159,12 +160,15 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 						} else {
 							for await (const doc of documents) {
 								if (doc.id) {
-									if (doc.pages?.length) {
-										await this.documentService.createPageBulk(doc.id, doc.pages)
-									}
+									// if (doc.pages?.length) {
+									// 	await this.documentService.createPageBulk(doc.id, doc.pages)
+									// }
 									await this.documentService.update(doc.id, {
 										metadata: doc.metadata,
-										chunks: doc.chunks
+										draft: {
+											chunks: doc.chunks
+										},
+										status: KBDocumentStatusEnum.UNDERSTOOD
 									})
 								}
 							}
@@ -179,9 +183,9 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 							},
 							output: documents.map((doc) => {
 								doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
-								doc.pages = doc.pages?.slice(0, 2)
+								// doc.pages = doc.pages?.slice(0, 2)
 								return doc
-							})
+							}) as unknown as JSONValue
 						}
 					}, {
 						commandBus: this.commandBus,

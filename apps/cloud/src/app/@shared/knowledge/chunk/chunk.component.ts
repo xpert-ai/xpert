@@ -4,20 +4,20 @@ import { booleanAttribute, Component, computed, effect, input, signal } from '@a
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
-import { Document } from 'langchain/document'
 import { MarkdownModule } from 'ngx-markdown'
-import { DocumentMetadata } from '../../../@core'
+import { DocumentMetadata, IKnowledgeDocumentChunk } from '../../../@core'
+import { KnowledgeDocIdComponent } from '../knowledge-doc-id/doc.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, MarkdownModule],
+  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, MarkdownModule, KnowledgeDocIdComponent],
   selector: 'xp-knowledge-chunk',
   templateUrl: 'chunk.component.html',
   styleUrls: ['chunk.component.scss']
 })
 export class KnowledgeChunkComponent {
   // Inputs
-  readonly chunk = input<Document<DocumentMetadata>>()
+  readonly chunk = input<IKnowledgeDocumentChunk<DocumentMetadata>>()
   readonly index = input<number>()
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
@@ -29,6 +29,8 @@ export class KnowledgeChunkComponent {
   readonly _preview = signal(false)
 
   readonly enabled = computed(() => this.chunk()?.metadata?.enabled ?? true)
+  readonly children = computed(() => this.chunk()?.children || this.chunk()?.metadata?.children)
+  readonly document = computed(() => this.chunk()?.document)
 
   constructor() {
     effect(() => {

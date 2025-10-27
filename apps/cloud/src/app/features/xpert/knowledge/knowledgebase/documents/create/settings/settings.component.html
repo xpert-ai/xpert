@@ -294,7 +294,7 @@
           </div>
           <div class="flex gap-2 mt-4">
             <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium"
-              (click)="preview()">
+              (click)="onPreview()">
               <i class="ri-search-eye-line"></i>
               {{ 'PAC.Knowledgebase.PreviewChunk' | translate: {Default: 'Preview Chunk'} }}
             </button>
@@ -332,14 +332,22 @@
               {{estimateFile().docs.length}} {{'PAC.Knowledgebase.EstimationChunk' | translate: {Default: 'Estimation Chunk'} }}
             </div>
           } -->
+
+          <i class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
+            [class.!text-primary-500]="preview()"
+            [matTooltip]="'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'}"
+            matTooltipPosition="above"
+            (click)="toggleAllPreview()"
+          ></i>
         </div>
       </div>
     </header>
 
     @if (selectedDocument()) {
-      <xp-knowledge-document-preview class="pb-4 w-full grow space-y-6 overflow-auto" 
+      <xp-knowledge-document-preview class="pb-4 w-full grow space-y-6" 
         [(document)]="selectedDocument" 
         [parserConfig]="parserConfig()"
+        [preview]="preview()"
       />
     }
     <!-- @if (selectedWebDoc()) {

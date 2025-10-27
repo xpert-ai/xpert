@@ -37,7 +37,6 @@ import {
   getDateLocale,
   getErrorMessage,
   IKnowledgeDocument,
-  IKnowledgeDocumentPage,
   injectHelpWebsite,
   injectToastr,
   IXpert,
@@ -101,6 +100,8 @@ export class KnowledgeDocumentsComponent {
   readonly xperts = computed(() => this.knowledgebase()?.xperts)
   readonly parentId$ = toObservable(this.parentId)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
+  readonly pipeline = this.knowledgebaseComponent.pipeline
+  readonly hasPipeline = computed(() => !!this.pipeline()?.publishAt)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly delayRefresh$ = new Subject<boolean>()
@@ -133,6 +134,7 @@ export class KnowledgeDocumentsComponent {
   readonly selectionModel = new SelectionModel<string>(true, [])
   readonly search = model<string>()
   readonly searchTerm = debouncedSignal(this.search, 300)
+  readonly notFolderItems = computed(() => this.#data().filter((item) => item.sourceType !== KDocumentSourceType.FOLDER))
   readonly filteredData = computed(() => {
     const filterValue = this.searchTerm()?.toLowerCase() ?? ''
     return this.#data().filter((item) => item.name?.toLowerCase().includes(filterValue))
@@ -229,7 +231,14 @@ export class KnowledgeDocumentsComponent {
     effect(() => {
       if (
         this.#data()?.some(
-          (item) => item.status === KBDocumentStatusEnum.WAITING || item.status === KBDocumentStatusEnum.RUNNING
+          (item) => [
+            KBDocumentStatusEnum.WAITING,
+            KBDocumentStatusEnum.RUNNING,
+            KBDocumentStatusEnum.TRANSFORMED,
+            KBDocumentStatusEnum.SPLITTED,
+            KBDocumentStatusEnum.UNDERSTOOD,
+            KBDocumentStatusEnum.EMBEDDING
+          ].includes(item.status)
         )
       ) {
         this.delayRefresh$.next(true)
@@ -237,10 +246,6 @@ export class KnowledgeDocumentsComponent {
     })
 
     this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(REFRESH_DEBOUNCE_TIME)).subscribe(() => this.refresh())
-
-    effect(() => {
-      console.log(this.pipelineId())
-    })
   }
 
   getValue(row: any, name: string) {
@@ -300,6 +305,7 @@ export class KnowledgeDocumentsComponent {
       this.knowledgeDocumentAPI.delete(doc.id)
     ).subscribe({
       next: () => {
+        this.knowledgebaseComponent.documentNum.update((num) => num - 1)
         this.refresh()
       },
       error: (err) => {
@@ -335,42 +341,21 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
-  removePage(doc: IKnowledgeDocument, page: IKnowledgeDocumentPage) {
-    this.knowledgeDocumentAPI.removePage(doc, page).subscribe({
-      next: () => {
-        this.#data.update((docs) => {
-          return docs.map((doc) => {
-            if (doc.pages?.some((_) => _.id === page.id)) {
-              return {
-                ...doc,
-                pages: doc.pages.filter((_) => _.id !== page.id)
-              }
-            }
-            return doc
-          })
-        })
-      },
-      error: (err) => {
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
-  }
-
   openXpert(xpert: IXpert) {
     window.open(['/xpert/x', xpert.id, 'agents'].join('/'), '_blank')
   }
 
   isAllSelected() {
     const numSelected = this.selectionModel.selected.length
-    const numRows = this.#data().length
+    const numRows = this.notFolderItems().length
     return numRows > 0 && numSelected === numRows
   }
   isPartialSelected() {
-    return this.selectionModel.selected.length > 0 && this.selectionModel.selected.length < this.#data().length
+    return this.selectionModel.selected.length > 0 && this.selectionModel.selected.length < this.notFolderItems().length
   }
   selectAll(checked: boolean) {
     if (checked) {
-      this.selectionModel.select(...this.#data().map((row) => row.id))
+      this.selectionModel.select(...this.notFolderItems().map((row) => row.id))
     } else {
       this.selectionModel.clear()
     }
@@ -395,6 +380,7 @@ export class KnowledgeDocumentsComponent {
     this.knowledgeDocumentAPI.deleteBulk(this.selectionModel.selected).subscribe({
       next: () => {
         this.isLoading.set(false)
+        this.knowledgebaseComponent.documentNum.update((num) => num - this.selectionModel.selected.length)
         this.selectionModel.clear()
         this.refresh()
       },

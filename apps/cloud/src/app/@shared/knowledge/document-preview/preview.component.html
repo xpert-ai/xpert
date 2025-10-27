@@ -1,0 +1,5 @@
+<div class="body-md-regular grow px-6 py-5 font-body text-text-secondary overflow-auto">
+  @for (chunk of chunks(); track chunk; let i = $index) {
+    <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
+  }
+</div>

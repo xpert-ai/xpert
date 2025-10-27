@@ -1,10 +1,5 @@
 import { Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmCheckboxComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
-import { TranslateModule } from '@ngx-translate/core'
-import { injectParams } from 'ngxtension/inject-params'
-import { of } from 'rxjs'
 import {
   DocumentParserConfig,
   DocumentSheetParserConfig,
@@ -14,6 +9,11 @@ import {
   KnowledgeDocumentService
 } from '@cloud/app/@core'
 import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
+import { NgmCheckboxComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { debouncedSignal, linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
+import { injectParams } from 'ngxtension/inject-params'
+import { of } from 'rxjs'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 
 @Component({
@@ -25,7 +25,7 @@ import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 })
 export class KnowledgeDocumentPreviewComponent {
   eKBDocumentCategoryEnum = KBDocumentCategoryEnum
-  
+
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly #toastr = injectToastr()
@@ -36,34 +36,39 @@ export class KnowledgeDocumentPreviewComponent {
   // Inputs
   readonly document = model<Partial<IKnowledgeDocument>>()
   readonly parserConfig = model<DocumentParserConfig>()
+  readonly preview = input<boolean>()
 
   // Estimate embedding for file or webpage
+  readonly documentParserConfig = computed(() => this.document()?.parserConfig as DocumentParserConfig)
+  readonly _parserConfig = debouncedSignal(this.parserConfig, 1000)
+  readonly _documentParserConfig = debouncedSignal(this.documentParserConfig, 1000)
   readonly estimateFile = myRxResource({
-    request: () => (this.category() === KBDocumentCategoryEnum.Sheet ? {
-      type: this.document()?.type,
-      category: this.category(),
-      parserConfig: this.document()?.parserConfig,
-      fileUrl: this.document()?.fileUrl,
-      filePath: this.document()?.filePath,
-      name: this.document()?.name,
-      // storageFileId: this.document()?.storageFile?.id,
-      knowledgebaseId: this.knowledgebase().id
-    } : {
-      type: this.document()?.type,
-      category: this.category(),
-      parserConfig: this.parserConfig(),
-      fileUrl: this.document()?.fileUrl,
-      filePath: this.document()?.filePath,
-      name: this.document()?.name,
-      // storageFileId: this.document()?.storageFile?.id,
-      knowledgebaseId: this.knowledgebase().id
-    }),
+    request: () =>
+      this.category() === KBDocumentCategoryEnum.Sheet
+        ? {
+            type: this.document()?.type,
+            category: this.category(),
+            parserConfig: this._documentParserConfig(),
+            fileUrl: this.document()?.fileUrl,
+            filePath: this.document()?.filePath,
+            name: this.document()?.name,
+            knowledgebaseId: this.knowledgebase().id
+          }
+        : {
+            type: this.document()?.type,
+            category: this.category(),
+            parserConfig: this._parserConfig(),
+            fileUrl: this.document()?.fileUrl,
+            filePath: this.document()?.filePath,
+            name: this.document()?.name,
+            knowledgebaseId: this.knowledgebase().id
+          },
     loader: ({ request }) => (request.fileUrl ? this.knowledgeDocumentService.estimate(request) : of(null))
   })
 
   readonly loading = computed(() => this.estimateFile.status() === 'loading')
-  // Estimate file content chunks or web pages chunks
-  readonly docs = computed(() => this.estimateFile.value() ?? this.document()?.pages)
+  // Estimate file content chunks
+  readonly docs = this.estimateFile.value
   readonly error = computed(() => this.estimateFile.error())
 
   readonly sheetParserConfig = linkedModel({
@@ -85,15 +90,18 @@ export class KnowledgeDocumentPreviewComponent {
   readonly fields = computed(() => {
     if (this.category() === KBDocumentCategoryEnum.Sheet) {
       const row = this.docs()?.[0]?.metadata?.raw
-      if (row)  {
+      if (row) {
         return Object.keys(row).map((key) => ({ label: key, value: key }))
       }
     }
     return null
   })
 
-  readonly allIndexed = computed(() => 
-    !this.sheetParserConfig()?.indexedFields?.length || this.fields()?.every((field) => this.sheetParserConfig()?.indexedFields?.includes(field.value)))
+  readonly allIndexed = computed(
+    () =>
+      !this.sheetParserConfig()?.indexedFields?.length ||
+      this.fields()?.every((field) => this.sheetParserConfig()?.indexedFields?.includes(field.value))
+  )
 
   constructor() {
     effect(() => {
@@ -109,16 +117,16 @@ export class KnowledgeDocumentPreviewComponent {
     }
     this.sheetParserConfig.update((config) => {
       const index = indexedFields.indexOf(field)
-        if (index > -1) {
-          if (!value) {
-            indexedFields.splice(index, 1)
-          }
-        } else {
-          if (value) {
-            indexedFields.push(field)
-          }
+      if (index > -1) {
+        if (!value) {
+          indexedFields.splice(index, 1)
         }
- 
+      } else {
+        if (value) {
+          indexedFields.push(field)
+        }
+      }
+
       return {
         ...(config ?? {}),
         indexedFields: [...indexedFields]

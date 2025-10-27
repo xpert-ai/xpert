@@ -1,11 +1,10 @@
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { OrganizationBaseCrudService } from '@metad/cloud/state'
-import { Document } from 'langchain/document'
+import { DocumentInterface } from '@langchain/core/documents'
+import { IKnowledgeDocumentChunk, OrganizationBaseCrudService } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { API_KNOWLEDGE_DOCUMENT } from '../constants/app.constants'
 import {
-  IDocumentChunk,
   IIntegration,
   IKnowledgeDocument,
   IKnowledgeDocumentPage,
@@ -13,6 +12,7 @@ import {
   TRagWebOptions,
   TRagWebResult
 } from '../types'
+
 
 @Injectable({ providedIn: 'root' })
 export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowledgeDocument> {
@@ -51,11 +51,11 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
   }
 
   previewFile(id: string) {
-    return this.httpClient.get<Document[]>(this.apiBaseUrl + `/preview-file/${id}`)
+    return this.httpClient.get<DocumentInterface[]>(this.apiBaseUrl + `/preview-file/${id}`)
   }
 
   estimate(doc: Partial<IKnowledgeDocument>) {
-    return this.httpClient.post<Document[]>(this.apiBaseUrl + `/estimate`, doc)
+    return this.httpClient.post<IKnowledgeDocumentChunk[]>(this.apiBaseUrl + `/estimate`, doc)
   }
 
   getStatus(ids: string[]) {
@@ -77,7 +77,7 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
   }
 
   getChunks(id: string, params: { take: number; skip: number; search?: string }) {
-    return this.httpClient.get<{ items: IDocumentChunk[]; total: number }>(this.apiBaseUrl + `/${id}` + '/chunk', {
+    return this.httpClient.get<{ items: IKnowledgeDocumentChunk[]; total: number }>(this.apiBaseUrl + `/${id}` + '/chunk', {
       params: new HttpParams().append('data', JSON.stringify(params))
     })
   }
@@ -86,11 +86,11 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.delete<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id)
   }
 
-  createChunk(documentId: string, chunk: Partial<IDocumentChunk>) {
-    return this.httpClient.post<IDocumentChunk>(this.apiBaseUrl + `/` + documentId + '/chunk', chunk)
+  createChunk(documentId: string, chunk: Partial<IKnowledgeDocumentChunk>) {
+    return this.httpClient.post<IKnowledgeDocumentChunk>(this.apiBaseUrl + `/` + documentId + '/chunk', chunk)
   }
 
-  updateChunk(documentId: string, id: string, chunk: Partial<IDocumentChunk>) {
+  updateChunk(documentId: string, id: string, chunk: Partial<IKnowledgeDocumentChunk>) {
     return this.httpClient.put<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id, chunk)
   }
 

@@ -3,10 +3,11 @@ import {
 	DocumentSheetParserConfig,
 	DocumentTextParserConfig,
 	IKnowledgeDocument,
+	IKnowledgeDocumentChunk,
 	KBDocumentCategoryEnum
 } from '@metad/contracts'
 import { loadCsvWithAutoEncoding, loadExcel, pick } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+import { computeObjectHash, RequestContext } from '@metad/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
@@ -14,13 +15,19 @@ import {
 	DocumentTransformerRegistry,
 	ImageUnderstandingRegistry,
 	TextSplitterRegistry,
+	TImageUnderstandingResult,
 } from '@xpert-ai/plugin-sdk'
-import { Document } from 'langchain/document'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Document } from '@langchain/core/documents'
+import { Cache } from 'cache-manager'
+import { omit } from 'lodash'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
 import { LoadStorageFileCommand, VolumeClient } from '../../../shared/'
 import { KnowledgeDocLoadCommand } from '../load.command'
 import { PluginPermissionsCommand } from '../../../knowledgebase/commands'
+import { TDocChunkMetadata } from '../../types'
+
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {
@@ -32,6 +39,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
 	@Inject(ImageUnderstandingRegistry)
 	private readonly imageUnderstandingRegistry: ImageUnderstandingRegistry
+
+	@Inject(CACHE_MANAGER)
+	private readonly cacheManager: Cache
 
 	constructor(
 		private readonly knowledgebaseService: KnowledgebaseService,
@@ -70,86 +80,76 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		}
 
 		if (doc.filePath || doc.fileUrl) {
-			let docs: Document[]
+			// let docs: Document[]
 			const transformerType = doc.parserConfig?.transformerType || 'default'
-			if (transformerType) {
-				const transformer = this.transformerRegistry.get(transformerType)
-				if (transformer) {
-					// const type = doc.name?.split('.').pop()?.toLowerCase()
-
-					// File system permission
-					// const fsPermission = transformer.permissions?.find(
-					// 	(permission) => permission.type === 'filesystem'
-					// ) as FileSystemPermission
-					// const permissions = {}
-					// if (fsPermission) {
-					// 	const folder = stage === 'test' ? 'temp/' : `/`
-					// 	permissions['fileSystem'] = new XpFileSystem(
-					// 		fsPermission,
-					// 		volumeClient.getVolumePath(folder),
-					// 		sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
-					// 	)
-					// }
-					// // Integration permission
-					// const integrationPermission = transformer.permissions?.find(
-					// 	(permission) => permission.type === 'integration'
-					// )
-					// if (integrationPermission && doc.parserConfig?.transformerIntegration) {
-					// 	let integration = null
-					// 	try {
-					// 		integration = await this.integrationService.findOne(doc.parserConfig.transformerIntegration)
-					// 	} catch (error) {
-					// 		throw new BadRequestException(t('server-ai:Error.IntegrationNotFound', { id: doc.parserConfig.transformerIntegration }))
-					// 	}
-					// 	permissions['integration'] = integration
-					// }
-
-					const permissions = await this.commandBus.execute(new PluginPermissionsCommand(transformer.permissions, {
-							knowledgebaseId: doc.knowledgebaseId,
-							integrationId: doc.parserConfig?.transformerIntegration,
-							folder: stage === 'test' ? 'temp/' : `/`
-						}))
-					const transformed = await transformer.transformDocuments(
-						[doc],
-						{
-							...(doc.parserConfig.transformer ?? {}),
+			const transformer = this.transformerRegistry.get(transformerType)
+			if (transformer) {
+				const permissions = await this.commandBus.execute(new PluginPermissionsCommand(transformer.permissions, {
+						knowledgebaseId: doc.knowledgebaseId,
+						integrationId: doc.parserConfig?.transformerIntegration,
+						folder: stage === 'test' ? 'temp/' : `/`
+					}))
+				const cacheConfig = {
+					document: omit(doc, 'parserConfig'),
+					parserConfig: pick(doc.parserConfig, ['transformerType', 'transformerIntegration', 'transformer']),
+					stage,
+				}
+				const cacheKey = 'knowledges:transformer:' + computeObjectHash(cacheConfig)
+				let transformed: Partial<IKnowledgeDocument<ChunkMetadata>>[] = await this.cacheManager.get(cacheKey)
+				if (!transformed) {
+					transformed = await transformer.transformDocuments(
+						[doc]
+						// .map((doc) => ({...doc, fileUrl: `https://api.mtda.cloud/api/sandbox/volume/knowledges/2a0d2697-a363-4fa7-8bb2-d74a3a6b8265/知识库测试.pdf`}))
+						, {
+							...(doc.parserConfig?.transformer ?? {}),
 							stage,
 							tempDir: volumeClient.getVolumePath('tmp'),
 							permissions
 						}
 					)
+					await this.cacheManager.set(cacheKey, transformed, 60 * 10 * 1000) // 10 min
+				}
 
-					const chunks = []
-					const pages = []
-					for await (const transItem of transformed) {
-						const splitted = await this.splitDocuments(doc, transItem.chunks)
-						// Image understanding
-						const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
-						if (images?.length && doc.parserConfig.imageUnderstandingType) {
+				const chunks = []
+				// const pages = []
+				for await (const transItem of transformed) {
+					// Chunker with caching
+					const chunkerCacheConfig = {
+						document: transItem,
+						parserConfig: pick(doc.parserConfig, ['textSplitterType', 'textSplitter']),
+						stage,
+					}
+					const cacheKey = 'knowledges:chunker:' + computeObjectHash(chunkerCacheConfig)
+					let splitted = await this.cacheManager.get<{ chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[] }>(cacheKey)
+					if (!splitted) {
+						splitted = await this.splitDocuments(doc, transItem.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[])
+						await this.cacheManager.set(cacheKey, splitted, 60 * 10 * 1000) // 10 min
+					}
+
+					// Image understanding
+					const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
+					if (images?.length && doc.parserConfig?.imageUnderstandingType) {
+
+						const imageCacheConfig = {
+							document: {...transItem, chunks: splitted.chunks},
+							parserConfig: pick(doc.parserConfig, ['imageUnderstandingType', 'imageUnderstandingIntegration', 'imageUnderstanding']),
+							stage,
+						}
+						const cacheKey = 'knowledges:understanding:' + computeObjectHash(imageCacheConfig)
+						let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
+						if (!imgTransformed) {
 							if (!visionModel) {
 								visionModel = await this.knowledgebaseService.getVisionModel(doc.knowledgebaseId)
 							}
 							const imageUnderstanding = this.imageUnderstandingRegistry.get(
 								doc.parserConfig.imageUnderstandingType
 							)
-
-							// const fsPermission = imageUnderstanding.permissions?.find(
-							// 	(permission) => permission.type === 'filesystem'
-							// ) as FileSystemPermission
 							const permissions = await this.commandBus.execute(new PluginPermissionsCommand(imageUnderstanding.permissions, {
 								knowledgebaseId: doc.knowledgebaseId,
 								integrationId: doc.parserConfig?.imageUnderstandingIntegration,
 								folder: stage === 'test' ? 'temp/' : `/`
 							}))
-							// if (fsPermission) {
-							// 	const folder = stage === 'test' ? 'temp/' : `/`
-							// 	permissions['fileSystem'] = new XpFileSystem(
-							// 		fsPermission,
-							// 		volumeClient.getVolumePath(folder),
-							// 		sandboxVolumeUrl(`/knowledges/${doc.knowledgebaseId}/${folder}`)
-							// 	)
-							// }
-							const imgTransformed = await imageUnderstanding.understandImages({
+							imgTransformed = await imageUnderstanding.understandImages({
 									...transItem,
 									chunks: splitted.chunks
 								} as IKnowledgeDocument<ChunkMetadata>,
@@ -160,29 +160,31 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 									permissions
 								}
 							)
-							chunks.push(...imgTransformed.chunks)
-							if (splitted.pages?.length) {
-								pages.push(...splitted.pages)
-							} else {
-								pages.push(...imgTransformed.pages)
-							}
-						} else {
-							chunks.push(...splitted.chunks)
-							if (splitted.pages?.length) {
-								pages.push(...splitted.pages)
-							}
+							
+							await this.cacheManager.set(cacheKey, imgTransformed, 60 * 10 * 1000) // 10 min
 						}
+						
+						chunks.push(...imgTransformed.chunks)
+						// if (splitted.pages?.length) {
+						// 	pages.push(...splitted.pages)
+						// } else {
+						// 	pages.push(...imgTransformed.pages)
+						// }
+					} else {
+						chunks.push(...splitted.chunks)
+						// if (splitted.pages?.length) {
+						// 	pages.push(...splitted.pages)
+						// }
 					}
-					return { chunks, pages: pages.length ? pages : undefined }
-				} else {
-					throw new Error(`Transformer not found: ${transformerType}`)
 				}
+				return { chunks }
+			} else {
+				throw new Error(`Transformer not found: ${transformerType}`)
 			}
 			// else {
 			// 	docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
 			// }
-
-			return await this.splitDocuments(doc, docs)
+			// return await this.splitDocuments(doc, docs)
 		}
 
 		return this.loadWeb(doc)
@@ -207,19 +209,19 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 	 * Split documents into smaller chunks for processing by `parserConfig`.
 	 *
 	 * @param document The original knowledge document entity.
-	 * @param data The document data to split.
+	 * @param chunks The document data to split.
 	 * @param parserConfig custom parser configuration.
 	 * @returns An array of split document chunks.
 	 */
-	async splitDocuments(document: IKnowledgeDocument, data: Document[], parserConfig?: DocumentTextParserConfig) {
+	async splitDocuments(document: IKnowledgeDocument, chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[], parserConfig?: DocumentTextParserConfig) {
 		// Text Preprocessing
 		if (document.parserConfig?.replaceWhitespace) {
-			data.forEach((doc) => {
+			chunks.forEach((doc) => {
 				doc.pageContent = doc.pageContent.replace(/[\s\n\t]+/g, ' ') // Replace consecutive spaces, newlines, and tabs
 			})
 		}
 		if (document.parserConfig?.removeSensitive) {
-			data.forEach((doc) => {
+			chunks.forEach((doc) => {
 				doc.pageContent = doc.pageContent.replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
 				doc.pageContent = doc.pageContent.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '') // Remove email addresses
 			})
@@ -248,7 +250,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			)
 		}
 		if (textSplitter) {
-			const result = await textSplitter.splitDocuments(data, {
+			const result = await textSplitter.splitDocuments(chunks, {
 				chunkSize,
 				chunkOverlap,
 				separators: delimiter?.split(' '),
@@ -257,16 +259,6 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
 			return result
 		}
-
-		// const textSplitter1 = new RecursiveCharacterTextSplitter({
-		// 	chunkSize,
-		// 	chunkOverlap,
-		// 	separators: delimiter?.split(' ')
-		// })
-
-		// return {
-		// 	chunks: await textSplitter1.splitDocuments(data)
-		// }
 	}
 
 	async loadSheet(doc: IKnowledgeDocument, volumeClient: VolumeClient): Promise<Record<string, any>[]> {

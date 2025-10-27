@@ -1,4 +1,4 @@
-import { Component, effect, HostListener, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
@@ -17,9 +17,11 @@ import { injectParams } from 'ngxtension/inject-params'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { BehaviorSubject, distinctUntilChanged, filter, switchMap, tap } from 'rxjs'
 import {
+  buildChunkTree,
   getErrorMessage,
-  IDocumentChunk,
+  IDocChunkMetadata,
   IKnowledgeDocument,
+  IKnowledgeDocumentChunk,
   injectToastr,
   KnowledgeDocumentService
 } from '../../../../../../@core'
@@ -64,7 +66,8 @@ export class KnowledgeDocumentChunkComponent {
     )
   )
   readonly refresh$ = new BehaviorSubject<boolean>(true)
-  readonly chunks = signal<IDocumentChunk[]>([])
+  readonly #chunks = signal<IKnowledgeDocumentChunk[]>([])
+  readonly chunks = computed(() => buildChunkTree(this.#chunks() ?? []))
   readonly docEnabled = model(false)
 
   readonly loading = signal(false)
@@ -75,7 +78,7 @@ export class KnowledgeDocumentChunkComponent {
 
   // Side
   readonly sideExpand = model(false)
-  readonly editChunk = signal<IDocumentChunk>(null)
+  readonly editChunk = signal<IKnowledgeDocumentChunk>(null)
   readonly preview = signal(false)
 
   // Search
@@ -112,21 +115,6 @@ export class KnowledgeDocumentChunkComponent {
     this.preview.update((state) => !state)
   }
 
-  deleteChunk(chunk: IDocumentChunk) {
-    this.confirmDelete({
-        value: chunk.id,
-        information: chunk.pageContent.substring(0, 100)
-      }, this.knowledgeDocumentService.deleteChunk(chunk.metadata.knowledgeId, chunk.id))
-      .subscribe({
-        next: () => {
-          this.chunks.update((items) => items.filter((item) => item.id !== chunk.id))
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
-  }
-
   onSearch(value: string) {
     this.search.set(value)
     this.reset()
@@ -136,7 +124,7 @@ export class KnowledgeDocumentChunkComponent {
   reset() {
     this.currentPage.set(0)
     this.done.set(false)
-    this.chunks.set([])
+    this.#chunks.set([])
   }
 
   loadMore = effectAction((origin$) => {
@@ -153,7 +141,7 @@ export class KnowledgeDocumentChunkComponent {
       tap({
         next: ({ items, total }) => {
           this.total.set(total)
-          this.chunks.update((chunks) => [...chunks, ...items])
+          this.#chunks.update((chunks) => [...chunks, ...items])
           this.currentPage.update((state) => ++state)
           if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) {
             this.done.set(true)
@@ -179,7 +167,7 @@ export class KnowledgeDocumentChunkComponent {
       return {
         ...state,
         pageContent: event
-      } as IDocumentChunk
+      } as IKnowledgeDocumentChunk
     })
   }
 
@@ -198,7 +186,7 @@ export class KnowledgeDocumentChunkComponent {
         .subscribe({
           next: () => {
             this.loading.set(false)
-            this.chunks.update((chunks) => {
+            this.#chunks.update((chunks) => {
               return chunks.map((_) => {
                 if (_.id === this.editChunk().id) {
                   return {
@@ -232,12 +220,12 @@ export class KnowledgeDocumentChunkComponent {
     }
   }
 
-  enableChunk(chunk: IDocumentChunk, event: boolean) {
+  enableChunk(chunk: IKnowledgeDocumentChunk, event: boolean) {
     this.loading.set(true)
-    this.knowledgeDocumentService.updateChunk(this.documentId(), chunk.id, { metadata: { enabled: event } }).subscribe({
+    this.knowledgeDocumentService.updateChunk(this.documentId(), chunk.id, { metadata: { enabled: event } as IDocChunkMetadata }).subscribe({
       next: () => {
         this.loading.set(false)
-        this.chunks.update((chunks) => {
+        this.#chunks.update((chunks) => {
           return chunks.map((_) => {
             if (_.id === chunk.id) {
               return {
@@ -260,7 +248,23 @@ export class KnowledgeDocumentChunkComponent {
   }
 
   addChunk() {
-    this.editChunk.set({} as IDocumentChunk)
+    this.editChunk.set({} as IKnowledgeDocumentChunk)
+  }
+
+  deleteChunk(chunk: IKnowledgeDocumentChunk) {
+    this.confirmDelete({
+        value: chunk.id,
+        information: chunk.pageContent.substring(0, 100)
+      }, this.knowledgeDocumentService.deleteChunk(this.documentId(), chunk.id))
+      .subscribe({
+        next: () => {
+          this.#chunks.update((items) => items.filter((item) => item.id !== chunk.id))
+          this.total.update((total) => total - 1)
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
   }
 
   updateDoc(entity: Partial<IKnowledgeDocument>) {

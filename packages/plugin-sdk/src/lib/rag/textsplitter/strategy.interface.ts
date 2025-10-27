@@ -1,5 +1,5 @@
 import { IDocumentChunkerProvider, KnowledgeStructureEnum } from '@metad/contracts'
-import { Document } from '@langchain/core/documents'
+import { DocumentInterface } from '@langchain/core/documents'
 import { ChunkMetadata } from '../types'
 
 /**
@@ -22,7 +22,7 @@ export interface ITextSplitterStrategy<TConfig = any> {
    * Split a text into chunks and pages (if applicable)
    */
   splitDocuments(
-    documents: Document[],
+    documents: DocumentInterface[],
     options?: TConfig
-  ): Promise<{ chunks: Document<ChunkMetadata>[]; pages?: Document<ChunkMetadata>[] }>
+  ): Promise<{ chunks: DocumentInterface<ChunkMetadata>[] }>
 }

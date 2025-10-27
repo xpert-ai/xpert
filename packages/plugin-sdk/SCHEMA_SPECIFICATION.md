@@ -25,6 +25,7 @@
 | `component`    | string | 指定 UI 组件类型，如 `textInput`, `textarea`, `select`, `switch`, `slider`, `promptEditor`, `modelProviderSelect`, `modelSelect` |
 | `label`        | string | UI 展示的标签                                                                                                                 |
 | `description`  | string | UI 展示的帮助文本，优先覆盖 schema.description                                                                                       |
+| `help`         | string | 额外提示信息，如 tooltip，前端会按需展示小问号或工具提示                                                                             |
 | `placeholder`  | string | 输入占位符                                                                                                                    |
 | `defaultValue` | any    | 默认值，优先覆盖 schema.default                                                                                                  |
 | `order`        | number | 字段在 UI 中的展示顺序                                                                                                            |
@@ -36,6 +37,7 @@
 | 字段名          | 类型     | 说明                                                         |
 | ------------ | ------ | ---------------------------------------------------------- |
 | `options`    | array  | 静态选项（下拉框、多选框等），形如 `[{ label: 'OpenAI', value: 'openai' }]` |
+| `enumLabels` | object | 枚举值与显示标签的映射，如 `{ openai: 'OpenAI', azure: 'Azure OpenAI' }`，用于覆盖枚举项展示文本 |
 | `dataSource` | string | 动态选项来源标识，如 `"system.providers"`, `"system.models"`         |
 | `dependency` | string | 依赖其他字段的值来过滤选项，如 `"provider"`                               |
 | `mapping`    | object | 映射关系，例如 `{ label: 'name', value: 'id' }`                   |

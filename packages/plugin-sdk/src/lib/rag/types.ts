@@ -1,4 +1,5 @@
 import { DocumentInterface } from '@langchain/core/documents'
+import { IDocChunkMetadata } from '@metad/contracts'
 import fs from 'fs'
 import http from 'http'
 import https from 'https'
@@ -9,11 +10,11 @@ export type TDocumentAsset = {
   filePath: string // local path
 }
 
-export interface ChunkMetadata {
-  documentId?: string // Original document ID
-  pageId?: string // Page ID if paginated
-  chunkId: string // Unique ID for this chunk
-  parentId?: string // References parent chunkId if this is a child chunk
+export interface ChunkMetadata extends IDocChunkMetadata{
+  // documentId?: string // Original document ID
+  // pageId?: string // Page ID if paginated
+  // chunkId: string // Unique ID for this chunk
+  // parentId?: string // References parent chunkId if this is a child chunk
   chunkIndex?: number // Index within the document or parent chunk
   startOffset?: number // Start position in the original text
   endOffset?: number // End position in the original text
@@ -23,7 +24,7 @@ export interface ChunkMetadata {
    * @default text
    */
   mediaType?: 'text' | 'image' | 'video' | 'audio' // Media type of the chunk
-  children?: DocumentInterface<ChunkMetadata>[]
+  // children?: DocumentInterface<ChunkMetadata>[]
   /**
    * Associated assets like images, videos, etc.
    */
@@ -33,9 +34,8 @@ export interface ChunkMetadata {
 
 /**
  * Merge parent chunks with their child chunks based on metadata (parentId and chunkId)
- * @param chunks
- * @param children
- * @returns
+ * 
+ * @deprecated use buildChunkTreeAndFindLeaves instead
  */
 export function mergeParentChildChunks(
   chunks: DocumentInterface<ChunkMetadata>[], // Parent chunks

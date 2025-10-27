@@ -10,9 +10,7 @@ async function loadModule(modName: string): Promise<any> {
   try {
     return await import(modName);
   } catch (e1) {
-    if (isProd) {
-      console.warn(`ESM import failed for ${modName}:`, e1);
-    }
+    console.warn(`ESM import failed for ${modName}:`, e1);
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       return require(modName);

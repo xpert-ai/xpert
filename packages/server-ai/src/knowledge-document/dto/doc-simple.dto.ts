@@ -1,4 +1,5 @@
-import { IKnowledgeDocument, KBDocumentCategoryEnum, KBDocumentStatusEnum, KDocumentSourceType } from '@metad/contracts'
+import { DocumentSourceProviderCategoryEnum, DocumentTypeEnum, IKnowledgeDocument, KBDocumentCategoryEnum, KBDocumentStatusEnum, KDocumentSourceType } from '@metad/contracts'
+import { DeepPartial } from '@metad/server-common'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose } from 'class-transformer'
 
@@ -17,7 +18,7 @@ export class DocumentSimpleDTO implements Partial<IKnowledgeDocument> {
 
 	@Expose()
 	@ApiProperty({ type: () => String, enum: KDocumentSourceType })
-	sourceType: KDocumentSourceType
+	sourceType: DocumentSourceProviderCategoryEnum | DocumentTypeEnum
 
 	@Expose()
 	@ApiProperty({ type: () => String, enum: KBDocumentCategoryEnum })
@@ -47,7 +48,7 @@ export class DocumentSimpleDTO implements Partial<IKnowledgeDocument> {
 	@ApiProperty({ type: () => String })
 	folder?: string
 
-	constructor(partial: Partial<DocumentSimpleDTO>) {
+	constructor(partial: DeepPartial<DocumentSimpleDTO>) {
 		Object.assign(this, partial)
 	}
 }

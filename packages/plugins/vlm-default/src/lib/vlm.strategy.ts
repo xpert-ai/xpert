@@ -9,7 +9,7 @@ import {
   TImageUnderstandingConfig,
   TImageUnderstandingResult
 } from '@xpert-ai/plugin-sdk'
-import { IconType, IKnowledgeDocument } from '@metad/contracts'
+import { buildChunkTree, collectTreeLeaves, IconType, IKnowledgeDocument } from '@metad/contracts'
 import { Document, DocumentInterface } from '@langchain/core/documents'
 import { join } from 'path'
 import sharp from 'sharp'
@@ -65,14 +65,24 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
 
     await this.validateConfig(config)
 
-    const client = config.visionModel // ✅ 已由核心系统注入
-    const params = {files: doc.metadata?.assets?.filter((asset) => asset.type === 'image'), chunks: doc.chunks as DocumentInterface<ChunkMetadata>[]}
-    const chunks: Document<Partial<ChunkMetadata>>[] = []
-    const pages : Document<Partial<ChunkMetadata>>[] = []
+    const client = config.visionModel // ✅ Injected by the core system
+    const params = {
+      files: doc.metadata?.assets?.filter((asset) => asset.type === 'image'),
+      chunks: doc.chunks as DocumentInterface<ChunkMetadata>[]
+    }
 
-    for await (const chunk of params.chunks) {
+    const tree = buildChunkTree(doc.chunks)
+    const leaves = collectTreeLeaves(tree)
+
+    const chunks: Document<Partial<ChunkMetadata>>[] = []
+    // const pages : Document<Partial<ChunkMetadata>>[] = []
+
+    for await (const chunk of leaves) {
       const assets: string[] = []
       chunk.metadata['chunkId'] ??= uuid()
+
+      // 源文档块
+      chunks.push(chunk)
 
       // Find image tags inside the chunk
       const matches = Array.from(chunk.pageContent.matchAll(IMAGE_REGEX))
@@ -87,7 +97,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
             metadata: {
               mediaType: 'image',
               chunkId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-              parentId: chunk.metadata['parentId'] ?? chunk.metadata['chunkId'],
+              parentId: chunk.metadata['chunkId'],
               imagePath: asset.filePath,
               // source: asset.filename,
               parser: 'vlm'
@@ -96,25 +106,22 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
         }
       }
 
-      if (assets.length === 0) {
-        chunks.push(chunk)
-      } else {
-        pages.push(chunk) // 原始块，保留图片引用
-        chunks.push(new Document({
-          pageContent: chunk.pageContent,
-          metadata: {
-            ...chunk.metadata,
-            assets: (chunk.metadata.assets || []).concat(params.files.filter((a) => assets.includes(a.url))),
-            chunkId: `txt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            parentId: chunk.metadata.parentId ?? chunk.metadata.chunkId,
-          }
-        }))
-      }
+      // if (assets.length > 0) {
+      //   chunks.push(new Document({
+      //     pageContent: chunk.pageContent,
+      //     metadata: {
+      //       ...chunk.metadata,
+      //       assets: (chunk.metadata['assets'] || []).concat(params.files.filter((a) => assets.includes(a.url))),
+      //       chunkId: `txt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      //       parentId: chunk.metadata.parentId ?? chunk.metadata.chunkId,
+      //     }
+      //   }))
+      // }
     }
 
     return {
       chunks,
-      pages,
+      // pages,
       metadata: {}
     }
   }

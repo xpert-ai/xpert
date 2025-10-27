@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
-import { UnstructuredPlugin } from './lib/unstructured.plugin';
+import { UnstructuredPlugin } from './lib/unstructured.module';
 import { icon } from './lib/types';
 
 const ConfigSchema = z.object({

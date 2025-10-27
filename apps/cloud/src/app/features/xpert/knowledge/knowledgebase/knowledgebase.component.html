@@ -172,14 +172,16 @@
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large">
-    <!-- <button cdkMenuItem
-      type="button"
-      (click)="downloadPipeline()"
-    >
-      <i class="ri-download-2-line mr-1"></i>
-      <span>
-        {{ 'PAC.Knowledgebase.DownloadPipeline' | translate: {Default: 'Download Pipeline'} }}</span>
-    </button> -->
+    @if (pipelineId(); as pipelineId) {
+      <button cdkMenuItem
+        type="button"
+        (click)="downloadPipeline(pipelineId)"
+      >
+        <i class="ri-download-2-line mr-1"></i>
+        <span>
+          {{ 'PAC.Knowledgebase.DownloadPipeline' | translate: {Default: 'Download Pipeline'} }}</span>
+      </button>
+    }
     
     <button cdkMenuItem
       type="button" class="danger"

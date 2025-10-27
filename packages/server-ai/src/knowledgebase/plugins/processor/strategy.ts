@@ -110,7 +110,8 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							const { items } = await this.documentService.findAll({
 								where: {
 									id: In(documentIds),
-								}
+								},
+								relations: ['chunks']
 							})
 							input = items
 						}
@@ -119,7 +120,11 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							knowledgebaseId,
 							entity,
 							isDraft,
-							input // .map((doc) => ({...doc, fileUrl: `https://api.mtda.cloud/api/sandbox/volume/knowledges/2a0d2697-a363-4fa7-8bb2-d74a3a6b8265/知识库测试.pdf`}))
+							input.map((doc) => ({
+								...doc,
+								...(doc.draft ?? {}),
+								// fileUrl: `https://api.mtda.cloud/api/sandbox/volume/knowledges/2a0d2697-a363-4fa7-8bb2-d74a3a6b8265/知识库测试.pdf`
+							}))
 						)
 
 						let documents = []
@@ -137,18 +142,25 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							for await (const result of results) {
 								if (result.id) {
 									await this.documentService.update(result.id, {
+										draft: {
+											chunks: result.chunks
+										},
 										metadata: result.metadata,
-										chunks: result.chunks
+										status: KBDocumentStatusEnum.TRANSFORMED
 									})
 									documents.push(result)
 								} else {
 									const doc = await this.documentService.create({
 										metadata: result.metadata,
-										pages: result.chunks.map((chunk) => ({
-											pageContent: chunk.pageContent,
-											metadata: chunk.metadata
-										})),
+										// pages: result.chunks.map((chunk) => ({
+										// 	pageContent: chunk.pageContent,
+										// 	metadata: chunk.metadata
+										// })),
+										draft: {
+											chunks: result.chunks
+										},
 										knowledgebaseId,
+										status: KBDocumentStatusEnum.TRANSFORMED,
 										tasks: [
 											{
 												id: knowledgeTaskId
@@ -169,7 +181,7 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							},
 							output: results.map((doc) => {
 									doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
-									doc.pages = doc.pages?.slice(0, 2)
+									// doc.pages = doc.pages?.slice(0, 2)
 									return doc
 								}) as JSONValue
 						}

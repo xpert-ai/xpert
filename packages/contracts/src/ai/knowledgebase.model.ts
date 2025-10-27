@@ -5,6 +5,7 @@ import { IKnowledgeDocument } from './knowledge-doc.model'
 import { IXpert } from './xpert.model'
 import { IIntegration } from '../integration.model'
 import { channelName } from '../agent/graph'
+import { IDocChunkMetadata } from './knowledge-doc-chunk.model'
 
 /**
  * Non-internal types should remain the same as IntegrationEnum.
@@ -165,7 +166,7 @@ export type TKBRecallParams = {
   weight?: number
 }
 
-export type DocumentMetadata = {
+export type DocumentMetadata = IDocChunkMetadata & {
     score?: number; 
     relevanceScore?: number
 } & Record<string, any>;

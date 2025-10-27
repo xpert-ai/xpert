@@ -6,7 +6,10 @@ import { QueryBus } from '@nestjs/cqrs'
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch"
 import { ChatMessageEventTypeEnum, DocumentMetadata, TKBRecallParams } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
+import { instanceToPlain } from 'class-transformer'
+import { omit } from 'lodash'
 import { KnowledgeSearchQuery } from './queries'
+import { DocumentChunkDTO } from '../knowledge-document/dto'
 
 /**
  * Docs Retriever for signle Knowledgebase
@@ -47,8 +50,11 @@ export class KnowledgeRetriever extends BaseRetriever {
 					source: 'retriever',
 				})
 			)
-			// const docs = results.filter(({score}) => this.options?.score ? score >= this.options.score : true).map(({ doc }) => doc)
-			return results // .map(({ doc }) => doc)
+			return results.map((doc) => instanceToPlain(
+				new DocumentChunkDTO(
+					{...doc, metadata: omit(doc.metadata, 'children') }
+				)
+			) as Document)
 		} catch(error) {
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR, {knowledgebaseId: this.knowledgebaseId, error: getErrorMessage(error)})
 			throw error

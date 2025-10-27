@@ -4,18 +4,18 @@
     <ng-content select="[icon]"></ng-content>
     @if (integrationProvider(); as provider) {
       @if (provider.icon) {
-        <xp-icon [icon]="provider.icon" class="w-5 h-5 rounded-lg mr-1 bg-gray-100 flex justify-center items-center" />
+        <xp-icon [icon]="provider.icon" class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-gray-100 flex justify-center items-center" />
       } @else if (provider.avatar) {
-        <img class="w-5 h-5 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar">
+        <img class="w-5 h-5 shrink-0 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar">
       }
     }
   </div>
   <ng-template #option let-option>
     <div class="relative flex gap-2">
       @if (option.avatar) {
-        <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar">
+        <img class="w-8 h-8 shrink-0 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar">
       } @else if (option._icon) {
-        <xp-icon [icon]="option._icon" class="w-8 h-8 rounded-lg bg-gray-100 flex justify-center items-center" />
+        <xp-icon [icon]="option._icon" class="w-8 h-8 shrink-0 rounded-lg bg-gray-100 flex justify-center items-center" />
       }
       <div class="flex flex-col">
         <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>

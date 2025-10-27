@@ -3,6 +3,7 @@ import {
   BaseDocumentTransformer,
 } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { v4 as uuid } from 'uuid'
 
 export interface MarkdownHeader {
   level: number;
@@ -70,6 +71,7 @@ export class MarkdownRecursiveTextSplitter
               pageContent,
               metadata: {
                 ...doc.metadata,
+                chunkId: uuid(),
                 headers: section.headers,
                 headerText: headersStr.replace(/\n/g, " / "),
               },

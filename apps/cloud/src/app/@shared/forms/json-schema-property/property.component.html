@@ -1,12 +1,19 @@
 <div class="flex justify-between items-center">
-  @if (meta().title || name(); as title) {
-    <div class="py-1">
-      @if(required()) {
-        <span class="text-text-destructive">*</span>
-      }
-      {{title | i18n}}
-    </div>
-  }
+  <div class="flex items-center">
+    @if (meta().title || name(); as title) {
+      <div class="py-1">
+        @if(required()) {
+          <span class="text-text-destructive">*</span>
+        }
+        {{title | i18n}}
+      </div>
+    }
+    @if (xUiHelp(); as helpUrl) {
+      <a class="inline-flex items-center ml-2 text-sm text-text-tertiary hover:text-primary-500 hover:underline" [href]="helpUrl | i18n" target="_blank" rel="noopener noreferrer">
+        <i class="ri-book-open-line"></i>
+      </a>
+    }
+  </div>
 
   @if (type() === 'array' && !enum()) {
     <button class="btn btn-small justify-center w-6 h-6" (click)="addArray()">

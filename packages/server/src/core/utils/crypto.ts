@@ -129,3 +129,26 @@ export function decryptSecret(
     );
   }
 }
+
+/**
+ * Computes a deterministic SHA-256 hash of a JSON object.
+ *
+ * @param json - The JSON object to hash.
+ * @returns The SHA-256 hash of the normalized JSON object as a hexadecimal string.
+ */
+export function computeObjectHash(json: Record<string, any>): string {
+  // Object sorting ensures consistent hashing for the same configuration
+  function sortObjectKeys(obj: any): any {
+    if (obj === null || typeof obj !== 'object') return obj
+    if (Array.isArray(obj)) return obj.map((item) => sortObjectKeys(item))
+
+    return Object.keys(obj)
+      .sort()
+      .reduce((result, key) => {
+        result[key] = sortObjectKeys(obj[key])
+        return result
+      }, {} as Record<string, any>)
+  }
+  const normalized = JSON.stringify(sortObjectKeys(json))
+  return crypto.createHash('sha256').update(normalized).digest('hex')
+}

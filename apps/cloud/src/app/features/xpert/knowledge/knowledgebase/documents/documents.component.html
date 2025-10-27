@@ -88,9 +88,23 @@
           {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
         </th>
         @for (column of columnsToDisplay; track column.name) {
-          <th scope="col" class="px-6 py-3 w-40">
-            {{ 'PAC.KEY_WORDS.' + column.caption | translate: {Default: column.caption} }}
-          </th>
+          @switch (column.name) {
+            @case ('disabled') {
+              <th scope="col" class="px-6 py-3 w-24">
+                {{ 'PAC.KEY_WORDS.' + column.caption | translate: {Default: column.caption} }}
+              </th>
+            }
+            @case ('processMsg') {
+              <th scope="col" class="px-6 py-3 w-60">
+                {{ 'PAC.KEY_WORDS.Message' | translate: {Default: 'Message'} }}
+              </th>
+            }
+            @default {
+              <th scope="col" class="px-6 py-3 w-44">
+                {{ 'PAC.KEY_WORDS.' + column.caption | translate: {Default: column.caption} }}
+              </th>
+            }
+          }
         }
         <th scope="col" class="px-6 py-3 w-28">
           {{ 'PAC.Knowledgebase.ParsingProgress' | translate: {Default: 'Parsing Progress'} }}
@@ -105,13 +119,14 @@
       @for (element of filteredData(); track element.id; let i = $index) {
         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
           <td class="px-6 py-2">
-            <ngm-checkbox class="shrink-0" [ngModel]="selectionModel.isSelected(element.id)" (ngModelChange)="selectionModel.toggle(element.id)">
+            <ngm-checkbox class="shrink-0" [disabled]="element.sourceType === eKDocumentSourceType.FOLDER"
+              [ngModel]="selectionModel.isSelected(element.id)" (ngModelChange)="selectionModel.toggle(element.id)">
               {{i + 1}}
             </ngm-checkbox> 
           </td>
           <td class="px-6 py-2">
             @if (element.sourceType === eKDocumentSourceType.FOLDER) {
-              <a [routerLink]="['.']" [queryParams]="{parentId: element.id}">
+              <a [routerLink]="['.']" [queryParams]="{parentId: element.id}" class="hover:underline">
                 <knowledge-doc-id [doc]="element" [searchText]="search()" />
               </a>
             } @else {
@@ -121,35 +136,38 @@
             }
           </td>
           @for (column of columnsToDisplay; track column.name) {
-            <td class="px-6 py-2 w-40">
-              @switch (column.name) {
-                @case ('disabled') {
+            @switch (column.name) {
+              @case ('disabled') {
+                <td class="px-6 py-2 w-24">
                   <div class="flex items-center text-sm">
                     <ngm-slide-toggle [ngModel]="!element.disabled" (ngModelChange)="updateDocument(element.id, { disabled: !$event })" />
                   </div>
-                }
-                @case ('processMsg') {
+                </td>
+              }
+              @case ('processMsg') {
+                <td class="px-6 py-2 w-60">
                   <div class="max-w-sm truncate text-sm text-red-600 dark:text-red-400" [title]="element.processMsg">
                     {{element.processMsg}}
                   </div>
-                }
-                @default {
-                  {{ getValue(element, column.name) }}
-                }
+                </td>
               }
-            </td>
+              @default {
+                <td class="px-6 py-2 w-44">
+                {{ getValue(element, column.name) }}
+                </td>
+              }
+            }
           }
 
-          <!-- progress 列 -->
+          <!-- progress Column -->
           <td class="px-6 py-2 w-36">
             @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
               <div class="cursor-pointer" (click)="openTask(element)">
                 @switch (element.status) {
                   @case (eKBDocumentStatusEnum.RUNNING) {
-                    <div class="flex items-center gap-1">
-                      <ngm-progress-spinner class="w-7 h-7 shrink-0" [value]="element.progress" />
-                      <span>{{element.progress}}%</span>
-                    </div>
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Running' | translate: {Default: 'Running'} }]"
+                      color="blue" />
                   }
                   @case (eKBDocumentStatusEnum.FINISH) {
                     <ngm-tags class="text-sm"
@@ -166,6 +184,29 @@
                       [tags]="[{ caption: 'PAC.Knowledgebase.Status_Waiting' | translate: {Default: 'Waiting'} }]"
                       color="orange" />
                   }
+                  @case (eKBDocumentStatusEnum.TRANSFORMED) {
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Transformed' | translate: {Default: 'Transformed'} }]"
+                      color="orange" />
+                  }
+                  @case (eKBDocumentStatusEnum.SPLITTED) {
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Splitted' | translate: {Default: 'Splitted'} }]"
+                      color="orange" />
+                  
+                  }
+                  @case (eKBDocumentStatusEnum.UNDERSTOOD) {
+                    <ngm-tags class="text-sm"
+                      [tags]="[{ caption: 'PAC.Knowledgebase.Status_Understood' | translate: {Default: 'Understood'} }]"
+                      color="orange" />
+                  }
+                  @case (eKBDocumentStatusEnum.EMBEDDING) {
+                    
+                    <div class="flex items-center gap-1">
+                      <ngm-progress-spinner class="w-6 h-6 shrink-0" [value]="element.progress" />
+                      <span>{{element.progress}}%</span>
+                    </div>
+                  }
                   @default {
                     <ngm-tags class="text-sm"
                       [tags]="[{ caption: 'PAC.Knowledgebase.Status_NotStart' | translate: {Default: 'Not Start'} }]"
@@ -177,11 +218,13 @@
           </td>
           <td class="px-6 py-2 w-28">
             <div class="flex items-center">
-              <button class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
-                (click)="openChunkSettings(element)">
-                <i class="ri-equalizer-2-line"></i>
-              </button>
-              <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
+              @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
+                <button class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
+                  (click)="openChunkSettings(element)">
+                  <i class="ri-equalizer-2-line"></i>
+                </button>
+                <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
+              }
               <button
                 class="w-6 h-6 shrink-0 mr-2 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
                 type="button"
@@ -209,6 +252,7 @@
           {{ 'PAC.KEY_WORDS.Selected' | translate: {Default: 'Selected'} }}
         </span>
       </div>
+      <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
       <button type="button" class="btn btn-secondary btn-large"
         (click)="enableSelected()"
         >
@@ -247,12 +291,12 @@
       <i class="ri-folder-add-fill mr-1 text-xl text-text-accent"></i>
       <span class="ml-2">{{ 'PAC.Knowledgebase.NewFolder' | translate: {Default: 'New Folder'} }}</span>
     </div>
-    <div cdkMenuItem [cdkMenuItemDisabled]="!pipelineId()"
-      [matTooltip]="pipelineId() ? ('PAC.Knowledgebase.AddDocumentFromPipeline' | translate: {Default: 'Use pipelines to create documents and convert them'}) : ('PAC.Knowledgebase.CreatePipelineFirst' | translate: {Default: 'Create a knowledge pipeline first.'})"
+    <div cdkMenuItem [cdkMenuItemDisabled]="!hasPipeline()"
+      [matTooltip]="hasPipeline() ? ('PAC.Knowledgebase.AddDocumentFromPipeline' | translate: {Default: 'Use pipelines to create documents and convert them'}) : ('PAC.Knowledgebase.CreatePipelineFirst' | translate: {Default: 'Create and publish a knowledge pipeline first.'})"
       matTooltipPosition="left"
-      [class.opacity-50]="!pipelineId()"
-      [class.!cursor-pointer]="!pipelineId()"
-      (click)="pipelineId()&&createFromPipeline()">
+      [class.opacity-50]="!hasPipeline()"
+      [class.!cursor-pointer]="!hasPipeline()"
+      (click)="hasPipeline()&&createFromPipeline()">
       <i class="ri-flow-chart mr-1 text-xl text-primary-600"></i>
       <span class="ml-2">{{ 'PAC.Knowledgebase.CreateFromPipeline' | translate: {Default: 'Create From Pipeline'} }}</span>
     </div>
@@ -281,10 +325,12 @@
 
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="reprocess([doc.id])">
-      <i class="ri-reset-right-line mr-2"></i>
-      <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: {Default: 'Reprocess'} }}</span>
-    </div>
+    @if (doc.sourceType !== eKDocumentSourceType.FOLDER) {
+      <div cdkMenuItem (click)="reprocess([doc.id])">
+        <i class="ri-reset-right-line mr-2"></i>
+        <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: {Default: 'Reprocess'} }}</span>
+      </div>
+    }
     <div cdkMenuItem (click)="enableDoc(doc)">
       <i class="ri-checkbox-circle-line mr-2"></i>
       {{ 'PAC.ACTIONS.Enable' | translate: {Default: "Enable"} }}

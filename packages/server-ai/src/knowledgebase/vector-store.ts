@@ -1,9 +1,10 @@
 import { Callbacks } from '@langchain/core/callbacks/manager'
-import { Document, DocumentInterface } from '@langchain/core/documents'
+import { DocumentInterface } from '@langchain/core/documents'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { IKnowledgebase, IKnowledgeDocument } from '@metad/contracts'
+import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@metad/contracts'
 import { v4 as uuidv4 } from 'uuid'
 import { IRerank } from '../ai-model/types/rerank'
+import { TDocChunkMetadata } from '../knowledge-document/types'
 
 
 export type TVectorSearchParams = {
@@ -36,12 +37,12 @@ export class KnowledgeDocumentStore {
 
 	async addKnowledgeDocument(
 		knowledgeDocument: IKnowledgeDocument,
-		documents: Document<Record<string, any>>[]
+		chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]
 	) {
-		documents.forEach((item) => {
+		chunks.forEach((item) => {
 			this.fillMetadata(item, knowledgeDocument)
 		})
-		return await this.vStore.addDocuments(documents)
+		return await this.vStore.addDocuments(chunks)
 	}
 
 	async deleteKnowledgeDocument(item: IKnowledgeDocument) {
@@ -76,7 +77,7 @@ export class KnowledgeDocumentStore {
 		return await this.vStore.delete({ ids: [id] })
 	}
 
-	async updateChunk(id: string, chunk: Document<Record<string, any>>, document: IKnowledgeDocument) {
+	async updateChunk(id: string, chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>, document: IKnowledgeDocument) {
 		const _chunk = await this.getChunk(id)
 		await this.vStore.delete({ ids: [id] })
 		chunk.pageContent ??= _chunk?.pageContent ?? ''
@@ -109,7 +110,7 @@ export class KnowledgeDocumentStore {
 		return this.vStore.similaritySearchWithScore(query, k, _filter, _callbacks)
 	}
 
-	async rerank(docs: Document[], query: string, options: {
+	async rerank(docs: DocumentInterface[], query: string, options: {
   		topN: number
 	}) {
 		return this.rerankModel.rerank(docs,
@@ -118,7 +119,7 @@ export class KnowledgeDocumentStore {
 		)
 	}
 
-	fillMetadata(document: DocumentInterface, knowledgeDocument: IKnowledgeDocument) {
+	fillMetadata(document: IKnowledgeDocumentChunk, knowledgeDocument: IKnowledgeDocument) {
 		document.metadata.enabled ??= true
 		document.metadata.knowledgeId = knowledgeDocument.id
 		document.metadata.model = this.model

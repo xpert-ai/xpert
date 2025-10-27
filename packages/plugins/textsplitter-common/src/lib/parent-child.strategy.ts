@@ -1,10 +1,9 @@
+import { Document } from '@langchain/core/documents'
 import { IconType, KnowledgeStructureEnum } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
-import { encodingForModel } from 'js-tiktoken'
-import { Document } from 'langchain/document'
 import { v4 as uuid } from 'uuid'
-import { ParentChild, ChunkSplitConfig, TParentChildConfig } from './types'
+import { ParentChild, TextSplitOptions, TParentChildConfig } from './types'
 
 @Injectable()
 @TextSplitterStrategy(ParentChild)
@@ -76,7 +75,7 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
               expressions: { hide: `model.mode !== 'paragraph'` },
               default: '\n\n'
             },
-            maxTokens: {
+            maxChars: {
               type: 'number',
               title: {
                 en_US: 'Parent Max Tokens',
@@ -112,7 +111,7 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
               },
               default: '\n'
             },
-            maxTokens: {
+            maxChars: {
               type: 'number',
               title: {
                 en_US: 'Child Max Tokens',
@@ -138,7 +137,6 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
   }
 
   async splitDocuments(documents: Document[], options: TParentChildConfig) {
-    const pages: Document<ChunkMetadata>[] = []
     const chunks: Document<ChunkMetadata>[] = []
     for (const doc of documents) {
       const parentChunks = splitIntoParents(doc.pageContent, options.parent)
@@ -156,7 +154,7 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
             endOffset: parentContent.endOffset
           }
         })
-        pages.push(parentDoc)
+        chunks.push(parentDoc)
 
         const childChunks = splitIntoParents(parentContent.content, options.child)
         childChunks.forEach((childContent, childIndex) => {
@@ -180,7 +178,6 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
 
     return {
       chunks,
-      pages
     }
   }
 }
@@ -189,17 +186,15 @@ interface ParentChunk {
   content: string
   startOffset: number
   endOffset: number
-  tokenCount: number
+  charCount: number
 }
 
-export function splitIntoParents(text: string, config: ChunkSplitConfig): ParentChunk[] {
+export function splitIntoParents(text: string, config: TextSplitOptions): ParentChunk[] {
   const {
-    separator = '\n\n',
-    maxTokens = 500,
-    modelName = 'text-embedding-3-small'
+    maxChars = 2000
   } = config
+  const separator = config.separator?.replace(/\\n/g, "\n") || '\n\n'
 
-  const enc = encodingForModel(modelName)
   const rawBlocks = text.split(separator)
   const chunks: ParentChunk[] = []
   let cursor = 0
@@ -211,28 +206,27 @@ export function splitIntoParents(text: string, config: ChunkSplitConfig): Parent
       continue
     }
 
-    const tokens = enc.encode(trimmed)
+    const length = trimmed.length
 
-    if (tokens.length <= maxTokens) {
+    if (length <= maxChars) {
       chunks.push({
         content: trimmed,
         startOffset: cursor,
         endOffset: cursor + rawBlock.length,
-        tokenCount: tokens.length
+        charCount: length
       })
     } else {
-      // Overlong blocks -> split again by maxTokens
+      // Overlong blocks -> Split by number of characters
       let start = 0
-      while (start < tokens.length) {
-        const end = Math.min(start + maxTokens, tokens.length)
-        const slice = tokens.slice(start, end)
-        const subContent = enc.decode(slice)
+      while (start < length) {
+        const end = Math.min(start + maxChars, length)
+        const subContent = trimmed.slice(start, end)
 
         chunks.push({
           content: subContent,
           startOffset: cursor + start,
           endOffset: cursor + end,
-          tokenCount: slice.length
+          charCount: subContent.length
         })
 
         start = end
@@ -242,6 +236,5 @@ export function splitIntoParents(text: string, config: ChunkSplitConfig): Parent
     cursor += rawBlock.length + separator.length
   }
 
-  // enc.free() // 释放资源 应该不需要
   return chunks
 }

@@ -1,11 +1,12 @@
-import { DocumentInterface } from '@langchain/core/documents'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIntegration } from '../integration.model'
 import { IStorageFile } from '../storage-file.model'
 import { IKnowledgeDocumentPage } from './knowledge-doc-page.model'
 import { IKnowledgebaseTask } from './knowledgebase-task.model'
-import { DocumentMetadata, IKnowledgebase } from './knowledgebase.model'
+import { IKnowledgebase } from './knowledgebase.model'
 import { TRagWebOptions } from './rag-web'
+import { IKnowledgeDocumentChunk } from './knowledge-doc-chunk.model'
+import { DocumentSourceProviderCategoryEnum } from './knowledge-pipeline'
 
 
 export type DocumentParserConfig = {
@@ -43,28 +44,23 @@ export type DocumentSheetParserConfig = DocumentParserConfig & {
  * Import Type:
  * - file: local file
  * - web: web document
- * - feishu
- * - wechat
- * - notion
  * ...
  */
-export enum KDocumentSourceType {
-  /**
-   * Local files
-   */
-  FILE = 'file',
-  /**
-   * Remote files (FTP, SFTP, etc.)
-   */
-  REMOTE_FILE = 'remote-file',
-  /**
-   * Web documents
-   */
-  WEB = 'web',
+export enum DocumentTypeEnum {
   /**
    * Folder, parent of other documents
    */
   FOLDER = 'folder',
+
+  /**
+   * Local files
+   * @deprecated use DocumentSourceProviderCategoryEnum local file type instead
+   */
+  FILE = 'file'
+}
+export const KDocumentSourceType = {
+  ...DocumentSourceProviderCategoryEnum,
+  ...DocumentTypeEnum
 }
 
 /**
@@ -83,6 +79,10 @@ export enum KBDocumentStatusEnum {
   WAITING = 'waiting',
   VALIDATE = 'validate',
   RUNNING = 'running',
+  TRANSFORMED = 'transformed',
+  SPLITTED = 'splitted',
+  UNDERSTOOD = 'understood',
+  EMBEDDING = 'embedding',
   CANCEL = 'cancel',
   FINISH = 'finish',
   ERROR = 'error'
@@ -124,7 +124,7 @@ export type TKnowledgeDocument = {
   /**
    * where dose this document come from
    */
-  sourceType?: KDocumentSourceType | null
+  sourceType?: DocumentSourceProviderCategoryEnum | DocumentTypeEnum
   sourceConfig?: TDocSourceConfig
   /**
    * document type category
@@ -178,7 +178,12 @@ export type TKnowledgeDocument = {
   integrationId?: string
   integration?: IIntegration
 
+  /**
+	 * @deprecated use chunks instead
+	 */
   pages?: IKnowledgeDocumentPage[]
+
+  chunks?: IKnowledgeDocumentChunk[]
   tasks?: IKnowledgebaseTask[]
 }
 
@@ -190,21 +195,21 @@ export interface IKnowledgeDocument<T = Metadata> extends TKnowledgeDocument, IB
   children?: IKnowledgeDocument[]
   knowledgebase?: IKnowledgebase
 
-  // Temp
-  chunks?: DocumentInterface[]
+  draft?: TKnowledgeDocument
+  
   metadata?: T
 }
 
-export interface IDocumentChunk<Metadata = DocumentMetadata> {
-  id: string
-  pageContent: string
-  metadata: Metadata & {
-    knowledgeId?: string
-  }
-  collection_id: string
-}
+// export interface IDocumentChunk<Metadata = DocumentMetadata> {
+//   id: string
+//   pageContent: string
+//   metadata: Metadata & {
+//     knowledgeId?: string
+//   }
+//   collection_id: string
+// }
 
-export type Metadata = Record<string, any>
+export type Metadata = any
 
 export interface IKnowledgeDocumentCreateInput
 	extends IKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {}

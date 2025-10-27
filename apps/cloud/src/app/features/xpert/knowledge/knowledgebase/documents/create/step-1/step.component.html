@@ -35,7 +35,7 @@
   </div>
 
   @switch (sourceType()[0]) {
-    @case (eKDocumentSourceType.FILE) {
+    @case (eKDocumentSourceType.LocalFile) {
       <xp-knowledge-local-file class="w-full p-4" [knowledgebaseId]="knowledgebaseId()"
         [parentId]="parentId()"
         [(files)]="files" 
@@ -91,7 +91,7 @@
         </div>
       </div> -->
     }
-    @case (eKDocumentSourceType.REMOTE_FILE) {
+    @case (eKDocumentSourceType.FileSystem) {
       <div class="my-6 w-full flex flex-col gap-2">
         @if (fileSystemStrategy(); as fileSystemStrategy) {
           <json-schema-form #fileSystemForm class="mt-2 grid grid-cols-2 gap-2" [schema]="fileSystemStrategy.meta.configSchema" 
@@ -100,7 +100,7 @@
         }
       </div>
     }
-    @case (eKDocumentSourceType.WEB) {
+    @case (eKDocumentSourceType.WebCrawl) {
       <div class="my-6 w-full flex flex-col gap-2">
         <div class="mb-4">
           <div class="font-medium text-gray-700 mb-2 h-6">
@@ -246,7 +246,7 @@
   }
 
   <div class="flex justify-end gap-2 max-w-[640px]">
-    @if (sourceType()[0] === eKDocumentSourceType.REMOTE_FILE) {
+    @if (sourceType()[0] === eKDocumentSourceType.FileSystem) {
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
         (click)="connectRemoteFiles()">
         {{ 'PAC.Knowledgebase.Connect' | translate: {Default: 'Connect'} }}
@@ -271,7 +271,7 @@
         <div class="flex h-full w-full flex-col rounded-t-xl border-l border-t border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5">
           <div class="flex gap-x-2 border-b border-divider-subtle pb-3 pl-6 pr-4 pt-4">
             <div class="flex grow flex-col gap-y-1">
-              <div class="system-2xs-semibold-uppercase text-text-accent">预览</div>
+              <div class="system-2xs-semibold-uppercase text-text-accent">{{ 'PAC.Knowledgebase.Preview' | translate: {Default: 'Preview'} }}</div>
               <div class="title-md-semi-bold text-tex-primary">{{file.document$.value?.name}}</div>
               <div class="system-xs-medium flex items-center gap-x-1 text-text-tertiary">
                 <svg
@@ -289,7 +289,7 @@
 
                 <p class="text-xs text-gray-500">
                   <span class="truncate">{{ file.file.type || 'FILE' }}</span> · {{ file.formatSize() }}
-                  <span>·</span><span>{{ doc.pageContent.length}} 字符</span>
+                  <span>·</span><span>{{ doc.pageContent.length}} {{ 'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</span>
                 </p>
               </div>
             </div>
@@ -360,7 +360,7 @@
   </div>
 }
 
-@if (sourceType()[0] === eKDocumentSourceType.REMOTE_FILE) {
+@if (sourceType()[0] === eKDocumentSourceType.FileSystem) {
   <xp-knowledge-file-system class="w-full overflow-auto" />
 }
 

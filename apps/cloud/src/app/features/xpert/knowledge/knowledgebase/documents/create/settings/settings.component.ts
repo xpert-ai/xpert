@@ -147,17 +147,23 @@ export class KnowledgeDocumentCreateSettingsComponent {
     }
   })
 
+  readonly preview = signal(false)
+
   // constructor() {
   //   effect(() => {
   //     this.preview()
   //   }, { allowSignalWrites: true })
   // }
 
-  preview() {
+  onPreview() {
     if (!this.selectedDocument()) {
       if (this.documents().length) {
         this.selectedDocIndex.set(0)
       }
     }
+  }
+
+  toggleAllPreview() {
+    this.preview.update((state) => !state)
   }
 }

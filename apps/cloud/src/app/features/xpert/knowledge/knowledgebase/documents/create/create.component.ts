@@ -13,7 +13,9 @@ import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { BehaviorSubject } from 'rxjs'
 import {
+  DocumentSourceProviderCategoryEnum,
   DocumentTextParserConfig,
+  DocumentTypeEnum,
   IIntegration,
   IKnowledgeDocument,
   KDocumentSourceType,
@@ -75,7 +77,7 @@ export class KnowledgeDocumentCreateComponent {
   readonly step = signal(0)
 
   // Step 1
-  readonly sourceType = model<KDocumentSourceType[]>([KDocumentSourceType.FILE])
+  readonly sourceType = model<Array<DocumentSourceProviderCategoryEnum | DocumentTypeEnum>>([KDocumentSourceType.LocalFile])
   readonly sourceConfig = model<any>(null)
 
   // readonly fileList = signal<TFileItem[]>([])

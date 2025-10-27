@@ -11,9 +11,5 @@ export const INTEGRATION_PROVIDERS: Partial<Record<IntegrationEnum, TIntegration
   // [IntegrationEnum.LARK]: IntegrationLarkProvider,
   [IntegrationEnum.DINGTALK]: IntegrationDingTalkProvider,
   // [IntegrationEnum.WECOM]: IntegrationWeComProvider,
-  // [IntegrationEnum.FIRECRAWL]: IntegrationFirecrawlProvider,
   [IntegrationEnum.GITHUB]: IntegrationGitHubProvider,
-  // [IntegrationEnum.RAGFlow]: IntegrationRAGFlowProvider,
-  // [IntegrationEnum.Dify]: IntegrationDifyProvider,
-  // [IntegrationEnum.FastGPT]: IntegrationFastGPTProvider
 }

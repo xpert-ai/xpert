@@ -56,7 +56,7 @@
   </div>
   <div class="grow overflow-y-auto">
     <table class="w-full border-collapse border-0 text-[13px] leading-4 text-text-secondary">
-      <thead class="sticky top-0 h-7 text-xs font-medium uppercase leading-7 text-text-tertiary backdrop-blur-[5px]">
+      <thead class="sticky top-0 h-7 text-sm font-medium uppercase leading-7 backdrop-blur-[5px]">
         <tr>
           <td class="w-[128px] rounded-l-lg bg-background-section-burn pl-3">
             {{ 'PAC.Knowledgebase.Source' | translate: {Default: 'Source'} }}
@@ -75,7 +75,7 @@
             (click)="selectLog(log)">
             <td class="w-[128px] pl-3">
               <div class="flex items-center">
-                <i class="ri-focus-2-line"></i>
+                <i class="ri-focus-2-line mr-0.5"></i>
                 <span class="capitalize">
                   @switch (log.source) {
                     @case ('hit_testing') {
@@ -91,8 +91,12 @@
                 </span>
               </div>
             </td>
-            <td class="max-w-xs py-2">{{ log.query }}</td>
-            <td class="w-36 pl-2">{{ log.createdAt | date: 'short' }}</td>
+            <td class="max-w-xs py-2">
+              <div class="line-clamp-3 font-body">
+                {{ log.query }}
+              </div>
+            </td>
+            <td class="w-36 pl-2 text-sm text-text-tertiary group-hover:text-text-secondary">{{ log.createdAt | relative }}</td>
           </tr>
         }
       </tbody>

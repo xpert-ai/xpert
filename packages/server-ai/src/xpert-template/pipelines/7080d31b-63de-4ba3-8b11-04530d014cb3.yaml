@@ -1,5 +1,5 @@
 team:
-  name: 知识管道测试 Pipeline - 7HPpTscY2z
+  name: 复杂 PDF MinerU 解析
   type: knowledge
   title: null
   description: null
@@ -7,9 +7,9 @@ team:
   starters: null
   options:
     position:
-      x: 217.0898536037759
-      y: 194.57186205431492
-    scale: 0.4301620599746697
+      x: 143.483842718005
+      y: 110.16973544514457
+    scale: 0.6046782953262324
     workflow:
       Source_Qy8zhtBMLV:
         position:
@@ -17,7 +17,7 @@ team:
           y: 500
       KnowledgeBase_KhDIYDGYeC:
         position:
-          x: 1640
+          x: 1680
           y: 160
       Source_zdDsuRRENp:
         position:
@@ -45,16 +45,16 @@ team:
           y: 620
       Chunker_vMGWw52xVK:
         position:
-          x: 120
+          x: 460
           y: 60
       Chunker_9PnscncHIp:
         position:
-          x: 1360
-          y: 440
+          x: 780
+          y: 340
       Processor_eQBAfSLaIu:
         position:
-          x: 440
-          y: 440
+          x: 460
+          y: 340
       ListOperator_NYZbXuuLYu:
         position:
           x: 120
@@ -62,26 +62,30 @@ team:
       ListOperator_nBEQr2hF2L:
         position:
           x: 120
-          y: 440
+          y: 340
       Processor_D033jtpyXO:
         position:
-          x: 440
+          x: 460
           y: 660
       VariableAggregator_bYnycSe52J:
         position:
-          x: 1020
-          y: 440
+          x: 1400
+          y: 340
       Understanding_unZTFBU5mw:
         position:
-          x: 760
+          x: 1100
+          y: 660
+      Chunker_AkYwTXUsUk:
+        position:
+          x: 780
           y: 660
   agentConfig:
     parameters:
-      - type: number
+      - type: text
         name: crawl_url
         description: 抓取链接
         default: null
-        optional: null
+        optional: true
         maximum: null
         options: null
     mute:
@@ -98,7 +102,7 @@ team:
         - others
   version: "1"
   agent:
-    key: 9wX1r4RepS
+    key: oFi0AN35JJ
   copilotModel: null
   knowledgebases: []
   toolsets: []
@@ -107,11 +111,11 @@ nodes:
   - key: KnowledgeBase_KhDIYDGYeC
     type: workflow
     position:
-      x: 1640
+      x: 1680
       y: 160
     entity:
       key: KnowledgeBase_KhDIYDGYeC
-      title: Knowledge Base
+      title: 知识库
       type: knowledgebase
       structure: general
       input: chunker_9pnscnchip_channel.documents
@@ -122,8 +126,8 @@ nodes:
       rerankModel: null
       inputs:
         - chunker_vmgww52xvk_channel.documents
-        - chunker_9pnscnchip_channel.documents
-    hash: f6316374e42726011bb4803a8d03fe648008e5d7d8fc50d394d01200364f1c23
+        - variableaggregator_bynycse52j_channel.result
+    hash: 84b2edbc6129848e5232035a6abaf1788ab41c0215674001d9a78e8bd411dee1
   - type: workflow
     key: Source_zdDsuRRENp
     position:
@@ -158,11 +162,11 @@ nodes:
       title: 触发器
       from: chat
       parameters:
-        - type: number
+        - type: text
           name: crawl_url
           description: 抓取链接
           default: null
-          optional: null
+          optional: true
           maximum: null
           options: null
     hash: 515c5d668e7c413f0bf139536b9b9195d5b0488f6cec9e32365c2e03b50216a4
@@ -180,7 +184,7 @@ nodes:
   - type: workflow
     key: Chunker_vMGWw52xVK
     position:
-      x: 120
+      x: 460
       y: 60
     entity:
       type: chunker
@@ -191,12 +195,12 @@ nodes:
         addHeadersToChunk: true
         headerToSplitOn: 3
       input: source_zddsurrenp_channel.documents
-    hash: 4b92a6f6ad8d1941d5e9a95b2b32719fd50f41eeb16e0ec401d82a4db341e449
+    hash: f278fce076662cc243c0be2941b113a435d19b79c3062ebe08d96d739a71c188
   - type: workflow
     key: Chunker_9PnscncHIp
     position:
-      x: 1360
-      y: 440
+      x: 780
+      y: 340
     entity:
       type: chunker
       key: Chunker_9PnscncHIp
@@ -205,20 +209,20 @@ nodes:
       config:
         addHeadersToChunk: true
         headerToSplitOn: 3
-      input: variableaggregator_bynycse52j_channel.result
-    hash: 699954aa0f3cb75cbf196e08eda88c0706bbb206408e6c43ba6cedc6b4457aa7
+      input: processor_eqbafslaiu_channel.documents
+    hash: 5316b9de065bf9c73395a4e45e462ed336f05f64cf482fd8e8837a44f74cf4bc
   - type: workflow
     key: Processor_eQBAfSLaIu
     position:
-      x: 440
-      y: 440
+      x: 460
+      y: 340
     entity:
       type: processor
       key: Processor_eQBAfSLaIu
-      title: 处理器
+      title: 默认处理器
       provider: default
       input: listoperator_nbeqr2hf2l_channel.result
-    hash: 1b45b2faf2b0c39a58b1ed05f23aec41e87d8f1d2cd4804a8a57d5b93dd453a6
+    hash: 36dd89a817dd88a0de918f7c52cc2c1d46878fc6394ebb93cc1562d0e492cc3c
   - type: workflow
     key: ListOperator_NYZbXuuLYu
     position:
@@ -227,7 +231,7 @@ nodes:
     entity:
       type: list-operator
       key: ListOperator_NYZbXuuLYu
-      title: List Operator
+      title: PDF 文件
       input: source_hsqpxwjvzl_channel.documents
       filterBy:
         enabled: true
@@ -252,11 +256,11 @@ nodes:
     key: ListOperator_nBEQr2hF2L
     position:
       x: 120
-      y: 440
+      y: 340
     entity:
       type: list-operator
       key: ListOperator_nBEQr2hF2L
-      title: List Operator 2
+      title: 非 PDF 文件
       input: source_hsqpxwjvzl_channel.documents
       itemVarType: document
       filterBy:
@@ -266,11 +270,11 @@ nodes:
             comparisonOperator: not-like
             value: pdf$|PDF$
             variableSelector: extension
-    hash: 231ed6963479491bc559a80272b3a0a7a7caddecfba394b395660ef4e6240102
+    hash: ccdd1037677341875248cb9c86b3bca8c2d5f6f1765daada73d30877ccc979b8
   - type: workflow
     key: Processor_D033jtpyXO
     position:
-      x: 440
+      x: 460
       y: 660
     entity:
       type: processor
@@ -285,54 +289,62 @@ nodes:
         modelVersion: pipeline
       integrationId: dece9992-ee62-4731-a440-8b45c9622514
       input: listoperator_nyzbxuulyu_channel.result
-    hash: 02c60b82ce07e950995844715bdcd146193e4203298b2575379cd7c7ddbe386e
+    hash: 6d3aef76752fa6eb6755659324ca7c083932b7d5ebbaf7cf6f3c1dc3659f2add
   - type: workflow
     key: VariableAggregator_bYnycSe52J
     position:
-      x: 1020
-      y: 440
+      x: 1400
+      y: 340
     entity:
       type: variable-aggregator
       key: VariableAggregator_bYnycSe52J
-      title: Variable Aggregator
+      title: 变量聚合
       inputs:
-        - processor_eqbafslaiu_channel.documents
-        - processor_d033jtpyxo_channel.documents
+        - chunker_9pnscnchip_channel.documents
+        - understanding_unztfbu5mw_channel.documents
       outputType: array[document]
-    hash: 96da171e4e46b1645a033129fdabaa79f5bd920738420598db54509b0d334690
+    hash: 1bc7c3609f873cb86ba130bee950cdd10e497da9d054f8869c52c8091750cbd9
   - type: workflow
     key: Understanding_unZTFBU5mw
     position:
-      x: 760
+      x: 1100
       y: 660
     entity:
       type: understanding
       key: Understanding_unZTFBU5mw
-      title: Understanding
+      title: 图像理解
       provider: vlm-default
       visionModel:
         model: qwen-vl-plus
         copilotId: ce723cf6-333c-4283-aac4-c864f03f4c6b
         modelType: llm
+      input: chunker_akywtxusuk_channel.documents
+    hash: ac6d778d3986bf7c5590a7b984516fb3fb81430d1ddeb3eff2e427e5d61ba9de
+  - type: workflow
+    key: Chunker_AkYwTXUsUk
+    position:
+      x: 780
+      y: 660
+    entity:
+      type: chunker
+      key: Chunker_AkYwTXUsUk
+      title: 分块器 3
+      provider: markdown-recursive
+      config:
+        addHeadersToChunk: true
+        headerToSplitOn: 3
+        stripHeader: false
       input: processor_d033jtpyxo_channel.documents
-    hash: a3c3470646b0d9b5a56ffe72bc343862a89d6031191cfedcfa0e99f73c61eb5b
+    hash: bc1a9d2ef8713fd96bb43fd71056c6d931d52709f70753679f2fb9ce61f57a6b
 connections:
   - type: edge
     key: Trigger_eIX1W3MP6b/Source_HsQpXWJvzL
     from: Trigger_eIX1W3MP6b
     to: Source_HsQpXWJvzL
   - type: edge
-    key: Chunker_vMGWw52xVK/KnowledgeBase_KhDIYDGYeC
-    from: Chunker_vMGWw52xVK
-    to: KnowledgeBase_KhDIYDGYeC
-  - type: edge
     key: Source_zdDsuRRENp/Chunker_vMGWw52xVK
     from: Source_zdDsuRRENp
     to: Chunker_vMGWw52xVK
-  - type: edge
-    key: Chunker_9PnscncHIp/KnowledgeBase_KhDIYDGYeC
-    from: Chunker_9PnscncHIp
-    to: KnowledgeBase_KhDIYDGYeC
   - type: edge
     key: Source_HsQpXWJvzL/ListOperator_NYZbXuuLYu
     from: Source_HsQpXWJvzL
@@ -350,18 +362,6 @@ connections:
     from: ListOperator_NYZbXuuLYu
     to: Processor_D033jtpyXO
   - type: edge
-    key: VariableAggregator_bYnycSe52J/Chunker_9PnscncHIp
-    from: VariableAggregator_bYnycSe52J
-    to: Chunker_9PnscncHIp
-  - type: edge
-    key: Processor_D033jtpyXO/Understanding_unZTFBU5mw
-    from: Processor_D033jtpyXO
-    to: Understanding_unZTFBU5mw
-  - type: edge
-    key: Processor_eQBAfSLaIu/VariableAggregator_bYnycSe52J
-    from: Processor_eQBAfSLaIu
-    to: VariableAggregator_bYnycSe52J
-  - type: edge
     key: Understanding_unZTFBU5mw/VariableAggregator_bYnycSe52J
     from: Understanding_unZTFBU5mw
     to: VariableAggregator_bYnycSe52J
@@ -369,3 +369,27 @@ connections:
     key: Trigger_eIX1W3MP6b/Source_zdDsuRRENp
     from: Trigger_eIX1W3MP6b
     to: Source_zdDsuRRENp
+  - type: edge
+    key: Processor_D033jtpyXO/Chunker_AkYwTXUsUk
+    from: Processor_D033jtpyXO
+    to: Chunker_AkYwTXUsUk
+  - type: edge
+    key: Chunker_AkYwTXUsUk/Understanding_unZTFBU5mw
+    from: Chunker_AkYwTXUsUk
+    to: Understanding_unZTFBU5mw
+  - type: edge
+    key: VariableAggregator_bYnycSe52J/KnowledgeBase_KhDIYDGYeC
+    from: VariableAggregator_bYnycSe52J
+    to: KnowledgeBase_KhDIYDGYeC
+  - type: edge
+    key: Processor_eQBAfSLaIu/Chunker_9PnscncHIp
+    from: Processor_eQBAfSLaIu
+    to: Chunker_9PnscncHIp
+  - type: edge
+    key: Chunker_9PnscncHIp/VariableAggregator_bYnycSe52J
+    from: Chunker_9PnscncHIp
+    to: VariableAggregator_bYnycSe52J
+  - type: edge
+    key: Chunker_vMGWw52xVK/KnowledgeBase_KhDIYDGYeC
+    from: Chunker_vMGWw52xVK
+    to: KnowledgeBase_KhDIYDGYeC
