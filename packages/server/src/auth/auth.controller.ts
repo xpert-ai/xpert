@@ -7,6 +7,7 @@ import {
 	Get,
 	Req,
 	Query,
+	Headers,
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
@@ -32,6 +33,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { ChangePasswordRequestDTO, ResetPasswordRequestDTO } from '../password-reset/dto';
 import { RegisterUserDTO } from '../user/dto';
 import { randomUUID } from 'crypto';
+import { UseValidationPipe } from '../shared/pipes';
 
 @ApiTags('Auth')
 // @UseInterceptors(TransformInterceptor)
@@ -147,20 +149,24 @@ export class AuthController {
 	) {
 		return await this.authService.resetPassword(request);
 	}
-
+	
+	/**
+	 * Request a password reset.
+	 *
+	 * @param body - Password reset request data.
+	 * @param origin - Origin Request Header.
+	 * @param languageCode - Language code.
+	 * @returns
+	 */
 	@Post('/request-password')
 	@Public()
-	@UsePipes(new ValidationPipe({ transform: true }))
+	@UseValidationPipe({ whitelist: true })
 	async requestPassword(
 		@Body() body: ResetPasswordRequestDTO,
-		@Req() request: Request,
+		@Headers('origin') origin: string,
 		@I18nLang() languageCode: LanguagesEnum
 	): Promise<boolean | BadRequestException> {
-		return await this.authService.requestPassword(
-			body,
-			languageCode,
-			request.get('Origin')
-		);
+		return await this.authService.requestResetPassword(body, languageCode, origin);
 	}
 
 	@Post('resend-verification')

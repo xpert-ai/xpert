@@ -1,11 +1,18 @@
 import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
+import { InjectRepository } from '@nestjs/typeorm'
+import { buildQueryString } from '@metad/server-common'
 import {
 	IAuthResponse,
 	IChangePasswordRequest,
+	ID,
 	IPasswordReset,
+	IResetPasswordRequest,
 	IRolePermission,
+	ITenant,
+	IUser,
+	IUserEmailInput,
 	IUserRegistrationInput,
 	LanguagesEnum,
 	mapTranslationLanguage,
@@ -13,10 +20,11 @@ import {
 import { SocialAuthService } from '@metad/server-auth'
 import { environment as env, environment, IEnvironment } from '@metad/server-config'
 import bcrypt from 'bcryptjs'
+import { StringValue } from 'ms'
 import { nanoid } from 'nanoid'
 import { I18nService } from 'nestjs-i18n'
 import { JsonWebTokenError, sign, verify } from 'jsonwebtoken'
-import { FindOptionsWhere } from 'typeorm'
+import { FindOptionsWhere, Repository } from 'typeorm'
 import { EmailService } from '../email/email.service'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
 import { User } from '../user/user.entity'
@@ -24,13 +32,15 @@ import { UserService } from '../user/user.service'
 import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
 import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
-import { StringValue } from 'ms'
 
 
 @Injectable()
 export class AuthService extends SocialAuthService {
 
 	private readonly logger = new Logger(AuthService.name)
+
+	@InjectRepository(User)
+	private readonly userRepository: Repository<User>
 
 	constructor(
 		private readonly userService: UserService,
@@ -138,6 +148,126 @@ export class AuthService extends SocialAuthService {
 			console.log(error);
 			throw new NotFoundException('Email is not correct, please try again.');
 		}
+	}
+
+	/**
+	 * Initiates the process to request a password reset.
+	 *
+	 * @param request - The reset password request object containing the email address.
+	 * @param languageCode - The language code used for email communication.
+	 * @param originUrl - Optional parameter representing the origin URL of the request.
+	 * @returns A Promise that resolves to a boolean indicating the success of the password reset request
+	 *          or throws a BadRequestException in case of failure.
+	 */
+	async requestResetPassword(
+		request: IResetPasswordRequest,
+		languageCode: LanguagesEnum,
+		originUrl?: string
+	): Promise<boolean | BadRequestException> {
+		try {
+			const { email } = request;
+
+			// Fetch users with specific criteria
+			const users = await this.fetchUsers(email);
+
+			// Throw an exception if no matching users are found
+			if (users.length === 0) {
+				throw new BadRequestException('Forgot password request failed!');
+			}
+
+			// Initialize an array to store reset links along with tenant and user information
+			const tenantUsersMap: { resetLink: string; tenant?: ITenant; user: IUser }[] = [];
+
+			// Iterate through users and generate reset links
+			for await (const user of users) {
+				const { email, tenantId } = user;
+				const { token } = await this.createToken(user);
+
+				// Proceed if a valid token and email are obtained
+				if (!!token && !!email) {
+					try {
+						// Create a password reset request and generate a reset link
+						await this.commandBus.execute(
+							new PasswordResetCreateCommand({
+								email,
+								tenantId,
+								token
+							})
+						);
+
+						// Initialize Base URL
+						const baseURL = `${environment.clientBaseUrl}/#/auth/reset-password`;
+
+						// Generate the reset link using the helper function
+						const resetLink = this.generateResetLink(baseURL, token, email, tenantId);
+
+						// Add the reset link, tenant, and user to the tenantUsersMap array
+						tenantUsersMap.push({ resetLink, tenant: user.tenant ?? undefined, user });
+					} catch (error) {
+						throw new BadRequestException('Forgot password request failed!');
+					}
+				}
+			}
+
+			// If there is only one user, send a password reset email
+			if (users.length === 1) {
+				const [user] = users;
+				const [tenantUserMap] = tenantUsersMap;
+
+				if (tenantUserMap) {
+					const { resetLink } = tenantUserMap;
+					this.emailService.requestPassword(user, resetLink, languageCode, null, originUrl);
+				}
+			} else {
+				// If multiple users are found, send a multi-tenant password reset email
+				// this.emailService.multiTenantResetPassword(email, tenantUsersMap, languageCode, originUrl);
+			}
+
+			// Return success status
+			return true;
+		} catch (error) {
+			// Throw a BadRequestException in case of failure
+			throw new BadRequestException('Forgot password request failed!');
+		}
+	}
+
+	/**
+	 * Generates a password reset link.
+	 *
+	 * @param baseURL The base URL for the reset password page.
+	 * @param token The token generated for the password reset.
+	 * @param email The email of the user.
+	 * @param tenantId The tenant ID (optional).
+	 * @returns The password reset link.
+	 */
+	generateResetLink(baseURL: string, token: string, email: string, tenantId?: ID): string {
+		// Initialize an object to store query parameters
+		const params: { [key: string]: string | ID } = { token, email };
+
+		// Add tenantId to the reset link only if it's available
+		if (tenantId) {
+			params['tenantId'] = tenantId;
+		}
+
+		// Convert query params object to a string
+		const queryString = buildQueryString(params);
+
+		// Combine base URL with query params
+		return `${baseURL}?${queryString}`;
+	}
+
+	/**
+	 * Fetch users from the repository based on specific criteria.
+	 *
+	 * @param {string} email - The user's email address.
+	 * @returns {Promise<User[]>} A Promise that resolves to an array of User objects.
+	 */
+	async fetchUsers(email: IUserEmailInput['email']): Promise<User[]> {
+		// Find users matching the criteria
+		return await this.userRepository.find({
+			where: { email },
+			relations: { tenant: true, role: true }
+		});
 	}
 
 	/**

@@ -45,6 +45,10 @@ export interface IEmailVerification extends IBasePerTenantEntityModel {
     validUntil: Date
 }
 
+export interface IUserEmailInput {
+	email: string;
+}
+
 export interface IUserFindInput {
 	thirdPartyId?: string;
 	firstName?: string;
