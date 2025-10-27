@@ -18,7 +18,20 @@
         <i class="ri-html5-fill text-lg leading-4 text-orange-500"></i>
       }
       @default {
-        <i class="ri-file-text-fill text-lg leading-4"></i>
+        @switch (category()) {
+          @case('image') {
+            <i class="ri-file-image-fill text-lg leading-4 text-green-500"></i>
+          }
+          @case('video') {
+            <i class="ri-file-video-fill text-lg leading-4 text-purple-500"></i>
+          }
+          @case('audio') {
+            <i class="ri-file-audio-fill text-lg leading-4 text-yellow-500"></i>
+          }
+          @default {
+            <i class="ri-file-text-fill text-lg leading-4"></i>
+          }
+        }
       }
     }
   }

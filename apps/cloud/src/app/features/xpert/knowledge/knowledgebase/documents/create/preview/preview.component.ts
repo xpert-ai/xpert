@@ -12,6 +12,7 @@ import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
 import { NgmCheckboxComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { debouncedSignal, linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { isEqual } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { of } from 'rxjs'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
@@ -63,6 +64,9 @@ export class KnowledgeDocumentPreviewComponent {
             name: this.document()?.name,
             knowledgebaseId: this.knowledgebase().id
           },
+    options: {
+      equal: isEqual
+    },
     loader: ({ request }) => (request.fileUrl ? this.knowledgeDocumentService.estimate(request) : of(null))
   })
 

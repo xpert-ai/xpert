@@ -2,7 +2,7 @@ import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
-import { IconType, IKnowledgeDocument } from '@metad/contracts'
+import { IconType, IKnowledgeDocument, KBDocumentCategoryEnum } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import {
   ChunkMetadata,
@@ -11,6 +11,7 @@ import {
   FileSystemPermission,
   IDocumentTransformerStrategy,
   isRemoteFile,
+  TDocumentAsset,
 } from '@xpert-ai/plugin-sdk'
 import fsPromises from 'fs/promises'
 import { Document, DocumentInterface } from '@langchain/core/documents'
@@ -90,6 +91,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
 
     const results = []
     for await (const file of files) {
+      const assets: TDocumentAsset[] = []
+      let fileAbsPath = ''
       if (!file.filePath && isRemoteFile(file.fileUrl)) {
         const tempDir = config.tempDir || '/tmp/'
         const filePath = path.join(tempDir, file.filePath)
@@ -113,9 +116,10 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         }
 
         // Download the remote file to a local temporary directory
-        file.filePath = await downloadRemoteFile(file.fileUrl, filePath)
+        fileAbsPath = await downloadRemoteFile(file.fileUrl, filePath)
       } else {
-        file.filePath = xpFileSystem.fullPath(file.filePath)
+        fileAbsPath = xpFileSystem.fullPath(file.filePath)
+        file.fileUrl ??= xpFileSystem.fullUrl(file.filePath)
       }
       let data: DocumentInterface[]
       const extension = file.name?.split('.').pop()
@@ -123,31 +127,45 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         case 'md':
         case 'mdx':
         case 'markdown':
-          data = await this.processMarkdown(file.filePath)
+          data = await this.processMarkdown(fileAbsPath)
           break
         case 'pdf':
-          data = await this.processPdf(file.filePath)
+          data = await this.processPdf(fileAbsPath)
           break
         case 'epub':
-          data = await this.processEpub(file.filePath)
+          data = await this.processEpub(fileAbsPath)
           break
         case 'doc':
         case 'docx':
-          data = await this.processDocx(file.filePath)
+          data = await this.processDocx(fileAbsPath)
           break
         case 'pptx':
-          data = await this.processPPT(file.filePath)
+          data = await this.processPPT(fileAbsPath)
           break
         case 'xlsx':
-          data = await this.processExcel(file.filePath)
+          data = await this.processExcel(fileAbsPath)
           break
         case 'odt':
         case 'ods':
         case 'odp':
-          data = await this.processOpenDocument(file.filePath)
+          data = await this.processOpenDocument(fileAbsPath)
           break
         default:
-          data = await this.processText(file.filePath)
+          switch (file.category) {
+            case KBDocumentCategoryEnum.Image: {
+              data = await this.processImage(file.name, file.fileUrl)
+              assets.push({
+                type: 'image',
+                url: file.fileUrl,
+                filePath: file.filePath
+              })
+              break;
+            }
+            default: {
+              data = await this.processText(fileAbsPath)
+              break
+            }
+          }
           break
       }
       
@@ -166,7 +184,10 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
             doc.pageContent = doc.pageContent.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '') // Remove email addresses
           }
           return doc
-        })
+        }),
+        metadata: {
+          assets
+        }
       })
     }
 
@@ -209,5 +230,16 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
   async processOpenDocument(url: string): Promise<Document<Record<string, any>>[]> {
     const loader = new PPTXLoader(url)
     return await loader.load()
+  }
+
+  async processImage(name: string, url: string) {
+    return [
+      new Document({
+        pageContent: `![${name}](${url})`,
+        metadata: {
+          source: url
+        }
+      })
+    ]
   }
 }

@@ -227,3 +227,23 @@ export interface IKnowledgeDocumentFindInput
 export function isDocumentSheet(type: string): boolean {
   return ['csv', 'xls', 'xlsx', 'ods', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(type)
 }
+
+export function isImageType(type: string): boolean {
+  return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'svg', 'webp'].includes(type)
+}
+
+export function isVideoType(type: string): boolean {
+  return ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'].includes(type)
+}
+
+export function isAudioType(type: string): boolean {
+  return ['mp3', 'wav', 'aac', 'flac', 'ogg', 'm4a'].includes(type)
+}
+
+export function classificateDocumentCategory(entity: Partial<IKnowledgeDocument>): KBDocumentCategoryEnum {
+  return isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : 
+									isImageType(entity.type) ? KBDocumentCategoryEnum.Image : 
+									isVideoType(entity.type) ? KBDocumentCategoryEnum.Video :
+									isAudioType(entity.type) ? KBDocumentCategoryEnum.Audio :
+									KBDocumentCategoryEnum.Text
+}

@@ -1,4 +1,4 @@
-import { computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core'
+import { computed, CreateComputedOptions, DestroyRef, effect, inject, signal, untracked } from '@angular/core'
 import { Observable, Subscription } from 'rxjs'
 import { getErrorMessage } from '../helpers'
 
@@ -54,6 +54,7 @@ export function myResource<TReq, TRes>(options: ResourceOptions<TReq, TRes>) {
 
 interface RxResourceOptions<TReq, TRes> {
   request: () => TReq
+  options?: CreateComputedOptions<TReq>
   loader: (args: { request: TReq }) => Observable<TRes>
 }
 
@@ -69,7 +70,7 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
 
   const requestSig = computed(() => {
     return options.request()
-  })
+  }, options.options)
 
   let currentSub: Subscription | null = null
 

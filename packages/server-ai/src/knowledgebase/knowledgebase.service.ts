@@ -29,7 +29,8 @@ import {
 	genXpertTriggerKey,
 	IWFNTrigger,
 	KnowledgeStructureEnum,
-	XpertAgentExecutionStatusEnum
+	XpertAgentExecutionStatusEnum,
+	classificateDocumentCategory
 } from '@metad/contracts'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
@@ -565,11 +566,14 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	}
 
 	async previewFile(id: string, filePath: string) {
+		const extension = filePath.split('.').pop().toLowerCase()
 		try {
 			const results = await this.transformDocuments(id, {provider: 'default', config: {}} as IWFNProcessor, false, [
 				{
 					filePath,
-					name: filePath.split('/').pop()
+					name: filePath.split('/').pop(),
+					type: extension,
+					category: classificateDocumentCategory({type: extension})
 				}
 			])
 			return results[0].chunks[0]

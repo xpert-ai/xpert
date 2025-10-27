@@ -38,7 +38,7 @@ export class KnowledgeDocumentConsumer {
 			relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']
 		})
 
-		runWithRequestContext({ user, headers: { ['organization-id']: knowledgebase.organizationId } }, () => {
+		runWithRequestContext({ user, headers: { ['organization-id']: knowledgebase.organizationId, language: user.preferredLanguage } }, () => {
 			this._processJob(knowledgebase, job.data.docs, job).catch((err) => {
 				this.logger.error(err)
 			})

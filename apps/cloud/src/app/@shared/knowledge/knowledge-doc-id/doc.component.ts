@@ -21,6 +21,7 @@ export class KnowledgeDocIdComponent {
   // States
   readonly sourceType = computed(() => this.doc().sourceType)
   readonly type = computed(() => this.doc().type)
+  readonly category = computed(() => this.doc().category)
   readonly storageFile = computed(() => this.doc().storageFile)
   readonly label = computed(() => this.doc().name || this.storageFile()?.originalName || this.doc().options?.url)
 

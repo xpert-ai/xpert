@@ -37,8 +37,25 @@ export class XpFileSystem {
     throw new Error(`Permission denied: path "${targetPath}" is out of scope`)
   }
 
+  /**
+   * Get the absolute path of file in the file system.
+   * 
+   * @param filePath Relative file path
+   * @returns Absolute file path
+   */
   fullPath(filePath: string): string {
     return path.join(this.basePath, filePath)
+  }
+
+  /**
+   * Get web url for a given file path in the file system.
+   * 
+   * @param filePath Relative file path
+   * @returns Web URL of file
+   */
+  fullUrl(filePath: string): string {
+    const url = new URL(filePath, this.baseUrl)
+    return url.href
   }
 
   /**
