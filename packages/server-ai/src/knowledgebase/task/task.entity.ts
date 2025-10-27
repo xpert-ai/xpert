@@ -81,7 +81,10 @@ export class KnowledgebaseTask extends TenantOrganizationBaseEntity implements I
 	| @ManyToMany 
 	|--------------------------------------------------------------------------
 	*/
-	@ManyToMany(() => KnowledgeDocument, {cascade: true})
+	@ManyToMany(() => KnowledgeDocument, {
+		cascade: true,
+		onDelete: 'CASCADE',
+	})
 	@JoinTable({
 		name: 'knowledgebase_task_document'
 	})

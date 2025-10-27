@@ -89,7 +89,7 @@ export class RecursiveCharacterStrategy
         ...chunk,
         metadata: {
           ...chunk.metadata,
-          chunkId: chunk.metadata?.['chunkId'] ?? uuid()
+          chunkId: uuid() // Assign a new UUID for each splitted chunk
         }
       })) as Document<ChunkMetadata>[]
     }

@@ -2498,6 +2498,7 @@
       "TopK": "前多少",
       "Delimiter": "分隔符",
       "Status_Finish": "完成",
+      "Status_Running": "运行中",
       "Status_Error": "错误",
       "Status_NotStart": "未开始",
       "Status_Processing": "处理中",
