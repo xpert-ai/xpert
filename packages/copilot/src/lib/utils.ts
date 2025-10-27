@@ -179,7 +179,10 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: str
         if (content.type === 'text' && content.id) {
           const index = _content.findIndex((_) => _.type === 'text' && _.id === content.id)
           if (index > -1) {
-            (<TMessageContentText>_content[index]).text += content.text
+            _content[index] = {
+              ..._content[index],
+              text: (<TMessageContentText>_content[index]).text + content.text
+            }
           } else {
             _content.push(content)
           }

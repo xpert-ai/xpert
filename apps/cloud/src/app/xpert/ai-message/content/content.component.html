@@ -4,14 +4,17 @@
       @if (content.id && collapse()) {
         <div class="truncate">{{content.text}}</div>
       } @else {
-        <div class="group/content relative w-full mt-2">
-          <markdown clipboard class="ngm-copilot-markdown flex-1"
-            [clipboardButtonTemplate]="buttonTemplate"
-            [disableSanitizer]="true"
-            lineNumbers
-            [start]="5"
-            [data]="content.text"
-          />
+        <div class="group/content relative w-full mt-2" @listEnterAnimation>
+          @for (text of frozenBlocks(); track text) {
+            <markdown clipboard class="ngm-copilot-markdown fade-in flex-1"
+              [class.answering]="answering()"
+              [clipboardButtonTemplate]="buttonTemplate"
+              [disableSanitizer]="true"
+              lineNumbers
+              [start]="5"
+              [data]="text"
+            />
+          }
           
           <div class="absolute -top-3 right-4 flex items-center gap-2 text-sm text-text-secondary opacity-0 group-hover/content:opacity-100 transition-opacity duration-100">
             <copy2 [content]="content.text" class="pressable" />
