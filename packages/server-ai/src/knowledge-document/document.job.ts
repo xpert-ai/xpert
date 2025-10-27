@@ -99,7 +99,7 @@ export class KnowledgeDocumentConsumer {
 				if (chunks) {
 					this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
 					document.chunks = await this.documentService.coverChunks({...document, chunks}, vectorStore)
-					chunks = await this.documentService.findAllLeaves(document)
+					chunks = await this.documentService.findAllEmbeddingNodes(document)
 
 					// Clear history chunks
 					await vectorStore.deleteKnowledgeDocument(document)

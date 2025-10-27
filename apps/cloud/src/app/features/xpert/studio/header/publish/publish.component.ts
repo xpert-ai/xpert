@@ -12,6 +12,7 @@ import { getErrorMessage, IXpert, ToastrService, TSelectOption, XpertAPIService 
 import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpertService } from '../../../xpert/xpert.service'
 
 @Component({
   standalone: true,
@@ -35,7 +36,8 @@ import { NgmSelectComponent } from '@cloud/app/@shared/common'
 export class XpertPublishVersionComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly studioService = inject(XpertStudioApiService)
-  readonly xpertService = inject(XpertAPIService)
+  readonly xpertAPI = inject(XpertAPIService)
+  readonly xpertService = inject(XpertService)
   readonly confirmDelete = injectConfirmDelete()
   readonly confirm = injectConfirm()
   readonly #translate = inject(TranslateService)
@@ -82,7 +84,7 @@ export class XpertPublishVersionComponent {
     this.confirm({
       title: this.#translate.instant('PAC.Xpert.SetAsLatest', {Default: 'Set as latest'}),
       information: this.#translate.instant('PAC.Xpert.LatestDefaultVersion', {Default: 'Set this version as the latest, the default version when opening Digital Expert'})
-    }, this.xpertService.setAsLatest(xpert.id))
+    }, this.xpertAPI.setAsLatest(xpert.id))
     .subscribe({
       next: () => {
         this.loading.set(false)
@@ -100,7 +102,7 @@ export class XpertPublishVersionComponent {
     this.confirmDelete({
       value: 'v' + xpert.version,
       information: this.#translate.instant('PAC.Xpert.DeleteThisVersion', {Default: 'Deleting this version will not affect the use of other versions'})
-    }, this.xpertService.delete(xpert.id))
+    }, this.xpertAPI.delete(xpert.id))
     .subscribe({
       next: () => {
         this.loading.set(false)
@@ -126,7 +128,7 @@ export class XpertPublishVersionComponent {
     this.loading.set(true)
     // Check if the draft has been saved
     const obser: Observable<any> = this.studioService.unsaved() ? this.studioService.saveDraft() : of(true)
-    obser.pipe(switchMap(() => this.xpertService.publish(this.xpert().id, this.newVersion(), {
+    obser.pipe(switchMap(() => this.xpertAPI.publish(this.xpert().id, this.newVersion(), {
       environmentId: this.environmentId(), releaseNotes: this.releaseNotes()}))).subscribe({
       next: (result) => {
         this.#toastr.success(
@@ -136,6 +138,7 @@ export class XpertPublishVersionComponent {
         )
         this.loading.set(false)
         this.studioService.refresh()
+        this.xpertService.published$.next(result)
         this.close()
       },
       error: (error) => {

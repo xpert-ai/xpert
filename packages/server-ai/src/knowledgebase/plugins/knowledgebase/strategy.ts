@@ -178,7 +178,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 									this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
 									document.chunks = await this.documentService.coverChunks({...document, chunks}, vectorStore)
 									await this.documentService.update(document.id, { status: KBDocumentStatusEnum.EMBEDDING, progress: 0, draft: null })
-									chunks = await this.documentService.findAllLeaves(document)
+									chunks = await this.documentService.findAllEmbeddingNodes(document)
 
 									// Clear history chunks
 									await vectorStore.deleteKnowledgeDocument(document)

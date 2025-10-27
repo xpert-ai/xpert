@@ -61,7 +61,7 @@ import { ChecklistComponent } from '@cloud/app/@shared/common'
 })
 export class XpertStudioHeaderComponent {
   readonly xpertStudioComponent = inject(XpertStudioComponent)
-  readonly xpertService = inject(XpertAPIService)
+  readonly xpertAPI = inject(XpertAPIService)
   readonly apiService = inject(XpertStudioApiService)
   readonly selectionService = inject(SelectionService)
   readonly executionService = inject(XpertExecutionService)
@@ -138,7 +138,7 @@ export class XpertStudioHeaderComponent {
   readonly refreshDiagram$ = new BehaviorSubject<void>(null)
   readonly diagram$ = this.refreshDiagram$.pipe(
     switchMap(() =>
-      this.xpertService.getDiagram(this.xpert().id).pipe(
+      this.xpertAPI.getDiagram(this.xpert().id).pipe(
         map((imageBlob) => (imageBlob ? { image: URL.createObjectURL(imageBlob), error: null } : null)),
         catchError((err) => of({ image: null, error: getErrorMessage(err) })),
         startWith(null)

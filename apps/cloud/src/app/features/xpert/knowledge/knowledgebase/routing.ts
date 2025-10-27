@@ -1,6 +1,4 @@
 import { Routes } from '@angular/router'
-import { XpertStudioComponent } from '../../studio/studio.component'
-import { XpertService } from '../../xpert/xpert.service'
 import { KnowledgeConfigurationComponent } from './configuration/configuration.component'
 import { KnowledgeDocumentChunkComponent } from './documents/chunk/chunk.component'
 import { KnowledgeDocumentCreateComponent } from './documents/create/create.component'
@@ -10,6 +8,7 @@ import { KnowledgeTestComponent } from './test/test.component'
 import { KnowledgeDocumentPipelineComponent } from './documents/pipeline/pipeline.component'
 import { KnowledgebasePipelinesComponent } from './pipelines/pipelines.component'
 import { KnowledgeDocumentSettingsComponent } from './documents/settings/settings.component'
+import { KnowledgebasePipelineComponent } from './pipeline/pipeline.component'
 
 export default [
   {
@@ -56,8 +55,7 @@ export default [
       },
       {
         path: 'xpert/:id',
-        component: XpertStudioComponent,
-        providers: [XpertService]
+        component: KnowledgebasePipelineComponent,
       },
       {
         path: 'xpert',

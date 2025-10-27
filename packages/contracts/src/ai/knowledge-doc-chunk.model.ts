@@ -7,8 +7,17 @@ export interface IDocChunkMetadata {
   chunkId: string
   parentId?: string | null
   children?: DocumentInterface<IDocChunkMetadata>[]
+
   knowledgeId?: string
+  chunkIndex?: number // Index within the document or parent chunk
   enabled?: boolean
+
+  /**
+   * Default to 'text'. Indicates the original media type of the chunk.
+   * @default text
+   */
+  mediaType?: 'text' | 'image' | 'video' | 'audio' // Media type of the chunk
+
   /**
    * Whether the chunk is represented as a vector in the vector store
    */

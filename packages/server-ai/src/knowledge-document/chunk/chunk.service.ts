@@ -115,4 +115,25 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
         })
         return leaves as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
     }
+
+    /**
+     * Find all chunks that need embedding.
+     * 
+     * @param chunks Embedding candidate chunks
+     */
+    findAllEmbeddingNodes(chunks: IKnowledgeDocumentChunk[]) {
+        const originalChunks = chunks.filter(chunk => !chunk.metadata.mediaType || chunk.metadata.mediaType === 'text')
+        const mediaChunks = chunks.filter(chunk => chunk.metadata.mediaType && chunk.metadata.mediaType !== 'text')
+
+        const embeddingChunks: IKnowledgeDocumentChunk[] = []
+
+        // For original text chunks, only keep leaf nodes for embedding
+        const textLeaves = this.findAllLeaves(originalChunks)
+        embeddingChunks.push(...textLeaves)
+        
+        // For media chunks, keep all for embedding
+        embeddingChunks.push(...mediaChunks)
+
+        return embeddingChunks
+    }
 }

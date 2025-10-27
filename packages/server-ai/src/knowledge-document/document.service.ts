@@ -293,8 +293,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		}))
 	}
 
-	async findAllLeaves(document: IKnowledgeDocument) {
-		return this.chunkService.findAllLeaves(document.chunks)
+	async findAllEmbeddingNodes(document: IKnowledgeDocument) {
+		return this.chunkService.findAllEmbeddingNodes(document.chunks)
 	}
 
 	async getDocumentVectorStore(id: string) {
