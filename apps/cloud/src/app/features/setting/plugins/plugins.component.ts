@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model } from '@angular/core'
+import { Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { routeAnimations } from '@cloud/app/@core'
+import { injectHelpWebsite, routeAnimations } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { InDevelopmentComponent } from '@cloud/app/@theme'
@@ -11,20 +11,33 @@ import { OverlayAnimations } from '@metad/core'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { debouncedSignal, NgmTooltipDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-
+import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, FormsModule, NgmSelectComponent, NgmHighlightDirective, IconComponent, NgmTooltipDirective, InDevelopmentComponent],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    FormsModule,
+    NgmSelectComponent,
+    NgmHighlightDirective,
+    IconComponent,
+    NgmTooltipDirective,
+    InDevelopmentComponent,
+    PluginsMarketplaceComponent
+  ],
   selector: 'xp-settings-plugins',
   templateUrl: './plugins.component.html',
   styleUrls: ['./plugins.component.scss'],
-  animations: [routeAnimations, ...OverlayAnimations],
+  animations: [routeAnimations, ...OverlayAnimations]
 })
 export class PluginsComponent {
   readonly pluginAPI = inject(PluginAPIService)
+  readonly releaseHelpUrl = injectHelpWebsite('/docs/plugin/release-to-xpert-marketplace')
 
   readonly plugins = toSignal(this.pluginAPI.getPlugins(), { initialValue: [] })
+
+  readonly category = signal<'plugins' | 'marketplace'>('plugins')
 
   readonly searchText = model('')
   readonly #searchText = debouncedSignal(this.searchText, 300)
@@ -40,7 +53,8 @@ export class PluginsComponent {
     }
     if (this.keywords().length) {
       plugins = plugins.filter(
-        (plugin) => plugin.meta.keywords?.length && plugin.meta.keywords.some((keyword) => this.keywords().includes(keyword))
+        (plugin) =>
+          plugin.meta.keywords?.length && plugin.meta.keywords.some((keyword) => this.keywords().includes(keyword))
       )
     }
     if (searchText) {
@@ -88,7 +102,6 @@ export class PluginsComponent {
       value: keyword
     }))
   })
-  
 
   // constructor() {
   //   effect(() => {
