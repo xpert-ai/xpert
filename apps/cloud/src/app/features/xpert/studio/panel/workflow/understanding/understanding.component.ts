@@ -3,15 +3,22 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
+import { IconComponent } from '@cloud/app/@shared/avatar'
+import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { SafePipe } from '@metad/core'
 import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { AiModelTypeEnum, IWFNUnderstanding, IWorkflowNode, KnowledgebaseService, ModelFeature } from 'apps/cloud/src/app/@core'
+import {
+  AiModelTypeEnum,
+  IWFNKnowledgeBase,
+  IWFNUnderstanding,
+  IWorkflowNode,
+  KnowledgebaseService,
+  ModelFeature,
+  WorkflowNodeTypeEnum
+} from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
-import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   selector: 'xpert-workflow-understanding',
@@ -23,13 +30,12 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
     FormsModule,
     MatTooltipModule,
     TranslateModule,
-    SafePipe,
     NgmI18nPipe,
     JSONSchemaFormComponent,
     StateVariableSelectComponent,
     CopilotModelSelectComponent,
     IconComponent
-]
+  ]
 })
 export class XpertWorkflowUnderstandingComponent extends XpertWorkflowBaseComponent {
   eModelType = AiModelTypeEnum
@@ -64,4 +70,7 @@ export class XpertWorkflowUnderstandingComponent extends XpertWorkflowBaseCompon
   readonly requireVisionModel = computed(() => this.#understandingStrategy()?.requireVisionModel)
   readonly understandingConfigSchema = computed(() => this.understandingStrategy()?.configSchema || null)
   readonly understandingConfig = attrModel(this.understanding, 'config')
+
+  readonly knowledgebaseNode = computed(() => this.nodes().find((node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE_BASE)?.entity as IWFNKnowledgeBase)
+  readonly kbVisionModel = computed(() => this.knowledgebaseNode()?.visionModel);
 }

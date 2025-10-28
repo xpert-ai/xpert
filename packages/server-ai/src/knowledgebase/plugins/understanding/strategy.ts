@@ -1,4 +1,3 @@
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
 import { Annotation, BaseChannel } from '@langchain/langgraph'
 import {
@@ -30,10 +29,10 @@ import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { KnowledgeStrategyQuery } from '../../queries'
 import { KnowledgebaseTaskService } from '../../task'
-import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { createDocumentsParameter, serializeDocuments } from '../types'
 import { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
 import { PluginPermissionsCommand } from '../../commands'
+import { KnowledgebaseService } from '../../knowledgebase.service'
 
 const ErrorChannelName = 'error'
 const DocumentsChannelName = 'documents'
@@ -60,6 +59,9 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 
 	@Inject(KnowledgeDocumentService)
 	private readonly documentService: KnowledgeDocumentService
+
+	@Inject(KnowledgebaseService)
+	private readonly knowledgebaseService: KnowledgebaseService
 
 	constructor(
 		private readonly commandBus: CommandBus,
@@ -123,14 +125,9 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 							})
 						)
 
-						const visionModel = entity.visionModel ? await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-							new CopilotModelGetChatModelQuery(
-								null, entity.visionModel, {
-										usageCallback: (token) => {
-											// execution.tokens += (token ?? 0)
-										}
-									})
-							) : null
+						const visionModel = await this.knowledgebaseService.getVisionModel(
+							knowledgebaseId, entity.visionModel
+						)
 
 						const permissions = await this.commandBus.execute(new PluginPermissionsCommand(strategy.permissions, {
 									knowledgebaseId: knowledgebaseId,

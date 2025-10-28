@@ -96,6 +96,9 @@ export interface IWFNUnderstanding extends IWorkflowNode {
 
 export interface IWFNKnowledgeBase extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
+  /**
+   * @deprecated
+   */
   structure?: KnowledgeStructureEnum
   /**
    * Documents input variables
@@ -109,6 +112,12 @@ export interface IWFNKnowledgeBase extends IWorkflowNode {
    * (optional) Rerank model
    */
   rerankModel?: ICopilotModel
+
+  /**
+   * (optional) Vision model
+   */
+  visionModel?: ICopilotModel
+
   documents?: string[]
 }
 

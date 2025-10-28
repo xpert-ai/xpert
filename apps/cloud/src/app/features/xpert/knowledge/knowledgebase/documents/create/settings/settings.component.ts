@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, model, signal } from "@angular/cor
 import { toSignal } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { MatTooltipModule } from "@angular/material/tooltip";
-import { DocumentTextParserConfig, IKnowledgeDocument, KBDocumentCategoryEnum, KDocumentSourceType, KnowledgebaseService } from "@cloud/app/@core";
+import { AiModelTypeEnum, DocumentTextParserConfig, IKnowledgeDocument, KBDocumentCategoryEnum, KDocumentSourceType, KnowledgebaseService, ModelFeature } from "@cloud/app/@core";
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { attrModel, linkedModel, NgmI18nPipe } from "@metad/ocap-angular/core";
 import { TranslateModule } from "@ngx-translate/core";
@@ -16,6 +16,8 @@ import { KnowledgeDocIdComponent } from "@cloud/app/@shared/knowledge";
 import { KnowledgeDocumentPreviewComponent } from "../preview/preview.component";
 import { KnowledgeDocumentWebpagesComponent } from "../webpages/webpages.component";
 import { IntegrationSelectComponent } from "@cloud/app/@shared/integration";
+import { CopilotModelSelectComponent } from "@cloud/app/@shared/copilot";
+import { KnowledgebaseComponent } from "../../../knowledgebase.component";
 
 @Component({
   standalone: true,
@@ -35,6 +37,7 @@ import { IntegrationSelectComponent } from "@cloud/app/@shared/integration";
     NgmSelectComponent,
     IconComponent,
     JSONSchemaFormComponent,
+    CopilotModelSelectComponent,
     KnowledgeDocIdComponent,
     IntegrationSelectComponent,
     KnowledgeDocumentPreviewComponent,
@@ -44,14 +47,19 @@ import { IntegrationSelectComponent } from "@cloud/app/@shared/integration";
 export class KnowledgeDocumentCreateSettingsComponent {
   eKDocumentSourceType = KDocumentSourceType
   eKBDocumentCategoryEnum = KBDocumentCategoryEnum
+  eModelType = AiModelTypeEnum
+  eModelFeature = ModelFeature
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
+  readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
 
   // Input Models
   readonly documents = model<Partial<IKnowledgeDocument>[]>()
   readonly parserConfig = model<DocumentTextParserConfig>()
 
 
+  readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  
   // Strategies
   readonly #textSplitterStrategies = toSignal(this.knowledgebaseAPI.getTextSplitterStrategies())
   readonly #documentTransformerStrategies = toSignal(this.knowledgebaseAPI.getDocumentTransformerStrategies())
@@ -92,6 +100,7 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly imageUnderstandingType = attrModel(this.parserConfig, 'imageUnderstandingType', 'vlm-default')
   readonly imageUnderstanding = attrModel(this.parserConfig, 'imageUnderstanding')
   readonly imageUnderstandingIntegrationId = attrModel(this.parserConfig, 'imageUnderstandingIntegration')
+  readonly imageUnderstandingModel = attrModel(this.parserConfig, 'imageUnderstandingModel')
   readonly enableImageUnderstanding = linkedModel({
     initialValue: false,
     compute: () => !!this.parserConfig().imageUnderstandingType,
@@ -122,6 +131,8 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly imageUnderstandingConfigSchema = computed(() => this.imageUnderstandingStrategy()?.meta.configSchema || {} as JsonSchema7ObjectType)
   readonly imageUnderstandingIntegration = computed(() => this.imageUnderstandingStrategy()?.integration)
   readonly imageUnderstandingIntegrationProvider = computed(() => this.imageUnderstandingIntegration()?.service)
+  readonly requireVisionModel = computed(() => this.imageUnderstandingStrategy()?.requireVisionModel)
+  readonly kbVisionModel = computed(() => this.knowledgebase()?.visionModel);
 
   readonly delimiter = attrModel(this.parserConfig, 'delimiter', '\n\n')
   readonly chunkSize = attrModel(this.parserConfig, 'chunkSize', 1000)

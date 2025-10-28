@@ -12,6 +12,7 @@ import {
   IWorkflowNode,
   KnowledgebaseService,
   KnowledgeStructureEnum,
+  ModelFeature,
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
@@ -34,6 +35,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 export class XpertWorkflowKnowledgeBaseComponent extends XpertWorkflowBaseComponent {
   eKnowledgeStructureEnum = KnowledgeStructureEnum
   eModelType = AiModelTypeEnum
+  eModelFeature = ModelFeature
 
   readonly studioService = inject(XpertStudioApiService)
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
@@ -57,6 +59,7 @@ export class XpertWorkflowKnowledgeBaseComponent extends XpertWorkflowBaseCompon
   readonly inputs = attrModel(this.knowledgeBaseNode, 'inputs')
   readonly copilotModel = attrModel(this.knowledgeBaseNode, 'copilotModel')
   readonly rerankModel = attrModel(this.knowledgeBaseNode, 'rerankModel')
+  readonly visionModel = attrModel(this.knowledgeBaseNode, 'visionModel')
 
   updateInput(index: number, value: string) {
     this.inputs.update((inputs) => {

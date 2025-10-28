@@ -30,7 +30,8 @@ import {
 	IWFNTrigger,
 	KnowledgeStructureEnum,
 	XpertAgentExecutionStatusEnum,
-	classificateDocumentCategory
+	classificateDocumentCategory,
+	TCopilotModel
 } from '@metad/contracts'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
@@ -303,14 +304,18 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		})
 	}
 
-	async getVisionModel(knowledgebaseId: string) {
-		const knowledgebase = await this.findOne(knowledgebaseId, { relations: ['visionModel', 'visionModel.copilot'] })
-		if (!knowledgebase?.visionModel?.copilot) {
+	async getVisionModel(knowledgebaseId: string, visionModel: TCopilotModel) {
+		if (!visionModel) {
+			const knowledgebase = await this.findOne(knowledgebaseId, { relations: ['visionModel', 'visionModel.copilot'] })
+			
+			visionModel = knowledgebase.visionModel
+		}
+		const copilot = visionModel?.copilot
+		if (copilot) {
 			throw new BadRequestException(t('server-ai:Error.KBReqVisionModel'))
 		}
-		const copilot = knowledgebase.visionModel.copilot
 		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-			new CopilotModelGetChatModelQuery(copilot, knowledgebase.visionModel, {
+			new CopilotModelGetChatModelQuery(copilot, visionModel, {
 				usageCallback: (token) => {
 					// execution.tokens += (token ?? 0)
 				}

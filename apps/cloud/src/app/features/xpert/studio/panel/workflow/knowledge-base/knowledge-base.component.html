@@ -112,6 +112,15 @@
   </div>
 </div>
 
+
+<div class="p-4 space-y-3">
+  <div>
+    <copilot-model-select [label]="'PAC.Knowledgebase.VisionModel' | translate: {Default: 'Vision Model'}" [modelType]="eModelType.LLM" [features]="[eModelFeature.VISION]"
+      [(ngModel)]="visionModel"
+    />
+  </div>
+</div>
+
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
 
 <div class="p-4 space-y-3">
@@ -127,6 +136,8 @@
     />
   </div>
 </div>
+
+
 <!-- 
 <ng-template #strcutureMenu>
   <div

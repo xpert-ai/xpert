@@ -7,6 +7,7 @@ import { IKnowledgebase } from './knowledgebase.model'
 import { TRagWebOptions } from './rag-web'
 import { IKnowledgeDocumentChunk } from './knowledge-doc-chunk.model'
 import { DocumentSourceProviderCategoryEnum } from './knowledge-pipeline'
+import { TCopilotModel } from './copilot-model.model'
 
 
 export type DocumentParserConfig = {
@@ -27,6 +28,7 @@ export type DocumentParserConfig = {
   imageUnderstanding?: {
     [key: string]: unknown
   }
+  imageUnderstandingModel?: TCopilotModel
 }
 
 export type DocumentTextParserConfig = DocumentParserConfig & {
