@@ -143,7 +143,7 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
 	@IsOptional()
-	@Column({ type: 'json', nullable: true })
+	@Column({ type: 'json', nullable: true, default: { topK: 10 } })
 	recall?: TKBRecallParams
 
 	@ApiPropertyOptional({ type: () => String })

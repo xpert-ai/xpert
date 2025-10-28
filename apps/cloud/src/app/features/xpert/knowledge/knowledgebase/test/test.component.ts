@@ -60,6 +60,7 @@ export class KnowledgeTestComponent {
 
   readonly query = model<string>('')
   readonly results = signal<DocumentInterface<DocumentMetadata>[]>(null)
+  readonly error = signal<string>(null)
 
   readonly #loading = signal<boolean>(false)
 
@@ -84,6 +85,7 @@ export class KnowledgeTestComponent {
 
   test() {
     this.#loading.set(true)
+    this.error.set(null)
     this.knowledgebaseAPI
       .test(this.knowledgebase().id, { query: this.query(), k: this.topK() ?? 10, score: this.score() })
       .subscribe({
@@ -92,7 +94,8 @@ export class KnowledgeTestComponent {
           this.#loading.set(false)
         },
         error: (err) => {
-          this._toastrService.error(getErrorMessage(err))
+          this.results.set(null)
+          this.error.set(getErrorMessage(err))
           this.#loading.set(false)
         },
         complete: () => {

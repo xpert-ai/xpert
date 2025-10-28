@@ -6,7 +6,7 @@ import { Inject, InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { Document } from '@langchain/core/documents'
-import { sortBy } from 'lodash'
+import { isNil, sortBy } from 'lodash'
 import { In, IsNull, Not, Raw } from 'typeorm'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeSearchQuery } from '../knowledge-search.query'
@@ -77,9 +77,14 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		)
 
 		kbs.forEach(({ kb, docs }) => {
-			docs.filter((doc) => doc.metadata.score >= (score ?? kb.recall?.score ?? 0.5)).forEach((item) => {
-				documents.push(item)
-			})
+			const score = command.input.score ?? kb.recall?.score
+			if (isNil(score)) {
+				documents.push(...docs)
+			} else {
+				docs.filter((doc) => doc.metadata.score >= score).forEach((item) => {
+					documents.push(item)
+				})
+			}
 		})
 
 		return sortBy(documents, 'metadata.score').reverse().slice(0, topK)
@@ -179,9 +184,9 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		}
 
 		// Rerank the documents if a rerank model is set
-		if (kb.rerankModelId) {
+		if (kb.rerankModelId && docs.length > 0) {
 			try {
-				const rerankedDocs = await vectorStore.rerank(docs, query, { topN: k || 1000 })
+				const rerankedDocs = await vectorStore.rerank(docs, query, { topN: Math.min(docs.length, k ?? 100) })
 				return rerankedDocs.map(({ index, relevanceScore }) => {
 					return {
 						...docs[index],
