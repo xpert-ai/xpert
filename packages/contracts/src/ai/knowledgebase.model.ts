@@ -97,6 +97,7 @@ export type TKnowledgebase = {
 
   /**
    * Index structure determines how the knowledge base organizes and indexes your document content.
+   * @deprecated
    */
   structure?: KnowledgeStructureEnum
 

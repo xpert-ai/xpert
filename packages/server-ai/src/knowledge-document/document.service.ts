@@ -348,9 +348,20 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	}
 
 	async delete(id: string) {
-		const document = await this.findOne(id, { relations: ['knowledgebase',] })
+		const document = await this.findOne(id, {
+			relations: ['knowledgebase', 'knowledgebase.documents'],
+			select: {
+				knowledgebase: { id: true, documentNum: true, documents: { id: true, sourceType: true } }
+			}
+		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase, false)
 		await vectorStore.deleteKnowledgeDocument(document)
+
+		document.knowledgebase.documentNum = document.knowledgebase.documents.filter((doc) => doc.sourceType !== KDocumentSourceType.FOLDER).length - 1
+		await this.knowledgebaseService.update(document.knowledgebaseId, {
+			documentNum: document.knowledgebase.documentNum
+		})
+
 		const result = await super.delete(id)
 		return result
 	}
