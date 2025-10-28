@@ -149,7 +149,8 @@ export type TKnowledgeDocument = {
    */
   folder?: string
 
-  size: string
+  size?: string
+  mimeType?: string
 
   tokenNum?: number | null
   chunkNum?: number | null

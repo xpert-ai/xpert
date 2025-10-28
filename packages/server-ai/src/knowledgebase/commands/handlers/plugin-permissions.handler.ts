@@ -32,8 +32,8 @@ export class PluginPermissionsHandler implements ICommandHandler<PluginPermissio
 			
 			permissions['fileSystem'] = new XpFileSystem(
 				fsPermission,
-				volumeClient.getVolumePath(command.context.folder),
-				sandboxVolumeUrl(`/knowledges/${command.context.knowledgebaseId}/${command.context.folder}`)
+				volumeClient.getVolumePath(command.context.folder ?? ''),
+				sandboxVolumeUrl(`/knowledges/${command.context.knowledgebaseId}/${command.context.folder ?? ''}`)
 			)
 		}
 

@@ -212,6 +212,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							filePath: doc.metadata.filePath,
 							fileUrl: doc.metadata.fileUrl,
 							category: doc.metadata.category,
+							mimeType: doc.metadata.mimeType,
 							status: KBDocumentStatusEnum.WAITING,
 							metadata: doc.metadata,
 							draft: doc.pageContent ?

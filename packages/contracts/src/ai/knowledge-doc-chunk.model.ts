@@ -3,6 +3,12 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IKnowledgeDocument } from './knowledge-doc.model'
 import { IKnowledgebase } from './knowledgebase.model'
 
+export type TDocumentAsset = {
+  type: 'image' | 'video' | 'audio' | 'file'
+  url: string // remote url
+  filePath: string // local path
+}
+
 export interface IDocChunkMetadata {
   chunkId: string
   parentId?: string | null
@@ -17,7 +23,10 @@ export interface IDocChunkMetadata {
    * @default text
    */
   mediaType?: 'text' | 'image' | 'video' | 'audio' // Media type of the chunk
-
+  /**
+   * Associated assets like images, videos, etc.
+   */
+  assets?: TDocumentAsset[]
   /**
    * Whether the chunk is represented as a vector in the vector store
    */

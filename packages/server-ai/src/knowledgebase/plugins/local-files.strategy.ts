@@ -104,7 +104,7 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 						fileUrl: file.fileUrl,
 						size: file.size,
 						originalName: file.originalName,
-						mimetype: file.mimetype,
+						mimeType: file.mimetype,
 						category: classificateDocumentCategory({
 							type: file.originalName.split('.').pop().toLowerCase()
 						})

@@ -134,8 +134,7 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 
 						const permissions = await this.commandBus.execute(new PluginPermissionsCommand(strategy.permissions, {
 									knowledgebaseId: knowledgebaseId,
-									// integrationId: entity.integrationId,
-									folder: isDraft ? 'temp/' : ''
+									// folder: isDraft ? 'temp/' : '' // No need to specify a temp folder when reading files
 								}))
 						for await (const doc of documents) {
 							const result = await strategy.understandImages({...doc, ...(doc.draft ?? {})},
@@ -152,7 +151,6 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 							// if (result.pages) {
 							// 	doc.pages = (doc.pages ?? []).concat(result.pages)
 							// }
-							// console.log('Chunker result chunks:', result.chunks)
 						}
 
 						if (isTest) {

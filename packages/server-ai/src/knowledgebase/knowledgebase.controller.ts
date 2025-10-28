@@ -282,7 +282,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 			...file,
 			originalname: fileNameString
 		})
-		return { url, filePath, fileUrl: url }
+		return { url, filePath, fileUrl: url, mimeType: file.mimetype }
 	}
 
 	@Get(':id/file/:name/preview')

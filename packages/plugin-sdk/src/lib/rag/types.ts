@@ -4,22 +4,13 @@ import fs from 'fs'
 import http from 'http'
 import https from 'https'
 
-export type TDocumentAsset = {
-  type: 'image' | 'video' | 'audio' | 'file'
-  url: string // remote url
-  filePath: string // local path
-}
+export { TDocumentAsset } from '@metad/contracts'
 
 export interface ChunkMetadata extends IDocChunkMetadata{
-  
   startOffset?: number // Start position in the original text
   endOffset?: number // End position in the original text
   type?: 'parent' | 'child' // Chunk type
   
-  /**
-   * Associated assets like images, videos, etc.
-   */
-  assets?: TDocumentAsset[]
   [key: string]: any // Allow plugin extensions
 }
 

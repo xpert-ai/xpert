@@ -71,6 +71,14 @@ export function createDocumentsParameter(name = DOCUMENTS_CHANNEL_NAME): TXpertP
 					en_US: 'File extension',
 					zh_Hans: '文件扩展名'
 				}
+			},
+			{
+				name: 'category',
+				type: XpertParameterTypeEnum.STRING,
+				description: {
+					en_US: 'Category (text, image, video, audio, sheet, other.)',
+					zh_Hans: '文档类别 (text, image, video, audio, sheet, other.)'
+				}
 			}
 		]
 	}
