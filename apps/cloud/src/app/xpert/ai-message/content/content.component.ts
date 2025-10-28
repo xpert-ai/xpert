@@ -51,9 +51,9 @@ export class ChatMessageContentComponent {
   constructor() {
     effect(() => {
       const text = this.text()
-      const restText = text.replace(this.frozenText, '')
-      const blocks = restText.split('\n')
       if (this.answering()) {
+        const restText = text.replace(this.frozenText, '')
+        const blocks = restText.split('\n')
         if (blocks.length > 1) {
           this.frozenBlocks.update((state) => [
             ...state,
@@ -65,11 +65,8 @@ export class ChatMessageContentComponent {
           this.streaming.set(restText)
         }
       } else {
-        this.frozenBlocks.update((state) => [
-            ...state,
-            ...blocks
-          ])
-        this.frozenText += restText
+        this.frozenBlocks.set([text])
+        this.frozenText = text
         this.streaming.set('')
       }
     }, { allowSignalWrites: true })
