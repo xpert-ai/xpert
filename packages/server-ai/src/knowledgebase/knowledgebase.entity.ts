@@ -227,6 +227,9 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     |--------------------------------------------------------------------------
     */
 	@Transform((params: TransformFnParams) => params.value?.map((_) => new XpertIdentiDto(_)))
-	@ManyToMany(() => Xpert, (xpert) => xpert.knowledgebases)
+	@ManyToMany(() => Xpert, (xpert) => xpert.knowledgebases, {
+		onUpdate: 'CASCADE',
+		onDelete: 'CASCADE'
+	})
 	xperts?: IXpert[]
 }
