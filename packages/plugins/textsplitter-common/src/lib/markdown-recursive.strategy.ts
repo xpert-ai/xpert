@@ -32,6 +32,30 @@ export class MarkdownRecursiveStrategy
     configSchema: {
       type: 'object',
       properties: {
+        chunkSize: {
+          type: 'number',
+          title: {
+            en_US: 'Chunk Size',
+            zh_Hans: '块大小'
+          },
+          description: {
+            en_US: 'The maximum size of each chunk.',
+            zh_Hans: '每个块的最大大小。'
+          },
+          default: 1000
+        },
+        chunkOverlap: {
+          type: 'number',
+          title: {
+            en_US: 'Chunk Overlap',
+            zh_Hans: '块重叠'
+          },
+          description: {
+            en_US: 'The number of overlapping characters between chunks.',
+            zh_Hans: '块之间重叠的字符数。'
+          },
+          default: 200
+        },
         addHeadersToChunk: {
           type: 'boolean',
           title: {

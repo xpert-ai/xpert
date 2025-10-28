@@ -49,19 +49,21 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 						'pdf',
 						'html',
 						'xlsx',
-						'xls',
-						'vtt',
 						'properties',
-						'doc',
 						'docx',
 						'csv',
-						'eml',
-						'msg',
 						'pptx',
 						'xml',
 						'epub',
-						'ppt',
-						'md'
+						'pptx',
+						'md',
+						'json',
+						'yaml',
+						'yml',
+						'png',
+						'jpg',
+						'jpeg',
+						'gif'
 					]
 				}
 			},

@@ -195,6 +195,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							}
 						}
 						
+						// Transform parameters with state
 						const parameters = entity.config ? await deepTransformValue(entity.config, async (v) => {
 							return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
 						}) : {}

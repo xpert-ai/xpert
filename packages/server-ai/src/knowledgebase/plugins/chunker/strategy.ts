@@ -24,12 +24,13 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ITextSplitterStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { get } from 'lodash'
 import { In } from 'typeorm'
-import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
+import { AgentStateAnnotation, deepTransformValue, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { KnowledgeStrategyQuery } from '../../queries'
 import { KnowledgebaseTaskService } from '../../task'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
+import { PromptTemplate } from '@langchain/core/prompts'
 
 
 @Injectable()
@@ -129,6 +130,11 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 							})
 						)
 
+						// Transform parameters with state
+						const parameters = entity.config ? await deepTransformValue(entity.config, async (v) => {
+													return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
+												}) : {}
+
 						for await (const doc of documents) {
 							const chunks = []
 							const splitDocs = [];
@@ -143,7 +149,8 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 							if (!splitDocs?.length) {
 								continue
 							}
-							const result = await strategy.splitDocuments(splitDocs, entity.config)
+							
+							const result = await strategy.splitDocuments(splitDocs, parameters)
 							if (result?.chunks) {
 								chunks.push(...result.chunks)
 							}
