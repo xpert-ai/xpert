@@ -91,6 +91,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	@Inject(DocumentSourceRegistry)
 	private readonly docSourceRegistry: DocumentSourceRegistry
 
+	@Inject(KnowledgeStrategyRegistry)
+	private readonly knowledgeStrategyRegistry: KnowledgeStrategyRegistry
+
 	@Inject(XpertService)
 	private readonly xpertService: XpertService
 
@@ -99,7 +102,6 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		repository: Repository<Knowledgebase>,
 		private readonly integrationService: IntegrationService,
 		private readonly taskService: KnowledgebaseTaskService,
-		private readonly knowledgeStrategyRegistry: KnowledgeStrategyRegistry
 	) {
 		super(repository)
 	}

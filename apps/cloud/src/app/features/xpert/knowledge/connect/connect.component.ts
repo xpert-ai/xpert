@@ -19,17 +19,21 @@ import {
   ToastrService,
   XpertTypeEnum
 } from '../../../../@core'
+import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 
 @Component({
   selector: 'xpert-connect-knowledge',
   standalone: true,
-  imports: [CommonModule, TranslateModule, FormsModule, CdkMenuModule, NgmI18nPipe, NgmSpinComponent, NgmSlideToggleComponent],
+  imports: [CommonModule, TranslateModule, FormsModule, CdkMenuModule, NgmI18nPipe, NgmSpinComponent, NgmSlideToggleComponent, IntegrationSelectComponent],
   templateUrl: './connect.component.html',
   styleUrl: './connect.component.scss'
 })
 export class XpertConnectKnowledgeComponent {
   eXpertTypeEnum = XpertTypeEnum
   eAiModelTypeEnum = AiModelTypeEnum
+  eIntegrationFeatureEnum = IntegrationFeatureEnum
+
+  
   readonly #toastr = inject(ToastrService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly integrationAPI = injectIntegrationAPI()
@@ -41,12 +45,12 @@ export class XpertConnectKnowledgeComponent {
 
   readonly loading = signal(false)
 
-  readonly #integrations = myRxResource({
-    request: () => [IntegrationFeatureEnum.KNOWLEDGE],
-    loader: ({ request }) => this.integrationAPI.selectOptions({ features: request })
-  })
+  // readonly #integrations = myRxResource({
+  //   request: () => [IntegrationFeatureEnum.KNOWLEDGE],
+  //   loader: ({ request }) => this.integrationAPI.selectOptions({ features: request })
+  // })
 
-  readonly integrations = this.#integrations.value
+  // readonly integrations = this.#integrations.value
 
   // Models
   readonly knowledgebase = model<Partial<IKnowledgebase>>({ type: KnowledgebaseTypeEnum.External })
@@ -67,7 +71,7 @@ export class XpertConnectKnowledgeComponent {
   })
 
   // Status
-  readonly integration = computed(() => this.integrations()?.find((item) => item.value === this.integrationId()))
+  // readonly integration = computed(() => this.integrations()?.find((item) => item.value === this.integrationId()))
 
 
   create() {

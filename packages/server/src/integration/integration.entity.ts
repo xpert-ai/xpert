@@ -37,7 +37,7 @@ export class Integration extends TenantOrganizationBaseEntity implements IIntegr
 	@IsString()
 	@IsNotEmpty()
 	@Column()
-	provider: IntegrationEnum
+	provider: string | IntegrationEnum
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

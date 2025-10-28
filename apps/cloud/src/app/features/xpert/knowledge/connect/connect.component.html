@@ -72,7 +72,13 @@
               {{ 'PAC.Knowledgebase.ExtKnowledgebaseIntegration' | translate: {Default: 'External knowledgebase integration'} }}
             </label>
           </div>
-          <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-medium justify-start gap-0.5"
+
+          <xp-integration-select [placeholder]="'PAC.Knowledgebase.ExtKnowledgebaseIntegrationPlaceholder' | translate: {Default: 'There is no external knowledge base integration yet, click here to select or create one'} "
+            [features]="[eIntegrationFeatureEnum.KNOWLEDGE]"
+            [(ngModel)]="integrationId"
+            >
+          </xp-integration-select>
+          <!-- <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-medium justify-start gap-0.5"
             [cdkMenuTriggerFor]="integrationMenu"
             #menuTrigger
             >
@@ -111,7 +117,7 @@
                 {{ 'PAC.Knowledgebase.CreateKBIntegration' | translate: {Default: 'Create knowledgebase integration'} }}
               </div>
             </div>
-          </ng-template>
+          </ng-template> -->
         </div>
         <div class="flex flex-col gap-1 self-stretch">
           <div class="flex flex-col self-stretch">
