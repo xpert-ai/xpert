@@ -535,7 +535,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	/**
 	 * Process a task, start the knowledge ingestion pipeline
 	 */
-	async processTask(knowledgebaseId: string, taskId: string, inputs: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview' | 'prod'; options?: any }) {
+	async processTask(knowledgebaseId: string, taskId: string, inputs: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview' | 'prod'; options?: any; isDraft?: boolean }) {
 		const kb = await this.findOne(knowledgebaseId, { relations: ['pipeline'] })
 		const execution = await this.commandBus.execute(
 					new XpertAgentExecutionUpsertCommand({
@@ -562,7 +562,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			},
 			{
 				trigger: null,
-				isDraft: inputs.stage === 'preview',
+				isDraft: inputs.isDraft,
 				from: 'knowledge',
 				executionId: execution.id
 			}

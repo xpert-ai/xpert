@@ -65,7 +65,8 @@ export class KnowledgeDocumentPipelineSettingsComponent {
       return []
     }
     if (this.previewDocName()) {
-      return docs.find((d) => d.name === this.previewDocName())?.chunks || []
+      const doc = docs.find((d) => d.name === this.previewDocName())
+      return doc?.draft.chunks || doc?.chunks || []
     }
     return docs[0]?.chunks || []
   })
@@ -81,10 +82,6 @@ export class KnowledgeDocumentPipelineSettingsComponent {
     }, { allowSignalWrites: true })
   }
 
-  // selectFilePreview(file: KnowledgeFileUploader) {
-  //   this.previewDocName.set(file.document().name)
-  //   this.previewChunks()
-  // }
 
   previewChunks() {
     this.previewing.set(true)

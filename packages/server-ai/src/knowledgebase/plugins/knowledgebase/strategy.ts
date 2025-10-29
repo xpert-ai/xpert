@@ -109,7 +109,6 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 				return await wrapAgentExecution(
 					async () => {
 						let statisticsInformation = ''
-
 						if (isTest) {
 							await this.taskService.update(knowledgeTaskId, {status: 'success'})
 							statisticsInformation += `- This is a test run, no documents were processed. \n`

@@ -154,10 +154,8 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 								chunks.push(...result.chunks)
 							}
 							doc.chunks = chunks
+							doc.draft.chunks = chunks
 							if (!isTest) {
-								// if (result.pages?.length) {
-								// 	await this.documentService.createPageBulk(doc.id, result.pages)
-								// }
 								await this.documentService.update(doc.id, {draft: { chunks }, status: KBDocumentStatusEnum.SPLITTED })
 							}
 						}

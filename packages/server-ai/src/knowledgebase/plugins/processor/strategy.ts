@@ -131,8 +131,10 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							documents = results.map((result) => {
 								return {
 									id: result.id || shortuuid(),
-									chunks: result.chunks,
-									metadata: result.metadata
+									metadata: result.metadata,
+									draft: {
+										chunks: result.chunks
+									},
 								} as unknown as IKnowledgeDocument
 							})
 							await this.taskService.upsertDocuments(knowledgeTaskId, documents)
