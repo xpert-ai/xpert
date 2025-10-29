@@ -34,7 +34,7 @@ export class XpertTriggerConsumer {
 		const xpert = await this.xpertService.findOne(job.data.xpertId)
 		const userId = job.data.userId || xpert.createdById
 		const user = await this.userService.findOne(userId, { relations: ['role'] })
-		runWithRequestContext({ user, headers: { ['organization-id']: xpert.organizationId } }, async () => {
+		runWithRequestContext({ user, headers: { ['organization-id']: xpert.organizationId, language: user.preferredLanguage } }, async () => {
 			// Chat with xpert
 			const stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
 				new XpertChatCommand(

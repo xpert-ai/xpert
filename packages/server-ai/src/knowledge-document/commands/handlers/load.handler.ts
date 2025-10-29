@@ -99,7 +99,6 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 				if (!transformed) {
 					transformed = await transformer.transformDocuments(
 						[doc]
-						// .map((doc) => ({...doc, fileUrl: `https://api.mtda.cloud/api/sandbox/volume/knowledges/2a0d2697-a363-4fa7-8bb2-d74a3a6b8265/知识库测试.pdf`}))
 						, {
 							...(doc.parserConfig?.transformer ?? {}),
 							stage,

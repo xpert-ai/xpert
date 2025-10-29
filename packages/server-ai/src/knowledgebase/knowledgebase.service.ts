@@ -309,11 +309,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	async getVisionModel(knowledgebaseId: string, visionModel: TCopilotModel) {
 		if (!visionModel) {
 			const knowledgebase = await this.findOne(knowledgebaseId, { relations: ['visionModel', 'visionModel.copilot'] })
-			
 			visionModel = knowledgebase.visionModel
 		}
 		const copilot = visionModel?.copilot
-		if (copilot) {
+		if (!copilot) {
 			throw new BadRequestException(t('server-ai:Error.KBReqVisionModel'))
 		}
 		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
@@ -478,7 +477,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	 */
 	@OnEvent(EventName_XpertPublished)
 	async handle(xpert: IXpert) {
-		if (xpert.type !== XpertTypeEnum.Knowledge) return
+		if (xpert.type !== XpertTypeEnum.Knowledge || !xpert.knowledgebase?.id) return
 
 		const knowledgebaseNode = xpert.graph.nodes.find(
 			(node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE_BASE
@@ -486,13 +485,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		if (!knowledgebaseNode) return
 
 		const knowledgebaseEntity = knowledgebaseNode.entity as IWFNKnowledgeBase
-		if (!xpert.knowledgebase?.id) return
-
-		this.#logger.log(`Clear knowledgebase ${knowledgebaseEntity.id} documents cache after published`)
 
 		await this.update(xpert.knowledgebase.id, {
 			copilotModel: knowledgebaseEntity.copilotModel,
-			rerankModel: knowledgebaseEntity.rerankModel
+			rerankModel: knowledgebaseEntity.rerankModel,
+			visionModel: knowledgebaseEntity.visionModel
 		})
 	}
 
@@ -598,37 +595,6 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			folder: ''
 		}))
 		
-		// const permissions = {}
-		// const volumeClient = new VolumeClient({
-		// 	tenantId: RequestContext.currentTenantId(),
-		// 	catalog: 'knowledges',
-		// 	userId: RequestContext.currentUserId(),
-		// 	knowledgeId: knowledgebaseId
-		// })
-		// const fsPermission = strategy.permissions?.find(
-		// 	(permission) => permission.type === 'filesystem'
-		// ) as FileSystemPermission
-		// if (fsPermission) {
-		// 	permissions['fileSystem'] = new XpFileSystem(
-		// 		fsPermission,
-		// 		volumeClient.getVolumePath(''),
-		// 		sandboxVolumeUrl(`/knowledges/${knowledgebaseId}/`)
-		// 	)
-		// }
-
-		// // Integration
-		// const integrationPermission = strategy.permissions?.find(
-		// 	(permission) => permission.type === 'integration'
-		// )
-		// if (integrationPermission && entity.integrationId) {
-		// 	let integration = null
-		// 	try {
-		// 		integration = await this.integrationService.findOne(entity.integrationId)
-		// 	} catch (error) {
-		// 		throw new BadRequestException(t('server-ai:Error.IntegrationNotFound', { id: entity.integrationId }))
-		// 	}
-		// 	permissions['integration'] = integration
-		// }
 		const results = await strategy.transformDocuments(input, {
 			...(entity.config ?? {}),
 			stage: isDraft ? 'test' : 'prod',

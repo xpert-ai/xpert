@@ -100,12 +100,10 @@ team:
         - document
         - image
         - others
-  version: "1"
+  version: null
   agent:
-    key: TRmdItPmz4
+    key: L5hRAi9nLA
   copilotModel: null
-  knowledgebases: []
-  toolsets: []
   tags: []
 nodes:
   - key: KnowledgeBase_KhDIYDGYeC
@@ -303,7 +301,7 @@ nodes:
       title: 变量聚合
       inputs:
         - chunker_9pnscnchip_channel.documents
-        - understanding_unztfbu5mw_channel.documents
+        - chunker_akywtxusuk_channel.documents
       outputType: array[document]
     hash: fc61e32ae31314cfb102088317d528bcf56a82e9dd754e2c8a3cb295ef32f2bf
   - type: workflow
