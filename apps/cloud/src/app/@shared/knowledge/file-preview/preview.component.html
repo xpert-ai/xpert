@@ -1,0 +1,39 @@
+@if (file().preview$ | async; as docs) {
+  <div class="relative flex h-full w-full flex-col rounded-t-xl border-l border-t border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5 overflow-auto">
+    <div class="flex gap-x-2 border-b border-divider-subtle pb-3 pl-6 pr-4 pt-4 sticky top-0 bg-components-panel-bg z-10">
+      <div class="flex grow flex-col gap-y-1">
+        <div class="system-2xs-semibold-uppercase text-text-accent">{{ 'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'} }}</div>
+        <div class="title-md-semi-bold text-tex-primary">{{file().document$.value?.name}}</div>
+        <div class="system-xs-medium flex items-center gap-x-1 text-text-tertiary">
+          <svg
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="currentColor"
+            class="remixicon text-[#309BEC] size-3.5 shrink-0"
+          >
+            <path
+              d="M3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3ZM7 15.5V11.5L9 13.5L11 11.5V15.5H13V8.5H11L9 10.5L7 8.5H5V15.5H7ZM18 12.5V8.5H16V12.5H14L17 15.5L20 12.5H18Z"
+            ></path>
+          </svg>
+
+          <p class="text-xs text-gray-500">
+            <span class="truncate">{{ file().file.type || 'FILE' }}</span> · {{ file().formatSize() }}
+            <span>·</span>
+            <span>{{ totalChars(docs) }} {{ 'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</span>
+          </p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-action flex h-8 w-8 shrink-0 items-center justify-center"
+        (click)="closed.emit()">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    @for (doc of docs; track doc) {
+      <div class="body-md-regular grow px-6 py-5 font-body text-text-secondary">
+        {{ doc.pageContent }}
+      </div>
+    }
+  </div>
+}

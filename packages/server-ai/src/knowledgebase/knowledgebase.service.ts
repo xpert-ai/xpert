@@ -580,7 +580,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 					category: classificateDocumentCategory({type: extension})
 				}
 			])
-			return results[0].chunks[0]
+			return results[0].chunks
 		} catch (error) {
 			throw new InternalServerErrorException(getErrorMessage(error))
 		}

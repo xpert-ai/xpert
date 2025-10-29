@@ -11,7 +11,7 @@ import { myRxResource, NgmI18nPipe, omitBlank } from '@metad/ocap-angular/core'
 import { nonNullable } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
-import { KnowledgeChunkComponent, KnowledgeDocumentPreviewComponent, KnowledgeLocalFileComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { KnowledgeChunkComponent, KnowledgeDocumentPreviewComponent, KnowledgeFilePreviewComponent, KnowledgeLocalFileComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import {
   channelName,
   DocumentSourceProviderCategoryEnum,
@@ -54,7 +54,7 @@ import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
     NgmI18nPipe,
     NgmCheckboxComponent,
     IconComponent,
-    KnowledgeChunkComponent,
+    KnowledgeFilePreviewComponent,
     KnowledgeLocalFileComponent,
     XpertParametersFormComponent,
     KnowledgeDocumentPreviewComponent
