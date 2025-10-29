@@ -130,8 +130,8 @@ export function createAnswerNode(
 				)
 			}
 		},
-		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-			return nextWorkflowNodes(graph, node.key, state)
-		}
+		// navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+		// 	return nextWorkflowNodes(graph, node.key, state)
+		// }
 	}
 }

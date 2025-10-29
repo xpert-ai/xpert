@@ -335,9 +335,9 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 				}),
 				ends: []
 			},
-			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-				return nextWorkflowNodes(graph, node.key, state)
-			}
+			// navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+			// 	return nextWorkflowNodes(graph, node.key, state)
+			// }
 		}
 	}
 

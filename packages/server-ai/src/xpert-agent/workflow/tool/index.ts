@@ -165,29 +165,17 @@ export function createToolNode(
 			}),
 			ends: []
 		},
-		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-			if (state[channelName(node.key)]?.[WORKFLOW_TOOL_ERROR_CHANNEL]) {
-				return (
-					graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
-					END
-				)
-			}
-			return nextWorkflowNodes(graph, node.key, state)
-		},
-		channel: {
-			name: channelName(node.key),
-			annotation: Annotation<Record<string, unknown>>({
-				reducer: (a, b) => {
-					return b
-						? {
-								...a,
-								...b
-							}
-						: a
-				},
-				default: () => ({})
-			})
-		}
+		...(entity.errorHandling?.type === 'failBranch' ? {
+			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+				if (state[channelName(node.key)]?.[WORKFLOW_TOOL_ERROR_CHANNEL]) {
+					return (
+						graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
+						END
+					)
+				}
+				return nextWorkflowNodes(graph, node.key, state)
+			},
+		} : {})
 	}
 }
 

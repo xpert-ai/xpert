@@ -1,7 +1,5 @@
-import { Runnable, RunnableLambda } from '@langchain/core/runnables'
-import { Annotation, BaseChannel } from '@langchain/langgraph'
+import { RunnableLambda } from '@langchain/core/runnables'
 import {
-	channelName,
 	IEnvironment,
 	IWFNAssigner,
 	IWorkflowNode,
@@ -52,7 +50,7 @@ export class WorkflowAssignerNodeStrategy implements IWorkflowNodeStrategy {
 		xpertId: string
 		environment: IEnvironment
 		isDraft: boolean
-	}): { name?: string; graph: Runnable; ends: string[]; channel: { name: string; annotation: BaseChannel } } {
+	}) {
 		const { graph, node, xpertId, environment, isDraft } = payload
 		const entity = node.entity as IWFNAssigner
 
@@ -113,21 +111,7 @@ export class WorkflowAssignerNodeStrategy implements IWorkflowNodeStrategy {
 					}
 				)()
 			}),
-			ends: [],
-			channel: {
-				name: channelName(node.key),
-				annotation: Annotation<Record<string, unknown>>({
-					reducer: (a, b) => {
-						return b
-							? {
-									...a,
-									...b
-								}
-							: a
-					},
-					default: () => ({})
-				})
-			}
+			ends: []
 		}
 	}
 

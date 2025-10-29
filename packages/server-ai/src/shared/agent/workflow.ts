@@ -47,6 +47,9 @@ export type TWorkflowGraphNode = Partial<TGraphTool> & {
 	channel?: TStateChannel
 }
 
+/**
+ * @deprecated `Send` objects array have problems with concurrent execution and need to be changed to fixed edges
+ */
 export function nextWorkflowNodes(graph: TXpertGraph, from: string, state: any) {
 	const connections = graph.connections.filter((conn) => conn.type === 'edge' && conn.from === from)
 	if (connections.length > 1) {
