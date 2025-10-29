@@ -2,10 +2,11 @@ import { DBQueryRunner } from '@metad/adapter'
 import { DataSourceProtocolEnum, DataSourceSyntaxEnum } from '@metad/contracts'
 import { environment as env } from '@metad/server-config'
 import { RequestContext, Tenant, TenantAwareCrudService, TenantCreatedEvent } from '@metad/server-core'
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm'
 import { AdapterBaseOptions, QUERY_RUNNERS } from '@metad/adapter'
+import { DataSourceStrategyRegistry } from '@xpert-ai/plugin-sdk'
 import chalk from 'chalk'
 import { EntityManager, Repository } from 'typeorm'
 import { DataSourceType } from './data-source-type.entity'
@@ -15,6 +16,9 @@ import { seedDefaultDataSourceTypes } from './data-source-type.seed'
 export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType> {
 	private readonly logger = new Logger(DataSourceTypeService.name)
 	log = console.log
+
+	@Inject(DataSourceStrategyRegistry)
+	private readonly dataSourceStrategyRegistry: DataSourceStrategyRegistry
 
 	constructor(
 		@InjectRepository(DataSourceType)
@@ -43,6 +47,9 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 			)
 		)
 		const queryRunnerClasses = Object.values(QUERY_RUNNERS)
+		this.dataSourceStrategyRegistry.list().forEach((strategy) => {
+			queryRunnerClasses.push(strategy.getClassType())
+		})
 		for (const QueryRunner of queryRunnerClasses) {
 			const queryRunner = new QueryRunner({} as AdapterBaseOptions)
 			try {
@@ -62,6 +69,7 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 			}
 		})
 		if (!dataSourceType) {
+			this.log(chalk.green(`New datasource type '${queryRunner.name}' for tenant: ${tenantId}`))
 			return this.create({
 				tenantId,
 				name: queryRunner.name,
@@ -71,6 +79,7 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 				configuration: queryRunner.configurationSchema
 			})
 		} else {
+			this.log(chalk.blue(`Update datasource type '${queryRunner.name}' for tenant: ${tenantId}`))
 			await this.update(dataSourceType.id, { configuration: queryRunner.configurationSchema } as DataSourceType)
 		}
 	}

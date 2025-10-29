@@ -1,6 +1,7 @@
 import { AdapterBaseOptions, createQueryRunnerByType, DBQueryRunner } from '@metad/adapter'
 import { DataSourceProtocolEnum, IDataSource, IDSSchema, mapTranslationLanguage } from '@metad/contracts'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { QueryBus } from '@nestjs/cqrs'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -11,6 +12,7 @@ import { DeepPartial, Repository } from 'typeorm'
 import { DataSourceAuthentication } from './authentication/authentication.entity'
 import { DataSource } from './data-source.entity'
 import { prepareDataSource } from './utils'
+import { DataSourceStrategyQuery } from './queries/index'
 
 const axios = _axios.default
 
@@ -23,6 +25,7 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 		protected readonly authRepository: Repository<DataSourceAuthentication>,
 		private configService: ConfigService,
 		private readonly i18nService: I18nService,
+		private readonly queryBus: QueryBus
 	) {
 		super(dsRepository)
 	}
@@ -179,7 +182,10 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 			} as DataSource)
 		}
 
-		const runner: DBQueryRunner = createQueryRunnerByType(_dataSource.type.type, (_dataSource.options ?? {}) as unknown as AdapterBaseOptions)
+		const runner: DBQueryRunner = await this.queryBus.execute(new DataSourceStrategyQuery(
+			_dataSource.type.type, (_dataSource.options ?? {}) as unknown as AdapterBaseOptions
+		))
+		
 		try {
 			return await runner.ping()
 		} finally {

@@ -11,6 +11,7 @@ import { DataSource } from './data-source.entity'
 import { DataSourceService } from './data-source.service'
 import { EventHandlers } from './events/handlers'
 import { QueryHandlers } from './queries/handlers'
+import { DataSourceTypeModule } from '../data-source-type'
 
 @Module({
 	imports: [
@@ -18,6 +19,7 @@ import { QueryHandlers } from './queries/handlers'
 		TypeOrmModule.forFeature([DataSource, DataSourceAuthentication]),
 		forwardRef(() => TenantModule),
 		forwardRef(() => UserModule),
+		DataSourceTypeModule,
 		SharedModule,
 		CqrsModule,
 		XpertToolsetModule
