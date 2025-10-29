@@ -81,7 +81,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
       const assets: string[] = []
       chunk.metadata['chunkId'] ??= uuid()
 
-      // 源文档块
+      // Source Document Block
       chunks.push(chunk)
 
       // Find image tags inside the chunk
@@ -90,7 +90,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
         const url = match[1] // image-url.png
         const asset = params.files.find((a) => a.url === url)
         if (asset && !assets.some((_) => _ === asset.url)) {
-          const description = await this.runV(client, chunk.pageContent, join(doc.folder || '', asset.filePath), config)
+          const description = await this.runV(client, chunk.pageContent, asset.filePath, config)
           assets.push(asset.url)
           chunks.push(new Document({
             pageContent: description,
@@ -105,18 +105,6 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
           }))
         }
       }
-
-      // if (assets.length > 0) {
-      //   chunks.push(new Document({
-      //     pageContent: chunk.pageContent,
-      //     metadata: {
-      //       ...chunk.metadata,
-      //       assets: (chunk.metadata['assets'] || []).concat(params.files.filter((a) => assets.includes(a.url))),
-      //       chunkId: `txt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      //       parentId: chunk.metadata.parentId ?? chunk.metadata.chunkId,
-      //     }
-      //   }))
-      // }
     }
 
     return {

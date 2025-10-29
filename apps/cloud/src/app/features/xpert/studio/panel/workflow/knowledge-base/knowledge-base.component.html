@@ -1,4 +1,4 @@
-<div class="px-4 border-b border-divider-subtle py-3">
+<!-- <div class="px-4 border-b border-divider-subtle py-3">
   <div class="mb-0.5">
     <div class="group/collapse flex items-center justify-between py-1">
       <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
@@ -65,7 +65,7 @@
       </div>
     </div>
   </div>
-</div>
+</div> -->
 
 <div class="p-4 space-y-3">
   <div class="system-sm-semibold uppercase flex items-center text-text-secondary">
@@ -112,6 +112,15 @@
   </div>
 </div>
 
+
+<div class="p-4 space-y-3">
+  <div>
+    <copilot-model-select [label]="'PAC.Knowledgebase.VisionModel' | translate: {Default: 'Vision Model'}" [modelType]="eModelType.LLM" [features]="[eModelFeature.VISION]"
+      [(ngModel)]="visionModel"
+    />
+  </div>
+</div>
+
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
 
 <div class="p-4 space-y-3">
@@ -128,6 +137,8 @@
   </div>
 </div>
 
+
+<!-- 
 <ng-template #strcutureMenu>
   <div
     cdkMenu
@@ -206,4 +217,4 @@
       </div>
     </div>
   </div>
-</ng-template>
+</ng-template> -->

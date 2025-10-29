@@ -143,7 +143,7 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
 	@IsOptional()
-	@Column({ type: 'json', nullable: true })
+	@Column({ type: 'json', nullable: true, default: { topK: 10 } })
 	recall?: TKBRecallParams
 
 	@ApiPropertyOptional({ type: () => String })
@@ -227,6 +227,9 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     |--------------------------------------------------------------------------
     */
 	@Transform((params: TransformFnParams) => params.value?.map((_) => new XpertIdentiDto(_)))
-	@ManyToMany(() => Xpert, (xpert) => xpert.knowledgebases)
+	@ManyToMany(() => Xpert, (xpert) => xpert.knowledgebases, {
+		onUpdate: 'CASCADE',
+		onDelete: 'CASCADE'
+	})
 	xperts?: IXpert[]
 }

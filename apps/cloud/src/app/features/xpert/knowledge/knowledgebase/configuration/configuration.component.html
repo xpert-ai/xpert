@@ -95,6 +95,7 @@
     </div>
     <div class="grow flex flex-col space-y-2">
       <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.EmbeddingModel' | translate: {Default: 'Embedding Model'}"
+        required
         [modelType]="eModelType.TEXT_EMBEDDING"
         [(ngModel)]="copilotModel"
       />

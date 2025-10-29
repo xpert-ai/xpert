@@ -1,14 +1,15 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, inject, input, output, signal } from '@angular/core'
+import { booleanAttribute, Component, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { getErrorMessage, injectToastr, KnowledgebaseService } from '@cloud/app/@core'
-import { AiModelTypeEnum, IKnowledgebase } from '../../../@core/types'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
+import { AiModelTypeEnum, IKnowledgebase } from '../../../@core/types'
 import { CopilotModelSelectComponent } from '../../copilot'
 
 /**
@@ -52,6 +53,13 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly recall = attrModel(this.knowledgebase, 'recall')
   readonly score = attrModel(this.recall, 'score', null)
   readonly topK = attrModel(this.recall, 'topK', null)
+  readonly useScore = linkedModel({
+    initialValue: false,
+    compute: () => !isNil(this.score()),
+    update: (value) => {
+      this.score.set(value ? this.score() ?? 0.5 : null)
+    }
+  })
   readonly rerankModel = attrModel(this.knowledgebase, 'rerankModel', null)
   readonly useRerank = linkedModel({
     initialValue: false,

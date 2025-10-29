@@ -1,0 +1,7 @@
+:host {
+  @apply flex flex-col w-full;
+}
+
+.tab.active {
+  @apply bg-components-panel-bg text-text-primary;
+}

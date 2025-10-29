@@ -153,7 +153,7 @@ export class XpertCollaborator implements IXpertSubAgent {
 							...state,
 							...call.args,
 							[STATE_VARIABLE_HUMAN]: {
-								input: call.args.input
+								...call.args
 							}
 						}
 						const output = await graph.invoke(subState, {

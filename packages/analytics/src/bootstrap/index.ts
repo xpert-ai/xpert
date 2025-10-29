@@ -133,7 +133,6 @@ export async function preBootstrapPlugins() {
 	const plugins = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || [];
 	const { modules } = await registerPluginsAsync({
 		plugins: [
-			// '@xpert-ai/plugin-lark',
 			'@xpert-ai/plugin-dify',
 			'@xpert-ai/plugin-file-system',
 			'@xpert-ai/plugin-firecrawl',
@@ -144,7 +143,6 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-retriever-common',
 			'@xpert-ai/plugin-tool-calculator',
 			'@xpert-ai/plugin-transformer-common',
-			'@xpert-ai/plugin-transformer-unstructured',
 			'@xpert-ai/plugin-vlm-default',
 			'@xpert-ai/plugin-vstore-chroma',
 			'@xpert-ai/plugin-vstore-milvus',

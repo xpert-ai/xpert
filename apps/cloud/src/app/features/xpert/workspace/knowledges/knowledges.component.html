@@ -13,8 +13,8 @@
         <div class="system-md-semibold text-text-secondary group-hover:text-text-accent">{{ 'PAC.Knowledgebase.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'} }}</div>
       </div>
     </a>
-    <a type="button" class="flex w-full items-center gap-x-2 rounded-lg bg-transparent px-4 py-2 cursor-pointer text-text-tertiary
-      shadow-shadow-shadow-3 hover:bg-components-card-bg hover:text-text-secondary hover:shadow-sm"
+    <a type="button" class="flex w-full items-center gap-x-2 rounded-lg bg-transparent px-4 py-2 cursor-pointer
+      shadow-shadow-shadow-3 text-text-secondary hover:bg-components-card-bg hover:text-text-secondary hover:shadow-sm"
       [routerLink]="['/xpert/knowledges/create-from-pipeline']" [queryParams]="{ workspaceId: workspaceId() }"
       >
       <i class="ri-mind-map"></i>
@@ -24,7 +24,7 @@
     </a>
     <div class="grow"></div>
     <a class="group flex cursor-pointer items-center gap-1 rounded-lg border-t-[0.5px] border-neutral-100 p-2
-      text-text-tertiary hover:bg-components-card-bg hover:text-text-accent"
+      text-text-secondary hover:bg-components-card-bg hover:text-text-accent"
       [routerLink]="['/xpert/knowledges/connect']" [queryParams]="{ workspaceId: workspaceId() }">
       <i class="ri-plug-line"></i>
       <div class="text-sm font-mono">{{ 'PAC.Knowledgebase.ConnectExternalKnowledgebase' | translate: {Default: 'Connect External Knowledgebase'} }}</div>

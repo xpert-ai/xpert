@@ -177,6 +177,18 @@
             }
           </div>
           <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
+            @if (requireVisionModel()) {
+              <div>
+                <div>
+                  {{ 'PAC.Pipeline.VisionModel' | translate: {Default: 'Vision Model'} }}
+                  <span class="text-text-destructive">*</span>
+                </div>
+                <copilot-model-select hiddenLabel [modelType]="eModelType.LLM" [features]="[eModelFeature.VISION]"
+                  [(ngModel)]="imageUnderstandingModel"
+                  [inheritModel]="kbVisionModel()"
+                />
+              </div>
+            }
             @if (imageUnderstandingConfigSchema(); as imageUnderstandingConfigSchema) {
               <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="imageUnderstandingConfigSchema" 
                 [(ngModel)]="imageUnderstanding"

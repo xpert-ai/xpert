@@ -139,7 +139,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 						let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
 						if (!imgTransformed) {
 							if (!visionModel) {
-								visionModel = await this.knowledgebaseService.getVisionModel(doc.knowledgebaseId)
+								visionModel = await this.knowledgebaseService.getVisionModel(doc.knowledgebaseId, doc.parserConfig.imageUnderstandingModel)
 							}
 							const imageUnderstanding = this.imageUnderstandingRegistry.get(
 								doc.parserConfig.imageUnderstandingType

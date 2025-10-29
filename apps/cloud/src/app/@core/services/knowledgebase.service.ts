@@ -5,6 +5,7 @@ import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langch
 import {
   _TFile,
   API_PREFIX,
+  classificateDocumentCategory,
   DocumentMetadata,
   IDocumentChunkerProvider,
   IDocumentProcessorProvider,
@@ -14,14 +15,13 @@ import {
   IKnowledgebaseTask,
   IKnowledgeDocument,
   IKnowledgeRetrievalLog,
-  isDocumentSheet,
   IXpert,
-  KBDocumentCategoryEnum,
   PaginationParams,
   toHttpParams
 } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, interval, of } from 'rxjs'
+import { v4 as uuidv4 } from 'uuid'
 import { catchError, filter, shareReplay, switchMap, takeWhile, tap } from 'rxjs/operators'
 import { getErrorMessage, uuid } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
@@ -233,16 +233,27 @@ export class KnowledgeFileUploader {
             case HttpEventType.Response: {
               this.progress.set(100)
               const type = this.file.type?.split('/').pop().toLowerCase() || 'unknown'
+              const metadata: DocumentMetadata = {
+                chunkId: uuidv4(),
+                title: this.file.name,
+              }
+              if (event.body.mimeType?.startsWith('image/')) {
+                metadata.assets = [
+                  {
+                    type: 'image',
+                    url: event.body.fileUrl,
+                    filePath: event.body.filePath
+                  }
+                ]
+              }
               this.document$.next({
                 ...event.body,
                 id: uuid(),
                 name: this.file.name,
                 size: `${this.file.size}`,
                 type,
-                category: isDocumentSheet(type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text,
-                metadata: {
-                  title: this.file.name,
-                }
+                category: classificateDocumentCategory({type}),
+                metadata
               })
               this.document.set(this.document$.value)
               this.uploadedUrl.set(event.body.fileUrl) // Assuming response contains URL

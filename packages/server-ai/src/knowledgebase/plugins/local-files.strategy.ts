@@ -1,5 +1,13 @@
 import { Document } from '@langchain/core/documents'
-import { DocumentSourceProviderCategoryEnum, I18nObject, IDocumentSourceProvider, IStorageFile, STATE_VARIABLE_HUMAN, TChatRequestHuman } from '@metad/contracts'
+import {
+	classificateDocumentCategory,
+	DocumentSourceProviderCategoryEnum,
+	I18nObject,
+	IDocumentSourceProvider,
+	IStorageFile,
+	STATE_VARIABLE_HUMAN,
+	TChatRequestHuman
+} from '@metad/contracts'
 import { GetStorageFileQuery } from '@metad/server-core'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -13,7 +21,6 @@ interface LocalFileConfig {
 @DocumentSourceStrategy('local-file')
 @Injectable()
 export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfig> {
-
 	readonly permissions = []
 	readonly meta: IDocumentSourceProvider = {
 		name: 'local-file',
@@ -34,27 +41,29 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 					description: {
 						en_US: `Specify the file extensions to be loaded from local files.`,
 						zh_Hans: '指定要从本地文件加载的文件扩展名。'
-					} ,
+					},
 					enum: [
-						"txt",
-						"markdown",
-						"mdx",
-						"pdf",
-						"html",
-						"xlsx",
-						"xls",
-						"vtt",
-						"properties",
-						"doc",
-						"docx",
-						"csv",
-						"eml",
-						"msg",
-						"pptx",
-						"xml",
-						"epub",
-						"ppt",
-						"md",
+						'txt',
+						'markdown',
+						'mdx',
+						'pdf',
+						'html',
+						'xlsx',
+						'properties',
+						'docx',
+						'csv',
+						'pptx',
+						'xml',
+						'epub',
+						'pptx',
+						'md',
+						'json',
+						'yaml',
+						'yml',
+						'png',
+						'jpg',
+						'jpeg',
+						'gif'
 					]
 				}
 			},
@@ -69,7 +78,8 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus) {}
+		private readonly queryBus: QueryBus
+	) {}
 
 	async validateConfig(config: LocalFileConfig): Promise<void> {
 		//
@@ -83,8 +93,8 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 		const human = config[STATE_VARIABLE_HUMAN]
 		if (human?.files) {
 			const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-											new GetStorageFileQuery(human.files.map((file) => file.id))
-										)
+				new GetStorageFileQuery(human.files.map((file) => file.id))
+			)
 			// const fileProvider = new FileStorage().getProvider()
 			return storageFiles.map((file) => {
 				// const fullPath = fileProvider.path(file.file)
@@ -96,7 +106,10 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 						fileUrl: file.fileUrl,
 						size: file.size,
 						originalName: file.originalName,
-						mimetype: file.mimetype
+						mimeType: file.mimetype,
+						category: classificateDocumentCategory({
+							type: file.originalName.split('.').pop().toLowerCase()
+						})
 					}
 				})
 			})

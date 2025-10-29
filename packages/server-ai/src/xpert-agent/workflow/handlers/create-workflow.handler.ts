@@ -39,7 +39,20 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 		const { xpert } = options
 		
 		let workflow = {} as any
-		let channel: TStateChannel = null
+		const channel: TStateChannel = {
+					name: channelName(node.key),
+					annotation: Annotation<Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b
+								? {
+										...a,
+										...b
+									}
+								: a
+						},
+						default: () => ({})
+					})
+				}
 		switch (node.entity.type) {
 			case WorkflowNodeTypeEnum.TRIGGER: {
 				workflow = createTriggerNode(graph, node, {
@@ -101,20 +114,20 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					environment: options.environment,
 					validator: this.codeValidator
 				})
-				channel = {
-					name: channelName(node.key),
-					annotation: Annotation<Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b
-									}
-								: a
-						},
-						default: () => ({})
-					})
-				}
+				// channel = {
+				// 	name: channelName(node.key),
+				// 	annotation: Annotation<Record<string, unknown>>({
+				// 		reducer: (a, b) => {
+				// 			return b
+				// 				? {
+				// 						...a,
+				// 						...b
+				// 					}
+				// 				: a
+				// 		},
+				// 		default: () => ({})
+				// 	})
+				// }
 				break
 			}
 			case WorkflowNodeTypeEnum.HTTP: {
@@ -124,56 +137,56 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					queryBus: this.queryBus,
 					environment: options.environment
 				})
-				channel = {
-					name: channelName(node.key),
-					annotation: Annotation<Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b
-									}
-								: a
-						},
-						default: () => ({})
-					})
-				}
+				// channel = {
+				// 	name: channelName(node.key),
+				// 	annotation: Annotation<Record<string, unknown>>({
+				// 		reducer: (a, b) => {
+				// 			return b
+				// 				? {
+				// 						...a,
+				// 						...b
+				// 					}
+				// 				: a
+				// 		},
+				// 		default: () => ({})
+				// 	})
+				// }
 				break
 			}
 			case WorkflowNodeTypeEnum.KNOWLEDGE: {
 				workflow =  await this.commandBus.execute(new CreateWNKnowledgeRetrievalCommand(xpertId, graph, node, options))
-				channel = {
-					name: channelName(node.key),
-					annotation: Annotation<Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b
-									}
-								: a
-						},
-						default: () => ({})
-					})
-				}
+				// channel = {
+				// 	name: channelName(node.key),
+				// 	annotation: Annotation<Record<string, unknown>>({
+				// 		reducer: (a, b) => {
+				// 			return b
+				// 				? {
+				// 						...a,
+				// 						...b
+				// 					}
+				// 				: a
+				// 		},
+				// 		default: () => ({})
+				// 	})
+				// }
 				break
 			}
 			case WorkflowNodeTypeEnum.SUBFLOW: {
 				workflow =  await this.commandBus.execute(new CreateWNSubflowCommand(xpertId, graph, node, options))
-				channel = {
-					name: channelName(node.key),
-					annotation: Annotation<Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b
-								? {
-										...a,
-										...b
-									}
-								: a
-						},
-						default: () => ({})
-					})
-				}
+				// channel = {
+				// 	name: channelName(node.key),
+				// 	annotation: Annotation<Record<string, unknown>>({
+				// 		reducer: (a, b) => {
+				// 			return b
+				// 				? {
+				// 						...a,
+				// 						...b
+				// 					}
+				// 				: a
+				// 		},
+				// 		default: () => ({})
+				// 	})
+				// }
 				break
 			}
 			case WorkflowNodeTypeEnum.TEMPLATE: {
@@ -266,7 +279,6 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 							graph: result.graph,
 							ends: result.ends
 						},
-						channel: result.channel,
 						navigator: result.navigator ?? (async (state: typeof AgentStateAnnotation.State, config) => {
 							if (state[channelName(node.key)]['error']) {
 								return (
@@ -277,6 +289,9 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				
 							return nextWorkflowNodes(graph, node.key, state)
 						})
+					}
+					if (result.channel !== undefined) {
+						workflow.channel = result.channel
 					}
 					break
 				} catch (error) {

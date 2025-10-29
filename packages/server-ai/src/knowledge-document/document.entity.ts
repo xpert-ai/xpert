@@ -142,6 +142,12 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Column({ nullable: true })
 	size: string
 
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@Optional()
+	@Column({ nullable: true })
+	mimeType?: string
+
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@Optional()

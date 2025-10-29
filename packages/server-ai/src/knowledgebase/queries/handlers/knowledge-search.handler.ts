@@ -4,12 +4,10 @@ import { getPythonErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Inject, InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
-import { InjectRepository } from '@nestjs/typeorm'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { Document } from '@langchain/core/documents'
-import { sortBy } from 'lodash'
-import { In, IsNull, Not, Raw, Repository } from 'typeorm'
-import { KnowledgeDocumentPage } from '../../../core/entities/internal'
+import { isNil, sortBy } from 'lodash'
+import { In, IsNull, Not, Raw } from 'typeorm'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeSearchQuery } from '../knowledge-search.query'
 import { KnowledgeRetrievalLogService } from '../../logs'
@@ -18,12 +16,6 @@ import { KnowledgeDocumentChunkService } from '../../../knowledge-document/chunk
 @QueryHandler(KnowledgeSearchQuery)
 export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearchQuery> {
 	private readonly logger = new Logger(KnowledgeSearchQueryHandler.name)
-
-	/**
-	 * @deprecated use chunks
-	 */
-	@InjectRepository(KnowledgeDocumentPage)
-	private readonly pageRepository: Repository<KnowledgeDocumentPage>
 
 	@Inject(KnowledgeRetrievalLogService)
 	private readonly retrievalLogService: KnowledgeRetrievalLogService
@@ -59,7 +51,13 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 						topK,
 						filter
 					)
-					docs = chunks.map(([doc, score]) => ({ doc, score }))
+					docs = chunks.map(([doc, score]) => new Document({
+						...doc,
+						metadata: {
+							...doc.metadata,
+							score
+						}
+					}))
 				} else {
 					docs = await this.similaritySearchWithScore(kb, query, k ?? kb.recall?.topK ?? 1000, filter)
 				}
@@ -85,9 +83,14 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		)
 
 		kbs.forEach(({ kb, docs }) => {
-			docs.filter((doc) => doc.metadata.score >= (score ?? kb.recall?.score ?? 0.5)).forEach((item) => {
-				documents.push(item)
-			})
+			const score = command.input.score ?? kb.recall?.score
+			if (isNil(score)) {
+				documents.push(...docs)
+			} else {
+				docs.filter((doc) => doc.metadata.score >= score).forEach((item) => {
+					documents.push(item)
+				})
+			}
 		})
 
 		return sortBy(documents, 'metadata.score').reverse().slice(0, topK)
@@ -108,19 +111,24 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		)
 		const items = await vectorStore.similaritySearchWithScore(query, k, filter)
 		const chunkMap = new Map<string, Document<ChunkMetadata>>()
+		// Split into parent and child chunks
 		const parentChunkIds = new Set<string>()
 		const chunkIds: string[] = []
-		const docs: IKnowledgeDocumentChunk<ChunkMetadata>[] = []
+		// Parent chunks
 		items.forEach(([doc, score]) => {
-				doc.metadata.score = 1 - score
-				chunkMap.set(doc.metadata.chunkId, doc as Document<ChunkMetadata>)
-				if (doc.metadata.parentId) {
-					parentChunkIds.add(doc.metadata.parentId)
-				} else {
-					// docs.push(doc as Document<ChunkMetadata>)
-					chunkIds.push(doc.metadata.chunkId)
-				}
-			})
+			doc.metadata.score = 1 - score
+			chunkMap.set(doc.metadata.chunkId, doc as Document<ChunkMetadata>)
+			if (doc.metadata.parentId) {
+				parentChunkIds.add(doc.metadata.parentId)
+			}
+		})
+		// Leaf chunks
+		items.forEach(([doc, score]) => {
+			if (!doc.metadata.parentId && !parentChunkIds.has(doc.metadata.chunkId)) {
+				chunkIds.push(doc.metadata.chunkId)
+			}
+		})
+		const docs: IKnowledgeDocumentChunk<ChunkMetadata>[] = []
 		if (chunkIds.length > 0) {
 			const { items: chunks } = await this.chunkService.findAll({
 					where: {
@@ -180,28 +188,11 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 			})
 			docs.push(...chunks)
 		}
-		
-		// Parent-child
-		// if (kb.chunkStructure === KnowledgeChunkStructureEnum.ParentChild) {
-		// const ids = items.map(([doc]) => doc.metadata?.pageId).filter(Boolean) as string[]
-		// if (ids.length > 0) {
-		// 	const pages = await this.pageRepository.find({
-		// 		where: {
-		// 			tenantId: kb.tenantId,
-		// 			knowledgebaseId: kb.id,
-		// 			id: In(ids)
-		// 		}
-		// 	})
-		// 	docs = mergePageChunks(
-		// 		pages.map((_) => new Document({..._, metadata: {..._.metadata, children: null}})),
-		// 		docs as Document<ChunkMetadata>[]
-		// 	)
-		// }
 
 		// Rerank the documents if a rerank model is set
-		if (kb.rerankModelId) {
+		if (kb.rerankModelId && docs.length > 0) {
 			try {
-				const rerankedDocs = await vectorStore.rerank(docs, query, { topN: k || 1000 })
+				const rerankedDocs = await vectorStore.rerank(docs, query, { topN: Math.min(docs.length, k ?? 100) })
 				return rerankedDocs.map(({ index, relevanceScore }) => {
 					return {
 						...docs[index],
@@ -216,46 +207,3 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		return docs
 	}
 }
-
-// /**
-//  * 
-//  * @deprecated use chunks
-//  * @param pages 
-//  * @param chunks 
-//  * @returns 
-//  */
-// function mergePageChunks(pages: KnowledgeDocumentPage[], chunks: Document<ChunkMetadata>[]): Document[] {
-// 	const chunkMap = new Map<string, Document<ChunkMetadata>>()
-// 	for (const page of pages) {
-// 		chunkMap.set(page.metadata.chunkId, page)
-// 	}
-// 	for (const child of chunks) {
-// 		if (!child.metadata.parentId) {
-// 			if (chunkMap.has(child.metadata.chunkId)) {
-// 				console.warn(`Duplicate chunkId found: ${child.metadata.chunkId}, skipping...`)
-// 				continue
-// 			}
-// 			chunkMap.set(child.metadata.chunkId, child)
-// 			continue
-// 		}
-// 		const parent = chunkMap.get(child.metadata.parentId)
-// 		if (parent) {
-// 			if (!parent.metadata.children) {
-// 				parent.metadata.children = []
-// 			}
-// 			parent.metadata.children.push(child)
-// 		} else {
-// 			chunkMap.set(child.metadata.chunkId, child)
-// 		}
-// 	}
-// 	return Array.from(chunkMap.values()).map((chunk) => {
-// 		return chunk.metadata.children?.length ? new Document({
-// 			id: chunk.id,
-// 			pageContent: chunk.pageContent,
-// 			metadata: {
-// 				...chunk.metadata,
-// 				score: Math.max(...chunk.metadata.children.map(c => c.metadata.score))
-// 			}
-// 		}) : chunk
-// 	})
-// }

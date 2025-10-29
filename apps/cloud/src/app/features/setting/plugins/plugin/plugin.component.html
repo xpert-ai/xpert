@@ -1,0 +1,74 @@
+@if (plugin(); as plugin) {
+  <div class="relative overflow-hidden rounded-xl border-[0.5px] border-components-panel-border bg-neutral-50 shadow-sm hover:shadow-md hover:bg-components-card-bg">
+    <div class="p-4 pb-3">
+      <div class="absolute right-0 top-0 flex pl-[13px]">
+        <svg
+          width="13"
+          height="18"
+          viewBox="0 0 13 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class="-mr-[1px] text-gray-100"
+        >
+          <path
+            id="Shape"
+            d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
+            fill="currentColor"
+          ></path>
+        </svg>
+        <div class="text-xs font-semibold font-body uppercase h-[19px] rounded-tr-xl bg-gray-100 pr-2 leading-5 text-text-tertiary">
+          {{ plugin.category }}
+        </div>
+      </div>
+      <div class="flex">
+        <xp-icon [icon]="plugin.icon" size="24" class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl"/>
+        <div class="ml-3 w-0 grow">
+          <div class="flex h-5 items-center">
+            <div class="system-md-semibold truncate text-text-secondary">{{ plugin.displayName }}</div>
+            <div class="flex shrink-0 items-center justify-center text-text-success ml-1">
+              <i class="ri-verified-badge-fill"></i>
+            </div>
+          </div>
+          <div class="flex h-4 items-center space-x-0.5 mt-0.5">
+            <a [href]=" plugin.author.url" target="_blank" class="system-xs-regular shrink-0 hover:underline text-text-tertiary">{{ plugin.author.name }}</a>
+            <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
+            <span class="system-xs-regular w-0 shrink-0 grow truncate text-text-tertiary">{{ plugin.name }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="system-xs-regular text-text-tertiary h-8 line-clamp-2 mt-3">
+        {{ plugin.description }}
+      </div>
+      <div>
+        <div class="flex h-5 items-center">
+          <div class="flex items-center space-x-1 text-text-tertiary">
+            <i class="ri-import-line shrink-0"></i>
+            <div class="system-xs-regular">**</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl px-4 pb-4 pt-8 group-hover:flex bg-hero-gradient">
+    <a
+      target="_blank"
+      [href]="installHelpUrl()"
+      class="block w-[calc(50%-4px)] flex-1 shrink-0"
+      >
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-full gap-0.5">
+        {{ 'PAC.Plugin.Install' | translate: {Default: 'Install'} }}
+      </button>
+    </a>
+    <a
+      target="_blank"
+      [href]="plugin.source?.url"
+      class="block w-[calc(50%-4px)] flex-1 shrink-0"
+      >
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-full gap-0.5">
+        {{ 'PAC.Plugin.Details' | translate: {Default: 'Details'} }}
+        <i class="ri-corner-right-up-line"></i>
+      </button>
+    </a>
+  </div>
+}

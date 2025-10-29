@@ -16,6 +16,17 @@ export type TWorkflowNodeParams<TConfig = any> = {
   config: TConfig
 }
 
+export type TWorkflowNodeResult = {
+  name?: string
+  graph: Runnable
+  ends: string[]
+  channel?: {
+    name: string
+    annotation: BaseChannel
+  }
+  navigator?: (state, config) => Promise<any>
+}
+
 /**
  * Workflow Node Strategy interface
  */
@@ -34,16 +45,7 @@ export interface IWorkflowNodeStrategy<TConfig = any, TResult = any> {
     xpertId: string
     environment: IEnvironment
     isDraft: boolean
-  }): {
-    name?: string
-    graph: Runnable
-    ends: string[]
-    channel: {
-      name: string
-      annotation: BaseChannel
-    }
-    navigator?: (state, config) => Promise<any>
-  }
+  }): TWorkflowNodeResult
 
   outputVariables(entity: IWorkflowNode): TXpertParameter[]
 }

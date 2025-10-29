@@ -1,4 +1,4 @@
-import { buildChunkTree, IIntegration, IKnowledgeDocument, IKnowledgeDocumentChunk, isDocumentSheet, KBDocumentCategoryEnum, KBDocumentStatusEnum, TRagWebOptions } from '@metad/contracts'
+import { buildChunkTree, IIntegration, IKnowledgeDocument, IKnowledgeDocumentChunk, isAudioType, isDocumentSheet, isImageType, isVideoType, KBDocumentCategoryEnum, KBDocumentStatusEnum, TRagWebOptions } from '@metad/contracts'
 import {
 	CrudController,
 	IntegrationService,
@@ -114,7 +114,11 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
 		entity.parserConfig ??= {}
 		try {
-			entity.category ??= isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
+			entity.category ??= isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : 
+									isImageType(entity.type) ? KBDocumentCategoryEnum.Image : 
+									isVideoType(entity.type) ? KBDocumentCategoryEnum.Video :
+									isAudioType(entity.type) ? KBDocumentCategoryEnum.Audio :
+									KBDocumentCategoryEnum.Text
 			const result = await this.commandBus.execute<KnowledgeDocLoadCommand, { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }>(
 				new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument, stage: 'prod'}))
 			return buildChunkTree(result.chunks)

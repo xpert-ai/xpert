@@ -83,7 +83,7 @@ export class XpertWorkspaceXpertsComponent {
   readonly #xperts = myRxResource({
     request: () => {
       const where = {
-        type: this.type(),
+        type: XpertTypeEnum.Agent,
         latest: true
       }
       if (!this.workspace()) return null
@@ -94,12 +94,7 @@ export class XpertWorkspaceXpertsComponent {
       return request ? this.xpertService.getAllByWorkspace(request.workspaceId, {
           where: omitBy(request.where, isNil),
           order: { updatedAt: OrderTypeEnum.DESC },
-          relations: ['createdBy', 'tags', 'knowledgebase'],
-          select: {
-            knowledgebase: {
-              id: true,
-            } as any
-          }
+          relations: ['createdBy', 'tags'],
         }).pipe(map(({ items }) => items.filter((item) => item.latest))) : null
     }
   })

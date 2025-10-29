@@ -81,8 +81,11 @@ export class XpertVariablePanelComponent {
           return (type
             ? variable.type?.startsWith(type)
             : true) &&
-                (variable.name.toLowerCase().includes(searchTerm) ||
-                  (this.i18nPipe.transform(description).toLowerCase().includes(searchTerm)))
+                (
+                  variable.name.toLowerCase().includes(searchTerm) ||
+                  (this.i18nPipe.transform(description)?.toLowerCase().includes(searchTerm)) ||
+                  this.i18nPipe.transform(group.group.description)?.toLowerCase().includes(searchTerm)
+                )
         }) : group.variables
       }))
       .filter((group) => group.variables?.length > 0)

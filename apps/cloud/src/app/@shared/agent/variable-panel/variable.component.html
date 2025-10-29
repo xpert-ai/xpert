@@ -11,7 +11,8 @@
 <ul class="grow px-2 pb-2 overflow-auto">
   @for (g of filteredVariables(); track g) {
     @if (g.group) {
-      <div class="p-1 mt-2 text-sm font-semibold text-text-secondary uppercase">{{g.group.description | i18n}}</div>
+      <div class="p-1 mt-2 text-sm font-semibold text-text-secondary uppercase"
+        [ngmHighlight]="searchTerm()" [content]="g.group.description | i18n">{{g.group.description | i18n}}</div>
     } @else {
       <div class="p-1 mt-2 text-sm font-semibold text-text-secondary">{{'PAC.Copilot.SystemVariables' | translate: {Default: 'System Variables'} }}</div>
     }

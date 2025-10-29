@@ -2,10 +2,11 @@ import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMess
 import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
 
 @Entity('chat_message')
+@Index(['conversationId'])
 export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMessage {
 
 	@ApiProperty({ type: () => String })

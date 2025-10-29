@@ -5,7 +5,7 @@ import { ApiTags } from '@nestjs/swagger'
 import { FindOptionsWhere } from 'typeorm'
 import { TransformInterceptor } from '../core/interceptors'
 import { ParseJsonPipe } from '../shared/pipes'
-import { CrudController, PaginationParams } from './../core/crud'
+import { CrudController, PaginationParams, transformWhere } from './../core/crud'
 import { IntegrationPublicDTO } from './dto'
 import { Integration } from './integration.entity'
 import { IntegrationService } from './integration.service'
@@ -23,7 +23,8 @@ export class IntegrationController extends CrudController<Integration> {
 
 	@Get()
 	async getAll(@Query('data', ParseJsonPipe) data: PaginationParams<Integration>) {
-		const result = await this.service.findAll(data)
+		const where = transformWhere(data.where) ?? {}
+		const result = await this.service.findAll({...data, where })
 		return {
 			...result,
 			items: result.items.map((_) => new IntegrationPublicDTO(_))
@@ -36,7 +37,7 @@ export class IntegrationController extends CrudController<Integration> {
 	}
 
 	@Get('select-options')
-	async getSelectOptions(@Query('provider') provider: IntegrationEnum, @Query('features') features: string) {
+	async getSelectOptions(@Query('provider') provider: string | IntegrationEnum, @Query('features') features: string) {
 		const _features = features?.split(',') as IntegrationFeatureEnum[]
 		const where: FindOptionsWhere<Integration> = provider ? { provider } : {}
 		// if (_features?.length) {

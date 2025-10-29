@@ -195,6 +195,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							}
 						}
 						
+						// Transform parameters with state
 						const parameters = entity.config ? await deepTransformValue(entity.config, async (v) => {
 							return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
 						}) : {}
@@ -211,6 +212,8 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							name: doc.metadata.originalName || doc.metadata.title,
 							filePath: doc.metadata.filePath,
 							fileUrl: doc.metadata.fileUrl,
+							category: doc.metadata.category,
+							mimeType: doc.metadata.mimeType,
 							status: KBDocumentStatusEnum.WAITING,
 							metadata: doc.metadata,
 							draft: doc.pageContent ?

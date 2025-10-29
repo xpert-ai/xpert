@@ -1,10 +1,11 @@
 import { ICopilotCheckpoint } from '@metad/contracts'
+import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { IsString } from 'class-validator'
 import { Column, Entity, Index } from 'typeorm'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
 
 @Entity('copilot_checkpoint')
+@Index(['thread_id', 'checkpoint_ns', 'checkpoint_id'])
 @Index(['organizationId', 'thread_id', 'checkpoint_ns', 'checkpoint_id'], {unique: true})
 export class CopilotCheckpoint extends TenantOrganizationBaseEntity implements ICopilotCheckpoint {
 	@ApiPropertyOptional({ type: () => String })

@@ -190,16 +190,19 @@ export function createCodeNode(
 			}),
 			ends: []
 		},
-		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-			if (state[channelName(node.key)][ErrorChannelName]) {
-				return (
-					graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
-					END
-				)
-			}
+		...(entity.errorHandling?.type === 'failBranch' ? {
+			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+				if (state[channelName(node.key)][ErrorChannelName]) {
+					return (
+						graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
+						END
+					)
+				}
 
-			return nextWorkflowNodes(graph, node.key, state)
-		}
+				return nextWorkflowNodes(graph, node.key, state)
+			}
+		} : {
+		}),
 	}
 }
 

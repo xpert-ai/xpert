@@ -118,6 +118,11 @@
     @if (loading()) {
       <ngm-spin class="absolute left-0 top-0 w-full h-full " />
     }
+  } @else if (error()) {
+    <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center gap-2 text-text-danger">
+      <i class="ri-error-warning-line text-5xl text-text-warning"></i>
+      <div class="text-center px-4">{{error()}}</div>
+    </div>
   } @else {
     <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center gap-2 text-text-tertiary">
       <i class="ri-crosshair-2-line text-6xl" [class.animate-spin]="loading()"></i>

@@ -32,34 +32,35 @@
   <div class="px-4"><div class="mx-auto mt-1 h-[1px] bg-divider-subtle"></div></div>
 
   <nav class="grow space-y-1 px-2 py-4">
-    <a class="router-menu-item"
-      title=""
-      [routerLink]="['./', 'documents']"
-      [routerLinkActiveOptions]="{ exact: false }"
-      routerLinkActive
-      #rla1="routerLinkActive"
-      [class.active]="rla1.isActive"
-    >
-      <i class="ri-file-text-line mr-2 text-xl"></i>
-      @if (sideMenuOpened()) {
-        {{ 'PAC.Knowledgebase.Documents' | translate: {Default: 'Documents'} }}
-      }
-    </a>
+    @if (!external()) {
+      <a class="router-menu-item"
+        title=""
+        [routerLink]="['./', 'documents']"
+        [routerLinkActiveOptions]="{ exact: false }"
+        routerLinkActive
+        #rla1="routerLinkActive"
+        [class.active]="rla1.isActive"
+      >
+        <i class="ri-file-text-line mr-2 text-xl"></i>
+        @if (sideMenuOpened()) {
+          {{ 'PAC.Knowledgebase.Documents' | translate: {Default: 'Documents'} }}
+        }
+      </a>
 
-    <a class="router-menu-item"
-      title=""
-      [routerLink]="pipelineId() ? ['./', 'xpert', pipelineId()] : ['./', 'xpert']"
-      [routerLinkActiveOptions]="{ exact: false }"
-      routerLinkActive
-      #rla4="routerLinkActive"
-      [class.active]="rla4.isActive"
-    >
-      <i class="ri-robot-2-line mr-2 text-xl"></i>
-      @if (sideMenuOpened()) {
-        {{ 'PAC.Knowledgebase.Pipeline' | translate: {Default: 'Pipeline'} }}
-      }
-    </a>
-
+      <a class="router-menu-item"
+        title=""
+        [routerLink]="pipelineId() ? ['./', 'xpert', pipelineId()] : ['./', 'xpert']"
+        [routerLinkActiveOptions]="{ exact: false }"
+        routerLinkActive
+        #rla4="routerLinkActive"
+        [class.active]="rla4.isActive"
+      >
+        <i class="ri-robot-2-line mr-2 text-xl"></i>
+        @if (sideMenuOpened()) {
+          {{ 'PAC.Knowledgebase.Pipeline' | translate: {Default: 'Pipeline'} }}
+        }
+      </a>
+    }
     <a class="router-menu-item"
       title=""
       [routerLink]="['./', 'test']"

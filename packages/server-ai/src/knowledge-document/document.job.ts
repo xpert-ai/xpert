@@ -38,7 +38,7 @@ export class KnowledgeDocumentConsumer {
 			relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']
 		})
 
-		runWithRequestContext({ user, headers: { ['organization-id']: knowledgebase.organizationId } }, () => {
+		runWithRequestContext({ user, headers: { ['organization-id']: knowledgebase.organizationId, language: user.preferredLanguage } }, () => {
 			this._processJob(knowledgebase, job.data.docs, job).catch((err) => {
 				this.logger.error(err)
 			})
@@ -99,7 +99,7 @@ export class KnowledgeDocumentConsumer {
 				if (chunks) {
 					this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
 					document.chunks = await this.documentService.coverChunks({...document, chunks}, vectorStore)
-					chunks = await this.documentService.findAllLeaves(document)
+					chunks = await this.documentService.findAllEmbeddingNodes(document)
 
 					// Clear history chunks
 					await vectorStore.deleteKnowledgeDocument(document)

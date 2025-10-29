@@ -8,7 +8,8 @@ import {
   MoreThanOrEqual,
   LessThan,
   LessThanOrEqual,
-  SelectQueryBuilder
+  SelectQueryBuilder,
+  Raw
 } from 'typeorm'
 import { FindOptionsWhere } from './FindOptionsWhere'
 
@@ -24,6 +25,7 @@ type OperatorValue =
   | { $lt?: any }
   | { $lte?: any }
   | { $isNull?: boolean }
+  | { $contains?: any[] }
 
 /**
  * Supported operators:
@@ -40,6 +42,7 @@ type OperatorValue =
   | `$gte`    | Greater than or equal to             | `MoreThanOrEqual(value)`     |
   | `$lt`     | Less than                            | `LessThan(value)`            |
   | `$lte`    | Less than or equal to                | `LessThanOrEqual(value)`     |
+  | `$contains`| Array contains                      | `Raw(...)`                   |
  * @param where 
  * @returns 
  */
@@ -80,6 +83,8 @@ export function transformWhere<T = any>(where: Record<string, OperatorValue> | n
       result[key] = LessThan(value.$lt)
     } else if ('$lte' in value) {
       result[key] = LessThanOrEqual(value.$lte)
+    } else if ('$contains' in value) {
+      result[key] = Raw((alias) => `${alias} @> :contains`, { contains: JSON.stringify(value.$contains) })
     } else {
       // fallback: directly as a sub-condition
       result[key] = value
@@ -131,6 +136,8 @@ export function applyWhereToQueryBuilder<T>(
       qb.andWhere(`${fieldPath} < :${paramKey}`, { [paramKey]: value.$lt })
     } else if ('$lte' in value) {
       qb.andWhere(`${fieldPath} <= :${paramKey}`, { [paramKey]: value.$lte })
+    } else if ('$contains' in value) {
+      qb.andWhere(`${fieldPath} @> :${paramKey}`, { [paramKey]: value.$contains })
     } else {
       // fallback: treat as equality
       qb.andWhere(`${fieldPath} = :${paramKey}`, { [paramKey]: value })

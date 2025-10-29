@@ -1,7 +1,5 @@
 <div class="space-y-2 relative">
-  <div
-    class="cursor-pointer overflow-hidden rounded-xl bg-components-option-card-option-bg border border-components-option-card-option-selected-border ring-[1px] ring-components-option-card-option-selected-border"
-  >
+  <div class="cursor-pointer overflow-hidden rounded-xl bg-components-option-card-option-bg border border-components-option-card-option-selected-border ring-[1px] ring-components-option-card-option-selected-border">
     <div class="relative flex rounded-t-xl p-2 gap-x-2">
       <div
         class="absolute left-[-2px] top-[-2px] h-14 w-14 rounded-full blur-[80px] bg-purple-600 opacity-80"
@@ -62,15 +60,21 @@
             <ngm-slider-input [label]="'PAC.Knowledgebase.TopK' | translate: {Default: 'Top Count'}"
               color="accent"
               [(ngModel)]="topK"
-              [min]="1" [max]="100" [step]="1" />
+              [min]="1" [max]="100" [step]="1"
+            />
           </div>
           <div class="mt-1 flex items-center">
             <ngm-slider-input [label]=" 'PAC.Knowledgebase.SimilarityThreshold' | translate: {Default: 'Similarity Threshold'}"
               color="accent"
+              [disabled]="!useScore()"
               [(ngModel)]="score" 
-              [min]="0" [max]="1" [step]="0.01">
-              <i class="ri-information-2-line text-text-tertiary hover:text-text-primary"
-                [matTooltip]="'PAC.Knowledgebase.SimilarityThresholdInfo' | translate: {Default: 'If the similarity between the query and the chunk is less than this threshold, the chunk will be filtered out.'}"></i>
+              [min]="0" [max]="1" [step]="0.01"
+            >
+              <ngm-slide-toggle class="inline-flex ml-1"
+                [(ngModel)]="useScore"
+                [matTooltip]="'PAC.Knowledgebase.SimilarityThresholdInfo' | translate: {Default: 'If the similarity between the query and the chunk is less than this threshold, the chunk will be filtered out.'}"
+                matTooltipPosition="above"
+              />
             </ngm-slider-input>
           </div>
         </div>

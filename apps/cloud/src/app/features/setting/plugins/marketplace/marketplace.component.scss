@@ -1,0 +1,7 @@
+:host {
+  @apply flex flex-col w-full;
+}
+
+.list-option.active {
+  @apply bg-neutral-100 text-primary-500 shadow-sm;
+}

@@ -5,11 +5,12 @@ import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { injectExportXpertDsl, XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
-import { AppService } from '@cloud/app/app.service'
 import { OverlayAnimation1 } from '@metad/core'
 import { injectConfirmDelete, NgmCopyComponent, NgmSlideToggleComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
+import { AppService } from '@cloud/app/app.service'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { injectParams } from 'ngxtension/inject-params'
 import { catchError, EMPTY } from 'rxjs'
@@ -54,6 +55,7 @@ export class KnowledgebaseComponent {
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
+  readonly i18nService = injectI18nService()
   readonly exportXpertDsl = injectExportXpertDsl()
   readonly confirmDelete = injectConfirmDelete()
   readonly apiBaseUrl = injectApiBaseUrl()
@@ -94,6 +96,7 @@ export class KnowledgebaseComponent {
 
   readonly type = computed(() => this.knowledgebase()?.type)
   readonly avatar = computed(() => this.knowledgebase()?.avatar)
+  readonly external = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.External)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
   readonly pipeline = computed(() => this.knowledgebase()?.pipeline)
   readonly documentNum = linkedModel({
@@ -149,7 +152,9 @@ export class KnowledgebaseComponent {
     const knowledgebase = this.knowledgebase()
     this.confirmDelete({
         value: knowledgebase.name,
-        information: knowledgebase.description
+        information: knowledgebase.xperts.length ? 
+          this.i18nService.instant('PAC.Knowledgebase.DeleteWithExpertsWarning', { Default: `This knowledge base has been referenced by digital experts. Deleting it will cause access exception.` })
+          : knowledgebase.description
       }, () => {
         this.#loading.set(true)
         return this.knowledgebaseAPI.delete(knowledgebase.id)

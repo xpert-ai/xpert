@@ -232,9 +232,9 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 				}),
 				ends: []
 			},
-			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-				return nextWorkflowNodes(graph, node.key, state)
-			}
+			// navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+			// 	return nextWorkflowNodes(graph, node.key, state)
+			// }
 		}
 	}
 }

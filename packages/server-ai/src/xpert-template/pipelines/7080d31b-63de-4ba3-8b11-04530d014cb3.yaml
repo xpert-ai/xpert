@@ -7,9 +7,9 @@ team:
   starters: null
   options:
     position:
-      x: 143.483842718005
-      y: 110.16973544514457
-    scale: 0.6046782953262324
+      x: 265.2547349750563
+      y: 183.7754867381787
+    scale: 0.49223823184966986
     workflow:
       Source_Qy8zhtBMLV:
         position:
@@ -17,7 +17,7 @@ team:
           y: 500
       KnowledgeBase_KhDIYDGYeC:
         position:
-          x: 1680
+          x: 1820
           y: 160
       Source_zdDsuRRENp:
         position:
@@ -46,7 +46,7 @@ team:
       Chunker_vMGWw52xVK:
         position:
           x: 460
-          y: 60
+          y: 40
       Chunker_9PnscncHIp:
         position:
           x: 780
@@ -69,12 +69,12 @@ team:
           y: 660
       VariableAggregator_bYnycSe52J:
         position:
-          x: 1400
-          y: 340
+          x: 1140
+          y: 480
       Understanding_unZTFBU5mw:
         position:
-          x: 1100
-          y: 660
+          x: 1500
+          y: 480
       Chunker_AkYwTXUsUk:
         position:
           x: 780
@@ -102,7 +102,7 @@ team:
         - others
   version: "1"
   agent:
-    key: oFi0AN35JJ
+    key: TRmdItPmz4
   copilotModel: null
   knowledgebases: []
   toolsets: []
@@ -111,7 +111,7 @@ nodes:
   - key: KnowledgeBase_KhDIYDGYeC
     type: workflow
     position:
-      x: 1680
+      x: 1820
       y: 160
     entity:
       key: KnowledgeBase_KhDIYDGYeC
@@ -121,13 +121,15 @@ nodes:
       input: chunker_9pnscnchip_channel.documents
       copilotModel:
         model: text-embedding-v4
-        copilotId: ce723cf6-333c-4283-aac4-c864f03f4c6b
         modelType: text-embedding
       rerankModel: null
       inputs:
         - chunker_vmgww52xvk_channel.documents
-        - variableaggregator_bynycse52j_channel.result
-    hash: 84b2edbc6129848e5232035a6abaf1788ab41c0215674001d9a78e8bd411dee1
+        - understanding_unztfbu5mw_channel.documents
+      visionModel:
+        model: qwen-vl-plus
+        modelType: llm
+    hash: b00a8c49bfda14729b93fba90ad3b0357de7d82851d8900e2869b1a93d9a96d8
   - type: workflow
     key: Source_zdDsuRRENp
     position:
@@ -185,7 +187,7 @@ nodes:
     key: Chunker_vMGWw52xVK
     position:
       x: 460
-      y: 60
+      y: 40
     entity:
       type: chunker
       key: Chunker_vMGWw52xVK
@@ -195,7 +197,7 @@ nodes:
         addHeadersToChunk: true
         headerToSplitOn: 3
       input: source_zddsurrenp_channel.documents
-    hash: f278fce076662cc243c0be2941b113a435d19b79c3062ebe08d96d739a71c188
+    hash: 3a5ed219a6272b9d6e34235f663823deeab16025f75aff0e4bd6c23cf2cb3837
   - type: workflow
     key: Chunker_9PnscncHIp
     position:
@@ -238,7 +240,7 @@ nodes:
         conditions:
           - id: tQzg7wVblo
             comparisonOperator: like
-            value: pdf$|PDF$
+            value: pdf$|PDF$|docx$|DOCX$|pptx$|PPTX$
             variableSelector: extension
       extractBy:
         enabled: false
@@ -268,7 +270,7 @@ nodes:
         conditions:
           - id: 7klb4v0KCN
             comparisonOperator: not-like
-            value: pdf$|PDF$
+            value: pdf$|PDF$|docx$|DOCX$|pptx$|PPTX$
             variableSelector: extension
     hash: ccdd1037677341875248cb9c86b3bca8c2d5f6f1765daada73d30877ccc979b8
   - type: workflow
@@ -285,7 +287,7 @@ nodes:
         isOcr: true
         enableFormula: true
         enableTable: true
-        language: ch
+        language: ""
         modelVersion: pipeline
       integrationId: dece9992-ee62-4731-a440-8b45c9622514
       input: listoperator_nyzbxuulyu_channel.result
@@ -293,8 +295,8 @@ nodes:
   - type: workflow
     key: VariableAggregator_bYnycSe52J
     position:
-      x: 1400
-      y: 340
+      x: 1140
+      y: 480
     entity:
       type: variable-aggregator
       key: VariableAggregator_bYnycSe52J
@@ -303,23 +305,20 @@ nodes:
         - chunker_9pnscnchip_channel.documents
         - understanding_unztfbu5mw_channel.documents
       outputType: array[document]
-    hash: 1bc7c3609f873cb86ba130bee950cdd10e497da9d054f8869c52c8091750cbd9
+    hash: fc61e32ae31314cfb102088317d528bcf56a82e9dd754e2c8a3cb295ef32f2bf
   - type: workflow
     key: Understanding_unZTFBU5mw
     position:
-      x: 1100
-      y: 660
+      x: 1500
+      y: 480
     entity:
       type: understanding
       key: Understanding_unZTFBU5mw
       title: 图像理解
       provider: vlm-default
-      visionModel:
-        model: qwen-vl-plus
-        copilotId: ce723cf6-333c-4283-aac4-c864f03f4c6b
-        modelType: llm
-      input: chunker_akywtxusuk_channel.documents
-    hash: ac6d778d3986bf7c5590a7b984516fb3fb81430d1ddeb3eff2e427e5d61ba9de
+      visionModel: null
+      input: variableaggregator_bynycse52j_channel.result
+    hash: 427ae8b11bb2d33082555ab452c955e40e3e77f0d26f57d01bdcd110c19b247f
   - type: workflow
     key: Chunker_AkYwTXUsUk
     position:
@@ -362,10 +361,6 @@ connections:
     from: ListOperator_NYZbXuuLYu
     to: Processor_D033jtpyXO
   - type: edge
-    key: Understanding_unZTFBU5mw/VariableAggregator_bYnycSe52J
-    from: Understanding_unZTFBU5mw
-    to: VariableAggregator_bYnycSe52J
-  - type: edge
     key: Trigger_eIX1W3MP6b/Source_zdDsuRRENp
     from: Trigger_eIX1W3MP6b
     to: Source_zdDsuRRENp
@@ -374,14 +369,6 @@ connections:
     from: Processor_D033jtpyXO
     to: Chunker_AkYwTXUsUk
   - type: edge
-    key: Chunker_AkYwTXUsUk/Understanding_unZTFBU5mw
-    from: Chunker_AkYwTXUsUk
-    to: Understanding_unZTFBU5mw
-  - type: edge
-    key: VariableAggregator_bYnycSe52J/KnowledgeBase_KhDIYDGYeC
-    from: VariableAggregator_bYnycSe52J
-    to: KnowledgeBase_KhDIYDGYeC
-  - type: edge
     key: Processor_eQBAfSLaIu/Chunker_9PnscncHIp
     from: Processor_eQBAfSLaIu
     to: Chunker_9PnscncHIp
@@ -389,6 +376,18 @@ connections:
     key: Chunker_9PnscncHIp/VariableAggregator_bYnycSe52J
     from: Chunker_9PnscncHIp
     to: VariableAggregator_bYnycSe52J
+  - type: edge
+    key: Chunker_AkYwTXUsUk/VariableAggregator_bYnycSe52J
+    from: Chunker_AkYwTXUsUk
+    to: VariableAggregator_bYnycSe52J
+  - type: edge
+    key: VariableAggregator_bYnycSe52J/Understanding_unZTFBU5mw
+    from: VariableAggregator_bYnycSe52J
+    to: Understanding_unZTFBU5mw
+  - type: edge
+    key: Understanding_unZTFBU5mw/KnowledgeBase_KhDIYDGYeC
+    from: Understanding_unZTFBU5mw
+    to: KnowledgeBase_KhDIYDGYeC
   - type: edge
     key: Chunker_vMGWw52xVK/KnowledgeBase_KhDIYDGYeC
     from: Chunker_vMGWw52xVK

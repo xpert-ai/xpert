@@ -1,0 +1,191 @@
+<h1 class="text-3xl font-semibold mb-2 shrink-0 text-center text-text-primary">
+  {{ 'PAC.Plugin.EmpowerAIDevelopment' | translate: {Default: 'Empower your AI development'} }}
+</h1>
+<h2 class="body-md-regular flex shrink-0 items-center justify-center text-center text-text-tertiary">
+  {{ 'PAC.Plugin.Discover' | translate: {Default: 'Discover'} }}
+  <span class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
+    <span class="relative z-[2] lowercase">
+      {{ 'PAC.Plugin.Models' | translate: { Default: 'Models' } }}
+    </span>
+  </span>,
+  <span class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
+      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Tools' | translate: { Default: 'Tools' } }}</span>
+  </span>,
+  <span class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
+      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.DocSources' | translate: { Default: 'Doc Sources' } }}</span>
+  </span>,
+  <span class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
+      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Transformer' | translate: { Default: 'Transformer' } }}</span>
+  </span>,
+  <span class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
+      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Integration' | translate: { Default: 'Integration' } }}</span>
+  </span>
+  {{ 'PAC.Plugin.And' | translate: {Default: 'and'} }}
+  <span class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
+      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.VectorStore' | translate: { Default: 'Vector Store' } }}</span>
+  </span>
+  <span class="mr-1">
+    {{ 'PAC.Plugin.In' | translate: {Default: 'in'} }}
+  </span>
+  {{ 'PAC.Plugin.PluginsMarketplace' | translate: {Default: 'Plugins Marketplace'} }}
+</h2>
+
+<div class="w-full sticky top-0 z-[11] bg-components-panel-bg">
+  <div class="mb-4 h-px shrink-0 bg-transparent"></div>
+  <div class="flex items-center mx-auto w-[640px] shrink-0 ">
+    <div class="flex items-center rounded-xl border border-components-chat-input-border bg-components-panel-bg-blur p-1.5 shadow-sm w-full">
+      <div class="shrink-0" >
+        <ngm-select class="inline-block w-[160px]" multiple searchable [selectOptions]="keywordsOptions()"
+          [placeholder]="'PAC.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
+          [(ngModel)]="keywords"
+          icon="ri-filter-3-line"
+        />
+      </div>
+      <div class="w-[1px] bg-divider-regular mx-1 h-3.5"></div>
+      <div class="flex grow items-center gap-x-2 p-1">
+        <input class="body-md-medium inline-block grow appearance-none bg-transparent text-text-secondary outline-none"
+          [placeholder]="'PAC.Plugin.SearchPlugins' | translate: { Default: 'Search plugins' }"
+          [(ngModel)]="searchModel">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flex shrink-0 items-center justify-center space-x-2 bg-components-panel-bg py-3 sticky z-10 top-[56px]"
+  cdkListbox
+  [(ngModel)]="categories"
+>
+  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    [class.active]="categories().length === 0"
+    (click)="categories.set([])">
+    {{ 'PAC.Plugin.All' | translate: { Default: 'All' } }}
+  </div>
+  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    #option1="cdkOption"
+    [class.active]="option1.isSelected()"
+    cdkOption="model"
+  >
+    <i class="ri-brain-2-line mr-1.5 shrink-0"></i>
+    {{ 'PAC.Plugin.Models' | translate: { Default: 'Models' } }}
+  </div>
+  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    #option2="cdkOption"
+    [class.active]="option2.isSelected()"
+    cdkOption="toolset"
+  >
+    <i class="ri-hammer-line mr-1.5 shrink-0"></i>
+    {{ 'PAC.Plugin.Tools' | translate: { Default: 'Tools' } }}
+  </div>
+  <div
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    #option3="cdkOption"
+    [class.active]="option3.isSelected()"
+    cdkOption="doc-source"
+  >
+    <i class="ri-database-2-line mr-1.5 shrink-0"></i>
+    {{ 'PAC.Plugin.DocSources' | translate: { Default: 'Doc Sources' } }}
+  </div>
+  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    #option4="cdkOption"
+    [class.active]="option4.isSelected()"
+    cdkOption="agent"
+  >
+    <i class="ri-speak-ai-line mr-1.5 shrink-0"></i>
+    {{ 'PAC.Plugin.Agent' | translate: { Default: 'Agent' } }}
+  </div>
+  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    #option5="cdkOption"
+    [class.active]="option5.isSelected()"
+    cdkOption="integration"
+  >
+    <i class="ri-puzzle-2-line mr-1.5 shrink-0"></i>
+    {{ 'PAC.Plugin.Integration' | translate: { Default: 'Integrations' } }}
+  </div>
+  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    #option6="cdkOption"
+    [class.active]="option6.isSelected()"
+    cdkOption="vector-store"
+  >
+    <i class="ri-text-block mr-1.5 shrink-0"></i>
+    {{ 'PAC.Plugin.VectorStores' | translate: { Default: 'Vector Stores' } }}
+  </div>
+</div>
+
+<div class="relative flex grow flex-col bg-background-default-subtle px-12 py-2" style="scrollbar-gutter: stable">
+  <div class="py-3">
+    <div class="flex items-end justify-between">
+      <div>
+        <div class="text-xl font-semibold text-text-primary">
+          {{ 'PAC.Plugin.Partners' | translate: { Default: 'Partners' } }}
+        </div>
+        <div class="system-xs-regular text-text-tertiary">
+          {{ 'PAC.Plugin.PartnersDescription' | translate: { Default: 'Plugins verified by Xpert partners.' } }}
+        </div>
+      </div>
+    </div>
+    <div class="mt-2 grid grid-cols-4 gap-3">
+    @for (plugin of partnerPlugins(); track plugin.name) {
+      <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+        [plugin]="plugin"
+      />
+    } @empty {
+      @if (error()) {
+        <div class="p-8 text-text-destructive">
+          {{ error() }}
+        </div>
+      }
+    }
+    </div>
+  </div>
+
+  <div class="py-3">
+    <div class="flex items-end justify-between">
+      <div>
+        <div class="text-xl font-semibold text-text-primary">
+          {{ 'PAC.Plugin.Official' | translate: { Default: 'Official' } }}
+        </div>
+        <div class="system-xs-regular text-text-tertiary">
+          {{ 'PAC.Plugin.OfficialDescription' | translate: { Default: 'Plugins created by Xpert team.' } }}
+        </div>
+      </div>
+    </div>
+    <div class="mt-2 grid grid-cols-4 gap-3">
+    @for (plugin of officialPlugins(); track plugin.name) {
+      <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+        [plugin]="plugin"
+      />
+    } @empty {
+      @if (error()) {
+        <div class="p-8 text-text-destructive">
+          {{ error() }}
+        </div>
+      }
+    }
+    </div>
+  </div>
+
+   <div class="py-3">
+    <div class="flex items-end justify-between">
+      <div>
+        <div class="text-xl font-semibold text-text-primary">
+          {{ 'PAC.Plugin.Community' | translate: { Default: 'Community' } }}</div>
+        <div class="system-xs-regular text-text-tertiary">
+          {{ 'PAC.Plugin.CommunityDescription' | translate: { Default: 'Plugins maintained by the community.' } }}
+        </div>
+      </div>
+    </div>
+    <div class="mt-2 grid grid-cols-4 gap-3">
+    @for (plugin of communityPlugins(); track plugin.name) {
+      <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+        [plugin]="plugin"
+      />
+    } @empty {
+      @if (error()) {
+        <div class="p-8 text-text-destructive">
+          {{ error() }}
+        </div>
+      }
+    }
+    </div>
+  </div>
+</div>

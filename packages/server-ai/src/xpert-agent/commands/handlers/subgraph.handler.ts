@@ -308,7 +308,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Conditional Edges
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
 		// Fixed Edge
-		const edges: Record<string, string> = {}
+		const edges: Record<string, string | string[]> = {}
 		// Add task nodes and edges
 		taskTools.tools.forEach((_) => {
 			nodes[_.tool.name] = {graph: _.graph, ends: []}
@@ -439,7 +439,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						workflowNodeEnds.push(parentKey)
 					}
 				}
-				conditionalEdges[graphNodeName] = [navigator, workflowNodeEnds]
+				if (navigator) {
+					conditionalEdges[graphNodeName] = [navigator, workflowNodeEnds]
+				} else {
+					edges[graphNodeName] = nextNodes.map((n) => n.key)
+				}
 
 				for await (const nNode of nextNodes ?? []) {
 					await createSubgraph(nNode, null, finalReturn)
@@ -517,6 +521,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})
 		}
 		// All workflow channels in local agent graph
+		const parameters: TXpertParameter[] = []
+		if (!hiddenAgent && agent.parameters?.length) {
+			parameters.push(...agent.parameters)
+		}
+		if (team.agentConfig?.parameters?.length) {
+			parameters.push(...team.agentConfig.parameters)
+		}
 		const workflowNodes = allChannels(graph, agent.key)
 		// Collect channels used in the graph
 		const SubgraphStateAnnotation = Annotation.Root({
@@ -536,10 +547,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				  })
 				return acc
 			}, {}) ?? {}),
-			...(agent.parameters?.reduce((acc, parameter) => {
+			...parameters.reduce((acc, parameter) => {
 				acc[parameter.name] = Annotation(stateVariable(parameter))
 				return acc
-			}, {}) ?? {}),
+			}, {}),
 			// Default channels for nodes
 			...Object.fromEntries(uniq([...(hiddenAgent ? [] : [agent.key]), ...workflowNodes]).map((key) => {
 				// for agent
@@ -771,9 +782,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		} else if (!hiddenAgent) {
 			subgraphBuilder.addEdge(START, agentKey)
 		} else if (isStart) {
-			throw new XpertConfigException(
-				t('server-ai:Error.NoTriggerNodes')
-			)
+			throw new XpertConfigException(t('server-ai:Error.NoTriggerNodes'))
 		}
 
 		// Add nodes for tools
@@ -877,7 +886,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 																	}
 																)
 									  )
-			Object.keys(edges).forEach((name) => subgraphBuilder.addEdge(name, edges[name]))
+			Object.entries(edges).forEach(([name, value]) => {
+				const ends: string[] = Array.isArray(value) ? value : [value]
+				ends.forEach((end) => subgraphBuilder.addEdge(name, end))
+			})
 			Object.keys(conditionalEdges).forEach((name) => subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0] as any, conditionalEdges[name][1]))
 		}
 

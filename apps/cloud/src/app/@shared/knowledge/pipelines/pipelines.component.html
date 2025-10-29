@@ -26,7 +26,7 @@
         <div class="flex items-center gap-x-3 p-4 pb-2">
           <div class="relative shrink-0">
             @if (template.icon) {
-              <xp-icon [icon]="template.icon" class="block w-10 h-10 rounded-[10px] border-[0.5px] border-divider-regular bg-background-section" />
+              <xp-icon [icon]="template.icon" size="32" class="flex justify-center items-center w-10 h-10 rounded-[10px] overflow-hidden border-[0.5px] border-divider-regular" />
             } @else {
               <div
                 class="flex items-center justify-center relative grow-0 shrink-0 overflow-hidden border-[0.5px] border-divider-regular w-10 h-10 text-[24px] rounded-[10px] bg-pipeline-template-default-icon-bg text-text-secondary"
@@ -36,8 +36,8 @@
             }
           </div>
           <div class="flex grow flex-col gap-y-1 overflow-hidden py-px">
-            <div class="system-md-semibold truncate text-text-secondary" [title]="template.name">{{ template.name }}</div>
-            <div class="system-2xs-medium-uppercase text-text-tertiary">{{ template.category }}</div>
+            <div class="system-md-semibold truncate text-text-secondary" [title]="template.title">{{ template.title }}</div>
+            <div class="text-xs font-mono font-medium uppercase text-text-tertiary">{{ template.category }}</div>
           </div>
         </div>
         <p

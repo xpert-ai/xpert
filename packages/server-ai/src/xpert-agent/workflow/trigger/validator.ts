@@ -46,6 +46,19 @@ export class WorkflowTriggerValidator {
 				items.push(...results)
 			}
 		}
+
+		if (event.draft.team.agent.options?.hidden && triggerNodes.length === 0) {
+			items.push({
+				ruleCode: 'TRIGGER_NODE_MISSING',
+				field: 'nodes',
+				value: '',
+				message: {
+					en_US: `At least one trigger node is required when there is no primary agent`,
+					zh_Hans: `无主智能体时至少需要一个触发器节点`
+				},
+				level: 'error'
+			})
+		}
 		return items
 	}
 

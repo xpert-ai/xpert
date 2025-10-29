@@ -11,10 +11,11 @@ import {
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum, IsObject } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
 import { Xpert } from '../core/entities/internal'
 
 @Entity('xpert_agent_execution')
+@Index(['parentId', 'tenantId', 'organizationId'])
 export class XpertAgentExecution extends TenantOrganizationBaseEntity implements IXpertAgentExecution {
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

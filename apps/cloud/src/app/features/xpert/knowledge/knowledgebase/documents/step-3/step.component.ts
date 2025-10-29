@@ -8,6 +8,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { compact } from 'lodash-es'
@@ -24,7 +25,6 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
-import { ContentLoaderModule } from '@ngneat/content-loader'
 
 @Component({
   standalone: true,
@@ -88,7 +88,17 @@ export class KnowledgeDocumentCreateStep3Component {
 
   // Waiting job
   readonly waited = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.WAITING))
-  readonly running = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.RUNNING))
+  readonly running = computed(() =>
+    this.documents()?.some((_) =>
+      [
+        KBDocumentStatusEnum.RUNNING,
+        KBDocumentStatusEnum.TRANSFORMED,
+        KBDocumentStatusEnum.SPLITTED,
+        KBDocumentStatusEnum.UNDERSTOOD,
+        KBDocumentStatusEnum.EMBEDDING
+      ].includes(_.status)
+    )
+  )
   readonly cancel = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.CANCEL))
   readonly delayRefresh$ = new Subject<boolean>()
 
@@ -106,8 +116,15 @@ export class KnowledgeDocumentCreateStep3Component {
 
     effect(() => {
       if (
-        this.documents()?.some(
-          (item) => item.status === KBDocumentStatusEnum.WAITING || item.status === KBDocumentStatusEnum.RUNNING
+        this.documents()?.some((item) =>
+          [
+            KBDocumentStatusEnum.WAITING,
+            KBDocumentStatusEnum.RUNNING,
+            KBDocumentStatusEnum.TRANSFORMED,
+            KBDocumentStatusEnum.SPLITTED,
+            KBDocumentStatusEnum.UNDERSTOOD,
+            KBDocumentStatusEnum.EMBEDDING
+          ].includes(item.status)
         )
       ) {
         this.delayRefresh$.next(true)
@@ -122,7 +139,16 @@ export class KnowledgeDocumentCreateStep3Component {
       .getStatus(
         compact(
           this.documents().map((item) =>
-            [KBDocumentStatusEnum.WAITING, KBDocumentStatusEnum.RUNNING].includes(item.status) ? item.id : null
+            [
+              KBDocumentStatusEnum.WAITING,
+              KBDocumentStatusEnum.RUNNING,
+              KBDocumentStatusEnum.TRANSFORMED,
+              KBDocumentStatusEnum.SPLITTED,
+              KBDocumentStatusEnum.UNDERSTOOD,
+              KBDocumentStatusEnum.EMBEDDING
+            ].includes(item.status)
+              ? item.id
+              : null
           )
         )
       )
@@ -139,7 +165,16 @@ export class KnowledgeDocumentCreateStep3Component {
   }
 
   stopJob() {
-    const doc = this.documents().find((_) => _.status === 'running')
+    const doc = this.documents().find((_) =>
+      [
+        KBDocumentStatusEnum.WAITING,
+        KBDocumentStatusEnum.RUNNING,
+        KBDocumentStatusEnum.TRANSFORMED,
+        KBDocumentStatusEnum.SPLITTED,
+        KBDocumentStatusEnum.UNDERSTOOD,
+        KBDocumentStatusEnum.EMBEDDING
+      ].includes(_.status)
+    )
     if (doc) {
       this.documents.update((docs) => {
         return docs.map((_) => {
