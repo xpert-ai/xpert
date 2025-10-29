@@ -76,7 +76,7 @@ A cloud-based agile data analysis platform supporting multidimensional modeling,
 >
 > - CPU >= 2 Core
 > - RAM >= 4 GiB
-> - Node.js (ESM and CommonJS) - 18.x, 19.x, 20.x, 22.x
+> - Node.js (ESM and CommonJS) - 20.x, 22.x
 
 </br>
 
