@@ -43,7 +43,13 @@
         <div class="flex h-5 items-center">
           <div class="flex items-center space-x-1 text-text-tertiary">
             <i class="ri-import-line shrink-0"></i>
-            <div class="system-xs-regular">**</div>
+            <div class="system-xs-regular">
+              @if (plugin.downloads?.lastMonth) {
+                {{ plugin.downloads?.lastMonth | number }}
+              } @else {
+                **
+              }
+            </div>
           </div>
         </div>
       </div>
