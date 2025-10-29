@@ -84,8 +84,21 @@
           @if (previewing()) {
             <bullet-list-content-loader class="w-full" />
           } @else if (previewDocName()) {
-            @for (chunk of previewDocChunks(); track chunk; let i = $index) {
-              <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
+            @if (taskError(); as error) {
+              <div class="flex h-full w-full items-center justify-center">
+                <div class="flex flex-col items-center justify-center gap-3 pb-4">
+                  <i class="ri-error-warning-line text-2xl text-red-500"></i>
+                  <p class="text-sm text-text-tertiary">
+                    {{ 'PAC.Knowledgebase.PreviewDocError' | translate: {Default: 'Failed to load preview:'} }} {{ error }}
+                  </p>
+                  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
+                    (click)="previewChunks()">{{ 'PAC.Knowledgebase.RetryPreview' | translate: {Default: 'Retry Preview'} }}</button>
+                </div>
+              </div>
+            } @else {
+              @for (chunk of previewDocChunks(); track chunk; let i = $index) {
+                <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
+              }
             }
           } @else {
             <div class="flex h-full w-full items-center justify-center">

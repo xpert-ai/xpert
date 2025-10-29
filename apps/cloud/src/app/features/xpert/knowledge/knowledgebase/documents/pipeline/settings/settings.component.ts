@@ -74,6 +74,8 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   readonly task = signal<IKnowledgebaseTask>(null)
   readonly _documents = computed(() => this.task()?.context?.documents)
 
+  readonly taskError = computed(() => this.task()?.error)
+
   constructor() {
     effect(() => {
       if (!this.previewDocName() && this.documents()?.length) {
@@ -98,9 +100,9 @@ export class KnowledgeDocumentPipelineSettingsComponent {
         next: (task) => {
           this.previewSub = this.kbAPI.pollTaskStatus(this.knowledgebase().id, this.taskId()).subscribe({
             next: (res) => {
-              if (res.status === 'success') {
+              this.task.set(res)
+              if (res.status === 'success' || res.status === 'failed') {
                 this.previewing.set(false)
-                this.task.set(res)
               }
             },
             error: (err) => {
