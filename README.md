@@ -38,20 +38,14 @@ English | [中文](./README_zh.md)
 
 ## 💡 What's New
 
-### 🔧 Digital Expert Project - New Collaboration Features Launched!
+**🚀 XpertAI 3.6 is here!**
 
-We’ve introduced the **Xpert Project** module, offering users a flexible space for agent collaboration, enabling multiple digital experts to work together to achieve project goals:
+This release introduces a complete **Knowledge Pipeline** system — from creation, orchestration, authorization, and publishing to continuous knowledgebase management — enabling teams to visually build reliable knowledge production workflows.
+The **plugin system** is now a native part of the pipeline, allowing seamless integration with external data sources, document processors, and OCR tools through system integrations or the plugin marketplace.
+With the new **Parent-Child Chunk Tree** structure and **Trigger Nodes**, XpertAI 3.6 delivers smarter document understanding and contextual retrieval. Secure data access via **environment variables or unified integrations**, and publish pipelines directly into the **Digital Expert Ecosystem** for automated, scalable knowledge operations.
+<img width="2888" height="1622" alt="basic-pipeline-workflow" src="https://github.com/user-attachments/assets/4a8ea345-47cf-4fcf-a477-4a09b55ec4e0" />
+<img width="3836" height="1924" alt="plugins" src="https://github.com/user-attachments/assets/218edc31-f0e3-4603-9140-4ebc8b5fdf87" />
 
-- 🧠 Combine multiple digital experts in a single project to collaboratively solve complex problems
-- 🧰 Integrate custom toolsets (e.g., MCP tools) to empower project agents
-- 📎 Upload files as shared context to help agents understand more project details
-- 🔄 Support exploration mode (AI autonomous exploration) and planning mode (step-by-step execution)
-- 👥 Invite team members to join projects, supporting multi-user collaboration
-- 📁 Manage project sessions with unified system instructions for improved consistency
-
-https://github.com/user-attachments/assets/03a61307-2ebd-41e7-ac24-e5b31bbeeb60
-
-👉 Learn More: [Xpert Project Feature Guide](https://mtda.cloud/en/docs/ai/chat/project/)
 
 ## Agent-Workflow Hybrid Architecture
 
@@ -92,35 +86,6 @@ docker compose up -d
 After running, you can access the Xpert dashboard in your browser at [http://localhost/onboarding](http://localhost/onboarding) and start the initialization process.
 
 Please check our [Wiki - Development](https://github.com/xpert-ai/xpert/wiki/Development) to get started quickly.
-
-## 🎯 Mission
-
-__Empowering enterprises with intelligent collaboration and data-driven insights through innovative AI orchestration and agile analytics.__
-
-## 🌼 Screenshots
-
-<details>
-<summary>Show / Hide Screenshots</summary>
-
-### Pareto analysis [open in new tab](https://app.mtda.cloud/public/story/892690e5-66ab-4649-9bf5-c1a9c432c01b?pageKey=bsZ0sjxnxI)
-![Pareto analysis Screenshot](https://github.com/meta-d/meta-d/raw/main/img/v2.0/story-workspace.png)
-
-### Product profit analysis [open in new tab](https://app.mtda.cloud/public/story/892690e5-66ab-4649-9bf5-c1a9c432c01b?pageKey=6S4oEUnVO3)
-![Product profit analysis Screenshot](https://github.com/meta-d/meta-d/raw/main/img/v2.0/story-viewer.png)
-
-### Reseller analysis [open in new tab](https://app.mtda.cloud/public/story/a58112aa-fc9c-4b5b-a04e-4ea9b57ebba9?pageKey=nrEZxh1aqp)
-![Reseller analysis Screenshot](https://github.com/meta-d/meta-d/raw/main/img/reseller-profit-analysis.png)
-
-### Bigview dashboard [open in new tab](https://app.mtda.cloud/public/story/9c462bea-89f6-44b8-a35e-34b21cd15a36)
-![Bigview dashboard Screenshot](https://github.com/meta-d/meta-d/raw/main/img/bigview-supermart-sales.png)
-
-### Indicator application [open in new tab](https://www.mtda.cloud/en/blog/2023/07/24/sample-adv-7-indicator-app)
-![Indicator application Screenshot](https://github.com/meta-d/meta-d/raw/main/img/v2.0/indicator-app-ai-copilot.png)
-
-### Indicator mobile app [open in new tab](https://www.mtda.cloud/en/blog/2023/07/24/sample-adv-7-indicator-app)
-![Indicator mobile app Screenshot](https://github.com/meta-d/meta-d/raw/main/img/indicator-app-mobile.jpg)
-
-</details>
 
 ## 💻 Demo, Downloads, Testing and Production
 
@@ -188,7 +153,7 @@ This software is available under the following licenses:
 - [Xpert AI Platform Enterprise Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
 - [Xpert AI Platform Enterprise Pro Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
 
-#### Please see [LICENSE](LICENSE.md) for more information on licenses.
+#### Please see [LICENSE](LICENSES.md) for more information on licenses.
 
 ## 💪 Thanks to our Contributors
 

@@ -21,20 +21,13 @@
 
 ## 💡 新功能
 
-### 🔧 数字专家项目 - 全新协作功能上线！
+**🚀 XpertAI 3.6 全新上线！**
 
-我们新增了 **Xpert Project** 模块，为用户提供一个灵活的智能体协作空间，支持多位数字专家协同完成项目目标：
-
-- 🧠 在一个项目中组合多个数字专家，协同解决复杂问题
-- 🧰 引入绑定的工具集（如 MCP 工具）赋能项目智能体
-- 📎 上传文件作为共享上下文，让智能体理解更多项目信息
-- 🔄 支持探索模式（AI 自主探索）和规划模式（分步骤执行）
-- 👥 邀请成员共同参与项目，支持多用户协作
-- 📁 管理项目会话，统一配置系统指令，提升一致性
-
-https://github.com/user-attachments/assets/03a61307-2ebd-41e7-ac24-e5b31bbeeb60
-
-👉 详见文档：[Xpert Project 功能介绍](https://mtda.cloud/docs/ai/chat/project/)
+这一版本带来了完整的知识流水线体系，从**创建、编排、授权、发布到知识库运维**实现全链路可视化管理，让团队能够像搭建生产线一样构建可信赖的知识处理流程。
+插件系统也升级为流水线的原生能力，通过系统集成或插件市场即可快速接入外部数据源、文档转换、OCR 等工具。
+全新的**树状分块结构（Parent-Child Tree）**与**触发器节点**让知识抽取与上下文召回更智能；支持 **环境变量与系统集成双轨授权**，保障数据接入安全；一键发布同步至数字专家生态，实现知识自动化、可扩展与高效流转。
+<img width="2888" height="1622" alt="basic-pipeline-workflow" src="https://github.com/user-attachments/assets/4a8ea345-47cf-4fcf-a477-4a09b55ec4e0" />
+<img width="3836" height="1924" alt="plugins" src="https://github.com/user-attachments/assets/218edc31-f0e3-4603-9140-4ebc8b5fdf87" />
 
 ## 智能体与工作流混合架构
 
@@ -75,35 +68,6 @@ docker compose -f docker-compose.cn.yml up -d
 运行后，您可以在浏览器中访问 Xpert 仪表盘，地址为 [http://localhost/onboarding](http://localhost/onboarding)，并开始初始化过程。
 
 请查看我们的 [Wiki - 开发](https://github.com/xpert-ai/xpert/wiki/Development) 以快速入门。
-
-## 🎯 使命
-
-__通过创新的 AI 协同和敏捷分析，赋能企业实现智能协作和数据驱动的洞察。__
-
-## 🌼 屏幕截图
-
-<details>
-<summary>显示/隐藏截图</summary>
-
-### 帕累托分析 [在新页签打开](https://app.mtda.cloud/public/story/892690e5-66ab-4649-9bf5-c1a9c432c01b?pageKey=bsZ0sjxnxI)
-![Pareto analysis Screenshot](https://github.com/meta-d/meta-d/raw/main/img/v2.0/story-workspace.png)
-
-### 产品利润分析 [在新页签打开](https://app.mtda.cloud/public/story/892690e5-66ab-4649-9bf5-c1a9c432c01b?pageKey=6S4oEUnVO3)
-![Product profit analysis Screenshot](https://github.com/meta-d/meta-d/raw/main/img/v2.0/story-viewer.png)
-
-### 经销商分析 [在新页签打开](https://app.mtda.cloud/public/story/a58112aa-fc9c-4b5b-a04e-4ea9b57ebba9?pageKey=nrEZxh1aqp)
-![经销商分析截图](https://github.com/meta-d/meta-d/raw/main/img/reseller-profit-analysis.png)
-
-### 大屏仪表板 [在新页签打开](https://app.mtda.cloud/public/story/9c462bea-89f6-44b8-a35e-34b21cd15a36)
-![大屏仪表板截图](https://github.com/meta-d/meta-d/raw/main/img/bigview-supermart-sales.png)
-
-### 指标应用 [在新页签打开](https://www.mtda.cloud/en/blog/2023/07/24/sample-adv-7-indicator-app)
-![Indicator application Screenshot](https://github.com/meta-d/meta-d/raw/main/img/v2.0/indicator-app-ai-copilot.png)
-
-### 指标应用移动端 [在新页签打开](https://www.mtda.cloud/en/blog/2023/07/24/sample-adv-7-indicator-app)
-![指标应用移动端截图](https://github.com/meta-d/meta-d/raw/main/img/indicator-app-mobile.jpg)
-
-</details>
 
 ## 💻 演示，下载，测试和生产
 
@@ -171,7 +135,7 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 - [Xpert AI 平台企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
 - [Xpert AI 平台企业专业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
 
-#### 请参阅 [LICENSE](LICENSE.md) 以获取有关许可的更多信息。
+#### 请参阅 [LICENSE](LICENSES.md) 以获取有关许可的更多信息。
 
 ## 💪 感谢我们的贡献者
 

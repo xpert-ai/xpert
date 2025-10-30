@@ -196,7 +196,7 @@ export class AuthService extends SocialAuthService {
 						);
 
 						// Initialize Base URL
-						const baseURL = `${environment.clientBaseUrl}/#/auth/reset-password`;
+						const baseURL = `${environment.clientBaseUrl}/auth/reset-password`;
 
 						// Generate the reset link using the helper function
 						const resetLink = this.generateResetLink(baseURL, token, email, tenantId);
