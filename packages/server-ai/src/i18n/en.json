@@ -5,7 +5,8 @@
         "GitIntegrationNotProvided": "Git integration not provided",
         "KBReqVisionModel": "Knowledgebase requires vision model to process images",
         "IntegrationNotFound": "Integration '{{id}}' not found",
-        "NoTriggerNodes": "No trigger nodes available to start the agent. Please add a trigger node."
+        "NoTriggerNodes": "No trigger nodes available to start the agent. Please add a trigger node.",
+        "InconsistentTypes": "Cannot aggregate variables with inconsistent types '{{types}}'. Supported aggregation types: arrays, strings, objects."
     },
     "tools": {
         "ListFiles": "List files",

@@ -1,5 +1,4 @@
-import { Runnable, RunnableLambda } from '@langchain/core/runnables'
-import { Annotation, BaseChannel } from '@langchain/langgraph'
+import { RunnableLambda } from '@langchain/core/runnables'
 import {
 	channelName,
 	IEnvironment,
@@ -13,13 +12,14 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
+import { nonNullable } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { get } from 'lodash'
+import { t } from 'i18next'
 import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
-import { nonNullable } from '@metad/server-common'
 
 const ErrorChannelName = 'error'
 const ResultChannelName = 'result'
@@ -52,7 +52,7 @@ export class WorkflowVariableAggregatorNodeStrategy implements IWorkflowNodeStra
 		xpertId: string
 		environment: IEnvironment
 		isDraft: boolean
-	}): { name?: string; graph: Runnable; ends: string[]; channel: { name: string; annotation: BaseChannel } } {
+	}) {
 		const { graph, node, xpertId, environment, isDraft } = payload
 		const entity = node.entity as IWFNVariableAggregator
 
@@ -77,7 +77,36 @@ export class WorkflowVariableAggregatorNodeStrategy implements IWorkflowNodeStra
 				}
 				return await wrapAgentExecution(
 					async () => {
-						const result = values.flat().filter(nonNullable)
+						const nonNullValues = values.filter(nonNullable)
+
+						let result: any = null
+
+						if (nonNullValues.length === 0) {
+							result = null
+						} else {
+							const allArrays = nonNullValues.every((v) => Array.isArray(v))
+							const allStrings = nonNullValues.every((v) => typeof v === 'string')
+							const allObjects = nonNullValues.every(
+								(v) => typeof v === 'object' && !Array.isArray(v)
+							)
+
+							if (allArrays) {
+								// concat all arrays into one flat array
+								result = ([] as any[]).concat(...(nonNullValues as any[][]))
+							} else if (allStrings) {
+								// concatenate strings
+								result = (nonNullValues as string[]).join('')
+							} else if (allObjects) {
+								// shallow merge objects (later values override earlier keys)
+								result = (nonNullValues as Record<string, any>[]).reduce(
+									(acc, obj) => ({ ...acc, ...obj }),
+									{}
+								)
+							} else {
+								// inconsistent types — cannot aggregate
+								throw new Error(t(`server-ai:Error.InconsistentTypes`, {types: nonNullValues.map(v => Array.isArray(v) ? 'array' : typeof v).join(', ')}))
+							}
+						}
 						return {
 							state: {
 								[channelName(node.key)]: {
@@ -97,20 +126,6 @@ export class WorkflowVariableAggregatorNodeStrategy implements IWorkflowNodeStra
 				)()
 			}),
 			ends: [],
-			channel: {
-				name: channelName(node.key),
-				annotation: Annotation<Record<string, unknown>>({
-					reducer: (a, b) => {
-						return b
-							? {
-									...a,
-									...b
-								}
-							: a
-					},
-					default: () => ({})
-				})
-			}
 		}
 	}
 
