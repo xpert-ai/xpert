@@ -43,6 +43,9 @@ English | [中文](./README_zh.md)
 This release introduces a complete **Knowledge Pipeline** system — from creation, orchestration, authorization, and publishing to continuous knowledgebase management — enabling teams to visually build reliable knowledge production workflows.
 The **plugin system** is now a native part of the pipeline, allowing seamless integration with external data sources, document processors, and OCR tools through system integrations or the plugin marketplace.
 With the new **Parent-Child Chunk Tree** structure and **Trigger Nodes**, XpertAI 3.6 delivers smarter document understanding and contextual retrieval. Secure data access via **environment variables or unified integrations**, and publish pipelines directly into the **Digital Expert Ecosystem** for automated, scalable knowledge operations.
+<img width="2888" height="1622" alt="basic-pipeline-workflow" src="https://github.com/user-attachments/assets/4a8ea345-47cf-4fcf-a477-4a09b55ec4e0" />
+<img width="3836" height="1924" alt="plugins" src="https://github.com/user-attachments/assets/218edc31-f0e3-4603-9140-4ebc8b5fdf87" />
+
 
 ## Agent-Workflow Hybrid Architecture
 
