@@ -26,6 +26,8 @@
 这一版本带来了完整的知识流水线体系，从**创建、编排、授权、发布到知识库运维**实现全链路可视化管理，让团队能够像搭建生产线一样构建可信赖的知识处理流程。
 插件系统也升级为流水线的原生能力，通过系统集成或插件市场即可快速接入外部数据源、文档转换、OCR 等工具。
 全新的**树状分块结构（Parent-Child Tree）**与**触发器节点**让知识抽取与上下文召回更智能；支持 **环境变量与系统集成双轨授权**，保障数据接入安全；一键发布同步至数字专家生态，实现知识自动化、可扩展与高效流转。
+<img width="2888" height="1622" alt="basic-pipeline-workflow" src="https://github.com/user-attachments/assets/4a8ea345-47cf-4fcf-a477-4a09b55ec4e0" />
+<img width="3836" height="1924" alt="plugins" src="https://github.com/user-attachments/assets/218edc31-f0e3-4603-9140-4ebc8b5fdf87" />
 
 ## 智能体与工作流混合架构
 
