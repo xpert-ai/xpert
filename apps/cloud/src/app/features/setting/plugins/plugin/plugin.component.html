@@ -24,7 +24,7 @@
         <xp-icon [icon]="plugin.icon" size="24" class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl"/>
         <div class="ml-3 w-0 grow">
           <div class="flex h-5 items-center">
-            <div class="system-md-semibold truncate text-text-secondary">{{ plugin.displayName }}</div>
+            <div class="system-md-semibold truncate text-text-secondary">{{ plugin.displayName | i18n }}</div>
             <div class="flex shrink-0 items-center justify-center text-text-success ml-1">
               <i class="ri-verified-badge-fill"></i>
             </div>
@@ -36,8 +36,8 @@
           </div>
         </div>
       </div>
-      <div class="system-xs-regular text-text-tertiary h-8 line-clamp-2 mt-3">
-        {{ plugin.description }}
+      <div class="system-xs-regular text-text-tertiary line-clamp-2 mt-2">
+        {{ plugin.description | i18n }}
       </div>
       <div>
         <div class="flex h-5 items-center">

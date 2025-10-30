@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { injectHelpWebsite, routeAnimations } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { OverlayAnimations } from '@metad/core'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TPluginWithDownloads } from '../types'
 
@@ -13,6 +14,7 @@ import { TPluginWithDownloads } from '../types'
     CommonModule,
     TranslateModule,
     FormsModule,
+    NgmI18nPipe,
     IconComponent,
   ],
   selector: 'xp-settings-plugin',
