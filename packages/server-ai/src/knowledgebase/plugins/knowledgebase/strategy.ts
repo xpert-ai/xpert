@@ -134,17 +134,6 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 							vectorStore = await this.knowledgebaseService.getVectorStore(knowledgebase, true)
 						} catch (err) {
 							statisticsInformation += `- Error initializing vector store: ${getErrorMessage(err)} \n`
-							// return {
-							// 	state: {
-							// 		[channelName(node.key)]: {
-							// 			error: `Knowledge base error: ${getErrorMessage(err)}`,
-							// 			[InfoChannelName]: statisticsInformation.trim(),
-							// 			[TaskChannelName]: {
-							// 				status: 'error',
-							// 			}
-							// 		}
-							// 	}
-							// }
 							throw new Error(`Error initializing vector store: ${getErrorMessage(err)}`)
 						}
 
@@ -161,16 +150,6 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 							try {
 								// Save pages into db, And associated with the chunk's metadata.
 								let chunks = document.draft?.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-								// if (document?.pages?.length) {
-								// 	const pages = document?.pages
-								// 	chunks = chunks.map((chunk) => {
-								// 		const page = pages.find((p) => p.metadata.chunkId === chunk.metadata.parentId)
-								// 		if (page) {
-								// 			chunk.metadata.pageId = page.id
-								// 		}
-								// 		return chunk
-								// 	})
-								// }
 
 								if (chunks) {
 									this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
