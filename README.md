@@ -153,7 +153,7 @@ This software is available under the following licenses:
 - [Xpert AI Platform Enterprise Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
 - [Xpert AI Platform Enterprise Pro Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
 
-#### Please see [LICENSE](LICENSE.md) for more information on licenses.
+#### Please see [LICENSE](LICENSES.md) for more information on licenses.
 
 ## 💪 Thanks to our Contributors
 
