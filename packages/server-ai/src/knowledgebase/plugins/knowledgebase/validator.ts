@@ -135,6 +135,20 @@ export class WorkflowKnowledgeBaseNodeValidator {
 			})
 		}
 
+		if (entity.visionModel && !entity.visionModel.copilotId) {
+			items.push({
+				ruleCode: 'PIPELINE_KB_VISION_MODEL_PROVIDER_MISSING',
+				node: node.key,
+				field: 'visionModel.copilotId',
+				value: '',
+				level: 'error',
+				message: {
+					en_US: `Vision model provider must be specified.`,
+					zh_Hans: `必须指定视觉模型的提供商。`
+				}
+			})
+		}
+
 		return items
 	}
 }

@@ -1,5 +1,4 @@
-import { Runnable, RunnableLambda } from '@langchain/core/runnables'
-import { Annotation, BaseChannel } from '@langchain/langgraph'
+import { RunnableLambda } from '@langchain/core/runnables'
 import {
 	channelName,
 	IEnvironment,
@@ -68,7 +67,7 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 		xpertId: string
 		environment: IEnvironment
 		isDraft: boolean
-	}): { name?: string; graph: Runnable; ends: string[]; channel: { name: string; annotation: BaseChannel } } {
+	}) {
 		const { graph, node, xpertId, environment, isDraft } = payload
 		const entity = node.entity as IWFNChunker
 
@@ -155,10 +154,8 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 								chunks.push(...result.chunks)
 							}
 							doc.chunks = chunks
+							doc.draft.chunks = chunks
 							if (!isTest) {
-								// if (result.pages?.length) {
-								// 	await this.documentService.createPageBulk(doc.id, result.pages)
-								// }
 								await this.documentService.update(doc.id, {draft: { chunks }, status: KBDocumentStatusEnum.SPLITTED })
 							}
 						}
@@ -197,20 +194,6 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 					})()
 			}),
 			ends: [],
-			channel: {
-				name: channelName(node.key),
-				annotation: Annotation<Record<string, unknown>>({
-					reducer: (a, b) => {
-						return b
-							? {
-									...a,
-									...b
-								}
-							: a
-					},
-					default: () => ({})
-				})
-			}
 		}
 	}
 

@@ -193,11 +193,12 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
             documents: this.documentIds.selected
           }
         },
-        stage: 'preview'
+        stage: 'preview',
+        isDraft: true
       })
       .subscribe({
         next: (task) => {
-          console.log(task)
+          // console.log(task)
           this.successMessage.set(this.i18nService.instant('PAC.Pipeline.SourceTestSuccessMessage', {
             Default: `Added to background task, please check the message detailed log in chat history.`
           }))

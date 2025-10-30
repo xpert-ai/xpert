@@ -15,7 +15,14 @@ export function installPlugins() {
         }
         process.stdout.write('\n')
         try {
-            execSync(`npm install --legacy-peer-deps --no-save ${plugins.join(' ')}`, { stdio: 'inherit' });
+            execSync(`npm install --legacy-peer-deps --no-save ${plugins.join(' ')}`, {
+                stdio: 'inherit',
+                env: {
+                    ...process.env,
+                    npm_config_package_lock: 'false',
+                    npm_config_lockfile: 'false'
+                }
+            });
             console.log(chalk.green(`Installed plugins: ${plugins.join(', ')}`));
         } catch (error) {
             console.error('Failed to install plugins via npm:', error);

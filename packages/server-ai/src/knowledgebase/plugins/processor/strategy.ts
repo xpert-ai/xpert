@@ -1,5 +1,4 @@
-import { Runnable, RunnableLambda } from '@langchain/core/runnables'
-import { Annotation, BaseChannel } from '@langchain/langgraph'
+import { RunnableLambda } from '@langchain/core/runnables'
 import {
 	channelName,
 	IEnvironment,
@@ -69,7 +68,7 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 		xpertId: string
 		environment: IEnvironment
 		isDraft: boolean
-	}): { name?: string; graph: Runnable; ends: string[]; channel: { name: string; annotation: BaseChannel } } {
+	}) {
 		const { graph, node, xpertId, environment, isDraft } = payload
 		const entity = node.entity as IWFNProcessor
 
@@ -123,7 +122,6 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							input.map((doc) => ({
 								...doc,
 								...(doc.draft ?? {}),
-								// fileUrl: `https://api.mtda.cloud/api/sandbox/volume/knowledges/2a0d2697-a363-4fa7-8bb2-d74a3a6b8265/知识库测试.pdf`
 							}))
 						)
 
@@ -133,8 +131,10 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 							documents = results.map((result) => {
 								return {
 									id: result.id || shortuuid(),
-									chunks: result.chunks,
-									metadata: result.metadata
+									metadata: result.metadata,
+									draft: {
+										chunks: result.chunks
+									},
 								} as unknown as IKnowledgeDocument
 							})
 							await this.taskService.upsertDocuments(knowledgeTaskId, documents)
@@ -203,20 +203,6 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 				)()
 			}),
 			ends: [],
-			channel: {
-				name: channelName(node.key),
-				annotation: Annotation<Record<string, unknown>>({
-					reducer: (a, b) => {
-						return b
-							? {
-									...a,
-									...b
-								}
-							: a
-					},
-					default: () => ({})
-				})
-			}
 		}
 	}
 

@@ -59,7 +59,7 @@ https://github.com/user-attachments/assets/03a61307-2ebd-41e7-ac24-e5b31bbeeb60
 > 
 > - CPU >= 2 核
 > - RAM >= 4 GiB
-> - Node.js (ESM and CommonJS) - 18.x, 19.x, 20.x, 22.x
+> - Node.js (ESM and CommonJS) - 20.x, 22.x
 
 </br>
 

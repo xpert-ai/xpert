@@ -65,13 +65,16 @@ export class KnowledgeDocumentPipelineSettingsComponent {
       return []
     }
     if (this.previewDocName()) {
-      return docs.find((d) => d.name === this.previewDocName())?.chunks || []
+      const doc = docs.find((d) => d.name === this.previewDocName())
+      return doc?.draft.chunks || doc?.chunks || []
     }
     return docs[0]?.chunks || []
   })
 
   readonly task = signal<IKnowledgebaseTask>(null)
   readonly _documents = computed(() => this.task()?.context?.documents)
+
+  readonly taskError = computed(() => this.task()?.error)
 
   constructor() {
     effect(() => {
@@ -81,10 +84,6 @@ export class KnowledgeDocumentPipelineSettingsComponent {
     }, { allowSignalWrites: true })
   }
 
-  // selectFilePreview(file: KnowledgeFileUploader) {
-  //   this.previewDocName.set(file.document().name)
-  //   this.previewChunks()
-  // }
 
   previewChunks() {
     this.previewing.set(true)
@@ -101,9 +100,9 @@ export class KnowledgeDocumentPipelineSettingsComponent {
         next: (task) => {
           this.previewSub = this.kbAPI.pollTaskStatus(this.knowledgebase().id, this.taskId()).subscribe({
             next: (res) => {
-              if (res.status === 'success') {
+              this.task.set(res)
+              if (res.status === 'success' || res.status === 'failed') {
                 this.previewing.set(false)
-                this.task.set(res)
               }
             },
             error: (err) => {

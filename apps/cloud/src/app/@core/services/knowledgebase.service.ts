@@ -142,7 +142,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   /**
    * Start processing a documents task
    */
-  processTask(id: string, taskId: string, body: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview'| 'prod';  options?: any }) {
+  processTask(id: string, taskId: string, body: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview'| 'prod';  options?: any; isDraft?: boolean }) {
     return this.httpClient.post<IKnowledgebaseTask>(this.apiBaseUrl + `/${id}/task/${taskId}/process`, body)
   }
 
@@ -156,7 +156,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   pollTaskStatus(id: string, taskId: string, period = 2000) {
     return interval(period).pipe( 
       switchMap(() => this.getTask(id, taskId)),
-      tap((res) => console.log('Current status:', res.status)),
+      // tap((res) => console.log('Current status:', res.status)),
       takeWhile((res) => res.status === 'pending' || res.status === 'running', true) // True if the last time 'done' was included
     )
   }
@@ -177,7 +177,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   previewFile(id: string, name: string) {
-    return this.httpClient.get<DocumentInterface>(this.apiBaseUrl + `/${id}/file/${encodeURIComponent(name)}/preview`)
+    return this.httpClient.get<DocumentInterface[]>(this.apiBaseUrl + `/${id}/file/${encodeURIComponent(name)}/preview`)
   }
 
   getLogs(id: string, params: PaginationParams<any>) {

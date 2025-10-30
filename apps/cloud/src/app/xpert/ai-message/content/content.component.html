@@ -6,7 +6,18 @@
       } @else {
         <div class="group/content relative w-full mt-2" @listEnterAnimation>
           @for (text of frozenBlocks(); track text) {
-            <markdown clipboard class="ngm-copilot-markdown fade-in flex-1"
+            <markdown clipboard class="ngm-copilot-markdown flex-1"
+              [class.answering]="answering()"
+              [clipboardButtonTemplate]="buttonTemplate"
+              [disableSanitizer]="true"
+              lineNumbers
+              [start]="5"
+              [data]="text"
+            />
+          }
+
+          @if (streaming(); as text) {
+            <markdown clipboard class="ngm-copilot-markdown flex-1"
               [class.answering]="answering()"
               [clipboardButtonTemplate]="buttonTemplate"
               [disableSanitizer]="true"

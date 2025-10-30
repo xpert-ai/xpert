@@ -17,3 +17,11 @@ export type TPlugin = {
   }
   keywords?: string[]
 }
+
+export type TPluginWithDownloads = TPlugin & {
+  downloads?: {
+    lastWeek?: number
+    lastMonth?: number
+    lastYear?: number
+  }
+}

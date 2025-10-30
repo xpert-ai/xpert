@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
+import { toObservable } from '@angular/core/rxjs-interop'
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { DateRelativePipe } from '@cloud/app/@core'
 import { TMessageContentComplex, TMessageContentText } from '@cloud/app/@core/types'
@@ -48,12 +49,11 @@ export class ChatMessageContentComponent {
   readonly frozenBlocks = signal<string[]>([])
   readonly streaming = signal('')
 
-  constructor() {
-    effect(() => {
-      const text = this.text()
+  private textSubscription = toObservable(this.text).subscribe({
+    next: (text) => {
       if (this.answering()) {
         const restText = text.replace(this.frozenText, '')
-        const blocks = restText.split('\n')
+        const blocks = restText.split('\n\n')
         if (blocks.length > 1) {
           this.frozenBlocks.update((state) => [
             ...state,
@@ -69,8 +69,9 @@ export class ChatMessageContentComponent {
         this.frozenText = text
         this.streaming.set('')
       }
-    }, { allowSignalWrites: true })
-  }
+    }
+  })
+
 
   onCopy(copyButton) {
     copyButton.copied = true

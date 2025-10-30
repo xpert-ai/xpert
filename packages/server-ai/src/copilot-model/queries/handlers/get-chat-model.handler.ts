@@ -31,7 +31,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 		const copilotModel = command.copilotModel ?? copilot?.copilotModel
 		if (!copilotModel) {
 			throw new CopilotModelNotFoundException(
-				await this.i18nService.t('copilot.Error.AIModelNotFound', {
+				this.i18nService.t('copilot.Error.AIModelNotFound', {
 					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
 				})
 			)

@@ -33,7 +33,7 @@ import { KnowledgeDocumentCreateComponent } from '../create.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { isNil, uniq } from 'lodash-es'
-import { KnowledgeLocalFileComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { KnowledgeFilePreviewComponent, KnowledgeLocalFileComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { KnowledgeFileSystemComponent } from '../file-system/file-system.component'
 
 @Component({
@@ -56,7 +56,8 @@ import { KnowledgeFileSystemComponent } from '../file-system/file-system.compone
     ParameterComponent,
     NgmCheckboxComponent,
     KnowledgeFileSystemComponent,
-    KnowledgeLocalFileComponent
+    KnowledgeLocalFileComponent,
+    KnowledgeFilePreviewComponent
   ]
 })
 export class KnowledgeDocumentCreateStep1Component {
@@ -218,8 +219,6 @@ export class KnowledgeDocumentCreateStep1Component {
 
   readonly fileSystemStrategy = computed(() => this.createComponent.documentSourceStrategies()?.find((strategy) => strategy.meta.name === 'file-system'))
 
-  // readonly files = signal<FileSystemItem[]>([])
-
   constructor() {
     effect(() => {
       // console.log(this.parametersValue(), this.webParams())
@@ -229,92 +228,6 @@ export class KnowledgeDocumentCreateStep1Component {
   webTypeCompareWith(a, b) {
     return a?.value === b?.value
   }
-
-  // /**
-  //  * on file drop handler
-  //  */
-  // async onFileDropped(event) {
-  //   await this.uploadStorageFile(event)
-  // }
-
-  // /**
-  //  * handle file from browsing
-  //  */
-  // async fileBrowseHandler(event: EventTarget & { files?: FileList }) {
-  //   await this.uploadStorageFile(event.files)
-  // }
-
-  // async uploadStorageFile(files: FileList) {
-  //   const items = Array.from(files).map((file) => ({ file, extension: file.name.split('.').pop().toLowerCase() }))
-  //   this.fileList.update((state) => [...state, ...items])
-
-  //   await Promise.all(items.map((item) => this.upload(item)))
-  // }
-
-  // async upload(item: TFileItem) {
-  //   let storageFile: IStorageFile = null
-  //   item.loading = true
-  //   this.storageFileService
-  //     .uploadFile(item.file)
-  //     .pipe(
-  //       tap((event) => {
-  //         switch (event.type) {
-  //           case HttpEventType.UploadProgress:
-  //             item.progress = (event.loaded / event.total) * 100
-  //             this.fileList.update((state) => [...state])
-  //             break
-  //           case HttpEventType.Response:
-  //             item.progress = 100
-  //             storageFile = event.body
-  //             break
-  //         }
-  //       }),
-  //       catchError((error) => {
-  //         item.error = getErrorMessage(error)
-  //         item.loading = false
-  //         this.fileList.update((state) => [...state])
-  //         return of(null)
-  //       })
-  //     )
-  //     .subscribe({
-  //       complete: () => {
-  //         const type = item.file.name.split('.').pop().toLowerCase()
-  //         item.loading = false
-  //         item.doc = {
-  //           storageFile,
-  //           sourceType: KDocumentSourceType.FILE,
-  //           type,
-  //           category: isDocumentSheet(type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
-  //         } as IKnowledgeDocument
-  //         this.fileList.update((state) => state.map((_) => {
-  //           if (_ === item) { // Refresh current item
-  //             return {..._}
-  //           }
-  //           return _
-  //         }))
-  //       }
-  //     })
-  // }
-
-  // removeFile(item: TFileItem) {
-  //   item.loading = true
-  //   this.fileList.update((state) => [...state])
-  //   this.storageFileService.delete(item.doc.storageFile.id).subscribe({
-  //     next: () => {
-  //       this.fileList.update((state) => {
-  //         const index = state.indexOf(item)
-  //         if (index > -1) {
-  //           state.splice(index, 1)
-  //         }
-  //         return [...state]
-  //       })
-  //     }
-  //   })
-  // }
-
-  // selectFile(item: TFileItem) {
-  //   // this.previewFile.set(item)
-  // }
 
   closePreview() {
     this.selectedFile.set(null)

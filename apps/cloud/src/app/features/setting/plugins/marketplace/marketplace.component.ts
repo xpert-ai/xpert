@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { Component, computed, effect, inject, model } from '@angular/core'
+import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { routeAnimations } from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
@@ -10,7 +10,7 @@ import { OverlayAnimations } from '@metad/core'
 import { debouncedSignal, myResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { PluginComponent } from '../plugin/plugin.component'
-import { TPlugin } from '../types'
+import { TPlugin, TPluginWithDownloads } from '../types'
 
 
 @Component({
@@ -42,6 +42,8 @@ export class PluginsMarketplaceComponent {
   readonly manifest = this.#plugins.value
   readonly error = this.#plugins.error
 
+  readonly pluginsWithDownloads = signal<TPluginWithDownloads[]>([])
+
   readonly keywords = model<string[]>([])
   readonly searchModel = model<string>('')
   readonly searchText = debouncedSignal(this.searchModel, 300)
@@ -49,8 +51,8 @@ export class PluginsMarketplaceComponent {
 
   readonly plugins = computed(() => {
     const keywords = this.keywords()
-    const plugins = (keywords?.length ? this.manifest()?.plugins.filter((plugin) => plugin.keywords?.some((keyword) => keywords.includes(keyword))) :
-      this.manifest()?.plugins) || []
+    const plugins = (keywords?.length ? this.pluginsWithDownloads()?.filter((plugin) => plugin.keywords?.some((keyword) => keywords.includes(keyword))) :
+      this.pluginsWithDownloads()) || []
     const searchText = this.searchText().toLowerCase()
     if (searchText) {
       return plugins.filter(
@@ -105,8 +107,45 @@ export class PluginsMarketplaceComponent {
   })
 
   constructor() {
-    effect(() => {
-      console.log(this.manifest())
-    })
+     effect(async () => {
+      const manifest = this.manifest()
+      if (!manifest) return
+
+      const plugins = manifest.plugins
+
+      // Extract npm packages
+      const npmPlugins = plugins.filter((p) => p.source?.type === 'npm')
+      if (npmPlugins.length === 0) {
+        this.pluginsWithDownloads.set(plugins)
+        return
+      }
+
+      // For each npm plugin, fetch its downloads individually
+      const updated = await Promise.all(
+        plugins.map(async (p) => {
+          if (p.source?.type !== 'npm') return p
+
+          const pkgName = p.source.url.replace(/^https?:\/\/www\.npmjs\.com\/package\//, '')
+          const encoded = encodeURIComponent(pkgName)
+          const url = `https://api.npmjs.org/downloads/point/last-month/${encoded}`
+
+          try {
+            const res = await fetch(url)
+            if (!res.ok) throw new Error(`Failed to fetch ${pkgName}`)
+            const data = await res.json()
+            return { ...p, downloads: { lastMonth: data.downloads } }
+          } catch (err) {
+            console.warn(`Failed to load downloads for ${pkgName}`, err)
+            return { ...p }
+          }
+        })
+      )
+
+      this.pluginsWithDownloads.set(updated)
+    }, { allowSignalWrites: true })
+
+    // effect(() => {
+    //   console.log(this.pluginsWithDownloads())
+    // })
   }
 }

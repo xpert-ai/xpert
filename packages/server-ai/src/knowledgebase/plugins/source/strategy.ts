@@ -1,5 +1,5 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { Annotation, Command, END } from '@langchain/langgraph'
+import { Command, END } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
@@ -287,20 +287,6 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 					})()
 			}),
 			ends: [END],
-			channel: {
-				name: channelName(node.key),
-				annotation: Annotation<Record<string, unknown>>({
-					reducer: (a, b) => {
-						return b
-							? {
-									...a,
-									...b
-								}
-							: a
-					},
-					default: () => ({})
-				})
-			},
 			navigator: async (state, config) => {
 				if (state[channelName(node.key)]['error']) {
 					return (
