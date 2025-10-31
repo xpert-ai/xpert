@@ -1,17 +1,17 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core'
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
+import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatRadioModule } from '@angular/material/radio'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { isNil } from '@metad/copilot'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { CredentialFormSchema, CredentialFormTypeEnum, ParameterType } from '../../../@core'
+import { AI_MODEL_TYPE_VARIABLE, AiModelTypeEnum, CredentialFormSchema, CredentialFormTypeEnum, ParameterType } from '../../../@core'
 import { NgmSelectComponent } from '../../common'
 
 /**
@@ -36,69 +36,88 @@ import { NgmSelectComponent } from '../../common'
     MatSlideToggleModule,
     NgmDensityDirective,
     NgmI18nPipe,
-    NgmSelectComponent
+    NgmSelectComponent,
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class CopilotCredentialFormComponent {
   eCredentialFormTypeEnum = CredentialFormTypeEnum
   eParameterType = ParameterType
-  
+
   readonly #translate = inject(TranslateService)
   readonly #fb = inject(FormBuilder)
   readonly #i18n = new NgmI18nPipe()
   protected cva = inject<NgxControlValueAccessor<Partial<Record<string, any>> | null>>(NgxControlValueAccessor)
 
+  // Inputs
   readonly credentialFormSchemas = input<CredentialFormSchema[]>()
+  readonly modelType = input<AiModelTypeEnum>()
 
-  readonly formGroup = this.#fb.group({})
+  // Models
+  readonly credentials = computed(() => this.cva.value$() ?? {})
 
-  readonly credentials = signal<CredentialFormSchema[]>([])
-
-  private valueSub = this.formGroup.valueChanges.subscribe((value) => {
-    this.cva.writeValue(value)
+  readonly credentialSchemas = computed(() => {
+    return this.credentialFormSchemas()
+     ?.filter((credential) => credential.show_on ? 
+      credential.show_on.every((item) =>
+        item.variable === AI_MODEL_TYPE_VARIABLE ? item.value === this.modelType()
+          : this.credentials()?.[item.variable] === item.value
+      ) : true
+    )
+    .map((credential) => {
+      if (credential.options) {
+        return {
+          ...credential,
+          options: credential.options.filter((option) => {
+            if (option.show_on) {
+              return option.show_on.every((item) =>
+                item.variable === AI_MODEL_TYPE_VARIABLE ? item.value === this.modelType()
+                  : this.credentials()?.[item.variable] === item.value
+              )
+            }
+            return true
+          })
+        }
+      }
+      return credential
+    })
   })
 
+  readonly #invalid = computed(() => {
+    return this.credentialSchemas().filter(credential => credential.required)
+      .some(credential => isNil(this.cva.value$()?.[credential.variable]))
+  })
+
+  // Attrs
   get invalid() {
-    return this.formGroup.invalid
+    return this.#invalid()
   }
 
   constructor() {
-    effect(
-      () => {
-        if (this.credentialFormSchemas()) {
-          // Clear
-          Object.keys(this.formGroup.controls).forEach((key) => this.formGroup.removeControl(key))
+     // Waiting NgxControlValueAccessor has been initialized
+    setTimeout(() => {
+      if (this.cva.value$() === null) {
+        const defaultValues = this.credentialFormSchemas().reduce((acc, credential) => {
+          if (!isNil(credential.default)) {
+            acc[credential.variable] = credential.default
+          }
+          return acc
+        }, {} as Record<string, any>)
+        // Waiting all controls have been initialized then update the default value, because other's value$() will be undefined (not null) when updated
+        setTimeout(() => {
+          this.cva.writeValue(defaultValues)
+        })
+      }
+    })
 
-          this.credentialFormSchemas().forEach((credential) => {
-            if (credential.required) {
-              this.formGroup.addControl(credential.variable, this.#fb.control(null, [Validators.required]))
-            } else {
-              this.formGroup.addControl(credential.variable, this.#fb.control(null))
-            }
-          })
+  }
 
-          const defaultValue = this.credentialFormSchemas().reduce((acc, credential) => {
-            if (!isNil(credential.default)) {
-              acc[credential.variable] = credential.default
-            }
-            return acc
-          }, {})
-
-          this.formGroup.patchValue(defaultValue)
-          this.formGroup.markAsPristine()
-
-          this.credentials.set(this.credentialFormSchemas())
-        }
-      },
-      { allowSignalWrites: true }
-    )
-
-    effect(
-      () => {
-        this.formGroup.patchValue(this.cva.value$(), { emitEvent: false })
-      },
-      { allowSignalWrites: true }
-    )
+  updateValue(name: string, value: any) {
+    this.cva.value$.update((credentials) => {
+      return {
+        ...credentials,
+        [name]: value
+      }
+    })
   }
 }

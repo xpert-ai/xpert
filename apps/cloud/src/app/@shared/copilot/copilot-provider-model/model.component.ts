@@ -21,10 +21,11 @@ import { KebabToCamelCasePipe } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { AI_MODEL_TYPE_VARIABLE, AiModelTypeEnum, getErrorMessage, ICopilotProvider, injectCopilotProviderService, ToastrService } from '../../../@core'
-import { CopilotCredentialFormComponent } from '../credential-form/form.component'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { isEqual } from 'lodash-es'
+import { AiModelTypeEnum, getErrorMessage, ICopilotProvider, injectCopilotProviderService, ToastrService } from '../../../@core'
+import { CopilotCredentialFormComponent } from '../credential-form/form.component'
 
 @Component({
   standalone: true,
@@ -47,7 +48,6 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
     CopilotCredentialFormComponent
   ],
-  host: {}
 })
 export class CopilotProviderModelComponent {
   readonly #dialogRef = inject(DialogRef)
@@ -74,10 +74,9 @@ export class CopilotProviderModelComponent {
   readonly model_credential_schema = computed(() => this.copilotProvider().provider?.model_credential_schema)
   readonly supported_model_types = computed(() => this.copilotProvider().provider?.supported_model_types)
   readonly credential_form_schemas = computed(() => {
-    return this.model_credential_schema()?.credential_form_schemas?.filter((credential) => credential.show_on ? 
-      credential.show_on.some((item) => item.variable === AI_MODEL_TYPE_VARIABLE && item.value === this.modelTypes()?.[0]) : true
-    )
+    return this.model_credential_schema()?.credential_form_schemas
   })
+
   readonly modelSchema = computed(() => this.model_credential_schema()?.model)
 
   readonly label = computed(() => this.copilotProvider()?.provider?.label)
@@ -88,8 +87,8 @@ export class CopilotProviderModelComponent {
   readonly error = signal('')
 
   // models
-  readonly credentials = model({})
-  readonly modelTypes = model<AiModelTypeEnum[]>(null)
+  readonly credentials = model<Record<string, any> | null>(null)
+  readonly modelTypes = model<AiModelTypeEnum[]>([])
   readonly modelName = model<string>()
 
   get invalid() {
@@ -112,7 +111,7 @@ export class CopilotProviderModelComponent {
 
   constructor() {
     effect(() => {
-      if (!this.modelTypes() && this.supported_model_types()) {
+      if (this.modelTypes().length === 0 && this.supported_model_types()) {
         this.modelTypes.set([this.supported_model_types()[0]])
       }
     }, { allowSignalWrites: true })

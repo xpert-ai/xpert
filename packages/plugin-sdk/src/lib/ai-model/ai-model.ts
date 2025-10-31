@@ -1,17 +1,16 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ParameterRule, PriceInfo, PriceType, } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
-import { yaml } from '@metad/server-common';
-import { IAIModel } from '@xpert-ai/plugin-sdk';
 import * as fs from 'fs'
 import * as path from 'path'
-import { ModelProvider } from './ai-provider'
+import * as yaml from 'yaml'
 import { DefaultParameterName, PARAMETER_RULE_TEMPLATE, valueOf } from './entities'
-import { CommonParameterRules, TChatModelOptions } from './types/types'
-import { getPositionMap } from '../core/utils'
+import { CommonParameterRules, IAIModel, TChatModelOptions } from './types/'
+import { ModelProvider } from './abstract-provider';
+import { getPositionMap } from '../core';
 
 @Injectable()
-export abstract class AIModel implements IAIModel {
+export abstract class AIModel implements IAIModel{
 	protected logger = new Logger(AIModel.name)
 
 	protected modelSchemas: AIModelEntity[] | null = null
@@ -102,7 +101,7 @@ export abstract class AIModel implements IAIModel {
 			try {
 				const modelSchema = yamlData as AIModelEntity
 				modelSchemas.push(modelSchema)
-			} catch (error) {
+			} catch (error: any) {
 				throw new Error(`Invalid model schema for ${providerName}.${modelType}.${file}: ${error.message}`)
 			}
 		}
@@ -144,7 +143,7 @@ export abstract class AIModel implements IAIModel {
 
 	private processParameterRules(yamlData: Record<string, any>): void {
 		const newParameterRules: any[] = []
-		const parameterRules = yamlData.parameter_rules || []
+		const parameterRules = yamlData['parameter_rules'] || []
 
 		for (let parameterRule of parameterRules) {
 			if (parameterRule.use_template) {
@@ -165,14 +164,14 @@ export abstract class AIModel implements IAIModel {
 			newParameterRules.push(parameterRule)
 		}
 
-		yamlData.parameter_rules = newParameterRules
+		yamlData['parameter_rules'] = newParameterRules
 	}
 
 	private processLabel(yamlData: Record<string, any>): void {
-		if (!yamlData.label) {
-			yamlData.label = { zh_Hans: yamlData.model, en_US: yamlData.model }
+		if (!yamlData['label']) {
+			yamlData['label'] = { zh_Hans: yamlData['model'], en_US: yamlData['model'] }
 		}
-		yamlData.fetch_from = FetchFrom.PREDEFINED_MODEL
+		yamlData['fetch_from'] = FetchFrom.PREDEFINED_MODEL
 	}
 
 	private sortModelSchemas(modelSchemas: AIModelEntity[], providerModelTypePath: string) {

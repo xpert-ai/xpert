@@ -48,7 +48,11 @@
   </div>
 
   <div class="relative">
-    <copilot-credential-form #credentialForm [credentialFormSchemas]="credential_form_schemas()" [(ngModel)]="credentials"/>
+    <copilot-credential-form #credentialForm
+      [credentialFormSchemas]="credential_form_schemas()"
+      [modelType]="modelTypes()?.[0]"
+      [(ngModel)]="credentials"
+    />
     @if (loading()) {
       <ngm-spin class="absolute top-0 left-0 w-full h-full" />
     }

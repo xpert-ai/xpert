@@ -1,6 +1,6 @@
-<form [formGroup]="formGroup">
-  @for (credential of credentials(); track credential) {
-    <div class="py-3">
+<div class="space-y-2">
+  @for (credential of credentialSchemas(); track credential) {
+    <div class="">
       <div class="flex items-center py-2 text-sm text-gray-900">
         {{credential.label | i18n}}
         @if (credential.required) {
@@ -14,7 +14,8 @@
               class="block px-3 w-full h-9 bg-gray-100 text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-gray-50 focus:bg-white focus:border-gray-300 focus:shadow-xs placeholder:text-sm placeholder:text-gray-400 false false"
               [placeholder]="credential.placeholder | i18n"
               type="password"
-              [formControlName]="credential.variable"
+              [ngModel]="credentials()[credential.variable]"
+              (ngModelChange)="updateValue(credential.variable, $event)"
             />
           </div>
         }
@@ -24,7 +25,8 @@
               class="block px-3 w-full h-9 bg-gray-100 text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-gray-50 focus:bg-white focus:border-gray-300 focus:shadow-xs placeholder:text-sm placeholder:text-gray-400 false false"
               [placeholder]="credential.placeholder | i18n"
               type="text"
-              [formControlName]="credential.variable"
+              [ngModel]="credentials()[credential.variable]"
+              (ngModelChange)="updateValue(credential.variable, $event)"
             />
           </div>
         }
@@ -32,21 +34,25 @@
           <ngm-select class=""
             [placeholder]="credential.placeholder | i18n"
             [selectOptions]="credential.options"
-            [formControlName]="credential.variable" />
+            [ngModel]="credentials()[credential.variable]"
+            (ngModelChange)="updateValue(credential.variable, $event)"
+          />
         }
         @case ('radio') {
-          <mat-radio-group [formControlName]="credential.variable">
+          <mat-radio-group [ngModel]="credentials()[credential.variable]"
+              (ngModelChange)="updateValue(credential.variable, $event)">
             @for (option of credential.options; track option) {
               <mat-radio-button [value]="option.value">{{option.label | i18n}}</mat-radio-button>
             }
           </mat-radio-group>
         }
         @case (eParameterType.BOOLEAN) {
-          <mat-slide-toggle [formControlName]="credential.variable"
+          <mat-slide-toggle [ngModel]="credentials()[credential.variable]"
+              (ngModelChange)="updateValue(credential.variable, $event)"
             ngm-density="xs"
           />
         }
       }
     </div>
   }
-</form>
+</div>

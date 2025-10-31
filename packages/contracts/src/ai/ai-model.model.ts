@@ -3,39 +3,40 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { ICopilot } from './copilot.model'
 
+
 export interface IAiModel extends IBasePerTenantAndOrganizationEntityModel {
   /**
-   * 模型名称
+   * Model name
    */
   name: string
 
   /**
-   * 模型展示名称
+   * Model display name
    */
   label: string
 
   /**
-   * 模型类型
+   * Model type
    */
   modelType: string
 
   /**
-   * 模型特性
+   * Model features
    */
   features: string[]
 
   /**
-   * 模型属性
+   * Model properties
    */
   modelProperties: Record<string, any>
 
   /**
-   * 参数规则
+   * Parameter rules
    */
   parameterRules: Record<string, any>[]
 
   /**
-   * 定价信息
+   * Pricing information
    */
   pricing: {
     input: string
@@ -45,7 +46,7 @@ export interface IAiModel extends IBasePerTenantAndOrganizationEntityModel {
   }
 
   /**
-   * 是否已废弃
+   * Deprecated
    */
   deprecated: boolean
 }
@@ -118,6 +119,7 @@ export interface CredentialFormSchema {
   options?: {
     label: I18nObject
     value: number | string | boolean
+    show_on?: FormShowOnObject[]
   }[]
   placeholder: I18nObject;
 
