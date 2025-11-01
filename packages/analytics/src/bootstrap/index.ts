@@ -134,6 +134,7 @@ export async function preBootstrapPlugins() {
 	const { modules } = await registerPluginsAsync({
 		plugins: [
 			'@xpert-ai/plugin-volcengine',
+			'@xpert-ai/plugin-vllm',
 			'@xpert-ai/plugin-dify',
 			'@xpert-ai/plugin-file-system',
 			'@xpert-ai/plugin-firecrawl',

@@ -1,0 +1,51 @@
+{
+  "name": "vllm",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/vllm/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "generatorOptions": {
+        "packageRoot": "{projectRoot}/dist",
+        "currentVersionResolver": "git-tag"
+      }
+    }
+  },
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "packages/plugins/vllm/dist",
+        "main": "packages/plugins/vllm/src/index.ts",
+        "tsConfig": "packages/plugins/vllm/tsconfig.lib.json",
+        "assets": [
+          "packages/plugins/vllm/*.md",
+          {
+            "glob": "**/*",
+            "input": "packages/plugins/vllm/src/_assets/",
+            "output": "./src/_assets/"
+          },
+           {
+            "glob": "**/*.yaml",
+            "input": "packages/plugins/vllm/src/",
+            "output": "./src/"
+          }
+        ]
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "{projectRoot}/dist"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "packages/plugins/vllm/jest.config.ts"
+      }
+    }
+  }
+}
