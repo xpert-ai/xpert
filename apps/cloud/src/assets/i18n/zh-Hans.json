@@ -1876,6 +1876,8 @@
     },
     "Copilot": {
       "Copilot": "智能助理",
+      "DiscoverMoreAt": "发现更多就在",
+      "PluginMarketplace": "插件市场",
       "ConversationVariables": "会话变量",
       "SystemVariables": "系统变量",
       "AICopilot": "AI 智能助理",

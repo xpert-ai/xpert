@@ -2,6 +2,9 @@
   @apply flex flex-col w-full overflow-y-auto;
 }
 
+.tab {
+  @apply hover:bg-components-card-bg;
+}
 .tab.active {
   @apply bg-components-panel-bg text-text-primary;
 }

@@ -1,6 +1,17 @@
-<div class="w-full p-4 cursor-move flex justify-start items-center sticky top-0 z-10 bg-components-card-bg"
+<div class="w-full p-4 cursor-move flex justify-between items-center sticky top-0 z-10 bg-components-card-bg"
   cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <div class="text-lg font-semibold">{{'PAC.Copilot.ModelProviders' | translate: {Default: 'Model Providers'} }}</div>
+  <div class="text-xl font-semibold">{{'PAC.Copilot.ModelProviders' | translate: {Default: 'Model Providers'} }}</div>
+
+  <div class="mb-2 flex items-center pt-2">
+    <span class="system-sm-regular pr-1 text-text-tertiary">
+      {{ 'PAC.Copilot.DiscoverMoreAt' | translate: {Default: 'Discover more at'} }}
+    </span>
+    <a target="_blank" class="system-sm-medium inline-flex items-center text-text-accent hover:underline"
+      href="/settings/plugins?category=marketplace">
+      Xpert {{ 'PAC.Copilot.PluginMarketplace' | translate: {Default: 'Plugin Marketplace'} }}
+      <i class="ri-corner-right-up-line"></i>
+    </a>
+  </div>
 </div>
 
 <div class="w-full px-8 text-base text-text-secondary">{{'PAC.Copilot.ModelProvidersDesc' | translate: {Default: 'Select an AI model provider and configure authorization information for Copilot or add an AI model manually after added provider.'} }}</div>

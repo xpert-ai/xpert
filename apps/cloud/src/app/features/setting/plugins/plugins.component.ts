@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal } from '@angular/core'
+import { Component, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
+import { Router } from '@angular/router'
 import { injectHelpWebsite, routeAnimations } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
@@ -9,8 +10,9 @@ import { InDevelopmentComponent } from '@cloud/app/@theme'
 import { PluginAPIService } from '@metad/cloud/state'
 import { OverlayAnimations } from '@metad/core'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { debouncedSignal, NgmTooltipDirective } from '@metad/ocap-angular/core'
+import { debouncedSignal, linkedModel, NgmTooltipDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
 
 @Component({
@@ -33,11 +35,24 @@ import { PluginsMarketplaceComponent } from './marketplace/marketplace.component
 })
 export class PluginsComponent {
   readonly pluginAPI = inject(PluginAPIService)
+  readonly router = inject(Router)
+  readonly _category = injectQueryParams<'plugins' | 'marketplace'>('category')
   readonly releaseHelpUrl = injectHelpWebsite('/docs/plugin/release-to-xpert-marketplace')
+
+  readonly category = linkedModel({
+    initialValue: this._category() ?? 'plugins',
+    compute: () => this._category() ?? 'plugins',
+    update: (value) => {
+      this.router.navigate([], {
+        queryParams: { category: value },
+        queryParamsHandling: 'merge'
+      })
+    }
+  })
 
   readonly plugins = toSignal(this.pluginAPI.getPlugins(), { initialValue: [] })
 
-  readonly category = signal<'plugins' | 'marketplace'>('plugins')
+  // readonly category = signal<'plugins' | 'marketplace'>('plugins')
 
   readonly searchText = model('')
   readonly #searchText = debouncedSignal(this.searchText, 300)
