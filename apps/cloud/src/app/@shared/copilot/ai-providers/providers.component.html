@@ -21,10 +21,13 @@
       [ngStyle]="{background: provider.background}"
     >
       <div class="grow h-0">
-        <div class="py-1">
+        <div class="flex py-1">
           @if (provider.icon_large) {
             <img alt="provider-icon" [src]="provider.icon_large | i18n" class="w-auto h-7">
           } @else {
+            @if (provider.icon_small) {
+              <img alt="provider-icon" [src]="provider.icon_small | i18n" class="w-auto h-7 mr-2">
+            }
             {{ provider.label | i18n }}
           }
         </div>
@@ -44,7 +47,7 @@
             <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
               [matTooltip]="'PAC.Copilot.HowToContribute' | translate: {Default: 'In just a few steps, contribute code and create a better future together'}"
               matTooltipPosition="above"
-              href="https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/ai-model/" target="_blank">
+              href="https://github.com/xpert-ai/xpert-plugin-registry" target="_blank">
               <i class="ri-code-ai-line text-lg mr-1"></i>
               <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
                 {{'PAC.Copilot.Contribute' | translate: {Default: 'Contribute'} }}

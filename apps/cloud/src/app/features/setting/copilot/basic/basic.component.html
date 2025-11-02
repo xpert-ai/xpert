@@ -48,11 +48,14 @@
     <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!copilot.enabled">
       <mat-expansion-panel-header>
         <mat-panel-title>
-          <div [matTooltip]="copilot.id">
+          <div [matTooltip]="copilot.id" class="flex">
             @if (copilot.modelProvider?.provider) {
               @if (copilot.modelProvider.provider.icon_large) {
                 <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
               } @else {
+                @if (copilot.modelProvider.provider.icon_small) {
+                  <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_small | i18n">
+                }
                 <span class="ml-2">{{copilot.modelProvider.provider.label | i18n}}</span>
               }
             }

@@ -17,13 +17,27 @@
         <i class="ri-eye-fill cursor-pointer text-text-tertiary hover:text-text-primary" [class.!text-primary-500]="_preview()" (click)="togglePreview()"></i>
       </div>
       <div class="flex items-center gap-1">
+        @if (chunk().metadata.relevanceScore; as relevanceScore) {
+          <div class="relative shrink-0 items-center overflow-hidden border border-components-progress-bar-border px-[5px] h-[20px] rounded-md">
+            <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
+                border-text-accent bg-orange-100"
+              [ngStyle]="{width: (relevanceScore * 100) + '%'}"
+            ></div>
+            <div class="relative flex h-full items-center space-x-0.5">
+              <div class="text-xs font-medium uppercase">
+                {{ 'PAC.Knowledgebase.RelevanceScore' | translate: {Default: 'Relevance Score'} }}
+              </div>
+              <div class="text-xs font-semibold">{{relevanceScore | number:'0.0-2'}}</div>
+            </div>
+          </div>
+        }
         @if (chunk().metadata.score; as score) {
           <div class="relative shrink-0 items-center overflow-hidden border border-components-progress-bar-border px-[5px] h-[20px] rounded-md">
             <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
                 border-primary-500 bg-primary-200/50"
               [ngStyle]="{width: (score * 100) + '%'}"
             ></div>
-            <div class="relative flex h-full items-center space-x-0.5 text-util-colors-blue-brand-blue-brand-700">
+            <div class="relative flex h-full items-center space-x-0.5">
               <div class="text-xs font-medium uppercase">score</div>
               <div class="text-xs font-semibold">{{score | number:'0.0-2'}}</div>
             </div>

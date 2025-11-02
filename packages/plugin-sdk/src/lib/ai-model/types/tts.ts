@@ -1,5 +1,5 @@
 import { ParameterRule, ParameterType } from '@metad/contracts'
-import { AIModel } from './ai-model'
+import { AIModel } from '../ai-model'
 
 export abstract class TextToSpeechModel extends AIModel {
 	public override getParameterRules(model: string, credentials: Record<string, string>): ParameterRule[] {

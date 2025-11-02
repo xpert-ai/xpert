@@ -42,6 +42,7 @@ import {
 	DocumentSourceRegistry,
 	DocumentTransformerRegistry,
 	ImageUnderstandingRegistry,
+	IRerank,
 	KnowledgeStrategyRegistry,
 	TextSplitterRegistry,
 } from '@xpert-ai/plugin-sdk'
@@ -49,7 +50,6 @@ import { t } from 'i18next'
 import { assign, sortBy } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm'
-import { IRerank } from '../ai-model/types/rerank'
 import {
 	CopilotModelGetChatModelQuery,
 	CopilotModelGetEmbeddingsQuery,

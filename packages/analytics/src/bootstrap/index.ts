@@ -133,6 +133,7 @@ export async function preBootstrapPlugins() {
 	const plugins = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || [];
 	const { modules } = await registerPluginsAsync({
 		plugins: [
+			'@xpert-ai/plugin-openai-compatible',
 			'@xpert-ai/plugin-volcengine',
 			'@xpert-ai/plugin-vllm',
 			'@xpert-ai/plugin-dify',

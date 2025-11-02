@@ -9,24 +9,22 @@ import { AIModel } from './ai-model'
 import { AI_MODEL_PROVIDER } from './ai-model-provider.decorator'
 import { IAIModelProviderStrategy } from './ai-model-provider.interface'
 import { AiModelNotFoundException } from './errors'
-import { SpeechToTextModel } from './speech2text'
-import { TextToSpeechModel } from './tts'
-import { TChatModelOptions, TextEmbeddingModelManager, IRerank, RerankModel } from './types/'
+import { TChatModelOptions, TextEmbeddingModelManager, IRerank, RerankModel, TextToSpeechModel, SpeechToTextModel } from './types/'
 
 
 @Injectable()
 export abstract class ModelProvider implements IAIModelProviderStrategy {
   readonly logger = new Logger(ModelProvider.name)
 
-  protected _name: string
-  protected _meta: IAiProviderEntity
+  protected _name?: string
+  protected _meta?: IAiProviderEntity
   get name(): string {
     return this.getProviderSchema().provider
   }
   // protected providerSchema: IAiProviderEntity | null = null
 
   protected modelManagers: Map<AiModelTypeEnum, AIModel> = new Map()
-  private dir: string
+  private dir?: string
 
   constructor() {
     const provider = Reflect.getMetadata(AI_MODEL_PROVIDER, this.constructor)
@@ -154,7 +152,7 @@ export abstract class ModelProvider implements IAIModelProviderStrategy {
       case AiModelTypeEnum.SPEECH2TEXT:
         return this.getModelManager<SpeechToTextModel>(type)?.getChatModel(copilotModel, options)
       case AiModelTypeEnum.RERANK:
-        return this.getModelManager<RerankModel>(type)?.getDocumentCompressor(copilotModel, options)
+        return this.getModelManager<RerankModel>(type)?.getReranker(copilotModel, options)
     }
 
     return null

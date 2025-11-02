@@ -1,22 +1,23 @@
+import { Document } from '@langchain/core/documents'
 import { Callbacks } from '@langchain/core/callbacks/manager'
 import { DocumentInterface } from '@langchain/core/documents'
 import { BaseDocumentCompressor } from '@langchain/core/retrievers/document_compressors'
 import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
+import { IRerank } from '@xpert-ai/plugin-sdk'
 import axios from 'axios'
-import { Document } from 'langchain/document'
-import { ModelProvider } from '../../../ai-provider'
-import { IRerank, RerankModel } from '../../../types/rerank'
 import { TChatModelOptions } from '../../../types/types'
 import { TongyiCredentials } from '../types'
+import { RerankModel } from '../../../types/rerank'
+import { ModelProvider } from '../../../ai-provider'
 
 @Injectable()
 export class TongyiRerankModel extends RerankModel {
-	constructor(readonly modelProvider: ModelProvider) {
+	constructor(modelProvider: ModelProvider) {
 		super(modelProvider, AiModelTypeEnum.RERANK)
 	}
 
-	async getDocumentCompressor(copilotModel: ICopilotModel, options?: TChatModelOptions): Promise<IRerank> {
+	async getReranker(copilotModel: ICopilotModel, options?: TChatModelOptions): Promise<IRerank> {
 		const credentials = copilotModel.copilot.modelProvider.credentials as TongyiCredentials
 		return new TongyiRerank({
 			apiKey: credentials.dashscope_api_key,
@@ -55,8 +56,18 @@ export class TongyiRerank extends BaseDocumentCompressor implements IRerank {
 	async rerank(
 		docs: Document<Record<string, any>>[],
 		query: string,
-		options: { topN: number }
-	): Promise<{ index: number; relevanceScore: number }[]> {
+		options: {
+			topN?: number
+			scoreThreshold?: number
+			model?: string
+		}
+	): Promise<
+    {
+      index: number
+      relevanceScore: number
+      document?: Document<Record<string, any>>
+    }[]
+  > {
 		const apiKey = this.apiKey
 		const url = this.url
 

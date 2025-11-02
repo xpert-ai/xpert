@@ -1,5 +1,5 @@
 import { ICopilotModel } from '@metad/contracts'
-import { Document } from '@langchain/core/documents'
+import { IRerank } from '@xpert-ai/plugin-sdk'
 import { AIModel } from '../ai-model'
 import { TChatModelOptions } from './types'
 
@@ -9,12 +9,13 @@ export abstract class RerankModel extends AIModel {
 		return
 	}
 
-	abstract getDocumentCompressor(
-		copilotModel: ICopilotModel,
-		options?: TChatModelOptions
-	): Promise<IRerank>
+	abstract getReranker(copilotModel: ICopilotModel, options?: TChatModelOptions): Promise<IRerank>
 }
 
-export interface IRerank {
-    rerank(docs: Document<Record<string, any>>[], query: string, options: { topN: number }): Promise<{index: number; relevanceScore: number;}[]>
-}
+// export interface IRerank {
+// 	rerank(
+// 		docs: Document<Record<string, any>>[],
+// 		query: string,
+// 		options: { topN: number }
+// 	): Promise<{ index: number; relevanceScore: number }[]>
+// }

@@ -51,6 +51,7 @@
       "@metad/story/*": ["libs/story-angular/*"],
       "@xpert-ai/plugin-integration-github": ["packages/plugins/integration-github/src/index.ts"],
       "@xpert-ai/plugin-ocr-paddle": ["packages/plugins/ocr-paddle/src/index.ts"],
+      "@xpert-ai/plugin-openai-compatible": ["packages/plugins/openai-compatible/src/index.ts"],
       "@xpert-ai/plugin-retriever-common": ["packages/plugins/retriever-common/src/index.ts"],
       "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],
       "@xpert-ai/plugin-textsplitter-common": ["packages/plugins/textsplitter-common/src/index.ts"],

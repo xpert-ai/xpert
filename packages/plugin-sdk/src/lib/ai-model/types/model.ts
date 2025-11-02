@@ -65,3 +65,9 @@ export function mergeCredentials(credentials, modelProperties) {
         ...(modelProperties ?? {}),
     }
 }
+
+export type TModelProperties = {
+    endpoint_url: string
+    api_key: string
+    endpoint_model_name?: string
+}

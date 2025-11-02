@@ -1,14 +1,17 @@
-provider: vllm
+provider: openai-compatible
 label:
-  en_US: Vllm
+  en_US: OpenAI-API-compatible
 description:
-  en_US: Models provided by vllm with guided inference supported.
-  zh_Hans: Vllm openai guided 支持
+  en_US: Model providers compatible with OpenAI's API standard, such as LM Studio.
+  zh_Hans: 兼容 OpenAI API 的模型供应商，例如 LM Studio 。
 icon_small:
-  en_US: vllm-color.svg
-background: "#E5E7EB"
+  en_US: icon.svg
 supported_model_types:
   - llm
+  - rerank
+  - text-embedding
+  - speech2text
+  - tts
 configurate_methods:
   - customizable-model
 model_credential_schema:
@@ -17,9 +20,18 @@ model_credential_schema:
       en_US: Model Name
       zh_Hans: 模型名称
     placeholder:
-      en_US: Enter your model name
-      zh_Hans: 输入模型名称
+      en_US: Enter full model name
+      zh_Hans: 输入模型全称
   credential_form_schemas:
+    - variable: display_name
+      label:
+        en_US: Model display name
+        zh_Hans: 模型显示名称
+      type: text-input
+      required: false
+      placeholder:
+        zh_Hans: 模型在界面的显示名称
+        en_US: The display name of the model in the interface.
     - variable: api_key
       label:
         en_US: API Key
@@ -28,6 +40,48 @@ model_credential_schema:
       placeholder:
         zh_Hans: 在此输入您的 API Key
         en_US: Enter your API Key
+    - variable: language
+      label:
+        en_US: Language
+        zh_Hans: 语言
+      type: select
+      default: zh
+      required: false
+      show_on:
+        - variable: __model_type
+          value: speech2text
+      placeholder:
+        zh_Hans: 模型支持的语言，例如 zh,en
+        en_US: The language supported by the model, e.g. zh,en
+      options:
+        - value: zh
+          label:
+            en_US: zh-Hans
+            zh_Hans: 中文
+        - value: en
+          label:
+            en_US: en-US
+            zh_Hans: 英文
+        - value: ja
+          label:
+            en_US: ja-JP
+            zh_Hans: 日语
+        - value: ko
+          label:
+            en_US: ko-KR
+            zh_Hans: 韩语
+    - variable: initial_prompt
+      label:
+        en_US: Initial Prompt
+        zh_Hans: 初始提示
+      type: text-input
+      required: false
+      show_on:
+        - variable: __model_type
+          value: speech2text
+      placeholder:
+        zh_Hans: 模型在对话开始时的初始提示
+        en_US: The initial prompt for the model at the start of the conversation.
     - variable: endpoint_url
       label:
         zh_Hans: API endpoint URL
@@ -76,7 +130,33 @@ model_credential_schema:
         - variable: __model_type
           value: llm
       type: text-input
-      default: '4096'
+      default: "4096"
+      placeholder:
+        zh_Hans: 在此输入您的模型上下文长度
+        en_US: Enter your Model context size
+    - variable: context_size
+      label:
+        zh_Hans: 模型上下文长度
+        en_US: Model context size
+      required: true
+      show_on:
+        - variable: __model_type
+          value: text-embedding
+      type: text-input
+      default: "4096"
+      placeholder:
+        zh_Hans: 在此输入您的模型上下文长度
+        en_US: Enter your Model context size
+    - variable: context_size
+      label:
+        zh_Hans: 模型上下文长度
+        en_US: Model context size
+      required: true
+      show_on:
+        - variable: __model_type
+          value: rerank
+      type: text-input
+      default: "4096"
       placeholder:
         zh_Hans: 在此输入您的模型上下文长度
         en_US: Enter your Model context size
@@ -87,7 +167,7 @@ model_credential_schema:
       show_on:
         - variable: __model_type
           value: llm
-      default: '4096'
+      default: "4096"
       type: text-input
     - variable: agent_though_support
       show_on:
@@ -166,6 +246,42 @@ model_credential_schema:
           label:
             en_US: Not Support
             zh_Hans: 不支持
+    - variable: structured_output_support
+      show_on:
+        - variable: __model_type
+          value: llm
+      label:
+        en_US: Structured Output
+      type: select
+      required: false
+      default: not_supported
+      options:
+        - value: supported
+          label:
+            en_US: Support
+            zh_Hans: 支持
+        - value: not_supported
+          label:
+            en_US: Not Support
+            zh_Hans: 不支持
+    - variable: stream_mode_auth
+      show_on:
+        - variable: __model_type
+          value: llm
+      label:
+        en_US: Stream mode auth
+      type: select
+      required: false
+      default: not_use
+      options:
+        - value: use
+          label:
+            en_US: Use
+            zh_Hans: 使用
+        - value: not_use
+          label:
+            en_US: Not Use
+            zh_Hans: 不使用
     - variable: stream_mode_delimiter
       label:
         zh_Hans: 流模式返回结果的分隔符
@@ -175,8 +291,28 @@ model_credential_schema:
           value: llm
       default: '\n\n'
       type: text-input
+    - variable: voices
+      show_on:
+        - variable: __model_type
+          value: tts
+      label:
+        en_US: Available Voices (comma-separated)
+        zh_Hans: 可用声音（用英文逗号分隔）
+      type: text-input
+      required: false
+      default: "alloy"
+      placeholder:
+        en_US: "alloy,echo,fable,onyx,nova,shimmer"
+        zh_Hans: "alloy,echo,fable,onyx,nova,shimmer"
+      help:
+        en_US: "List voice names separated by commas. First voice will be used as default."
+        zh_Hans: "用英文逗号分隔的声音列表。第一个声音将作为默认值。"
 extra:
   python:
-    provider_source: provider/vllm.py
+    provider_source: provider/openai_api_compatible.py
     model_sources:
       - "models/llm/llm.py"
+      - "models/text_embedding/text_embedding.py"
+      - "models/rerank/rerank.py"
+      - "models/speech2text/speech2text.py"
+      - "models/tts/tts.py"
