@@ -18,9 +18,10 @@ export type VLLMModelCredentials = {
 }
 
 
-export function toCredentialKwargs(credentials: VLLMModelCredentials) {
+export function toCredentialKwargs(credentials: VLLMModelCredentials, model: string) {
     const credentialsKwargs: OpenAIBaseInput = {
-		apiKey: credentials.api_key || 'xxxxxxxxxxxxxxxx',
+		apiKey: credentials.api_key || 'no-key-required',
+		model: credentials.endpoint_model_name || model,
 	} as OpenAIBaseInput
 	const configuration: ClientOptions = {}
 

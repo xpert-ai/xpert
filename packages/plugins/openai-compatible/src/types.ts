@@ -22,7 +22,7 @@ export interface OpenAICompatModelCredentials {
 
 export function toCredentialKwargs(credentials: OpenAICompatModelCredentials, model?: string): OpenAIBaseInput & { configuration: ClientOptions } {
 	const credentialsKwargs: OpenAIBaseInput = {
-		apiKey: credentials.api_key,
+		apiKey: credentials.api_key || 'no-key-required',
 		model: credentials.endpoint_model_name || model,
 		streaming: credentials.streaming
 	} as OpenAIBaseInput

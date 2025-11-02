@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import chalk from 'chalk';
 import { VLLMProviderStrategy } from './provider.strategy';
 import { VLLMLargeLanguageModel } from './llm/llm';
+import { VLLMRerankModel } from './rerank/rerank';
+import { VLLMTextEmbeddingModel } from './text-embedding/text-embedding';
 
 @XpertServerPlugin({
 	/**
@@ -12,7 +14,9 @@ import { VLLMLargeLanguageModel } from './llm/llm';
 
 	providers: [
         VLLMProviderStrategy,
-        VLLMLargeLanguageModel
+        VLLMLargeLanguageModel,
+		VLLMRerankModel,
+		VLLMTextEmbeddingModel
 	]
 })
 export class VLLMPlugin implements IOnPluginBootstrap, IOnPluginDestroy {
