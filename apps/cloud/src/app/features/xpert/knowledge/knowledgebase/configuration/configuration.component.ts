@@ -17,6 +17,7 @@ import {
   IKnowledgebase,
   KnowledgebasePermission,
   KnowledgebaseService,
+  ModelFeature,
   Store,
   ToastrService,
   getErrorMessage,
@@ -49,6 +50,7 @@ export class KnowledgeConfigurationComponent {
   KnowledgebasePermission = KnowledgebasePermission
   DisplayBehaviour = DisplayBehaviour
   eModelType = AiModelTypeEnum
+  eModelFeature = ModelFeature
 
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly _toastrService = inject(ToastrService)

@@ -93,7 +93,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 			}
 		})
 
-		return sortBy(documents, 'metadata.score').reverse().slice(0, topK)
+		return sortBy(documents, 'metadata.relevanceScore', 'metadata.score').reverse().slice(0, topK)
 	}
 
 	/**

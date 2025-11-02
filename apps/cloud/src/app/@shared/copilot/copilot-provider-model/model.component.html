@@ -1,6 +1,6 @@
 <div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle 
   class="flex justify-between items-center mb-2 px-8 py-4 cursor-move sticky top-0 z-10 bg-gradient-to-b to-white"
-  [ngClass]="'from-[' + backgroundColor() + ']'"
+  [style.--tw-gradient-stops]="backgroundColor()+', var(--tw-gradient-to)'"
 >
   <div class="text-2xl font-semibold text-teext-primary">{{'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }} {{label() | i18n}}</div>
   @if (icon()) {

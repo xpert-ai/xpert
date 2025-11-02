@@ -27,6 +27,7 @@ import {
   ICopilotProviderModel,
   injectAiProviders,
   injectCopilotProviderService,
+  ModelFeature,
   TCopilotTokenUsage,
   ToastrService
 } from '../../../@core'
@@ -56,6 +57,7 @@ import { CopilotAiProviderAuthComponent } from '../provider-authorization/author
 })
 export class CopilotProviderComponent {
   eConfigurateMethod = ConfigurateMethod
+  eModelFeature = ModelFeature
 
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)

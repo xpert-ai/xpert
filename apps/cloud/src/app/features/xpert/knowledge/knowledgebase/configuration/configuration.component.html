@@ -102,6 +102,7 @@
 
       <copilot-model-select class="block mb-4" [label]="'PAC.Knowledgebase.VisionModel' | translate: {Default: 'Vision Model'}"
         [modelType]="eModelType.LLM"
+        [features]="[eModelFeature.VISION]"
         [(ngModel)]="visionModel"
       />
     </div>

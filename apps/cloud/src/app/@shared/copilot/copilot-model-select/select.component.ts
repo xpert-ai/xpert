@@ -55,6 +55,7 @@ export class CopilotModelSelectComponent {
   readonly copilotServer = inject(CopilotServerService)
   readonly copilotProviderService = injectCopilotProviderService()
   readonly copilots = injectCopilots()
+  readonly i18n = new NgmI18nPipe()
 
   // Inputs
   readonly modelType = input<AiModelTypeEnum>()
@@ -123,6 +124,10 @@ export class CopilotModelSelectComponent {
                   models
                 }
               }
+            }
+            if (this.i18n.transform(_.providerWithModels.label)?.toLowerCase().includes(searchText) ||
+               _.name?.toLowerCase().includes(searchText)) {
+              return _
             }
             return null
           })

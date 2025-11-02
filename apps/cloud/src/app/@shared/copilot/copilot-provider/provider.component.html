@@ -138,6 +138,12 @@
                 {{(model.modelProperties.context_size / 1000) | number: '0.0-0'}}K
               </div>
             }
+            <!-- @todo move to plugin -->
+            @if (model.modelProperties?.vision_support === 'support') {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default ml-1">
+                <i class="ri-eye-fill"></i>
+              </div>
+            }
           </div>
 
           <div class="shrink-0 flex items-center">
@@ -182,6 +188,11 @@
                 class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default ml-1"
               >
                 {{(model.model_properties.context_size / 1000) | number: '0.0-0'}}K
+              </div>
+            }
+            @if (model.features?.includes(eModelFeature.VISION)) {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default ml-1">
+                <i class="ri-eye-fill"></i>
               </div>
             }
           </div>
