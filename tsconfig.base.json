@@ -58,7 +58,6 @@
       "@xpert-ai/plugin-tool-calculator": ["packages/plugins/tool-calculator/src/index.ts"],
       "@xpert-ai/plugin-transformer-common": ["packages/plugins/transformer-common/src/index.ts"],
       "@xpert-ai/plugin-trigger-schedule": ["packages/plugins/trigger-schedule/src/index.ts"],
-      "@xpert-ai/plugin-vllm": ["packages/plugins/vllm/src/index.ts"],
       "@xpert-ai/plugin-vlm-default": ["packages/plugins/vlm-default/src/index.ts"],
       "@xpert-ai/plugin-volcengine": ["packages/plugins/volcengine/src/index.ts"],
       "@xpert-ai/plugin-vstore-chroma": ["packages/plugins/vstore-chroma/src/index.ts"],

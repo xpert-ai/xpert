@@ -135,7 +135,6 @@ export async function preBootstrapPlugins() {
 		plugins: [
 			'@xpert-ai/plugin-openai-compatible',
 			'@xpert-ai/plugin-volcengine',
-			'@xpert-ai/plugin-vllm',
 			'@xpert-ai/plugin-dify',
 			'@xpert-ai/plugin-file-system',
 			'@xpert-ai/plugin-firecrawl',
