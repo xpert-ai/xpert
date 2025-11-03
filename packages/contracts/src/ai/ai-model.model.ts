@@ -142,7 +142,9 @@ export enum ModelFeature {
   MULTI_TOOL_CALL = "multi-tool-call",
   AGENT_THOUGHT = "agent-thought",
   VISION = "vision",
-  STREAM_TOOL_CALL = "stream-tool-call"
+  STREAM_TOOL_CALL = "stream-tool-call",
+  VIDEO = "video",
+  STRUCTURED_OUTPUT = "structured-output"
 }
 
 export enum ModelPropertyKey {
