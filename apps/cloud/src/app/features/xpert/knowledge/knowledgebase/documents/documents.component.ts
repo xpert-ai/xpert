@@ -1,6 +1,6 @@
 import { animate, state, style, transition, trigger } from '@angular/animations'
 import { SelectionModel } from '@angular/cdk/collections'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { afterNextRender, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -13,7 +13,7 @@ import {
   injectConfirmUnique,
   NgmCommonModule,
 } from '@metad/ocap-angular/common'
-import { debouncedSignal } from '@metad/ocap-angular/core'
+import { debouncedSignal, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { formatRelative } from 'date-fns/formatRelative'
 import { get } from 'lodash-es'
@@ -41,11 +41,13 @@ import {
   injectToastr,
   IXpert,
   KBDocumentStatusEnum,
+  KBMetadataFieldDef,
   KDocumentSourceType,
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
   OrderTypeEnum,
+  STANDARD_METADATA_FIELDS,
   ToastrService
 } from '../../../../../@core'
 import { KnowledgeDocIdComponent, KnowledgeTaskComponent } from '../../../../../@shared/knowledge'
@@ -67,6 +69,7 @@ const REFRESH_DEBOUNCE_TIME = 5000
     MatTooltipModule,
     NgmCommonModule,
     KnowledgeDocIdComponent,
+    NgmI18nPipe
   ],
   animations: [
     trigger('detailExpand', [
@@ -79,6 +82,7 @@ const REFRESH_DEBOUNCE_TIME = 5000
 export class KnowledgeDocumentsComponent {
   eKDocumentSourceType = KDocumentSourceType
   eKBDocumentStatusEnum = KBDocumentStatusEnum
+  STANDARD_METADATA_FIELDS = STANDARD_METADATA_FIELDS
 
   readonly kbAPI = inject(KnowledgebaseService)
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
@@ -149,6 +153,15 @@ export class KnowledgeDocumentsComponent {
     )
   )
   readonly grandParent = computed(() => this.parentFolder()?.parent ?? null)
+
+  // Metadata
+  readonly metadataSchema = linkedModel({
+    initialValue: null,
+    compute: () => this.knowledgebaseComponent.knowledgebase()?.metadataSchema,
+    update: () => {
+      //
+    }
+  })
 
   constructor() {
     effect(
@@ -513,5 +526,45 @@ export class KnowledgeDocumentsComponent {
 
   openChunkSettings(document: IKnowledgeDocument) {
     this.#router.navigate(['./', document.id, 'settings'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
+  }
+
+  // Metadata operations
+  addMetadataField() {
+    this.metadataSchema.update((schema) => {
+      const newField: KBMetadataFieldDef = {
+        key: 'new_field_' + (schema?.length ?? 0),
+        type: 'string'
+      }
+      return [...(schema ?? []), newField]
+    })
+  }
+
+  updateMetadataField(index: number, key: keyof KBMetadataFieldDef, value: any) {
+    this.metadataSchema.update((schema) => {
+      const updatedSchema = [...(schema ?? [])]
+      updatedSchema[index] = {
+        ...updatedSchema[index],
+        [key]: value
+      }
+      return updatedSchema
+    })
+  }
+
+  saveMetadataSchema(ref: CdkMenuTrigger) {
+    this.isLoading.set(true)
+    this.knowledgebaseComponent.knowledgebaseAPI.update(this.knowledgebase().id, {
+      metadataSchema: this.metadataSchema()
+    }).subscribe({
+      next: () => {
+        this.isLoading.set(false)
+        this._toastrService.success(this.#translate.instant('PAC.Knowledgebase.MetadataSchemaSaved', { Default: 'Metadata schema saved successfully' }))
+        ref.close()
+        this.knowledgebaseComponent.refresh()
+      },
+      error: (err) => {
+        this.isLoading.set(false)
+        this._toastrService.error(getErrorMessage(err))
+      }
+    })
   }
 }

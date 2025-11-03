@@ -59,12 +59,13 @@
   </div>
 
   <div class="flex items-center gap-4">
-    <!-- <div class="system-xs-medium-uppercase px-2 py-1 rounded-lg inline-flex cursor-pointer items-center space-x-1 text-text-secondary"
-      [cdkMenuTriggerFor]="xpertsMenu"
-    >
-      <span>{{xperts()?.length ?? 0}} {{ 'PAC.Knowledgebase.RelatedExperts' | translate: {Default: 'related experts'} }}</span>
-      <i class="ri-information-2-line"></i>
-    </div> -->
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0"
+      [cdkMenuTriggerFor]="metadataTemplate"
+      #ref="cdkMenuTriggerFor"
+      [cdkMenuTriggerData]="{ref: ref}">
+      <i class="ri-file-info-line mr-1"></i>
+      元数据
+    </button>
     <button type="button" class="btn btn-primary btn-large flex justify-center items-center gap-2"
       [matTooltip]=" 'PAC.Knowledgebase.NewDocuments' | translate: {Default: 'New Documents' }"
       matTooltipPosition="before"
@@ -347,6 +348,124 @@
     <div cdkMenuItem class="danger" (click)="deleteDocument(doc)">
       <i class="ri-delete-bin-line mr-2"></i>
       <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete' } }}</span>
+    </div>
+  </div>
+</ng-template>
+
+
+<ng-template #metadataTemplate let-ref="ref">
+  <div class="p-4 rounded-xl bg-components-card-bg shadow-lg ">
+
+    <div class="flex justify-between">
+      <h3 class="text-lg font-medium leading-6 text-text-primary">
+        {{ 'PAC.Knowledgebase.MetadataFields' | translate: {Default: 'Metadata Fields'} }}
+      </h3>
+      <button type="button" class="btn btn-ghost btn-small w-6 h-6 rounded-full"
+        (click)="ref.close()">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+
+    <div class="system-sm-regular text-text-tertiary">元数据是关于文档的数据，用于描述文档的属性。元数据可以帮助您更好地组织和管理文档。</div>
+
+    <div class="inline-block" >
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium mt-3" (click)="addMetadataField()">
+        <i class="ri-add-large-line"></i>
+        添加元数据</button>
+    </div>
+
+    <div class="mt-3 space-y-1">
+      @for (field of metadataSchema(); track i; let i = $index) {
+        <div
+          class="group/item cursor-pointer hover:shadow-xs rounded-md border border-components-panel-border-subtle bg-components-panel-on-panel-item-bg">
+          <div class="flex h-8 items-center justify-between px-2">
+            <div class="flex h-full items-center space-x-1 text-text-tertiary">
+              @switch (field.type) {
+                @case ('string') {
+                  <i class="ri-text-snippet"></i>
+                }
+                @case ('number') {
+                  <i class="ri-hashtag"></i>
+                }
+                @case ('datetime') {
+                  <i class="ri-time-line"></i>
+                }
+              }
+              <input class="system-sm-medium max-w-[250px] truncate text-text-primary outline-none" [ngModel]="field.key" (ngModelChange)="updateMetadataField(i, 'key', $event)">
+              <div class="system-xs-regular shrink-0"
+                [cdkMenuTriggerFor]="metadataTypeMenu"
+                [cdkMenuTriggerData]="{index: i}"
+              >{{field.type}}</div>
+            </div>
+            <div class="system-xs-regular ml-2 shrink-0 text-text-tertiary group-hover/item:hidden">1个值</div>
+            <div class="ml-2 hidden items-center space-x-1 text-text-tertiary group-hover/item:flex">
+              <button class="w-5 h-5 flex items-center rounded-md hover:bg-hover-bg">
+                <i class="ri-edit-line"></i>
+              </button>
+              <div class="w-5 h-5 flex items-center rounded-md hover:bg-hover-bg hover:text-text-destructive">
+                <i class="ri-delete-bin-line"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="mt-3 space-y-1">
+      
+      @for (g of STANDARD_METADATA_FIELDS; track g) {
+        <div>{{ g.group | i18n }}</div>
+        @for (field of g.fields; track i; let i = $index) {
+          <div
+            class="group/item cursor-pointer hover:shadow-xs rounded-md border border-components-panel-border-subtle bg-components-panel-on-panel-item-bg">
+            <div class="flex h-8 items-center justify-between px-2 text-sm">
+              <div class="flex h-full items-center space-x-1 text-text-tertiary">
+                @switch (field.type) {
+                  @case ('string') {
+                    <i class="ri-text-snippet"></i>
+                  }
+                  @case ('number') {
+                    <i class="ri-hashtag"></i>
+                  }
+                  @case ('datetime') {
+                    <i class="ri-time-line"></i>
+                  }
+                }
+                <div class="system-sm-medium max-w-[250px] truncate text-text-primary outline-none">
+                  {{ field.key }} / {{ field.label }}
+                </div>
+                <div class="system-xs-regular shrink-0"
+                >{{field.type}}</div>
+              </div>
+              <div class="system-xs-regular ml-2 shrink-0 text-text-tertiary group-hover/item:hidden">1个值</div>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <div class="w-full flex justify-end mt-4">
+      <button type="button" class="mt-2 btn btn-primary btn-large"
+        (click)="saveMetadataSchema(ref)">
+        {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #metadataTypeMenu let-index="index">
+  <div cdkMenu class="cdk-menu__medium">
+    <div cdkMenuItem (click)="updateMetadataField(index, 'type', 'string')">
+      <i class="ri-text-snippet mr-2"></i>
+      <span>String</span>
+    </div>
+    <div cdkMenuItem (click)="updateMetadataField(index, 'type', 'number')">
+      <i class="ri-hashtag mr-2"></i>
+      <span>Number</span>
+    </div>
+    <div cdkMenuItem (click)="updateMetadataField(index, 'type', 'datetime')">
+      <i class="ri-time-line mr-2"></i>
+      <span>DateTime</span>
     </div>
   </div>
 </ng-template>

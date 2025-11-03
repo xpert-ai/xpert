@@ -4,6 +4,7 @@ import {
 	IKnowledgebase,
 	IKnowledgeDocument,
 	IXpert,
+	KBMetadataFieldDef,
 	KnowledgebaseParserConfig,
 	KnowledgebasePermission,
 	KnowledgebaseTypeEnum,
@@ -163,6 +164,12 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@IsOptional()
 	@Column({ nullable: true })
 	status?: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column('jsonb', { default: [] })
+	metadataSchema?: KBMetadataFieldDef[];
 
 	@ApiProperty({ type: () => Boolean })
 	@IsBoolean()

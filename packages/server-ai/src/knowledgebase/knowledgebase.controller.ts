@@ -1,4 +1,4 @@
-import { AIPermissionsEnum, IKnowledgebase, IKnowledgebaseTask, IPagination, KnowledgebasePermission, Metadata, RolesEnum } from '@metad/contracts'
+import { AIPermissionsEnum, IKnowledgebase, IKnowledgebaseTask, IPagination, KnowledgebasePermission, KnowledgeDocumentMetadata, RolesEnum } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -197,7 +197,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	}
 
 	@Post(':id/test')
-	async test(@Param('id') id: string, @Body() body: { query: string; k: number; score: number; filter: Metadata }) {
+	async test(@Param('id') id: string, @Body() body: { query: string; k: number; score: number; filter: KnowledgeDocumentMetadata }) {
 		try {
 			return await this.service.test(id, body)
 		} catch(err) {

@@ -33,5 +33,5 @@ export interface IImageUnderstandingStrategy<TConfig extends TImageUnderstanding
   /**
    * Understand image files (e.g., OCR, VLM, Chart Parsing)
    */
-  understandImages(doc: IKnowledgeDocument<ChunkMetadata>, config: TConfig): Promise<TImageUnderstandingResult>
+  understandImages(doc: IKnowledgeDocument, config: TConfig): Promise<TImageUnderstandingResult>
 }
