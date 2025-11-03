@@ -5,6 +5,7 @@ import { AIModelEntity, AiModelTypeEnum, IAiProviderEntity, ICopilotModel, Provi
 import { ConfigService } from '@metad/server-config'
 import { loadYamlFile } from '@metad/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
+import { IAIModel, IAIModelProviderStrategy, IRerank, RerankModel } from '@xpert-ai/plugin-sdk'
 import * as path from 'path'
 import { AIModel } from './ai-model'
 import { AIProviderRegistry } from './registry'
@@ -13,27 +14,30 @@ import { ModelProvidersFolderPath, TChatModelOptions } from './types/types'
 import { AiModelNotFoundException } from '../core/errors'
 import { TextToSpeechModel } from './tts'
 import { SpeechToTextModel } from './speech2text'
-import { IRerank, RerankModel } from './types/rerank'
 
 @Injectable()
-export abstract class ModelProvider {
-	protected logger = new Logger(this.constructor.name)
+export abstract class ModelProvider implements IAIModelProviderStrategy {
+	public logger = new Logger(this.constructor.name)
 
 	@Inject(ConfigService)
 	protected readonly configService: ConfigService
 
+	meta: IAiProviderEntity
 	protected providerSchema: IAiProviderEntity | null = null
 
-	protected modelManagers: Map<AiModelTypeEnum, AIModel> = new Map()
+	protected modelManagers?: Map<AiModelTypeEnum, IAIModel> = new Map()
 
 	constructor(public name: string) {
 		AIProviderRegistry.getInstance().registerProvider(this)
 	}
 
+	async validateCredentials(credentials: Record<string, any>): Promise<void> {
+		await this.validateProviderCredentials(credentials)
+	}
+
 	abstract getAuthorization(credentials: Record<string, any>): string;
 	abstract getBaseUrl(credentials: Record<string, any>): string;
 	abstract validateProviderCredentials(credentials: Record<string, any>): Promise<void>
-
 
 	getProviderServerPath() {
 		return path.join(this.configService.assetOptions.serverRoot, ModelProvidersFolderPath, this.name)
@@ -71,7 +75,7 @@ export abstract class ModelProvider {
 		this.modelManagers.set(modelType, modelInstance)
 	}
 
-	getModelManager<T extends AIModel>(modelType: AiModelTypeEnum): T {
+	getModelManager<T extends IAIModel>(modelType: AiModelTypeEnum): T {
 		const modelInstance = this.modelManagers.get(modelType)
 
 		if (!modelInstance) {
@@ -140,7 +144,7 @@ export abstract class ModelProvider {
 			case AiModelTypeEnum.SPEECH2TEXT:
 				return this.getModelManager<SpeechToTextModel>(type)?.getChatModel(copilotModel, options)
 			case AiModelTypeEnum.RERANK:
-				return this.getModelManager<RerankModel>(type)?.getDocumentCompressor(copilotModel, options)
+				return this.getModelManager<RerankModel>(type)?.getReranker(copilotModel, options)
 		}
 		
 		return null

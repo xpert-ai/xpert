@@ -3,6 +3,7 @@ import { ModelProvider } from './ai-provider'
 import { AIProviderRegistry } from './registry'
 import { ProviderCredentialSchemaValidator } from './schema_validators/'
 import { ConfigService } from '@metad/server-config'
+import { AIModelProviderRegistry, IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
 import * as path from 'path'
 import { ModelProvidersFolderPath } from './types/types'
 import { getPositionMap } from '../core/utils'
@@ -12,12 +13,19 @@ export class AIProvidersService {
 	@Inject(ConfigService)
 	protected readonly configService: ConfigService
 
+	@Inject(AIModelProviderRegistry)
+	private readonly strategyRegistry: AIModelProviderRegistry
+
 	private registry = AIProviderRegistry.getInstance()
 
 	private positions: Record<string, number> = null
 
-	getProvider(name: string): ModelProvider | undefined {
-		return this.registry.getProvider(name)
+	getProvider(name: string): IAIModelProviderStrategy | undefined {
+		const provider = this.registry.getProvider(name)
+		if (!provider) {
+			return this.strategyRegistry.get(name)
+		}
+		return provider
 	}
 
 	getAllProviders(): ModelProvider[] {

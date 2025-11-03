@@ -1,4 +1,4 @@
-import { FetchFrom, ICopilotProviderModel, ProviderModel } from '@metad/contracts'
+import { FetchFrom, ICopilotProviderModel, ModelFeature, ProviderModel } from '@metad/contracts'
 import { ConfigService } from '@metad/server-config'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
@@ -45,6 +45,7 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 										model_type: model.modelType,
 										fetch_from: FetchFrom.CUSTOMIZABLE_MODEL,
 										model_properties: model.modelProperties,
+										features: customFeatures(model.modelProperties),
 										label: {
 											zh_Hans: model.modelName,
 											en_US: model.modelName,
@@ -85,4 +86,27 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 
 		return copilotSchemas
 	}
+}
+
+/**
+ * 
+ * @todo move to PLUGINS level
+ * @returns 
+ */
+function customFeatures(modelProperties: Record<string, any>): string[] {
+	const features: ModelFeature[] = []
+	if (modelProperties?.vision_support === 'support') {
+		features.push(ModelFeature.VISION)
+	}
+	if (modelProperties?.function_calling_type === 'tool_call') {
+		features.push(ModelFeature.TOOL_CALL)
+	}
+	if (modelProperties?.function_calling_type === 'multi_tool_call') {
+		features.push(ModelFeature.TOOL_CALL)
+		features.push(ModelFeature.MULTI_TOOL_CALL)
+	}
+	if (modelProperties?.agent_though_support === 'supported') {
+		features.push(ModelFeature.AGENT_THOUGHT)
+	}
+	return features
 }

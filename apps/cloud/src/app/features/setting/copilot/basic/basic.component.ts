@@ -1,5 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
+import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -13,11 +14,12 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectCopilots, injectCopilotServer, injectToastr } from 'apps/cloud/src/app/@core'
-import { CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
+import { CopilotAiProvidersComponent, CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { capitalize } from 'lodash-es'
 import { map, Observable, switchMap } from 'rxjs'
 import { PACCopilotService } from '../../../services'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
+
 
 @Component({
   standalone: true,
@@ -44,11 +46,13 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
 })
 export class CopilotBasicComponent {
   eAiProviderRole = AiProviderRole
+  
   readonly copilotService = inject(PACCopilotService)
   readonly copilotServer = injectCopilotServer()
   readonly #toastr = injectToastr()
   readonly organizationId = injectOrganizationId()
   readonly avaliableCopilots = injectCopilots()
+  readonly #dialog = inject(Dialog)
 
   readonly #copilots = toSignal(
     this.copilotServer.refresh$.pipe(
@@ -120,10 +124,25 @@ export class CopilotBasicComponent {
     })
   }
 
+  /**
+   * Add AI Model Provider for role.
+   * 
+   * @param role Provider role
+   */
   addProvider(role: AiProviderRole) {
     this.loading.set(true)
-    this.copilotServer.create({ role, enabled: true }).subscribe({
-      next: () => {
+    this.copilotServer.create({ role, enabled: true })
+        .pipe(
+          switchMap((copilot) => {
+            return this.#dialog.open<string>(CopilotAiProvidersComponent, {
+              data: {
+                copilot
+              }
+            }).closed
+          })
+        )
+    .subscribe({
+      next: (copilotProvider) => {
         this.loading.set(false)
         this.copilotServer.refresh()
       },

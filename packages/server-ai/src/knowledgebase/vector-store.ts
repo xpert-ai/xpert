@@ -2,8 +2,8 @@ import { Callbacks } from '@langchain/core/callbacks/manager'
 import { DocumentInterface } from '@langchain/core/documents'
 import { VectorStore } from '@langchain/core/vectorstores'
 import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@metad/contracts'
+import { IRerank } from '@xpert-ai/plugin-sdk'
 import { v4 as uuidv4 } from 'uuid'
-import { IRerank } from '../ai-model/types/rerank'
 import { TDocChunkMetadata } from '../knowledge-document/types'
 
 
@@ -122,6 +122,8 @@ export class KnowledgeDocumentStore {
 	fillMetadata(document: IKnowledgeDocumentChunk, knowledgeDocument: IKnowledgeDocument) {
 		document.metadata.enabled ??= true
 		document.metadata.knowledgeId = knowledgeDocument.id
+		document.metadata.documentId = knowledgeDocument.id
+		document.metadata.parentChunkId ??= null
 		document.metadata.model = this.model
 		document.metadata.chunkId ??= uuidv4()
 		document.metadata.source ??= "blob"

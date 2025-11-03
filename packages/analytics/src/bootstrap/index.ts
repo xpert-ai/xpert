@@ -145,7 +145,6 @@ export async function preBootstrapPlugins() {
 			'@xpert-ai/plugin-transformer-common',
 			'@xpert-ai/plugin-vlm-default',
 			'@xpert-ai/plugin-vstore-chroma',
-			'@xpert-ai/plugin-vstore-milvus',
 			'@xpert-ai/plugin-vstore-weaviate',
 			...plugins
 		],

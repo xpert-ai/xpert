@@ -195,7 +195,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'AI Copilot',
-          matIcon: 'assistant',
+          matIcon: 'psychology',
           link: '/settings/copilot',
           data: {
             translationKey: 'AI Copilot',

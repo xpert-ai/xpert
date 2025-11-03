@@ -11,7 +11,7 @@ export class KebabToCamelCasePipe implements PipeTransform {
       .split('-')
       .map((word, index) => {
         if (index === 0) {
-          // 首单词首字母大写
+          // Capitalize the first letter of the first word.
           return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
         }
         return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();

@@ -4,7 +4,7 @@ import {
 	DocumentTextParserConfig,
 	IKnowledgeDocument,
 	IKnowledgeDocumentChunk,
-	KBDocumentCategoryEnum
+	KBDocumentCategoryEnum,
 } from '@metad/contracts'
 import { loadCsvWithAutoEncoding, loadExcel, pick } from '@metad/server-common'
 import { computeObjectHash, RequestContext } from '@metad/server-core'
@@ -21,6 +21,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Document } from '@langchain/core/documents'
 import { Cache } from 'cache-manager'
 import { omit } from 'lodash'
+import { v4 as uuid } from 'uuid'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
 import { LoadStorageFileCommand, VolumeClient } from '../../../shared/'
@@ -66,7 +67,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			const data = await this.loadSheet(doc, volumeClient)
 			const documents: Document[] = []
 			for (const row of data) {
-				const metadata = { raw: row, docId: doc.id }
+				const metadata = { raw: row, documentId: doc.id, chunkId: uuid() }
 				documents.push(
 					new Document({
 						pageContent: parserConfig?.indexedFields?.length

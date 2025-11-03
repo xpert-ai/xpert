@@ -1876,6 +1876,8 @@
     },
     "Copilot": {
       "Copilot": "智能助理",
+      "DiscoverMoreAt": "发现更多就在",
+      "PluginMarketplace": "插件市场",
       "ConversationVariables": "会话变量",
       "SystemVariables": "系统变量",
       "AICopilot": "AI 智能助理",
@@ -2403,6 +2405,7 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "RelevanceScore": "相关性得分",
       "NoDocumentYet": "还没有文档",
       "DeleteWithExpertsWarning": "已有数字专家引用此知识库，删除将造成访问异常",
       "NoIntegrationUseEnv": "默认使用环境配置",

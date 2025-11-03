@@ -2,6 +2,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ParameterRule, PriceInfo, PriceType, } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import { yaml } from '@metad/server-common';
+import { IAIModel } from '@xpert-ai/plugin-sdk';
 import * as fs from 'fs'
 import * as path from 'path'
 import { ModelProvider } from './ai-provider'
@@ -10,7 +11,7 @@ import { CommonParameterRules, TChatModelOptions } from './types/types'
 import { getPositionMap } from '../core/utils'
 
 @Injectable()
-export abstract class AIModel {
+export abstract class AIModel implements IAIModel {
 	protected logger = new Logger(AIModel.name)
 
 	protected modelSchemas: AIModelEntity[] | null = null

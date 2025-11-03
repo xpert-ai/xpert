@@ -10,8 +10,10 @@
         [class.active]="category() === 'plugins'"
         (click)="category.set('plugins')"
       >
-        {{ 'PAC.Plugin.Plugins' | translate: { Default: 'Plugins' } }}
-        <div class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">28</div>
+        {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
+        <div class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">
+          {{ plugins().length}}
+        </div>
       </div>
       <div
         id="tab-1"

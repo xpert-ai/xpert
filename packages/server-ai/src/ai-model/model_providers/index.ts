@@ -20,7 +20,6 @@ import { SiliconflowProviderModule } from './siliconflow/siliconflow'
 import { SparkProviderModule } from './spark/spark'
 import { TogetherAIProviderModule } from './togetherai/togetherai'
 import { TongyiProviderModule } from './tongyi/tongyi'
-import { VolcengineMaaSProviderModule } from './volcengine_maas/volcengine_maas'
 import { XAIProviderModule } from './x/x'
 import { XinferenceProviderModule } from './xinference/xinference'
 import { ZhipuaiProviderModule } from './zhipuai/zhipuai'
@@ -45,7 +44,6 @@ export const ProviderModules = [
 	XAIProviderModule,
 	OpenRouterProviderModule,
 	OAICompatProviderModule,
-	VolcengineMaaSProviderModule,
 	SparkProviderModule,
 	SiliconflowProviderModule,
 	JinaProviderModule,

@@ -46,18 +46,41 @@
       <div class="flex items-center truncate text-[13px] font-medium mr-1.5">
         <div class="truncate" [title]="_copilotModel()?.model">{{_copilotModel()?.model}}</div>
         @if (selectedAiModel(); as model) {
-          @if (model.model_type === eModelType.LLM) {
-            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
-              {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
-            </div>
+          @switch (model.model_type) {
+            @case (eModelType.LLM) {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+                {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
+              </div>
+            }
+            @case (eModelType.RERANK) {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+                <i class="ri-sort-number-asc"></i>
+              </div>
+            }
+            @case (eModelType.TEXT_EMBEDDING) {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+                <i class="ri-text-block"></i>
+              </div>
+            }
+            @case (eModelType.SPEECH2TEXT) {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+                <i class="ri-speech-to-text-line"></i>
+              </div>
+            }
+            @case (eModelType.TTS) {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+                <i class="ri-text-to-speech-line"></i>
+              </div>
+            }
+            @default {}
           }
           @if (model.features?.includes(eModelFeature.TOOL_CALL) || model.features?.includes(eModelFeature.MULTI_TOOL_CALL)) {
-            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center opacity-60">
+            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60">
               <i class="ri-hammer-fill"></i>
             </div>
           }
           @if (model.features?.includes(eModelFeature.VISION)) {
-            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center opacity-60">
+            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60">
               <i class="ri-eye-fill"></i>
             </div>
           }
@@ -195,18 +218,40 @@
               [ngmHighlight]="searchTerm()"
               [content]="item.model"
               customClasses="text-primary-600">{{item.model}}</span>
-            @if (item.model_type === 'llm') {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
-                {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
-              </div>
+            @switch (item.model_type) {
+              @case (eModelType.LLM) {
+                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
+                  {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
+                </div>
+              }
+              @case (eModelType.RERANK) {
+                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
+                  <i class="ri-sort-number-asc"></i>
+                </div>
+              }
+              @case (eModelType.TEXT_EMBEDDING) {
+                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
+                  <i class="ri-text-block"></i>
+                </div>
+              }
+              @case (eModelType.SPEECH2TEXT) {
+                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
+                  <i class="ri-speech-to-text-line"></i>
+                </div>
+              }
+              @case (eModelType.TTS) {
+                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
+                  <i class="ri-text-to-speech-line"></i>
+                </div>
+              }
             }
             @if (item.features?.includes(eModelFeature.TOOL_CALL) || item.features?.includes(eModelFeature.MULTI_TOOL_CALL)) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center opacity-60">
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60">
                 <i class="ri-hammer-fill"></i>
               </div>
             }
             @if (item.features?.includes(eModelFeature.VISION)) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center opacity-60">
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60">
                 <i class="ri-eye-fill"></i>
               </div>
             }

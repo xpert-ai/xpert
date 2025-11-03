@@ -9,7 +9,7 @@ import {
 	TransformInterceptor,
 	UUIDValidationPipe,
 } from '@metad/server-core'
-import { Body, Controller, ForbiddenException, Get, Param, Post, Put, Delete, Query, UseInterceptors, UseGuards,Inject } from '@nestjs/common'
+import { Body, Controller, ForbiddenException, Get, Param, Post, Put, Delete, Query, UseInterceptors, UseGuards,Inject, BadRequestException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { DeleteResult, UpdateResult } from 'typeorm'
@@ -115,10 +115,14 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 		@Param('providerId', UUIDValidationPipe) providerId: string,
 		@Body() entity?: Partial<ICopilotProviderModel>
 	): Promise<CopilotProviderModel> {
-		return this.modelService.upsertModel({
-			...entity,
-			providerId
-		})
+		try {
+			return await this.modelService.upsertModel({
+				...entity,
+				providerId
+			})
+		} catch (error) {
+			throw new BadRequestException(error.message)
+		}
 	}
 
 	@Get(':providerId/model/:id')
