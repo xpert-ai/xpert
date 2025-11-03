@@ -17,8 +17,19 @@ export function AIModelProviderStrategy(provider: string) {
   const callerLine = stack[decoratorIndex + 1]
 
   // Extract the file path
-  const match = callerLine?.match(/\(([^)]+)\)/) ?? callerLine?.match(/at (\/[^\s]+)/)
-  const file = match?.[1]
+  const match =
+    callerLine?.match(/\((file:\/\/\/[^\s)]+)\)/) || // case 1: file:///path...
+    callerLine?.match(/\((\/[^\s)]+)\)/) || // case 2: (/Users/xxx)
+    callerLine?.match(/at (file:\/\/\/[^\s]+)/) || // case 3: at file:///...
+    callerLine?.match(/at (\/[^\s]+)/) // case 4: at /Users/xxx
+
+  let file = match?.[1]
+
+  // remove the file:/// prefix
+  if (file?.startsWith('file:///')) {
+    file = file.replace('file://', '')
+  }
+
   const dir = file ? path.dirname(file) : process.cwd()
 
   return function (target: any) {
