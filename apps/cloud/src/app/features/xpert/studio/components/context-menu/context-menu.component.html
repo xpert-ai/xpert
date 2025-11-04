@@ -1,4 +1,4 @@
-<ng-template>
+<ng-template let-menuTrigger="menuTrigger">
   <div #menu="cdkMenu" cdkMenu class="cdk-menu__large bg-components-panel-bg-blur">
     <div cdkMenuItem class="text-text-secondary hover:text-text-primary" (click)="createAgent(menu)">
       <i class="ri-robot-3-line mr-1"></i><span>{{ 'PAC.Xpert.NewAgent' | translate: {Default: 'New Agent'} }}</span>
@@ -72,6 +72,7 @@
     @if (xpertType() === eXpertTypeEnum.Knowledge) {
       <div cdkMenuItem class="!pr-1 text-text-secondary hover:text-text-primary"
         [cdkMenuTriggerFor]="pipelineMenu"
+        [cdkMenuTriggerData]="{ref: menuTrigger}"
         [cdkMenuPosition]="[
           {
             originX: 'end',
@@ -288,7 +289,7 @@
   </div>
 </ng-template>
 
-<ng-template #pipelineMenu>
+<ng-template #pipelineMenu let-ref="ref">
   <div cdkMenu class="bg-components-panel-bg-blur rounded-xl backdrop-blur-[5px] shadow-lg border-[0.5px] border-solid border-gray-300 !min-w-[200px]">
     <div class="relative flex bg-neutral-100 pl-1.5 pt-1.5">
       <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
@@ -299,7 +300,7 @@
       </div>
       <div class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
         [class.selected]="pipelineType() === 'processor'"
-        (click)="pipelineType.set('processor')"
+        (click)="pipelineType.set('processor');"
       >
         {{ 'PAC.Xpert.Processor' | translate: {Default: 'Processor'} }}
       </div>
@@ -320,8 +321,8 @@
       @switch (pipelineType()) {
         @case ('source') {
           @for (provider of dataSources$ | async; track provider.meta.name) {
-            <div cdkMenuItem class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
-              (click)="addPipelineSource(provider.meta)"
+            <div class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              (click)="addPipelineSource(provider.meta);ref.close()"
             >
               @if (provider.meta.icon) {
                 <xp-icon [icon]="provider.meta.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />
@@ -335,8 +336,8 @@
 
         @case ('processor') {
           @for (provider of transformers$ | async; track provider.meta.name) {
-            <div cdkMenuItem class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
-              (click)="addPipelineProcessor(provider.meta)"
+            <div class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              (click)="addPipelineProcessor(provider.meta);ref.close()"
             >
               @if (provider.meta.icon) {
                 <xp-icon [icon]="provider.meta.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />
@@ -350,8 +351,8 @@
 
         @case ('chunker') {
           @for (provider of textSplitters$ | async; track provider.name) {
-            <div cdkMenuItem class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
-              (click)="addPipelineChunker(provider)"
+            <div class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              (click)="addPipelineChunker(provider);ref.close()"
             >
               @if (provider.icon) {
                 <xp-icon [icon]="provider.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />
@@ -365,8 +366,8 @@
 
         @case ('understanding') {
           @for (provider of imageUnderstandings$ | async; track provider.name) {
-            <div cdkMenuItem class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
-              (click)="addPipelineUnderstanding(provider)"
+            <div class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              (click)="addPipelineUnderstanding(provider);ref.close()"
             >
               @if (provider.icon) {
                 <xp-icon [icon]="provider.icon" class="w-6 h-6 shrink-0 flex justify-center items-center mr-2" />

@@ -4,8 +4,10 @@
   (fReassignConnection)="reassignConnection($event)"
   (fSelectionChange)="selectionChanged($event)"
   (contextmenu)="onContextMenu($event)"
+  #menuTrigger="cdkContextMenuTriggerFor"
   [cdkContextMenuTriggerFor]="menu.template"
-  (cdkContextMenuClosed)="menu.dispose()">
+  [cdkContextMenuTriggerData]="{menuTrigger: menuTrigger}"
+  >
   <f-background>
     <f-circle-pattern />
   </f-background>
