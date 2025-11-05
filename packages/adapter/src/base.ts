@@ -147,13 +147,9 @@ export function register<T extends AdapterBaseOptions = AdapterBaseOptions>(
 }
 
 /**
- * Find adapter class by `type`, then create it using `options`.
- * 
- * @param type 
- * @param options 
- * @returns 
+ * @deprecated use `createAdapterByType`
  */
-export function createQueryRunnerByType(type: string, options: AdapterBaseOptions) {
+export function createQueryRunnerByType1(type: string, options: AdapterBaseOptions) {
   if (QUERY_RUNNERS[type]) {
     return new QUERY_RUNNERS[type](options)
   }

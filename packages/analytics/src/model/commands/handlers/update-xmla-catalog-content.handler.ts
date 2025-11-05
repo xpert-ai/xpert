@@ -1,7 +1,7 @@
 import { getErrorMessage } from '@metad/server-common'
 import { REDIS_CLIENT } from '@metad/server-core'
 import { Inject, Logger } from '@nestjs/common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { RedisClientType } from 'redis'
 import { SemanticModelCacheService } from '../../cache/cache.service'
 import { updateXmlaCatalogContent } from '../../helper'
@@ -14,6 +14,7 @@ export class UpdateXmlaCatalogContentHandler implements ICommandHandler<UpdateXm
 
 	constructor(
 		private readonly cacheService: SemanticModelCacheService,
+		private readonly queryBus: QueryBus,
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType
 	) {}
@@ -25,7 +26,7 @@ export class UpdateXmlaCatalogContentHandler implements ICommandHandler<UpdateXm
 			// await updateXmlaCatalogContent(this.redisClient, model)
 
 			// Update draft
-			await updateXmlaCatalogContent(this.redisClient, {
+			await updateXmlaCatalogContent(this.queryBus, this.redisClient, {
 				...model,
 				...(model.draft ?? {}),
 				options: {

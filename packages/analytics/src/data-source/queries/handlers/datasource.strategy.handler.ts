@@ -1,4 +1,4 @@
-import { AdapterBaseOptions, createQueryRunnerByType, DBQueryRunner } from '@metad/adapter'
+import { AdapterBaseOptions, createQueryRunnerByType1, DBQueryRunner } from '@metad/adapter'
 import { Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { DataSourceStrategyRegistry } from '@xpert-ai/plugin-sdk'
@@ -19,7 +19,7 @@ export class DataSourceStrategyHandler implements IQueryHandler<DataSourceStrate
 			const strategy = this.dataSourceStrategyRegistry.get(name)
 			runner = await strategy.create(options)
 		} catch (error) {
-			runner = createQueryRunnerByType(name, options as unknown as AdapterBaseOptions)
+			runner = createQueryRunnerByType1(name, options as unknown as AdapterBaseOptions)
 		}
 		return runner
 	}

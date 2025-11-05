@@ -1,4 +1,4 @@
-import { AdapterBaseOptions, createQueryRunnerByType, DBQueryRunner } from '@metad/adapter'
+import { AdapterBaseOptions, DBQueryRunner } from '@metad/adapter'
 import { DataSourceProtocolEnum, IDataSource, IDSSchema, mapTranslationLanguage } from '@metad/contracts'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { QueryBus } from '@nestjs/cqrs'
@@ -68,7 +68,8 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 
 	async getCatalogs(id: string): Promise<IDSSchema[]> {
 		const dataSource = await this.prepareDataSource(id)
-		const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		// const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, dataSource.options))
 
 		try {
 			return await runner.getCatalogs()
@@ -83,7 +84,8 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 
 	async getSchema(id: string, catalog?: string, table?: string, statement?: string): Promise<IDSSchema[]> {
 		const dataSource = await this.prepareDataSource(id)
-		const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		// const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, dataSource.options))
 
 		try {
 			if (statement) {
@@ -109,7 +111,8 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 	 */
 	async query(id: string, statement: string, options?: any): Promise<any> {
 		const dataSource = await this.prepareDataSource(id)
-		const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		// const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, dataSource.options))
 
 		try {
 			return await runner.runQuery(statement, options)
@@ -120,7 +123,8 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 
 	async import(id: string, body: any, options) {
 		const dataSource = await this.prepareDataSource(id)
-		const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		// const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, dataSource.options))
 
 		try {
 			return await runner.import(body, options)
@@ -131,7 +135,8 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 
 	async dropTable(id: string, tableName: any, options) {
 		const dataSource = await this.prepareDataSource(id)
-		const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		// const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+		const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, dataSource.options))
 
 		try {
 			return await runner.dropTable(tableName, options)

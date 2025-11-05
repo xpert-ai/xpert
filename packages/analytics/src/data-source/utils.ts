@@ -1,9 +1,11 @@
-import { CreationTable, DBQueryRunner, File, createQueryRunnerByType } from '@metad/adapter'
+import { CreationTable, DBQueryRunner, File } from '@metad/adapter'
 import { AuthenticationEnum } from '@metad/contracts'
 import { UploadSheetType, getErrorMessage, readExcelWorkSheets } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { DataSource } from './data-source.entity'
+import { QueryBus } from '@nestjs/cqrs'
+import { DataSourceStrategyQuery } from './queries'
 
 export function prepareDataSource(dataSource: DataSource, userId?: string) {
 	userId ||= RequestContext.currentUserId()
@@ -60,10 +62,10 @@ export async function importSheetTables(runner: DBQueryRunner, sheets: CreationT
 	}
 }
 
-export async function dataLoad(dataSource: DataSource, sheets: CreationTable[], file: File) {
+export async function dataLoad(queryBus: QueryBus, dataSource: DataSource, sheets: CreationTable[], file: File) {
 	const isDev = process.env.NODE_ENV === 'development'
 
-	const runner = createQueryRunnerByType(dataSource.type.type, { ...dataSource.options, debug: isDev, trace: isDev })
+	const runner = await queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, { ...dataSource.options, debug: isDev, trace: isDev }))
 
 	try {
 		return await importSheetTables(runner, sheets, file)

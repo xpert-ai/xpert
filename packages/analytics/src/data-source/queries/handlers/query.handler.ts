@@ -1,25 +1,33 @@
-import { createQueryRunnerByType } from '@metad/adapter'
 import { Logger } from '@nestjs/common'
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'
 import { DataSourceQuery } from '../query.query'
+import { DataSourceStrategyQuery } from '../datasource.strategy.query'
 
 @QueryHandler(DataSourceQuery)
 export class DataSourceQueryHandler implements IQueryHandler<DataSourceQuery> {
 	private readonly logger = new Logger(DataSourceQueryHandler.name)
 
-	constructor(private readonly dsService: DataSourceService) {}
+	constructor(
+		private readonly dsService: DataSourceService,
+		private readonly queryBus: QueryBus
+	) {}
 
 	async execute(query: DataSourceQuery) {
 		const { command, schema, table, statement } = query.params
 		const isDev = process.env.NODE_ENV === 'development'
 
 		const dataSource = await this.dsService.prepareDataSource(query.dataSourceId)
-		const runner = createQueryRunnerByType(dataSource.type.type, {
+		// const runner = createQueryRunnerByType(dataSource.type.type, {
+		// 	...dataSource.options,
+		// 	debug: isDev,
+		// 	trace: isDev
+		// })
+		const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, {
 			...dataSource.options,
 			debug: isDev,
 			trace: isDev
-		})
+		}))
 
 		try {
 			switch (command) {
