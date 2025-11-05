@@ -282,13 +282,14 @@ export class SemanticModelService {
     combineLatestWith(this.#manualSave$),
     switchMap(() => {
       this.#saving$.next(true)
-      return this.saveDraft()
-    }),
-    catchError((err) => {
-      this.#saving$.next(false)
-      this.#toastr.error(getErrorMessage(err))
-      this.saveDraftError.set(getErrorMessage(err))
-      return EMPTY
+      return this.saveDraft().pipe(
+        catchError((err) => {
+          this.#saving$.next(false)
+          this.#toastr.error(getErrorMessage(err))
+          this.saveDraftError.set(getErrorMessage(err))
+          return EMPTY
+        })
+      )
     })
   ).subscribe({
     next: ({savedAt, checklist, version}) => {

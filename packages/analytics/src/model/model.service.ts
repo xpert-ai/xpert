@@ -521,21 +521,33 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 		const results: ChecklistItem[] = []
 
-		for await (const dimension of draft.schema?.dimensions ?? []) {
-			const res = await dimensionValidator.validate(dimension, { schema: draft.schema })
-			results.push(...res)
-		}
-		for await (const cube of draft.schema?.cubes ?? []) {
-			const res = await cubeValidator.validate(cube, { schema: draft.schema })
-			results.push(...res)
-		}
-		for await (const cube of draft.schema?.virtualCubes ?? []) {
-			const res = await virtualCubeValidator.validate(cube, { schema: draft.schema })
-			results.push(...res)
-		}
-		for await (const role of draft.roles ?? []) {
-			const res = await roleValidator.validate(role, { schema: draft.schema })
-			results.push(...res)
+		try {
+			for await (const dimension of draft.schema?.dimensions ?? []) {
+				const res = await dimensionValidator.validate(dimension, { schema: draft.schema })
+				results.push(...res)
+			}
+			for await (const cube of draft.schema?.cubes ?? []) {
+				const res = await cubeValidator.validate(cube, { schema: draft.schema })
+				results.push(...res)
+			}
+			for await (const cube of draft.schema?.virtualCubes ?? []) {
+				const res = await virtualCubeValidator.validate(cube, { schema: draft.schema })
+				results.push(...res)
+			}
+			for await (const role of draft.roles ?? []) {
+				const res = await roleValidator.validate(role, { schema: draft.schema })
+				results.push(...res)
+			}
+		} catch (err) {
+			console.error(err)
+			results.push({
+				message: {
+					en_US: 'Internal error: ' + getErrorMessage(err),
+					zh_Hans: '内部错误：' + getErrorMessage(err)
+				},
+				level: 'error',
+				ruleCode: 'MODEL_VALIDATION_INTERNAL_ERROR'
+			})
 		}
 
 		return results

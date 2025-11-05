@@ -21,16 +21,15 @@ export class QuerySchemaHandler implements ICommandHandler<QuerySchemaCommand> {
 
 		const dataSource = await this.dataSourceService.prepareDataSource(dataSourceId)
 
-		const runner = createQueryRunnerByType(dataSource.type.type, {
-			...dataSource.options,
-			debug: isDev,
-			trace: isDev
-		})
-
-		try {
-			const results = []
-			for await (const table of tables) {
-				const tableName = table.replace(new RegExp(`^${schema}\\.`), '')
+		const results = []
+		for await (const table of tables) {
+			const tableName = table.replace(new RegExp(`^${schema}\\.`), '')
+			const runner = createQueryRunnerByType(dataSource.type.type, {
+				...dataSource.options,
+				debug: isDev,
+				trace: isDev
+			})
+			try {
 				const tableSchema = await runner.getSchema(schema, tableName)
 				// Query samples data
 				const data = await runner.runQuery(`SELECT * FROM ${table} LIMIT 10`, { catalog: schema })
@@ -43,11 +42,11 @@ export class QuerySchemaHandler implements ICommandHandler<QuerySchemaCommand> {
 					..._table,
 					sample_data: data?.data
 				})
+			} finally {
+				await runner.teardown()
 			}
-
-			return results
-		} finally {
-			await runner.teardown()
 		}
+
+		return results
 	}
 }

@@ -125,7 +125,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
         resolve({
           status: 'OK',
           data: results,
-          columns: fields.map((field) => ({
+          columns: fields?.map((field) => ({
             name: field.name,
             type: MySQLTypeMap[field.columnType],
             dataType: Types[field.columnType]
@@ -179,7 +179,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
         tableSchema
     }
 
-    const { data } = await this.runQuery(query)
+    const { data } = await this.runQuery(query, { catalog })
     return convertMySQLSchema(data)
   }
 
@@ -195,7 +195,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
   async createCatalog(catalog: string) {
     // 用 `CREATE DATABASE` 使其适用于 Doris ？
     const query = `CREATE DATABASE IF NOT EXISTS \`${catalog}\``
-    await this.runQuery(query)
+    await this.runQuery(query, { catalog })
   }
 
   /**
