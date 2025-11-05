@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
 import { SvgIcon } from './lib/types';
-import { MySQLPlugin } from './lib/mysql';
+import { MySQLPlugin } from './lib/mysql.module';
 
 const ConfigSchema = z.object({
 });

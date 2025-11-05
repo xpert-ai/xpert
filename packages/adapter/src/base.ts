@@ -8,6 +8,9 @@ export const QUERY_RUNNERS: Record<
   DBQueryRunnerType
 > = {}
 
+/**
+ * @deprecated use `BaseSQLQueryRunner` from plugin-sdk
+ */
 export abstract class BaseQueryRunner<T extends AdapterBaseOptions = AdapterBaseOptions> implements DBQueryRunner {
   type: string
   name: string
@@ -99,6 +102,9 @@ export interface SQLAdapterOptions extends AdapterBaseOptions {
   version?: number
 }
 
+/**
+ * @deprecated use `BaseSQLQueryRunner` from plugin-sdk
+ */
 export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapterOptions> extends BaseQueryRunner<T> {
   syntax = DBSyntaxEnum.SQL
   protocol = DBProtocolEnum.SQL

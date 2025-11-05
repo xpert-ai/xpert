@@ -1,7 +1,7 @@
-import { MySQLRunner } from '@metad/adapter'
 import { Injectable } from '@nestjs/common'
 import { AdapterDataSourceStrategy, DataSourceStrategy } from '@xpert-ai/plugin-sdk'
 import { MySQLDataSource } from './types'
+import { MySQLRunner } from './mysql'
 
 @Injectable()
 @DataSourceStrategy(MySQLDataSource)

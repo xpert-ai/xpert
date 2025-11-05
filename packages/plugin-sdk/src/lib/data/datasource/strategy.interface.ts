@@ -1,4 +1,4 @@
-import { AdapterBaseOptions, DBQueryRunner, DBQueryRunnerType } from '@metad/adapter'
+import { AdapterBaseOptions, DBQueryRunner, DBQueryRunnerType } from "./types"
 
 export interface IDataSourceStrategy<TOptions extends AdapterBaseOptions = AdapterBaseOptions> {
   readonly type: string

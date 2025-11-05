@@ -1,8 +1,8 @@
-import { AdapterBaseOptions, DBQueryRunner, DBQueryRunnerType } from '@metad/adapter'
 import { IDataSourceStrategy } from './strategy.interface'
+import { AdapterBaseOptions, DBQueryRunner, DBQueryRunnerType } from './types'
 
 /**
- * Helper base class to wrap existing `@metad/adapter` query runner implementations
+ * Helper base class to wrap existing adapter query runner implementations
  * into datasource strategies consumable by the plugin SDK.
  */
 export abstract class AdapterDataSourceStrategy<TOptions extends AdapterBaseOptions = AdapterBaseOptions>
