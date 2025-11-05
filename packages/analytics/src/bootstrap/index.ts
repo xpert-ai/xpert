@@ -133,24 +133,24 @@ export async function preBootstrapPlugins() {
 	const plugins = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || [];
 	const { modules } = await registerPluginsAsync({
 		plugins: [
-			'@xpert-ai/plugin-dify',
-			'@xpert-ai/plugin-file-system',
-			'@xpert-ai/plugin-firecrawl',
-			'@xpert-ai/plugin-integration-github',
-			'@xpert-ai/plugin-ocr-paddle',
-			'@xpert-ai/plugin-trigger-schedule',
-			'@xpert-ai/plugin-textsplitter-common',
-			'@xpert-ai/plugin-retriever-common',
-			'@xpert-ai/plugin-tool-calculator',
-			'@xpert-ai/plugin-transformer-common',
-			'@xpert-ai/plugin-vlm-default',
-			'@xpert-ai/plugin-vstore-chroma',
-			'@xpert-ai/plugin-vstore-weaviate',
+			// '@xpert-ai/plugin-dify',
+			// '@xpert-ai/plugin-file-system',
+			// '@xpert-ai/plugin-firecrawl',
+			// '@xpert-ai/plugin-integration-github',
+			// '@xpert-ai/plugin-ocr-paddle',
+			// '@xpert-ai/plugin-trigger-schedule',
+			// '@xpert-ai/plugin-textsplitter-common',
+			// '@xpert-ai/plugin-retriever-common',
+			// '@xpert-ai/plugin-tool-calculator',
+			// '@xpert-ai/plugin-transformer-common',
+			// '@xpert-ai/plugin-vlm-default',
+			// '@xpert-ai/plugin-vstore-chroma',
+			// '@xpert-ai/plugin-vstore-weaviate',
 			...plugins
 		],
-		discovery: {
-			prefix: '@xpert-ai/plugin-',
-		}
+		// discovery: {
+			// prefix: '@xpert-ai/plugin-',
+		// }
 	});
 
 	setConfig({plugins: modules});
