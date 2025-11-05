@@ -28,6 +28,7 @@ export function discoverPlugins(cwd = process.cwd(), opts: DiscoveryOptions = {}
       const scopeDir = path.join(nodeModules, entry);
       for (const scoped of fs.readdirSync(scopeDir)) {
         const full = `${entry}/${scoped}`;
+        if (full === '@xpert-ai/plugin-sdk') continue; // Skip SDK itself
         if (full.startsWith(prefix) || scoped.startsWith(prefix.replace(`${entry}/`, ''))) {
           out.add(full);
         }

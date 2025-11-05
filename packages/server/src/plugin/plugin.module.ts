@@ -114,7 +114,7 @@ export interface XpertPluginModuleOptions {
 
 export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) {
 	// Note: Nest's registerAsync usually returns a synchronous object. Here we provide a factory function for the caller to await first.
-	const pluginNames = opts.plugins?.length ? opts.plugins : discoverPlugins(process.cwd(), opts.discovery);
+	const pluginNames = opts.plugins?.length ? opts.plugins : opts.discovery ? discoverPlugins(process.cwd(), opts.discovery) : [];
 
 	const modules: DynamicModule[] = [];
 
