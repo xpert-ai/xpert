@@ -3316,7 +3316,14 @@
       "SortBy": "排序",
       "EnableSortBy": "启用排序",
       "SortByTip": "对列表中的项目进行排序。例如，您可以按名称或日期排序。",
-      "SortDescending": "降序排序"
+      "SortDescending": "降序排序",
+      "KnowledgeMetadataFilterTooltip": "元数据过滤是使用元数据属性（例如标签、类别或访问权限）来细化和控制系统内相关信息的检索过程。",
+      "MetadataFilterMode_disabled": "禁用",
+      "MetadataFilterMode_automatic": "自动",
+      "MetadataFilterMode_manual": "手动",
+      "MetadataFilterMode_disabled_Description": "不应用任何元数据过滤，检索将基于内容相似度进行。",
+      "MetadataFilterMode_automatic_Description": "智能体根据上下文自动应用元数据过滤",
+      "MetadataFilterMode_manual_Description": "手动选择和应用元数据过滤条件，以自定义检索结果。"
     },
     "MCP": {
       "Logs": "日志",

@@ -11,7 +11,7 @@ import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
 import { TChatFrom, TSensitiveOperation } from './chat.model'
-import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
+import { IWorkflowNode, TVariableAssigner, TWFCase, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { IStorageFile } from '../storage-file.model'
 import { STATE_VARIABLE_HUMAN, TInterruptCommand } from '../agent'
@@ -289,9 +289,14 @@ export type TXpertAgentConfig = {
   mute?: string[][]
 
   /**
-   * Recall params
+   * Recall knowledge params
    */
   recalls?: Record<string, TKBRecallParams>
+
+  /**
+   * Retrieval params for every knowledgebase
+   */
+  retrievals?: Record<string, TKBRetrievalSettings>
 
   /**
    * Summarize the title of the conversation
@@ -610,4 +615,21 @@ export type TChatOptions = {
    * Specify additional tools
    */
   tools?: (StructuredToolInterface | RunnableToolLike)[]
+}
+
+/**
+ * Knowledgebase retrieval settings
+ */
+export type TKBRetrievalSettings = {
+  metadata: {
+    filtering_mode: "disabled" | "automatic" | "manual"
+    /**
+     * Conditions (filter) when mode is manual
+     */
+    filtering_conditions: TWFCase
+    /**
+     * Parameter fields (tool call) when mode is automatic
+     */
+    fields: Record<string, object>
+  }
 }

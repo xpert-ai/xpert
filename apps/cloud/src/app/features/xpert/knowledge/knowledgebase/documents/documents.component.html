@@ -354,15 +354,14 @@
 
 
 <ng-template #metadataTemplate let-ref="ref">
-  <div class="p-4 rounded-xl bg-components-card-bg shadow-lg ">
-
+  <div class="p-4 rounded-2xl shadow-lg bg-components-panel-bg-blur">
     <div class="flex justify-between">
       <h3 class="text-lg font-medium leading-6 text-text-primary">
         {{ 'PAC.Knowledgebase.MetadataFields' | translate: {Default: 'Metadata Fields'} }}
       </h3>
-      <button type="button" class="btn btn-ghost btn-small w-6 h-6 rounded-full"
+      <button type="button" class="btn btn-ghost btn-small w-7 h-7 rounded-full"
         (click)="ref.close()">
-        <i class="ri-close-line"></i>
+        <i class="ri-close-line text-lg"></i>
       </button>
     </div>
 
@@ -379,7 +378,7 @@
         <div
           class="group/item cursor-pointer hover:shadow-xs rounded-md border border-components-panel-border-subtle bg-components-panel-on-panel-item-bg">
           <div class="flex h-8 items-center justify-between px-2">
-            <div class="flex h-full items-center space-x-1 text-text-tertiary">
+            <div class="flex h-full items-center space-x-1 text-sm text-text-tertiary">
               @switch (field.type) {
                 @case ('string') {
                   <i class="ri-text-snippet"></i>
@@ -391,18 +390,16 @@
                   <i class="ri-time-line"></i>
                 }
               }
-              <input class="system-sm-medium max-w-[250px] truncate text-text-primary outline-none" [ngModel]="field.key" (ngModelChange)="updateMetadataField(i, 'key', $event)">
-              <div class="system-xs-regular shrink-0"
+              <input class="system-sm-medium max-w-[250px] px-1 truncate text-text-primary outline-none rounded-sm focus:bg-components-input-bg" [ngModel]="field.key" (ngModelChange)="updateMetadataField(i, 'key', $event)">
+              <div class="system-xs-regular shrink-0 px-2 rounded-md"
                 [cdkMenuTriggerFor]="metadataTypeMenu"
                 [cdkMenuTriggerData]="{index: i}"
               >{{field.type}}</div>
             </div>
-            <div class="system-xs-regular ml-2 shrink-0 text-text-tertiary group-hover/item:hidden">1个值</div>
+            <!-- <div class="system-xs-regular ml-2 shrink-0 text-text-tertiary group-hover/item:hidden">1个值</div> -->
             <div class="ml-2 hidden items-center space-x-1 text-text-tertiary group-hover/item:flex">
-              <button class="w-5 h-5 flex items-center rounded-md hover:bg-hover-bg">
-                <i class="ri-edit-line"></i>
-              </button>
-              <div class="w-5 h-5 flex items-center rounded-md hover:bg-hover-bg hover:text-text-destructive">
+              <div class="w-6 h-6 flex justify-center items-center rounded-md hover:bg-hover-bg hover:text-text-destructive"
+                (click)="removeMetadata(i)">
                 <i class="ri-delete-bin-line"></i>
               </div>
             </div>
@@ -412,9 +409,8 @@
     </div>
 
     <div class="mt-3 space-y-1">
-      
       @for (g of STANDARD_METADATA_FIELDS; track g) {
-        <div>{{ g.group | i18n }}</div>
+        <div class="mt-2">{{ g.group | i18n }}</div>
         @for (field of g.fields; track i; let i = $index) {
           <div
             class="group/item cursor-pointer hover:shadow-xs rounded-md border border-components-panel-border-subtle bg-components-panel-on-panel-item-bg">
@@ -432,12 +428,11 @@
                   }
                 }
                 <div class="system-sm-medium max-w-[250px] truncate text-text-primary outline-none">
-                  {{ field.key }} / {{ field.label }}
+                  {{ field.key }} / {{ field.label | i18n }}
                 </div>
-                <div class="system-xs-regular shrink-0"
-                >{{field.type}}</div>
+                <div class="system-xs-regular shrink-0">{{field.type}}</div>
               </div>
-              <div class="system-xs-regular ml-2 shrink-0 text-text-tertiary group-hover/item:hidden">1个值</div>
+              <!-- <div class="system-xs-regular ml-2 shrink-0 text-text-tertiary group-hover/item:hidden">1个值</div> -->
             </div>
           </div>
         }

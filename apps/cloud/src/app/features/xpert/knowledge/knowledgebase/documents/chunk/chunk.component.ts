@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectConfirmDelete, NgmCommonModule } from '@metad/ocap-angular/common'
-import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { effectAction, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { nonBlank } from '@metad/ocap-core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
@@ -93,7 +93,14 @@ export class KnowledgeDocumentChunkComponent {
   // Metadata schema
   readonly metadataSchema = computed(() => this.knowledgebase()?.metadataSchema || [])
   readonly showMetadata = signal(false)
-  readonly metadata = computed(() => this.document()?.metadata || {})
+  readonly editMetadata = signal(false)
+  readonly metadata = linkedModel({
+    initialValue: null,
+    compute: () => this.document()?.metadata || {},
+    update: (value) => {
+      //
+    }
+  })
 
   constructor() {
     effect(
@@ -304,5 +311,32 @@ export class KnowledgeDocumentChunkComponent {
   // Metadata options
   toggleShowMetadata() {
     this.showMetadata.update((state) => !state) 
+  }
+
+  toggleEditMetadata() {
+    this.editMetadata.update((state) => !state)
+  }
+
+  updateMetadata(name: string, value: string) {
+    this.metadata.update((meta) => ({
+      ...meta,
+      [name]: value
+    }))
+  }
+
+  saveMetadata() {
+    this.loading.set(true)
+    this.knowledgeDocumentService.update(this.document().id, {
+      metadata: this.metadata()
+    }).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.editMetadata.set(false)
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 }

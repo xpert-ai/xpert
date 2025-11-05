@@ -1,0 +1,47 @@
+<ng-template #menu let-trigger="trigger">
+  <div cdkMenu class="relative bg-white rounded-lg border-[0.5px] border-gray-200 shadow-md p-2">
+    @if (searchable()) {
+      <div class="relative w-full mb-2">
+        <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
+        <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[3px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+          [placeholder]="'PAC.MODEL.Search' | translate: {Default: 'Search'}"
+          [(ngModel)]="search"
+        >
+        @if (search()) {
+          <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+            (click)="search.set('')"></i>
+        }
+      </div>
+    }
+    <ul class="space-y-1" cdkListbox useActiveDescendant [cdkListboxMultiple]="multiple()"
+      [cdkListboxDisabled]="readonly()"
+      [cdkListboxValue]="values()"
+      (cdkListboxValueChange)="selectValues($event)">
+      @for (option of filteredOptions(); track option.key) {
+        <li #opElem="cdkOption" class="relative px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer"
+          [class.bg-gray-100]="opElem.isSelected()"
+          [cdkOption]="option.value"
+          (click)="selectOption(trigger)"
+        >
+          @if (optionTemplate()) {
+            <ng-container *ngTemplateOutlet="optionTemplate(); context: { $implicit: option, search: search() }"></ng-container>
+          } @else {
+            <div class="relative">
+              <div class="text-gray-700 text-sm leading-5"
+                [ngmHighlight]="search()" [content]="option.label | i18n"
+              >{{ option.label | i18n }}</div>
+              <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n"
+                [ngmHighlight]="search()" [content]="option.description | i18n"
+              >{{ option.description | i18n }}</div>
+            </div>
+          }
+          @if (opElem.isSelected()) {
+            <i class="ri-checkbox-circle-line text-text-accent absolute right-2 top-1/2 -translate-y-1/2"></i>
+          }
+        </li>
+      }
+    </ul>
+
+    <ng-content select="[option]"></ng-content>
+  </div>
+</ng-template>

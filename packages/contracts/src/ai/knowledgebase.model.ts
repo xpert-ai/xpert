@@ -185,6 +185,7 @@ export type KBMetadataFieldDef = {
   label?: I18nObject;             // Display label
   type: MetadataFieldType;
   enumValues?: string[];
+  description?: string;
 }
 
 /**

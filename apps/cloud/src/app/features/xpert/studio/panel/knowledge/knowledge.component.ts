@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { CloseSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { IKnowledgebase, TXpertTeamNode, KnowledgebaseService, AiModelTypeEnum, getErrorMessage, TKBRecallParams } from 'apps/cloud/src/app/@core'
+import { IKnowledgebase, TXpertTeamNode, KnowledgebaseService, AiModelTypeEnum, getErrorMessage, TKBRecallParams, TSelectOption, STANDARD_METADATA_FIELDS, KBMetadataFieldDef } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertKnowledgeTestComponent } from './test/test.component'
@@ -12,12 +12,17 @@ import { catchError, map, of, startWith } from 'rxjs'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { omit } from 'lodash-es'
 import { Router } from '@angular/router'
 import { MatSliderModule } from '@angular/material/slider'
 import { KnowledgeRecallParamsComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
+import { NgmSelectPanelComponent } from '@cloud/app/@shared/common'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
+import { CapitalizePipe } from '@metad/core'
+import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 
 @Component({
   selector: 'xpert-studio-panel-knowledge',
@@ -29,8 +34,11 @@ import { XpertStudioComponent } from '../../studio.component'
     CommonModule,
     FormsModule,
     TranslateModule,
+    CdkMenuModule,
     MatTooltipModule,
     MatSliderModule,
+    CapitalizePipe,
+    NgmSelectPanelComponent,
     CloseSvgComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
@@ -49,6 +57,7 @@ export class XpertStudioPanelKnowledgeComponent {
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly studioService = inject(XpertStudioApiService)
+  readonly i18nService = injectI18nService()
 
   // Inputs
   readonly node = input<TXpertTeamNode>()
@@ -67,15 +76,106 @@ export class XpertStudioPanelKnowledgeComponent {
   readonly loading = computed(() => this.#knowledgebase()?.loading)
 
   readonly copilotModel = computed(() => this.knowledgebase()?.copilotModel)
+  readonly #metadataFields = computed(() => {
+    const schema: KBMetadataFieldDef[] = [...(this.knowledgebase()?.metadataSchema || [])]
+    STANDARD_METADATA_FIELDS.forEach(({fields}) => {
+      fields.forEach((field) => {
+        if (!schema?.some((_) => _.key === field.key)) {
+           schema.push(field)
+        }
+      })
+    })
+    return schema
+  })
+
+  readonly metadataFieldsOptions = computed(() => {
+    const schema = this.#metadataFields()
+    return schema.map((field) => ({
+      value: field.key,
+      label: field.label || field.key,
+      description: field.description,
+    }))
+  })
 
   readonly openedTest = signal(false)
 
   readonly knowledgebases = toSignal(this.studioService.knowledgebases$)
 
   readonly xpert = computed(() => this.studioService.xpert())
+  readonly agentConfig = this.studioService.agentConfig
+  readonly recalls = attrModel(this.agentConfig, 'recalls')
+  readonly recall = linkedModel({
+    initialValue: null,
+    compute: () => this.recalls()?.[this.id()],
+    update: (value) => {
+      this.recalls.update((state) => ({
+        ...(state ?? {}),
+        [this.id()]: value
+      }))
+    }
+  })
 
-  readonly recalls = computed(() => this.xpert()?.agentConfig?.recalls)
-  readonly recall = computed(() => this.recalls()?.[this.id()])
+  readonly retrievals = attrModel(this.agentConfig, 'retrievals')
+  readonly retrieval = linkedModel({
+    initialValue: null,
+    compute: () => this.retrievals()?.[this.id()],
+    update: (value) => {
+      this.retrievals.update((state) => ({
+        ...(state ?? {}),
+        [this.id()]: value
+      }))
+    }
+  })
+  readonly metadataFiltering = attrModel(this.retrieval, 'metadata')
+  readonly filtering_mode = attrModel(this.metadataFiltering, 'filtering_mode', 'disabled')
+  readonly filterModeOptions: TSelectOption[] = [
+    {
+      value: 'disabled',
+      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled', {Default: 'Disabled'}),
+      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_disabled_Description', {Default: 'No metadata filtering applied.'})
+    },
+    {
+      value: 'automatic',
+      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_automatic', {Default: 'Automatic'}),
+      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_automatic_Description', {Default: 'Automatically apply metadata filtering based on context by Agent.'})
+    },
+    {
+      value: 'manual',
+      label: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual', {Default: 'Manual'}),
+      description: this.i18nService.instant('PAC.Xpert.MetadataFilterMode_manual_Description', {Default: 'Manually configure metadata filtering options by user.'})
+    }
+  ]
+  readonly #filteringFields = attrModel(this.metadataFiltering, 'fields', {})
+  readonly filteringFieldNames = linkedModel({
+    initialValue: [] as string[],
+    compute: () => Object.keys(this.#filteringFields() || {}),
+    update: (value) => {
+      this.#filteringFields.set(
+        (value || []).reduce((acc, field) => ({
+          ...acc,
+          [field]: {}
+        }), {})
+      )
+    }
+  })
+
+  readonly filteringFields = computed(() => this.filteringFieldNames().map((field) => 
+    this.#metadataFields().find((f) => f.key === field)))
+
+  // updateMetaFilterField(field: string, value: boolean) {
+  //   this.#filteringFields.update((fields) => ({
+  //     ...(fields ?? {}),
+  //     [field]: value ? {} : null
+  //   }))
+  // }
+
+  // removeMetaFilterField(field: string) {
+  //   this.filteringFields.update((fields) => {
+  //     const updated = {...(fields ?? {})}
+  //     delete updated[field]
+  //     return updated
+  //   })
+  // }
 
   openTest() {
     this.openedTest.set(true)
@@ -97,9 +197,9 @@ export class XpertStudioPanelKnowledgeComponent {
     this.studioService.replaceKnowledgebase(this.id(), k)
   }
 
-  updateRecall(value: TKBRecallParams) {
-    this.studioService.updateXpertAgentConfig({recalls: {...(this.recalls() ?? {}), [this.id()]: value}})
-  }
+  // updateRecall(value: TKBRecallParams) {
+  //   this.studioService.updateXpertAgentConfig({recalls: {...(this.recalls() ?? {}), [this.id()]: value}})
+  // }
 
   edit() {
     window.open(['/xpert', 'knowledges', this.knowledgebase().id].join('/'), '_blank')

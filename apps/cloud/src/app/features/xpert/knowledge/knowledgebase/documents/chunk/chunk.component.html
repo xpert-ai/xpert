@@ -142,25 +142,41 @@
           {{ 'PAC.Knowledgebase.MetadataFields' | translate: {Default: 'Metadata Fields'} }}
         </div>
         <div class="flex items-center">
-          <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small">
-            <i class="ri-edit-line mr-1"></i>
-            <div>编辑</div>
-          </button>
+          @if (editMetadata()) {
+            <button type="button" class="btn disabled:btn-disabled btn-primary btn-small"
+              (click)="saveMetadata()"
+            >
+              <i class="ri-edit-line mr-1"></i>
+              <div>保存</div>
+            </button>
+          } @else {
+            <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small"
+              (click)="toggleEditMetadata()"
+            >
+              <i class="ri-edit-line mr-1"></i>
+              <div>编辑</div>
+            </button>
+          }
         </div>
       </div>
 
-      <div class="flex flex-col gap-y-3 p-4 overflow-auto grow">
+      <div class="flex flex-col gap-y-1 p-4 overflow-auto grow">
         @for (field of metadataSchema(); track field.key) {
           <div class="flex items-start space-x-2">
             <div class="text-sm font-medium w-[128px] shrink-0 items-center truncate py-1 text-text-tertiary">{{field.key}}</div>
             <div class="w-[244px] shrink-0">
-              <div class="text-sm py-1 text-text-secondary">{{ metadata()[field.key] || '-' }}</div>
+              @if (editMetadata()) {
+                <input class="text-sm p-1 truncate text-text-primary outline-none rounded-sm hover:bg-neutral-50 focus:bg-components-input-bg"
+                  [ngModel]="metadata()[field.key]" (ngModelChange)="updateMetadata(field.key, $event)">
+              } @else {
+                <div class="text-sm p-1 text-text-secondary">{{ metadata()[field.key] || '-' }}</div>
+              }
             </div>
           </div>
         }
 
         @for (g of STANDARD_METADATA_FIELDS; track g) {
-          <div class="flex items-center space-x-1">
+          <div class="flex items-center space-x-1 mt-2">
             <div class="text-text-secondary system-xs-semibold-uppercase">{{ g.group | i18n }}</div>
           </div>
 

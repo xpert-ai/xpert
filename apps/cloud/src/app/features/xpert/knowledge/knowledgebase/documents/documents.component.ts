@@ -539,6 +539,14 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
+  removeMetadata(index: number) {
+    this.metadataSchema.update((schema) => {
+      const updatedSchema = [...(schema ?? [])]
+      updatedSchema.splice(index, 1)
+      return updatedSchema
+    })
+  }
+
   updateMetadataField(index: number, key: keyof KBMetadataFieldDef, value: any) {
     this.metadataSchema.update((schema) => {
       const updatedSchema = [...(schema ?? [])]
