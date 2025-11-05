@@ -37,6 +37,7 @@
           "nats",
           "zod",
           "fs",
+          "stream",
           "path"
         ]
       }

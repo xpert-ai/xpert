@@ -20,13 +20,8 @@
         "outputPath": "dist/packages/plugins/mysql",
         "main": "packages/plugins/mysql/src/index.ts",
         "tsConfig": "packages/plugins/mysql/tsconfig.lib.json",
-        "assets": [
-          {
-            "glob": "*.md",
-            "input": "packages/plugins/mysql/",
-            "output": "."
-          }
-        ],
+        "assets": [],
+        "project": "packages/plugins/mysql/package.json",
         "compiler": "swc",
         "format": ["cjs", "esm"],
         "external": [
@@ -36,7 +31,11 @@
           "kafkajs",
           "amqplib",
           "mqtt",
-          "nats"
+          "mysql",
+          "mysql2",
+          "nats",
+          "stream",
+          "zod"
         ]
       }
     },

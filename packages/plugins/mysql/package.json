@@ -1,10 +1,7 @@
 {
   "name": "@xpert-ai/plugin-mysql",
   "version": "0.0.1",
-  "dependencies": {
-    "mysql2": "^3.15.3",
-    "tslib": "^2.3.0"
-  },
+  "dependencies": {},
   "main": "./index.cjs",
   "module": "./index.js"
 }

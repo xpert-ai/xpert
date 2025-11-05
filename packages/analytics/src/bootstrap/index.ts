@@ -140,7 +140,7 @@ export async function preBootstrapPlugins() {
 			// '@xpert-ai/plugin-integration-github',
 			// '@xpert-ai/plugin-ocr-paddle',
 			// '@xpert-ai/plugin-trigger-schedule',
-			// '@xpert-ai/plugin-textsplitter-common',
+			'@xpert-ai/plugin-textsplitter-common',
 			// '@xpert-ai/plugin-retriever-common',
 			// '@xpert-ai/plugin-tool-calculator',
 			// '@xpert-ai/plugin-transformer-common',
