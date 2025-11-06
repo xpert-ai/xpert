@@ -9,7 +9,7 @@ export class SendMailBatchTool extends BuiltinTool {
 	static lc_name(): string {
 		return 'send_mail_batch'
 	}
-	name = 'send-mail-batch'
+	name = 'send_mail_batch'
 	description = 'A tool for sending email to multiple recipients'
 
 	schema = z.object({
