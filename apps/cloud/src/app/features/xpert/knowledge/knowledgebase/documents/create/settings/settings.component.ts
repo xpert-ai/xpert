@@ -11,13 +11,13 @@ import { TranslateModule } from "@ngx-translate/core";
 import { NgmSelectComponent } from "@cloud/app/@shared/common";
 import { IconComponent } from "@cloud/app/@shared/avatar";
 import { JSONSchemaFormComponent } from "@cloud/app/@shared/forms";
-import { NgmCheckboxComponent, NgmInputComponent, NgmSlideToggleComponent } from "@metad/ocap-angular/common";
+import { NgmCheckboxComponent, NgmSlideToggleComponent } from "@metad/ocap-angular/common";
 import { KnowledgeDocIdComponent } from "@cloud/app/@shared/knowledge";
 import { KnowledgeDocumentPreviewComponent } from "../preview/preview.component";
-import { KnowledgeDocumentWebpagesComponent } from "../webpages/webpages.component";
 import { IntegrationSelectComponent } from "@cloud/app/@shared/integration";
 import { CopilotModelSelectComponent } from "@cloud/app/@shared/copilot";
 import { KnowledgebaseComponent } from "../../../knowledgebase.component";
+
 
 @Component({
   standalone: true,
@@ -31,7 +31,6 @@ import { KnowledgebaseComponent } from "../../../knowledgebase.component";
     CdkMenuModule,
     MatTooltipModule,
     NgmI18nPipe,
-    NgmInputComponent,
     NgmCheckboxComponent,
     NgmSlideToggleComponent,
     NgmSelectComponent,
@@ -41,7 +40,6 @@ import { KnowledgebaseComponent } from "../../../knowledgebase.component";
     KnowledgeDocIdComponent,
     IntegrationSelectComponent,
     KnowledgeDocumentPreviewComponent,
-    KnowledgeDocumentWebpagesComponent,
   ]
 })
 export class KnowledgeDocumentCreateSettingsComponent {

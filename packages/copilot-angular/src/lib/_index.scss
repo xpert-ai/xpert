@@ -154,6 +154,12 @@ markdown.ngm-copilot-markdown {
       border-right-width: 1px;
     }
 
+    tr:first-child {
+      td {
+        border-top-width: 1px;
+      }
+    }
+
     td {
       @apply border-neutral-200 dark:border-neutral-600;
       border-left-width: 1px;

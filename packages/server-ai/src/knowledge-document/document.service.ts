@@ -172,6 +172,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 						sourceType: true,
 						type: true,
 						category: true,
+						fileUrl: true,
 					}
 				},
 				skip: params.skip,
