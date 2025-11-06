@@ -1,10 +1,10 @@
+import { AIModelProviderRegistry, IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
+import { ConfigService } from '@metad/server-config'
 import { Injectable, Inject } from '@nestjs/common'
+import * as path from 'path'
 import { ModelProvider } from './ai-provider'
 import { AIProviderRegistry } from './registry'
 import { ProviderCredentialSchemaValidator } from './schema_validators/'
-import { ConfigService } from '@metad/server-config'
-import { AIModelProviderRegistry, IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
-import * as path from 'path'
 import { ModelProvidersFolderPath } from './types/types'
 import { getPositionMap } from '../core/utils'
 
@@ -20,10 +20,16 @@ export class AIProvidersService {
 
 	private positions: Record<string, number> = null
 
-	getProvider(name: string): IAIModelProviderStrategy | undefined {
+	getProvider(name: string, throwError = false): IAIModelProviderStrategy | undefined {
 		const provider = this.registry.getProvider(name)
 		if (!provider) {
-			return this.strategyRegistry.get(name)
+			try {
+			    return this.strategyRegistry.get(name)
+			} catch (error) {
+				if (throwError) {
+				    throw new Error(`AI Model Provider strategy not found for provider: ${name}`)
+				}
+			}
 		}
 		return provider
 	}
@@ -42,24 +48,24 @@ export class AIProvidersService {
 	}
 
 	async providerCredentialsValidate(provider: string, credentials: Record<string, any>): Promise<Record<string, any>> {
-		// 获取提供者实例
+		// Get the provider instance
 		const modelProviderInstance = this.getProvider(provider)
 
-		// 获取提供者模式
+		// Get the provider schema
 		const providerSchema = modelProviderInstance.getProviderSchema()
 
-		// 获取 provider_credential_schema 并根据规则验证凭据
+		// Get provider_credential_schema and validate credentials according to the rules
 		const providerCredentialSchema = providerSchema.provider_credential_schema
 
 		if (!providerCredentialSchema) {
 			throw new Error(`Provider ${provider} does not have provider_credential_schema`)
 		}
 
-		// 验证提供者凭据模式
+		// Validate the provider credential schema
 		const validator = new ProviderCredentialSchemaValidator(providerCredentialSchema)
 		const filteredCredentials = validator.validateAndFilter(credentials)
 
-		// 验证凭据，如果验证失败则抛出异常
+		// Validate credentials, throw an exception if validation fails
 		await modelProviderInstance.validateProviderCredentials(filteredCredentials)
 
 		return filteredCredentials
