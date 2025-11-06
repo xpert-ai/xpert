@@ -1,7 +1,14 @@
 {
   "name": "@metad/contracts",
-  "version": "3.6.1",
+  "version": "3.6.2",
   "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xpert-ai/xpert.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xpert-ai/xpert/issues"
+  },
   "scripts": {
     "docs": "yarn typedoc --out ./.docs"
   },

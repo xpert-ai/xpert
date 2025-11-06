@@ -1,7 +1,14 @@
 {
   "name": "@xpert-ai/plugin-sdk",
-  "version": "3.6.1",
+  "version": "3.6.2",
   "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xpert-ai/xpert.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xpert-ai/xpert/issues"
+  },
   "dependencies": {},
   "main": "./index.cjs",
   "module": "./index.js",
@@ -13,12 +20,12 @@
     "@metad/contracts": "*",
     "@nestjs/common": "*",
     "@nestjs/core": "*",
-    "@nestjs/microservices": "*",
     "lodash-es": "*",
     "i18next-fs-backend": "*",
     "i18next": "*",
     "zod": "*",
     "fs": "*",
+    "stream": "*",
     "path": "*"
   }
 }

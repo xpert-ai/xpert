@@ -21,7 +21,7 @@ function invariant(condition, message) {
   }
 }
 
-// Executing publish script: node path/to/publish.mjs {name} {version} --tag {tag} --otp {otp}
+// Executing publish script: node path/to/publish.mjs {name} {version} --tag={tag} --otp={otp}
 // Default "tag" to "next" so we won't publish the "latest" tag by accident.
 const [, , name, version, ] = process.argv;
 let tag = 'next';

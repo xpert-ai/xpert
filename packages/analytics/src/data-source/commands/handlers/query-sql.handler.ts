@@ -1,16 +1,16 @@
-import { createQueryRunnerByType } from '@metad/adapter'
 import { XpertToolsetService } from '@metad/server-ai'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'
 import { QuerySqlCommand } from '../query-sql.command'
+import { DataSourceStrategyQuery } from '../../queries'
 
 @CommandHandler(QuerySqlCommand)
 export class QuerySqlHandler implements ICommandHandler<QuerySqlCommand> {
 	constructor(
 		private readonly toolsetService: XpertToolsetService,
-		private readonly dataSourceService: DataSourceService
+		private readonly dataSourceService: DataSourceService,
+		private readonly queryBus: QueryBus
 	) {
-		this.toolsetService.registerCommand('QuerySql', QuerySqlCommand)
 	}
 
 	public async execute(command: QuerySqlCommand): Promise<any[]> {
@@ -19,11 +19,16 @@ export class QuerySqlHandler implements ICommandHandler<QuerySqlCommand> {
 		
 		const dataSource = await this.dataSourceService.prepareDataSource(dataSourceId)
 
-		const runner = createQueryRunnerByType(dataSource.type.type, {
+		// const runner = createQueryRunnerByType(dataSource.type.type, {
+		// 	...dataSource.options,
+		// 	debug: isDev,
+		// 	trace: isDev
+		// })
+		const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, {
 			...dataSource.options,
 			debug: isDev,
 			trace: isDev
-		})
+		}))
 
 		try {
 			// Query samples data

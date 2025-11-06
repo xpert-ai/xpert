@@ -1,4 +1,3 @@
-import { AdapterBaseOptions, createQueryRunnerByType } from '@metad/adapter'
 import { ISemanticModel } from '@metad/contracts'
 import {
   camelCase,
@@ -15,6 +14,9 @@ import { Observable } from 'rxjs'
 import { RedisClientType } from 'redis'
 import xml2js from 'xml2js'
 import { convertSchemaRolesToXmla, convertSchemaToXmla } from './mdx'
+import { AdapterBaseOptions } from '@xpert-ai/plugin-sdk'
+import { QueryBus } from '@nestjs/cqrs'
+import { DataSourceStrategyQuery } from '../data-source'
 
 
 export function buildSchema(input: any): string {
@@ -87,7 +89,14 @@ export function parseSchema(input: string) {
 
 export const XMLA_CONNECTION_KEY = 'XmlaConnection'
 
-export async function updateXmlaCatalogContent(redisClient: RedisClientType, model: ISemanticModel) {
+/**
+ * Update XMLA catalog content in Redis for olap engine.
+ * 
+ * @param queryBus 
+ * @param redisClient 
+ * @param model 
+ */
+export async function updateXmlaCatalogContent(queryBus: QueryBus, redisClient: RedisClientType, model: ISemanticModel) {
   if (
     model.type?.toLowerCase() === 'xmla' &&
     model.dataSource?.type.protocol === 'sql' &&
@@ -98,7 +107,8 @@ export async function updateXmlaCatalogContent(redisClient: RedisClientType, mod
     schema.Role = roles
     const catalogContent = buildSchema(schema)
 
-    const query_runner = createQueryRunnerByType(model.dataSource.type.type, <AdapterBaseOptions><unknown>(model.dataSource.options ?? {}))
+    // const query_runner = createQueryRunnerByType(model.dataSource.type.type, <AdapterBaseOptions><unknown>(model.dataSource.options ?? {}))
+    const query_runner = await queryBus.execute(new DataSourceStrategyQuery(model.dataSource.type.type, <AdapterBaseOptions><unknown>(model.dataSource.options ?? {})))
     const name = model.id
     const jdbcConnectionString = query_runner.jdbcUrl(model.catalog)
     await redisClient.sAdd(XMLA_CONNECTION_KEY, name)

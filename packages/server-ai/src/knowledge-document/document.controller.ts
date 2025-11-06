@@ -120,7 +120,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 									isAudioType(entity.type) ? KBDocumentCategoryEnum.Audio :
 									KBDocumentCategoryEnum.Text
 			const result = await this.commandBus.execute<KnowledgeDocLoadCommand, { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }>(
-				new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument, stage: 'prod'}))
+				new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument, stage: 'test'}))
 			return buildChunkTree(result.chunks)
 		} catch(err) {
 			console.error(err)

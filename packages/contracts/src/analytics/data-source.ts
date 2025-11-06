@@ -58,7 +58,7 @@ export interface IColumnDef {
   /**
    * Types in javascript
    */
-  type: 'number' | 'string' | 'boolean'
+  type: 'number' | 'string' | 'boolean' | 'object' | 'timestamp'
   /**
    * Original data type in database
    */

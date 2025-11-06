@@ -1,4 +1,4 @@
-import { CreationTable, DORIS_TYPE, STARROCKS_TYPE, createQueryRunnerByType } from '@metad/adapter'
+import { CreationTable, DORIS_TYPE, STARROCKS_TYPE } from '@metad/adapter'
 import {
 	IBusinessArea,
 	IDataSource,
@@ -21,7 +21,7 @@ import { ConfigService, getConnectionOptions } from '@metad/server-config'
 import { Organization, OrganizationDemoCommand, REDIS_CLIENT, RequestContext } from '@metad/server-core'
 import { Inject, Logger } from '@nestjs/common'
 import { ConfigService as NestConfigService } from '@nestjs/config'
-import { CommandBus, CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs'
+import { CommandBus, CommandHandler, EventBus, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -43,6 +43,7 @@ import {
 	StoryWidget
 } from '../../entities/internal'
 import { SemanticModelUpdatedEvent } from '../../../model/events'
+import { DataSourceStrategyQuery } from '../../../data-source/queries/datasource.strategy.query'
 
 
 export enum InstallationModeEnum {
@@ -90,6 +91,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		private readonly projectRepository: Repository<Project>,
 		private readonly commandBus: CommandBus,
 		private readonly eventBus: EventBus,
+		private readonly queryBus: QueryBus,
 
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType
@@ -210,7 +212,8 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 
 					// Create dataSource runner
 					const isDev = process.env.NODE_ENV === 'development'
-					const runner = createQueryRunnerByType(dataSourceEntity.type.type, {...dataSourceEntity.options, debug: isDev, trace: isDev})
+					// const runner = createQueryRunnerByType(dataSourceEntity.type.type, {...dataSourceEntity.options, debug: isDev, trace: isDev})
+					const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSourceEntity.type.type, {...dataSourceEntity.options, debug: isDev, trace: isDev}))
 
 					for await (const item of dataset) {
 						this.logger.debug(`			Start to import dataset file: ${item.fileUrl}`)

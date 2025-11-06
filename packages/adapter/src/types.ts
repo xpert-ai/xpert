@@ -8,6 +8,9 @@ export interface AdapterError {
   }
 }
 
+/**
+ * @deprecated use plugin-sdk
+ */
 export interface ColumnDef {
   /**
    * Key of data object
@@ -36,7 +39,7 @@ export interface ColumnDef {
 }
 
 /**
- * 与 Server 中类型保持一致
+ * @deprecated use plugin-sdk
  */
 export interface IDSSchema {
   catalog?: string
@@ -48,7 +51,7 @@ export interface IDSSchema {
 }
 
 /**
- * 与 Server 中类型保持一致
+ * @deprecated use plugin-sdk
  */
 export interface IDSTable {
   schema?: string
@@ -58,7 +61,7 @@ export interface IDSTable {
 }
 
 /**
- * 与 Server 中类型保持一致
+ * @deprecated use plugin-sdk
  */
 export interface IColumnDef {
   name: string
@@ -66,7 +69,7 @@ export interface IColumnDef {
   /**
    * Types in javascript
    */
-  type: 'number' | 'string' | 'boolean'
+  type: 'number' | 'string' | 'boolean' | 'object' | 'timestamp'
   /**
    * Original data type in database
    */
@@ -80,6 +83,9 @@ export interface IColumnDef {
   comment?: string
 }
 
+/**
+ * @deprecated use plugin-sdk
+ */
 export interface CreationTable {
   catalog?: string
   table?: string
@@ -93,6 +99,9 @@ export interface CreationTable {
   withHeader?: number
 }
 
+/**
+ * @deprecated use plugin-sdk
+ */
 export interface File {
   /** Name of the form field associated with this file. */
   fieldname: string
@@ -124,7 +133,7 @@ export interface File {
 }
 
 /**
- * The base options for DB adapters
+ * @deprecated use plugin-sdk
  */
 export interface AdapterBaseOptions {
   /**
@@ -142,18 +151,24 @@ export interface AdapterBaseOptions {
 }
 
 /**
- * Options of single query
+ * @deprecated use plugin-sdk
  */
 export interface QueryOptions {
   catalog?: string
   headers?: Record<string, string>
 }
 
+/**
+ * @deprecated use plugin-sdk
+ */
 export enum DBSyntaxEnum {
   SQL = 'sql',
   MDX = 'mdx'
 }
 
+/**
+ * @deprecated use plugin-sdk
+ */
 export enum DBProtocolEnum {
   SQL = 'sql',
   XMLA = 'xmla'
@@ -168,9 +183,7 @@ export interface QueryResult<T = unknown> {
 }
 
 /**
- * Duties:
- * - Convert error messages into a unified format
- * - Connect different types of data sources
+ * @deprecated use plugin-sdk
  */
 export interface DBQueryRunner {
   type: string

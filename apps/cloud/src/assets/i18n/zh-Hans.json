@@ -545,7 +545,8 @@
       "RequestPlugin": "请求插件",
       "Install": "安装",
       "Details": "详情",
-      "InstallPlugins": "安装插件"
+      "InstallPlugins": "安装插件",
+      "Database": "数据库"
     },
     "MENU": {
       "Plugins": "插件",

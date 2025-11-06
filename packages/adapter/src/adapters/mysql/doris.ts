@@ -374,5 +374,5 @@ export class StarRocksRunner extends DorisRunner {
   }
 }
 
-register(DORIS_TYPE, DorisRunner)
-register(STARROCKS_TYPE, StarRocksRunner)
+// register(DORIS_TYPE, DorisRunner)
+// register(STARROCKS_TYPE, StarRocksRunner)

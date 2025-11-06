@@ -13,7 +13,7 @@ import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestC
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { CommandBus, EventBus } from '@nestjs/cqrs'
+import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
@@ -54,6 +54,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		private readonly logService: ModelQueryLogService,
 		private readonly i18nService: I18nService,
 		commandBus: CommandBus,
+		private readonly queryBus: QueryBus,
 		private readonly eventBus: EventBus,
 		private readonly eventEmitter: EventEmitter2,
 		@Inject(REDIS_CLIENT)
@@ -93,42 +94,44 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	async seedIfEmpty() {
-		const { items } = await this.findAll({
-			where: {
-				status: SemanticModelStatusEnum.Progressing
-			},
-			relations: ['dataSource', 'dataSource.type', 'roles']
-		})
+		setTimeout(async () => {
+			const { items } = await this.findAll({
+				where: {
+					status: SemanticModelStatusEnum.Progressing
+				},
+				relations: ['dataSource', 'dataSource.type', 'roles']
+			})
 
-		let seeds = items.length
-		console.log(`Found ${seeds} active models in system`)
-		for await (const model of items) {
-			try {
-				await this.updateCatalogContent(model.id)
-			} catch (error) {
-				seeds--
-				console.log(chalk.red(`When update model '${model.id}' xmla schema: ${getErrorMessage(error)}`))
+			let seeds = items.length
+			console.log(`Found ${seeds} active models in system`)
+			for await (const model of items) {
+				try {
+					await this.updateCatalogContent(model.id)
+				} catch (error) {
+					seeds--
+					console.log(chalk.red(`When update model '${model.id}' xmla schema: ${getErrorMessage(error)}`))
+				}
 			}
-		}
-		if (seeds) {
-			console.log(chalk.green(`Seed '${seeds}' models xmla schema`))
-		}
-		if (items.length - seeds) {
-			console.log(chalk.red(`Fail seed '${items.length - seeds}' models xmla schema`))
-		}
+			if (seeds) {
+				console.log(chalk.green(`Seed '${seeds}' models xmla schema`))
+			}
+			if (items.length - seeds) {
+				console.log(chalk.red(`Fail seed '${items.length - seeds}' models xmla schema`))
+			}
 
-		/**
-		 * Register semantic models
-		 *
-		 * @deprecated use in query
-		 */
-		items.forEach((model) => {
-			try {
-				registerSemanticModel(model, false, this.dsCoreService)
-			} catch (err) {
-				console.log(chalk.red(`Error registering semantic model: ${err.message}`))
-			}
-		})
+			/**
+			 * Register semantic models
+			 *
+			 * @deprecated use in query
+			 */
+			items.forEach((model) => {
+				try {
+					registerSemanticModel(model, false, this.dsCoreService)
+				} catch (err) {
+					console.log(chalk.red(`Error registering semantic model: ${err.message}`))
+				}
+			})
+		}, 1000)
 	}
 
 	/**
@@ -146,10 +149,10 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		})
 
 		// Update Xmla Schema into Redis for model
-		await updateXmlaCatalogContent(this.redisClient, model)
+		await updateXmlaCatalogContent(this.queryBus, this.redisClient, model)
 
 		// Update draft
-		await updateXmlaCatalogContent(this.redisClient, {
+		await updateXmlaCatalogContent(this.queryBus, this.redisClient, {
 			...model,
 			...(model.draft ?? {}),
 			options: {
@@ -521,21 +524,33 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 		const results: ChecklistItem[] = []
 
-		for await (const dimension of draft.schema?.dimensions ?? []) {
-			const res = await dimensionValidator.validate(dimension, { schema: draft.schema })
-			results.push(...res)
-		}
-		for await (const cube of draft.schema?.cubes ?? []) {
-			const res = await cubeValidator.validate(cube, { schema: draft.schema })
-			results.push(...res)
-		}
-		for await (const cube of draft.schema?.virtualCubes ?? []) {
-			const res = await virtualCubeValidator.validate(cube, { schema: draft.schema })
-			results.push(...res)
-		}
-		for await (const role of draft.roles ?? []) {
-			const res = await roleValidator.validate(role, { schema: draft.schema })
-			results.push(...res)
+		try {
+			for await (const dimension of draft.schema?.dimensions ?? []) {
+				const res = await dimensionValidator.validate(dimension, { schema: draft.schema })
+				results.push(...res)
+			}
+			for await (const cube of draft.schema?.cubes ?? []) {
+				const res = await cubeValidator.validate(cube, { schema: draft.schema })
+				results.push(...res)
+			}
+			for await (const cube of draft.schema?.virtualCubes ?? []) {
+				const res = await virtualCubeValidator.validate(cube, { schema: draft.schema })
+				results.push(...res)
+			}
+			for await (const role of draft.roles ?? []) {
+				const res = await roleValidator.validate(role, { schema: draft.schema })
+				results.push(...res)
+			}
+		} catch (err) {
+			console.error(err)
+			results.push({
+				message: {
+					en_US: 'Internal error: ' + getErrorMessage(err),
+					zh_Hans: '内部错误：' + getErrorMessage(err)
+				},
+				level: 'error',
+				ruleCode: 'MODEL_VALIDATION_INTERNAL_ERROR'
+			})
 		}
 
 		return results

@@ -8,6 +8,9 @@ export const QUERY_RUNNERS: Record<
   DBQueryRunnerType
 > = {}
 
+/**
+ * @deprecated use `BaseSQLQueryRunner` from plugin-sdk
+ */
 export abstract class BaseQueryRunner<T extends AdapterBaseOptions = AdapterBaseOptions> implements DBQueryRunner {
   type: string
   name: string
@@ -99,6 +102,9 @@ export interface SQLAdapterOptions extends AdapterBaseOptions {
   version?: number
 }
 
+/**
+ * @deprecated use `BaseSQLQueryRunner` from plugin-sdk
+ */
 export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapterOptions> extends BaseQueryRunner<T> {
   syntax = DBSyntaxEnum.SQL
   protocol = DBProtocolEnum.SQL
@@ -147,13 +153,9 @@ export function register<T extends AdapterBaseOptions = AdapterBaseOptions>(
 }
 
 /**
- * Find adapter class by `type`, then create it using `options`.
- * 
- * @param type 
- * @param options 
- * @returns 
+ * @deprecated use `createAdapterByType`
  */
-export function createQueryRunnerByType(type: string, options: AdapterBaseOptions) {
+export function createQueryRunnerByType1(type: string, options: AdapterBaseOptions) {
   if (QUERY_RUNNERS[type]) {
     return new QUERY_RUNNERS[type](options)
   }

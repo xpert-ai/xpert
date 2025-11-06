@@ -118,14 +118,14 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
     return new Promise((resolve, reject) => {
       const callback = (error, results, fields: FieldPacket[]) => {
         if (error) {
-          reject(error)
+          reject(new Error(getErrorMessage(error)))
           return
         }
 
         resolve({
           status: 'OK',
           data: results,
-          columns: fields.map((field) => ({
+          columns: fields?.map((field) => ({
             name: field.name,
             type: MySQLTypeMap[field.columnType],
             dataType: Types[field.columnType]
@@ -179,7 +179,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
         tableSchema
     }
 
-    const { data } = await this.runQuery(query)
+    const { data } = await this.runQuery(query, { catalog })
     return convertMySQLSchema(data)
   }
 
@@ -195,7 +195,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
   async createCatalog(catalog: string) {
     // 用 `CREATE DATABASE` 使其适用于 Doris ？
     const query = `CREATE DATABASE IF NOT EXISTS \`${catalog}\``
-    await this.runQuery(query)
+    await this.runQuery(query, { catalog })
   }
 
   /**
@@ -251,5 +251,25 @@ export class RDSMySQLRunner extends MySQLRunner {
   readonly type: string = RDS_TYPE
 }
 
-register(MYSQL_TYPE, MySQLRunner)
-register(RDS_TYPE, RDSMySQLRunner)
+// register(MYSQL_TYPE, MySQLRunner)
+// register(RDS_TYPE, RDSMySQLRunner)
+
+function getErrorMessage(err: any): string {
+  let error: string
+  if (typeof err === 'string') {
+    error = err
+  } else if (err && (err.name === "AggregateError" || err.constructor.name === "AggregateError")) {
+    return err.errors.map((_) => getErrorMessage(_)).join('\n\n')
+  } else if (err instanceof Error) {
+    error = err?.message
+  } else if (err?.error instanceof Error) {
+    error = err?.error?.message
+  } else if(err?.message) {
+    error = err?.message
+  } else if (err) {
+    // If there is no other way, convert it to JSON string
+    error = JSON.stringify(err)
+  }
+
+  return error
+}

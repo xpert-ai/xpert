@@ -8,7 +8,7 @@ export class SendMailTool extends BuiltinTool {
 	static lc_name(): string {
 		return 'send_mail'
 	}
-	name = 'send-mail'
+	name = 'send_mail'
 	description = 'A tool for sending email'
 
 	schema = z.object({

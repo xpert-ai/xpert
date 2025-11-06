@@ -1,12 +1,13 @@
-import { createQueryRunnerByType, DBQueryRunner } from '@metad/adapter'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import * as _axios from 'axios'
 import { AxiosResponse } from 'axios'
 import { DataSourceService } from '../../data-source.service'
 import { prepareDataSource } from '../../utils'
 import { DataSourceOlapQuery } from '../olap.query'
+import { DBQueryRunner } from '@metad/adapter'
+import { DataSourceStrategyQuery } from '../datasource.strategy.query'
 
 const axios = _axios.default
 
@@ -20,7 +21,8 @@ export class OlapQueryHandler implements IQueryHandler<DataSourceOlapQuery> {
 
 	constructor(
 		private readonly dsService: DataSourceService,
-		private configService: ConfigService
+		private configService: ConfigService,
+		private readonly queryBus: QueryBus
 	) {}
 
 	async execute(query: DataSourceOlapQuery) {
@@ -54,7 +56,8 @@ export class OlapQueryHandler implements IQueryHandler<DataSourceOlapQuery> {
 		} else {
 			// Determine the user authentication
 			dataSource = prepareDataSource(dataSource, user?.id)
-			_runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+			// _runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
+			_runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, dataSource.options))
 			runners[sessionId] ??= {}
 			runners[sessionId][dataSourceId] = {
 				runner: _runner,

@@ -5,6 +5,7 @@ import {
 	IKnowledgeDocument,
 	IKnowledgeDocumentChunk,
 	KBDocumentCategoryEnum,
+	KBDocumentStatusEnum,
 } from '@metad/contracts'
 import { loadCsvWithAutoEncoding, loadExcel, pick } from '@metad/server-common'
 import { computeObjectHash, RequestContext } from '@metad/server-core'
@@ -24,10 +25,11 @@ import { omit } from 'lodash'
 import { v4 as uuid } from 'uuid'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
-import { LoadStorageFileCommand, VolumeClient } from '../../../shared/'
+import { VolumeClient } from '../../../shared/'
 import { KnowledgeDocLoadCommand } from '../load.command'
 import { PluginPermissionsCommand } from '../../../knowledgebase/commands'
 import { TDocChunkMetadata } from '../../types'
+import { KnowledgeDocumentService } from '../../document.service'
 
 
 @CommandHandler(KnowledgeDocLoadCommand)
@@ -43,6 +45,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
 	@Inject(CACHE_MANAGER)
 	private readonly cacheManager: Cache
+
+	@Inject(KnowledgeDocumentService)
+	private readonly kbDocumentService: KnowledgeDocumentService
 
 	constructor(
 		private readonly knowledgebaseService: KnowledgebaseService,
@@ -110,6 +115,11 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 					await this.cacheManager.set(cacheKey, transformed, 60 * 10 * 1000) // 10 min
 				}
 
+				// Update document status
+				if (stage !== 'test') {
+					await this.kbDocumentService.update(doc.id, {status: KBDocumentStatusEnum.TRANSFORMED})
+				}
+
 				const chunks = []
 				// const pages = []
 				for await (const transItem of transformed) {
@@ -124,6 +134,11 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 					if (!splitted) {
 						splitted = await this.splitDocuments(doc, transItem.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[])
 						await this.cacheManager.set(cacheKey, splitted, 60 * 10 * 1000) // 10 min
+					}
+
+					// Update document status
+					if (stage !== 'test') {
+						await this.kbDocumentService.update(doc.id, {status: KBDocumentStatusEnum.SPLITTED})
 					}
 
 					// Image understanding
@@ -165,16 +180,13 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 						}
 						
 						chunks.push(...imgTransformed.chunks)
-						// if (splitted.pages?.length) {
-						// 	pages.push(...splitted.pages)
-						// } else {
-						// 	pages.push(...imgTransformed.pages)
-						// }
+
+						// Update document status
+						if (stage !== 'test') {
+							await this.kbDocumentService.update(doc.id, {status: KBDocumentStatusEnum.UNDERSTOOD})
+						}
 					} else {
 						chunks.push(...splitted.chunks)
-						// if (splitted.pages?.length) {
-						// 	pages.push(...splitted.pages)
-						// }
 					}
 				}
 				return { chunks }

@@ -45,12 +45,14 @@ import {
 	StoryPoint,
 	StoryWidget
 } from '../entities/internal'
+import { QueryBus } from '@nestjs/cqrs'
 
 
 @Injectable()
 export class SeedDataService extends SeedServerDataService {
 	project: IProject
 	constructor(
+		private readonly queryBus: QueryBus,
 		private readonly nestConfigService: NestConfigService,
 		protected readonly configService: ConfigService,
 		@Inject(REDIS_CLIENT)
@@ -211,7 +213,7 @@ export class SeedDataService extends SeedServerDataService {
 			for await (const { name, dataset, semanticModel, project, story, indicator } of sheets) {
 				await this.tryExecute(
 					`Initialize Demo Data '${name}'`,
-					dataLoad(dataSource, [dataset], {
+					dataLoad(this.queryBus, dataSource, [dataset], {
 						stream: fs.createReadStream(path.join(demosFolder, dataset.fileUrl)),
 						fieldname: '',
 						originalname: '',
@@ -272,7 +274,7 @@ export class SeedDataService extends SeedServerDataService {
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 
-		await updateXmlaCatalogContent(this.redisClient, model)
+		await updateXmlaCatalogContent(this.queryBus, this.redisClient, model)
 
 		return model
 	}

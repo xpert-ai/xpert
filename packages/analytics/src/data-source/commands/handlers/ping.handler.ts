@@ -1,16 +1,16 @@
-import { createQueryRunnerByType } from '@metad/adapter'
 import { XpertToolsetService } from '@metad/server-ai'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'
 import { DataSourcePingCommand } from '../ping.command'
+import { DataSourceStrategyQuery } from '../../queries'
 
 @CommandHandler(DataSourcePingCommand)
 export class DataSourcePingHandler implements ICommandHandler<DataSourcePingCommand> {
 	constructor(
 		private readonly toolsetService: XpertToolsetService,
-		private readonly dataSourceService: DataSourceService
+		private readonly dataSourceService: DataSourceService,
+		private readonly queryBus: QueryBus
 	) {
-		this.toolsetService.registerCommand('PingDataSource', DataSourcePingCommand)
 	}
 
 	public async execute(command: DataSourcePingCommand): Promise<void> {
@@ -19,11 +19,16 @@ export class DataSourcePingHandler implements ICommandHandler<DataSourcePingComm
 
 		const dataSource = await this.dataSourceService.prepareDataSource(dataSourceId)
 
-		const runner = createQueryRunnerByType(dataSource.type.type, {
+		// const runner = createQueryRunnerByType(dataSource.type.type, {
+		// 	...dataSource.options,
+		// 	debug: isDev,
+		// 	trace: isDev
+		// })
+		const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, {
 			...dataSource.options,
 			debug: isDev,
 			trace: isDev
-		})
+		}))
 
 		try {
 			await runner.ping()

@@ -1,17 +1,18 @@
-import { createQueryRunnerByType, IDSSchema, IDSTable } from '@metad/adapter'
+import { IDSSchema, IDSTable } from '@metad/adapter'
 import { XpertToolsetService } from '@metad/server-ai'
 import { omit } from '@metad/server-common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'
 import { ListTablesCommand } from '../list-tables.command'
+import { DataSourceStrategyQuery } from '../../queries'
 
 @CommandHandler(ListTablesCommand)
 export class ListTablesHandler implements ICommandHandler<ListTablesCommand> {
 	constructor(
 		private readonly toolsetService: XpertToolsetService,
-		private readonly dataSourceService: DataSourceService
+		private readonly dataSourceService: DataSourceService,
+		private readonly queryBus: QueryBus
 	) {
-		this.toolsetService.registerCommand('ListTables', ListTablesCommand)
 	}
 
 	public async execute(command: ListTablesCommand): Promise<IDSTable[] | IDSSchema[]> {
@@ -20,11 +21,17 @@ export class ListTablesHandler implements ICommandHandler<ListTablesCommand> {
 
 		const dataSource = await this.dataSourceService.prepareDataSource(dataSourceId)
 
-		const runner = createQueryRunnerByType(dataSource.type.type, {
+		// const runner = createQueryRunnerByType(dataSource.type.type, {
+		// 	...dataSource.options,
+		// 	debug: isDev,
+		// 	trace: isDev
+		// })
+
+		const runner = await this.queryBus.execute(new DataSourceStrategyQuery(dataSource.type.type, {
 			...dataSource.options,
 			debug: isDev,
 			trace: isDev
-		})
+		}))
 
 		try {
 			const result = await runner.getSchema(schema)

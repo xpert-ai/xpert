@@ -145,6 +145,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 							sourceType: true,
 							type: true,
 							category: true,
+							fileUrl: true,
 						}
 					}
 				})
@@ -172,6 +173,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 							sourceType: true,
 							type: true,
 							category: true,
+							fileUrl: true,
 						}
 					}
 				})

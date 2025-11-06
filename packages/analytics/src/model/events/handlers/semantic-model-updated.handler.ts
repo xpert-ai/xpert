@@ -2,7 +2,7 @@ import { SemanticModelStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { REDIS_CLIENT } from '@metad/server-core'
 import { Inject, Logger } from '@nestjs/common'
-import { CommandBus, EventsHandler, IEventHandler } from '@nestjs/cqrs'
+import { CommandBus, EventsHandler, IEventHandler, QueryBus } from '@nestjs/cqrs'
 import { RedisClientType } from 'redis'
 import { SemanticModelCacheService } from '../../cache/cache.service'
 import { updateXmlaCatalogContent } from '../../helper'
@@ -24,7 +24,8 @@ export class SemanticModelUpdatedHandler implements IEventHandler<SemanticModelU
 		private readonly dsCoreService: NgmDSCoreService,
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType,
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		private readonly queryBus: QueryBus
 	) {}
 
 	async handle(event: SemanticModelUpdatedEvent) {
@@ -41,7 +42,7 @@ export class SemanticModelUpdatedHandler implements IEventHandler<SemanticModelU
 
 		try {
 			// Update Xmla Schema into Redis for model
-			await updateXmlaCatalogContent(this.redisClient, model)
+			await updateXmlaCatalogContent(this.queryBus, this.redisClient, model)
 
 			/**
 			 * @deprecated use in dependent query

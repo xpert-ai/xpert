@@ -1,8 +1,8 @@
 <div class="flex flex-col overflow-auto h-full px-4 py-3">
   @for (item of knowledges(); track item; let first = $first) {
     <div class="py-3 border-b border-divider-deep" [class.pt-0]="first">
-      <a target="_blank" class="block text-text-primary text-base font-medium hover:underline line-clamp-2 cursor-pointer">
-        {{item.id}}:
+      <a target="_blank" [href]="item.document?.fileUrl" class="block text-text-primary text-base font-medium hover:underline line-clamp-2 cursor-pointer">
+        {{item.document?.name || item.id}}:
         @if (item.metadata.loc?.lines) {
           [{{item.metadata.loc.lines.from}}-{{item.metadata.loc.lines.to}}]
         }
