@@ -1,7 +1,7 @@
-import { AdapterBaseOptions, createQueryRunnerByType1, DBQueryRunner } from '@metad/adapter'
-import { Inject, Logger } from '@nestjs/common'
+import { AdapterBaseOptions, createQueryRunnerByType1 } from '@metad/adapter'
+import { Inject, InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
-import { DataSourceStrategyRegistry } from '@xpert-ai/plugin-sdk'
+import { DataSourceStrategyRegistry, DBQueryRunner } from '@xpert-ai/plugin-sdk'
 import { DataSourceStrategyQuery } from '../datasource.strategy.query'
 
 @QueryHandler(DataSourceStrategyQuery)
@@ -20,6 +20,10 @@ export class DataSourceStrategyHandler implements IQueryHandler<DataSourceStrate
 			runner = await strategy.create(options)
 		} catch (error) {
 			runner = createQueryRunnerByType1(name, options as unknown as AdapterBaseOptions)
+		}
+
+		if (!runner) {
+			throw new InternalServerErrorException(`DataSource strategy not found for type: ${name}`)
 		}
 		return runner
 	}
