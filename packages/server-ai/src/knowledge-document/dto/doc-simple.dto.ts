@@ -48,6 +48,10 @@ export class DocumentSimpleDTO implements Partial<IKnowledgeDocument> {
 	@ApiProperty({ type: () => String })
 	folder?: string
 
+	@Expose()
+	@ApiProperty({ type: () => String })
+	fileUrl?: string
+
 	constructor(partial: DeepPartial<DocumentSimpleDTO>) {
 		Object.assign(this, partial)
 	}
