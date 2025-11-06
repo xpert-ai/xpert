@@ -110,6 +110,13 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 		}
 	}
 
+	/**
+	 * Create custom model for provider
+	 * 
+	 * @param providerId Model provider ID
+	 * @param entity Custom Model
+	 * @returns 
+	 */
 	@Post(':providerId/model')
 	async createProviderModel(
 		@Param('providerId', UUIDValidationPipe) providerId: string,
