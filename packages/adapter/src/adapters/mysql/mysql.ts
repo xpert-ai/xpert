@@ -251,8 +251,8 @@ export class RDSMySQLRunner extends MySQLRunner {
   readonly type: string = RDS_TYPE
 }
 
-register(MYSQL_TYPE, MySQLRunner)
-register(RDS_TYPE, RDSMySQLRunner)
+// register(MYSQL_TYPE, MySQLRunner)
+// register(RDS_TYPE, RDSMySQLRunner)
 
 function getErrorMessage(err: any): string {
   let error: string

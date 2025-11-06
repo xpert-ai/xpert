@@ -157,51 +157,6 @@ export interface ColumnDef {
   fraction?: number
 }
 
-// /**
-//  * 与 Server 中类型保持一致
-//  */
-// export interface IDSSchema {
-//   catalog?: string
-//   schema?: string
-//   name: string
-//   label?: string
-//   type?: string
-//   tables?: Array<IDSTable>
-// }
-
-// /**
-//  * 与 Server 中类型保持一致
-//  */
-// export interface IDSTable {
-//   schema?: string
-//   name?: string
-//   label?: string
-//   columns?: Array<IColumnDef>
-// }
-
-// /**
-//  * 与 Server 中类型保持一致
-//  */
-// export interface IColumnDef {
-//   name: string
-//   label?: string
-//   /**
-//    * Types in javascript
-//    */
-//   type: 'number' | 'string' | 'boolean' | 'object' | 'timestamp'
-//   /**
-//    * Original data type in database
-//    */
-//   dataType: string
-//   dataLength?: number
-//   nullable?: boolean
-//   position?: number
-//   /**
-//    * 应该等同于 label
-//    */
-//   comment?: string
-// }
-
 export interface CreationTable {
   catalog?: string
   table?: string
@@ -287,8 +242,6 @@ export abstract class BaseHTTPQueryRunner<T extends HttpAdapterOptions = HttpAda
   post(data, options?: any) {
     return axios.post(this.url, data, options)
   }
-
-  // abstract override runQuery(query: string, options: any): Promise<any>
 }
 
 /**
