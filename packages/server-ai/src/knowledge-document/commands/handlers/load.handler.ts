@@ -93,7 +93,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 				const permissions = await this.commandBus.execute(new PluginPermissionsCommand(transformer.permissions, {
 						knowledgebaseId: doc.knowledgebaseId,
 						integrationId: doc.parserConfig?.transformerIntegration,
-						folder: stage === 'test' ? 'temp/' : `/`
+						// folder: stage === 'test' ? 'temp/' : `/`
 					}))
 				const cacheConfig = {
 					document: omit(doc, 'parserConfig'),
@@ -162,7 +162,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 							const permissions = await this.commandBus.execute(new PluginPermissionsCommand(imageUnderstanding.permissions, {
 								knowledgebaseId: doc.knowledgebaseId,
 								integrationId: doc.parserConfig?.imageUnderstandingIntegration,
-								folder: stage === 'test' ? 'temp/' : `/`
+								// folder: stage === 'test' ? 'temp/' : `/`
 							}))
 							imgTransformed = await imageUnderstanding.understandImages({
 									...transItem,
