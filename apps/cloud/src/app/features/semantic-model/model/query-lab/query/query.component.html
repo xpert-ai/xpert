@@ -238,21 +238,21 @@
                             </div>
                         </div>
                     } @else {
-                        @if (activeResult && !activeResult?.data) {
+                      @if (activeResult && !activeResult?.data) {
                         <div class="pac-result flex-1">
-                            <div class="bug font-notoColorEmoji">✔️</div>
+                            <div class="bug font-notoColorEmoji">✅</div>
                             <div class="description">
                             </div>
                         </div>
-                        }
+                      }
 
-                        @if (activeResult?.preview) {
+                      @if (activeResult?.preview) {
                         <ngm-table class="pac-model-ql-lab__result ngm-data-preview striped"
                             [columns]="activeResult?.columns"
                             [data]="activeResult?.preview"
                             [paging]="true"
                         />
-                        }
+                      }
                     }
                   } @else {
                     <div class="grow flex justify-center items-center text-text-secondary">
