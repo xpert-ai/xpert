@@ -39,14 +39,14 @@
       </tbody>
     </table>
   } @else {
-    @for (chunk of docs(); track chunk; let i = $index) {
-      <xp-knowledge-chunk [chunk]="chunk" [index]="i" [preview]="preview()"/>
-    } @empty {
-      @if (error()) {
-        <div class="p-4 font-body text-text-destructive">
-          <i class="ri-error-warning-line mr-1"></i>
-          {{error()}}
-        </div>
+    @if (error()) {
+      <div class="p-4 font-body text-text-destructive">
+        <i class="ri-error-warning-line mr-1"></i>
+        {{error()}}
+      </div>
+    } @else {
+      @for (chunk of docs(); track chunk; let i = $index) {
+        <xp-knowledge-chunk [chunk]="chunk" [index]="i" [preview]="preview()"/>
       }
     }
   }

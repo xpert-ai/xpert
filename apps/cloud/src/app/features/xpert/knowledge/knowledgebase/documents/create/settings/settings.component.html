@@ -85,7 +85,7 @@
         </div>
         <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
           @if (transformerConfigSchema(); as transformerConfigSchema) {
-            <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="transformerConfigSchema" 
+            <json-schema-form class="grid grid-cols-2 gap-2" [schema]="transformerConfigSchema" 
               [(ngModel)]="transformer"
             />
           }
@@ -155,7 +155,7 @@
         }
         <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
           <div class="flex flex-col gap-y-4">
-            <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="textSplitterConfigSchema()" 
+            <json-schema-form class="grid grid-cols-2 gap-2" [schema]="textSplitterConfigSchema()" 
               [ngModel]="textSplitter()"
               (ngModelChange)="textSplitter.set($event)"
             />
@@ -261,7 +261,7 @@
               </div>
             }
             @if (imageUnderstandingConfigSchema(); as imageUnderstandingConfigSchema) {
-              <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="imageUnderstandingConfigSchema" 
+              <json-schema-form class="grid grid-cols-2 gap-2" [schema]="imageUnderstandingConfigSchema" 
                 [(ngModel)]="imageUnderstanding"
               />
             }

@@ -125,7 +125,7 @@ export class KnowledgeDocumentStore {
 		document.metadata.documentId = knowledgeDocument.id
 		document.metadata.parentChunkId ??= null
 		document.metadata.model = this.model
-		document.metadata.chunkId ??= uuidv4()
+		document.metadata.chunkId ??= uuidv4() // Ensure chunkId exists
 		document.metadata.source ??= "blob"
 		document.metadata.blobType ??= 'text/plain'
 		document.metadata.loc ??= {}

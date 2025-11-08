@@ -233,10 +233,33 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			})
 		}
 		if (document.parserConfig?.removeSensitive) {
+			const imageRegex = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g;
+			const urlRegex = /https?:\/\/[^\s]+/g;
+			const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+
 			chunks.forEach((doc) => {
-				doc.pageContent = doc.pageContent.replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
-				doc.pageContent = doc.pageContent.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '') // Remove email addresses
-			})
+				let page = doc.pageContent;
+
+				// 1) Extract markdown image urls with placeholder
+				const imagePlaceholders: string[] = [];
+				page = page.replace(imageRegex, (match) => {
+					imagePlaceholders.push(match);
+					return `__IMG_PLACEHOLDER_${imagePlaceholders.length - 1}__`;
+				});
+
+				// 2) Remove normal URLs (not inside markdown image)
+				page = page.replace(urlRegex, '');
+
+				// 3) Remove email addresses
+				page = page.replace(emailRegex, '');
+
+				// 4) Restore markdown image urls
+				page = page.replace(/__IMG_PLACEHOLDER_(\d+)__/g, (_, index) => {
+					return imagePlaceholders[Number(index)];
+				});
+
+				doc.pageContent = page;
+			});
 		}
 
 		// Process the document in chunks

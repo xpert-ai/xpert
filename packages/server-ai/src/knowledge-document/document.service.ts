@@ -9,6 +9,7 @@ import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { compact, uniq } from 'lodash-es'
 import { DataSource, DeepPartial, In, Repository } from 'typeorm'
+import { v4 as uuidv4 } from 'uuid'
 import { KnowledgebaseService, KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared'
@@ -234,17 +235,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	 */
 	async createChunk(id: string, entity: IKnowledgeDocumentChunk) {
 		const { vectorStore, document } = await this.getDocumentVectorStore(id)
-		this.chunkService.create({
+		const chunk = await this.chunkService.create({
 			...entity,
 			documentId: id,
 			knowledgebaseId: document.knowledgebaseId,
-		})
-		await vectorStore.addKnowledgeDocument(document, [
-			{
-				metadata: entity.metadata ?? {} as IDocChunkMetadata,
-				pageContent: entity.pageContent
+			metadata: {
+				...(entity.metadata ?? {}),
+				chunkId: entity.metadata?.chunkId || uuidv4() // Ensure chunkId exists
 			}
-		])
+		})
+		await vectorStore.addKnowledgeDocument(document, [chunk])
 	}
 
 	/**
