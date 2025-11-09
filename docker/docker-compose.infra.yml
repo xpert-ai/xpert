@@ -283,3 +283,27 @@ services:
             - driver: nvidia
               device_ids: [ "0" ]
               capabilities: [ gpu ]
+  xinference:
+    image: xprobe/xinference:latest
+    profiles: ["xinference"]
+    command: xinference-local -H 0.0.0.0
+    ports:
+      - "9997:9997"
+    volumes:
+      - ./volumes/xinference/.xinference:/root/.xinference
+      - ./volumes/xinference/.cache/huggingface:/root/.cache/huggingface
+      - ./volumes/xinference/.cache/modelscope:/root/.cache/modelscope
+      - ./volumes/xinference/models:/models
+    environment:
+      XINFERENCE_MODEL_DIR: /models
+      HTTP_PROXY: ${HTTP_PROXY}
+      HTTPS_PROXY: ${HTTPS_PROXY}
+      NO_PROXY: ${NO_PROXY}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
