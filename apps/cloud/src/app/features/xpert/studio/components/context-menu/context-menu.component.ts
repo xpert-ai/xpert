@@ -4,6 +4,8 @@ import { ChangeDetectorRef, Component, computed, effect, inject, signal, Templat
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
   IWFNClassifier,
   IWFNCode,
@@ -72,8 +74,7 @@ import { SelectionService } from '../../domain/selection.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { IconComponent } from '@cloud/app/@shared/avatar'
+
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -399,10 +400,6 @@ export class XpertStudioContextMenuComponent {
     }
   }
 
-  public dispose(): void {
-    // this.selectionService.reset()
-  }
-
   // Knowledge Pipelines
   addPipelineSource(provider: IDocumentSourceProvider) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.SOURCE).length ?? 0
@@ -442,5 +439,6 @@ export class XpertStudioContextMenuComponent {
       title: this.#translate.instant('PAC.Pipeline.Understanding', { Default: 'Understanding' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNUnderstanding)
+
   }
 }

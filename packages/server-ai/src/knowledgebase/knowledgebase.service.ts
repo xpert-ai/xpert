@@ -22,7 +22,6 @@ import {
 	KNOWLEDGE_SOURCES_NAME,
 	KnowledgeTask,
 	mapTranslationLanguage,
-	Metadata,
 	STATE_VARIABLE_HUMAN,
 	WorkflowNodeTypeEnum,
 	XpertTypeEnum,
@@ -31,7 +30,8 @@ import {
 	KnowledgeStructureEnum,
 	XpertAgentExecutionStatusEnum,
 	classificateDocumentCategory,
-	TCopilotModel
+	TCopilotModel,
+	KnowledgeDocumentMetadata
 } from '@metad/contracts'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
@@ -215,7 +215,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	 * @param options Query options
 	 * @returns Document chunks
 	 */
-	async test(id: string, options: { query: string; k?: number; filter?: Metadata }) {
+	async test(id: string, options: { query: string; k?: number; filter?: KnowledgeDocumentMetadata }) {
 		const knowledgebase = await this.findOne(id)
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
@@ -586,7 +586,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		}
 	}
 
-	async transformDocuments(knowledgebaseId: string, entity: IWFNProcessor, isDraft: boolean, input: Partial<IKnowledgeDocument<Metadata>>[]) {
+	async transformDocuments(knowledgebaseId: string, entity: IWFNProcessor, isDraft: boolean, input: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>[]) {
 		const strategy = this.docTransformerRegistry.get(entity.provider) 
 		
 		const permissions = await this.commandBus.execute(new PluginPermissionsCommand(strategy.permissions, {

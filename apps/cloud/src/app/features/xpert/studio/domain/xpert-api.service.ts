@@ -108,7 +108,14 @@ export class XpertStudioApiService {
     }
   })
   readonly xpert = attrModel(this._draft, 'team')
-  readonly agentConfig = attrModel(this.xpert, 'agentConfig')
+  // readonly agentConfig = attrModel(this.xpert, 'agentConfig')
+  readonly agentConfig = linkedModel({
+    initialValue: null,
+    compute: () => this.xpert()?.agentConfig,
+    update: (value) => {
+      this.updateXpertAgentConfig(value)
+    }
+  })
 
   readonly #reload: Subject<EReloadReason | null> = new Subject<EReloadReason>()
 

@@ -9,12 +9,12 @@ import {
 	DocumentTextParserConfig,
 	KBDocumentStatusEnum,
 	IKnowledgebaseTask,
-	Metadata,
 	TDocSourceConfig,
 	IKnowledgeDocumentChunk,
 	TKnowledgeDocument,
 	DocumentSourceProviderCategoryEnum,
 	DocumentTypeEnum,
+	KnowledgeDocumentMetadata,
 } from '@metad/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
@@ -25,7 +25,7 @@ import { Knowledgebase, KnowledgebaseTask, KnowledgeDocumentChunk, KnowledgeDocu
 
 @Entity('knowledge_document')
 @Tree('closure-table') 
-export class KnowledgeDocument extends TenantOrganizationBaseEntity implements IKnowledgeDocument {
+export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata> extends TenantOrganizationBaseEntity implements IKnowledgeDocument<T> {
 	@ApiProperty({ type: () => Boolean })
 	@IsBoolean()
 	@IsOptional()
@@ -206,7 +206,7 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	metadata?: Metadata
+	metadata?: T
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

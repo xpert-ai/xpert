@@ -51,8 +51,63 @@
   }
 </div>
 
+<div class="w-full my-2 py-2">
+  <div class="group/collapse flex items-center">
+    <div class="ml-4 flex grow items-center">
+      <div class="flex grow items-center justify-between pr-4">
+        <div class="flex items-center">
+          <div class="system-sm-semibold-uppercase mr-0.5 text-text-secondary">元数据过滤</div>
+          <div class="w-4 h-4 flex justify-center items-center shrink-0 p-[1px] text-text-tertiary hover:text-text-primary"
+            [matTooltip]="'PAC.Xpert.KnowledgeMetadataFilterTooltip' | translate: { Default: 'Metadata filtering is the process of refining and controlling the retrieval of relevant information within a system using metadata attributes such as tags, categories, or access permissions.' }"
+            matTooltipPosition="above"
+          >
+            <i class="ri-information-line"></i>
+          </div>
+        </div>
+        <div class="flex items-center">
+          <button type="button" class="group btn disabled:btn-disabled btn-secondary btn-small"
+            #trigger="cdkMenuTriggerFor"
+            [cdkMenuTriggerFor]="filterModeMenu.template"
+            [cdkMenuTriggerData]="{trigger: trigger}"
+          >
+            {{ 'PAC.Xpert.MetadataFilterMode_' + filtering_mode() | translate: { Default: filtering_mode() | capitalize } }}
+            <i class="ri-arrow-down-s-line w-4 h-4 ml-1 flex justify-center items-center text-text-tertiary group-hover:text-text-primary"></i>
+          </button>
+          @if (filtering_mode() === 'manual') {
+            <div class="ml-1">
+              <div class="inline-block" data-state="closed">
+                <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-small">
+                  <i class="ri-filter-3-line w-4 h-4 flex justify-center items-center mr-1"></i>
+                  条件
+                  <div
+                    class="text-xs font-medium uppercase ml-1 flex items-center rounded-[5px] border border-divider-deep px-1 font-mono text-text-tertiary"
+                  >
+                    2
+                  </div>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (filtering_mode() === 'automatic') {
+    <div class="body-xs-regular px-4 text-text-tertiary">选择用作元数据过滤条件的字段</div>
+    <div class="mt-1 px-4">
+      @for (field of filteringFields(); track field) {
+        <div class="flex items-center mb-1">
+          <div class="text-sm text-text-secondary">{{field.key}}</div>
+        </div>
+        ,
+      }
+    </div>
+  }
+</div>
+
 <div class="w-full flex flex-col p-4">
-  <knowledge-recall-params class="w-full" [enableWeight]="true" [ngModel]="recall()" (ngModelChange)="updateRecall($event)" />
+  <knowledge-recall-params class="w-full" [enableWeight]="true" [(ngModel)]="recall" />
 </div>
 
 @if (!loading() && !knowledgebase()?.id) {
@@ -98,3 +153,9 @@
     />
   </div>
 }
+
+<ngm-select-panel #filterModeMenu [selectOptions]="filterModeOptions" [(ngModel)]="filtering_mode" />
+
+<ngm-select-panel #filterFieldsMenu multiple [selectOptions]="metadataFieldsOptions()"
+  [(ngModel)]="filteringFieldNames"
+/>

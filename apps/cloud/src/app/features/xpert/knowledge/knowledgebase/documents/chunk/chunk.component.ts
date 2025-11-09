@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectConfirmDelete, NgmCommonModule } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { nonBlank } from '@metad/ocap-core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
@@ -23,9 +23,11 @@ import {
   IKnowledgeDocument,
   IKnowledgeDocumentChunk,
   injectToastr,
-  KnowledgeDocumentService
+  KnowledgeDocumentService,
+  STANDARD_METADATA_FIELDS
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
@@ -35,17 +37,21 @@ import { KnowledgebaseComponent } from '../../knowledgebase.component'
   imports: [
     FormsModule,
     TranslateModule,
+    CdkMenuModule,
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
     WaIntersectionObserver,
     NgmCommonModule,
+    NgmI18nPipe,
     NgModelChangeDebouncedDirective,
     KnowledgeDocIdComponent,
     KnowledgeChunkComponent
   ]
 })
 export class KnowledgeDocumentChunkComponent {
+  STANDARD_METADATA_FIELDS = STANDARD_METADATA_FIELDS
+  
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
@@ -83,6 +89,18 @@ export class KnowledgeDocumentChunkComponent {
 
   // Search
   readonly search = model<string>()
+
+  // Metadata schema
+  readonly metadataSchema = computed(() => this.knowledgebase()?.metadataSchema || [])
+  readonly showMetadata = signal(false)
+  readonly editMetadata = signal(false)
+  readonly metadata = linkedModel({
+    initialValue: null,
+    compute: () => this.document()?.metadata || {},
+    update: (value) => {
+      //
+    }
+  })
 
   constructor() {
     effect(
@@ -288,5 +306,37 @@ export class KnowledgeDocumentChunkComponent {
       event.preventDefault()
       this.saveEdit()
     }
+  }
+
+  // Metadata options
+  toggleShowMetadata() {
+    this.showMetadata.update((state) => !state) 
+  }
+
+  toggleEditMetadata() {
+    this.editMetadata.update((state) => !state)
+  }
+
+  updateMetadata(name: string, value: string) {
+    this.metadata.update((meta) => ({
+      ...meta,
+      [name]: value
+    }))
+  }
+
+  saveMetadata() {
+    this.loading.set(true)
+    this.knowledgeDocumentService.update(this.document().id, {
+      metadata: this.metadata()
+    }).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.editMetadata.set(false)
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 }
