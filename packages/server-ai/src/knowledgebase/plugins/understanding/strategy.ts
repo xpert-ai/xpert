@@ -102,10 +102,10 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 				return await wrapAgentExecution(
 					async () => {
 						const documentIds = value.map((v) => v.id)
-						let documents: IKnowledgeDocument<ChunkMetadata>[] = []
+						let documents: IKnowledgeDocument[] = []
 						if (isTest) {
 							const task = await this.taskService.findOne(knowledgeTaskId)
-							documents = task.context.documents.filter((doc) => documentIds.includes(doc.id)) as IKnowledgeDocument<ChunkMetadata>[]
+							documents = task.context.documents.filter((doc) => documentIds.includes(doc.id)) as IKnowledgeDocument[]
 						} else {
 							const results = await this.documentService.findAll({
 								where: {

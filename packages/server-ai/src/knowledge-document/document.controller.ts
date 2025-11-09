@@ -25,7 +25,7 @@ import {
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, RequestContext } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { Queue } from 'bull'
 import { In } from 'typeorm'

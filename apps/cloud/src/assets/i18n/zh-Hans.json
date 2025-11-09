@@ -546,7 +546,16 @@
       "Install": "安装",
       "Details": "详情",
       "InstallPlugins": "安装插件",
-      "Database": "数据库"
+      "Database": "数据库",
+      "Category_database": "数据库",
+      "Category_Integration": "系统集成",
+      "Category_integration": "系统集成",
+      "Category_tools": "工具",
+      "Category_doc-source": "文档源",
+      "Category_set": "集合",
+      "Category_vlm": "视觉模型",
+      "Category_model": "语言模型",
+      "Category_vector-store": "向量数据库"
     },
     "MENU": {
       "Plugins": "插件",
@@ -2406,6 +2415,10 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "MetadataFields": "元数据字段",
+      "MetadataFieldsDescription": "元数据是关于文档的数据，用于描述文档的属性。元数据可以帮助您更好地组织和管理文档。",
+      "AddField": "添加字段",
+      "Metadata": "元数据",
       "RelevanceScore": "相关性得分",
       "NoDocumentYet": "还没有文档",
       "DeleteWithExpertsWarning": "已有数字专家引用此知识库，删除将造成访问异常",
@@ -3317,7 +3330,18 @@
       "SortBy": "排序",
       "EnableSortBy": "启用排序",
       "SortByTip": "对列表中的项目进行排序。例如，您可以按名称或日期排序。",
-      "SortDescending": "降序排序"
+      "SortDescending": "降序排序",
+      "KnowledgeMetadataFilterTooltip": "元数据过滤是使用元数据属性（例如标签、类别或访问权限）来细化和控制系统内相关信息的检索过程。",
+      "MetadataFilterMode_disabled": "禁用",
+      "MetadataFilterMode_automatic": "自动",
+      "MetadataFilterMode_manual": "手动",
+      "MetadataFilterMode_disabled_Description": "不应用任何元数据过滤，检索将基于内容相似度进行。",
+      "MetadataFilterMode_automatic_Description": "智能体根据上下文自动应用元数据过滤",
+      "MetadataFilterMode_manual_Description": "手动选择和应用元数据过滤条件，以自定义检索结果。",
+      "KnowledgeMetadataFilter": "元数据过滤",
+      "MetadataFilterConditions": "元数据过滤条件",
+      "SelectFieldsAsMetadataFilter": "选择用作元数据过滤条件的字段",
+      "Conditions": "条件"
     },
     "MCP": {
       "Logs": "日志",

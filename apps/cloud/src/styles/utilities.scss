@@ -30,6 +30,10 @@
     @apply text-sm font-medium leading-4;
   }
 
+  .body-xs-regular {
+    @apply font-body text-sm font-normal leading-4;
+  }
+
   .code-sm-semibold {
     font-size: 13px;
     font-weight: 600;

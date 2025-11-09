@@ -7,7 +7,7 @@ import { routeAnimations } from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { PluginAPIService } from '@metad/cloud/state'
 import { OverlayAnimations } from '@metad/core'
-import { debouncedSignal, myResource } from '@metad/ocap-angular/core'
+import { debouncedSignal, myResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { PluginComponent } from '../plugin/plugin.component'
 import { TPlugin, TPluginWithDownloads } from '../types'
@@ -23,6 +23,7 @@ import { TPlugin, TPluginWithDownloads } from '../types'
 })
 export class PluginsMarketplaceComponent {
   readonly pluginAPI = inject(PluginAPIService)
+  readonly i18n = new NgmI18nPipe()
 
   readonly #plugins = myResource<
     { url: string },
@@ -57,8 +58,8 @@ export class PluginsMarketplaceComponent {
     if (searchText) {
       return plugins.filter(
         (plugin) =>
-          plugin.name.toLowerCase().includes(searchText) ||
-          plugin.description.toLowerCase().includes(searchText) ||
+          this.i18n.transform(plugin.displayName).toLowerCase().includes(searchText) ||
+          this.i18n.transform(plugin.description)?.toLowerCase().includes(searchText) ||
           plugin.author?.name.toLowerCase().includes(searchText) ||
           plugin.keywords?.some((keyword) => keyword.toLowerCase().includes(searchText))
       )

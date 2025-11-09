@@ -47,7 +47,7 @@ export class WorkflowTriggerValidator {
 			}
 		}
 
-		if (event.draft.team.agent.options?.hidden && triggerNodes.length === 0) {
+		if (event.draft.team.agent?.options?.hidden && triggerNodes.length === 0) {
 			items.push({
 				ruleCode: 'TRIGGER_NODE_MISSING',
 				field: 'nodes',

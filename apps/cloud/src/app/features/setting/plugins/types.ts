@@ -1,9 +1,9 @@
-import { IconDefinition } from '@cloud/app/@core'
+import { I18nObject, IconDefinition } from '@cloud/app/@core'
 
 export type TPlugin = {
   name: string
-  displayName: string
-  description: string
+  displayName: I18nObject
+  description: I18nObject
   version: string
   category: string
   icon: IconDefinition

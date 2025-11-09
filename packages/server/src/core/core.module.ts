@@ -3,7 +3,8 @@ import {
 	Module,
 	NestModule
 } from '@nestjs/common';
-import { RequestContextMiddleware, TenantDomainMiddleware } from './context';
+import { RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
+import { RequestContextMiddleware as DeprecatedRCM, TenantDomainMiddleware } from './context';
 import { FileStorageModule } from './file-storage';
 import { DatabaseModule } from '../database/database.module';
 
@@ -42,7 +43,8 @@ import { DatabaseModule } from '../database/database.module';
 })
 export class CoreModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(RequestContextMiddleware).forRoutes('*');
+		consumer.apply(DeprecatedRCM).forRoutes('*');
 		consumer.apply(TenantDomainMiddleware).forRoutes('*');
+		consumer.apply(RequestContextMiddleware).forRoutes('*');
 	}
 }

@@ -57,7 +57,21 @@
         <ngm-slide-toggle [(ngModel)]="docEnabled" (ngModelChange)="updateDoc({disabled: !$event})"/>
       </div>
     </div>
+
+    <div class="w-[1px] h-4 mx-2 bg-divider-regular"></div>
     
+    <div class="flex items-center rounded-lg border-[0.5px] border-components-button-secondary-border bg-components-button-secondary-bg shadow-sm backdrop-blur-[5px] relative z-20">
+      <button
+        type="button"
+        class="inline-flex items-center px-2.5 py-2 rounded-l-lg hover:bg-state-base-hover disabled:cursor-not-allowed disabled:hover:bg-transparent"
+        (click)="toggleShowMetadata()"
+      >
+        <i class="ri-file-info-line"></i>
+        <span class="text-[13px] leading-[16px] font-medium capitalize px-0.5 ml-0.5 text-components-button-secondary-accent-text">
+          {{ 'PAC.Knowledgebase.Metadata' | translate: {Default: 'Metadata'} }}
+        </span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -123,6 +137,66 @@
       </ul>
     </div>
   </div>
+
+  @if (showMetadata()) {
+    <div class="shrink-0 w-[300px] md:w-[360px] lg:w-[400px] flex flex-col top-1 bottom-1 bg-components-card-bg shadow-lg z-20 p-4">
+      <div class="flex justify-between items-center mb-4">
+        <div class="text-text-primary system-xl-semibold">
+          {{ 'PAC.Knowledgebase.MetadataFields' | translate: {Default: 'Metadata Fields'} }}
+        </div>
+        <div class="flex items-center">
+          @if (editMetadata()) {
+            <button type="button" class="btn disabled:btn-disabled btn-primary btn-small"
+              (click)="saveMetadata()"
+            >
+              <i class="ri-edit-line mr-1"></i>
+              <div>保存</div>
+            </button>
+          } @else {
+            <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small"
+              (click)="toggleEditMetadata()"
+            >
+              <i class="ri-edit-line mr-1"></i>
+              <div>编辑</div>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-y-1 p-4 overflow-auto grow">
+        @for (field of metadataSchema(); track field.key) {
+          <div class="flex items-start space-x-2">
+            <div class="text-sm font-medium w-[128px] shrink-0 items-center truncate py-1 text-text-tertiary">{{field.key}}</div>
+            <div class="w-[244px] shrink-0">
+              @if (editMetadata()) {
+                <input class="text-sm p-1 truncate text-text-primary outline-none rounded-sm hover:bg-neutral-50 focus:bg-components-input-bg"
+                  [ngModel]="metadata()[field.key]" (ngModelChange)="updateMetadata(field.key, $event)">
+              } @else {
+                <div class="text-sm p-1 text-text-secondary">{{ metadata()[field.key] || '-' }}</div>
+              }
+            </div>
+          </div>
+        }
+
+        @for (g of STANDARD_METADATA_FIELDS; track g) {
+          <div class="flex items-center space-x-1 mt-2">
+            <div class="text-text-secondary system-xs-semibold-uppercase">{{ g.group | i18n }}</div>
+          </div>
+
+          @for (field of g.fields; track field.key) {
+            <div class="flex items-start space-x-2">
+              <div class="text-sm font-medium w-[128px] shrink-0 items-center truncate py-1 text-text-tertiary">{{ field.label | i18n }}</div>
+              <div class="w-[244px] shrink-0">
+                <div class="text-sm py-1 text-text-secondary">
+                  {{ metadata()[field.key] || '-' }}
+                </div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
 
   @if (sideExpand() || editChunk()) {
     <div class="shrink-0 w-[300px] md:w-[400px] lg:w-[500px] flex flex-col absolute right-1 top-1 bottom-1 rounded-2xl border border-solid border-divider-subtle bg-components-card-bg shadow-lg z-20">

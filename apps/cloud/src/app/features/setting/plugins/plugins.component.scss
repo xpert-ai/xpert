@@ -4,7 +4,13 @@
 
 .tab {
   @apply hover:bg-components-card-bg;
+  .badge {
+    @apply border-neutral-200;
+  }
 }
 .tab.active {
   @apply bg-components-panel-bg text-text-primary;
+  .badge {
+    @apply border-neutral-300;
+  }
 }

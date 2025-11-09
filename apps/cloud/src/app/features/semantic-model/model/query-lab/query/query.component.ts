@@ -21,11 +21,11 @@ import { NgmCopilotService, provideCopilotDropAction } from '@metad/copilot-angu
 import { calcEntityTypePrompt, convertQueryResultColumns, getErrorMessage } from '@metad/core'
 import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@metad/ocap-angular/entity'
 import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
-import { C_MEASURES, VariableProperty, measureFormatter, nonNullable, uniqBy, wrapBrackets } from '@metad/ocap-core'
+import { C_MEASURES, VariableProperty, measureFormatter, nonNullable, wrapBrackets } from '@metad/ocap-core'
 import { limitSelect, serializeName } from '@metad/ocap-sql'
 import { TranslateService } from '@ngx-translate/core'
 import { injectToastr, ModelQuery, Store } from 'apps/cloud/src/app/@core'
-import { isEqual, isPlainObject } from 'lodash-es'
+import { isEqual, isPlainObject, uniqBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Subscription, combineLatest, firstValueFrom, of } from 'rxjs'
 import { catchError, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators'
@@ -384,7 +384,7 @@ ${calcEntityTypePrompt(entityType)}
   }
 
   queryMDX(statement: string) {
-    return this.modelService.dataSource$.value.query({ statement, forceRefresh: true }).pipe(
+    return this.modelService.dataSource().query({ statement, forceRefresh: true }).pipe(
       tap((result) => {
         const { status, error, schema } = result
         let { data } = result
@@ -446,7 +446,7 @@ ${calcEntityTypePrompt(entityType)}
   }
 
   _query(statement: string) {
-    return this.modelService.originalDataSource.query({ statement, forceRefresh: true }).pipe(
+    return this.modelService.origiDataSource().query({ statement, forceRefresh: true }).pipe(
       tap((result) => {
         const { status, error, schema } = result
         let { data } = result
@@ -470,7 +470,7 @@ ${calcEntityTypePrompt(entityType)}
           if (isPlainObject(data)) {
             data = [data]
           }
-          if (columns.length === 0 && data.length > 0) {
+          if (columns.length === 0 && data?.length > 0) {
             columns.push(...typeOfObj(data[0]))
           }
 

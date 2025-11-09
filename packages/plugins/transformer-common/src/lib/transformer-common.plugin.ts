@@ -1,6 +1,6 @@
-import chalk from 'chalk';
 import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-ai/plugin-sdk';
 import { ConfigModule } from '@nestjs/config';
+import chalk from 'chalk';
 import { DefaultTransformerStrategy } from './transformer.strategy';
 import { TextTransformerStrategy } from './text-transformer.strategy';
 
@@ -9,11 +9,6 @@ import { TextTransformerStrategy } from './text-transformer.strategy';
 	 * An array of modules that will be imported and registered with the plugin.
 	 */
 	imports: [ConfigModule],
-	/**
-	 * An array of Entity classes. The plugin (or ORM) will
-	 * register these entities for use within the application.
-	 */
-	entities: [],
 
 	providers: [
 		DefaultTransformerStrategy,

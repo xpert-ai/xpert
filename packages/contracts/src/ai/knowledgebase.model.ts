@@ -1,5 +1,5 @@
 import { ICopilotModel } from './copilot-model.model'
-import { TAvatar } from '../types'
+import { I18nObject, TAvatar } from '../types'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IKnowledgeDocument } from './knowledge-doc.model'
 import { IXpert } from './xpert.model'
@@ -107,6 +107,11 @@ export type TKnowledgebase = {
   recall?: TKBRecallParams
 
   status?: string
+  
+  /**
+   * Metadata custom field definition array
+   */
+	metadataSchema?: KBMetadataFieldDef[]
 
   /**
    * API service enabled
@@ -172,6 +177,16 @@ export type DocumentMetadata = IDocChunkMetadata & {
     relevanceScore?: number
 } & Record<string, any>;
 
+export type MetadataFieldType =
+  | 'string' | 'number' | 'boolean' | 'enum' | 'datetime' | 'string[]' | 'number[]' | 'object';
+
+export type KBMetadataFieldDef = {
+  key: string;                // Unique key, e.g. "department"
+  label?: I18nObject;             // Display label
+  type: MetadataFieldType;
+  enumValues?: string[];
+  description?: string;
+}
 
 /**
  * Channel name for knowledgebase pipeline

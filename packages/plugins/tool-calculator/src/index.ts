@@ -19,7 +19,6 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
     description: 'Provide calculator functionality',
     keywords: ['calculator', 'math', 'operations'],
     author: 'XpertAI Team',
-    homepage: 'https://xpertai.cloud',
   },
   config: {
     schema: ConfigSchema,

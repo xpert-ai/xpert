@@ -1,4 +1,4 @@
-import { IKnowledgebase, IUser, KnowledgebasePermission, TAvatar } from '@metad/contracts'
+import { IKnowledgebase, IUser, KBMetadataFieldDef, KnowledgebasePermission, TAvatar } from '@metad/contracts'
 import { Exclude, Expose } from 'class-transformer'
 
 @Exclude()
@@ -20,6 +20,9 @@ export class KnowledgebasePublicDTO implements Partial<IKnowledgebase> {
 
 	@Expose()
 	declare status: string
+
+	@Expose()
+	metadataSchema?: KBMetadataFieldDef[];
 
 	@Expose()
 	declare permission?: KnowledgebasePermission

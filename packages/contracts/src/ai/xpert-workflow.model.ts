@@ -2,7 +2,7 @@ import { I18nObject, IconDefinition, letterStartSUID } from "../types"
 import { ICopilotModel } from "./copilot-model.model"
 import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
-import { TStateVariable, TXpertParameter } from "./xpert.model"
+import { TKBRetrievalSettings, TStateVariable, TXpertParameter } from "./xpert.model"
 
 export type TWorkflowNodeMeta = {
   name: string
@@ -312,6 +312,7 @@ export interface IWFNKnowledgeRetrieval extends IWorkflowNode {
   queryVariable: string
   knowledgebases: string[]
   recall?: TKBRecallParams
+  retrieval?: TKBRetrievalSettings
 }
 
 export interface IWFNSubflow extends IWorkflowNode {

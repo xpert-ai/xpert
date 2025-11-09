@@ -1,4 +1,4 @@
-import { Metadata } from '@metad/contracts'
+import { KnowledgeDocumentMetadata, TWFCase } from '@metad/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 export class KnowledgeSearchQuery implements IQuery {
@@ -12,7 +12,8 @@ export class KnowledgeSearchQuery implements IQuery {
 			query: string
 			k?: number
 			score?: number
-			filter?: Metadata
+			filter?: KnowledgeDocumentMetadata
+			filtering_conditions?: TWFCase
 			source: string
 			id?: string // Request ID for tracing the request
 		}

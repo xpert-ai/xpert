@@ -11,7 +11,7 @@ export class KnowledgebaseGetOneHandler implements IQueryHandler<KnowledgebaseGe
 	constructor(private readonly knowledgebaseService: KnowledgebaseService) {}
 
 	public async execute(command: KnowledgebaseGetOneQuery): Promise<Knowledgebase> {
-		const { id } = command.input
-		return await this.knowledgebaseService.findOne(id)
+		const { id, options } = command.input
+		return await this.knowledgebaseService.findOne(id, options)
 	}
 }

@@ -16,8 +16,8 @@
             fill="currentColor"
           ></path>
         </svg>
-        <div class="text-xs font-semibold font-body uppercase h-[19px] rounded-tr-xl bg-gray-100 pr-2 leading-5 text-text-tertiary">
-          {{ plugin.category }}
+        <div class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-gray-100 pr-2 leading-5 text-text-tertiary">
+          {{ 'PAC.Plugin.Category_' + plugin.category | translate: {Default: plugin.category} }}
         </div>
       </div>
       <div class="flex">

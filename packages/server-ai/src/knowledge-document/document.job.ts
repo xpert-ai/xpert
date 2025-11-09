@@ -1,5 +1,5 @@
 import { Document } from '@langchain/core/documents'
-import { IKnowledgebase, IKnowledgeDocument, KBDocumentStatusEnum, Metadata } from '@metad/contracts'
+import { IKnowledgebase, IKnowledgeDocument, KBDocumentStatusEnum, KnowledgeDocumentMetadata } from '@metad/contracts'
 import { estimateTokenUsage } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { runWithRequestContext, UserService } from '@metad/server-core'
@@ -45,7 +45,7 @@ export class KnowledgeDocumentConsumer {
 		})
 	}
 
-	async _processJob(knowledgebase: IKnowledgebase, docs: IKnowledgeDocument<Metadata>[], job: Job) {
+	async _processJob(knowledgebase: IKnowledgebase, docs: IKnowledgeDocument<KnowledgeDocumentMetadata>[], job: Job) {
 		const copilot = knowledgebase?.copilotModel?.copilot
 		let vectorStore: KnowledgeDocumentStore
 		try {

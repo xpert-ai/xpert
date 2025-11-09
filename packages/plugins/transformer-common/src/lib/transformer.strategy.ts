@@ -1,3 +1,4 @@
+import { Document, DocumentInterface } from '@langchain/core/documents'
 import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
@@ -12,9 +13,13 @@ import {
   IDocumentTransformerStrategy,
   isRemoteFile,
   TDocumentAsset,
+  XpFileSystem
 } from '@xpert-ai/plugin-sdk'
+import fs from 'fs'
+import mammoth from 'mammoth'
+import TurndownService from 'turndown'
+import { randomUUID } from 'crypto'
 import fsPromises from 'fs/promises'
-import { Document, DocumentInterface } from '@langchain/core/documents'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
@@ -136,8 +141,10 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
           data = await this.processEpub(fileAbsPath)
           break
         case 'doc':
+          data = await this.processDoc(fileAbsPath)
+          break
         case 'docx':
-          data = await this.processDocx(fileAbsPath)
+          data = await this.processDocx(fileAbsPath, xpFileSystem)
           break
         case 'pptx':
           data = await this.processPPT(fileAbsPath)
@@ -208,8 +215,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     return await loader.load()
   }
 
-  async processDocx(url: string): Promise<Document<Record<string, any>>[]> {
-    const loader = new DocxLoader(url)
+  async processDoc(filePath: string): Promise<Document<Record<string, any>>[]> {
+    const loader = new DocxLoader(filePath)
     return await loader.load()
   }
 
@@ -242,4 +249,72 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
       })
     ]
   }
+
+  /**
+   * Parse DOCX => Markdown + Extract Images + Return LangChain Documents
+   */
+  async processDocx(filePath: string, xpFileSystem: XpFileSystem): Promise<Document[]> {
+    const imageOutputDir = xpFileSystem.fullPath('images')
+
+    if (!fs.existsSync(imageOutputDir)) {
+      fs.mkdirSync(imageOutputDir, { recursive: true })
+    }
+
+    const imageAssets: TDocumentAsset[] = []
+    const result = await mammoth.convertToHtml(
+      { path: filePath },
+      {
+        convertImage: mammoth.images.imgElement(async (image) => {
+          // Reading image binary
+          const imageBuffer = await image.read();
+          const ext = image.contentType?.split("/")[1] ?? "png";
+
+          // Random filename
+          const fileName = `${randomUUID()}.${ext}`;
+
+          // Save to disk
+          const url = await xpFileSystem.writeFile(`images/${fileName}`, imageBuffer)
+
+          imageAssets.push({
+            type: 'image',
+            filePath: `images/${fileName}`,
+            url: url
+          });
+
+          // Returns the src path used internally by the HTML.
+          return {
+            src: url, // Used to generate HTML/Markdown
+          };
+        }),
+      },
+    )
+
+    const html = result.value // HTML text
+
+    // --- 2) HTML → Markdown ---
+    const md = htmlToMarkdown(html)
+
+    // --- 3) Generate LangChain Document[] ---
+    const docs: Document[] = [
+      new Document({
+        pageContent: md,
+        metadata: {
+          source: filePath,
+          assets: imageAssets
+        },
+      }),
+    ]
+
+    return docs
+  }
+}
+
+/**
+ * Convert html → markdown
+ */
+function htmlToMarkdown(html: string): string {
+  const turndown = new TurndownService()
+  const md = turndown.turndown(html)
+
+  return md
 }
