@@ -1,11 +1,16 @@
-import { IQuery } from '@nestjs/cqrs'
+import { Query } from '@nestjs/cqrs'
+import { FindOneOptions } from 'typeorm';
+import { Knowledgebase } from '../knowledgebase.entity';
 
-export class KnowledgebaseGetOneQuery implements IQuery {
+export class KnowledgebaseGetOneQuery extends Query<Knowledgebase> {
 	static readonly type = '[Knowledgebase] Get one'
 
 	constructor(
 		public readonly input: {
-			id: string
+			id: string;
+			options?: FindOneOptions<Knowledgebase>
 		}
-	) {}
+	) {
+		super()
+	}
 }

@@ -1,15 +1,17 @@
 import { mapTranslationLanguage } from '@metad/contracts'
 import { omit } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { AIModelProviderNotFoundException, RequestContext } from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
+import { t } from 'i18next';
 import { AIModelGetProviderQuery, ModelProvider } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../copilot-user'
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../../core/errors'
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
+
 
 @QueryHandler(CopilotModelGetChatModelQuery)
 export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotModelGetChatModelQuery> {
@@ -61,6 +63,12 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 		const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
 			new AIModelGetProviderQuery(copilot.modelProvider.providerName)
 		)
+
+		if (!modelProvider) {
+			throw new AIModelProviderNotFoundException(
+				t('server-ai:Error.AIModelProviderNotFound', {name: copilot.modelProvider.providerName})
+			)
+		}
 
 		return modelProvider.getModelInstance(
 			copilotModel.modelType,

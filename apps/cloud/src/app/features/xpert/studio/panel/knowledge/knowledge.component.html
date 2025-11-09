@@ -94,15 +94,31 @@
   </div>
 
   @if (filtering_mode() === 'automatic') {
-    <div class="body-xs-regular px-4 text-text-tertiary">选择用作元数据过滤条件的字段</div>
-    <div class="mt-1 px-4">
-      @for (field of filteringFields(); track field) {
-        <div class="flex items-center mb-1">
-          <div class="text-sm text-text-secondary">{{field.key}}</div>
+    <div class="body-xs-regular px-4 text-text-tertiary">
+      <div class="mb-2">
+        选择用作元数据过滤条件的字段
+      </div>
+
+      <button type="button" class="group w-full rounded-lg p-3"
+        #trigger="cdkMenuTriggerFor"
+        [cdkMenuTriggerFor]="filterFieldsMenu.template"
+        [cdkMenuTriggerData]="{trigger: trigger}"
+      >
+        <div class="inline-block">
+          @for (field of filteringFields(); track field) {
+            <div class="inline-block text-sm text-text-secondary">{{field.key}}</div>
+            ,
+          }
         </div>
+        <i class="ri-arrow-down-s-line inline-flex w-4 h-4 ml-1 justify-center items-center text-text-tertiary group-hover:text-text-primary"></i>
+      </button>
+    </div>
+    <!-- <div class="mt-1 px-4">
+      @for (field of filteringFields(); track field) {
+        <div class="inline-block text-sm text-text-secondary">{{field.key}}</div>
         ,
       }
-    </div>
+    </div> -->
   }
 </div>
 

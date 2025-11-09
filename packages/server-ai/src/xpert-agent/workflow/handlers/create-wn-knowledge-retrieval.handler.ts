@@ -85,7 +85,9 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 
 export function createWorkflowRetriever(queryBus: QueryBus, entity: IWFNKnowledgeRetrieval) {
 	const retrievers = entity.knowledgebases?.map((id) => ({
-		retriever: createKnowledgeRetriever(queryBus, id, entity?.recall ?? {}),
+		retriever: createKnowledgeRetriever(queryBus, id, {
+			recall: entity?.recall ?? {},
+		}),
 		weight: entity?.recall?.weight
 	}))
 	const retriever = retrievers?.length

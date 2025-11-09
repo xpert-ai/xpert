@@ -354,7 +354,7 @@
 
 
 <ng-template #metadataTemplate let-ref="ref">
-  <div class="p-4 rounded-2xl shadow-lg bg-components-panel-bg-blur">
+  <div class="p-4 rounded-2xl shadow-lg w-[500px] overflow-hidden bg-components-panel-bg-blur">
     <div class="flex justify-between">
       <h3 class="text-lg font-medium leading-6 text-text-primary">
         {{ 'PAC.Knowledgebase.MetadataFields' | translate: {Default: 'Metadata Fields'} }}
@@ -378,7 +378,7 @@
         <div
           class="group/item cursor-pointer hover:shadow-xs rounded-md border border-components-panel-border-subtle bg-components-panel-on-panel-item-bg">
           <div class="flex h-8 items-center justify-between px-2">
-            <div class="flex h-full items-center space-x-1 text-sm text-text-tertiary">
+            <div class="flex-1 flex h-full items-center space-x-1 text-sm text-text-tertiary">
               @switch (field.type) {
                 @case ('string') {
                   <i class="ri-text-snippet"></i>
@@ -392,9 +392,12 @@
               }
               <input class="system-sm-medium max-w-[250px] px-1 truncate text-text-primary outline-none rounded-sm focus:bg-components-input-bg" [ngModel]="field.key" (ngModelChange)="updateMetadataField(i, 'key', $event)">
               <div class="system-xs-regular shrink-0 px-2 rounded-md"
-                [cdkMenuTriggerFor]="metadataTypeMenu"
-                [cdkMenuTriggerData]="{index: i}"
+              [cdkMenuTriggerFor]="metadataTypeMenu"
+              [cdkMenuTriggerData]="{index: i}"
               >{{field.type}}</div>
+              <input class="system-sm-medium grow px-1 truncate text-text-primary outline-none rounded-sm focus:bg-components-input-bg"
+                [placeholder]="'PAC.KEY_WORDS.Description' | translate: {Default: 'description'}"
+                [ngModel]="field.description" (ngModelChange)="updateMetadataField(i, 'description', $event)">
             </div>
             <!-- <div class="system-xs-regular ml-2 shrink-0 text-text-tertiary group-hover/item:hidden">1个值</div> -->
             <div class="ml-2 hidden items-center space-x-1 text-text-tertiary group-hover/item:flex">

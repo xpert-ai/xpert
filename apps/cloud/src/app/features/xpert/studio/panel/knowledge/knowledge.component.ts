@@ -160,22 +160,8 @@ export class XpertStudioPanelKnowledgeComponent {
   })
 
   readonly filteringFields = computed(() => this.filteringFieldNames().map((field) => 
-    this.#metadataFields().find((f) => f.key === field)))
-
-  // updateMetaFilterField(field: string, value: boolean) {
-  //   this.#filteringFields.update((fields) => ({
-  //     ...(fields ?? {}),
-  //     [field]: value ? {} : null
-  //   }))
-  // }
-
-  // removeMetaFilterField(field: string) {
-  //   this.filteringFields.update((fields) => {
-  //     const updated = {...(fields ?? {})}
-  //     delete updated[field]
-  //     return updated
-  //   })
-  // }
+    this.#metadataFields().find((f) => f.key === field))
+  )
 
   openTest() {
     this.openedTest.set(true)
@@ -196,10 +182,6 @@ export class XpertStudioPanelKnowledgeComponent {
   useKnowledgebase(k: IKnowledgebase) {
     this.studioService.replaceKnowledgebase(this.id(), k)
   }
-
-  // updateRecall(value: TKBRecallParams) {
-  //   this.studioService.updateXpertAgentConfig({recalls: {...(this.recalls() ?? {}), [this.id()]: value}})
-  // }
 
   edit() {
     window.open(['/xpert', 'knowledges', this.knowledgebase().id].join('/'), '_blank')

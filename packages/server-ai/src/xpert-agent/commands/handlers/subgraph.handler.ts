@@ -20,7 +20,6 @@ import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -206,28 +205,49 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
 		if (knowledgebaseIds?.length) {
 			const recalls = team.agentConfig?.recalls
+			const retrievals = team.agentConfig?.retrievals
 			const recall = agent.options?.recall
-			const retrievers = knowledgebaseIds.map((id) => ({
-				retriever: createKnowledgeRetriever(this.queryBus, id, {...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {})}),
-				weight: recalls?.[id]?.weight
-			}))
-			const retriever = new EnsembleRetriever({
-				retrievers: retrievers.map(({retriever}) => retriever),
-				weights: retrievers.map(({weight}) => weight ?? 0.5),
-			  })
-			tools.push({
-				toolset: {
-					id: knowledgebaseIds.join(','),
-					provider: 'knowledgebase',
-					title: translate({en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
-				},
-				caller: agent.key,
-				tool: retriever.asTool({
-					name: "knowledge_retriever",
-					description: "Get knowledges about question.",
-					schema: z.string().describe(`key information of question`),
-				  }),
-			})
+			for (const id of knowledgebaseIds) {
+				const retriever = createKnowledgeRetriever(this.queryBus, id, {
+					recall: {...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {})},
+					retrieval: retrievals?.[id]
+				})
+				tools.push({
+					toolset: {
+						id: knowledgebaseIds.join(','),
+						provider: 'knowledgebase',
+						title: translate({en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
+					},
+					caller: agent.key,
+					tool: await retriever.toTool({
+						name: "retriever-" + id,
+					}),
+				})
+			}
+			// const retrievers = knowledgebaseIds.map((id) => ({
+			// 	retriever: createKnowledgeRetriever(this.queryBus, id, {
+			// 		recall: {...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {})},
+			// 		retrieval: retrievals?.[id]
+			// 	}),
+			// 	weight: recalls?.[id]?.weight
+			// }))
+			// const retriever = new EnsembleRetriever({
+			// 	retrievers: retrievers.map(({retriever}) => retriever),
+			// 	weights: retrievers.map(({weight}) => weight ?? 0.5),
+			//   })
+			// tools.push({
+			// 	toolset: {
+			// 		id: knowledgebaseIds.join(','),
+			// 		provider: 'knowledgebase',
+			// 		title: translate({en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
+			// 	},
+			// 	caller: agent.key,
+			// 	tool: retriever.asTool({
+			// 		name: "knowledge_retriever",
+			// 		description: "Get knowledges about question.",
+			// 		schema: z.string().describe(`key information of question`),
+			// 	  }),
+			// })
 		}
 
 		/**
