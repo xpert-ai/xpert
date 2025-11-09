@@ -205,24 +205,24 @@ export interface IKnowledgeDocument<T extends KnowledgeDocumentMetadata = Knowle
 }
 
 /**
- * 系统内置标准文档 Metadata 结构
+ * System built-in standard document Metadata structure
  */
 export interface StandardDocumentMetadata {
-  // ---- 文档信息 ----
-  originalFileName?: string;          // 原始文件名称，如 "Complex_SQL_QA.markdown"
-  originalFileSize?: string | null;  // 原始文件大小（若缺失显示为 "-"）
-  uploadTime?: string;                // 上传时间 ISO 格式
-  lastUpdatedTime?: string;          // 最后更新时间
-  source?: string;                   // 来源，如 "本地文件" / "网页导入" / "API"
+  // ---- Document Info ----
+  originalFileName?: string;          // Original file name, e.g. "Complex_SQL_QA.markdown"
+  originalFileSize?: string | null;   // Original file size (if missing, display as "-")
+  uploadTime?: string;                // Upload time in ISO format
+  lastUpdatedTime?: string;           // Last updated time
+  source?: string;                    // Source, e.g. "Local File" / "Web Import" / "API"
   
-  // ---- 技术参数 ----
-  segmentRule?: string;              // 分段规则，如 "通用"
-  segmentLength?: number;            // 每段最大长度（token 或 char）
-  averageSegmentLength?: string;     // 平均段落长度
-  segmentCount?: number;             // 段落数量
-  recallRate?: string;               // 召回次数统计，如 "0.00% (0/11)"
-  embedTime?: string;                // 嵌入耗时，如 "1.99 sec"
-  embedCost?: string | null;         // 嵌入花费（若无数据显示 "-"）
+  // ---- Technical Parameters ----
+  segmentRule?: string;               // Segmentation rule, e.g. "General"
+  segmentLength?: number;             // Maximum segment length (token or char)
+  averageSegmentLength?: string;      // Average segment length
+  segmentCount?: number;              // Number of segments
+  recallRate?: string;                // Recall count statistics, e.g. "0.00% (0/11)"
+  embedTime?: string;                 // Embedding time, e.g. "1.99 sec"
+  embedCost?: string | null;          // Embedding cost (if none, display as "-")
 }
 
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
@@ -270,11 +270,11 @@ export function classificateDocumentCategory(entity: Partial<IKnowledgeDocument>
 }
 
 /**
- * 系统标准 Metadata 字段定义常量
- * 可用于渲染、校验、排序、展示说明等
+ * System standard Metadata field definition constants
+ * It can be used for rendering, validation, sorting, displaying descriptions, etc.
  */
 export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFieldDef[] }[] = [
-  // 文档信息
+  // Document Info
   {
     group: {
       en_US: 'Document Info',
@@ -282,76 +282,76 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
     },
     fields: [
       {
-        key: 'originalFileName',
+        key: 'title',
         label: { en_US: 'Original File Name', zh_Hans: '原始文件名称' },
         type: 'string'
       },
-      {
-        key: 'originalFileSize',
-        label: { en_US: 'Original File Size', zh_Hans: '原始文件大小' },
-        type: 'string'
-      },
-      {
-        key: 'uploadTime',
-        label: { en_US: 'Upload Time', zh_Hans: '上传日期' },
-        type: 'datetime'
-      },
-      {
-        key: 'lastUpdatedTime',
-        label: { en_US: 'Last Updated Time', zh_Hans: '最后更新时间' },
-        type: 'datetime'
-      },
-      {
-        key: 'source',
-        label: { en_US: 'Source', zh_Hans: '来源' },
-        type: 'string'
-      }
+      // {
+      //   key: 'originalFileSize',
+      //   label: { en_US: 'Original File Size', zh_Hans: '原始文件大小' },
+      //   type: 'string'
+      // },
+      // {
+      //   key: 'uploadTime',
+      //   label: { en_US: 'Upload Time', zh_Hans: '上传日期' },
+      //   type: 'datetime'
+      // },
+      // {
+      //   key: 'lastUpdatedTime',
+      //   label: { en_US: 'Last Updated Time', zh_Hans: '最后更新时间' },
+      //   type: 'datetime'
+      // },
+      // {
+      //   key: 'source',
+      //   label: { en_US: 'Source', zh_Hans: '来源' },
+      //   type: 'string'
+      // }
     ]
   },
-  // 技术参数
-  {
-    group: {
-      en_US: 'Technical Parameters',
-      zh_Hans: '技术参数'
-    },
-    fields: [
-      {
-        key: 'segmentRule',
-        label: { en_US: 'Segmentation Rule', zh_Hans: '分段规则' },
-        type: 'string'
-      },
-      {
-        key: 'segmentLength',
-        label: { en_US: 'Segment Length', zh_Hans: '段落长度' },
-        type: 'number'
-      },
-      {
-        key: 'averageSegmentLength',
-        label: { en_US: 'Average Segment Length', zh_Hans: '平均段落长度' },
-        type: 'string'
-      },
-      {
-        key: 'segmentCount',
-        label: { en_US: 'Segment Count', zh_Hans: '段落数量' },
-        type: 'number'
-      },
-      {
-        key: 'recallRate',
-        label: { en_US: 'Recall Count', zh_Hans: '召回次数' },
-        type: 'string'
-      },
-      {
-        key: 'embedTime',
-        label: { en_US: 'Embedding Time', zh_Hans: '嵌入时间' },
-        type: 'string'
-      },
-      {
-        key: 'embedCost',
-        label: { en_US: 'Embedding Cost', zh_Hans: '嵌入花费' },
-        type: 'string'
-      }
-    ]
-  }
+  // Technical Parameters
+  // {
+  //   group: {
+  //     en_US: 'Technical Parameters',
+  //     zh_Hans: '技术参数'
+  //   },
+  //   fields: [
+  //     {
+  //       key: 'segmentRule',
+  //       label: { en_US: 'Segmentation Rule', zh_Hans: '分段规则' },
+  //       type: 'string'
+  //     },
+  //     {
+  //       key: 'segmentLength',
+  //       label: { en_US: 'Segment Length', zh_Hans: '段落长度' },
+  //       type: 'number'
+  //     },
+  //     {
+  //       key: 'averageSegmentLength',
+  //       label: { en_US: 'Average Segment Length', zh_Hans: '平均段落长度' },
+  //       type: 'string'
+  //     },
+  //     {
+  //       key: 'segmentCount',
+  //       label: { en_US: 'Segment Count', zh_Hans: '段落数量' },
+  //       type: 'number'
+  //     },
+  //     {
+  //       key: 'recallRate',
+  //       label: { en_US: 'Recall Count', zh_Hans: '召回次数' },
+  //       type: 'string'
+  //     },
+  //     {
+  //       key: 'embedTime',
+  //       label: { en_US: 'Embedding Time', zh_Hans: '嵌入时间' },
+  //       type: 'string'
+  //     },
+  //     {
+  //       key: 'embedCost',
+  //       label: { en_US: 'Embedding Cost', zh_Hans: '嵌入花费' },
+  //       type: 'string'
+  //     }
+  //   ]
+  // }
 ] as const;
 
 

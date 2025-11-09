@@ -2415,6 +2415,10 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "MetadataFields": "元数据字段",
+      "MetadataFieldsDescription": "元数据是关于文档的数据，用于描述文档的属性。元数据可以帮助您更好地组织和管理文档。",
+      "AddField": "添加字段",
+      "Metadata": "元数据",
       "RelevanceScore": "相关性得分",
       "NoDocumentYet": "还没有文档",
       "DeleteWithExpertsWarning": "已有数字专家引用此知识库，删除将造成访问异常",
@@ -3333,7 +3337,11 @@
       "MetadataFilterMode_manual": "手动",
       "MetadataFilterMode_disabled_Description": "不应用任何元数据过滤，检索将基于内容相似度进行。",
       "MetadataFilterMode_automatic_Description": "智能体根据上下文自动应用元数据过滤",
-      "MetadataFilterMode_manual_Description": "手动选择和应用元数据过滤条件，以自定义检索结果。"
+      "MetadataFilterMode_manual_Description": "手动选择和应用元数据过滤条件，以自定义检索结果。",
+      "KnowledgeMetadataFilter": "元数据过滤",
+      "MetadataFilterConditions": "元数据过滤条件",
+      "SelectFieldsAsMetadataFilter": "选择用作元数据过滤条件的字段",
+      "Conditions": "条件"
     },
     "MCP": {
       "Logs": "日志",

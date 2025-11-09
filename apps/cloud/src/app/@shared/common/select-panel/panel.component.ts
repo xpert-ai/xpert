@@ -1,7 +1,7 @@
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 import { CdkMenu, CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, contentChild, inject, input, model, TemplateRef, ViewChild } from '@angular/core'
+import { booleanAttribute, Component, computed, contentChild, inject, input, model, output, TemplateRef, ViewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { debouncedSignal, NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
@@ -45,6 +45,9 @@ export class NgmSelectPanelComponent {
   readonly searchable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+
+  // Output
+  readonly selected = output<any>()
 
   // Children
   @ViewChild(TemplateRef, { static: true })
@@ -91,7 +94,8 @@ export class NgmSelectPanelComponent {
     }
   }
 
-  selectOption(trigger: CdkMenuTrigger) {
+  selectOption(trigger: CdkMenuTrigger, value: any) {
+    this.selected.emit(value)
     if (!this.multiple() && trigger) {
       trigger.close()
     }

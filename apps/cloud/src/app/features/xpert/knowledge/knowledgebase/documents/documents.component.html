@@ -64,7 +64,7 @@
       #ref="cdkMenuTriggerFor"
       [cdkMenuTriggerData]="{ref: ref}">
       <i class="ri-file-info-line mr-1"></i>
-      元数据
+      {{ 'PAC.Knowledgebase.Metadata' | translate: {Default: 'Metadata'} }}
     </button>
     <button type="button" class="btn btn-primary btn-large flex justify-center items-center gap-2"
       [matTooltip]=" 'PAC.Knowledgebase.NewDocuments' | translate: {Default: 'New Documents' }"
@@ -311,19 +311,6 @@
   </div>
 </ng-template>
 
-<!-- <ng-template #settingsMenu let-doc="doc">
-  <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="enableDoc(doc)">
-      <i class="ri-checkbox-circle-line mr-1"></i>
-      {{ 'PAC.ACTIONS.Enable' | translate: {Default: "Enable"} }}
-    </div>
-    <div cdkMenuItem class="danger" (click)="disableDoc(doc)">
-      <i class="ri-close-circle-line mr-1"></i>
-      {{ 'PAC.ACTIONS.Disable' | translate: {Default: "Disable"} }}
-    </div>
-  </div>
-</ng-template> -->
-
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
     @if (doc.sourceType !== eKDocumentSourceType.FOLDER) {
@@ -365,12 +352,15 @@
       </button>
     </div>
 
-    <div class="system-sm-regular text-text-tertiary">元数据是关于文档的数据，用于描述文档的属性。元数据可以帮助您更好地组织和管理文档。</div>
+    <div class="system-sm-regular text-text-tertiary">
+      {{ 'PAC.Knowledgebase.MetadataFieldsDescription' | translate: {Default: 'Metadata is data about documents that describes the attributes of the documents. Metadata can help you better organize and manage documents.' } }}
+    </div>
 
     <div class="inline-block" >
       <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium mt-3" (click)="addMetadataField()">
         <i class="ri-add-large-line"></i>
-        添加元数据</button>
+        {{ 'PAC.Knowledgebase.AddField' | translate: {Default: 'Add Field'} }}
+      </button>
     </div>
 
     <div class="mt-3 space-y-1">

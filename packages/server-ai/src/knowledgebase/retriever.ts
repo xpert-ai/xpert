@@ -1,9 +1,16 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
-import { tool } from '@langchain/core/tools'
 import { CallbackManagerForRetrieverRun } from '@langchain/core/callbacks/manager'
 import { Document, DocumentInterface } from '@langchain/core/documents'
 import { BaseRetriever } from '@langchain/core/retrievers'
-import { ChatMessageEventTypeEnum, DocumentMetadata, TKBRecallParams, TKBRetrievalSettings } from '@metad/contracts'
+import { tool } from '@langchain/core/tools'
+import {
+	ChatMessageEventTypeEnum,
+	DocumentMetadata,
+	STANDARD_METADATA_FIELDS,
+	TKBRecallParams,
+	TKBRetrievalSettings,
+	TWFCase
+} from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
@@ -12,7 +19,6 @@ import { omit } from 'lodash'
 import z from 'zod'
 import { DocumentChunkDTO } from '../knowledge-document/dto'
 import { KnowledgebaseGetOneQuery, KnowledgeSearchQuery } from './queries'
-
 
 /**
  * Docs Retriever for signle Knowledgebase
@@ -38,9 +44,12 @@ export class KnowledgeRetriever extends BaseRetriever {
 
 	async _getRelevantDocuments(query: string, runManager?: CallbackManagerForRetrieverRun): Promise<Document[]> {
 		this.#logger.debug(`Retrieving knowledge documents for query: ${query}`)
+		if (this.options?.retrieval?.metadata?.filtering_mode === 'manual') {
+			return this.retrieve(query, null, this.options.retrieval.metadata.filtering_conditions)
+		}
 		return this.retrieve(query)
-		// this.metadata.knowledgebaseId = this.knowledgebaseId
 
+		// this.metadata.knowledgebaseId = this.knowledgebaseId
 		// try {
 		// 	const results = await this.queryBus.execute<KnowledgeSearchQuery, DocumentInterface<DocumentMetadata>[]>(
 		// 		new KnowledgeSearchQuery({
@@ -68,7 +77,7 @@ export class KnowledgeRetriever extends BaseRetriever {
 		// }
 	}
 
-	async retrieve(query: string, filter?: Record<string, any>): Promise<Document[]> {
+	async retrieve(query: string, filter?: Record<string, any>, filtering_conditions?: TWFCase): Promise<Document[]> {
 		this.metadata.knowledgebaseId = this.knowledgebaseId
 
 		try {
@@ -81,7 +90,8 @@ export class KnowledgeRetriever extends BaseRetriever {
 					score: this.options?.recall.score,
 					k: this.options?.recall.topK,
 					source: 'retriever',
-					filter
+					filter,
+					filtering_conditions
 				})
 			)
 			return results.map(
@@ -110,47 +120,78 @@ export class KnowledgeRetriever extends BaseRetriever {
 			  }
 			}
 		 */
-		const knowledgebase = await this.queryBus.execute(new KnowledgebaseGetOneQuery({id: this.knowledgebaseId, options: {
-							select: {
-								id: true,
-								name: true,
-								description: true,
-								metadataSchema: true
-							}
-						}}))
+		const knowledgebase = await this.queryBus.execute(
+			new KnowledgebaseGetOneQuery({
+				id: this.knowledgebaseId,
+				options: {
+					select: {
+						id: true,
+						name: true,
+						description: true,
+						metadataSchema: true
+					}
+				}
+			})
+		)
 		const schema: Record<string, z.ZodOptional<z.ZodTypeAny>> = {}
 		if (retrieval?.metadata?.filtering_mode === 'automatic') {
 			const filteringMetadataFields = retrieval.metadata?.fields
-			const filteringFields = Object.keys(filteringMetadataFields).map((field) => knowledgebase.metadataSchema?.find((_) => _.key === field))
+			const filteringFields = Object.keys(filteringMetadataFields).map(
+				(field) =>
+					knowledgebase.metadataSchema?.find((_) => _.key === field) ??
+					STANDARD_METADATA_FIELDS.flatMap((group) => group.fields).find((_) => _.key === field)
+			)
 			for (const field of filteringFields) {
 				if (field) {
 					switch (field.type) {
 						case 'string':
-							schema[field.key] = z.string().optional().describe(field.description || `Metadata field: ${field.key}`)
+							schema[field.key] = z
+								.string()
+								.optional()
+								.describe(field.description || `Metadata field: ${field.key}`)
 							break
 						case 'number':
-							schema[field.key] = z.number().optional().describe(field.description || `Metadata field: ${field.key}`)
+							schema[field.key] = z
+								.number()
+								.optional()
+								.describe(field.description || `Metadata field: ${field.key}`)
 							break
 						case 'boolean':
-							schema[field.key] = z.boolean().optional().describe(field.description || `Metadata field: ${field.key}`)
+							schema[field.key] = z
+								.boolean()
+								.optional()
+								.describe(field.description || `Metadata field: ${field.key}`)
 							break
 						default:
-							schema[field.key] = z.any().optional().describe(field.description || `Metadata field: ${field.key}`)
+							schema[field.key] = z
+								.any()
+								.optional()
+								.describe(field.description || `Metadata field: ${field.key}`)
 					}
 				}
 			}
 		}
-		return tool(async (params) => {
-			return this.retrieve(params.input, omit(params, 'input'))
-		}, {
-			...toolOptions,
-			name: toolOptions?.name ?? `retriever-${this.knowledgebaseId}`,
-			description: `Get knowledges from knowledgebase '${knowledgebase.name}', it be described by ` + knowledgebase.description,
-			schema: z.object({
-				...schema,
-				input: z.string().describe(`key information of question`)
-			})
-		})
+
+		return tool(
+			async (params) => {
+				if (retrieval?.metadata?.filtering_mode === 'manual') {
+					return this.retrieve(params.input, null, retrieval.metadata.filtering_conditions)
+				}
+
+				return this.retrieve(params.input, omit(params, 'input'))
+			},
+			{
+				...toolOptions,
+				name: toolOptions?.name ?? `retriever-${this.knowledgebaseId}`,
+				description:
+					`Get knowledges from knowledgebase '${knowledgebase.name}', it be described by ` +
+					knowledgebase.description,
+				schema: z.object({
+					...schema,
+					input: z.string().describe(`key information of question`)
+				})
+			}
+		)
 	}
 }
 

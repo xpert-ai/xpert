@@ -9,7 +9,7 @@ import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
-import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import { AgentStateAnnotation, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 @CommandHandler(CreateWNKnowledgeRetrievalCommand)
@@ -76,9 +76,9 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 				}),
 				ends: []
 			},
-			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-				return nextWorkflowNodes(graph, node.key, state)
-			}
+			// navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+			// 	return nextWorkflowNodes(graph, node.key, state)
+			// }
 		}
 	}
 }
@@ -87,6 +87,7 @@ export function createWorkflowRetriever(queryBus: QueryBus, entity: IWFNKnowledg
 	const retrievers = entity.knowledgebases?.map((id) => ({
 		retriever: createKnowledgeRetriever(queryBus, id, {
 			recall: entity?.recall ?? {},
+			retrieval: entity?.retrieval
 		}),
 		weight: entity?.recall?.weight
 	}))

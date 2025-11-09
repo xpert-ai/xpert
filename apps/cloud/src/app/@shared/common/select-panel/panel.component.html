@@ -21,7 +21,7 @@
         <li #opElem="cdkOption" class="relative px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer"
           [class.bg-gray-100]="opElem.isSelected()"
           [cdkOption]="option.value"
-          (click)="selectOption(trigger)"
+          (click)="selectOption(trigger, option.value)"
         >
           @if (optionTemplate()) {
             <ng-container *ngTemplateOutlet="optionTemplate(); context: { $implicit: option, search: search() }"></ng-container>

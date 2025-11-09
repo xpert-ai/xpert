@@ -202,10 +202,6 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		 */
 		@Query('data', ParseJsonPipe) params: TVectorSearchParams
 	) {
-		console.log(RequestContext.getLanguageCode())
-		console.log(RequestContext.currentUserId())
-		console.log(RequestContext.currentTenantId())
-		console.log(RequestContext.getOrganizationId())
 		try {
 			const result = await this.service.getChunks(id, params)
 			return {

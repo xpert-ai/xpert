@@ -1,5 +1,5 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { DocumentMetadata, IKnowledgebase, IKnowledgeDocumentChunk, KnowledgebaseTypeEnum } from '@metad/contracts'
+import { DocumentMetadata, IKnowledgebase, IKnowledgeDocumentChunk, KnowledgebaseTypeEnum, TWFCase } from '@metad/contracts'
 import { getPythonErrorMessage } from '@metad/server-common'
 import { Inject, InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
@@ -11,6 +11,8 @@ import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeSearchQuery } from '../knowledge-search.query'
 import { KnowledgeRetrievalLogService } from '../../logs'
 import { KnowledgeDocumentChunkService } from '../../../knowledge-document/chunk/chunk.service'
+import { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
+import { buildMetadataCondition } from '../../types'
 
 @QueryHandler(KnowledgeSearchQuery)
 export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearchQuery> {
@@ -21,6 +23,9 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
 	@Inject(KnowledgeDocumentChunkService)
 	private readonly chunkService: KnowledgeDocumentChunkService
+
+	@Inject(KnowledgeDocumentService)
+	private readonly documentService: KnowledgeDocumentService
 
 	constructor(private readonly knowledgebaseService: KnowledgebaseService) {}
 
@@ -58,7 +63,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 						}
 					}))
 				} else {
-					docs = await this.similaritySearchWithScore(kb, query, k ?? kb.recall?.topK ?? 1000, filter)
+					docs = await this.similaritySearchWithScore(kb, query, k ?? kb.recall?.topK ?? 1000, filter, command.input.filtering_conditions)
 				}
 
 				// Log the retrieval results
@@ -102,12 +107,41 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		kb: IKnowledgebase,
 		query: string,
 		k: number,
-		filter?: Record<string, any>
+		filter?: Record<string, any>,
+		filtering_conditions?: TWFCase
 	): Promise<Document[]> {
 		const vectorStore = await this.knowledgebaseService.getVectorStore(kb.id, true)
 		this.logger.debug(
 			`SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.modelProvider?.providerName}' and model='${vectorStore.embeddingModel}'`
 		)
+		// Filtering documents by metadata filter
+		// Currently, filter is only used for filtering document metadata fields.
+		if (filter || filtering_conditions) {
+			const documents = await this.documentService.findAll({
+				where: {
+					knowledgebaseId: kb.id,
+					metadata: filtering_conditions ? buildMetadataCondition(filtering_conditions) : Raw((alias) => {
+						const conditions = Object.entries(filter).map(([key, value]) => {
+							return `${alias} ->> '${key}' = '${value}'`
+						})
+						return conditions.join(' AND ')
+					})
+				},
+				select: {
+					id: true
+				}
+			})
+			if (documents.items.length === 0) {
+				return []
+			}
+			const documentIds = documents.items.map((doc) => doc.id)
+			// Add documentId filter to vector store search
+			filter = {
+				documentId: {
+					in: documentIds
+				}
+			}
+		}
 		const items = await vectorStore.similaritySearchWithScore(query, k, filter)
 		const chunkMap = new Map<string, Document<ChunkMetadata>>()
 		// Split into parent and child chunks

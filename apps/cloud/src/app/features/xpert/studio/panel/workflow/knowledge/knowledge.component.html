@@ -90,6 +90,36 @@
 
   <div class="h-[0.5px] bg-divider-subtle"></div>
 
+  <div class="flex grow items-center justify-between pr-4">
+    <div class="flex items-center">
+      <div class="system-sm-semibold-uppercase mr-0.5 text-text-secondary">
+        {{ 'PAC.Xpert.KnowledgeMetadataFilter' | translate: { Default: 'Metadata Filtering' } }}
+      </div>
+      <div class="w-4 h-4 flex justify-center items-center shrink-0 p-[1px] text-text-tertiary hover:text-text-primary"
+        [matTooltip]="'PAC.Xpert.KnowledgeMetadataFilterTooltip' | translate: { Default: 'Metadata filtering is the process of refining and controlling the retrieval of relevant information within a system using metadata attributes such as tags, categories, or access permissions.' }"
+        matTooltipPosition="above"
+      >
+        <i class="ri-information-line"></i>
+      </div>
+    </div>
+    <div class="flex items-center">
+      <button type="button" class="group btn disabled:btn-disabled btn-secondary btn-small"
+        #trigger="cdkMenuTriggerFor"
+        [cdkMenuTriggerFor]="filterModeMenu.template"
+        [cdkMenuTriggerData]="{trigger: trigger}"
+      >
+        {{ 'PAC.Xpert.MetadataFilterMode_' + filtering_mode() | translate: { Default: filtering_mode() | capitalize } }}
+        <i class="ri-arrow-down-s-line w-4 h-4 ml-1 flex justify-center items-center text-text-tertiary group-hover:text-text-primary"></i>
+      </button>
+    </div>
+  </div>
+
+  @if (filtering_mode() === 'manual') {
+    <xp-knowledge-case-form class="pr-2" [(case)]="filtering_conditions" [fields]="metadataFields()" />
+  }
+  
+  <div class="h-[0.5px] bg-divider-subtle"></div>
+
   <div class="group/collapse flex items-center">
     <div class="ml-2 flex grow items-center">
       <div class="text-sm font-semibold uppercase flex h-6 cursor-pointer items-center text-text-secondary"
@@ -154,6 +184,8 @@
   }
   
 </div>
+
+<ngm-select-panel #filterModeMenu [selectOptions]="filterModeOptions" [(ngModel)]="filtering_mode" />
 
 <ng-template #recallMenu>
   <div cdkMenu class="p-4">

@@ -56,7 +56,9 @@
     <div class="ml-4 flex grow items-center">
       <div class="flex grow items-center justify-between pr-4">
         <div class="flex items-center">
-          <div class="system-sm-semibold-uppercase mr-0.5 text-text-secondary">元数据过滤</div>
+          <div class="system-sm-semibold-uppercase mr-0.5 text-text-secondary">
+            {{ 'PAC.Xpert.KnowledgeMetadataFilter' | translate: { Default: 'Metadata Filtering' } }}
+          </div>
           <div class="w-4 h-4 flex justify-center items-center shrink-0 p-[1px] text-text-tertiary hover:text-text-primary"
             [matTooltip]="'PAC.Xpert.KnowledgeMetadataFilterTooltip' | translate: { Default: 'Metadata filtering is the process of refining and controlling the retrieval of relevant information within a system using metadata attributes such as tags, categories, or access permissions.' }"
             matTooltipPosition="above"
@@ -76,13 +78,16 @@
           @if (filtering_mode() === 'manual') {
             <div class="ml-1">
               <div class="inline-block" data-state="closed">
-                <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-small">
+                <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-small"
+                  [cdkMenuTriggerFor]="conditionsMenu"
+                  #trigger="cdkMenuTriggerFor"
+                  [cdkMenuTriggerData]="{trigger: trigger}">
                   <i class="ri-filter-3-line w-4 h-4 flex justify-center items-center mr-1"></i>
-                  条件
+                  {{ 'PAC.Xpert.Conditions' | translate: { Default: 'Conditions' } }}
                   <div
                     class="text-xs font-medium uppercase ml-1 flex items-center rounded-[5px] border border-divider-deep px-1 font-mono text-text-tertiary"
                   >
-                    2
+                    {{ filtering_conditions()?.conditions.length || 0}}
                   </div>
                 </button>
               </div>
@@ -96,29 +101,27 @@
   @if (filtering_mode() === 'automatic') {
     <div class="body-xs-regular px-4 text-text-tertiary">
       <div class="mb-2">
-        选择用作元数据过滤条件的字段
+        {{ 'PAC.Xpert.SelectFieldsAsMetadataFilter' | translate: { Default: 'Select fields to use as metadata filtering conditions' } }}
       </div>
 
-      <button type="button" class="group w-full rounded-lg p-3"
+      <button type="button" class="group w-full rounded-lg px-3 py-1 flex flex-wrap"
         #trigger="cdkMenuTriggerFor"
         [cdkMenuTriggerFor]="filterFieldsMenu.template"
         [cdkMenuTriggerData]="{trigger: trigger}"
       >
-        <div class="inline-block">
+        <div class="inline-block grow">
           @for (field of filteringFields(); track field) {
             <div class="inline-block text-sm text-text-secondary">{{field.key}}</div>
             ,
           }
         </div>
         <i class="ri-arrow-down-s-line inline-flex w-4 h-4 ml-1 justify-center items-center text-text-tertiary group-hover:text-text-primary"></i>
+        <div class="w-4 h-4 inline-flex justify-center items-center cursor-pointer text-text-quaternary hover:text-text-tertiary"
+          (click)="clearFilteringFields()">
+          <i class="ri-close-circle-line"></i>
+        </div>
       </button>
     </div>
-    <!-- <div class="mt-1 px-4">
-      @for (field of filteringFields(); track field) {
-        <div class="inline-block text-sm text-text-secondary">{{field.key}}</div>
-        ,
-      }
-    </div> -->
   }
 </div>
 
@@ -175,3 +178,18 @@
 <ngm-select-panel #filterFieldsMenu multiple [selectOptions]="metadataFieldsOptions()"
   [(ngModel)]="filteringFieldNames"
 />
+
+<ng-template #conditionsMenu let-trigger="trigger">
+  <div class="pb-4 pt-2 rounded-2xl shadow-lg w-[420px] overflow-hidden bg-components-panel-bg-blur">
+    <div class="flex justify-between px-2 mb-2">
+      <h3 class="text-lg font-medium leading-6 text-text-primary">
+        {{ 'PAC.Xpert.MetadataFilterConditions' | translate: {Default: 'Metadata filtering conditions'} }}
+      </h3>
+      <button type="button" class="btn btn-ghost btn-small w-7 h-7 rounded-full"
+        (click)="trigger.close()">
+        <i class="ri-close-line text-lg"></i>
+      </button>
+    </div>
+    <xp-knowledge-case-form class="pr-2" [(case)]="filtering_conditions" [fields]="metadataFields()" />
+  </div>
+</ng-template>

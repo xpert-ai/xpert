@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { CloseSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { IKnowledgebase, TXpertTeamNode, KnowledgebaseService, AiModelTypeEnum, getErrorMessage, TKBRecallParams, TSelectOption, STANDARD_METADATA_FIELDS, KBMetadataFieldDef } from 'apps/cloud/src/app/@core'
+import { IKnowledgebase, TXpertTeamNode, KnowledgebaseService, AiModelTypeEnum, getErrorMessage, TKBRecallParams, TSelectOption, STANDARD_METADATA_FIELDS, KBMetadataFieldDef, WorkflowLogicalOperator } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertKnowledgeTestComponent } from './test/test.component'
@@ -16,7 +16,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { omit } from 'lodash-es'
 import { Router } from '@angular/router'
 import { MatSliderModule } from '@angular/material/slider'
-import { KnowledgeRecallParamsComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { KnowledgeRecallParamsComponent, XpertKnowledgeCaseFormComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { NgmSelectPanelComponent } from '@cloud/app/@shared/common'
@@ -43,7 +43,8 @@ import { attrModel, linkedModel } from '@metad/ocap-angular/core'
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     XpertKnowledgeTestComponent,
-    KnowledgeRecallParamsComponent
+    KnowledgeRecallParamsComponent,
+    XpertKnowledgeCaseFormComponent
   ],
   host: {
     tabindex: '-1'
@@ -76,7 +77,7 @@ export class XpertStudioPanelKnowledgeComponent {
   readonly loading = computed(() => this.#knowledgebase()?.loading)
 
   readonly copilotModel = computed(() => this.knowledgebase()?.copilotModel)
-  readonly #metadataFields = computed(() => {
+  readonly metadataFields = computed(() => {
     const schema: KBMetadataFieldDef[] = [...(this.knowledgebase()?.metadataSchema || [])]
     STANDARD_METADATA_FIELDS.forEach(({fields}) => {
       fields.forEach((field) => {
@@ -89,7 +90,7 @@ export class XpertStudioPanelKnowledgeComponent {
   })
 
   readonly metadataFieldsOptions = computed(() => {
-    const schema = this.#metadataFields()
+    const schema = this.metadataFields()
     return schema.map((field) => ({
       value: field.key,
       label: field.label || field.key,
@@ -128,6 +129,7 @@ export class XpertStudioPanelKnowledgeComponent {
   })
   readonly metadataFiltering = attrModel(this.retrieval, 'metadata')
   readonly filtering_mode = attrModel(this.metadataFiltering, 'filtering_mode', 'disabled')
+  readonly filtering_conditions = attrModel(this.metadataFiltering, 'filtering_conditions', {caseId: '0', logicalOperator: WorkflowLogicalOperator.AND, conditions: []})
   readonly filterModeOptions: TSelectOption[] = [
     {
       value: 'disabled',
@@ -160,7 +162,7 @@ export class XpertStudioPanelKnowledgeComponent {
   })
 
   readonly filteringFields = computed(() => this.filteringFieldNames().map((field) => 
-    this.#metadataFields().find((f) => f.key === field))
+    this.metadataFields().find((f) => f.key === field))
   )
 
   openTest() {
@@ -189,5 +191,9 @@ export class XpertStudioPanelKnowledgeComponent {
 
   moveToNode() {
     this.xpertStudioComponent.centerGroupOrNode(this.id())
+  }
+
+  clearFilteringFields() {
+    this.#filteringFields.set({})
   }
 }
