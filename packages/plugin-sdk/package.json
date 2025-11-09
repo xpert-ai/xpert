@@ -28,6 +28,7 @@
     "path": "*",
     "passport-jwt": "*",
     "stream": "*",
+    "yaml": "*",
     "zod": "*"
   }
 }
