@@ -76,10 +76,10 @@ ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
 RUN apt-get update && apt-get install -y sudo
 RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/node
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN mkdir -p /ms-playwright && chown -R node:node /ms-playwright
-# Install os dependencies but no browsers
-RUN npx playwright install-deps
+# ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# RUN mkdir -p /ms-playwright && chown -R node:node /ms-playwright
+# # Install os dependencies but no browsers
+# RUN npx playwright install-deps
 
 # Install python uvx
 RUN apt-get install -y python3-pip && \

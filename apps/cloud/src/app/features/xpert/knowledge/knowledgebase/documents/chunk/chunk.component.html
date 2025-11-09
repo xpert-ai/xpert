@@ -150,14 +150,14 @@
               (click)="saveMetadata()"
             >
               <i class="ri-edit-line mr-1"></i>
-              <div>保存</div>
+              <div>{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</div>
             </button>
           } @else {
             <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small"
               (click)="toggleEditMetadata()"
             >
               <i class="ri-edit-line mr-1"></i>
-              <div>编辑</div>
+              <div>{{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }}</div>
             </button>
           }
         </div>
