@@ -546,7 +546,16 @@
       "Install": "安装",
       "Details": "详情",
       "InstallPlugins": "安装插件",
-      "Database": "数据库"
+      "Database": "数据库",
+      "Category_database": "数据库",
+      "Category_Integration": "系统集成",
+      "Category_integration": "系统集成",
+      "Category_tools": "工具",
+      "Category_doc-source": "文档源",
+      "Category_set": "集合",
+      "Category_vlm": "视觉模型",
+      "Category_model": "语言模型",
+      "Category_vector-store": "向量数据库"
     },
     "MENU": {
       "Plugins": "插件",

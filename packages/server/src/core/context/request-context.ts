@@ -10,6 +10,9 @@ import cls from 'cls-hooked';
 import { ExtractJwt } from 'passport-jwt';
 import { JsonWebTokenError, verify } from 'jsonwebtoken';
 
+/**
+ * @deprecated use RequestContext from @xpert-ai/plugin-sdk
+ */
 export class RequestContext {
 	readonly id: number;
 	request: Request;

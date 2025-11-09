@@ -14,6 +14,7 @@ import { debouncedSignal, linkedModel, NgmTooltipDirective } from '@metad/ocap-a
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
+import { I18nService } from '@cloud/app/@shared/i18n'
 
 @Component({
   standalone: true,
@@ -38,6 +39,7 @@ export class PluginsComponent {
   readonly router = inject(Router)
   readonly _category = injectQueryParams<'plugins' | 'marketplace'>('category')
   readonly releaseHelpUrl = injectHelpWebsite('/docs/plugin/release-to-xpert-marketplace')
+  readonly i18nService = inject(I18nService)
 
   readonly category = linkedModel({
     initialValue: this._category() ?? 'plugins',
@@ -96,7 +98,7 @@ export class PluginsComponent {
 
   readonly categoriesOptions = computed(() => {
     return this.#categories().map((category) => ({
-      label: category,
+      label: this.i18nService.instant('PAC.Plugin.Category_' + category, {Default: category}),
       value: category
     }))
   })

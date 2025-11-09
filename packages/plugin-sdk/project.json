@@ -24,10 +24,13 @@
         "format": ["cjs", "esm"],
         "external": [
           "@langchain/core",
+          "@langchain/openai",
+          "@langchain/langgraph",
           "@metad/contracts",
           "@nestjs/common",
           "@nestjs/core",
           "@nestjs/microservices",
+          "axios",
           "lodash-es",
           "i18next-fs-backend",
           "i18next",
@@ -35,10 +38,16 @@
           "amqplib",
           "mqtt",
           "nats",
+          "node:async_hooks",
+          "node:http",
+          "node:crypto",
           "zod",
+          "jsonwebtoken",
+          "passport-jwt",
           "fs",
           "stream",
-          "path"
+          "path",
+          "yaml"
         ]
       }
     },
