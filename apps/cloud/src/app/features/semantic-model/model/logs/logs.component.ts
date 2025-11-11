@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
-import { toObservable } from '@angular/core/rxjs-interop'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
@@ -11,10 +10,19 @@ import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { Copy2Component, NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
-import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
-import { DateRelativePipe, ISemanticModelQueryLog, OrderTypeEnum, QueryStatusEnum, routeAnimations } from '../../../../@core'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
+import { Observable } from 'rxjs'
+import { delayWhen, filter, map, switchMap, tap } from 'rxjs/operators'
+import {
+  DateRelativePipe,
+  ISemanticModelQueryLog,
+  OrderTypeEnum,
+  QueryStatusEnum,
+  routeAnimations
+} from '../../../../@core'
 import { ModelComponent } from '../model.component'
-import { NgxJsonViewerModule } from 'ngx-json-viewer';
+import { SemanticModelService } from '../model.service'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
 
 @Component({
   standalone: true,
@@ -30,7 +38,7 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
     DateRelativePipe,
     NgmSelectComponent,
     NgxJsonViewerModule,
-    Copy2Component,
+    Copy2Component
   ],
   selector: 'semanctic-model-logs',
   templateUrl: './logs.component.html',
@@ -44,6 +52,8 @@ export class SemancticModelLogsComponent {
 
   readonly semanticModelService = inject(SemanticModelServerService)
   readonly modelComponent = inject(ModelComponent)
+  readonly modelService = inject(SemanticModelService)
+  readonly i18nService = injectI18nService()
 
   readonly loading = signal(false)
   readonly pageSize = 20
@@ -56,40 +66,69 @@ export class SemancticModelLogsComponent {
 
   readonly timeRangeValue = model<TimeRangeEnum>(TimeRangeEnum.Last7Days)
   readonly timeRange = computed(() => calcTimeRange(this.timeRangeValue()))
-  readonly timeRange$ = toObservable(this.timeRange)
+  // readonly timeRange$ = toObservable(this.timeRange)
+  readonly cubes = this.modelService.cubes
+  readonly cubesOptions = computed(() => this.cubes().map((cube) => ({ label: cube.caption, value: cube.name })))
+  readonly cube = model<string>(null)
+
+  readonly statusOptions = [
+    {
+      label: this.i18nService.instant('PAC.MODEL.QueryLog.Status_Pending', { Default: 'Pending' }),
+      value: QueryStatusEnum.PENDING
+    },
+    {
+      label: this.i18nService.instant('PAC.MODEL.QueryLog.Status_Running', { Default: 'Running' }),
+      value: QueryStatusEnum.RUNNING
+    },
+    {
+      label: this.i18nService.instant('PAC.MODEL.QueryLog.Status_Success', { Default: 'Success' }),
+      value: QueryStatusEnum.SUCCESS
+    },
+    {
+      label: this.i18nService.instant('PAC.MODEL.QueryLog.Status_Failed', { Default: 'Failed' }),
+      value: QueryStatusEnum.FAILED
+    }
+  ]
+  readonly status = model<QueryStatusEnum>(null)
 
   readonly preview = signal<ISemanticModelQueryLog>(null)
 
   constructor() {
-    this.timeRange$.subscribe(() => {
+    effect(() => {
+      const timeRange = this.timeRange()
+      const cube = this.cube()
+      const status = this.status()
       this.logs.set([])
       this.currentPage.set(0)
       this.done.set(false)
-      this.loadLogs()
-    })
+      this.loadLogs({ cube, status, timeRange, currentPage: 0 })
+    }, { allowSignalWrites: true })
   }
 
-  loadLogs = effectAction((origin$) => {
+  loadLogs = effectAction((origin$: Observable<{ cube: string; status: QueryStatusEnum; timeRange: string[]; currentPage: number }>) => {
     return origin$.pipe(
       delayWhen(() => this.modelId$.pipe(filter((id) => !!id))),
-      switchMap(() => {
+      switchMap(({ cube, status, timeRange, currentPage }) => {
         this.loading.set(true)
         return this.semanticModelService.getLogs(
           this.modelComponent.model.id,
           {
+            where: { cube: cube || undefined, status: status || undefined },
             relations: ['createdBy'],
             order: { updatedAt: OrderTypeEnum.DESC },
             take: this.pageSize,
-            skip: this.currentPage() * this.pageSize
+            skip: currentPage * this.pageSize
           },
-          this.timeRange()
+          timeRange
+        ).pipe(
+          map(({ items, total }) => ({ items, total, currentPage }))
         )
       }),
       tap({
-        next: ({ items, total }) => {
+        next: ({ items, total, currentPage }) => {
           this.logs.update((state) => [...state, ...items])
           this.currentPage.update((state) => ++state)
-          if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) {
+          if (items.length < this.pageSize || currentPage * this.pageSize >= total) {
             this.done.set(true)
           }
           this.loading.set(false)
@@ -103,7 +142,7 @@ export class SemancticModelLogsComponent {
 
   onIntersection() {
     if (!this.loading() && !this.done()) {
-      this.loadLogs()
+      this.loadLogs({ timeRange: this.timeRange(), cube: this.cube(), status: this.status(), currentPage: this.currentPage() })
     }
   }
 }

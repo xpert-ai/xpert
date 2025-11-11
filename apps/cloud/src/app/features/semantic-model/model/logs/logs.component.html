@@ -5,7 +5,12 @@
 </div>
 
 <div class="flex items-center mb-2 gap-2">
-  <ngm-select placeholder="select time range" icon="ri-calendar-line" [selectOptions]="TimeRanges" [(ngModel)]="timeRangeValue" class="min-w-[150px] rounded-lg shadow-sm" />
+  <ngm-select [placeholder]="'PAC.MODEL.SelectCube' | translate: {Default: 'Select a cube'}" icon="ri-instance-line"
+    [selectOptions]="cubesOptions()" [(ngModel)]="cube" class="min-w-[150px] rounded-lg shadow-sm" />
+  <ngm-select [placeholder]="'PAC.MODEL.SelectTimeRange' | translate: {Default: 'Select a time range'}" icon="ri-calendar-line"
+    [selectOptions]="TimeRanges" [(ngModel)]="timeRangeValue" class="min-w-[150px] rounded-lg shadow-sm" />
+  <ngm-select [placeholder]="'PAC.MODEL.QueryLog.SelectStatus' | translate: {Default: 'Select a status'}" icon="ri-lightbulb-line"
+    [selectOptions]="statusOptions" [(ngModel)]="status" class="min-w-[150px] rounded-lg shadow-sm" />
 </div>
 
 <div class="w-full relative overflow-auto flex-1"
