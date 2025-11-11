@@ -110,7 +110,7 @@
       <div class="mb-2 shrink-0 pl-2 font-semibold leading-6 text-text-primary">{{ results().length }} {{ 'PAC.Knowledgebase.RecallParagraphs' | translate: {Default: 'recall paragraphs'} }}</div>
       <div class="grow space-y-2">
         @for (chunk of results(); track chunk.id; let i = $index) {
-          <xp-knowledge-chunk [chunk]="chunk" [index]="i"/>
+          <xp-knowledge-chunk showMetadata [chunk]="chunk" [index]="i"/>
         }
       </div>
     </div>

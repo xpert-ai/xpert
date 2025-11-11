@@ -869,7 +869,7 @@ export class SemanticModelService {
     )
   }
 
-  selectTableSamples(table: string, k: number = 10) {
+  selectTableSamples(table: string, k = 10) {
     return this.originalDataSource$.pipe(
       filter(nonNullable),
       take(1),

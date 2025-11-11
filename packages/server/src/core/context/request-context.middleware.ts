@@ -18,6 +18,9 @@ export class RequestContextMiddleware implements NestMiddleware {
 	}
 }
 
+/**
+ * @deprecated use runWithRequestContext from @xpert-ai/plugin-sdk
+ */
 export function runWithRequestContext(req, next: () => void) {
 	const requestContext = new RequestContext(req, null);
 	const session =

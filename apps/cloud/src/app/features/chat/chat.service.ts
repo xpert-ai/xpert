@@ -94,4 +94,8 @@ export class ChatPlatformService extends ChatService {
   gotoTask(taskId: string) {
     this.#router.navigate(['/chat/tasks', taskId])
   }
+
+  isPublic(): boolean {
+    return false
+  }
 }

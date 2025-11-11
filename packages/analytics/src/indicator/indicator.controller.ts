@@ -1,6 +1,7 @@
+import { IndicatorStatusEnum, IPagination, TIndicatorDraft } from '@metad/contracts';
+import { CrudController, PaginationParams, ParseJsonPipe, transformWhere, UUIDValidationPipe } from '@metad/server-core';
 import { Body, ClassSerializerInterceptor, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { CrudController, PaginationParams, ParseJsonPipe, transformWhere, UUIDValidationPipe } from '@metad/server-core';
 import {
 	ApiTags,
 	ApiBearerAuth,
@@ -8,7 +9,6 @@ import {
 	ApiResponse
 } from '@nestjs/swagger';
 import { FindOneOptions, FindManyOptions, ObjectLiteral, DeepPartial } from 'typeorm'
-import { IPagination, TIndicatorDraft } from '@metad/contracts';
 import { Indicator } from './indicator.entity';
 import { IndicatorService } from './indicator.service';
 import { IndicatorPublicDTO } from './dto';
@@ -52,7 +52,7 @@ export class IndicatorController extends CrudController<Indicator> {
 		return await this.indicatorService.findAll({
 			where: {
 				...((where ?? {}) as ObjectLiteral),
-				isActive: true,
+				status: IndicatorStatusEnum.RELEASED,
 				visible: true,
 				// visibility: Visibility.Public
 			},
@@ -109,7 +109,7 @@ export class IndicatorController extends CrudController<Indicator> {
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get('app')
 	async app(@Query('$query', ParseJsonPipe) options?: FindManyOptions<Indicator>) {
-		return this.queryBus.execute(new IndicatorMyQuery({...options, where: {isActive: true, visible: true, isApplication: true}}))
+		return this.queryBus.execute(new IndicatorMyQuery({...options, where: {status: IndicatorStatusEnum.RELEASED, visible: true, isApplication: true}}))
 	}
 
 	@Get('count')

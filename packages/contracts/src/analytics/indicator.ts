@@ -66,12 +66,12 @@ export type TIndicatorDraft = TIndicator & {
 
 export interface IIndicator extends IBasePerProjectEntityModel, TIndicator {
   draft?: TIndicatorDraft
-  /**
-   * Is active: Activate / Deactivate
-   * 
-   * @deprecated use status instead
-   */
-  isActive?: boolean
+  // /**
+  //  * Is active: Activate / Deactivate
+  //  * 
+  //  * @deprecated use status instead
+  //  */
+  // isActive?: boolean
   
   /**
    * Visibilty in public or secret or private

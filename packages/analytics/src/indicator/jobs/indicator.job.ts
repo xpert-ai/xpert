@@ -53,8 +53,8 @@ export class EmbeddingIndicatorsConsumer {
 			)
 			const namespace = createIndicatorNamespace(projectId)
 			// Clear existing indicators in the namespace
-			const items = await store.search(namespace)
-			for await (const item of items) {
+			const existingItems = await store.search(namespace)
+			for await (const item of existingItems) {
 				await store.delete(namespace, item.key)
 			}
 

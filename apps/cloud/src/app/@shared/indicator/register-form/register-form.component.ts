@@ -43,6 +43,7 @@ import {
   shareReplay,
   startWith,
   switchMap,
+  take,
   tap
 } from 'rxjs'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
@@ -128,7 +129,7 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
     id: new FormControl<string>(null),
     name: new FormControl<string>(null, [Validators.required]),
     code: new FormControl<string>(null, [Validators.required]),
-    isActive: new FormControl<boolean>(true),
+    // isActive: new FormControl<boolean>(true),
     isApplication: new FormControl<boolean>(false),
     visible: new FormControl<boolean>(true),
     businessAreaId: new FormControl<string>(null),
@@ -191,7 +192,7 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
   private readonly dataSource$ = this.dataSourceName$.pipe(
     distinctUntilChanged(),
     filter(nonNullable),
-    switchMap((modelName) => this.dsCoreService.getDataSource(modelName))
+    switchMap((modelName) => this.dsCoreService.getDataSource(modelName).pipe(take(1)))
   )
   public readonly entitiesLoading$ = new BehaviorSubject<boolean>(false)
   public readonly entities$ = this.dataSource$.pipe(

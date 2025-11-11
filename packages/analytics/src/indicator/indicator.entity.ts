@@ -50,10 +50,10 @@ export class Indicator extends ProjectBaseEntity implements IIndicator {
   @Column({ nullable: true })
   name?: string
   
-  @ApiPropertyOptional({ type: () => Boolean })
-  @IsOptional()
-  @Column({ nullable: true })
-  isActive?: boolean
+  // @ApiPropertyOptional({ type: () => Boolean })
+  // @IsOptional()
+  // @Column({ nullable: true })
+  // isActive?: boolean
 
   @ApiPropertyOptional({ type: () => Boolean })
   @IsOptional()
@@ -155,7 +155,7 @@ export class Indicator extends ProjectBaseEntity implements IIndicator {
   @ApiProperty({ type: () => String })
   @IsString()
   @IsOptional()
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: IndicatorStatusEnum.DRAFT })
   status?: IndicatorStatusEnum
 
   @ApiProperty({ type: () => String, enum: EmbeddingStatusEnum })

@@ -4,6 +4,7 @@ export type TGatewayQueryEvent = {
   id: string
   organizationId: string
   dataSourceId: string
+  tenantId?: string
   modelId?: string
   isDraft: boolean
   body: {

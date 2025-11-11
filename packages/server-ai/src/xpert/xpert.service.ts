@@ -31,7 +31,7 @@ import { HttpException, HttpStatus, Injectable, Logger, NotFoundException, OnMod
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
-import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import { IWorkflowTriggerStrategy, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { assign, uniq, uniqBy } from 'lodash'
 import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
@@ -495,7 +495,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 			.map((node) => node.entity as IWFNTrigger)
 			.filter((node) => node.from && node.from !== 'chat')
 		for await (const node of triggers) {
-			let provider
+			let provider: IWorkflowTriggerStrategy<any>
 			try {
 				provider = this.triggerRegistry.get(node.from)
 			} catch (err) {
@@ -509,7 +509,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 				(payload) => {
 					// Handle the payload if needed
 					console.log(`Trigger '${node.from}' executed with payload:`, payload)
-					this.addTriggerJob(xpert.id, null, payload, {
+					this.addTriggerJob(xpert.id, null, payload.state, {
 						trigger: node,
 						isDraft: false,
 						from: 'job'

@@ -1169,6 +1169,8 @@
       "Error_EntityExists": "实体已存在",
       "XmlaSyncInfo": "创建后将自动同步维度和度量",
       "Logs": "日志",
+      "SelectCube": "选择数据集",
+      "SelectTimeRange": "选择时间范围",
       "Cube": "多维数据集",
       "QueryStatement": "查询语句",
       "QueryOptions": "查询条件",
@@ -1605,6 +1607,13 @@
       "VariableSchema": {
         "Name": "名称",
         "Caption": "标签"
+      },
+      "QueryLog": {
+        "Status_Pending": "等待中",
+        "Status_Running": "执行中",
+        "Status_Success": "成功",
+        "Status_Failed": "失败",
+        "SelectStatus": "选择状态"
       }
     },
     "BUSINESS_AREA": {
@@ -1805,6 +1814,12 @@
     },
     "Project": {
       "Project": "项目",
+      "PublishTooltip": "将草稿发布到生产版本。",
+      "PublishDraftTooltip": "只有指标草稿才能发布。",
+      "EmbeddingTooltip": "将指标嵌入到向量存储以便语义检索",
+      "EmbedReleasedTooltip": "只有已发布的指标才能嵌入。",
+      "EmbeddingStarted": "指标嵌入已启动",
+      "EmbeddingAll": "嵌入所有",
       "SelectAProject": "选择一个项目",
       "CreatedProject": "已创建项目",
       "NewProject": "新建项目",
@@ -2565,6 +2580,8 @@
       "NotAvailable": "不可用",
       "Search": "搜索",
       "Characters": "字符",
+      "Tokens": "词元",
+      "ChildChunks": "子分段",
       "Disabled": "已禁用",
       "Enabled": "已启用",
       "EditChunk": "编辑分块",

@@ -1,6 +1,6 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { DocumentMetadata, IKnowledgebase, IKnowledgeDocumentChunk, KnowledgebaseTypeEnum, TWFCase } from '@metad/contracts'
-import { getPythonErrorMessage } from '@metad/server-common'
+import { getPythonErrorMessage, isEmpty } from '@metad/server-common'
 import { Inject, InternalServerErrorException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { ChunkMetadata, RequestContext } from '@xpert-ai/plugin-sdk'
@@ -116,7 +116,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		)
 		// Filtering documents by metadata filter
 		// Currently, filter is only used for filtering document metadata fields.
-		if (filter || filtering_conditions) {
+		if (!isEmpty(filter) || filtering_conditions) {
 			const documents = await this.documentService.findAll({
 				where: {
 					knowledgebaseId: kb.id,

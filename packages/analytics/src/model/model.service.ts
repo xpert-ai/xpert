@@ -1,6 +1,7 @@
 import {
 	BusinessAreaRole,
 	ChecklistItem,
+	DataSourceProtocolEnum,
 	ISemanticModel,
 	IUser,
 	mapTranslationLanguage,
@@ -490,7 +491,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	async saveDraft(id: string, draft: TSemanticModelDraft) {
-		const model = await this.findOne(id)
+		const model = await this.findOne(id, {relations: ['dataSource', 'dataSource.type']})
 		if (model.draft?.version && model.draft.version !== draft.version) {
 			throw new NotFoundException(
 				await this.i18nService.t('analytics.Error.SemanticModelDraftVersionNotFound', {
@@ -508,7 +509,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			version: model.draft?.version ? model.draft.version + 1 : 1
 		} as TSemanticModelDraft
 
-		model.draft.checklist = await this.validate(model.draft)
+		model.draft.checklist = model.dataSource.type.protocol === DataSourceProtocolEnum.XMLA ? null : await this.validate(model.draft)
 
 		await this.repository.save(model)
 

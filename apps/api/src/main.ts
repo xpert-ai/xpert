@@ -1,8 +1,12 @@
 import './polyfills';
 import { bootstrap, prepare, seedModule } from '@metad/analytics'
-import { seedDefault } from '@metad/server-core'
+import { installPlugins, seedDefault } from '@metad/server-core'
 import yargs from 'yargs'
 import { pluginConfig } from './plugin-config'
+
+if (process.env.NODE_ENV !== 'production') {
+  installPlugins()
+}
 
 prepare()
 

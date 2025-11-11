@@ -53,7 +53,7 @@ import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { z } from 'zod'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, extractDataValue, limitDataResults, TChatBICredentials, tryFixDimensions } from './types'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, CHATBI_CUBES_CHANNEL, ChatBIContext, ChatBIToolsEnum, extractDataValue, limitDataResults, TChatBICredentials, tryFixDimensions } from './types'
 import { fixMeasure, markdownCubes, tryFixChartType, tryFixFormula } from '../../types'
 import { TBIContext } from '../../../types'
 import { GetBIContextQuery } from '../../../queries'
@@ -120,7 +120,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				}
 			} as TStateVariable,
 			{
-				name: 'chatbi_cubes',
+				name: CHATBI_CUBES_CHANNEL,
 				type: 'array[object]',
 				description: 'Cubes details for ChatBI',
 				reducer: cubesReducer,
@@ -321,7 +321,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				try {
 					// Fetch a context variable named "currentState".
 					// We have set this variable explicitly in each ToolNode invoke method that calls this tool.
-					const currentState = getCurrentTaskInput<{chatbi_cubes: any[]}>()
+					const currentState = getCurrentTaskInput<{[CHATBI_CUBES_CHANNEL]: any[]}>()
 
 					return await race(maximumWaitTime, async () => {
 						const cubes = []
@@ -332,7 +332,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							if (!entityType) {
 								// Update runtime indicators
 								const indicators = currentState[BIVariableEnum.INDICATORS]
-								if (indicators) {
+								if (indicators?.length) {
 									await this.updateIndicators(dsCoreService, indicators)
 								}
 
@@ -345,13 +345,16 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 								if (isEntitySet(entitySet)) {
 									entityType = entitySet.entityType
 									await this.setCubeCache(item.modelId, item.name, entityType)
-								} else {
+								} else if (entitySet instanceof Error) {
 									this.logger.error(`Get context error: `, entitySet.message)
+									this.logger.error(entitySet.stack)
+									throw entitySet
 								}
 							}
 
 							if (entityType) {
 								cubes.push({
+									modelId: item.modelId,
 									cubeName: item.name,
 									context: markdownModelCube({
 										modelId: item.modelId,
@@ -368,8 +371,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 						// Populated when a tool is called with a tool call from a model as input
 						return new Command({
 							update: {
-								chatbi_cubes: cubes,
-								chatbi_cubes_context: cubesReducer(currentState?.chatbi_cubes ?? [], cubes)
+								[CHATBI_CUBES_CHANNEL]: cubes,
+								chatbi_cubes_context: cubesReducer(currentState?.[CHATBI_CUBES_CHANNEL] ?? [], cubes)
 									.map(({ context }) => context)
 									.join('\n\n'),
 								// update the message history
@@ -409,7 +412,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			async (params, config: LangGraphRunnableConfig): Promise<string> => {
 				const { configurable } = config ?? {}
 				const { language } = configurable ?? {}
-				const currentState = getCurrentTaskInput()
+				const currentState = getCurrentTaskInput<{[CHATBI_CUBES_CHANNEL]: any[]}>()
 				this.logger.debug(`Execute tool '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(params, null, 2))
 
 				const answer = params as ChatAnswer
@@ -420,12 +423,25 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					await this.updateIndicators(dsCoreService, indicators)
 				}
 
+				const cubes = currentState[CHATBI_CUBES_CHANNEL]
+				
+				let dataSettings = answer.dataSettings
+				if (!dataSettings && cubes?.length === 1) {
+					dataSettings = {
+						dataSource: cubes[0].modelId,
+						entitySet: cubes[0].cubeName
+					}
+				}
+				if (!dataSettings) {
+					throw new Error('DataSettings is required to answer question')
+				}
+
 				let entityType = null
-				if (answer.dataSettings) {
+				// if (answer.dataSettings) {
 					// Make sure datasource exists
-					const _dataSource = await dsCoreService._getDataSource(answer.dataSettings.dataSource)
+					const _dataSource = await dsCoreService._getDataSource(dataSettings.dataSource)
 					const entity = await firstValueFrom(
-						_dataSource.selectEntitySet(answer.dataSettings.entitySet)
+						_dataSource.selectEntitySet(dataSettings.entitySet)
 					)
 					if (isEntitySet(entity)) {
 					    entityType = entity.entityType
@@ -439,7 +455,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 								...options,
 								calculatedMeasures: {
 									...(options.calculatedMeasures ?? {}),
-									[answer.dataSettings.entitySet]: answer.calculated_members.map((member) => {
+									[dataSettings.entitySet]: answer.calculated_members.map((member) => {
 										return {
 											...member,
 											name: tryFixMeasureName(member.name),
@@ -453,7 +469,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 						})
 						// Get the entityType after updating the calculated member
 						const entity = await firstValueFrom(
-							_dataSource.selectEntitySet(answer.dataSettings.entitySet)
+							_dataSource.selectEntitySet(dataSettings.entitySet)
 						)
 						if (isEntitySet(entity)) {
 							entityType = entity.entityType
@@ -461,7 +477,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							throw entity
 						}
 					}
-				}
+				// }
+				answer.dataSettings = dataSettings
 
 				// Fetch data for chart or table or kpi
 				if (answer.dimensions?.length || answer.measures?.length) {
@@ -487,6 +504,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 						return `The chart answer has already been provided to the user and the data of query are:\n${results}\n`
 					} catch(err) {
+						console.error(err)
 						throw new Error(getErrorMessage(err))
 					}
 				}

@@ -136,9 +136,21 @@
               </button>
               <button type="button" class="w-8 h-8 rounded-full text-slate-500 enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
                 [disabled]="!row.draft"
+                [matTooltip]="row.draft ? ('PAC.Project.PublishTooltip' | translate: {Default: 'Publish the draft to the production version.'}) : ('PAC.Project.PublishDraftTooltip' | translate: {Default: 'Only draft indicators can be published.'})"
+                matTooltipPosition="above"
                 (click)="publish(row)">
                 <i class="ri-send-plane-line"></i>
               </button>
+
+              <button type="button" class="w-8 h-8 rounded-full text-slate-500 enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
+                [disabled]="row.status !== eIndicatorStatusEnum.RELEASED"
+                [matTooltip]="row.status === eIndicatorStatusEnum.RELEASED ? ('PAC.Project.EmbeddingTooltip' | translate: {Default: 'Embed indicator into vector store for semantic retrieval.'}) : ('PAC.Project.EmbedReleasedTooltip' | translate: {Default: 'Only released indicators can be embedded.'})"
+                matTooltipPosition="above"
+                (click)="embedding(row)">
+                <i class="ri-ai-generate-text"></i>
+              </button>
+
+              <div class="h-2 w-[1px] bg-components-card-bg mx-1 my-auto"></div>
 
               <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100 duration-300"
                 (click)="onDelete({id: row.id, name: row.name})">

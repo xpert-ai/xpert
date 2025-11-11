@@ -15,7 +15,7 @@ export interface AgentStatus {
 }
 
 /**
- * 转发请求, 不解析请求内容
+ * Forward the request, do not parse the request content.
  */
 export interface Agent {
   type: AgentType

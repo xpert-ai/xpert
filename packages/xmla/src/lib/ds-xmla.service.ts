@@ -770,7 +770,7 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     } catch (err: unknown) {
       const exception = (<Xmla.Request>err).exception
         // 应该改成类型判断的方式
-        let error = (exception?.code === -10 ? exception?.data?.error
+        let error = (exception?.code === -10 ? getErrorMessage(exception?.data)
           : exception?.message ?? getErrorMessage(exception?.data)) ??
             (<Xmla.Exception>err).message
    
@@ -943,6 +943,13 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     )
   }
 
+  /**
+   * Merge some necessary source information into the runtime type.
+   * 
+   * @param rtEntityType Runtime server entity type
+   * @param schema Original cube defination
+   * @returns 
+   */
   private mergeEntityTypeCube(rtEntityType: EntityType, schema: Schema) {
     const cube = schema?.cubes?.find((item) => item.name === rtEntityType.name)
     if (!cube) {
@@ -963,9 +970,12 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     })
 
     // Use dimension name to merge the default hierarchy of the shared dimension to get the actual default hierarchy
-    dimensions.forEach((dimension) => {
+    dimensions.forEach((dimension, index) => {
       if (dimension.defaultHierarchy) {
-        dimension.defaultHierarchy = serializeUniqueName(dimension.name, dimension.defaultHierarchy)
+        dimensions[index] = {
+          ...dimension,
+          defaultHierarchy: serializeUniqueName(dimension.name, dimension.defaultHierarchy)
+        }
       }
     })
 

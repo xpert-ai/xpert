@@ -26,6 +26,7 @@ export class ProxyAgent implements Agent {
 			new ModelOlapQuery(
 				{
 					id: uuid(),
+					tenantId: RequestContext.currentTenantId(),
 					organizationId: RequestContext.getOrganizationId(),
 					sessionId: model.id,
 					dataSourceId: model.dataSource.id,

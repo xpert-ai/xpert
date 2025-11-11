@@ -89,6 +89,11 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 		await this.delete(id)
 	}
 
+	/**
+	 * Start embedding all indicators (Released & visible & code) in a BI Project.
+	 * 
+	 * @param projectId BI Project ID
+	 */
 	async startEmbedding(projectId: string) {
 		const { items } = await this.findMy({ where: { projectId } })
 		const indicators = items.filter((_) => _.status === IndicatorStatusEnum.RELEASED && _.visible && _.code)
@@ -178,6 +183,12 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 		)
 	}
 
+	/**
+	 * Embed indicator into vector store
+	 * 
+	 * @param id Indicator ID
+	 * @returns 
+	 */
 	async embedding(id: string) {
 		const indicator = await this.findOne(id)
 		if (indicator.status !== IndicatorStatusEnum.RELEASED) {

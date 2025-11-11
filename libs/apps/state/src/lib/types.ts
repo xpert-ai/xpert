@@ -163,12 +163,12 @@ export function convertIndicator(input: Partial<Indicator>) {
   }
 }
 
-export function convertIndicatorResult(result: IIndicator): any {
+export function convertIndicatorResult(result: IIndicator): OCAPIndicator {
   return {
     ...omit(result, 'options'),
     description: result.business,
     ...(result.options ?? {})
-  } as any
+  } as OCAPIndicator
 }
 
 export function timeRangeToParams(params: HttpParams, timeRange: string[]) {

@@ -177,11 +177,15 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			schema = z.object({
 				memoryId: z
 						.string()
-						.optional()
+						.nullable()
 						.describe('The memory ID to overwrite. Only provide if updating an existing memory.'),
-				question: z.string().describe("The user's question. For example: \
+				question: z
+					.string()
+					.describe("The user's question. For example: \
 					There's a problem with my order."),
-				answer: z.string().describe("The ai's answer. For example: \
+				answer: z
+					.string()
+					.describe("The ai's answer. For example: \
 					Please wait, I will check the order status for you!")
 			})
 			.describe(
@@ -199,12 +203,17 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 				.object({
 					memoryId: z
 						.string()
-						.optional()
+						.nullable()
 						.describe('The memory ID to overwrite. Only provide if updating an existing memory.'),
-					profile: z.string().optional().describe(`The main content of the memory. For example: \
+					profile: z
+						.string()
+						.nullable()
+						.describe(`The main content of the memory. For example: \
           				'User expressed interest in learning about French.'`),
-					context: z.string().optional().describe(
-						"Additional context for the memory. For example: \
+					context: z
+						.string()
+						.nullable()
+						.describe("Additional context for the memory. For example: \
 					  'This was mentioned while discussing career options in Europe.'"
 					)
 				})

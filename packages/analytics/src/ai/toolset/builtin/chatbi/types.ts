@@ -43,7 +43,7 @@ export enum ChatBIToolsEnum {
 	MEMBER_RETRIEVER = 'dimension_member_retriever'
 }
 
-
+export const CHATBI_CUBES_CHANNEL = 'chatbi_cubes'
 
 export type TChatBICredentials = {
 	models: string[]

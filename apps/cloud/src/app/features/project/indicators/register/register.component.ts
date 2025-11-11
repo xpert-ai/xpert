@@ -383,25 +383,25 @@ export class IndicatorRegisterComponent implements OnDestroy, IsDirty {
     }
   }
 
-  async onSubmit() {
-    this.loading.set(true)
-    try {
-      const indicator = await this.indicatorsComponent.saveIndicator(this.indicator())
-      this.loading.set(false)
+  // async onSubmit() {
+  //   this.loading.set(true)
+  //   try {
+  //     const indicator = await this.indicatorsComponent.saveIndicator(this.indicator())
+  //     this.loading.set(false)
 
-      if (this.paramId() === NewIndicatorCodePlaceholder) {
-        this._router.navigate(['../', indicator.id], { relativeTo: this._route })
-      }
+  //     if (this.paramId() === NewIndicatorCodePlaceholder) {
+  //       this._router.navigate(['../', indicator.id], { relativeTo: this._route })
+  //     }
 
-      if (this.type() === 'copy') {
-        this.type.set('edit')
-        this._router.navigate(['../', indicator.id], { relativeTo: this._route })
-      }
-    } catch (err) {
-      this.loading.set(false)
-      this.toastrService.error(err, '', {})
-    }
-  }
+  //     if (this.type() === 'copy') {
+  //       this.type.set('edit')
+  //       this._router.navigate(['../', indicator.id], { relativeTo: this._route })
+  //     }
+  //   } catch (err) {
+  //     this.loading.set(false)
+  //     this.toastrService.error(err, '', {})
+  //   }
+  // }
 
   copy(indicator: IIndicator) {
     this.type.set('copy')
@@ -461,14 +461,16 @@ export class IndicatorRegisterComponent implements OnDestroy, IsDirty {
   onKeyDown(event: KeyboardEvent) {
     if ((event.metaKey || event.ctrlKey) && event.key === 's') {
       event.preventDefault()
-      this.onSubmit()
+      // this.onSubmit()
     }
   }
 
   private scrollToBottom(): void {
     try {
       this.contentElement().nativeElement.scrollTop = this.contentElement().nativeElement.scrollHeight
-    } catch (err) {}
+    } catch (err) {
+      //
+    }
   }
 
   ngOnDestroy(): void {

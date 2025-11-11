@@ -34,6 +34,9 @@ export interface IDocChunkMetadata {
   score?: number
   relevanceScore?: number
 
+  // tokens
+  tokens?: number
+
   [key: string]: any
 }
 
