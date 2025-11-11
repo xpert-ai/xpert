@@ -1,4 +1,4 @@
-import { IIndicator, IndicatorType } from '@metad/contracts'
+import { IIndicator, IndicatorStatusEnum, IndicatorType } from '@metad/contracts'
 import { assign, omit } from 'lodash'
 import { Repository } from 'typeorm'
 import { Indicator } from '../../../../indicator/indicator.entity'
@@ -46,7 +46,7 @@ async function createIndicator(
 	indicator.createdById = createdById
 	indicator.businessAreaId = businessArea.id
 	indicator.modelId = modelId
-	indicator.isActive = true
+	indicator.status = IndicatorStatusEnum.RELEASED
 	indicator.isApplication = true
 
 	assign(indicator, omit(indicatorOptions, ['businessAreaId']))
