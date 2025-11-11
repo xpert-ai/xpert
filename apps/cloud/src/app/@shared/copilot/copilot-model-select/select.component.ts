@@ -164,11 +164,22 @@ export class CopilotModelSelectComponent {
   readonly isInherit = computed(() => !this.__copilotModel())
   readonly statusChoose = computed(() => !this.selectedCopilotWithModels() && !!this.__copilotModel())
 
-  // constructor() {
+  constructor() {
   //   effect(() => {
   //     console.log(this.copilotWithModels())
   //   })
-  // }
+    effect(() => {
+      if (this.cva.value$() && !this.cva.value$().options && this.modelParameterRules()) {
+        this.cva.value$.update((value) => ({
+          ...value,
+          options: this.modelParameterRules().reduce((acc, curr) => {
+            acc[curr.name] = curr.default
+            return acc
+          }, {} as Record<string, any>)
+        }))
+      }
+    }, { allowSignalWrites: true })
+  }
 
   updateValue(value: ICopilotModel) {
     if (!this.readonly()) {
