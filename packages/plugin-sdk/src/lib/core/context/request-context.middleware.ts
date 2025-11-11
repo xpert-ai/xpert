@@ -1,4 +1,5 @@
 // request-context.middleware.ts
+import { IUser } from '@metad/contracts'
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
 import { IncomingMessage, ServerResponse } from 'node:http'
@@ -16,10 +17,10 @@ export class RequestContextMiddleware implements NestMiddleware {
   }
 }
 
-export function runWithRequestContext(req: IncomingMessage, res: ServerResponse, next: () => void) {
+export function runWithRequestContext(req: Partial<IncomingMessage> & {user?: IUser}, res: Partial<ServerResponse>, next: () => void) {
   const reqId = (req.headers['x-request-id'] as string) || randomUUID()
   const userId = req['user']?.['id']
-  const ctx = new RequestContext(req, res, reqId, userId)
+  const ctx = new RequestContext(req as IncomingMessage, res as ServerResponse, reqId, userId)
 
   // Enable ALS scope
   als.run(ctx, next)
