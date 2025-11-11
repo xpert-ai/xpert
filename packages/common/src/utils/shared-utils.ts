@@ -55,14 +55,13 @@ export function isNotEmpty(item: any): boolean {
 /**
  * Check value empty.
  * @param item
- * @returns {boolean}
  */
-export function isEmpty(item: any) {
+export function isEmpty(item: any): boolean {
 	if (item instanceof Array) {
 		item = item.filter((val) => !isEmpty(val));
 		return item.length === 0;
 	} else if (item && typeof item === 'object') {
-		for (var key in item) {
+		for (const key in item) {
 			if (
 				item[key] === null ||
 				item[key] === undefined ||

@@ -770,7 +770,7 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     } catch (err: unknown) {
       const exception = (<Xmla.Request>err).exception
         // 应该改成类型判断的方式
-        let error = (exception?.code === -10 ? exception?.data?.error
+        let error = (exception?.code === -10 ? getErrorMessage(exception?.data)
           : exception?.message ?? getErrorMessage(exception?.data)) ??
             (<Xmla.Exception>err).message
    

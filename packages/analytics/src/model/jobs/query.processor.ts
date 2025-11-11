@@ -25,7 +25,7 @@ export class ModelQueryProcessor {
 	@Process({concurrency: 20})
 	async handleQuery(job: Job<{ sessionId: string; userId: string; logId: string; data: TGatewayQueryEvent }>) {
 		const { sessionId, userId, logId, data } = job.data
-		const { id, organizationId, dataSourceId, modelId, body, acceptLanguage, forceRefresh, isDraft } = data
+		const { id, tenantId, organizationId, dataSourceId, modelId, body, acceptLanguage, forceRefresh, isDraft } = data
 		const user = await this.userService.findOne(userId)
 
 		const timeStart = Date.now()
@@ -51,6 +51,7 @@ export class ModelQueryProcessor {
 							new ModelOlapQuery(
 								{
 									id,
+									tenantId,
 									organizationId,
 									sessionId,
 									dataSourceId,
@@ -68,6 +69,7 @@ export class ModelQueryProcessor {
 							new ModelCubeQuery(
 								{
 									id,
+									tenantId,
 									organizationId,
 									sessionId,
 									dataSourceId,

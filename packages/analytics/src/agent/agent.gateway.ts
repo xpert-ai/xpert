@@ -1,4 +1,4 @@
-import { ICopilot, IUser, TGatewayQueryEvent, TGatewayRespError, TGatewayRespEvent } from '@metad/contracts'
+import { ICopilot, ISemanticModel, IUser, TGatewayQueryEvent, TGatewayRespError, TGatewayRespEvent } from '@metad/contracts'
 import { CopilotTokenRecordCommand } from '@metad/server-ai'
 import { getErrorMessage } from '@metad/server-common'
 import { WsJWTGuard, WsUser } from '@metad/server-core'
@@ -14,6 +14,7 @@ import {
 	WsResponse
 } from '@nestjs/websockets'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Cache } from 'cache-manager'
 import { from, Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
@@ -44,6 +45,7 @@ export class EventsGateway implements OnGatewayDisconnect {
 		@ConnectedSocket() client: Socket,
 		@WsUser() user: IUser
 	): Promise<WsResponse<any>> {
+		data.tenantId = RequestContext.currentTenantId()
 		await this.commandBus.execute(new SemanticModelQueryCommand({ sessionId: client.id, userId: user.id, data }))
 		return
 	}
@@ -57,18 +59,26 @@ export class EventsGateway implements OnGatewayDisconnect {
 		const modelId = data.modelId
 		const cacheKey = `olap:public-model:` + modelId
 		try {
-			let model = await this.cacheManager.get(cacheKey)
+			let model: ISemanticModel = await this.cacheManager.get(cacheKey)
 			if (!model) {
 				// Check visibility (must be public) of semantic model
 				model = await this.queryBus.execute(new GetOnePublicSemanticModelQuery(modelId))
 				await this.cacheManager.set(cacheKey, model, 1000 * 60)
 			}
 
+			data.tenantId = model.tenantId
+			data.organizationId ??= model.organizationId
+			
 			await this.commandBus.execute(
-				new SemanticModelQueryCommand({ sessionId: client.id, userId: user?.id, data })
+				new SemanticModelQueryCommand({
+					sessionId: client.id,
+					userId: user?.id ?? model.createdById, // If a publicly available semantic model is accessed anonymously, the creator is responsible for it.
+					data
+				})
 			)
 			return
 		} catch (error) {
+			console.error(error)
 			this.sendQueryResult(client.id, {
 				id: data.id,
 				status: 500,

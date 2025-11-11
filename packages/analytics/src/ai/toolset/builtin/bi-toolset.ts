@@ -86,8 +86,10 @@ export function createCubeContextTool(toolName: string, context: TBIContext) {
 						if (isEntitySet(entitySet)) {
 							entityType = entitySet.entityType
 							await setCubeCache(cacheManager, item.modelId, item.name, entityType)
-						} else {
-							logger.error(`Get context error: `, entitySet.message)
+						} else if (entitySet instanceof Error) {
+							this.logger.error(`Get context error: `, entitySet.message)
+							this.logger.error(entitySet.stack)
+							throw entitySet
 						}
 					}
 
