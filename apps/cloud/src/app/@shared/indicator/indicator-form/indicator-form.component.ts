@@ -102,7 +102,9 @@ export class XpIndicatorFormComponent {
   readonly draft = linkedModel({
     initialValue: null,
     compute: () => this.indicator()?.draft ?? this.indicator() as TIndicatorDraft,
-    update: (value) => {}
+    update: (value) => {
+      //
+    }
   })
   readonly draftForm = model<TIndicatorDraft | null>(null)
   readonly projectId = computed(() => this.indicator()?.projectId)
@@ -125,7 +127,7 @@ export class XpIndicatorFormComponent {
   readonly dataSettings = computed(() => {
     const registerForm = this.registerForm()
     const dataSettings = registerForm?.dataSettings()
-    const indicator = this.indicator()
+    const indicator = this.draftForm()
     const period = this.period()
     const timeGranularity = period?.granularity
     const entityType = registerForm?.entityType()
@@ -143,7 +145,7 @@ export class XpIndicatorFormComponent {
     // }
 
     const { dimension, hierarchy, level } = getIndicatorEntityCalendar(
-      indicator as Indicator,
+      convertIndicatorResult(indicator) as Indicator,
       entityType,
       timeGranularity
     )
@@ -446,7 +448,9 @@ export class XpIndicatorFormComponent {
   private scrollToBottom(): void {
     try {
       this.contentElement().nativeElement.scrollTop = this.contentElement().nativeElement.scrollHeight
-    } catch (err) {}
+    } catch (err) {
+      //
+    }
   }
 
   openProject() {

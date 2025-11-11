@@ -51,8 +51,12 @@ export class IndicatorsService {
     return this.httpClient.get<IIndicator>(C_URI_API_INDICATORS + `/${id}`, { params })
   }
 
-  create(input: Partial<Indicator>) {
-    return this.httpClient.post(C_URI_API_INDICATORS, convertIndicator(input)).pipe(map(convertIndicatorResult))
+  // _create(input: Partial<Indicator>) {
+  //   return this.httpClient.post(C_URI_API_INDICATORS, convertIndicator(input)).pipe(map(convertIndicatorResult)) as any
+  // }
+
+  create(input: Partial<IIndicator>) {
+    return this.httpClient.post<IIndicator>(C_URI_API_INDICATORS, input)
   }
 
   delete(id: string) {

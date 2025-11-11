@@ -1814,6 +1814,12 @@
     },
     "Project": {
       "Project": "项目",
+      "PublishTooltip": "将草稿发布到生产版本。",
+      "PublishDraftTooltip": "只有指标草稿才能发布。",
+      "EmbeddingTooltip": "将指标嵌入到向量存储以便语义检索",
+      "EmbedReleasedTooltip": "只有已发布的指标才能嵌入。",
+      "EmbeddingStarted": "指标嵌入已启动",
+      "EmbeddingAll": "嵌入所有",
       "SelectAProject": "选择一个项目",
       "CreatedProject": "已创建项目",
       "NewProject": "新建项目",

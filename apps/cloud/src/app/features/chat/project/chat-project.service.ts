@@ -104,4 +104,8 @@ export class ChatProjectService extends ChatService {
   gotoTask(taskId: string): void {
     throw new Error('Task not supported in project')
   }
+
+  isPublic(): boolean {
+    return false
+  }
 }

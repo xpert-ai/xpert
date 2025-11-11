@@ -116,8 +116,11 @@ export class NgmSelectComponent implements ControlValueAccessor
   readonly value = signal<string | number>(null)
 
   selection = new SelectionModel<string>(true)
-  searchControl = new FormControl<string>(null)
-  readonly highlight = toSignal(this.searchControl.valueChanges, { initialValue: '' })
+  // searchControl = new FormControl<string>(null)
+  // readonly highlight = toSignal(this.searchControl.valueChanges, { initialValue: '' })
+
+  readonly autoInput = signal(null)
+  readonly highlight = computed(() => typeof this.autoInput() === 'string' ? this.autoInput() : '')
 
   readonly options$ = computed(() => {
     const text = this.highlight()?.trim().toLowerCase()
@@ -134,8 +137,6 @@ export class NgmSelectComponent implements ControlValueAccessor
   public selectTrigger = computed(() => {
     return this.selectOptions()?.find((option) => option[this.valueKey()] === this.value())
   })
-
-  readonly autoInput = signal(null)
 
   readonly inputDirty = signal(false)
 
@@ -200,19 +201,21 @@ export class NgmSelectComponent implements ControlValueAccessor
     return option?.caption || option?.label || option?.key || option as string
   }
 
-  onAutoInput(event: any) {
+  onAutoInput(event: string | ISelectOption) {
     if (typeof event === 'string') {
-      this.searchControl.setValue(event)
-    } else {
+      // this.searchControl.setValue(event)
+      this.autoInput.set(event)
+    } else if (event) {
       this.formControl.setValue(event?.[this.valueKey()])
-      this.searchControl.setValue(null)
+      this.autoInput.set(null)
     }
   }
 
   onOptionSelected(event: any) {
     this.inputDirty.set(false)
     // this.autoInput.set(event.option.value)
-    this.searchControl.setValue(null)
+    // this.searchControl.setValue(null)
+    this.autoInput.set('')
     // this.searInput().nativeElement.value = null
   }
 
@@ -227,7 +230,8 @@ export class NgmSelectComponent implements ControlValueAccessor
     const value = (<HTMLInputElement>event.target).value.trim()
     if (this.inputDirty()) {
       this.formControl.setValue(value)
-      this.searchControl.setValue(null)
+      // this.searchControl.setValue(null)
+      this.autoInput.set('')
     }
   }
 

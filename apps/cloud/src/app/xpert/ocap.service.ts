@@ -23,7 +23,7 @@ export class XpertOcapService {
   readonly chatService = inject(ChatService)
 
   readonly xpert = this.chatService.xpert
-  readonly isPublic = computed(() => this.xpert()?.app?.public)
+  readonly isPublic = computed(() => this.chatService.isPublic() && this.xpert()?.app?.public)
 
   // SemanticModels
   readonly #semanticModels = signal<

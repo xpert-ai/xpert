@@ -100,4 +100,8 @@ export class ChatAppService extends ChatService {
   gotoTask(taskId: string): void {
     throw new Error('Task not supported in webapp')
   }
+
+  isPublic(): boolean {
+    return true
+  }
 }

@@ -32,6 +32,7 @@ import {
 } from '../../../../@core/index'
 import { ProjectService } from '../../project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 @Component({
   standalone: true,
@@ -41,6 +42,7 @@ import { ProjectIndicatorsComponent } from '../indicators.component'
     FormsModule,
     MatCheckboxModule,
     MatButtonModule,
+    MatTooltipModule,
     TranslateModule,
     NgmSpinComponent,
     DateRelativePipe
@@ -81,6 +83,7 @@ export class AllIndicatorComponent {
   readonly allSelected = computed(() => this.selectedIndicators()?.length === this.indicators()?.length)
   readonly loading = signal(false)
 
+  // Refresh embedding status
   readonly refresh$ = this.projectService.refreshEmbedding$
   readonly delayRefresh$ = new Subject<boolean>()
   readonly total = signal(0)
@@ -97,13 +100,14 @@ export class AllIndicatorComponent {
   })
 
   constructor() {
+    // Refresh the embedding status periodically
     merge(this.refresh$, toObservable(this.projectId))
       .pipe(
         filter(() => !!this.projectId()),
         debounceTime(100),
         switchMap(() => {
           this.loading.set(true)
-          return this.indicatorAPI!.getByProject(this.projectService.project().id, {
+          return this.indicatorAPI.getByProject(this.projectService.project().id, {
             select: ['id', 'code', 'name', 'embeddingStatus']
           }).pipe(
             catchError((error) => {
@@ -130,18 +134,6 @@ export class AllIndicatorComponent {
 
     this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(5000)).subscribe(() => this.refresh())
 
-    // effect(() => {
-    //   if (
-    //     this._indicators()?.some(
-    //       (item) =>
-    //         item.embeddingStatus === EmbeddingStatusEnum.PROCESSING ||
-    //         item.embeddingStatus === EmbeddingStatusEnum.REQUIRED
-    //     )
-    //   ) {
-    //     // this.delayRefresh$.next(true)
-    //   }
-    // })
-
     this.projectService.refresh$.pipe(takeUntilDestroyed()).subscribe(() => this.#indicators.reload())
   }
 
@@ -150,13 +142,14 @@ export class AllIndicatorComponent {
   }
 
   onDelete(indicator: IIndicator) {
-    this.loading.set(true)
-    this.confirmDelete({ value: indicator.name, information: '' }, this.indicatorAPI.delete(indicator.id)).subscribe({
+    this.confirmDelete({ value: indicator.name, information: '' }, () => {
+      this.loading.set(true)
+      return this.indicatorAPI.delete(indicator.id)
+    }).subscribe({
       next: () => {
         this.loading.set(false)
         this.toastrService.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted Successfully' })
         this.#indicators.reload()
-        // this.projectService.removeIndicator(indicator.id)
       },
       error: (err) => {
         this.loading.set(false)
@@ -223,7 +216,10 @@ export class AllIndicatorComponent {
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: 'xp-overlay-pane-share-sheet',
         data: {
-          id
+          id,
+          models: this.projectService.models(),
+          certifications: this.projectService.project().certifications,
+          projectId: this.projectService.project().id
         }
       })
       .closed.subscribe((result) => {
@@ -240,6 +236,23 @@ export class AllIndicatorComponent {
         next: () => {
           this.loading.set(false)
           this.#indicators.reload()
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.toastrService.error(getErrorMessage(err))
+        }
+      })
+    }
+  }
+
+  embedding(indicator: IIndicator) {
+    if (indicator.status === IndicatorStatusEnum.RELEASED) {
+      this.loading.set(true)
+      this.indicatorAPI.embedding(indicator.id).subscribe({
+        next: () => {
+          this.loading.set(false)
+          this.toastrService.success('PAC.Project.EmbeddingStarted', { Default: 'Embedding started' })
+          this.refresh$.next(true)
         },
         error: (err) => {
           this.loading.set(false)

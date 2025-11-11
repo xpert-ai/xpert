@@ -136,7 +136,9 @@ export abstract class ChatService {
     compute: () => {
       return this.#conversation()?.loading
     },
-    update: () => {}
+    update: () => {
+      //
+    }
   })
 
   readonly #messages = linkedModel<TCopilotChatMessage[]>({
@@ -572,6 +574,7 @@ export abstract class ChatService {
   // Abstract methods
   abstract newConv(xpert?: IXpert): void
   abstract gotoTask(taskId: string): void
+  abstract isPublic(): boolean
 
   // Attachments
   onAttachCreated(file: IStorageFile): void {}

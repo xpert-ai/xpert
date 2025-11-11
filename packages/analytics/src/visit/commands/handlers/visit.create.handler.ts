@@ -30,7 +30,7 @@ export class VisitCreateHandler implements ICommandHandler<VisitCreateCommand> {
 		visit.createdById = RequestContext.currentUserId()
 		visit.visitAt = Number(new Date().toISOString().slice(0, 10).replace(/-/g, ''))
 
-		const exist = await this.visitService.findOneOrFail({
+		const exist = await this.visitService.findOneOrFailByOptions({
 			where: visit
 		})
 
