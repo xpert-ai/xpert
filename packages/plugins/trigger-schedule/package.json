@@ -1,7 +1,9 @@
 {
   "name": "@xpert-ai/plugin-trigger-schedule",
   "version": "0.0.1",
-  "dependencies": {},
   "main": "./index.cjs",
-  "module": "./index.js"
+  "module": "./index.js",
+  "dependencies": {
+    "cron": "^4.3.4"
+  }
 }
