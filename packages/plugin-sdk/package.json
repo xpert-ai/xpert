@@ -9,11 +9,13 @@
   "bugs": {
     "url": "https://github.com/xpert-ai/xpert/issues"
   },
-  "dependencies": {},
   "main": "./index.cjs",
   "module": "./index.js",
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "js-tiktoken": "^1.0.21"
   },
   "peerDependencies": {
     "@langchain/core": "*",

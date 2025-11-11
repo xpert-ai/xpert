@@ -219,6 +219,9 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: str
   }
 }
 
+/**
+ * @deprecated use countTokensSafe in @xpert-ai/plugin-sdk
+ */
 export function estimateTokenUsage(text: string) {
   const characterCount = text?.length ?? 0 // 获取字符数
   const tokens = Math.ceil(characterCount / 4) // 估算token数（以4为基准）

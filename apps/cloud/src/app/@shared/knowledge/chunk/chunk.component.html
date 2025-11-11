@@ -12,6 +12,10 @@
         </div>
         <div class="system-xs-medium text-text-quaternary">·</div>
         <div class="text-text-tertiary system-xs-medium">{{chunk().pageContent?.length}} {{'PAC.Knowledgebase.Characters' | translate: {Default: 'Characters'} }}</div>
+        @if (chunk().metadata.tokens; as tokens) {
+          <div class="system-xs-medium text-text-tertiary">·</div>
+          <div class="text-text-tertiary system-xs-medium">{{tokens}} {{'PAC.Knowledgebase.Tokens' | translate: {Default: 'Tokens'} }}</div>
+        }
         <div class="system-xs-medium text-text-quaternary">·</div>
         <!-- <div class="system-xs-medium text-text-tertiary">0 召回次数</div> -->
         <i class="ri-eye-fill cursor-pointer text-text-tertiary hover:text-text-primary" [class.!text-primary-500]="_preview()" (click)="togglePreview()"></i>
@@ -78,10 +82,12 @@
           <div class="flex items-center justify-between">
             <div class="flex h-7 items-center rounded-lg pl-1 pr-3 cursor-pointer" (click)="expanded.set(!expanded())">
               <i class="ri-arrow-right-s-line mr-0.5 text-text-secondary" [class.rotate-90]="expanded()"></i>
-              <span class="system-sm-semibold-uppercase text-text-secondary">{{children.length}} 子分段</span>
+              <span class="system-sm-semibold-uppercase text-text-secondary">{{children.length}} {{ 'PAC.Knowledgebase.ChildChunks' | translate: {Default: 'Children'} }}</span>
               @if (editable()) {
                 <span class="pl-1.5 text-xs font-medium text-text-quaternary hidden group-hover/card:inline-block">·</span>
-                <button type="button" class="btn btn-secondary btn-sm system-xs-semibold-uppercase px-1.5 py-0.5 hidden group-hover/card:inline-block">添加</button>
+                <button type="button" class="btn btn-secondary btn-sm system-xs-semibold-uppercase px-1.5 py-0.5 hidden group-hover/card:inline-block">
+                  {{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}
+                </button>
               }
             </div>
           </div>
@@ -128,11 +134,12 @@
       }
     }
 
-    <div class="w-full border-t border-solid border-divider-deep px-1 pt-1 mt-1 text-text-secondary">
-      @if (document(); as document) {
-        <knowledge-doc-id [doc]="document" />
-      }
-    </div>
+    @if (showMetadata()) {
+      <div class="w-full border-t border-solid border-divider-deep px-1 pt-1 mt-1 text-text-secondary">
+        @if (document(); as document) {
+          <knowledge-doc-id [doc]="document" />
+        }
+      </div>
+    }
   </div>
-  <div class="w-full px-3"><div class="w-full h-[0.5px] my-1 bg-divider-subtle"></div></div>
 </div>

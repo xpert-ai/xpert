@@ -2574,6 +2574,8 @@
       "NotAvailable": "不可用",
       "Search": "搜索",
       "Characters": "字符",
+      "Tokens": "词元",
+      "ChildChunks": "子分段",
       "Disabled": "已禁用",
       "Enabled": "已启用",
       "EditChunk": "编辑分块",

@@ -309,17 +309,22 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
     ]
   },
   // Technical Parameters
-  // {
-  //   group: {
-  //     en_US: 'Technical Parameters',
-  //     zh_Hans: '技术参数'
-  //   },
-  //   fields: [
-  //     {
-  //       key: 'segmentRule',
-  //       label: { en_US: 'Segmentation Rule', zh_Hans: '分段规则' },
-  //       type: 'string'
-  //     },
+  {
+    group: {
+      en_US: 'Technical Parameters',
+      zh_Hans: '技术参数'
+    },
+    fields: [
+       {
+        key: 'tokens',
+        label: { en_US: 'Tokens', zh_Hans: '词元' },
+        type: 'number'
+      },
+      // {
+      //   key: 'segmentRule',
+      //   label: { en_US: 'Segmentation Rule', zh_Hans: '分段规则' },
+      //   type: 'string'
+      // },
   //     {
   //       key: 'segmentLength',
   //       label: { en_US: 'Segment Length', zh_Hans: '段落长度' },
@@ -350,8 +355,8 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
   //       label: { en_US: 'Embedding Cost', zh_Hans: '嵌入花费' },
   //       type: 'string'
   //     }
-  //   ]
-  // }
+    ]
+  }
 ] as const;
 
 

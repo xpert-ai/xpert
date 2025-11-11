@@ -23,6 +23,9 @@ export class KnowledgeChunkComponent {
     transform: booleanAttribute
   })
   readonly preview = input<boolean>()
+  readonly showMetadata = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   // States
   readonly expanded = signal(false)

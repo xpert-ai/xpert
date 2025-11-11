@@ -1,7 +1,8 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
-import { CallbackManagerForRetrieverRun } from '@langchain/core/callbacks/manager'
+import { CallbackManager, parseCallbackConfigArg } from '@langchain/core/callbacks/manager'
 import { Document, DocumentInterface } from '@langchain/core/documents'
 import { BaseRetriever } from '@langchain/core/retrievers'
+import { ensureConfig, RunnableConfig } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
 import {
 	ChatMessageEventTypeEnum,
@@ -42,39 +43,45 @@ export class KnowledgeRetriever extends BaseRetriever {
 		super()
 	}
 
-	async _getRelevantDocuments(query: string, runManager?: CallbackManagerForRetrieverRun): Promise<Document[]> {
+	async invoke(
+		query: string,
+		config?: RunnableConfig<{
+			filter?: Record<string, any>
+		}>
+	): Promise<DocumentInterface[]> {
+		const parsedConfig = ensureConfig(parseCallbackConfigArg(config))
 		this.#logger.debug(`Retrieving knowledge documents for query: ${query}`)
-		if (this.options?.retrieval?.metadata?.filtering_mode === 'manual') {
-			return this.retrieve(query, null, this.options.retrieval.metadata.filtering_conditions)
-		}
-		return this.retrieve(query)
+		const callbackManager_ = await CallbackManager.configure(
+			parsedConfig.callbacks,
+			this.callbacks,
+			parsedConfig.tags,
+			this.tags,
+			parsedConfig.metadata,
+			this.metadata,
+			{ verbose: this.verbose }
+		)
+		const runManager = await callbackManager_?.handleRetrieverStart(
+			this.toJSON(),
+			query,
+			parsedConfig.runId,
+			undefined,
+			undefined,
+			undefined,
+			parsedConfig.runName
+		)
+		try {
+			let results = null
+			if (this.options?.retrieval?.metadata?.filtering_mode === 'manual') {
+				results = await this.retrieve(query, null, this.options.retrieval.metadata.filtering_conditions)
+			}
+			results = await this.retrieve(query, config?.configurable?.filter)
 
-		// this.metadata.knowledgebaseId = this.knowledgebaseId
-		// try {
-		// 	const results = await this.queryBus.execute<KnowledgeSearchQuery, DocumentInterface<DocumentMetadata>[]>(
-		// 		new KnowledgeSearchQuery({
-		// 			tenantId: this.tenantId,
-		// 			organizationId: this.organizationId,
-		// 			knowledgebases: this.knowledgebaseId ? [this.knowledgebaseId] : [],
-		// 			query,
-		// 			score: this.options?.recall.score,
-		// 			k: this.options?.recall.topK,
-		// 			source: 'retriever'
-		// 		})
-		// 	)
-		// 	return results.map(
-		// 		(doc) =>
-		// 			instanceToPlain(
-		// 				new DocumentChunkDTO({ ...doc, metadata: omit(doc.metadata, 'children') })
-		// 			) as Document
-		// 	)
-		// } catch (error) {
-		// 	await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR, {
-		// 		knowledgebaseId: this.knowledgebaseId,
-		// 		error: getErrorMessage(error)
-		// 	})
-		// 	throw error
-		// }
+			await runManager?.handleRetrieverEnd(results)
+			return results
+		} catch (error) {
+			await runManager?.handleRetrieverError(error)
+			throw error
+		}
 	}
 
 	async retrieve(query: string, filter?: Record<string, any>, filtering_conditions?: TWFCase): Promise<Document[]> {
@@ -174,11 +181,13 @@ export class KnowledgeRetriever extends BaseRetriever {
 
 		return tool(
 			async (params) => {
-				if (retrieval?.metadata?.filtering_mode === 'manual') {
-					return this.retrieve(params.input, null, retrieval.metadata.filtering_conditions)
-				}
+				const chunks = await this.invoke(params.input, {
+					configurable: {
+						filter: omit(params, 'input')
+					}
+				})
 
-				return this.retrieve(params.input, omit(params, 'input'))
+				return chunks.map((chunk) => chunk.pageContent)
 			},
 			{
 				...toolOptions,

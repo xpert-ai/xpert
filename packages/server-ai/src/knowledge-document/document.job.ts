@@ -1,6 +1,5 @@
 import { Document } from '@langchain/core/documents'
 import { IKnowledgebase, IKnowledgeDocument, KBDocumentStatusEnum, KnowledgeDocumentMetadata } from '@metad/contracts'
-import { estimateTokenUsage } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { runWithRequestContext, UserService } from '@metad/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
@@ -73,29 +72,8 @@ export class KnowledgeDocumentConsumer {
 					{ chunks: Document<ChunkMetadata>[]; }
 				>(new KnowledgeDocLoadCommand({ doc: document, stage: 'prod' }))
 
-				// Save pages into db, And associated with the chunk's metadata.
-				// let chunks: Document<ChunkMetadata>[] = data?.chunks
-				// if (data?.pages?.length) {
-				// 	// let pages = mergeParentChildChunks(data.pages, data.chunks)
-				// 	const pages = await this.service.createPageBulk(
-				// 		document.id,
-				// 		data.pages.map((page) => ({
-				// 			pageContent: page.pageContent,
-				// 			metadata: page.metadata,
-				// 			tenantId: document.tenantId,
-				// 			organizationId: document.organizationId,
-				// 			knowledgebaseId: document.knowledgebaseId
-				// 		}))
-				// 	)
-				// 	chunks = chunks.map((chunk) => {
-				// 		const page = pages.find((p) => p.metadata.chunkId === chunk.metadata.parentId)
-				// 		if (page) {
-				// 			chunk.metadata.pageId = page.id
-				// 		}
-				// 		return chunk
-				// 	})
-				// }
 				let chunks = data?.chunks // .map(transformDocument2Chunk)
+				let docTokenUsed = 0
 				if (chunks) {
 					this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
 					document.chunks = await this.documentService.coverChunks({...document, chunks}, vectorStore)
@@ -107,8 +85,12 @@ export class KnowledgeDocumentConsumer {
 					let count = 0
 					while (batchSize * count < chunks.length) {
 						const batch = chunks.slice(batchSize * count, batchSize * (count + 1))
-						// Record token usage
-						const tokenUsed = batch.reduce((total, doc) => total + estimateTokenUsage(doc.pageContent), 0)
+						// Count and Record token usage
+						let tokenUsed = 0
+						batch.forEach((chunk) => {
+							tokenUsed += chunk.metadata.tokens
+						})
+						docTokenUsed += tokenUsed
 						await this.commandBus.execute(
 							new CopilotTokenRecordCommand({
 								tenantId: knowledgebase.tenantId,
@@ -130,7 +112,7 @@ export class KnowledgeDocumentConsumer {
 							this.logger.debug(`[Job: entity '${job.id}'] Cancelled`)
 							return
 						}
-						await this.documentService.update(doc.id, { progress: Number(progress) })
+						await this.documentService.update(doc.id, { progress: Number(progress), metadata: { ...doc.metadata, tokens: docTokenUsed } })
 					}
 				}
 
