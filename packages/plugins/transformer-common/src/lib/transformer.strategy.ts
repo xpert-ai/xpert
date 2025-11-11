@@ -143,9 +143,12 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         case 'doc':
           data = await this.processDoc(fileAbsPath)
           break
-        case 'docx':
-          data = await this.processDocx(fileAbsPath, xpFileSystem)
+        case 'docx': {
+          const {chunks, imageAssets} = await this.processDocx(fileAbsPath, xpFileSystem)
+          data = chunks
+          imageAssets.forEach((asset) => assets.push(asset))
           break
+        }
         case 'pptx':
           data = await this.processPPT(fileAbsPath)
           break
@@ -253,7 +256,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
   /**
    * Parse DOCX => Markdown + Extract Images + Return LangChain Documents
    */
-  async processDocx(filePath: string, xpFileSystem: XpFileSystem): Promise<Document[]> {
+  async processDocx(filePath: string, xpFileSystem: XpFileSystem): Promise<{chunks: Document[]; imageAssets: TDocumentAsset[]}> {
     const imageOutputDir = xpFileSystem.fullPath('images')
 
     if (!fs.existsSync(imageOutputDir)) {
@@ -295,17 +298,16 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     const md = htmlToMarkdown(html)
 
     // --- 3) Generate LangChain Document[] ---
-    const docs: Document[] = [
+    const chunks: Document[] = [
       new Document({
         pageContent: md,
         metadata: {
-          source: filePath,
-          assets: imageAssets
+          // source: filePath,
         },
       }),
     ]
 
-    return docs
+    return { chunks, imageAssets: imageAssets }
   }
 }
 
