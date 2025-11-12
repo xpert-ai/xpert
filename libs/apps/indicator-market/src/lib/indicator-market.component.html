@@ -2,7 +2,6 @@
   <div class="pac-indicator-market_-toolbar flex justify-between items-center">
     <input matInput class="pac-indicator-market__date-picker font-semibold text-base outline-none bg-transparent focus:rounded-lg focus:bg-gray-500 focus:bg-opacity-25"
       [matDatepicker]="picker"
-      [matDatepickerFilter]="prevDatesFilter"
       [formControl]="dateControl"
       (click)="picker.open()"
     >
