@@ -15,7 +15,7 @@ import {
   signal
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
+import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
@@ -23,6 +23,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import {
   DataSettings,
   Dimension,
@@ -40,9 +41,10 @@ import {
   TreeSelectionMode
 } from '@metad/ocap-core'
 import { uniq } from 'lodash-es'
-import { combineLatestWith, distinctUntilChanged, map, startWith } from 'rxjs/operators'
+import { combineLatestWith, debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'
+
 
 export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   checked?: boolean
@@ -64,13 +66,15 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   ],
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     MatIconModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatButtonModule,
     ScrollingModule,
     OcapCoreModule,
-    NgmCommonModule
+    NgmCommonModule,
+    TranslateModule
   ]
 })
 export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMember> implements ControlValueAccessor {
@@ -110,6 +114,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   treeControl: FlatTreeControl<TreeItemFlatNode<T>>
   treeFlattener: MatTreeFlattener<TreeNodeInterface<T>, TreeItemFlatNode<T>>
   dataSource: MatTreeFlatDataSource<TreeNodeInterface<T>, TreeItemFlatNode<T>>
+  readonly highlightKeyword = toSignal(this.searchControl.valueChanges.pipe(startWith(''), map((value) => value.replace(/\*/g, ''))))
 
   /** The selection for checklist */
   readonly memberKeys = signal<string[]>([])
@@ -208,7 +213,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   // Subscribers
   private _membersSub = toObservable(this.treeNodes)
     .pipe(
-      combineLatestWith(this.searchControl.valueChanges.pipe(startWith(null), distinctUntilChanged())),
+      combineLatestWith(this.searchControl.valueChanges.pipe(startWith(null), distinctUntilChanged(), debounceTime(300))),
       map(([treeNodes, text]) => {
         text = text?.trim()
         if (text) {
@@ -223,7 +228,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
     .subscribe((data) => {
       if (data) {
         this.dataSource.data = data as any
-        // 初始化数据后展开初始层级深度
+        // After initializing the data, expand the initial level depth.
         if (this.options()?.initialLevel > 0 || !!this.searchControl.value) {
           this.treeControl.dataNodes.forEach((node) => {
             const level = this.treeControl.getLevel(node)

@@ -87,6 +87,7 @@ export const ZhHans = {
         Condition: '条件',
         Value: '值',
         Add: '添加',
+        Search: '搜索（支持空格分隔多词，支持 * 通配符，例如：st*、*st、*st*）'
       }
     },
     Entity: {
