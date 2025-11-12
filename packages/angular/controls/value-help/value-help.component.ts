@@ -19,8 +19,10 @@ import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/fo
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatSelectModule } from '@angular/material/select'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmResizableDirective } from '@metad/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   DataSettings,
@@ -41,8 +43,7 @@ import { filter, map, switchMap } from 'rxjs'
 import { NgmMemberListComponent } from '../member-list/member-list.component'
 import { NgmMemberTreeComponent } from '../member-tree/member-tree.component'
 import { ControlOptions, TreeControlOptions } from '../types'
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CdkMenuModule } from '@angular/cdk/menu'
+
 
 @Component({
   standalone: true,
@@ -70,7 +71,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     NgmCommonModule,
     OcapCoreModule,
     NgmMemberListComponent,
-    NgmMemberTreeComponent
+    NgmMemberTreeComponent,
+    NgmResizableDirective
   ]
 })
 export class NgmValueHelpComponent implements OnInit {
