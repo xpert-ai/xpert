@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective, OcapCoreModule } from '@metad/ocap-angular/core'
 import { NgmBreadcrumbBarComponent } from './breadcrumb/breadcrumb.component'
-import { NgmHighlightDirective, ResizeObserverDirective } from './directives'
+import { NgmHighlightDirective, NgmResizableDirective, ResizeObserverDirective } from './directives'
 import { NgmDisplayBehaviourComponent } from './display-behaviour'
 import { NgmInputModule } from './input/input.module'
 import { ResizerModule } from './resizer/resizer.module'
@@ -59,7 +59,8 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmSlideToggleComponent,
     NgmStepperComponent,
     NgmCopyComponent,
-    NgmProgressSpinnerComponent
+    NgmProgressSpinnerComponent,
+    NgmResizableDirective
   ],
   exports: [
     ResizerModule,
@@ -92,7 +93,8 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmSlideToggleComponent,
     NgmStepperComponent,
     NgmCopyComponent,
-    NgmProgressSpinnerComponent
+    NgmProgressSpinnerComponent,
+    NgmResizableDirective
   ],
   declarations: [],
   providers: []

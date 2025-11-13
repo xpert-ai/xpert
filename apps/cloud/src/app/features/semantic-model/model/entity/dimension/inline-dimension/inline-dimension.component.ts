@@ -1,4 +1,5 @@
 import { FlatTreeControl } from '@angular/cdk/tree'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -20,7 +21,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelEntityService } from '../../entity.service'
 import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../types'
-import { DragDropModule } from '@angular/cdk/drag-drop'
+
 
 @Component({
   standalone: true,
@@ -56,13 +57,13 @@ export class InlineDimensionComponent {
   readonly newItem = output<{ id: string; role: AggregationRole }>()
 
   /** The selection for checklist */
-  flatNodeMap = new Map<TreeItemFlatNode, TreeItemNode>()
-  nestedNodeMap = new Map<TreeItemNode, TreeItemFlatNode>()
+  readonly flatNodeMap = new Map<TreeItemFlatNode, TreeItemNode>()
+  readonly nestedNodeMap = new Map<TreeItemNode, TreeItemFlatNode>()
 
   transformer = (node: TreeItemNode, level: number) => {
     const existingNode = this.nestedNodeMap.get(node)
     const flatNode = existingNode && existingNode.name === node.name ? existingNode : new TreeItemFlatNode()
-    // 复制属性
+    // Copy attribute
     assign(flatNode, omit(node, 'children'))
     flatNode.level = level
     flatNode.expandable = !!node.children?.length
@@ -75,16 +76,16 @@ export class InlineDimensionComponent {
   getLevel = (node: TreeItemFlatNode) => node.level
   getChildren = (node: TreeItemNode): TreeItemNode[] => node.children
   isExpandable = (node: TreeItemFlatNode) => node.expandable
-  treeFlattener: MatTreeFlattener<TreeItemNode, TreeItemFlatNode, string> = new MatTreeFlattener(
+  readonly treeFlattener: MatTreeFlattener<TreeItemNode, TreeItemFlatNode, string> = new MatTreeFlattener(
     this.transformer,
     this.getLevel,
     this.isExpandable,
     this.getChildren
   )
-  treeControl = new FlatTreeControl<TreeItemFlatNode, string>(this.getLevel, this.isExpandable, {
+  readonly treeControl = new FlatTreeControl<TreeItemFlatNode, string>(this.getLevel, this.isExpandable, {
     trackBy: (dataNode: TreeItemFlatNode) => dataNode.id
   })
-  dataSource: MatTreeFlatDataSource<TreeItemNode, TreeItemFlatNode, string> = new MatTreeFlatDataSource(
+  readonly dataSource: MatTreeFlatDataSource<TreeItemNode, TreeItemFlatNode, string> = new MatTreeFlatDataSource(
     this.treeControl,
     this.treeFlattener
   )
@@ -103,8 +104,13 @@ export class InlineDimensionComponent {
     return this.cubeState.isSelectedProperty(node.role, node.__id__)
   }
 
+  /**
+   * Click node to open attribute editor.
+   * 
+   * @param node 
+   */
   onSelect(node: PropertyAttributes) {
-    this.cubeState.toggleSelectedProperty(node.role, node.__id__)
+    this.cubeState.setSelectedProperty(node.role, node.__id__)
   }
 
   addNewItem(event: MouseEvent, node: TreeItemFlatNode) {
