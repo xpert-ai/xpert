@@ -10,6 +10,9 @@ import { injectCreateCalculatedMeasure, injectEditFormulaAgent } from './graph'
 export const COPILOT_COMMAND_FORMULA_NAME = 'formula'
 export const COPILOT_COMMAND_CALCULATED_NAME = 'calculated'
 
+/**
+ * @deprecated use Chatkit
+ */
 export function injectCalculatedCommand() {
   const logger = inject(NGXLogger)
   const translate = inject(TranslateService)
@@ -31,6 +34,9 @@ export function injectCalculatedCommand() {
   })
 }
 
+/**
+ * @deprecated use Chatkit
+ */
 export function injectFormulaCommand(calculatedMember: Signal<CalculatedMember>) {
   const logger = inject(NGXLogger)
   const translate = inject(TranslateService)

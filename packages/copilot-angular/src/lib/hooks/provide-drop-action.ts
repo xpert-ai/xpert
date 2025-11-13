@@ -33,6 +33,9 @@ import { DropAction } from '../types'
  * @param action 
  * @returns 
  */
+/**
+ * @deprecated use Chatkit
+ */
 export function provideCopilotDropAction(action: DropAction) {
   const copilotEngine = inject(NgmCopilotEngineService)
   copilotEngine.registerDropAction(action)

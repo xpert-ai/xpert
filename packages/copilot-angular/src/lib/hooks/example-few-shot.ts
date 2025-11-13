@@ -7,6 +7,9 @@ export const NgmCommandFewShotPromptToken = new InjectionToken<(commandName: str
   'NgmCommandFewShotPromptToken'
 )
 
+/**
+ * @deprecated use Chatkit
+ */
 export function injectCommandFewShotPrompt(commandName: string, props?: ExampleVectorStoreRetrieverInput) {
   const createFewShot = inject(NgmCommandFewShotPromptToken)
 
