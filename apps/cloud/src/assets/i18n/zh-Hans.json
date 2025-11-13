@@ -1163,6 +1163,8 @@
       "Search": "搜索",
       "FactFields": "事实字段列表",
       "CubeAttributes": "数据集属性",
+      "PreviewLLMContext": "预览 LLM 上下文",
+      "PreviewLLMContextTip": "预览多维数据集被用于大语言模型的上下文内容",
       "IsDefault": "是默认",
       "MoveLeft": "左移",
       "MoveRight": "右移",

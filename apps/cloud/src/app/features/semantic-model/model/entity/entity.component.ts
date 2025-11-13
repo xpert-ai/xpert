@@ -1,6 +1,6 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, HostBinding, OnInit, effect, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, OnInit, computed, effect, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, UrlSegment } from '@angular/router'
@@ -9,6 +9,8 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NX_STORY_STORE, NxStoryStore, Story, StoryModel } from '@metad/story/core'
 import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { CopyComponent } from '@cloud/app/@shared/common'
 import { injectTranslate, ToastrService } from 'apps/cloud/src/app/@core'
 import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -18,7 +20,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTabsModule } from '@angular/material/tabs'
-import { AggregationRole, isEntitySet, PropertyAttributes } from '@metad/ocap-core'
+import { AggregationRole, isEntitySet, markdownModelCube, PropertyAttributes } from '@metad/ocap-core'
 import { NgmOcapCoreService } from '@metad/ocap-angular/core'
 import { AppService } from '../../../../app.service'
 import { injectCalculatedCommand } from '../copilot'
@@ -28,6 +30,7 @@ import { ModelEntityService } from './entity.service'
 import { ModelCubeFactComponent } from './fact/fact.component'
 import { SemanticModelService } from '../model.service'
 import { ModelComponent } from '../model.component'
+
 
 @Component({
   standalone: true,
@@ -41,6 +44,8 @@ import { ModelComponent } from '../model.component'
     FormsModule,
     RouterModule,
     TranslateModule,
+    CdkMenuModule,
+    CopyComponent,
     MatTooltipModule,
     MatIconModule,
     MatSidenavModule,
@@ -103,6 +108,13 @@ export class ModelEntityComponent implements OnInit {
   readonly cube = toSignal(this.entityService.cube$)
   readonly openedFact = signal(false)
   readonly openedCalculation = signal<string>(null)
+
+  // states
+  readonly llmContext = computed(() => markdownModelCube({
+    modelId: this.#model.model.id,
+    dataSource: this.#model.model.id,
+    cube: this.entityType()
+  }))
 
   /**
   |--------------------------------------------------------------------------
