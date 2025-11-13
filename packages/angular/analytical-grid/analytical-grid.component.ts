@@ -38,6 +38,7 @@ import {
   DataSettings,
   Dimension,
   DisplayBehaviour,
+  displayByBehaviour,
   EntityType,
   FlatTreeNode,
   getDimensionMemberCaption,
@@ -68,6 +69,7 @@ import {
   uniqBy,
   wrapBrackets
 } from '@metad/ocap-core'
+import { SlicersCapacity } from '@metad/ocap-angular/selection'
 import { TranslateService } from '@ngx-translate/core'
 import { maxBy, minBy, orderBy, unionBy } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'
@@ -87,7 +89,7 @@ import {
   VisualMap
 } from './types'
 import { NgmTreeFlatDataSource } from './tree-flat-data-source'
-import { SlicersCapacity } from '@metad/ocap-angular/selection'
+
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -174,7 +176,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
     prevI: number | string
     prevColumn: number | string
     i: number | string
-    // j: number | string
     prevRow?: {
       [key: string]: PrimitiveType
     };
@@ -608,7 +609,8 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
             ? [...rowColumns, ...pivotColumnNames[pivotColumnNames.length - 1]]
             : [
               // columnAxes[columnAxes.length - 1]?.dimension, 
-              ...pivotColumnNames[pivotColumnNames.length - 1]]
+              ...pivotColumnNames[pivotColumnNames.length - 1]
+            ]
           )
       }])
 
@@ -686,7 +688,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
     private translateService: TranslateService,
     private cdr: ChangeDetectorRef,
     private _focusMonitor: FocusMonitor,
-    public elementRef: ElementRef
+    public elementRef: ElementRef<HTMLElement>
   ) {
     effect(
       () => {
@@ -1203,15 +1205,26 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
 
   treeData = toSignal(this.rowDataSource.connect({ viewChange: of({ start: 0, end: Number.MAX_SAFE_INTEGER }) }))
   flatData = toSignal(this.flatDataSource.connect())
-  copy(selected) {
+  
+  copy(selected: typeof this.selected) {
     const treeData = this.treeData()
     const flatData = this.flatData()
     try {
       let text = null
-      if (!isNil(selected.i) && !isNil(selected.j)) {
-        text = `${(treeData.length ? treeData : flatData)[selected.i][selected.j].value}`
-      } else if (selected.column) {
-        text = (treeData.length ? treeData : flatData).map((row) => row[selected.column].value).join('\r\n')
+      if (selected.column) {
+        let rows = treeData.length ? treeData : flatData
+        if (!isNil(selected.i)) {
+          rows = [rows[selected.i]]
+        }
+        text = rows.map((rowMember) => {
+          if (isMeasure(selected.column)) {
+            return (rowMember[selected.column.name] as {value: number})?.value
+          }
+          return displayByBehaviour({
+            key: rowMember[selected.column.hierarchy || selected.column.dimension],
+            caption: rowMember[selected.column.memberCaption],
+          }, selected.column.displayBehaviour ?? DisplayBehaviour.descriptionOnly)
+        }).join('\r\n')
       }
       if (text) {
         navigator.clipboard.writeText(text).catch(() => {
@@ -1250,17 +1263,15 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
     return this.options()?.showToolbar
   }
 
-  // @HostListener('keydown.control.c', ['$event'])
-  // onCtrlC(event: KeyboardEvent) {
-  //   this.copy(this.selected)
-  // }
-
-  @HostListener('document:keyup', ['$event'])
+  @HostListener('document:keydown', ['$event'])
   keyUpEvent(event: KeyboardEvent) {
-    if (event.ctrlKey) {
-      if (event.key === 'c') {
-        this.copy(this.selected)
-      }
+    // Support both Ctrl+C (Windows/Linux) and Cmd+C (macOS)
+    const isCopy =
+      (event.ctrlKey && event.key === 'c') ||
+      (event.metaKey && event.key === 'c')
+    // Copy when element is focused
+    if (isCopy && this._getHostElement() === document.activeElement) {
+      this.copy(this.selected)
     }
   }
 
