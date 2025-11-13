@@ -8,6 +8,7 @@ import {
 	IUser,
 	IXpert,
 	IXpertAgent,
+	IXpertTable,
 	IXpertToolset,
 	TAvatar,
 	TChatApi,
@@ -27,7 +28,7 @@ import { IsBoolean, IsJSON, IsObject, IsOptional, IsString } from 'class-validat
 import { Transform, TransformFnParams } from 'class-transformer'
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
-import { CopilotModel, Environment, Knowledgebase, XpertAgent, XpertToolset } from '../core/entities/internal'
+import { CopilotModel, Environment, Knowledgebase, XpertAgent, XpertTable, XpertToolset } from '../core/entities/internal'
 import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 
 
@@ -222,6 +223,10 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@OneToMany(() => XpertAgent, (agent) => agent.team)
 	agents?: IXpertAgent[]
 
+	@ApiProperty({ type: () => XpertTable, isArray: true })
+	@OneToMany(() => XpertTable, (table) => table.xpert)
+	tables?: IXpertTable[]
+
 	/*
     |--------------------------------------------------------------------------
     | @ManyToMany 
@@ -296,4 +301,5 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 		name: 'xpert_to_integration',
 	})
 	integrations?: IIntegration[]
+
 }

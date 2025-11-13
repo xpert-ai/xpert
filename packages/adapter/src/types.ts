@@ -1,4 +1,5 @@
 import { Readable } from 'stream'
+import { DBTableAction, DBTableOperationParams } from '@xpert-ai/plugin-sdk'
 
 export interface AdapterError {
   message: string
@@ -251,6 +252,15 @@ export interface DBQueryRunner {
    * @param options
    */
   dropTable(name: string, options?: QueryOptions): Promise<void>
+
+  /**
+   * Unified table operation executor
+   */
+  tableOp(
+    action: DBTableAction,
+    params: DBTableOperationParams,
+    options?: QueryOptions
+  ): Promise<any>
 
   /**
    * Teardown all resources:

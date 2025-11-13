@@ -121,6 +121,15 @@ export interface DBQueryRunner {
   dropTable(name: string, options?: QueryOptions): Promise<void>
 
   /**
+   * Unified table operation executor
+   */
+  tableOp(
+    action: DBTableAction,
+    params: DBTableOperationParams,
+    options?: QueryOptions
+  ): Promise<any>
+
+  /**
    * Teardown all resources:
    * - close connection
    *
@@ -205,6 +214,13 @@ export abstract class BaseQueryRunner<T extends AdapterBaseOptions = AdapterBase
   async import({name, columns, data}, options?: {catalog?: string}): Promise<void> {return null}
   async dropTable(name: string, options?: any): Promise<void> {
     this.runQuery(`DROP TABLE ${name}`, options)
+  }
+  async tableOp(
+    action: DBTableAction,
+    params: DBTableOperationParams,
+    options?: QueryOptions
+  ): Promise<any> {
+    throw new Error(`Unimplemented method`)
   }
   abstract teardown(): Promise<void>
 }
@@ -319,4 +335,53 @@ export interface File {
   path: string
   /** `MemoryStorage` only: A Buffer containing the entire file. */
   buffer: Buffer
+}
+
+export enum DBTableAction {
+  LIST_TABLES = 'listTables',
+  TABLE_EXISTS = 'tableExists',
+
+  CREATE_TABLE = 'createTable',
+  DROP_TABLE = 'dropTable',
+  RENAME_TABLE = 'renameTable',
+  TRUNCATE_TABLE = 'truncateTable',
+
+  ADD_COLUMN = 'addColumn',
+  DROP_COLUMN = 'dropColumn',
+  MODIFY_COLUMN = 'modifyColumn',
+
+  CREATE_INDEX = 'createIndex',
+  DROP_INDEX = 'dropIndex',
+
+  GET_TABLE_INFO = 'getTableInfo',
+
+  CLONE_TABLE_STRUCTURE = 'cloneTableStructure',
+  CLONE_TABLE = 'cloneTable',
+
+  OPTIMIZE_TABLE = 'optimizeTable'
+}
+
+export interface DBTableOperationParams {
+  schema?: string
+  table?: string
+  newTable?: string      // rename/clone
+  columns?: ColumnDef[]
+  column?: ColumnDef // add/modify
+  columnName?: string    // drop column
+  index?: DBIndexDefinition
+  indexName?: string
+  createMode?: DBCreateTableMode
+}
+
+export interface DBIndexDefinition {
+  name: string
+  columns: string[]
+  unique?: boolean
+  type?: 'btree' | 'hash' | 'gin' | 'bitmap' | 'fulltext' | string
+}
+
+export enum DBCreateTableMode {
+  ERROR = 'error',       // 表已存在 → 报错
+  IGNORE = 'ignore',     // 表已存在 → 什么也不做
+  UPGRADE = 'upgrade'    // 表已存在 → 自动升级表结构
 }

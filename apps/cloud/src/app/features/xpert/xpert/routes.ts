@@ -8,6 +8,8 @@ import { XpertLogsComponent } from './logs/logs.component'
 import { XpertMonitorComponent } from './monitor/monitor.component'
 import { XpertComponent } from './xpert.component'
 import { XpertMemoryComponent } from './memory/memory.component'
+import { XpertMemoryStoreComponent } from './memory/store/store.component'
+import { XpertMemoryDatabaseComponent } from './memory/database/database.component'
 
 export const routes: Routes = [
   {
@@ -41,7 +43,22 @@ export const routes: Routes = [
       },
       {
         path: 'memory',
-        component: XpertMemoryComponent
+        component: XpertMemoryComponent,
+        children: [
+            {
+            path: '',
+            redirectTo: 'store',
+            pathMatch: 'full'
+          },
+          {
+            path: 'store',
+            component: XpertMemoryStoreComponent
+          },
+          {
+            path: 'database',
+            component: XpertMemoryDatabaseComponent
+          }
+        ]
       },
       {
         path: 'copilot',

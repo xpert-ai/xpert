@@ -1,5 +1,6 @@
 import * as _axios from 'axios'
 import { AdapterBaseOptions, DBProtocolEnum, DBQueryRunner, DBQueryRunnerType, DBSyntaxEnum, IDSSchema, IDSTable, QueryOptions, QueryResult } from './types'
+import { DBTableAction, DBTableOperationParams } from '@xpert-ai/plugin-sdk'
 
 const axios = _axios.default
 
@@ -46,6 +47,13 @@ export abstract class BaseQueryRunner<T extends AdapterBaseOptions = AdapterBase
   async import({name, columns, data}, options?: {catalog?: string}): Promise<void> {return null}
   async dropTable(name: string, options?: any): Promise<void> {
     this.runQuery(`DROP TABLE ${name}`, options)
+  }
+  async tableOp(
+    action: DBTableAction,
+    params: DBTableOperationParams,
+    options?: QueryOptions
+  ): Promise<any> {
+    throw new Error(`Unimplemented method`)
   }
   abstract teardown(): Promise<void>
 }

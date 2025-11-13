@@ -3,6 +3,7 @@ import { BaseSQLQueryRunner, SQLAdapterOptions, register } from '../../base'
 import { convertPGSchema, getPGSchemaQuery, pgTypeMap, typeToPGDB } from '../../helpers'
 import { CreationTable, DBProtocolEnum, DBSyntaxEnum, QueryResult, IDSSchema, QueryOptions, IColumnDef } from '../../types'
 import { pgFormat } from './pg-format'
+import { DBCreateTableMode, DBTableAction, DBTableOperationParams } from '@xpert-ai/plugin-sdk'
 
 
 export const POSTGRES_TYPE = 'pg'
@@ -273,6 +274,95 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
       }
     } finally {
       await this.client.end()
+    }
+  }
+
+  async tableOp(
+    action: DBTableAction,
+    params: DBTableOperationParams,
+  ): Promise<any> {
+    switch(action) {
+      case DBTableAction.CREATE_TABLE: {
+        const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
+        const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
+
+        // 1. 检查表是否存在
+        const existsResult = await this.runQuery(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = '${schema || 'public'}'
+            AND table_name = '${table}';
+        `)
+
+        const exists = Array.isArray(existsResult) && existsResult.length > 0
+
+        // --- MODE: ERROR → 表存在时报错 ---
+        if (exists && createMode === DBCreateTableMode.ERROR) {
+          throw new Error(`Table "${tableName}" already exists`)
+        }
+
+        // --- MODE: IGNORE → 存在则不处理 ---
+        if (exists && createMode === DBCreateTableMode.IGNORE) {
+          return
+        }
+
+        // --- MODE: UPGRADE → 自动升级字段 ---
+        if (exists && createMode === DBCreateTableMode.UPGRADE) {
+          // 获取当前表结构
+          const currentCols = await this.runQuery(`
+            SELECT column_name, data_type, is_nullable 
+            FROM information_schema.columns 
+            WHERE table_schema='${schema || 'public'}' 
+              AND table_name='${table}'
+          `)
+
+          // 对比字段，新增/修改字段
+          for (const col of columns) {
+            const existing = currentCols.columns.find(c => c.name === col.fieldName)
+
+            // 新字段 → ADD COLUMN
+            if (!existing) {
+              await this.runQuery(`
+                ALTER TABLE ${tableName} 
+                ADD COLUMN "${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length)}
+              `)
+              continue
+            }
+
+            // 字段存在，检查类型是否需要更新
+            const newType = typeToPGDB(col.type, col.isKey, col.length)
+            const oldType = existing.type
+
+            if (newType.toLowerCase() !== oldType.toLowerCase()) {
+              await this.runQuery(`
+                ALTER TABLE ${tableName} 
+                ALTER COLUMN "${col.fieldName}" TYPE ${newType}
+              `)
+            }
+          }
+
+          return
+        }
+
+        // --- MODE: CREATE NEW TABLE ---
+        const createTableStatement = `
+          CREATE TABLE IF NOT EXISTS ${tableName} (
+            ${columns
+              .map(
+                (col) =>
+                  `"${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length)}${
+                    col.isKey ? ' PRIMARY KEY' : ''
+                  }`
+              )
+              .join(', ')}
+          )
+        `
+
+        await this.runQuery(createTableStatement)
+        return
+      }
+      default:
+        throw new Error(`Unsupported table action: ${action}`)
     }
   }
 

@@ -31,6 +31,7 @@ import {
 	XpertProjectTaskStep,
 	XpertProjectTaskLog,
 	XpertProjectVCS,
+	XpertTable,
 	Environment,
 } from './internal'
 
@@ -67,5 +68,6 @@ export const ALL_AI_ENTITIES = [
 	XpertProjectTaskStep,
 	XpertProjectTaskLog,
 	XpertProjectVCS,
+	XpertTable,
 	Environment,
 ]
