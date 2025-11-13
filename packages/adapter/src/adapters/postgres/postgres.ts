@@ -361,6 +361,26 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         await this.runQuery(createTableStatement)
         return
       }
+      case DBTableAction.GET_TABLE_INFO: {
+        const { schema, table } = params
+        const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
+
+        const result = await this.runQuery(`
+          SELECT column_name, data_type, is_nullable 
+          FROM information_schema.columns 
+          WHERE table_schema='${schema || 'public'}' 
+            AND table_name='${table}'
+        `)
+
+        return result.data.length === 0 ? null : {
+          table: tableName,
+          columns: result.data.map((col: any) => ({
+            name: col.column_name,
+            type: pgTypeMap(col.data_type),
+            isNullable: col.is_nullable === 'YES',
+          })),
+        }
+      }
       default:
         throw new Error(`Unsupported table action: ${action}`)
     }

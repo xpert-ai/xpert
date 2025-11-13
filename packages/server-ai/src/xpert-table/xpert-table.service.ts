@@ -22,7 +22,39 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		super(repository)
 	}
 
+	async validateTableName(entity: XpertTable): Promise<boolean> {
+		if (entity.id) {
+			const old = await this.findOneByIdString(entity.id)
+			if (old.name === entity.name && old.schema === entity.schema && old.database === entity.database) {
+				return true
+			}
+		}
+		try {
+			// Get the database adapter
+			const adapter = await this.queryBus.execute(
+				new XpertDatabaseAdapterQuery({
+					id: entity.database
+				})
+			)
+			// Check if table exists in the database
+			const exists = await adapter.tableOp(DBTableAction.GET_TABLE_INFO, {
+				schema: entity.schema || undefined,
+				table: entity.name
+			})
+			return !exists
+		} catch (error) {
+			return false
+		}
+	}
+
 	async upsertTable(entity: XpertTable): Promise<XpertTable> {
+		if (!entity.name || !entity.database) {
+			throw new BadRequestException(`Table name and database are required for upsert operation.`)
+		}
+		const isValid = await this.validateTableName(entity)
+		if (!isValid) {
+			throw new BadRequestException(`Table name ${entity.schema ? entity.schema + '.' : ''}${entity.name} already exists in the database.`)
+		}
 		let table: XpertTable = null
 		if (entity.id) {
 			await this.update(entity.id, entity)

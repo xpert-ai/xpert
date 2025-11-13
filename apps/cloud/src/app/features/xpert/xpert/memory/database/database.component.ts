@@ -12,6 +12,7 @@ import { attrModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { map, shareReplay } from 'rxjs'
 import {
+  getErrorMessage,
   injectToastr,
   injectTranslate,
   injectXpertTableAPI,
@@ -22,7 +23,6 @@ import {
   XpertTableStatus
 } from '../../../../../@core'
 import { XpertComponent } from '../../xpert.component'
-import { toSignal } from '@angular/core/rxjs-interop'
 
 @Component({
   standalone: true,
@@ -169,7 +169,7 @@ export class XpertMemoryDatabaseComponent {
       },
       error: (err) => {
         this.#loading.set(false)
-        this.#toastr.danger(err.message || err)
+        this.#toastr.danger(getErrorMessage(err))
       }
     })
   }
@@ -184,7 +184,7 @@ export class XpertMemoryDatabaseComponent {
       },
       error: (err) => {
         this.#loading.set(false)
-        this.#toastr.danger(err.message || err)
+        this.#toastr.danger(getErrorMessage(err))
       }
     })
   }
