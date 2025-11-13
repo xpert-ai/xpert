@@ -40,7 +40,7 @@
         >
       </div>
 
-      <button mat-button class="pac-indicator-market__search-done rounded-lg"
+      <button mat-button class="pac-indicator-market__search-done rounded-lg mx-1"
         (click)="onSearchDone()">
         {{ 'IndicatorApp.Done' | translate: {Default: 'Done'} }}
       </button>
@@ -90,16 +90,16 @@
     <mat-button-toggle-group ngmAppearance="hero" color="accent" displayDensity="cosy"
       [ngModel]="timeGranularity()" (ngModelChange)="onTimeGranularity($event)" (click)="$event.stopPropagation()">
       <mat-button-toggle [value]="TIME_GRANULARITY.Year">
-        {{ 'COMPONENTS.DATE_PICKER.Year' | translate: {Default: 'Year'} }}
+        {{ 'IndicatorApp.DatePicker.Year' | translate: {Default: 'Year'} }}
       </mat-button-toggle>
       <mat-button-toggle [value]="TIME_GRANULARITY.Quarter">
-        {{ 'COMPONENTS.DATE_PICKER.Quarter' | translate: {Default: 'Quarter'} }}
+        {{ 'IndicatorApp.DatePicker.Quarter' | translate: {Default: 'Quarter'} }}
       </mat-button-toggle>
       <mat-button-toggle [value]="TIME_GRANULARITY.Month">
-        {{ 'COMPONENTS.DATE_PICKER.Month' | translate: {Default: 'Month'} }}
+        {{ 'IndicatorApp.DatePicker.Month' | translate: {Default: 'Month'} }}
       </mat-button-toggle>
       <mat-button-toggle [value]="TIME_GRANULARITY.Day">
-        {{ 'COMPONENTS.DATE_PICKER.Day' | translate: {Default: 'Day'} }}
+        {{ 'IndicatorApp.DatePicker.Day' | translate: {Default: 'Day'} }}
       </mat-button-toggle>
     </mat-button-toggle-group>
 

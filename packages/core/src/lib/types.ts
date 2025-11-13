@@ -346,6 +346,13 @@ export function uuid(): UUID {
   return uuidv4()
 }
 
+/**
+ * Format member display by DisplayBehaviour
+ * 
+ * @param option Member
+ * @param behaviour Display Behaviour
+ * @returns 
+ */
 export function displayByBehaviour(option: IMember, behaviour?: DisplayBehaviour): string {
   switch (behaviour) {
     case DisplayBehaviour.descriptionAndId:

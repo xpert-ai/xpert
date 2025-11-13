@@ -1,5 +1,17 @@
 import { Directive, ElementRef, NgZone, OnDestroy, Renderer2, effect, signal } from '@angular/core'
 
+/**
+ * @directive NgmResizableDirective
+ * 
+ * Adds a resize handle to the bottom-right corner of any host element,
+ * allowing the user to adjust its width and height interactively.
+ * 
+ * Implementation details:
+ * - Uses signals for reactive width/height tracking.
+ * - No size is applied until the user manually resizes the element.
+ * - Updates DOM styles declaratively via `effect()` reacting to signal changes.
+ * - Mouse events are handled outside Angular’s zone for better performance.
+ */
 @Directive({
   selector: '[ngmResizable]',
   standalone: true
