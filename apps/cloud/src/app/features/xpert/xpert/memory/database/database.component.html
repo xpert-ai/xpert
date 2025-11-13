@@ -28,6 +28,7 @@
         <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">状态</th>
         <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">版本</th>
         <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">激活时间</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">信息</th>
         <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">Xpert ID</th>
         <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">操作</th>
       </tr>
@@ -49,6 +50,7 @@
           </td>
           <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.version || '-' }}</td>
           <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.activatedAt ? (table.activatedAt | date:'yyyy-MM-dd HH:mm') : '-' }}</td>
+          <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.message }}</td>
           <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.xpertId }}</td>
           <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
             <div class="flex gap-1">

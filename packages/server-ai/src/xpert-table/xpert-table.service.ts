@@ -65,13 +65,13 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 
 		// Activate the table after upsert
 		await this.activateTable(table.id)
-		return await this.findOneByIdString(entity.id)
+		return await this.findOneByIdString(table.id)
 	}
 
 	async activateTable(tableId: string) {
 		const table = await this.findOneByIdString(tableId)
-		if (!table) {
-			throw new BadRequestException(`Xpert Table with ID ${tableId} not found`)
+		if (!table.columns?.length) {
+			throw new BadRequestException(`Table must have at least one column to activate.`)
 		}
 
 		await this.update(table.id, { status: XpertTableStatus.PENDING_ACTIVATION })
@@ -116,9 +116,9 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 			})
 
 			// Update table status to ACTIVE
-			await this.update(table.id, { status: XpertTableStatus.ACTIVE })
+			await this.update(table.id, { status: XpertTableStatus.ACTIVE, activatedAt: new Date(), message: null })
 		} catch (error) {
-			console.log('Error creating/updating physical table:', error)
+			console.error(error)
 			await this.update(table.id, { status: XpertTableStatus.ERROR, message: getErrorMessage(error) })
 		}
 	}

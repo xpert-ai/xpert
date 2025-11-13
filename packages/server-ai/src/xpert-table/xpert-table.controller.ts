@@ -1,6 +1,6 @@
 import { IXpertTable } from '@metad/contracts'
 import { CrudController, TransformInterceptor } from '@metad/server-core'
-import { Body, Controller, Get, Logger, Post, Query, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Get, Logger, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'
 import { XpertDatabasesQuery } from './queries/get-databases.query'
@@ -37,7 +37,7 @@ export class XpertTableController extends CrudController<XpertTable> {
 	}
 
 	@Post(':id/activate')
-	async activateTable(@Query('id') tableId: string) {
+	async activateTable(@Param('id') tableId: string) {
 		return this.service.activateTable(tableId)
 	}
 }
