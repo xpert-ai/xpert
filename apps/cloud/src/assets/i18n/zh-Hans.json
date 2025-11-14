@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Database": "数据库",
       "Selected": "已选",
       "Logs": "日志",
       "Service": "服务",
@@ -464,7 +465,8 @@
       "FirstRecord": "首条记录",
       "LastRecord": "末条记录",
       "AddAssignVariables": "添加要赋值的变量",
-      "AggregatedResult": "汇总结果"
+      "AggregatedResult": "汇总结果",
+      "NewData": "新增数据"
     },
     "Pipeline": {
       "AuthenticationMethod": "认证方式",

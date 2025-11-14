@@ -21,8 +21,8 @@ import {
   TXpertTableColumn,
   XpertAPIService,
   XpertTableStatus
-} from '../../../../../@core'
-import { XpertComponent } from '../../xpert.component'
+} from '../../../../@core'
+import { XpertWorkspaceHomeComponent } from '../home/home.component'
 
 @Component({
   standalone: true,
@@ -36,13 +36,13 @@ import { XpertComponent } from '../../xpert.component'
     NgmSpinComponent,
     NgmSelectComponent
   ],
-  selector: 'xp-xpert-memory-database',
+  selector: 'xp-workspace-database',
   templateUrl: './database.component.html',
   styleUrl: 'database.component.scss',
   animations: [OverlayAnimation1],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertMemoryDatabaseComponent {
+export class XpertWorkspaceDatabaseComponent {
   eXpertTableStatus = XpertTableStatus
 
   readonly #translate = inject(TranslateService)
@@ -51,22 +51,21 @@ export class XpertMemoryDatabaseComponent {
   readonly #toastr = injectToastr()
   readonly xpertTableAPI = injectXpertTableAPI()
   readonly xpertService = inject(XpertAPIService)
-  readonly xpertComponent = inject(XpertComponent)
   readonly #clipboard = inject(Clipboard)
+  readonly homeComponent = inject(XpertWorkspaceHomeComponent)
 
-  readonly xpertId = this.xpertComponent.paramId
-
+  readonly workspace = this.homeComponent.workspace
   readonly #tablesResource = myRxResource({
     request: () => {
       return {
-        xpertId: this.xpertId()
+        workspaceId: this.workspace()?.id
       }
     },
     loader: ({ request }) => {
-      return request.xpertId
+      return request.workspaceId
         ? this.xpertTableAPI.getAll({
             where: {
-              // xpertId: request.xpertId
+              workspaceId: request.workspaceId
             }
           })
         : null
@@ -185,9 +184,9 @@ export class XpertMemoryDatabaseComponent {
 
   save() {
     this.#loading.set(true)
-    // if (!this.table().xpertId) {
-    //   this.table.update((v) => ({ ...v, xpertId: this.xpertId() }))
-    // }
+    if (!this.table().workspaceId) {
+      this.table.update((v) => ({ ...v, workspaceId: this.workspace()?.id }))
+    }
     this.xpertTableAPI.create(this.table()).subscribe({
       next: () => {
         this.#loading.set(false)

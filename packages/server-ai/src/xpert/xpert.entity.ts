@@ -223,10 +223,6 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@OneToMany(() => XpertAgent, (agent) => agent.team)
 	agents?: IXpertAgent[]
 
-	@ApiProperty({ type: () => XpertTable, isArray: true })
-	@OneToMany(() => XpertTable, (table) => table.xpert)
-	tables?: IXpertTable[]
-
 	/*
     |--------------------------------------------------------------------------
     | @ManyToMany 
