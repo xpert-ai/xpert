@@ -55,7 +55,7 @@
       [cdkListboxValue]="values()"
       (cdkListboxValueChange)="selectValues($event)">
       @for (option of filteredOptions(); track option.key) {
-        <li #opElem="cdkOption" class="relative px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer"
+        <li #opElem="cdkOption" class="relative pl-2 pr-6 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer"
           [class.bg-gray-100]="opElem.isSelected()"
           [cdkOption]="option.value"
           (click)="selectOption(trigger, option.value)"

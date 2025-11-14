@@ -76,7 +76,7 @@
 }
 
 @if (table()) {
-  <div class="absolute right-1 top-1 bottom-1 w-96 lg:w-[500px] p-6 bg-neutral-50 rounded-2xl border border-solid border-gray-200 shadow-lg max-w-4xl mx-auto z-10">
+  <div class="absolute right-1 top-1 bottom-1 w-96 lg:w-[500px] px-6 py-4 bg-neutral-50 rounded-2xl border border-solid border-gray-200 shadow-lg max-w-4xl mx-auto z-10">
     <div class="flex justify-between items-center">
       <h2 class="text-xl font-semibold mb-4">编辑表格</h2>
       <button type="button" class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-gray-200 hover:text-text-destructive"
@@ -154,41 +154,43 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let col of table().columns; let i = index" class="border-b">
-            <td class="p-2">
-              <input
-                type="text"
-                class="w-full border rounded px-2 py-1 focus:ring focus:ring-blue-200"
-                [(ngModel)]="col.name"
-              />
-            </td>
-            <td class="p-2">
-              <input
-                type="text"
-                class="w-full border rounded px-2 py-1 focus:ring focus:ring-blue-200"
-                [(ngModel)]="col.label"
-              />
-            </td>
-            <td class="p-2">
-              <ngm-select [selectOptions]="types" [(ngModel)]="col.type" [nullable]="false" />
-            </td>
-            <td class="p-2 text-center">
-              <input
-                type="checkbox"
-                class="h-4 w-4 text-blue-500"
-                [(ngModel)]="col.required"
-              />
-            </td>
-            <td class="p-2 text-center">
-              <button
-                (click)="removeColumn(i)"
-                class="text-red-500 hover:text-red-700"
-                title="删除"
-              >
-                ✕
-              </button>
-            </td>
-          </tr>
+          @for (col of table().columns; track col; let i = $index) {
+            <tr class="border-b">
+              <td class="p-2">
+                <input
+                  type="text"
+                  class="w-full border rounded px-2 py-1 focus:ring focus:ring-blue-200"
+                  [(ngModel)]="col.name"
+                />
+              </td>
+              <td class="p-2">
+                <input
+                  type="text"
+                  class="w-full border rounded px-2 py-1 focus:ring focus:ring-blue-200"
+                  [(ngModel)]="col.label"
+                />
+              </td>
+              <td class="p-2">
+                <ngm-select [selectOptions]="types" [(ngModel)]="col.type" [nullable]="false" />
+              </td>
+              <td class="p-2 text-center">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 text-blue-500"
+                  [(ngModel)]="col.required"
+                />
+              </td>
+              <td class="p-2 text-center">
+                <button type="button"
+                  (click)="removeColumn(i)"
+                  class="text-red-500 hover:text-red-700"
+                  title="删除"
+                >
+                  ✕
+                </button>
+              </td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>

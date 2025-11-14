@@ -112,6 +112,34 @@ export class XpertMemoryDatabaseComponent {
         en_US: 'String',
         zh_Hans: '字符串'
       }
+    },
+    {
+      value: 'number',
+      label: {
+        en_US: 'Number',
+        zh_Hans: '数字'
+      }
+    },
+    {
+      value: 'boolean',
+      label: {
+        en_US: 'Boolean',
+        zh_Hans: '布尔值'
+      }
+    },
+    {
+      value: 'date',
+      label: {
+        en_US: 'Date',
+        zh_Hans: '日期'
+      }
+    },
+    {
+      value: 'datetime',
+      label: {
+        en_US: 'DateTime',
+        zh_Hans: '日期时间'
+      }
     }
   ]
 
