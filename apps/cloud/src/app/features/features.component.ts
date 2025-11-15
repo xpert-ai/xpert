@@ -13,7 +13,6 @@ import {
   viewChild
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { MatDrawerMode, MatSidenav, MatSidenavContainer } from '@angular/material/sidenav'
 import {
   Event,
@@ -29,6 +28,7 @@ import { injectUserPreferences, UsersService } from '@metad/cloud/state'
 import { isNotEmpty, nonNullable } from '@metad/core'
 import { NgmCopilotChatComponent, NgmCopilotEngineService } from '@metad/copilot-angular'
 import { TranslateService } from '@ngx-translate/core'
+import { attrModel } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
 import { combineLatestWith } from 'rxjs'
@@ -45,7 +45,6 @@ import {
 } from '../@core'
 import { AppService } from '../app.service'
 import { injectChatCommand } from '../@shared/copilot'
-import { attrModel } from '@metad/ocap-angular/core'
 import { getFeatureMenus } from './menus'
 
 
@@ -176,7 +175,6 @@ export class FeaturesComponent implements OnInit {
     public readonly translateService: TranslateService,
     protected renderer: Renderer2,
     private router: Router,
-    public dialog: MatDialog,
     private location: Location,
     private logger: NGXLogger
   ) {
@@ -342,11 +340,10 @@ export class FeaturesComponent implements OnInit {
         this.appService.setCatalog({
           catalog: MenuCatalog.Project
         })
-      } else if (event.url.match(/^\/project/g)) {
+      } else if (event.url.match(/^\/story/g)) {
         this.appService.setCatalog({
           catalog: MenuCatalog.Stories
         })
-      } else if (event.url.match(/^\/story/g)) {
       } else if (event.url.match(/^\/models/g)) {
         // this.appService.setCatalog({
         //   catalog: MenuCatalog.Models,
@@ -391,7 +388,7 @@ export class FeaturesComponent implements OnInit {
   onKeyDown(event: KeyboardEvent) {
     if (event.metaKey || event.ctrlKey) {
       if (event.shiftKey) {
-
+        //
       } else {
         switch (event.key) {
           case 'b':

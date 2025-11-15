@@ -60,22 +60,22 @@ export class PACSettingComponent {
           permissionKeys: [AIPermissionsEnum.COPILOT_EDIT]
         }
       },
-      {
-        link: 'knowledgebase',
-        label: 'Knowledgebase',
-        icon: 'school',
-        data: {
-          featureKey: [
-            AiFeatureEnum.FEATURE_COPILOT,
-            AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE
-          ],
-          permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
-        }
-      },
+      // {
+      //   link: 'knowledgebase',
+      //   label: 'Knowledgebase',
+      //   icon: 'school',
+      //   data: {
+      //     featureKey: [
+      //       AiFeatureEnum.FEATURE_COPILOT,
+      //       AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE
+      //     ],
+      //     permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+      //   }
+      // },
       {
         link: 'data-sources',
         label: 'Data Sources',
-        icon: 'topic',
+        icon: 'database',
         data: {
           permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
           featureKey: AnalyticsFeatures.FEATURE_MODEL
