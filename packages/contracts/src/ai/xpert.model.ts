@@ -14,7 +14,7 @@ import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, TWFCase, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { IStorageFile } from '../storage-file.model'
-import { STATE_VARIABLE_HUMAN, TInterruptCommand } from '../agent'
+import { STATE_VARIABLE_HUMAN, TInterruptCommand } from '../agent/graph'
 
 export type ToolCall = LToolCall
 
@@ -395,6 +395,7 @@ export enum XpertParameterTypeEnum {
   NUMBER = 'number',
   OBJECT = 'object',
   SELECT = 'select',
+  FILE = 'file',
   ARRAY_STRING = 'array[string]',
   ARRAY = 'array[object]',
   ARRAY_FILE = 'array[file]',
