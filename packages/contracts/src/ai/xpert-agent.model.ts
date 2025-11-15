@@ -166,7 +166,13 @@ export type TXpertAgentOptions = {
    */
   vision?: {
     enabled?: boolean
+    /**
+     * Variable name that store the list of files to be understood
+     */
     variable?: string
+    /**
+     * Image resolution for vision tasks
+     */
     resolution?: 'high' | 'low'
   }
 }

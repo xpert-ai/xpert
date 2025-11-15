@@ -50,7 +50,11 @@ export class XpertVariablePanelComponent {
 
   // Inputs
   readonly options = input.required<TXpertVariablesOptions>()
+  /**
+   * @deprecated use `types` instead
+   */
   readonly type = input<string>() // TStateVariableType | string
+  readonly types = input<string[]>() // TStateVariableType[]
 
   /**
    * Use as variables cache, if not provided, will fetch variables from API by options
@@ -78,22 +82,29 @@ export class XpertVariablePanelComponent {
   readonly #searchTerm = debouncedSignal(this.searchTerm, 300)
   readonly filteredVariables = computed(() => {
     const searchTerm = this.#searchTerm().toLowerCase()
-    const type = this.type()
+    const types = this.types() ?? (this.type() ? [this.type()] : null)
     return this.variables()
-      ?.map((group) => ({
-        ...group,
-        variables: (searchTerm ? group.variables?.filter((variable) => {
-          const description = variable.description
-          return (type
-            ? variable.type?.startsWith(type)
-            : true) &&
-                (
-                  variable.name.toLowerCase().includes(searchTerm) ||
-                  (this.i18nPipe.transform(description)?.toLowerCase().includes(searchTerm)) ||
-                  this.i18nPipe.transform(group.group.description)?.toLowerCase().includes(searchTerm)
-                )
-        }) : group.variables) as TStateVariableType[]
-      }))
+      ?.map((group) => {
+        let variables = group.variables
+        if (searchTerm || types) {
+          variables = variables?.filter((variable) => {
+              const description = variable.description
+              return (types.length
+                ? types.some(type => variable.type?.startsWith(type))
+                : true) &&
+                    (
+                      variable.name.toLowerCase().includes(searchTerm) ||
+                      (this.i18nPipe.transform(description)?.toLowerCase().includes(searchTerm)) ||
+                      this.i18nPipe.transform(group.group.description)?.toLowerCase().includes(searchTerm)
+                    )
+            })
+        }
+
+        return {
+          ...group,
+          variables: variables as TStateVariableType[]
+        }
+      })
       .filter((group) => group.variables?.length > 0)
   })
 
@@ -118,7 +129,6 @@ export class XpertVariablePanelComponent {
       },
       { allowSignalWrites: true }
     )
-    effect(() => console.log(this.variable()))
   }
 
   isSelectedGroup(name: string) {

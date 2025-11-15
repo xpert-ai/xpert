@@ -19,7 +19,7 @@ td.sticky {
   .parameter-config-menu {
     .cdk-listbox.parameter-type-list {
       .cdk-option {
-        @apply w-28 h-16 text-sm flex flex-col justify-center items-center border border-solid border-transparent rounded-xl cursor-pointer
+        @apply w-20 h-16 text-sm flex flex-col justify-center items-center border border-solid border-transparent rounded-xl cursor-pointer
             hover:bg-primary-100/10 hover:border-primary-300 hover:shadow-sm;
       }
       .cdk-option[aria-selected='true'] {

@@ -158,6 +158,16 @@
       </svg>
       <div class="ml-2 text-sm truncate">{{ 'PAC.Xpert.ParameterType_Number' | translate: {Default: 'Number'} }}</div>
     </div>
+    <div cdkMenuItem class="flex items-center px-2 h-8 rounded-lg text-text-tertiary hover:bg-gray-50 cursor-pointer hover:text-text-primary"
+      (click)="addParameter({type: eXpertParameterTypeEnum.OBJECT})">
+      <i class="ri-braces-line w-4 h-4 flex justify-center items-center text-gray-500"></i>
+      <div class="ml-2 text-sm truncate">{{ 'PAC.Xpert.ParameterType_Object' | translate: {Default: 'Object'} }}</div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-2 h-8 rounded-lg text-text-tertiary hover:bg-gray-50 cursor-pointer hover:text-text-primary"
+      (click)="addParameter({type: eXpertParameterTypeEnum.ARRAY})">
+      <i class="ri-brackets-line w-4 h-4 flex justify-center items-center text-gray-500"></i>
+      <div class="ml-2 text-sm truncate">{{ 'PAC.Xpert.ParameterType_Array' | translate: {Default: 'Object Array'} }}</div>
+    </div>
   </div>
 </ng-template>
 
@@ -225,6 +235,20 @@
                   </svg>
                 </div>
                 <span class="">{{ 'PAC.Xpert.ParameterType_Number' | translate: {Default: 'Number'} }}</span>
+              </li>
+              <li class="space-y-1"
+                [cdkOption]="eXpertParameterTypeEnum.OBJECT">
+                <div class="shrink-0">
+                  <i class="ri-braces-line w-5 h-5 flex justify-center items-center"></i>
+                </div>
+                <span class="">{{ 'PAC.Xpert.ParameterType_Object' | translate: {Default: 'Object'} }}</span>
+              </li>
+              <li class="space-y-1"
+                [cdkOption]="eXpertParameterTypeEnum.ARRAY">
+                <div class="shrink-0">
+                  <i class="ri-brackets-line w-5 h-5 flex justify-center items-center"></i>
+                </div>
+                <span class="">{{ 'PAC.Xpert.ParameterType_Array' | translate: {Default: 'Object Array'} }}</span>
               </li>
 
             </ul>
