@@ -47,6 +47,7 @@ import { XpertWorkflowSourceTestComponent } from './source-test/source.component
 import { XpertWorkflowListOperatorComponent } from './list-operator/list-operator.component'
 import { XpertWorkflowVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
 import { IconComponent } from '@cloud/app/@shared/avatar'
+import { XpertWorkflowPanelDBInsertComponent } from './db-insert/db-insert.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -90,7 +91,8 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
     XpertWorkflowUnderstandingComponent,
     XpertWorkflowKnowledgeBaseComponent,
     XpertWorkflowListOperatorComponent,
-    XpertWorkflowVariableAggregatorComponent
+    XpertWorkflowVariableAggregatorComponent,
+    XpertWorkflowPanelDBInsertComponent
   ],
   animations: [IfAnimation,]
 })

@@ -50,6 +50,11 @@ export interface IWorkflowNodeDBOperation extends IWorkflowNode {
 
 export interface IWFNDBInsert extends IWorkflowNodeDBOperation {
   type: WorkflowNodeTypeEnum.DB_INSERT,
+  columns?: Record<string, {
+    type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json';
+    value?: any
+    valueSelector?: string
+  }>
 }
 
 export function genXpertDBInsertKey() {

@@ -10,7 +10,6 @@ import { of } from 'rxjs'
 import {
   agentLabel,
   getVariableSchema,
-  TStateVariableType,
   TWorkflowVarGroup,
   XpertParameterTypeEnum
 } from '../../../@core/types'

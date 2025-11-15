@@ -4,7 +4,7 @@ import { TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DBCreateTableMode, DBTableAction } from '@xpert-ai/plugin-sdk'
+import { DBCreateTableMode, DBTableAction, DBTableDataAction } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { XpertDatabaseAdapterQuery } from './queries/get-database-adapter.query'
 import { XpertTable } from './xpert-table.entity'
@@ -134,6 +134,51 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		} catch (error) {
 			console.error(error)
 			throw new BadRequestException(`Error getting database schemas: ${getErrorMessage(error)}`)
+		}
+	}
+
+	async insertRow(tableId: string, row: {name: string; value: any; type: string}[]): Promise<void> {
+		const table = await this.findOneByIdString(tableId)
+		if (table.status !== XpertTableStatus.ACTIVE) {
+			throw new BadRequestException(`Table ${table.name} is not active.`)
+		}
+
+		try {
+			// Get the database adapter
+			const adapter = await this.queryBus.execute(
+				new XpertDatabaseAdapterQuery({
+					id: table.database
+				})
+			)
+			// Create or update physical table in the database
+			await adapter.tableDataOp(DBTableDataAction.INSERT, {
+				schema: table.schema || undefined,
+				table: table.name,
+				columns: row.map((column) => ({
+					/**
+					 * Key of data object
+					 */
+					name: column.name,
+					/**
+					 * Name of table column
+					 */
+					fieldName: column.name,
+					/**
+					 * Object value type, convert to db type
+					 */
+					type: column.type,
+				})),
+				values: row.reduce((acc, column) => {
+					acc[column.name] = column.value;
+					return acc;
+				}, {}),
+			})
+
+			// Update table status to ACTIVE
+			await this.update(table.id, { status: XpertTableStatus.ACTIVE, activatedAt: new Date(), message: null })
+		} catch (error) {
+			console.error(error)
+			throw error
 		}
 	}
 }

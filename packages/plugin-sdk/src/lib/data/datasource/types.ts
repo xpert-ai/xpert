@@ -38,6 +38,7 @@ export enum DBProtocolEnum {
 export interface QueryOptions {
   catalog?: string
   headers?: Record<string, string>
+  params?: Record<string, any>[]
 }
 
 export interface QueryResult<T = unknown> {
@@ -128,6 +129,12 @@ export interface DBQueryRunner {
     params: DBTableOperationParams,
     options?: QueryOptions
   ): Promise<any>
+
+  tableDataOp<T = any>(
+    action: DBTableDataAction,
+    params: DBTableDataParams,
+    options?: QueryOptions
+  ): Promise<T[] | number | any>
 
   /**
    * Teardown all resources:
@@ -222,6 +229,14 @@ export abstract class BaseQueryRunner<T extends AdapterBaseOptions = AdapterBase
   ): Promise<any> {
     throw new Error(`Unimplemented method`)
   }
+  async tableDataOp(
+    action: DBTableDataAction,
+    params: DBTableDataParams,
+    options?: QueryOptions
+  ): Promise<any> {
+    throw new Error(`Unimplemented tableDataOp`)
+  }
+
   abstract teardown(): Promise<void>
 }
 
@@ -384,4 +399,37 @@ export enum DBCreateTableMode {
   ERROR = 'error',       // 表已存在 → 报错
   IGNORE = 'ignore',     // 表已存在 → 什么也不做
   UPGRADE = 'upgrade'    // 表已存在 → 自动升级表结构
+}
+
+export enum DBTableDataAction {
+  INSERT = 'insert',
+  UPDATE = 'update',
+  UPSERT = 'upsert',
+  DELETE = 'delete',
+  SELECT = 'select',
+  BULK_INSERT = 'bulkInsert'
+}
+
+export interface DBTableDataParams {
+  schema?: string
+  table: string
+
+  // SELECT
+  columns?: Partial<ColumnDef>[]
+  where?: Record<string, any> | string
+  orderBy?: string
+  limit?: number
+  offset?: number
+
+  // INSERT / BULK_INSERT
+  values?: Record<string, any> | Array<Record<string, any>>
+
+  // UPDATE
+  set?: Record<string, any>
+
+  // DELETE
+  deleteWhere?: Record<string, any> | string
+
+  // UPSERT
+  conflictKeys?: string[]
 }

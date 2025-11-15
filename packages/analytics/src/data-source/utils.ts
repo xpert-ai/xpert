@@ -1,4 +1,4 @@
-import { CreationTable, DBQueryRunner, File } from '@metad/adapter'
+import { CreationTable, File } from '@metad/adapter'
 import { AuthenticationEnum } from '@metad/contracts'
 import { UploadSheetType, getErrorMessage, readExcelWorkSheets } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -6,6 +6,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { DataSource } from './data-source.entity'
 import { QueryBus } from '@nestjs/cqrs'
 import { DataSourceStrategyQuery } from './queries'
+import { DBQueryRunner } from '@xpert-ai/plugin-sdk'
 
 export function prepareDataSource(dataSource: DataSource, userId?: string) {
 	userId ||= RequestContext.currentUserId()

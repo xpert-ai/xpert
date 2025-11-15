@@ -1,6 +1,8 @@
 import * as _axios from 'axios'
-import { AdapterBaseOptions, DBProtocolEnum, DBQueryRunner, DBQueryRunnerType, DBSyntaxEnum, IDSSchema, IDSTable, QueryOptions, QueryResult } from './types'
-import { DBTableAction, DBTableOperationParams } from '@xpert-ai/plugin-sdk'
+import { AdapterBaseOptions } from './types'
+import { DBQueryRunner, DBQueryRunnerType, BaseQueryRunner } from '@xpert-ai/plugin-sdk'
+
+export { BaseQueryRunner, BaseSQLQueryRunner } from '@xpert-ai/plugin-sdk'
 
 const axios = _axios.default
 
@@ -8,55 +10,6 @@ export const QUERY_RUNNERS: Record<
   string,
   DBQueryRunnerType
 > = {}
-
-/**
- * @deprecated use `BaseSQLQueryRunner` from plugin-sdk
- */
-export abstract class BaseQueryRunner<T extends AdapterBaseOptions = AdapterBaseOptions> implements DBQueryRunner {
-  type: string
-  name: string
-  syntax: DBSyntaxEnum
-  protocol: DBProtocolEnum
-  jdbcDriver: string
-  abstract get host(): string
-  abstract get port(): number | string
-  options: T
-
-  jdbcUrl(schema?: string) {
-    return ''
-  }
-  get configurationSchema() {
-    return null
-  }
-
-  constructor(options?: T) {
-    this.options = options
-  }
-
-  run(sql: string): Promise<any> {
-    return this.runQuery(sql)
-  }
-
-  abstract runQuery(query: string, options?: QueryOptions): Promise<QueryResult>
-  abstract getCatalogs(): Promise<IDSSchema[]>
-  abstract getSchema(catalog?: string, tableName?: string): Promise<IDSSchema[]>
-  describe(catalog: string, statement: string): Promise<{columns?: IDSTable['columns']}> {
-    throw new Error(`Unimplemented`)
-  }
-  abstract ping(): Promise<void>
-  async import({name, columns, data}, options?: {catalog?: string}): Promise<void> {return null}
-  async dropTable(name: string, options?: any): Promise<void> {
-    this.runQuery(`DROP TABLE ${name}`, options)
-  }
-  async tableOp(
-    action: DBTableAction,
-    params: DBTableOperationParams,
-    options?: QueryOptions
-  ): Promise<any> {
-    throw new Error(`Unimplemented method`)
-  }
-  abstract teardown(): Promise<void>
-}
 
 export interface HttpAdapterOptions extends AdapterBaseOptions {
   url?: string
@@ -108,40 +61,6 @@ export interface SQLAdapterOptions extends AdapterBaseOptions {
   use_ssl?: boolean
   ssl_cacert?: string
   version?: number
-}
-
-/**
- * @deprecated use `BaseSQLQueryRunner` from plugin-sdk
- */
-export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapterOptions> extends BaseQueryRunner<T> {
-  syntax = DBSyntaxEnum.SQL
-  protocol = DBProtocolEnum.SQL
-
-  get host() {
-    if (this.options?.host) {
-      return this.options.host as string
-    }
-    if (this.options?.url) {
-      return new URL(this.options?.url as string).hostname
-    }
-    return null
-  }
-
-  get port() {
-    if (this.options?.port) {
-      return Number(this.options.port)
-    }
-    if (this.options?.url) {
-      return new URL(this.options?.url as string).port
-    }
-    return null
-  }
-
-  abstract createCatalog?(catalog: string): Promise<void>
-
-  async ping(): Promise<void> {
-    await this.runQuery(`SELECT 1`)
-  }
 }
 
 /**

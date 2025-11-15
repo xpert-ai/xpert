@@ -6,8 +6,8 @@ import { AxiosResponse } from 'axios'
 import { DataSourceService } from '../../data-source.service'
 import { prepareDataSource } from '../../utils'
 import { DataSourceOlapQuery } from '../olap.query'
-import { DBQueryRunner } from '@metad/adapter'
 import { DataSourceStrategyQuery } from '../datasource.strategy.query'
+import { DBQueryRunner } from '@xpert-ai/plugin-sdk'
 
 const axios = _axios.default
 

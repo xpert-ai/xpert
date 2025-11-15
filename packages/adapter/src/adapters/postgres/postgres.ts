@@ -1,9 +1,9 @@
 import { Client, ClientConfig, types } from 'pg'
-import { BaseSQLQueryRunner, SQLAdapterOptions, register } from '../../base'
+import { SQLAdapterOptions, register } from '../../base'
 import { convertPGSchema, getPGSchemaQuery, pgTypeMap, typeToPGDB } from '../../helpers'
-import { CreationTable, DBProtocolEnum, DBSyntaxEnum, QueryResult, IDSSchema, QueryOptions, IColumnDef } from '../../types'
+import { CreationTable, DBProtocolEnum, DBSyntaxEnum, QueryResult, IDSSchema } from '../../types'
 import { pgFormat } from './pg-format'
-import { DBCreateTableMode, DBTableAction, DBTableOperationParams } from '@xpert-ai/plugin-sdk'
+import { BaseSQLQueryRunner, DBCreateTableMode, DBTableAction, DBTableDataAction, DBTableDataParams, DBTableOperationParams, QueryOptions } from '@xpert-ai/plugin-sdk'
 
 
 export const POSTGRES_TYPE = 'pg'
@@ -77,7 +77,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
   client: Client
   #clientConnected = false
 
-  constructor(options: any) {
+  constructor(options: PostgresAdapterOptions) {
     super(options)
 
     const config = {
@@ -119,14 +119,14 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
   }
 
   async runQuery(query: string, options?: QueryOptions) {
-    const { catalog } = options ?? {}
+    const { catalog, params } = options ?? {}
 
     await this.connect()
 
     if (catalog) {
       query = `SET search_path TO ${catalog};` + query
     }
-    let res = await this.client.query(query)
+    let res = await this.client.query(query, params)
 
     if (Array.isArray(res)) {
       res = res[(res as any).length - 1]
@@ -383,6 +383,57 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
       }
       default:
         throw new Error(`Unsupported table action: ${action}`)
+    }
+  }
+
+  async tableDataOp(
+    action: DBTableDataAction,
+    params: DBTableDataParams,
+    options?: QueryOptions
+  ) {
+    const { schema, table, columns, values } = params
+    const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
+
+    switch(action) {
+      case DBTableDataAction.INSERT: {
+        if (!columns?.length) {
+          throw new Error(`INSERT requires columns definition`)
+        }
+        if (!values) {
+          throw new Error(`INSERT requires values`)
+        }
+
+        // values 始终转成数组
+        const rows = Array.isArray(values) ? values : [values]
+
+        // 1. 根据 columns 数组构造 database 字段名列表
+        const dbColumns = columns.map(col => `"${col.fieldName}"`)
+
+        // 2. 生成 INSERT VALUES 占位符
+        let paramIndex = 1
+        const placeholders = rows
+          .map(row => {
+            const rowPlaceholders = columns.map(() => `$${paramIndex++}`)
+            return `(${rowPlaceholders.join(', ')})`
+          })
+          .join(', ')
+
+        // 3. 从 values 中取值（按 columns 顺序）
+        const paramsList = []
+        for (const row of rows) {
+          for (const col of columns) {
+            paramsList.push(row[col.name] ?? null)
+          }
+        }
+
+        // 4. 生成最终 SQL
+        const sql = `
+          INSERT INTO ${tableName} (${dbColumns.join(', ')})
+          VALUES ${placeholders}
+        `
+
+        return this.runQuery(sql, { ...options, params: paramsList })
+      }
     }
   }
 
