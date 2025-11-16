@@ -25,26 +25,37 @@
 <cdk-virtual-scroll-viewport class="flex-1" [itemSize]="itemSize">
   <ng-container *cdkVirtualFor="let node of dataSource">
     <!-- Note that the [style.padding-left] is essentially what cdkTreeNodePadding is doing under the hood -->
-    <div class="tree-node rounded-md" [style.padding-left]="node.level * treeNodePaddingIndent + 'px'" [displayDensity]="appearance()?.displayDensity">
+    <div class="tree-node group/member rounded-md" [style.padding-left]="node.level * treeNodePaddingIndent + 'px'" [displayDensity]="appearance()?.displayDensity">
       <!-- Note that treeControl.toggle(node) is essentially what cdkTreeNodeToggle is doing under the hood -->
-      <button mat-icon-button disabled *ngIf="!node.expandable" [displayDensity]="appearance()?.displayDensity"></button>
-      <button mat-icon-button *ngIf="node.expandable" [displayDensity]="appearance()?.displayDensity"
-        (click)="treeControl.toggle(node)"
-      >
-        <mat-icon class="mat-icon-rtl-mirror">
-          {{ treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right' }}
-        </mat-icon>
-      </button>
+      @if (node.expandable) {
+        <button mat-icon-button [displayDensity]="appearance()?.displayDensity"
+          (click)="treeControl.toggle(node)"
+        >
+          <mat-icon class="mat-icon-rtl-mirror">
+            {{ treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right' }}
+          </mat-icon>
+        </button>
+      } @else {
+        <button mat-icon-button disabled [displayDensity]="appearance()?.displayDensity"></button>
+      }
 
       <mat-checkbox
         [checked]="isSelected(node.raw)"
         [indeterminate]="isPartiallySelected(node)"
         (change)="itemSelectionToggle(node, $event)"
       >
-        <ngm-display-behaviour [displayBehaviour]="displayBehaviour"
-          [option]="{key: node.key, caption: node.caption}"
-          [highlight]="highlightKeyword()"
-        />
+        <div class="flex gap-1 pr-1 items-center">
+          <ngm-display-behaviour class="flex-1"
+            [displayBehaviour]="displayBehaviour"
+            [option]="{key: node.key, caption: node.caption}"
+            [highlight]="highlightKeyword()"
+          />
+          <i class="ri-information-2-fill text-text-tertiary opacity-0 group-hover/member:opacity-100"
+            [matTooltip]="memberTooltip(node.raw)"
+            matTooltipPosition="above"
+            matTooltipClass="whitespace-pre-line text-left"
+          ></i>
+        </div>
       </mat-checkbox>
     </div>
   </ng-container>

@@ -21,12 +21,14 @@ import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   DataSettings,
   Dimension,
+  DIMENSION_MEMBER_FIELDS,
   DisplayBehaviour,
   FilterSelectionType,
   filterTreeNodes,
@@ -71,6 +73,7 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatButtonModule,
+    MatTooltipModule,
     ScrollingModule,
     OcapCoreModule,
     NgmCommonModule,
@@ -227,6 +230,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
     )
     .subscribe((data) => {
       if (data) {
+        console.log(data)
         this.dataSource.data = data as any
         // After initializing the data, expand the initial level depth.
         if (this.options()?.initialLevel > 0 || !!this.searchControl.value) {
@@ -470,5 +474,16 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   toggleExpand() {
     this.unfold = !this.unfold
     this.unfold ? this.treeControl.expandAll() : this.treeControl.collapseAll()
+  }
+
+  memberTooltip(member) {
+    return DIMENSION_MEMBER_FIELDS.map(field => {
+      const value = member[field.key]
+      if (value !== undefined && value !== null) {
+        const displayValue = field.formatter ? field.formatter(value) : value
+        return `${field.label}: ${displayValue}`
+      }
+      return null
+    }).filter(line => line !== null).join('\n')
   }
 }

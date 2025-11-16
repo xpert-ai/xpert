@@ -49,3 +49,16 @@ export enum IntrinsicMemberProperties {
   LEVEL_NUMBER = 'LEVEL_NUMBER',
   CHILDREN_CARDINALITY = 'CHILDREN_CARDINALITY',
 }
+
+/**
+ * Fields used in dimension member tooltip
+ */
+export const DIMENSION_MEMBER_FIELDS: {key: string; label: string; formatter?: (v) => string}[] = [
+  { key: 'memberKey', label: 'Member Key' },
+  { key: 'dimension', label: 'Dimension' },
+  { key: 'level', label: 'Level' },
+  { key: 'memberCaption', label: 'Caption' },
+  { key: 'parentKey', label: 'Parent Key' },
+  { key: 'visible', label: 'Visible', formatter: v => (v ? 'Yes' : 'No') },
+  { key: 'levelNumber', label: 'Level Number' },
+];
