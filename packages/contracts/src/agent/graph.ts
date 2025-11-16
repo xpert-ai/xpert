@@ -17,6 +17,9 @@ export const GRAPH_NODE_SUMMARIZE_CONVERSATION = 'summarize_conversation'
 export const GRAPH_NODE_TITLE_CONVERSATION = 'title_conversation'
 export const STATE_VARIABLE_FILES = 'files'
 export const STATE_VARIABLE_INPUT = 'input'
+export const STATE_SYS_VOLUME = 'volume'
+export const STATE_SYS_WORKSPACE_PATH = 'workspace_path'
+export const STATE_SYS_WORKSPACE_URL = 'workspace_url'
 export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
 export type TMessageChannel = {

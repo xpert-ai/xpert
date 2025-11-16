@@ -1,9 +1,9 @@
+import { Document } from '@langchain/core/documents'
 import { HumanMessage } from '@langchain/core/messages'
 import { _TFile, IStorageFile, TXpertAgentOptions } from '@metad/contracts'
 import { FileStorage, GetStorageFileQuery } from '@metad/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import fs from 'fs'
-import { Document } from 'langchain/document'
 import { get } from 'lodash'
 import sharp from 'sharp'
 import { LoadFileCommand } from '../commands'
@@ -83,7 +83,7 @@ export async function createHumanMessage(
 						const docs = await commandBus.execute<LoadFileCommand, Document[]>(new LoadFileCommand(file))
 						return {
 							type: 'text',
-							text: `File: ${file.filePath}\n\n<file_content>\n${docs[0].pageContent}\n</file_content>`
+							text: `File: ${file.filePath}\n<file_content>\n${docs[0]?.pageContent || 'No text recognized!'}\n</file_content>`
 						}
 					})
 				)),

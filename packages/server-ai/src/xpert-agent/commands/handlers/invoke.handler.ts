@@ -15,6 +15,9 @@ import {
 	KnowledgeTask,
 	LanguagesEnum,
 	mapTranslationLanguage,
+	STATE_SYS_VOLUME,
+	STATE_SYS_WORKSPACE_PATH,
+	STATE_SYS_WORKSPACE_URL,
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	TInterruptCommand,
@@ -38,7 +41,7 @@ import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService } from '../../../environment'
-import { VolumeClient } from '../../../shared'
+import { getWorkspace, VolumeClient } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 
 @CommandHandler(XpertAgentInvokeCommand)
@@ -156,6 +159,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				graphInput = new Command(pick(options.command, 'resume', 'update'))
 			}
 		} else if(state[STATE_VARIABLE_HUMAN]) {
+			const volumeClient = new VolumeClient({tenantId, catalog: 'users', userId, projectId: options.projectId})
 			graphInput = {
 				...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
 				/**
@@ -169,8 +173,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					timezone: user.timeZone || options.timeZone,
 					date: format(new Date(), 'yyyy-MM-dd'),
 					datetime: new Date().toLocaleString(),
-					workspace_path: await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, options.conversationId),
-					workspace_url: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.conversationId)
+					[STATE_SYS_VOLUME]: volumeClient.getVolumePath(getWorkspace(options.projectId, options.conversationId)),
+					[STATE_SYS_WORKSPACE_PATH]: await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, options.conversationId),
+					[STATE_SYS_WORKSPACE_URL]: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.conversationId)
 				},
 				[STATE_VARIABLE_HUMAN]: {
 					...state[STATE_VARIABLE_HUMAN],
