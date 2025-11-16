@@ -98,7 +98,7 @@ export class KnowledgeDocumentsComponent {
   readonly parentId = injectQueryParams('parentId')
   readonly helpUrl = injectHelpWebsite('/docs/ai/knowledge/knowledgebase')
 
-  readonly pageSize = model(20)
+  // readonly pageSize = model(20)
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly knowledgebase$ = toObservable(this.knowledgebase)
   readonly xperts = computed(() => this.knowledgebase()?.xperts)
@@ -174,11 +174,7 @@ export class KnowledgeDocumentsComponent {
     )
 
     afterNextRender(() => {
-      // If the user changes the sort order, reset back to the first page.
-      // this.sort().sortChange.subscribe(() => (this.paginator().pageIndex = 0))
-
       merge(
-        // this.sort().sortChange, this.paginator().page,
         this.knowledgebase$,
         this.parentId$,
         this.refresh$
@@ -200,8 +196,6 @@ export class KnowledgeDocumentsComponent {
               .getAll({
                 select: ['id', 'name', 'status', 'disabled', 'sourceType', 'type', 'category', 'createdAt', 'updatedAt', 'processMsg', 'sourceConfig', 'folder'],
                 where,
-                take: this.pageSize(),
-                // skip: this.paginator().pageIndex,
                 relations: ['storageFile'],
                 order: {
                   updatedAt: OrderTypeEnum.DESC
