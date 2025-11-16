@@ -24,10 +24,10 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeModule } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { DataSettings } from '@metad/ocap-core'
+import { DataSettings, DIMENSION_MEMBER_FIELDS, DisplayBehaviour, IDimensionMember, TreeNodeInterface } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { A11yModule } from '@angular/cdk/a11y'
-import { EntitySchemaDataSource, EntitySchemaFlatNode } from './data-source'
+import { EntitySchemaDataSource, EntitySchemaFlatNode, EntitySchemaNode } from './data-source'
 import { EntityCapacity, EntitySchemaType } from './types'
 
 
@@ -75,6 +75,7 @@ export class NgmEntitySchemaComponent implements OnInit {
   })
 
   readonly dataSettings = input<DataSettings>()
+  readonly displayBehaviour = input<string | DisplayBehaviour>(DisplayBehaviour.auto)
 
   get searchControl() {
     return this.dataSource.searchControl
@@ -120,4 +121,17 @@ export class NgmEntitySchemaComponent implements OnInit {
   isExpandable = (node: EntitySchemaFlatNode) => node.expandable
 
   hasChild = (_: number, _nodeData: EntitySchemaFlatNode) => _nodeData.expandable
+
+  memberTooltip(node: EntitySchemaNode) {
+    if (node?.type !== EntitySchemaType.Member) return null
+    const member = node.raw as IDimensionMember
+    return DIMENSION_MEMBER_FIELDS.map(field => {
+      const value = member[field.key]
+      if (value !== undefined && value !== null) {
+        const displayValue = field.formatter ? field.formatter(value) : value
+        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, {Default: field.label})}: ${displayValue}`
+      }
+      return null
+    }).filter(line => line !== null).join('\n')
+  }
 }

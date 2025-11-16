@@ -10,7 +10,7 @@ import { EntityCapacity, getErrorMessage } from '@metad/ocap-angular/core'
 import { EntitySchemaNode, EntitySchemaType, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
 import { NgmMDXEditorComponent } from '@metad/ocap-angular/mdx'
 import { NgmSQLEditorComponent } from '@metad/ocap-angular/sql'
-import { C_MEASURES, QueryReturn, isPropertyMeasure, measureFormatter, nonNullable, serializeUniqueName } from '@metad/ocap-core'
+import { C_MEASURES, DisplayBehaviour, QueryReturn, isPropertyMeasure, measureFormatter, nonNullable, serializeUniqueName } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -23,7 +23,6 @@ import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { serializePropertyUniqueName } from '../../utils'
 import { ModelEntityService } from '../entity.service'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
@@ -52,7 +51,7 @@ import { typeOfObj } from '@cloud/app/@shared/model/types'
   ],
   animations: [LeanRightEaseInAnimation]
 })
-export class EntityQueryComponent extends TranslationBaseComponent {
+export class EntityQueryComponent {
   MODEL_TYPE = MODEL_TYPE
   eEntityCapacity = EntityCapacity
   eCdkDragDropContainers = CdkDragDropContainers
@@ -90,7 +89,7 @@ export class EntityQueryComponent extends TranslationBaseComponent {
 
   readonly textSelection = signal<{ range: any; text: string }>(null)
 
-  // 当前使用 MDX 查询
+  // Currently using MDX query
   public readonly useMDX = toSignal(
     this.modelService.modelType$.pipe(
       map((modelType) => modelType === MODEL_TYPE.XMLA || modelType === MODEL_TYPE.OLAP)
@@ -117,6 +116,8 @@ export class EntityQueryComponent extends TranslationBaseComponent {
     }
   })
 
+  readonly displayBehaviour = signal<DisplayBehaviour>(DisplayBehaviour.auto)
+
   /**
   |--------------------------------------------------------------------------
   | Copilot
@@ -129,8 +130,6 @@ export class EntityQueryComponent extends TranslationBaseComponent {
   })
 
   constructor() {
-    super()
-
     connect(this.statement, this.entityService.statement$)
     effect(
       () => {
@@ -291,5 +290,14 @@ export class EntityQueryComponent extends TranslationBaseComponent {
     if (this.schemaPin()) {
       this.dragHandler().reset()
     }
+  }
+
+  switchDisplay() {
+    const displayBehaviours = [DisplayBehaviour.auto, DisplayBehaviour.descriptionAndId, DisplayBehaviour.idAndDescription, DisplayBehaviour.idOnly]
+    this.displayBehaviour.update((value) => {
+      const currentIndex = displayBehaviours.indexOf(value)
+      const nextIndex = (currentIndex + 1) % displayBehaviours.length
+      return displayBehaviours[nextIndex]
+    })
   }
 }

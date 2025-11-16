@@ -25,7 +25,8 @@
     @apply w-auto;
   }
 }
-.group:hover {
+
+.cdk-tree-node:hover {
   .ngm-search {
     @apply w-auto;
   }

@@ -10,6 +10,7 @@ import {
   EventEmitter,
   forwardRef,
   HostBinding,
+  inject,
   input,
   Output,
   signal
@@ -24,7 +25,7 @@ import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   DataSettings,
   Dimension,
@@ -82,6 +83,8 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
 })
 export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMember> implements ControlValueAccessor {
   @HostBinding('class.ngm-member-tree') _isMemberTreeComponent = true
+
+  readonly translateService = inject(TranslateService)
 
   readonly dataSettings = input<DataSettings>()
   readonly dimension = input<Dimension>()
@@ -230,7 +233,6 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
     )
     .subscribe((data) => {
       if (data) {
-        console.log(data)
         this.dataSource.data = data as any
         // After initializing the data, expand the initial level depth.
         if (this.options()?.initialLevel > 0 || !!this.searchControl.value) {
@@ -476,12 +478,12 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
     this.unfold ? this.treeControl.expandAll() : this.treeControl.collapseAll()
   }
 
-  memberTooltip(member) {
+  memberTooltip(member: IDimensionMember) {
     return DIMENSION_MEMBER_FIELDS.map(field => {
       const value = member[field.key]
       if (value !== undefined && value !== null) {
         const displayValue = field.formatter ? field.formatter(value) : value
-        return `${field.label}: ${displayValue}`
+        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, {Default: field.label})}: ${displayValue}`
       }
       return null
     }).filter(line => line !== null).join('\n')

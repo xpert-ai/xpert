@@ -14,8 +14,8 @@
         <ngm-tags class="overflow-hidden"
           [tags]="chips$ | async"
           [exclude]="slicerSignal()?.exclude"
-          color="primary">
-        </ngm-tags>
+          color="blue"
+        />
 
         @if (restChips().length) {
           <span class="cursor-pointer shrink-0" [matTooltip]="restChips().join('; ')">
@@ -43,15 +43,17 @@
       <mat-spinner [color]="appearance()?.color" strokeWidth="1" diameter="20"/>
     }
 
-    <button mat-icon-button *ngIf="hierarchies()?.length > 1" class="ngm-actionable-opacity"
-      displayDensity="compact"
-      [disabled]="disabled$()"
-      [cdkMenuTriggerFor]="hierarchiesMenu"
-      #mt="cdkMenuTriggerFor"
-      [class.active]="mt.isOpen()"
-      (click)="$event.stopPropagation();$event.preventDefault();">
-      <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
-    </button>
+    @if (hierarchies()?.length > 1) {
+      <button mat-icon-button class="ngm-actionable-opacity"
+        displayDensity="compact"
+        [disabled]="disabled$()"
+        [cdkMenuTriggerFor]="hierarchiesMenu"
+        #mt="cdkMenuTriggerFor"
+        [class.active]="mt.isOpen()"
+        (click)="$event.stopPropagation();$event.preventDefault();">
+        <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
+      </button>
+    }
     <button mat-icon-button type="button" class="ngm-actionable-opacity" displayDensity="compact"
       [disabled]="disabled$()"
       (click)="$event.stopPropagation();$event.preventDefault();openValueHelp()"

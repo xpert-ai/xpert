@@ -55,10 +55,12 @@ export enum IntrinsicMemberProperties {
  */
 export const DIMENSION_MEMBER_FIELDS: {key: string; label: string; formatter?: (v) => string}[] = [
   { key: 'memberKey', label: 'Member Key' },
+  { key: 'memberCaption', label: 'Member Caption' },
+  { key: 'memberUniqueName', label: 'Member Unique Name' },
   { key: 'dimension', label: 'Dimension' },
   { key: 'level', label: 'Level' },
-  { key: 'memberCaption', label: 'Caption' },
-  { key: 'parentKey', label: 'Parent Key' },
-  { key: 'visible', label: 'Visible', formatter: v => (v ? 'Yes' : 'No') },
   { key: 'levelNumber', label: 'Level Number' },
+  { key: 'visible', label: 'Visible', formatter: v => (v ? 'Yes' : 'No') },
+  { key: 'parentKey', label: 'Parent Key' },
+  { key: 'childrenCardinality', label: 'Children Cardinality' },
 ];
