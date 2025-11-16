@@ -254,7 +254,7 @@
     >
       <xpert-workflow-icon type="database" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary grow">
-        {{ 'PAC.Workflow.Database' | translate: {Default: 'Database'} }}
+        {{ 'PAC.KEY_WORDS.Database' | translate: {Default: 'Database'} }}
       </div>
       <i class="ri-arrow-drop-right-fill"></i>
     </div>
@@ -308,6 +308,14 @@
       {{ 'PAC.KEY_WORDS.Database' | translate: {Default: 'Database'} }}
     </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_SQL)"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_SQL" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.SQLCustom' | translate: {Default: 'SQL Custom'} }}
+      </div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_INSERT)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_INSERT" class="w-6 h-6 shrink-0 mr-2" />
@@ -321,6 +329,14 @@
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_UPDATE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">
         {{ 'PAC.Workflow.UpdateData' | translate: {Default: 'Update Data'} }}
+      </div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_DELETE)"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_DELETE" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.DeleteData' | translate: {Default: 'Delete Data'} }}
       </div>
     </div>
   </div>

@@ -466,7 +466,10 @@
       "LastRecord": "末条记录",
       "AddAssignVariables": "添加要赋值的变量",
       "AggregatedResult": "汇总结果",
-      "NewData": "新增数据"
+      "NewData": "新增数据",
+      "SQLCustom": "SQL 自定义",
+      "UpdateData": "更新数据",
+      "DeleteData": "删除数据"
     },
     "Pipeline": {
       "AuthenticationMethod": "认证方式",

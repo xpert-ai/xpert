@@ -1,0 +1,202 @@
+<div class="py-4 relative">
+  <div class="group/collapse flex items-center">
+    <div class="ml-4 flex grow items-center cursor-pointer" (click)="toggleDBTableExpand()">
+      <div class="system-sm-semibold-uppercase flex h-6 items-center text-text-secondary">
+        数据表
+      </div>
+      <div class="h-5 w-5 flex justify-center items-center shrink-0 transition-transform"
+        [ngClass]="dbTableExpand() ? 'rotate-90' : ''">
+        <i class="ri-arrow-drop-right-line text-lg text-text-quaternary group-hover/collapse:text-text-secondary"></i>
+      </div>
+    </div>
+  </div>
+  @if (dbTableExpand()) {
+    <div class="px-4">
+      @if (tableLoading()) {
+        <div class="flex h-32 items-center justify-center rounded-2xl border border-dashed border-divider-regular">
+          <div class="flex items-center gap-2 text-sm text-text-tertiary">
+            <span class="h-4 w-4 animate-spin rounded-full border-2 border-divider-regular border-t-primary-500"></span>
+            正在加载数据表...
+          </div>
+        </div>
+      } @else {
+        @if (table(); as selectedTable) {
+          <div class="rounded-2xl border border-divider-regular bg-surface-neutral p-4 mt-2">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex items-start gap-3">
+                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-500">
+                  <i class="ri-database-2-line text-2xl"></i>
+                </div>
+                <div>
+                  <div class="text-base font-semibold text-text-primary">{{ selectedTable.name }}</div>
+                  <div class="text-sm text-text-tertiary">{{ selectedTable.description || '暂无描述' }}</div>
+                </div>
+              </div>
+              <button class="btn btn-small btn-ghost px-3 py-1.5" (click)="addDBTable()">
+                更换
+              </button>
+            </div>
+
+            @if (tableColumns().length) {
+              <div class="mt-4 flex flex-wrap gap-2">
+                @for (column of tableColumnPreview(); track column.name) {
+                  <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-white px-3 py-1 text-xs font-medium text-text-secondary">
+                    <i [class]="tableColumnIcon(column)"></i>
+                    {{ column.label || column.name }}
+                  </span>
+                }
+                @if (tableColumnOverflow() > 0) {
+                  <span class="rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-600">
+                    +{{ tableColumnOverflow() }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-divider-regular bg-surface p-6 text-center text-sm text-text-tertiary">
+            <p>选择一个数据库表来配置插入字段</p>
+            <button class="btn btn-primary btn-small" (click)="addDBTable()">
+              选择数据表
+            </button>
+          </div>
+        }
+      }
+    </div>
+
+    <div class="absolute right-4 top-4">
+      <button class="btn btn-small btn-ghost w-6 h-6 flex justify-center items-center" (click)="addDBTable()">
+        <i class="ri-add-line"></i>
+      </button>
+    </div>
+  }
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+@if (tableId()) {
+  <div class="py-4 relative">
+    <!-- <div class="group/collapse flex items-center">
+      <div class="ml-4 flex grow items-center cursor-pointer" (click)="toggleDBColumnsExpand()">
+        <div class="system-sm-semibold-uppercase flex h-6 items-center text-text-secondary">
+          选择并设置字段
+        </div>
+        <div class="h-5 w-5 flex justify-center items-center shrink-0 transition-transform"
+          [ngClass]="dbColumnsExpand() ? 'rotate-90' : ''">
+          <i class="ri-arrow-drop-right-line text-lg text-text-quaternary group-hover/collapse:text-text-secondary"></i>
+        </div>
+      </div>
+    </div>
+    @if (dbColumnsExpand()) {
+      <div class="px-4 space-y-3 mt-2">
+        @if (columnEntries().length) {
+          <div class="rounded-2xl border border-divider-regular">
+            <div class="grid grid-cols-[minmax(200px,0.45fr)_1fr_auto] gap-2 border-b border-divider-regular bg-gray-50 px-4 py-2 text-xs font-semibold uppercase text-text-tertiary">
+              <span>变量名</span>
+              <span>变量值</span>
+              <span class="text-center">操作</span>
+            </div>
+
+            @for (entry of columnEntries(); track trackColumnEntries($index, entry);) {
+              <div class="grid grid-cols-[minmax(120px,0.45fr)_1fr_auto] gap-2 border-b border-divider-subtle px-4 py-3 last:border-b-0">
+                <div class="flex flex-col gap-2">
+                  <div class="flex items-center gap-2">
+                    <select class="w-full rounded-lg border border-divider-regular bg-white px-3 py-1.5 text-sm text-text-primary"
+                      [ngModel]="entry[0]"
+                      (ngModelChange)="changeColumnName(entry[0], $event)">
+                      @for (option of tableColumns(); track option.name) {
+                        <option [ngValue]="option.name" [disabled]="columns()?.[option.name] && option.name !== entry[0]">
+                          {{ option.label || option.name }}
+                        </option>
+                      }
+                    </select>
+                    <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-text-secondary">
+                      {{ columnTypeLabel(entry[0]) }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1 relative w-full rounded-lg p-1 border border-divider-regular">
+                  @if (entry[1].valueSelector) {
+                    <xpert-state-variable-select class="flex-1 text-sm"
+                      [variables]="variables()"
+                      [ngModel]="entry[1]?.valueSelector"
+                      (ngModelChange)="updateColumnValue(entry[0], 'valueSelector', $event)"/>
+                  } @else {
+                    <input [type]="entry[1].type" class="flex-1 px-1 py-0.5 text-sm bg-transparent outline-none"
+                      [ngModel]="entry[1]?.value"
+                      (ngModelChange)="updateColumnValue(entry[0], 'value', $event)">
+                  }
+                  <button type="button" class="w-5 h-5 flex justify-center items-center rounded-md hover:bg-hover-bg" (click)="switchColumnMode(entry[0])">
+                    @if (entry[1].valueSelector) {
+                      <i class="ri-braces-line"></i>
+                    } @else {
+                      <i class="ri-text-block"></i>
+                    }
+                  </button>
+                </div>
+
+                <div class="flex items-center justify-center gap-1">
+                  <button class="btn btn-small btn-ghost h-7 w-7 flex items-center justify-center"
+                    type="button"
+                    (click)="removeDBColumn(entry[0])">
+                    <i class="ri-delete-bin-line"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-divider-regular bg-surface p-6 text-sm text-text-tertiary">
+            暂未选择字段，点击右上角按钮添加需要写入的字段
+          </div>
+        }
+      </div>
+
+      <div class="absolute right-4 top-4">
+        @if (tableColumns().length) {
+          <button class="btn btn-small btn-ghost w-6 h-6 flex justify-center items-center" (click)="addDBColumn()">
+            <i class="ri-add-line"></i>
+          </button>
+        }
+      </div>
+    } -->
+  </div>
+}
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="py-4 relative">
+  <div class="group/collapse flex items-center">
+    <div class="ml-4 flex grow items-center cursor-pointer" (click)="toggleDBOutputExpand()">
+      <div class="system-sm-semibold-uppercase flex h-6 items-center text-text-secondary">
+        输出
+      </div>
+      <div class="h-5 w-5 flex justify-center items-center shrink-0 transition-transform"
+        [ngClass]="dbOutputExpand() ? 'rotate-90' : ''">
+        <i class="ri-arrow-drop-right-line text-lg text-text-quaternary group-hover/collapse:text-text-secondary"></i>
+      </div>
+    </div>
+  </div>
+  @if (dbOutputExpand()) {
+    <div class="px-4 mt-2">
+      <div class="rounded-2xl border border-divider-regular bg-surface-neutral p-4">
+        <div class="text-sm text-text-secondary">
+          插入操作完成后，您可以选择将以下变量输出到后续节点：
+        </div>
+        <div class="mt-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="text-sm text-text-primary">
+              插入记录的主键 ID
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="text-sm text-text-primary">
+              插入操作影响的行数
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

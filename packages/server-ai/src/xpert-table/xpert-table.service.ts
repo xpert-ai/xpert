@@ -53,7 +53,9 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		}
 		const isValid = await this.validateTableName(entity)
 		if (!isValid) {
-			throw new BadRequestException(`Table name ${entity.schema ? entity.schema + '.' : ''}${entity.name} already exists in the database.`)
+			throw new BadRequestException(
+				`Table name ${entity.schema ? entity.schema + '.' : ''}${entity.name} already exists in the database.`
+			)
 		}
 		let table: XpertTable = null
 		if (entity.id) {
@@ -137,7 +139,7 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		}
 	}
 
-	async insertRow(tableId: string, row: {name: string; value: any; type: string}[]): Promise<void> {
+	async insertRow(tableId: string, row: { name: string; value: any; type: string }[]): Promise<void> {
 		const table = await this.findOneByIdString(tableId)
 		if (table.status !== XpertTableStatus.ACTIVE) {
 			throw new BadRequestException(`Table ${table.name} is not active.`)
@@ -166,16 +168,34 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 					/**
 					 * Object value type, convert to db type
 					 */
-					type: column.type,
+					type: column.type
 				})),
 				values: row.reduce((acc, column) => {
-					acc[column.name] = column.value;
-					return acc;
-				}, {}),
+					acc[column.name] = column.value
+					return acc
+				}, {})
 			})
+		} catch (error) {
+			console.error(error)
+			throw error
+		}
+	}
 
-			// Update table status to ACTIVE
-			await this.update(table.id, { status: XpertTableStatus.ACTIVE, activatedAt: new Date(), message: null })
+	async executeSql(tableId: string, statement: string) {
+		const table = await this.findOneByIdString(tableId)
+		if (table.status !== XpertTableStatus.ACTIVE) {
+			throw new BadRequestException(`Table ${table.name} is not active.`)
+		}
+
+		try {
+			// Get the database adapter
+			const adapter = await this.queryBus.execute(
+				new XpertDatabaseAdapterQuery({
+					id: table.database
+				})
+			)
+			// Create or update physical table in the database
+			return await adapter.runQuery(statement, { catalog: table.schema || undefined })
 		} catch (error) {
 			console.error(error)
 			throw error

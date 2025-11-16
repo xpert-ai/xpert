@@ -18,7 +18,6 @@ import {
   output,
   signal,
   TemplateRef,
-  viewChild,
   ViewChild,
   ViewContainerRef
 } from '@angular/core'

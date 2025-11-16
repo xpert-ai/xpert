@@ -135,16 +135,18 @@
         </div>
 
         <float-ui-content #executionPopper (click)="$event.stopPropagation()" (wheel)="$event.stopPropagation()">
-          @if (executions()[node.key]) {
-            @for (execution of executions()[node.key]; track execution.id) {
-              <xpert-agent-execution-status class="p-2 w-96" [execution]="execution" />
-              @if (execution.messages) {
-                <xpert-agent-execution-log class="p-2 w-96 max-h-[400px] overflow-y-auto overflow-x-hidden"
-                  [execution]="execution"
-                />
+          <div class="max-h-[90vh] overflow-y-auto">
+            @if (executions()[node.key]) {
+              @for (execution of executions()[node.key]; track execution.id) {
+                <xpert-agent-execution-status class="p-2 w-96" [execution]="execution" />
+                @if (execution.messages) {
+                  <xpert-agent-execution-log class="p-2 w-96 max-h-[400px] overflow-y-auto overflow-x-hidden"
+                    [execution]="execution"
+                  />
+                }
               }
             }
-          }
+          </div>
         </float-ui-content>
       </div>
     }

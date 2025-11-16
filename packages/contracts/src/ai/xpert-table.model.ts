@@ -62,7 +62,12 @@ export function genXpertDBInsertKey() {
 }
 
 export interface IWFNDBUpdate extends IWorkflowNodeDBOperation {
-  type: WorkflowNodeTypeEnum.DB_UPDATE,
+  type: WorkflowNodeTypeEnum.DB_UPDATE
+  columns?: Record<string, {
+    type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json';
+    value?: any
+    valueSelector?: string
+  }>
 }
 
 export function genXpertDBUpdateKey() {
@@ -86,7 +91,8 @@ export function genXpertDBQueryKey() {
 }
 
 export interface IWFNDBSql extends IWorkflowNodeDBOperation {
-  type: WorkflowNodeTypeEnum.DB_SQL,
+  type: WorkflowNodeTypeEnum.DB_SQL
+  sqlTemplate?: string
 }
 
 export function genXpertDBSqlKey() {

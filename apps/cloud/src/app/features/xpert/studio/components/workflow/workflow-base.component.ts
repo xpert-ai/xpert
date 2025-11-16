@@ -23,6 +23,7 @@ export class WorkflowBaseNodeComponent {
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
       .filter((_) => _.type === 'agent' || _.type === 'workflow')
-      .map((_) => _.type === 'workflow' ? _.key + '/edge' : _.key)
+      // .map((_) => _.type === 'workflow' ? _.key + '/edge' : _.key)
+      .map((_) => _.key + '/edge')
   )
 }

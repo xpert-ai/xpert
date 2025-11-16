@@ -7,9 +7,9 @@ import { TranslateModule } from '@ngx-translate/core'
 import { XpertWorkflowNodeDBBaseComponent } from '../db/db.component'
 
 @Component({
-  selector: 'xp-workflow-node-db-update',
-  templateUrl: './db-update.component.html',
-  styleUrls: ['./db-update.component.scss'],
+  selector: 'xp-workflow-node-db-sql',
+  templateUrl: './db-sql.component.html',
+  styleUrls: ['./db-sql.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent],
@@ -17,7 +17,7 @@ import { XpertWorkflowNodeDBBaseComponent } from '../db/db.component'
     tabindex: '-1'
   }
 })
-export class XpertWorkflowNodeDBUpdateComponent extends XpertWorkflowNodeDBBaseComponent {
+export class XpertWorkflowNodeDBSqlComponent extends XpertWorkflowNodeDBBaseComponent {
   // States
   
 }

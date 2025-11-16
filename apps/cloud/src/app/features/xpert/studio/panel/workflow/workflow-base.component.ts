@@ -45,6 +45,14 @@ export class XpertWorkflowBaseComponent {
     )
   )
 
+  // Fetch avaiable variables for this node from server
+  readonly varOptions = computed<TXpertVariablesOptions>(() => ({
+    xpertId: this.xpertId(),
+    agentKey: this.key(),
+    environmentId: this.studioService.environmentId(),
+    connections: this.connections(),
+  }))
+
   readonly #variables = myRxResource({
     request: () => ({
     xpertId: this.xpertId(),

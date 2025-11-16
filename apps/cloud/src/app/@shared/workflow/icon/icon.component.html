@@ -151,16 +151,28 @@
       <i class="ri-book-shelf-line text-lg"></i>
     </div>
   }
+  @case (eWorkflowNodeTypeEnum.DB_SQL) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
+      w-full h-full rounded-lg shadow-sm shrink-0">
+      <i class="ri-database-2-line text-lg"></i>
+    </div>
+  }
   @case (eWorkflowNodeTypeEnum.DB_INSERT) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-green-600
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
       w-full h-full rounded-lg shadow-sm shrink-0">
       <i class="ri-insert-row-bottom text-lg"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.DB_UPDATE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-green-600
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
       w-full h-full rounded-lg shadow-sm shrink-0">
       <i class="ri-edit-circle-line text-lg"></i>
+    </div>
+  }
+  @case (eWorkflowNodeTypeEnum.DB_DELETE) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
+      w-full h-full rounded-lg shadow-sm shrink-0">
+      <i class="ri-delete-bin-line text-lg"></i>
     </div>
   }
   @case ('chat') {

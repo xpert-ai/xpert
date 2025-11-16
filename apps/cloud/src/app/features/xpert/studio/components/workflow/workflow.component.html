@@ -114,8 +114,10 @@
     <xp-workflow-node-db-query class="px-3" [node]="node()" [entity]="entity()" />
   }
   @case (eWorkflowNodeTypeEnum.DB_DELETE) {
+    <xp-workflow-node-db-delete class="px-3" [node]="node()" [entity]="entity()" />
   }
   @case (eWorkflowNodeTypeEnum.DB_SQL) {
+    <xp-workflow-node-db-sql class="px-3" [node]="node()" [entity]="entity()" />
   }
   @default {
     <div>Unimplement type ({{type()}})</div>
