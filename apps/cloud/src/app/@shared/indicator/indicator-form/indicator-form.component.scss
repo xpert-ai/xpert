@@ -13,3 +13,7 @@
     @apply font-extrabold bg-neutral-200 text-neutral-800 dark:bg-white/20 dark:text-neutral-100;
   }
 }
+
+.ngm-resize-handle {
+  @apply right-2 bottom-2 inset-auto;
+}

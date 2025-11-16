@@ -9,7 +9,7 @@ import { getErrorMessage, injectToastr, ProjectAPIService } from '@cloud/app/@co
 import { convertIndicatorResult, ICertification, IIndicator, IndicatorsService, IndicatorStatusEnum, ISemanticModel, Store, TIndicatorDraft, TMessageContentIndicator } from '@metad/cloud/state'
 import { saveAsYaml } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, NgmResizableDirective, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { linkedModel, myRxResource, NgmDSCoreService, PERIODS } from '@metad/ocap-angular/core'
 import {
   C_MEASURES,
@@ -51,6 +51,7 @@ import { ChecklistComponent } from '../../common'
     MatTooltipModule,
     NgmSpinComponent,
     AnalyticalCardModule,
+    NgmResizableDirective,
     ChecklistComponent,
     XpIndicatorRegisterFormComponent
   ]
@@ -162,7 +163,7 @@ export class XpIndicatorFormComponent {
       granularity: timeGranularity,
       formatter: level?.semantics?.formatter,
       lookBack: period?.lookBack,
-      lookAhead: 0
+      lookAhead: -12
     })
 
     const timeSlicer = {
@@ -214,7 +215,7 @@ export class XpIndicatorFormComponent {
             measures: [
               {
                 dimension: C_MEASURES,
-                measure: indicator.code,
+                measure: indicator.code || indicator.options?.measure,
                 formatting: {
                   shortNumber: true,
                   unit: indicator.unit
@@ -234,7 +235,10 @@ export class XpIndicatorFormComponent {
             ]
           },
           selectionVariant: {
-            selectOptions: [timeSlicer, ...(indicator.options?.filters ?? [])]
+            selectOptions: [
+              timeSlicer,
+              ...(indicator.code ? [] : (indicator.options?.filters ?? []))
+            ]
           }
         } as DataSettings & { error?: string })
       : null

@@ -10,7 +10,7 @@ import { MatTabsModule } from '@angular/material/tabs'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { injectFetchModelDetails, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
-import { Indicator, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
+import { Indicator, IndicatorsService } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { saveAsYaml, uploadYamlFile } from '@metad/core'
 import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
@@ -20,10 +20,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom } from 'rxjs'
 import {
-  getErrorMessage,
   IIndicator,
-  IndicatorType,
-  isUUID,
   ProjectAPIService,
   routeAnimations,
   ToastrService
@@ -115,7 +112,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
         .afterClosed()
     )
     if (results) {
-      // 下载上传结果
+      // Download and upload results
       saveAsYaml(
         `${this.getTranslation('PAC.INDICATOR.IndicatorImportResults', { Default: 'Indicator_Import_Results' })}.yml`,
         results
@@ -134,48 +131,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
     this.currentLink.set(indicator)
   }
 
-  // async saveAll() {
-  //   for await (const id of Object.keys(this.projectService.dirty())) {
-  //     let indicator = this.projectService.indicators().find((item) => item.id === id)
-  //     if (indicator) {
-  //       try {
-  //         await this.saveIndicator(indicator)
-  //       } catch (error) {
-  //         this.toastrService.error(getErrorMessage(error))
-  //       }
-  //     }
-  //   }
-  // }
-
-  // async saveIndicator(indicator: Indicator) {
-  //   let _indicator = {
-  //     ...indicator,
-  //     measure: indicator.type === IndicatorType.BASIC ? indicator.measure : null,
-  //     formula: indicator.type === IndicatorType.DERIVE ? indicator.formula : null,
-  //     projectId: this.projectService.project().id ?? null,
-  //     status: IndicatorStatusEnum.RELEASED // This component is an old component that creates indicators directly without using draft, so the status is released.
-  //   }
-  //   if (!isUUID(_indicator.id)) {
-  //     delete _indicator.id
-  //   }
-
-  //   _indicator = await firstValueFrom(this.indicatorsService.create(_indicator))
-
-  //   this.projectService.replaceNewIndicator(indicator.id, _indicator)
-  //   if (isUUID(indicator.id)) {
-  //     this.toastrService.success('PAC.INDICATOR.REGISTER.SaveIndicator', { Default: 'Save Indicator' })
-  //   } else {
-  //     this.toastrService.success('PAC.INDICATOR.REGISTER.CreateIndicator', { Default: 'Create Indicator' })
-  //     this.replaceNewIndicator(indicator.id, _indicator)
-  //   }
-  //   return _indicator
-  // }
-
   register() {
-    // this.projectService.newIndicator()
-    // this.router.navigate([NewIndicatorCodePlaceholder], {
-    //   relativeTo: this.route
-    // })
     this.#dialog
       .open<IIndicator>(XpIndicatorFormComponent, {
         viewContainerRef: this.#viewContainerRef,
