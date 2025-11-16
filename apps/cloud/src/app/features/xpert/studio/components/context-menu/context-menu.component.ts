@@ -49,7 +49,13 @@ import {
   genListOperatorKey,
   IWFNVariableAggregator,
   genVariableAggregatorKey,
-  genXpertTriggerKey
+  genXpertTriggerKey,
+  genXpertDBInsertKey,
+  genXpertDBUpdateKey,
+  genXpertDBQueryKey,
+  genXpertDBDeleteKey,
+  genXpertDBSqlKey,
+  IWorkflowNodeDBOperation
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -439,6 +445,37 @@ export class XpertStudioContextMenuComponent {
       title: this.#translate.instant('PAC.Pipeline.Understanding', { Default: 'Understanding' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNUnderstanding)
+  }
 
+  addWorkflowDatabase(type: WorkflowNodeTypeEnum) {
+    let key = ''
+    let title = ''
+    switch (type) {
+      case WorkflowNodeTypeEnum.DB_INSERT:
+        key = genXpertDBInsertKey()
+        title = this.#translate.instant('PAC.Workflow.NewData', { Default: 'New Data' })
+        break
+      case WorkflowNodeTypeEnum.DB_UPDATE:
+        key = genXpertDBUpdateKey()
+        title = this.#translate.instant('PAC.Workflow.UpdateData', { Default: 'Update Data' })
+        break
+      case WorkflowNodeTypeEnum.DB_QUERY:
+        key = genXpertDBQueryKey()
+        title = this.#translate.instant('PAC.Workflow.QueryData', { Default: 'Query Data' })
+        break
+      case WorkflowNodeTypeEnum.DB_DELETE:
+        key = genXpertDBDeleteKey()
+        title = this.#translate.instant('PAC.Workflow.DeleteData', { Default: 'Delete Data' })
+        break
+      case WorkflowNodeTypeEnum.DB_SQL:
+        key = genXpertDBSqlKey()
+        title = this.#translate.instant('PAC.Workflow.CustomSQL', { Default: 'Custom SQL' })
+        break
+    }
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type,
+      key,
+      title,
+    } as IWorkflowNodeDBOperation)
   }
 }

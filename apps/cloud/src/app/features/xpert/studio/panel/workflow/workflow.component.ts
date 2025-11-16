@@ -46,6 +46,10 @@ import { XpertWorkflowKnowledgeBaseComponent } from './knowledge-base/knowledge-
 import { XpertWorkflowSourceTestComponent } from './source-test/source.component'
 import { XpertWorkflowListOperatorComponent } from './list-operator/list-operator.component'
 import { XpertWorkflowVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
+import { XpertWorkflowPanelDBInsertComponent } from './db-insert/db-insert.component'
+import { XpertWorkflowPanelDBUpdateComponent } from './db-update/db-update.component'
+import { XpertWorkflowPanelDBSQLComponent } from './db-sql/db-sql.component'
+import { XpertWorkflowPanelDBDeleteComponent } from './db-delete/db-delete.component'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
@@ -90,7 +94,11 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
     XpertWorkflowUnderstandingComponent,
     XpertWorkflowKnowledgeBaseComponent,
     XpertWorkflowListOperatorComponent,
-    XpertWorkflowVariableAggregatorComponent
+    XpertWorkflowVariableAggregatorComponent,
+    XpertWorkflowPanelDBInsertComponent,
+    XpertWorkflowPanelDBUpdateComponent,
+    XpertWorkflowPanelDBSQLComponent,
+    XpertWorkflowPanelDBDeleteComponent
   ],
   animations: [IfAnimation,]
 })

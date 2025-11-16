@@ -31,6 +31,7 @@
     [options]="varOptions()"
     [(variables)]="variables"
     [type]="type()"
+    [types]="types()"
     [ngModel]="value$()"
     (ngModelChange)="setVariable($event);trigger.close()"
     (close)="trigger.close()"

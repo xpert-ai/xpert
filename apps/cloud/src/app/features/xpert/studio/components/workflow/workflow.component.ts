@@ -37,6 +37,11 @@ import { XpertWorkflowNodeKnowledgeBaseComponent } from './knowledge-base/knowle
 import { XpertWorkflowNodeListOperatorComponent } from './list-operator/list-operator.component'
 import { XpertWorkflowNodeVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
 import { IconComponent } from "@cloud/app/@shared/avatar";
+import { XpertWorkflowNodeDBInsertComponent } from './db-insert/db-insert.component'
+import { XpertWorkflowNodeDBUpdateComponent } from './db-update/db-update.component'
+import { XpertWorkflowNodeDBQueryComponent } from './db-query/db-query.component'
+import { XpertWorkflowNodeDBSqlComponent } from './db-sql/db-sql.component'
+import { XpertWorkflowNodeDBDeleteComponent } from './db-delete/db-delete.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -72,6 +77,11 @@ import { IconComponent } from "@cloud/app/@shared/avatar";
     XpertWorkflowNodeKnowledgeBaseComponent,
     XpertWorkflowNodeListOperatorComponent,
     XpertWorkflowNodeVariableAggregatorComponent,
+    XpertWorkflowNodeDBInsertComponent,
+    XpertWorkflowNodeDBUpdateComponent,
+    XpertWorkflowNodeDBQueryComponent,
+    XpertWorkflowNodeDBSqlComponent,
+    XpertWorkflowNodeDBDeleteComponent,
     IconComponent
 ],
   host: {

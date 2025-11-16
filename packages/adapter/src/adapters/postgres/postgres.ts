@@ -1,8 +1,9 @@
 import { Client, ClientConfig, types } from 'pg'
-import { BaseSQLQueryRunner, SQLAdapterOptions, register } from '../../base'
+import { SQLAdapterOptions, register } from '../../base'
 import { convertPGSchema, getPGSchemaQuery, pgTypeMap, typeToPGDB } from '../../helpers'
-import { CreationTable, DBProtocolEnum, DBSyntaxEnum, QueryResult, IDSSchema, QueryOptions, IColumnDef } from '../../types'
+import { CreationTable, DBProtocolEnum, DBSyntaxEnum, QueryResult, IDSSchema } from '../../types'
 import { pgFormat } from './pg-format'
+import { BaseSQLQueryRunner, DBCreateTableMode, DBTableAction, DBTableDataAction, DBTableDataParams, DBTableOperationParams, QueryOptions } from '@xpert-ai/plugin-sdk'
 
 
 export const POSTGRES_TYPE = 'pg'
@@ -76,7 +77,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
   client: Client
   #clientConnected = false
 
-  constructor(options: any) {
+  constructor(options: PostgresAdapterOptions) {
     super(options)
 
     const config = {
@@ -118,14 +119,14 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
   }
 
   async runQuery(query: string, options?: QueryOptions) {
-    const { catalog } = options ?? {}
+    const { catalog, params } = options ?? {}
 
     await this.connect()
 
     if (catalog) {
       query = `SET search_path TO ${catalog};` + query
     }
-    let res = await this.client.query(query)
+    let res = await this.client.query(query, params)
 
     if (Array.isArray(res)) {
       res = res[(res as any).length - 1]
@@ -273,6 +274,166 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
       }
     } finally {
       await this.client.end()
+    }
+  }
+
+  async tableOp(
+    action: DBTableAction,
+    params: DBTableOperationParams,
+  ): Promise<any> {
+    switch(action) {
+      case DBTableAction.CREATE_TABLE: {
+        const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
+        const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
+
+        // 1. 检查表是否存在
+        const existsResult = await this.runQuery(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = '${schema || 'public'}'
+            AND table_name = '${table}';
+        `)
+
+        const exists = Array.isArray(existsResult) && existsResult.length > 0
+
+        // --- MODE: ERROR → 表存在时报错 ---
+        if (exists && createMode === DBCreateTableMode.ERROR) {
+          throw new Error(`Table "${tableName}" already exists`)
+        }
+
+        // --- MODE: IGNORE → 存在则不处理 ---
+        if (exists && createMode === DBCreateTableMode.IGNORE) {
+          return
+        }
+
+        // --- MODE: UPGRADE → 自动升级字段 ---
+        if (exists && createMode === DBCreateTableMode.UPGRADE) {
+          // 获取当前表结构
+          const currentCols = await this.runQuery(`
+            SELECT column_name, data_type, is_nullable 
+            FROM information_schema.columns 
+            WHERE table_schema='${schema || 'public'}' 
+              AND table_name='${table}'
+          `)
+
+          // 对比字段，新增/修改字段
+          for (const col of columns) {
+            const existing = currentCols.columns.find(c => c.name === col.fieldName)
+
+            // 新字段 → ADD COLUMN
+            if (!existing) {
+              await this.runQuery(`
+                ALTER TABLE ${tableName} 
+                ADD COLUMN "${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length)}
+              `)
+              continue
+            }
+
+            // 字段存在，检查类型是否需要更新
+            const newType = typeToPGDB(col.type, col.isKey, col.length)
+            const oldType = existing.type
+
+            if (newType.toLowerCase() !== oldType.toLowerCase()) {
+              await this.runQuery(`
+                ALTER TABLE ${tableName} 
+                ALTER COLUMN "${col.fieldName}" TYPE ${newType}
+              `)
+            }
+          }
+
+          return
+        }
+
+        // --- MODE: CREATE NEW TABLE ---
+        const createTableStatement = `
+          CREATE TABLE IF NOT EXISTS ${tableName} (
+            ${columns
+              .map(
+                (col) =>
+                  `"${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length)}${
+                    col.isKey ? ' PRIMARY KEY' : ''
+                  }`
+              )
+              .join(', ')}
+          )
+        `
+
+        await this.runQuery(createTableStatement)
+        return
+      }
+      case DBTableAction.GET_TABLE_INFO: {
+        const { schema, table } = params
+        const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
+
+        const result = await this.runQuery(`
+          SELECT column_name, data_type, is_nullable 
+          FROM information_schema.columns 
+          WHERE table_schema='${schema || 'public'}' 
+            AND table_name='${table}'
+        `)
+
+        return result.data.length === 0 ? null : {
+          table: tableName,
+          columns: result.data.map((col: any) => ({
+            name: col.column_name,
+            type: pgTypeMap(col.data_type),
+            isNullable: col.is_nullable === 'YES',
+          })),
+        }
+      }
+      default:
+        throw new Error(`Unsupported table action: ${action}`)
+    }
+  }
+
+  async tableDataOp(
+    action: DBTableDataAction,
+    params: DBTableDataParams,
+    options?: QueryOptions
+  ) {
+    const { schema, table, columns, values } = params
+    const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
+
+    switch(action) {
+      case DBTableDataAction.INSERT: {
+        if (!columns?.length) {
+          throw new Error(`INSERT requires columns definition`)
+        }
+        if (!values) {
+          throw new Error(`INSERT requires values`)
+        }
+
+        // values 始终转成数组
+        const rows = Array.isArray(values) ? values : [values]
+
+        // 1. 根据 columns 数组构造 database 字段名列表
+        const dbColumns = columns.map(col => `"${col.fieldName}"`)
+
+        // 2. 生成 INSERT VALUES 占位符
+        let paramIndex = 1
+        const placeholders = rows
+          .map(row => {
+            const rowPlaceholders = columns.map(() => `$${paramIndex++}`)
+            return `(${rowPlaceholders.join(', ')})`
+          })
+          .join(', ')
+
+        // 3. 从 values 中取值（按 columns 顺序）
+        const paramsList = []
+        for (const row of rows) {
+          for (const col of columns) {
+            paramsList.push(row[col.name] ?? null)
+          }
+        }
+
+        // 4. 生成最终 SQL
+        const sql = `
+          INSERT INTO ${tableName} (${dbColumns.join(', ')})
+          VALUES ${placeholders}
+        `
+
+        return this.runQuery(sql, { ...options, params: paramsList })
+      }
     }
   }
 

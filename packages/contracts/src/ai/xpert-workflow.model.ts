@@ -51,6 +51,36 @@ export enum WorkflowNodeTypeEnum {
   CHUNKER = 'chunker',
   UNDERSTANDING = 'understanding',
   KNOWLEDGE_BASE = 'knowledgebase',
+
+  // ===============================
+  // 📦 Database Operation Nodes
+  // ===============================
+
+  /**
+   * 自定义 SQL
+   */
+  DB_SQL = 'db-sql',
+
+  /**
+   * 新增数据（INSERT）
+   */
+  DB_INSERT = 'db-insert',
+
+  /**
+   * 更新数据（UPDATE）
+   */
+  DB_UPDATE = 'db-update',
+
+  /**
+   * 删除数据（DELETE）
+   */
+  DB_DELETE = 'db-delete',
+
+  /**
+   * 查询数据（SELECT）
+   */
+  DB_QUERY = 'db-query',
+  
 }
 
 export interface IWorkflowNode {

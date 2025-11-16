@@ -50,6 +50,7 @@ import { EntityCapacity, EntitySchemaType } from './types'
 
 export interface EntitySchemaNode extends EntityProperty {
   type?: EntitySchemaType
+  raw?: any
 }
 
 /** Flat node with expandable and level information */

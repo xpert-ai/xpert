@@ -5,6 +5,9 @@ import { TranslateService } from '@ngx-translate/core'
 import { injectCopilotCommand } from './inject-copilot-command'
 import { NgmCopilotService } from '../services'
 
+/**
+ * @deprecated use Chatkit
+ */
 export function injectCommonCommands(copilotEngine: Signal<CopilotEngine>) {
   const translate = inject(TranslateService)
   const copilotService = inject(NgmCopilotService)

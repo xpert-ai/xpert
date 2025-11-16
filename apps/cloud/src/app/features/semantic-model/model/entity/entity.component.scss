@@ -1,7 +1,7 @@
 :host {
   --mat-expansion-container-background-color: transparent;
   
-  @apply relative h-full flex-1 flex flex-col;
+  @apply relative h-full flex-1 flex flex-col w-full overflow-hidden;
   &.pac-fullscreen {
     position: fixed;
     top: 0px;

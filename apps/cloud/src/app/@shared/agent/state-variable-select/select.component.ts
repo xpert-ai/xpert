@@ -10,7 +10,6 @@ import { of } from 'rxjs'
 import {
   agentLabel,
   getVariableSchema,
-  TStateVariableType,
   TWorkflowVarGroup,
   XpertParameterTypeEnum
 } from '../../../@core/types'
@@ -40,7 +39,11 @@ export class StateVariableSelectComponent {
 
   // Inputs
   readonly varOptions = input<TXpertVariablesOptions>()
+  /**
+   * @deprecated use `types` instead
+   */
   readonly type = input<string>() // TStateVariableType | string
+  readonly types = input<string[]>() // TStateVariableType[]
   readonly inline = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

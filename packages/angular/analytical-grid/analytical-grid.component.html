@@ -275,34 +275,38 @@
                   [ngStyle]="element[column.name]?.cellStyles"
                   [ngClass]="element[column.name]?.classes"
                   (mousedown)="selectCell(column)">
-                  <div *ngIf="column.bar" [ngStyle]="element[column.name]?.barStyles"
-                    [ngClass]="element[column.name]?.barClasses"
-                    class="ngm-analytical-grid__cell-bar"
-                  ></div>
-                  <span *ngIf="element[column.name]?.value === null || element[column.name]?.value === undefined; else cell" class="cell-value">-</span>
-                  <ng-template #cell>
-                    <span *ngIf="column.formatting?.currencyCode || options()?.currencyCode; else plain" class="cell-value">
-                      {{element[column.name]?.value | currency: column.formatting?.currencyCode || options()?.currencyCode:'symbol':column.formatting?.digitsInfo || options()?.digitsInfo}}
-                    </span>
-                  </ng-template>
-
-                  <ng-template #plain>
-                    <span class="cell-value">
-                      <span *ngIf="(column.formatting?.unit ?? options()?.unit) === '%'; else digits" class="ngm-analytical-grid__measure-value">
-                        {{element[column.name].value * 100 | number: column.formatting?.digitsInfo || options()?.digitsInfo ?? '0.0-2'}}
+                  @if (column.bar) {
+                    <div [ngStyle]="element[column.name]?.barStyles"
+                      [ngClass]="element[column.name]?.barClasses"
+                      class="ngm-analytical-grid__cell-bar"
+                    ></div>
+                  }
+                  @if (element[column.name]?.value === null || element[column.name]?.value === undefined) {
+                    <span class="cell-value">-</span>
+                  } @else {
+                    @if (column.formatting?.currencyCode || options()?.currencyCode) {
+                      <span class="cell-value">
+                        {{element[column.name]?.value | currency: column.formatting?.currencyCode || options()?.currencyCode:'symbol':column.formatting?.digitsInfo || options()?.digitsInfo}}
                       </span>
-                      
-                      <span *ngIf="column.formatting?.unit || options()?.unit" class="ngm-analytical-grid__measure-unit">
-                        {{column.formatting?.unit || options()?.unit}}
+                    } @else {
+                      <span class="cell-value">
+                        @if ((column.formatting?.unit ?? options()?.unit) === '%'; as isPercentage) {
+                          <span class="ngm-analytical-grid__measure-value">
+                            {{element[column.name].value * 100 | number: column.formatting?.digitsInfo || options()?.digitsInfo || '0.0-2'}}
+                          </span>
+                        } @else {
+                          <span class="ngm-analytical-grid__measure-value">
+                            {{element[column.name]?.value | number: column.formatting?.digitsInfo || options()?.digitsInfo || '0.0-2'}}
+                          </span>
+                        }
+                        @if (column.formatting?.unit || options()?.unit; as unit) {
+                          <span class="ngm-analytical-grid__measure-unit">
+                            {{unit}}
+                          </span>
+                        }
                       </span>
-                    </span>
-                  </ng-template>
-
-                  <ng-template #digits>
-                    <span class="ngm-analytical-grid__measure-value">
-                      {{element[column.name]?.value | number: column.formatting?.digitsInfo || options()?.digitsInfo || '0.0-2'}}
-                    </span>
-                  </ng-template>
+                    }
+                  }
                 </td>
               }
             </ng-container>
@@ -321,7 +325,7 @@
           <tr mat-row *matRowDef="let row; columns: tableConfig.matRowColumns; let i = index"
             [class.selected]="isRowSelected(row, i)"
             (click)="selectRow(i, row)"
-            >
+          >
           </tr>
         </table>
       }

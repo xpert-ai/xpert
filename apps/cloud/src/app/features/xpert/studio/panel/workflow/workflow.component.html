@@ -142,6 +142,18 @@
   @case (eWorkflowNodeTypeEnum.KNOWLEDGE_BASE) {
     <xpert-workflow-knowledge-base [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.DB_INSERT) {
+    <xp-workflow-panel-db-insert [node]="node()" />
+  }
+  @case (eWorkflowNodeTypeEnum.DB_UPDATE) {
+    <xp-workflow-panel-db-update [node]="node()" />
+  }
+  @case (eWorkflowNodeTypeEnum.DB_SQL) {
+    <xp-workflow-panel-db-sql [node]="node()" />
+  }
+  @case (eWorkflowNodeTypeEnum.DB_DELETE) {
+    <xp-workflow-panel-db-delete [node]="node()" />
+  }
 }
 
 @if (loading()) {

@@ -1,6 +1,5 @@
-import { DBQueryRunner } from '@metad/adapter'
 import { Query } from '@nestjs/cqrs'
-import { AdapterBaseOptions } from '@xpert-ai/plugin-sdk'
+import { AdapterBaseOptions, DBQueryRunner } from '@xpert-ai/plugin-sdk'
 
 /**
  * Create database adapter by name of data source type and options:

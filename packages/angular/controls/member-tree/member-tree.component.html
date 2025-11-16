@@ -1,43 +1,71 @@
-<div class="flex justify-start items-center">
+<div class="flex justify-start items-center gap-1">
   <button mat-icon-button [displayDensity]="appearance()?.displayDensity"
     (click)="$event.stopPropagation();toggleExpand()">
-    <mat-icon *ngIf="!unfold">unfold_more</mat-icon>
-    <mat-icon *ngIf="unfold">unfold_less</mat-icon>
+    @if (unfold) {
+      <mat-icon>unfold_less</mat-icon>
+    } @else {
+      <mat-icon>unfold_more</mat-icon>
+    }
   </button>
-  <ngm-search *ngIf="options()?.searchable ?? true" class="flex-1" [formControl]="searchControl"></ngm-search>
+  @if (options()?.searchable ?? true) {
+    <div class="relative flex-1">
+      <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
+      <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+        [placeholder]="'Ngm.Controls.ValueHelp.Search' | translate: {Default: 'Search (supports multiple words and * wildcard, e.g. st*, *st, *st*)'}"
+        [formControl]="searchControl"
+      >
+      @if (searchControl.value) {
+        <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+          (click)="searchControl.setValue('')"></i>
+      }
+    </div>
+  }
 </div>
 
 <cdk-virtual-scroll-viewport class="flex-1" [itemSize]="itemSize">
   <ng-container *cdkVirtualFor="let node of dataSource">
     <!-- Note that the [style.padding-left] is essentially what cdkTreeNodePadding is doing under the hood -->
-    <div class="tree-node rounded-md" [style.padding-left]="node.level * treeNodePaddingIndent + 'px'" [displayDensity]="appearance()?.displayDensity">
+    <div class="tree-node group/member rounded-md" [style.padding-left]="node.level * treeNodePaddingIndent + 'px'" [displayDensity]="appearance()?.displayDensity">
       <!-- Note that treeControl.toggle(node) is essentially what cdkTreeNodeToggle is doing under the hood -->
-      <button mat-icon-button disabled *ngIf="!node.expandable" [displayDensity]="appearance()?.displayDensity"></button>
-      <button mat-icon-button *ngIf="node.expandable" [displayDensity]="appearance()?.displayDensity"
-        (click)="treeControl.toggle(node)"
-      >
-        <mat-icon class="mat-icon-rtl-mirror">
-          {{ treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right' }}
-        </mat-icon>
-      </button>
+      @if (node.expandable) {
+        <button mat-icon-button [displayDensity]="appearance()?.displayDensity"
+          (click)="treeControl.toggle(node)"
+        >
+          <mat-icon class="mat-icon-rtl-mirror">
+            {{ treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right' }}
+          </mat-icon>
+        </button>
+      } @else {
+        <button mat-icon-button disabled [displayDensity]="appearance()?.displayDensity"></button>
+      }
 
       <mat-checkbox
         [checked]="isSelected(node.raw)"
         [indeterminate]="isPartiallySelected(node)"
         (change)="itemSelectionToggle(node, $event)"
       >
-        <ngm-display-behaviour [displayBehaviour]="displayBehaviour"
-          [option]="{key: node.key, caption: node.caption}"
-          [highlight]="searchControl.value"
-        ></ngm-display-behaviour>
+        <div class="flex gap-1 pr-1 items-center">
+          <ngm-display-behaviour class="flex-1"
+            [displayBehaviour]="displayBehaviour"
+            [option]="{key: node.key, caption: node.caption}"
+            [highlight]="highlightKeyword()"
+          />
+          <i class="ri-information-2-fill text-text-tertiary opacity-0 group-hover/member:opacity-100"
+            [matTooltip]="memberTooltip(node.raw)"
+            matTooltipPosition="above"
+            matTooltipClass="whitespace-pre-line text-left"
+          ></i>
+        </div>
       </mat-checkbox>
     </div>
   </ng-container>
 </cdk-virtual-scroll-viewport>
 
-<div *ngIf="loading$ | async" class="absolute top-0 left-0 w-full h-full flex justify-center items-center">
-  <mat-spinner strokeWidth="2" diameter="30"></mat-spinner>
-</div>
+@if (loading$ | async) {
+  <div class="absolute top-0 left-0 w-full h-full flex justify-center items-center">
+    <mat-spinner strokeWidth="2" diameter="30"/>
+  </div>
+}
 
 @if (error()) {
   <div class="ngm-card-error absolute left-0 top-0 w-full h-full overflow-auto 

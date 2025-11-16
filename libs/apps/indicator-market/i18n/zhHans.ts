@@ -29,5 +29,11 @@ export const ZhHans = {
     LookbackPeriods: '回溯期限',
     Refresh: '刷新',
     Comment: '评论',
+    DatePicker: {
+      Year: '年',
+      Quarter: '季度',
+      Month: '月',
+      Day: '日'
+    }
   }
 }

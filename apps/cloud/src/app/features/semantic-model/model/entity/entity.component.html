@@ -9,14 +9,14 @@
 
   <div class="flex items-center px-4">
     @if (cube()) {
-      <span class="text-lg">{{ cube().caption || cube().name}}</span>
+      <span class="text-lg truncate">{{ cube().caption || cube().name}}</span>
 
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
         [matTooltip]="'PAC.MODEL.OpenCubeDesigner' | translate: {Default: 'Open cube designer'}"
         matTooltipPosition="above"
         (click)="toggleCubeDesigner()">
-        <i class="ri-equalizer-2-line mr-1"></i>
-        <span class="hidden lg:inline-block">
+        <i class="ri-equalizer-2-line"></i>
+        <span class="hidden lg:inline-block ml-1">
           {{ 'PAC.MODEL.CubeAttributes' | translate: {Default: 'Cube attributes'} }}
         </span>
       </button>
@@ -28,12 +28,22 @@
       matTooltipPosition="above"
       (click)="toggleFact()"
     >
-      <i class="ri-database-line mr-1"></i>
-      <span class="hidden lg:inline-block">
+      <i class="ri-database-line"></i>
+      <span class="hidden lg:inline-block ml-1">
         {{ 'PAC.MODEL.FactFields' | translate: {Default: 'Fact field list'} }}
       </span>
     </button>
     
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+      [matTooltip]="'PAC.MODEL.PreviewLLMContextTip' | translate: {Default: 'Preview of contextual content from cubes used in large language models, can be controlled by \'visible\' or \'hidden for LLM\'.'}"
+      matTooltipPosition="above"
+      [cdkMenuTriggerFor]="previewContext"
+    >
+      <i class="ri-brain-line"></i>
+      <span class="hidden lg:inline-block ml-1">
+        {{ 'PAC.MODEL.PreviewLLMContext' | translate: {Default: 'Preview LLM Context'} }}
+      </span>
+    </button>
   </div>
 
   <span class="flex-1 flex"></span>
@@ -65,62 +75,47 @@
   </nav>
 </div>
 
-<div class="relative grow overflow-hidden">
-  <mat-drawer-container class="flex-1 h-full" autosize>
-    <mat-drawer #drawer mode="side" [(opened)]="drawerOpened" ngmResizer [resizerWidth]="230">
-      <pac-model-cube-structure class="pac-model-entity__cube flex-1 h-full"
+<div class="relative flex grow max-w-full w-full h-full overflow-hidden">
+  <div class="flex-1 flex relative overflow-hidden">
+    <div class="flex w-full h-full z-0">
+      <pac-model-cube-structure class="pac-model-entity__cube h-full w-[230px] shrink-0 overflow-y-auto"
         [modelType]="modelType$ | async" editable
         (editChange)="onPropertyEdit($event)"
       />
-
-      <div ngmResizerBar resizerBarPosition="right" cdkDrag></div>
-    </mat-drawer>
-    <mat-drawer-content>
-      <div class="pac-model-entity__workspace flex-1 h-full">
-        <mat-tab-nav-panel #tabPanel class="pac-model-entity__workspace-router ngm-layout-container-secondary flex-1"
-          [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
-          <router-outlet #o="outlet"></router-outlet>
-        </mat-tab-nav-panel>
-      </div>
-
-      <ngm-drawer-trigger class="absolute -left-2 top-1/2 -mt-10 z-[102]"
-        [(opened)]="drawerOpened"
-        [matTooltip]="'PAC.MODEL.ENTITY.CubeStructure' | translate: {Default: 'Cube Structure'}"
-        matTooltipPosition="after"
-      />
-    </mat-drawer-content>
-  </mat-drawer-container>
-
-  <div class="absolute top-0 bottom-0 right-0 m-1 z-10 flex gap-2"
-    [class.hidden]="!detailsOpen() && !openedFact() && !openedCalculation()"
-  >
-    @if (openedCalculation()) {
-      <pac-model-entity-calculation @leanRightEaseIn class="shrink-0 w-[840px] grow shadow-2xl rounded-2xl border border-solid border-divider-deep overflow-hidden z-20 bg-slate-50" 
-        [key]="openedCalculation()"
-        (close)="openedCalculation.set(null)"
-      />
-    }
-    @if (openedFact()) {
-      <pac-model-cube-fact @leanRightEaseIn class="shrink-0 w-[340px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden bg-components-panel-bg" 
-        (close)="toggleFact()"
-      />
-    }
-    
-    <div ngmResizer @leanRightEaseIn [resizerWidth]="360" class="relative" [class.hidden]="!detailsOpen()">
-      <div class="z-10" ngmResizerBar resizerBarPosition="left"
-        cdkDrag
-        cdkDragLockAxis="x"
-      ></div>
-      <ngm-settings-panel class="w-full h-full shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden"
-        displayDensity="compact"
-        liveMode
-      />
-
-      <button type="button" class="absolute right-2 top-2 btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-        (click)="detailsOpen.set(false)">
-        <i class="ri-close-line"></i>
-      </button>
+      <mat-tab-nav-panel #tabPanel class="pac-model-entity__workspace-router ngm-layout-container-secondary flex-1"
+        [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
+        <router-outlet #o="outlet"></router-outlet>
+      </mat-tab-nav-panel>
     </div>
+
+    <div class="absolute top-0 bottom-0 right-0 m-1 flex gap-2 z-10"
+      [class.hidden]="!openedFact() && !openedCalculation()"
+    >
+      @if (openedCalculation()) {
+        <pac-model-entity-calculation @leanRightEaseIn class="shrink-0 w-[840px] grow shadow-2xl rounded-2xl border border-solid border-divider-deep overflow-hidden z-20 bg-slate-50" 
+          [key]="openedCalculation()"
+          (close)="openedCalculation.set(null)"
+        />
+      }
+      @if (openedFact()) {
+        <pac-model-cube-fact @leanRightEaseIn class="shrink-0 w-[340px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden bg-components-panel-bg" 
+          (close)="toggleFact()"
+        />
+      }
+    </div>
+  </div>
+  <div class="relative m-1 z-10 flex gap-2 w-[320px] shrink-0" ngmResizable [directions]="['left']"
+    [class.hidden]="!detailsOpen()"
+  >
+    <ngm-settings-panel class="w-full h-full shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden"
+      displayDensity="compact"
+      liveMode
+    />
+
+    <button type="button" class="absolute right-2 top-2 btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+      (click)="detailsOpen.set(false)">
+      <i class="ri-close-line"></i>
+    </button>
   </div>
 </div>
 
@@ -130,3 +125,12 @@
     <span class="description">{{ 'PAC.MODEL.ENTITY.CubeNotFound' | translate: {Default: 'Cube not found!'} }}</span>
   </div>
 }
+
+<ng-template #previewContext>
+  <div cdkMenu class="cdk-menu__medium w-96 h-96 relative overflow-hidden" ngmResizable>
+    <copy class="absolute right-1 top-1" [content]="llmContext()" />
+    <div class="font-body text-sm whitespace-pre-line overflow-auto">
+      {{ llmContext() }}
+    </div>
+  </div>
+</ng-template>

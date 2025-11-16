@@ -256,7 +256,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						graphInput = {
 										...(input ?? {}),
 										messages: [
-											await createHumanMessage(this.commandBus, this.queryBus, input, {enabled: true, resolution: 'low'})
+											await createHumanMessage(this.commandBus, this.queryBus, {[STATE_VARIABLE_HUMAN]: input}, {enabled: true, resolution: 'low'})
 										],
 										[STATE_VARIABLE_SYS]: {
 											language: languageCode,

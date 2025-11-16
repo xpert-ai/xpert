@@ -194,6 +194,15 @@
 
       @if (visionEnabled()) {
         <div class="p-2">
+          <div class="py-2">
+            <xpert-state-variable-select nullable [varOptions]="varOptions()" [types]="[
+                eXpertParameterTypeEnum.ARRAY,
+                eXpertParameterTypeEnum.ARRAY_FILE,
+                eXpertParameterTypeEnum.FILE
+              ]"
+              [(ngModel)]="visionVariable"
+            />
+          </div>
           <div class="flex items-center justify-between">
             <div class="mr-2 text-sm font-medium uppercase text-text-secondary">{{'PAC.Xpert.Resolution' | translate: {Default: 'Resolution'} }}</div>
             <div class="flex items-center space-x-1">

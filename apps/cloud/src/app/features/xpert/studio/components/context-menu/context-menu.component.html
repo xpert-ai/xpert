@@ -246,6 +246,19 @@
       <div class="text-text-primary">{{'PAC.Workflow.TaskHandover' | translate: {Default: 'Task Handover'} }}</div>
     </div>
 
+    <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
+      {{ 'PAC.Xpert.Memory' | translate: {Default: 'Memory'} }}
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      [cdkMenuTriggerFor]="databaseMenu"
+    >
+      <xpert-workflow-icon type="database" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary grow">
+        {{ 'PAC.KEY_WORDS.Database' | translate: {Default: 'Database'} }}
+      </div>
+      <i class="ri-arrow-drop-right-fill"></i>
+    </div>
+
     <div class="flex items-start px-2 mt-2 font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Others' | translate: {Default: 'Others'} }}
     </div>
@@ -286,6 +299,46 @@
         </div>
       </div>
     }
+  </div>
+</ng-template>
+
+<ng-template #databaseMenu>
+  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]">
+    <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
+      {{ 'PAC.KEY_WORDS.Database' | translate: {Default: 'Database'} }}
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_SQL)"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_SQL" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.SQLCustom' | translate: {Default: 'SQL Custom'} }}
+      </div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_INSERT)"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_INSERT" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.NewData' | translate: {Default: 'New Data'} }}
+      </div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_UPDATE)"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_UPDATE" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.UpdateData' | translate: {Default: 'Update Data'} }}
+      </div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_DELETE)"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_DELETE" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">
+        {{ 'PAC.Workflow.DeleteData' | translate: {Default: 'Delete Data'} }}
+      </div>
+    </div>
   </div>
 </ng-template>
 

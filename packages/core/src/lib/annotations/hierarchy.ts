@@ -210,17 +210,67 @@ function getTreeLevel<T>(item: TreeNodeInterface<T>, level: number) {
 }
 
 /**
- * 过滤树状结构的数据
- * 
- * @param array 树状结构的数组
- * @param text 过滤文本
- * @param options considerKey 是否使用 key 进行过滤
- * @returns 
+ * Filters a tree-structured array based on a given text query.
+ *
+ * ### Matching logic
+ * - If the keyword contains `*`, wildcard mode is automatically enabled:
+ *   - `st*` → matches strings starting with "st"
+ *   - `*st` → matches strings ending with "st"
+ *   - `*st*` → matches strings containing "st"
+ * - If there is **no `*`**, performs normal case-insensitive substring matching.
+ * - Supports multiple space-separated keywords (logical OR).
+ * - Trims extra spaces automatically.
+ *
+ * @template T The type of the node data.
+ * @param array The tree-structured array.
+ * @param text The filter text. Supports multiple keywords and optional * wildcard.
+ * @param options Additional options:
+ *   - `considerKey`: Whether to also match against the node's `key`.
+ * @returns A filtered tree array containing only nodes that match the query.
  */
-export function filterTreeNodes<T = any>(array: TreeNodeInterface<T>[], text: string, options?: {considerKey?: boolean}) {
-  text = text?.toLowerCase()
+export function filterTreeNodes<T = any>(
+  array: TreeNodeInterface<T>[],
+  text: string,
+  options?: { considerKey?: boolean }
+) {
+  text = text?.trim().toLowerCase()
+  if (!text) return array
+
+  // Split text into keywords (ignore extra spaces)
+  const keywords = text.split(/\s+/).filter(Boolean)
+
+  /**
+   * Matches a given string against any keyword.
+   * Automatically switches to wildcard matching if '*' is present.
+   */
+  const match = (value: string) => {
+    if (!value) return false
+    const val = value.toLowerCase()
+
+    // Return true if ANY keyword matches
+    return keywords.some((word) => {
+      if (word.includes('*')) {
+        // Wildcard mode: convert * to regex pattern
+        const pattern = word
+          .replace(/[-/\\^$+?.()|[\]{}]/g, '\\$&') // escape regex chars
+          .replace(/\*/g, '.*')
+        const regex = new RegExp(`^${pattern}$`)
+        return regex.test(val)
+      } else {
+        // Normal substring matching
+        return val.includes(word)
+      }
+    })
+  }
+
+  /**
+   * Recursively traverses and filters tree nodes.
+   */
   const getNodes = (result: TreeNodeInterface<T>[], object: TreeNodeInterface<T>) => {
-    const contains = object.label?.toLowerCase().includes(text) || (options?.considerKey && `${object.key}`?.toLowerCase().includes(text))
+    const contains =
+      match(object.label) ||
+      (options?.considerKey && match(`${object.key}`))
+
     const children = object.children?.reduce(getNodes, [])
     if (children?.length) {
       result.push({ ...object, children })
@@ -230,7 +280,7 @@ export function filterTreeNodes<T = any>(array: TreeNodeInterface<T>[], text: st
     return result
   }
 
-  return !text ? array : array.reduce(getNodes, [])
+  return array.reduce(getNodes, [])
 }
 
 export function findTreeNode<T = any>(array: TreeNodeInterface<T>[], key: string) {

@@ -34,7 +34,9 @@ export const ZhHant = {
       Description: "描述",
       Step: '步驟',
       Presentation: '展示',
-      Custom: '自定義'
+      Custom: '自定義',
+      Value: '值',
+      Label: '標簽',
     },
     AnalyticalCard: {
       Screenshot: '截圖',
@@ -85,6 +87,7 @@ export const ZhHant = {
         Condition: '條件',
         Value: '值',
         Add: '添加',
+        Search: '搜索（支持空格分隔多詞，支持 * 通配符，例如：st*、*st、*st*）'
       }
     },
     Entity: {
@@ -104,7 +107,18 @@ export const ZhHant = {
     EntitySchema: {
       Parameters: '參數',
       Measures: '度量',
-      Properties: '屬性'
+      Properties: '屬性',
+      'Member Key': '成員鍵',
+      'Member Caption': '成員標簽',
+      Dimension: '維度',
+      Hierarchy: '層次結構',
+      Level: '層級',
+      MemberType: '成員類型',
+      'Level Number': '層級序號',
+      Visible: '可見',
+      'Parent Key': '父級鍵',
+      'Children Cardinality': '子成員基數',
+      'Member Unique Name': '成員唯一鍵'
     },
     Formula: {
       Editor: {
@@ -268,6 +282,9 @@ export const ZhHant = {
       Calendar: '日歷',
       'Address.Country': '國家',
       Variable: '參數變量',
+      NoProperties: '沒有屬性',
+      AllowParameterMultipleSelection: '允許參數多選',
+      SelectParameterOptions: '選擇參數可選項',
     },
     MeasureSelect: {
       EditCalculationMeasure: '編輯計算度量',
@@ -321,7 +338,30 @@ export const ZhHant = {
       Unit: '單位',
       Formulas: '公式',
       MeasureSelectPlaceholder: '選擇或新建一個度量',
-      MeasureIsRequired: '度量必選'
+      MeasureIsRequired: '度量必選',
+      EqualTo: '等於',
+      NotEqualTo: '不等於',
+      LessThan: '小於',
+      GreaterThan: '大於',
+      LessorEqual: '小於等於',
+      GreaterorEqual: '大於等於',
+      Empty: '為空',
+      NotEmpty: '不為空',
+      Sum: '總和',
+      Count: '計數',
+      Average: '平均',
+      Min: '最小',
+      Max: '最大',
+      StandardDeviation: '標準差',
+      PopulationStandardDeviation: '總體標準差',
+      Median: '中位數',
+      TopPercent: '前百分比',
+      TopCount: '前 N 個',
+      TopSum: '前總和',
+      BottomPercent: '後百分比',
+      BottomCount: '後 N 個',
+      BottomSum: '後總和',
+      CompareTo: '比較',
     },
     AdvancedFilter: {
       Title: '組合切片器',
@@ -368,4 +408,3 @@ export const ZhHant = {
     }
   }
 }
-

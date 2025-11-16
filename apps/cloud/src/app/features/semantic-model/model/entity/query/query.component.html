@@ -116,9 +116,10 @@
 
 
 @if (schemaOpen()) {
-  <div class="pac-model-query-schema shrink-0 w-[400px] max-w-[400px] flex flex-col border-divider-deep overflow-hidden z-[102] bg-components-card-bg"
+  <div class="pac-model-query-schema relative shrink-0 w-[400px] flex flex-col border-divider-deep overflow-hidden z-[102] bg-components-card-bg"
     [class.pin]="schemaPin()"
     [@leanRightEaseIn]="{value: schemaOpen(), params: { timing: schemaPin() ? '0ms' : '100ms' }}"
+    ngmResizable [directions]="['left']"
   >
     <div class="flex justify-between items-center gap-1 p-2">
       @if (!schemaPin()) {
@@ -131,6 +132,14 @@
         {{ 'PAC.MODEL.CubeSchema' | translate: {Default: 'Cube schema'} }}
       </div>
       <button type="button" class="btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+        [matTooltip]="'PAC.MODEL.SwitchSchemaDisplayMode' | translate: {Default: 'Switch Schema Display Mode'}"
+        matTooltipPosition="above"
+        (click)="switchDisplay()">
+        <i class="ri-switch-line"></i>
+      </button>
+      <button type="button" class="btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+        [matTooltip]="'PAC.MODEL.PinToSide' | translate: {Default: 'Pin to Side'}"
+        matTooltipPosition="above"
         (click)="togglePin()">
         @if (schemaPin()) {
           <i class="ri-unpin-line"></i>
@@ -147,6 +156,7 @@
       [id]="eCdkDragDropContainers.CubeSchema"
       cdkDropList
       [cdkDropListData]="[]"
+      [displayBehaviour]="displayBehaviour()"
       [dataSettings]="dataSettings()"
       [capacities]="[
                   eEntityCapacity.Dimension,

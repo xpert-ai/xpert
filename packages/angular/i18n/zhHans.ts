@@ -87,6 +87,7 @@ export const ZhHans = {
         Condition: '条件',
         Value: '值',
         Add: '添加',
+        Search: '搜索（支持空格分隔多词，支持 * 通配符，例如：st*、*st、*st*）'
       }
     },
     Entity: {
@@ -106,7 +107,18 @@ export const ZhHans = {
     EntitySchema: {
       Parameters: '参数',
       Measures: '度量',
-      Properties: '属性'
+      Properties: '属性',
+      'Member Key': '成员键',
+      'Member Caption': '成员标签',
+      Dimension: '维度',
+      Hierarchy: '层次结构',
+      Level: '层级',
+      MemberType: '成员类型',
+      'Level Number': '层级序号',
+      Visible: '可见',
+      'Parent Key': '父级键',
+      'Children Cardinality': '子成员基数',
+      'Member Unique Name': '成员唯一键'
     },
     Formula: {
       Editor: {

@@ -3,11 +3,7 @@ import { CopilotCommand } from '@metad/copilot'
 import { NgmCopilotContextToken } from '../services'
 
 /**
- * Inject a new copilot command
- * 
- * @param name 
- * @param command 
- * @returns 
+ * @deprecated use Chatkit
  */
 export function injectCopilotCommand(
   name: string | CopilotCommand,

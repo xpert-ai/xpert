@@ -113,11 +113,11 @@ export function createToolNode(
 									[channelName(node.key)]: {
 										[WORKFLOW_TOOL_TEXT_CHANNEL]: output,
 										[WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
-										[WORKFLOW_TOOL_FILES_CHANNEL]: [],
+										[WORKFLOW_TOOL_FILES_CHANNEL]: resultJson?.files ?? [],
 										[WORKFLOW_TOOL_ERROR_CHANNEL]: null
 									}
 								},
-								output: output
+								output: resultJson || output
 							}
 						} catch (error) {
 							if (entity.errorHandling?.type === 'defaultValue') {
@@ -137,7 +137,7 @@ export function createToolNode(
 											[WORKFLOW_TOOL_ERROR_CHANNEL]: null
 										}
 									},
-									output: result
+									output: resultJson || result
 								}
 							} else if (entity.errorHandling?.type === 'failBranch') {
 								return {
@@ -200,7 +200,7 @@ export function toolOutputVariables(entity: IWorkflowNode) {
 			}
 		},
 		{
-			type: XpertParameterTypeEnum.ARRAY,
+			type: XpertParameterTypeEnum.ARRAY_FILE,
 			name: WORKFLOW_TOOL_FILES_CHANNEL,
 			title: 'Files',
 			description: {

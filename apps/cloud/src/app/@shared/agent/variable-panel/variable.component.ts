@@ -20,9 +20,13 @@ import { debouncedSignal, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { of } from 'rxjs'
-import { getVariableSchema, TStateVariable, TWorkflowVarGroup } from '../../../@core/types'
+import { FILE_VARIABLES, getVariableSchema, TStateVariable, TWorkflowVarGroup, XpertParameterTypeEnum } from '../../../@core/types'
 
 export { TXpertVariablesOptions } from '@cloud/app/@core/services'
+
+type TStateVariableType = TStateVariable & {
+  expanded?: boolean
+}
 
 @Component({
   standalone: true,
@@ -36,6 +40,8 @@ export { TXpertVariablesOptions } from '@cloud/app/@core/services'
   }
 })
 export class XpertVariablePanelComponent {
+  eXpertParameterTypeEnum = XpertParameterTypeEnum
+  
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly overlay = inject(Overlay)
   readonly elementRef = inject(ElementRef)
@@ -44,7 +50,11 @@ export class XpertVariablePanelComponent {
 
   // Inputs
   readonly options = input.required<TXpertVariablesOptions>()
+  /**
+   * @deprecated use `types` instead
+   */
   readonly type = input<string>() // TStateVariableType | string
+  readonly types = input<string[]>() // TStateVariableType[]
 
   /**
    * Use as variables cache, if not provided, will fetch variables from API by options
@@ -72,22 +82,29 @@ export class XpertVariablePanelComponent {
   readonly #searchTerm = debouncedSignal(this.searchTerm, 300)
   readonly filteredVariables = computed(() => {
     const searchTerm = this.#searchTerm().toLowerCase()
-    const type = this.type()
+    const types = this.types() ?? (this.type() ? [this.type()] : null)
     return this.variables()
-      ?.map((group) => ({
-        ...group,
-        variables: searchTerm ? group.variables?.filter((variable) => {
-          const description = variable.description
-          return (type
-            ? variable.type?.startsWith(type)
-            : true) &&
-                (
-                  variable.name.toLowerCase().includes(searchTerm) ||
-                  (this.i18nPipe.transform(description)?.toLowerCase().includes(searchTerm)) ||
-                  this.i18nPipe.transform(group.group.description)?.toLowerCase().includes(searchTerm)
-                )
-        }) : group.variables
-      }))
+      ?.map((group) => {
+        let variables = group.variables
+        if (searchTerm || types) {
+          variables = variables?.filter((variable) => {
+              const description = variable.description
+              return (types.length
+                ? types.some(type => variable.type?.startsWith(type))
+                : true) &&
+                    (
+                      variable.name.toLowerCase().includes(searchTerm) ||
+                      (this.i18nPipe.transform(description)?.toLowerCase().includes(searchTerm)) ||
+                      this.i18nPipe.transform(group.group.description)?.toLowerCase().includes(searchTerm)
+                    )
+            })
+        }
+
+        return {
+          ...group,
+          variables: variables as TStateVariableType[]
+        }
+      })
       .filter((group) => group.variables?.length > 0)
   })
 
@@ -118,13 +135,47 @@ export class XpertVariablePanelComponent {
     return this.selectedGroupName() ? this.selectedGroupName() === name : !name
   }
 
+  toggleVariable(variable: TStateVariableType) {
+    this.variables.update((groups) => {
+      return groups?.map((group) => {
+        const index = group.variables.findIndex((item) => item.name === variable.name)
+        if (index === -1) {
+          return group
+        }
+        let variables = group.variables.map((item: TStateVariableType) => {
+            if (item.name === variable.name) {
+              return {
+                ...item,
+                expanded: !item.expanded
+              } as TStateVariableType
+            }
+            return item as TStateVariableType
+          })
+        if (variables[index].expanded) {
+          if (variable.type === XpertParameterTypeEnum.FILE) {
+            variables.splice(index + 1, 0, ...FILE_VARIABLES.map((fileVar) => ({
+              ...fileVar,
+              name: `${variable.name}.${fileVar.name}`
+            })))
+          }
+        } else {
+          variables = variables.filter((item) => !item.name.startsWith(`${variable.name}.`))
+        }
+        return {
+          ...group,
+          variables
+        }
+      })
+    })
+  }
+
   focus() {
     ;(this.elementRef.nativeElement as HTMLElement).focus()
   }
 
   @HostListener('document:click', ['$event'])
   @HostListener('document:touchend', ['$event'])
-  closeOnClickOutside(event: MouseEvent) {
+  closeOnClickOutside(event: MouseEvent | TouchEvent) {
     if (!this.isListening()) {
       return
     }
@@ -138,7 +189,7 @@ export class XpertVariablePanelComponent {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: KeyboardEvent) {
+  handleEscapeKey(event: Event) {
     const element = this.elementRef.nativeElement as HTMLElement
     if (document.activeElement && element.contains(document.activeElement)) {
       this.close.emit()

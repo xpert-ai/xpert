@@ -1,4 +1,3 @@
-import { AdapterBaseOptions, DBQueryRunner } from '@metad/adapter'
 import { DataSourceProtocolEnum, IDataSource, IDSSchema, mapTranslationLanguage } from '@metad/contracts'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { QueryBus } from '@nestjs/cqrs'
@@ -13,6 +12,7 @@ import { DataSourceAuthentication } from './authentication/authentication.entity
 import { DataSource } from './data-source.entity'
 import { prepareDataSource } from './utils'
 import { DataSourceStrategyQuery } from './queries/index'
+import { AdapterBaseOptions, DBQueryRunner } from '@xpert-ai/plugin-sdk'
 
 const axios = _axios.default
 

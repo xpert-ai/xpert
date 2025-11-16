@@ -37,3 +37,7 @@
     @apply absolute left-1/2 top-1/2 -ml-4 -mt-4;
   }
 }
+
+.mdc-list-item.mdc-list-item--activated {
+  @apply bg-neutral-100;
+}

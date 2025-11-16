@@ -1,5 +1,5 @@
 <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
-  <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding matTreeNodePaddingIndent="20"
+  <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding matTreeNodePaddingIndent="20" class="group/member"
     [cdkDragDisabled]="dragDisabled()"
     cdkDrag
     [cdkDragData]="node.item"
@@ -19,10 +19,20 @@
 
     <div class="ngm-entity-schema__type" [title]="node.item.dataType || node.item.type">{{node.item.dataType || node.item.type?.[0]}}</div>
     <ngm-display-behaviour [option]="{value: node.item.name, caption: node.item.caption ?? node.item.label}"
-      [highlight]="searchControl.value" />
+      [highlight]="searchControl.value"
+      [displayBehaviour]="displayBehaviour()"
+    />
+    @if (memberTooltip(node.item); as memberInfo) {
+      <i class="ri-information-2-fill text-text-tertiary opacity-0 group-hover/member:opacity-100"
+        [matTooltip]="memberInfo"
+        matTooltipPosition="above"
+        matTooltipClass="whitespace-pre-line text-left"
+      ></i>
+    }
     <div class="ngm-entity-schema__drag-placeholder" *cdkDragPlaceholder></div>
   </mat-tree-node>
-  <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding matTreeNodePaddingIndent="20" class="group"
+  <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding matTreeNodePaddingIndent="20" class="group/member bg-components-card-bg"
+    [ngClass]="node.item.type === EntitySchemaType.Entity ? 'sticky top-0' : ''"
     [cdkDragDisabled]="dragDisabled()"
     cdkDrag
     [cdkDragData]="node.item"
@@ -43,13 +53,23 @@
     <div class="ngm-entity-schema__type" [title]="node.item.dataType || node.item.type">{{node.item.dataType || node.item.type?.[0]}}</div>
 
     <ngm-display-behaviour class="flex-1" [option]="{value: node.item.name, caption: node.item.caption ?? node.item.label}"
-      [highlight]="searchControl.value" />
+      [highlight]="searchControl.value"
+      [displayBehaviour]="displayBehaviour()"
+    />
 
     @if (node.item.type === EntitySchemaType.Entity) {
       <ngm-search cdkMonitorSubtreeFocus
         class="overflow-hidden"
         displayDensity="cosy"
         [formControl]="searchControl" />
+    }
+
+    @if (memberTooltip(node.item); as memberInfo) {
+      <i class="ri-information-2-fill text-text-tertiary opacity-0 group-hover/member:opacity-100"
+        [matTooltip]="memberInfo"
+        matTooltipPosition="above"
+        matTooltipClass="whitespace-pre-line text-left"
+      ></i>
     }
 
     <div class="ngm-entity-schema__drag-placeholder" *cdkDragPlaceholder></div>

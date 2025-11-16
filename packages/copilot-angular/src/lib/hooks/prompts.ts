@@ -1,5 +1,8 @@
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
 
+/**
+ * @deprecated use Chatkit
+ */
 export function createAgentPromptTemplate(system: string) {
   return ChatPromptTemplate.fromMessages([
     ['system', system],

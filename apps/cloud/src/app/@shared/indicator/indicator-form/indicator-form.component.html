@@ -61,62 +61,64 @@
   </div>
 </div>
 
-<div #content class="flex-1 overflow-x-hidden overflow-y-auto p-2">
-  <xp-indicator-register-form #register_form
-    [certifications]="certifications()"
-    [models]="models()"
-    [(ngModel)]="draftForm"
-  />
-    
+<div #content class="relative flex-1 flex flex-col overflow-hidden"
+  ngmResizable>
+  <div class="w-full flex flex-col overflow-y-auto">
+    <xp-indicator-register-form #register_form
+      [certifications]="certifications()"
+      [models]="models()"
+      [(ngModel)]="draftForm"
+    />
+
+    <div class="w-full max-w-full flex flex-col items-center">
+      <button mat-flat-button (click)="togglePreview()">
+        <mat-icon fontSet="material-icons-round">{{ preview() ? 'expand_less' : 'expand_more' }}</mat-icon>
+        <span>
+          {{ 'PAC.INDICATOR.DataPreview' | translate: {Default: 'Data Preview'} }}
+        </span>
+      </button>
+      
+      @if (preview()) {
+        @if (error()) {
+          <div class="w-full h-[300px] flex justify-center items-center">
+            <span class="">{{ error() }}</span>
+          </div>
+        } @else {
+          <ngm-analytical-card class="w-full h-[300px]"
+            [dataSettings]="dataSettings()"
+            [chartOptions]="chartOptions()"
+            [chartSettings]="chartSettings()"
+            [options]="{
+              realtimeLinked: true,
+            }"
+            (explain)="setExplains($event)"
+            >
+            <div class="flex-1 flex items-center">
+              <span class="text-base font-medium ml-4 whitespace-nowrap">{{ 'PAC.INDICATOR.Period' | translate: {Default: 'Period'} }}</span>
+
+              @for (p of PERIODS; track p.name) {
+                <span class="pac-indicator__period-tag text-sm cursor-pointer inline-flex items-center font-semibold leading-sm uppercase px-2 py-1 rounded-lg"
+                  [ngClass]="{selected: p.name === previewPeriod()}"
+                  (click)="togglePeriod(p.name)"
+                >
+                  {{p.name}}
+                </span>
+              }
+            </div>
+
+            <div ngmAction>
+              <button class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light" (click)="openExplain()">
+                <i class="ri-terminal-box-line"></i>
+              </button>
+            </div>
+          </ngm-analytical-card>
+        }
+      }
+    </div>
+  </div>
   @if (loading()) {
     <ngm-spin class="absolute top-0 left-0 w-full h-full"></ngm-spin>
   }
-
-  <div class="w-full max-w-full flex flex-col items-center">
-    <button mat-flat-button (click)="togglePreview()">
-      <mat-icon fontSet="material-icons-round">{{ preview() ? 'expand_less' : 'expand_more' }}</mat-icon>
-      <span>
-        {{ 'PAC.INDICATOR.DataPreview' | translate: {Default: 'Data Preview'} }}
-      </span>
-    </button>
-    
-    @if (preview()) {
-      @if (error()) {
-        <div class="w-full h-[300px] flex justify-center items-center">
-          <span class="">{{ error() }}</span>
-        </div>
-      } @else {
-        <ngm-analytical-card class="w-full h-[300px]"
-          [dataSettings]="dataSettings()"
-          [chartOptions]="chartOptions()"
-          [chartSettings]="chartSettings()"
-          [options]="{
-            realtimeLinked: true,
-          }"
-          (explain)="setExplains($event)"
-          >
-          <div class="flex-1 flex items-center">
-            <span class="text-base font-medium ml-4 whitespace-nowrap">{{ 'PAC.INDICATOR.Period' | translate: {Default: 'Period'} }}</span>
-
-            @for (p of PERIODS; track p.name) {
-              <span class="pac-indicator__period-tag text-sm cursor-pointer inline-flex items-center font-semibold leading-sm uppercase px-2 py-1 rounded-lg"
-                [ngClass]="{selected: p.name === previewPeriod()}"
-                (click)="togglePeriod(p.name)"
-              >
-                {{p.name}}
-              </span>
-            }
-          </div>
-
-          <div ngmAction>
-            <button class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light" (click)="openExplain()">
-              <i class="ri-terminal-box-line"></i>
-            </button>
-          </div>
-        </ngm-analytical-card>
-      }
-    }
-  </div>
 </div>
 
 @if (!indicator()) {

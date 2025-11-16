@@ -89,17 +89,6 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
       ]
     },
     // {
-    //   title: 'Chat BI',
-    //   matIcon: 'mms',
-    //   link: '/chatbi',
-    //   pathMatch: 'prefix',
-    //   data: {
-    //     translationKey: 'ChatBI',
-    //     featureKey: AnalyticsFeatures.FEATURE_COPILOT_CHATBI,
-    //     permissionKeys: [AnalyticsPermissionsEnum.CHATBI_VIEW]
-    //   }
-    // },
-    // {
     //   title: 'Data Factory',
     //   matIcon: 'data_table',
     //   link: '/data',
@@ -112,7 +101,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     // },
     {
       title: 'Semantic Model',
-      matIcon: 'database',
+      matIcon: 'deployed_code',
       link: '/models',
       pathMatch: 'prefix',
       data: {
@@ -203,19 +192,19 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
             featureKey: AiFeatureEnum.FEATURE_COPILOT
           }
         },
-        {
-          title: 'Knowledgebase',
-          matIcon: 'school',
-          link: '/settings/knowledgebase',
-          data: {
-            translationKey: 'Knowledgebase',
-            permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
-            featureKey: AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE
-          }
-        },
+        // {
+        //   title: 'Knowledgebase',
+        //   matIcon: 'school',
+        //   link: '/settings/knowledgebase',
+        //   data: {
+        //     translationKey: 'Knowledgebase',
+        //     permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
+        //     featureKey: AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE
+        //   }
+        // },
         {
           title: 'Data Sources',
-          matIcon: 'settings_remote',
+          matIcon: 'database',
           link: '/settings/data-sources',
           admin: true,
           data: {

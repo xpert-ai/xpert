@@ -34,6 +34,7 @@ import { CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
 import { EnvironmentModule } from './environment'
+import { XpertTableModule } from './xpert-table'
 
 @Module({
 	imports: [
@@ -63,6 +64,7 @@ import { EnvironmentModule } from './environment'
 		XpertProjectModule,
 		XpertTemplateModule,
 		XpertTaskModule,
+		XpertTableModule,
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
 		IntegrationLarkModule,

@@ -14,7 +14,7 @@
   
   .ngm-value-help__members {
     flex: 1;
-    min-height: 300px;
+    // min-height: 300px;
   }
 }
 
@@ -51,3 +51,6 @@
   }
 }
 
+.ngm-resize-handle {
+  @apply transition-colors text-text-tertiary hover:text-text-primary;
+}

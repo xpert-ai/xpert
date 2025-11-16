@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Database": "数据库",
       "Selected": "已选",
       "Logs": "日志",
       "Service": "服务",
@@ -464,7 +465,11 @@
       "FirstRecord": "首条记录",
       "LastRecord": "末条记录",
       "AddAssignVariables": "添加要赋值的变量",
-      "AggregatedResult": "汇总结果"
+      "AggregatedResult": "汇总结果",
+      "NewData": "新增数据",
+      "SQLCustom": "SQL 自定义",
+      "UpdateData": "更新数据",
+      "DeleteData": "删除数据"
     },
     "Pipeline": {
       "AuthenticationMethod": "认证方式",
@@ -1163,6 +1168,8 @@
       "Search": "搜索",
       "FactFields": "事实字段列表",
       "CubeAttributes": "数据集属性",
+      "PreviewLLMContext": "预览 LLM 上下文",
+      "PreviewLLMContextTip": "预览多维数据集被用于大语言模型的上下文内容，可以通过‘是否显示’或‘对大模型隐藏’来控制内容的显示",
       "IsDefault": "是默认",
       "MoveLeft": "左移",
       "MoveRight": "右移",
@@ -1213,6 +1220,8 @@
       "JoinConfig": "关联配置",
       "OpenCubeSchema": "打开模型信息",
       "CubeSchema": "模型信息",
+      "SwitchSchemaDisplayMode": "切换纲要显示模式",
+      "PinToSide": "固定到侧边",
 
       "QUERY": {
         "TITLE": "查询实验室",

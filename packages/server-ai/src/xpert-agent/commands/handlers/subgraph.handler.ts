@@ -654,7 +654,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 				if (!humanMessages.length && state.human) {
 					// Add attachments
-					humanMessages.push(await createHumanMessage(this.commandBus, this.queryBus, state.human, agent.options?.vision))
+					humanMessages.push(await createHumanMessage(this.commandBus, this.queryBus, state, agent.options?.vision))
 				}
 			}
 
