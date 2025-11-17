@@ -175,6 +175,7 @@
     "topojson-client": "^3.1.0",
     "tslib": "^2.3.0",
     "uuid": "^10.0.0",
+    "web-streams-polyfill": "^4.2.0",
     "xlsx": "^0.18.5",
     "xmldom": "^0.6.0",
     "yaml": "^2.6.1",
@@ -273,7 +274,8 @@
   "resolutions": {
     "@langchain/core": "0.3.72",
     "langchain": "0.3.31",
-    "zod": "3.25.67"
+    "zod": "3.25.67",
+    "web-streams-polyfill": "^4.2.0"
   },
   "nx": {
     "includedScripts": []
