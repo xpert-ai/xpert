@@ -104,6 +104,51 @@ export class XpertWorkspaceDatabaseComponent {
     }))
   })
 
+  readonly statusOptions: TSelectOption[] = [
+    {
+      value: XpertTableStatus.ACTIVE,
+      label: {
+        en_US: 'Active',
+        zh_Hans: '已激活'
+      }
+    },
+    {
+      value: XpertTableStatus.DRAFT,
+      label: {
+        en_US: 'Draft',
+        zh_Hans: '草稿'
+      }
+    },
+    {
+      value: XpertTableStatus.PENDING_ACTIVATION,
+      label: {
+        en_US: 'Pending Activation',
+        zh_Hans: '激活中'
+      }
+    },
+    {
+      value: XpertTableStatus.ERROR,
+      label: {
+        en_US: 'Error',
+        zh_Hans: '错误'
+      }
+    },
+    {
+      value: XpertTableStatus.NEEDS_MIGRATION,
+      label: {
+        en_US: 'Needs Migration',
+        zh_Hans: '需要迁移'
+      }
+    },
+    {
+      value: XpertTableStatus.DEPRECATED,
+      label: {
+        en_US: 'Deprecated',
+        zh_Hans: '已弃用'
+      }
+    }
+  ]
+
   readonly types: TSelectOption[] = [
     {
       value: 'string',

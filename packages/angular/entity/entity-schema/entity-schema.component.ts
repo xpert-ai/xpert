@@ -1,6 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { FlatTreeControl } from '@angular/cdk/tree'
+import { A11yModule } from '@angular/cdk/a11y'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -24,9 +25,8 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeModule } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { DataSettings, DIMENSION_MEMBER_FIELDS, DisplayBehaviour, IDimensionMember, TreeNodeInterface } from '@metad/ocap-core'
+import { DataSettings, DIMENSION_MEMBER_FIELDS, DisplayBehaviour, IDimensionMember } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { A11yModule } from '@angular/cdk/a11y'
 import { EntitySchemaDataSource, EntitySchemaFlatNode, EntitySchemaNode } from './data-source'
 import { EntityCapacity, EntitySchemaType } from './types'
 
@@ -124,7 +124,7 @@ export class NgmEntitySchemaComponent implements OnInit {
 
   memberTooltip(node: EntitySchemaNode) {
     if (node?.type !== EntitySchemaType.Member) return null
-    const member = node.raw as IDimensionMember
+    const member = (node.raw || node) as IDimensionMember
     return DIMENSION_MEMBER_FIELDS.map(field => {
       const value = member[field.key]
       if (value !== undefined && value !== null) {
