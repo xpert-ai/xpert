@@ -469,7 +469,7 @@ export class XpertStudioContextMenuComponent {
         break
       case WorkflowNodeTypeEnum.DB_SQL:
         key = genXpertDBSqlKey()
-        title = this.#translate.instant('PAC.Workflow.CustomSQL', { Default: 'Custom SQL' })
+        title = this.#translate.instant('PAC.Workflow.SQLCustom', { Default: 'SQL Custom' })
         break
     }
     this.apiService.addBlock(this.root.contextMenuPosition, {

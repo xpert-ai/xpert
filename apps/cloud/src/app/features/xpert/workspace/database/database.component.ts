@@ -72,7 +72,22 @@ export class XpertWorkspaceDatabaseComponent {
     }
   })
 
-  readonly tables = computed(() => this.#tablesResource.value()?.items || [])
+  readonly status = model<XpertTableStatus>(null)
+  readonly dataSourceId = model<string>(null)
+  readonly tables = computed(() => {
+    const status = this.status()
+    const dataSourceId = this.dataSourceId()
+    const databases = this.#tablesResource.value()?.items || []
+    if (status || dataSourceId) {
+      return databases.filter((table) => {
+        return (
+          (status ? table.status === status : true) &&
+          (dataSourceId ? table.database === dataSourceId : true)
+        )
+      })
+    }
+    return databases
+  })
   readonly #loading = signal(false)
   readonly loading = computed(() => this.#tablesResource.status() === 'loading' || this.#loading())
 
@@ -103,6 +118,51 @@ export class XpertWorkspaceDatabaseComponent {
       label: schema.name
     }))
   })
+
+  readonly statusOptions: TSelectOption[] = [
+    {
+      value: XpertTableStatus.ACTIVE,
+      label: {
+        en_US: 'Active',
+        zh_Hans: '已激活'
+      }
+    },
+    {
+      value: XpertTableStatus.DRAFT,
+      label: {
+        en_US: 'Draft',
+        zh_Hans: '草稿'
+      }
+    },
+    {
+      value: XpertTableStatus.PENDING_ACTIVATION,
+      label: {
+        en_US: 'Pending Activation',
+        zh_Hans: '激活中'
+      }
+    },
+    {
+      value: XpertTableStatus.ERROR,
+      label: {
+        en_US: 'Error',
+        zh_Hans: '错误'
+      }
+    },
+    {
+      value: XpertTableStatus.NEEDS_MIGRATION,
+      label: {
+        en_US: 'Needs Migration',
+        zh_Hans: '需要迁移'
+      }
+    },
+    {
+      value: XpertTableStatus.DEPRECATED,
+      label: {
+        en_US: 'Deprecated',
+        zh_Hans: '已弃用'
+      }
+    }
+  ]
 
   readonly types: TSelectOption[] = [
     {
@@ -138,6 +198,13 @@ export class XpertWorkspaceDatabaseComponent {
       label: {
         en_US: 'DateTime',
         zh_Hans: '日期时间'
+      }
+    },
+    {
+      value: 'object',
+      label: {
+        en_US: 'Object',
+        zh_Hans: '对象'
       }
     }
   ]

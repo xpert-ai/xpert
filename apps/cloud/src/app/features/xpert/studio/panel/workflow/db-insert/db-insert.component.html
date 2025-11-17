@@ -98,10 +98,10 @@
             </div>
 
             @for (entry of columnEntries(); track trackColumnEntries($index, entry);) {
-              <div class="grid grid-cols-[minmax(120px,0.45fr)_1fr_auto] gap-2 border-b border-divider-subtle px-4 py-3 last:border-b-0">
+              <div class="grid grid-cols-[minmax(120px,0.45fr)_1fr_auto] gap-2 border-b border-divider-subtle px-2 py-1 last:border-b-0">
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-2">
-                    <select class="w-full rounded-lg border border-divider-regular bg-white px-3 py-1.5 text-sm text-text-primary"
+                    <select class="w-full rounded-lg border border-divider-regular bg-white px-1 py-1.5 text-sm text-text-primary"
                       [ngModel]="entry[0]"
                       (ngModelChange)="changeColumnName(entry[0], $event)">
                       @for (option of tableColumns(); track option.name) {
@@ -116,9 +116,9 @@
                   </div>
                 </div>
 
-                <div class="flex items-center gap-1 relative w-full rounded-lg p-1 border border-divider-regular">
+                <div class="flex-1 flex items-center gap-1 relative rounded-lg p-1 border border-divider-regular overflow-hidden">
                   @if (entry[1].valueSelector) {
-                    <xpert-state-variable-select class="flex-1 text-sm"
+                    <xpert-state-variable-select class="flex-1 text-sm overflow-hidden"
                       [variables]="variables()"
                       [ngModel]="entry[1]?.valueSelector"
                       (ngModelChange)="updateColumnValue(entry[0], 'valueSelector', $event)"/>
@@ -137,7 +137,7 @@
                 </div>
 
                 <div class="flex items-center justify-center gap-1">
-                  <button class="btn btn-small btn-ghost h-7 w-7 flex items-center justify-center"
+                  <button class="btn btn-small btn-ghost h-7 w-7 flex items-center justify-center text-text-secondary hover:text-text-destructive"
                     type="button"
                     (click)="removeDBColumn(entry[0])">
                     <i class="ri-delete-bin-line"></i>

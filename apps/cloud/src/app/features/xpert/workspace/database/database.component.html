@@ -1,13 +1,14 @@
-<p class="p-2 system-sm-regular text-text-tertiary">日志记录了应用的运行情况，包括用户的输入和 AI 的回复。</p>
-
 <div class="flex justify-between items-center gap-2 px-4">
-  <div class="grow"></div>
+  <div class="grow flex justify-start items-center gap-2">
+    <ngm-select class="w-40" placeholder="全部状态" [selectOptions]="statusOptions" [(ngModel)]="status" />
+    <ngm-select class="w-40" placeholder="全部数据库" [selectOptions]="databases$ | async" [(ngModel)]="dataSourceId" />
+  </div>
   
   <div class="flex space-x-2">
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
       (click)="addTable()">
       <i class="ri-add-line mr-1"></i>
-      <div>{{ 'PAC.Xpert.NewTable' | translate: {Default: 'New Table'} }}</div>
+      <div>{{ 'PAC.Workspace.NewTable' | translate: {Default: 'New Table'} }}</div>
     </button>
     <div class="relative">
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-8 p-0"
@@ -19,7 +20,7 @@
   </div>
 </div>
 
-<div class="flex-1 overflow-x-auto mt-4">
+<div class="flex-1 overflow-x-auto px-4 mt-4">
   <table class="min-w-full divide-y divide-gray-200">
     <thead class="bg-gray-50">
       <tr>
@@ -76,7 +77,7 @@
 }
 
 @if (table()) {
-  <div class="absolute right-1 top-1 bottom-1 w-96 lg:w-[500px] px-6 py-4 bg-neutral-50 rounded-2xl border border-solid border-gray-200 shadow-lg max-w-4xl mx-auto z-10">
+  <div class="absolute right-1 top-1 bottom-1 w-96 lg:w-[500px] px-6 py-4 bg-neutral-50 rounded-2xl border border-solid border-gray-200 shadow-lg max-w-4xl mx-auto overflow-auto z-10">
     <div class="flex justify-between items-center">
       <h2 class="text-xl font-semibold mb-4">编辑表格</h2>
       <button type="button" class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-gray-200 hover:text-text-destructive"
@@ -90,14 +91,14 @@
       <div>
         <label class="block text-sm font-medium mb-1">数据库 *</label>
         <div>
-          <ngm-select [selectOptions]="databases$ | async" [(ngModel)]="database" [nullable]="false" />
+          <ngm-select placeholder="选择数据库" [selectOptions]="databases$ | async" [(ngModel)]="database" [nullable]="false" />
         </div>
       </div>
 
       <div>
         <label class="block text-sm font-medium mb-1">模式 *</label>
         <div>
-          <ngm-select [selectOptions]="schemasOptions()" [(ngModel)]="schema" [nullable]="false" />
+          <ngm-select placeholder="选择模式" [selectOptions]="schemasOptions()" [(ngModel)]="schema" [nullable]="false" />
         </div>
       </div>
       

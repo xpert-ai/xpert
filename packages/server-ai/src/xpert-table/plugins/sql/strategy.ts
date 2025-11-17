@@ -97,14 +97,6 @@ export class WorkflowDBSQLNodeStrategy implements IWorkflowNodeStrategy {
 						queryBus: this.queryBus,
 						subscriber: subscriber,
 						execution
-						// catchError: async (error) => {
-						// 	if (!isTest) {
-						// 		for await (const {id} of value) {
-						// 			await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
-						// 		}
-						// 		await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
-						// 	}
-						// }
 					}
 				)()
 			}),

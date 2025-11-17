@@ -91,11 +91,7 @@ export class WorkflowDBInsertNodeStrategy implements IWorkflowNodeStrategy {
 				}
 				return await wrapAgentExecution(
 					async () => {
-
-						console.log('Database insert executed:', stateEnv)
-						console.log(JSON.stringify(entity, null, 2))
-
-						await this.tableService.insertRow(entity.tableId, columns)
+						const output = await this.tableService.insertRow(entity.tableId, columns)
 
 						return {
 							state: {
@@ -103,7 +99,7 @@ export class WorkflowDBInsertNodeStrategy implements IWorkflowNodeStrategy {
 									message: 'Database insert executed successfully.'
 								}
 							},
-							output: []
+							output
 						}
 					},
 					{
@@ -111,14 +107,6 @@ export class WorkflowDBInsertNodeStrategy implements IWorkflowNodeStrategy {
 						queryBus: this.queryBus,
 						subscriber: subscriber,
 						execution
-						// catchError: async (error) => {
-						// 	if (!isTest) {
-						// 		for await (const {id} of value) {
-						// 			await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
-						// 		}
-						// 		await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
-						// 	}
-						// }
 					}
 				)()
 			}),

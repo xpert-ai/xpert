@@ -157,12 +157,22 @@ export interface ColumnDef {
   fieldName: string
   /**
    * Object value type, convert to db type
+   * - string
+   * - number
+   * - boolean
+   * - date
+   * - datetime
+   * - object
    */
   type: string
   /**
    * Is primary key column
    */
   isKey: boolean
+  /**
+   * Is required column
+   */
+  required?: boolean
   /**
    * length of type for column: varchar, decimal ...
    */
