@@ -54,7 +54,7 @@ export class VolumeClient {
 	}
 
 	static getWorkspaceUrl(projectId: string, userId: string, conversationId?: string) {
-		return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId))
+		return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId) + '/')
 	}
 
 	constructor(params: { tenantId: string; catalog: 'projects' | 'users' | 'knowledges'; userId: string; knowledgeId?: string; projectId?: string }) {
@@ -71,8 +71,9 @@ export class VolumeClient {
 		const root = VolumeClient.getSandboxVolumeRoot(params.tenantId)
 		if (environment.envName === 'dev') {
 			this.volumePath = root
+		} else {
+			this.volumePath = path.join(root, subpath)
 		}
-		this.volumePath = path.join(root, subpath)
 	}
 
 	async putFile(folder = '', file: {originalname: string; buffer: Buffer;} /*Express.Multer.File*/): Promise<string> {
@@ -110,9 +111,10 @@ export class VolumeClient {
 	}
 
 	getVolumePath(path: string) {
-		return join(this.volumePath, path)
+		return path ? join(this.volumePath, path) : this.volumePath
 	}
+
 	getPublicUrl(filePath: string) {
-		return urlJoin(this.baseUrl, filePath)
+		return filePath ? urlJoin(this.baseUrl, filePath) : this.baseUrl
 	}
 }
