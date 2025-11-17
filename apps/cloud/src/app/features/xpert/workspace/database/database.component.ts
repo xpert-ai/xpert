@@ -72,7 +72,22 @@ export class XpertWorkspaceDatabaseComponent {
     }
   })
 
-  readonly tables = computed(() => this.#tablesResource.value()?.items || [])
+  readonly status = model<XpertTableStatus>(null)
+  readonly dataSourceId = model<string>(null)
+  readonly tables = computed(() => {
+    const status = this.status()
+    const dataSourceId = this.dataSourceId()
+    const databases = this.#tablesResource.value()?.items || []
+    if (status || dataSourceId) {
+      return databases.filter((table) => {
+        return (
+          (status ? table.status === status : true) &&
+          (dataSourceId ? table.database === dataSourceId : true)
+        )
+      })
+    }
+    return databases
+  })
   readonly #loading = signal(false)
   readonly loading = computed(() => this.#tablesResource.status() === 'loading' || this.#loading())
 
@@ -183,6 +198,13 @@ export class XpertWorkspaceDatabaseComponent {
       label: {
         en_US: 'DateTime',
         zh_Hans: '日期时间'
+      }
+    },
+    {
+      value: 'object',
+      label: {
+        en_US: 'Object',
+        zh_Hans: '对象'
       }
     }
   ]

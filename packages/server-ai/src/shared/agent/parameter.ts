@@ -34,14 +34,20 @@ export function createParameters(parameters: TXpertParameter[]): Record<string, 
 				break
 			}
 			case XpertParameterTypeEnum.ARRAY: {
-				value = z.array(z.object(createParameters(parameter.item)))
+				value = z.array(
+					parameter.item?.length ? z.object(createParameters(parameter.item)) : z.record(z.any())
+				)
+				break
+			}
+			case XpertParameterTypeEnum.OBJECT: {
+				value = parameter.item?.length ? z.object(createParameters(parameter.item)) : z.record(z.any())
 				break
 			}
 		}
 
 		if (value) {
 			if (parameter.optional) {
-				schema[parameter.name] = value.optional().describe(parameter.description)
+				schema[parameter.name] = value.optional().nullable().describe(parameter.description)
 			} else {
 				schema[parameter.name] = value.describe(parameter.description)
 			}

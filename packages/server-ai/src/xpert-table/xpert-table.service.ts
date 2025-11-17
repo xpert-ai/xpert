@@ -139,7 +139,7 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		}
 	}
 
-	async insertRow(tableId: string, row: { name: string; value: any; type: string }[]): Promise<void> {
+	async insertRow(tableId: string, row: { name: string; value: any; type: string }[]) {
 		const table = await this.findOneByIdString(tableId)
 		if (table.status !== XpertTableStatus.ACTIVE) {
 			throw new BadRequestException(`Table ${table.name} is not active.`)
@@ -153,7 +153,7 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 				})
 			)
 			// Create or update physical table in the database
-			await adapter.tableDataOp(DBTableDataAction.INSERT, {
+			return await adapter.tableDataOp(DBTableDataAction.INSERT, {
 				schema: table.schema || undefined,
 				table: table.name,
 				columns: row.map((column) => ({

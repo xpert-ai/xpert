@@ -562,6 +562,9 @@
       "Category_model": "语言模型",
       "Category_vector-store": "向量数据库"
     },
+    "Workspace": {
+      "NewTable": "新建表"
+    },
     "MENU": {
       "Plugins": "插件",
       "IsLatest": "已是最新版本。",

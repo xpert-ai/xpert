@@ -124,7 +124,14 @@ export function pgTypeMap(type: string): string {
   }
 }
 
-
+/**
+ * Convert frontend type to Postgres column type
+ * 
+ * @param type string number boolean date datetime object
+ * @param isKey 
+ * @param length 
+ * @returns 
+ */
 export function typeToPGDB(type: string, isKey: boolean, length: number) {
   switch(type) {
     case 'number':
@@ -150,6 +157,8 @@ export function typeToPGDB(type: string, isKey: boolean, length: number) {
     case 'boolean':
     case 'Boolean':
       return 'BOOLEAN'
+    case 'object':
+      return 'JSONB'
     default:
       return 'VARCHAR(1000)'
   }

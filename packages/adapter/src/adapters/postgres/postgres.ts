@@ -1,9 +1,9 @@
+import { BaseSQLQueryRunner, DBCreateTableMode, DBTableAction, DBTableDataAction, DBTableDataParams, DBTableOperationParams, QueryOptions } from '@xpert-ai/plugin-sdk'
 import { Client, ClientConfig, types } from 'pg'
 import { SQLAdapterOptions, register } from '../../base'
 import { convertPGSchema, getPGSchemaQuery, pgTypeMap, typeToPGDB } from '../../helpers'
 import { CreationTable, DBProtocolEnum, DBSyntaxEnum, QueryResult, IDSSchema } from '../../types'
 import { pgFormat } from './pg-format'
-import { BaseSQLQueryRunner, DBCreateTableMode, DBTableAction, DBTableDataAction, DBTableDataParams, DBTableOperationParams, QueryOptions } from '@xpert-ai/plugin-sdk'
 
 
 export const POSTGRES_TYPE = 'pg'
@@ -348,12 +348,12 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         const createTableStatement = `
           CREATE TABLE IF NOT EXISTS ${tableName} (
             ${columns
-              .map(
-                (col) =>
-                  `"${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length)}${
-                    col.isKey ? ' PRIMARY KEY' : ''
-                  }`
-              )
+              .map((col) => {
+                const typeDDL = typeToPGDB(col.type, col.isKey, col.length)
+                const pk = col.isKey ? ' PRIMARY KEY' : ''
+                const notNull = col.required ? ' NOT NULL' : ''
+                return `"${col.fieldName}" ${typeDDL}${pk}${notNull}`
+              })
               .join(', ')}
           )
         `
@@ -394,7 +394,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     const { schema, table, columns, values } = params
     const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
 
-    switch(action) {
+    switch (action) {
       case DBTableDataAction.INSERT: {
         if (!columns?.length) {
           throw new Error(`INSERT requires columns definition`)
@@ -403,13 +403,13 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
           throw new Error(`INSERT requires values`)
         }
 
-        // values 始终转成数组
+        // Ensure values is an array
         const rows = Array.isArray(values) ? values : [values]
 
-        // 1. 根据 columns 数组构造 database 字段名列表
+        // 1. DB columns list
         const dbColumns = columns.map(col => `"${col.fieldName}"`)
 
-        // 2. 生成 INSERT VALUES 占位符
+        // 2. Build placeholders
         let paramIndex = 1
         const placeholders = rows
           .map(row => {
@@ -418,15 +418,22 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
           })
           .join(', ')
 
-        // 3. 从 values 中取值（按 columns 顺序）
-        const paramsList = []
+        // 3. Build params list according to column order
+        const paramsList: any[] = []
         for (const row of rows) {
           for (const col of columns) {
-            paramsList.push(row[col.name] ?? null)
+            let value = row[col.name]
+
+            // Automatically recognize jsonb fields
+            if (col.type === 'object') {
+              value = value === undefined ? null : JSON.stringify(value)
+            }
+
+            paramsList.push(value ?? null)
           }
         }
 
-        // 4. 生成最终 SQL
+        // 4. Build final SQL
         const sql = `
           INSERT INTO ${tableName} (${dbColumns.join(', ')})
           VALUES ${placeholders}

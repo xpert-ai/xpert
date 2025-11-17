@@ -1,14 +1,14 @@
 <div class="flex justify-between items-center gap-2 px-4">
   <div class="grow flex justify-start items-center gap-2">
-    <ngm-select class="w-40" placeholder="全部状态" [selectOptions]="statusOptions" />
-    <ngm-select class="w-40" placeholder="全部数据库" [selectOptions]="databases$ | async" />
+    <ngm-select class="w-40" placeholder="全部状态" [selectOptions]="statusOptions" [(ngModel)]="status" />
+    <ngm-select class="w-40" placeholder="全部数据库" [selectOptions]="databases$ | async" [(ngModel)]="dataSourceId" />
   </div>
   
   <div class="flex space-x-2">
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
       (click)="addTable()">
       <i class="ri-add-line mr-1"></i>
-      <div>{{ 'PAC.Xpert.NewTable' | translate: {Default: 'New Table'} }}</div>
+      <div>{{ 'PAC.Workspace.NewTable' | translate: {Default: 'New Table'} }}</div>
     </button>
     <div class="relative">
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-8 p-0"
