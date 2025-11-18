@@ -17,11 +17,10 @@
         {{ 'IndicatorApp.TagEnum.' + tagType() | translate: {Default: IndicatorTagEnum[tagType()]} }}
       </div>
 
-      <button mat-icon-button
+      <button type="button" class="w-8 h-8 shrink-0 flex justify-center items-center rounded-full hover:bg-hover-bg"
         [cdkMenuTriggerFor]="options"
-        (click)="$event.stopPropagation();$event.preventDefault();"
-      >
-        <mat-icon>more_horiz</mat-icon>
+        (click)="$event.stopPropagation();$event.preventDefault();">
+        <i class="ri-more-fill"></i>
       </button>
     </div>
 
@@ -30,10 +29,8 @@
   <cdk-virtual-scroll-viewport itemSize="70" [minBufferPx]="10 * 70" [maxBufferPx]="20 * 70" class="pac-indicator-market__infinite-container flex-1">
 
     <div class="w-full flex mb-2">
-      <div class="pac-indicator-market__search-input flex items-center flex-1 p-1 space-x-4 rounded-lg bg-gray-300 bg-opacity-25 dark:bg-opacity-10">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
+      <div class="pac-indicator-market__search-input flex items-center flex-1 p-1 space-x-1 rounded-lg bg-gray-300 bg-opacity-25 dark:bg-opacity-10">
+        <i class="ri-search-2-line h-6 w-6 flex justify-center items-center opacity-30"></i>
         <input #searchInput class="outline-none bg-transparent flex-1" type="text" [placeholder]=" ('IndicatorApp.IndicatorNameOrCode' | translate: {Default: 'Indicator name or code'})+'...'"
           (keyup)="onSearch($event)"
           (focus)="onSearchFocus($event)"
