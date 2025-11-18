@@ -2,13 +2,24 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NgmIsNilPipe, NgmLanguageEnum } from '@metad/ocap-angular/core'
-import { DataSettings, IndicatorTagEnum, QueryReturn, TimeGranularity } from '@metad/ocap-core'
+import { DataSettings, Indicator, IndicatorTagEnum, QueryReturn, TimeGranularity } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, startWith } from 'rxjs'
 import { NgmIndicatorService } from '../indicator.service'
 import { NgmSparkLineDirective } from '../spark-line/spark-line.directive'
 import { StatisticalType, Trend } from '../types'
+
+export type TIndicatorItemData = QueryReturn<unknown> & {
+  indicator?: Indicator
+  trend?: Trend
+  trends?: Array<unknown>
+  data: {
+    CURRENT: number
+    MOM: number
+    YOY: number
+  }
+}
 
 @Component({
   standalone: true,
@@ -41,6 +52,7 @@ export class NgmIndicatorComponent {
 
   // Outputs
   readonly toggleTag = output<void>()
+  readonly dataChange = output<TIndicatorItemData>()
 
   // States
   readonly initied = toSignal(
@@ -62,17 +74,7 @@ export class NgmIndicatorComponent {
     return null
   })
 
-  readonly data = toSignal<
-    QueryReturn<unknown> & {
-      trend?: Trend
-      trends?: Array<unknown>
-      data: {
-        CURRENT: number
-        MOM: number
-        YOY: number
-      }
-    }
-  >(this.dataService.selectResult() as any)
+  readonly data = toSignal<TIndicatorItemData>(this.dataService.selectResult())
 
   readonly main = computed(() => this.data()?.data)
   readonly trend = computed(() => this.data()?.trend)
@@ -86,6 +88,11 @@ export class NgmIndicatorComponent {
     )
   )
   readonly reverseSemanticColor = computed(() => this.currentLang() === NgmLanguageEnum.SimplifiedChinese)
+
+  // Subscriptions
+  private dataSub = this.dataService.selectResult<TIndicatorItemData>().subscribe((result) => {
+    this.dataChange.emit(result)
+  })
 
   constructor() {
     effect(() => {

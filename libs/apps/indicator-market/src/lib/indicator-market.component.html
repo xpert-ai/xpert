@@ -57,7 +57,12 @@
             [tagType]="tagType()"
             [refresh]="refreshHandler()"
             (toggleTag)="toggleTag()"
-          />
+            (dataChange)="onIndicatorChange($event)"
+          > 
+            @if (item.favour) {
+              <mat-icon action class="shrink-0" color="accent" displayDensity="compact">star</mat-icon>
+            }
+          </ngm-indicator>
 
           <!-- <pac-indicator-item class="flex-1 overflow-hidden" [indicator]="item" [tag]="tagType()"/> -->
           <div class="pac-indicator__placeholder" *cdkDragPlaceholder></div>

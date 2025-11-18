@@ -43,16 +43,22 @@
           {{ 'IndicatorApp.YOY' | translate: {Default: 'YOY'} }}
         </div>
         <div [ngClass]="{'Trend-Up': yoy$() === TREND.Up, 'Trend-Down': yoy$() === TREND.Down}">
-          <mat-icon *ngIf="yoy$() === TREND.Up" displayDensity="compact">arrow_drop_up</mat-icon>
-          <mat-icon *ngIf="yoy$() === TREND.Down" displayDensity="compact">arrow_drop_down</mat-icon>
+          @if (yoy$() === TREND.Up) {
+            <mat-icon displayDensity="compact">arrow_drop_up</mat-icon>
+          }
+          @if (yoy$() === TREND.Down) {
+            <mat-icon displayDensity="compact">arrow_drop_down</mat-icon>
+          }
           {{(indicator.data?.YOY | percent:'0.2-2' | replaceNullWithText:'-' )!}}
         </div>
       </div>
     </ng-template>
-  
-    <div *ngIf="notMobile$ | async" class="flex justify-end items-center gap-4">
-      <ng-container *ngTemplateOutlet="indicators"></ng-container>
-    </div>
+    
+    @if (notMobile$ | async) {
+      <div class="flex justify-end items-center gap-4">
+        <ng-container *ngTemplateOutlet="indicators"></ng-container>
+      </div>
+    }
 
     <div class="flex justify-end items-start gap-2">
       <button mat-icon-button [color]="favour() ? 'accent' : ''"
@@ -60,20 +66,23 @@
         <mat-icon>star</mat-icon>
       </button>
 
-      <button *ngIf="isMobile$ | async" mat-icon-button class="pac-indicator-app__close bg-white/10"
-        (click)="onClose($event)">
-        <mat-icon>close</mat-icon>
-      </button>
+      @if (isMobile$ | async) {
+        <button mat-icon-button class="pac-indicator-app__close bg-white/10"
+          (click)="onClose($event)">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
     </div>
   </mat-card-header>
 
   <mat-divider></mat-divider>
 
   <mat-card-content class="flex-1 overflow-y-auto">
-
-    <div *ngIf="isMobile$ | async" class="flex justify-end items-center gap-4 py-2">
-      <ng-container *ngTemplateOutlet="indicators"></ng-container>
-    </div>
+    @if (isMobile$ | async) {
+      <div class="flex justify-end items-center gap-4 py-2">
+        <ng-container *ngTemplateOutlet="indicators"></ng-container>
+      </div>
+    }
 
     @for (dataSettings of dataSettings$ | async; track dataSettings.id) {
       <ngm-analytical-card class="h-[300px]"
@@ -97,15 +106,25 @@
             </span>
           }
         </div>
+
+        <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+          bg-transparent hover:bg-hover-bg"
+          [matTooltip]="'PAC.Chat.OpenExplain' | translate: {Default: 'Open Explain'}"
+          matTooltipPosition="above"
+          (click)="openExplain()">
+          <i class="ri-terminal-box-line"></i>
+        </button>
       </ngm-analytical-card>
     }
 
-    <div *ngIf="indicator.business" class="pac-indicator-app__business mt-2">
-      <div class="title text-lg">
-        {{ 'IndicatorApp.BusinessCaliber' | translate: {Default: 'Business Caliber'} }}
+    @if (indicator.business) {
+      <div class="pac-indicator-app__business mt-2">
+        <div class="title text-lg">
+          {{ 'IndicatorApp.BusinessCaliber' | translate: {Default: 'Business Caliber'} }}
+        </div>
+        <div class="content whitespace-pre-wrap opacity-50">{{ indicator.business }}</div>
       </div>
-      <div class="content whitespace-pre-wrap opacity-50">{{ indicator.business }}</div>
-    </div>
+    }
     
     @if (freeDimensions$ | async; as freeDimensions) {
       <div class="flex flex-col">

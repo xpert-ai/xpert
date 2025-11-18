@@ -32,6 +32,7 @@ import { distinctUntilChanged, map, shareReplay, switchMap, tap } from 'rxjs/ope
 import { IndicatorDetailComponent } from './indicator-detail/indicator-detail.component'
 import { IndicatorsStore } from './services/store'
 import { IndicatorState, IndicatorTagEnum, LookbackLimit } from './types'
+import { TIndicatorItemData } from '@metad/ocap-angular/indicator'
 
 
 @Component({
@@ -220,6 +221,31 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
     // Force refresh of indicator data
     this.indicatorsStore.refresh(true)
     this.refreshHandler.set({force: true})
+  }
+
+  onIndicatorChange(result: TIndicatorItemData) {
+    if (result?.error) {
+      this.indicatorsStore.updateIndicator({
+        id: result.indicator.id,
+        changes: {
+          initialized: true,
+          loaded: true,
+          error: result.error
+        }
+      })
+    } else {
+      this.indicatorsStore.updateIndicator({
+        id: result.indicator.id,
+        changes: {
+          initialized: true,
+          loaded: true,
+          trends: result.trends,
+          data: result.data,
+          trend: result.trend,
+          error: null
+        }
+      })
+    }
   }
 
   onSearchFocus(event) {
