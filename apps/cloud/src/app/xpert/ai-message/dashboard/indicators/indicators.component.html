@@ -11,10 +11,12 @@
     (click)="toggleIndicator(indicator.indicatorCode)"
     (toggleTag)="toggleIndicatorTagType()"
   >
-    <div action class="w-7 h-7 justify-center items-center mr-1 rounded-lg hover:bg-hover-bg hidden group-hover:flex"
-      (click)="editIndicator(indicator.id);$event.stopPropagation()">
-      <i class="ri-edit-line"></i>
-    </div>
+    @if (indicator.id) {
+      <div action class="w-7 h-7 justify-center items-center mr-1 rounded-lg hover:bg-hover-bg hidden group-hover:flex"
+        (click)="editIndicator(indicator.id);$event.stopPropagation()">
+        <i class="ri-edit-line"></i>
+      </div>
+    }
   </ngm-indicator>
   @if (indicatorExplorer() === indicator.indicatorCode) {
     <ngm-indicator-explorer class="ngm-indicator-explorer last:rounded-b-xl"

@@ -6,13 +6,14 @@ import { TranslateModule } from '@ngx-translate/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { ChatMessageStepIconComponent } from '../message-step-icon/icon.component'
+import { Copy2Component } from '../../common'
 
 @Component({
   standalone: true,
   selector: 'chat-tool-call-chunk',
   templateUrl: `tool-call-chunk.component.html`,
   styleUrl: `tool-call-chunk.component.scss`,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, NgxJsonViewerModule, RelativeTimesPipe, ChatMessageStepIconComponent]
+  imports: [CommonModule, TranslateModule, MatTooltipModule, NgxJsonViewerModule, RelativeTimesPipe, Copy2Component, ChatMessageStepIconComponent]
 })
 export class ChatToolCallChunkComponent {
   // Inputs
