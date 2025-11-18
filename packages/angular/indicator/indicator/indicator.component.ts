@@ -37,6 +37,7 @@ export class NgmIndicatorComponent {
   readonly primaryTheme = input<string>()
   readonly tagType = input<IndicatorTagEnum>(IndicatorTagEnum.MOM)
   readonly timeGranularity = input<TimeGranularity>(TimeGranularity.Day)
+  readonly refresh = input<{force: boolean}>({force: false})
 
   // Outputs
   readonly toggleTag = output<void>()
@@ -110,9 +111,9 @@ export class NgmIndicatorComponent {
     )
 
     effect(() => {
-      // Refresh data when indicator is changed
-      if (this.indicator()) {
-        this.dataService.refresh()
+      // Refresh data when indicator is changed or refresh input is triggered
+      if (this.indicator() && this.refresh()) {
+        this.dataService.refresh(this.refresh().force)
       }
     })
   }

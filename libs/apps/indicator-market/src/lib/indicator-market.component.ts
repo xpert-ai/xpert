@@ -10,6 +10,7 @@ import {
   inject,
   Inject,
   LOCALE_ID,
+  signal,
   viewChild,
   ViewChild,
   ViewContainerRef
@@ -31,7 +32,7 @@ import { distinctUntilChanged, map, shareReplay, switchMap, tap } from 'rxjs/ope
 import { IndicatorDetailComponent } from './indicator-detail/indicator-detail.component'
 import { IndicatorsStore } from './services/store'
 import { IndicatorState, IndicatorTagEnum, LookbackLimit } from './types'
-import { injectCopilotCommand } from '@metad/copilot-angular'
+
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -89,38 +90,7 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
   })
   readonly isEmpty = this.indicatorsStore.isEmpty
 
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot Commands
-  |--------------------------------------------------------------------------
-  */
-  #analysis = injectCopilotCommand({
-    name: 'analysis',
-    description: 'Analysis the indicator data',
-    systemPrompt: async () => {
-      return `你是一名 BI 指标数据分析专家，请根据给出的指标数据进行分析，得出结论。
-${this.indicatorDetailComponent()?.makeIndicatorDataPrompt()}
-`
-    },
-    actions: [
-    //   injectMakeCopilotActionable({
-    //     name: 'report',
-    //     description: 'Give user the analysis report',
-    //     argumentAnnotations: [
-    //       {
-    //         name: 'result',
-    //         type: 'string',
-    //         description: 'The analysis result',
-    //         required: true
-    //       }
-    //     ],
-    //     implementation: async (result: string) => {
-
-    //       return result
-    //     }
-    //   })
-    ]
-  })
+  readonly refreshHandler = signal({force: false})
 
   /**
   |--------------------------------------------------------------------------
@@ -154,6 +124,7 @@ ${this.indicatorDetailComponent()?.makeIndicatorDataPrompt()}
     this.dateControl.valueChanges.subscribe((value) => {
       this.dsCoreService.setToday(value)
       this.indicatorsStore.resetData()
+      this.refresh()
     })
 
     this.indicatorsStore.locale = this.locale
@@ -246,8 +217,9 @@ ${this.indicatorDetailComponent()?.makeIndicatorDataPrompt()}
   }
 
   refresh() {
-    // 强制刷新指标数据
+    // Force refresh of indicator data
     this.indicatorsStore.refresh(true)
+    this.refreshHandler.set({force: true})
   }
 
   onSearchFocus(event) {

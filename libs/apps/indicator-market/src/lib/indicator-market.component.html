@@ -55,6 +55,7 @@
 
           <ngm-indicator [dataSettings]="item.dataSettings" [indicatorCode]="item.code" [lookBack]="lookBack()" 
             [tagType]="tagType()"
+            [refresh]="refreshHandler()"
             (toggleTag)="toggleTag()"
           />
 
