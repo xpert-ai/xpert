@@ -319,7 +319,6 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
 
   writeValue(obj: any): void {
     if (obj) {
-      console.log('writeValue', obj)
       this.formGroup.patchValue(obj)
     }
   }

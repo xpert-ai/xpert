@@ -60,7 +60,34 @@ export function Crossjoin(...Set_Expression: string[]) {
 }
 
 /**
+ * Generate nested Crossjoin (for SAP BW compatibility)
+ * 
+ * Example:
+ *   CrossjoinNested([A], [B], [C])
+ * Produces:
+ *   Crossjoin([A], Crossjoin([B], [C]))
+ */
+export function CrossjoinNested(...sets: string[]): string {
+  if (sets.length === 0) {
+    throw new Error('Crossjoin requires at least one set.')
+  }
+
+  if (sets.length === 1) {
+    return sets[0]
+  }
+
+  let expr = `Crossjoin(${sets[sets.length - 2]}, ${sets[sets.length - 1]})`
+  for (let i = sets.length - 3; i >= 0; i--) {
+    expr = `Crossjoin(${sets[i]}, ${expr})`
+  }
+
+  return expr
+}
+
+/**
  * Alternative for `Crossjoin`
+ * 
+ * @deprecated use {@link CrossjoinNested}. In SAPBW, SET without parentheses will be recognized as a multiplication sign, such as `[/CPMB/KODXS1R].[100100100] * [/CPMB/KODM88Q].[DUMMY_OBJECT] * [/CPMB/KODY9RT].[BUD02]`
  * 
  * @param Set_Expression 
  * @returns `Set_Expression * Set_Expression`

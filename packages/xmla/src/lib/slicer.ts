@@ -5,7 +5,7 @@ import {
   convertSlicerToDimension,
   Cube,
   Dimension,
-  getMemberValue,
+  getMemberKey,
   getPropertyName,
   ISlicer,
   isNil,
@@ -259,8 +259,8 @@ export function serializeDimension({dimension, hierarchy, level, exclude, member
 
   const memberSet = MemberSet(
     ...members
-      .filter((member) => !isNil(getMemberValue(member)))
-      .map((member) => wrapHierarchyValue(hierarchy, getMemberValue(member)))
+      .filter((member) => !isNil(getMemberKey(member)))
+      .map((member) => wrapHierarchyValue(hierarchy, getMemberKey(member)))
   )
 
   let hierarchySet = Children(hierarchy)
