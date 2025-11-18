@@ -19,10 +19,9 @@
         [removable]="editable()"
         [matTooltip]="(member.key || member.value) + ':\n' + (member.caption || member.label || '')"
         (removed)="removeMember(i)">
-        <div class="flex justify-start items-center">
+        <div class="flex justify-start items-center" [class.line-through]="exclude()">
           @if (member.operator) {
-            <span class="inline-block border-[0.5px] border-solid border-divider-deep rounded-md mr-1 text-xs leading-3 px-1 py-0.5 font-mono bg-neutral-50"
-              [class.line-through]="exclude()">
+            <span class="inline-block border-[0.5px] border-solid border-divider-deep rounded-md mr-1 text-xs leading-3 px-1 py-0.5 font-mono bg-neutral-50">
               {{ 'Ngm.Controls.ValueHelp.' + member.operator | translate: {Default: member.operator} }}
             </span>
           }
