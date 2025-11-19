@@ -98,13 +98,31 @@ export class WorkspaceSelectDatabaseComponent {
   readonly tables = computed(() => this.#tableResource.value()?.items ?? [])
   readonly tablesLoading = computed(() => this.#tableResource.status() === 'loading')
 
+  readonly #databaseResource = myRxResource({
+    request: () => ({}),
+    loader: ({request}) => {
+      return this.xpertTableAPI.getDatabases()
+    }
+  })
+  readonly databases = computed(() => this.#databaseResource.value())
+  readonly navItems = computed(() => {
+    const items = [...DEFAULT_NAV_ITEMS]
+    this.databases()?.forEach((element) => {
+      items.push({
+        value: element.id,
+        label: element.name,
+        icon: 'ri-database-2-line',
+        description: element.name
+      })
+    })
+    return items
+  })
+
   readonly title = input('选择数据库')
   readonly description = input('选择需要连接的数据库资源')
-  // readonly databases = input<IXpertTable[]>([])
   readonly loading = computed(() => this.tablesLoading())
   readonly hasMore = input(false)
   readonly emptyHint = input('没有更多了')
-  readonly navItems = input<SelectDatabaseNavItem[]>(DEFAULT_NAV_ITEMS)
   readonly ownerOptions = input<SelectDatabaseFilterOption[]>(DEFAULT_OWNER_OPTIONS)
   readonly orderOptions = input<SelectDatabaseFilterOption<SelectDatabaseOrder>[]>(DEFAULT_ORDER_OPTIONS)
 
