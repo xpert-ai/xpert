@@ -18,6 +18,7 @@ import { Indicator } from './indicator.entity'
 import {
 	createIndicatorNamespace,
 	EMBEDDING_INDICATOR_FIELDS,
+	extractIndicatorDraft,
 	JOB_EMBEDDING_INDICATORS,
 	TJobEmbeddingIndicators
 } from './types'
@@ -68,10 +69,19 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 		}
 	}
 
+	/**
+	 * Batch creation of indicator drafts.
+	 * 
+	 * @param indicators 
+	 * @returns 
+	 */
 	async createBulk(indicators: Indicator[]) {
 		const results = []
 		for await (const indicator of indicators) {
-			results.push(await this.commandBus.execute(new IndicatorCreateCommand(indicator)))
+			const draft = extractIndicatorDraft(indicator)
+			draft.code = indicator.code
+			draft.name = indicator.name
+			results.push(await this.commandBus.execute(new IndicatorCreateCommand(draft)))
 		}
 		return results
 	}

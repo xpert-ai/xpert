@@ -58,6 +58,27 @@ export type TIndicator = {
   businessAreaId?: string
 }
 
+/**
+ * Fields included in the draft of Indicator, please keep it in sync with TIndicator type
+ */
+export const IndicatorDraftFields: Array<keyof IIndicator> = [
+  "code",
+  "name",
+  "type",
+  "visible",
+  "isApplication",
+  "modelId",
+  "entity",
+  "unit",
+  "principal",
+  "authentication",
+  "certificationId",
+  "validity",
+  "business",
+  "options",
+  "businessAreaId"
+]
+
 export type TIndicatorDraft = TIndicator & {
   checklist?: ChecklistItem[]
   version?: number

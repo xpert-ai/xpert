@@ -1,6 +1,7 @@
-import { IIndicator } from "@metad/contracts";
+import { IIndicator, IndicatorDraftFields, TIndicator } from "@metad/contracts";
 import { pick } from "@metad/server-common";
 import { RequestContext } from "@metad/server-core";
+import { Indicator } from "./indicator.entity";
 
 export const JOB_EMBEDDING_INDICATORS = 'embedding-indicators'
 export const EMBEDDING_INDICATOR_FIELDS = ['code', 'name', 'entity', 'business']
@@ -36,4 +37,22 @@ export function applyIndicatorDraft(indicator: IIndicator) {
         ...indicator,
         ...indicator.draft,
     } : indicator
+}
+
+export function extractIndicatorDraft(indicator: IIndicator): Partial<IIndicator> {
+    // If a draft already exists, no action is required.
+    if (indicator.draft) return indicator
+    
+    const draft: Partial<TIndicator> = {};
+    const rest: Partial<Indicator> = {};
+
+    for (const key of (Object.keys(indicator) as Array<keyof IIndicator>)) {
+        if (IndicatorDraftFields.includes(key)) {
+            draft[key] = indicator[key];
+        } else if (key !== 'draft') {
+            rest[key] = indicator[key];
+        }
+    }
+
+    return { ...rest, draft };
 }

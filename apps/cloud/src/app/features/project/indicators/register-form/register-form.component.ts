@@ -61,6 +61,9 @@ import { MatSelectModule } from '@angular/material/select'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shared/indicator/'
 
+/**
+ * @deprecated use {@link XpIndicatorRegisterFormComponent} instead
+ */
 @Component({
   standalone: true,
   selector: 'pac-indicator-register-form',
