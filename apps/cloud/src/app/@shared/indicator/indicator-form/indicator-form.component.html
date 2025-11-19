@@ -134,11 +134,15 @@
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem class="disabled:text-text-tertiary" (click)="duplicate()">
+      <i class="ri-file-copy-line mr-1"></i>
+      {{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}
+    </button>
     <button cdkMenuItem class="disabled:text-text-tertiary" (click)="openProject()">
       <i class="ri-external-link-line mr-1"></i>
       {{ 'PAC.INDICATOR.OpenProject' | translate: {Default: "Open Project"} }}
     </button>
-    <button cdkMenuItem class="disabled:text-text-tertiary" [disabled]="!indicator()?.draft" (click)="publish()">
+    <button cdkMenuItem class="disabled:text-text-tertiary" [disabled]="!indicator()?.id || !indicator()?.draft" (click)="publish()">
       <i class="ri-send-plane-line mr-1"></i>
       {{ 'PAC.INDICATOR.Publish' | translate: {Default: "Publish"} }}
     </button>
@@ -147,7 +151,7 @@
       {{ 'PAC.INDICATOR.MY_INDICATORS.EXPORT' | translate: {Default: "Export"} }}
     </button>
 
-    <button cdkMenuItem class="disabled:text-text-tertiary danger" (click)="delete()">
+    <button cdkMenuItem class="disabled:text-text-tertiary danger" [disabled]="!indicator()?.id" (click)="delete()">
       <i class="ri-delete-bin-line mr-1"></i>
       {{ 'PAC.INDICATOR.Delete' | translate: {Default: "Delete"} }}
     </button>

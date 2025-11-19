@@ -87,12 +87,6 @@ export type TIndicatorDraft = TIndicator & {
 
 export interface IIndicator extends IBasePerProjectEntityModel, TIndicator {
   draft?: TIndicatorDraft
-  // /**
-  //  * Is active: Activate / Deactivate
-  //  * 
-  //  * @deprecated use status instead
-  //  */
-  // isActive?: boolean
   
   /**
    * Visibilty in public or secret or private
@@ -108,6 +102,7 @@ export interface IIndicator extends IBasePerProjectEntityModel, TIndicator {
   status?: IndicatorStatusEnum
   embeddingStatus?: EmbeddingStatusEnum
   error?: string
+  publishedAt?: Date
   
   businessArea?: IBusinessArea
 

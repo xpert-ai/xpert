@@ -70,6 +70,7 @@
       "CREATED_AT": "创建时间",
       "CreatedAt": "创建时间",
       "CREATED_BY": "创建人",
+      "PublishedAt": "发布时间",
       "Cancel": "取消",
       "CLOSE_ALL": "关闭所有",
       "Cube": "多维数据集",

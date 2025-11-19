@@ -188,6 +188,7 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 				) : {}),
 				draft: null,
 				status: IndicatorStatusEnum.RELEASED,
+				publishedAt: new Date(),
 				embeddingStatus: EmbeddingStatusEnum.REQUIRED,
 			}
 		)

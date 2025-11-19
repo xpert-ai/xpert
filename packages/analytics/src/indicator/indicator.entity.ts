@@ -49,11 +49,6 @@ export class Indicator extends ProjectBaseEntity implements IIndicator {
   @IsOptional()
   @Column({ nullable: true })
   name?: string
-  
-  // @ApiPropertyOptional({ type: () => Boolean })
-  // @IsOptional()
-  // @Column({ nullable: true })
-  // isActive?: boolean
 
   @ApiPropertyOptional({ type: () => Boolean })
   @IsOptional()
@@ -175,6 +170,15 @@ export class Indicator extends ProjectBaseEntity implements IIndicator {
   @IsOptional()
   @Column({ type: 'json', nullable: true })
   options?: IIndicator['options']
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    example: '2023-11-21T06:20:32.232Z'
+  })
+  @IsOptional()
+  @Column({ nullable: true, type: 'timestamptz' })
+  publishedAt?: Date
 
   /**
    * Many to One relations
