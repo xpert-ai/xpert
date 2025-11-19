@@ -18,7 +18,7 @@ export class XpertDatabaseAdapterQueryHandler implements IQueryHandler<XpertData
 			relations: ['type']
 		})
 		const runner = await this.queryBus.execute(
-			new DataSourceStrategyQuery(dataSource.type.type, dataSource.options)
+			new DataSourceStrategyQuery(dataSource.type.type, dataSource.options, dataSource.id)
 		)
 		return runner
 	}

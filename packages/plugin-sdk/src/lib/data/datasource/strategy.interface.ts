@@ -8,7 +8,7 @@ export interface IDataSourceStrategy<TOptions extends AdapterBaseOptions = Adapt
   /**
    * Create a query runner for the given data source options.
    */
-  create(options: TOptions): Promise<DBQueryRunner> | DBQueryRunner
+  create(options: TOptions, id?: string): Promise<DBQueryRunner> | DBQueryRunner
 
   /**
    * Optional configuration schema description for UI generation.

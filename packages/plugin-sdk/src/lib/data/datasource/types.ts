@@ -65,6 +65,7 @@ export interface DBQueryRunner {
   configurationSchema: Record<string, unknown>
 
   jdbcUrl(schema?: string): string
+  initPool?(options: AdapterBaseOptions): Promise<void>;
   /**
    * Execute a sql query
    *

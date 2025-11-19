@@ -13,11 +13,11 @@ export class DataSourceStrategyHandler implements IQueryHandler<DataSourceStrate
 
 
 	async execute(query: DataSourceStrategyQuery) {
-		const { name, options } = query
+		const { dataSourceId, name, options } = query
 		let runner: DBQueryRunner = null
 		try {
 			const strategy = this.dataSourceStrategyRegistry.get(name)
-			runner = await strategy.create(options)
+			runner = await strategy.create(options, dataSourceId)
 		} catch (error) {
 			runner = createQueryRunnerByType1(name, options as unknown as AdapterBaseOptions)
 		}
