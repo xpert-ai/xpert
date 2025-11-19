@@ -1071,6 +1071,8 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "MoveToBusinessArea": "移动到业务域",
+      "ModelUpdateBusinessArea": "语义模型业务域更新成功",
       "DimensionAttributes": "维度属性",
       "CreateVirtualCube": "创建虚拟数据集",
       "CreateCube": "创建数据集",

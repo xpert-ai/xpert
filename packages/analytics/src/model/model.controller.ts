@@ -112,12 +112,17 @@ export class ModelController extends CrudController<SemanticModel> {
 			where.businessAreaId = businessAreaId
 		}
 
-		return await this.modelService.findMy({
+		const { items, total } = await this.modelService.findMy({
 			select,
 			where,
 			relations,
 			order
 		})
+
+		return {
+			items: items.map((model) => new SemanticModelPublicDTO(model)),
+			total
+		}
 	}
 
 	@Get('count')

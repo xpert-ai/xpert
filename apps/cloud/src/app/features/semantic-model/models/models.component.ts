@@ -11,7 +11,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { ModelCreationComponent } from '@cloud/app/@shared/model'
-import { DataSourceService, SemanticModelServerService } from '@metad/cloud/state'
+import { DataSourceService, IBusinessArea, SemanticModelServerService } from '@metad/cloud/state'
 import { uploadYamlFile } from '@metad/core'
 import {
   NgmConfirmUniqueComponent,
@@ -41,6 +41,7 @@ import {
 import { CreatedByPipe } from '../../../@shared/pipes'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
+import { BusinessAreaSelectComponent } from '@cloud/app/@shared/business-area'
 
 @Component({
   standalone: true,
@@ -101,16 +102,16 @@ export class ModelsComponent implements AfterViewInit {
   })
 
   // Loading data
-  loading = false
+  readonly loading = signal(false)
   private readonly refresh$ = new BehaviorSubject<void>(null)
 
   readonly models$ = this.refresh$.pipe(
     combineLatestWith(this.type$.pipe(distinctUntilChanged())),
     switchMap(([, component]) => {
-      this.loading = true
+      this.loading.set(true)
       return component === 'my' ? this.modelsAPI.getMyModelsByAreaTree() : this.modelsAPI.getModelsByAreaTree()
     }),
-    tap(() => (this.loading = false)),
+    tap(() => (this.loading.set(false))),
     takeUntilDestroyed(),
     shareReplay(1)
   )
@@ -125,7 +126,6 @@ export class ModelsComponent implements AfterViewInit {
     @Inject(NX_STORY_STORE) private storyStore: NxStoryStore,
     private router: Router,
     private _dialog: MatDialog
-    // private toastrService: ToastrService
   ) {}
 
   ngOnInit() {
@@ -162,6 +162,11 @@ export class ModelsComponent implements AfterViewInit {
         pipe: this.getUpdatedAtPipe()
       },
       {
+        name: 'publishAt',
+        caption: this.getTranslation('PAC.KEY_WORDS.PublishedAt', { Default: 'Published At' }),
+        pipe: this.getUpdatedAtPipe()
+      },
+      {
         name: 'actions',
         caption: this.getTranslation('PAC.MODEL.Actions', { Default: 'Actions' }),
         cellTemplate: this.actions,
@@ -173,7 +178,7 @@ export class ModelsComponent implements AfterViewInit {
   getUpdatedAtPipe() {
     const currentLang = this.translateService.currentLang
     return (value: Date) => {
-      return formatRelative(new Date(value), new Date(), { locale: getDateLocale(currentLang) })
+      return value && formatRelative(new Date(value), new Date(), { locale: getDateLocale(currentLang) })
     }
   }
 
@@ -337,5 +342,31 @@ export class ModelsComponent implements AfterViewInit {
       this.modelUploading.set(false)
       this.#toastr.error((<HttpErrorResponse>err).statusText)
     }
+  }
+
+  moveToBusinessArea(model: ISemanticModel) {
+    this.#dialog.open<IBusinessArea>(BusinessAreaSelectComponent, {
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet',
+      data: {
+      }
+    }).closed.subscribe((area) => {
+      if (area) {
+        this.loading.set(true)
+        this.modelsAPI.updateModel(model.id, {
+          businessAreaId: area.id
+        }).subscribe({
+          next: () => {
+            this.loading.set(false)
+            this.#toastr.success('PAC.MODEL.ModelUpdateBusinessArea', { Default: 'Model business area updated' })
+            this.refresh$.next()
+          },
+          error: (err) => {
+            this.loading.set(false)
+            this.#toastr.error(getErrorMessage(err))
+          }
+        })
+      }
+    })
   }
 }
