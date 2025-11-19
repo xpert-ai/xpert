@@ -145,13 +145,13 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 			throw new BadRequestException(`Table ${table.name} is not active.`)
 		}
 
+		// Get the database adapter
+		const adapter = await this.queryBus.execute(
+			new XpertDatabaseAdapterQuery({
+				id: table.database
+			})
+		)
 		try {
-			// Get the database adapter
-			const adapter = await this.queryBus.execute(
-				new XpertDatabaseAdapterQuery({
-					id: table.database
-				})
-			)
 			// Create or update physical table in the database
 			return await adapter.tableDataOp(DBTableDataAction.INSERT, {
 				schema: table.schema || undefined,
@@ -178,6 +178,8 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		} catch (error) {
 			console.error(error)
 			throw error
+		} finally {
+			adapter.teardown()
 		}
 	}
 
@@ -187,18 +189,21 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 			throw new BadRequestException(`Table ${table.name} is not active.`)
 		}
 
+		// Get the database adapter
+		const adapter = await this.queryBus.execute(
+			new XpertDatabaseAdapterQuery({
+				id: table.database
+			})
+		)
+
 		try {
-			// Get the database adapter
-			const adapter = await this.queryBus.execute(
-				new XpertDatabaseAdapterQuery({
-					id: table.database
-				})
-			)
 			// Create or update physical table in the database
 			return await adapter.runQuery(statement, { catalog: table.schema || undefined })
 		} catch (error) {
 			console.error(error)
 			throw error
+		} finally {
+			adapter.teardown()
 		}
 	}
 }
