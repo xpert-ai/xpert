@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatInputModule } from '@angular/material/input'
+import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -21,8 +22,10 @@ import { NgmSearchComponent } from '../common/search/search.component'
 import { NgmHighlightDirective } from '../core/directives'
 import { getCtrlCharacter, getOperatingSystem } from '../core/index'
 import { NgmCopilotEngineService, NgmCopilotService } from '../services'
-import { MatIconModule } from '@angular/material/icon'
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Component({
   standalone: true,
   selector: 'copilot-command-dialog',

@@ -11,6 +11,9 @@ import { NgmCopilotEngineService, NgmCopilotService } from '../../services'
 import { CopilotChatTokenComponent } from '../token/token.component'
 import { NgmCopilotChatMessage } from '../../types'
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

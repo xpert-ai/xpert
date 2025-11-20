@@ -112,12 +112,12 @@
 
           <span class="flex-1"></span>
           
-          <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+          <!-- <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
             [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
             (click)="aiCreateEntity()"
           >
             <i class="ri-magic-line"></i>
-          </div>
+          </div> -->
           
           <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
             [matTooltip]=" 'PAC.MODEL.MODEL.New' | translate: {Default: 'New'} "
@@ -418,6 +418,11 @@
       <span class="ml-2">{{ 'PAC.ACTIONS.REFRESH_DATA_SOURCE_SCHEMA' | translate: {Default: "Refresh Data Source Schema"} }}</span>
     </button>
 
+    <button cdkMenuItem [routerLink]="['./cache']" routerLinkActive="active" class="px-2 py-1 rounded-lg">
+      <i class="ri-router-line text-xl mr-1 text-text-secondary"></i>
+      <span class="ml-2">{{ 'PAC.MODEL.Cache' | translate: {Default: "Cache"} }}</span>
+    </button>
+
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="clearingServerCache" (click)="clearServerCache()">
       <mat-icon fontSet="material-icons-outlined">clear_all</mat-icon>
       <span class="ml-2">{{ 'PAC.MODEL.ClearServerCache' | translate: {Default: "Clear Server Cache"} }}</span>
@@ -449,12 +454,12 @@
 <ng-template #manageMenu>
   <div cdkMenu class="cdk-menu__large">
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['.']" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active" >
-      <mat-icon fontSet="material-icons-outlined">hub</mat-icon>
+      <i class="ri-home-2-line text-xl mr-1 text-text-secondary"></i>
       <span class="ml-2">{{ 'PAC.MODEL.ModelOverview' | translate: {Default: "Model Overview"} }}</span>
     </button>
     
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['./admin']" routerLinkActive="active" >
-      <mat-icon fontSet="material-icons-outlined">admin_panel_settings</mat-icon>
+      <i class="ri-user-settings-line text-xl mr-1 text-text-secondary"></i>
       <span class="ml-2">{{ 'PAC.KEY_WORDS.Admin' | translate: {Default: "Admin"} }}</span>
     </button>
 

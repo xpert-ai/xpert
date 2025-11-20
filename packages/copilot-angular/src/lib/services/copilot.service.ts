@@ -13,6 +13,9 @@ import { ClientOptions } from '@langchain/openai'
 import { combineLatest, map, shareReplay, startWith } from 'rxjs'
 import { createLLM } from '../core'
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Injectable()
 export abstract class NgmCopilotService extends CopilotService {
   readonly translate = inject(TranslateService)

@@ -5,6 +5,9 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmCopilotService } from '../services'
 import { map } from 'rxjs'
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

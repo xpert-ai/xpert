@@ -75,8 +75,6 @@ import { ModelPreferencesComponent } from './preferences/preferences.component'
 import {
   CdkDragDropContainers,
   MODEL_TYPE,
-  ModelCubeState,
-  ModelDimensionState,
   SemanticModelEntity,
   SemanticModelEntityType,
   TOOLBAR_ACTION_CATEGORY
