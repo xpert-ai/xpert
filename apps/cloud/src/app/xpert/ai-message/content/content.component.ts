@@ -52,7 +52,9 @@ export class ChatMessageContentComponent {
   private textSubscription = toObservable(this.text).subscribe({
     next: (text) => {
       if (this.answering()) {
-        const restText = text.replace(this.frozenText, '')
+        const restText = text.startsWith(this.frozenText)
+                          ? text.slice(this.frozenText.length)
+                          : text
         const blocks = restText.split('\n\n')
         if (blocks.length > 1) {
           this.frozenBlocks.update((state) => [
