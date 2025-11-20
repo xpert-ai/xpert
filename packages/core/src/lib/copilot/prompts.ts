@@ -29,7 +29,7 @@ ${getEntityDimensions(entityType).filter((_) => !_.semantics?.hidden)
     `    semantic: ${dimension.semantics.semantic}` : null,
     `    hierarchies:`
   ].filter(nonBlank).join('\n') + '\n' +
-  getDimensionHierarchies(dimension).filter((_) => !_.semantics?.hidden).map((item) =>[
+  getDimensionHierarchies(dimension).filter((_) => !_.semantics?.hidden).map((item) => [
   `      - name: "${item.name}"`,
   `        caption: "${item.caption || ''}"`,
   item.description && item.description !== item.caption ?
@@ -47,12 +47,13 @@ ${getHierarchyLevels(item).filter((level) => level.levelType !== RuntimeLevelTyp
   `            semantic: ${item.semantics.semantic}` : null,
   item.semantics?.formatter ? 
   `            time_formatter: "${item.semantics.formatter}"` : null,
-    item.properties.length ? 
+  item.properties?.length && !item.semantics?.hiddenProperties ? 
   `            properties:` : null,
-    item.properties?.map((_) => 
+  item.properties?.length && !item.semantics?.hiddenProperties && item.properties.map((_) => 
   `              - name: ${_.name}\n                caption: ${_.caption}`
     ).join('\n')
-  ].filter(nonBlank).join('\n')).join('\n')}`].join('\n')).join('\n')
+  ].filter(nonBlank).join('\n')).join('\n')}`
+].filter(nonBlank).join('\n')).join('\n')
   ).join('\n')}
 `
 

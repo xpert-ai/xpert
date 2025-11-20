@@ -1426,6 +1426,7 @@
           "Semantics": "语义",
           "Semantic": "语义类型",
           "HiddenForLLM": "对大模型隐藏",
+          "HiddenProperties": "对大模型隐藏属性列表",
           "Formatter": "格式化",
           "Dimension": "维度",
           "Hierarchy": "层次结构",

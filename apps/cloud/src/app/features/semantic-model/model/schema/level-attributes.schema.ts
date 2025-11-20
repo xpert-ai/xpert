@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core'
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { map } from 'rxjs/operators'
 import { HierarchySchemaService } from './hierarchy.schema'
-import { SemanticsAccordionWrapper } from '@cloud/app/@shared/model'
+import { hiddenPropertiesAccordion, SemanticsAccordionWrapper } from '@cloud/app/@shared/model'
 
 @Injectable()
 export class LevelAttributesSchema extends HierarchySchemaService {
@@ -86,7 +86,7 @@ export class LevelAttributesSchema extends HierarchySchemaService {
           ]
         },
 
-        ...SemanticsAccordionWrapper(COMMON, '')
+        ...SemanticsAccordionWrapper(COMMON, '', hiddenPropertiesAccordion(COMMON))
       ]
     }
   }
