@@ -25,7 +25,7 @@ import { FindManyOptions, FindOneOptions, ILike, Repository } from 'typeorm'
 import { Cache } from 'cache-manager'
 import { t } from 'i18next'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
-import { SemanticModelQueryLog } from '../core/entities/internal'
+import { SemanticModelCache, SemanticModelQueryLog } from '../core/entities/internal'
 import { Md5 } from '../core/helper'
 import { BusinessArea, BusinessAreaService } from '../business-area'
 import { DataSourceService } from '../data-source'
@@ -471,6 +471,10 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async getLogs(data: PaginationParams<SemanticModelQueryLog>) {
 		return this.logService.findAll(data)
+	}
+
+	async getCaches(data: PaginationParams<SemanticModelCache>) {
+		return this.cacheService.findAll(data)
 	}
 
 	/**

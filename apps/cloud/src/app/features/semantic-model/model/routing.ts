@@ -6,6 +6,7 @@ import { ModelComponent } from './model.component'
 import { ModelOverviewComponent } from './overview/overview.component'
 import { semanticModelResolver } from './story-model.resolver'
 import { SemancticModelLogsComponent } from './logs/logs.component'
+import { SemancticModelCacheComponent } from './cache/cache.component'
 
 export const routes: Routes = [
   {
@@ -84,6 +85,13 @@ export const routes: Routes = [
         component: SemancticModelLogsComponent,
         data: {
           title: 'Model / Logs'
+        }
+      },
+      {
+        path: 'caches',
+        component: SemancticModelCacheComponent,
+        data: {
+          title: 'Model / Caches'
         }
       }
     ]

@@ -1071,6 +1071,10 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
+      "Cache": "缓存",
+      "ClearCache": "清除缓存",
+      "ServerCacheConfigInfo": "服务器端缓存可在语义模型首选项中启用或关闭，配置缓存时间。",
+      "TotalCacheItems": "缓存项总数",
       "MoveToBusinessArea": "移动到业务域",
       "ModelUpdateBusinessArea": "语义模型业务域更新成功",
       "DimensionAttributes": "维度属性",

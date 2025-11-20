@@ -34,7 +34,8 @@
   
       <div [routerLink]="['./query']" routerLinkActive #rla2="routerLinkActive">
         <button mat-button [color]="rla2.isActive?'accent':''">
-          <span class="font-notoColorEmoji">🧪</span>{{ 'PAC.MODEL.QUERY.TITLE' | translate: {Default: "Query Lab"} }}
+          <i class="ri-microscope-line"></i>
+          {{ 'PAC.MODEL.QUERY.TITLE' | translate: {Default: "Query Lab"} }}
         </button>
       </div>
   </div>
@@ -408,28 +409,23 @@
 
 <ng-template #dataMenu>
   <div cdkMenu class="p-2">
-      <!-- <button mat-menu-item>
-          <mat-icon fontSet="material-icons-outlined">code</mat-icon>
-          {{ 'PAC.KEY_WORDS.VARIABLES' | translate: {Default: "Variables"} }}
-      </button> -->
-      
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="refreshSchema()">
-      <mat-icon fontSet="material-icons-outlined">model_training</mat-icon>
+      <i class="ri-reset-right-line text-xl mr-1 text-text-secondary"></i>
       <span class="ml-2">{{ 'PAC.ACTIONS.REFRESH_DATA_SOURCE_SCHEMA' | translate: {Default: "Refresh Data Source Schema"} }}</span>
     </button>
 
-    <button cdkMenuItem [routerLink]="['./cache']" routerLinkActive="active" class="px-2 py-1 rounded-lg">
+    <button cdkMenuItem [routerLink]="['./caches']" routerLinkActive="active" class="px-2 py-1 rounded-lg">
       <i class="ri-router-line text-xl mr-1 text-text-secondary"></i>
       <span class="ml-2">{{ 'PAC.MODEL.Cache' | translate: {Default: "Cache"} }}</span>
     </button>
 
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="clearingServerCache" (click)="clearServerCache()">
-      <mat-icon fontSet="material-icons-outlined">clear_all</mat-icon>
+      <i class="ri-eraser-line text-xl mr-1 text-text-secondary"></i>
       <span class="ml-2">{{ 'PAC.MODEL.ClearServerCache' | translate: {Default: "Clear Server Cache"} }}</span>
     </button>
 
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['./member-retriever']">
-      <mat-icon fontSet="material-icons-outlined">tag</mat-icon>
+      <i class="ri-hashtag text-xl mr-1 text-text-secondary"></i>
       <span class="ml-2">{{ 'PAC.KEY_WORDS.MemberRetriever' | translate: {Default: "Member Retriever"} }}</span>
     </button>
   </div>
@@ -452,7 +448,7 @@
 </ng-template>
 
 <ng-template #manageMenu>
-  <div cdkMenu class="cdk-menu__large">
+  <div cdkMenu >
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['.']" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active" >
       <i class="ri-home-2-line text-xl mr-1 text-text-secondary"></i>
       <span class="ml-2">{{ 'PAC.MODEL.ModelOverview' | translate: {Default: "Model Overview"} }}</span>
