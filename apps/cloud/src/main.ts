@@ -48,4 +48,6 @@ console.log(`
  ██╔██╗ ██╔═══╝ ██╔══╝  ██╔══██╗   ██║       ██╔══██║██║
 ██╔╝ ██╗██║     ███████╗██║  ██║   ██║       ██║  ██║██║
 ╚═╝  ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝       ╚═╝  ╚═╝╚═╝`)
-// console.log(`We're hiring! https://mtda.cloud/jobs`)
+console.log('VERSION:', environment.version);
+
+console.log(`We're hiring! https://xpertai.cn/jobs`)
