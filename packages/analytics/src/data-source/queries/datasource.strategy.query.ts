@@ -10,7 +10,8 @@ export class DataSourceStrategyQuery extends Query<DBQueryRunner> {
 
     constructor(
         public readonly name: string,
-        public readonly options: AdapterBaseOptions
+        public readonly options: AdapterBaseOptions,
+        public readonly dataSourceId?: string,
     ) {
         super()
     }

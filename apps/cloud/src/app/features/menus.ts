@@ -272,7 +272,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
           link: '/settings/integration',
           pathMatch: 'prefix',
           data: {
-            translationKey: 'Integration',
+            translationKey: 'System Integration',
             featureKey: FeatureEnum.FEATURE_INTEGRATION,
             permissionKeys: [PermissionsEnum.INTEGRATION_EDIT]
           }

@@ -17,7 +17,7 @@ export class IndicatorCreateHandler implements ICommandHandler<IndicatorCreateCo
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const result = await (indicator.id
-			? this.indicatorService.findOneOrFail({
+			? this.indicatorService.findOneOrFailByOptions({
 					where: {
 						tenantId,
 						modelId: indicator.modelId,
@@ -26,7 +26,7 @@ export class IndicatorCreateHandler implements ICommandHandler<IndicatorCreateCo
 						id: Not(indicator.id)
 					}
 			  })
-			: this.indicatorService.findOneOrFail({
+			: this.indicatorService.findOneOrFailByOptions({
 					where: {
 						tenantId,
 						modelId: indicator.modelId,
@@ -39,7 +39,7 @@ export class IndicatorCreateHandler implements ICommandHandler<IndicatorCreateCo
 			throw new HttpException(`Indicator code '${indicator.code}' already exists`, HttpStatus.BAD_REQUEST)
 		}
 
-		// 关联已有的标签
+		// Associate with existing tags
 		if (indicator.tags) {
 			for await (const tag of indicator.tags) {
 				if (!tag.id) {

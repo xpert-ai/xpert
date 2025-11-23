@@ -58,6 +58,27 @@ export type TIndicator = {
   businessAreaId?: string
 }
 
+/**
+ * Fields included in the draft of Indicator, please keep it in sync with TIndicator type
+ */
+export const IndicatorDraftFields: Array<keyof IIndicator> = [
+  "code",
+  "name",
+  "type",
+  "visible",
+  "isApplication",
+  "modelId",
+  "entity",
+  "unit",
+  "principal",
+  "authentication",
+  "certificationId",
+  "validity",
+  "business",
+  "options",
+  "businessAreaId"
+]
+
 export type TIndicatorDraft = TIndicator & {
   checklist?: ChecklistItem[]
   version?: number
@@ -66,12 +87,6 @@ export type TIndicatorDraft = TIndicator & {
 
 export interface IIndicator extends IBasePerProjectEntityModel, TIndicator {
   draft?: TIndicatorDraft
-  // /**
-  //  * Is active: Activate / Deactivate
-  //  * 
-  //  * @deprecated use status instead
-  //  */
-  // isActive?: boolean
   
   /**
    * Visibilty in public or secret or private
@@ -87,6 +102,7 @@ export interface IIndicator extends IBasePerProjectEntityModel, TIndicator {
   status?: IndicatorStatusEnum
   embeddingStatus?: EmbeddingStatusEnum
   error?: string
+  publishedAt?: Date
   
   businessArea?: IBusinessArea
 

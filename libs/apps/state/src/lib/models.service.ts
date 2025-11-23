@@ -7,7 +7,7 @@ import { Observable, zip } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { BusinessAreasService } from './business-area.service'
 import { C_URI_API_MODELS, C_URI_API_MODEL_MEMBERS } from './constants'
-import { convertIndicatorResult, convertStoryModel, timeRangeToParams } from './types'
+import { convertIndicatorResult, convertStoryModel, ISemanticModelCache, timeRangeToParams } from './types'
 import { IDataSource, ISemanticModel, ISemanticModelQueryLog, TSemanticModelDraft } from './types'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
 import { PaginationParams, toHttpParams } from './crud.service'
@@ -217,8 +217,12 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
     return this.httpClient.post(`${C_URI_API_MODELS}/${modelId}/role`, { name })
   }
 
-  deleteCache(id: string) {
+  clearCache(id: string) {
     return this.httpClient.delete(`${C_URI_API_MODELS}/${id}/cache`)
+  }
+
+  deleteCache(modelId: string, cacheId: string) {
+    return this.httpClient.delete(`${C_URI_API_MODELS}/${modelId}/cache/${cacheId}`)
   }
 
   updateMembers(id: string, members: string[]) {
@@ -244,6 +248,13 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
   getLogs(id: string, options: PaginationParams<ISemanticModelQueryLog>, timeRange: string[]) {
     const params = toHttpParams(options)
     return this.httpClient.get<{items: ISemanticModelQueryLog[]; total: number;}>(C_URI_API_MODELS + `/${id}/logs`, {
+      params: timeRangeToParams(params, timeRange)
+    })
+  }
+
+  getCaches(id: string, options: PaginationParams<ISemanticModelCache>, timeRange: string[]) {
+    const params = toHttpParams(options)
+    return this.httpClient.get<{items: ISemanticModelCache[]; total: number;}>(C_URI_API_MODELS + `/${id}/caches`, {
       params: timeRangeToParams(params, timeRange)
     })
   }

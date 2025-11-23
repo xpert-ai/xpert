@@ -34,6 +34,7 @@ import { PACIndicatorDirective } from './shared/indicator.directive'
 import { ReplaceNullWithTextPipe } from './shared/replace-null-with-text.pipe'
 import { AppSparkLineDirective } from './shared/sparkline.directive'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 @NgModule({
   declarations: [
@@ -65,6 +66,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     MatSliderModule,
     MatChipsModule,
     MatInputModule,
+    MatTooltipModule,
     MarkdownModule,
     AppearanceDirective,
     ReversePipe,

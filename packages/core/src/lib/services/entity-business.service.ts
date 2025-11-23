@@ -271,8 +271,8 @@ export class EntityBusinessService<
     this.refresh$.next(force)
   }
 
-  selectResult() {
-    return this.result$.pipe(filter(nonNullable))
+  selectResult<R = QueryReturn<T>>() {
+    return this.result$.pipe(filter(nonNullable)) as Observable<R>
   }
 
   calculateFilters(queryOptions?: QueryOptions) {

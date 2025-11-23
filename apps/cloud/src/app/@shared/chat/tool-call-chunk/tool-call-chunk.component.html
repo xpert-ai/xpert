@@ -21,6 +21,9 @@
       }
     </span>
     <span class="flex-1"></span>
+    @if (expanded()) {
+      <copy2 class="text-text-tertiary hover:text-text-primary" [content]="output()" />
+    }
     @if (openable()) {
       <button class="btn pressable flex justify-center items-center w-6 h-6 rounded-lg border-0 text-text-secondary hover:text-text-primary
         bg-transparent hover:bg-hover-bg"

@@ -194,6 +194,16 @@ export enum SemanticModelStatusEnum {
   Archived = 'archived'
 }
 
+export interface ISemanticModelCache extends IBasePerTenantAndOrganizationEntityModel {
+  key: string
+  language?: string
+  modelId?: string
+  model?: ISemanticModel
+  query?: string
+  data?: string
+}
+
+
 /**
  * @deprecated Equivalent to `VirtualCube` in the ocap framework
  */

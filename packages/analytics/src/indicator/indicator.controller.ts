@@ -135,6 +135,13 @@ export class IndicatorController extends CrudController<Indicator> {
 		return await this.commandBus.execute(new IndicatorCreateCommand(entity))
 	}
 
+	/**
+	 * Batch creation of indicator drafts.
+	 * 
+	 * @param indicators 
+	 * @returns 
+	 */
+	@HttpCode(HttpStatus.CREATED)
 	@Post('bulk')
 	async createBulk(@Body() indicators: Indicator[]) {
 		return this.indicatorService.createBulk(indicators)

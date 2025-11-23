@@ -7,6 +7,9 @@ import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-
 import { NgmCopilotChatComponent } from '../chat/chat.component'
 import { CopilotGlobalService } from './global.service'
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

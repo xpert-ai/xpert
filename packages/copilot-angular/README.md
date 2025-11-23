@@ -1,7 +1,3 @@
-# copilot-angular
+# Copilot Angular
 
-This library was generated with [Nx](https://nx.dev).
-
-## Running unit tests
-
-Run `nx test copilot-angular` to execute the unit tests.
+!Deprecated use ChatKit instead.

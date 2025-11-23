@@ -38,6 +38,9 @@ export const AgentRecursionLimit = 20
 
 let uniqueId = 0
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Injectable()
 export class NgmCopilotEngineService implements CopilotEngine {
   readonly #logger? = inject(NGXLogger, { optional: true })

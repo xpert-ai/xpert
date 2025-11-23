@@ -6,16 +6,12 @@ import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNProcessor,
-  IWorkflowNode,
-  TXpertTeamNode,
-  WorkflowNodeTypeEnum,
-  XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { KnowledgebaseService } from '@cloud/app/@core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { XpertStudioApiService } from '../../../domain'
+import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 
 @Component({
   selector: 'xpert-workflow-node-processor',
@@ -36,30 +32,13 @@ import { XpertStudioApiService } from '../../../domain'
     tabindex: '-1'
   }
 })
-export class XpertWorkflowNodeProcessorComponent {
-  eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
-  eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
-
-  readonly elementRef = inject(ElementRef)
-  readonly studioService = inject(XpertStudioApiService)
+export class XpertWorkflowNodeProcessorComponent extends WorkflowBaseNodeComponent {
   readonly knowledgebaseService = inject(KnowledgebaseService)
-
-  // Inputs
-  readonly node = input<TXpertTeamNode>()
-  readonly entity = input<IWorkflowNode>()
 
   // States
   readonly processorEntity = computed(() => this.entity() as IWFNProcessor)
   readonly provider = computed(() => this.processorEntity()?.provider)
   readonly config = computed(() => this.processorEntity()?.config)
-
-  readonly nodes = computed(() => this.studioService.viewModel().nodes)
-
-  readonly canBeConnectedInputs = computed(() =>
-    this.nodes()
-      .filter((_) => _.type === 'agent' || _.type === 'workflow')
-      .map((_) => _.type === 'workflow' ? _.key + '/edge' : _.key)
-  )
 
   // Processor providers from knowledgebase service
   readonly processorProviders = toSignal(this.knowledgebaseService.documentTransformerStrategies$, { initialValue: [] })

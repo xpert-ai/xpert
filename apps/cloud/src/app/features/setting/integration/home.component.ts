@@ -1,18 +1,20 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { DatePipe } from '@angular/common'
-import { Component, inject } from '@angular/core'
+import { CommonModule, DatePipe } from '@angular/common'
+import { Component, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, ReactiveFormsModule } from '@angular/forms'
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
 import { NgmConfirmDeleteComponent, NgmSearchComponent, NgmTagsComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, debounceTime, EMPTY, map, startWith, switchMap } from 'rxjs'
-import { getErrorMessage, IIntegration, IntegrationService, routeAnimations, ToastrService } from '../../../@core'
-import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { getErrorMessage, IIntegration, IntegrationService, OrderTypeEnum, routeAnimations, ToastrService } from '../../../@core'
+import { EmojiAvatarComponent, IconComponent } from '../../../@shared/avatar'
 import { CardCreateComponent } from '../../../@shared/card'
 import { UserPipe } from '../../../@shared/pipes'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
@@ -20,7 +22,9 @@ import { UserPipe } from '../../../@shared/pipes'
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
   imports: [
+    CommonModule,
     DatePipe,
+    FormsModule,
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
@@ -30,12 +34,15 @@ import { UserPipe } from '../../../@shared/pipes'
     CardCreateComponent,
     EmojiAvatarComponent,
     DynamicGridDirective,
-    NgmSearchComponent
+    NgmSelectComponent,
+    NgmSearchComponent,
+    IconComponent,
+    NgmI18nPipe
   ],
   animations: [routeAnimations]
 })
 export class IntegrationHomeComponent {
-  readonly integrationService = inject(IntegrationService)
+  readonly integrationAPI = inject(IntegrationService)
   readonly #toastr = inject(ToastrService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
@@ -44,10 +51,12 @@ export class IntegrationHomeComponent {
 
   readonly refresh$ = new BehaviorSubject<void>(null)
   readonly searchControl = new FormControl('')
+  readonly provider = model<string | null>(null)
 
+  readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
   readonly integrations = toSignal(
     this.refresh$.pipe(
-      switchMap(() => this.integrationService.getAllInOrg({ relations: ['createdBy'] })),
+      switchMap(() => this.integrationAPI.getAllInOrg({ relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } })),
       combineLatestWith(
         this.searchControl.valueChanges.pipe(
           debounceTime(300),
@@ -64,6 +73,24 @@ export class IntegrationHomeComponent {
       )
     )
   )
+  readonly filteredIntegrations = computed(() => {
+    const provider = this.provider()
+    if (provider) {
+      return this.integrations().filter((item) => item.provider === provider)
+    }
+    return this.integrations()
+  })
+  readonly providers = computed(() => {
+    return this.#providers()?.map((provider) => ({
+      value: provider.name,
+      label: provider.label,
+      description: provider.description,
+      avatar: provider.avatar,
+      _icon: provider.icon
+    }))
+  })
+
+  readonly integrationProvider = computed(() => this.#providers()?.find((item) => item.name === this.provider()))
 
   newIntegration() {
     this.#router.navigate(['create'], { relativeTo: this.#route })
@@ -92,7 +119,7 @@ export class IntegrationHomeComponent {
         }
       })
       .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.integrationService.delete(item.id) : EMPTY)))
+      .pipe(switchMap((confirm) => (confirm ? this.integrationAPI.delete(item.id) : EMPTY)))
       .subscribe({
         next: () => {
           this.refresh()

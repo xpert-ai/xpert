@@ -16,7 +16,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { RouterModule } from '@angular/router'
 import { exportIndicator, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
-import { convertIndicatorResult, EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
+import { EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
 import { saveAsYaml } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { myRxResource } from '@metad/ocap-angular/core'
@@ -135,6 +135,7 @@ export class AllIndicatorComponent {
     this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(5000)).subscribe(() => this.refresh())
 
     this.projectService.refresh$.pipe(takeUntilDestroyed()).subscribe(() => this.#indicators.reload())
+    this.parentComponent.reload$.pipe(takeUntilDestroyed()).subscribe(() => this.#indicators.reload())
   }
 
   refresh() {
@@ -199,13 +200,16 @@ export class AllIndicatorComponent {
     return a.code.localeCompare(b.code)
   }
 
-  export() {
+  /**
+   * Export Selected Indicators
+   */
+  exportSelected() {
     const project = this.projectService.project()
     const indicators = this.selectedIndicators().length ? this.selectedIndicators() : project.indicators
     const indicatorsFileName = this.#translate.instant('PAC.INDICATOR.Indicators', { Default: 'Indicators' })
     saveAsYaml(
       `${indicatorsFileName}.yaml`,
-      indicators.map((item) => exportIndicator(convertIndicatorResult(item)))
+      indicators.map((item) => exportIndicator(item))
     )
   }
 

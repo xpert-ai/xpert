@@ -61,7 +61,7 @@
 >
 </ngm-tree-table>
 
-@if (loading) {
+@if (loading()) {
   <ngm-spin class="absolute w-full h-full top-0 left-0" />
 }
 
@@ -116,28 +116,18 @@
         matTooltipPosition="above"
         [routerLink]="['/models', key]">
         <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-      </button>
-  
-      <button mat-icon-button displayDensity="cosy"
-        [matTooltip]="'PAC.ACTIONS.CreateStory' | translate: {Default: '📖Create Story'}"
-        matTooltipPosition="above"
-        (click)="createStory(item)">
-        <mat-icon fontSet="material-icons-outlined">local_library</mat-icon>
-      </button>
-      
+      </button>      
       <button mat-icon-button displayDensity="cosy"
         [matTooltip]=" 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} "
         matTooltipPosition="above"
         (click)="onDownload(item.id)">
         <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
       </button>
-      <!-- <button mat-icon-button displayDensity="cosy" ngmAppearance="danger"
-        [matTooltip]=" 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} "
-        matTooltipPosition="above"
-        (click)="onDelete(item)"
-      >
-        <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
-      </button> -->
+      <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg opacity-50 group-hover:opacity-100"
+        [cdkMenuTriggerFor]="moreActions"
+        [cdkMenuTriggerData]="{item: item}">
+        <i class="ri-more-line"></i>
+      </button>
     </div>
   } @else {
     <div class="pac__table-actions flex items-center">
@@ -154,4 +144,19 @@
 
 <ng-template #descTempl let-item="raw">
   <div class="max-w-xs truncate text-sm" [title]="item.description">{{item.description}}</div>
+</ng-template>
+
+<ng-template #moreActions let-item="item">
+  
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="moveToBusinessArea(item)" >
+      <i class="ri-folder-transfer-line mr-1"></i>
+      {{ 'PAC.MODEL.MoveToBusinessArea' | translate: {Default: "Move to Business Area"} }}
+    </button>
+
+    <button cdkMenuItem (click)="createStory(item)">
+      <i class="ri-dashboard-line mr-1"></i>
+      {{ 'PAC.ACTIONS.CreateStory' | translate: {Default: "Create Story"} }}
+    </button>
+  </div>
 </ng-template>

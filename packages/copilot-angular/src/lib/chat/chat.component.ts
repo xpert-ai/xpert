@@ -75,6 +75,9 @@ import { PlaceholderMessages } from './types'
 export const AUTO_SUGGESTION_DEBOUNCE_TIME = 1000
 export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

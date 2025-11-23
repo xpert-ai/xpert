@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core'
 import { IIndicator, PaginationParams, TIndicatorDraft } from '@metad/contracts'
 import { map } from 'rxjs/operators'
 import { C_URI_API_INDICATORS } from './constants'
-import { Indicator, convertIndicator, convertIndicatorResult } from './types'
+import { Indicator, convertIndicator } from './types'
 import { toHttpParams } from './crud.service'
 
 
@@ -67,9 +67,8 @@ export class IndicatorsService {
     return this.httpClient.get<number>(C_URI_API_INDICATORS + `/count`)
   }
 
-  createBulk(input: Array<Partial<Indicator>>) {
-    return this.httpClient.post<Indicator[]>(C_URI_API_INDICATORS + '/bulk', input.map(convertIndicator))
-      .pipe(map((items) => items.map(convertIndicatorResult)))
+  createBulk(input: Array<Partial<IIndicator>>) {
+    return this.httpClient.post<IIndicator[]>(C_URI_API_INDICATORS + '/bulk', input)
   }
 
   saveDraft(id: string, draft: Partial<Indicator>) {

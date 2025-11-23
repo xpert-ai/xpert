@@ -1,41 +1,48 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 ">
-  <div class="w-full flex justify-start items-center mb-4 group" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <div class="w-full flex justify-start items-center mb-4 group cursor-pointer" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
-    <span class="text-lg pointer-events-none">
+    <span class="text-xl font-semibold pointer-events-none">
       {{ 'PAC.INDICATOR.Indicators' | translate: { Default: 'Indicators' } }}
     </span>
   </div>
 
-  <mat-nav-list class="ngm-nav-list my-2 flex-1 overflow-auto">
-    <mat-list-item *ngFor="let indicator of indicators; index as i" class="flex group/item"
-      [class.active]="activedLink === indicator.code"
-      (click)="activeLink(indicator)">
-      <div class="flex justify-between items-center">
-        <span class="flex-1"> {{ indicator.name }} </span>
-        <mat-icon class="cursor-pointer rounded-full invisible hover:bg-white/20 group-hover/item:visible"
-          ngmAppearance="danger"
-          (click)="removeIndicator(i)">close</mat-icon>
-      </div>
-    </mat-list-item>
+  <mat-nav-list class="ngm-nav-list my-2 flex-1 space-y-1 overflow-auto">
+    @for (indicator of indicators; track indicator; let i = $index) {
+      <mat-list-item class="flex group/item"
+        [class.active]="activedIndex() === i"
+        (click)="activeLink(i, indicator)">
+        <div class="flex justify-between items-center">
+          <span class="flex-1"> {{ indicator.name }} </span>
+          <mat-icon class="cursor-pointer rounded-full invisible hover:bg-white/20 group-hover/item:visible"
+            ngmAppearance="danger"
+            (click)="removeIndicator(i)">close</mat-icon>
+        </div>
+      </mat-list-item>
+    }
   </mat-nav-list>
 
   <div class="flex justify-start">
     <div ngmButtonGroup>
       <button mat-raised-button color="accent" cdkFocusInitial (click)="bulkCreate()">
-        <mat-spinner *ngIf="uploading" color="accent" diameter="20" strokeWidth="2" class="m-2"></mat-spinner>
-        <span *ngIf="!uploading">
-          {{ 'PAC.INDICATOR.Import' | translate: { Default: 'Import' } }}
-        </span>
+        @if (uploading) {
+          <mat-spinner color="accent" diameter="20" strokeWidth="2" class="m-2"></mat-spinner>
+        } @else {
+          <span>
+            {{ 'PAC.INDICATOR.Import' | translate: { Default: 'Import' } }}
+          </span>
+        }
       </button>
     </div>
   </div>
 </div>
 
 <div class="overflow-y-auto">
-  <pac-indicator-register-form *ngFor="let i of indicator"
-    [certifications]="certifications"
-    [models]="models"
-    [ngModel]="i"
-    (ngModelChange)="onIndicatorChange($event)"
-  ></pac-indicator-register-form>
+  @for (item of _indicator(); track item; let i = $index) {
+    <xp-indicator-register-form
+      [certifications]="certifications"
+      [models]="models"
+      [ngModel]="item"
+      (ngModelChange)="onIndicatorChange($event)"
+    />
+  }
 </div>

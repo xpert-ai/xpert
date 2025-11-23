@@ -13,13 +13,35 @@ export abstract class AdapterDataSourceStrategy<TOptions extends AdapterBaseOpti
   readonly description?: string
 
   private configurationSchemaCache: Record<string, unknown> | undefined
+  private runners = new Map<string, DBQueryRunner>(); // dataSourceId -> runner instance
 
   protected constructor(
     private readonly runnerClass: DBQueryRunnerType,
     private readonly extraArgs: unknown[] = []
   ) {}
 
-  async create(options: TOptions): Promise<DBQueryRunner> {
+  /**
+   * Get from cache or create new instance of DB adapter.
+   * 
+   * @param options 
+   * @param id 
+   * @returns 
+   */
+  async create(options: TOptions, id?: string): Promise<DBQueryRunner> {
+    if (id) {
+      if (this.runners.has(id)) {
+        return this.runners.get(id);
+      }
+      const runner = this.instantiateRunner(options)
+      this.runners.set(id, runner);
+
+      // If the Runner supports initPool, then initialize the connection pool.
+      if (typeof runner.initPool === 'function') {
+				await runner.initPool(options)
+      }
+      return runner
+    }
+
     return this.instantiateRunner(options)
   }
 

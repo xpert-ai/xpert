@@ -91,7 +91,9 @@ export class XpIndicatorFormComponent {
     }
   })
   readonly loading = signal(false)
-  readonly type = signal<string>('')
+  readonly saving = signal(false)
+  readonly saved = signal(false)
+  // readonly type = signal<string>('')
 
   readonly indicator = linkedModel({
     initialValue: null,
@@ -293,10 +295,6 @@ export class XpIndicatorFormComponent {
 
   readonly explains = signal<any[]>([])
 
-  readonly saving = signal(false)
-
-  readonly saved = signal(false)
-
   constructor() {
     effect(() => {
       const indicator = this.indicator()
@@ -394,18 +392,6 @@ export class XpIndicatorFormComponent {
     })
   }
 
-  copy(indicator: IIndicator) {
-    this.type.set('copy')
-
-    // this.store.update((state) => ({
-    //   ...state,
-    //   id: null,
-    //   embeddingStatus: null,
-    //   error: null,
-    //   code: state.code + ' (Copy)',
-    // }))
-  }
-
   delete() {
     this.confirmDelete({
       value: this.indicator().name,
@@ -460,5 +446,25 @@ export class XpIndicatorFormComponent {
   openProject() {
     this.#store.selectedProject = this.project()
     window.open(`/project/indicators`, '_blank')
+  }
+
+  duplicate() {
+    this.loading.set(true)
+    setTimeout(() => {
+      const draft = this.draft()
+      this.indicator.update((indicator) => {
+        return {
+          ...indicator,
+          id: null,
+          status: IndicatorStatusEnum.DRAFT,
+          draft: {
+            ...(draft ?? {}),
+            name: `${draft?.name} - ${this.translateService.instant('PAC.ACTIONS.Copy', { Default: 'Copy' })}`,
+            code: `${draft?.code}_copy`,
+          }
+        }
+      })
+      this.loading.set(false)
+    }, 300);
   }
 }

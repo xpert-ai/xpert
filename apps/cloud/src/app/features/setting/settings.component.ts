@@ -113,7 +113,7 @@ export class PACSettingComponent {
       },
       {
         link: 'integration',
-        label: 'Integration',
+        label: 'System Integration',
         icon: 'hub',
         data: {
           featureKey: FeatureEnum.FEATURE_INTEGRATION,

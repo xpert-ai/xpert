@@ -1,4 +1,3 @@
-import { ISemanticModel, NgmSemanticModel, TSemanticModelDraft } from "@metad/cloud/state"
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from "@metad/formly"
 import { AggregationRole, DisplayBehaviour, Schema, Semantics } from "@metad/ocap-core"
 import { AccordionWrappers, TAccordionWrapperExpansion } from "@metad/story/designer"
@@ -180,7 +179,10 @@ export function CalendarFormatter(COMMON?) {
   }
 }
 
-export function SemanticsAccordionWrapper(i18n, help: string) {
+/**
+ * {@link EntityProperty}
+ */
+export function SemanticsAccordionWrapper(i18n, help: string, ...additionalFields: FormlyFieldConfig[]) {
   return AccordionWrappers([
     {
       key: 'semantics',
@@ -194,11 +196,22 @@ export function SemanticsAccordionWrapper(i18n, help: string) {
         Semantic(i18n), 
         HiddenLLM(i18n),
         CalendarFormatter(i18n),
+        ...additionalFields
       ]
     }
   ])
 }
 
+export function hiddenPropertiesAccordion(i18n) {
+  return {
+    key: 'hiddenProperties',
+    type: 'checkbox',
+    className: FORMLY_W_1_2,
+    props: {
+      label: i18n?.HiddenProperties ?? 'Hidden properties for LLM',
+    }
+  }
+}
 
 export function SQLExpression(COMMON) {
   return {

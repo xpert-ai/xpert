@@ -10,8 +10,14 @@ import { AgentExecutor } from 'langchain/agents'
 import { Observable, firstValueFrom, map } from 'rxjs'
 import { ISelectOption } from '../types'
 
+/**
+ * @deprecated use ChatKit instead
+ */
 export const NgmCopilotContextToken = new InjectionToken<NgmCopilotContextService>('NgmCopilotContextToken')
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Injectable()
 export class NgmCopilotContextService implements CopilotContext {
   readonly destroyRef = inject(DestroyRef)

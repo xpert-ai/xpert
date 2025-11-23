@@ -39,7 +39,7 @@ import {
   Avg,
   CoalesceEmpty,
   Count,
-  CrossjoinOperator,
+  CrossjoinNested,
   CurrentMember,
   Distinct,
   Divide,
@@ -317,7 +317,7 @@ export function serializeAggregationProperty(property: AggregationProperty) {
   // Conditional filters?
   if (property.useConditionalAggregation && !isEmpty(property.conditionalDimensions)) {
     measure = Aggregate(
-      CrossjoinOperator(
+      CrossjoinNested(
         ...property.conditionalDimensions.map((dimension) => {
           const memberSet = serializeMemberSet(dimension)
           if (property.excludeConditions) {
@@ -332,9 +332,9 @@ export function serializeAggregationProperty(property: AggregationProperty) {
 
   switch (property.operation) {
     case AggregationOperation.SUM:
-      return Sum(CrossjoinOperator(...aggregationDimensions), measure)
+      return Sum(CrossjoinNested(...aggregationDimensions), measure)
     case AggregationOperation.COUNT: {
-      let memberSet = CrossjoinOperator(...aggregationDimensions)
+      let memberSet = CrossjoinNested(...aggregationDimensions)
       if (property.measure) {
         if (!property.compare) {
           throw new Error(t('Error.AggregationCompareEmpty', {ns: 'xmla', name: property.name}))
@@ -347,23 +347,23 @@ export function serializeAggregationProperty(property: AggregationProperty) {
       return Count(Distinct(memberSet), true)
     }
     case AggregationOperation.MIN:
-      return Min(CrossjoinOperator(...aggregationDimensions), measure)
+      return Min(CrossjoinNested(...aggregationDimensions), measure)
     case AggregationOperation.MAX:
-      return Max(CrossjoinOperator(...aggregationDimensions), measure)
+      return Max(CrossjoinNested(...aggregationDimensions), measure)
     case AggregationOperation.AVERAGE:
-      return Avg(CrossjoinOperator(...aggregationDimensions), measure)
+      return Avg(CrossjoinNested(...aggregationDimensions), measure)
     case AggregationOperation.STDEV:
-      return Stdev(CrossjoinOperator(...aggregationDimensions), measure)
+      return Stdev(CrossjoinNested(...aggregationDimensions), measure)
     case AggregationOperation.STDEVP:
-      return StdevP(CrossjoinOperator(...aggregationDimensions), measure)
+      return StdevP(CrossjoinNested(...aggregationDimensions), measure)
     case AggregationOperation.MEDIAN:
-      return Median(CrossjoinOperator(...aggregationDimensions), measure)
+      return Median(CrossjoinNested(...aggregationDimensions), measure)
     case AggregationOperation.TOP_PERCENT:
-      return Aggregate(TopPercent(CrossjoinOperator(...aggregationDimensions), property.value, measure), measure)
+      return Aggregate(TopPercent(CrossjoinNested(...aggregationDimensions), property.value, measure), measure)
     case AggregationOperation.TOP_COUNT:
-      return Aggregate(TopCount(CrossjoinOperator(...aggregationDimensions), property.value, measure), measure)
+      return Aggregate(TopCount(CrossjoinNested(...aggregationDimensions), property.value, measure), measure)
     case AggregationOperation.TOP_SUM:
-        return Aggregate(TopSum(CrossjoinOperator(...aggregationDimensions), property.value, measure), measure)
+        return Aggregate(TopSum(CrossjoinNested(...aggregationDimensions), property.value, measure), measure)
     default:
       throw new Error(`The operation '${property.operation}' for conditional aggregation is not implemented!`)
   }
@@ -395,7 +395,7 @@ export function serializeRestrictedMeasureProperty(property: RestrictedMeasurePr
 
   return isEmpty(contexts)
     ? measureFormatter(property.measure)
-    : Aggregate(CrossjoinOperator(...contexts), measureFormatter(property.measure))
+    : Aggregate(CrossjoinNested(...contexts), measureFormatter(property.measure))
 }
 
 /**

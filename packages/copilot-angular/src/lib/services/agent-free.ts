@@ -5,6 +5,9 @@ import { AgentState, createCopilotAgentState, CreateGraphOptions } from '@metad/
 
 const state: StateGraphArgs<AgentState>['channels'] = createCopilotAgentState()
 
+/**
+ * @deprecated use ChatKit instead
+ */
 export function injectCreateChatAgent() {
   return async ({ llm, checkpointer, interruptBefore, interruptAfter }: CreateGraphOptions) => {
     const prompt = ChatPromptTemplate.fromMessages(

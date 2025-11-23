@@ -1,7 +1,8 @@
+import { Semantics } from '../annotations'
 import { Annotation, IMember, Measure, PrimitiveType, PropertyName, Syntax } from '../types'
 import { CalculatedMember, CalculationProperty, CubeParameterEnum, ParameterControlEnum } from './calculated'
 import { Indicator } from './indicator'
-import { AggregationRole, EntityProperty, PropertyAttributes } from './property'
+import { AggregationRole, EntityProperty, PropertyAttributes, PropertySemantics } from './property'
 
 /**
  * Base type for all entity types
@@ -341,6 +342,13 @@ export interface PropertyLevel extends EntityProperty {
   captionExpression?: CaptionExpression
   ordinalExpression?: SQLExpression
   parentExpression?: SQLExpression
+
+  /**
+   * Level semantics (hiddenProperties)
+   */
+  semantics?: PropertySemantics & {
+    hiddenProperties?: boolean
+  }
 }
 
 /**

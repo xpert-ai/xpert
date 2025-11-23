@@ -4,14 +4,12 @@
       @if (!parameter.optional) {
         <span class="text-red-500">*</span>
       }
-      <div class="mx-0.5 text-sm font-medium text-gray-700 max-w-[150px] truncate" [title]="parameter.title">{{parameter.title}}</div>
-      <ngm-slash-svg class="" />
-      <ngm-variable-svg class="w-4 h-4 text-primary-500" />
+      <ngm-variable-svg class="shrink-0 w-4 h-4 text-primary-500" />
       <div class="text-sm text-primary-500">{{parameter.name}}</div>
-
-      @if (parameter.description) {
-        <i class="ri-information-line text-text-secondary ml-1 opacity-60 hover:opacity-100" [matTooltip]="parameter.description | i18n"></i>
-      }
+      <ngm-slash-svg class="" />
+      <div class="text-xs truncate text-text-tertiary" [title]="parameter.description | i18n">
+        {{ parameter.description | i18n }}
+      </div>
     </div>
 
     @switch (parameter.type) {

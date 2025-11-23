@@ -326,6 +326,10 @@ export class IndicatorsStore extends ComponentStore<IndicatorStoreState> {
     return this.refresh$.asObservable()
   }
 
+  /**
+   * 
+   * @param force Force refresh of indicator data
+   */
   refresh(force = false) {
     this.refresh$.next(force)
   }

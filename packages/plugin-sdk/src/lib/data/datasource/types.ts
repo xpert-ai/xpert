@@ -65,6 +65,7 @@ export interface DBQueryRunner {
   configurationSchema: Record<string, unknown>
 
   jdbcUrl(schema?: string): string
+  initPool?(options: AdapterBaseOptions): Promise<void>;
   /**
    * Execute a sql query
    *
@@ -405,10 +406,13 @@ export interface DBIndexDefinition {
   type?: 'btree' | 'hash' | 'gin' | 'bitmap' | 'fulltext' | string
 }
 
+/**
+ * Modes for creating a table, if the table already exists
+ */
 export enum DBCreateTableMode {
-  ERROR = 'error',       // 表已存在 → 报错
-  IGNORE = 'ignore',     // 表已存在 → 什么也不做
-  UPGRADE = 'upgrade'    // 表已存在 → 自动升级表结构
+  ERROR = 'error',       // throw error
+  IGNORE = 'ignore',     // do nothing
+  UPGRADE = 'upgrade'    // automatically upgrade table structure
 }
 
 export enum DBTableDataAction {

@@ -12,6 +12,7 @@ import {
   signal,
   ViewChild
 } from '@angular/core'
+import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet'
 import { CommentsService, Store, ToastrService } from '@metad/cloud/state'
@@ -54,6 +55,7 @@ import {
   slicerAsString,
   TimeRangeType
 } from '@metad/ocap-core'
+import { ExplainComponent } from '@metad/story/story'
 import { TranslateService } from '@ngx-translate/core'
 import { graphic } from 'echarts/core'
 import { NGXLogger } from 'ngx-logger'
@@ -101,6 +103,7 @@ export class IndicatorDetailComponent {
   private commentsService = inject(CommentsService)
   readonly #translate = inject(TranslateService)
   readonly #store = inject(Store)
+  readonly #dialog = inject(Dialog)
 
   private _id$ = new BehaviorSubject<string>(null)
   @Input()
@@ -258,7 +261,7 @@ export class IndicatorDetailComponent {
                 hierarchy: hierarchy.name,
                 level: level.name,
                 role: ChartDimensionRoleType.Time,
-                zeroSuppression: true,
+                // zeroSuppression: true,
                 chartOptions: {
                   dataZoom: {
                     type: 'inside'
@@ -385,14 +388,6 @@ export class IndicatorDetailComponent {
       }
     }
   })
-
-  // public readonly chartOptions$: Observable<any> = this.indicator$.pipe(
-  //   map((indicator) => indicator.trend),
-  //   distinctUntilChanged(),
-  //   map((indicatorTrend) => {
-      
-  //   })
-  // )
 
   readonly mom$ = toSignal(this.indicator$.pipe(map((indicator) => (indicator.data?.MOM > 0 ? Trend.Up : Trend.Down))))
   readonly yoy$ = toSignal(this.indicator$.pipe(map((indicator) => (indicator.data?.YOY > 0 ? Trend.Up : Trend.Down))))
@@ -673,9 +668,9 @@ export class IndicatorDetailComponent {
       this.id = this.data.id
     }
 
-    effect(() => {
-      // console.log(this.explainDataSignal()[1]?.data)
-    })
+    // effect(() => {
+    //   console.log(this.indicator())
+    // })
   }
 
   onClose(event) {
@@ -781,6 +776,12 @@ export class IndicatorDetailComponent {
         }
       })
     }
+  }
+
+  openExplain() {
+     this.#dialog.open(ExplainComponent, {
+          data: this.explainDataSignal()
+        })
   }
 
   makeIndicatorDataPrompt() {

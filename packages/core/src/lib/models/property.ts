@@ -45,6 +45,12 @@ export interface PropertyAttributes {
   visible?: boolean
 }
 
+export interface PropertySemantics {
+  semantic?: Semantics
+  formatter?: string
+  hidden?: boolean
+}
+
 export interface EntityProperty extends BaseProperty, PropertyAttributes {
   /**
    * The Entity it belongs to
@@ -60,12 +66,10 @@ export interface EntityProperty extends BaseProperty, PropertyAttributes {
    * @deprecated use semantics
    */
   formatter?: string
-
-  semantics?: {
-    semantic?: Semantics
-    formatter?: string
-    hidden?: boolean
-  }
+  /**
+   * Semantics information of this property
+   */
+  semantics?: PropertySemantics
 
   /**
    * @deprecated use memberCaption

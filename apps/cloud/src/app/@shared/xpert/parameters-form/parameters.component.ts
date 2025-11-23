@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltip } from '@angular/material/tooltip'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { SlashSvgComponent, VariableSvgComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
@@ -19,12 +19,12 @@ import { NgmSelectComponent } from '../../common'
   imports: [
     CommonModule,
     FormsModule,
+    MatTooltipModule,
     TranslateModule,
     NgmI18nPipe,
     NgmSelectComponent,
     VariableSvgComponent,
     SlashSvgComponent,
-    MatTooltip
   ],
   hostDirectives: [NgxControlValueAccessor]
 })

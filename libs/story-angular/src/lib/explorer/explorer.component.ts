@@ -31,6 +31,7 @@ import { EntityCapacity, NgmEntityPropertyComponent, PropertyCapacity } from '@m
 import { NgmChartPropertyComponent, NgmChartSettingsComponent, NgmSchemaChartTypeComponent } from '@metad/story/widgets/analytical-card'
 import { NgmGridSettingsComponent } from '@metad/story/widgets/analytical-grid'
 import {
+  AggregationRole,
   CHARTS,
   C_MEASURES,
   ChartAnnotation,
@@ -49,6 +50,7 @@ import {
   getEntityLevel,
   getEntityMeasures,
   getEntityProperty,
+  isMeasure,
   isSlicer,
   isString,
   isTimeRangesSlicer,
@@ -238,6 +240,17 @@ export class StoryExplorerComponent {
     return pick(this.data?.dataSettings, 'dataSource', 'entitySet') as DataSettings
   })
   readonly dataSettingsChart = computed(() => {
+    const dimensions = this.rows()?.map((row) => ({
+          ...row
+        })) ?? []
+    const measures = []
+    this.columns()?.forEach((column) => {
+      if (isMeasure(column)) {
+        measures.push(column)
+      } else {
+        dimensions.push(column)
+      }
+    })
     const chartAnnotation = assignDeepOmitBlank(
       {
         ...cloneDeep(
@@ -249,10 +262,8 @@ export class StoryExplorerComponent {
         )
       },
       {
-        dimensions: this.rows()?.map((row) => ({
-          ...row
-        })) ?? [],
-        measures: [...this.columns()]
+        dimensions,
+        measures
       },
       5
     )
@@ -399,6 +410,7 @@ export class StoryExplorerComponent {
   readonly measureCapacities = computed(() => {
     if (this.component().component === WidgetComponentType.AnalyticalCard) {
       return [
+        PropertyCapacity.Dimension,
         PropertyCapacity.Measure,
         PropertyCapacity.Order,
         PropertyCapacity.MeasureAttributes,
@@ -412,6 +424,7 @@ export class StoryExplorerComponent {
       ]
     } else {
       return [
+        PropertyCapacity.Dimension,
         PropertyCapacity.Measure,
         PropertyCapacity.Order,
         PropertyCapacity.MeasureAttributes,
@@ -493,7 +506,9 @@ export class StoryExplorerComponent {
     // Clear slicers for the dimension
     this.slicers.set({
       ...this.slicers(),
-      [dimension]: {}
+      [dimension]: {
+        members: []
+      }
     })
 
     this.setHierarchy(dimension, hierarchy)
@@ -524,7 +539,8 @@ export class StoryExplorerComponent {
   }
 
   dropColumnPredicate(item: CdkDrag<Dimension>) {
-    return item.dropContainer.id === 'ngm-story-explorer__drop-list-measures'
+    // return item.dropContainer.id === 'ngm-story-explorer__drop-list-measures'
+    return true
   }
 
   dropColumn(event: CdkDragDrop<(Dimension | Measure)[]>) {
@@ -532,11 +548,19 @@ export class StoryExplorerComponent {
     if (event.previousContainer === event.container) {
       moveItemInArray(items, event.previousIndex, event.currentIndex)
     } else {
-      items.splice(event.currentIndex, 0, {
-        dimension: C_MEASURES,
-        measure: event.item.data.name,
-        caption: event.item.data.caption
-      })
+      if (event.item.data.role === AggregationRole.measure) {
+        items.splice(event.currentIndex, 0, {
+          dimension: C_MEASURES,
+          measure: event.item.data.name,
+          caption: event.item.data.caption
+        })
+      } else if (event.item.data.dimension) {
+        items.splice(
+          event.currentIndex,
+          0,
+          event.item.data.dimension
+        )
+      }
     }
     this.columns.set(items)
   }

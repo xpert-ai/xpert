@@ -1,42 +1,55 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { Component, inject } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { ISemanticModel } from '@metad/contracts'
+import { MatButtonModule } from '@angular/material/button'
+import { MatIconModule } from '@angular/material/icon'
+import { MatListModule } from '@angular/material/list'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { XpIndicatorRegisterFormComponent } from '@cloud/app/@shared/indicator'
+import {
+  IIndicator,
+  ISemanticModel,
+  IndicatorsService,
+  NgmSemanticModel,
+  SemanticModelServerService
+} from '@metad/cloud/state'
 import { AppearanceDirective, ButtonGroupDirective, ISelectOption, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { Indicator, assign, isNil, isString, omitBy } from '@metad/ocap-core'
+import { Indicator, assign, isNil, omitBy } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IndicatorsService, SemanticModelServerService, NgmSemanticModel } from '@metad/cloud/state'
 import { ToastrService, getErrorMessage, registerModel } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { combineLatest, firstValueFrom } from 'rxjs'
-import { IndicatorRegisterFormComponent } from '../register-form/register-form.component'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
-    MaterialModule,
     FormsModule,
+    DragDropModule,
+    MatListModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatButtonModule,
     TranslateModule,
     AppearanceDirective,
     ButtonGroupDirective,
-    IndicatorRegisterFormComponent
+    XpIndicatorRegisterFormComponent
   ],
   selector: 'pac-indicator-import',
   templateUrl: 'indicator-import.component.html',
   styleUrls: ['indicator-import.component.scss']
 })
 export class IndicatorImportComponent {
-  private readonly data = inject(MAT_DIALOG_DATA)
+  private readonly data = inject(DIALOG_DATA)
   private readonly modelsService = inject(SemanticModelServerService)
   private readonly dsCoreService = inject(NgmDSCoreService)
   private readonly wasmAgent = inject(WasmAgentService)
   private readonly indicatorsService = inject(IndicatorsService)
   private readonly toastrService = inject(ToastrService)
-  private readonly _dialogRef = inject(MatDialogRef<IndicatorImportComponent>)
+  private readonly _dialogRef = inject(DialogRef<IIndicator[]>)
 
   get indicators() {
     return this.data?.indicators
@@ -45,16 +58,27 @@ export class IndicatorImportComponent {
     return this.data?.models
   }
 
-  activedLink = ''
-  indicator = []
+  // activedLink = ''
+  readonly activedIndex = signal(0)
+  readonly _indicator = computed(() => {
+    const indicator = this.indicators?.[this.activedIndex()]
+    return indicator ? [indicator] : []
+  })
+  // indicator = []
   certifications: ISelectOption[] = []
   uploading = false
 
   private modelsSub = combineLatest<ISemanticModel[]>(
-    this.models.map((model) => this.modelsService.getById(model.id, {relations: ['dataSource', 'dataSource.type', 'indicators']}))
-  ).pipe(takeUntilDestroyed()).subscribe((models) => {
-    models.forEach((storyModel) => registerModel(storyModel as NgmSemanticModel, false, this.dsCoreService, this.wasmAgent))
-  })
+    this.models.map((model) =>
+      this.modelsService.getById(model.id, { relations: ['dataSource', 'dataSource.type', 'indicators'] })
+    )
+  )
+    .pipe(takeUntilDestroyed())
+    .subscribe((models) => {
+      models.forEach((storyModel) =>
+        registerModel(storyModel as NgmSemanticModel, false, this.dsCoreService, this.wasmAgent)
+      )
+    })
   constructor() {
     this.certifications =
       this.data.certifications?.map((certification) => ({
@@ -62,20 +86,20 @@ export class IndicatorImportComponent {
         label: certification.name
       })) ?? []
 
-    this.activeLink(this.indicators[0])
+    this.activeLink(0, this.indicators[0])
   }
 
   removeIndicator(index: number) {
     this.indicators.splice(index, 1)
   }
 
-  activeLink(indicator: Indicator) {
-    this.activedLink = indicator.code
-    this.indicator = [indicator]
+  activeLink(index: number, indicator: Indicator) {
+    this.activedIndex.set(index)
+    // this.indicator = [indicator]
   }
 
   onIndicatorChange(indicator: Indicator) {
-    assign(this.indicator[0], indicator)
+    assign(this.indicators[this.activedIndex()], indicator)
   }
 
   async bulkCreate() {
@@ -89,9 +113,9 @@ export class IndicatorImportComponent {
               {
                 ...item,
                 // 向后兼容
-                filters: isString(item.filters) && item.filters!! ? JSON.parse(item.filters) : item.filters,
-                dimensions:
-                  isString(item.dimensions) && item.dimensions ? JSON.parse(item.dimensions) : item.dimensions,
+                // filters: isString(item.filters) && item.filters!! ? JSON.parse(item.filters) : item.filters,
+                // dimensions:
+                //   isString(item.dimensions) && item.dimensions ? JSON.parse(item.dimensions) : item.dimensions,
                 projectId: this.data.projectId || null
               },
               isNil

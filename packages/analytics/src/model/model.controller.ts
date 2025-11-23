@@ -55,7 +55,8 @@ import { SemanticModelCacheDeleteCommand, SemanticModelCreateCommand, SemanticMo
 import { CreateSemanticModelDTO, SemanticModelDTO, SemanticModelPublicDTO, UpdateSemanticModelDTO } from './dto/index'
 import { SemanticModel } from './model.entity'
 import { SemanticModelService } from './model.service'
-import { SemanticModelQueryLog } from '../core/entities/internal'
+import { SemanticModelCache, SemanticModelQueryLog } from '../core/entities/internal'
+import { SemanticModelCacheService } from './cache/cache.service'
 
 
 @ApiTags('SemanticModel')
@@ -65,6 +66,7 @@ import { SemanticModelQueryLog } from '../core/entities/internal'
 export class ModelController extends CrudController<SemanticModel> {
 	constructor(
 		private readonly modelService: SemanticModelService,
+		private readonly cacheService: SemanticModelCacheService,
 		private readonly commandBus: CommandBus,
 	) {
 		super(modelService)
@@ -112,12 +114,17 @@ export class ModelController extends CrudController<SemanticModel> {
 			where.businessAreaId = businessAreaId
 		}
 
-		return await this.modelService.findMy({
+		const { items, total } = await this.modelService.findMy({
 			select,
 			where,
 			relations,
 			order
 		})
+
+		return {
+			items: items.map((model) => new SemanticModelPublicDTO(model)),
+			total
+		}
 	}
 
 	@Get('count')
@@ -309,6 +316,16 @@ export class ModelController extends CrudController<SemanticModel> {
 		return this.commandBus.execute(new SemanticModelCacheDeleteCommand(modelId))
 	}
 
+	@UseGuards(PermissionGuard)
+	@Permissions(AnalyticsPermissionsEnum.MODELS_EDIT)
+	@Delete('/:id/cache/:cacheId')
+	async removeCache(@Param('id', UUIDValidationPipe) modelId: string, @Param('cacheId', UUIDValidationPipe) cacheId: string) {
+		return this.cacheService.delete({
+			id: cacheId,
+			modelId
+		})
+	}
+
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Put(':id/members')
 	async updateMembers(@Param('id') id: string, @Body() members: string[]) {
@@ -329,6 +346,23 @@ export class ModelController extends CrudController<SemanticModel> {
 		
 		const {where} = data
 		return this.modelService.getLogs({
+			...data,
+			where: {
+				...(where ?? {}),
+				modelId: id,
+				createdAt: Between(start, end)
+			},
+		})
+	}
+
+	@Get(':id/caches')
+	async getCaches(@Param('id') id: string, 
+		@Query('data', ParseJsonPipe) data: PaginationParams<SemanticModelCache>,
+		@Query('start') start: string,
+		@Query('end') end: string) {
+		
+		const {where} = data
+		return this.modelService.getCaches({
 			...data,
 			where: {
 				...(where ?? {}),

@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
-import { MatDialog } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTabsModule } from '@angular/material/tabs'
@@ -11,14 +10,13 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { injectFetchModelDetails, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
 import { Indicator, IndicatorsService } from '@metad/cloud/state'
-import { CommandDialogComponent } from '@metad/copilot-angular'
 import { saveAsYaml, uploadYamlFile } from '@metad/core'
 import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
-import { firstValueFrom } from 'rxjs'
+import { firstValueFrom, Subject } from 'rxjs'
 import {
   IIndicator,
   ProjectAPIService,
@@ -55,7 +53,6 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
   NewIndicatorCodePlaceholder = NewIndicatorCodePlaceholder
 
   private projectService = inject(ProjectService)
-  private _dialog = inject(MatDialog)
   readonly #dialog = inject(Dialog)
   readonly #logger = inject(NGXLogger)
   readonly indicatorsService = inject(IndicatorsService)
@@ -68,6 +65,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
 
   readonly hasDirty = this.projectService.hasDirty
 
+  readonly reload$ = new Subject<void>()
 
   isDirty(id: string) {
     return this.projectService.dirty()[id]
@@ -96,12 +94,15 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
     super.removeOpenedLink(link)
   }
 
-  async handleUploadChange(event) {
-    const indicators = await uploadYamlFile<Indicator[]>(event.target.files[0])
+  async handleUploadChange(event: Event) {
+    const indicators = await uploadYamlFile<Indicator[]>((<HTMLInputElement>event.target).files[0])
     const project = this.projectService.project()
     const results = await firstValueFrom(
-      this._dialog
+      this.#dialog
         .open(IndicatorImportComponent, {
+          viewContainerRef: this.#viewContainerRef,
+          backdropClass: 'xp-overlay-share-sheet',
+          panelClass: 'xp-overlay-pane-share-sheet',
           data: {
             indicators,
             models: project.models,
@@ -109,7 +110,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
             projectId: project?.id
           }
         })
-        .afterClosed()
+        .closed
     )
     if (results) {
       // Download and upload results
@@ -117,7 +118,8 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
         `${this.getTranslation('PAC.INDICATOR.IndicatorImportResults', { Default: 'Indicator_Import_Results' })}.yml`,
         results
       )
-      this.projectService.refreshIndicators()
+      this.reload$.next()
+      // this.projectService.refreshIndicators()
 
       this.router.navigate(['.'], { relativeTo: this.route })
     }
@@ -148,24 +150,6 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
         if (result) {
           this.projectService.refresh$.next()
         }
-      })
-  }
-
-  /**
-   * @deprecated use Xpert Agents instand
-   */
-  aiRegister() {
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        disableClose: true,
-        data: {
-          commands: ['indicator']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {
-        //
       })
   }
 

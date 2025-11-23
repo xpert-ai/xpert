@@ -3,6 +3,9 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

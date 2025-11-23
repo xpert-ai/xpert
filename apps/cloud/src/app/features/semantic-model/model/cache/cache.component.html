@@ -1,0 +1,140 @@
+<div class="mb-3 flex justify-between items-center">
+  <div class="h-[41px] flex items-center text-xl font-semibold text-gray-900">
+    {{ 'PAC.MODEL.Cache' | translate: {Default: 'Cache'} }}
+  </div>
+</div>
+
+<div class="w-full flex justify-between items-center mb-2 gap-2">
+  <div class="flex items-center gap-2">
+    <ngm-select [placeholder]="'PAC.MODEL.SelectTimeRange' | translate: {Default: 'Select a time range'}" icon="ri-calendar-line"
+      [selectOptions]="TimeRanges" [(ngModel)]="timeRangeValue" class="min-w-[150px] rounded-lg shadow-sm" />
+    <div class="text-sm font-mono">
+      @if (total() !== null) {
+        {{ 'PAC.MODEL.TotalCacheItems' | translate: {Default: 'Total Cache Items:'} }}
+      }
+      {{ total() }}
+    </div>
+    <div>
+      <i class="ri-information-2-line text-text-tertiary hover:text-text-primary cursor-pointer"
+        [matTooltip]="'PAC.MODEL.ServerCacheConfigInfo' | translate: {Default: 'Server-side caching can be enabled or disabled in the semantic model preferences, and the cache duration can be configured.'}"></i>
+    </div>
+  </div>
+
+  <div>
+    <button type="button" class="flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-hover-bg hover:text-text-destructive" (click)="clearCache()">
+      <i class="ri-eraser-line"></i>
+      {{ 'PAC.MODEL.ClearCache' | translate: {Default: 'Clear Cache'} }}
+    </button>
+  </div>
+</div>
+
+<div class="w-full relative overflow-auto flex-1"
+  waIntersectionObserver
+  waIntersectionThreshold="0.5">
+  <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+      <tr>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-36 truncate">
+          {{ 'PAC.KEY_WORDS.Language' | translate: {Default: 'Language'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-48">
+          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
+          {{ 'PAC.KEY_WORDS.CreatedBy' | translate: {Default: 'Created By'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 ">
+          {{ 'PAC.MODEL.QueryStatement' | translate: {Default: 'Query Statement'} }}
+        </th>
+        <th scope="col" class="w-36 sticky top-0 right-0 bg-gray-50 px-6 py-3 ">
+          {{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of caches(); track item.id) {
+        <tr class="row group cursor-pointer bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+          (click)="preview.set(item)"
+        >
+          <td class="px-4 py-2 whitespace-nowrap truncate">
+            {{item.language}}
+          </td>
+          <td class="px-4 py-2">{{ item.updatedAt | relative }}</td>
+          <td class="px-4 py-2">
+            {{item.createdBy | user }}
+          </td>
+          <td class="px-4 py-2">
+            {{item.query }}
+          </td>
+          <td class="px-4 py-2 w-36 sticky right-0 bg-white dark:bg-gray-800">
+            <div class="pac__table-actions flex gap-1">
+              <button type="button" class="w-7 h-7 rounded-full text-slate-500 hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100"
+                (click)="removeCache(item); $event.stopPropagation()">
+                <i class="ri-delete-bin-line"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (loading()) {
+    <div class="flex justify-center">
+      <ngm-spin />
+    </div>
+  }
+
+  @if (!done()) {
+    <button (waIntersectionObservee)="onIntersection()" class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
+      [disabled]="loading()"
+      (click)="onIntersection()"
+    >
+      <i class="ri-arrow-down-wide-line"></i>
+    </button>
+  }
+</div>
+
+@if (preview(); as item) {
+  <div @slideLeftRight class="absolute right-0 top-2 bottom-2 flex flex-col w-[500px] max-w-full bg-components-card-bg rounded-l-3xl shadow-md border border-solid border-divider-deep border-r-0 overflow-auto">
+    <div class="flex justify-between p-4 pr-1 sticky top-0 bg-components-card-bg z-20">
+      <div class="text-lg font-semibold">{{item.key}}</div>
+
+      <div class="flex items-center gap-2">
+        <div class="text-sm">{{item.updatedAt | relative}}</div>
+        <div class="action-btn action-btn-sm danger z-10" (click)="preview.set(null)">
+          <i class="ri-close-large-line w-4 h-4 flex justify-center items-center text-sm"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2 p-4">
+      <div class="">
+        <span>{{ 'PAC.KEY_WORDS.Language' | translate: {Default: 'Language'} }}:</span>
+        {{item.language}}
+      </div>
+      
+      <div class="text-text-secondary mt-2">
+        {{ 'PAC.MODEL.QueryStatement' | translate: {Default: 'Query Statement'} }}
+      </div>
+      <div class="relative text-sm">
+        <div class="whitespace-pre overflow-auto min-h-[60px] p-2 rounded-lg text-gray-500 bg-gray-50">
+          {{item.query}}
+        </div>
+        <copy2 [content]="item.query" class="absolute top-2 right-2 flex justify-center items-center w-6 h-6 rounded-md hover:bg-hover-bg" />
+      </div>
+      <div class="text-text-secondary mt-2">
+        {{ 'PAC.MODEL.QueryOptions' | translate: {Default: 'Query Options'} }}
+      </div>
+      <div class="relative text-sm p-2 rounded-lg bg-gray-50">
+    
+      </div>
+      <div class="text-text-secondary mt-2">
+        {{ 'PAC.MODEL.QueryResult' | translate: {Default: 'Query Result'} }}
+      </div>
+      <div class="relative text-sm p-2 rounded-lg overflow-auto bg-gray-50">
+        {{ item.data }}
+      </div>
+    </div>
+  </div>
+}

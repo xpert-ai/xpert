@@ -8,6 +8,9 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmCopilotEngineService } from '../../services'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 
+/**
+ * @deprecated use ChatKit instead
+ */
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

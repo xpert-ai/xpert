@@ -83,7 +83,7 @@ export async function createHumanMessage(
 						const docs = await commandBus.execute<LoadFileCommand, Document[]>(new LoadFileCommand(file))
 						return {
 							type: 'text',
-							text: `File: ${file.filePath}\n<file_content>\n${docs[0]?.pageContent || 'No text recognized!'}\n</file_content>`
+							text: `File: ${file.filePath}\n<file_content>\n${docs?.map((doc) => doc.pageContent).join('\n') || 'No text recognized!'}\n</file_content>`
 						}
 					})
 				)),

@@ -40,9 +40,9 @@ export const INDICATOR_AGGREGATORS = [
 ]
 
 /**
- * 指标模板字段列表
+ * Indicator template field list
  */
-export const INDICATOR_COLUMNS = [
+const INDICATOR_COLUMNS = [
   {
     name: 'name',
     label: 'Indicator Name'
@@ -51,10 +51,10 @@ export const INDICATOR_COLUMNS = [
     name: 'code',
     label: 'Indicator Code'
   },
-  {
-    name: 'isActive',
-    label: 'Is Active'
-  },
+  // {
+  //   name: 'isActive',
+  //   label: 'Is Active'
+  // },
   {
     name: 'isApplication',
     label: 'Is App Applicable'
@@ -96,25 +96,29 @@ export const INDICATOR_COLUMNS = [
     label: 'Entity'
   },
   {
-    name: 'calendar',
-    label: 'Calendar'
+    name: 'options',
+    label: 'Options'
   },
-  {
-    name: 'filters',
-    label: 'Filters'
-  },
-  {
-    name: 'dimensions',
-    label: 'Free Dimensions'
-  },
-  {
-    name: 'measure',
-    label: 'Measure'
-  },
-  {
-    name: 'formula',
-    label: 'Formula'
-  },
+  // {
+  //   name: 'calendar',
+  //   label: 'Calendar'
+  // },
+  // {
+  //   name: 'filters',
+  //   label: 'Filters'
+  // },
+  // {
+  //   name: 'dimensions',
+  //   label: 'Free Dimensions'
+  // },
+  // {
+  //   name: 'measure',
+  //   label: 'Measure'
+  // },
+  // {
+  //   name: 'formula',
+  //   label: 'Formula'
+  // },
   {
     name: 'unit',
     label: 'Unit'
@@ -134,6 +138,12 @@ export function injectFetchModelDetails() {
   }
 }
 
+/**
+ * Transform the indicator object to be exported based on the fixed field list.
+ * 
+ * @param indicator 
+ * @returns 
+ */
 export function exportIndicator(indicator: IIndicator) {
   const fieldNames = INDICATOR_COLUMNS.map(({ name }) => name)
   return {

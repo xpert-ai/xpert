@@ -1,4 +1,6 @@
-export const VERSION = '3.6.5'
+import packageJson from '../../package.json'
+export const VERSION = packageJson.version as string
+
 export type IEnvironment = {
     /**
      * Is `production` or `development` evnironment

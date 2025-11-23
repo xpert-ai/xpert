@@ -60,6 +60,9 @@ export class SemanticModelPublicDTO {
 	ownerId: string
 
 	@Expose()
+	businessAreaId: string
+
+	@Expose()
 	@IsOptional()
     members?: IUser[]
 
@@ -74,6 +77,10 @@ export class SemanticModelPublicDTO {
 	@Expose()
 	@IsOptional()
 	updatedAt?: Date
+
+	@Expose()
+	@IsOptional()
+	publishAt?: Date
 
 	@Expose()
 	@Transform(({ value }) => value && new UserPublicDTO(value))

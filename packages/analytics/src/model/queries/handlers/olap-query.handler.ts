@@ -45,6 +45,7 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 		//   Cache
 		const language = model.preferences?.language || acceptLanguage
 		
+		// Enable caching on the published (non-draft) version.
 		let cache: ITryRequest
 		let cacheKey = ''
 		if (!isDraft && model.preferences?.enableCache) {

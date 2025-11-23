@@ -21,7 +21,7 @@ import { SemanticModelServerService } from '@metad/cloud/state'
 import { CopilotChatMessageRoleEnum, CopilotEngine } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
 import { NgmCommonModule, NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, ResizerModule, SplitterModule } from '@metad/ocap-angular/common'
-import { CommandDialogComponent, NgmCopilotChatComponent, provideCopilotDropAction } from '@metad/copilot-angular'
+import { NgmCopilotChatComponent, provideCopilotDropAction } from '@metad/copilot-angular'
 import { DBTable, PropertyAttributes, TableEntity, VirtualCube, pick } from '@metad/ocap-core'
 import { NX_STORY_STORE, NxStoryStore, StoryModel } from '@metad/story/core'
 import { NxSettingsPanelService } from '@metad/story/designer'
@@ -75,8 +75,6 @@ import { ModelPreferencesComponent } from './preferences/preferences.component'
 import {
   CdkDragDropContainers,
   MODEL_TYPE,
-  ModelCubeState,
-  ModelDimensionState,
   SemanticModelEntity,
   SemanticModelEntityType,
   TOOLBAR_ACTION_CATEGORY
@@ -485,19 +483,6 @@ export class ModelComponent {
     }
   }
 
-  aiCreateEntity() {
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        disableClose: true,
-        data: {
-          commands: ['dimension', 'cube', 'table']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
-  }
-
   /**
    * Open the entity edit page
    *
@@ -728,7 +713,7 @@ export class ModelComponent {
   async clearServerCache() {
     this.clearingServerCache = true
     try {
-      await firstValueFrom(this.modelsService.deleteCache(this.model.id))
+      await firstValueFrom(this.modelsService.clearCache(this.model.id))
       this.clearingServerCache = false
       this.#toastr.success('PAC.MODEL.ClearServerCache', {Default: 'Clear server cache successfully'})
     } catch (err) {

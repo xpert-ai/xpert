@@ -70,3 +70,8 @@ export function hierarchizeBusinessAreas(areas: IBusinessArea[]) {
     labelProperty: 'name'
   })
 }
+
+export function injectBusinessAreaTree() {
+  const businessAreaService = inject(BusinessAreasService)
+  return businessAreaService.getGroupsTree()
+}

@@ -20,9 +20,6 @@
           {{ 'PAC.KEY_WORDS.BUSINESS_AREA' | translate: {Default: 'Business Area'} }}
         </th>
         <th scope="col" class="px-6 py-3">
-          {{ 'PAC.KEY_WORDS.CreatedAt' | translate: {Default: 'Created At'} }}
-        </th>
-        <th scope="col" class="px-6 py-3">
           {{ 'PAC.INDICATOR.REGISTER.Status' | translate: {Default: 'Status'} }}
         </th>
         <th scope="col" class="px-6 py-3">
@@ -34,6 +31,13 @@
         <th scope="col" class="px-6 py-3">
           {{ 'PAC.INDICATOR.REGISTER.Visible' | translate: {Default: 'Visible'} }}
         </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.CreatedAt' | translate: {Default: 'Created At'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.PublishedAt' | translate: {Default: 'Published At'} }}
+        </th>
+        
         <th scope="col" class="px-6 py-3 sticky right-0 bg-gray-50 dark:bg-gray-700">
           {{ 'PAC.KEY_WORDS.ACTION' | translate: {Default: 'Action'} }}
         </th>
@@ -41,7 +45,7 @@
     </thead>
     <tbody>
       @for (row of indicators(); track row.id) {
-        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
+        <tr class="group bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
           <td class="w-4 p-4">
             <div class="flex items-center">
               <input id="checkbox-table-search-1" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
@@ -61,9 +65,6 @@
           </td>
           <td class="px-6 py-2">
             {{ row.businessArea?.name }}
-          </td>
-          <td class="px-6 py-2">
-           {{ row.createdAt | relative }}
           </td>
           <td class="px-6 py-2">
            <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
@@ -128,8 +129,14 @@
           <td class="px-6 py-2">
             {{ row.visible ? 'Yes' : 'No' }}
           </td>
+          <td class="px-6 py-2">
+           {{ row.createdAt | relative }}
+          </td>
+          <td class="px-6 py-2">
+           {{ row.publishedAt | relative }}
+          </td>
           <td class="px-6 py-2 text-lg sticky right-0 bg-gray-50 dark:bg-gray-700">
-            <div class="pac__table-actions flex gap-1 group">
+            <div class="pac__table-actions flex gap-1">
               <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg opacity-50 group-hover:opacity-100"
                 (click)="editIndicator(row.id)">
                 <i class="ri-pencil-line"></i>
@@ -152,7 +159,7 @@
 
               <div class="h-2 w-[1px] bg-components-card-bg mx-1 my-auto"></div>
 
-              <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100 duration-300"
+              <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100"
                 (click)="onDelete({id: row.id, name: row.name})">
                 <i class="ri-delete-bin-line"></i>
               </button>
@@ -199,7 +206,7 @@
         {{selectedIndicators().length}} {{ 'PAC.Project.Indicators' | translate: {Default: 'Indicators'} }}
       </div>
       <button type="button" class="btn btn-large" 
-        (click)="export()">
+        (click)="exportSelected()">
         <i class="ri-download-2-line mr-1"></i>
         {{ 'PAC.INDICATOR.MY_INDICATORS.EXPORT' | translate: {Default: "Export"} }}
       </button>
