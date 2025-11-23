@@ -37,32 +37,32 @@
       (cdkDropListDropped)="moveDimension($event)">
       @for (dim of dimensions(); track dim.dimension?.dimension) {
         <div class="surface shrink-0 w-64 h-full flex flex-col justify-start items-stretch rounded-xl overflow-hidden"
-            cdkDrag
-            [cdkDragData]="dim"
+          cdkDrag
+          [cdkDragData]="dim"
         >
-            <div class="shrink-0 p-1 flex flex-wrap items-center gap-1">
-              @for (item of dim.hierarchies; track item.name) {
-                <div class="tag text-sm block font-bold leading-sm px-2 py-1 rounded-lg cursor-pointer
-                    overflow-hidden text-ellipsis whitespace-nowrap"
-                    [class.selected]="item.hierarchy === (dim.dimension.hierarchy ?? dim.dimension.dimension)"
-                    [class.slicered]="slicers()[item.dimension]?.members?.length"
-                    (click)="toggleHierarchy(dim.dimension.dimension, item.hierarchy === dim.dimension.hierarchy ? null : item.hierarchy)"
-                    >
-                    <span>{{item.caption}}</span>
-                </div>
-              }
-            </div>
-            <ngm-member-tree class="flex-1 overflow-auto" displayDensity="compact"
-                [dataSettings]="data.dataSettings"
-                [dimension]="dim.dimension"
-                [options]="{
-                    searchable: true,
-                    multiple: true,
-                    selectionType: FilterSelectionType.Multiple
-                }"
-                [ngModel]="slicers()[dim.dimension.dimension]"
-                (ngModelChange)="onSlicersChange($event, dim.dimension.dimension)"
-            ></ngm-member-tree>
+          <div class="shrink-0 p-1 flex flex-wrap items-center gap-1">
+            @for (item of dim.hierarchies; track item.name) {
+              <div class="tag text-sm block font-bold leading-sm px-2 py-1 rounded-lg cursor-pointer
+                overflow-hidden text-ellipsis whitespace-nowrap"
+                [class.selected]="item.hierarchy === (dim.dimension.hierarchy ?? dim.dimension.dimension)"
+                [class.slicered]="slicers()[item.dimension]?.members?.length"
+                (click)="toggleHierarchy(dim.dimension.dimension, item.hierarchy === dim.dimension.hierarchy ? null : item.hierarchy)"
+                >
+                <span>{{item.caption || item.hierarchy}}</span>
+              </div>
+            }
+          </div>
+          <ngm-member-tree class="flex-1 overflow-auto" displayDensity="compact"
+            [dataSettings]="data.dataSettings"
+            [dimension]="dim.dimension"
+            [options]="{
+              searchable: true,
+              multiple: true,
+              selectionType: FilterSelectionType.Multiple
+            }"
+            [ngModel]="slicers()[dim.dimension.dimension]"
+            (ngModelChange)="onSlicersChange($event, dim.dimension.dimension)"
+          />
         </div>
       }
     </div>
@@ -222,25 +222,25 @@
         <div class="flex-1 w-full overflow-hidden">
           @switch (view) {
             @case ('chart') {
-                <ngm-analytical-card class="w-full h-full group"
-                    [title]="chartTitle()"
-                    [dataSettings]="dataSettingsChart()"
-                    [chartOptions]="chartSettings.chartOptions"
-                    [chartSettings]="chartSettings.chartSettings"
-                    (explain)="setExplains($event)"
-                    >
-                </ngm-analytical-card>
+              <ngm-analytical-card class="w-full h-full group"
+                [title]="chartTitle()"
+                [dataSettings]="dataSettingsChart()"
+                [chartOptions]="chartSettings.chartOptions"
+                [chartSettings]="chartSettings.chartSettings"
+                (explain)="setExplains($event)"
+                >
+              </ngm-analytical-card>
             }
             @case ('table') {
-                <ngm-analytical-grid class="w-full h-full group overflow-auto"
-                    [title]="chartTitle()"
-                    [dataSettings]="dataSettingsGrid()"
-                    [appearance]="{
-                        displayDensity: DisplayDensity.compact
-                    }"
-                    [options]="gridSettings.options"
-                    (explain)="setExplains($event)"
-                ></ngm-analytical-grid>
+              <ngm-analytical-grid class="w-full h-full group overflow-auto"
+                [title]="chartTitle()"
+                [dataSettings]="dataSettingsGrid()"
+                [appearance]="{
+                  displayDensity: DisplayDensity.compact
+                }"
+                [options]="gridSettings.options"
+                (explain)="setExplains($event)"
+              ></ngm-analytical-grid>
             }
           }
         </div>
