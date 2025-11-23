@@ -656,6 +656,7 @@
       "About": "关于",
       "Logout": "退出账号",
       "Integration": "集成",
+      "System Integration": "系统集成",
       "HOME": {
         "TODAY": "今天",
         "Catalog": "目录",
@@ -2693,12 +2694,15 @@
     "Integration": {
       "Integration": "集成",
       "Integrations": "集成",
+      "SystemIntegrations": "系统集成",
+      "SystemIntegration": "系统集成",
       "AddIntegration": "添加集成",
       "Provider": "提供商",
       "SelectProvider": "选择一个提供商",
       "ConfirmDeleteIntegration": "确定删除此集成",
       "WebhookUrl": "回调地址",
-      "AddIntegrationHelp": "了解更多关于自定义集成的信息"
+      "AddIntegrationHelp": "了解更多关于自定义集成的信息",
+      "AllProviders": "所有提供商"
     },
     "Xpert": {
       "ExportXpertDSL": "导出数字专家 DSL",

@@ -32,15 +32,9 @@
         }
       }
 
-      <div class="absolute top-1/2 -translate-y-1/2 -left-2 w-4 h-8 cursor-col-resize resize-x"
+      <div class="absolute top-1/2 -translate-y-1/2 -left-1 w-[2px] h-full flex flex-col justify-center cursor-col-resize resize-x hover:bg-orange-400"
         (mousedown)="onResizeMouseDown($event)">
-        <div class="w-1 h-7 bg-divider-deep rounded-sm"></div>
-      </div>
-
-      <div class="absolute top-2 right-2 z-20 opacity-50 hover:opacity-100" displayDensity="compact">
-        <!-- <button mat-icon-button (click)="close()">
-          <mat-icon>close</mat-icon>
-        </button> -->
+        <div class="w-[2px] h-16 rounded-sm bg-gray-300"></div>
       </div>
     </div>
   }

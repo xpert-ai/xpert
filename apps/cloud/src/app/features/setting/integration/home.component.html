@@ -1,6 +1,30 @@
-<h2 class="pac-page-title">{{ 'PAC.Integration.Integrations' | translate: {Default: 'Integrations' } }}</h2>
+<h2 class="pac-page-title">{{ 'PAC.Integration.SystemIntegrations' | translate: {Default: 'System Integrations' } }}</h2>
 
-<div class="w-full flex justify-start p-4">
+<div class="w-full flex justify-start items-center gap-2 p-4">
+  <ngm-select class="w-64" [selectOptions]="providers()" [(ngModel)]="provider" [placeholder]="'PAC.Integration.AllProviders' | translate: {Default: 'All Providers'}">
+    <div icon>
+      @if (integrationProvider(); as provider) {
+        @if (provider.icon) {
+          <xp-icon [icon]="provider.icon" class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-gray-100 flex justify-center items-center" />
+        } @else if (provider.avatar) {
+          <img class="w-5 h-5 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar">
+        }
+      }
+    </div>
+    <ng-template #option let-option>
+      <div class="relative flex gap-2">
+        @if (option.avatar) {
+          <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar">
+        } @else if (option._icon) {
+          <xp-icon [icon]="option._icon" class="w-8 h-8 shrink-0 rounded-lg bg-gray-100 flex justify-center items-center" />
+        }
+        <div class="flex flex-col">
+          <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
+          <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+        </div>
+      </div>
+    </ng-template>
+  </ngm-select>
   <ngm-search [formControl]="searchControl" />
 </div>
 
@@ -14,7 +38,7 @@
     (create)="newIntegration()"
   />
 
-  @for (item of integrations(); track item.id) {
+  @for (item of filteredIntegrations(); track item.id) {
     <div class="ngm-card w-full p-4 group min-h-[160px] bg-gray-50 dark:bg-neutral-700 hover:bg-white dark:hover:bg-neutral-600">
       <div class="h-full flex flex-col cursor-pointer" (click)="open(item.id)">
         <div class="flex items-start gap-2">
