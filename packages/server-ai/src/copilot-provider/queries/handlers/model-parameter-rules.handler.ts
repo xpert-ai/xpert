@@ -19,8 +19,8 @@ export class CopilotProviderModelParameterRulesHandler
 		const { providerId, modelType, model } = command
 
 		const copilotProvider = await this.service.findOneInOrganizationOrTenant(providerId)
-		const customModel = await this.modelService.findOneOrFailWithoutOrg({
-			where: { providerId, modelType, modelName: model }
+		const customModel = await this.modelService.findOneOrFailByWhereOptions({
+			providerId, modelType, modelName: model
 		})
 
 		const modelProvider = this.providersService.getProvider(copilotProvider.providerName)
