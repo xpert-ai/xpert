@@ -231,7 +231,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			const md5 = new Md5()
 			md5.appendStr(query)
 			key = md5.end() as string
-			cache = await this.cacheService.findOneOrFail({ where: { modelId, key, language } })
+			cache = await this.cacheService.findOneOrFailByWhereOptions({ modelId, key, language })
 			if (cache.success && !options?.forceRefresh) {
 				// TODO 时区有差异
 				const period = (new Date().getTime() - cache.record.createdAt.getTime()) / 1000 - 60 * 60 * 8 // seconds

@@ -12,7 +12,7 @@ export class XpertCreateHandler implements ICommandHandler<XpertCreateCommand> {
 
 	public async execute(command: XpertCreateCommand): Promise<Xpert> {
 		const entity = command.input
-		const result = await this.roleService.findOneOrFail({ where: { name: entity.name } })
+		const result = await this.roleService.findOneOrFailByWhereOptions({ name: entity.name })
 		if (result.success) {
 			throw new Error(`Xpert with name ${entity.name} already exists`)
 		}

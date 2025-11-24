@@ -32,7 +32,7 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 
 		this.logger.debug(`Found default tenant '${tenant?.id}'`)
 
-		const { success, record } = await this.userService.findOneOrFail({
+		const { success, record } = await this.userService.findOneOrFailByOptions({
 			where: { tenantId: tenant.id, email: input.user.email },
 			relations: ['role', 'emailVerification']
 		})

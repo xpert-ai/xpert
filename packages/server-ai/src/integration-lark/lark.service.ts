@@ -344,7 +344,7 @@ export class LarkService {
 
 			// Lark user role
 			const larkConfig = this.configService.get('larkConfig') as IEnvironment['larkConfig']
-			const _role = await this.roleService.findOneOrFail({where: {tenantId: tenantId, name: larkConfig.roleName }})
+			const _role = await this.roleService.findOneOrFailByOptions({where: {tenantId: tenantId, name: larkConfig.roleName }})
 
 			user = await this.userService.create({
 				tenantId,

@@ -79,16 +79,16 @@ export class TenantController extends CrudController<Tenant> {
 	@Public()
 	@HttpCode(HttpStatus.OK)
 	@Get('onboard')
-	async getOnboardDefault(@Req() request: Request): Promise<boolean> {
+	async getOnboardDefault(@Req() request: Request): Promise<ITenant> {
 		const name = request['tenant-domain'] || DEFAULT_TENANT
-		let tenant = await this.tenantService.findOneOrFail({
+		let tenant = await this.tenantService.findOneOrFailByOptions({
 			where: {
 				name
 			},
 			relations: [ 'settings' ]
 		})
 		if (!tenant.success) {
-			tenant = await this.tenantService.findOneOrFail({
+			tenant = await this.tenantService.findOneOrFailByOptions({
 				where: {
 					name: DEFAULT_TENANT
 				},

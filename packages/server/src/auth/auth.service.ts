@@ -406,7 +406,7 @@ export class AuthService extends SocialAuthService {
 				email: input.user.username.toLowerCase()
 			})
 		}
-		const exist = await this.userService.findOneOrFail({
+		const exist = await this.userService.findOneOrFailByOptions({
 			where
 		})
 

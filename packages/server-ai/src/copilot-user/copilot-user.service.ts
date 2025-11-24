@@ -20,7 +20,7 @@ export class CopilotUserService extends TenantOrganizationAwareCrudService<Copil
 	 * Record usage of ai model for user in organization
 	 */
 	async upsert(user: Partial<CopilotUser>): Promise<ICopilotUser> {
-		const existing = await this.findOneOrFail({
+		const existing = await this.findOneOrFailByOptions({
 			where: {
 				tenantId: user.tenantId,
 				organizationId: user.organizationId,

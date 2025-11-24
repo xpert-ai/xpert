@@ -63,7 +63,7 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 					}
 				}
 			}
-			cache = await this.cacheService.findOneOrFail({ where: { tenantId, modelId, key, language } })
+			cache = await this.cacheService.findOneOrFailByWhereOptions({ tenantId, modelId, key, language })
 			if (cache.success && !forceRefresh) {
 				// TODO: Time zone differences
 				const period = (new Date().getTime() - cache.record.createdAt.getTime()) / 1000 - 60 * 60 * 8 // seconds

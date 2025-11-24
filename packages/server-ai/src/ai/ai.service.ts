@@ -20,7 +20,7 @@ export class AiService {
 
 		if (result?.enabled) {
 			// Check token usage in organizaiton
-			const usage = await this.copilotUserService.findOneOrFail({
+			const usage = await this.copilotUserService.findOneOrFailByOptions({
 				where: { userId, orgId: organizationId, provider: result.provider }
 			})
 			if (usage.success && usage.record.tokenLimit) {

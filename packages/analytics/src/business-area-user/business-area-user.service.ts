@@ -63,10 +63,10 @@ export class BusinessAreaUserService extends TenantOrganizationAwareCrudService<
 		const entities = []
 		for (const {id, role} of users) {
 			const user = await this.userRepository.findOneBy({id})
-			const exists = await this.findOneOrFail({where: {
+			const exists = await this.findOneOrFailByWhereOptions({
 				businessAreaId: businessAreaId,
 				userId: user.id,
-			}})
+			})
 
 			if (!exists.success) {
 				entities.push(

@@ -62,12 +62,10 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 	}
 
 	public async create(entity: DeepPartial<SemanticModelEntity>, ...options: any[]): Promise<SemanticModelEntity> {
-		const _entity = await this.findOneOrFail({
-			where: {
+		const _entity = await this.findOneOrFailByWhereOptions({
 				modelId: entity.modelId,
 				name: entity.name
-			}
-		})
+			})
 
 		if (_entity.success) {
 			await this.update(_entity.record.id, entity)
