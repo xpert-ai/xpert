@@ -104,24 +104,22 @@
           }
         }
 
-        @if (!node.parentId) {
+        @if (!node.parentId && rootAgent().key !== node.key) {
           <div class="node-toolbar absolute right-0 -top-8 flex items-center gap-1 p-0.5 rounded-lg border-[0.5px] shadow-xs
             bg-white border-gray-100  text-gray-500">
-            @if (rootAgent().key !== node.key) {
-              <button type="button" class="flex items-center justify-center w-6 h-6 p-0.5 rounded-md cursor-pointer
-                hover:bg-red-500/10 hover:text-red-500"
-                (click)="removeNode(node.key)">
-                <i class="ri-close-line"></i>
-              </button>
+            <button type="button" class="flex items-center justify-center w-6 h-6 p-0.5 rounded-md cursor-pointer
+              hover:bg-red-500/10 hover:text-red-500"
+              (click)="removeNode(node.key)">
+              <i class="ri-close-line"></i>
+            </button>
 
-              <button type="button" class="flex items-center justify-center w-6 h-6 p-0.5 rounded-md cursor-pointer hover:bg-hover-bg"
-                [cdkMenuTriggerFor]="nodeMenu"
-                [cdkMenuTriggerData]="{node: node}"
-                (click)="$event.stopPropagation()"
-              >
-                <i class="ri-more-line"></i>
-              </button>
-            }
+            <button type="button" class="flex items-center justify-center w-6 h-6 p-0.5 rounded-md cursor-pointer hover:bg-hover-bg"
+              [cdkMenuTriggerFor]="nodeMenu"
+              [cdkMenuTriggerData]="{node: node}"
+              (click)="$event.stopPropagation()"
+            >
+              <i class="ri-more-line"></i>
+            </button>
           </div>
         }
 

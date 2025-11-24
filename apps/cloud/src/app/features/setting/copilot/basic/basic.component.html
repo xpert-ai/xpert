@@ -22,7 +22,7 @@
       <mat-panel-title>
         @if (primary(); as copilot) {
           @if (copilot.modelProvider?.provider && !expansion.expanded) {
-            <div class="flex">
+            <div class="flex" [matTooltip]="copilot.id" matTooltipPosition="before">
               @if (copilot.modelProvider.provider.icon_large) {
                 <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
               } @else {
