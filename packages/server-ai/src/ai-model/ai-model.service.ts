@@ -21,7 +21,7 @@ export class AIProvidersService {
 	private positions: Record<string, number> = null
 
 	getProvider(name: string, throwError = false): IAIModelProviderStrategy | undefined {
-		const provider = this.registry.getProvider(name)
+		const provider = name ? this.registry.getProvider(name) : null
 		if (!provider) {
 			try {
 			    return this.strategyRegistry.get(name)

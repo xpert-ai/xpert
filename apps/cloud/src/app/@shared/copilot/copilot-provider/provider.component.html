@@ -8,7 +8,8 @@
           class="w-auto h-8 mb-2"
         />
       </div>
-    } @else {
+    }
+    @if (!largeIcon()) {
       <div class="flex items-center">
         {{ label() | i18n }}
       </div>

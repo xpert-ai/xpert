@@ -1,6 +1,7 @@
 provider: google
 label:
-  en_US: Google
+  en_US: Google ❌ (Deprecated)
+  zh_Hans: 谷歌 ❌（已弃用）
 description:
   en_US: Google's Gemini model.
   zh_Hans: 谷歌提供的 Gemini 模型.
