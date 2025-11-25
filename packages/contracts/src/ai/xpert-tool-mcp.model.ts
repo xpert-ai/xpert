@@ -56,6 +56,11 @@ export type TMCPServer = {
   url?: string,
   headers?: Record<string, string>
   useNodeEventSource?: boolean
+  /**
+   * Default timeout in milliseconds for tool execution. Must be greater than 0.
+   * If not specified, tools will use their own configured timeout values.
+   */
+  defaultToolTimeout?: number
 
   files?: {name: string; content: string}[]
 

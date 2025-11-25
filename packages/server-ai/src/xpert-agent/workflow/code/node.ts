@@ -17,7 +17,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get, isNil } from 'lodash'
 import { SandboxVMCommand } from '../../../sandbox'
-import { AgentStateAnnotation, nextWorkflowNodes, stateWithEnvironment, translate } from '../../../shared'
+import { AgentStateAnnotation, completeParametersDef, nextWorkflowNodes, stateWithEnvironment, translate } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { WorkflowCodeValidator } from './validator'
 import { XpertWorkflowConfigException } from '../../../core'
@@ -208,7 +208,7 @@ export function createCodeNode(
 
 export function codeOutputVariables(entity: IWorkflowNode) {
 	return [
-		...((<IWFNCode>entity).outputs ?? []),
+		...completeParametersDef((<IWFNCode>entity).outputs ?? []),
 		{
 			type: XpertParameterTypeEnum.STRING,
 			name: ErrorChannelName,
