@@ -3,11 +3,11 @@ import { ConfigService } from '@metad/server-config'
 import { loadYamlFile } from '@metad/server-core'
 import { Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 import * as path from 'path'
 import { BUILTIN_TOOLSET_REPOSITORY } from '../../provider/builtin'
 import { TToolsetProviderSchema } from '../../types'
 import { ListBuiltinToolProvidersQuery } from '../list-builtin-providers.query'
-import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 
 @QueryHandler(ListBuiltinToolProvidersQuery)
 export class ListBuiltinToolProvidersHandler implements IQueryHandler<ListBuiltinToolProvidersQuery> {
@@ -50,6 +50,12 @@ export class ListBuiltinToolProvidersHandler implements IQueryHandler<ListBuilti
 
 		const pluginProviders = this.toolsetRegistry.list()
 		pluginProviders.forEach((provider) => {
+			if (names?.length && !names.includes(provider.meta.name)) {
+				return
+			}
+			if (tags?.length && !tags.every((tag) => provider.meta.tags?.includes(tag as ToolTagEnum))) {
+				return
+			}
 			items.push({
 				identity: {
 					author: provider.meta.author,
