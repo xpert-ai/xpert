@@ -109,15 +109,22 @@
         [cdkMenuTriggerFor]="filterFieldsMenu.template"
         [cdkMenuTriggerData]="{trigger: trigger}"
       >
-        <div class="inline-block grow">
-          @for (field of filteringFields(); track field) {
+        <div class="inline-block grow text-left">
+          @for (field of filteringFields(); track field; let last = $last) {
             <div class="inline-block text-sm text-text-secondary">{{field.key}}</div>
-            ,
+            @if (!last) {
+              <span>,</span>
+            }
+          } @empty {
+            <div class="inline-block text-sm text-text-tertiary">{{ 'PAC.Xpert.SelectFieldsAsMetadataFilter' | translate: { Default: 'Select fields to use as metadata filtering conditions' } }}</div>
           }
         </div>
         <i class="ri-arrow-down-s-line inline-flex w-4 h-4 ml-1 justify-center items-center text-text-tertiary group-hover:text-text-primary"></i>
         <div class="w-4 h-4 inline-flex justify-center items-center cursor-pointer text-text-quaternary hover:text-text-tertiary"
-          (click)="clearFilteringFields()">
+          [matTooltip]="'PAC.ACTIONS.Clear' | translate: { Default: 'Clear' }"
+          matTooltipPosition="above"
+          (click)="clearFilteringFields()"
+          >
           <i class="ri-close-circle-line"></i>
         </div>
       </button>

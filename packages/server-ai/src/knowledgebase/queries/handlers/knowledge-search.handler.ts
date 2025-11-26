@@ -63,7 +63,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 						}
 					}))
 				} else {
-					docs = await this.similaritySearchWithScore(kb, query, k ?? kb.recall?.topK ?? 1000, filter, command.input.filtering_conditions)
+					docs = await this.similaritySearchWithScore(kb, query, k, filter, command.input.filtering_conditions)
 				}
 
 				// Log the retrieval results
@@ -102,6 +102,12 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
 	/**
 	 * Built-in knowledge base vector search
+	 * 
+	 * @param kb Knowledgebase entity
+	 * @param query User question
+	 * @param k Client requested top K
+	 * @param filter Metadata filter
+	 * @param filtering_conditions Advanced filtering conditions
 	 */
 	async similaritySearchWithScore(
 		kb: IKnowledgebase,
@@ -142,7 +148,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 				}
 			}
 		}
-		const items = await vectorStore.similaritySearchWithScore(query, k * 10, filter)
+		const items = await vectorStore.similaritySearchWithScore(query, kb.recall?.topK, filter)
 		const chunkMap = new Map<string, Document<ChunkMetadata>>()
 		// Split into parent and child chunks
 		const parentChunkIds = new Set<string>()
@@ -229,7 +235,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 		// Rerank the documents if a rerank model is set
 		if (kb.rerankModelId && docs.length > 0) {
 			try {
-				const rerankedDocs = await vectorStore.rerank(docs, query, { topN: Math.min(docs.length, k ?? 100) })
+				const rerankedDocs = await vectorStore.rerank(docs, query, { topN: Math.min(docs.length, k ?? kb.recall?.topK) })
 				return rerankedDocs.map(({ index, relevanceScore }) => {
 					return {
 						...docs[index],

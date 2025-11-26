@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { CloseSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { IKnowledgebase, TXpertTeamNode, KnowledgebaseService, AiModelTypeEnum, getErrorMessage, TKBRecallParams, TSelectOption, STANDARD_METADATA_FIELDS, KBMetadataFieldDef, WorkflowLogicalOperator } from 'apps/cloud/src/app/@core'
+import { IKnowledgebase, TXpertTeamNode, KnowledgebaseService, AiModelTypeEnum, getErrorMessage, TSelectOption, STANDARD_METADATA_FIELDS, KBMetadataFieldDef, WorkflowLogicalOperator } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertKnowledgeTestComponent } from './test/test.component'
@@ -162,7 +162,7 @@ export class XpertStudioPanelKnowledgeComponent {
   })
 
   readonly filteringFields = computed(() => this.filteringFieldNames().map((field) => 
-    this.metadataFields().find((f) => f.key === field))
+    this.metadataFields().find((f) => f.key === field)).filter((f) => f)
   )
 
   openTest() {
