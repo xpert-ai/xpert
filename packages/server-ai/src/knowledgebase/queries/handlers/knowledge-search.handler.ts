@@ -142,7 +142,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 				}
 			}
 		}
-		const items = await vectorStore.similaritySearchWithScore(query, k, filter)
+		const items = await vectorStore.similaritySearchWithScore(query, k * 10, filter)
 		const chunkMap = new Map<string, Document<ChunkMetadata>>()
 		// Split into parent and child chunks
 		const parentChunkIds = new Set<string>()
