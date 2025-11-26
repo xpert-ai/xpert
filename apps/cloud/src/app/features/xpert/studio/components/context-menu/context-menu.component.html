@@ -211,6 +211,18 @@
       <div class="text-text-primary">{{'PAC.Xpert.Template' | translate: {Default: 'Template'} }}</div>
     </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowJSONStringify()"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.JSON_STRINGIFY" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Workflow.JSONStringify' | translate: {Default: 'JSON Stringify'} }}</div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowJSONParse()"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.JSON_PARSE" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Workflow.JSONParse' | translate: {Default: 'JSON Parse'} }}</div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowAnswer()"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ANSWER" class="w-6 h-6 shrink-0 mr-2" />

@@ -300,6 +300,24 @@ export class XpertStudioContextMenuComponent {
       ]
     } as IWFNTemplate)
   }
+
+  addWorkflowJSONStringify() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.JSON_STRINGIFY).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.JSON_STRINGIFY,
+      key: genXpertTemplateKey(),
+      title: this.#translate.instant('PAC.Workflow.JSONStringify', { Default: 'JSON Stringify' }) + (length ? ` ${length + 1}` : ''),
+    } as IWorkflowNode)
+  }
+
+  addWorkflowJSONParse() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.JSON_PARSE).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.JSON_PARSE,
+      key: genXpertTemplateKey(),
+      title: this.#translate.instant('PAC.Workflow.JSONParse', { Default: 'JSON Parse' }) + (length ? ` ${length + 1}` : ''),
+    } as IWorkflowNode)
+  }
   
   addWorkflowVariableAssigner() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ASSIGNER).length ?? 0

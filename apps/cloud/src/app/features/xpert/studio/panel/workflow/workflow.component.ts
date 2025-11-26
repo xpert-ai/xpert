@@ -51,6 +51,8 @@ import { XpertWorkflowPanelDBUpdateComponent } from './db-update/db-update.compo
 import { XpertWorkflowPanelDBSQLComponent } from './db-sql/db-sql.component'
 import { XpertWorkflowPanelDBDeleteComponent } from './db-delete/db-delete.component'
 import { IconComponent } from '@cloud/app/@shared/avatar'
+import { XpertWorkflowPanelJSONStringifyComponent } from './json-stringify/json-stringify.component'
+import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -98,7 +100,9 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
     XpertWorkflowPanelDBInsertComponent,
     XpertWorkflowPanelDBUpdateComponent,
     XpertWorkflowPanelDBSQLComponent,
-    XpertWorkflowPanelDBDeleteComponent
+    XpertWorkflowPanelDBDeleteComponent,
+    XpertWorkflowPanelJSONStringifyComponent,
+    XpertWorkflowPanelJSONParseComponent
   ],
   animations: [IfAnimation,]
 })

@@ -106,6 +106,12 @@
   @case (eWorkflowNodeTypeEnum.CODE) {
     <xpert-studio-panel-workflow-code [node]="node()" [wfNode]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.JSON_PARSE) {
+    <xp-workflow-panel-json-parse [node]="node()" />
+  }
+  @case (eWorkflowNodeTypeEnum.JSON_STRINGIFY) {
+    <xp-workflow-panel-json-stringify [node]="node()" />
+  }
   @case (eWorkflowNodeTypeEnum.HTTP) {
     <xpert-workflow-http [node]="node()" [wfNode]="wfNode()" />
   }

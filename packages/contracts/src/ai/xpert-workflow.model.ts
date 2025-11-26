@@ -28,15 +28,9 @@ export enum WorkflowNodeTypeEnum {
   IF_ELSE = 'if-else',
   LIST_OPERATOR = 'list-operator',
   VARIABLE_AGGREGATOR = 'variable-aggregator',
-  // SPLITTER = 'splitter',
   ITERATING = 'iterating',
-  ANSWER = 'answer',
-  CODE = 'code',
   HTTP = 'http',
-  KNOWLEDGE = 'knowledge',
   SUBFLOW = 'subflow',
-  TEMPLATE = 'template',
-  CLASSIFIER = 'classifier',
   TOOL = 'tool',
   AGENT_TOOL = 'agent-tool',
   NOTE = 'note',
@@ -53,31 +47,42 @@ export enum WorkflowNodeTypeEnum {
   KNOWLEDGE_BASE = 'knowledgebase',
 
   // ===============================
+  // 📦 Transform Nodes
+  // ===============================
+  CLASSIFIER = 'classifier',
+  KNOWLEDGE = 'knowledge',
+  CODE = 'code',
+  TEMPLATE = 'template',
+  ANSWER = 'answer',
+  JSON_STRINGIFY = 'json-stringify',
+  JSON_PARSE = 'json-parse',
+
+  // ===============================
   // 📦 Database Operation Nodes
   // ===============================
 
   /**
-   * 自定义 SQL
+   * Custom SQL
    */
   DB_SQL = 'db-sql',
 
   /**
-   * 新增数据（INSERT）
+   * Insert data (INSERT)
    */
   DB_INSERT = 'db-insert',
 
   /**
-   * 更新数据（UPDATE）
+   * Update data (UPDATE)
    */
   DB_UPDATE = 'db-update',
 
   /**
-   * 删除数据（DELETE）
+   * Delete data (DELETE)
    */
   DB_DELETE = 'db-delete',
 
   /**
-   * 查询数据（SELECT）
+   * Query data (SELECT)
    */
   DB_QUERY = 'db-query',
   
@@ -445,6 +450,16 @@ export interface IWFNTask extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.TASK,
   descriptionPrefix?: string
   descriptionSuffix?: string
+}
+
+export interface IWFNJSONStringify extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.JSON_STRINGIFY
+  inputVariable: string
+}
+
+export interface IWFNJSONParse extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.JSON_PARSE
+  inputVariable: string
 }
 
 export function genXpertTriggerKey() {

@@ -8,7 +8,6 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { CommonModule } from '@angular/common'
 import { Dialog } from '@angular/cdk/dialog'
 import { WorkspaceSelectDatabaseComponent } from '@cloud/app/@shared/workspace'
-import { XpertVariableInputComponent } from '@cloud/app/@shared/agent/variable-input/input.component'
 import { TXpertTableColumn } from '@metad/contracts'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 
@@ -21,7 +20,7 @@ type InsertColumnConfig = InsertColumns[keyof InsertColumns]
   styleUrls: ['./db-insert.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule, XpertVariableInputComponent, StateVariableSelectComponent]
+  imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule, StateVariableSelectComponent]
 })
 export class XpertWorkflowPanelDBInsertComponent extends XpertWorkflowBaseComponent {
   eModelType = AiModelTypeEnum
