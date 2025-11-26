@@ -1,9 +1,10 @@
-import { embeddingCubeCollectionName } from '@metad/contracts'
-import { estimateTokenUsage } from '@metad/copilot'
+import { AiProviderRole, embeddingCubeCollectionName } from '@metad/contracts'
 import { runWithRequestContext, UserService } from '@metad/server-core'
+import { CopilotOneByRoleQuery, CopilotTokenRecordCommand, getCopilotModel } from '@metad/server-ai'
 import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { countTokensSafe } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
 import { GetDimensionMembersCommand } from '../model-member/commands'
 import { CreateVectorStoreCommand } from '../model-member/commands/'
@@ -58,22 +59,32 @@ export class EntityMemberProcessor {
 				} catch (err) {
 					//
 				}
+				// Use system embedding copilot model for embeddings
+				const copilot = await this.queryBus.execute(
+					new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding)
+				)
 
+				let totalTokens = 0
 				let count = 0
 				while (batchSize * count < members.length) {
 					const batch = members.slice(batchSize * count, batchSize * (count + 1))
-					// Record token usage
-					const tokenUsed = batch.reduce((total, doc) => total + estimateTokenUsage(doc.pageContent), 0)
-					// await this.commandBus.execute(
-					// 	new CopilotTokenRecordCommand({
-					// 		tenantId,
-					// 		organizationId,
-					// 		userId: createdById,
-					// 		copilotId: copilot.id,
-					// 		tokenUsed,
-					// 		model: getCopilotModel(copilot)
-					// 	})
-					// )
+					// Count and Record token usage
+					let tokenUsed = 0
+					batch.forEach((chunk) => {
+						chunk.metadata.tokens = countTokensSafe(chunk.pageContent)
+						tokenUsed += chunk.metadata.tokens
+					})
+					totalTokens += tokenUsed
+					await this.commandBus.execute(
+						new CopilotTokenRecordCommand({
+							tenantId,
+							organizationId,
+							userId: createdById,
+							copilotId: copilot.id,
+							tokenUsed,
+							model: getCopilotModel(copilot)
+						})
+					)
 
 					const entities = await this.memberService.bulkCreate(model, cube, batch)
 					if (vectorStore) {
@@ -123,7 +134,8 @@ export class EntityMemberProcessor {
 							id: job.id,
 							status: 'completed',
 							progress: 100,
-							endAt: new Date()
+							endAt: new Date(),
+							tokens: totalTokens
 						}
 					})
 				)

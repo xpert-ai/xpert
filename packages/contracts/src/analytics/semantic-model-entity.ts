@@ -27,6 +27,7 @@ export type SemanticModelEntityJob = {
   error?: string
   createdAt?: Date
   endAt?: Date
+  tokens?: number
 }
 
 export interface ISemanticModelEntity extends IBasePerTenantAndOrganizationEntityModel {

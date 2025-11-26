@@ -5,7 +5,7 @@ import { runWithRequestContext, UserService } from '@metad/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, countTokensSafe } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
@@ -93,6 +93,7 @@ export class KnowledgeDocumentConsumer {
 						// Count and Record token usage
 						let tokenUsed = 0
 						batch.forEach((chunk) => {
+							chunk.metadata.tokens = countTokensSafe(chunk.pageContent)
 							tokenUsed += chunk.metadata.tokens
 						})
 						docTokenUsed += tokenUsed
@@ -117,7 +118,11 @@ export class KnowledgeDocumentConsumer {
 							this.logger.debug(`[Job: entity '${job.id}'] Cancelled`)
 							return
 						}
-						await this.documentService.update(doc.id, { status: KBDocumentStatusEnum.EMBEDDING, progress: Number(progress), metadata: { ...doc.metadata, tokens: docTokenUsed } })
+						await this.documentService.update(doc.id, {
+							status: KBDocumentStatusEnum.EMBEDDING,
+							progress: Number(progress),
+							metadata: { ...doc.metadata, tokens: docTokenUsed }
+						})
 					}
 				}
 

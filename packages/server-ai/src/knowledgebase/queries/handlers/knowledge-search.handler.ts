@@ -186,6 +186,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 				const doc = chunkMap.get(chunk.metadata.chunkId)
 				if (doc) {
 					chunk.metadata.score = doc.metadata.score
+					chunk.metadata.tokens = doc.metadata.tokens
 				}
 				docs.push(chunk)
 			})
@@ -215,6 +216,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 					const doc = chunkMap.get(child.metadata.chunkId)
 					if (doc) {
 						child.metadata.score = doc.metadata.score
+						child.metadata.tokens = doc.metadata.tokens
 						if (!chunk.metadata.score || chunk.metadata.score < doc.metadata.score) {
 							chunk.metadata.score = doc.metadata.score
 						}
