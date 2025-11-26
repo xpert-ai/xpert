@@ -15,7 +15,7 @@ import {
 	XpertParameterTypeEnum
 } from '@metad/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import { AgentStateAnnotation, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { FakeStreamingChatModel } from '../../agent'
 
@@ -66,7 +66,7 @@ export function createAnswerNode(
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 
-				const aiMessage = await AIMessagePromptTemplate.fromTemplate(entity.promptTemplate, {
+				const aiMessage = await AIMessagePromptTemplate.fromTemplate(entity.promptTemplate ?? '', {
 					templateFormat: 'mustache'
 				}).format(stateToParameters(state, environment))
 
@@ -130,8 +130,5 @@ export function createAnswerNode(
 				)
 			}
 		},
-		// navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-		// 	return nextWorkflowNodes(graph, node.key, state)
-		// }
 	}
 }
