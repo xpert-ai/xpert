@@ -29,6 +29,10 @@ export class DocumentSimpleDTO implements Partial<IKnowledgeDocument> {
 	status: KBDocumentStatusEnum
 
 	@Expose()
+	@ApiProperty({ type: () => Number, required: false, nullable: true })
+	progress?: number | null
+
+	@Expose()
 	@ApiProperty({ type: () => String, format: 'date-time' })
 	createdAt: Date
 

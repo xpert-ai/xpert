@@ -191,7 +191,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 										if (await this.checkIfJobCancelled(document.id)) {
 											throw KBDocumentStatusEnum.CANCEL
 										}
-										await this.documentService.update(document.id, { progress: Number(progress) })
+										await this.documentService.update(document.id, { status: KBDocumentStatusEnum.EMBEDDING, progress: Number(progress) })
 									}
 								}
 								await this.documentService.update(document.id, {

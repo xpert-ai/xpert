@@ -293,7 +293,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 				..._,
 				metadata: {
 					..._.metadata,
-					tokens: countTokensSafe(_.pageContent)
+					// tokens: countTokensSafe(_.pageContent)
 				},
 				documentId: document.id,
 				knowledgebaseId: document.knowledgebaseId

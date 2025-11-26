@@ -194,7 +194,7 @@ export class KnowledgeDocumentsComponent {
             }
             return this.knowledgeDocumentAPI
               .getAll({
-                select: ['id', 'name', 'status', 'disabled', 'sourceType', 'type', 'category', 'createdAt', 'updatedAt', 'processMsg', 'sourceConfig', 'folder'],
+                select: ['id', 'name', 'status', 'disabled', 'sourceType', 'type', 'category', 'createdAt', 'updatedAt', 'processMsg', 'progress', 'sourceConfig', 'folder'],
                 where,
                 relations: ['storageFile'],
                 order: {
