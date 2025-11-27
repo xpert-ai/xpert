@@ -55,7 +55,9 @@ import {
   genXpertDBQueryKey,
   genXpertDBDeleteKey,
   genXpertDBSqlKey,
-  IWorkflowNodeDBOperation
+  IWorkflowNodeDBOperation,
+  genJSONStringifyKey,
+  genJSONParseKey
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -305,7 +307,7 @@ export class XpertStudioContextMenuComponent {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.JSON_STRINGIFY).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.JSON_STRINGIFY,
-      key: genXpertTemplateKey(),
+      key: genJSONStringifyKey(),
       title: this.#translate.instant('PAC.Workflow.JSONStringify', { Default: 'JSON Stringify' }) + (length ? ` ${length + 1}` : ''),
     } as IWorkflowNode)
   }
@@ -314,7 +316,7 @@ export class XpertStudioContextMenuComponent {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.JSON_PARSE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.JSON_PARSE,
-      key: genXpertTemplateKey(),
+      key: genJSONParseKey(),
       title: this.#translate.instant('PAC.Workflow.JSONParse', { Default: 'JSON Parse' }) + (length ? ` ${length + 1}` : ''),
     } as IWorkflowNode)
   }

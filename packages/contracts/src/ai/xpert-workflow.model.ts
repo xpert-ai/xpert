@@ -474,6 +474,13 @@ export function genVariableAggregatorKey() {
   return letterStartSUID('VariableAggregator_')
 }
 
+export function genJSONStringifyKey() {
+  return letterStartSUID('JSONStringify_')
+}
+export function genJSONParseKey() {
+  return letterStartSUID('JSONParse_')
+}
+
 export function isAgentKey(key: string) {
   return key?.toLowerCase().startsWith('agent_')
 }
