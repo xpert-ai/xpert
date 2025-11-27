@@ -6,7 +6,7 @@ export interface PluginMeta {
   name: PluginName
   version: string
   icon?: IconDefinition
-  category: 'set' | 'doc-source' | 'agent' | 'tools' | 'model' | 'vlm' | 'vector-store' | 'integration' | 'datasource' | 'database'
+  category: 'set' | 'doc-source' | 'agent' | 'tools' | 'model' | 'vlm' | 'vector-store' | 'integration' | 'datasource' | 'database' | 'middleware'
   displayName: string
   description: string
   keywords?: string[]

@@ -18,8 +18,9 @@ import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEvent
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
-import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
+import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -48,6 +49,9 @@ import { XpertCollaborator } from '../../../shared/agent/xpert'
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
 	readonly #logger = new Logger(XpertAgentSubgraphHandler.name)
 
+	@Inject(AgentMiddlewareRegistry)
+	private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry
+
 	constructor(
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
 		private readonly commandBus: CommandBus,
@@ -71,6 +75,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				`Xpert agent not found for '${xpert.name}' and key or name '${agentKeyOrName}', draft is ${command.options?.isDraft}`
 			)
 		}
+
+		const middlewares = this.agentMiddlewareRegistry.list()
+		console.log('Registered agent middlewares:', middlewares.map((mw) => mw.meta))
 
 		// Hidden this agent node: the graph created is a pure workflow starting from start node
 		const hiddenAgent = agent.options?.hidden
