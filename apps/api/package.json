@@ -38,10 +38,7 @@
   },
   "dependencies": {
     "@nestjs/platform-socket.io": "^11.1.6",
-    "@nestjs/websockets": "^11.1.6",
-    "@xpert-ai/plugin-file-system": "^0.0.2",
-    "@xpert-ai/plugin-firecrawl": "^0.0.1",
-    "@xpert-ai/plugin-dify": "^0.0.3"
+    "@nestjs/websockets": "^11.1.6"
   },
   "devDependencies": {
     "@types/socket.io": "3.0.1",

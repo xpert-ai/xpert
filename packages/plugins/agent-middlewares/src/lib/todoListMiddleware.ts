@@ -1,7 +1,6 @@
 import { SystemMessage } from '@langchain/core/messages'
 import { Injectable } from '@nestjs/common'
-import { AgentMiddlewareStrategy, IAgentMiddlewareStrategy } from '@xpert-ai/plugin-sdk'
-import { PromiseOrValue, AgentMiddleware } from 'packages/plugin-sdk/src/lib/agent/middleware/types'
+import { AgentMiddleware, AgentMiddlewareStrategy, IAgentMiddlewareStrategy, PromiseOrValue } from '@xpert-ai/plugin-sdk'
 
 /**
  * Description for the write_todos tool

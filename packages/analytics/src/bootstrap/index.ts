@@ -134,9 +134,9 @@ export async function preBootstrapPlugins() {
 	const { modules } = await registerPluginsAsync({
 		plugins: [
 			'@xpert-ai/plugin-agent-middlewares',
-			'@xpert-ai/plugin-dify',
-			'@xpert-ai/plugin-file-system',
-			'@xpert-ai/plugin-firecrawl',
+			// '@xpert-ai/plugin-dify',
+			// '@xpert-ai/plugin-file-system',
+			// '@xpert-ai/plugin-firecrawl',
 			'@xpert-ai/plugin-integration-github',
 			// '@xpert-ai/plugin-ocr-paddle',
 			'@xpert-ai/plugin-trigger-schedule',
