@@ -86,6 +86,10 @@ export enum WorkflowNodeTypeEnum {
    */
   DB_QUERY = 'db-query',
   
+  // ===============================
+  // 🏆 Pro Nodes
+  // ===============================
+  SKILL = 'skill',
 }
 
 export interface IWorkflowNode {
