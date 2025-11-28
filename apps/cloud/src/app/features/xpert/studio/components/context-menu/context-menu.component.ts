@@ -57,7 +57,9 @@ import {
   genXpertDBSqlKey,
   IWorkflowNodeDBOperation,
   genJSONStringifyKey,
-  genJSONParseKey
+  genJSONParseKey,
+  IWFNSkill,
+  genXpertSkillKey
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -497,5 +499,15 @@ export class XpertStudioContextMenuComponent {
       key,
       title,
     } as IWorkflowNodeDBOperation)
+  }
+
+  // Pro
+  addSkill() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.SKILL).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.SKILL,
+      key: genXpertSkillKey(),
+      title: this.#translate.instant('PAC.Workflow.Skill', { Default: 'Skill' }) + (length ? ` ${length + 1}` : ''),
+    } as IWFNSkill)
   }
 }

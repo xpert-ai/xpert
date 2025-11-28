@@ -44,6 +44,7 @@ import { XpertWorkflowNodeDBSqlComponent } from './db-sql/db-sql.component'
 import { XpertWorkflowNodeDBDeleteComponent } from './db-delete/db-delete.component'
 import { XpertWorkflowNodeJSONStringifyComponent } from './json-stringify/json-stringify.component'
 import { XpertWorkflowNodeJSONParseComponent } from './json-parse/json-parse.component'
+import { XpertWorkflowNodeSkillComponent } from './skill/skill.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -86,6 +87,7 @@ import { XpertWorkflowNodeJSONParseComponent } from './json-parse/json-parse.com
     XpertWorkflowNodeDBDeleteComponent,
     XpertWorkflowNodeJSONParseComponent,
     XpertWorkflowNodeJSONStringifyComponent,
+    XpertWorkflowNodeSkillComponent,
     IconComponent
 ],
   host: {

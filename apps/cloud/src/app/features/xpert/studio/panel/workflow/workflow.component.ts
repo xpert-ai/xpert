@@ -36,6 +36,7 @@ import { XpertWorkflowToolComponent } from './tool/tool.component'
 import { XpertWorkflowAssignerComponent } from './assigner/assigner.component'
 import { XpertWorkflowAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowTaskComponent } from './task/task.component'
+import { XpertWorkflowSkillComponent } from './skill/skill.component'
 import { XpertWorkflowTriggerComponent } from './trigger/trigger.component'
 import { XpertWorkflowTriggerTestComponent } from './trigger-test/trigger.component'
 import { XpertWorkflowSourceComponent } from './source/source.component'
@@ -87,6 +88,7 @@ import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.co
     XpertWorkflowAgentToolComponent,
     XpertWorkflowAssignerComponent,
     XpertWorkflowTaskComponent,
+    XpertWorkflowSkillComponent,
     XpertWorkflowTriggerComponent,
     XpertWorkflowTriggerTestComponent,
     XpertWorkflowSourceComponent,

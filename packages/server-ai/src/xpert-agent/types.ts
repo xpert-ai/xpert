@@ -2,6 +2,8 @@ import { TWFCaseCondition, WorkflowComparisonOperator } from '@metad/contracts'
 import { isEmpty } from '@metad/server-common'
 import { get } from 'lodash'
 
+export const SKILLS_MIDDLEWARE_NAME = 'skillsMiddleware'
+
 export const evaluateCondition = (condition: TWFCaseCondition, stateEnv) => {
 	const stateValue = get(stateEnv, condition.variableSelector)
 	if (typeof stateValue === 'number') {

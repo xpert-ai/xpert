@@ -257,6 +257,12 @@
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TASK" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">{{'PAC.Workflow.TaskHandover' | translate: {Default: 'Task Handover'} }}</div>
     </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addSkill()"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.SKILL" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Workflow.Skill' | translate: {Default: 'Skill'} }}</div>
+    </div>
 
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Memory' | translate: {Default: 'Memory'} }}

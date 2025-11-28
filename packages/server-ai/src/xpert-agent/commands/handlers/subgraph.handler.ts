@@ -43,6 +43,7 @@ import { toEnvState } from '../../../environment'
 import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
+import { SKILLS_MIDDLEWARE_NAME } from '../../types'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -78,6 +79,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		const middlewares = this.agentMiddlewareRegistry.list()
 		console.log('Registered agent middlewares:', middlewares.map((mw) => mw.meta))
+		const skillsMiddlewareStrategy = this.agentMiddlewareRegistry.get(SKILLS_MIDDLEWARE_NAME)
 
 		// Hidden this agent node: the graph created is a pure workflow starting from start node
 		const hiddenAgent = agent.options?.hidden
