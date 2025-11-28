@@ -1,4 +1,5 @@
 import { SystemMessage } from '@langchain/core/messages'
+import { TAgentMiddlewareMeta } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { AgentMiddleware, AgentMiddlewareStrategy, IAgentMiddlewareStrategy, PromiseOrValue } from '@xpert-ai/plugin-sdk'
 
@@ -238,7 +239,20 @@ Writing todos takes time and tokens, use it when it is helpful for managing comp
 @AgentMiddlewareStrategy('todoListMiddleware')
 export class TodoListMiddleware implements IAgentMiddlewareStrategy {
 
-  readonly meta = {
+  readonly meta: TAgentMiddlewareMeta = {
+      name: 'todoListMiddleware',
+      label: {
+         en_US: 'To-Do List Middleware',
+         zh_Hans: '待办事项中间件'
+      },
+      icon: {
+        type: 'svg',
+        value: `<svg class="svg-icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M832 128H192c-35.2 0-64 28.8-64 64v640c0 35.2 28.8 64 64 64h640c35.2 0 64-28.8 64-64V192c0-35.2-28.8-64-64-64zM288 768h-64v-64h64v64zm0-128h-64v-64h64v64zm0-128h-64v`
+      },
+      description: {
+         en_US: 'A middleware that helps manage complex tasks by maintaining a to-do list for the agent.',
+         zh_Hans: '一个中间件，通过维护代理的待办事项列表来帮助管理复杂任务。'
+      },
     configSchema: {
       type: 'object',
       properties: {

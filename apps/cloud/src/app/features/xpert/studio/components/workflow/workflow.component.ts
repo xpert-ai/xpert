@@ -45,6 +45,7 @@ import { XpertWorkflowNodeDBDeleteComponent } from './db-delete/db-delete.compon
 import { XpertWorkflowNodeJSONStringifyComponent } from './json-stringify/json-stringify.component'
 import { XpertWorkflowNodeJSONParseComponent } from './json-parse/json-parse.component'
 import { XpertWorkflowNodeSkillComponent } from './skill/skill.component'
+import { XpertWorkflowNodeMiddlewareComponent } from './middleware/middleware.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -87,6 +88,7 @@ import { XpertWorkflowNodeSkillComponent } from './skill/skill.component'
     XpertWorkflowNodeDBDeleteComponent,
     XpertWorkflowNodeJSONParseComponent,
     XpertWorkflowNodeJSONStringifyComponent,
+    XpertWorkflowNodeMiddlewareComponent,
     XpertWorkflowNodeSkillComponent,
     IconComponent
 ],
@@ -120,7 +122,12 @@ export class XpertStudioNodeWorkflowComponent {
     WorkflowNodeTypeEnum.NOTE,
     WorkflowNodeTypeEnum.TRIGGER,
     WorkflowNodeTypeEnum.TASK,
-    WorkflowNodeTypeEnum.AGENT_TOOL
+    WorkflowNodeTypeEnum.AGENT_TOOL,
+    WorkflowNodeTypeEnum.MIDDLEWARE,
+  ]
+
+  readonly fullCustomNodeTypes = [
+    WorkflowNodeTypeEnum.MIDDLEWARE
   ]
 
   // Workflow providers

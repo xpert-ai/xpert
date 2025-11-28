@@ -1,7 +1,7 @@
 import { LanguagesEnum, TChatAgentParams } from '@metad/contracts'
 import { getErrorMessage, keepAlive, takeUntilClose } from '@metad/server-common'
 import { CrudController, TimeZone, TransformInterceptor } from '@metad/server-core'
-import { Body, Controller, Header, HttpException, HttpStatus, Logger, Param, Post, Res, Sse, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Get, Header, HttpException, HttpStatus, Logger, Param, Post, Res, Sse, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
@@ -59,5 +59,11 @@ export class XpertAgentController extends CrudController<XpertAgent> {
 		} catch(err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
+	}
+
+
+	@Get('middlewares')
+	async getMiddlewareStrategies() {
+		return this.service.getMiddlewareStrategies()
 	}
 }

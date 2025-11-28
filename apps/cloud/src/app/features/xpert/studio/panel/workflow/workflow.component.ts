@@ -54,6 +54,7 @@ import { XpertWorkflowPanelDBDeleteComponent } from './db-delete/db-delete.compo
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { XpertWorkflowPanelJSONStringifyComponent } from './json-stringify/json-stringify.component'
 import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.component'
+import { XpertWorkflowMiddlewareComponent } from './middleware/middleware.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -104,7 +105,8 @@ import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.co
     XpertWorkflowPanelDBSQLComponent,
     XpertWorkflowPanelDBDeleteComponent,
     XpertWorkflowPanelJSONStringifyComponent,
-    XpertWorkflowPanelJSONParseComponent
+    XpertWorkflowPanelJSONParseComponent,
+    XpertWorkflowMiddlewareComponent
   ],
   animations: [IfAnimation,]
 })

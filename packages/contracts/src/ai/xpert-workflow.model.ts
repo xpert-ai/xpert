@@ -89,6 +89,7 @@ export enum WorkflowNodeTypeEnum {
   // ===============================
   // 🏆 Pro Nodes
   // ===============================
+  MIDDLEWARE = 'middleware',
   SKILL = 'skill',
 }
 

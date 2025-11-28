@@ -1,4 +1,5 @@
-import { IXpertAgent, TXpertGraph, WorkflowNodeTypeEnum } from "@metad/contracts"
+import { IWFNMiddleware, IWorkflowNode, IXpertAgent, TXpertGraph, WorkflowNodeTypeEnum } from "@metad/contracts"
+import { AgentMiddleware, AgentMiddlewareRegistry, IAgentMiddlewareStrategy } from "@xpert-ai/plugin-sdk"
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]
 
@@ -21,4 +22,26 @@ export const isSkillsConnectedToAgent = (graph: TXpertGraph, agent: IXpertAgent)
             )
         })
     )
+}
+
+export function getAgentMiddlewares(graph: TXpertGraph, agent: IXpertAgent, agentMiddlewareRegistry: AgentMiddlewareRegistry): AgentMiddleware[] {
+    const middlewares = graph.connections?.filter((conn) => conn.type === 'workflow' && conn.from === agent.key)
+        .map(conn => {
+            const to = normalizeNodeKey(conn.to)
+            return graph.nodes?.find(node => node.key === to)
+        }).filter(node => (node?.entity as unknown as IWorkflowNode).type === WorkflowNodeTypeEnum.MIDDLEWARE) ?? []
+
+    return middlewares.map(middlewareNode => {
+        const entity = middlewareNode?.entity as unknown as IWFNMiddleware
+        const provider = entity?.provider
+
+        let strategy: IAgentMiddlewareStrategy
+        try {
+            strategy = agentMiddlewareRegistry.get(provider)
+        } catch (error) {
+            console.warn(`Middleware provider not found: ${provider}`)
+            return null
+        }
+        return strategy.createMiddleware(entity.options)
+    }).filter(middleware => !!middleware) as AgentMiddleware[]
 }

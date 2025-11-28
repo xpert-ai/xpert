@@ -14,7 +14,7 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, getWorkflowTriggers, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IWFNAgentTool, IXpert, IXpertAgent, IXpertAgentExecution, KnowledgebaseChannel, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertAgentConfig, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, getWorkflowTriggers, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IWFNAgentTool, IXpert, IXpertAgent, IXpertAgentExecution, KnowledgebaseChannel, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -40,10 +40,9 @@ import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphPa
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs, isSkillsConnectedToAgent } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs, getAgentMiddlewares } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
-import { SKILLS_MIDDLEWARE_NAME } from '../../types'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -76,10 +75,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				`Xpert agent not found for '${xpert.name}' and key or name '${agentKeyOrName}', draft is ${command.options?.isDraft}`
 			)
 		}
-
-		const middlewares = this.agentMiddlewareRegistry.list()
-		console.log('Registered agent middlewares:', middlewares.map((mw) => mw.meta))
-		const skillsMiddlewareStrategy = this.agentMiddlewareRegistry.get(SKILLS_MIDDLEWARE_NAME)
 
 		// Hidden this agent node: the graph created is a pure workflow starting from start node
 		const hiddenAgent = agent.options?.hidden
@@ -689,14 +684,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Agent middlewares
-		const agentMiddlewares: AgentMiddleware[] = []
-		// Add skills middleware
-		if (skillsMiddlewareStrategy && isSkillsConnectedToAgent(graph, agent)) {
-			const skillsMiddleware = await skillsMiddlewareStrategy.createMiddleware({})
-			if (skillsMiddleware) {
-				agentMiddlewares.push(skillsMiddleware)
-			}
-		}
+		const agentMiddlewares: AgentMiddleware[] = getAgentMiddlewares(graph, agent, this.agentMiddlewareRegistry)
 		
 		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {

@@ -2,6 +2,7 @@ import { WorkflowAssignerNodeStrategy, WorkflowAssignerNodeValidator } from "./a
 import { WorkflowJSONParseNodeStrategy, WorkflowJSONParseNodeValidator } from "./json-parse"
 import { WorkflowJSONStringifyNodeStrategy, WorkflowJSONStringifyNodeValidator } from "./json-stringify"
 import { WorkflowListOperatorNodeStrategy, WorkflowListOperatorNodeValidator } from "./list-operator"
+import { WorkflowMiddlewareNodeStrategy, WorkflowMiddlewareNodeValidator } from "./middleware"
 import { WorkflowSkillNodeStrategy, WorkflowSkillNodeValidator } from "./skill"
 import { SkillsMiddleware } from "./skills-middleware"
 import { WorkflowVariableAggregatorNodeStrategy, WorkflowVariableAggregatorNodeValidator } from "./variable-aggregator"
@@ -12,6 +13,7 @@ export const Validators = [
     WorkflowAssignerNodeValidator,
     WorkflowJSONStringifyNodeValidator,
     WorkflowJSONParseNodeValidator,
+    WorkflowMiddlewareNodeValidator,
     WorkflowSkillNodeValidator
 ]
 
@@ -22,6 +24,7 @@ export const Strategies = [
     WorkflowJSONStringifyNodeStrategy,
     WorkflowJSONParseNodeStrategy,
     WorkflowSkillNodeStrategy,
+    WorkflowMiddlewareNodeStrategy,
 
     SkillsMiddleware
 ]

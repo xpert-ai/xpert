@@ -1,8 +1,9 @@
 import { STATE_VARIABLE_HUMAN, TChatAgentParams, TChatOptions } from '@metad/contracts'
 import { TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
+import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { assign } from 'lodash'
 import { Observable } from 'rxjs'
 import { Repository } from 'typeorm'
@@ -13,6 +14,9 @@ import { FindXpertQuery } from '../xpert/queries'
 @Injectable()
 export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertAgent> {
 	readonly #logger = new Logger(XpertAgentService.name)
+
+	@Inject(AgentMiddlewareRegistry)
+	private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry
 
 	constructor(
 		@InjectRepository(XpertAgent)
@@ -46,5 +50,13 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 				from: 'debugger'
 			})
 		)
+	}
+
+	getMiddlewareStrategies() {
+		return this.agentMiddlewareRegistry.list().map((strategy) => {
+			return {
+				meta: strategy.meta,
+			}
+		})
 	}
 }

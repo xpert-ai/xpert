@@ -1,10 +1,8 @@
+import { TAgentMiddlewareMeta } from '@metad/contracts'
 import { AgentMiddleware, PromiseOrValue } from './types'
 
 export interface IAgentMiddlewareStrategy<T = unknown> {
-  meta: {
-    name?: string
-    configSchema?: any
-  }
+  meta: TAgentMiddlewareMeta
 
   createMiddleware(options: T): PromiseOrValue<AgentMiddleware>
 }

@@ -37,7 +37,10 @@ import { TWorkflowVarGroup } from '../../../@core'
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
   styleUrls: ['property.component.scss'],
-  hostDirectives: [NgxControlValueAccessor]
+  hostDirectives: [NgxControlValueAccessor],
+  host: {
+    '[class]': `xUiSpan() ? 'col-span-' + xUiSpan() : ''`,
+  }
 })
 export class JSONSchemaPropertyComponent {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
@@ -103,6 +106,7 @@ export class JSONSchemaPropertyComponent {
   readonly xUiInputType = computed(() => this.xUi()?.component === 'secretInput' ? 'password' : 'text')
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
   readonly xUiHelp = computed(() => this.xUi()?.help)
+  readonly xUiSpan = computed(() => this.xUi()?.span)
 
   constructor() {
     // Waiting NgxControlValueAccessor has been initialized

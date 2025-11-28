@@ -130,6 +130,9 @@
   @case (eWorkflowNodeTypeEnum.TASK) {
     <xpert-workflow-task [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.MIDDLEWARE) {
+    <xpert-workflow-middleware [node]="node()" />
+  }
   @case (eWorkflowNodeTypeEnum.SKILL) {
     <xpert-workflow-skill [node]="node()" />
   }
