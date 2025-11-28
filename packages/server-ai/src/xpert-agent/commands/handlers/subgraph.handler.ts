@@ -20,7 +20,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
+import { AgentMiddleware, AgentMiddlewareRegistry, ModelRequest, WrapModelCallHandler } from '@xpert-ai/plugin-sdk'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -40,7 +40,7 @@ import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphPa
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs, isSkillsConnectedToAgent } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { SKILLS_MIDDLEWARE_NAME } from '../../types'
@@ -687,6 +687,16 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				humanMessages
 			}
 		}
+
+		// Agent middlewares
+		const agentMiddlewares: AgentMiddleware[] = []
+		// Add skills middleware
+		if (skillsMiddlewareStrategy && isSkillsConnectedToAgent(graph, agent)) {
+			const skillsMiddleware = await skillsMiddlewareStrategy.createMiddleware({})
+			if (skillsMiddleware) {
+				agentMiddlewares.push(skillsMiddleware)
+			}
+		}
 		
 		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
@@ -737,10 +747,40 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state, (<string>config.metadata.langgraph_triggers[0])?.startsWith(START), jsonSchema)
 			// Disable history and new human request then remove history
 			const deleteMessages = (!enableMessageHistory && humanMessages.length) ? messageHistory.map((m) => new RemoveMessage({ id: m.id as string })) : []
+			const baseMessages = [
+				...(((enableMessageHistory || !humanMessages.length) ? messageHistory : [])),
+				...humanMessages
+			]
+			const baseRequest: ModelRequest = {
+				model: withFallbackModel,
+				messages: baseMessages,
+				systemMessage
+			}
+			const defaultModelHandler: WrapModelCallHandler = async (request) => {
+				const model = request.model ?? withFallbackModel
+				const reqMessages = request.messages ?? baseMessages
+				const systemMsg = request.systemMessage ?? systemMessage
+				const finalMessages = systemMsg ? [systemMsg, ...reqMessages] : reqMessages
+				const response = await (model as Runnable).invoke(
+					finalMessages,
+					{...config, signal: abortController.signal}
+				)
+				if (!isBaseMessage(response) && !isBaseMessageChunk(response)) {
+					throw new InternalServerErrorException(`Model response is not a message in '${agentKey}'.`)
+				}
+				return response
+			}
+			const wrappedModelHandler = agentMiddlewares.reduceRight<WrapModelCallHandler>(
+				(next, middleware) => {
+					if (!middleware?.wrapModelCall) {
+						return next
+					}
+					return (request) => middleware.wrapModelCall(request, next)
+				},
+				defaultModelHandler
+			)
 			try {
-				const message = await withFallbackModel.invoke([
-					systemMessage, ...((enableMessageHistory || !humanMessages.length) ? messageHistory : []), ...humanMessages
-				], {...config, signal: abortController.signal})
+				const message: any = await wrappedModelHandler({...baseRequest, systemMessage: baseRequest.systemMessage as BaseMessage})
 
 				const nState: Record<string, any> = {
 					messages: [...humanMessages],
