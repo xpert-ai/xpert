@@ -131,6 +131,12 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 		return this.queryBus.execute(new GetOpenAPIRemoteSchemaQuery(body.url, body.credentials))
 	}
 
+	/**
+	 * Convert OpenAPI Schema to Tool's JSON Schema
+	 * 
+	 * @param param0 { schema: Schema of OpenAPI }
+	 * @returns 
+	 */
 	@Post('provider/openapi/schema')
 	async parseOpenAPISchema(@Body() { schema }: { schema: string }) {
 		return this.commandBus.execute(new ParserOpenAPISchemaCommand(schema))
@@ -154,9 +160,9 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	}
 
 	@Public()
-	@Get('mcp/:id/avatar')
+	@Get(':id/avatar')
 	async getMCPAvatar(@Param('id', UUIDValidationPipe) id: string) {
-		const cacheKey = `mcp:avatar:${id}`
+		const cacheKey = `toolset:avatar:${id}`
 		const cache = await this.cacheManager.get<{avatar: TAvatar}>(cacheKey)
 		if (!cache) {
 			const toolset = await this.service.findOne(id)

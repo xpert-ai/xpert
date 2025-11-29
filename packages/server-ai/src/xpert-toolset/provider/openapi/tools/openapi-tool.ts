@@ -3,6 +3,7 @@ import { RunnableConfig } from '@langchain/core/runnables'
 import { ToolParams } from '@langchain/core/tools'
 import { ApiAuthType, ApiToolBundle, IXpertTool, XpertToolsetCategoryEnum } from '@metad/contracts'
 import axios, { AxiosResponse } from 'axios'
+import type { OperationObject, ParameterObject } from "openapi-typescript/src/types";
 import { ToolParameterValidationError, ToolProviderCredentialValidationError } from '../../../errors'
 import { ApiBasedToolSchemaParser } from '../../../utils/parser'
 import { BaseTool } from '../../../../shared'
@@ -29,10 +30,15 @@ export class OpenAPITool extends BaseTool {
         this.name = xpertTool.name
         this.description = xpertTool.description
 		this.api_bundle = xpertTool.options?.api_bundle
-		// this.toolset = xpertTool.toolset
 
 		if (xpertTool.schema) {
-			this.schema = ApiBasedToolSchemaParser.parseParametersToZod(xpertTool.schema.parameters ?? [] /* Default empty */) as unknown as typeof this.schema
+			const operationObject = xpertTool.schema as OperationObject
+			// Support OpenAPI v3 schema and legacy parameters schema
+			if (Array.isArray(operationObject.parameters)) {
+				this.schema = ApiBasedToolSchemaParser.parseParametersToZod(operationObject.parameters as ParameterObject[])
+			} else {
+				this.schema = ApiBasedToolSchemaParser.parseOperationObjectToJSONSchema(operationObject)
+			}
 		}
 	}
 

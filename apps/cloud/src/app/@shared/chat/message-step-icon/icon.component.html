@@ -42,6 +42,9 @@
           @case ('mcp') {
             <emoji-avatar [avatar]="avatar()" xs class="shrink-0 overflow-hidden rounded-lg scale-75"/>
           }
+          @case ('openapi') {
+            <emoji-avatar [avatar]="avatar()" xs class="shrink-0 overflow-hidden rounded-lg scale-75"/>
+          }
           @default {
             <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
           }
