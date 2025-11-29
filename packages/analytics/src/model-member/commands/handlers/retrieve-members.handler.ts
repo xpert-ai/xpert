@@ -6,7 +6,6 @@ import { ChatMessageEventTypeEnum, embeddingCubeCollectionName, TChatEventMessag
 import { t } from 'i18next'
 import { RetrieveMembersCommand } from '../retrieve-members.command'
 import { CreateVectorStoreCommand } from '../create-vector-store.command'
-import { PGMemberVectorStore } from '../../vector-store'
 import { SemanticModelService } from '../../../model'
 import { EmbeddingMembersCommand } from '../embedding.command'
 
@@ -63,7 +62,7 @@ export class RetrieveMembersHandler implements ICommandHandler<RetrieveMembersCo
 		// Instantiate vector store with embeddings
 		const id = embeddingCubeCollectionName(modelId, cube, false)
 		// const id = options.modelId ? `${options.modelId}${options.cube ? ':' + options.cube : ''}` + (options.isDraft ? ':draft' : '') : 'default'
-		const vectorStore = await this.commandBus.execute<CreateVectorStoreCommand, PGMemberVectorStore>(new CreateVectorStoreCommand(id))
+		const {vectorStore} = await this.commandBus.execute(new CreateVectorStoreCommand(id))
 		// const { vectorStore } = await this.getVectorStore(copilot, options.modelId, options.cube)
 		if (vectorStore) {
 			const filter = {} as any

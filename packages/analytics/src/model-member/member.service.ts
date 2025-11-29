@@ -8,7 +8,6 @@ import { Pool } from 'pg'
 import { DeepPartial, FindOptionsWhere, FindManyOptions, In, Repository } from 'typeorm'
 import { SemanticModelMember } from './member.entity'
 import { CreateVectorStoreCommand } from './commands/create-vector-store.command'
-import { PGMemberVectorStore } from './vector-store'
 
 @Injectable()
 export class SemanticModelMemberService extends TenantOrganizationAwareCrudService<SemanticModelMember> {
@@ -77,17 +76,9 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 		query: string,
 		k = 10
 	) {
-		// Use system embedding copilot model for embeddings
-		// const copilot = await this.queryBus.execute(
-		// 	new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding)
-		// )
-		// if (!copilot) {
-		// 	throw new CopilotNotFoundException(`Copilot not found for role '${AiProviderRole.Embedding}'`)
-		// }
 		// Instantiate vector store with embeddings
 		const id = options.modelId ? `${options.modelId}${options.cube ? ':' + options.cube : ''}` + (options.isDraft ? ':draft' : '') : 'default'
-		const vectorStore = await this.commandBus.execute<CreateVectorStoreCommand, PGMemberVectorStore>(new CreateVectorStoreCommand(id))
-		// const { vectorStore } = await this.getVectorStore(copilot, options.modelId, options.cube)
+		const {vectorStore} = await this.commandBus.execute(new CreateVectorStoreCommand(id))
 		if (vectorStore) {
 			const filter = {} as any
 			if (options.dimension) {
