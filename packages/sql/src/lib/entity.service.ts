@@ -68,6 +68,7 @@ export class SQLEntityService<T> extends AbstractEntityService<T> {
             _cubeContext = cubeContext
             _statement = statement
           } catch (err: any) {
+            console.error(err)
             const error: string = getErrorMessage(err)
             this.agent.error(err)
             return {
@@ -104,8 +105,8 @@ export class SQLEntityService<T> extends AbstractEntityService<T> {
             }
           } as QueryReturn<T>
         } catch (err) {
+          console.error(err)
           const error: string = getErrorMessage(err)
-
           this.agent.error(err)
           return { data: [], error, stats: { statements: [_statement] } }
         }

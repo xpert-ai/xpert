@@ -254,7 +254,11 @@ export function extractDataValue(data: any[], chartAnnotation: {dimensions: Dime
 			const item = {}
 			dimensions.forEach((dimension) => {
 				const hierarchy = getPropertyHierarchy(dimension)
-				item[_[wrapLevelUniqueName(hierarchy)]] = _[hierarchy]
+				if (_[wrapLevelUniqueName(hierarchy)]) {
+					item[_[wrapLevelUniqueName(hierarchy)]] = _[hierarchy]
+				} else {
+					item[hierarchy] = _[hierarchy]
+				}
 				item[wrapMemberCaption(hierarchy)] = _[wrapMemberCaption(hierarchy)]
 				item[wrapLevelNumber(hierarchy)] = _[wrapLevelNumber(hierarchy)]
 				// Properties

@@ -20,7 +20,7 @@ import {
   PropertyMeasure,
   QueryOptions,
   EntityProperty,
-  CalculationProperty
+  CalculationProperty,
 } from '@metad/ocap-core'
 import {
   compileDimensionSchema,
@@ -125,20 +125,22 @@ export interface CubeContext {
 }
 
 export function CubeFactTable(cube: Cube) {
-  if (!cube.tables?.[0]?.name) {
+  const tableName = cube.fact?.table?.name
+  if (!tableName) {
     throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
   }
-
-  // 暂时只支持一个事实表
-  return cube.tables[0].name
+  // if (!cube.tables?.[0]?.name) {
+  //   throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
+  // }
+  /**
+   * @todo 支持 SQL View 作为事实表
+   */
+  return tableName
 }
 
 export function CubeFactTableAlias(cube: Cube) {
-  if (!cube.tables?.[0]?.name) {
-    throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
-  }
-  // 暂时只支持一个事实表
-  return serializeTableAlias(cube.name, cube.tables[0].name)
+  const tableName = CubeFactTable(cube)
+  return serializeTableAlias(cube.name, tableName)
 }
 
 /**
@@ -254,7 +256,8 @@ export function buildCubeDimensionContext(context: DimensionContext): DimensionC
     context.hierarchy.name,
     IntrinsicMemberProperties.CHILDREN_CARDINALITY
   )
-  const lIndex = row.level ? context.hierarchy.levels?.findIndex((item) => item.name === row.level) : 0
+  const lIndex = row.level ? context.hierarchy.levels?.findIndex((item) => item.name === row.level) :
+    context.hierarchy.hasAll ? 1 : 0
 
   if (lIndex > -1) {
     // for Hierarchy

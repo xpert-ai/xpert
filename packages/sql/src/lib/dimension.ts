@@ -15,6 +15,7 @@ import {
   PropertyHierarchy,
   PropertyLevel,
   QueryOptions,
+  RuntimeLevelType,
   Schema,
   Table
 } from '@metad/ocap-core'
@@ -687,7 +688,8 @@ export function compileDimensionSchema(
         caption: allLevelName,
         role: AggregationRole.level,
         memberCaption: serializeIntrinsicName(dialect, allLevelUniqueName, IntrinsicMemberProperties.MEMBER_CAPTION),
-        properties: []
+        properties: [],
+        levelType: RuntimeLevelType.ALL
       })
     }
 

@@ -1,4 +1,5 @@
 import { DataSource, Type } from '@metad/ocap-core'
+import { SQLDataSource } from "@metad/ocap-sql"
 import { ProxyAgent } from './agent'
 import { NgmDSCoreService } from './core.service'
 import { OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN } from './types'
@@ -17,6 +18,16 @@ export function provideOcap() {
 				type: 'XMLA',
 				factory: async (): Promise<Type<DataSource>> => {
 					return MyXmlaDataSource
+				}
+			},
+			multi: true
+		},
+		{
+			provide: OCAP_DATASOURCE_TOKEN,
+			useValue: {
+				type: 'SQL',
+				factory: async (): Promise<Type<DataSource>> => {
+					return SQLDataSource
 				}
 			},
 			multi: true
