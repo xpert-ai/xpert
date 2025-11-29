@@ -1,5 +1,6 @@
 import { LanguageModelLike } from '@langchain/core/language_models/base';
 import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages';
+import { DynamicStructuredTool } from '@langchain/core/tools';
 import { InteropZodObject } from '@langchain/core/utils/types'
 
 /**
@@ -228,6 +229,8 @@ export interface AgentMiddleware<
    * - Undefined
    */
   contextSchema?: TContextSchema;
+
+  tools?: DynamicStructuredTool[]
 
   beforeAgent?: BeforeAgentHook<TSchema, TFullContext>
   beforeModel?: BeforeModelHook<TSchema, TFullContext>

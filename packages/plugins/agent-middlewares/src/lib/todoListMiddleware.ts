@@ -1,7 +1,15 @@
-import { SystemMessage } from '@langchain/core/messages'
+import { SystemMessage, ToolMessage } from '@langchain/core/messages'
+import { tool } from '@langchain/core/tools'
+import { Command } from '@langchain/langgraph'
 import { TAgentMiddlewareMeta } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
-import { AgentMiddleware, AgentMiddlewareStrategy, IAgentMiddlewareStrategy, PromiseOrValue } from '@xpert-ai/plugin-sdk'
+import {
+  AgentMiddleware,
+  AgentMiddlewareStrategy,
+  IAgentMiddlewareStrategy,
+  PromiseOrValue
+} from '@xpert-ai/plugin-sdk'
+import { z } from 'zod/v3'
 
 /**
  * Description for the write_todos tool
@@ -235,46 +243,121 @@ Writing todos takes time and tokens, use it when it is helpful for managing comp
 - The \`write_todos\` tool should never be called multiple times in parallel.
 - Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant.`
 
+const TodoStatus = z
+  .enum(["pending", "in_progress", "completed"])
+  .describe("Status of the todo");
+const TodoSchema = z.object({
+  content: z.string().describe("Content of the todo item"),
+  status: TodoStatus,
+});
+
+export interface TodoListMiddlewareOptions {
+  /**
+   * Custom system prompt to guide the agent on using the todo tool.
+   * If not provided, uses the default {@link PLANNING_MIDDLEWARE_SYSTEM_PROMPT}.
+   */
+  systemPrompt?: string
+  /**
+   * Custom description for the {@link writeTodos} tool.
+   * If not provided, uses the default {@link WRITE_TODOS_DESCRIPTION}.
+   */
+  toolDescription?: string
+}
+
 @Injectable()
 @AgentMiddlewareStrategy('todoListMiddleware')
 export class TodoListMiddleware implements IAgentMiddlewareStrategy {
-
   readonly meta: TAgentMiddlewareMeta = {
-      name: 'todoListMiddleware',
-      label: {
-         en_US: 'To-Do List Middleware',
-         zh_Hans: '待办事项中间件'
-      },
-      icon: {
-        type: 'svg',
-        value: `<svg class="svg-icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M832 128H192c-35.2 0-64 28.8-64 64v640c0 35.2 28.8 64 64 64h640c35.2 0 64-28.8 64-64V192c0-35.2-28.8-64-64-64zM288 768h-64v-64h64v64zm0-128h-64v-64h64v64zm0-128h-64v`
-      },
-      description: {
-         en_US: 'A middleware that helps manage complex tasks by maintaining a to-do list for the agent.',
-         zh_Hans: '一个中间件，通过维护代理的待办事项列表来帮助管理复杂任务。'
-      },
+    name: 'todoListMiddleware',
+    label: {
+      en_US: 'To-Do List Middleware',
+      zh_Hans: '待办事项中间件'
+    },
+    icon: {
+      type: 'svg',
+      value: `<svg height="128px" viewBox="0 0 128 128" width="128px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <linearGradient id="a" gradientUnits="userSpaceOnUse" x1="19.999998" x2="112.778587" y1="29.118027" y2="97.447845">
+        <stop offset="0" stop-color="#62a0ea"/>
+        <stop offset="0.563959" stop-color="#9141ac"/>
+        <stop offset="1" stop-color="#ed333b"/>
+    </linearGradient>
+    <path d="m 28.722656 16 h 70.554688 c 4.816406 0 8.722656 4.0625 8.722656 9.078125 v 85.84375 c 0 5.015625 -3.90625 9.078125 -8.722656 9.078125 h -70.554688 c -4.816406 0 -8.722656 -4.0625 -8.722656 -9.078125 v -85.84375 c 0 -5.015625 3.90625 -9.078125 8.722656 -9.078125 z m 0 0" fill="url(#a)"/>
+    <path d="m 20 106.921875 v 4.359375 c 0 4.828125 3.890625 8.71875 8.71875 8.71875 h 70.5625 c 4.828125 0 8.71875 -3.890625 8.71875 -8.71875 v -4.359375 c 0 5.027344 -3.890625 9.078125 -8.71875 9.078125 h -70.5625 c -4.828125 0 -8.71875 -4.050781 -8.71875 -9.078125 z m 0 0" fill-opacity="0.34902"/>
+    <path d="m 32 78 h 64 c 2.210938 0 4 1.789062 4 4 v 22 c 0 2.210938 -1.789062 4 -4 4 h -64 c -2.210938 0 -4 -1.789062 -4 -4 v -22 c 0 -2.210938 1.789062 -4 4 -4 z m 0 0" fill="#deddda"/>
+    <path d="m 32 24 h 64 c 2.210938 0 4 1.789062 4 4 v 70 c 0 2.210938 -1.789062 4 -4 4 h -64 c -2.210938 0 -4 -1.789062 -4 -4 v -70 c 0 -2.210938 1.789062 -4 4 -4 z m 0 0" fill="#ffffff"/>
+    <path d="m 44 12 c -2.214844 0 -4 1.785156 -4 4 v 14 h 48 v -14 c 0 -2.214844 -1.804688 -4.3125 -4 -4 h -14 l -6 7 l -6 -7 z m 0 0" fill="#c0bfbc"/>
+    <path d="m 70 12 c 0 3.3125 -2.6875 6 -6 6 s -6 -2.6875 -6 -6 s 2.6875 -6 6 -6 s 6 2.6875 6 6 z m 0 0" fill="none" stroke="#c0bfbc" stroke-linejoin="round" stroke-width="4"/>
+    <path d="m 40 28 h 48 v 4 h -48 z m 0 0" fill="#9a9996"/>
+    <path d="m 40 65 l 5 5 l 9 -9" fill="none" stroke="#77767b" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+    <path d="m 64 44 h 22 v 4 h -22 z m 0 0" fill="#c0bfbc"/>
+    <path d="m 40 45 l 5 5 l 9 -9" fill="none" stroke="#77767b" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+    <path d="m 40 85 l 5 5 l 9 -9" fill="none" stroke="#77767b" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+    <g fill="#c0bfbc">
+        <path d="m 64 64 h 26 v 4 h -26 z m 0 0"/>
+        <path d="m 64 84 h 18 v 4 h -18 z m 0 0"/>
+    </g>
+</svg>`
+    },
+    description: {
+      en_US: 'A middleware that helps manage complex tasks by maintaining a to-do list for the agent.',
+      zh_Hans: '一个中间件，通过维护代理的待办事项列表来帮助管理复杂任务。'
+    },
     configSchema: {
       type: 'object',
       properties: {
-        systemPrompt: { type: 'string', default: '', description: {
+        systemPrompt: {
+          type: 'string',
+          default: '',
+          description: {
             en_US: 'Custom system prompt to prepend to the default todo list middleware prompt.',
             zh_CN: '自定义系统提示，添加到默认的待办事项中间件提示之前。'
-        } },
+          }
+        }
       }
     }
   }
 
-  createMiddleware(options: { systemPrompt?: string }): PromiseOrValue<AgentMiddleware> {
-     return {
-        name: 'todoListMiddleware',
-        wrapModelCall: (request, handler) => {
-            const systemMessage = request.systemMessage
-            const _content = typeof systemMessage === 'string' ? systemMessage : systemMessage?.content as string ?? ''
-            return handler({
-                ...request,
-                systemMessage: new SystemMessage(_content.concat(`\n\n${options?.systemPrompt ?? TODO_LIST_MIDDLEWARE_SYSTEM_PROMPT}`))
-            })
-        }
-     }
+  createMiddleware(options: TodoListMiddlewareOptions): PromiseOrValue<AgentMiddleware> {
+    /**
+     * Write todos tool - manages todo list with Command return
+     */
+    const writeTodos = tool(
+      ({ todos }, config) => {
+        console.log('Writing todos:', todos)
+        return new Command({
+          update: {
+            todos,
+            messages: [
+              new ToolMessage({
+                content: `Updated todo list to ${JSON.stringify(todos)}`,
+                tool_call_id: config.toolCall?.id as string
+              })
+            ]
+          }
+        })
+      },
+      {
+        name: 'write_todos',
+        description: options?.toolDescription ?? WRITE_TODOS_DESCRIPTION,
+        schema: z.object({
+          todos: z.array(TodoSchema).describe('List of todo items to update')
+        })
+      }
+    )
+    
+    return {
+      name: 'todoListMiddleware',
+      tools: [writeTodos],
+      wrapModelCall: (request, handler) => {
+        const systemMessage = request.systemMessage
+        const _content = typeof systemMessage === 'string' ? systemMessage : ((systemMessage?.content as string) ?? '')
+        return handler({
+          ...request,
+          systemMessage: new SystemMessage(
+            _content.concat(`\n\n${options?.systemPrompt ?? TODO_LIST_MIDDLEWARE_SYSTEM_PROMPT}`)
+          )
+        })
+      }
+    }
   }
 }

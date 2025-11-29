@@ -536,6 +536,61 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			agentKeys.add(leaderKey)
 		}
 
+		// Agent middlewares
+		const agentMiddlewares: AgentMiddleware[] = getAgentMiddlewares(graph, agent, this.agentMiddlewareRegistry)
+		// Middleware tools
+		const middlewareTools: TGraphTool[] = agentMiddlewares
+			.filter((middleware) => middleware?.tools?.length)
+			.flatMap((middleware) =>
+				middleware.tools.map((tool) => ({
+					toolset: {
+						provider: middleware.name,
+						title: middleware.name
+					},
+					caller: agent.key,
+					tool
+				}))
+			)
+		if (middlewareTools.length) {
+			tools.push(...middlewareTools)
+		}
+		// Middleware state annotations
+		const existedStateVariables = new Set<string>([
+			...Object.keys(AgentStateAnnotation.spec),
+			...(variables ?? []).map((variable) => variable.name),
+			...stateVariables.map((variable) => variable.name)
+		])
+		const middlewareStateAnnotations = agentMiddlewares.reduce<Record<string, ReturnType<typeof Annotation>>>((acc, middleware) => {
+			const shape = (middleware.stateSchema as any)?.shape
+			if (!shape) {
+				return acc
+			}
+			Object.keys(shape).forEach((key) => {
+				if (key.startsWith('_') || existedStateVariables.has(key) || acc[key]) {
+					return
+				}
+				acc[key] = Annotation({
+					reducer: (a, b) => (b === undefined ? a : b),
+					default: () => {
+						try {
+							const def = (shape as any)[key]?._def?.defaultValue
+							if (typeof def === 'function') {
+								return def()
+							}
+							if (def !== undefined) {
+								return def
+							}
+						} catch (error) {
+							// ignore default parse errors
+						}
+						return null
+					}
+				})
+			})
+			return acc
+		}, {})
+
+		// Model tools
 		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool), ...(handoffTools ?? [])]
 		pathMap.push(...withTools.map((tool) => tool.name))
 		if (workflowTools.length) {
@@ -575,6 +630,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				return state
 			}, {}) ?? {}),
 			...AgentStateAnnotation.spec, // Common agent states
+			...middlewareStateAnnotations,
 			// Global conversation variables
 			...(stateVariables.reduce((acc, variable) => {
 				acc[variable.name] = Annotation({
@@ -683,9 +739,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 		}
 
-		// Agent middlewares
-		const agentMiddlewares: AgentMiddleware[] = getAgentMiddlewares(graph, agent, this.agentMiddlewareRegistry)
-		
 		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
 			const {structuredChatModel, jsonSchema} = withStructured(chatModel, agent, withTools)
