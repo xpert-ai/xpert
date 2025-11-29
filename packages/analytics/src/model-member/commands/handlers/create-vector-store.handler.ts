@@ -23,10 +23,10 @@ export class CreateVectorStoreHandler implements ICommandHandler<CreateVectorSto
 	public async execute(command: CreateVectorStoreCommand) {
 		const collectionName = command.collectionName
 
-		if (this.vectorStores.has(collectionName)) {
-			this.logger.debug(`Vector store for collection '${collectionName}' already exists`)
-			return this.vectorStores.get(collectionName)
-		}
+		// if (this.vectorStores.has(collectionName)) {
+		// 	this.logger.debug(`Vector store for collection '${collectionName}' already exists`)
+		// 	return this.vectorStores.get(collectionName)
+		// }
 
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
@@ -64,10 +64,13 @@ export class CreateVectorStoreHandler implements ICommandHandler<CreateVectorSto
 			await vectorStore.ensureTableInDatabase()
 
 			this.vectorStores.set(collectionName, vectorStore)
-			return vectorStore
+			return {vectorStore, copilot}
 		}
 
 		this.logger.error(`Failed to create vector store for collection '${collectionName}' - embeddings not found`)
-		return null
+		return {
+			vectorStore: null,
+			copilot: null
+		}
 	}
 }

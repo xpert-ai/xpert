@@ -190,7 +190,7 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 		await this.pauseSchedule(id)
 
 		const collectionName = embeddingCubeCollectionName(entity.modelId, entity.name, false)
-		const vectorStore = await this.commandBus.execute(new CreateVectorStoreCommand(collectionName))
+		const {vectorStore} = await this.commandBus.execute(new CreateVectorStoreCommand(collectionName))
 		// Clear all dimensions
 		await vectorStore?.clear()
 
