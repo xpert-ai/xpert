@@ -43,6 +43,8 @@ describe('ApiBasedToolSchemaParser.autoParseToToolBundle', () => {
 			JSON.stringify(openapi)
 		)
 
+		console.log(bundles)
+
 		expect(schemaType).toBe(ApiProviderSchemaType.OPENAPI)
 		expect(bundles).toHaveLength(1)
 		expect(bundles[0].server_url).toBe('https://api.example.com/users')
@@ -72,6 +74,8 @@ describe('ApiBasedToolSchemaParser.autoParseToToolBundle', () => {
 		const [bundles, schemaType] = await ApiBasedToolSchemaParser.autoParseToToolBundle(
 			JSON.stringify(swagger)
 		)
+
+		console.log(bundles)
 
 		expect(schemaType).toBe(ApiProviderSchemaType.SWAGGER)
 		expect(bundles).toHaveLength(1)
@@ -113,6 +117,8 @@ paths:
 		const [bundles, schemaType] = await ApiBasedToolSchemaParser.autoParseToToolBundle(
 			JSON.stringify(pluginManifest)
 		)
+
+		console.log(bundles)
 
 		expect(schemaType).toBe(ApiProviderSchemaType.OPENAI_PLUGIN)
 		expect(mockFetch).toHaveBeenCalledTimes(1)

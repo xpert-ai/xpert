@@ -30,16 +30,21 @@ export class OpenAPITool extends BaseTool {
         this.name = xpertTool.name
         this.description = xpertTool.description
 		this.api_bundle = xpertTool.options?.api_bundle
-
-		if (xpertTool.schema) {
-			const operationObject = xpertTool.schema as OperationObject
-			// Support OpenAPI v3 schema and legacy parameters schema
-			if (Array.isArray(operationObject.parameters)) {
-				this.schema = ApiBasedToolSchemaParser.parseParametersToZod(operationObject.parameters as ParameterObject[])
-			} else {
-				this.schema = ApiBasedToolSchemaParser.parseOperationObjectToJSONSchema(operationObject)
-			}
+		this.schema = xpertTool.schema || {
+			type: 'object',
+			properties: {},
+			required: []
 		}
+
+		// if (xpertTool.schema) {
+		// 	const operationObject = xpertTool.schema as OperationObject
+		// 	// Support OpenAPI v3 schema and legacy parameters schema
+		// 	if (Array.isArray(operationObject.parameters)) {
+		// 		this.schema = ApiBasedToolSchemaParser.parseParametersToZod(operationObject.parameters as ParameterObject[])
+		// 	} else {
+		// 		this.schema = ApiBasedToolSchemaParser.parseOperationObjectToJSONSchema(operationObject)
+		// 	}
+		// }
 	}
 
 	async validate_credentials(credentials: Record<string, any>, parameters: Record<string, any>, format_only = false) {

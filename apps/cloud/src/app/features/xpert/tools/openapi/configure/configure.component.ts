@@ -200,7 +200,7 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
         options: this.#fb.control({ api_bundle: apiBundle }),
         name: this.#fb.control(apiBundle.operation_id),
         description: this.#fb.control(apiBundle.summary),
-        schema: this.#fb.control(apiBundle.openapi)
+        schema: this.#fb.control(apiBundle.schema)
       })
     )
   }

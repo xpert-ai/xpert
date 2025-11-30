@@ -140,6 +140,7 @@ export class ApiBasedToolSchemaParser {
         summary: interfaceObj.operation.description || interfaceObj.operation.summary || '',
         operation_id: interfaceObj.operation.operationId,
         parameters,
+        schema: ApiBasedToolSchemaParser.parseOperationObjectToJSONSchema(interfaceObj.operation),
         author: '',
         icon: null,
         openapi: interfaceObj.operation,
