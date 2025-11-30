@@ -4,7 +4,7 @@ import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { firstValueFrom, switchMap } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
-import { NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN, registerSemanticModel } from '../../ocap'
+import { NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCES_TOKEN, registerSemanticModel } from '../../ocap'
 import { ModelCubeQuery } from '../cube.query'
 import { applySemanticModelDraft } from '../../helper'
 
@@ -19,8 +19,8 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 
 	@Inject(OCAP_AGENT_TOKEN)
 	private agent: Agent
-	@Inject(OCAP_DATASOURCE_TOKEN)
-	private dataSourceFactory: { type: string; factory: DataSourceFactory }
+	@Inject(OCAP_DATASOURCES_TOKEN)
+	private dataSourceFactories: { type: string; factory: DataSourceFactory }[]
 
 	constructor(
 		private readonly semanticModelService: SemanticModelService,
@@ -37,7 +37,7 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 		const model = await this.semanticModelService.findOne4Ocap(modelId, {withIndicators: true, skipCache: isIndicatorsDraft || isDraft})
 
 		// New Ocap context for every chatbi conversation
-		const dsCoreService = new NgmDSCoreService(this.agent, this.dataSourceFactory)
+		const dsCoreService = new NgmDSCoreService(this.agent, this.dataSourceFactories)
 		
 		// Indicators to use draft
 		model.indicators = model.indicators.map((indicator) => {
