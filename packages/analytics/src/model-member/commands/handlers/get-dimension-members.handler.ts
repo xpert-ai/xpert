@@ -65,7 +65,13 @@ export class GetDimensionMembersHandler implements ICommandHandler<GetDimensionM
 				)
 
 				statistics[hierarchy.name] = _members.length
-				members = members.concat(_members.map((item) => ({ ...item, modelId: model.id, entityId, cube })))
+				members = members.concat(_members.map((item) => ({
+					...item,
+					memberUniqueName: item.memberUniqueName || `${item.hierarchy}.${item.memberKey}`,
+					modelId: model.id,
+					entityId,
+					cube
+				})))
 			}
 		}
 

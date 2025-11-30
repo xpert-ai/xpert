@@ -70,7 +70,7 @@ export class SemanticModelMember extends TenantOrganizationBaseEntity implements
 	entityId?: string
 
 	@IsString()
-	@Column({ length: 1000 })
+	@Column({ length: 1000, nullable: true })
 	memberName: string
 
 	@IsString()
