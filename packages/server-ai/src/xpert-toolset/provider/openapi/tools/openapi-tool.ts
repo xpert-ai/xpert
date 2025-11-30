@@ -62,9 +62,9 @@ export class OpenAPITool extends BaseTool {
 		const headers: Record<string, any> = {}
 		const credentials = _credentials || this.xpertTool.toolset?.credentials || {}
 
-		if (!credentials.auth_type) {
-			throw new ToolProviderCredentialValidationError('Missing auth_type')
-		}
+		// if (!credentials.auth_type) {
+		// 	throw new ToolProviderCredentialValidationError('Missing auth_type')
+		// }
 
 		if (credentials.auth_type === ApiAuthType.API_KEY) {
 			let api_key_header = ApiAuthType.API_KEY
