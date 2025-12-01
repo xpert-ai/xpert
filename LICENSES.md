@@ -6,7 +6,7 @@ This document represent official information about our licensing, make sure you 
 
 This software is available under an Open Source Licenses ("Community Edition"). It is suitable if your business can comply with the requirements of corresponding open-source licenses, see more information below (e.g. requirements to release your modifications under the same open-source licenses for the benefits of our community).
 
-Alternatively, commercial versions of the software must be used in accordance with the terms and conditions of separate written license agreement between you and XpertAI Co. LTD. With commercial license, your source code (including your changes) is kept proprietary. You can purchase a commercial licenses at <https://mtda.cloud/en/pricing>.
+Alternatively, commercial versions of the software must be used in accordance with the terms and conditions of separate written license agreement between you and XpertAI Co. LTD. With commercial license, your source code (including your changes) is kept proprietary. You can purchase a commercial licenses at <https://xpertai.cn/en/pricing>.
 
 In addition, XpertAI Co. LTD holds copyright and/or sufficient licenses to all components of the Xpert AI Platform, and therefore can grant, at its sole discretion, the ability for companies, individuals, or organizations to create proprietary modules which may be dynamically linked at runtime with the portions of Xpert AI Platform which fall under our copyright/license umbrella.
 
@@ -32,17 +32,17 @@ For example, for AGPL v3 (strongest copyleft license we use) conditions can be s
 -   Contributors provide an express grant of patent rights.
 -   When a modified version is used to provide a service over a network, the complete source code of the modified version must be made available.
 
-Feel free to [Contact Us](https://github.com/meta-d/ocap#contact-us) for an additional information about used open-source licenses!
+Feel free to [Contact Us](https://github.com/xpert-ai/xpert#contact-us) for an additional information about used open-source licenses!
 
 ### _Xpert AI Platform Small Business_ License
 
 Xpert AI Platform Small Business License can be purchased by small businesses with annual revenues do not exceed \$1 million and used for single owned Company.
-For more information, please see https://mtda.cloud/en/pricing or contact us at <mailto:service@mtda.cloud>.
+For more information, please see https://xpertai.cn/en/pricing or contact us at <mailto:service@xpertai.cn>.
 
 ### _Xpert AI Platform Enterprise_ License
 
 Xpert AI Platform Enterprise License can be purchased by businesses with more than \$1 million in annual revenue and used for unlimited amount of owned companies.
-For more information, please see https://mtda.cloud/en/pricing or contact us at <mailto:service@mtda.cloud>.
+For more information, please see https://xpertai.cn/en/pricing or contact us at <mailto:service@xpertai.cn>.
 
 ## Credits
 
@@ -50,11 +50,11 @@ Please see [CREDITS.md](CREDITS.md) files for a list of libraries and software i
 
 ## Trademarks
 
-**XpertAI**® is a registered trademark of [XpertAI Co. LTD](https://mtda.cloud/en/).
-**Xpert**™ is a trademark of [XpertAI Co. LTD](https://mtda.cloud/en/).
+**XpertAI**® is a registered trademark of [XpertAI Co. LTD](https://xpertai.cn/en/).
+**Xpert**™ is a trademark of [XpertAI Co. LTD](https://xpertai.cn/en/).
 
-The trademarks and logos may only be used with the written permission of XpertAI Co. LTD. and may not be used to promote or otherwise market competitive products or services. If you wish to use these trademarks and logos you should contact our licensing department at <mailto:service@mtda.cloud> to determine the necessary steps you must take.
+The trademarks and logos may only be used with the written permission of XpertAI Co. LTD. and may not be used to promote or otherwise market competitive products or services. If you wish to use these trademarks and logos you should contact our licensing department at <mailto:service@xpertai.cn> to determine the necessary steps you must take.
 
 All other brand and product names are trademarks, registered trademarks or service marks of their respective holders.
 
-If you have any questions regarding our licensing policy, please contact us: <mailto:service@mtda.cloud> (via email)
+If you have any questions regarding our licensing policy, please contact us: <mailto:service@xpertai.cn> (via email)

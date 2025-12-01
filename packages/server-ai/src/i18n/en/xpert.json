@@ -14,7 +14,7 @@
         "ForbiddenDeleteLatest": "You cannot delete the latest version directly, please delete other versions first",
         "XpertCopilotNotFound": "The ai model for the Digital Expert or Agent node is not configured",
         "XpertBasicModelNotFound": "The basic model for the Digital Expert is not configured",
-        "RecursionLimitReached": "Recursion limit of {value} reached without hitting a stop condition. You can increase the limit by setting the \"Recursion Limit\" in agent settings in xpert studio. Troubleshooting URL: https://mtda.cloud/en/docs/ai/troubleshooting/errors/recursion_limit/",
+        "RecursionLimitReached": "Recursion limit of {value} reached without hitting a stop condition. You can increase the limit by setting the \"Recursion Limit\" in agent settings in xpert studio. Troubleshooting URL: https://xpertai.cn/en/docs/ai/troubleshooting/errors/recursion_limit/",
         "NoAgentInGraph": "Agent node '{value}' was not found in the Graph",
         "AgentMissingKey": "Agent is missing Key: ",
         "InputParamsRequired": "The input variables of node '{node}' is required",

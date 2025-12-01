@@ -6,9 +6,9 @@
 
 <p align="center">
   <a href="https://app.mtda.cloud/">XpertAI 云</a> ·
-  <a href="https://mtda.cloud/docs/getting-started/community/">自托管</a> ·
-  <a href="https://mtda.cloud/docs/">文档</a> ·
-  <a href="https://mtda.cloud/#connect">企业咨询</a>
+  <a href="https://xpertai.cn/docs/getting-started/community/">自托管</a> ·
+  <a href="https://xpertai.cn/docs/">文档</a> ·
+  <a href="https://xpertai.cn/#connect">企业咨询</a>
 </p>
 
 
@@ -34,15 +34,15 @@
 在AI技术快速落地的今天，企业面临一个关键矛盾：**如何平衡 LLM 的创造性与流程的稳定性**？纯粹的智能体架构虽灵活，却难以控制；传统工作流虽可靠，却缺乏应变能力。Xpert AI 平台的**智能体与工作流混合架构**，正是为解决这一矛盾而生——它让 AI 既拥有“自由意志”，又遵循“规则秩序”
 ![agent-workflow-hybrid-architecture](https://github.com/user-attachments/assets/b3b432f9-54ab-4ec1-9fc4-7e46fbfb88ba)
 
-[博客 - 智能体与工作流混合架构](https://mtda.cloud/blog/agent-workflow-hybrid-architecture)
+[博客 - 智能体与工作流混合架构](https://xpertai.cn/blog/agent-workflow-hybrid-architecture)
 
-### [智能体编排平台](https://mtda.cloud/docs/ai/)
+### [智能体编排平台](https://xpertai.cn/docs/ai/)
 
 通过协调多个智能代理的协作，Xpert 能够完成复杂任务。Xpert 通过高效的管理机制集成不同类型的 AI 代理，利用其能力解决多维度问题。
 
 [Xpert智能体](https://github.com/user-attachments/assets/e21f8b35-2f72-4b81-a245-f36759df7c27)
 
-### [数据分析平台](https://mtda.cloud/docs/models/)
+### [数据分析平台](https://xpertai.cn/docs/models/)
 
 基于云计算的敏捷数据分析平台，支持多维建模、指标管理和 BI 展示。平台可连接多种数据源，实现高效灵活的数据分析与可视化，并提供多种智能分析功能和工具，帮助企业快速准确地发现业务价值并制定运营决策。
 
@@ -120,7 +120,7 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 
 ## 💌 联系我们
 
-- 商务合作： <mailto:service@mtda.cloud>
+- 商务合作： <mailto:service@xpertai.cn>
 - [XpertAI 平台 @ Twitter](https://x.com/xpertai_cloud)
 - +微信：xpertai
 - [+飞书](https://www.feishu.cn/invitation/page/add_contact/?token=d31n417e-fa7e-4e88-970c-15e502b6de0a)

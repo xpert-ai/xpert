@@ -18,6 +18,6 @@ export class NxWidgetIframeComponent extends AbstractStoryWidget<IframeWidgetOpt
     map((options) => !options?.src)
   )
   public readonly src$ = this.options$.pipe(
-    map((options) => options?.src || 'https://mtda.cloud'),
+    map((options) => options?.src || 'https://xpertai.cn'),
   )
 }

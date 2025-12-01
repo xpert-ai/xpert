@@ -188,6 +188,6 @@ https://stackblitz.com/~/github.com/tiven-w/metad-copilot-demo
 
 ## 联系我们
 
-如果您有任何疑问或需要进一步的帮助，请随时通过电子邮件联系我们：<mailto:service@mtda.cloud>
+如果您有任何疑问或需要进一步的帮助，请随时通过电子邮件联系我们：<mailto:service@xpertai.cn>
 
 谢谢您使用 `@metad/copilot`！我们期待看到您的 Copilot 应用取得成功。

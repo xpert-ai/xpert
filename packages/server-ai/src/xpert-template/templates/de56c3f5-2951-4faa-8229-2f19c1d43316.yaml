@@ -151,7 +151,7 @@ nodes:
       method: get
       title: Get Employee Info
       description: Get employee name, position, department, email address, etc.
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
     hash: 4d094eead524ad5535b782f4e3ab47ba4b6b637585405ad8bb2bf2e15ccb5450
   - type: workflow
     key: Subflow_jzSikOjWDp
@@ -234,7 +234,7 @@ nodes:
       key: Http_kjPbgwbQGi
       method: get
       title: Create Email Account
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
       description: Create an email account
     hash: e09bb9a12770b7ef2f5a6822a49122b285f406020ebae201d261efd701b31784
   - type: workflow
@@ -247,7 +247,7 @@ nodes:
       key: Http_146tWVPVi6
       method: get
       title: Assign Devices
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
       description: Allocate personal fixed assets to employee
     hash: 54e02756ea75f860db3abda6dae29a4377119ee62faf8d84841bec15a00f5c6b
   - type: workflow
@@ -260,7 +260,7 @@ nodes:
       key: Http_xzUhbUgnVT
       method: get
       title: Join Mail Group
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
       description: Add employees to the mailing list
     hash: c10a9c42517b092d10c6172b79f30cb69e0a19c707159281e58115c5e63ec9c1
   - type: workflow
@@ -273,7 +273,7 @@ nodes:
       key: Http_Pkhj6bKOcd
       method: get
       title: Send Welcome Email
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
       description: Send a welcome email for onboarding procedures
     hash: 8379099ae795c4e5b0603369de4106fd52cbadddd0401762e9c649a69509311e
   - type: workflow

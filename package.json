@@ -3,7 +3,7 @@
   "version": "3.0",
   "description": "",
   "license": "AGPL-3.0",
-  "homepage": "https://mtda.cloud",
+  "homepage": "https://xpertai.cn",
   "repository": {
     "type": "git",
     "url": "https://github.com/xpert-ai/xpert.git"
@@ -14,8 +14,8 @@
   "private": true,
   "author": {
     "name": "XpertAI Co. LTD",
-    "email": "service@mtda.cloud",
-    "url": "https://mtda.cloud"
+    "email": "service@xpertai.cn",
+    "url": "https://xpertai.cn"
   },
   "keywords": [
     "Xpert",

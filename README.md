@@ -4,16 +4,16 @@ English | [中文](./README_zh.md)
 [uri_license_image]: https://img.shields.io/badge/License-AGPL%20v3-blue.svg
 
 <p align="center">
-  <a href="https://mtda.cloud/en/">
+  <a href="https://xpertai.cn/en/">
     <img src="docs/images/logo.png" alt="Xpert AI" style="width: 240px; height: auto;">
   </a>
 </p>
 
 <p align="center">
   <a href="https://app.mtda.cloud/">XpertAI Cloud</a> ·
-  <a href="https://mtda.cloud/en/docs/getting-started/community/">Self-hosting</a> ·
-  <a href="https://mtda.cloud/en/docs/">Documentation</a> ·
-  <a href="https://mtda.cloud/en/#connect">Enterprise inquiry</a>
+  <a href="https://xpertai.cn/en/docs/getting-started/community/">Self-hosting</a> ·
+  <a href="https://xpertai.cn/en/docs/">Documentation</a> ·
+  <a href="https://xpertai.cn/en/#connect">Enterprise inquiry</a>
 </p>
 
 <p align="center">
@@ -52,15 +52,15 @@ With the new **Parent-Child Chunk Tree** structure and **Trigger Nodes**, XpertA
 In today’s rapidly evolving AI landscape, enterprises face a key challenge: **How to balance the creativity of LLMs with the stability of workflows**? Pure agent architectures are flexible but hard to control; traditional workflows are reliable but lack adaptability. Xpert AI’s **Agent-Workflow Hybrid Architecture** is designed to resolve this conflict, enabling AI to have “free will” while adhering to “rule-based order.”
 ![agent-workflow-hybrid-architecture](https://github.com/user-attachments/assets/b3b432f9-54ab-4ec1-9fc4-7e46fbfb88ba)
 
-[Blog - Agent-Workflow Hybrid Architecture](https://mtda.cloud/en/blog/agent-workflow-hybrid-architecture)
+[Blog - Agent-Workflow Hybrid Architecture](https://xpertai.cn/en/blog/agent-workflow-hybrid-architecture)
 
-### [Agent Orchestration Platform](https://mtda.cloud/en/docs/ai/)
+### [Agent Orchestration Platform](https://xpertai.cn/en/docs/ai/)
 
 By coordinating the collaboration of multiple intelligent agents, Xpert can handle complex tasks. Xpert integrates different types of AI agents through efficient management mechanisms, leveraging their capabilities to address multidimensional problems.
 
 [Xpert Agent](https://github.com/user-attachments/assets/e21f8b35-2f72-4b81-a245-f36759df7c27)
 
-### [Data Analysis Platform](https://mtda.cloud/en/docs/models/)
+### [Data Analysis Platform](https://xpertai.cn/en/docs/models/)
 
 A cloud-based agile data analysis platform supporting multidimensional modeling, metrics management, and BI visualization. The platform connects to various data sources, enabling efficient and flexible data analysis and visualization, and offers multiple intelligent analysis tools to help enterprises quickly and accurately uncover business value and make operational decisions.
 
@@ -140,7 +140,7 @@ For Production, we recommend:
 
 ## 💌 Contact Us
 
-- For business inquiries: <mailto:service@mtda.cloud>
+- For business inquiries: <mailto:service@xpertai.cn>
 - [Xpert AI Platform @ Twitter](https://x.com/xpertai_cloud)
 
 ## 🛡️ License

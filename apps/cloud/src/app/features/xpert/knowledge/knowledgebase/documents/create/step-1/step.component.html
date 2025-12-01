@@ -156,7 +156,7 @@
             <div class="p-4">
               <div class="flex items-end justify-between">
                 <input class="flex h-9 grow py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
-                  placeholder="https://mtda.cloud/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)">
+                  placeholder="https://xpertai.cn/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)">
                 <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2 shrink-0"
                   [disabled]="loadingWeb() || !webOptions()?.url || optionSchema.integrationProvider && !integration()"
                   (click)="loadRagWebPages()">
