@@ -4,15 +4,15 @@ import { ConfigService } from '@metad/server-config'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Cache } from 'cache-manager'
 import { In } from 'typeorm'
 import { ChatBIModelService } from '../../../chatbi-model'
 import { SemanticModelService } from '../../../model'
-import { NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN, registerSemanticModel } from '../../../model/ocap'
+import { NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCES_TOKEN, registerSemanticModel } from '../../../model/ocap'
 import { TBIContext } from '../../types'
 import { GetBIContextQuery } from '../get-bi-context.query'
 import { IndicatorService } from '../../../indicator'
-import { RequestContext } from '@metad/server-core'
 
 @QueryHandler(GetBIContextQuery)
 export class GetBIContextHandler implements IQueryHandler<GetBIContextQuery> {
@@ -24,8 +24,8 @@ export class GetBIContextHandler implements IQueryHandler<GetBIContextQuery> {
 		private readonly commandBus: CommandBus,
 		@Inject(OCAP_AGENT_TOKEN)
 		private agent: Agent,
-		@Inject(OCAP_DATASOURCE_TOKEN)
-		private dataSourceFactory: { type: string; factory: DataSourceFactory },
+		@Inject(OCAP_DATASOURCES_TOKEN)
+		private dataSourceFactories: { type: string; factory: DataSourceFactory }[],
 		@Inject(CACHE_MANAGER)
 		private readonly cacheManager: Cache,
 
@@ -38,7 +38,7 @@ export class GetBIContextHandler implements IQueryHandler<GetBIContextQuery> {
 		const modelIds = command.models
 		const { indicatorDraft, semanticModelDraft } = command.params || {}
 		// New Ocap context for every chatbi conversation
-		const dsCoreService = new NgmDSCoreService(this.agent, this.dataSourceFactory)
+		const dsCoreService = new NgmDSCoreService(this.agent, this.dataSourceFactories)
 
 		const result = {
 			tenantId: RequestContext.currentTenantId(),

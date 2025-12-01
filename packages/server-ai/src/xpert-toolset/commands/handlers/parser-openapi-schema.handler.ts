@@ -1,4 +1,4 @@
-import { CredentialsType, ToolProviderCredentials } from '@metad/contracts'
+import { ApiToolBundle, CredentialsType, ToolProviderCredentials } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ApiBasedToolSchemaParser } from '../../utils/parser'
@@ -12,12 +12,12 @@ export class ParserOpenAPISchemaHandler implements ICommandHandler<ParserOpenAPI
 		private readonly commandBus: CommandBus,
 	) {}
 
-	public async execute(command: ParserOpenAPISchemaCommand): Promise<any> {
+	public async execute(command: ParserOpenAPISchemaCommand) {
 		const schema = command.schema
 		try {
 			const warnings: Record<string, any> = {}
-			let toolBundles;
-            let schemaType;
+			let toolBundles: ApiToolBundle[];
+            let schemaType: string;
 
 			try {
 				[toolBundles, schemaType] = await ApiBasedToolSchemaParser.autoParseToToolBundle(schema, warnings)

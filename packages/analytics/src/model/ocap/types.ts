@@ -3,7 +3,8 @@ import { DataSourceOptions, DSCoreService, Indicator, SemanticModel, Syntax } fr
 import { isNil, omit } from 'lodash'
 
 export const OCAP_AGENT_TOKEN = 'OCAP_AGENT_TOKEN'
-export const OCAP_DATASOURCE_TOKEN = 'OCAP_DATASOURCE_TOKEN'
+// export const OCAP_DATASOURCE_TOKEN = 'OCAP_DATASOURCE_TOKEN'
+export const OCAP_DATASOURCES_TOKEN = 'OCAP_DATASOURCES_TOKEN'
 export const OCAP_MODEL_TOKEN = 'OCAP_MODEL_TOKEN'
 
 export function getSemanticModelKey(model: ISemanticModel) {

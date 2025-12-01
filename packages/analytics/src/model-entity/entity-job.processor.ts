@@ -50,7 +50,7 @@ export class EntityMemberProcessor {
 				)
 
 				const collectionName = embeddingCubeCollectionName(model.id, cube, false)
-				const vectorStore = await this.commandBus.execute(new CreateVectorStoreCommand(collectionName))
+				const {vectorStore, copilot} = await this.commandBus.execute(new CreateVectorStoreCommand(collectionName))
 				// Clear all dimensions
 				await vectorStore?.clear()
 				// Remove previous members
@@ -59,10 +59,6 @@ export class EntityMemberProcessor {
 				} catch (err) {
 					//
 				}
-				// Use system embedding copilot model for embeddings
-				const copilot = await this.queryBus.execute(
-					new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding)
-				)
 
 				let totalTokens = 0
 				let count = 0
@@ -71,6 +67,7 @@ export class EntityMemberProcessor {
 					// Count and Record token usage
 					let tokenUsed = 0
 					batch.forEach((chunk) => {
+						chunk.metadata ??= {}
 						chunk.metadata.tokens = countTokensSafe(chunk.pageContent)
 						tokenUsed += chunk.metadata.tokens
 					})

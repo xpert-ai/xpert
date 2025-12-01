@@ -43,7 +43,6 @@ import { JsonSchema7ObjectType } from 'zod-to-json-schema'
     MatSlideToggleModule,
     NgmDensityDirective,
     NgmSpinComponent,
-    NgmI18nPipe,
     XpToolParametersFormComponent
   ],
   selector: 'xpert-toolset-tool-test',

@@ -10,7 +10,7 @@ import { injectLanguage } from './translate'
 export function injectHelpWebsite(url?: string) {
   const lang = injectLanguage()
 
-  const website = 'https://mtda.cloud'
+  const website = 'https://xpertai.cn'
 
   return computed(() => {
     const language = lang()

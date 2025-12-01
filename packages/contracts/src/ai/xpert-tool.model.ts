@@ -1,3 +1,4 @@
+import type { JSONSchema4 } from "json-schema";
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { AiProviderRole } from './copilot.model'
@@ -111,8 +112,12 @@ export interface ApiToolBundle {
   summary?: string;
   // operation_id
   operation_id?: string;
-  // parameters
+  /**
+   * parameters
+   * @deprecated use schema
+   */
   parameters?: TToolParameter[];
+  schema?: JSONSchema4
   // author
   author: string;
   // icon

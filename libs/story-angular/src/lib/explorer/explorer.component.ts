@@ -65,7 +65,7 @@ import { combineLatestWith, filter, map, startWith, switchMap } from 'rxjs/opera
 import { MatIconModule } from '@angular/material/icon'
 import { NgmSearchComponent, ResizerModule } from '@metad/ocap-angular/common'
 import { firstValueFrom } from 'rxjs'
-import { ExplainComponent, injectCalclatedMeasureCommand } from '@metad/story/story'
+import { ExplainComponent } from '@metad/story/story'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 
@@ -435,15 +435,6 @@ export class StoryExplorerComponent {
   })
 
   explains = signal<any[]>([])
-
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #calcMeasureCommand = this.#storyService ? injectCalclatedMeasureCommand(this.dataSettings(), this.#storyService, async (calculation) => {
-    console.log(calculation)
-  }) : null
 
   constructor() {
     effect(

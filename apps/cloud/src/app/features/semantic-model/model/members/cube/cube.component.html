@@ -131,7 +131,7 @@
               />
             </td>
             <th scope="row" class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap dark:text-white">
-              {{ dimension.caption }}
+              {{ dimension.caption || dimension.name }}
             </th>
             <td class="px-6 py-4 font-semibold">
               {{ dimension.name }}
@@ -172,7 +172,8 @@
                 </td>
                 <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                   <div class="inline-block w-4"></div> 
-                  <a class="cursor-pointer hover:underline" (click)="openValueHelp(dimension.name, hierarchy.name)">{{ hierarchy.caption }}</a>
+                  <a class="cursor-pointer hover:underline" (click)="openValueHelp(dimension.name, hierarchy.name)">
+                    {{ hierarchy.caption || hierarchy.name }}</a>
                 </th>
                 <td class="px-6 py-4">
                   {{ hierarchy.name }}

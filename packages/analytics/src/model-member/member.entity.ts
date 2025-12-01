@@ -1,7 +1,7 @@
 import { ISemanticModel, ISemanticModelEntity, ISemanticModelMember } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsBoolean, IsOptional, IsString, IsNumber } from 'class-validator'
+import { IsBoolean, IsOptional, IsString, IsNumber, IsJSON } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { SemanticModel, SemanticModelEntity } from '../core/entities/internal'
 
@@ -70,7 +70,7 @@ export class SemanticModelMember extends TenantOrganizationBaseEntity implements
 	entityId?: string
 
 	@IsString()
-	@Column({ length: 1000 })
+	@Column({ length: 1000, nullable: true })
 	memberName: string
 
 	@IsString()
@@ -96,6 +96,12 @@ export class SemanticModelMember extends TenantOrganizationBaseEntity implements
 	@IsString()
 	@Column({ length: 1000, nullable: true })
 	parentUniqueName: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	metadata?: ISemanticModelMember['metadata']
 
 	// For vector store
 	@ApiPropertyOptional({ type: () => Boolean })
