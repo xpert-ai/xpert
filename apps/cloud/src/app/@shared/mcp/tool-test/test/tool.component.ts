@@ -24,12 +24,12 @@ import {
   ToastrService,
   TToolParameter,
   XpertToolService,
-  XpertToolsetService
+  XpertToolsetService,
+  JsonSchemaObjectType
 } from 'apps/cloud/src/app/@core'
 import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { isNil, omit } from 'lodash-es'
 import { Subscription } from 'rxjs'
-import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 
 
 @Component({
@@ -74,7 +74,7 @@ export class MCPToolsetToolTestComponent {
   readonly toolAvatar = computed(() => this.tool()?.avatar)
 
   readonly schema = computed(() => this.tool()?.schema)
-  readonly jsonSchema = computed(() => this.tool()?.schema as JsonSchema7ObjectType)
+  readonly jsonSchema = computed(() => this.tool()?.schema as JsonSchemaObjectType)
   readonly parameterList = computed<TToolParameter[]>(() => {
     const parameters = this.schema()?.parameters ?? this.tool()?.provider?.parameters
     return parameters?.filter((_) => isNil(_.visible) || _.visible || this.visibleAll())

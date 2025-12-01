@@ -24,7 +24,9 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Configuration": "配置",
       "Skills": "技能",
+      "Middleware": "中间件",
       "Database": "数据库",
       "Selected": "已选",
       "Logs": "日志",
@@ -564,6 +566,7 @@
       "Category_set": "集合",
       "Category_vlm": "视觉模型",
       "Category_model": "语言模型",
+      "Category_middleware": "中间件",
       "Category_vector-store": "向量数据库"
     },
     "Workspace": {
@@ -2713,6 +2716,11 @@
       "AllProviders": "所有提供商"
     },
     "Xpert": {
+      "AgentMiddlewares": "智能体中间件",
+      "AgentMiddlewaresTooltip": "智能体按顺序加载中间件。中间件可以做：通过日志记录、分析和调试跟踪代理行为。转换提示、工具选择和输出格式。添加重试、回退和提前终止逻辑。应用速率限制、防护措施和个人身份信息检测。",
+      "NoMiddlewares": "还没有添加中间件",
+      "NoKnowledgeBasesYet": "还没有添加知识库",
+      "NoToolsetsYet": "还没有添加工具集",
       "ExportXpertDSL": "导出数字专家 DSL",
       "UseDraft": "使用草稿",
       "UseDraftTooltip": "使用草稿版本导出",

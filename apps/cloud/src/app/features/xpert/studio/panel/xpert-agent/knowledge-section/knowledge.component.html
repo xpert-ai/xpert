@@ -15,10 +15,10 @@
             ></path>
           </svg>
         </div>
-        <div class="text-sm font-semibold text-gray-800">{{ 'PAC.Xpert.Context' | translate: {Default: 'Context'} }}</div>
+        <div class="text-sm font-semibold text-gray-800">{{ 'PAC.Xpert.Knowledgebases' | translate: {Default: 'Knowledgebases'} }}</div>
       </div>
       <div class="flex gap-2 items-center">
-        <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small" [cdkMenuTriggerFor]="recallMenu">
+        <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small text-text-tertiary hover:text-text-primary" [cdkMenuTriggerFor]="recallMenu">
           <i class="ri-equalizer-2-line"></i>
           <span class="mr-1">{{ 'PAC.Xpert.RecallSettings' | translate: {Default: 'Recall Settings'} }}</span>
 
@@ -31,7 +31,7 @@
     </div>
   </div>
   <div class="">
-    <div class="flex flex-wrap mt-1 px-3 pb-3 justify-between">
+    <div class="flex flex-wrap mt-1 px-3 justify-between">
       @for (knowledge of knowledgebases(); track knowledge.entity.id) {
         <div class="group relative flex items-center mb-1 last-of-type:mb-0 pl-2.5 py-2 pr-3 w-full bg-white rounded-lg border-[0.5px] border-gray-200 shadow-sm">
           <div
@@ -103,6 +103,10 @@
               </svg>
             </div>
           </div>
+        </div>
+      } @empty {
+        <div class="w-full text-center font-body text-text-tertiary text-sm py-1 rounded-lg border border-dashed border-divider-regular">
+          {{ 'PAC.Xpert.NoKnowledgeBasesYet' | translate: {Default: 'No knowledge bases added yet'} }}
         </div>
       }
     </div>

@@ -1,9 +1,9 @@
 import { inject, Injectable } from '@angular/core'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, shareReplay } from 'rxjs'
+import { shareReplay } from 'rxjs'
 import { API_XPERT_AGENT } from '../constants/app.constants'
 import { injectApiBaseUrl } from '../providers'
-import { IXpertAgent, TAgentMiddlewareMeta, TChatAgentParams } from '../types'
+import { IXpertAgent, JsonSchemaObjectType, TAgentMiddlewareMeta, TChatAgentParams } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { injectFetchEventSource } from './fetch-event-source'
 
@@ -31,6 +31,10 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
 
   getAgentMiddlewareStrategies() {
     return this.httpClient.get<{meta: TAgentMiddlewareMeta}[]>(this.apiBaseUrl + `/middlewares`)
+  }
+
+  getAgentMiddlewareTools(provider: string, options: any) {
+    return this.httpClient.post<{name: string; description?: string; schema: JsonSchemaObjectType}[]>(this.apiBaseUrl + `/middlewares/${provider}/tools`, options)
   }
 }
 

@@ -66,4 +66,9 @@ export class XpertAgentController extends CrudController<XpertAgent> {
 	async getMiddlewareStrategies() {
 		return this.service.getMiddlewareStrategies()
 	}
+
+	@Post('middlewares/:provider/tools')
+	async getMiddlewareTools(@Param('provider') provider: string, @Body() body: any) {
+		return this.service.getMiddlewareTools(provider, body)
+	}
 }

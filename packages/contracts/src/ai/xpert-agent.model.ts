@@ -175,6 +175,12 @@ export type TXpertAgentOptions = {
      */
     resolution?: 'high' | 'low'
   }
+  /**
+   * Config of middlewares for agent
+   */
+  middlewares?: {
+    order: string[]
+  }
 }
 
 export type TAgentPromptTemplate = {

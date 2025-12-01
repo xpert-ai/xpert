@@ -148,7 +148,7 @@
       [cdkMenuTriggerFor]="middlewaresMenu"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.MIDDLEWARE" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary grow">{{'PAC.Workflow.Middleware' | translate: {Default: 'Middleware'} }}</div>
+      <div class="text-text-primary grow">{{'PAC.KEY_WORDS.Middleware' | translate: {Default: 'Middleware'} }}</div>
       <i class="ri-arrow-drop-right-fill"></i>
     </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
@@ -264,12 +264,12 @@
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TASK" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">{{'PAC.Workflow.TaskHandover' | translate: {Default: 'Task Handover'} }}</div>
     </div>
-    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <!-- <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addSkill()"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.SKILL" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">{{'PAC.Workflow.Skill' | translate: {Default: 'Skill'} }}</div>
-    </div>
+    </div> -->
 
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Memory' | translate: {Default: 'Memory'} }}
@@ -465,7 +465,7 @@
 <ng-template #middlewaresMenu let-ref="ref">
   <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]">
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.KEY_WORDS.Database' | translate: {Default: 'Database'} }}
+      {{ 'PAC.Xpert.AgentMiddlewares' | translate: {Default: 'Agent Middlewares'} }}
     </div>
     @for (middleware of agentMiddlewares$ | async; track middleware.meta.name) {
       <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"

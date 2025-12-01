@@ -11,6 +11,7 @@ import { QueryHandlers } from './queries/handlers'
 import { XpertToolsetController } from './xpert-toolset.controller'
 import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
+import { XpertAgentModule } from '../xpert-agent'
 
 @Module({
 	imports: [
@@ -20,7 +21,8 @@ import { XpertToolsetService } from './xpert-toolset.service'
 		TenantModule,
 		CqrsModule,
 		CopilotModule,
-		forwardRef(() => XpertWorkspaceModule)
+		forwardRef(() => XpertWorkspaceModule),
+		forwardRef(() => XpertAgentModule)
 	],
 	controllers: [XpertToolsetController],
 	providers: [XpertToolsetService, ToolsetRegistry, ...QueryHandlers, ...CommandHandlers],

@@ -43,6 +43,6 @@ import { Strategies, Validators as PluginValidators } from './plugins'
 		...PluginValidators,
 		...Strategies
 	],
-	exports: [XpertAgentService]
+	exports: [XpertAgentService, AgentMiddlewareRegistry]
 })
 export class XpertAgentModule {}

@@ -264,6 +264,23 @@ export interface TodoListMiddlewareOptions {
   toolDescription?: string
 }
 
+
+/**
+ * Creates a middleware that provides todo list management capabilities to agents.
+ *
+ * This middleware adds a `write_todos` tool that allows agents to create and manage
+ * structured task lists for complex multi-step operations. It's designed to help
+ * agents track progress, organize complex tasks, and provide users with visibility
+ * into task completion status.
+ *
+ * The middleware automatically injects system prompts that guide the agent on when
+ * and how to use the todo functionality effectively.
+ *
+ * @returns A configured middleware instance that provides todo management capabilities
+ *
+ * @see {@link TodoMiddlewareState} for the state schema
+ * @see {@link writeTodos} for the tool implementation
+ */
 @Injectable()
 @AgentMiddlewareStrategy('todoListMiddleware')
 export class TodoListMiddleware implements IAgentMiddlewareStrategy {
@@ -300,7 +317,7 @@ export class TodoListMiddleware implements IAgentMiddlewareStrategy {
     },
     description: {
       en_US: 'A middleware that helps manage complex tasks by maintaining a to-do list for the agent.',
-      zh_Hans: '一个中间件，通过维护代理的待办事项列表来帮助管理复杂任务。'
+      zh_Hans: '一个中间件，通过维护智能体的待办事项列表来帮助管理复杂任务。'
     },
     configSchema: {
       type: 'object',
@@ -308,13 +325,37 @@ export class TodoListMiddleware implements IAgentMiddlewareStrategy {
         systemPrompt: {
           type: 'string',
           default: '',
+          title: {
+            en_US: 'System Prompt',
+            zh_Hans: '系统提示词'
+          },
           description: {
-            en_US: 'Custom system prompt to prepend to the default todo list middleware prompt.',
-            zh_CN: '自定义系统提示，添加到默认的待办事项中间件提示之前。'
+            en_US: 'Custom system prompt to guide the agent on using the todo tool.',
+            zh_Hans: '自定义系统提示以指导智能体使用待办事项工具。'
+          },
+          'x-ui': {
+            component: 'textarea',
+            span: 2
+          }
+        },
+        toolDescription: {
+          type: 'string',
+          default: '',
+          title: {
+            en_US: 'Tool Description',
+            zh_Hans: '工具描述'
+          },
+          description: {
+            en_US: 'Custom description for the write_todos tool.',
+            zh_Hans: '为 write_todos 工具提供自定义描述。'
+          },
+          'x-ui': {
+            component: 'textarea',
+            span: 2
           }
         }
       }
-    }
+    },
   }
 
   createMiddleware(options: TodoListMiddlewareOptions): PromiseOrValue<AgentMiddleware> {
@@ -323,7 +364,6 @@ export class TodoListMiddleware implements IAgentMiddlewareStrategy {
      */
     const writeTodos = tool(
       ({ todos }, config) => {
-        console.log('Writing todos:', todos)
         return new Command({
           update: {
             todos,

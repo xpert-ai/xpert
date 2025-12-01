@@ -523,7 +523,6 @@ export class XpertStudioContextMenuComponent {
       key: genXpertMiddlewareKey(),
       title: this.#translate.instant('PAC.Workflow.Middleware', { Default: 'Middleware' }) + (length ? ` ${length + 1}` : ''),
       provider,
-      middlewares: []
     } as IWFNMiddleware)
   }
 }

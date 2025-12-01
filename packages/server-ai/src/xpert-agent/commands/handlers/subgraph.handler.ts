@@ -43,6 +43,7 @@ import { toEnvState } from '../../../environment'
 import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs, getAgentMiddlewares } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
+import { AgenticWorkflowTypes } from '../../types'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -405,7 +406,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					graph: stateGraph,
 					ends,
 				}
-				const _nextNodes = nextNodes.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL))
+				const _nextNodes = nextNodes.filter((_) => !(_.type === 'workflow' && AgenticWorkflowTypes.includes(_.entity.type)))
 				if (_nextNodes?.length) {
 					// One2many edge or one2one
 					if (failNode || _nextNodes.length > 1) {
@@ -499,7 +500,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		if (isStart) {
 			if (agentHasNextNodes) {
-				for await (const nextNode of next.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL))) {
+				const workflowNodes = next.filter((_) => !(_.type === 'workflow' && AgenticWorkflowTypes.includes(_.entity.type)))
+				for await (const nextNode of workflowNodes) {
 					await createSubgraph(nextNode, agentKey)
 					pathMap.push(nextNode.key)
 				}
@@ -510,7 +512,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					pathMap.push(nextNode.key)
 				}
 				
-				nextNodeKey = next?.filter((n) => !(n.type === 'workflow' && n.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL)).map((n) => n.key)
+				nextNodeKey = workflowNodes.map((n) => n.key)
 				if (nextNodeKey?.some((_) => !_)) {
 					console.error(`There is an empty nextNodeKey in Agent`)
 				}

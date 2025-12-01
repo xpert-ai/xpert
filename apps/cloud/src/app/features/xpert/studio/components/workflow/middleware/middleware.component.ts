@@ -1,13 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { FFlowModule } from '@foblex/flow'
-import { TranslateModule } from '@ngx-translate/core'
-import { isEqual } from 'lodash-es'
-import { injectXpertAgentAPI, IWFNMiddleware } from 'apps/cloud/src/app/@core'
-import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
+import { FFlowModule } from '@foblex/flow'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
+import { isEqual } from 'lodash-es'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
+import { NgxFloatUiModule, NgxFloatUiTriggers } from 'ngx-float-ui'
+import { injectXpertAgentAPI, IWFNMiddleware, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
+import { WorkflowBaseNodeComponent } from '../workflow-base.component'
+import { XpertExecutionService } from '../../../services/execution.service'
 
 @Component({
   selector: 'xpert-workflow-node-middleware',
@@ -15,14 +20,18 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
   styleUrls: ['./middleware.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, NgmI18nPipe, IconComponent]
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, NgxFloatUiModule, NgxJsonViewerModule, NgmI18nPipe, NgmSpinComponent, IconComponent]
 })
 export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeComponent {
+  eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
+  eNgxFloatUiTriggers = NgxFloatUiTriggers
   
   readonly agentAPI = injectXpertAgentAPI()
+  readonly executionService = inject(XpertExecutionService)
 
   readonly key = computed(() => this.node()?.key)
   readonly middlewareEntity = computed(() => this.entity() as IWFNMiddleware)
+  readonly description = computed(() => this.middlewareEntity()?.description)
   readonly provider = computed(() => this.middlewareEntity()?.provider)
 
   readonly parentAgents = computed(
@@ -46,5 +55,30 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
   readonly agentMiddlewares = toSignal(this.agentAPI.agentMiddlewares$)
 
   readonly providerMeta = computed(() => this.agentMiddlewares()?.find((m) => m.meta.name === this.provider())?.meta)
-  
+  readonly #tools = derivedAsync(() => {
+    const provider = this.provider()
+    if (provider) {
+      return this.agentAPI.getAgentMiddlewareTools(provider, this.middlewareEntity()?.options ?? {})
+    }
+    return null
+  })
+
+  readonly toolMessages = computed(() => this.executionService.toolMessages(), {equal: isEqual})
+  readonly tools = computed(() => {
+    const tools = this.#tools()
+    const executions = this.toolMessages()
+    return tools?.map((tool) => ({
+      ...tool,
+      executions: executions?.map((_) => _.data).filter((e) => e.toolset === this.provider() && e.tool === tool.name),
+    }))
+  })
+
+
+  // constructor() {
+  //   super()
+    
+  //   effect(() => {
+  //     console.log(this.tools(), this.executionService.toolMessages())
+  //   })
+  // }
 }

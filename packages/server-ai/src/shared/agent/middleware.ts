@@ -1,5 +1,6 @@
-import { IWFNMiddleware, IWorkflowNode, IXpertAgent, TXpertGraph, WorkflowNodeTypeEnum } from "@metad/contracts"
+import { getAgentMiddlewareNodes, IWFNMiddleware, IXpertAgent, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum } from "@metad/contracts"
 import { AgentMiddleware, AgentMiddlewareRegistry, IAgentMiddlewareStrategy } from "@xpert-ai/plugin-sdk"
+import { orderNodesByKeyOrder } from "./workflow"
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]
 
@@ -25,11 +26,10 @@ export const isSkillsConnectedToAgent = (graph: TXpertGraph, agent: IXpertAgent)
 }
 
 export function getAgentMiddlewares(graph: TXpertGraph, agent: IXpertAgent, agentMiddlewareRegistry: AgentMiddlewareRegistry): AgentMiddleware[] {
-    const middlewares = graph.connections?.filter((conn) => conn.type === 'workflow' && conn.from === agent.key)
-        .map(conn => {
-            const to = normalizeNodeKey(conn.to)
-            return graph.nodes?.find(node => node.key === to)
-        }).filter(node => (node?.entity as unknown as IWorkflowNode).type === WorkflowNodeTypeEnum.MIDDLEWARE) ?? []
+    const middlewares = orderNodesByKeyOrder(
+        getAgentMiddlewareNodes(graph, agent.key),
+        agent.options?.middlewares?.order || []
+    )
 
     return middlewares.map(middlewareNode => {
         const entity = middlewareNode?.entity as unknown as IWFNMiddleware

@@ -176,13 +176,12 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	@Get('builtin-provider/:name/icon')
 	async getProviderIcon(@Param('name') provider: string, @Res() res: ServerResponse) {
 		const [icon, mimetype] = await this.queryBus.execute(new ToolProviderIconQuery(provider))
-
-		if (!icon) {
-			throw new HttpException('Icon not found', HttpStatus.NOT_FOUND)
+		if (icon) {
+			res.setHeader('Content-Type', mimetype)
+			res.end(icon)
+			return
 		}
-
-		res.setHeader('Content-Type', mimetype)
-		res.end(icon)
+		throw new HttpException('Icon not found', HttpStatus.NOT_FOUND)
 	}
 
 	@Get('builtin-provider/:name/tools')

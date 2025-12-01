@@ -71,3 +71,19 @@ export function hasMultipleInputs(graph: TXpertGraph, nodeKey: string) {
 	const connections = graph.connections.filter((conn) => conn.type === 'edge' && conn.to === nodeKey)
 	return connections.length > 1
 }
+
+export function orderNodesByKeyOrder(nodes: TXpertTeamNode[], order: string[]): TXpertTeamNode[] {
+    if (!order?.length) {
+        return nodes
+    }
+    const orderMap = order.reduce((acc, key, index) => {
+        acc[key] = index
+        return acc
+    }, {} as Record<string, number>)
+
+    return nodes.sort((a, b) => {
+        const aIndex = orderMap[a.key] ?? Number.MAX_SAFE_INTEGER
+        const bIndex = orderMap[b.key] ?? Number.MAX_SAFE_INTEGER
+        return aIndex - bIndex
+    })
+}

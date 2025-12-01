@@ -1,4 +1,5 @@
-import { TSelectOption } from "../types";
+import { JsonSchema7TypeUnion } from "zod-to-json-schema";
+import { I18nObject, TSelectOption } from "../types";
 import { TXpertAttachmentType, XpertParameterTypeEnum } from "./xpert.model"
 
 export type TErrorHandling = {
@@ -81,3 +82,22 @@ export const Attachment_Type_Options: TSelectOption<string, TXpertAttachmentType
       },
     }
   ]
+
+
+type JsonSchema7Meta = {
+    title?: I18nObject;
+    default?: any;
+    description?: I18nObject;
+    markdownDescription?: I18nObject;
+    'x-ui'?: {
+      component?: 'textarea' | 'select' | 'radio' | 'checkbox' | 'switch' | 'password'
+      span?: number
+    }
+};
+export type JsonSchemaObjectType = {
+    type: "object";
+    properties: Record<string, JsonSchema7Type>;
+    additionalProperties?: boolean | JsonSchema7Type;
+    required?: string[];
+};
+type JsonSchema7Type = (JsonSchema7TypeUnion | JsonSchemaObjectType) & JsonSchema7Meta;

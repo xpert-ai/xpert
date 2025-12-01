@@ -59,4 +59,14 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 			}
 		})
 	}
+
+	async getMiddlewareTools(provider: string, options: any) {
+		const strategy = this.agentMiddlewareRegistry.get(provider)
+		const middleware = await strategy.createMiddleware(options)
+		return middleware.tools?.map((tool) => ({
+			name: tool.name,
+			description: tool.description,
+			schema: JSON.parse(JSON.stringify(tool.schema)),
+		})) ?? []
+	}
 }

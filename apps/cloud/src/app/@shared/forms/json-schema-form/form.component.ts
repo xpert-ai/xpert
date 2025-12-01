@@ -5,8 +5,7 @@ import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { JsonSchema7ObjectType } from 'zod-to-json-schema'
-import { TWorkflowVarGroup } from '@cloud/app/@core'
+import { JsonSchemaObjectType, TWorkflowVarGroup } from '@cloud/app/@core'
 import { JSONSchemaPropertyComponent } from '../json-schema-property/property.component'
 
 /**
@@ -26,7 +25,7 @@ export class JSONSchemaFormComponent {
   readonly i18n = new NgmI18nPipe()
 
   // Inputs
-  readonly schema = input<JsonSchema7ObjectType>()
+  readonly schema = input<JsonSchemaObjectType>()
   readonly variables = input<TWorkflowVarGroup[]>()
   readonly readonly = input<boolean, string | boolean>(false, {
       transform: booleanAttribute
