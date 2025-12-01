@@ -38,26 +38,26 @@ export class UserService extends TenantAwareCrudService<User> {
 	async getIfExistsUser(user: IUser): Promise<IUser> {
 		let _user: IUser = null
 		if (user.email) {
-			const userExists = await this.findOneOrFail({where: {email: user.email}})
+			const userExists = await this.findOneOrFailByOptions({where: {email: user.email}})
 			if (userExists.success) {
 				_user = userExists.record
 			}
 		}
 		
 		if (!_user && user.mobile) {
-			const userExists = await this.findOneOrFail({where: {mobile: user.mobile}})
+			const userExists = await this.findOneOrFailByOptions({where: {mobile: user.mobile}})
 			if (userExists.success) {
 				_user = userExists.record
 			}
 		}
 		if (!_user && user.thirdPartyId) {
-			const userExists = await this.findOneOrFail({where: {thirdPartyId: user.thirdPartyId}})
+			const userExists = await this.findOneOrFailByOptions({where: {thirdPartyId: user.thirdPartyId}})
 			if (userExists.success) {
 				_user = userExists.record
 			}
 		}
 		if (!_user && user.username) {
-			const userExists = await this.findOneOrFail({where: {username: user.username}})
+			const userExists = await this.findOneOrFailByOptions({where: {username: user.username}})
 			if (userExists.success) {
 				_user = userExists.record
 			}

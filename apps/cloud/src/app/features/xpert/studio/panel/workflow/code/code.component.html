@@ -90,7 +90,7 @@
               (ngModelChange)="updateOutput(i, 'name', $event)"
             />
           </div>
-          <ngm-select class="w-24" [nullable]="false" [selectOptions]="OutputSelectOptions" 
+          <ngm-select class="w-48" [nullable]="false" [selectOptions]="OutputSelectOptions" 
             [ngModel]="output.type"
             (ngModelChange)="updateOutput(i, 'type', $event)"
           />

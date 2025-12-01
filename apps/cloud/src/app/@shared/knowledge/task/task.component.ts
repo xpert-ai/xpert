@@ -31,6 +31,11 @@ export class KnowledgeTaskComponent {
           select: {
             id: true,
             category: true,
+            status: true,
+            processBeginAt: true,
+            processDuation: true,
+            processMsg: true,
+            progress: true,
             tasks: {
               id: true,
               taskType: true,
@@ -50,6 +55,7 @@ export class KnowledgeTaskComponent {
 
   readonly #document = this.#docResource.value
   readonly isLoading = computed(() => this.#docResource.status() === 'loading')
+  readonly document = this.#document
   readonly error = this.#docResource.error
   readonly tasks = computed(() => this.#document()?.tasks?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [])
 

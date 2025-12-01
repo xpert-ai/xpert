@@ -202,9 +202,8 @@
                       color="orange" />
                   }
                   @case (eKBDocumentStatusEnum.EMBEDDING) {
-                    
                     <div class="flex items-center gap-1">
-                      <ngm-progress-spinner class="w-6 h-6 shrink-0" [value]="element.progress" />
+                      <ngm-progress-spinner class="w-6 h-6 shrink-0 text-text-success" [value]="element.progress" />
                       <span>{{element.progress}}%</span>
                     </div>
                   }

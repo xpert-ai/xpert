@@ -279,8 +279,11 @@ export function serializeLevelSelect(cubeContext: CubeContext, dialect: string, 
 }
 
 export function serializeCubeFrom(cubeContext: CubeContext, dialect: string, catalog?: string): string {
+  if (!cubeContext.schema.fact?.table) {
+    throw new Error(`Cube '${cubeContext.schema.name}' not have fact table.`)
+  }
   return (
-    serializeTablesJoin(cubeContext.schema.name, cubeContext.schema.tables, dialect, catalog) +
+    serializeTablesJoin(cubeContext.schema.name, [cubeContext.schema.fact.table], dialect, catalog) +
     cubeContext.dimensions
       .filter((dimensionContext) => !!dimensionContext.dimensionTable)
       .map((dimensionContext) => {

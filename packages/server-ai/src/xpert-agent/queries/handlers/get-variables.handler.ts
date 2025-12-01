@@ -41,7 +41,7 @@ import {
 } from '../../workflow'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { getXpertAgent } from '../../../xpert/utils'
-import { _BaseToolset } from '../../../shared'
+import { _BaseToolset, ARRAY_FILE_ITEMS } from '../../../shared'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -137,56 +137,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						en_US: 'Files',
 						zh_Hans: '文件'
 					},
-					item: [
-						{
-							name: 'name',
-							type: XpertParameterTypeEnum.STRING,
-							description: {
-								en_US: 'File name',
-								zh_Hans: '文件名'
-							}
-						},
-						{
-							name: 'fileUrl',
-							type: XpertParameterTypeEnum.STRING,
-							description: {
-								en_US: 'File URL',
-								zh_Hans: '文件 URL'
-							}
-						},
-						{
-							name: 'filePath',
-							type: XpertParameterTypeEnum.STRING,
-							description: {
-								en_US: 'File path',
-								zh_Hans: '文件路径'
-							}
-						},
-						{
-							name: 'size',
-							type: XpertParameterTypeEnum.NUMBER,
-							description: {
-								en_US: 'File size (in bytes)',
-								zh_Hans: '文件大小（字节）'
-							}
-						},
-						{
-							name: 'mimeType',
-							type: XpertParameterTypeEnum.STRING,
-							description: {
-								en_US: 'File MIME type',
-								zh_Hans: '文件 MIME 类型'
-							}
-						},
-						{
-							name: 'extension',
-							type: XpertParameterTypeEnum.STRING,
-							description: {
-								en_US: 'File extension',
-								zh_Hans: '文件扩展名'
-							}
-						}
-					]
+					item: ARRAY_FILE_ITEMS
 				}
 			]
 		})

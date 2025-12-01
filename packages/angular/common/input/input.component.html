@@ -17,6 +17,7 @@
     [disabled]="disabled() || _disabled()"
     [matAutocomplete]="auto"
     (blur)="blur.emit($event)"
+    (focus)="focus.emit($event)"
   >
 
   <div class="absolute right-0 top-0 h-full flex items-center">

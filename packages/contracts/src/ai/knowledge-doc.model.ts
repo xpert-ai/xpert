@@ -223,6 +223,7 @@ export interface StandardDocumentMetadata {
   recallRate?: string;                // Recall count statistics, e.g. "0.00% (0/11)"
   embedTime?: string;                 // Embedding time, e.g. "1.99 sec"
   embedCost?: string | null;          // Embedding cost (if none, display as "-")
+  tokens?: number;                    // Number of tokens in the document
 }
 
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {

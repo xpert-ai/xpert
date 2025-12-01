@@ -5,7 +5,6 @@ import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { get } from 'lodash'
-import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
@@ -19,7 +18,6 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService
 	) {}
 
 	public async execute(command: CreateWNKnowledgeRetrievalCommand) {
@@ -76,9 +74,6 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 				}),
 				ends: []
 			},
-			// navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-			// 	return nextWorkflowNodes(graph, node.key, state)
-			// }
 		}
 	}
 }

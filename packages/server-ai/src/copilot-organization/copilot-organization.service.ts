@@ -25,7 +25,7 @@ export class CopilotOrganizationService extends TenantAwareCrudService<CopilotOr
 	 * @returns
 	 */
 	async upsert(input: Partial<CopilotOrganization>): Promise<ICopilotOrganization> {
-		const existing = await this.findOneOrFail({
+		const existing = await this.findOneOrFailByOptions({
 			where: {
 				tenantId: input.tenantId,
 				organizationId: input.organizationId,

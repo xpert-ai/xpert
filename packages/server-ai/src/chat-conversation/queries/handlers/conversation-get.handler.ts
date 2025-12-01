@@ -8,7 +8,7 @@ export class GetChatConversationHandler implements IQueryHandler<GetChatConversa
 	constructor(private readonly service: ChatConversationService) {}
 
 	public async execute(command: GetChatConversationQuery): Promise<IChatConversation> {
-		const result = await this.service.findOneOrFail({ where: command.conditions, relations: command.relations })
+		const result = await this.service.findOneOrFailByOptions({ where: command.conditions, relations: command.relations })
 		return result.record
 	}
 }

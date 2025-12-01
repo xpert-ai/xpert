@@ -1,6 +1,7 @@
+import { ToolMessage } from '@langchain/core/messages'
 import { PromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { Annotation, END } from '@langchain/langgraph'
+import { END } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
@@ -15,7 +16,8 @@ import {
 } from '@metad/contracts'
 import { getErrorMessage, isBlank } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { omitBy } from 'lodash'
+import { get, omitBy } from 'lodash'
+import { v4 as uuidv4 } from 'uuid'
 import { toEnvState } from '../../../environment'
 import {
 	_BaseToolset,
@@ -27,6 +29,7 @@ import {
 } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
+
 
 const WORKFLOW_TOOL_ERROR_CHANNEL = 'error'
 const WORKFLOW_TOOL_TEXT_CHANNEL = 'text'
@@ -71,6 +74,12 @@ export function createToolNode(
 				const stateEnv = stateToParameters(state, environment)
 
 				let parameters = await deepTransformValue(entity.parameters, async (v) => {
+					v = v?.trim() || ''
+					// If it's a single variable, then directly take value for it.
+					if (v.match(/^{{.*}}$/)) {
+						v = v.replace(/^{{/, '').replace(/}}$/, '').trim()
+						return get(stateEnv, v)
+					}
 					return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
 				})
 
@@ -95,7 +104,15 @@ export function createToolNode(
 						await toolset.initTools()
 						const tool = toolset.getTool(toolName)
 						try {
-							let output = await tool.invoke(parameters, config)
+							// The artifact can be obtained from the returned ToolMessage by using a tool call.
+							const outputMessage: ToolMessage = await tool.invoke({
+															id: uuidv4(),
+															name: toolName,
+															type: 'tool_call',
+															args: parameters
+														  }, config)
+							let output = outputMessage?.content
+							const artifact = outputMessage?.artifact
 							let resultJson = null
 							if (typeof output === 'string') {
 								try {
@@ -113,7 +130,7 @@ export function createToolNode(
 									[channelName(node.key)]: {
 										[WORKFLOW_TOOL_TEXT_CHANNEL]: output,
 										[WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
-										[WORKFLOW_TOOL_FILES_CHANNEL]: resultJson?.files ?? [],
+										[WORKFLOW_TOOL_FILES_CHANNEL]: artifact?.files ?? undefined,
 										[WORKFLOW_TOOL_ERROR_CHANNEL]: null
 									}
 								},

@@ -41,6 +41,7 @@ export function countTokensSafe(
   text: string,
   opts?: { model?: string; encodingName?: TiktokenEncoding | string }
 ): number {
+  return 0
   if (!text) return 0
 
   let resolvedEncoding: string

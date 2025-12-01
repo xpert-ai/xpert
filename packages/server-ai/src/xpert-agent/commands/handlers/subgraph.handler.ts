@@ -404,8 +404,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				const _nextNodes = nextNodes.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL))
 				if (_nextNodes?.length) {
 					// One2many edge or one2one
-					if (_nextNodes?.length > 1) {
+					if (failNode || _nextNodes.length > 1) {
 						conditionalEdges[node.key] = [(state) => {
+							const channelState = getChannelState(state, channelName(node.key))
+							if (channelState?.error) {
+								return failNode ? [new Send(failNode.key, state)] : []
+							}
 							return _nextNodes.filter((_) => !!_).map(({key}) => new Send(key, state))
 						}, _nextNodes.map(({key}) => key)]
 					} else if (_nextNodes?.[0]?.key) {
@@ -415,7 +419,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						await createSubgraph(nextNode, node.key, finalReturn)
 					}
 				} else if (finalReturn) {
-					edges[node.key] = finalReturn
+					if (failNode) {
+						conditionalEdges[node.key] = [(state) => {
+							const channelState = getChannelState(state, channelName(node.key))
+							if (channelState?.error) {
+								return failNode ? [new Send(failNode.key, state)] : []
+							}
+							return finalReturn
+						}, [finalReturn]]
+					} else {
+						edges[node.key] = finalReturn
+					}
 				} else {
 					nodes[node.key].ends.push(END)
 					// edges[node.key] = END
@@ -755,18 +769,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				return nState
 			} catch(err) {
 				if(errorHandling?.type === 'failBranch') {
-					// return new Command({
-					// 	goto: fail[0] ? fail[0].key : END,
-					// 	graph: isStart ? null : Command.PARENT,
-					// 	update: {
-					// 		messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
-					// 		[channelName(agentKey)]: {
-					// 			system: systemMessage.content,
-					// 			error: getErrorMessage(err),
-					// 			messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
-					// 		}
-					// 	}
-					// })
 					return {
 						messages: [...deleteMessages, ...humanMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
 						[channelName(agentKey)]: {
@@ -892,7 +894,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			pathMap.push(END)
 		}
 		if (!hiddenAgent) {
-			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey, fail[0]?.key), pathMap)
+			subgraphBuilder.addConditionalEdges(
+				agentKey,
+				createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey, isStart ? fail?.[0]?.key : undefined),
+				pathMap
+			)
 		}
 
 		// Has other nodes
@@ -1194,10 +1200,13 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 				}
 
 				if (nexts.length) {
+					if (subState?.error && fail) {
+						nexts.push(new Send(fail, state))
+					}
 					return nexts
 				}
 
-				if (subState?.error) {
+				if (subState?.error && fail) {
 					return fail
 				}
 

@@ -4,7 +4,7 @@ import { RequestContext } from '@metad/server-core'
 import { Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { EMPTY, Observable, from } from 'rxjs'
-import { ModelOlapQuery } from '../queries'
+import { ModelOlapQuery, ModelSqlQuery } from '../queries'
 
 @Injectable()
 export class ProxyAgent implements Agent {
@@ -21,6 +21,10 @@ export class ProxyAgent implements Agent {
 	error(err: any): void {}
 	async request(model: ISemanticModel & {isDraft?: boolean}, options: any): Promise<any> {
 		const user = RequestContext.currentUser()
+
+		if (model.type === 'SQL') {
+			return await this.queryBus.execute(new ModelSqlQuery(model.id, options))
+		}
 
 		const result = await this.queryBus.execute(
 			new ModelOlapQuery(

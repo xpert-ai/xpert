@@ -55,9 +55,14 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
     }
   }
 
+  onFocus() {
+    this.formControl.markAsTouched()
+  }
+
   onBlur() {
     if (this.oldValue !== this.newValue) {
       this.formControl.setValue(this.newValue)
+      this.formControl.markAsDirty()
     }
   }
 }

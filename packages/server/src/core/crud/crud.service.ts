@@ -173,40 +173,40 @@ export abstract class CrudService<T extends BaseEntity>
 		return this._findOneOrFailByOptions(options);
 	}
 
-	/**
-	 * @deprecated use findOneOrFailByIdString or findOneOrFailByOptions instead
-	 */
-	public async findOneOrFail(
-		id: string | number | FindOneOptions<T>,
-		options?: FindOneOptions<T>
-	): Promise<ITryRequest> {
-		let _options: FindOneOptions<T> = options ?? {}
-		if (typeof id === 'string' || typeof id === 'number') {
-			_options = {
-						where: {
-							id,
-							...(options && options.where ? options.where : {})
-						},
-						...(options && options.select ? { select: options.select } : {}),
-						...(options && options.relations ? { relations: options.relations } : []),
-						...(options && options.order ? { order: options.order } : {})
-					} as FindOneOptions<T>
-		} else {
-			_options = id as FindOneOptions<T>
-		}
-		try {
-			const record = await this.repository.findOneOrFail(_options);
-			return {
-				success: true,
-				record
-			};
-		} catch (error) {
-			return {
-				success: false,
-				error
-			};
-		}
-	}
+	// /**
+	//  * @deprecated use `findOneOrFailByIdString` or `findOneOrFailByOptions` or `findOneOrFailByWhereOptions` instead
+	//  */
+	// public async findOneOrFail(
+	// 	id: string | number | FindOneOptions<T>,
+	// 	options?: FindOneOptions<T>
+	// ): Promise<ITryRequest> {
+	// 	let _options: FindOneOptions<T> = options ?? {}
+	// 	if (typeof id === 'string' || typeof id === 'number') {
+	// 		_options = {
+	// 					where: {
+	// 						id,
+	// 						...(options && options.where ? options.where : {})
+	// 					},
+	// 					...(options && options.select ? { select: options.select } : {}),
+	// 					...(options && options.relations ? { relations: options.relations } : []),
+	// 					...(options && options.order ? { order: options.order } : {})
+	// 				} as FindOneOptions<T>
+	// 	} else {
+	// 		_options = id as FindOneOptions<T>
+	// 	}
+	// 	try {
+	// 		const record = await this.repository.findOneOrFail(_options);
+	// 		return {
+	// 			success: true,
+	// 			record
+	// 		};
+	// 	} catch (error) {
+	// 		return {
+	// 			success: false,
+	// 			error
+	// 		};
+	// 	}
+	// }
 
 	/**
 	 * Finds first entity that matches given where condition.
@@ -217,7 +217,7 @@ export abstract class CrudService<T extends BaseEntity>
 	 */
 	public async findOneOrFailByWhereOptions(options: IFindWhereOptions<T>): Promise<ITryRequest<T>> {
 		try {
-			const record = await this.repository.findOneByOrFail(options as FindOptionsWhere<T>);
+			const record = await this.repository.findOneByOrFail(options);
 
 			return {
 				success: true,

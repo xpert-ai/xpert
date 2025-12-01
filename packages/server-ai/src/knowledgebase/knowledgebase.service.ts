@@ -108,7 +108,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	async create(entity: Partial<IKnowledgebase>) {
 		// Check name
-		const exist = await super.findOneOrFail({
+		const exist = await super.findOneOrFailByOptions({
 			where: { name: entity.name }
 		})
 		if (exist.success) {

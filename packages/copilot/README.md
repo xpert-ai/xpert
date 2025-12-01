@@ -186,6 +186,6 @@ If you find any issues or have suggestions for improvement, please feel free to 
 
 ## Contact Us
 
-If you have any questions or need further assistance, please feel free to contact us via email at: <mailto:service@mtda.cloud>
+If you have any questions or need further assistance, please feel free to contact us via email at: <mailto:service@xpertai.cn>
 
 Thank you for using `@metad/copilot`! We look forward to seeing your Copilot application succeed.

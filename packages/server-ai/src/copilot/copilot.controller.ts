@@ -140,7 +140,7 @@ export class CopilotController extends CrudController<Copilot> {
 	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Post('enable/:role')
 	async enableCopilotRole(@Param('role') role: AiProviderRole) {
-		const copilot = await this.service.findOneOrFail({ where: { role } })
+		const copilot = await this.service.findOneOrFailByWhereOptions({ role })
 		if (copilot.success) {
 			await this.service.update(copilot.record.id, { enabled: true })
 		} else {
@@ -182,6 +182,7 @@ export class CopilotController extends CrudController<Copilot> {
 				new FindCopilotModelsQuery(type)
 			)
 		} catch (err) {
+			console.error(err)
 			if (err instanceof HttpException) {
 				throw err
 			} else {

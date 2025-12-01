@@ -16,18 +16,27 @@
     {{ 'PAC.Copilot.CustomCopilots' | translate: {Default: 'Custom Copilots'} }}
   </div>
 }
-
 <mat-accordion >
   <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!primary()?.enabled" [expanded]="!!primary()?.enabled">
     <mat-expansion-panel-header>
       <mat-panel-title>
-        @if (primary()?.modelProvider?.provider) {
-          <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="primary().modelProvider.provider.icon_large | i18n"
-            [matTooltip]="primary().id" matTooltipPosition="before">
+        @if (primary(); as copilot) {
+          @if (copilot.modelProvider?.provider && !expansion.expanded) {
+            <div class="flex" [matTooltip]="copilot.id" matTooltipPosition="before">
+              @if (copilot.modelProvider.provider.icon_large) {
+                <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
+              } @else {
+                @if (copilot.modelProvider.provider.icon_small) {
+                  <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_small | i18n">
+                }
+                <span class="ml-2">{{copilot.modelProvider.provider.label | i18n}}</span>
+              }
+            </div>
+          }
         }
-
         <div class="ml-2">
           {{'PAC.KEY_WORDS.Primary' | translate: {Default: 'Primary'} }}
+          {{'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'} }}
         </div>
       </mat-panel-title>
       <mat-panel-description class="flex-1">
@@ -49,7 +58,7 @@
       <mat-expansion-panel-header>
         <mat-panel-title>
           <div [matTooltip]="copilot.id" matTooltipPosition="before" class="flex">
-            @if (copilot.modelProvider?.provider) {
+            @if (copilot.modelProvider?.provider && !expansion.expanded) {
               @if (copilot.modelProvider.provider.icon_large) {
                 <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
               } @else {
@@ -81,6 +90,7 @@
                   {{ copilot.name }}
                 } @else {
                   {{'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) } }}
+                  {{'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'} }}
                 }
               </div>
             }

@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-ai",
-  "version": "3.6.6",
+  "version": "3.6.7",
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {

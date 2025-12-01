@@ -7,6 +7,7 @@
   [ngModel]="newValue"
   (ngModelChange)="newValue = $event"
   (blur)="onBlur()"
+  (focus)="onFocus()"
   >
   @if (props?.help) {
     <a ngmLabel [href]="props.help" target="_blank" rel="noopener noreferrer" class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal">

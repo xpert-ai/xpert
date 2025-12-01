@@ -1,0 +1,46 @@
+<div class="py-4 relative">
+  <div class="group/collapse flex items-center">
+    <div class="ml-4 flex grow items-center cursor-pointer" (click)="toggleInputExpand()">
+      <div class="system-sm-semibold-uppercase flex h-6 items-center text-text-secondary">
+        输入
+      </div>
+      <div class="h-5 w-5 flex justify-center items-center shrink-0 transition-transform"
+        [ngClass]="inputExpand() ? 'rotate-90' : ''">
+        <i class="ri-arrow-drop-right-line text-lg text-text-quaternary group-hover/collapse:text-text-secondary"></i>
+      </div>
+    </div>
+  </div>
+
+  @if (inputExpand()) {
+    <div class="px-4 space-y-3 mt-2">
+      <xpert-state-variable-select class="flex-1 text-sm overflow-hidden"
+                      [variables]="variables()"
+                      [(ngModel)]="inputVariable"
+                      />
+    </div>
+  }
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="py-4 relative">
+  <div class="group/collapse flex items-center">
+    <div class="ml-4 flex grow items-center cursor-pointer" (click)="toggleOutputExpand()">
+      <div class="system-sm-semibold-uppercase flex h-6 items-center text-text-secondary">
+        输出
+      </div>
+      <div class="h-5 w-5 flex justify-center items-center shrink-0 transition-transform"
+        [ngClass]="outputExpand() ? 'rotate-90' : ''">
+        <i class="ri-arrow-drop-right-line text-lg text-text-quaternary group-hover/collapse:text-text-secondary"></i>
+      </div>
+    </div>
+  </div>
+  @if (outputExpand()) {
+    <div class="px-4 space-y-3 mt-2">
+      <span class="inline-flex items-center gap-1 rounded bg-orange-100 px-2 py-1 text-xs font-medium text-orange-500">
+        <span class="h-4 px-1 rounded bg-orange-200">Object</span>
+        <span>{{ 'output' }}</span>
+      </span>
+    </div>
+  }
+</div>

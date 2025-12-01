@@ -68,6 +68,12 @@
   @case (eWorkflowNodeTypeEnum.CODE) {
     <xpert-studio-node-workflow-code class="px-3" [node]="node()" [entity]="entity()" />
   }
+  @case (eWorkflowNodeTypeEnum.JSON_PARSE) {
+    <xp-workflow-node-json-parse class="px-3" [node]="node()" [entity]="entity()" />
+  }
+   @case (eWorkflowNodeTypeEnum.JSON_STRINGIFY) {
+    <xp-workflow-node-json-stringify class="px-3" [node]="node()" [entity]="entity()" />
+  }
   @case (eWorkflowNodeTypeEnum.HTTP) {
     <xpert-studio-node-workflow-http class="px-3" [node]="node()" [entity]="entity()" />
   }

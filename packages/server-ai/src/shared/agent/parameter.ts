@@ -1,5 +1,6 @@
 import { TXpertParameter, XpertParameterTypeEnum } from "@metad/contracts"
 import { z } from 'zod'
+import { ARRAY_FILE_ITEMS } from "./constants"
 
 /**
  * Create zod schema for custom parameters of agent
@@ -55,4 +56,23 @@ export function createParameters(parameters: TXpertParameter[]): Record<string, 
 
 		return schema
 	}, {})
+}
+
+/**
+ * Complete parameter definitions, such as adding a list of file fields to file array.
+ * 
+ * @param parameters 
+ * @returns 
+ */
+export function completeParametersDef(parameters: TXpertParameter[]): TXpertParameter[] {
+	return parameters.map((parameter) => {
+		const completedParameter = { ...parameter }
+		if (
+			parameter.type === XpertParameterTypeEnum.ARRAY_FILE &&
+			(!parameter.item || parameter.item.length === 0)
+		) {
+			completedParameter.item = ARRAY_FILE_ITEMS
+		}
+		return completedParameter
+	})
 }

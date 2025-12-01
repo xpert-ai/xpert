@@ -306,7 +306,7 @@
             @if (option.isSelected()) {
               <i class="ri-check-line text-lg text-text-success"></i>
             }
-            {{property.caption}}
+            {{property.caption || property.name}}
         </li>
         }
       </ul>

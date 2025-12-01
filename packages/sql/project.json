@@ -5,25 +5,38 @@
   "projectType": "library",
   "targets": {
     "build": {
-      "executor": "@nrwl/js:tsc",
+      "executor": "@nx/rollup:rollup",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/sql",
-        "tsConfig": "packages/sql/tsconfig.lib.json",
-        "packageJson": "packages/sql/package.json",
         "main": "packages/sql/src/index.ts",
-        "assets": [
+        "tsConfig": "packages/sql/tsconfig.lib.json",
+        "project": "packages/sql/package.json",
+        "entryFile": "packages/sql/src/index.ts",
+        "globals": [
           {
-            "glob": "**/*.md",
-            "input": "packages/sql/",
-            "output": "./"
+            "global": "Rx",
+            "moduleId": "rxjs"
           },
+          {
+            "global": "Rx",
+            "moduleId": "rxjs/operators"
+          }
+        ],
+        "assets": [
           {
 						"glob": "**/*.json",
 						"input": "packages/sql/src/i18n/",
 						"output": "./src/i18n/"
-					}
-        ]
+					},
+          {
+            "glob": "*.md",
+            "input": "packages/sql/",
+            "output": "./"
+          }
+        ],
+        "compiler": "swc",
+        "format": ["cjs", "esm"]
       }
     },
     "lint": {

@@ -1,10 +1,11 @@
+import { Document } from '@langchain/core/documents'
 import { DSCoreService } from '@metad/ocap-core';
-import { ICommand } from '@nestjs/cqrs';
+import { Command } from '@nestjs/cqrs';
 
 /**
  * Retrieve members of a dimension in a cube.
  */
-export class RetrieveMembersCommand implements ICommand {
+export class RetrieveMembersCommand extends Command<Array<[Document, number]>> {
     static readonly type = '[Dimension Member] Retrieve dimension members';
 
     constructor(
@@ -20,5 +21,7 @@ export class RetrieveMembersCommand implements ICommand {
             dsCoreService?: DSCoreService
             reEmbedding?: boolean
         }
-    ) {}
+    ) {
+        super();
+    }
 }

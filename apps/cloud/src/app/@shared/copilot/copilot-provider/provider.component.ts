@@ -88,9 +88,10 @@ export class CopilotProviderComponent {
   })
 
   readonly background = computed(() => this.copilotProvider()?.provider?.background ?? 'transparent')
-  readonly icon = computed(() => this.copilotProvider()?.provider?.icon_large)
-  readonly label = computed(() => this.copilotProvider()?.provider?.label)
+  readonly largeIcon = computed(() => this.copilotProvider()?.provider?.icon_large)
   readonly smallIcon = computed(() => this.copilotProvider()?.provider?.icon_small)
+  readonly icon = computed(() => this.largeIcon() || this.smallIcon())
+  readonly label = computed(() => this.copilotProvider()?.provider?.label)
   readonly supported_model_types = computed(() => this.copilotProvider()?.provider?.supported_model_types)
   readonly configurate_methods = computed(() => this.copilotProvider()?.provider?.configurate_methods)
   readonly canCustomizableModel = computed(() =>

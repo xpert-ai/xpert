@@ -139,7 +139,7 @@
 - copilot message nanoid ([d0e527c06](https://github.com/xpert-ai/xpert/commit/d0e527c06))
 - copilot chat ([47e20fd91](https://github.com/xpert-ai/xpert/commit/47e20fd91))
 - copilot chat dark theme ([77e1ff3c4](https://github.com/xpert-ai/xpert/commit/77e1ff3c4))
-- metad copilot v 1.18.0-beta ([9183801f5](https://github.com/xpert-ai/xpert/commit/9183801f5))
+- XpertAI Copilot v 1.18.0-beta ([9183801f5](https://github.com/xpert-ai/xpert/commit/9183801f5))
 - copilot conversation ([772fb4969](https://github.com/xpert-ai/xpert/commit/772fb4969))
 - enabled for copilot ([82f75cc61](https://github.com/xpert-ai/xpert/commit/82f75cc61))
 - update cicd npm workflow ([1034c7294](https://github.com/xpert-ai/xpert/commit/1034c7294))

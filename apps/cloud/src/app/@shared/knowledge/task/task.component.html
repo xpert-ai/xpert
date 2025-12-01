@@ -82,6 +82,39 @@
           }
         </ul> -->
       </section>
+    } @empty {
+      <section class="flex flex-col pt-4">
+        <div class="mb-4 px-2 space-y-2">
+          <div>
+            <span class="font-medium">{{ 'PAC.Knowledgebase.DocumentId' | translate: {Default: 'Document Id'} }}</span>:
+            <span class="font-body text-text-secondary">{{ document()?.id }}</span>
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.Knowledgebase.Category' | translate: {Default: 'Category'} }}</span>:
+            <span class="font-body text-text-secondary">{{ document()?.category }}</span>
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.Knowledgebase.Status' | translate: {Default: 'Status'} }}</span>:
+            <span class="font-body text-text-secondary">{{ document()?.status }}</span>
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.Knowledgebase.ProcessBeginAt' | translate: {Default: 'Process Begin At'} }}</span>:
+            <span class="font-body text-text-secondary">{{ document()?.processBeginAt | relative }}</span>
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.Knowledgebase.ProcessDuration' | translate: {Default: 'Process Duration ms'} }}</span>:
+            <span class="font-body text-text-secondary">{{ document()?.processDuation }}</span>
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.Message' | translate: {Default: 'Message'} }}</span>:
+            <span class="font-body text-text-secondary">{{ document()?.processMsg }}</span>
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.Knowledgebase.Progress' | translate: {Default: 'Progress'} }}</span>:
+            <span class="font-body text-text-secondary">{{ document()?.progress }}%</span>
+          </div>
+        </div>
+      </section>
     }
   </div>
 </div>

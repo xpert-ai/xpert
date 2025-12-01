@@ -1,6 +1,7 @@
 provider: openrouter
 label:
-  en_US: OpenRouter
+  en_US: OpenRouter ❌ (Deprecated)
+  zh_Hans: OpenRouter ❌（已弃用）
 icon_small:
   en_US: openrouter_square.svg
 icon_large:

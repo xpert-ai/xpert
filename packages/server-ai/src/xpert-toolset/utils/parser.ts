@@ -3,9 +3,9 @@ import { getErrorMessage, shortuuid, yaml } from '@metad/server-common';
 import { fromParameter, fromSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
 import { jsonSchemaToZod } from 'json-schema-to-zod';
 import type { JSONSchema4, JSONSchema4Type } from "json-schema";
-import type { ParameterObject } from "openapi-typescript/src/types";
-import { ToolApiSchemaError, ToolNotSupportedError, ToolProviderNotFoundError } from '../errors';
 import { lowerCase } from 'lodash';
+import type { OperationObject, ParameterObject } from "openapi-typescript/src/types";
+import { ToolApiSchemaError, ToolNotSupportedError, ToolProviderNotFoundError } from '../errors';
 
 
 export class ApiBasedToolSchemaParser {
@@ -140,6 +140,7 @@ export class ApiBasedToolSchemaParser {
         summary: interfaceObj.operation.description || interfaceObj.operation.summary || '',
         operation_id: interfaceObj.operation.operationId,
         parameters,
+        schema: ApiBasedToolSchemaParser.parseOperationObjectToJSONSchema(interfaceObj.operation),
         author: '',
         icon: null,
         openapi: interfaceObj.operation,
@@ -221,6 +222,143 @@ export class ApiBasedToolSchemaParser {
   static parseOpenAPIYamlToZod(spec: string) {
     const jsonSchema = ApiBasedToolSchemaParser.parseOpenAPIYamlToJSONSchema(spec)
     return ApiBasedToolSchemaParser.parseJSONSchemaToZod(jsonSchema)
+  }
+
+  /**
+   * Parses an OpenAPI OperationObject into a JSONSchema4 format.
+   * 
+   * This method extracts parameters and request body information from an OpenAPI operation
+   * and converts them into a unified JSON Schema object with properties and required fields.
+   * It handles:
+   * - Path, query, header, and cookie parameters
+   * - Request body schemas (including $ref resolution)
+   * - Required field detection from both parameters and request body
+   * - Nested object schemas and reference resolution through components
+   * 
+   * @param operationObject - The OpenAPI OperationObject to parse
+   * @param components - Optional components object containing reusable schemas and references.
+   *                     Defaults to the components property of the operationObject if available.
+   * @returns A JSONSchema4 object representing the combined schema of all parameters and request body
+   * @throws {ToolApiSchemaError} If the operationObject is empty or undefined
+   * 
+   * @example
+   * ```typescript
+   * const operationObject = {
+   *   parameters: [
+   *     { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+   *   ],
+   *   requestBody: {
+   *     required: true,
+   *     content: {
+   *       'application/json': {
+   *         schema: { type: 'object', properties: { name: { type: 'string' } } }
+   *       }
+   *     }
+   *   }
+   * };
+   * const schema = ApiBasedToolSchemaParser.parseOperationObjectToJSONSchema(operationObject);
+   * ```
+   */
+  static parseOperationObjectToJSONSchema(
+    operationObject: OperationObject,
+    components: Record<string, any> = (operationObject as any)?.components || {}
+  ): JSONSchema4 {
+    if (!operationObject) {
+      throw new ToolApiSchemaError(`OperationObject is empty`)
+    }
+
+    const required = new Set<string>()
+    const properties: Record<string, JSONSchema4> = {}
+
+    const resolveReference = (ref?: string) => {
+      if (!ref || !components) {
+        return
+      }
+      const paths = ref.replace(/^#\//, '').split('/')
+      let current: any = components
+      for (const path of paths) {
+        if (current && path in current) {
+          current = current[path]
+        } else {
+          return
+        }
+      }
+      return current
+    }
+
+    const normalizeSchema = (schema: any) => {
+      if (schema && typeof schema === 'object' && '$ref' in schema) {
+        return resolveReference((schema as any).$ref) || schema
+      }
+      return schema
+    }
+
+    const appendSchemaProperties = (schema: any, bodyRequired = false) => {
+      const resolvedSchema = normalizeSchema(schema)
+      if (!resolvedSchema) {
+        return
+      }
+      if (resolvedSchema.type === 'object' || resolvedSchema.properties) {
+        const requiredProps: string[] = resolvedSchema.required || []
+        const props = resolvedSchema.properties || {}
+        for (const [name, propSchema] of Object.entries<any>(props)) {
+          if (!propSchema) {
+            continue
+          }
+          properties[name] = fromSchema(propSchema) as JSONSchema4
+          if (requiredProps.includes(name)) {
+            required.add(name)
+          } else if (bodyRequired && requiredProps.length === 0) {
+            // If the whole body is required but no explicit required fields, require the top-level keys
+            required.add(name)
+          }
+        }
+      } else {
+        properties['body'] = fromSchema(resolvedSchema) as JSONSchema4
+        if (bodyRequired) {
+          required.add('body')
+        }
+      }
+    }
+
+    for (const parameter of operationObject.parameters || []) {
+      const resolvedParameter = ('$ref' in (parameter as any))
+        ? normalizeSchema(parameter)
+        : parameter
+
+      if (!resolvedParameter) {
+        continue
+      }
+
+      if ((resolvedParameter as any).in === 'body' && (resolvedParameter as any).schema) {
+        appendSchemaProperties((resolvedParameter as any).schema, (resolvedParameter as any).required)
+        continue
+      }
+
+      const schema = fromParameter(resolvedParameter as ParameterObject) as JSONSchema4
+      properties[resolvedParameter.name] = schema
+      if ((resolvedParameter as ParameterObject).required) {
+        required.add(resolvedParameter.name)
+      }
+    }
+
+    const requestBody = operationObject.requestBody
+    if (requestBody) {
+      const resolvedRequestBody = normalizeSchema(requestBody)
+      const content = resolvedRequestBody?.content
+      if (content && typeof content === 'object') {
+        const firstContentType = Object.keys(content)[0]
+        const bodySchema = content[firstContentType]?.schema
+        appendSchemaProperties(bodySchema, resolvedRequestBody.required)
+      }
+    }
+
+    return {
+      type: 'object',
+      properties,
+      required: Array.from(required),
+      additionalProperties: false
+    }
   }
 
   static async autoParseToToolBundle(
@@ -320,7 +458,8 @@ export class ApiBasedToolSchemaParser {
           },
           servers: servers,
           paths: {},
-          components: { schemas: {} },
+          components: { ...(swagger.components ?? {}), schemas: swagger.components?.schemas ?? {} },
+          tags: swagger.tags
       };
 
       if (!swagger.paths || Object.keys(swagger.paths).length === 0) {

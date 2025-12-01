@@ -3,6 +3,7 @@ import {
   FilteringLogic,
   FilterOperator,
   flatten,
+  getMemberKey,
   IFilter,
   IMember,
   isAdvancedFilter,
@@ -154,7 +155,7 @@ export function compileSlicer(slicer: IFilter, cube: CubeContext, dialect: strin
   }
 
   const conditions = compileMembers(slicer.members, levels, dimensionContext)
-    .map((members: Array<string | { columnName: string; value: string }>) => {
+    .map((members: Array<string | { columnName: string; value: string; operator?: string }>) => {
       switch (operator) {
         case FilterOperator.GT:
         case FilterOperator.GE:
@@ -183,7 +184,32 @@ export function compileFilters(filters: Array<IFilter>, cube: CubeContext, diale
 
 export function compileMembers(members: IMember[], levels: PropertyLevel[], dimensionContext: DimensionContext) {
   return members.map((member) => {
-    return `${member.value}`
+    if (member.operator) {
+      return levels.map((level) => {
+        const levelTable = level.table || dimensionContext.dimensionTable
+        const levelColumn = level.captionColumn || level.nameColumn || level.column
+
+        if (!levelColumn) {
+          throw new Error(
+            `Can't find table caption or name or key column for level '${level.name}' of dimension '${dimensionContext.dimension.dimension}'`
+          )
+        }
+
+        const columnName = `${serializeName(
+          levelTable ? serializeTableAlias(dimensionContext.hierarchy.name, levelTable) : dimensionContext.factTable,
+          dimensionContext.dialect
+        )}.${serializeName(levelColumn, dimensionContext.dialect)}`
+
+        let value = `%${member.caption}%`
+        if (level.type !== 'Numeric' && level.type !== 'Integer') {
+          value = `'${value}'`
+        }
+
+        return { columnName, value, operator: 'LIKE' }
+      })
+    }
+    const memberKey = getMemberKey(member)
+    return `${memberKey}`
       .replace(/^\[/, '')
       .replace(/\]$/, '')
       .split('].[')
@@ -254,6 +280,6 @@ export function serializeCPMembers(
   return Or(...conditions)
 }
 
-export function serializeEQMembers(members: Array<string | { columnName: string; value: string }>) {
-  return And(...members.map((member) => (isString(member) ? member : `${member.columnName} = ${member.value}`)))
+export function serializeEQMembers(members: Array<string | { columnName: string; value: string; operator?: string }>) {
+  return And(...members.map((member) => (isString(member) ? member : `${member.columnName} ${member.operator ?? '='} ${member.value}`)))
 }

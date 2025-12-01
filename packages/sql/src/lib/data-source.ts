@@ -263,6 +263,7 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
             const _entityType = mapTableSchemaEntityType(entity, schemas[0]?.tables?.[0], this.options.dialect)
             return _entityType
           } catch (err: any) {
+            console.error(err)
             const error: string = getErrorMessage(err)
             this.agent.error(error)
             return new Error(error)

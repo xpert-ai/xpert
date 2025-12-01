@@ -41,7 +41,7 @@ export class FeatureService extends CrudService<Feature> {
 		try {
 			for await (const item of DEFAULT_FEATURES) {
 				const feature: IFeature = createFeature(item)
-				const _feature = await this.findOneOrFail({ where: { name: feature.name, code: feature.code } })
+				const _feature = await this.findOneOrFailByOptions({ where: { name: feature.name, code: feature.code } })
 				let parent = null
 				if (_feature.success) {
 					parent = _feature.record

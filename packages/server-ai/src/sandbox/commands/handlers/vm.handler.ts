@@ -3,10 +3,9 @@ import { Inject, Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
 import { spawn } from 'child_process'
-import { ExternalCopy, Isolate, Reference } from 'isolated-vm'
-import { I18nService } from 'nestjs-i18n'
-import { PythonShell } from 'python-shell'
+import { ExternalCopy, Isolate } from 'isolated-vm'
 import { SandboxVMCommand } from '../vm.command'
+import { runPythonFunction } from './python'
 
 @CommandHandler(SandboxVMCommand)
 export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand> {
@@ -15,7 +14,6 @@ export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand> {
 	constructor(
 		@Inject(CACHE_MANAGER)
 		private readonly cacheManager: Cache,
-		private readonly i18nService: I18nService
 	) {}
 
 	public async execute(command: SandboxVMCommand) {
@@ -23,7 +21,7 @@ export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand> {
 		if (language === 'javascript') {
 			return await this.runJavaScriptCode(parameters, code)
 		} else if (language === 'python') {
-			return await this.runPythonFunction(parameters, code)
+			return await runPythonFunction(parameters, code)
 		}
 
 		throw new Error(`Unsupported language ${language}`)
@@ -48,30 +46,6 @@ export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand> {
 
 		return {
 			result: JSON.parse(result),
-		}
-	}
-
-	async runPythonFunction(inputs: any, code: string): Promise<any> {
-		// Convert the key value pairs of the input object into Python variable definitions
-		const inputVariables = Object.entries(inputs)
-			.map(([key, value]) => `${key} = ${JSON.stringify(value)}`)
-			.join('\n')
-
-		// Splice the variable definition before the Python code
-		const inputParams = Object.keys(inputs).map(key => `${key}: str`).join(', ')
-		const wrappedCode = `import json
-${inputVariables}
-def main(${inputParams}):
-${code.split('\n').map(line => `    ${line}`).join('\n')}
-result = main(${Object.keys(inputs).join(', ')})
-print(json.dumps(result))
-`
-
-		const output = await PythonShell.runString(wrappedCode, null)
-		const result = JSON.parse(output[output.length - 1]) // Get the output of the last line print(json.dumps(result))
-		return {
-			result,
-			logs: output.slice(0, -1).join('\n') // All lines except the last one
 		}
 	}
 

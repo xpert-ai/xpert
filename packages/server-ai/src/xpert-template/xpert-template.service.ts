@@ -190,7 +190,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
 		const temp = templates?.find((_) => _.id === key)
 		if (temp) {
-			const {record} = await this.findOneOrFail({ where: { key: temp.id } })
+			const {record} = await this.findOneOrFailByWhereOptions({ key: temp.id })
 			if (!record) {
 				await this.create({
 					key: temp.id,
@@ -254,7 +254,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
 		const temp = template.templates?.find((_) => _.id === id)
 		if (temp) {
-			const {record} = await this.findOneOrFail({ where: { key: temp.id } })
+			const {record} = await this.findOneOrFailByWhereOptions({ key: temp.id })
 			if (!record) {
 				await this.create({
 					key: temp.id,

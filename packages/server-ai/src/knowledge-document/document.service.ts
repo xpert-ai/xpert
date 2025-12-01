@@ -4,7 +4,7 @@ import { BadRequestException, forwardRef, Inject, Injectable, Logger } from '@ne
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
-import { ChunkMetadata, countTokensSafe, DocumentSourceRegistry, mergeParentChildChunks, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, DocumentSourceRegistry, mergeParentChildChunks, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { compact, uniq } from 'lodash-es'
@@ -291,10 +291,6 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		return await this.chunkService.upsertBulk(document.chunks.map((_) => {
 			return {
 				..._,
-				metadata: {
-					..._.metadata,
-					tokens: countTokensSafe(_.pageContent)
-				},
 				documentId: document.id,
 				knowledgebaseId: document.knowledgebaseId
 			} as IKnowledgeDocumentChunk

@@ -42,7 +42,9 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
     CopilotProviderComponent,
     CopilotFormComponent
   ],
-  animations: [...DisappearAnimations]
+  animations: [
+    ...DisappearAnimations,
+  ]
 })
 export class CopilotBasicComponent {
   eAiProviderRole = AiProviderRole

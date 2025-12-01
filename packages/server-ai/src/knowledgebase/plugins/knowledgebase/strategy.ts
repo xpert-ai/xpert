@@ -9,6 +9,7 @@ import {
 	IXpertAgentExecution,
 	KBDocumentStatusEnum,
 	KnowledgebaseChannel,
+	KnowledgeDocumentMetadata,
 	KnowledgeTask,
 	TAgentRunnableConfigurable,
 	TXpertGraph,
@@ -17,11 +18,10 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
-import { estimateTokenUsage } from '@metad/copilot'
 import { getErrorMessage, runWithConcurrencyLimit } from '@metad/server-common'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
+import { countTokensSafe, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { get } from 'lodash'
 import { In } from 'typeorm'
 import { CopilotTokenRecordCommand } from '../../../copilot-user'
@@ -150,7 +150,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 							try {
 								// Save pages into db, And associated with the chunk's metadata.
 								let chunks = document.draft?.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-
+								let docTokenUsed = 0
 								if (chunks) {
 									this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
 									document.chunks = await this.documentService.coverChunks({...document, chunks}, vectorStore)
@@ -164,11 +164,13 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 									let count = 0
 									while (batchSize * count < chunks.length) {
 										const batch = chunks.slice(batchSize * count, batchSize * (count + 1))
-										// Record token usage
-										const tokenUsed = batch.reduce(
-											(total, doc) => total + estimateTokenUsage(doc.pageContent),
-											0
-										)
+										// Count and Record token usage
+										let tokenUsed = 0
+										batch.forEach((chunk) => {
+											chunk.metadata.tokens = countTokensSafe(chunk.pageContent)
+											tokenUsed += chunk.metadata.tokens
+										})
+										docTokenUsed += tokenUsed
 										await this.commandBus.execute(
 											new CopilotTokenRecordCommand({
 												tenantId: knowledgebase.tenantId,
@@ -191,12 +193,14 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 										if (await this.checkIfJobCancelled(document.id)) {
 											throw KBDocumentStatusEnum.CANCEL
 										}
-										await this.documentService.update(document.id, { progress: Number(progress) })
+										await this.documentService.update(document.id, { status: KBDocumentStatusEnum.EMBEDDING, progress: Number(progress) })
 									}
 								}
 								await this.documentService.update(document.id, {
 									status: KBDocumentStatusEnum.FINISH,
-									processMsg: ''
+									processMsg: '',
+									progress: 100, 
+									metadata: { ...document.metadata, tokens: docTokenUsed } as KnowledgeDocumentMetadata
 								})
 								statisticsInformation += ` - Embedded ${chunks?.length || 0} chunks. \n`
 							} catch (err) {

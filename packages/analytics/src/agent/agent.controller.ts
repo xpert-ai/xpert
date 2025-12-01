@@ -11,8 +11,8 @@ export class AgentController {
 
   @Get()
   async get() {
-    return await this.tenantSettingService.findOneOrFail({
-      where: { name: TENANT_AGENT_LOCAL_URL },
+    return await this.tenantSettingService.findOneOrFailByWhereOptions({
+      name: TENANT_AGENT_LOCAL_URL
     })
   }
 }

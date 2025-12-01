@@ -82,6 +82,36 @@
       <i class="ri-code-s-slash-line"></i>
     </div>
   }
+  @case (eWorkflowNodeTypeEnum.JSON_STRINGIFY) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
+      w-full h-full rounded-lg shadow-sm
+      shrink-0">
+      <svg xmlns="www.w3.org" viewBox="0 0 24 24" width="24" height="24">
+        <title>JSON Stringify (Object to String)</title>
+        <!-- Object symbol (curly braces) on the left -->
+        <path d="M7 3h10v2h-10zM7 19h10v2h-10zM5 5v14h2v-14zM17 5v14h2v-14z" fill="currentColor"/>
+        <!-- Arrow pointing right -->
+        <path d="M12 11h7v2h-7v4l-5-5 5-5z" fill="currentColor"/>
+        <!-- String symbol (quotes) on the right -->
+        <path d="M21 7h2v10h-2zM21 7h-2v10h2z" fill="currentColor"/>
+      </svg>
+    </div>
+  }
+  @case (eWorkflowNodeTypeEnum.JSON_PARSE) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
+      w-full h-full rounded-lg shadow-sm
+      shrink-0">
+      <svg xmlns="www.w3.org" viewBox="0 0 24 24" width="24" height="24">
+        <title>JSON Parse (String to Object)</title>
+        <!-- String symbol (quotes) on the left -->
+        <path d="M3 7h2v10h-2zM3 7h-2v10h2z" fill="currentColor"/>
+        <!-- Arrow pointing left -->
+        <path d="M12 11h-7v2h7v4l5-5-5-5z" fill="currentColor"/>
+        <!-- Object symbol (curly braces) on the right -->
+        <path d="M17 3h-10v2h10zM17 19h-10v2h10zM19 5v14h-2v-14zM7 5v14h2v-14z" fill="currentColor"/>
+      </svg>
+    </div>
+  }
   @case (eWorkflowNodeTypeEnum.HTTP) {
     <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-400
       w-full h-full rounded-lg shadow-sm

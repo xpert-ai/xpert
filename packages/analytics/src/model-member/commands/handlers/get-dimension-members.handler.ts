@@ -14,7 +14,7 @@ import {
 	getSemanticModelKey,
 	NgmDSCoreService,
 	OCAP_AGENT_TOKEN,
-	OCAP_DATASOURCE_TOKEN,
+	OCAP_DATASOURCES_TOKEN,
 	registerSemanticModel
 } from '../../../model/ocap'
 import { SemanticModelMemberService } from '../../member.service'
@@ -26,8 +26,8 @@ export class GetDimensionMembersHandler implements ICommandHandler<GetDimensionM
 
 	@Inject(OCAP_AGENT_TOKEN)
 	private agent: Agent
-	@Inject(OCAP_DATASOURCE_TOKEN)
-	private dataSourceFactory: { type: string; factory: DataSourceFactory }
+	@Inject(OCAP_DATASOURCES_TOKEN)
+	private dataSourceFactories: { type: string; factory: DataSourceFactory }[]
 
 	constructor(private readonly service: SemanticModelMemberService) {}
 
@@ -35,7 +35,7 @@ export class GetDimensionMembersHandler implements ICommandHandler<GetDimensionM
 		command: GetDimensionMembersCommand
 	): Promise<{ entityType: EntityType; members: IDimensionMember[]; statistics: Record<string, string> }> {
 		const { model, cube, dimensions, entityId } = command
-		const dsCoreService = new NgmDSCoreService(this.agent, this.dataSourceFactory)
+		const dsCoreService = new NgmDSCoreService(this.agent, this.dataSourceFactories)
 
 		const language = model.preferences?.language || RequestContext.getLanguageCode()
 		const modelKey = getSemanticModelKey(model)
@@ -65,7 +65,13 @@ export class GetDimensionMembersHandler implements ICommandHandler<GetDimensionM
 				)
 
 				statistics[hierarchy.name] = _members.length
-				members = members.concat(_members.map((item) => ({ ...item, modelId: model.id, entityId, cube })))
+				members = members.concat(_members.map((item) => ({
+					...item,
+					memberUniqueName: item.memberUniqueName || `${item.hierarchy}.${item.memberKey}`,
+					modelId: model.id,
+					entityId,
+					cube
+				})))
 			}
 		}
 

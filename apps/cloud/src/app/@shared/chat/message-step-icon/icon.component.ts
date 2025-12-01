@@ -23,9 +23,9 @@ export class ChatMessageStepIconComponent {
   readonly step = input<{ type: ChatMessageStepCategory; toolset?: string; toolsetId?: string }>()
 
   readonly #avatar = myRxResource({
-    request: () => (this.step()?.toolset === 'mcp' ? this.step().toolsetId : null),
+    request: () => (['mcp', 'openapi'].includes(this.step()?.toolset) ? this.step() : null),
     loader: ({ request }) => {
-      return request ? this.httpClient.get(`/api/xpert-toolset/mcp/${request}/avatar`) : of(null)
+      return request ? this.httpClient.get(`/api/xpert-toolset/${request.toolsetId}/avatar`) : of(null)
     }
   })
 

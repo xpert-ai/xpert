@@ -1,8 +1,7 @@
 import { PGVectorStore, PGVectorStoreArgs } from "@langchain/community/vectorstores/pgvector"
 import { EmbeddingsInterface } from "@langchain/core/embeddings"
-import { SemanticModelMember } from "./member.entity"
 import {
-    DeepPartial,
+	DeepPartial,
 	EntityType,
 	PropertyDimension,
 	PropertyHierarchy,
@@ -12,6 +11,8 @@ import {
 	getEntityProperty
 } from '@metad/ocap-core'
 import { Document } from '@langchain/core/documents'
+import { countTokensSafe } from "@xpert-ai/plugin-sdk"
+import { SemanticModelMember } from "./member.entity"
 
 export class PGMemberVectorStore {
 	vectorStore: PGVectorStore
@@ -27,6 +28,8 @@ export class PGMemberVectorStore {
 			const dimensionProperty = getEntityProperty(entityType, member.dimension)
 			const hierarchyProperty = getEntityHierarchy(entityType, member.hierarchy)
 			const levelProperty = getEntityLevel(entityType, member)
+			const pageContent = formatMemberContent(member, dimensionProperty, hierarchyProperty, levelProperty)
+			const tokens = countTokensSafe(pageContent)
 
 			return new Document({
 				metadata: {
@@ -36,13 +39,15 @@ export class PGMemberVectorStore {
 					dimension: member.dimension,
 					hierarchy: member.hierarchy,
 					level: member.level,
-					member: member.memberName
+					member: member.memberName,
+					tokens
 				},
-				pageContent: formatMemberContent(member, dimensionProperty, hierarchyProperty, levelProperty)
+				pageContent
 			})
 		})
 
-		return this.vectorStore.addDocuments(documents, { ids: members.map((member) => member.id) })
+		await this.vectorStore.addDocuments(documents, { ids: members.map((member) => member.id) })
+		return documents
 	}
 
 	similaritySearch(query: string, k: number) {

@@ -22,7 +22,7 @@ export class TongyiTextEmbeddingModel extends TextEmbeddingModelManager {
 		return new OpenAIEmbeddings({
 			...params,
 			model: copilotModel.model || copilotModel.copilot.copilotModel?.model,
-			batchSize: options?.max_chunks
+			batchSize: options?.max_chunks ?? 10
 		})
 	}
 

@@ -66,7 +66,9 @@ export class NgmInputComponent implements ControlValueAccessor {
     transform: booleanAttribute
   })
 
+  // Outputs
   readonly blur = output<FocusEvent>()
+  readonly focus = output<FocusEvent>()
 
   /**
    * Template provided in the tab content that will be used if present, used to enable lazy-loading

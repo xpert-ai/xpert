@@ -5,7 +5,7 @@ import { runWithRequestContext, UserService } from '@metad/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, countTokensSafe } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
@@ -67,6 +67,10 @@ export class KnowledgeDocumentConsumer {
 			const document = await this.documentService.findOne(doc.id, { relations: ['chunks'] })
 
 			try {
+				// Start processing
+				const processBeginAt = new Date()
+				await this.documentService.update(document.id, { processBeginAt })
+
 				const data = await this.commandBus.execute<
 					KnowledgeDocLoadCommand,
 					{ chunks: Document<ChunkMetadata>[]; }
@@ -77,6 +81,7 @@ export class KnowledgeDocumentConsumer {
 				if (chunks) {
 					this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
 					document.chunks = await this.documentService.coverChunks({...document, chunks}, vectorStore)
+					await this.documentService.update(document.id, { status: KBDocumentStatusEnum.EMBEDDING, progress: 0, draft: null })
 					chunks = await this.documentService.findAllEmbeddingNodes(document)
 
 					// Clear history chunks
@@ -88,6 +93,7 @@ export class KnowledgeDocumentConsumer {
 						// Count and Record token usage
 						let tokenUsed = 0
 						batch.forEach((chunk) => {
+							chunk.metadata.tokens = countTokensSafe(chunk.pageContent)
 							tokenUsed += chunk.metadata.tokens
 						})
 						docTokenUsed += tokenUsed
@@ -112,11 +118,21 @@ export class KnowledgeDocumentConsumer {
 							this.logger.debug(`[Job: entity '${job.id}'] Cancelled`)
 							return
 						}
-						await this.documentService.update(doc.id, { progress: Number(progress), metadata: { ...doc.metadata, tokens: docTokenUsed } })
+						await this.documentService.update(doc.id, {
+							status: KBDocumentStatusEnum.EMBEDDING,
+							progress: Number(progress),
+							metadata: { ...doc.metadata, tokens: docTokenUsed }
+						})
 					}
 				}
 
-				await this.documentService.update(doc.id, { status: KBDocumentStatusEnum.FINISH, processMsg: '' })
+				await this.documentService.update(doc.id, {
+					status: KBDocumentStatusEnum.FINISH,
+					processMsg: '', 
+					processDuation: new Date().getTime() - processBeginAt.getTime(), 
+					progress: 100, 
+					metadata: { ...doc.metadata, tokens: docTokenUsed }
+				})
 
 				this.logger.debug(`[Job: entity '${job.id}'] End!`)
 			} catch (err) {

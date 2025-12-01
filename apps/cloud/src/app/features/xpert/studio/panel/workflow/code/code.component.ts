@@ -83,45 +83,59 @@ export class XpertStudioPanelWorkflowCodeComponent extends XpertWorkflowBaseComp
 
   readonly OutputSelectOptions: TSelectOption[] = [
     {
-      value: 'string',
+      value: XpertParameterTypeEnum.STRING,
       label: {
-        en_US: 'String'
+        en_US: 'String',
+        zh_Hans: '字符串'
       }
     },
     {
-      value: 'number',
+      value: XpertParameterTypeEnum.NUMBER,
       label: {
-        en_US: 'Number'
+        en_US: 'Number',
+        zh_Hans: '数字'
       }
     },
     {
       value: XpertParameterTypeEnum.BOOLEAN,
       label: {
-        en_US: 'Boolean'
+        en_US: 'Boolean',
+        zh_Hans: '布尔值'
       }
     },
     {
-      value: 'object',
+      value: XpertParameterTypeEnum.OBJECT,
       label: {
-        en_US: 'Object'
+        en_US: 'Object',
+        zh_Hans: '对象'
       }
     },
     {
-      value: 'array[object]',
+      value: XpertParameterTypeEnum.ARRAY,
       label: {
-        en_US: 'Object[]'
+        en_US: 'Object[]',
+        zh_Hans: '对象数组'
       }
     },
     {
-      value: 'array[string]',
+      value: XpertParameterTypeEnum.ARRAY_STRING,
       label: {
-        en_US: 'String[]'
+        en_US: 'String[]',
+        zh_Hans: '字符串数组'
       }
     },
     {
-      value: 'array[number]',
+      value: XpertParameterTypeEnum.ARRAY_NUMBER,
       label: {
-        en_US: 'Number[]'
+        en_US: 'Number[]',
+        zh_Hans: '数字数组'
+      }
+    },
+    {
+      value: XpertParameterTypeEnum.ARRAY_FILE,
+      label: {
+        en_US: 'File[]',
+        zh_Hans: '文件数组'
       }
     }
   ]

@@ -36,6 +36,10 @@ export interface ISemanticModelMember extends IBasePerTenantAndOrganizationEntit
 
   parentUniqueName: string
 
+  metadata?: {
+    tokens: number
+  }
+
   // Has Vector
   vector?: boolean
 }

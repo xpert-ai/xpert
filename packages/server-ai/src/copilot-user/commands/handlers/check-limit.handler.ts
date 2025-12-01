@@ -40,7 +40,7 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
 			}
 		}
 
-		const orgExisting = await this.copilotOrganizationService.findOneOrFail({
+		const orgExisting = await this.copilotOrganizationService.findOneOrFailByOptions({
 			where: {
 				tenantId: input.tenantId,
 				organizationId: input.organizationId,

@@ -59,7 +59,7 @@ export class StoryTemplateController extends CrudController<StoryTemplate> {
 		@Query('data', ParseJsonPipe) data: any
 	): Promise<StoryTemplate> {
 		const { relations } = data
-		const { success, record } = await this.storyTemplateService.findOneOrFail({ where: {storyId: id}, relations })
+		const { success, record } = await this.storyTemplateService.findOneOrFailByOptions({ where: {storyId: id}, relations })
 		return record
 	}
 

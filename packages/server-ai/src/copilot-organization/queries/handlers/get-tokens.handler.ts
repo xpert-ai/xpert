@@ -17,7 +17,7 @@ export class GetCopilotOrgUsageHandler implements IQueryHandler<GetCopilotOrgUsa
 	public async execute(command: GetCopilotOrgUsageQuery): Promise<ICopilotOrganization> {
 		const { tenantId, copilotId, organizationId } = command
 
-		const result = await this.service.findOneOrFail({ where: { tenantId, copilotId, organizationId } })
+		const result = await this.service.findOneOrFailByOptions({ where: { tenantId, copilotId, organizationId } })
 		return result.record
 	}
 }

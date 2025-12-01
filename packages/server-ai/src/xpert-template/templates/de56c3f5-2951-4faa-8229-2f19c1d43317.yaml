@@ -139,7 +139,7 @@ nodes:
       method: get
       title: 获取员工信息
       description: 获取员工姓名、职位、部门、电子邮件地址等。
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
     hash: 4d094eead524ad5535b782f4e3ab47ba4b6b637585405ad8bb2bf2e15ccb5450
   - type: workflow
     key: Subflow_jzSikOjWDp
@@ -212,7 +212,7 @@ nodes:
       key: Http_kjPbgwbQGi
       method: get
       title: 创建电子邮件帐户
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
       description: 创建电子邮件帐户
     hash: e09bb9a12770b7ef2f5a6822a49122b285f406020ebae201d261efd701b31784
   - type: workflow
@@ -225,7 +225,7 @@ nodes:
       key: Http_146tWVPVi6
       method: get
       title: 分配设备
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
       description: 为员工分配个人资产
     hash: 54e02756ea75f860db3abda6dae29a4377119ee62faf8d84841bec15a00f5c6b
   - type: workflow
@@ -238,7 +238,7 @@ nodes:
       key: Http_xzUhbUgnVT
       method: get
       title: 加入邮件组
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
       description: 将员工添加到邮件列表
     hash: c10a9c42517b092d10c6172b79f30cb69e0a19c707159281e58115c5e63ec9c1
   - type: workflow
@@ -251,7 +251,7 @@ nodes:
       key: Http_Pkhj6bKOcd
       method: get
       title: Send Welcome Email
-      url: https://mtda.cloud/en/
+      url: https://xpertai.cn/en/
       description: Send a welcome email for onboarding procedures
     hash: 8379099ae795c4e5b0603369de4106fd52cbadddd0401762e9c649a69509311e
   - type: workflow

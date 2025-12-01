@@ -397,6 +397,7 @@ export enum XpertParameterTypeEnum {
   SELECT = 'select',
   FILE = 'file',
   ARRAY_STRING = 'array[string]',
+  ARRAY_NUMBER = 'array[number]',
   ARRAY = 'array[object]',
   ARRAY_FILE = 'array[file]',
   ARRAY_DOCUMENT = 'array[document]',
