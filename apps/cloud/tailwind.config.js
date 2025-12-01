@@ -1,6 +1,8 @@
-const { createGlobPatternsForDependencies } = require('@nx/angular/tailwind')
 const { join } = require('path')
-import tailwindThemeVarDefine from './src/styles/themes/tailwind-theme-var-define'
+
+const tailwindThemeModule = require('./src/styles/themes/tailwind-theme-var-define')
+const tailwindThemeVarDefine =
+  tailwindThemeModule.default || tailwindThemeModule
 
 module.exports = {
   content: [
@@ -8,8 +10,8 @@ module.exports = {
     join(__dirname, '../../libs/component-angular/**/!(*.stories|*.spec).{ts,html}'),
     join(__dirname, '../../libs/story-angular/**/!(*.stories|*.spec).{ts,html}'),
     join(__dirname, '../../libs/formly/**/!(*.stories|*.spec).{ts,html}'),
-    join(__dirname, 'src/**/!(*.stories|*.spec).{ts,html}'),
-    ...createGlobPatternsForDependencies(__dirname)
+    join(__dirname, '../../packages/**/!(*.stories|*.spec).{ts,html}'),
+    join(__dirname, 'src/**/!(*.stories|*.spec).{ts,html}')
   ],
   darkMode: 'class',
   theme: {
