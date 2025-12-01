@@ -76,4 +76,4 @@ const vars = {
   'surface-container-bg': 'var(--ngm-color-surface-container)'
 }
 
-export default vars
+module.exports = vars
