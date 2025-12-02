@@ -1,4 +1,3 @@
-import { Semantics } from '../annotations'
 import { Annotation, IMember, Measure, PrimitiveType, PropertyName, Syntax } from '../types'
 import { CalculatedMember, CalculationProperty, CubeParameterEnum, ParameterControlEnum } from './calculated'
 import { Indicator } from './indicator'

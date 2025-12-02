@@ -742,6 +742,25 @@ export function unwrapBrackets(name: string) {
 }
 
 /**
+ * 
+ * Extract hierarchy name from MDX Member unique name or Level unique name
+ * For example:
+ * - "[Time].[1998].[01]"  =>  "[Time]"
+ * - "[Time].[byWeek].[1998]"  =>  "[Time]"
+ * - "[Time].[byWeek].[LEVEL_UNIQUE_NAME]"  =>  "[Time]"
+ * 
+ * @param uniqueName 
+ * @returns 
+ */
+export function extractHierarchyFromUniqueName(uniqueName: string) {
+  const [hierarchy, level] = uniqueName.split('].[')
+  if (level) {
+    return hierarchy + ']'
+  }
+  return hierarchy
+}
+
+/**
  * 将 Hierarchy 和其 Member 的值拼接成 MDX 语句中的 Member 唯一标识形式
  */
 export function wrapHierarchyValue(hierarchy: string, value: string) {
