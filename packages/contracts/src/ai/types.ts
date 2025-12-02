@@ -90,7 +90,7 @@ type JsonSchema7Meta = {
     description?: I18nObject;
     markdownDescription?: I18nObject;
     'x-ui'?: {
-      component?: 'textarea' | 'select' | 'radio' | 'checkbox' | 'switch' | 'password'
+      component?: 'textarea' | 'select' | 'radio' | 'checkbox' | 'switch' | 'password' | string
       span?: number
     }
 };

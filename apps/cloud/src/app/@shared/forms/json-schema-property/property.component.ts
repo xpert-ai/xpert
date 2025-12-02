@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
+import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmRemoteSelectComponent, NgmSlideToggleComponent } from '@metad/ocap-angular/common'
@@ -17,6 +17,10 @@ import {
 import { XpertVariableInputComponent } from '../../agent'
 import { NgmSelectComponent } from '../../common'
 import { TWorkflowVarGroup } from '../../../@core'
+import {
+  JsonSchemaWidgetOutletComponent
+} from './json-schema-widget-outlet.component'
+import { JsonSchemaWidgetRegistry } from './json-schema-widget-registry.service'
 
 /**
  *
@@ -32,7 +36,8 @@ import { TWorkflowVarGroup } from '../../../@core'
     NgmI18nPipe,
     NgmSelectComponent,
     XpertVariableInputComponent,
-    NgmRemoteSelectComponent
+    NgmRemoteSelectComponent,
+    JsonSchemaWidgetOutletComponent
   ],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
@@ -45,6 +50,7 @@ import { TWorkflowVarGroup } from '../../../@core'
 export class JSONSchemaPropertyComponent {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
   readonly i18n = new NgmI18nPipe()
+  readonly widgetRegistry = inject(JsonSchemaWidgetRegistry)
 
   // Inputs
   readonly name = input<string>()
@@ -107,6 +113,7 @@ export class JSONSchemaPropertyComponent {
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
   readonly xUiHelp = computed(() => this.xUi()?.help)
   readonly xUiSpan = computed(() => this.xUi()?.span)
+  readonly hasCustomWidget = computed(() => this.widgetRegistry.has(this.xUiComponent()))
 
   constructor() {
     // Waiting NgxControlValueAccessor has been initialized
