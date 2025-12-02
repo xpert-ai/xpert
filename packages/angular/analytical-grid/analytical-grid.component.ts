@@ -1287,13 +1287,13 @@ function downloadData(fileName: string, analytics: DataSettings['analytics'], en
     if (isDimension(item)) {
       return {
           key: property.name,
-          label: property.caption,
+          label: property.caption || property.name,
           caption: getDimensionMemberCaption(item, entityType)
         } 
     }
     return {
       key: property.name,
-      label: property.caption,
+      label: property.caption || property.name,
     }
   })
   const items = []
