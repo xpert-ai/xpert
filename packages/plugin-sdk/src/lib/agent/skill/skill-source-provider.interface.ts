@@ -1,20 +1,9 @@
-import { ISkillRepository, ISkillRepositoryIndex } from "@metad/contracts"
-
+import { ISkillRepository, ISkillRepositoryIndex, TSkillSourceMeta } from "@metad/contracts"
 
 export interface ISkillSourceProvider {
   type: string
   
-  meta: {
-    /**
-     * Provider name, e.g. github / git / zip / marketplace
-     */
-    name: string
-  }
-
-  /**
-   * Optional configuration schema for frontend forms
-   */
-  configSchema?: Record<string, any>
+  meta: TSkillSourceMeta
 
   /**
    * Whether the provider can handle a given source type

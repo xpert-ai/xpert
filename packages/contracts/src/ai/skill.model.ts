@@ -1,7 +1,8 @@
 // Skill types
 
 import { IBasePerTenantAndOrganizationEntityModel } from "../base-entity.model";
-import { I18nObject, letterStartSUID } from "../types";
+import { I18nObject, IconDefinition, letterStartSUID } from "../types";
+import { JsonSchemaObjectType } from "./types";
 import { IWorkflowNode, WorkflowNodeTypeEnum } from "./xpert-workflow.model";
 import { IBasePerWorkspaceEntityModel } from "./xpert-workspace.model";
 
@@ -56,10 +57,17 @@ export interface TSkillPackage {
 /**
  * 表示一个仓库（如 anthropics/skills）
  */
-export interface ISkillRepository extends IBasePerTenantAndOrganizationEntityModel {
+export interface ISkillRepository<O = Record<string, any>, C = Record<string, any>> extends IBasePerTenantAndOrganizationEntityModel {
   name: string;
-  url: string;
-  branch?: string;
+  provider: string
+  /**
+   * Provider credentials such as GitHub tokens
+   */
+  credentials?: C;
+  /**
+   * Options configured using the strategy's configSchema
+   */
+  options?: O
   lastSyncAt?: string;
   deletedAt?: Date
 }
@@ -144,6 +152,24 @@ export interface ISkillAuditLog extends IBasePerTenantAndOrganizationEntityModel
   sessionId: string;
   eventType: string;
   metadata: any;
+}
+
+export type TSkillSourceMeta = {
+  /**
+   * Provider name, e.g. github / git / zip / marketplace
+   */
+  name: string
+  label: I18nObject
+  icon?: IconDefinition
+  description?: I18nObject
+  /**
+   * Optional configuration schema for frontend forms
+   */
+  configSchema?: JsonSchemaObjectType
+  /**
+   * Credential schema for source authentication
+   */
+  credentialSchema?: JsonSchemaObjectType
 }
 
 // ===============================
