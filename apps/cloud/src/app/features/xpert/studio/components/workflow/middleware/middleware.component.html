@@ -8,6 +8,11 @@
     <div [title]="meta.label | i18n" class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center">
       <div>{{meta.label | i18n}}</div>
     </div>
+  } @else if (notFound()) {
+    <div class="grow mr-1 font-semibold text-sm text-text-primary truncate flex items-center">
+      <i class="ri-error-warning-line text-text-warning"></i>
+      <div>{{ 'PAC.Xpert.MiddlewareNotFound' | translate: {provider: provider(), Default: 'Middleware "'+ provider() +'" Not Found'} }}</div>
+    </div>
   }
 </div>
   

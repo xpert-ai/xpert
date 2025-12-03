@@ -157,7 +157,7 @@ export interface ModelRequest<
    */
   messages: BaseMessage[];
 
-  systemMessage?: SystemMessage | string;
+  systemMessage?: SystemMessage
 }
 
 /**
@@ -170,15 +170,7 @@ export interface ModelRequest<
 export type WrapModelCallHandler<
   TSchema extends InteropZodObject | undefined = undefined,
   TContext = unknown
-> = (
-  request: Omit<
-    ModelRequest<TSchema, TContext>,
-    /**
-     * allow to reset the system prompt or system message
-     */
-    "systemPrompt" | "systemMessage"
-  > & { systemPrompt?: string; systemMessage?: SystemMessage }
-) => PromiseOrValue<AIMessage>;
+> = (request: ModelRequest<TSchema, TContext>) => PromiseOrValue<AIMessage>;
 
 /**
  * Wrapper function type for the wrapModelCall hook.

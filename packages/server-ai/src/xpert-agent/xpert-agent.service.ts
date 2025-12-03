@@ -3,7 +3,7 @@ import { TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { assign } from 'lodash'
 import { Observable } from 'rxjs'
 import { Repository } from 'typeorm'
@@ -62,7 +62,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 
 	async getMiddlewareTools(provider: string, options: any) {
 		const strategy = this.agentMiddlewareRegistry.get(provider)
-		const middleware = await strategy.createMiddleware(options)
+		const middleware = await strategy.createMiddleware(options, {tenantId: RequestContext.currentTenantId(), userId: RequestContext.currentUserId()})
 		return middleware.tools?.map((tool) => ({
 			name: tool.name,
 			description: tool.description,

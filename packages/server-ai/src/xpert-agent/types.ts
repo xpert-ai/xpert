@@ -2,7 +2,6 @@ import { TWFCaseCondition, WorkflowComparisonOperator, WorkflowNodeTypeEnum } fr
 import { isEmpty } from '@metad/server-common'
 import { get } from 'lodash'
 
-export const SKILLS_MIDDLEWARE_NAME = 'skillsMiddleware'
 export const AgenticWorkflowTypes = [
 	WorkflowNodeTypeEnum.AGENT_TOOL,
 	WorkflowNodeTypeEnum.MIDDLEWARE

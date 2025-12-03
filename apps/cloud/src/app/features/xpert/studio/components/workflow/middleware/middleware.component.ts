@@ -55,8 +55,9 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
   readonly agentMiddlewares = toSignal(this.agentAPI.agentMiddlewares$)
 
   readonly providerMeta = computed(() => this.agentMiddlewares()?.find((m) => m.meta.name === this.provider())?.meta)
+  readonly #providerName = computed(() => this.providerMeta()?.name)
   readonly #tools = derivedAsync(() => {
-    const provider = this.provider()
+    const provider = this.#providerName()
     if (provider) {
       return this.agentAPI.getAgentMiddlewareTools(provider, this.middlewareEntity()?.options ?? {})
     }
@@ -73,10 +74,10 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
     }))
   })
 
+  readonly notFound = computed(() => !this.#providerName() && !!this.provider())
 
   // constructor() {
   //   super()
-    
   //   effect(() => {
   //     console.log(this.tools(), this.executionService.toolMessages())
   //   })

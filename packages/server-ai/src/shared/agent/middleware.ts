@@ -1,5 +1,5 @@
-import { getAgentMiddlewareNodes, IWFNMiddleware, IXpertAgent, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum } from "@metad/contracts"
-import { AgentMiddleware, AgentMiddlewareRegistry, IAgentMiddlewareStrategy } from "@xpert-ai/plugin-sdk"
+import { getAgentMiddlewareNodes, IWFNMiddleware, IXpertAgent, TXpertGraph, WorkflowNodeTypeEnum } from "@metad/contracts"
+import { AgentMiddleware, AgentMiddlewareRegistry, IAgentMiddlewareContext, IAgentMiddlewareStrategy } from "@xpert-ai/plugin-sdk"
 import { orderNodesByKeyOrder } from "./workflow"
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]
@@ -25,7 +25,7 @@ export const isSkillsConnectedToAgent = (graph: TXpertGraph, agent: IXpertAgent)
     )
 }
 
-export function getAgentMiddlewares(graph: TXpertGraph, agent: IXpertAgent, agentMiddlewareRegistry: AgentMiddlewareRegistry): AgentMiddleware[] {
+export function getAgentMiddlewares(graph: TXpertGraph, agent: IXpertAgent, agentMiddlewareRegistry: AgentMiddlewareRegistry, context: IAgentMiddlewareContext): AgentMiddleware[] {
     const middlewares = orderNodesByKeyOrder(
         getAgentMiddlewareNodes(graph, agent.key),
         agent.options?.middlewares?.order || []
@@ -42,6 +42,6 @@ export function getAgentMiddlewares(graph: TXpertGraph, agent: IXpertAgent, agen
             console.warn(`Middleware provider not found: ${provider}`)
             return null
         }
-        return strategy.createMiddleware(entity.options)
+        return strategy.createMiddleware(entity.options, context)
     }).filter(middleware => !!middleware) as AgentMiddleware[]
 }

@@ -539,7 +539,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Agent middlewares
-		const agentMiddlewares: AgentMiddleware[] = getAgentMiddlewares(graph, agent, this.agentMiddlewareRegistry)
+		const agentMiddlewares: AgentMiddleware[] = getAgentMiddlewares(graph, agent, this.agentMiddlewareRegistry, {tenantId: xpert.tenantId, userId: RequestContext.currentUserId(), workspaceId: xpert.workspaceId, projectId: options.projectId, conversationId: options.conversationId, xpertId: xpert.id, agentKey})
 		// Middleware tools
 		const middlewareTools: TGraphTool[] = agentMiddlewares
 			.filter((middleware) => middleware?.tools?.length)
