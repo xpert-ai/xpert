@@ -93,7 +93,7 @@ export interface ISkillRepositoryIndex extends IBasePerTenantAndOrganizationEnti
  * 安装后的技能包主记录（skill.yaml）
  */
 export interface ISkillPackage extends IBasePerWorkspaceEntityModel, TSkillPackage {
-  skillIndexId: SkillId; // ISkillRepositoryIndex
+  skillIndexId?: SkillId; // ISkillRepositoryIndex
   skillIndex?: ISkillRepositoryIndex;
   name?: any;
   visibility: 'private' | 'team' | 'tenant';

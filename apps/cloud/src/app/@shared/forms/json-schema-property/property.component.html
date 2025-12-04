@@ -51,7 +51,7 @@
             @switch (xUiComponent()) {
               @case ('textarea') {
                 <textarea
-                  class="w-full px-3 py-1 text-sm whitespace-nowrap text-gray-900 border-0 rounded-lg h-10 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+                  class="w-full px-3 py-1 text-sm whitespace-nowrap text-gray-900 border-0 rounded-lg h-10 min-h-[36px] bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
                   [placeholder]="((meta().description || meta().title || '' ) | i18n) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
                   type="text"
                   [disabled]="readonly()"

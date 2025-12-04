@@ -39,7 +39,7 @@ export class VolumeClient {
 		}
 	}
 
-	static _getWorkspaceRoot(tenantId: string, type: 'projects' | 'users' | 'knowledges', id: string) {
+	static _getWorkspaceRoot(tenantId: string, type: 'projects' | 'users' | 'knowledges' | string, id: string) {
 		if (environment.env.IS_DOCKER === 'true') {
 			return path.join(`/sandbox/${tenantId}`, `/${type}/${id}`)
 		} else {

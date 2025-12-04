@@ -18,7 +18,8 @@ export interface ISkillSourceProvider {
   /**
    * Fetch a concrete skill package into a temporary directory
    */
-  fetchSkillPackage(
+  installSkillPackage(
     index: ISkillRepositoryIndex,
+    installDir: string
   ): Promise<void>
 }
