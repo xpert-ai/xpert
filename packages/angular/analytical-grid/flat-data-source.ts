@@ -1,5 +1,6 @@
 import { _isNumberValue } from '@angular/cdk/coercion'
 import { MatTableDataSource } from '@angular/material/table'
+import { extractHierarchyFromUniqueName } from '@metad/ocap-core'
 
 /**
  * Corresponds to `Number.MAX_SAFE_INTEGER`. Moved out into a variable here due to
@@ -12,7 +13,8 @@ export class NgmFlatTableDataSource<T> extends MatTableDataSource<T> {
     data: T,
     sortHeaderId: string
   ): string | number => {
-    const cell = (data as { [key: string]: any })[sortHeaderId]
+    const hierarchy = extractHierarchyFromUniqueName(sortHeaderId)
+    const cell = (data as { [key: string]: any })[hierarchy]
     const value = typeof cell === 'string' ? cell : cell?.value
 
     if (_isNumberValue(value)) {

@@ -10,8 +10,9 @@ export function csvDownload(data: any[], name: string, delimiter: string) {
   csv.unshift(header.join(d))
   const csvStr = csv.join('\r\n')
 
-  const blob = new Blob([csvStr], {
-    type: 'text/plain;charset=utf-8'
+  const bom = '\uFEFF'
+  const blob = new Blob([bom + csvStr], {
+    type: 'text/csv;charset=utf-8'
   })
 
   const link = document.createElement('a')
@@ -22,4 +23,5 @@ export function csvDownload(data: any[], name: string, delimiter: string) {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }

@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, ElementRef, inject, input, model, signal, viewChild } from '@angular/core'
+import { afterNextRender, ChangeDetectionStrategy, Component, ElementRef, inject, input, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -30,6 +30,7 @@ export class ChatCanvasWebTerminalComponent {
 
   // Children
   readonly container = viewChild('container', { read: ElementRef })
+  readonly textInput = viewChild('textInput', { read: ElementRef })
 
   history = signal<TerminalLine[]>([{ type: 'output', text: 'Welcome to Sandbox Terminal' }])
   currentInput = model<string>('')
@@ -37,6 +38,12 @@ export class ChatCanvasWebTerminalComponent {
   readonly running = signal(false)
   readonly runtime = signal(0)
   private startTime: number
+
+  constructor() {
+    afterNextRender(() => {
+      this.focusInput()
+    })
+  }
 
   runCommand(event: Event): void {
     if ((<KeyboardEvent>event).isComposing) {
@@ -61,6 +68,7 @@ export class ChatCanvasWebTerminalComponent {
           if (msg.event === 'error') {
             this.#toastr.error(msg.data)
             this.running.set(false)
+            this.focusInput()
           } else {
             if (msg.data) {
               // Ignore non-data events
@@ -75,11 +83,23 @@ export class ChatCanvasWebTerminalComponent {
           this.#toastr.error(getErrorMessage(err))
           this.running.set(false)
           this.container().nativeElement.scrollTop = this.container().nativeElement.scrollHeight
+          this.focusInput()
         },
         complete: () => {
           this.running.set(false)
           this.container().nativeElement.scrollTop = this.container().nativeElement.scrollHeight
+          this.focusInput()
         }
       })
+  }
+
+  focusInput(): void {
+    const input = this.textInput()?.nativeElement;
+    if (input) {
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      });
+    }
   }
 }

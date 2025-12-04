@@ -93,8 +93,9 @@ export class UserUploadComponent {
   }
 
   downloadTempl() {
-    const csvContent = 'username,email,hash,firstName,lastName,roleName,thirdPartyId\n';
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csvContent = 'username,email,hash,firstName,lastName,roleName,thirdPartyId\r\n';
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);

@@ -3,7 +3,7 @@ import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { DataSource } from '@angular/cdk/collections'
 import { FlatTreeControl } from '@angular/cdk/tree'
 import {
-  AfterViewInit,
+  afterNextRender,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -21,6 +21,7 @@ import {
   Output,
   signal,
   SimpleChanges,
+  viewChild,
   ViewChild
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
@@ -106,7 +107,7 @@ import { NgmTreeFlatDataSource } from './tree-flat-data-source'
     NgmAnalyticsBusinessService,
   ]
 })
-export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnDestroy, FocusableOption {
+export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, FocusableOption {
   AggregationRole = AggregationRole
   C_MEASURES = C_MEASURES
   eSlicersCapacity = SlicersCapacity
@@ -160,7 +161,8 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
   }
   private readonly _paginator = signal<MatPaginator>(null)
 
-  @ViewChild(MatSort) sort: MatSort
+  // @ViewChild(MatSort) sort: MatSort
+  readonly sort = viewChild(MatSort)
 
   readonly showToolbar = computed(() => isNil(this.options()?.showToolbar) || this.options().showToolbar)
 
@@ -366,7 +368,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
     (node) => node.level,
     (node) => node.expandable
   )
-  // public readonly rowDataSource = new MatTreeFlatDataSource(
   public readonly rowDataSource = new NgmTreeFlatDataSource(
     this.rowTreeControl,
     new MatTreeFlattener(
@@ -392,6 +393,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
    * VisualMap for measures
    */
   visualMaps: Record<string, Partial<VisualMap>> = {}
+
   /**
   |--------------------------------------------------------------------------
   | Subscriptions (effect)
@@ -731,6 +733,16 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
     },
     { allowSignalWrites: true }
     )
+
+    effect(() => {
+      if (this.sort()) {
+        this.flatDataSource.sort = this.sort()
+      }
+    }, { allowSignalWrites: true })
+
+    afterNextRender(() => {
+      this._focusMonitor.monitor(this.elementRef, true)
+    })
   }
 
   /** Focuses the button. */
@@ -755,11 +767,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
         this.virtualScrollItemSize = 48
       }
     }
-  }
-
-  ngAfterViewInit(): void {
-    this.flatDataSource.sort = this.sort
-    this._focusMonitor.monitor(this.elementRef, true)
   }
 
   refresh(force?: boolean) {
@@ -1287,13 +1294,13 @@ function downloadData(fileName: string, analytics: DataSettings['analytics'], en
     if (isDimension(item)) {
       return {
           key: property.name,
-          label: property.caption,
+          label: property.caption || property.name,
           caption: getDimensionMemberCaption(item, entityType)
         } 
     }
     return {
       key: property.name,
-      label: property.caption,
+      label: property.caption || property.name,
     }
   })
   const items = []
