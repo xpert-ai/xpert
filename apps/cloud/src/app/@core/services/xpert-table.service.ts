@@ -23,6 +23,14 @@ export class XpertTableService extends OrganizationBaseCrudService<IXpertTable> 
   activateTable(tableId: string) {
     return this.httpClient.post<IXpertTable>(`${this.apiBaseUrl}/${tableId}/activate`, {})
   }
+
+  /**
+   * 删除表记录和物理表
+   * Delete table record and physical table
+   */
+  deleteTable(tableId: string) {
+    return this.httpClient.delete(`${this.apiBaseUrl}/${tableId}`)
+  }
 }
 
 export function injectXpertTableAPI() {

@@ -47,9 +47,17 @@ export class XpertTable extends WorkspaceBaseEntity implements IXpertTable {
 	@Column({ type: 'json', nullable: true })
 	columns?: {
 		name: string
-		type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json'
+		type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json' | 
+		      'text' | 'bigint' | 'decimal' | 'float' | 'timestamp' | 'time' | 'uuid'
 		label?: string
 		required?: boolean
+		isPrimaryKey?: boolean
+		isUnique?: boolean
+		autoIncrement?: boolean
+		defaultValue?: string
+		length?: number
+		precision?: number
+		scale?: number
 	}[]
 
 	/*

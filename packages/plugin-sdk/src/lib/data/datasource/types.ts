@@ -171,9 +171,21 @@ export interface ColumnDef {
    */
   isKey: boolean
   /**
-   * Is required column
+   * Is required column (NOT NULL)
    */
   required?: boolean
+  /**
+   * Is unique column
+   */
+  unique?: boolean
+  /**
+   * Auto increment (for number type)
+   */
+  autoIncrement?: boolean
+  /**
+   * Default value
+   */
+  defaultValue?: string
   /**
    * length of type for column: varchar, decimal ...
    */
@@ -330,6 +342,121 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
 
   async ping(): Promise<void> {
     await this.runQuery(`SELECT 1`)
+  }
+
+  /**
+   * 表操作的默认实现
+   * Default implementation for table operations
+   */
+  async tableOp(
+    action: DBTableAction,
+    params: DBTableOperationParams,
+    options?: QueryOptions
+  ): Promise<any> {
+    switch(action) {
+      case DBTableAction.CREATE_TABLE: {
+        // 创建表的默认实现（通用SQL语法）
+        // Default implementation for creating table (generic SQL syntax)
+        const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
+        const tableName = schema ? `${schema}.${table}` : table
+
+        // 检查表是否存在（尝试查询表信息）
+        // Check if table exists (try to query table info)
+        let exists = false
+        try {
+          const result = await this.runQuery(
+            `SELECT * FROM ${tableName} WHERE 1=0`,
+            options
+          )
+          exists = true
+        } catch (error) {
+          // 表不存在
+          exists = false
+        }
+
+        // --- MODE: ERROR → 表存在时报错 ---
+        if (exists && createMode === DBCreateTableMode.ERROR) {
+          throw new Error(`Table "${tableName}" already exists`)
+        }
+
+        // --- MODE: IGNORE → 存在则不处理 ---
+        if (exists && createMode === DBCreateTableMode.IGNORE) {
+          return
+        }
+
+        // --- MODE: UPGRADE → 自动升级（简单实现：只添加新字段）---
+        // 注意：此默认实现不支持修改字段类型，建议各数据库实现自己的版本
+        if (exists && createMode === DBCreateTableMode.UPGRADE) {
+          console.warn(`[BaseSQLQueryRunner] UPGRADE mode uses basic implementation. Consider implementing tableOp for better support.`)
+          
+          // 尝试添加新字段（如果字段已存在会失败，但不影响）
+          for (const col of columns) {
+            try {
+              const colType = this.mapColumnType(col.type, col.isKey, col.length)
+              await this.runQuery(
+                `ALTER TABLE ${tableName} ADD COLUMN ${col.fieldName} ${colType}`,
+                options
+              )
+            } catch (error) {
+              // 字段可能已存在，忽略错误
+              console.debug(`Failed to add column ${col.fieldName}:`, error.message)
+            }
+          }
+          return
+        }
+
+        // --- MODE: CREATE NEW TABLE ---
+        const columnsDDL = columns
+          .map((col) => {
+            const colType = this.mapColumnType(col.type, col.isKey, col.length)
+            const pk = col.isKey ? ' PRIMARY KEY' : ''
+            const notNull = col.required ? ' NOT NULL' : ''
+            return `${col.fieldName} ${colType}${pk}${notNull}`
+          })
+          .join(', ')
+
+        const createTableStatement = `CREATE TABLE ${tableName} (${columnsDDL})`
+        
+        await this.runQuery(createTableStatement, options)
+        return
+      }
+      case DBTableAction.DROP_TABLE: {
+        // 删除表的默认实现
+        // Default implementation for dropping table
+        const { schema, table } = params
+        const tableName = schema ? `${schema}.${table}` : table
+        
+        await this.runQuery(`DROP TABLE IF EXISTS ${tableName}`, options)
+        return
+      }
+      default:
+        // 其他操作抛出未实现错误
+        // Throw error for other unimplemented operations
+        throw new Error(`Unsupported table action: ${action}`)
+    }
+  }
+
+  /**
+   * 通用类型映射（子类可以覆盖）
+   * Generic type mapping (subclasses can override)
+   */
+  protected mapColumnType(type: string, isKey: boolean, length?: number): string {
+    switch(type?.toLowerCase()) {
+      case 'string':
+        return length ? `VARCHAR(${length})` : (isKey ? 'VARCHAR(255)' : 'VARCHAR(1000)')
+      case 'number':
+        return 'INT'
+      case 'boolean':
+        return 'BOOLEAN'
+      case 'date':
+        return 'DATE'
+      case 'datetime':
+        return 'TIMESTAMP'
+      case 'object':
+        return 'TEXT'
+      default:
+        return 'VARCHAR(1000)'
+    }
   }
 }
 

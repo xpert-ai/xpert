@@ -34,9 +34,17 @@ export type TXpertTable = {
 
 export type TXpertTableColumn = {
   name: string
-  type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json'
+  type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json' | 
+        'text' | 'bigint' | 'decimal' | 'float' | 'timestamp' | 'time' | 'uuid'  // 扩展的数据库类型
   label?: string
-  required?: boolean
+  required?: boolean  // NOT NULL 约束
+  isPrimaryKey?: boolean  // 主键
+  isUnique?: boolean  // 唯一约束
+  autoIncrement?: boolean  // 自增
+  defaultValue?: string  // 默认值
+  length?: number  // 字段长度（主要用于string类型）
+  precision?: number  // 精度（用于decimal类型）
+  scale?: number  // 小数位数（用于decimal类型）
 }
 
 
@@ -51,7 +59,8 @@ export interface IWorkflowNodeDBOperation extends IWorkflowNode {
 export interface IWFNDBInsert extends IWorkflowNodeDBOperation {
   type: WorkflowNodeTypeEnum.DB_INSERT,
   columns?: Record<string, {
-    type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json';
+    type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json' | 
+          'text' | 'bigint' | 'decimal' | 'float' | 'timestamp' | 'time' | 'uuid';
     value?: any
     valueSelector?: string
   }>
@@ -64,7 +73,8 @@ export function genXpertDBInsertKey() {
 export interface IWFNDBUpdate extends IWorkflowNodeDBOperation {
   type: WorkflowNodeTypeEnum.DB_UPDATE
   columns?: Record<string, {
-    type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json';
+    type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json' | 
+          'text' | 'bigint' | 'decimal' | 'float' | 'timestamp' | 'time' | 'uuid';
     value?: any
     valueSelector?: string
   }>

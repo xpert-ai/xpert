@@ -1,7 +1,7 @@
 <div class="flex justify-between items-center gap-2 px-4">
   <div class="grow flex justify-start items-center gap-2">
-    <ngm-select class="w-40" placeholder="全部状态" [selectOptions]="statusOptions" [(ngModel)]="status" />
-    <ngm-select class="w-40" placeholder="全部数据库" [selectOptions]="databases$ | async" [(ngModel)]="dataSourceId" />
+    <ngm-select class="w-40" [placeholder]="statusPlaceholder()" [selectOptions]="statusOptions()" [(ngModel)]="status" />
+    <ngm-select class="w-40" [placeholder]="databasePlaceholder()" [selectOptions]="databases$ | async" [(ngModel)]="dataSourceId" />
   </div>
   
   <div class="flex space-x-2">
@@ -24,14 +24,13 @@
   <table class="min-w-full divide-y divide-gray-200">
     <thead class="bg-gray-50">
       <tr>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">表名</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">描述</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">状态</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">版本</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">激活时间</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">信息</th>
-        <!-- <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">Xpert ID</th> -->
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">操作</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.Workspace.TableName' | translate: {Default: 'Table Name'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Version' | translate: {Default: 'Version'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.Workspace.ActivatedAt' | translate: {Default: 'Activated At'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Message' | translate: {Default: 'Message'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</th>
       </tr>
     </thead>
     <tbody class="bg-white divide-y divide-gray-200">
@@ -55,14 +54,24 @@
           <!-- <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.xpertId }}</td> -->
           <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
             <div class="flex gap-1">
+              <!-- 激活按钮隐藏 / Activate button hidden -->
               <button class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg" type="button"
-                (click)="activate(table.id)">
+                (click)="activate(table.id)"
+                [title]="'PAC.Workspace.ActivateTable' | translate: {Default: 'Activate Table'}"
+                hidden>
                 <i class="ri-magic-line"></i>
               </button>
 
               <button class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg" type="button"
-                (click)="editTable(table)">
+                (click)="editTable(table)"
+                [title]="'PAC.Workspace.EditTable' | translate: {Default: 'Edit Table'}">
                 <i class="ri-edit-line"></i>
+              </button>
+
+              <button class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg text-red-500 hover:bg-red-50" type="button"
+                (click)="deleteTable(table)"
+                [title]="'PAC.Workspace.DeleteTable' | translate: {Default: 'Delete Table'}">
+                <i class="ri-delete-bin-line"></i>
               </button>
             </div>
           </td>
@@ -77,9 +86,9 @@
 }
 
 @if (table()) {
-  <div class="absolute right-1 top-1 bottom-1 w-96 lg:w-[500px] px-6 py-4 bg-neutral-50 rounded-2xl border border-solid border-gray-200 shadow-lg max-w-4xl mx-auto overflow-auto z-10">
+  <div class="absolute right-1 top-1 bottom-1 w-[800px] lg:w-[900px] xl:w-[1000px] px-6 py-4 bg-neutral-50 rounded-2xl border border-solid border-gray-200 shadow-lg max-w-[95vw] mx-auto overflow-auto z-10">
     <div class="flex justify-between items-center">
-      <h2 class="text-xl font-semibold mb-4">编辑表格</h2>
+      <h2 class="text-xl font-semibold mb-4">{{ 'PAC.Workspace.EditTable' | translate: {Default: 'Edit Table'} }}</h2>
       <button type="button" class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-gray-200 hover:text-text-destructive"
         (click)="table.set(null)">
         <i class="ri-close-line text-2xl"></i>
@@ -89,21 +98,21 @@
     <!-- 基本信息 -->
     <div class="space-y-4 bg-white p-4 rounded-lg border">
       <div>
-        <label class="block text-sm font-medium mb-1">数据库 *</label>
+        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.Database' | translate: {Default: 'Database'} }} *</label>
         <div>
-          <ngm-select placeholder="选择数据库" [selectOptions]="databases$ | async" [(ngModel)]="database" [nullable]="false" />
+          <ngm-select [placeholder]="'PAC.Workspace.SelectDatabase' | translate: {Default: 'Select Database'}" [selectOptions]="databases$ | async" [(ngModel)]="database" [nullable]="false" />
         </div>
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">模式 *</label>
+        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.Schema' | translate: {Default: 'Schema'} }} *</label>
         <div>
-          <ngm-select placeholder="选择模式" [selectOptions]="schemasOptions()" [(ngModel)]="schema" [nullable]="false" />
+          <ngm-select [placeholder]="'PAC.Workspace.SelectSchema' | translate: {Default: 'Select Schema'}" [selectOptions]="schemasOptions()" [(ngModel)]="schema" [nullable]="false" />
         </div>
       </div>
       
       <div>
-        <label class="block text-sm font-medium mb-1">数据表名称 *</label>
+        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.TableName' | translate: {Default: 'Table Name'} }} *</label>
         <input
           type="text"
           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
@@ -113,7 +122,7 @@
       
 
       <div>
-        <label class="block text-sm font-medium mb-1">数据表描述</label>
+        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.TableDescription' | translate: {Default: 'Table Description'} }}</label>
         <input
           type="text"
           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
@@ -122,78 +131,210 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Table 查询模式</label>
+        <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.QueryMode' | translate: {Default: 'Query Mode'} }}</label>
         <select
           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
         >
-          <option>单用户模式</option>
-          <option>多用户模式</option>
+          <option>{{ 'PAC.Workspace.SingleUserMode' | translate: {Default: 'Single User Mode'} }}</option>
+          <option>{{ 'PAC.Workspace.MultiUserMode' | translate: {Default: 'Multi User Mode'} }}</option>
         </select>
       </div>
     </div>
 
     <!-- 字段定义 -->
     <div class="mt-6 bg-white p-4 rounded-lg border">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-md font-medium">存储字段定义</h3>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-md font-semibold text-gray-800">{{ 'PAC.Workspace.FieldDefinition' | translate: {Default: 'Field Definition'} }}</h3>
         <button
           (click)="addColumn()"
-          class="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
+          class="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition flex items-center gap-1"
         >
-          + 新增
+          <i class="ri-add-line"></i> {{ 'PAC.Workspace.AddField' | translate: {Default: 'Add Field'} }}
         </button>
       </div>
 
-      <table class="w-full border-collapse text-sm">
-        <thead>
-          <tr class="bg-gray-100 text-gray-700">
-            <th class="border p-2 text-left w-1/4">存储字段名称 *</th>
-            <th class="border p-2 text-left w-1/4">描述</th>
-            <th class="border p-2 text-left w-1/6">数据类型 *</th>
-            <th class="border p-2 text-center w-1/6">是否必要</th>
-            <th class="border p-2 text-center w-16">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (col of table().columns; track col; let i = $index) {
-            <tr class="border-b">
-              <td class="p-2">
+      <div class="space-y-3 max-h-[500px] overflow-y-auto pr-2 pl-4">
+        @for (col of table().columns; track col; let i = $index) {
+          <div class="relative border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-white to-gray-50 hover:shadow-md hover:border-blue-300 transition-all ml-2">
+            <!-- 字段序号标记 -->
+            <div class="absolute -left-5 top-1/2 -translate-y-1/2 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
+              {{i + 1}}
+            </div>
+
+            <!-- 主要内容区 - 使用 flex 布局确保一行显示 -->
+            <div class="flex items-start gap-3">
+              <!-- 字段名称 -->
+              <div style="width: 160px;">
+                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                  <i class="ri-text text-blue-500"></i> {{ 'PAC.Workspace.FieldName' | translate: {Default: 'Field Name'} }} <span class="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  class="w-full border rounded px-2 py-1 focus:ring focus:ring-blue-200"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                   [(ngModel)]="col.name"
+                  [placeholder]="'PAC.Workspace.FieldNamePlaceholder' | translate: {Default: 'e.g. user_id'}"
                 />
-              </td>
-              <td class="p-2">
+              </div>
+
+              <!-- 描述 -->
+              <div style="width: 180px;">
+                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                  <i class="ri-file-text-line text-gray-500"></i> {{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}
+                </label>
                 <input
                   type="text"
-                  class="w-full border rounded px-2 py-1 focus:ring focus:ring-blue-200"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                   [(ngModel)]="col.label"
+                  [placeholder]="'PAC.Workspace.FieldDescription' | translate: {Default: 'Field description'}"
                 />
-              </td>
-              <td class="p-2">
-                <ngm-select [selectOptions]="types" [(ngModel)]="col.type" [nullable]="false" />
-              </td>
-              <td class="p-2 text-center">
-                <input
-                  type="checkbox"
-                  class="h-4 w-4 text-blue-500"
-                  [(ngModel)]="col.required"
-                />
-              </td>
-              <td class="p-2 text-center">
+              </div>
+
+              <!-- 数据类型 -->
+              <div style="width: 200px;">
+                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                  <i class="ri-code-box-line text-purple-500"></i> {{ 'PAC.Workspace.DataType' | translate: {Default: 'Data Type'} }} <span class="text-red-500">*</span>
+                </label>
+                <ngm-select class="text-sm" [selectOptions]="types()" [(ngModel)]="col.type" [nullable]="false" />
+              </div>
+
+              <!-- 字段长度（仅字符串类型显示） -->
+              @if (col.type === 'string' || col.type === 'text') {
+                <div style="width: 90px;">
+                  <label class="text-xs font-medium text-gray-700 block mb-1.5">{{ 'PAC.Workspace.Length' | translate: {Default: 'Length'} }}</label>
+                  <input
+                    type="number"
+                    class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    [(ngModel)]="col.length"
+                    [placeholder]="'PAC.Workspace.Length' | translate: {Default: 'Length'}"
+                  />
+                </div>
+              }
+
+              <!-- 约束 -->
+              <div style="width: 150px;">
+                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                  <i class="ri-shield-line text-indigo-500"></i> {{ 'PAC.Workspace.Constraints' | translate: {Default: 'Constraints'} }}
+                </label>
+                <div class="relative">
+                  <button
+                    type="button"
+                    class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs bg-white hover:bg-gray-50 hover:border-blue-400 flex items-center justify-between transition"
+                    [cdkMenuTriggerFor]="constraintMenu"
+                  >
+                    <div class="flex gap-1 flex-wrap">
+                      @if (col.isPrimaryKey) {
+                        <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">{{ getConstraintLabelText('pk') }}</span>
+                      }
+                      @if (col.required) {
+                        <span class="px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">{{ getConstraintLabelText('required') }}</span>
+                      }
+                      @if (col.isUnique && !col.isPrimaryKey) {
+                        <span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">{{ getConstraintLabelText('unique') }}</span>
+                      }
+                      @if (col.autoIncrement) {
+                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">{{ getConstraintLabelText('autoIncrement') }}</span>
+                      }
+                      @if (!col.isPrimaryKey && !col.required && !col.isUnique && !col.autoIncrement) {
+                        <span class="text-gray-400 text-xs">{{ 'PAC.Workspace.NoConstraints' | translate: {Default: 'None'} }}</span>
+                      }
+                    </div>
+                    <i class="ri-arrow-down-s-line text-gray-500 ml-1 flex-shrink-0"></i>
+                  </button>
+                  
+                  <ng-template #constraintMenu>
+                    <div cdkMenu class="cdk-menu w-56 p-3 shadow-xl">
+                      <div class="space-y-1.5">
+                        <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group">
+                          <span class="text-sm flex items-center gap-2">
+                            <i class="ri-key-line text-yellow-600 text-base group-hover:scale-110 transition"></i>
+                            <span class="font-medium">{{ 'PAC.Workspace.PrimaryKey' | translate: {Default: 'Primary Key'} }}</span>
+                          </span>
+                          <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.isPrimaryKey" />
+                        </label>
+                        <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group">
+                          <span class="text-sm flex items-center gap-2">
+                            <i class="ri-error-warning-line text-red-600 text-base group-hover:scale-110 transition"></i>
+                            <span class="font-medium">{{ 'PAC.Workspace.Required' | translate: {Default: 'Required'} }}</span>
+                            <span class="text-xs text-gray-500">(NOT NULL)</span>
+                          </span>
+                          <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.required" />
+                        </label>
+                        <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
+                          [class.opacity-50]="col.isPrimaryKey">
+                          <span class="text-sm flex items-center gap-2">
+                            <i class="ri-shield-check-line text-blue-600 text-base group-hover:scale-110 transition"></i>
+                            <span class="font-medium">{{ 'PAC.Workspace.Unique' | translate: {Default: 'Unique'} }}</span>
+                          </span>
+                          <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.isUnique" [disabled]="col.isPrimaryKey" />
+                        </label>
+                        <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
+                          [class.opacity-50]="col.type !== 'number' && col.type !== 'bigint'">
+                          <span class="text-sm flex items-center gap-2">
+                            <i class="ri-add-circle-line text-green-600 text-base group-hover:scale-110 transition"></i>
+                            <span class="font-medium">{{ 'PAC.Workspace.AutoIncrement' | translate: {Default: 'Auto Increment'} }}</span>
+                          </span>
+                          <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.autoIncrement" 
+                            [disabled]="col.type !== 'number' && col.type !== 'bigint'" />
+                        </label>
+                      </div>
+                    </div>
+                  </ng-template>
+                </div>
+              </div>
+
+              <!-- 默认值 -->
+              <div style="width: 170px;">
+                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                  <i class="ri-layout-column-line text-teal-500"></i> {{ 'PAC.Workspace.DefaultValue' | translate: {Default: 'Default Value'} }}
+                </label>
+                @if (col.type === 'date' || col.type === 'datetime' || col.type === 'timestamp' || col.type === 'time') {
+                  <select
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white"
+                    [(ngModel)]="col.defaultValue"
+                  >
+                    <option value="">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</option>
+                    @if (col.type === 'date') {
+                      <option value="CURRENT_DATE">📅 {{ 'PAC.Workspace.CurrentDate' | translate: {Default: 'Current Date'} }}</option>
+                    }
+                    @if (col.type === 'time') {
+                      <option value="CURRENT_TIME">🕐 {{ 'PAC.Workspace.CurrentTime' | translate: {Default: 'Current Time'} }}</option>
+                    }
+                    @if (col.type === 'datetime' || col.type === 'timestamp') {
+                      <option value="CURRENT_TIMESTAMP">📅 {{ 'PAC.Workspace.CurrentTimestamp' | translate: {Default: 'Current Timestamp'} }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input
+                    type="text"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    [(ngModel)]="col.defaultValue"
+                    [placeholder]="'PAC.Workspace.DefaultValue' | translate: {Default: 'Default value'}"
+                  />
+                }
+              </div>
+
+              <!-- 删除按钮 -->
+              <div class="flex items-end">
                 <button type="button"
                   (click)="removeColumn(i)"
-                  class="text-red-500 hover:text-red-700"
-                  title="删除"
+                  class="px-3 py-2 text-red-500 hover:bg-red-50 border border-transparent hover:border-red-300 rounded-lg transition group"
+                  [title]="'PAC.KEY_WORDS.Delete' | translate: {Default: 'Delete'}"
                 >
-                  ✕
+                  <i class="ri-delete-bin-line text-lg group-hover:scale-110 transition"></i>
                 </button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (table().columns?.length === 0) {
+          <div class="text-center py-12 text-gray-400">
+            <i class="ri-inbox-line text-5xl mb-2"></i>
+            <p class="text-sm">{{ 'PAC.Workspace.NoFields' | translate: {Default: 'No fields'} }}</p>
+            <p class="text-xs mt-1">{{ 'PAC.Workspace.ClickAddField' | translate: {Default: 'Click "Add Field" button above to add fields'} }}</p>
+          </div>
+        }
+      </div>
     </div>
 
     <!-- 保存按钮 -->
@@ -202,7 +343,7 @@
         (click)="save()"
         class="btn btn-primary btn-large transition"
       >
-        保存
+        {{ 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}
       </button>
     </div>
   </div>

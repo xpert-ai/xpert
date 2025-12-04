@@ -132,61 +132,85 @@ export function pgTypeMap(type: string): string {
  * @param length 
  * @returns 
  */
-export function typeToPGDB(type: string, isKey: boolean, length: number) {
-  switch(type) {
+export function typeToPGDB(type: string, isKey: boolean, length: number, precision?: number, scale?: number) {
+  switch(type?.toLowerCase()) {
     case 'number':
-    case 'Number':
+    case 'integer':
       return 'INT'
-    case 'Numeric':
-      return 'float8'
+    case 'bigint':
+      return 'BIGINT'
+    case 'decimal':
+    case 'numeric':
+      return `DECIMAL(${precision || 10}, ${scale || 2})`
+    case 'float':
+      return 'FLOAT8'
     case 'string':
-    case 'String':
-      // Max length 3072 btye for primary key
+    case 'varchar':
+      // Max length 3072 byte for primary key
       if (length !== null && length !== undefined) {
         return isKey ? `VARCHAR(${Math.min(length, 768)})` : `VARCHAR(${length})`
       }
       return isKey ? 'VARCHAR(768)' : 'VARCHAR(1000)'
+    case 'text':
+      return 'TEXT'
+    case 'uuid':
+      return 'UUID'
     case 'date':
-    case 'Date':
       return 'DATE'
-    case 'Datetime':
+    case 'time':
+      return 'TIME'
     case 'datetime':
       return 'TIMESTAMP'
-    case 'Time':
-      return 'TIME'
+    case 'timestamp':
+      return 'TIMESTAMPTZ'
     case 'boolean':
-    case 'Boolean':
+    case 'bool':
       return 'BOOLEAN'
     case 'object':
+    case 'json':
       return 'JSONB'
     default:
       return 'VARCHAR(1000)'
   }
 }
 
-export function typeToMySqlDB(type: string, isKey: boolean, length: number) {
-  switch(type) {
+export function typeToMySqlDB(type: string, isKey: boolean, length: number, precision?: number, scale?: number) {
+  switch(type?.toLowerCase()) {
     case 'number':
-    case 'Number':
+    case 'integer':
       return 'INT'
-    case 'Numeric':
+    case 'bigint':
+      return 'BIGINT'
+    case 'decimal':
+    case 'numeric':
+      return `DECIMAL(${precision || 10}, ${scale || 2})`
+    case 'float':
       return 'DOUBLE'
     case 'string':
-    case 'String':
-      // Max length 3072 btye for primary key
+    case 'varchar':
+      // Max length 3072 byte for primary key
       if (length !== null && length !== undefined) {
         return isKey ? `VARCHAR(${Math.min(length, 768)})` : `VARCHAR(${length})`
       }
       return isKey ? 'VARCHAR(768)' : 'VARCHAR(1000)'
+    case 'text':
+      return 'TEXT'
+    case 'uuid':
+      return 'VARCHAR(36)'
     case 'date':
-    case 'Date':
       return 'DATE'
-    case 'Datetime':
+    case 'time':
+      return 'TIME'
     case 'datetime':
       return 'DATETIME'
+    case 'timestamp':
+      return 'TIMESTAMP'
     case 'boolean':
-    case 'Boolean':
+    case 'bool':
       return 'BOOLEAN'
+    case 'object':
+    case 'json':
+      return 'JSON'
     default:
       return 'VARCHAR(1000)'
   }

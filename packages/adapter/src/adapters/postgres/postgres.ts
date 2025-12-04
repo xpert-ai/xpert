@@ -286,7 +286,8 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
         const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
 
-        // 1. 检查表是否存在
+        // 检查表是否存在
+        // Check if table exists
         const existsResult = await this.runQuery(`
           SELECT table_name 
           FROM information_schema.tables 
@@ -294,7 +295,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
             AND table_name = '${table}';
         `)
 
-        const exists = Array.isArray(existsResult) && existsResult.length > 0
+        const exists = Array.isArray(existsResult.data) && existsResult.data.length > 0
 
         // --- MODE: ERROR → 表存在时报错 ---
         if (exists && createMode === DBCreateTableMode.ERROR) {
@@ -308,7 +309,9 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
 
         // --- MODE: UPGRADE → 自动升级字段 ---
         if (exists && createMode === DBCreateTableMode.UPGRADE) {
+          
           // 获取当前表结构
+          // Get current table structure
           const currentCols = await this.runQuery(`
             SELECT column_name, data_type, is_nullable 
             FROM information_schema.columns 
@@ -316,28 +319,62 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
               AND table_name='${table}'
           `)
 
-          // 对比字段，新增/修改字段
+          // 1. 删除不在目标列表中的字段
+          // Delete columns not in target list
+          const targetColumnNames = columns.map(c => c.fieldName)
+          for (const currentCol of currentCols.data) {
+            const colName = (currentCol as any).column_name
+            if (!targetColumnNames.includes(colName)) {
+              await this.runQuery(`ALTER TABLE ${tableName} DROP COLUMN "${colName}"`)
+            }
+          }
+
+          // 2. 对比字段，新增/修改字段
+          // Compare columns, add/modify fields
           for (const col of columns) {
-            const existing = currentCols.columns.find(c => c.name === col.fieldName)
+            const existing = currentCols.data.find((c: any) => c.column_name === col.fieldName)
 
             // 新字段 → ADD COLUMN
+            // New field → ADD COLUMN
             if (!existing) {
-              await this.runQuery(`
-                ALTER TABLE ${tableName} 
-                ADD COLUMN "${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length)}
-              `)
+              const typeDDL = typeToPGDB(col.type, col.isKey, col.length, col.fraction, col.fraction)
+              const notNull = col.required ? ' NOT NULL' : ''
+              const unique = !col.isKey && col.unique ? ' UNIQUE' : ''
+              const defaultVal = col.defaultValue ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}` : ''
+              const autoInc = col.autoIncrement && (col.type === 'number' || col.type === 'bigint') ? ' GENERATED ALWAYS AS IDENTITY' : ''
+              
+              await this.runQuery(`ALTER TABLE ${tableName} ADD COLUMN "${col.fieldName}" ${typeDDL}${unique}${autoInc}${notNull}${defaultVal}`)
               continue
             }
 
             // 字段存在，检查类型是否需要更新
-            const newType = typeToPGDB(col.type, col.isKey, col.length)
-            const oldType = existing.type
+            // Field exists, check if type needs to be updated
+            const dbDataType = (existing as any).data_type
+            const oldAppType = this.pgTypeToAppType(dbDataType)
+            const newAppType = col.type
+            const newType = typeToPGDB(col.type, col.isKey, col.length, col.fraction, col.fraction)
 
-            if (newType.toLowerCase() !== oldType.toLowerCase()) {
-              await this.runQuery(`
-                ALTER TABLE ${tableName} 
-                ALTER COLUMN "${col.fieldName}" TYPE ${newType}
-              `)
+            // 比较应用层类型，如果不同则修改
+            if (oldAppType !== newAppType) {
+              // 使用 USING 子句来处理类型转换
+              // Use USING clause to handle type conversion
+              let usingClause = ''
+              
+              if (newAppType === 'number' || newAppType === 'bigint') {
+                usingClause = ` USING CASE WHEN "${col.fieldName}" ~ '^[0-9]+$' THEN "${col.fieldName}"::${newType} ELSE NULL END`
+              } else if (newAppType === 'string' || newAppType === 'text') {
+                usingClause = ` USING "${col.fieldName}"::TEXT`
+              } else if (newAppType === 'boolean') {
+                usingClause = ` USING "${col.fieldName}"::BOOLEAN`
+              } else if (newAppType === 'date') {
+                usingClause = ` USING "${col.fieldName}"::DATE`
+              } else if (newAppType === 'datetime' || newAppType === 'timestamp') {
+                usingClause = ` USING "${col.fieldName}"::TIMESTAMP`
+              } else {
+                usingClause = ` USING "${col.fieldName}"::${newType}`
+              }
+              
+              await this.runQuery(`ALTER TABLE ${tableName} ALTER COLUMN "${col.fieldName}" TYPE ${newType}${usingClause}`)
             }
           }
 
@@ -349,10 +386,13 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
           CREATE TABLE IF NOT EXISTS ${tableName} (
             ${columns
               .map((col) => {
-                const typeDDL = typeToPGDB(col.type, col.isKey, col.length)
+                const typeDDL = typeToPGDB(col.type, col.isKey, col.length, col.fraction, col.fraction)
                 const pk = col.isKey ? ' PRIMARY KEY' : ''
                 const notNull = col.required ? ' NOT NULL' : ''
-                return `"${col.fieldName}" ${typeDDL}${pk}${notNull}`
+                const unique = !col.isKey && col.unique ? ' UNIQUE' : ''  // 主键已经是唯一的，不需要再加UNIQUE
+                const autoInc = col.autoIncrement && (col.type === 'number' || col.type === 'bigint') ? ' GENERATED ALWAYS AS IDENTITY' : ''
+                const defaultVal = col.defaultValue ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}` : ''
+                return `"${col.fieldName}" ${typeDDL}${pk}${unique}${autoInc}${notNull}${defaultVal}`
               })
               .join(', ')}
           )
@@ -380,6 +420,24 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
             isNullable: col.is_nullable === 'YES',
           })),
         }
+      }
+      case DBTableAction.RENAME_TABLE: {
+        // 重命名表
+        // Rename table
+        const { schema, table, newTable } = params
+        const oldTableName = schema ? `"${schema}"."${table}"` : `"${table}"`
+        
+        await this.runQuery(`ALTER TABLE ${oldTableName} RENAME TO "${newTable}"`)
+        return
+      }
+      case DBTableAction.DROP_TABLE: {
+        // 删除表
+        // Drop table
+        const { schema, table } = params
+        const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
+        
+        await this.runQuery(`DROP TABLE IF EXISTS ${tableName}`)
+        return
       }
       default:
         throw new Error(`Unsupported table action: ${action}`)
@@ -442,6 +500,90 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         return this.runQuery(sql, { ...options, params: paramsList })
       }
     }
+  }
+
+  /**
+   * 格式化默认值
+   * Format default value for SQL
+   */
+  private formatDefaultValue(value: string, type: string): string {
+    // 检查是否是数据库函数（如 CURRENT_TIMESTAMP）
+    // Check if it's a database function
+    const upperValue = value.toUpperCase()
+    if (upperValue === 'CURRENT_DATE' || upperValue === 'CURRENT_TIME' || 
+        upperValue === 'CURRENT_TIMESTAMP' || upperValue === 'NOW()') {
+      return upperValue  // 直接返回函数名，不加引号
+    }
+    
+    // 字符串、日期、时间类型加引号
+    if (type === 'string' || type === 'text' || type === 'uuid' || type === 'varchar' ||
+        (type === 'date' && upperValue !== 'CURRENT_DATE') || 
+        (type === 'datetime' && upperValue !== 'CURRENT_TIMESTAMP') ||
+        (type === 'timestamp' && upperValue !== 'CURRENT_TIMESTAMP') ||
+        (type === 'time' && upperValue !== 'CURRENT_TIME')) {
+      return `'${value.replace(/'/g, "''")}'`  // 转义单引号
+    }
+    if (type === 'boolean' || type === 'bool') {
+      return value.toLowerCase() === 'true' ? 'TRUE' : 'FALSE'
+    }
+    // number, bigint, decimal, float 等直接返回
+    return value
+  }
+
+  /**
+   * 将PostgreSQL数据库类型映射回应用类型
+   * Map PostgreSQL database type back to application type
+   */
+  private pgTypeToAppType(dbType: string): string {
+    const lowerType = dbType.toLowerCase()
+    
+    // 整数类型
+    if (lowerType === 'integer' || lowerType === 'int' || lowerType === 'int4' || lowerType === 'smallint') {
+      return 'number'
+    }
+    if (lowerType === 'bigint' || lowerType === 'int8' || lowerType.includes('serial')) {
+      return 'bigint'
+    }
+    // 小数类型
+    if (lowerType.includes('decimal') || lowerType.includes('numeric')) {
+      return 'decimal'
+    }
+    if (lowerType.includes('float') || lowerType.includes('double') || lowerType.includes('real')) {
+      return 'float'
+    }
+    // 字符串类型
+    if (lowerType.includes('varchar') || lowerType.includes('char') && !lowerType.includes('character varying')) {
+      return 'string'
+    }
+    if (lowerType === 'text' || lowerType.includes('character varying')) {
+      return lowerType === 'text' ? 'text' : 'string'
+    }
+    if (lowerType === 'uuid') {
+      return 'uuid'
+    }
+    // 布尔类型
+    if (lowerType.includes('bool')) {
+      return 'boolean'
+    }
+    // 时间类型
+    if (lowerType === 'date') {
+      return 'date'
+    }
+    if (lowerType === 'time' || lowerType.includes('time without')) {
+      return 'time'
+    }
+    if (lowerType === 'timestamp' || lowerType.includes('timestamp without')) {
+      return 'datetime'
+    }
+    if (lowerType.includes('timestamp') || lowerType.includes('timestamptz')) {
+      return 'timestamp'
+    }
+    // JSON类型
+    if (lowerType.includes('json')) {
+      return 'object'
+    }
+    
+    return 'string'  // 默认
   }
 
   async teardown() {
