@@ -21,5 +21,12 @@ export interface ISkillSourceProvider {
   installSkillPackage(
     index: ISkillRepositoryIndex,
     installDir: string
-  ): Promise<void>
+  ): Promise<string>
+
+  /**
+   * Uninstall a skill package from a given path.
+   * 
+   * @param path 
+   */
+  uninstallSkillPackage(path: string): Promise<void>
 }

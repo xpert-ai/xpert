@@ -799,10 +799,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				messages: baseMessages,
 				systemMessage
 			}
+			let systemMessageContent = systemMessage.content
 			const defaultModelHandler: WrapModelCallHandler = async (request) => {
 				const model = request.model ?? withFallbackModel
 				const reqMessages = request.messages ?? baseMessages
 				const systemMsg = request.systemMessage ?? systemMessage
+				systemMessageContent = systemMsg.content
 				const finalMessages = systemMsg ? [systemMsg, ...reqMessages] : reqMessages
 				const response = await (model as Runnable).invoke(
 					finalMessages,
@@ -823,12 +825,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				defaultModelHandler
 			)
 			try {
-				const message: any = await wrappedModelHandler({...baseRequest, systemMessage: baseRequest.systemMessage as BaseMessage})
+				const message = await wrappedModelHandler(baseRequest)
 
 				const nState: Record<string, any> = {
 					messages: [...humanMessages],
 					[channelName(agentKey)]: {
-						system: systemMessage.content,
+						system: systemMessageContent,
 						error: null,
 						messages: [...deleteMessages, ...humanMessages]
 					}
@@ -839,7 +841,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					nState[channelName(agentKey)].output = stringifyMessageContent(message.content)
 				} else if (message) {
 					nState[channelName(agentKey)] = {
-						...message,
+						...(message as Record<string, any>),
 						...nState[channelName(agentKey)],
 					}
 				}

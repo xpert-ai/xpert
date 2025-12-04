@@ -97,6 +97,7 @@ export interface ISkillPackage extends IBasePerWorkspaceEntityModel, TSkillPacka
   skillIndex?: ISkillRepositoryIndex;
   name?: any;
   visibility: 'private' | 'team' | 'tenant';
+  packagePath?: string;
 }
 
 /**
