@@ -89,9 +89,22 @@ type JsonSchema7Meta = {
     default?: any;
     description?: I18nObject;
     markdownDescription?: I18nObject;
+    /**
+     * UI schema extensions
+     */
     'x-ui'?: {
+      /**
+       * UI component variant, or custom component name
+       */
       component?: 'textarea' | 'select' | 'radio' | 'checkbox' | 'switch' | 'password' | string
+      /**
+       * UI component display span (for grid layouts)
+       */
       span?: number
+      /**
+       * Additional inputs for the Custom UI component
+       */
+      inputs?: Record<string, unknown>
     }
 };
 export type JsonSchemaObjectType = {

@@ -12,6 +12,7 @@ import {
   inject,
   model,
   signal,
+  Type,
   viewChild
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -80,6 +81,7 @@ import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioFeaturesComponent } from './features/features.component'
 import { XpertService } from '../xpert/xpert.service'
+import { JsonSchemaWidgetStrategyRegistry, provideJsonSchemaWidgetStrategy } from '@cloud/app/@shared/forms'
 
 
 @Component({
@@ -119,7 +121,21 @@ import { XpertService } from '../xpert/xpert.service'
   templateUrl: './studio.component.html',
   styleUrl: 'studio.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [XpertStudioApiService, SelectionService, XpertExecutionService]
+  providers: [
+    XpertStudioApiService,
+    SelectionService,
+    XpertExecutionService,
+    JsonSchemaWidgetStrategyRegistry,
+    ...provideJsonSchemaWidgetStrategy({
+      name: 'ai-model-select',
+      /**
+       * Lazy load the real component.
+       */
+      async load(): Promise<Type<unknown>> {
+        return import('@cloud/app/@shared/copilot/copilot-model-select/index').then(m => m.CopilotModelSelectComponent)  
+      }
+    })
+  ]
 })
 export class XpertStudioComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

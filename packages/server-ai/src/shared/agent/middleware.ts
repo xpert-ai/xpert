@@ -37,7 +37,7 @@ export async function getAgentMiddlewares(
 	graph: TXpertGraph,
 	agent: IXpertAgent,
 	agentMiddlewareRegistry: AgentMiddlewareRegistry,
-	context: IAgentMiddlewareContext
+	context: Omit<IAgentMiddlewareContext, 'node'>
 ): Promise<AgentMiddleware[]> {
 	const middlewares = orderNodesByKeyOrder(
 		getAgentMiddlewareNodes(graph, agent.key),
@@ -57,7 +57,7 @@ export async function getAgentMiddlewares(
 			continue
 		}
 
-		const middleware = await strategy.createMiddleware(entity.options, context)
+		const middleware = await strategy.createMiddleware(entity.options, {...context, node: middlewareNode.entity as IWFNMiddleware })
 		if (middleware) result.push(middleware)
 	}
 

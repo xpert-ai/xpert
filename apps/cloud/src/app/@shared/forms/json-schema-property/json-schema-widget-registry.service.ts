@@ -2,10 +2,22 @@ import { Inject, Injectable, InjectionToken, Optional, Provider, Type, signal, W
 import { JsonSchema7TypeUnion } from 'zod-to-json-schema'
 import { TWorkflowVarGroup } from '../../../@core'
 
-export interface JsonSchemaWidgetDefinition {
-  name: string
-  component?: Type<unknown>
-  load?: () => Promise<Type<unknown>>
+
+export interface JsonSchemaWidgetStrategy {
+  /**
+   * Unique name of widget
+   */
+  name: string;
+
+  /**
+   * Static component (optional)
+   */
+  component?: Type<unknown>;
+
+  /**
+   * Lazy loader function
+   */
+  load?: () => Promise<Type<unknown>>;
 }
 
 export interface JsonSchemaWidgetContext<T = unknown> {
@@ -18,57 +30,55 @@ export interface JsonSchemaWidgetContext<T = unknown> {
   update: (value: T) => void
 }
 
-export const JSON_SCHEMA_WIDGETS = new InjectionToken<JsonSchemaWidgetDefinition[]>('JSON_SCHEMA_WIDGETS')
+export const JSON_SCHEMA_WIDGET_STRATEGIES =
+  new InjectionToken<JsonSchemaWidgetStrategy[]>('JSON_SCHEMA_WIDGET_STRATEGIES')
 export const JSON_SCHEMA_WIDGET_CONTEXT = new InjectionToken<JsonSchemaWidgetContext>('JSON_SCHEMA_WIDGET_CONTEXT')
 
-@Injectable({ providedIn: 'root' })
-export class JsonSchemaWidgetRegistry {
-  #widgets = signal<Record<string, JsonSchemaWidgetDefinition>>({})
+@Injectable()
+export class JsonSchemaWidgetStrategyRegistry {
+  #strategies = signal<Record<string, JsonSchemaWidgetStrategy>>({})
 
-  constructor(@Optional() @Inject(JSON_SCHEMA_WIDGETS) widgets?: JsonSchemaWidgetDefinition[]) {
-    this.registerMany(widgets ?? [])
+  constructor(
+    @Optional() @Inject(JSON_SCHEMA_WIDGET_STRATEGIES)
+    strategies?: JsonSchemaWidgetStrategy[]
+  ) {
+    this.registerMany(strategies ?? [])
   }
 
-  register(widget: JsonSchemaWidgetDefinition) {
-    if (!widget?.name) {
-      return
-    }
-    this.#widgets.update((current) => ({
+  register(strategy: JsonSchemaWidgetStrategy) {
+    if (!strategy?.name) return
+
+    this.#strategies.update(current => ({
       ...current,
-      [widget.name]: {
-        ...current[widget.name],
-        ...widget
+      [strategy.name]: {
+        ...current[strategy.name],
+        ...strategy
       }
     }))
   }
 
-  registerMany(widgets: JsonSchemaWidgetDefinition[]) {
-    widgets?.forEach((widget) => this.register(widget))
+  registerMany(strategies: JsonSchemaWidgetStrategy[]) {
+    strategies?.forEach(s => this.register(s))
   }
 
-  has(name?: string | null) {
-    return !!(name && this.#widgets()[name])
+  has(name?: string | null): boolean {
+    return !!(name && this.#strategies()[name])
   }
 
-  get(name?: string | null) {
+  get(name?: string | null): JsonSchemaWidgetStrategy | null {
     if (!name) return null
-    return this.#widgets()[name] ?? null
+    return this.#strategies()[name] ?? null
   }
 
   async loadComponent(name: string) {
-    const widget = this.get(name)
-    if (!widget) return null
+    const strategy = this.get(name)
+    if (!strategy) return null
 
-    if (widget.component) {
-      return widget.component
-    }
+    if (strategy.component) return strategy.component
 
-    if (widget.load) {
-      const component = await widget.load()
-      this.register({
-        ...widget,
-        component
-      })
+    if (strategy.load) {
+      const component = await strategy.load()
+      this.register({ ...strategy, component })
       return component
     }
 
@@ -76,10 +86,12 @@ export class JsonSchemaWidgetRegistry {
   }
 }
 
-export function provideJsonSchemaWidgets(...widgets: JsonSchemaWidgetDefinition[]): Provider[] {
-  return widgets.map((widget) => ({
-    provide: JSON_SCHEMA_WIDGETS,
-    useValue: widget,
+export function provideJsonSchemaWidgetStrategy(
+  ...strategies: JsonSchemaWidgetStrategy[]
+): Provider[] {
+  return strategies.map(strategy => ({
+    provide: JSON_SCHEMA_WIDGET_STRATEGIES,
+    useValue: strategy,
     multi: true
   }))
 }

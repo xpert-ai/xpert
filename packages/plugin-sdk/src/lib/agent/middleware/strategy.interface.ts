@@ -1,4 +1,4 @@
-import { TAgentMiddlewareMeta } from '@metad/contracts'
+import { IWFNMiddleware, TAgentMiddlewareMeta } from '@metad/contracts'
 import { AgentMiddleware, PromiseOrValue } from './types'
 
 export interface IAgentMiddlewareContext {
@@ -9,6 +9,7 @@ export interface IAgentMiddlewareContext {
   conversationId?: string
   xpertId?: string
   agentKey?: string
+  node: IWFNMiddleware
 }
 
 export interface IAgentMiddlewareStrategy<T = unknown> {

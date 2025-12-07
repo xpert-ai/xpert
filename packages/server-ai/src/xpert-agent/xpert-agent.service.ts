@@ -7,9 +7,9 @@ import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { assign } from 'lodash'
 import { Observable } from 'rxjs'
 import { Repository } from 'typeorm'
+import { FindXpertQuery } from '../xpert/queries'
 import { XpertAgentChatCommand } from './commands'
 import { XpertAgent } from './xpert-agent.entity'
-import { FindXpertQuery } from '../xpert/queries'
 
 @Injectable()
 export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertAgent> {
@@ -35,9 +35,11 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 
 	async chatAgent(params: TChatAgentParams, options: TChatOptions) {
 		const xpertId = params.xpertId
-		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, {relations: ['agent'], isDraft: true}))
+		const xpert = await this.queryBus.execute(
+			new FindXpertQuery({ id: xpertId }, { relations: ['agent'], isDraft: true })
+		)
 		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
-			new XpertAgentChatCommand({[STATE_VARIABLE_HUMAN]: params.input}, params.agentKey, xpert, {
+			new XpertAgentChatCommand({ [STATE_VARIABLE_HUMAN]: params.input }, params.agentKey, xpert, {
 				...options,
 				isDraft: true,
 				store: null,
@@ -55,18 +57,24 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 	getMiddlewareStrategies() {
 		return this.agentMiddlewareRegistry.list().map((strategy) => {
 			return {
-				meta: strategy.meta,
+				meta: strategy.meta
 			}
 		})
 	}
 
 	async getMiddlewareTools(provider: string, options: any) {
 		const strategy = this.agentMiddlewareRegistry.get(provider)
-		const middleware = await strategy.createMiddleware(options, {tenantId: RequestContext.currentTenantId(), userId: RequestContext.currentUserId()})
-		return middleware.tools?.map((tool) => ({
-			name: tool.name,
-			description: tool.description,
-			schema: JSON.parse(JSON.stringify(tool.schema)),
-		})) ?? []
+		const middleware = await strategy.createMiddleware(options, {
+			tenantId: RequestContext.currentTenantId(),
+			userId: RequestContext.currentUserId(),
+			node: null
+		})
+		return (
+			middleware.tools?.map((tool) => ({
+				name: tool.name,
+				description: tool.description,
+				schema: JSON.parse(JSON.stringify(tool.schema))
+			})) ?? []
+		)
 	}
 }

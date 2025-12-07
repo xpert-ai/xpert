@@ -20,7 +20,7 @@ import { TWorkflowVarGroup } from '../../../@core'
 import {
   JsonSchemaWidgetOutletComponent
 } from './json-schema-widget-outlet.component'
-import { JsonSchemaWidgetRegistry } from './json-schema-widget-registry.service'
+import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
 
 /**
  *
@@ -50,7 +50,7 @@ import { JsonSchemaWidgetRegistry } from './json-schema-widget-registry.service'
 export class JSONSchemaPropertyComponent {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
   readonly i18n = new NgmI18nPipe()
-  readonly widgetRegistry = inject(JsonSchemaWidgetRegistry)
+  readonly widgetRegistry = inject(JsonSchemaWidgetStrategyRegistry)
 
   // Inputs
   readonly name = input<string>()

@@ -28,7 +28,7 @@
 </div>
 
 
-<div class="w-full flex flex-col justify-start items-stretch gap-1">
+<div class="relative w-full flex flex-col justify-start items-stretch gap-1">
   @for (item of tools(); track item.name) {
     <div class="relative flex flex-col p-1 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
       [matTooltip]="item.description"
@@ -77,5 +77,15 @@
         }
       </div>
     </div>
+  } @empty {
+    @if (error()) {
+      <div class="text-xs text-text-destructive">
+        <i class="ri-error-warning-line mr-1 text-sm"></i>{{ error() }}
+      </div>
+    }
+  }
+
+  @if (loading()) {
+    <ngm-spin class="m-4 mx-auto" />
   }
 </div>

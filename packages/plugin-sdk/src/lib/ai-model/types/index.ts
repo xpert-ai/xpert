@@ -3,6 +3,7 @@ export * from './rerank'
 export * from './model'
 export * from './speech2text'
 export * from './tts'
+export * from './profile'
 
 export const PROVIDE_AI_MODEL_LLM = 'provide_ai_model_llm'
 export const PROVIDE_AI_MODEL_MODERATION = 'provide_ai_model_moderation'

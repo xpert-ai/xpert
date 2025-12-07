@@ -11,13 +11,14 @@ import {
   inject,
   input,
 } from '@angular/core'
+import { SIGNAL } from '@angular/core/primitives/signals'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { JsonSchema7TypeUnion } from 'zod-to-json-schema'
 import { TWorkflowVarGroup } from '../../../@core'
 import {
   JSON_SCHEMA_WIDGET_CONTEXT,
   JsonSchemaWidgetContext,
-  JsonSchemaWidgetRegistry
+  JsonSchemaWidgetStrategyRegistry,
 } from './json-schema-widget-registry.service'
 
 @Component({
@@ -46,7 +47,7 @@ export class JsonSchemaWidgetOutletComponent {
     private readonly viewContainerRef: ViewContainerRef,
     private readonly injector: Injector,
     private readonly environmentInjector: EnvironmentInjector,
-    private readonly registry: JsonSchemaWidgetRegistry,
+    private readonly registry: JsonSchemaWidgetStrategyRegistry,
     destroyRef: DestroyRef
   ) {
     destroyRef.onDestroy(() => {
@@ -67,11 +68,7 @@ export class JsonSchemaWidgetOutletComponent {
         if (!this.#componentRef) {
           return
         }
-        this.#componentRef.instance.readonly?.set(this.readonly())
-        this.#componentRef.instance.required?.set(this.required())
-        this.#componentRef.instance.schema?.set(this.schema())
-        this.#componentRef.instance.xUi?.set(this.xUi())
-        this.#componentRef.instance.variables?.set(this.variables())
+        this.applyInputsToInstance()
       },
       { allowSignalWrites: true }
     )
@@ -127,11 +124,7 @@ export class JsonSchemaWidgetOutletComponent {
       injector
     })
 
-    this.#componentRef.instance.readonly?.set(this.readonly())
-    this.#componentRef.instance.required?.set(this.required())
-    this.#componentRef.instance.schema?.set(this.schema())
-    this.#componentRef.instance.xUi?.set(this.xUi())
-    this.#componentRef.instance.variables?.set(this.variables())
+    this.applyInputsToInstance()
     this.#componentRef.instance.writeValue?.(this.#value())
 
     const instance = this.#componentRef.instance as any
@@ -148,5 +141,32 @@ export class JsonSchemaWidgetOutletComponent {
     this.#componentRef = undefined
     this.#componentModelSub?.unsubscribe?.()
     this.#componentModelSub = undefined
+  }
+
+  private applyInputsToInstance() {
+    const instance = this.#componentRef.instance
+    if (instance.readonly?.[SIGNAL]) {
+      instance.readonly[SIGNAL].applyValueToInputSignal(instance.readonly[SIGNAL], this.readonly())
+    }
+    if (instance.required?.[SIGNAL]) {
+      instance.required[SIGNAL].applyValueToInputSignal(instance.required[SIGNAL], this.required())
+    }
+    if (instance.schema?.[SIGNAL]) {
+      instance.schema[SIGNAL].applyValueToInputSignal(instance.schema[SIGNAL], this.schema())
+    }
+    if (instance.xUi?.[SIGNAL]) {
+      instance.xUi[SIGNAL].applyValueToInputSignal(instance.xUi[SIGNAL], this.xUi())
+    }
+    if (instance.variables?.[SIGNAL]) {
+      instance.variables[SIGNAL].applyValueToInputSignal(instance.variables[SIGNAL], this.variables())
+    }
+    if (this.xUi()?.['inputs']) {
+      const inputs = this.xUi()?.['inputs'] as Record<string, unknown>
+      for (const [key, value] of Object.entries(inputs)) {
+        if (instance[key]?.[SIGNAL]) {
+          instance[key][SIGNAL].applyValueToInputSignal(instance[key][SIGNAL], value)
+        }
+      }
+    }
   }
 }

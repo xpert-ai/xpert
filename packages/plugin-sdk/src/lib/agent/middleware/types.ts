@@ -58,7 +58,7 @@ export type BeforeAgentHook<
  * @param runtime - The runtime context containing metadata, signal, writer, interrupt, etc.
  * @returns A middleware result containing partial state updates or undefined to pass through
  */
-type BeforeModelHandler<TSchema, TContext> = (
+export type BeforeModelHandler<TSchema, TContext> = (
   state: TSchema,
   runtime: TContext
 ) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>;
@@ -88,7 +88,7 @@ export type BeforeModelHook<
  * @param runtime - The runtime context containing metadata, signal, writer, interrupt, etc.
  * @returns A middleware result containing partial state updates or undefined to pass through
  */
-type AfterModelHandler<TSchema, TContext> = (
+export type AfterModelHandler<TSchema, TContext> = (
   state: TSchema,
   runtime: TContext
 ) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>;

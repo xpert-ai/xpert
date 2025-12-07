@@ -1,13 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FFlowModule } from '@foblex/flow'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { isEqual } from 'lodash-es'
-import { derivedAsync } from 'ngxtension/derived-async'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { NgxFloatUiModule, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { injectXpertAgentAPI, IWFNMiddleware, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
@@ -56,17 +55,25 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
 
   readonly providerMeta = computed(() => this.agentMiddlewares()?.find((m) => m.meta.name === this.provider())?.meta)
   readonly #providerName = computed(() => this.providerMeta()?.name)
-  readonly #tools = derivedAsync(() => {
-    const provider = this.#providerName()
-    if (provider) {
-      return this.agentAPI.getAgentMiddlewareTools(provider, this.middlewareEntity()?.options ?? {})
+  readonly #options = computed(() => this.middlewareEntity()?.options ?? {}, {equal: isEqual})
+  readonly #toolsRes = myRxResource({
+    options: {debounceTime: 500},
+    request: () => ({
+      provider: this.#providerName(),
+      options: this.#options(),
+    }),
+    loader: ({request}) => {
+      return request.provider ?
+        this.agentAPI.getAgentMiddlewareTools(request.provider, request.options) :
+        null
     }
-    return null
   })
+  readonly loading = computed(() => this.#toolsRes.status() === 'loading')
+  readonly error = this.#toolsRes.error
 
   readonly toolMessages = computed(() => this.executionService.toolMessages(), {equal: isEqual})
   readonly tools = computed(() => {
-    const tools = this.#tools()
+    const tools = this.#toolsRes.value()
     const executions = this.toolMessages()
     return tools?.map((tool) => ({
       ...tool,

@@ -1,4 +1,6 @@
 import ShortUniqueId from 'short-unique-id'
+import type * as z3 from "zod/v3";
+import type * as z4 from "zod/v4/core";
 
 export const uuid = new ShortUniqueId({ length: 10 })
 
@@ -275,3 +277,8 @@ export interface IconDefinition {
    */
   style?: Record<string, string>
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ZodObjectV3 = z3.ZodObject<any, any, any, any>;
+export type ZodObjectV4 = z4.$ZodObject;
+export type InteropZodObject = ZodObjectV3 | ZodObjectV4;

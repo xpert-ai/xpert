@@ -3,6 +3,8 @@ import { IQuery } from '@nestjs/cqrs'
 
 /**
  * Get a Chat Model of copilot model and check it's token limitation, record the token usage
+ * 
+ * @deprecated use `CreateModelClientCommand` instead
  */
 export class CopilotModelGetChatModelQuery implements IQuery {
 	static readonly type = '[AI Model] Get One'
