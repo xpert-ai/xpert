@@ -1,18 +1,18 @@
-import { Cube, PropertyDimension, PropertyHierarchy, PropertyMeasure } from '@metad/ocap-core'
+import { Cube, PropertyDimension, PropertyHierarchy } from '@metad/ocap-core'
 import { SchemaState } from '@metad/story/designer'
 
 export interface EntitySchemaState<T> extends SchemaState {
   entity: string
   /**
-   * 主建模的 id 属性
+   * ID property of the main model
    */
   id: string
   /**
-   * 主建模属性, 如 Dimension Hierarchy Level 等
+   * Main modeling properties, such as Dimension, Hierarchy, Level, etc.
    */
   modeling: T
   /**
-   * 运行时属性, 非语义建模属性
+   * Runtime properties, non-semantic modeling properties
    */
   property: any
 }
@@ -22,5 +22,4 @@ export interface CubeSchemaState<T> extends EntitySchemaState<T> {
   dimension: PropertyDimension
   hierarchy: PropertyHierarchy
   hierarchies: Array<PropertyHierarchy>
-  // dimensions: Array<PropertyDimension>
 }
