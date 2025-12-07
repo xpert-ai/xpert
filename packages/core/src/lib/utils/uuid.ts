@@ -1,3 +1,5 @@
 import ShortUniqueId from 'short-unique-id'
 
-export const suuid = new ShortUniqueId({ length: 10 })
+const suuidGenerator = new ShortUniqueId({ length: 10 })
+export const suuid = (...args: Parameters<(typeof suuidGenerator)['randomUUID']>) =>
+  suuidGenerator.randomUUID(...args)
