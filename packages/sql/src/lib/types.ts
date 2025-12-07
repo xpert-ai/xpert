@@ -1,6 +1,6 @@
 import { DataSourceOptions, DataSourceSettings, Dimension, Measure, Property } from '@metad/ocap-core'
 
-// 固有度量字段 行计数
+// Built-in measure field - row count
 export const C_MEASURES_ROW_COUNT = 'Measures_Row_Count'
 
 export interface SQLDataSourceOptions extends DataSourceOptions {
@@ -14,7 +14,7 @@ export interface SQLDataSourceSettings extends DataSourceSettings {
 /**
  * Database original schema
  *
- * 三段式数据库命名 catalog.schema.table
+ * Three-part database naming: catalog.schema.table
  */
 export interface SQLSchema {
   catalog?: string
@@ -63,7 +63,7 @@ export interface IColumnDef {
   nullable?: boolean
   position?: number
   /**
-   * 应该等同于 label
+   * Should be equivalent to label
    */
   comment?: string
 }

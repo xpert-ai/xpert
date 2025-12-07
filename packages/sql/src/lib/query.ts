@@ -6,7 +6,6 @@ import {
   IntrinsicMemberProperties,
   isAdvancedSlicer,
   isArray,
-  isCalculationProperty,
   isMeasure,
   OrderDirection,
   PivotColumn,
@@ -15,7 +14,6 @@ import {
   RecursiveHierarchyType,
   wrapHierarchyValue
 } from '@metad/ocap-core'
-import { serializeCalculationProperty } from './calculation'
 import { buildCubeContext, CubeContext } from './cube'
 import {
   DimensionContext,
@@ -25,10 +23,11 @@ import {
   serializeHierarchyFrom,
   serializeTablesJoin
 } from './dimension'
-import { Aggregate, And, Parentheses } from './functions'
+import { And, Parentheses } from './functions'
 import { compileFilters } from './sql-filter'
 import { SQLQueryContext, SQLQueryProperty } from './types'
 import { serializeName, serializeTableAlias } from './utils'
+import { serializeMeasure } from './calculation'
 
 export function getFirstElement<T>(objOrArray: T | T[]): T {
   return isArray(objOrArray) ? objOrArray[0] : objOrArray
@@ -73,43 +72,11 @@ export function serializeCubeFact(cube: Cube, dialect: string) {
 }
 
 /**
- * 序列化度量字段(包括各种计算度量字段)成执行语句
- *
- * @param fact
- * @param measure
- * @param dialect
- * @returns
- */
-export function serializeMeasure(
-  cubeContext: CubeContext,
-  measure: PropertyMeasure,
-  aggregate: boolean,
-  dialect: string
-) {
-  const { factTable } = cubeContext
-  if (isCalculationProperty(measure)) {
-    return serializeCalculationProperty(cubeContext, measure, aggregate, dialect)
-  }
-
-  let measureExpression = ''
-  if (measure.measureExpression?.sql?.content) {
-    measureExpression = measure.measureExpression.sql.content
-  } else {
-    measureExpression =
-      typeof measure.column === 'number'
-        ? measure.column
-        : serializeName(factTable, dialect) + '.' + serializeName(measure.column, dialect)
-  }
-
-  return aggregate ? `${Aggregate(measureExpression, measure.aggregator)}` : measureExpression
-}
-
-/**
  *
  * @param schema
  * @param options
  * @param entityType
- * @param catalog 数据源目录, 对应如 hive 的 schemaName
+ * @param catalog Data source catalog, corresponding to schemaName in Hive
  * @param dialect
  * @returns
  */
@@ -141,7 +108,7 @@ export function queryCube(cube: Cube,
       (cubeContext.filterString ? ` AND ` : '') + compileFilters(filters, cubeContext, dialect)
   }
 
-  // 排列组合每个 Dimension 下需要计算的 Levels
+  // Combine and arrange the levels to be calculated under each Dimension
   let levels: CubeContext[] = []
   cubeContext.dimensions
     .filter(({ dimension }) => dimension.dimension !== C_MEASURES)
@@ -210,7 +177,7 @@ export function queryCube(cube: Cube,
 }
 
 /**
- * 序列化单个层级组合生成语句
+ * Serialize single level combination to generate statement
  *
  * @param cubeContext
  * @param dialect
@@ -349,7 +316,7 @@ export function isZeroSuppression(context: SQLQueryContext) {
 }
 
 /**
- * 暂时只支持 Measures 在最后.
+ * Currently only supports Measures at the end.
  *
  * @param cubeContext
  * @param data
@@ -382,7 +349,6 @@ export function transposePivot(cubeContext: CubeContext, data: Array<any>) {
   data.forEach((item) => {
     // Backward compatibility for dimension name property
     rowContexts.forEach(({ schema, dimension, keyColumn, captionColumn, members }) => {
-      // @todo
       if (dimension.dimension === C_MEASURES) {
         item[schema.name] = members[0].label
       } else {

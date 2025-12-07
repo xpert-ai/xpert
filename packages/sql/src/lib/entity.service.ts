@@ -15,7 +15,7 @@ import { SQLQueryResult } from './types'
 import { getErrorMessage, serializeWrapCatalog } from './utils'
 
 /**
- * 要针对错误情况建立一套测试程序
+ * @todo A test procedure should be developed to address error scenarios.
  */
 export class SQLEntityService<T> extends AbstractEntityService<T> {
   refresh$ = new BehaviorSubject<void>(null)

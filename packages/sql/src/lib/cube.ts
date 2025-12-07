@@ -219,7 +219,7 @@ export function buildCubeContext(
 
 /**
  * Build Dimension Context in Cube
- * 从返回结果为对象数组形式来说, 当选择同一个 Hierarchy 多个层级时, 他们的成员都是属于同一列不同行;
+ * Since the returned result is an array of objects, when multiple levels of the same hierarchy are selected, their members all belong to the same column but different rows;
  *
  * @param context
  * @param entityType

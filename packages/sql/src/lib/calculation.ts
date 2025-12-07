@@ -2,10 +2,10 @@ import {
   CalculatedProperty,
   CalculationProperty,
   compact,
-  convertDimensionToSlicer,
   getEntityProperty,
   isAggregationProperty,
   isCalculatedProperty,
+  isCalculationProperty,
   isIndicatorMeasureProperty,
   isRestrictedMeasureProperty,
   Property,
@@ -14,7 +14,6 @@ import {
 } from '@metad/ocap-core'
 import { CubeContext } from './cube'
 import { Aggregate, And, Parentheses } from './functions'
-import { serializeMeasure } from './query'
 import { compileSlicer } from './sql-filter'
 import { serializeName } from './utils'
 
@@ -128,4 +127,37 @@ export function serializeCalculatedMeasure(
   })
 
   return aggregate && aggregator ? Aggregate(formula, aggregator) : formula
+}
+
+
+/**
+ * Serialize measure field (including various calculated measure fields) into execution statement
+ *
+ * @param fact
+ * @param measure
+ * @param dialect
+ * @returns
+ */
+export function serializeMeasure(
+  cubeContext: CubeContext,
+  measure: PropertyMeasure,
+  aggregate: boolean,
+  dialect: string
+) {
+  const { factTable } = cubeContext
+  if (isCalculationProperty(measure)) {
+    return serializeCalculationProperty(cubeContext, measure, aggregate, dialect)
+  }
+
+  let measureExpression = ''
+  if (measure.measureExpression?.sql?.content) {
+    measureExpression = measure.measureExpression.sql.content
+  } else {
+    measureExpression =
+      typeof measure.column === 'number'
+        ? measure.column
+        : serializeName(factTable, dialect) + '.' + serializeName(measure.column, dialect)
+  }
+
+  return aggregate ? `${Aggregate(measureExpression, measure.aggregator)}` : measureExpression
 }
