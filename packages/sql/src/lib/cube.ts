@@ -29,7 +29,7 @@ import {
   LevelCaptionField,
   LevelContext
 } from './dimension'
-import { AggregateFunctions } from './types'
+import { AggregateFunctions, CubeFactTable } from './types'
 import { allMemberCaption, allMemberName, serializeIntrinsicName, serializeMeasureName, serializeTableAlias } from './utils'
 
 /**
@@ -122,20 +122,6 @@ export interface CubeContext {
   measures: Array<{ alias: string; order?: OrderDirection } & PropertyMeasure>
   slicers?: ISlicer[]
   filterString?: string
-}
-
-export function CubeFactTable(cube: Cube) {
-  const tableName = cube.fact?.table?.name
-  if (!tableName) {
-    throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
-  }
-  // if (!cube.tables?.[0]?.name) {
-  //   throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
-  // }
-  /**
-   * @todo 支持 SQL View 作为事实表
-   */
-  return tableName
 }
 
 export function CubeFactTableAlias(cube: Cube) {

@@ -1,4 +1,4 @@
-import { DataSourceOptions, DataSourceSettings, Dimension, Measure, Property } from '@metad/ocap-core'
+import { Cube, DataSourceOptions, DataSourceSettings, Dimension, Measure, Property } from '@metad/ocap-core'
 
 // Built-in measure field - row count
 export const C_MEASURES_ROW_COUNT = 'Measures_Row_Count'
@@ -92,4 +92,18 @@ export class SQLError extends Error {
   constructor(code: keyof typeof SQLErrorCode) {
     super(SQLErrorCode[code])
   }
+}
+
+export function CubeFactTable(cube: Cube) {
+  const tableName = cube.fact?.table?.name
+  if (!tableName) {
+    throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
+  }
+  // if (!cube.tables?.[0]?.name) {
+  //   throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
+  // }
+  /**
+   * @todo 支持 SQL View 作为事实表
+   */
+  return tableName
 }
