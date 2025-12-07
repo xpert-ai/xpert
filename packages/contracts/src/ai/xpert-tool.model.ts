@@ -12,6 +12,7 @@ export interface IXpertTool extends IBasePerTenantAndOrganizationEntityModel, Xp
 
 export type XpertToolType = {
   name: string
+  label?: I18nObject | string
   description?: string
   avatar?: TAvatar
   /**
@@ -208,6 +209,9 @@ export function getEnabledTools(toolset: IXpertToolset) {
 
 export function getToolLabel(tool: IXpertTool): I18nObject | string {
   if (!tool) return ''
+  if (tool.label) {
+    return tool.label
+  }
   const identity = (tool.schema as IBuiltinTool)?.identity
   if (identity) {
     return identity.label || tool.name || ''

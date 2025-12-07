@@ -39,11 +39,21 @@ export const MeasureSchema = z.object({
 })
 
 export const MemberSchema = z.object({
-  key: z.string().describe('the UniqueName of dimension member, for example: `[MemberKey]`'),
-  caption: z.string().optional().describe('the caption of dimension member'),
+  key: z.string().nullable().optional().describe('the UniqueName of dimension member, for example: `[MemberKey]`'),
+  caption: z.string().nullable().optional().describe('the caption of dimension member'),
   operator: z.enum([FilterOperator.EQ, FilterOperator.Contains, FilterOperator.NotContains, FilterOperator.StartsWith, FilterOperator.NotStartsWith, FilterOperator.EndsWith, FilterOperator.NotEndsWith])
               .optional().nullable()
               .describe('The operator of the member, such as `Contains`, `StartsWith`, etc. If not specified, it defaults to `EQ` (equals).') 
+}).refine((data) => {
+  if (data.operator && (!data.caption && data.key || !data.key && data.caption)) {
+    return true
+  }
+  if (!data.operator) {
+    return true
+  }
+  return false
+}, {
+  message: 'If operator is specified, Exactly one of caption or key must be provided.'
 })
 
 export const DimensionMemberSchema = z.object({
@@ -51,7 +61,6 @@ export const DimensionMemberSchema = z.object({
   members: z.array(MemberSchema).optional().describe('Members in the dimension')
 })
 export const FormulaSchema = z.string().describe('MDX expression for the calculated measure in cube')
-
 
 
 export const OrderBySchema = z.object({

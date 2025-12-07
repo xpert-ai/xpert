@@ -40,7 +40,10 @@ export function serializeFrom(cube: Cube, entityType: EntityType, dialect: strin
 }
 
 export function serializeCubeFact(cube: Cube, dialect: string) {
-  const factTable = cube.tables[0]
+  let factTable = cube.tables[0]
+  if (cube.fact?.type === 'table') {
+    factTable = cube.fact.table
+  }
 
   let statement = serializeName(factTable.name, dialect)
   const tableNames = [factTable.name]

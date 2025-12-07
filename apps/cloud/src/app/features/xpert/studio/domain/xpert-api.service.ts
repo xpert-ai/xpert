@@ -122,7 +122,6 @@ export class XpertStudioApiService {
   public get reload$(): Observable<EReloadReason> {
     return this.#reload.asObservable().pipe(filter((value) => value !== EReloadReason.MOVED))
   }
-  // readonly paramId$ = this.xpertComponent.paramId$
   readonly paramId$ = toObservable(this.xpertService.paramId)
 
 
@@ -220,6 +219,7 @@ export class XpertStudioApiService {
 
   private saveDraftSub = this.#refresh$
     .pipe(
+      switchMap(() => this.xpertService.onRefresh()),
       switchMap(() =>
         combineLatest([
           this.paramId$.pipe(

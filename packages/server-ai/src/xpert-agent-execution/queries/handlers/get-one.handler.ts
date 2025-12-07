@@ -111,5 +111,5 @@ function getXpertDraft(xpert: IXpert) {
 function getXpertDraftAgents(xpert: IXpert) {
 	if (!xpert) return []
 	const draft = getXpertDraft(xpert)
-	return draft.nodes.filter((node) => node.type === 'agent').map((node) => node.entity) as IXpertAgent[]
+	return (draft.nodes?.filter((node) => node.type === 'agent').map((node) => node.entity) ?? []) as IXpertAgent[]
 }
