@@ -13,3 +13,7 @@ When adding plugins during the development phase, pay attention to the following
 When adding plugins during the deployment phase, note the following:
 
 - Plugins are declared in the `PLUGINS` environment variable, separated by commas if there are multiple plugins.
+
+## Agent Middlewares
+
+For details on implementing and wiring agent middlewares through plugins, see `docs/agent-middleware.md`.
