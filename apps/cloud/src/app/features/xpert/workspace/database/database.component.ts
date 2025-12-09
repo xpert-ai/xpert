@@ -98,6 +98,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
 
   // Edit table
   readonly table = model<Partial<IXpertTable> | null>(null)
+  readonly #isClosing = signal(false)  // Flag to prevent side effects when closing
   readonly database = attrModel(this.table, 'database')
   readonly name = attrModel(this.table, 'name')
   readonly description = attrModel(this.table, 'description')
@@ -120,6 +121,16 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   
   // Clear schema when database changes - effect must be in field initializer (injection context)
   readonly #schemaClearEffect = effect(() => {
+    // Skip if we're closing the dialog to prevent side effects
+    if (this.#isClosing()) {
+      return
+    }
+    
+    // Skip if table is null (dialog is closed)
+    if (!this.table()) {
+      return
+    }
+    
     const databaseId = this.database()
     const previousDatabaseId = this.#previousDatabaseId()
     
@@ -128,9 +139,12 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       // Database changed, clear schema immediately to avoid mismatch errors
       // Use setTimeout to ensure this happens after Angular's change detection
       setTimeout(() => {
-        this.schema.set(undefined)
-        this.#previousDatabaseId.set(databaseId)
-        this.#cdr.markForCheck()
+        // Double check: table still exists and we're not closing
+        if (this.table() && !this.#isClosing()) {
+          this.schema.set(undefined)
+          this.#previousDatabaseId.set(databaseId)
+          this.#cdr.markForCheck()
+        }
       }, 0)
       return
     }
@@ -151,8 +165,11 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       if (!schemaExists) {
         // Current schema doesn't exist in the new database, clear it
         setTimeout(() => {
-          this.schema.set(undefined)
-          this.#cdr.markForCheck()
+          // Double check: table still exists and we're not closing
+          if (this.table() && !this.#isClosing()) {
+            this.schema.set(undefined)
+            this.#cdr.markForCheck()
+          }
         }, 0)
       }
     }
@@ -770,6 +787,11 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   }
 
   addTable() {
+    // Don't open if we're in the process of closing
+    if (this.#isClosing()) {
+      return
+    }
+    this.#isClosing.set(false)  // Reset closing flag
     this.table.set({
       name: ''
     })
@@ -806,7 +828,17 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   }
 
   editTable(table: IXpertTable) {
+    this.#isClosing.set(false)  // Reset closing flag
     this.table.set({ ...table })
+  }
+
+  closeTableDialog() {
+    this.#isClosing.set(true)  // Set closing flag to prevent side effects
+    this.table.set(null)
+    // Reset closing flag after a longer delay to ensure all effects have completed
+    setTimeout(() => {
+      this.#isClosing.set(false)
+    }, 300)
   }
 
   save() {
@@ -866,12 +898,25 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
           ? this.#translate.instant('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully' })
           : this.#translate.instant('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully' })
         this.#toastr.success(message)
-        this.#tablesResource.reload()
+        // Set closing flag to prevent side effects
+        this.#isClosing.set(true)
+        // Close dialog immediately
         this.table.set(null)
+        // Reload the table list after closing dialog
+        // Use setTimeout to ensure dialog is closed before reload triggers any side effects
+        setTimeout(() => {
+          this.#tablesResource.reload()
+        }, 50)
+        // Reset closing flag after a longer delay to ensure all effects have completed
+        setTimeout(() => {
+          this.#isClosing.set(false)
+        }, 300)
       },
       error: (err) => {
         this.#loading.set(false)
-        this.#toastr.danger(getErrorMessage(err))
+        const errorMessage = getErrorMessage(err)
+        this.#toastr.danger(errorMessage)
+        // Don't close dialog on error - let user see the error and fix it
       }
     })
   }

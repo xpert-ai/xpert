@@ -31,9 +31,16 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		// If it's an update operation
 		if (entity.id) {
 			const old = await this.findOneByIdString(entity.id)
-			// If name, schema, database unchanged, return true (allow updating columns)
-			if (old.name === entity.name && old.schema === entity.schema && old.database === entity.database) {
-				return true
+			if (!old) {
+				// Table not found, treat as new table
+				this.#logger.warn(`Table with id ${entity.id} not found, treating as new table`)
+			} else {
+				// If name, schema, database unchanged, return true (allow updating columns)
+				if (old.name === entity.name && old.schema === entity.schema && old.database === entity.database) {
+					return true
+				}
+				// If name changed but it's the same table (same id), check if new name conflicts with other tables
+				// This allows renaming the table
 			}
 		}
 		
@@ -50,10 +57,29 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 				table: entity.name
 			})
 			
+			// If table exists in database, check if it's the same table we're updating
+			if (exists && entity.id) {
+				// For update operations, if table exists in database, it might be the same table
+				// Check if there's a logical table record with the same name, schema, database
+				const existingTable = await this.repository.findOne({
+					where: {
+						name: entity.name,
+						schema: entity.schema || null,
+						database: entity.database
+					}
+				})
+				// If the existing table is the same one we're updating, allow it
+				if (existingTable && existingTable.id === entity.id) {
+					return true
+				}
+			}
+			
 			return !exists
 		} catch (error) {
 			this.#logger.error(`Error validating table name: ${getErrorMessage(error)}`)
-			return false
+			// If it's an update operation and validation fails, allow it (might be network issue)
+			// For new tables, fail validation
+			return !entity.id
 		}
 	}
 

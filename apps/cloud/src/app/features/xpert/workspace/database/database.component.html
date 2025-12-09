@@ -88,9 +88,9 @@
 @if (table()) {
   <div class="absolute right-1 top-1 bottom-1 w-[800px] lg:w-[900px] xl:w-[1000px] px-6 py-4 bg-neutral-50 rounded-2xl border border-solid border-gray-200 shadow-lg max-w-[95vw] mx-auto overflow-auto z-10">
     <div class="flex justify-between items-center">
-      <h2 class="text-xl font-semibold mb-4">{{ 'PAC.Workspace.EditTable' | translate: {Default: 'Edit Table'} }}</h2>
+      <h2 class="text-xl font-semibold mb-4">{{ (table().id ? 'PAC.Workspace.EditTable' : 'PAC.Workspace.NewTable') | translate: {Default: table().id ? 'Edit Table' : 'New Table'} }}</h2>
       <button type="button" class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-gray-200 hover:text-text-destructive"
-        (click)="table.set(null)">
+        (click)="closeTableDialog()">
         <i class="ri-close-line text-2xl"></i>
       </button>
     </div>
