@@ -521,7 +521,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.MIDDLEWARE,
       key: genXpertMiddlewareKey(),
-      title: this.#translate.instant('PAC.Workflow.Middleware', { Default: 'Middleware' }) + (length ? ` ${length + 1}` : ''),
+      title: this.#translate.instant('PAC.KEY_WORDS.Middleware', { Default: 'Middleware' }) + (length ? ` ${length + 1}` : ''),
       provider,
     } as IWFNMiddleware)
   }

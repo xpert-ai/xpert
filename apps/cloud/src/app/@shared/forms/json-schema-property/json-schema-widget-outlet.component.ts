@@ -39,7 +39,6 @@ export class JsonSchemaWidgetOutletComponent {
 
   #componentRef?: ComponentRef<any>
   #destroyed = false
-  #componentModelSub?: { unsubscribe: () => void }
 
   readonly #value = this.cva.value$
 
@@ -139,8 +138,6 @@ export class JsonSchemaWidgetOutletComponent {
     this.viewContainerRef.clear()
     this.#componentRef?.destroy()
     this.#componentRef = undefined
-    this.#componentModelSub?.unsubscribe?.()
-    this.#componentModelSub = undefined
   }
 
   private applyInputsToInstance() {

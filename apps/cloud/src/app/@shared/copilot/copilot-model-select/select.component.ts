@@ -1,7 +1,7 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
+import { booleanAttribute, ChangeDetectorRef, Component, computed, effect, inject, input, model } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -56,6 +56,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly copilotProviderService = injectCopilotProviderService()
   readonly copilots = injectCopilots()
   readonly i18n = new NgmI18nPipe()
+  readonly #cdr = inject(ChangeDetectorRef)
 
   // Inputs
   readonly modelType = input<AiModelTypeEnum>()
@@ -170,10 +171,14 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     this.onChange?.(value)
   })
 
+  // @backcompatibility for change detection
+  private filteredChangeSub = toObservable(this.searchedModels).subscribe(() => {
+    setTimeout(() => {
+      this.#cdr.detectChanges()
+    }, 100)
+  })
+
   constructor() {
-    // effect(() => {
-    //   console.log(this.copilotWithModels())
-    // })
     effect(() => {
       if (this.cva.value$() && !this.cva.value$().options && this.modelParameterRules()) {
         this.cva.value$.update((value) => ({

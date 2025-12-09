@@ -209,14 +209,15 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
         model: {
           type: 'object',
           title: {
-            en_US: 'Language Model Settings',
-            zh_Hans: '语言模型设置',
+            en_US: 'LLM',
+            zh_Hans: '大语言模型',
           },
           'x-ui': {
             component: 'ai-model-select',
             span: 2,
             inputs: {
               modelType: AiModelTypeEnum.LLM,
+              hiddenLabel: true
             }
           },
         },
