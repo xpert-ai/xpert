@@ -22,7 +22,6 @@ export class XpertTableController extends CrudController<XpertTable> {
 	}
 
 	/**
-	 * 创建或更新表并自动激活（覆盖基类POST方法）
 	 * Create or update table and auto activate (override base POST method)
 	 */
 	@Post()
@@ -31,7 +30,6 @@ export class XpertTableController extends CrudController<XpertTable> {
 	}
 
 	/**
-	 * 更新表并同步物理表（覆盖基类PUT方法）
 	 * Update table and sync physical table (override base PUT method)
 	 */
 	@Put(':id')
@@ -55,7 +53,6 @@ export class XpertTableController extends CrudController<XpertTable> {
 	}
 
 	/**
-	 * 删除表记录和物理表
 	 * Delete table record and physical table
 	 */
 	@ApiOperation({ summary: 'Delete table record and physical table' })
