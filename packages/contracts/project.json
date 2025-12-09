@@ -20,7 +20,11 @@
           }
         ],
         "compiler": "swc",
-        "format": ["cjs", "esm"]
+        "format": ["cjs", "esm"],
+        "external": [
+          "short-unique-id",
+          "zod"
+        ]
       }
     },
     "publish": {

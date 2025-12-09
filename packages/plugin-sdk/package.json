@@ -22,6 +22,7 @@
     "@metad/contracts": "*",
     "@nestjs/common": "*",
     "@nestjs/core": "*",
+    "@nestjs/cqrs": "*",
     "lodash-es": "*",
     "i18next-fs-backend": "*",
     "i18next": "*",

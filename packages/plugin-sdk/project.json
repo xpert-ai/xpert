@@ -29,6 +29,7 @@
           "@metad/contracts",
           "@nestjs/common",
           "@nestjs/core",
+          "@nestjs/cqrs",
           "@nestjs/microservices",
           "axios",
           "lodash-es",
