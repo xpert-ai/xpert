@@ -15,7 +15,6 @@ import {
   isNil,
   isVisible,
   omit,
-  PropertyAttributes,
   PropertyDimension
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -67,6 +66,7 @@ export class InlineDimensionComponent {
     assign(flatNode, omit(node, 'children'))
     flatNode.level = level
     flatNode.expandable = !!node.children?.length
+    flatNode.raw = node.raw
 
     this.flatNodeMap.set(flatNode, node)
     this.nestedNodeMap.set(node, flatNode)
@@ -96,12 +96,14 @@ export class InlineDimensionComponent {
     effect(() => {
       if (this.dimension()) {
         this.dataSource.data = [mapDimensionToTreeItemNode(this.dimension())]
+
+        console.log(this.dataSource.data)
       }
     })
   }
 
-  isSelected(node: PropertyAttributes) {
-    return this.cubeState.isSelectedProperty(node.role, node.__id__)
+  isSelected(node: TreeItemFlatNode) {
+    return this.cubeState.isSelectedProperty(node.role, node.id)
   }
 
   /**
@@ -109,8 +111,8 @@ export class InlineDimensionComponent {
    * 
    * @param node 
    */
-  onSelect(node: PropertyAttributes) {
-    this.cubeState.setSelectedProperty(node.role, node.__id__)
+  onSelect(node: TreeItemFlatNode) {
+    this.cubeState.setSelectedProperty(node.role, node.id)
   }
 
   addNewItem(event: MouseEvent, node: TreeItemFlatNode) {

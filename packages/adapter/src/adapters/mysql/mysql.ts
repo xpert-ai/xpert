@@ -1,4 +1,5 @@
 import { Connection, Pool, createConnection, FieldPacket, Types, ConnectionOptions } from 'mysql2'
+import { DBCreateTableMode, DBTableAction, DBTableOperationParams } from '@xpert-ai/plugin-sdk'
 import { BaseSQLQueryRunner, SQLAdapterOptions, register } from '../../base'
 import { convertMySQLSchema, pick, typeToMySqlDB } from '../../helpers'
 import { DBProtocolEnum, DBSyntaxEnum, IDSSchema, QueryOptions } from '../../types'
@@ -36,7 +37,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
         port: { type: 'number', default: MYSQL_DEFAULT_PORT },
         username: { type: 'string', title: 'Username' },
         password: { type: 'string', title: 'Password' },
-        // 目前 catalog 用于指定数据库
+        // catalog is used to specify the database
         catalog: { type: 'string', title: 'Database' },
         timezone: { type: 'string', title: 'Timezone', default: '+08:00' },
         serverTimezone: { type: 'string', title: 'Server Timezone', default: 'Asia/Shanghai' },
@@ -193,7 +194,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
   }
 
   async createCatalog(catalog: string) {
-    // 用 `CREATE DATABASE` 使其适用于 Doris ？
+    // Use `CREATE DATABASE` to make it compatible with Doris
     const query = `CREATE DATABASE IF NOT EXISTS \`${catalog}\``
     await this.runQuery(query, { catalog })
   }
@@ -214,7 +215,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
     const createTableStatement = `CREATE TABLE IF NOT EXISTS \`${name}\` (${columns
       .map(
         (col) =>
-          `\`${col.fieldName}\` ${typeToMySqlDB(col.type, col.isKey, col.length)}${col.isKey ? ' PRIMARY KEY' : ''}`
+          `\`${col.fieldName}\` ${typeToMySqlDB(col.type, col.isKey, col.length, undefined, undefined, col.enumValues, col.setValues)}${col.isKey ? ' PRIMARY KEY' : ''}`
       )
       .join(', ')})`
     const values = data.map((row) => columns.map(({ name }) => row[name]))
@@ -239,6 +240,344 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
     }
 
     return null
+  }
+
+  /**
+   * Table operations
+   */
+  async tableOp(
+    action: DBTableAction,
+    params: any,
+  ): Promise<any> {
+    switch(action) {
+      case DBTableAction.CREATE_TABLE: {
+        const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
+        const tableName = schema ? `\`${schema}\`.\`${table}\`` : `\`${table}\``
+
+        // Check if table exists
+        const existsResult = await this.runQuery(`
+          SELECT TABLE_NAME 
+          FROM INFORMATION_SCHEMA.TABLES 
+          WHERE TABLE_SCHEMA = '${schema || this.options.catalog || 'public'}'
+            AND TABLE_NAME = '${table}'
+        `)
+
+        const exists = existsResult.data && existsResult.data.length > 0
+
+        // --- MODE: ERROR → throw error if table exists ---
+        if (exists && createMode === DBCreateTableMode.ERROR) {
+          throw new Error(`Table "${tableName}" already exists`)
+        }
+
+        // --- MODE: IGNORE → do nothing if exists ---
+        if (exists && createMode === DBCreateTableMode.IGNORE) {
+          return
+        }
+
+        // --- MODE: UPGRADE → automatically upgrade columns ---
+        if (exists && createMode === DBCreateTableMode.UPGRADE) {
+          // Get current table structure
+          const currentCols = await this.runQuery(`
+            SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = '${schema || this.options.catalog || 'public'}'
+              AND TABLE_NAME = '${table}'
+          `)
+
+          // 1. Delete columns not in target list
+          const targetColumnNames = columns.map(c => c.fieldName)
+          for (const currentCol of currentCols.data) {
+            const colName = (currentCol as any).COLUMN_NAME
+            if (!targetColumnNames.includes(colName)) {
+              await this.runQuery(`ALTER TABLE ${tableName} DROP COLUMN \`${colName}\``)
+            }
+          }
+
+          // 2. Compare columns, add/modify fields
+          for (const col of columns) {
+            const existing = currentCols.data.find((c: any) => c.COLUMN_NAME === col.fieldName)
+
+            // New field → ADD COLUMN
+            if (!existing) {
+              const typeDDL = typeToMySqlDB(col.type, col.isKey, col.length, col.precision, col.scale || col.fraction, col.enumValues, col.setValues)
+              // Support AUTO_INCREMENT for all integer types
+              const integerTypes = ['tinyint', 'smallint', 'mediumint', 'number', 'int', 'integer', 'bigint']
+              const autoInc = col.autoIncrement && integerTypes.includes(col.type.toLowerCase()) ? ' AUTO_INCREMENT' : ''
+              const notNull = col.required ? ' NOT NULL' : ''
+              const unique = !col.isKey && col.unique ? ' UNIQUE' : ''
+              
+              // MySQL limitation: DATE and TIME types do not support default value functions
+              let defaultVal = ''
+              if (!col.autoIncrement && col.defaultValue && col.defaultValue.trim()) {
+                // Skip default value for DATE and TIME types to avoid MySQL errors
+                if (col.type !== 'date' && col.type !== 'time') {
+                  defaultVal = ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}`
+                }
+              }
+              
+            // MySQL column order: type AUTO_INCREMENT PRIMARY KEY NOT NULL UNIQUE DEFAULT
+            const addColSQL = `ALTER TABLE ${tableName} ADD COLUMN \`${col.fieldName}\` ${typeDDL}${autoInc}${notNull}${unique}${defaultVal}`
+            await this.runQuery(addColSQL)
+            continue
+            }
+
+            // Field exists, check if type needs to be updated
+            const dbDataType = existing.DATA_TYPE.toUpperCase()
+            const newType = typeToMySqlDB(col.type, col.isKey, col.length, col.precision, col.scale || col.fraction, col.enumValues, col.setValues)
+            const oldAppType = this.mysqlTypeToAppType(dbDataType)
+            const newAppType = col.type
+
+            if (oldAppType !== newAppType) {
+              // When modifying column type, include all constraints
+              // Support AUTO_INCREMENT for all integer types
+              const integerTypes = ['tinyint', 'smallint', 'mediumint', 'number', 'int', 'integer', 'bigint']
+              const autoInc = col.autoIncrement && integerTypes.includes(col.type.toLowerCase()) ? ' AUTO_INCREMENT' : ''
+              const notNull = col.required ? ' NOT NULL' : ''
+              const unique = !col.isKey && col.unique ? ' UNIQUE' : ''
+              
+              // MySQL limitation: DATE and TIME types do not support default value functions
+              let defaultVal = ''
+              if (!col.autoIncrement && col.defaultValue && col.defaultValue.trim()) {
+                if (col.type !== 'date' && col.type !== 'time') {
+                  defaultVal = ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}`
+                }
+              }
+              
+              await this.runQuery(`ALTER TABLE ${tableName} MODIFY COLUMN \`${col.fieldName}\` ${newType}${autoInc}${notNull}${unique}${defaultVal}`)
+            }
+          }
+
+          return
+        }
+
+        // --- MODE: CREATE NEW TABLE ---
+        const createTableStatement = `
+          CREATE TABLE IF NOT EXISTS ${tableName} (
+            ${columns
+              .map((col) => {
+                const typeDDL = typeToMySqlDB(col.type, col.isKey, col.length, col.precision, col.scale || col.fraction, col.enumValues, col.setValues)
+                const pk = col.isKey ? ' PRIMARY KEY' : ''
+                // Support AUTO_INCREMENT for all integer types
+                const integerTypes = ['tinyint', 'smallint', 'mediumint', 'number', 'int', 'integer', 'bigint']
+                const autoInc = col.autoIncrement && integerTypes.includes(col.type.toLowerCase()) ? ' AUTO_INCREMENT' : ''
+                const notNull = col.required ? ' NOT NULL' : ''
+                const unique = !col.isKey && col.unique ? ' UNIQUE' : ''
+                
+                // MySQL limitation: DATE and TIME types do not support default values
+                let defaultVal = ''
+                if (!col.autoIncrement && col.defaultValue && col.defaultValue.trim()) {
+                  if (col.type !== 'date' && col.type !== 'time') {
+                    defaultVal = ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}`
+                  }
+                }
+                
+                // MySQL column order: type AUTO_INCREMENT PRIMARY KEY NOT NULL UNIQUE DEFAULT
+                const columnDef = `\`${col.fieldName}\` ${typeDDL}${autoInc}${pk}${notNull}${unique}${defaultVal}`
+                return columnDef
+              })
+              .join(', ')}
+          )
+        `
+
+        await this.runQuery(createTableStatement, { catalog: schema })
+        return
+      }
+      case DBTableAction.RENAME_TABLE: {
+        // Rename table
+        const { schema, table, newTable } = params
+        const oldTableName = schema ? `\`${schema}\`.\`${table}\`` : `\`${table}\``
+        const newTableName = `\`${newTable}\``
+        
+        await this.runQuery(`RENAME TABLE ${oldTableName} TO ${newTableName}`, { catalog: schema })
+        return
+      }
+      case DBTableAction.DROP_TABLE: {
+        // Drop table
+        const { schema, table } = params
+        const tableName = schema ? `\`${schema}\`.\`${table}\`` : `\`${table}\``
+        
+        await this.runQuery(`DROP TABLE IF EXISTS ${tableName}`, { catalog: schema })
+        return
+      }
+      default:
+        // Throw error for other unimplemented operations
+        throw new Error(`Unsupported table action: ${action}`)
+    }
+  }
+
+  /**
+   * Format default value for SQL
+   */
+  private formatDefaultValue(value: string, type: string): string {
+    // Check if it's a database function (e.g., CURRENT_TIMESTAMP)
+    const upperValue = value.toUpperCase()
+    
+    // MySQL time type default value function mapping
+    const timeFunctions = {
+      'CURRENT_DATE': true,
+      'CURRENT_TIME': true,
+      'CURRENT_TIMESTAMP': true,
+      'NOW()': true,
+      'CURDATE()': true,
+      'CURTIME()': true,
+      'LOCALTIME': true,
+      'LOCALTIMESTAMP': true
+    }
+    
+    if (timeFunctions[upperValue]) {
+      return upperValue  // Return function name directly without quotes
+    }
+    
+    // Add quotes for string, date, and time types
+    if (type === 'string' || type === 'text' || type === 'uuid' || type === 'varchar' ||
+        type === 'date' || type === 'datetime' || type === 'timestamp' || type === 'time') {
+      return `'${value.replace(/'/g, "\\'")}'`  // Escape single quotes
+    }
+    
+    if (type === 'boolean' || type === 'bool') {
+      return value.toLowerCase() === 'true' ? '1' : '0'  // MySQL uses 1/0 for boolean values
+    }
+    
+    // Numeric types without quotes
+    return value
+  }
+
+  /**
+   * Map MySQL database type back to application type
+   */
+  private mysqlTypeToAppType(dbType: string): string {
+    const upperType = dbType.toUpperCase()
+    
+    // Integer types
+    if (upperType === 'TINYINT') {
+      // Check if it's TINYINT(1) which is typically used for boolean
+      if (dbType.includes('(1)')) {
+        return 'boolean'
+      }
+      return 'tinyint'
+    }
+    if (upperType === 'SMALLINT') {
+      return 'smallint'
+    }
+    if (upperType === 'MEDIUMINT') {
+      return 'mediumint'
+    }
+    if (upperType === 'INT' || upperType === 'INTEGER') {
+      return 'number'
+    }
+    if (upperType === 'BIGINT') {
+      return 'bigint'
+    }
+    
+    // Floating point types
+    if (upperType.includes('FLOAT')) {
+      return 'float'
+    }
+    if (upperType.includes('DOUBLE')) {
+      return 'double'
+    }
+    if (upperType.includes('DECIMAL') || upperType.includes('NUMERIC')) {
+      return 'decimal'
+    }
+    
+    // String types - Fixed/Variable length
+    if (upperType.includes('CHAR') && !upperType.includes('VARCHAR')) {
+      return 'char'
+    }
+    if (upperType.includes('VARCHAR')) {
+      return 'string'
+    }
+    
+    // String types - Text
+    if (upperType === 'TINYTEXT') {
+      return 'tinytext'
+    }
+    if (upperType === 'TEXT') {
+      return 'text'
+    }
+    if (upperType === 'MEDIUMTEXT') {
+      return 'mediumtext'
+    }
+    if (upperType === 'LONGTEXT') {
+      return 'longtext'
+    }
+    
+    // String types - Binary
+    if (upperType === 'TINYBLOB') {
+      return 'tinyblob'
+    }
+    if (upperType === 'BLOB') {
+      return 'blob'
+    }
+    if (upperType === 'MEDIUMBLOB') {
+      return 'mediumblob'
+    }
+    if (upperType === 'LONGBLOB') {
+      return 'longblob'
+    }
+    
+    // String types - Special
+    if (upperType.includes('ENUM')) {
+      return 'enum'
+    }
+    if (upperType.includes('SET')) {
+      return 'set'
+    }
+    
+    // Date and time types
+    if (upperType === 'DATE') {
+      return 'date'
+    }
+    if (upperType === 'TIME') {
+      return 'time'
+    }
+    if (upperType === 'DATETIME') {
+      return 'datetime'
+    }
+    if (upperType === 'TIMESTAMP') {
+      return 'timestamp'
+    }
+    if (upperType === 'YEAR') {
+      return 'year'
+    }
+    
+    // JSON types
+    if (upperType.includes('JSON')) {
+      return 'object'
+    }
+    
+    // Spatial types
+    if (upperType === 'GEOMETRY') {
+      return 'geometry'
+    }
+    if (upperType === 'POINT') {
+      return 'point'
+    }
+    if (upperType === 'LINESTRING') {
+      return 'linestring'
+    }
+    if (upperType === 'POLYGON') {
+      return 'polygon'
+    }
+    if (upperType === 'MULTIPOINT') {
+      return 'multipoint'
+    }
+    if (upperType === 'MULTILINESTRING') {
+      return 'multilinestring'
+    }
+    if (upperType === 'MULTIPOLYGON') {
+      return 'multipolygon'
+    }
+    if (upperType === 'GEOMETRYCOLLECTION') {
+      return 'geometrycollection'
+    }
+    
+    // Boolean types
+    if (upperType.includes('BOOL')) {
+      return 'boolean'
+    }
+    
+    return 'string'  // Default fallback
   }
 
   async teardown() {

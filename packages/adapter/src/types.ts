@@ -1,6 +1,8 @@
 import { Readable } from 'stream'
 import { DBTableAction, DBTableOperationParams } from '@xpert-ai/plugin-sdk'
 
+export { DBTableAction, DBTableOperationParams } from '@xpert-ai/plugin-sdk'
+
 export interface AdapterError {
   message: string
   code: string

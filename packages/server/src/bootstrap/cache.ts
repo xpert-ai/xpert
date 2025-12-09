@@ -26,7 +26,7 @@ export function provideCacheModule() {
 
 			return {
 				stores: [store],
-				ttl: 3 * 60 // 3 minutes
+				ttl: 3 * 60 * 1000 // 3 minutes
 				// ttl: configService.get('CACHE_TTL'),
 			}
 		},

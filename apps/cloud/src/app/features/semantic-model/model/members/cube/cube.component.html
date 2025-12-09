@@ -125,7 +125,7 @@
         @for (dimension of dimensions(); track dimension.name) {
           <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
             <td class="py-3 ps-4">
-              <ngm-checkbox [disabled]="loading()"
+              <ngm-checkbox [disabled]="loading() || dimension.semantics?.disableEmbeddingMembers"
                 [ngModel]="getSelected(dimension.name)"
                 (ngModelChange)="setSelected(dimension.name, $event)" 
               />

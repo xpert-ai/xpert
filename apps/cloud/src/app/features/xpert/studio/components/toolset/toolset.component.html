@@ -35,7 +35,7 @@
   (wheel)="$event.stopPropagation()"
 >
   @for (item of tools(); track item.tool.id) {
-    <div class="relative flex flex-col p-2 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
+    <div class="relative flex flex-col px-2 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
       [matTooltip]="item.tool.description"
       matTooltipPosition="after"
     >

@@ -1,7 +1,7 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
 import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallIdFromConfig } from '@metad/contracts'
-import { AggregationRole, getEntityProperty2, PropertyLevel, wrapBrackets } from '@metad/ocap-core'
+import { AggregationRole, getEntityProperty2, PropertyDimension, PropertyLevel, wrapBrackets } from '@metad/ocap-core'
 import { t } from 'i18next'
 import { formatDocumentsAsString } from 'langchain/util/document'
 import { firstValueFrom } from 'rxjs'
@@ -29,7 +29,7 @@ export function buildDimensionMemberRetrieverTool(context: Partial<TBIContext>, 
 
 			if (dimension) {
 				dimension = wrapBrackets(dimension)
-				const property = getEntityProperty2(entityType, dimension)
+				const property = getEntityProperty2<PropertyDimension>(entityType, dimension)
 				if (!property) {
 					throw new Error(
 						t('Error.NoPropertyFoundFor', {
@@ -38,6 +38,13 @@ export function buildDimensionMemberRetrieverTool(context: Partial<TBIContext>, 
 							name: dimension
 						})
 					)
+				}
+				if (property.semantics?.disableEmbeddingMembers) {
+					return t('Error.DimensionEmbeddingDisabled', {
+							ns: 'core',
+							cube: entityType.name,
+							name: dimension
+						})
 				}
 				if (property.role === AggregationRole.hierarchy || property.role === AggregationRole.level) {
 					dimension = property.dimension

@@ -323,7 +323,8 @@ export class XpertMemoryStoreComponent {
   bulkExport() {
     const csvContent = json2csv(this.filterdData().map(({value}) => value))
 
-    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

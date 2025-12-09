@@ -1,4 +1,3 @@
-import { Semantics } from '../annotations'
 import { Annotation, IMember, Measure, PrimitiveType, PropertyName, Syntax } from '../types'
 import { CalculatedMember, CalculationProperty, CubeParameterEnum, ParameterControlEnum } from './calculated'
 import { Indicator } from './indicator'
@@ -158,7 +157,7 @@ export interface EntityType extends Entity {
    */
   keys?: string[]
 
-  // entity type 属性们
+  // Entity type properties
   properties: {
     [name: string]: Property
   }
@@ -171,7 +170,7 @@ export interface EntityType extends Entity {
   }
 
   /**
-   * @deprecated 应该移到 EntitySet 里
+   * @deprecated should be moved to EntitySet
    */
   indicators?: Array<Indicator>
 
@@ -195,8 +194,8 @@ export interface EntityType extends Entity {
 }
 
 /**
- * Mondrian 仅支持三种 Dimension 类型,
- * 更丰富的语义可以通过 Semantics 来定义
+ * Mondrian only supports three Dimension types,
+ * richer semantics can be defined through Semantics
  */
 export enum DimensionType {
   StandardDimension = 'StandardDimension',
@@ -215,7 +214,7 @@ export interface Property extends EntityProperty {
    */
   column?: string
   /**
-   * 维度类型, 或字段 DB 类型
+   * Dimension type, or field DB type
    */
   type?: DimensionType | string
   description?: string
@@ -223,7 +222,7 @@ export interface Property extends EntityProperty {
   defaultHierarchy?: string
 
   /**
-   * 维度的属性字段
+   * Dimension property fields
    */
   properties?: Array<EntityProperty>
 
@@ -243,6 +242,16 @@ export interface Property extends EntityProperty {
   hierarchyParentNodeFor?: string
 
   dimensionOrdinal?: number
+
+  /**
+   * Dimension semantics (disableEmbeddingMembers)
+   */
+  semantics?: PropertySemantics & {
+    /**
+     * Disable embedding members for LLM vector store
+     */
+    disableEmbeddingMembers?: boolean
+  }
 }
 
 export type PropertyDimension = Property
@@ -271,11 +280,11 @@ export interface PropertyHierarchy extends EntityProperty {
   hierarchyCardinality?: number
 
   /**
-   * 默认成员, 当上线文没有设置此维度的成员时默认取此成员
+   * Default member, used when context has not set a member for this dimension
    */
   defaultMember?: string
   /**
-   * 根成员, 代表所有值的汇总
+   * Root member, representing the aggregation of all values
    *
    * @deprecated should calculate from `hasAll` `allMemberName`
    */
@@ -347,6 +356,9 @@ export interface PropertyLevel extends EntityProperty {
    * Level semantics (hiddenProperties)
    */
   semantics?: PropertySemantics & {
+    /**
+     * Hidden level's properties for LLM context
+     */
     hiddenProperties?: boolean
   }
 }
@@ -414,13 +426,13 @@ export interface VariableProperty extends ParameterProperty {
 
 /**
  *
- * Entity 的 Meta 信息集合
+ * Meta information collection of Entity
  */
 export interface EntitySet extends Entity {
   __id__?: string
 
   /**
-   * Entity Type 定义
+   * Entity Type definition
    */
   entityType?: EntityType
 

@@ -1,12 +1,13 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
+import { DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { IsDirty } from '@metad/core'
-import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -28,7 +29,8 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { of, pipe, switchMap, tap } from 'rxjs'
 import { injectGetXpertTeam } from '../../utils'
 import { XpertComponent } from '../xpert.component'
-import { DialogRef } from '@angular/cdk/dialog'
+import { XpertService } from '../xpert.service'
+
 
 @Component({
   selector: 'xpert-basic',
@@ -47,7 +49,6 @@ import { DialogRef } from '@angular/cdk/dialog'
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     TagSelectComponent,
-    NgmInputComponent,
     NgmSpinComponent
   ],
   templateUrl: './basic.component.html',
@@ -61,28 +62,30 @@ export class XpertBasicComponent implements IsDirty {
   eXpertParameterTypeEnum = XpertParameterTypeEnum
 
   readonly xpertComponent = inject(XpertComponent)
-  readonly xpertService = inject(XpertAPIService)
-  readonly getXpertTeam = injectGetXpertTeam()
+  readonly xpertService = inject(XpertService)
+  readonly xpertAPI = inject(XpertAPIService)
+  // readonly getXpertTeam = injectGetXpertTeam()
   readonly #fb = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
   readonly #dialogRef = inject(DialogRef)
 
-  readonly xpertId = this.xpertComponent.paramId
+  readonly xpertId = this.xpertService.paramId
+  readonly xpert = this.xpertService.xpert
 
   readonly loading = signal(false)
-  readonly xpert = derivedFrom(
-    [this.xpertId],
-    pipe(
-      switchMap(([id]) => {
-        if (id) {
-          this.loading.set(true)
-          return this.getXpertTeam(this.xpertId()).pipe(tap(() => this.loading.set(false)))
-        }
-        return of(null)
-      })
-    ),
-    { initialValue: null }
-  )
+  // readonly xpert = derivedFrom(
+  //   [this.xpertId],
+  //   pipe(
+  //     switchMap(([id]) => {
+  //       if (id) {
+  //         this.loading.set(true)
+  //         return this.getXpertTeam(this.xpertId()).pipe(tap(() => this.loading.set(false)))
+  //       }
+  //       return of(null)
+  //     })
+  //   ),
+  //   { initialValue: null }
+  // )
 
   readonly draft = computed(() => {
     if (this.xpert()) {
@@ -102,12 +105,12 @@ export class XpertBasicComponent implements IsDirty {
     avatar: this.#fb.control(null),
     tags: this.#fb.control(null),
     copilotModel: this.#fb.control(null),
-    starters: this.#fb.array([
-      this.#fb.control(null),
-      this.#fb.control(null),
-      this.#fb.control(null),
-      this.#fb.control(null)
-    ])
+    // starters: this.#fb.array([
+    //   this.#fb.control(null),
+    //   this.#fb.control(null),
+    //   this.#fb.control(null),
+    //   this.#fb.control(null)
+    // ])
   })
   get name() {
     return this.form.get('name').value
@@ -127,9 +130,9 @@ export class XpertBasicComponent implements IsDirty {
   get copilotModel() {
     return this.form.get('copilotModel') as FormControl
   }
-  get starters() {
-    return this.form.get('starters') as FormArray
-  }
+  // get starters() {
+  //   return this.form.get('starters') as FormArray
+  // }
 
   constructor() {
     effect(
@@ -154,7 +157,7 @@ export class XpertBasicComponent implements IsDirty {
   saveDraft() {
     this.loading.set(true)
     if (this.type() === XpertTypeEnum.Agent) {
-      this.xpertService
+      this.xpertAPI
         .upadteDraft(this.xpertId(), {
           team: {
             ...omitXpertRelations(this.xpert()),
@@ -167,7 +170,7 @@ export class XpertBasicComponent implements IsDirty {
             this.#toastr.success('PAC.Messages.SavedDraft', { Default: 'Saved draft!' })
             this.loading.set(false)
             this.form.markAsPristine()
-            this.xpertComponent.refresh()
+            this.xpertService.refresh()
             this.close()
             // this.#router.navigate(['../agents'], { relativeTo: this.#route })
           },
@@ -177,7 +180,7 @@ export class XpertBasicComponent implements IsDirty {
           }
         })
     } else {
-      this.xpertService
+      this.xpertAPI
         .update(this.xpertId(), {
           ...this.form.value
         })
@@ -186,7 +189,7 @@ export class XpertBasicComponent implements IsDirty {
             this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully!' })
             this.loading.set(false)
             this.form.markAsPristine()
-            this.xpertComponent.refresh()
+            this.xpertService.refresh()
             this.close()
             // this.#router.navigate(['../agents'], { relativeTo: this.#route })
           },

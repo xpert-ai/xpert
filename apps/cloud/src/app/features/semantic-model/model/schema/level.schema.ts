@@ -302,7 +302,12 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
           ]
         },
 
-        ...SemanticsAccordionWrapper(COMMON, this.helpDimensionUrl() + '/semantics/', hiddenPropertiesAccordion(COMMON)),
+        ...SemanticsAccordionWrapper(
+          COMMON,
+          this.helpDimensionUrl() + '/semantics/',
+          hiddenPropertiesAccordion(COMMON),
+          
+        ),
         ...AccordionWrappers([
           KeyExpressionAccordion(COMMON, this.helpDimensionUrl() + '/hierarchy/'),
           NameExpressionAccordion(COMMON, this.helpDimensionUrl() + '/hierarchy/'),

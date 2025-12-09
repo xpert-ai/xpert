@@ -199,7 +199,7 @@ export class XpertToolConfigureBuiltinComponent {
         existingTool.schema = existingTool.schema || tool.schema;
         return [...state];
       } else {
-        return [...(state ?? []), { name, enabled, schema: tool.schema }];
+        return [...(state ?? []), { name, enabled, label: tool.identity.label, schema: tool.schema }];
       }
     })
 
