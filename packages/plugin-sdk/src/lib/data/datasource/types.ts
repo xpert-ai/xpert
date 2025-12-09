@@ -171,9 +171,21 @@ export interface ColumnDef {
    */
   isKey: boolean
   /**
-   * Is required column
+   * Is required column (NOT NULL)
    */
   required?: boolean
+  /**
+   * Is unique column
+   */
+  unique?: boolean
+  /**
+   * Auto increment (for number type)
+   */
+  autoIncrement?: boolean
+  /**
+   * Default value
+   */
+  defaultValue?: string
   /**
    * length of type for column: varchar, decimal ...
    */
@@ -182,6 +194,14 @@ export interface ColumnDef {
    * fraction of type for decimal
    */
   fraction?: number
+  /**
+   * Enum values (for ENUM type)
+   */
+  enumValues?: string[]
+  /**
+   * Set values (for SET type)
+   */
+  setValues?: string[]
 }
 
 export interface CreationTable {
@@ -330,6 +350,116 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
 
   async ping(): Promise<void> {
     await this.runQuery(`SELECT 1`)
+  }
+
+  /**
+   * Default implementation for table operations
+   */
+  override async tableOp(
+    action: DBTableAction,
+    params: DBTableOperationParams,
+    options?: QueryOptions
+  ): Promise<any> {
+    switch(action) {
+      case DBTableAction.CREATE_TABLE: {
+        // Default implementation for creating table (generic SQL syntax)
+        const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
+        const tableName = schema ? `${schema}.${table}` : table
+
+        // Check if table exists (try to query table info)
+        let exists = false
+        try {
+          const result = await this.runQuery(
+            `SELECT * FROM ${tableName} WHERE 1=0`,
+            options
+          )
+          exists = true
+        } catch (error) {
+          // Table does not exist
+          exists = false
+        }
+
+        // --- MODE: ERROR → throw error if table exists ---
+        if (exists && createMode === DBCreateTableMode.ERROR) {
+          throw new Error(`Table "${tableName}" already exists`)
+        }
+
+        // --- MODE: IGNORE → do nothing if exists ---
+        if (exists && createMode === DBCreateTableMode.IGNORE) {
+          return
+        }
+
+        // --- MODE: UPGRADE → auto upgrade (simple implementation: only add new columns) ---
+        // Note: This default implementation does not support modifying column types, 
+        //       recommend each database to implement its own version
+        if (exists && createMode === DBCreateTableMode.UPGRADE) {
+          console.warn(`[BaseSQLQueryRunner] UPGRADE mode uses basic implementation. Consider implementing tableOp for better support.`)
+          
+          // Try to add new columns (will fail if column already exists, but doesn't affect)
+          for (const col of columns) {
+            try {
+              const colType = this.mapColumnType(col.type, col.isKey, col.length)
+              await this.runQuery(
+                `ALTER TABLE ${tableName} ADD COLUMN ${col.fieldName} ${colType}`,
+                options
+              )
+            } catch (error) {
+              // Field might already exist, ignore error
+              console.debug(`Failed to add column ${col.fieldName}:`, error instanceof Error ? error.message : String(error))
+            }
+          }
+          return
+        }
+
+        // --- MODE: CREATE NEW TABLE ---
+        const columnsDDL = columns
+          .map((col) => {
+            const colType = this.mapColumnType(col.type, col.isKey, col.length)
+            const pk = col.isKey ? ' PRIMARY KEY' : ''
+            const notNull = col.required ? ' NOT NULL' : ''
+            return `${col.fieldName} ${colType}${pk}${notNull}`
+          })
+          .join(', ')
+
+        const createTableStatement = `CREATE TABLE ${tableName} (${columnsDDL})`
+        
+        await this.runQuery(createTableStatement, options)
+        return
+      }
+      case DBTableAction.DROP_TABLE: {
+        // Default implementation for dropping table
+        const { schema, table } = params
+        const tableName = schema ? `${schema}.${table}` : table
+        
+        await this.runQuery(`DROP TABLE IF EXISTS ${tableName}`, options)
+        return
+      }
+      default:
+        // Throw error for other unimplemented operations
+        throw new Error(`Unsupported table action: ${action}`)
+    }
+  }
+
+  /**
+   * Generic type mapping (subclasses can override)
+   */
+  protected mapColumnType(type: string, isKey: boolean, length?: number): string {
+    switch(type?.toLowerCase()) {
+      case 'string':
+        return length ? `VARCHAR(${length})` : (isKey ? 'VARCHAR(255)' : 'VARCHAR(1000)')
+      case 'number':
+        return 'INT'
+      case 'boolean':
+        return 'BOOLEAN'
+      case 'date':
+        return 'DATE'
+      case 'datetime':
+        return 'TIMESTAMP'
+      case 'object':
+        return 'TEXT'
+      default:
+        return 'VARCHAR(1000)'
+    }
   }
 }
 

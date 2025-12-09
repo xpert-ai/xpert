@@ -45,12 +45,7 @@ export class XpertTable extends WorkspaceBaseEntity implements IXpertTable {
 	@IsObject()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	columns?: {
-		name: string
-		type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json'
-		label?: string
-		required?: boolean
-	}[]
+	columns?: import('@metad/contracts').TXpertTableColumn[]
 
 	/*
     |--------------------------------------------------------------------------

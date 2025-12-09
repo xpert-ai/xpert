@@ -65,7 +65,7 @@
     "preserveConstEnums": true,
     "allowSyntheticDefaultImports": true,
     "noUnusedLocals": false,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
     "noPropertyAccessFromIndexSignature": false
