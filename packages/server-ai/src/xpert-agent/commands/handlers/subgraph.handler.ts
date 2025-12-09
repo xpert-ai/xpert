@@ -556,7 +556,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				middleware.tools.map((tool) => ({
 					toolset: {
 						provider: middleware.name,
-						title: middleware.name
+						title: tool.name,
 					},
 					caller: agent.key,
 					tool
@@ -826,12 +826,18 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				const systemMsg = request.systemMessage ?? systemMessage
 				systemMessageContent = systemMsg.content
 				const finalMessages = systemMsg ? [systemMsg, ...reqMessages] : reqMessages
-				const response = await (model as Runnable).invoke(
+				const response = await model.invoke(
 					finalMessages,
 					{...config, signal: abortController.signal}
 				)
-				if (!isBaseMessage(response) && !isBaseMessageChunk(response)) {
-					throw new InternalServerErrorException(`Model response is not a message in '${agentKey}'.`)
+				if (isBaseMessage(response) && isAIMessage(response)) {
+					const invalidToolCalls = response.invalid_tool_calls
+					if (invalidToolCalls?.length) {
+						const detail = invalidToolCalls.map((call) => `${call.name ?? call.id ?? 'tool'}: ${call.error ?? 'Invalid tool call'}`).join('; ')
+						throw new InternalServerErrorException(
+							t('server-ai:Error.InvalidToolCalls') + detail
+						)
+					}
 				}
 				return response
 			}
