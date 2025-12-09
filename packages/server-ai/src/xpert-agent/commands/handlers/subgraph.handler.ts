@@ -997,7 +997,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					new ToolNode([tool], { caller, variables, toolName: toolset.title }).withConfig({signal: abortController.signal}),
 					{
 						ends,
-						metadata: {toolset: toolset.provider, toolsetId: toolset.id }
+						metadata: omitBy({toolset: toolset.provider, toolsetId: toolset.id }, isNil)
 					}
 				)
 		})
