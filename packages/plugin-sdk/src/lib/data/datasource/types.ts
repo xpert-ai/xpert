@@ -194,6 +194,14 @@ export interface ColumnDef {
    * fraction of type for decimal
    */
   fraction?: number
+  /**
+   * Enum values (for ENUM type)
+   */
+  enumValues?: string[]
+  /**
+   * Set values (for SET type)
+   */
+  setValues?: string[]
 }
 
 export interface CreationTable {
@@ -345,22 +353,19 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
   }
 
   /**
-   * 表操作的默认实现
    * Default implementation for table operations
    */
-  async tableOp(
+  override async tableOp(
     action: DBTableAction,
     params: DBTableOperationParams,
     options?: QueryOptions
   ): Promise<any> {
     switch(action) {
       case DBTableAction.CREATE_TABLE: {
-        // 创建表的默认实现（通用SQL语法）
         // Default implementation for creating table (generic SQL syntax)
         const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
         const tableName = schema ? `${schema}.${table}` : table
 
-        // 检查表是否存在（尝试查询表信息）
         // Check if table exists (try to query table info)
         let exists = false
         try {
@@ -370,26 +375,27 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
           )
           exists = true
         } catch (error) {
-          // 表不存在
+          // Table does not exist
           exists = false
         }
 
-        // --- MODE: ERROR → 表存在时报错 ---
+        // --- MODE: ERROR → throw error if table exists ---
         if (exists && createMode === DBCreateTableMode.ERROR) {
           throw new Error(`Table "${tableName}" already exists`)
         }
 
-        // --- MODE: IGNORE → 存在则不处理 ---
+        // --- MODE: IGNORE → do nothing if exists ---
         if (exists && createMode === DBCreateTableMode.IGNORE) {
           return
         }
 
-        // --- MODE: UPGRADE → 自动升级（简单实现：只添加新字段）---
-        // 注意：此默认实现不支持修改字段类型，建议各数据库实现自己的版本
+        // --- MODE: UPGRADE → auto upgrade (simple implementation: only add new columns) ---
+        // Note: This default implementation does not support modifying column types, 
+        //       recommend each database to implement its own version
         if (exists && createMode === DBCreateTableMode.UPGRADE) {
           console.warn(`[BaseSQLQueryRunner] UPGRADE mode uses basic implementation. Consider implementing tableOp for better support.`)
           
-          // 尝试添加新字段（如果字段已存在会失败，但不影响）
+          // Try to add new columns (will fail if column already exists, but doesn't affect)
           for (const col of columns) {
             try {
               const colType = this.mapColumnType(col.type, col.isKey, col.length)
@@ -398,8 +404,8 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
                 options
               )
             } catch (error) {
-              // 字段可能已存在，忽略错误
-              console.debug(`Failed to add column ${col.fieldName}:`, error.message)
+              // Field might already exist, ignore error
+              console.debug(`Failed to add column ${col.fieldName}:`, error instanceof Error ? error.message : String(error))
             }
           }
           return
@@ -421,7 +427,6 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
         return
       }
       case DBTableAction.DROP_TABLE: {
-        // 删除表的默认实现
         // Default implementation for dropping table
         const { schema, table } = params
         const tableName = schema ? `${schema}.${table}` : table
@@ -430,14 +435,12 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
         return
       }
       default:
-        // 其他操作抛出未实现错误
         // Throw error for other unimplemented operations
         throw new Error(`Unsupported table action: ${action}`)
     }
   }
 
   /**
-   * 通用类型映射（子类可以覆盖）
    * Generic type mapping (subclasses can override)
    */
   protected mapColumnType(type: string, isKey: boolean, length?: number): string {

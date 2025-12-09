@@ -536,13 +536,21 @@
       "CurrentDate": "Current Date",
       "CurrentTime": "Current Time",
       "CurrentTimestamp": "Current Timestamp",
+      "UuidGenerateV4": "uuid_generate_v4()",
       "NoFields": "No fields",
       "ClickAddField": "Click [Add Field] button above to add fields",
       "DeleteTableInfo": "This operation will delete the physical table in the database and cannot be recovered!",
       "PrimaryKeyShort": "PK",
       "RequiredShort": "Required",
       "UniqueShort": "Unique",
-      "AutoIncrementShort": "Auto Inc"
+      "AutoIncrementShort": "Auto Inc",
+      "TypeMappingHint": "Note: datetime→DATETIME(MySQL)/TIMESTAMP(PG), timestamp→TIMESTAMP(MySQL)/TIMESTAMPTZ(PG)",
+      "EnumValues": "Enum Values",
+      "EnumValuesPlaceholder": "e.g. value1, value2, value3",
+      "EnumValuesRequired": "Field \"{{fieldName}}\" is ENUM type, enum values are required",
+      "SetValues": "Set Values",
+      "SetValuesPlaceholder": "e.g. value1, value2, value3",
+      "SetValuesRequired": "Field \"{{fieldName}}\" is SET type, set values are required"
     }
   }
 }

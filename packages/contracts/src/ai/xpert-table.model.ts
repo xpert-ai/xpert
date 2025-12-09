@@ -32,19 +32,82 @@ export type TXpertTable = {
   message?: string
 }
 
+/**
+ * MySQL data types supported by the system
+ * Organized by category for better understanding
+ */
+export type MySQLDataType =
+  // Numeric types - Integers
+  | 'tinyint' | 'smallint' | 'mediumint' | 'int' | 'integer' | 'number' | 'bigint'  // number is alias for int
+  // Numeric types - Floating point
+  | 'float' | 'double' | 'decimal' | 'numeric'
+  // String types - Fixed/Variable length
+  | 'char' | 'varchar' | 'string'  // string is alias for varchar
+  // String types - Text
+  | 'tinytext' | 'text' | 'mediumtext' | 'longtext'
+  // String types - Binary
+  | 'tinyblob' | 'blob' | 'mediumblob' | 'longblob'
+  // String types - Special
+  | 'enum' | 'set'
+  // Date and time types
+  | 'date' | 'time' | 'datetime' | 'timestamp' | 'year'
+  // JSON type
+  | 'json' | 'object'  // object is alias for json
+  // Spatial types
+  | 'geometry' | 'point' | 'linestring' | 'polygon' | 'multipoint' | 'multilinestring' | 'multipolygon' | 'geometrycollection'
+  // Other
+  | 'boolean' | 'bool'  // bool is alias for tinyint(1)
+
+/**
+ * PostgreSQL data types supported by the system
+ * Organized by category for better understanding
+ */
+export type PostgreSQLDataType =
+  // Numeric types - Integers
+  | 'smallint' | 'int' | 'integer' | 'number' | 'bigint' | 'serial' | 'bigserial'
+  // Numeric types - Floating point
+  | 'real' | 'float' | 'double' | 'decimal' | 'numeric' | 'money'
+  // String types
+  | 'char' | 'character' | 'varchar' | 'string' | 'text' | 'bytea'
+  // Date and time types
+  | 'date' | 'time' | 'timetz' | 'datetime' | 'timestamp' | 'interval'
+  // Boolean type
+  | 'boolean' | 'bool'
+  // Enum type
+  | 'enum'
+  // JSON types
+  | 'json' | 'jsonb' | 'object'
+  // UUID type
+  | 'uuid'
+  // Array types
+  | 'array_int' | 'array_varchar' | 'array_text' | 'array_jsonb'
+  // Geometric types
+  | 'point' | 'line' | 'circle'
+  // XML type
+  | 'xml'
+  // HSTORE type
+  | 'hstore'
+
+/**
+ * Union type for all supported database types
+ * Used when database type is not yet determined or needs to support multiple databases
+ */
+export type DatabaseDataType = MySQLDataType | PostgreSQLDataType
+
 export type TXpertTableColumn = {
   name: string
-  type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json' | 
-        'text' | 'bigint' | 'decimal' | 'float' | 'timestamp' | 'time' | 'uuid'  // 扩展的数据库类型
+  type: DatabaseDataType
   label?: string
-  required?: boolean  // NOT NULL 约束
-  isPrimaryKey?: boolean  // 主键
-  isUnique?: boolean  // 唯一约束
-  autoIncrement?: boolean  // 自增
-  defaultValue?: string  // 默认值
-  length?: number  // 字段长度（主要用于string类型）
-  precision?: number  // 精度（用于decimal类型）
-  scale?: number  // 小数位数（用于decimal类型）
+  required?: boolean  // NOT NULL constraint
+  isPrimaryKey?: boolean  // Primary key
+  isUnique?: boolean  // Unique constraint
+  autoIncrement?: boolean  // Auto increment
+  defaultValue?: string  // Default value
+  length?: number  // Field length (for CHAR, VARCHAR, etc.)
+  precision?: number  // Precision (for DECIMAL)
+  scale?: number  // Scale (for DECIMAL)
+  enumValues?: string[]  // Enum values (for ENUM type)
+  setValues?: string[]  // Set values (for SET type)
 }
 
 
@@ -59,8 +122,7 @@ export interface IWorkflowNodeDBOperation extends IWorkflowNode {
 export interface IWFNDBInsert extends IWorkflowNodeDBOperation {
   type: WorkflowNodeTypeEnum.DB_INSERT,
   columns?: Record<string, {
-    type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json' | 
-          'text' | 'bigint' | 'decimal' | 'float' | 'timestamp' | 'time' | 'uuid';
+    type: DatabaseDataType;
     value?: any
     valueSelector?: string
   }>
@@ -73,8 +135,7 @@ export function genXpertDBInsertKey() {
 export interface IWFNDBUpdate extends IWorkflowNodeDBOperation {
   type: WorkflowNodeTypeEnum.DB_UPDATE
   columns?: Record<string, {
-    type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json' | 
-          'text' | 'bigint' | 'decimal' | 'float' | 'timestamp' | 'time' | 'uuid';
+    type: DatabaseDataType;
     value?: any
     valueSelector?: string
   }>

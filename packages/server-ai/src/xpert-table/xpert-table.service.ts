@@ -1,4 +1,4 @@
-import { IDSSchema, XpertTableStatus } from '@metad/contracts'
+import { IDSSchema, IXpertTable, XpertTableStatus } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
@@ -23,20 +23,14 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 	}
 
 	/**
-	 * 验证表名是否可用
-	 * - 如果是更新现有表且表名未改变，返回 true
-	 * - 如果是新建表或改名，检查物理表是否存在
-	 * 
 	 * Validate if table name is available
 	 * - If updating existing table and name unchanged, return true
 	 * - If creating new table or renaming, check if physical table exists
 	 */
 	async validateTableName(entity: XpertTable): Promise<boolean> {
-		// 如果是更新操作
 		// If it's an update operation
 		if (entity.id) {
 			const old = await this.findOneByIdString(entity.id)
-			// 如果表名、schema、数据库都没变，直接返回 true（允许更新字段）
 			// If name, schema, database unchanged, return true (allow updating columns)
 			if (old.name === entity.name && old.schema === entity.schema && old.database === entity.database) {
 				return true
@@ -63,12 +57,13 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		}
 	}
 
-	async upsertTable(entity: XpertTable): Promise<XpertTable> {
+	async upsertTable(entity: IXpertTable): Promise<XpertTable> {
+		this.#logger.log(`Starting upsertTable for: ${entity.name}, isUpdate: ${!!entity.id}`)
+		
 		if (!entity.name || !entity.database) {
 			throw new BadRequestException(`Table name and database are required for upsert operation.`)
 		}
 		
-		// 验证表名（只在新建或改名时检查）
 		// Validate table name (only check when creating new or renaming)
 		const isValid = await this.validateTableName(entity)
 		if (!isValid) {
@@ -78,8 +73,8 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		}
 		
 		let table: XpertTable = null
+		const isNewTable = !entity.id
 		if (entity.id) {
-			// 检查表名是否改变，如果改变需要重命名物理表
 			// Check if table name changed, need to rename physical table if changed
 			const old = await this.findOneByIdString(entity.id)
 			if (old.name !== entity.name && old.status === XpertTableStatus.ACTIVE) {
@@ -89,7 +84,6 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 							id: old.database
 						})
 					)
-					// 重命名物理表
 					// Rename physical table
 					await adapter.tableOp(DBTableAction.RENAME_TABLE, {
 						schema: old.schema || undefined,
@@ -109,10 +103,46 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 			table = await this.create(entity)
 		}
 
-		// 激活表以同步物理表结构
 		// Activate the table to sync physical table structure
-		await this.activateTable(table.id)
-		return await this.findOneByIdString(table.id)
+		try {
+			this.#logger.log(`Activating table ${table.name} (id: ${table.id})`)
+			await this.activateTable(table.id)
+			this.#logger.log(`Table ${table.name} upserted successfully`)
+			return await this.findOneByIdString(table.id)
+		} catch (activationError) {
+			this.#logger.error(`Table activation failed for ${table.name}: ${getErrorMessage(activationError)}`)
+			
+			// If activation fails for newly created table, delete the logical table to avoid inconsistency
+			if (isNewTable) {
+				this.#logger.error(`Deleting newly created logical table ${table.name} due to activation failure`)
+				try {
+					await this.delete(table.id)
+					this.#logger.log(`Logical table ${table.name} deleted successfully`)
+				} catch (deleteError) {
+					this.#logger.error(`Failed to delete logical table ${table.name}: ${getErrorMessage(deleteError)}`)
+					// Even if deletion fails, throw the original activation error
+				}
+			} else {
+				// Update error status for existing table
+				try {
+					await this.update(table.id, { 
+						status: XpertTableStatus.ERROR, 
+						message: getErrorMessage(activationError) 
+					})
+					this.#logger.log(`Table ${table.name} status updated to ERROR`)
+				} catch (updateError) {
+					this.#logger.error(`Failed to update table status: ${getErrorMessage(updateError)}`)
+				}
+			}
+			
+			// Re-throw activation error to ensure frontend receives error response
+			// Ensure error is properly formatted as HTTP exception
+			if (activationError instanceof BadRequestException) {
+				throw activationError
+			} else {
+				throw new BadRequestException(`Table activation failed: ${getErrorMessage(activationError)}`)
+			}
+		}
 	}
 
 	async activateTable(tableId: string) {
@@ -132,25 +162,38 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 				})
 			)
 			
+			// Clean and prepare column definitions
+			const cleanedColumns = table.columns.map((column) => {
+				const col = column as any  // Type assertion to access newly added properties
+				
+				// Clean default value: treat empty string as no default
+				let defaultValue = col.defaultValue
+				if (defaultValue && typeof defaultValue === 'string' && !defaultValue.trim()) {
+					defaultValue = undefined
+				}
+				
+				return {
+					name: column.name,
+					fieldName: column.name,
+					type: column.type,
+					isKey: col.isPrimaryKey || false,  // Primary key
+					required: column.required || false,  // NOT NULL constraint
+					unique: col.isUnique || false,  // Unique constraint
+					autoIncrement: col.autoIncrement || false,  // Auto increment
+					defaultValue: defaultValue,  // Default value (cleaned)
+					length: col.length,  // Field length
+					precision: col.precision,  // Precision (for DECIMAL type)
+					scale: col.scale,  // Scale (for DECIMAL type)
+					enumValues: col.enumValues,  // Enum values (for ENUM type)
+					setValues: col.setValues  // Set values (for SET type)
+				}
+			})
+
 			// Create or update physical table in the database
 			await adapter.tableOp(DBTableAction.CREATE_TABLE, {
 				schema: table.schema || undefined,
 				table: table.name,
-				columns: table.columns.map((column) => {
-					const col = column as any  // 类型断言以访问新添加的属性
-					return {
-						name: column.name,
-						fieldName: column.name,
-						type: column.type,
-						isKey: col.isPrimaryKey || false,  // 主键
-						required: column.required || false,  // NOT NULL约束
-						unique: col.isUnique || false,  // 唯一约束
-						autoIncrement: col.autoIncrement || false,  // 自增
-						defaultValue: col.defaultValue,  // 默认值
-						length: col.length,  // 字段长度
-						fraction: col.scale || col.precision  // 小数位数（用于decimal类型）
-					}
-				}),
+				columns: cleanedColumns,
 				createMode: DBCreateTableMode.UPGRADE
 			})
 
@@ -160,7 +203,12 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		} catch (error) {
 			this.#logger.error(`Table activation failed for ${table.name}: ${getErrorMessage(error)}`)
 			await this.update(table.id, { status: XpertTableStatus.ERROR, message: getErrorMessage(error) })
-			throw error
+			// Ensure error is properly formatted as HTTP exception
+			if (error instanceof BadRequestException) {
+				throw error
+			} else {
+				throw new BadRequestException(`Table activation failed: ${getErrorMessage(error)}`)
+			}
 		}
 	}
 
@@ -178,7 +226,7 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 		}
 	}
 
-	async insertRow(tableId: string, row: { name: string; value: any; type: string }[]) {
+	public async insertRow(tableId: string, row: { name: string; value: any; type: string }[]) {
 		const table = await this.findOneByIdString(tableId)
 		if (table.status !== XpertTableStatus.ACTIVE) {
 			throw new BadRequestException(`Table ${table.name} is not active.`)
@@ -247,7 +295,6 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 	}
 
 	/**
-	 * 删除表记录和物理表
 	 * Delete table record and physical table
 	 */
 	async deleteTable(tableId: string) {
@@ -256,7 +303,6 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 			throw new BadRequestException(`Table with id ${tableId} not found.`)
 		}
 
-		// 如果表已激活，先删除物理表
 		// If table is active, delete physical table first
 		if (table.status === XpertTableStatus.ACTIVE && table.name && table.database) {
 			try {
@@ -268,7 +314,6 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 				)
 
 				try {
-					// 删除物理表
 					// Drop physical table from database
 					await adapter.tableOp(DBTableAction.DROP_TABLE, {
 						schema: table.schema || undefined,
@@ -277,7 +322,6 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 					this.#logger.log(`Physical table ${table.schema ? table.schema + '.' : ''}${table.name} dropped successfully`)
 				} catch (error) {
 					this.#logger.error(`Error dropping physical table: ${getErrorMessage(error)}`)
-					// 即使删除物理表失败，也继续删除逻辑表记录
 					// Continue deleting logical table record even if dropping physical table fails
 				} finally {
 					adapter.teardown()
@@ -287,7 +331,6 @@ export class XpertTableService extends TenantOrganizationAwareCrudService<XpertT
 			}
 		}
 
-		// 删除逻辑表记录（软删除）
 		// Delete logical table record (soft delete)
 		return await this.softDelete(tableId)
 	}

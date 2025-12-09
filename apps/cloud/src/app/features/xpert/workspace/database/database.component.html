@@ -1,6 +1,6 @@
 <div class="flex justify-between items-center gap-2 px-4">
   <div class="grow flex justify-start items-center gap-2">
-    <ngm-select class="w-40" [placeholder]="statusPlaceholder()" [selectOptions]="statusOptions()" [(ngModel)]="status" />
+    <ngm-select class="w-40" [placeholder]="statusPlaceholder()" [selectOptions]="statusOptions" [(ngModel)]="status" />
     <ngm-select class="w-40" [placeholder]="databasePlaceholder()" [selectOptions]="databases$ | async" [(ngModel)]="dataSourceId" />
   </div>
   
@@ -54,7 +54,7 @@
           <!-- <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.xpertId }}</td> -->
           <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
             <div class="flex gap-1">
-              <!-- 激活按钮隐藏 / Activate button hidden -->
+              <!-- Activate button hidden -->
               <button class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg" type="button"
                 (click)="activate(table.id)"
                 [title]="'PAC.Workspace.ActivateTable' | translate: {Default: 'Activate Table'}"
@@ -95,7 +95,7 @@
       </button>
     </div>
 
-    <!-- 基本信息 -->
+    <!-- Basic Information -->
     <div class="space-y-4 bg-white p-4 rounded-lg border">
       <div>
         <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.Database' | translate: {Default: 'Database'} }} *</label>
@@ -107,7 +107,7 @@
       <div>
         <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.Schema' | translate: {Default: 'Schema'} }} *</label>
         <div>
-          <ngm-select [placeholder]="'PAC.Workspace.SelectSchema' | translate: {Default: 'Select Schema'}" [selectOptions]="schemasOptions()" [(ngModel)]="schema" [nullable]="false" />
+          <ngm-select [placeholder]="'PAC.Workspace.SelectSchema' | translate: {Default: 'Select Schema'}" [selectOptions]="schemasOptions()" [(ngModel)]="schema" [nullable]="true" />
         </div>
       </div>
       
@@ -141,7 +141,7 @@
       </div>
     </div>
 
-    <!-- 字段定义 -->
+    <!-- Field Definition -->
     <div class="mt-6 bg-white p-4 rounded-lg border">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-md font-semibold text-gray-800">{{ 'PAC.Workspace.FieldDefinition' | translate: {Default: 'Field Definition'} }}</h3>
@@ -156,14 +156,14 @@
       <div class="space-y-3 max-h-[500px] overflow-y-auto pr-2 pl-4">
         @for (col of table().columns; track col; let i = $index) {
           <div class="relative border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-white to-gray-50 hover:shadow-md hover:border-blue-300 transition-all ml-2">
-            <!-- 字段序号标记 -->
+            <!-- Field sequence number marker -->
             <div class="absolute -left-5 top-1/2 -translate-y-1/2 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
               {{i + 1}}
             </div>
 
-            <!-- 主要内容区 - 使用 flex 布局确保一行显示 -->
+            <!-- Main content area - use flex layout to ensure single line display -->
             <div class="flex items-start gap-3">
-              <!-- 字段名称 -->
+              <!-- Field Name -->
               <div style="width: 160px;">
                 <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
                   <i class="ri-text text-blue-500"></i> {{ 'PAC.Workspace.FieldName' | translate: {Default: 'Field Name'} }} <span class="text-red-500">*</span>
@@ -176,7 +176,7 @@
                 />
               </div>
 
-              <!-- 描述 -->
+              <!-- Description -->
               <div style="width: 180px;">
                 <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
                   <i class="ri-file-text-line text-gray-500"></i> {{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}
@@ -189,16 +189,16 @@
                 />
               </div>
 
-              <!-- 数据类型 -->
-              <div style="width: 200px;">
+              <!-- Data Type -->
+              <div style="width: 140px;">
                 <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
                   <i class="ri-code-box-line text-purple-500"></i> {{ 'PAC.Workspace.DataType' | translate: {Default: 'Data Type'} }} <span class="text-red-500">*</span>
                 </label>
                 <ngm-select class="text-sm" [selectOptions]="types()" [(ngModel)]="col.type" [nullable]="false" />
               </div>
 
-              <!-- 字段长度（仅字符串类型显示） -->
-              @if (col.type === 'string' || col.type === 'text') {
+              <!-- Field Length (shown for CHAR, VARCHAR, and TEXT types) -->
+              @if (col.type === 'char' || col.type === 'string' || col.type === 'text' || col.type === 'tinytext' || col.type === 'mediumtext' || col.type === 'longtext') {
                 <div style="width: 90px;">
                   <label class="text-xs font-medium text-gray-700 block mb-1.5">{{ 'PAC.Workspace.Length' | translate: {Default: 'Length'} }}</label>
                   <input
@@ -210,7 +210,45 @@
                 </div>
               }
 
-              <!-- 约束 -->
+              <!-- Enum Values (for ENUM type) -->
+              @if (col.type === 'enum') {
+                <div style="width: 200px;">
+                  <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                    <i class="ri-list-check text-purple-500"></i> {{ 'PAC.Workspace.EnumValues' | translate: {Default: 'Enum Values'} }} <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    [class.border-red-300]="col.type === 'enum' && (!col.enumValues || col.enumValues.length === 0)"
+                    [class.border-gray-300]="col.type === 'enum' && col.enumValues && col.enumValues.length > 0"
+                    [value]="col.enumValues?.join(', ') || ''"
+                    (blur)="onEnumValuesChange(col, $event)"
+                    [placeholder]="'PAC.Workspace.EnumValuesPlaceholder' | translate: {Default: 'e.g. value1, value2, value3'}"
+                    required
+                  />
+                </div>
+              }
+
+              <!-- Set Values (for SET type) -->
+              @if (col.type === 'set') {
+                <div style="width: 200px;">
+                  <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                    <i class="ri-list-check text-purple-500"></i> {{ 'PAC.Workspace.SetValues' | translate: {Default: 'Set Values'} }} <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    [class.border-red-300]="col.type === 'set' && (!col.setValues || col.setValues.length === 0)"
+                    [class.border-gray-300]="col.type === 'set' && col.setValues && col.setValues.length > 0"
+                    [value]="col.setValues?.join(', ') || ''"
+                    (blur)="onSetValuesChange(col, $event)"
+                    [placeholder]="'PAC.Workspace.SetValuesPlaceholder' | translate: {Default: 'e.g. value1, value2, value3'}"
+                    required
+                  />
+                </div>
+              }
+
+              <!-- Constraints -->
               <div style="width: 150px;">
                 <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
                   <i class="ri-shield-line text-indigo-500"></i> {{ 'PAC.Workspace.Constraints' | translate: {Default: 'Constraints'} }}
@@ -268,13 +306,14 @@
                           <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.isUnique" [disabled]="col.isPrimaryKey" />
                         </label>
                         <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
-                          [class.opacity-50]="col.type !== 'number' && col.type !== 'bigint'">
+                          [class.opacity-50]="!isIntegerType(col.type)">
                           <span class="text-sm flex items-center gap-2">
                             <i class="ri-add-circle-line text-green-600 text-base group-hover:scale-110 transition"></i>
                             <span class="font-medium">{{ 'PAC.Workspace.AutoIncrement' | translate: {Default: 'Auto Increment'} }}</span>
                           </span>
                           <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.autoIncrement" 
-                            [disabled]="col.type !== 'number' && col.type !== 'bigint'" />
+                            [disabled]="!isIntegerType(col.type)" 
+                            (change)="onAutoIncrementChange(col)" />
                         </label>
                       </div>
                     </div>
@@ -282,39 +321,45 @@
                 </div>
               </div>
 
-              <!-- 默认值 -->
+              <!-- Default Value -->
               <div style="width: 170px;">
                 <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
                   <i class="ri-layout-column-line text-teal-500"></i> {{ 'PAC.Workspace.DefaultValue' | translate: {Default: 'Default Value'} }}
+                  @if (col.type === 'date' || col.type === 'time') {
+                    <span class="text-xs text-orange-500" title="MySQL does not support default value functions for DATE and TIME types">⚠️</span>
+                  }
                 </label>
-                @if (col.type === 'date' || col.type === 'datetime' || col.type === 'timestamp' || col.type === 'time') {
+                @if (col.type === 'datetime' || col.type === 'timestamp') {
                   <select
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                     [(ngModel)]="col.defaultValue"
+                    [disabled]="col.isPrimaryKey || col.autoIncrement"
                   >
-                    <option value="">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</option>
-                    @if (col.type === 'date') {
-                      <option value="CURRENT_DATE">📅 {{ 'PAC.Workspace.CurrentDate' | translate: {Default: 'Current Date'} }}</option>
-                    }
-                    @if (col.type === 'time') {
-                      <option value="CURRENT_TIME">🕐 {{ 'PAC.Workspace.CurrentTime' | translate: {Default: 'Current Time'} }}</option>
-                    }
-                    @if (col.type === 'datetime' || col.type === 'timestamp') {
-                      <option value="CURRENT_TIMESTAMP">📅 {{ 'PAC.Workspace.CurrentTimestamp' | translate: {Default: 'Current Timestamp'} }}</option>
-                    }
+                    <option [ngValue]="undefined">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</option>
+                    <option value="CURRENT_TIMESTAMP">📅 {{ 'PAC.Workspace.CurrentTimestamp' | translate: {Default: 'Current Timestamp'} }}</option>
+                  </select>
+                } @else if (isPostgreSQL() && col.type === 'uuid') {
+                  <select
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    [(ngModel)]="col.defaultValue"
+                    [disabled]="col.isPrimaryKey || col.autoIncrement"
+                  >
+                    <option [ngValue]="undefined">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</option>
+                    <option value="uuid_generate_v4()">🔑 {{ 'PAC.Workspace.UuidGenerateV4' | translate: {Default: 'uuid_generate_v4()'} }}</option>
                   </select>
                 } @else {
                   <input
                     type="text"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     [(ngModel)]="col.defaultValue"
                     [placeholder]="'PAC.Workspace.DefaultValue' | translate: {Default: 'Default value'}"
+                    [disabled]="col.isPrimaryKey || col.autoIncrement"
                   />
                 }
               </div>
 
-              <!-- 删除按钮 -->
-              <div class="flex items-end">
+              <!-- Delete Button -->
+              <div class="flex items-center">
                 <button type="button"
                   (click)="removeColumn(i)"
                   class="px-3 py-2 text-red-500 hover:bg-red-50 border border-transparent hover:border-red-300 rounded-lg transition group"
@@ -337,7 +382,7 @@
       </div>
     </div>
 
-    <!-- 保存按钮 -->
+    <!-- Save Button -->
     <div class="mt-6 text-right">
       <button
         (click)="save()"

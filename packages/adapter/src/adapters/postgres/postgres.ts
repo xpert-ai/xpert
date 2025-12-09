@@ -145,7 +145,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
       columns
     } as QueryResult
     
-    // res.rows 存在 number 类型的结果是 string 的值 (sum(int8) 成了 string)
+    // res.rows may have number type results as string values (e.g., sum(int8) becomes string)
     // columns.filter((column) => column.type === 'number' && typeof res.rows[0]?.[column.name] === 'string')
     //   .forEach((column) => {
     //     data.forEach((row) => row[column.name] = Number(row[column.name]))
@@ -200,7 +200,10 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
 
     const dropTableStatement = `DROP TABLE IF EXISTS ${tableName}`
     const createTableStatement = `CREATE TABLE IF NOT EXISTS ${tableName} (${columns
-      .map((col) => `"${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length)}${col.isKey ? ' PRIMARY KEY' : ''}`)
+      .map((col) => {
+        const colAny = col as any
+        return `"${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length, colAny.precision, colAny.scale || col.fraction, colAny.enumValues)}${col.isKey ? ' PRIMARY KEY' : ''}`
+      })
       .join(', ')})`
     const values = data.map((row, index) => columns.map(({ name, type, length }) => {
       if (row[name] instanceof Date) {
@@ -277,6 +280,29 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     }
   }
 
+  /**
+   * Ensure uuid-ossp extension exists if any column uses uuid_generate_v4()
+   */
+  private async ensureUuidExtension(columns: any[]): Promise<void> {
+    // Check if any column uses uuid_generate_v4() as default value
+    const needsUuidExtension = columns.some((col: any) => {
+      const defaultValue = col.defaultValue?.toString().toLowerCase()
+      return col.type === 'uuid' && defaultValue === 'uuid_generate_v4()'
+    })
+
+    if (needsUuidExtension) {
+      // Check if extension already exists
+      const extensionCheck = await this.runQuery(`
+        SELECT * FROM pg_extension WHERE extname = 'uuid-ossp'
+      `)
+      
+      if (!Array.isArray(extensionCheck.data) || extensionCheck.data.length === 0) {
+        // Create extension if it doesn't exist
+        await this.runQuery(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`)
+      }
+    }
+  }
+
   async tableOp(
     action: DBTableAction,
     params: DBTableOperationParams,
@@ -286,7 +312,9 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
         const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
 
-        // 检查表是否存在
+        // Ensure uuid-ossp extension exists if needed
+        await this.ensureUuidExtension(columns)
+
         // Check if table exists
         const existsResult = await this.runQuery(`
           SELECT table_name 
@@ -297,20 +325,21 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
 
         const exists = Array.isArray(existsResult.data) && existsResult.data.length > 0
 
-        // --- MODE: ERROR → 表存在时报错 ---
+        // --- MODE: ERROR → throw error if table exists ---
         if (exists && createMode === DBCreateTableMode.ERROR) {
           throw new Error(`Table "${tableName}" already exists`)
         }
 
-        // --- MODE: IGNORE → 存在则不处理 ---
+        // --- MODE: IGNORE → do nothing if exists ---
         if (exists && createMode === DBCreateTableMode.IGNORE) {
           return
         }
 
-        // --- MODE: UPGRADE → 自动升级字段 ---
+        // --- MODE: UPGRADE → automatically upgrade columns ---
         if (exists && createMode === DBCreateTableMode.UPGRADE) {
+          // Ensure uuid-ossp extension exists if needed (for new columns)
+          await this.ensureUuidExtension(columns)
           
-          // 获取当前表结构
           // Get current table structure
           const currentCols = await this.runQuery(`
             SELECT column_name, data_type, is_nullable 
@@ -319,8 +348,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
               AND table_name='${table}'
           `)
 
-          // 1. 删除不在目标列表中的字段
-          // Delete columns not in target list
+          // 1. Delete columns not in target list
           const targetColumnNames = columns.map(c => c.fieldName)
           for (const currentCol of currentCols.data) {
             const colName = (currentCol as any).column_name
@@ -329,34 +357,38 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
             }
           }
 
-          // 2. 对比字段，新增/修改字段
-          // Compare columns, add/modify fields
+          // 2. Compare columns, add/modify fields
           for (const col of columns) {
             const existing = currentCols.data.find((c: any) => c.column_name === col.fieldName)
 
-            // 新字段 → ADD COLUMN
             // New field → ADD COLUMN
             if (!existing) {
-              const typeDDL = typeToPGDB(col.type, col.isKey, col.length, col.fraction, col.fraction)
+              const colAny = col as any
+              const typeDDL = typeToPGDB(col.type, col.isKey, col.length, colAny.precision, colAny.scale || col.fraction, colAny.enumValues)
               const notNull = col.required ? ' NOT NULL' : ''
               const unique = !col.isKey && col.unique ? ' UNIQUE' : ''
-              const defaultVal = col.defaultValue ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}` : ''
-              const autoInc = col.autoIncrement && (col.type === 'number' || col.type === 'bigint') ? ' GENERATED ALWAYS AS IDENTITY' : ''
+              // Auto-increment fields should not have default values, empty string is treated as no default
+              const defaultVal = !col.autoIncrement && col.defaultValue && col.defaultValue.trim() ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}` : ''
+              const autoInc = col.autoIncrement && (col.type === 'number' || col.type === 'bigint' || col.type === 'serial' || col.type === 'bigserial') ? ' GENERATED ALWAYS AS IDENTITY' : ''
+              // Add CHECK constraint for ENUM type
+              const enumCheck = col.type === 'enum' && colAny.enumValues && colAny.enumValues.length > 0 
+                ? ` CHECK (${col.fieldName} IN (${colAny.enumValues.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ')}))`
+                : ''
               
-              await this.runQuery(`ALTER TABLE ${tableName} ADD COLUMN "${col.fieldName}" ${typeDDL}${unique}${autoInc}${notNull}${defaultVal}`)
+              // PostgreSQL column order: type PRIMARY KEY GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE DEFAULT CHECK
+              await this.runQuery(`ALTER TABLE ${tableName} ADD COLUMN "${col.fieldName}" ${typeDDL}${autoInc}${notNull}${unique}${defaultVal}${enumCheck}`)
               continue
             }
 
-            // 字段存在，检查类型是否需要更新
             // Field exists, check if type needs to be updated
             const dbDataType = (existing as any).data_type
             const oldAppType = this.pgTypeToAppType(dbDataType)
             const newAppType = col.type
-            const newType = typeToPGDB(col.type, col.isKey, col.length, col.fraction, col.fraction)
+            const colAny = col as any
+            const newType = typeToPGDB(col.type, col.isKey, col.length, colAny.precision, colAny.scale || col.fraction, colAny.enumValues)
 
-            // 比较应用层类型，如果不同则修改
+            // Compare application-level types, modify if different
             if (oldAppType !== newAppType) {
-              // 使用 USING 子句来处理类型转换
               // Use USING clause to handle type conversion
               let usingClause = ''
               
@@ -386,13 +418,20 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
           CREATE TABLE IF NOT EXISTS ${tableName} (
             ${columns
               .map((col) => {
-                const typeDDL = typeToPGDB(col.type, col.isKey, col.length, col.fraction, col.fraction)
+                const colAny = col as any
+                const typeDDL = typeToPGDB(col.type, col.isKey, col.length, colAny.precision, colAny.scale || col.fraction, colAny.enumValues)
                 const pk = col.isKey ? ' PRIMARY KEY' : ''
                 const notNull = col.required ? ' NOT NULL' : ''
-                const unique = !col.isKey && col.unique ? ' UNIQUE' : ''  // 主键已经是唯一的，不需要再加UNIQUE
-                const autoInc = col.autoIncrement && (col.type === 'number' || col.type === 'bigint') ? ' GENERATED ALWAYS AS IDENTITY' : ''
-                const defaultVal = col.defaultValue ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}` : ''
-                return `"${col.fieldName}" ${typeDDL}${pk}${unique}${autoInc}${notNull}${defaultVal}`
+                const unique = !col.isKey && col.unique ? ' UNIQUE' : ''  // Primary key is already unique, no need to add UNIQUE
+                const autoInc = col.autoIncrement && (col.type === 'number' || col.type === 'bigint' || col.type === 'serial' || col.type === 'bigserial') ? ' GENERATED ALWAYS AS IDENTITY' : ''
+                // Auto-increment fields should not have default values, empty string is treated as no default
+                const defaultVal = !col.autoIncrement && col.defaultValue && col.defaultValue.trim() ? ` DEFAULT ${this.formatDefaultValue(col.defaultValue, col.type)}` : ''
+                // Add CHECK constraint for ENUM type
+                const enumCheck = col.type === 'enum' && colAny.enumValues && colAny.enumValues.length > 0 
+                  ? ` CHECK (${col.fieldName} IN (${colAny.enumValues.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ')}))`
+                  : ''
+                // PostgreSQL column order: type PRIMARY KEY GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE DEFAULT CHECK
+                return `"${col.fieldName}" ${typeDDL}${pk}${autoInc}${notNull}${unique}${defaultVal}${enumCheck}`
               })
               .join(', ')}
           )
@@ -422,7 +461,6 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         }
       }
       case DBTableAction.RENAME_TABLE: {
-        // 重命名表
         // Rename table
         const { schema, table, newTable } = params
         const oldTableName = schema ? `"${schema}"."${table}"` : `"${table}"`
@@ -431,7 +469,6 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         return
       }
       case DBTableAction.DROP_TABLE: {
-        // 删除表
         // Drop table
         const { schema, table } = params
         const tableName = schema ? `"${schema}"."${table}"` : `"${table}"`
@@ -503,55 +540,67 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
   }
 
   /**
-   * 格式化默认值
    * Format default value for SQL
    */
   private formatDefaultValue(value: string, type: string): string {
-    // 检查是否是数据库函数（如 CURRENT_TIMESTAMP）
-    // Check if it's a database function
+    // Check if it's a database function (e.g., CURRENT_TIMESTAMP, uuid_generate_v4())
     const upperValue = value.toUpperCase()
-    if (upperValue === 'CURRENT_DATE' || upperValue === 'CURRENT_TIME' || 
-        upperValue === 'CURRENT_TIMESTAMP' || upperValue === 'NOW()') {
-      return upperValue  // 直接返回函数名，不加引号
+    const lowerValue = value.toLowerCase()
+    
+    // PostgreSQL time type default value function mapping
+    const timeFunctions = {
+      'CURRENT_DATE': true,
+      'CURRENT_TIME': true,
+      'CURRENT_TIMESTAMP': true,
+      'NOW()': true,
+      'LOCALTIME': true,
+      'LOCALTIMESTAMP': true
     }
     
-    // 字符串、日期、时间类型加引号
-    if (type === 'string' || type === 'text' || type === 'uuid' || type === 'varchar' ||
-        (type === 'date' && upperValue !== 'CURRENT_DATE') || 
-        (type === 'datetime' && upperValue !== 'CURRENT_TIMESTAMP') ||
-        (type === 'timestamp' && upperValue !== 'CURRENT_TIMESTAMP') ||
-        (type === 'time' && upperValue !== 'CURRENT_TIME')) {
-      return `'${value.replace(/'/g, "''")}'`  // 转义单引号
+    // UUID generation function
+    if (lowerValue === 'uuid_generate_v4()') {
+      return 'uuid_generate_v4()'  // Return function name directly without quotes
     }
+    
+    if (timeFunctions[upperValue]) {
+      return upperValue  // Return function name directly without quotes
+    }
+    
+    // Add quotes for string, date, and time types
+    if (type === 'string' || type === 'text' || type === 'uuid' || type === 'varchar' ||
+        type === 'date' || type === 'datetime' || type === 'timestamp' || type === 'time') {
+      return `'${value.replace(/'/g, "''")}'`  // Escape single quotes
+    }
+    
     if (type === 'boolean' || type === 'bool') {
       return value.toLowerCase() === 'true' ? 'TRUE' : 'FALSE'
     }
-    // number, bigint, decimal, float 等直接返回
+    
+    // Numeric types without quotes
     return value
   }
 
   /**
-   * 将PostgreSQL数据库类型映射回应用类型
    * Map PostgreSQL database type back to application type
    */
   private pgTypeToAppType(dbType: string): string {
     const lowerType = dbType.toLowerCase()
     
-    // 整数类型
+    // Integer types
     if (lowerType === 'integer' || lowerType === 'int' || lowerType === 'int4' || lowerType === 'smallint') {
       return 'number'
     }
     if (lowerType === 'bigint' || lowerType === 'int8' || lowerType.includes('serial')) {
       return 'bigint'
     }
-    // 小数类型
+    // Decimal types
     if (lowerType.includes('decimal') || lowerType.includes('numeric')) {
       return 'decimal'
     }
     if (lowerType.includes('float') || lowerType.includes('double') || lowerType.includes('real')) {
       return 'float'
     }
-    // 字符串类型
+    // String types
     if (lowerType.includes('varchar') || lowerType.includes('char') && !lowerType.includes('character varying')) {
       return 'string'
     }
@@ -561,11 +610,11 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     if (lowerType === 'uuid') {
       return 'uuid'
     }
-    // 布尔类型
+    // Boolean types
     if (lowerType.includes('bool')) {
       return 'boolean'
     }
-    // 时间类型
+    // Time types
     if (lowerType === 'date') {
       return 'date'
     }
@@ -578,12 +627,12 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     if (lowerType.includes('timestamp') || lowerType.includes('timestamptz')) {
       return 'timestamp'
     }
-    // JSON类型
+    // JSON types
     if (lowerType.includes('json')) {
       return 'object'
     }
     
-    return 'string'  // 默认
+    return 'string'  // Default
   }
 
   async teardown() {

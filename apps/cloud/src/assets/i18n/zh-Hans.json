@@ -600,13 +600,21 @@
       "CurrentDate": "当前日期",
       "CurrentTime": "当前时间",
       "CurrentTimestamp": "当前时间戳",
+      "UuidGenerateV4": "uuid_generate_v4()",
       "NoFields": "暂无字段",
       "ClickAddField": "点击上方【新增字段】按钮添加字段",
       "DeleteTableInfo": "此操作将同时删除数据库中的物理表，且不可恢复！",
       "PrimaryKeyShort": "PK",
       "RequiredShort": "必填",
       "UniqueShort": "唯一",
-      "AutoIncrementShort": "自增"
+      "AutoIncrementShort": "自增",
+      "TypeMappingHint": "提示：datetime→DATETIME(MySQL)/TIMESTAMP(PG)，timestamp→TIMESTAMP(MySQL)/TIMESTAMPTZ(PG)",
+      "EnumValues": "枚举值",
+      "EnumValuesPlaceholder": "例如: value1, value2, value3",
+      "EnumValuesRequired": "字段 \"{{fieldName}}\" 选择了 ENUM 类型，必须填写枚举值",
+      "SetValues": "集合值",
+      "SetValuesPlaceholder": "例如: value1, value2, value3",
+      "SetValuesRequired": "字段 \"{{fieldName}}\" 选择了 SET 类型，必须填写集合值"
     },
     "MENU": {
       "Plugins": "插件",

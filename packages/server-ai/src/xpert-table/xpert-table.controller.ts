@@ -3,6 +3,7 @@ import { CrudController, TransformInterceptor } from '@metad/server-core'
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { DeepPartial } from 'typeorm'
 import { XpertDatabasesQuery } from './queries/get-databases.query'
 import { XpertTable } from './xpert-table.entity'
 import { XpertTableService } from './xpert-table.service'
@@ -25,8 +26,8 @@ export class XpertTableController extends CrudController<XpertTable> {
 	 * Create or update table and auto activate (override base POST method)
 	 */
 	@Post()
-	async create(@Body() entity: IXpertTable) {
-		return this.service.upsertTable(entity as any)
+	async create(@Body() entity: DeepPartial<XpertTable>) {
+		return this.service.upsertTable(entity as IXpertTable)
 	}
 
 	/**
@@ -34,8 +35,8 @@ export class XpertTableController extends CrudController<XpertTable> {
 	 * Update table and sync physical table (override base PUT method)
 	 */
 	@Put(':id')
-	async update(@Param('id') id: string, @Body() entity: IXpertTable) {
-		return this.service.upsertTable({ ...entity, id } as any)
+	async update(@Param('id') id: string, @Body() entity: DeepPartial<XpertTable>) {
+		return this.service.upsertTable({ ...(entity as IXpertTable), id })
 	}
 
 	@Get('databases')

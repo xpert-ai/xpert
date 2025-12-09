@@ -2,7 +2,7 @@ import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, model, OnDestroy, OnInit, signal } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, effect, inject, model, OnDestroy, OnInit, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
@@ -113,7 +113,50 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     }
   })
   readonly schema = attrModel(this.table, 'schema')
+  
+  // Track previous database ID to detect changes
+  readonly #previousDatabaseId = signal<string | undefined>(undefined)
   readonly columns = attrModel(this.table, 'columns')
+  
+  // Clear schema when database changes - effect must be in field initializer (injection context)
+  readonly #schemaClearEffect = effect(() => {
+    const databaseId = this.database()
+    const previousDatabaseId = this.#previousDatabaseId()
+    
+    // If database changed, clear schema immediately
+    if (databaseId !== previousDatabaseId && previousDatabaseId !== undefined) {
+      // Database changed, clear schema immediately to avoid mismatch errors
+      // Use setTimeout to ensure this happens after Angular's change detection
+      setTimeout(() => {
+        this.schema.set(undefined)
+        this.#previousDatabaseId.set(databaseId)
+        this.#cdr.markForCheck()
+      }, 0)
+      return
+    }
+    
+    // Update previous database ID if it's the first time
+    if (previousDatabaseId === undefined && databaseId !== undefined) {
+      this.#previousDatabaseId.set(databaseId)
+    }
+    
+    // Also check if current schema is valid in the current database's schema list
+    // Only check after schemas have been loaded (when availableSchemas.length > 0)
+    const currentSchema = this.schema()
+    const availableSchemas = this.schemasOptions()
+    
+    // Wait for schemas to load before validating
+    if (databaseId && currentSchema && availableSchemas.length > 0) {
+      const schemaExists = availableSchemas.some(s => s.value === currentSchema)
+      if (!schemaExists) {
+        // Current schema doesn't exist in the new database, clear it
+        setTimeout(() => {
+          this.schema.set(undefined)
+          this.#cdr.markForCheck()
+        }, 0)
+      }
+    }
+  }, { allowSignalWrites: true })
   
   readonly schemasOptions = computed(() => {
     return (this.#schemasRs.value() || []).map((schema) => ({
@@ -122,14 +165,12 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     }))
   })
 
-  // 下拉框占位符（支持多语言）
   // Placeholder for select components (multi-language support)
   readonly statusPlaceholder = signal('All Status')
   readonly databasePlaceholder = signal('All Databases')
 
-  // 状态选项 - 使用 signal 以支持语言切换
-  // Status options - use signal for language switching
-  readonly statusOptions = signal<TSelectOption[]>([
+  // Status options (use multi-language object, i18n pipe will handle automatically)
+  readonly statusOptions: TSelectOption[] = [
     {
       value: XpertTableStatus.ACTIVE,
       label: {
@@ -172,135 +213,538 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
         zh_Hans: '已弃用'
       }
     }
-  ])
+  ]
 
-  // 基础数据类型（通用）- 使用 signal 以支持语言切换
-  // Basic data types (common) - use signal for language switching
-  readonly types = signal<TSelectOption[]>([
+  // MySQL data types
+  readonly mysqlTypes: TSelectOption[] = [
+    // Numeric types - Integers
     {
-      value: 'string',
+      value: 'tinyint',
       label: {
-        en_US: 'String (VARCHAR)',
-        zh_Hans: '字符串 (VARCHAR)'
+        en_US: 'tinyint',
+        zh_Hans: 'tinyint'
       }
     },
     {
-      value: 'text',
+      value: 'smallint',
       label: {
-        en_US: 'Long Text (TEXT)',
-        zh_Hans: '长文本 (TEXT)'
+        en_US: 'smallint',
+        zh_Hans: 'smallint'
+      }
+    },
+    {
+      value: 'mediumint',
+      label: {
+        en_US: 'mediumint',
+        zh_Hans: 'mediumint'
       }
     },
     {
       value: 'number',
       label: {
-        en_US: 'Integer (INT)',
-        zh_Hans: '整数 (INT)'
+        en_US: 'int',
+        zh_Hans: 'int'
       }
     },
     {
       value: 'bigint',
       label: {
-        en_US: 'Big Integer (BIGINT)',
-        zh_Hans: '大整数 (BIGINT)'
+        en_US: 'bigint',
+        zh_Hans: 'bigint'
+      }
+    },
+    // Numeric types - Floating point
+    {
+      value: 'float',
+      label: {
+        en_US: 'float',
+        zh_Hans: 'float'
+      }
+    },
+    {
+      value: 'double',
+      label: {
+        en_US: 'double',
+        zh_Hans: 'double'
       }
     },
     {
       value: 'decimal',
       label: {
-        en_US: 'Decimal (DECIMAL)',
-        zh_Hans: '小数 (DECIMAL)'
+        en_US: 'decimal',
+        zh_Hans: 'decimal'
+      }
+    },
+    // String types - Fixed/Variable length
+    {
+      value: 'char',
+      label: {
+        en_US: 'char',
+        zh_Hans: 'char'
       }
     },
     {
-      value: 'float',
+      value: 'string',
       label: {
-        en_US: 'Float (FLOAT)',
-        zh_Hans: '浮点数 (FLOAT)'
+        en_US: 'varchar',
+        zh_Hans: 'varchar'
+      }
+    },
+    // String types - Text
+    {
+      value: 'tinytext',
+      label: {
+        en_US: 'tinytext',
+        zh_Hans: 'tinytext'
       }
     },
     {
-      value: 'boolean',
+      value: 'text',
       label: {
-        en_US: 'Boolean',
-        zh_Hans: '布尔值 (BOOLEAN)'
+        en_US: 'text',
+        zh_Hans: 'text'
       }
     },
+    {
+      value: 'mediumtext',
+      label: {
+        en_US: 'mediumtext',
+        zh_Hans: 'mediumtext'
+      }
+    },
+    {
+      value: 'longtext',
+      label: {
+        en_US: 'longtext',
+        zh_Hans: 'longtext'
+      }
+    },
+    // String types - Binary
+    {
+      value: 'tinyblob',
+      label: {
+        en_US: 'tinyblob',
+        zh_Hans: 'tinyblob'
+      }
+    },
+    {
+      value: 'blob',
+      label: {
+        en_US: 'blob',
+        zh_Hans: 'blob'
+      }
+    },
+    {
+      value: 'mediumblob',
+      label: {
+        en_US: 'mediumblob',
+        zh_Hans: 'mediumblob'
+      }
+    },
+    {
+      value: 'longblob',
+      label: {
+        en_US: 'longblob',
+        zh_Hans: 'longblob'
+      }
+    },
+    // String types - Special
+    {
+      value: 'enum',
+      label: {
+        en_US: 'enum',
+        zh_Hans: 'enum'
+      }
+    },
+    {
+      value: 'set',
+      label: {
+        en_US: 'set',
+        zh_Hans: 'set'
+      }
+    },
+    // Date and time types
     {
       value: 'date',
       label: {
-        en_US: 'Date',
-        zh_Hans: '日期 (DATE)'
-      }
-    },
-    {
-      value: 'datetime',
-      label: {
-        en_US: 'DateTime',
-        zh_Hans: '日期时间 (DATETIME)'
-      }
-    },
-    {
-      value: 'timestamp',
-      label: {
-        en_US: 'Timestamp',
-        zh_Hans: '时间戳 (TIMESTAMP)'
+        en_US: 'date',
+        zh_Hans: 'date'
       }
     },
     {
       value: 'time',
       label: {
-        en_US: 'Time',
-        zh_Hans: '时间 (TIME)'
+        en_US: 'time',
+        zh_Hans: 'time'
       }
     },
     {
-      value: 'uuid',
+      value: 'datetime',
       label: {
-        en_US: 'UUID',
-        zh_Hans: 'UUID'
+        en_US: 'datetime',
+        zh_Hans: 'datetime'
       }
     },
+    {
+      value: 'timestamp',
+      label: {
+        en_US: 'timestamp',
+        zh_Hans: 'timestamp'
+      }
+    },
+    {
+      value: 'year',
+      label: {
+        en_US: 'year',
+        zh_Hans: 'year'
+      }
+    },
+    // JSON type
     {
       value: 'object',
       label: {
-        en_US: 'JSON Object',
-        zh_Hans: 'JSON对象'
+        en_US: 'json',
+        zh_Hans: 'json'
+      }
+    },
+    // Spatial types
+    {
+      value: 'geometry',
+      label: {
+        en_US: 'geometry',
+        zh_Hans: 'geometry'
+      }
+    },
+    {
+      value: 'point',
+      label: {
+        en_US: 'point',
+        zh_Hans: 'point'
+      }
+    },
+    {
+      value: 'linestring',
+      label: {
+        en_US: 'linestring',
+        zh_Hans: 'linestring'
+      }
+    },
+    {
+      value: 'polygon',
+      label: {
+        en_US: 'polygon',
+        zh_Hans: 'polygon'
+      }
+    },
+    {
+      value: 'multipoint',
+      label: {
+        en_US: 'multipoint',
+        zh_Hans: 'multipoint'
+      }
+    },
+    {
+      value: 'multilinestring',
+      label: {
+        en_US: 'multilinestring',
+        zh_Hans: 'multilinestring'
+      }
+    },
+    {
+      value: 'multipolygon',
+      label: {
+        en_US: 'multipolygon',
+        zh_Hans: 'multipolygon'
+      }
+    },
+    {
+      value: 'geometrycollection',
+      label: {
+        en_US: 'geometrycollection',
+        zh_Hans: 'geometrycollection'
+      }
+    },
+    // Other
+    {
+      value: 'boolean',
+      label: {
+        en_US: 'boolean',
+        zh_Hans: 'boolean'
       }
     }
-  ])
+  ]
 
   readonly databases$ = this.xpertTableAPI.getDatabases().pipe(
     map((databases) => {
-      return databases.map((db) => ({
+      return databases.map((db: any) => ({
         value: db.id,
-        label: db.name
+        label: db.name,
+        type: db.type  // Store database type (e.g., 'mysql', 'postgres')
       }))
     }),
     shareReplay(1)
   )
 
+  // Store database type map
+  readonly #databaseTypeMap = signal<Map<string, string>>(new Map())
+  
+  // PostgreSQL data types
+  readonly postgresTypes: TSelectOption[] = [
+    // Numeric types - Integers
+    {
+      value: 'smallint',
+      label: {
+        en_US: 'smallint',
+        zh_Hans: 'smallint'
+      }
+    },
+    {
+      value: 'number',
+      label: {
+        en_US: 'integer',
+        zh_Hans: 'integer'
+      }
+    },
+    {
+      value: 'bigint',
+      label: {
+        en_US: 'bigint',
+        zh_Hans: 'bigint'
+      }
+    },
+    {
+      value: 'serial',
+      label: {
+        en_US: 'serial',
+        zh_Hans: 'serial'
+      }
+    },
+    {
+      value: 'bigserial',
+      label: {
+        en_US: 'bigserial',
+        zh_Hans: 'bigserial'
+      }
+    },
+    // Numeric types - Floating point
+    {
+      value: 'real',
+      label: {
+        en_US: 'real',
+        zh_Hans: 'real'
+      }
+    },
+    {
+      value: 'float',
+      label: {
+        en_US: 'double precision',
+        zh_Hans: 'double precision'
+      }
+    },
+    {
+      value: 'decimal',
+      label: {
+        en_US: 'numeric',
+        zh_Hans: 'numeric'
+      }
+    },
+    {
+      value: 'money',
+      label: {
+        en_US: 'money',
+        zh_Hans: 'money'
+      }
+    },
+    // String types
+    {
+      value: 'char',
+      label: {
+        en_US: 'char',
+        zh_Hans: 'char'
+      }
+    },
+    {
+      value: 'string',
+      label: {
+        en_US: 'varchar',
+        zh_Hans: 'varchar'
+      }
+    },
+    {
+      value: 'text',
+      label: {
+        en_US: 'text',
+        zh_Hans: 'text'
+      }
+    },
+    {
+      value: 'bytea',
+      label: {
+        en_US: 'bytea',
+        zh_Hans: 'bytea'
+      }
+    },
+    // Date and time types
+    {
+      value: 'date',
+      label: {
+        en_US: 'date',
+        zh_Hans: 'date'
+      }
+    },
+    {
+      value: 'time',
+      label: {
+        en_US: 'time',
+        zh_Hans: 'time'
+      }
+    },
+    {
+      value: 'timetz',
+      label: {
+        en_US: 'timetz',
+        zh_Hans: 'timetz'
+      }
+    },
+    {
+      value: 'datetime',
+      label: {
+        en_US: 'timestamp',
+        zh_Hans: 'timestamp'
+      }
+    },
+    {
+      value: 'timestamp',
+      label: {
+        en_US: 'timestamptz',
+        zh_Hans: 'timestamptz'
+      }
+    },
+    {
+      value: 'interval',
+      label: {
+        en_US: 'interval',
+        zh_Hans: 'interval'
+      }
+    },
+    // Boolean type
+    {
+      value: 'boolean',
+      label: {
+        en_US: 'boolean',
+        zh_Hans: 'boolean'
+      }
+    },
+    // JSON types
+    {
+      value: 'json',
+      label: {
+        en_US: 'json',
+        zh_Hans: 'json'
+      }
+    },
+    {
+      value: 'object',
+      label: {
+        en_US: 'jsonb',
+        zh_Hans: 'jsonb'
+      }
+    },
+    // UUID type
+    {
+      value: 'uuid',
+      label: {
+        en_US: 'uuid',
+        zh_Hans: 'uuid'
+      }
+    },
+    // Geometric types
+    {
+      value: 'point',
+      label: {
+        en_US: 'point',
+        zh_Hans: 'point'
+      }
+    },
+    {
+      value: 'line',
+      label: {
+        en_US: 'line',
+        zh_Hans: 'line'
+      }
+    },
+    {
+      value: 'circle',
+      label: {
+        en_US: 'circle',
+        zh_Hans: 'circle'
+      }
+    },
+    // XML type
+    {
+      value: 'xml',
+      label: {
+        en_US: 'xml',
+        zh_Hans: 'xml'
+      }
+    }
+  ]
+
+  // Dynamic types based on selected database
+  readonly types = computed(() => {
+    const databaseId = this.database()
+    if (!databaseId) {
+      return []  // Return empty array if no database selected
+    }
+    
+    // Get database type from map
+    const databaseType = this.#databaseTypeMap().get(databaseId)
+    
+    // Normalize database type for comparison (case-insensitive)
+    const normalizedType = databaseType?.toLowerCase() || ''
+    
+    // Return types based on database type
+    // Check for PostgreSQL variants: 'postgres', 'postgresql', 'pg', etc.
+    if (normalizedType.includes('postgres') || normalizedType === 'pg') {
+      return this.postgresTypes
+    } else {
+      // Default to MySQL types
+      return this.mysqlTypes
+    }
+  })
+
   /**
-   * 初始化 - 订阅语言变化事件
    * Initialize - subscribe to language change events
    */
   ngOnInit() {
-    // 初始化翻译文本
     // Initialize translated texts
     this.updateTranslations()
     
-    // 订阅语言变化事件，更新所有翻译文本
     // Subscribe to language change events and update all translated texts
     this.#translate.onLangChange
       .pipe(takeUntil(this.#destroy$))
       .subscribe(() => {
         this.updateTranslations()
-        this.#cdr.markForCheck() // 触发变更检测
+        this.#cdr.markForCheck() // Trigger change detection
+      })
+    
+    // Subscribe to databases to build type map
+    this.databases$
+      .pipe(takeUntil(this.#destroy$))
+      .subscribe((databases) => {
+        const typeMap = new Map<string, string>()
+        databases.forEach((db: any) => {
+          if (db.value && db.type) {
+            typeMap.set(db.value, db.type)
+          }
+        })
+        this.#databaseTypeMap.set(typeMap)
+        // Trigger change detection after map is updated
+        this.#cdr.markForCheck()
       })
   }
   
   /**
-   * 更新所有翻译文本
    * Update all translated texts
    */
   private updateTranslations() {
@@ -311,23 +755,13 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       this.#translate.instant('PAC.Workspace.AllDatabases', {Default: 'All Databases'})
     )
     
-    // 重新创建选项数组，包括每个 label 对象的新引用，以触发 i18n 管道重新计算
-    // Recreate option arrays with new label object references to trigger i18n pipe recalculation
-    const currentStatusOptions = this.statusOptions()
-    this.statusOptions.set(currentStatusOptions.map(opt => ({
-      ...opt,
-      label: { ...opt.label as any }
-    })))
-    
-    const currentTypes = this.types()
-    this.types.set(currentTypes.map(opt => ({
-      ...opt,
-      label: { ...opt.label as any }
-    })))
+    // Note: Do not modify types and statusOptions arrays to avoid breaking CdkListbox internal state
+    // These arrays' labels are already multi-language objects {en_US: '...', zh_Hans: '...'}
+    // i18n pipe will automatically select the correct text based on current language
+    // Just trigger markForCheck() to re-render the view
   }
 
   /**
-   * 销毁 - 清理订阅
    * Destroy - cleanup subscriptions
    */
   ngOnDestroy() {
@@ -342,7 +776,6 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 添加新字段
    * Add new column
    */
   addColumn() {
@@ -356,7 +789,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
         isPrimaryKey: false,
         isUnique: false,
         autoIncrement: false,
-        defaultValue: '',
+        defaultValue: undefined,  // Do not set default value to avoid sending empty string to backend
         length: undefined
       } as TXpertTableColumn
     ]
@@ -364,7 +797,6 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 删除字段
    * Remove column
    */
   removeColumn(index: number) {
@@ -383,10 +815,51 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
       this.table.update((v) => ({ ...v, workspaceId: this.workspace()?.id }))
     }
     
-    // 使用 upsert 方法，如果有 id 则更新，否则创建
+    // Validate ENUM and SET types before saving
+    const columns = this.table().columns || []
+    for (const col of columns) {
+      if (col.type === 'enum') {
+        if (!col.enumValues || col.enumValues.length === 0) {
+          this.#loading.set(false)
+          this.#toastr.danger(
+            this.#translate.instant('PAC.Workspace.EnumValuesRequired', {
+              Default: 'Enum Values is required for ENUM type',
+              fieldName: col.name || this.#translate.instant('PAC.Workspace.FieldName', {Default: 'Field'})
+            })
+          )
+          return
+        }
+      }
+      if (col.type === 'set') {
+        if (!col.setValues || col.setValues.length === 0) {
+          this.#loading.set(false)
+          this.#toastr.danger(
+            this.#translate.instant('PAC.Workspace.SetValuesRequired', {
+              Default: 'Set Values is required for SET type',
+              fieldName: col.name || this.#translate.instant('PAC.Workspace.FieldName', {Default: 'Field'})
+            })
+          )
+          return
+        }
+      }
+    }
+    
+    // Clean field data: remove empty string default values
+    const cleanedTable = {
+      ...this.table(),
+      columns: columns.map(col => ({
+        ...col,
+        // Set empty string or whitespace-only default values to undefined
+        defaultValue: col.defaultValue && col.defaultValue.trim() ? col.defaultValue : undefined,
+        // Keep enumValues and setValues as they are (already validated above)
+        enumValues: col.enumValues && col.enumValues.length > 0 ? col.enumValues : undefined,
+        setValues: col.setValues && col.setValues.length > 0 ? col.setValues : undefined
+      }))
+    }
+    
     // Use upsert method, update if id exists, otherwise create
-    const isUpdate = !!this.table().id
-    this.xpertTableAPI.upsert(this.table()).subscribe({
+    const isUpdate = !!cleanedTable.id
+    this.xpertTableAPI.upsert(cleanedTable).subscribe({
       next: () => {
         this.#loading.set(false)
         const message = isUpdate
@@ -419,11 +892,9 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 删除表（包括物理表）
    * Delete table (including physical table)
    */
   deleteTable(table: IXpertTable) {
-    // 打开确认删除对话框
     // Open confirm delete dialog
     const infoText = this.#translate.instant('PAC.Workspace.DeleteTableInfo', {
       Default: 'This operation will delete the physical table in the database and cannot be recovered!',
@@ -445,7 +916,6 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
             return
           }
 
-          // 执行删除操作
           // Execute delete operation
           this.#loading.set(true)
           this.xpertTableAPI.deleteTable(table.id).subscribe({
@@ -466,7 +936,6 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 获取约束标签的翻译文本
    * Get translated text for constraint labels
    */
   getConstraintLabelText(constraint: 'pk' | 'required' | 'unique' | 'autoIncrement'): string {
@@ -486,4 +955,83 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     
     return this.#translate.instant(translationKeys[constraint], {Default: defaults[constraint]})
   }
+
+  /**
+   * Clear default value when primary key is toggled
+   */
+  onPrimaryKeyChange(col: TXpertTableColumn) {
+    if (col.isPrimaryKey && col.defaultValue) {
+      col.defaultValue = undefined
+    }
+  }
+
+  /**
+   * Clear default value when auto increment is toggled
+   */
+  onAutoIncrementChange(col: TXpertTableColumn) {
+    if (col.autoIncrement && col.defaultValue) {
+      col.defaultValue = undefined
+    }
+  }
+
+  /**
+   * Check if column type supports auto increment
+   */
+  isIntegerType(type: string | undefined): boolean {
+    if (!type) return false
+    const lowerType = type.toLowerCase()
+    // MySQL integer types
+    if (['tinyint', 'smallint', 'mediumint', 'int', 'integer', 'number', 'bigint'].includes(lowerType)) {
+      return true
+    }
+    // PostgreSQL integer types
+    if (['smallint', 'int', 'integer', 'number', 'bigint', 'serial', 'bigserial'].includes(lowerType)) {
+      return true
+    }
+    return false
+    if (!type) return false
+    const integerTypes = ['tinyint', 'smallint', 'mediumint', 'int', 'integer', 'number', 'bigint']
+    return integerTypes.includes(type.toLowerCase())
+  }
+
+  /**
+   * Handle ENUM values change
+   */
+  onEnumValuesChange(col: TXpertTableColumn, event: Event) {
+    const input = event.target as HTMLInputElement
+    const value = input.value.trim()
+    if (value) {
+      col.enumValues = value.split(',').map(v => v.trim()).filter(v => v.length > 0)
+    } else {
+      col.enumValues = undefined
+    }
+  }
+
+  /**
+   * Handle SET values change
+   */
+  onSetValuesChange(col: TXpertTableColumn, event: Event) {
+    const input = event.target as HTMLInputElement
+    const value = input.value.trim()
+    if (value) {
+      col.setValues = value.split(',').map(v => v.trim()).filter(v => v.length > 0)
+    } else {
+      col.setValues = undefined
+    }
+  }
+
+  /**
+   * Check if current database is PostgreSQL
+   */
+  isPostgreSQL(): boolean {
+    const databaseId = this.database()
+    if (!databaseId) {
+      return false
+    }
+    const databaseType = this.#databaseTypeMap().get(databaseId)
+    const normalizedType = databaseType?.toLowerCase() || ''
+    return normalizedType.includes('postgres') || normalizedType === 'pg'
+  }
 }
+
+
