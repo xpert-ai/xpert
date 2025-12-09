@@ -2,7 +2,9 @@ import ShortUniqueId from 'short-unique-id'
 import type * as z3 from "zod/v3";
 import type * as z4 from "zod/v4/core";
 
-export const uuid = new ShortUniqueId({ length: 10 })
+const uuidGenerator = new ShortUniqueId({ length: 10 })
+export const uuid = (...args: Parameters<(typeof uuidGenerator)['randomUUID']>) =>
+  uuidGenerator.randomUUID(...args)
 
 /**
  * @description

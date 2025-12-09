@@ -17,6 +17,11 @@
     [cdkDragData]="node"
   >
     <button mat-icon-button displayDensity="cosy" disabled></button>
+    @if (node.raw.visible === false || node.raw.semantics?.hidden) {
+      <i class="ri-eye-off-line mr-0.5 text-text-tertiary"
+        [matTooltip]="'PAC.MODEL.InvisibleToLLM' | translate: {Default: 'Invisible to LLM'}"
+        matTooltipPosition="above"></i>
+    }
 
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
@@ -58,6 +63,12 @@
         {{ treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right' }}
       </mat-icon>
     </button>
+    @if (node.raw.visible === false || node.raw.semantics?.hidden) {
+      <i class="ri-eye-off-line mr-0.5 text-text-tertiary"
+        [matTooltip]="'PAC.MODEL.InvisibleToLLM' | translate: {Default: 'Invisible to LLM'}"
+        matTooltipPosition="above"
+      ></i>
+    }
     
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 

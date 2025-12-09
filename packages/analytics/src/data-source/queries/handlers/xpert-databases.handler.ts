@@ -14,7 +14,9 @@ export class XpertDatabasesQueryHandler implements IQueryHandler<XpertDatabasesQ
 			.filter((ds) => ds.type?.protocol === query.options.protocol)
 			.map((ds) => ({
 				id: ds.id,
-				name: ds.name
+				name: ds.name,
+				type: ds.type?.type,  // Return database type (e.g., 'mysql', 'postgres')
+				protocol: ds.type?.protocol
 			}))
 	}
 }

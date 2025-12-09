@@ -4,7 +4,15 @@ import { channelName, TMessageChannel, TSummarize } from '@metad/contracts'
 import { v4 as uuidv4 } from 'uuid'
 import { AgentStateAnnotation } from './state'
 
-export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize, agentKey?: string) {
+/**
+ * Create summarize node function for agent's message channel.
+ * 
+ * @param model AI Model
+ * @param summarize Summarize options of Xpert
+ * @param agentKey Agent key (channel)
+ * @returns 
+ */
+export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize, agentKey: string) {
 	return async (state: typeof AgentStateAnnotation.State): Promise<Partial<typeof AgentStateAnnotation.State>> => {
 		const channel = channelName(agentKey)
 		// First, we summarize the conversation

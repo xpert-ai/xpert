@@ -213,6 +213,18 @@ export function hiddenPropertiesAccordion(i18n) {
   }
 }
 
+export function disableEmbeddingMembers(i18n) {
+  return {
+    key: 'disableEmbeddingMembers',
+    type: 'checkbox',
+    className: FORMLY_W_1_2,
+    props: {
+      label: i18n?.DisableEmbeddingMembers ?? 'Disable Embedding Members',
+      description: i18n?.DisableEmbeddingMembersDescription ?? 'When enabled, members of this dimension will not be used in vector store.'
+    }
+  }
+}
+
 export function SQLExpression(COMMON) {
   return {
     key: 'sql',

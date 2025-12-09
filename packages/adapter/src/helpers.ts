@@ -132,61 +132,238 @@ export function pgTypeMap(type: string): string {
  * @param length 
  * @returns 
  */
-export function typeToPGDB(type: string, isKey: boolean, length: number) {
-  switch(type) {
+export function typeToPGDB(type: string, isKey: boolean, length: number, precision?: number, scale?: number, enumValues?: string[]) {
+  const lowerType = type?.toLowerCase()
+  
+  switch(lowerType) {
+    // Numeric types - Integers
+    case 'smallint':
+      return 'SMALLINT'
     case 'number':
-    case 'Number':
-      return 'INT'
-    case 'Numeric':
-      return 'float8'
+    case 'int':
+    case 'integer':
+      return 'INTEGER'
+    case 'bigint':
+      return 'BIGINT'
+    case 'serial':
+      return 'SERIAL'
+    case 'bigserial':
+      return 'BIGSERIAL'
+    
+    // Numeric types - Floating point
+    case 'real':
+      return 'REAL'
+    case 'float':
+    case 'double':
+      return 'DOUBLE PRECISION'
+    case 'decimal':
+    case 'numeric':
+      return `NUMERIC(${precision || 10}, ${scale || 2})`
+    case 'money':
+      return 'MONEY'
+    
+    // String types
+    case 'char':
+    case 'character':
+      return length ? `CHAR(${length})` : 'CHAR(255)'
     case 'string':
-    case 'String':
-      // Max length 3072 btye for primary key
+    case 'varchar':
+    case 'character varying':
       if (length !== null && length !== undefined) {
-        return isKey ? `VARCHAR(${Math.min(length, 768)})` : `VARCHAR(${length})`
+        return `VARCHAR(${length})`
       }
-      return isKey ? 'VARCHAR(768)' : 'VARCHAR(1000)'
+      return 'VARCHAR(200)'
+    case 'text':
+      return 'TEXT'
+    case 'bytea':
+      return 'BYTEA'
+    
+    // Date and time types
     case 'date':
-    case 'Date':
       return 'DATE'
-    case 'Datetime':
+    case 'time':
+      return 'TIME'
+    case 'timetz':
+      return 'TIME WITH TIME ZONE'
     case 'datetime':
       return 'TIMESTAMP'
-    case 'Time':
-      return 'TIME'
+    case 'timestamp':
+      return 'TIMESTAMP WITH TIME ZONE'
+    case 'interval':
+      return 'INTERVAL'
+    
+    // Boolean type
     case 'boolean':
-    case 'Boolean':
+    case 'bool':
       return 'BOOLEAN'
+    
+    // Enum type
+    case 'enum':
+      if (!enumValues || enumValues.length === 0) {
+        throw new Error('ENUM type requires at least one enum value')
+      }
+      // PostgreSQL ENUM requires CREATE TYPE, but for simplicity we'll use VARCHAR with CHECK constraint
+      // In production, you might want to create a proper ENUM type using CREATE TYPE
+      const enumValuesStr = enumValues.map(v => `'${String(v).replace(/'/g, "''")}'`).join(',')
+      // Use VARCHAR with CHECK constraint as a workaround
+      return `VARCHAR(200)`
+    
+    // JSON types
+    case 'json':
+      return 'JSON'
     case 'object':
+    case 'jsonb':
       return 'JSONB'
+    
+    // UUID type
+    case 'uuid':
+      return 'UUID'
+    
+    // Array types
+    case 'array_int':
+      return 'INTEGER[]'
+    case 'array_varchar':
+      return `VARCHAR(${length || 200})[]`
+    case 'array_text':
+      return 'TEXT[]'
+    case 'array_jsonb':
+      return 'JSONB[]'
+    
+    // Geometric types
+    case 'point':
+      return 'POINT'
+    case 'line':
+      return 'LINE'
+    case 'circle':
+      return 'CIRCLE'
+    
+    // XML type
+    case 'xml':
+      return 'XML'
+    
+    // HSTORE type
+    case 'hstore':
+      return 'HSTORE'
+    
     default:
-      return 'VARCHAR(1000)'
+      return 'VARCHAR(200)'
   }
 }
 
-export function typeToMySqlDB(type: string, isKey: boolean, length: number) {
-  switch(type) {
+export function typeToMySqlDB(type: string, isKey: boolean, length: number, precision?: number, scale?: number, enumValues?: string[], setValues?: string[]) {
+  const lowerType = type?.toLowerCase()
+  
+  switch(lowerType) {
+    // Numeric types - Integers
+    case 'tinyint':
+      return 'TINYINT'
+    case 'smallint':
+      return 'SMALLINT'
+    case 'mediumint':
+      return 'MEDIUMINT'
     case 'number':
-    case 'Number':
+    case 'int':
+    case 'integer':
       return 'INT'
-    case 'Numeric':
+    case 'bigint':
+      return 'BIGINT'
+    
+    // Numeric types - Floating point
+    case 'float':
+      return 'FLOAT'
+    case 'double':
       return 'DOUBLE'
+    case 'decimal':
+    case 'numeric':
+      return `DECIMAL(${precision || 10}, ${scale || 2})`
+    
+    // String types - Fixed/Variable length
+    case 'char':
+      return length ? `CHAR(${length})` : 'CHAR(255)'
     case 'string':
-    case 'String':
-      // Max length 3072 btye for primary key
+    case 'varchar':
+      // Max length 3072 byte for primary key
       if (length !== null && length !== undefined) {
         return isKey ? `VARCHAR(${Math.min(length, 768)})` : `VARCHAR(${length})`
       }
-      return isKey ? 'VARCHAR(768)' : 'VARCHAR(1000)'
+      return isKey ? 'VARCHAR(768)' : 'VARCHAR(200)'
+    
+    // String types - Text
+    case 'tinytext':
+      return 'TINYTEXT'
+    case 'text':
+      return 'TEXT'
+    case 'mediumtext':
+      return 'MEDIUMTEXT'
+    case 'longtext':
+      return 'LONGTEXT'
+    
+    // String types - Binary
+    case 'tinyblob':
+      return 'TINYBLOB'
+    case 'blob':
+      return 'BLOB'
+    case 'mediumblob':
+      return 'MEDIUMBLOB'
+    case 'longblob':
+      return 'LONGBLOB'
+    
+    // String types - Special
+    case 'enum':
+      if (!enumValues || enumValues.length === 0) {
+        throw new Error('ENUM type requires at least one enum value')
+      }
+      const enumValuesStr = enumValues.map(v => `'${String(v).replace(/'/g, "''")}'`).join(',')
+      return `ENUM(${enumValuesStr})`
+    case 'set':
+      if (!setValues || setValues.length === 0) {
+        throw new Error('SET type requires at least one set value')
+      }
+      const setValuesStr = setValues.map(v => `'${String(v).replace(/'/g, "''")}'`).join(',')
+      return `SET(${setValuesStr})`
+    
+    // Date and time types
     case 'date':
-    case 'Date':
       return 'DATE'
-    case 'Datetime':
+    case 'time':
+      return 'TIME'
     case 'datetime':
       return 'DATETIME'
+    case 'timestamp':
+      return 'TIMESTAMP'
+    case 'year':
+      return 'YEAR'
+    
+    // JSON type
+    case 'object':
+    case 'json':
+      return 'JSON'
+    
+    // Spatial types
+    case 'geometry':
+      return 'GEOMETRY'
+    case 'point':
+      return 'POINT'
+    case 'linestring':
+      return 'LINESTRING'
+    case 'polygon':
+      return 'POLYGON'
+    case 'multipoint':
+      return 'MULTIPOINT'
+    case 'multilinestring':
+      return 'MULTILINESTRING'
+    case 'multipolygon':
+      return 'MULTIPOLYGON'
+    case 'geometrycollection':
+      return 'GEOMETRYCOLLECTION'
+    
+    // Other
     case 'boolean':
-    case 'Boolean':
-      return 'BOOLEAN'
+    case 'bool':
+      return 'TINYINT(1)'
+    case 'uuid':
+      return 'VARCHAR(36)'
+    
     default:
       return 'VARCHAR(1000)'
   }

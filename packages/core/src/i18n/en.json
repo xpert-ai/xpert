@@ -8,6 +8,7 @@
         "NoHierarchyFoundFor": "No hierarchy found for '{{name}}' in dimension '{{dimension}}'.",
         "PropertyNotFoundInLevel": "Property '{{property}}' not found in level '{{level}}' of cube '{{cube}}'.",
         "CalendarDimensionNotFound": "Can't find calendar dimension in cube '{{cube}}'",
-        "CalendarHierarchyNotFound": "Can't find calendar herarchy in dimension '{{dimension}}'"
+        "CalendarHierarchyNotFound": "Can't find calendar herarchy in dimension '{{dimension}}'",
+        "DimensionEmbeddingDisabled": "Embedding members is disabled for dimension '{{name}}' in cube '{{cube}}', please use slicers of the dimension to filter data."
     }
 }

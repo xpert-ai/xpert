@@ -29,7 +29,7 @@ import {
   LevelCaptionField,
   LevelContext
 } from './dimension'
-import { AggregateFunctions } from './types'
+import { AggregateFunctions, CubeFactTable } from './types'
 import { allMemberCaption, allMemberName, serializeIntrinsicName, serializeMeasureName, serializeTableAlias } from './utils'
 
 /**
@@ -124,20 +124,6 @@ export interface CubeContext {
   filterString?: string
 }
 
-export function CubeFactTable(cube: Cube) {
-  const tableName = cube.fact?.table?.name
-  if (!tableName) {
-    throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
-  }
-  // if (!cube.tables?.[0]?.name) {
-  //   throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
-  // }
-  /**
-   * @todo 支持 SQL View 作为事实表
-   */
-  return tableName
-}
-
 export function CubeFactTableAlias(cube: Cube) {
   const tableName = CubeFactTable(cube)
   return serializeTableAlias(cube.name, tableName)
@@ -219,7 +205,7 @@ export function buildCubeContext(
 
 /**
  * Build Dimension Context in Cube
- * 从返回结果为对象数组形式来说, 当选择同一个 Hierarchy 多个层级时, 他们的成员都是属于同一列不同行;
+ * Since the returned result is an array of objects, when multiple levels of the same hierarchy are selected, their members all belong to the same column but different rows;
  *
  * @param context
  * @param entityType

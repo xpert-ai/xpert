@@ -59,6 +59,7 @@ ${getHierarchyLevels(item).filter((level) => level.levelType !== RuntimeLevelTyp
 
   context += markdownMeasures(entityType)
   context += markdownParameters(entityType)
+  context += markdownEmbeddingMembers(entityType)
 
   return context
 }
@@ -151,6 +152,18 @@ export function markdownCalculationParams(entityType: EntityType, name: string) 
   const store = {}
   const params = getPropertyDependParameters(entityType, name, store)
   return params.length ? `depend_parameters: ${params.map((param) => `\`${param}\``).join(', ')}` : ''
+}
+
+function markdownEmbeddingMembers(entityType: EntityType) {
+  let context = ''
+  const dimensions = getEntityDimensions(entityType).filter((_) => _.semantics?.disableEmbeddingMembers)
+  if (dimensions.length) {
+    context += `\nThe following dimension's member embedding functionality is disabled; please use their slicers for data filtering.:\n` +
+    dimensions.map((dimension) =>
+      `  - name: "${dimension.name}"`
+    ).join('\n')
+  }
+  return context
 }
 
 function getPropertyDependParameters(entityType: EntityType, name: string, store: Record<string, string[]>) {

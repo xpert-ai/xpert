@@ -9,7 +9,7 @@ import { FormlyFieldConfig } from '@ngx-formly/core'
 import { Observable, combineLatest, firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, filter, map, switchMap, tap } from 'rxjs/operators'
 import { CubeSchemaService } from './cube.schema'
-import { SemanticsAccordionWrapper } from '@cloud/app/@shared/model'
+import { disableEmbeddingMembers, SemanticsAccordionWrapper } from '@cloud/app/@shared/model'
 
 @Injectable()
 export class DimensionSchemaService<T extends EntityProperty = PropertyDimension> extends CubeSchemaService<T> {
@@ -249,9 +249,13 @@ export function DimensionModeling(
           }
         ]
       },
-      // Dimension 应该没有 KeyExpression
+      // Dimension should not have KeyExpression
       // KeyExpression(COMMON),
-      ...SemanticsAccordionWrapper(COMMON, helpWebsite + '/docs/models/dimension-designer/semantics/')
+      ...SemanticsAccordionWrapper(
+        COMMON,
+        helpWebsite + '/docs/models/dimension-designer/semantics/',
+        disableEmbeddingMembers(COMMON)
+      )
     ]
   }
 }

@@ -49,6 +49,13 @@ RUN yarn build:cloud:prod
 # ==================================================== Stage ==========================================================#
 FROM nginx:alpine AS production
 
+ARG NODE_OPTIONS
+ARG NODE_ENV
+ARG API_BASE_URL
+ARG HOST
+ARG PORT
+ARG DEMO
+
 WORKDIR /srv/pangolin
 
 COPY --chown=nginx:nginx --from=build /wait ./

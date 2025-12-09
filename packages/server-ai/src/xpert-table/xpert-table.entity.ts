@@ -1,4 +1,4 @@
-import { IXpertTable, XpertTableStatus } from '@metad/contracts'
+import { IXpertTable, TXpertTableColumn, XpertTableStatus } from '@metad/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, DeleteDateColumn, Entity } from 'typeorm'
@@ -7,21 +7,21 @@ import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 /**
  * XpertTable
  * ==============
- * 这是自定义数据库表（Meta 层）的定义实体
- * 一个 Workspace 可以包含多个自定义表
+ * This is the entity definition for custom database tables (Meta layer)
+ * A Workspace can contain multiple custom tables
  */
 @Entity('xpert_table')
 export class XpertTable extends WorkspaceBaseEntity implements IXpertTable {
 	/*
 	|--------------------------------------------------------------------------
-	| 逻辑表定义（Meta）
+	| Logical Table Definition (Meta)
 	|--------------------------------------------------------------------------
 	*/
 
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@Column({ length: 100 })
-	name: string // 逻辑表名（用户侧看到的名称，如 "customer_orders"）
+	name: string // Logical table name (user-facing name, e.g., "customer_orders")
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -45,18 +45,13 @@ export class XpertTable extends WorkspaceBaseEntity implements IXpertTable {
 	@IsObject()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	columns?: {
-		name: string
-		type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'json'
-		label?: string
-		required?: boolean
-	}[]
+	columns?: TXpertTableColumn[]
 
 	/*
-    |--------------------------------------------------------------------------
-    | 状态控制（用于激活物理表 / 版本迁移）
-    |--------------------------------------------------------------------------
-    */
+	|--------------------------------------------------------------------------
+	| Status Control (for physical table activation / version migration)
+	|--------------------------------------------------------------------------
+	*/
 
 	@ApiProperty({ enum: XpertTableStatus })
 	@IsEnum(XpertTableStatus)
@@ -71,11 +66,11 @@ export class XpertTable extends WorkspaceBaseEntity implements IXpertTable {
 
 	/*
 	|--------------------------------------------------------------------------
-	| 物理表结构信息（Physical Table）
+	| Physical Table Structure Information (Physical Table)
 	|--------------------------------------------------------------------------
-	| physicalSchema: 专用 schema，例如 "xpert_data"
-	| physicalTableName: 系统生成的物理表名称
-	| version: schema version（默认1，修改字段后会+1）
+	| physicalSchema: Dedicated schema, e.g., "xpert_data"
+	| physicalTableName: System-generated physical table name
+	| version: Schema version (default 1, increments by 1 after field modifications)
 	|--------------------------------------------------------------------------
 	*/
 

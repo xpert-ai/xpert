@@ -20,9 +20,8 @@ import {
   Table
 } from '@metad/ocap-core'
 import {t} from 'i18next'
-import { CubeFactTable } from './cube'
 import { Cast } from './functions'
-import { AggregateFunctions, C_MEASURES_ROW_COUNT } from './types'
+import { AggregateFunctions, C_MEASURES_ROW_COUNT, CubeFactTable } from './types'
 import { allMemberCaption, allMemberName, isSQLDialect, serializeIntrinsicName, serializeName, serializeTableAlias, serializeUniqueName } from './utils'
 
 export interface ColumnContext {
@@ -47,7 +46,7 @@ export interface OrderByColumn extends ColumnContext {
 
 export interface LevelContext {
   /**
-   * 查询的层级 Schema
+   * Queried level schema
    */
   level?: PropertyLevel
   selectFields: Array<DimensionField>
@@ -68,21 +67,21 @@ export interface DimensionContext {
    */
   factTable?: string
   /**
-   * 请求中的维度 {@link Dimension}
+   * Dimension in request {@link Dimension}
    */
   dimension?: Dimension
   /**
-   * 查询的维度 Schema: {@link PropertyDimension }
+   * Queried dimension Schema: {@link PropertyDimension }
    */
   schema?: PropertyDimension
   /**
-   * 查询的层级结构 Schema
+   * Queried hierarchy schema
    */
   hierarchy?: PropertyHierarchy
   dimensionTable?: string
 
   /**
-   * 这个是谁的别名 ?
+   * Alias for what?
    */
   alias?: string
   selectFields: Array<DimensionField>
@@ -90,7 +89,7 @@ export interface DimensionContext {
   parentColumn?: string
   role: 'row' | 'column'
   levels?: Array<LevelContext>
-  // 最终输出结果的字段们
+  // Final output result fields
   columns?: string[]
   keyColumn?: string
   captionColumn?: string
@@ -344,7 +343,7 @@ export function DimensionMembers(
 
   const hierarchy = getEntityHierarchy(entityType, dimension)
   if (!hierarchy) {
-    throw new Error(`未找到维度'${dimension.dimension}'或层级结构'${dimension.hierarchy}'`)
+    throw new Error(`Can't find dimension '${dimension.dimension}' or hierarchy '${dimension.hierarchy}'`)
   }
   const cube = schema.cubes?.find((item) => item.name === entity)
   const factTable = cube ? CubeFactTable(cube) : null
@@ -355,11 +354,11 @@ export function DimensionMembers(
 }
 
 /**
- * 取层级的 Caption 的运行时 SQL 字段配置
+ * Get the runtime SQL field configuration for level caption
  * 
- * @param table 维度表
- * @param level 层级属性配置
- * @param dialect 数据库方言
+ * @param table dimension table
+ * @param level level property configuration
+ * @param dialect database dialect
  * @returns 
  */
 export function LevelCaptionField(table: string, level: PropertyLevel, dialect: string) {
@@ -370,7 +369,7 @@ export function LevelCaptionField(table: string, level: PropertyLevel, dialect: 
     return {
       table,
       column: captionColumn,
-      expression: level.captionExpression.sql.content, // 需要判断 dialect
+      expression: level.captionExpression.sql.content, // Need to check dialect
       // alias: serializeIntrinsicName(dialect, level.hierarchy, IntrinsicMemberProperties.MEMBER_CAPTION)
     }
   } else if (captionColumn) {
@@ -402,7 +401,7 @@ export function buildDimensionContext(
 ): DimensionContext {
   const property = getEntityProperty(entityType, row)
   if (!property) {
-    throw new Error(`未找到维度'${row.dimension}'`)
+    throw new Error(`Can't find dimension '${row.dimension}'`)
   }
 
   context.selectFields = context.selectFields ?? []
@@ -413,10 +412,10 @@ export function buildDimensionContext(
     row.hierarchy ? item.name === row.hierarchy : item.name === row.dimension
   )
   if (!_hierarchy) {
-    throw new Error(`未找到层级结构'${row.hierarchy || row.dimension}'`)
+    throw new Error(`Can't find hierarchy '${row.hierarchy || row.dimension}'`)
   }
   if (context.hierarchy && context.hierarchy.name !== _hierarchy.name) {
-    throw new Error(`不能同时查询不同层级结构`)
+    throw new Error(`Can't query different hierarchies at the same time`)
   }
   context.hierarchy = _hierarchy
 
@@ -459,7 +458,7 @@ export function buildDimensionContext(
       alias: level.memberCaption
     })
 
-    // 这里是自循环的 ParentChild
+    // This is a self-referential ParentChild
     if (level.parentColumn) {
       context.parentKeyColumn = level.column
       context.parentColumn = level.parentColumn
@@ -467,7 +466,7 @@ export function buildDimensionContext(
       context.selectFields.push({
         table: parentTable,
         columns: memberUniqueNameColumns.map((column) => ({ ...column, table: parentTable })),
-        alias: serializeIntrinsicName(dialect, level.name, 'PARENT_UNIQUE_NAME') // 先与 MDX 命名保持一致
+        alias: serializeIntrinsicName(dialect, level.name, 'PARENT_UNIQUE_NAME') // Keep consistent with MDX naming for now
       })
     }
 
@@ -488,7 +487,7 @@ export function buildDimensionContext(
       column: level.ordinalColumn || level.nameColumn || level.column
     })
   } else {
-    throw new Error(`找不到 Level ${row.level}`)
+    throw new Error(`Can't find Level ${row.level}`)
   }
 
   return context
@@ -596,7 +595,7 @@ export function queryDimension(
 }
 
 /**
- * Serialize dimension contexts to goup by sql statement
+ * Serialize dimension contexts to group by sql statement
  * 
  * @param dimensions Dimension Contexts
  * @param dialect db dialect
