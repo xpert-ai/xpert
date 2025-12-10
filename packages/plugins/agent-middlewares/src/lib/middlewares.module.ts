@@ -3,7 +3,6 @@ import { CqrsModule } from '@nestjs/cqrs';
 import chalk from 'chalk';
 import { TodoListMiddleware } from './todoListMiddleware';
 import { SummarizationMiddleware } from './summarization';
-import { ContextEditingMiddleware } from './contextEditing';
 
 @XpertServerPlugin({
 	/**
@@ -19,7 +18,6 @@ import { ContextEditingMiddleware } from './contextEditing';
     providers: [
 		SummarizationMiddleware,
         TodoListMiddleware,
-        ContextEditingMiddleware
     ],
 })
 export class AgentMiddlewaresModule implements IOnPluginBootstrap, IOnPluginDestroy {

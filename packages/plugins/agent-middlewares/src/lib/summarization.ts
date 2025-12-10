@@ -11,6 +11,7 @@ import {
   HumanMessage,
   isSystemMessage,
   isAIMessage,
+  mapChatMessagesToStoredMessages,
 } from "@langchain/core/messages";
 import {
   BaseLanguageModel,
@@ -24,7 +25,7 @@ import { REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 import { AgentMiddleware, AgentMiddlewareStrategy, CreateModelClientCommand, IAgentMiddlewareContext, IAgentMiddlewareStrategy, WrapWorkflowNodeExecutionCommand } from "@xpert-ai/plugin-sdk";
-import { AiModelTypeEnum, ICopilotModel, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@metad/contracts";
+import { AiModelTypeEnum, ICopilotModel, JSONValue, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@metad/contracts";
 import { isNil, omitBy } from "lodash";
 import { countTokensApproximately, hasToolCalls } from "./utils";
 
@@ -436,15 +437,15 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
           return;
         }
 
-        const configurable: TAgentRunnableConfigurable = runtime.configurable
-				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
-        return await this.commandBus.execute(new WrapWorkflowNodeExecutionCommand(async () => {
-          const { messagesToSummarize, preservedMessages } = partitionMessages(
+        const { messagesToSummarize, preservedMessages } = partitionMessages(
             systemPrompt,
             conversationMessages,
             cutoffIndex
           );
 
+        const configurable: TAgentRunnableConfigurable = runtime.configurable
+				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
+        return await this.commandBus.execute(new WrapWorkflowNodeExecutionCommand(async () => {
           const summary = await createSummary(
             messagesToSummarize,
             model,
@@ -465,19 +466,20 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
 
           return {
             state: {
-              summary: summaryMessage.content,
+              // summary: summaryMessage.content,
               messages: [
                 new RemoveMessage({ id: REMOVE_ALL_MESSAGES }),
                 summaryMessage,
                 ...preservedMessages,
               ],
-            }
+            },
+            output: summaryMessage.content as JSONValue
           };
         }, {
           execution: {
             category: 'workflow',
             type: WorkflowNodeTypeEnum.MIDDLEWARE,
-            inputs: {},
+            inputs: mapChatMessagesToStoredMessages(messagesToSummarize),
             parentId: executionId,
             threadId: thread_id,
             checkpointNs: checkpoint_ns,
