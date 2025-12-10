@@ -5,8 +5,7 @@
   "scripts": {
     "start": "nx serve",
     "build": "nx build",
-    "test": "nx test",
-    "build:all": "yarn rimraf dist && yarn nx build contracts && yarn nx build common && yarn nx build config && yarn nx build auth && yarn nx build server && yarn nx build adapter && yarn nx build analytics && yarn nx build api"
+    "test": "nx test"
   },
   "private": true,
   "dependencies": {
@@ -39,6 +38,7 @@
   "resolutions": {
     "@langchain/core": "0.3.72",
     "langchain": "0.3.31",
-    "zod": "3.25.67"
+    "zod": "3.25.67",
+    "web-streams-polyfill": "^4.2.0"
   }
 }

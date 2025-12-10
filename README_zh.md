@@ -128,9 +128,9 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 
 此软件在以下许可下可用：
 
-- [Xpert AI 平台社区版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-community-edition-license)
-- [Xpert AI 平台企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
-- [Xpert AI 平台企业专业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
+- [Xpert AI 平台社区版](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-community-edition-license)
+- [Xpert AI 平台企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-small-business-license)
+- [Xpert AI 平台企业专业版](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-enterprise-license)
 
 #### 请参阅 [LICENSE](LICENSES.md) 以获取有关许可的更多信息。
 

@@ -23,7 +23,16 @@
         "assets": [],
         "project": "packages/plugins/agent-middlewares/package.json",
         "compiler": "swc",
-        "format": ["cjs", "esm"]
+        "format": ["cjs", "esm"],
+        "external": [
+          "@nestjs/common",
+          "@nestjs/core",
+          "@nestjs/microservices",
+          "kafkajs",
+          "amqplib",
+          "mqtt",
+          "nats"
+        ]
       }
     },
     "nx-release-publish": {
