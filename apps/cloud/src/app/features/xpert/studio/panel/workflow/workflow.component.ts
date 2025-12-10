@@ -36,6 +36,7 @@ import { XpertWorkflowToolComponent } from './tool/tool.component'
 import { XpertWorkflowAssignerComponent } from './assigner/assigner.component'
 import { XpertWorkflowAgentToolComponent } from './agent-tool/tool.component'
 import { XpertWorkflowTaskComponent } from './task/task.component'
+import { XpertWorkflowSkillComponent } from './skill/skill.component'
 import { XpertWorkflowTriggerComponent } from './trigger/trigger.component'
 import { XpertWorkflowTriggerTestComponent } from './trigger-test/trigger.component'
 import { XpertWorkflowSourceComponent } from './source/source.component'
@@ -53,6 +54,7 @@ import { XpertWorkflowPanelDBDeleteComponent } from './db-delete/db-delete.compo
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { XpertWorkflowPanelJSONStringifyComponent } from './json-stringify/json-stringify.component'
 import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.component'
+import { XpertWorkflowMiddlewareComponent } from './middleware/middleware.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -87,6 +89,7 @@ import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.co
     XpertWorkflowAgentToolComponent,
     XpertWorkflowAssignerComponent,
     XpertWorkflowTaskComponent,
+    XpertWorkflowSkillComponent,
     XpertWorkflowTriggerComponent,
     XpertWorkflowTriggerTestComponent,
     XpertWorkflowSourceComponent,
@@ -102,7 +105,8 @@ import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.co
     XpertWorkflowPanelDBSQLComponent,
     XpertWorkflowPanelDBDeleteComponent,
     XpertWorkflowPanelJSONStringifyComponent,
-    XpertWorkflowPanelJSONParseComponent
+    XpertWorkflowPanelJSONParseComponent,
+    XpertWorkflowMiddlewareComponent
   ],
   animations: [IfAnimation,]
 })

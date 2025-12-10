@@ -1,5 +1,5 @@
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { AIModelEntity, ICopilot, ICopilotModel, ILLMUsage, ParameterType } from "@metad/contracts"
+import { AIModelEntity, ICopilot, ICopilotModel, ILLMUsage, ParameterType, PriceInfo, PriceType } from "@metad/contracts"
 
 
 export type TChatModelOptions = {
@@ -20,6 +20,12 @@ export interface IAIModel {
     validateCredentials(model: string, credentials: Record<string, any>): Promise<void>
     getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions): BaseChatModel
     predefinedModels(): AIModelEntity[]
+    getPrice(
+		model: string,
+		credentials: Record<string, any>,
+		priceType: PriceType,
+		tokens: number
+	): PriceInfo
 }
 
 export const CommonParameterRules = [

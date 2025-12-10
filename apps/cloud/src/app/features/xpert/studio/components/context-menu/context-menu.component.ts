@@ -57,7 +57,12 @@ import {
   genXpertDBSqlKey,
   IWorkflowNodeDBOperation,
   genJSONStringifyKey,
-  genJSONParseKey
+  genJSONParseKey,
+  IWFNSkill,
+  genXpertSkillKey,
+  IWFNMiddleware,
+  genXpertMiddlewareKey,
+  injectXpertAgentAPI
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -108,6 +113,7 @@ export class XpertStudioContextMenuComponent {
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly apiService = inject(XpertStudioApiService)
+  readonly agentAPI = injectXpertAgentAPI()
   readonly selectionService = inject(SelectionService)
   private root = inject(XpertStudioComponent)
   readonly #cdr = inject(ChangeDetectorRef)
@@ -135,6 +141,7 @@ export class XpertStudioContextMenuComponent {
   readonly transformers$ = this.knowledgebaseAPI.documentTransformerStrategies$
   readonly imageUnderstandings$ = this.knowledgebaseAPI.understandingStrategies$.pipe(map((items) => items.map((_) => _.meta)))
   readonly textSplitters$ = this.knowledgebaseAPI.textSplitterStrategies$
+  readonly agentMiddlewares$ = this.agentAPI.agentMiddlewares$
 
   public ngOnInit(): void {
     this.subscriptions.add(this.subscribeToSelectionChanges())
@@ -497,5 +504,25 @@ export class XpertStudioContextMenuComponent {
       key,
       title,
     } as IWorkflowNodeDBOperation)
+  }
+
+  // Pro
+  addSkill() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.SKILL).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.SKILL,
+      key: genXpertSkillKey(),
+      title: this.#translate.instant('PAC.Workflow.Skill', { Default: 'Skill' }) + (length ? ` ${length + 1}` : ''),
+    } as IWFNSkill)
+  }
+
+  addMiddleware(provider: string) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.MIDDLEWARE).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.MIDDLEWARE,
+      key: genXpertMiddlewareKey(),
+      title: this.#translate.instant('PAC.KEY_WORDS.Middleware', { Default: 'Middleware' }) + (length ? ` ${length + 1}` : ''),
+      provider,
+    } as IWFNMiddleware)
   }
 }

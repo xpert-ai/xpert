@@ -1,8 +1,8 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ParameterRule, PriceInfo, PriceType, } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ModelFeature, ParameterRule, PriceInfo, PriceType, } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import { yaml } from '@metad/server-common';
-import { IAIModel } from '@xpert-ai/plugin-sdk';
+import { IAIModel, ModelProfile } from '@xpert-ai/plugin-sdk';
 import * as fs from 'fs'
 import * as path from 'path'
 import { ModelProvider } from './ai-provider'
@@ -199,6 +199,17 @@ export abstract class AIModel implements IAIModel {
 			...(this._commonParameterRules(model) ?? []),
 			...parameterRules.filter((_) => !CommonParameterRules.some((r) => r.name === _.name))
 		]
+	}
+
+	getModelProfile(model: string, credentials: unknown): ModelProfile {
+		const modelSchema = this.getModelSchema(model, credentials)
+		return modelSchema && {
+			maxInputTokens: modelSchema.model_properties?.context_size,
+			toolCalling: modelSchema.features?.includes(ModelFeature.TOOL_CALL) ||
+				modelSchema.features?.includes(ModelFeature.MULTI_TOOL_CALL) ||
+				  modelSchema.features?.includes(ModelFeature.STREAM_TOOL_CALL),
+			structuredOutput: modelSchema.features?.includes(ModelFeature.STRUCTURED_OUTPUT),
+		}
 	}
 }
 

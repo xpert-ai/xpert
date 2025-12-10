@@ -22,7 +22,8 @@
 
 | 字段名            | 类型     | 说明                                                                                                                       |
 | -------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `component`    | string | 指定 UI 组件类型，如 `textInput`, `textarea`, `select`, `switch`, `slider`, `promptEditor`, `modelProviderSelect`, `modelSelect` |
+| `component`    | string | 指定 UI 组件类型，如 `textInput`, `textarea`, `select`, `switch`, `slider`, `prompt-editor`, `ai-model-select` |
+| `inputs`       | object | 自定义组件的额外输入属性值  |
 | `label`        | string | UI 展示的标签                                                                                                                 |
 | `description`  | string | UI 展示的帮助文本，优先覆盖 schema.description                                                                                       |
 | `help`         | string | 额外提示信息，如 tooltip，前端会按需展示小问号或工具提示                                                                             |

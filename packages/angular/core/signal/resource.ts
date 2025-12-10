@@ -1,6 +1,7 @@
 import { computed, CreateComputedOptions, DestroyRef, effect, inject, signal, untracked } from '@angular/core'
 import { Observable, Subscription } from 'rxjs'
 import { getErrorMessage } from '../helpers'
+import { debouncedSignal } from './debounced-signal'
 
 export type ResourceStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -54,7 +55,7 @@ export function myResource<TReq, TRes>(options: ResourceOptions<TReq, TRes>) {
 
 interface RxResourceOptions<TReq, TRes> {
   request: () => TReq
-  options?: CreateComputedOptions<TReq>
+  options?: CreateComputedOptions<TReq> & {debounceTime?: number}
   loader: (args: { request: TReq }) => Observable<TRes>
 }
 
@@ -68,9 +69,10 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
   const statusSig = signal<ResourceStatus>('idle')
   const refreshTrigger = signal(0)
 
-  const requestSig = computed(() => {
-    return options.request()
-  }, options.options)
+  let requestSig = computed(() => options.request(), options.options)
+  if (options.options?.debounceTime) {
+    requestSig = debouncedSignal(requestSig, options.options.debounceTime)
+  }
 
   let currentSub: Subscription | null = null
 

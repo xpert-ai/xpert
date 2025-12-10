@@ -20,6 +20,7 @@ export class WorkflowBaseNodeComponent {
   
   readonly xpertCopilotModel = computed(() => this.studioService.viewModel()?.team.copilotModel)
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
+  readonly connections = computed(() => this.studioService.viewModel().connections)
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
       .filter((_) => _.type === 'agent' || _.type === 'workflow')

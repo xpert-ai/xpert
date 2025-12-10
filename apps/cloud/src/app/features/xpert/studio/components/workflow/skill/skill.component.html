@@ -1,0 +1,14 @@
+<div fNodeInput [fInputId]="node().key" fInputConnectableSide="top" class="top absolute"></div>
+
+<div class="node-output-bottom flex items-center gap-2 h-3 absolute -bottom-[8px] left-1/2 -ml-2">
+  <div fNodeOutput [fOutputId]="node().key + '/agent'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()">
+    <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectAgents' | translate: {Default: 'Connect Agents'}" matTooltipPosition="above">
+      <i class="ri-add-line w-2 h-2 flex justify-center items-center text-white"></i>
+    </div>
+  </div>
+</div>
+  
+<div class="flex flex-wrap items-center gap-1 py-2 text-left">
+ 
+</div>

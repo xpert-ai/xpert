@@ -382,13 +382,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							)
 						const transformGraphEvent = createMapStreamEvents(this.#logger, subscriber, {
 								xperts: project?.xperts,
-								disableOutputs: [
-									GRAPH_NODE_TITLE_CONVERSATION
-								],
-								mute: [
-									...mute,
-									[GRAPH_NODE_TITLE_CONVERSATION]
-								]
+								// mute: [
+								// 	...mute,
+								// 	[GRAPH_NODE_TITLE_CONVERSATION]
+								// ],
+								unmutes: [],
 							})
 						for await (const event of stream) {
 							const messageContent = transformGraphEvent(event)

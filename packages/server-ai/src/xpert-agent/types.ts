@@ -1,6 +1,11 @@
-import { TWFCaseCondition, WorkflowComparisonOperator } from '@metad/contracts'
+import { TWFCaseCondition, WorkflowComparisonOperator, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { isEmpty } from '@metad/server-common'
 import { get } from 'lodash'
+
+export const AgenticWorkflowTypes = [
+	WorkflowNodeTypeEnum.AGENT_TOOL,
+	WorkflowNodeTypeEnum.MIDDLEWARE
+]
 
 export const evaluateCondition = (condition: TWFCaseCondition, stateEnv) => {
 	const stateValue = get(stateEnv, condition.variableSelector)

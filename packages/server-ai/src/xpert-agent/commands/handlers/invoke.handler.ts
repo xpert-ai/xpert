@@ -64,6 +64,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const userId = RequestContext.currentUserId()
 		const user = RequestContext.currentUser()
 		const mute = [] as TXpertAgentConfig['mute']
+		let unmutes = [] as TXpertAgentConfig['mute']
 
 		// Env
 		if (!options.environment && xpert.environmentId) {
@@ -72,10 +73,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		}
 
 		const abortController = new AbortController()
-		const { graph, agent } = await this.commandBus.execute<
-			CompileGraphCommand,
-			{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
-		>(
+		const { graph, agent, xpertGraph } = await this.commandBus.execute(
 			new CompileGraphCommand(agentKeyOrName, xpert, {
 				...options,
 				execution,
@@ -102,10 +100,22 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		
 		const team = agent.team
 
-		// mute
+		// Unmutes
+		xpertGraph.nodes.filter((n) => n.type === 'agent').forEach((node) => {
+			unmutes.push([node.key, team.id])
+		})
 		if (team.agentConfig?.mute?.length) {
 			mute.push(...team.agentConfig.mute)
 		}
+		// Remove unmutes from mute list
+		mute.forEach((m) => {
+			unmutes = unmutes.filter((um) => {
+				if (m.every((value) => um.includes(value))) {
+					return false
+				}
+				return true
+			})
+		})
 
 		const thread_id = command.options.thread_id
 		const config = {
@@ -212,16 +222,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		).pipe(
 			map(
 				createMapStreamEvents(this.#logger, subscriber, {
-					mute: [
-						...mute,
-						[GRAPH_NODE_TITLE_CONVERSATION],
-						['summarize_conversation']
-					],
-					disableOutputs: [
-						...(team.agentConfig?.disableOutputs ?? []),
-						GRAPH_NODE_TITLE_CONVERSATION,
-						'summarize_conversation'
-					],
+					unmutes,
 					agent
 				})
 			),

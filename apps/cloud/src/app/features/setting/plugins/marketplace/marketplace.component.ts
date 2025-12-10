@@ -48,7 +48,7 @@ export class PluginsMarketplaceComponent {
   readonly keywords = model<string[]>([])
   readonly searchModel = model<string>('')
   readonly searchText = debouncedSignal(this.searchModel, 300)
-  readonly categories = model<Array<'model' | 'toolset' | 'integration' | 'vector-store' | 'doc-source'>>([])
+  readonly categories = model<Array<'model' | 'toolset' | 'integration' | 'vector-store' | 'doc-source' | 'middleware'>>([])
 
   readonly plugins = computed(() => {
     const keywords = this.keywords()

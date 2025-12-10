@@ -61,7 +61,7 @@ export class ChatMessageContentComponent {
             ...state,
             ...blocks.slice(0, -1)
           ])
-          this.frozenText += blocks.slice(0, -1).join('\n') + '\n'
+          this.frozenText += blocks.slice(0, -1).join('\n\n')
           this.streaming.set(blocks[blocks.length - 1])
         } else {
           this.streaming.set(restText)

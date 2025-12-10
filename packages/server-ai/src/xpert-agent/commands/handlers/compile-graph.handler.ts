@@ -16,7 +16,7 @@ export class CompileGraphHandler implements ICommandHandler<CompileGraphCommand>
 		private readonly queryBus: QueryBus,
 	) {}
 
-	public async execute(command: CompileGraphCommand): Promise<{graph: CompiledStateGraph<any, any, any>; agent: IXpertAgent}> {
+	public async execute(command: CompileGraphCommand) {
 		const { agentKeyOrName, xpert, options } = command
 		const { rootController } = options
 
@@ -66,7 +66,8 @@ export class CompileGraphHandler implements ICommandHandler<CompileGraphCommand>
 
 		return {
 			graph,
-			agent
+			agent,
+			xpertGraph
 		}
 	}
 }

@@ -12,7 +12,7 @@ import { EmojiAvatarEditorComponent } from '../emoji-avatar-editor/avatar-editor
   selector: 'emoji-avatar',
   hostDirectives: [NgxControlValueAccessor],
   template: `@if (avatar()?.url) {
-      <img class="" [src]="avatar().url" [alt]="alt()" />
+      <img class="max-h-full" [src]="avatar().url" [alt]="alt()" />
     } @else if (emoji()?.emoji) {
       <div class="emoji-container flex justify-center items-center w-full h-full" [ngStyle]="{ background: emoji().background }">
         <ngx-emoji

@@ -38,14 +38,9 @@ English | [中文](./README_zh.md)
 
 ## 💡 What's New
 
-**🚀 XpertAI 3.6 is here!**
+**🚀 3.7 Agent Middleware Released!**
 
-This release introduces a complete **Knowledge Pipeline** system — from creation, orchestration, authorization, and publishing to continuous knowledgebase management — enabling teams to visually build reliable knowledge production workflows.
-The **plugin system** is now a native part of the pipeline, allowing seamless integration with external data sources, document processors, and OCR tools through system integrations or the plugin marketplace.
-With the new **Parent-Child Chunk Tree** structure and **Trigger Nodes**, XpertAI 3.6 delivers smarter document understanding and contextual retrieval. Secure data access via **environment variables or unified integrations**, and publish pipelines directly into the **Digital Expert Ecosystem** for automated, scalable knowledge operations.
-<img width="2888" height="1622" alt="basic-pipeline-workflow" src="https://github.com/user-attachments/assets/4a8ea345-47cf-4fcf-a477-4a09b55ec4e0" />
-<img width="3836" height="1924" alt="plugins" src="https://github.com/user-attachments/assets/218edc31-f0e3-4603-9140-4ebc8b5fdf87" />
-
+XpertAI 3.7 officially launches the Agent Middleware feature, providing developers with fine-grained control and visual orchestration capabilities over agent execution flows through a modular plugin architecture. This feature is compatible with the LangChain ecosystem, supports flexible composition of middleware nodes such as logging, security, and transformation, empowering enterprises to rapidly build observable and extensible agent workflows.
 
 ## Agent-Workflow Hybrid Architecture
 
@@ -131,11 +126,13 @@ For Production, we recommend:
     - [ ] knowledge bases
   - [ ] [SDK (Python)](https://github.com/xpert-ai/xpert-sdk-py)
 
-- [ ] **Plugins** – extensible plugin system.
+- [x] **Plugins** – extensible plugin system.
   - [x] Plugins system
-  - [ ] Marketplace to showcase the plugins ecosystem.
+  - [x] Marketplace to showcase the plugins ecosystem.
+  - [ ] Hot-swappable plugin system.
 - [ ] **Chatkit** – front-end component library for embedding digital expert chat dialog.
 - [ ] **Widgets** – UI widgets that let large-model responses drive richer interface experiences.
+- [x] **Agent Middlewares** Plugin-based Agent Middleware.
 - [ ] **Agent Skills** – lightweight agent skills for rapid custom capability integration, offering a quicker alternative to MCP tools.
 
 ## 💌 Contact Us
@@ -149,9 +146,9 @@ We support the open-source community.
 
 This software is available under the following licenses:
 
-- [Xpert AI Platform Community Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-community-edition-license)
-- [Xpert AI Platform Enterprise Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
-- [Xpert AI Platform Enterprise Pro Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
+- [Xpert AI Platform Community Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-community-edition-license)
+- [Xpert AI Platform Enterprise Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-small-business-license)
+- [Xpert AI Platform Enterprise Pro Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-enterprise-license)
 
 #### Please see [LICENSE](LICENSES.md) for more information on licenses.
 

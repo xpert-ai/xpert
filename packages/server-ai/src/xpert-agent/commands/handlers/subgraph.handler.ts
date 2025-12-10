@@ -8,18 +8,20 @@ import {
 	Annotation,
 	END,
 	LangGraphRunnableConfig,
+	MessagesAnnotation,
 	messagesStateReducer,
 	Send,
 	START,
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, getWorkflowTriggers, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IWFNAgentTool, IXpert, IXpertAgent, IXpertAgentExecution, KnowledgebaseChannel, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertAgentConfig, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getAgentMiddlewareNodes, getCurrentGraph, getWorkflowTriggers, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IWFNAgentTool, IXpert, IXpertAgent, IXpertAgentExecution, KnowledgebaseChannel, mapTranslationLanguage, STATE_VARIABLE_HUMAN, TAgentRunnableConfigurable, TStateVariable, TSummarize, TXpertGraph, TXpertParameter, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
-import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
+import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { AfterModelHandler, AgentMiddleware, AgentMiddlewareRegistry, BeforeModelHandler, ModelRequest, WrapModelCallHandler } from '@xpert-ai/plugin-sdk'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -39,14 +41,18 @@ import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphPa
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs, getAgentMiddlewares, orderNodesByKeyOrder } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
+import { AgenticWorkflowTypes } from '../../types'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
 	readonly #logger = new Logger(XpertAgentSubgraphHandler.name)
+
+	@Inject(AgentMiddlewareRegistry)
+	private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry
 
 	constructor(
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
@@ -401,7 +407,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					graph: stateGraph,
 					ends,
 				}
-				const _nextNodes = nextNodes.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL))
+				const _nextNodes = nextNodes.filter((_) => !(_.type === 'workflow' && AgenticWorkflowTypes.includes(_.entity.type)))
 				if (_nextNodes?.length) {
 					// One2many edge or one2one
 					if (failNode || _nextNodes.length > 1) {
@@ -495,7 +501,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		if (isStart) {
 			if (agentHasNextNodes) {
-				for await (const nextNode of next.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL))) {
+				const workflowNodes = next.filter((_) => !(_.type === 'workflow' && AgenticWorkflowTypes.includes(_.entity.type)))
+				for await (const nextNode of workflowNodes) {
 					await createSubgraph(nextNode, agentKey)
 					pathMap.push(nextNode.key)
 				}
@@ -506,7 +513,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					pathMap.push(nextNode.key)
 				}
 				
-				nextNodeKey = next?.filter((n) => !(n.type === 'workflow' && n.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL)).map((n) => n.key)
+				nextNodeKey = workflowNodes.map((n) => n.key)
 				if (nextNodeKey?.some((_) => !_)) {
 					console.error(`There is an empty nextNodeKey in Agent`)
 				}
@@ -532,6 +539,78 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			agentKeys.add(leaderKey)
 		}
 
+		// Agent middlewares
+		const agentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(graph, agent, this.agentMiddlewareRegistry, {
+			tenantId: xpert.tenantId,
+			userId: RequestContext.currentUserId(),
+			workspaceId: xpert.workspaceId,
+			projectId: options.projectId,
+			conversationId: options.conversationId,
+			xpertId: xpert.id,
+			agentKey,
+		})
+		// Middleware tools
+		const middlewareTools: TGraphTool[] = agentMiddlewares
+			.filter((middleware) => middleware?.tools?.length)
+			.flatMap((middleware) =>
+				middleware.tools.map((tool) => ({
+					toolset: {
+						provider: middleware.name,
+						title: tool.name,
+					},
+					caller: agent.key,
+					tool
+				}))
+			)
+		if (middlewareTools.length) {
+			tools.push(...middlewareTools)
+		}
+		// Middleware state annotations
+		const existedStateVariables = new Set<string>([
+			...Object.keys(AgentStateAnnotation.spec),
+			...(variables ?? []).map((variable) => variable.name),
+			...stateVariables.map((variable) => variable.name)
+		])
+		const middlewareStateAnnotations = agentMiddlewares.reduce<Record<string, ReturnType<typeof Annotation>>>((acc, middleware) => {
+			const shape = (middleware.stateSchema as any)?.shape
+			if (!shape) {
+				return acc
+			}
+			Object.keys(shape).forEach((key) => {
+				if (key.startsWith('_') || existedStateVariables.has(key) || acc[key]) {
+					return
+				}
+				acc[key] = Annotation({
+					reducer: (a, b) => (b === undefined ? a : b),
+					default: () => {
+						try {
+							const def = (shape as any)[key]?._def?.defaultValue
+							if (typeof def === 'function') {
+								return def()
+							}
+							if (def !== undefined) {
+								return def
+							}
+						} catch (error) {
+							// ignore default parse errors
+						}
+						return null
+					}
+				})
+			})
+			return acc
+		}, {})
+
+		const {
+			beforeAgentHooks,
+			beforeModelHooks,
+			afterModelHooks,
+			afterModelExecutionOrder,
+			afterAgentHooks,
+			afterAgentExecutionOrder
+		} = getModelHooks(graph, agent, agentMiddlewares)
+
+		// Model tools
 		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool), ...(handoffTools ?? [])]
 		pathMap.push(...withTools.map((tool) => tool.name))
 		if (workflowTools.length) {
@@ -571,6 +650,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				return state
 			}, {}) ?? {}),
 			...AgentStateAnnotation.spec, // Common agent states
+			...middlewareStateAnnotations,
 			// Global conversation variables
 			...(stateVariables.reduce((acc, variable) => {
 				acc[variable.name] = Annotation({
@@ -631,6 +711,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
 		const historyVariable = agent.options?.historyVariable
+		const errorHandling = agent.options?.errorHandling
+		const hasAfterModelHooks = afterModelExecutionOrder.length > 0
+		
 		const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean, jsonSchema: string) => {
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
@@ -678,7 +761,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				humanMessages
 			}
 		}
-		
+
 		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
 			const {structuredChatModel, jsonSchema} = withStructured(chatModel, agent, withTools)
@@ -709,7 +792,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 
 			// Error handling
-			const errorHandling = agent.options?.errorHandling
 			if (errorHandling?.type === 'defaultValue') {
 				if (!errorHandling.defaultValue?.content) {
 					throw new XpertConfigException(await this.i18nService.translate('xpert.Error.NoContent4DefaultValue',
@@ -728,15 +810,53 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state, (<string>config.metadata.langgraph_triggers[0])?.startsWith(START), jsonSchema)
 			// Disable history and new human request then remove history
 			const deleteMessages = (!enableMessageHistory && humanMessages.length) ? messageHistory.map((m) => new RemoveMessage({ id: m.id as string })) : []
+			const baseMessages = [
+				...(((enableMessageHistory || !humanMessages.length) ? messageHistory : [])),
+				...humanMessages
+			]
+			const baseRequest: ModelRequest = {
+				model: withFallbackModel,
+				messages: baseMessages,
+				systemMessage
+			}
+			let systemMessageContent = systemMessage.content
+			const defaultModelHandler: WrapModelCallHandler = async (request) => {
+				const model = request.model ?? withFallbackModel
+				const reqMessages = request.messages ?? baseMessages
+				const systemMsg = request.systemMessage ?? systemMessage
+				systemMessageContent = systemMsg.content
+				const finalMessages = systemMsg ? [systemMsg, ...reqMessages] : reqMessages
+				const response = await model.invoke(
+					finalMessages,
+					{...config, signal: abortController.signal}
+				)
+				if (isBaseMessage(response) && isAIMessage(response)) {
+					const invalidToolCalls = response.invalid_tool_calls
+					if (invalidToolCalls?.length) {
+						const detail = invalidToolCalls.map((call) => `${call.name ?? call.id ?? 'tool'}: ${call.error ?? 'Invalid tool call'}`).join('; ')
+						throw new InternalServerErrorException(
+							t('server-ai:Error.InvalidToolCalls') + detail
+						)
+					}
+				}
+				return response
+			}
+			const wrappedModelHandler = agentMiddlewares.reduceRight<WrapModelCallHandler>(
+				(next, middleware) => {
+					if (!middleware?.wrapModelCall) {
+						return next
+					}
+					return (request) => middleware.wrapModelCall(request, next)
+				},
+				defaultModelHandler
+			)
 			try {
-				const message = await withFallbackModel.invoke([
-					systemMessage, ...((enableMessageHistory || !humanMessages.length) ? messageHistory : []), ...humanMessages
-				], {...config, signal: abortController.signal})
+				const message = await wrappedModelHandler(baseRequest)
 
 				const nState: Record<string, any> = {
 					messages: [...humanMessages],
 					[channelName(agentKey)]: {
-						system: systemMessage.content,
+						system: systemMessageContent,
 						error: null,
 						messages: [...deleteMessages, ...humanMessages]
 					}
@@ -747,26 +867,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					nState[channelName(agentKey)].output = stringifyMessageContent(message.content)
 				} else if (message) {
 					nState[channelName(agentKey)] = {
-						...message,
+						...(message as Record<string, any>),
 						...nState[channelName(agentKey)],
 					}
 				}
-				// Write to memory
-				agent.options?.memories?.forEach((item) => {
-					if (item.inputType === 'constant') {
-						nState[item.variableSelector] = item.value
-					} else if (item.inputType === 'variable') {
-						if (item.value === 'content') {
-							if (isBaseMessage(message) || isBaseMessageChunk(message)) {
-								nState[item.variableSelector] = message.content
-							}
-						} else if (item.value) {
-							nState[item.variableSelector] = get(message, item.value)
-						}
-					}
-				})
-
-				return nState
+				const baseState: Record<string, any> = { ...nState }
+				if (hasAfterModelHooks) {
+					return baseState
+				}
+				return writeAgentMemories(baseState, agent.options?.memories)
 			} catch(err) {
 				if(errorHandling?.type === 'failBranch') {
 					return {
@@ -781,16 +890,70 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				throw err
 			}
 		}
+		
+		const agentLoopEntryNode = beforeModelHooks[0]?.key ?? agentKey
+		const agentStartNode = beforeAgentHooks[0]?.key ?? agentLoopEntryNode
+		const agentDecisionNode = afterModelExecutionOrder[afterModelExecutionOrder.length - 1]?.key ?? agentKey
+		const afterAgentEntryNode = afterAgentExecutionOrder[0]?.key
+		const agentFinalExitNode = afterAgentExecutionOrder[afterAgentExecutionOrder.length - 1]?.key ?? agentDecisionNode
 
 		const subgraphBuilder = new StateGraph<any, any, any, string>(SubgraphStateAnnotation)
 
 		if (!hiddenAgent) {
+			beforeAgentHooks.forEach(({ key, hook }) =>
+				subgraphBuilder.addNode(
+					key,
+					createBeforeAgentNode(hook, agentChannel).withConfig({ runName: key, tags: [thread_id, xpert.id, key] })
+				)
+			)
+			beforeModelHooks.forEach(({ key, hook }) =>
+				subgraphBuilder.addNode(
+					key,
+					createBeforeModelNode(hook, agentChannel).withConfig({ runName: key, tags: [thread_id, xpert.id, key] })
+				)
+			)
 			subgraphBuilder.addNode(agentKey, new RunnableLambda({ func: callModel })
 					.withConfig({ runName: agentKey, tags: [thread_id, xpert.id, agentKey] }),
 					{
 						defer: hasMultipleInputs(graph, agent.key)
 					}
 				)
+			afterModelExecutionOrder.forEach(({ key, hook }, index) =>
+				subgraphBuilder.addNode(
+					key,
+					createAfterModelNode(hook, agentChannel, index === afterModelExecutionOrder.length - 1, errorHandling, agent.options?.memories)
+						.withConfig({ runName: key, tags: [thread_id, xpert.id, key] })
+				)
+			)
+			afterAgentExecutionOrder.forEach(({ key, hook }) =>
+				subgraphBuilder.addNode(
+					key,
+					createAfterAgentNode(hook, agentChannel, errorHandling).withConfig({ runName: key, tags: [thread_id, xpert.id, key] })
+				)
+			)
+			if (beforeAgentHooks.length) {
+				for (let i = 0; i < beforeAgentHooks.length - 1; i++) {
+					subgraphBuilder.addEdge(beforeAgentHooks[i].key, beforeAgentHooks[i + 1].key)
+				}
+				subgraphBuilder.addEdge(beforeAgentHooks[beforeAgentHooks.length - 1].key, agentLoopEntryNode)
+			}
+			if (beforeModelHooks.length) {
+				for (let i = 0; i < beforeModelHooks.length - 1; i++) {
+					subgraphBuilder.addEdge(beforeModelHooks[i].key, beforeModelHooks[i + 1].key)
+				}
+				subgraphBuilder.addEdge(beforeModelHooks[beforeModelHooks.length - 1].key, agentKey)
+			}
+			if (afterModelExecutionOrder.length) {
+				subgraphBuilder.addEdge(agentKey, afterModelExecutionOrder[0].key)
+				for (let i = 0; i < afterModelExecutionOrder.length - 1; i++) {
+					subgraphBuilder.addEdge(afterModelExecutionOrder[i].key, afterModelExecutionOrder[i + 1].key)
+				}
+			}
+			if (afterAgentExecutionOrder.length) {
+				for (let i = 0; i < afterAgentExecutionOrder.length - 1; i++) {
+					subgraphBuilder.addEdge(afterAgentExecutionOrder[i].key, afterAgentExecutionOrder[i + 1].key)
+				}
+			}
 		}
 		if (isStart && startNodes.length) {
 			/**
@@ -802,7 +965,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				subgraphBuilder.addEdge(START, startNodes[0])
 			}
 		} else if (!hiddenAgent) {
-			subgraphBuilder.addEdge(START, agentKey)
+			subgraphBuilder.addEdge(START, agentStartNode)
 		} else if (isStart) {
 			throw new XpertConfigException(t('server-ai:Error.NoTriggerNodes'))
 		}
@@ -825,7 +988,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 			} else {
 				// Not the end of the agent, return to the agent node
-				subgraphBuilder.addEdge(name, agentKey)
+				subgraphBuilder.addEdge(name, agentLoopEntryNode)
 				// ends.push(agentKey)
 			}
 			subgraphBuilder
@@ -834,7 +997,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					new ToolNode([tool], { caller, variables, toolName: toolset.title }).withConfig({signal: abortController.signal}),
 					{
 						ends,
-						metadata: {toolset: toolset.provider, toolsetId: toolset.id }
+						metadata: omitBy({toolset: toolset.provider, toolsetId: toolset.id }, isNil)
 					}
 				)
 		})
@@ -867,7 +1030,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						subgraphBuilder.addEdge(name, END)
 					}
 				} else {
-					subgraphBuilder.addEdge(name, agentKey)
+					subgraphBuilder.addEdge(name, agentLoopEntryNode)
 				}
 			})
 		}
@@ -890,15 +1053,40 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Conditional navigator for entry Agent
-		if (!nextNodeKey.length) {
-			pathMap.push(END)
-		}
 		if (!hiddenAgent) {
+			const toolNames = withTools.map((tool) => tool.name);
+			const decisionPathMap = afterAgentEntryNode ? [...pathMap, afterAgentEntryNode] : nextNodeKey.length ? pathMap : [...pathMap, END];
+
 			subgraphBuilder.addConditionalEdges(
-				agentKey,
-				createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey, isStart ? fail?.[0]?.key : undefined),
-				pathMap
-			)
+				agentDecisionNode,
+				createAgentNavigator(
+					agentChannel,
+					summarize,
+					summarizeTitle,
+					afterAgentEntryNode ? undefined : nextNodeKey,
+					isStart ? fail?.[0]?.key : undefined,
+					afterAgentEntryNode
+				),
+				decisionPathMap
+			);
+
+			if (afterAgentEntryNode) {
+				const exitPathMap = pathMap.filter((destination) => !toolNames.includes(destination));
+				if (!nextNodeKey.length) {
+					exitPathMap.push(END);
+				}
+				subgraphBuilder.addConditionalEdges(
+					agentFinalExitNode,
+					createAfterAgentNavigator(
+						agentChannel,
+						summarize,
+						summarizeTitle,
+						nextNodeKey,
+						isStart ? fail?.[0]?.key : undefined
+					),
+					exitPathMap
+				);
+			}
 		}
 
 		// Has other nodes
@@ -1173,7 +1361,7 @@ function ensureSummarize(summarize?: TSummarize) {
  * @param fail Failure node of agent
  * @returns conditionalEdgesFun
  */
-function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string)), fail?: string) {
+function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string)), fail?: string, exitNode?: string) {
 	return (state: typeof AgentStateAnnotation.State, config) => {
 		const { title } = state
 		const subState = getChannelState(state, agentChannel)
@@ -1181,6 +1369,9 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 		const lastMessage = messages[messages.length - 1]
 		if (isBaseMessage(lastMessage) && isAIMessage(lastMessage)) {
 			if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
+				if (exitNode) {
+					return exitNode
+				}
 				const nexts: Send[] = []
 				// If there are more than six messages, then we summarize the conversation
 				if (summarize?.enabled && messages.length > summarize.maxMessages) {
@@ -1221,6 +1412,10 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 			})
 		}
 
+		if (exitNode) {
+			return exitNode
+		}
+
 		if (nextNodes) {
 			if (Array.isArray(nextNodes)) {
 				if (nextNodes.length) {
@@ -1229,6 +1424,63 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 			} else {
 				return new Send(nextNodes(state, config), state)
 			}
+		}
+
+		return END
+	}
+}
+
+function createAfterAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string)), fail?: string) {
+	return (state: typeof AgentStateAnnotation.State, config) => {
+		const { title } = state
+		const subState = getChannelState(state, agentChannel)
+		const messages = subState?.messages ?? []
+		const lastMessage = messages[messages.length - 1]
+
+		if (isBaseMessage(lastMessage) && isAIMessage(lastMessage)) {
+			const nexts: Send[] = []
+			if (summarize?.enabled && messages.length > summarize.maxMessages) {
+				nexts.push(new Send(GRAPH_NODE_SUMMARIZE_CONVERSATION, state))
+			} else if (!title && summarizeTitle) {
+				nexts.push(new Send(GRAPH_NODE_TITLE_CONVERSATION, state))
+			}
+
+			if (nextNodes && !subState?.error) {
+				if (Array.isArray(nextNodes)) {
+					if (nextNodes.length) {
+						nexts.push(...nextNodes.filter((_) => !!_).map((name) => new Send(name, state)))
+					}
+				} else {
+					nexts.push(new Send(nextNodes(state, config), state))
+				}
+			}
+
+			if (nexts.length) {
+				if (subState?.error && fail) {
+					nexts.push(new Send(fail, state))
+				}
+				return nexts
+			}
+
+			if (subState?.error && fail) {
+				return fail
+			}
+
+			return END
+		}
+
+		if (nextNodes) {
+			if (Array.isArray(nextNodes)) {
+				if (nextNodes.length) {
+					return nextNodes.map((name) => new Send(name, state))
+				}
+			} else {
+				return new Send(nextNodes(state, config), state)
+			}
+		}
+
+		if (subState?.error && fail) {
+			return fail
 		}
 
 		return END
@@ -1260,4 +1512,190 @@ function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools:
 		structuredChatModel,
 		jsonSchema
 	}
+}
+
+function getModelHooks(graph: TXpertGraph, agent: IXpertAgent, agentMiddlewares: AgentMiddleware[]) {
+  const middlewareNodes = orderNodesByKeyOrder(
+    getAgentMiddlewareNodes(graph, agent.key),
+    agent.options?.middlewares?.order || []
+  );
+  const middlewareWithKeys = middlewareNodes.reduce<Array<{ key: string; middleware: AgentMiddleware }>>(
+    (acc, node, index) => {
+      const middleware = agentMiddlewares[index];
+      if (middleware) {
+        acc.push({ key: node.key, middleware });
+      }
+      return acc;
+    },
+    []
+  );
+  const beforeAgentHooks = middlewareWithKeys
+    .map(({ key, middleware }) => {
+      const hook =
+        typeof middleware?.beforeAgent === "function"
+          ? middleware.beforeAgent
+          : middleware?.beforeAgent?.hook;
+      return hook ? { key: key + "_before_agent", hook } : null;
+    })
+    .filter(Boolean);
+  const beforeModelHooks = middlewareWithKeys
+    .map(({ key, middleware }) => {
+      const hook =
+        typeof middleware?.beforeModel === "function"
+          ? middleware.beforeModel
+          : middleware?.beforeModel?.hook;
+      return hook ? { key: key + '_before_model', hook } : null;
+    })
+    .filter(Boolean)
+  const afterModelHooks = middlewareWithKeys
+    .map(({ key, middleware }) => {
+      const hook =
+        typeof middleware?.afterModel === "function"
+          ? middleware.afterModel
+          : middleware?.afterModel?.hook;
+      return hook ? { key: key + '_after_model', hook } : null;
+    })
+    .filter(Boolean)
+  const afterModelExecutionOrder = [...afterModelHooks].reverse();
+  const afterAgentHooks = middlewareWithKeys
+    .map(({ key, middleware }) => {
+      const hook =
+        typeof middleware?.afterAgent === "function"
+          ? middleware.afterAgent
+          : middleware?.afterAgent?.hook;
+      return hook ? { key: key + "_after_agent", hook } : null;
+    })
+    .filter(Boolean);
+  const afterAgentExecutionOrder = [...afterAgentHooks].reverse();
+
+  return {
+    beforeAgentHooks,
+    beforeModelHooks,
+    afterModelHooks,
+    afterModelExecutionOrder,
+    afterAgentHooks,
+    afterAgentExecutionOrder,
+  };
+}
+
+function createBeforeAgentNode(hook: BeforeModelHandler<typeof MessagesAnnotation.State, any>, agentChannel: string) {
+  return createBeforeModelNode(hook, agentChannel);
+}
+
+function createBeforeModelNode(hook: BeforeModelHandler<typeof MessagesAnnotation.State, any>, agentChannel: string) {
+  return new RunnableLambda({
+    func: async (
+      state: typeof AgentStateAnnotation.State,
+      config?: RunnableConfig
+    ): Promise<Partial<typeof AgentStateAnnotation.State>> => {
+      const middlewareState = getChannelState(state, agentChannel);
+      const result = await hook(middlewareState, { ...(config ?? {}), state });
+      if (result && typeof result === "object") {
+        const { jumpTo, ...partial } = result;
+        if (jumpTo) {
+          (config as any) ??= {};
+          (config as any).jumpTo = jumpTo;
+        }
+        return {
+          [agentChannel]: {
+            ...middlewareState,
+            ...partial,
+          },
+        };
+      }
+      return null
+    },
+  });
+}
+
+function createAfterModelNode(
+  hook: AfterModelHandler<typeof MessagesAnnotation.State, any>,
+  agentChannel: string,
+  isLast: boolean,
+  errorHandling?: IXpertAgent["options"]["errorHandling"],
+  memories?: IXpertAgent["options"]["memories"]
+) {
+  return new RunnableLambda({
+    func: async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig): Promise<Record<string, any>> => {
+	  const channelState = getChannelState(state, agentChannel);
+      if (errorHandling?.type === "failBranch" && channelState?.error) {
+        return state;
+      }
+      let nextState: Record<string, any> = { ...channelState };
+      if (hook) {
+        const result = await hook(channelState, config);
+        if (result && typeof result === "object") {
+          const { jumpTo, ...partial } = result;
+          nextState = {
+            ...nextState,
+            ...partial,
+          };
+          if (jumpTo) {
+            (config as any) ??= {};
+            (config as any).jumpTo = jumpTo;
+          }
+        }
+      }
+      if (isLast) {
+        return writeAgentMemories({...state, [agentChannel]: nextState}, memories);
+      }
+      return {...state, [agentChannel]: nextState};
+    },
+  });
+}
+
+function createAfterAgentNode(
+  hook: AfterModelHandler<typeof MessagesAnnotation.State, any>,
+  agentChannel: string,
+  errorHandling?: IXpertAgent["options"]["errorHandling"]
+) {
+  return new RunnableLambda({
+    func: async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig): Promise<Record<string, any>> => {
+	  const channelState = getChannelState(state, agentChannel);
+      if (errorHandling?.type === "failBranch" && channelState?.error) {
+        return state;
+      }
+      let nextState: Record<string, any> = { ...channelState };
+      if (hook) {
+        const result = await hook(state as any, config as any);
+        if (result && typeof result === "object") {
+          const { jumpTo, ...partial } = result as any;
+          nextState = {
+            ...nextState,
+            ...partial,
+          };
+          if (jumpTo) {
+            (config as any) ??= {};
+            (config as any).jumpTo = jumpTo;
+          }
+		  return {[agentChannel]: nextState}
+        }
+      }
+      return null;
+    },
+  });
+}
+
+function writeAgentMemories(state: Record<string, any>, memories?: IXpertAgent["options"]["memories"]) {
+  if (!memories?.length) {
+    return state;
+  }
+  const finalState: Record<string, any> = { ...state };
+  const response = (finalState.messages as BaseMessage[] | undefined)?.[finalState.messages?.length - 1];
+
+  memories?.forEach((item) => {
+    if (item.inputType === "constant") {
+      finalState[item.variableSelector] = item.value;
+    } else if (item.inputType === "variable") {
+      if (item.value === "content") {
+        if (response && (isBaseMessage(response) || isBaseMessageChunk(response))) {
+          finalState[item.variableSelector] = response.content;
+        }
+      } else if (item.value) {
+        finalState[item.variableSelector] = get(response, item.value);
+      }
+    }
+  });
+
+  return finalState;
 }

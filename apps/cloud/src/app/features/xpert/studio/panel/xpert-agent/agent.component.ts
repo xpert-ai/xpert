@@ -64,6 +64,7 @@ import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/
 import { VISION_DEFAULT_VARIABLE } from '../../types'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { XpertStudioPanelMiddlewareSectionComponent } from './middleware-section/middleware.component'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -92,6 +93,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
     XpertParametersEditComponent,
     CopilotPromptEditorComponent,
     XpertStudioPanelKnowledgeSectionComponent,
+    XpertStudioPanelMiddlewareSectionComponent,
     XpertOutputVariablesEditComponent,
     XpertVariablesAssignerComponent,
     XpertWorkflowErrorHandlingComponent
@@ -377,6 +379,10 @@ export class XpertStudioPanelAgentComponent {
       }
     }
   ]
+
+  // Middlewares
+  readonly middlewares = attrModel(this.agentOptions, 'middlewares')
+  readonly middlewareOrder = attrModel(this.middlewares, 'order')
 
   constructor() {
     effect(

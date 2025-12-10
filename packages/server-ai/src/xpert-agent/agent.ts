@@ -24,15 +24,11 @@ export function createMapStreamEvents(
 	subscriber: Subscriber<MessageEvent>,
 	options?: {
 		agent?: IXpertAgent;
-		/**
-		 * @deprecated use `mute` instead
-		 */
-		disableOutputs?: TXpertAgentConfig['disableOutputs']
-		mute: TXpertAgentConfig['mute']
+		unmutes: TXpertAgentConfig['mute']
 		xperts?: IXpert[]
 	}
 ) {
-	const { agent, disableOutputs, mute, xperts } = options ?? {}
+	const { agent, unmutes, xperts } = options ?? {}
 	// let collectingResult = ''
 	const eventStack: string[] = []
 	let prevEvent = ''
@@ -89,7 +85,7 @@ export function createMapStreamEvents(
 					eventStack.pop()
 				}
 				if (prevEvent !== 'on_chat_model_stream') {
-					if (!isMute(tags, mute, disableOutputs)) {
+					if (!isMute(tags, unmutes)) {
 						const msg = data.output as AIMessageChunk
 						return msg.content
 					}
@@ -99,7 +95,7 @@ export function createMapStreamEvents(
 			case 'on_chat_model_stream': {
 				prevEvent = event
 
-				if (!isMute(tags, mute, disableOutputs)) {
+				if (!isMute(tags, unmutes)) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
@@ -162,7 +158,7 @@ export function createMapStreamEvents(
 			}
 
 			case 'on_chain_stream': {
-				if (!isMute(tags, mute, disableOutputs)) {
+				if (!isMute(tags, unmutes)) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
@@ -435,16 +431,12 @@ export function createMapStreamEvents(
 	}
 }
 
-function isMute(tags: string[], mute: TXpertAgentConfig['mute'], disableOutputs?: TXpertAgentConfig['disableOutputs']) {
-	if (disableOutputs?.some((key) => tags.includes(key))) {
-		return true
+function isMute(tags: string[], unmutes: TXpertAgentConfig['mute']) {
+	if (unmutes.some((_) => _.every((tag) => tags.includes(tag)))) {
+		return false
 	}
 
-	if (mute.some((_) => _.every((tag) => tags.includes(tag)))) {
-		return true
-	}
-
-	return false
+	return true
 }
 
 export class FakeStreamingChatModel extends BaseChatModel {

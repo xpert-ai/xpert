@@ -74,7 +74,9 @@ export class XpertStudioNodeAgentComponent {
     this.nodes()
       .filter((_) => !(_.type === 'workflow' && ![
           WorkflowNodeTypeEnum.AGENT_TOOL,
-          WorkflowNodeTypeEnum.TASK
+          WorkflowNodeTypeEnum.TASK,
+          WorkflowNodeTypeEnum.MIDDLEWARE,
+          WorkflowNodeTypeEnum.SKILL,
         ].includes(_.entity.type))
       )
       .map((_) => _.key)

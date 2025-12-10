@@ -11,23 +11,17 @@
   <a href="https://xpertai.cn/#connect">企业咨询</a>
 </p>
 
-
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=meta-d.ocap)
 [![License: AGPL v3][uri_license_image]][uri_license]
 [![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/xpert-ai/xpert)
-
 
 **Xpert AI** 是一个开源的企业级 AI 系统，完美融合了智能体编排和数据分析两大平台。
 
 ## 💡 新功能
 
-**🚀 XpertAI 3.6 全新上线！**
+**🚀 3.7 智能体中间件上线！**
 
-这一版本带来了完整的知识流水线体系，从**创建、编排、授权、发布到知识库运维**实现全链路可视化管理，让团队能够像搭建生产线一样构建可信赖的知识处理流程。
-插件系统也升级为流水线的原生能力，通过系统集成或插件市场即可快速接入外部数据源、文档转换、OCR 等工具。
-全新的**树状分块结构（Parent-Child Tree）**与**触发器节点**让知识抽取与上下文召回更智能；支持 **环境变量与系统集成双轨授权**，保障数据接入安全；一键发布同步至数字专家生态，实现知识自动化、可扩展与高效流转。
-<img width="2888" height="1622" alt="basic-pipeline-workflow" src="https://github.com/user-attachments/assets/4a8ea345-47cf-4fcf-a477-4a09b55ec4e0" />
-<img width="3836" height="1924" alt="plugins" src="https://github.com/user-attachments/assets/218edc31-f0e3-4603-9140-4ebc8b5fdf87" />
+XpertAI 3.7 版本正式发布智能体中间件功能，通过模块化插件架构为开发者提供对智能体执行流程的精细化控制与可视化编排能力。该特性兼容LangChain生态，支持灵活组合日志、安全、转换等中间件节点，赋能企业快速构建可观测、可扩展的智能体工作流。
 
 ## 智能体与工作流混合架构
 
@@ -104,19 +98,22 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 
 ## 🗺️ 路线图
 
-- [ ] **SD​​K** – 简化 XpertAI 平台的 API 访问。
+- [ ] **SDK** – 简化 XpertAI 平台的 API 访问。
   - [ ] [SDK (TypeScript)](https://github.com/xpert-ai/xpert-sdk-js)
     - [x] 数字专家
     - [x] 长期记忆存储
     - [x] 上下文文件
     - [ ] 知识库
   - [ ] [SDK (Python)](https://github.com/xpert-ai/xpert-sdk-py)
-- [ ] **插件** —— 可扩展的插件系统。
+
+- [x] **插件** – 可扩展的插件系统。
   - [x] 插件系统
-  - [ ] 展示插件生态的市场
-- [ ] **Chatkit** —— 用于嵌入数字专家聊天对话的前端组件库。
-- [ ] **小部件** —— 让大模型响应驱动更丰富界面体验的 UI 小部件。
-- [ ] **Agent Skills** —— 轻量级智能体技能，快速集成自定义能力，提供比 MCP 工具更快捷的替代方案。
+  - [x] 展示插件生态的市场
+  - [ ] 热插拔插件系统
+- [ ] **Chatkit** – 用于嵌入数字专家聊天对话的前端组件库。
+- [ ] **小部件** – 让大模型响应驱动更丰富界面体验的 UI 小部件。
+- [x] **智能体中间件** – 基于插件的智能体中间件。
+- [ ] **智能体技能** – 轻量级智能体技能, 快速集成自定义能力, 提供比 MCP 工具更快捷的替代方案。
 
 ## 💌 联系我们
 
@@ -131,9 +128,9 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 
 此软件在以下许可下可用：
 
-- [Xpert AI 平台社区版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-community-edition-license)
-- [Xpert AI 平台企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
-- [Xpert AI 平台企业专业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
+- [Xpert AI 平台社区版](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-community-edition-license)
+- [Xpert AI 平台企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-small-business-license)
+- [Xpert AI 平台企业专业版](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-enterprise-license)
 
 #### 请参阅 [LICENSE](LICENSES.md) 以获取有关许可的更多信息。
 

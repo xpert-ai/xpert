@@ -19,8 +19,8 @@ export function wrapAgentExecution<T>(
 	params: {
 		commandBus: CommandBus
 		queryBus: QueryBus
-		subscriber: Subscriber<MessageEvent>
 		execution: Partial<IXpertAgentExecution>
+		subscriber?: Subscriber<MessageEvent>
 		catchError?: (error) => Promise<void>
 	}
 ) {

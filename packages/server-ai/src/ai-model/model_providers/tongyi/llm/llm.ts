@@ -76,7 +76,10 @@ export class TongyiLargeLanguageModel extends LargeLanguageModel {
 			callbacks: [
 				...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens),
 				this.createHandleLLMErrorCallbacks(fields, this.#logger)
-			]
+			],
+			metadata: {
+				profile: this.getModelProfile(model, credentials),
+			}
 		})
 	}
 }

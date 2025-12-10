@@ -167,7 +167,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
           })
           // Return back to caller agent when error
           return new Command({
-            goto: this.caller,
+            // goto: this.caller,
             update: {
               messages: [toolMessage],
               [this.channel]: {messages: [toolMessage]},

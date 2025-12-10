@@ -7,6 +7,7 @@ import { CopilotModelController } from './copilot-model.controller'
 import { CopilotModel } from './copilot-model.entity'
 import { CopilotModelService } from './copilot-model.service'
 import { QueryHandlers } from './queries/handlers'
+import { CommandHandlers } from './commands'
 
 @Module({
 	imports: [
@@ -17,7 +18,7 @@ import { QueryHandlers } from './queries/handlers'
 		UserModule
 	],
 	controllers: [CopilotModelController,],
-	providers: [CopilotModelService, ...QueryHandlers],
+	providers: [CopilotModelService, ...QueryHandlers, ...CommandHandlers],
 	exports: [CopilotModelService]
 })
 export class CopilotModelModule {}

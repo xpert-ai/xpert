@@ -1,16 +1,16 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
+import { booleanAttribute, ChangeDetectorRef, Component, computed, effect, inject, input, model } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { ControlValueAccessor, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { debouncedSignal, NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map } from 'rxjs'
+import { distinctUntilChanged, map } from 'rxjs'
 import {
   AiModelTypeEnum,
   CopilotServerService,
@@ -46,7 +46,7 @@ import { ModelParameterInputComponent } from '../model-parameter-input/input.com
     '[class.status-choose]': 'statusChoose()',
   }
 })
-export class CopilotModelSelectComponent {
+export class CopilotModelSelectComponent implements ControlValueAccessor {
   eModelFeature = ModelFeature
   eModelType = AiModelTypeEnum
   eParameterType = ParameterType
@@ -56,6 +56,7 @@ export class CopilotModelSelectComponent {
   readonly copilotProviderService = injectCopilotProviderService()
   readonly copilots = injectCopilots()
   readonly i18n = new NgmI18nPipe()
+  readonly #cdr = inject(ChangeDetectorRef)
 
   // Inputs
   readonly modelType = input<AiModelTypeEnum>()
@@ -164,10 +165,20 @@ export class CopilotModelSelectComponent {
   readonly isInherit = computed(() => !this.__copilotModel())
   readonly statusChoose = computed(() => !this.selectedCopilotWithModels() && !!this.__copilotModel())
 
+  onChange: ((value: ICopilotModel | null) => void) | null = null
+  onTouched: (() => void) | null = null
+  private valueChangeSub = this.cva.valueChange.pipe(distinctUntilChanged()).subscribe((value) => {
+    this.onChange?.(value)
+  })
+
+  // @backcompatibility for change detection
+  private filteredChangeSub = toObservable(this.searchedModels).subscribe(() => {
+    setTimeout(() => {
+      this.#cdr.detectChanges()
+    }, 100)
+  })
+
   constructor() {
-  //   effect(() => {
-  //     console.log(this.copilotWithModels())
-  //   })
     effect(() => {
       if (this.cva.value$() && !this.cva.value$().options && this.modelParameterRules()) {
         this.cva.value$.update((value) => ({
@@ -179,6 +190,19 @@ export class CopilotModelSelectComponent {
         }))
       }
     }, { allowSignalWrites: true })
+  }
+
+  writeValue(obj: any): void {
+    this.cva.writeValue(obj)
+  }
+  registerOnChange(fn: any): void {
+    this.onChange = fn
+  }
+  registerOnTouched(fn: any): void {
+    this.onTouched = fn
+  }
+  setDisabledState?(isDisabled: boolean): void {
+    this.cva.setDisabledState(isDisabled)
   }
 
   updateValue(value: ICopilotModel) {

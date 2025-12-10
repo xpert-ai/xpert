@@ -91,4 +91,9 @@
       </div>
     }
   </div>
+  @if (!toolsets()?.length) {
+    <div class="w-full text-center font-body text-text-tertiary text-sm py-1 rounded-lg border border-dashed border-divider-regular">
+      {{ 'PAC.Xpert.NoToolsetsYet' | translate: {Default: 'No toolsets added yet'} }}
+    </div>
+  }
 </div>

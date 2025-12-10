@@ -8,7 +8,8 @@
         "NoTriggerNodes": "没有可用的触发节点来启动智能体。请添加一个触发节点。",
         "InconsistentTypes": "无法对类型不一致的变量‘{{types}}’进行聚合。支持的聚合类型：数组、字符串、对象。",
         "ModelNameExists": "模型名称‘{{modelName}}’已存在。请使用不同的名称。",
-        "AIModelProviderNotFound": "AI 模型提供商‘{{name}}’未找到。"
+        "AIModelProviderNotFound": "AI 模型提供商‘{{name}}’未找到。",
+        "InvalidToolCalls": "模型返回了无效的工具调用："
     },
     "tools": {
         "ListFiles": "列出文件",

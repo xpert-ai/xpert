@@ -39,7 +39,7 @@ export class VolumeClient {
 		}
 	}
 
-	static _getWorkspaceRoot(tenantId: string, type: 'projects' | 'users' | 'knowledges', id: string) {
+	static _getWorkspaceRoot(tenantId: string, type: 'projects' | 'users' | 'knowledges' | string, id: string) {
 		if (environment.env.IS_DOCKER === 'true') {
 			return path.join(`/sandbox/${tenantId}`, `/${type}/${id}`)
 		} else {
@@ -57,7 +57,7 @@ export class VolumeClient {
 		return sandboxVolumeUrl(sandboxVolume(projectId, userId), getWorkspace(projectId, conversationId) + '/')
 	}
 
-	constructor(params: { tenantId: string; catalog: 'projects' | 'users' | 'knowledges'; userId: string; knowledgeId?: string; projectId?: string }) {
+	constructor(params: { tenantId: string; catalog: 'projects' | 'users' | 'knowledges' | 'skills'; userId: string; knowledgeId?: string; projectId?: string }) {
 		this.tenantId = params.tenantId
 		this.userId = params.userId
 		this.projectId = params.projectId
@@ -76,7 +76,7 @@ export class VolumeClient {
 		}
 	}
 
-	async putFile(folder = '', file: {originalname: string; buffer: Buffer;} /*Express.Multer.File*/): Promise<string> {
+	async putFile(folder = '', file: {originalname: string; buffer: Buffer; mimetype?: string} /*Express.Multer.File*/): Promise<string> {
 		const targetFolder = path.join(this.volumePath, folder)
 		const filePath = path.join(targetFolder, file.originalname)
 		await fsPromises.mkdir(targetFolder, { recursive: true })
@@ -110,7 +110,7 @@ export class VolumeClient {
 		return await listFiles(folder || '/', deepth ?? 1, 0, { root: this.volumePath, baseUrl: this.baseUrl })
 	}
 
-	getVolumePath(path: string) {
+	getVolumePath(path?: string) {
 		return path ? join(this.volumePath, path) : this.volumePath
 	}
 

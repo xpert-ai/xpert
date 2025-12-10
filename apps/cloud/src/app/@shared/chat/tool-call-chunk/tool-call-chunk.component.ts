@@ -1,19 +1,27 @@
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, input, output, signal } from '@angular/core'
+import { booleanAttribute, Component, computed, effect, input, output, signal } from '@angular/core'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { TMessageComponent, TMessageComponentStep } from '@cloud/app/@core'
 import { RelativeTimesPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
-import { ChatMessageStepIconComponent } from '../message-step-icon/icon.component'
 import { Copy2Component } from '../../common'
+import { ChatMessageStepIconComponent } from '../message-step-icon/icon.component'
 
 @Component({
   standalone: true,
   selector: 'chat-tool-call-chunk',
   templateUrl: `tool-call-chunk.component.html`,
   styleUrl: `tool-call-chunk.component.scss`,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, NgxJsonViewerModule, RelativeTimesPipe, Copy2Component, ChatMessageStepIconComponent]
+  imports: [
+    CommonModule,
+    TranslateModule,
+    MatTooltipModule,
+    NgxJsonViewerModule,
+    RelativeTimesPipe,
+    Copy2Component,
+    ChatMessageStepIconComponent
+  ]
 })
 export class ChatToolCallChunkComponent {
   // Inputs

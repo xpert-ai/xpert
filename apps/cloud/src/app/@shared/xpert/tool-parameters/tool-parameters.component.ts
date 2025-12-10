@@ -1,12 +1,11 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { IXpertTool, TToolParameter, TWorkflowVarGroup } from '@cloud/app/@core'
+import { IXpertTool, JsonSchemaObjectType, TToolParameter, TWorkflowVarGroup } from '@cloud/app/@core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { XpertVariableInputComponent } from '../../agent'
 import { JSONSchemaFormComponent } from '../../forms'
 
@@ -53,7 +52,7 @@ export class XpToolParametersFormComponent {
     const parameters = this.schema()?.parameters ?? this.tool()?.provider?.parameters
     return parameters?.filter((_) => isNil(_.visible) || _.visible)
   })
-  readonly jsonSchema = computed(() => this.tool()?.schema as JsonSchema7ObjectType)
+  readonly jsonSchema = computed(() => this.tool()?.schema as JsonSchemaObjectType)
 
   readonly #invalid = computed(() => {
     const required = this.parameterList()?.filter((p) => p.required)

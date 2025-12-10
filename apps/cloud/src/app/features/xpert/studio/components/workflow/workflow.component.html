@@ -2,40 +2,42 @@
   <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" [fInputMultiple]="true" class="left absolute"></div>
 }
 
-<div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
-  @switch(type()) {
-    @case (eWorkflowNodeTypeEnum.TRIGGER) {
-      @if (provider()?.icon; as icon) {
-        <xp-icon [icon]="icon" size="18" class="w-6 h-6 shrink-0 mr-2" 
+@if (!fullCustomNodeTypes.includes(type())) {
+  <div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
+    @switch(type()) {
+      @case (eWorkflowNodeTypeEnum.TRIGGER) {
+        @if (provider()?.icon; as icon) {
+          <xp-icon [icon]="icon" size="18" class="w-6 h-6 shrink-0 mr-2" 
+            [matTooltip]="key()"
+            matTooltipPosition="above" />
+        } @else {
+          <div class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
+            rounded-lg shadow-sm">
+            <i class="ri-message-3-fill"></i>
+          </div>
+        }
+      }
+      @default {
+        <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" 
           [matTooltip]="key()"
-          matTooltipPosition="above" />
-      } @else {
-        <div class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
-          rounded-lg shadow-sm">
-          <i class="ri-message-3-fill"></i>
-        </div>
+          matTooltipPosition="above"
+        />
       }
     }
-    @default {
-      <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" 
-        [matTooltip]="key()"
-        matTooltipPosition="above"
-      />
-    }
-  }
-  <div [title]="title()" class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center">
-    <div>{{title()}}</div>
-  </div>
-
-  @if (isStart()) {
-    <div class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-gray-100 shadow-md"
-      [matTooltip]="'PAC.Xpert.StartNodeTip' | translate: {Default: 'Start node, agent pre-processing logic entry'}"
-      matTooltipPosition="above"
-    >
-      <i class="ri-run-line text-primary-500"></i>
+    <div [title]="title()" class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center">
+      <div>{{title()}}</div>
     </div>
-  }
-</div>
+
+    @if (isStart()) {
+      <div class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-gray-100 shadow-md"
+        [matTooltip]="'PAC.Xpert.StartNodeTip' | translate: {Default: 'Start node, agent pre-processing logic entry'}"
+        matTooltipPosition="above"
+      >
+        <i class="ri-run-line text-primary-500"></i>
+      </div>
+    }
+  </div>
+}
 
 @switch(type()) {
   @case (eWorkflowNodeTypeEnum.TRIGGER) {
@@ -92,6 +94,12 @@
   @case (eWorkflowNodeTypeEnum.TASK) {
     <xpert-workflow-node-task class="px-3" [node]="node()" [entity]="entity()" />
   }
+  @case (eWorkflowNodeTypeEnum.MIDDLEWARE) {
+    <xpert-workflow-node-middleware class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.SKILL) {
+    <xpert-workflow-node-skill class="px-3" [node]="node()" [entity]="entity()" />
+  }
   @case (eWorkflowNodeTypeEnum.NOTE) {
     <xpert-workflow-node-note class="px-3" [node]="node()" [entity]="entity()" />
   }
@@ -130,9 +138,11 @@
   }
 }
 
-@if (description()) {
-  <div class="px-3 pt-1 text-left text-xs text-text-tertiary line-clamp-3"
-    [title]="description()">
-    {{description()}}
-  </div>
+@if (!fullCustomNodeTypes.includes(type())) {
+  @if (description()) {
+    <div class="px-3 pt-1 text-left text-xs text-text-tertiary line-clamp-3"
+      [title]="description()">
+      {{description()}}
+    </div>
+  }
 }
