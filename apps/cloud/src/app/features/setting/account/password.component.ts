@@ -55,7 +55,7 @@ import { UserFormsModule } from '../../../@shared/user/forms'
     </mat-form-field>
     <mat-form-field appearance="fill" floatLabel="always" class="self-stretch">
       <mat-label>
-        {{ 'PAC.KEY_WORDS.NewPassword' | translate: { Default: 'New Password' } }}
+        <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.NewPassword' | translate: { Default: 'New Password' } }}
       </mat-label>
       <input type="password" matInput formControlName="password" autocomplete="new-password" />
       @if (minlengthError(); as error) {
@@ -68,7 +68,7 @@ import { UserFormsModule } from '../../../@shared/user/forms'
 
     <mat-form-field appearance="fill" floatLabel="always" class="self-stretch">
       <mat-label>
-        {{ 'PAC.KEY_WORDS.ConfirmPassword' | translate: { Default: 'Confirm Password' } }}
+        <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.ConfirmPassword' | translate: { Default: 'Confirm Password' } }}
       </mat-label>
       <input type="password" matInput formControlName="confirmPassword" autocomplete="new-password" />
       @if (mustMatchError(); as error) {
