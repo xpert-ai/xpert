@@ -1,6 +1,9 @@
 <div>
   @if (label()) {
     <label class="ngm-input-label shrink-0" [title]="label()">
+      @if (required()) {
+        <span class="text-red-500">*</span>
+      }
       {{ label() }}
     </label>
   }

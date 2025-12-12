@@ -16,7 +16,16 @@ import {
 	ForbiddenException,
 	HttpException,
 	ClassSerializerInterceptor,
+	BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadedFile } from '@metad/contracts';
+import { FileStorage, UploadedFileStorage } from '../core/file-storage';
+import path from 'path';
+import chardet from 'chardet';
+import iconv from 'iconv-lite';
+import * as XLSX from 'xlsx';
+import fsPromises from 'fs/promises';
 import {
 	ApiOperation,
 	ApiResponse,
@@ -374,5 +383,179 @@ export class UserController extends CrudController<User> {
 	@Post('bulk')
 	async createBulk(@Body() users: IUserCreateInput[]) {
 		return await this.commandBus.execute(new UserBulkCreateCommand(users))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN)
+	@Post('bulk/upload')
+	@UseInterceptors(
+		FileInterceptor('file', {
+			storage: new FileStorage().storage({
+				dest: path.join('import', 'users'),
+				prefix: 'user-import'
+			})
+		})
+	)
+	@ApiOperation({ summary: 'Upload and parse CSV file for bulk user import' })
+	@ApiResponse({
+		status: HttpStatus.OK,
+		description: 'Users parsed from CSV file'
+	})
+	async uploadAndParseCsv(@UploadedFileStorage() file: UploadedFile): Promise<IUserCreateInput[]> {
+		if (!file) {
+			throw new BadRequestException('No file uploaded')
+		}
+
+		const { path: filePath, mimetype, originalname } = file
+
+		// Only accept CSV files
+		if (mimetype !== 'text/csv' && !originalname.endsWith('.csv')) {
+			throw new BadRequestException('Only CSV files are supported')
+		}
+
+		try {
+			// Read file buffer
+			const buffer = await fsPromises.readFile(filePath)
+
+			// Function to check if string contains valid Chinese characters
+			const containsValidChinese = (str: string): boolean => {
+				// Check for Chinese characters (CJK Unified Ideographs)
+				return /[\u4e00-\u9fa5]/.test(str)
+			}
+
+			// Function to detect if string looks like mis-decoded UTF-8 (common pattern: ´ò·¢µÄ)
+			const looksLikeMisDecoded = (str: string): boolean => {
+				// Pattern: sequences of accented characters that look like mis-decoded UTF-8 Chinese
+				// Examples: ´ò·¢µÄ, °¢ÈøµÂ
+				return /[´°µÄÂÈøò·¢]{3,}/.test(str)
+			}
+
+			// Function to check if decoding is likely correct
+			const isValidDecoding = (decoded: string, encoding: string): boolean => {
+				// Check for replacement characters (indicates decoding failure)
+				if (decoded.includes('\uFFFD')) {
+					return false
+				}
+				
+				// For UTF-8, validate it's proper UTF-8
+				if (encoding === 'utf8' || encoding === 'utf-8') {
+					try {
+						// Try to re-encode to verify it's valid UTF-8
+						Buffer.from(decoded, 'utf8')
+						return true
+					} catch {
+						return false
+					}
+				}
+				
+				return true
+			}
+
+			// Try UTF-8 first (most common, especially for files saved from modern editors)
+			// Then try Chinese encodings if UTF-8 doesn't produce valid Chinese
+			const encodingsToTry = ['utf8', 'gbk', 'gb18030', 'gb2312', 'big5']
+			
+			// First, check for BOM
+			let startOffset = 0
+			if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+				// UTF-8 BOM detected, skip BOM bytes
+				startOffset = 3
+			}
+			
+			const bufferToDecode = startOffset > 0 ? buffer.slice(startOffset) : buffer
+
+			let content: string | null = null
+			let lastError: Error | null = null
+
+			for (const encoding of encodingsToTry) {
+				try {
+					// Try to decode with this encoding
+					const decoded = iconv.decode(bufferToDecode, encoding)
+					
+					if (!isValidDecoding(decoded, encoding)) {
+						continue
+					}
+
+					// Skip if it looks like mis-decoded UTF-8
+					if (looksLikeMisDecoded(decoded)) {
+						continue
+					}
+
+					// If decoded string contains Chinese characters, it's likely correct
+					if (containsValidChinese(decoded)) {
+						content = decoded
+						break
+					}
+					
+					// For UTF-8, if no Chinese but looks valid, use it as fallback (might be English-only file)
+					// For other encodings, only use if we haven't found any valid content yet
+					if (encoding === 'utf8' && !content && decoded.length > 0) {
+						content = decoded
+					} else if (!content && decoded.length > 0 && !decoded.match(/[^\x00-\x7F]/)) {
+						// Only use non-UTF-8 if it's pure ASCII (no special characters that might be mis-decoded)
+						content = decoded
+					}
+				} catch (err) {
+					lastError = err
+					continue
+				}
+			}
+
+			if (!content) {
+				// If all encodings failed, try UTF-8 as last resort
+				try {
+					content = iconv.decode(bufferToDecode, 'utf8')
+				} catch (err) {
+					throw new BadRequestException(`Failed to decode CSV file. Tried encodings: ${encodingsToTry.join(', ')}. Error: ${lastError?.message || err.message}`)
+				}
+			}
+
+			if (!content) {
+				throw new BadRequestException('Failed to decode CSV file with any known encoding')
+			}
+
+			// Parse CSV with XLSX
+			const workbook = XLSX.read(content, { 
+				type: 'string',
+				codepage: 65001 // UTF-8 codepage
+			})
+
+			const sheet = workbook.Sheets[workbook.SheetNames[0]]
+			
+			// Convert to JSON array
+			const jsonData = XLSX.utils.sheet_to_json(sheet) as any[]
+
+			// Map to IUserCreateInput format
+			const users: IUserCreateInput[] = jsonData.map((row: any) => {
+				// Map CSV columns to user input fields
+				// Adjust field names based on your CSV template
+				return {
+					username: row.username || row.用户名,
+					email: row.email || row.邮箱,
+					hash: row.hash || row.密码,
+					firstName: row.firstName || row.名 || row.first_name,
+					lastName: row.lastName || row.姓 || row.last_name,
+					roleName: row.roleName || row.角色 || row.role_name,
+					thirdPartyId: row.thirdPartyId || row.第三方ID || row.third_party_id
+				} as IUserCreateInput
+			})
+
+			// Clean up temporary file
+			try {
+				await fsPromises.unlink(filePath)
+			} catch (err) {
+				// Ignore cleanup errors
+			}
+
+			return users
+		} catch (error) {
+			// Clean up temporary file on error
+			try {
+				await fsPromises.unlink(filePath)
+			} catch (err) {
+				// Ignore cleanup errors
+			}
+			throw new BadRequestException(`Failed to parse CSV file: ${error.message}`)
+		}
 	}
 }

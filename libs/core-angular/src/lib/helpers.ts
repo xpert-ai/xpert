@@ -490,30 +490,106 @@ export function camelCaseObject(obj: Record<string, any>) {
 }
 
 export type WorkBook = any
+
+/**
+ * Detect encoding from BOM (Byte Order Mark) and remove BOM if present
+ * @param data ArrayBuffer
+ * @returns Object with detected encoding and data without BOM
+ */
+function detectAndRemoveBOM(data: ArrayBuffer): { encoding: string; data: ArrayBuffer } {
+  const bytes = new Uint8Array(data.slice(0, 4))
+  let encoding = 'utf-8'
+  let offset = 0
+  
+  // UTF-8 BOM: EF BB BF
+  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    encoding = 'utf-8'
+    offset = 3
+  }
+  // UTF-16 LE BOM: FF FE
+  else if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
+    encoding = 'utf-16le'
+    offset = 2
+  }
+  // UTF-16 BE BOM: FE FF
+  else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+    encoding = 'utf-16be'
+    offset = 2
+  }
+  
+  // Remove BOM if present
+  if (offset > 0) {
+    return {
+      encoding,
+      data: data.slice(offset)
+    }
+  }
+  
+  return { encoding, data }
+}
+
 export async function readExcelWorkSheets<T = unknown>(file: File) {
   const XLSX = await import('xlsx')
   return new Promise<{fileName: string; name: string; columns: any[]; data: T[]}[]>((resolve, reject) => {
-    const reader: FileReader = new FileReader()
-
-    reader.onload = async (e: any) => {
-      const data: ArrayBuffer = e.target.result
-      let wBook: WorkBook
-      if (file.type === 'text/csv') {
-        const decoder = new TextDecoder('utf-8')
-        const decodedData = decoder.decode(data)
-        wBook = XLSX.read(decodedData, { type: 'string' })
-      } else {
-        wBook = XLSX.read(data, { type: 'array' })
+    // For CSV files, use FileReader.readAsText with UTF-8 encoding
+    // This is more reliable for handling encoding in browsers
+    if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+      const reader: FileReader = new FileReader()
+      
+      reader.onload = async (e: any) => {
+        try {
+          // FileReader.readAsText with 'utf-8' should handle UTF-8 BOM automatically
+          let text = e.target.result as string
+          
+          // Remove UTF-8 BOM if present (FileReader might not remove it)
+          if (text.charCodeAt(0) === 0xFEFF) {
+            text = text.slice(1)
+          }
+          
+          // Read CSV with XLSX
+          const wBook = XLSX.read(text, { 
+            type: 'string',
+            codepage: 65001 // UTF-8 codepage for better Chinese support
+          })
+          
+          resolve(await readExcelJson(wBook, file.name))
+        } catch (err) {
+          reject(err)
+        }
       }
-
-      try {
-        resolve(await readExcelJson(wBook, file.name))
-      } catch (err) {
-        reject(err)
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read CSV file. Please ensure the file is saved in UTF-8 encoding.'))
       }
+      
+      // Use readAsText with UTF-8 encoding for better encoding handling
+      reader.readAsText(file, 'UTF-8')
+    } else {
+      // For Excel files (.xlsx, .xls), use ArrayBuffer
+      const reader: FileReader = new FileReader()
+      
+      reader.onload = async (e: any) => {
+        const data: ArrayBuffer = e.target.result
+        try {
+          const wBook = XLSX.read(data, { 
+            type: 'array',
+            codepage: 65001, // UTF-8 codepage for better Chinese support
+            cellDates: true,
+            cellNF: false
+          })
+          
+          resolve(await readExcelJson(wBook, file.name))
+        } catch (err) {
+          reject(err)
+        }
+      }
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read Excel file'))
+      }
+      
+      reader.readAsArrayBuffer(file)
     }
-
-    reader.readAsArrayBuffer(file)
   })
 }
 
