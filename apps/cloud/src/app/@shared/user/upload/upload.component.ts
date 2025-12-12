@@ -4,9 +4,9 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { UsersService } from '@metad/cloud/state'
-import { readExcelWorkSheets } from '@metad/core'
 import { NgmSpinComponent, NgmStepperComponent, NgmTableComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, IUserUpdateInput } from '../../../@core'
 import { FilesUploadComponent, UploadFile } from '../../files'
 
@@ -72,9 +72,18 @@ export class UserUploadComponent {
   }
 
   async readDataFile(file: File) {
-    // Multiple sheets for excel file
-    const sheets = await readExcelWorkSheets(file)
-    this.users.update((users) => [...users, ...sheets[0].data])
+    // Upload file to backend for encoding detection and parsing
+    this.loading.set(true)
+    try {
+      const users = await firstValueFrom(this.userService.uploadAndParseCsv(file))
+      if (users && users.length > 0) {
+        this.users.update((existingUsers) => [...existingUsers, ...users])
+      }
+    } catch (err) {
+      this.#toastr.error(getErrorMessage(err))
+    } finally {
+      this.loading.set(false)
+    }
   }
 
   save() {

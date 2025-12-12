@@ -7,4 +7,11 @@
     @apply absolute w-full h-full;
     z-index: 110;
   }
+  
+  // Hide column search icons in ngm-table since we have a global search box
+  ngm-table {
+    .searchable-icon {
+      display: none;
+    }
+  }
 }

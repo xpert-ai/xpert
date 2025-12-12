@@ -87,6 +87,13 @@ export class XpertBasicFormComponent {
       const name = this.name()
       this.checking.set(true)
       this.error.set(null)
+
+      // Only validate if name is not blank
+      if (!name || name.trim().length === 0) {
+        this.checking.set(false)
+        return
+      }
+
       if (/[^a-zA-Z0-9-\s]/.test(name)) {
         this.error.set(
           this.#translate.instant('PAC.Xpert.NameContainsNonAlpha', {

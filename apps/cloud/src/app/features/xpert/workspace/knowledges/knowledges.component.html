@@ -41,9 +41,12 @@
 
           <div class="flex flex-col items-start overflow-hidden">
             <p class="text-xs flex items-center text-token-text-secondary opacity-80">
-              @if (item.permission === KnowledgebasePermission.Public || item.permission === KnowledgebasePermission.Organization) {
+              @if (item.permission === KnowledgebasePermission.Public) {
                 <i class="ri-earth-line mr-1"></i>
                 {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
+              } @else if (item.permission === KnowledgebasePermission.Organization) {
+                <i class="ri-community-line mr-1"></i>
+                {{ 'PAC.Knowledgebase.Permission_Organization' | translate: {Default:'Organization'} }}
               } @else {
                 <i class="ri-git-repository-private-line mr-1"></i>
                 {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}

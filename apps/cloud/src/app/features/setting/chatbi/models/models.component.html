@@ -10,6 +10,11 @@
   </div>
 </div>
 
+<!-- Global search box above the table -->
+<div class="px-2 pb-2">
+  <ngm-search [formControl]="searchControl" class="w-full" />
+</div>
+
 <ngm-table class="w-full max-w-full z-10" displayDensity="cosy"
   [data]="models()"
   [columns]="[
