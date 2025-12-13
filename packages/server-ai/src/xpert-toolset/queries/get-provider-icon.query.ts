@@ -4,6 +4,9 @@ export class ToolProviderIconQuery implements IQuery {
 	static readonly type = '[Xpert Toolset] Provider Icon'
 
 	constructor(
-		public readonly provider: string,
+		public readonly options: {
+			organizationId?: string
+			provider: string
+		},
 	) {}
 }

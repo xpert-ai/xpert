@@ -178,8 +178,8 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 
 	@Public()
 	@Get('builtin-provider/:name/icon')
-	async getProviderIcon(@Param('name') provider: string, @Res() res: ServerResponse) {
-		const [icon, mimetype] = await this.queryBus.execute(new ToolProviderIconQuery(provider))
+	async getProviderIcon(@Param('name') provider: string, @Query('org') org: string, @Res() res: ServerResponse) {
+		const [icon, mimetype] = await this.queryBus.execute(new ToolProviderIconQuery({organizationId: org, provider}))
 		if (icon) {
 			res.setHeader('Content-Type', mimetype)
 			res.end(icon)
