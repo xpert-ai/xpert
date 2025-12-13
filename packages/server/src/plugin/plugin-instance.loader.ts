@@ -45,7 +45,9 @@ export async function loadOrganizationPluginConfigs(): Promise<OrganizationPlugi
     for (const instance of instances) {
       const orgId = instance.organizationId ?? GLOBAL_ORGANIZATION_SCOPE;
       const record = byOrg.get(orgId) ?? { organizationId: instance.organizationId, plugins: [], configs: {} };
-      record.plugins.push(instance.packageName || instance.pluginName);
+      const packageName = instance.packageName || instance.pluginName
+      const name = instance.version ? `${packageName}@${instance.version}` : packageName;
+      record.plugins.push(name);
       record.configs[instance.pluginName] = instance.config || {};
       byOrg.set(orgId, record);
     }

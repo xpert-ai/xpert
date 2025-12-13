@@ -4,14 +4,6 @@ import { Repository } from 'typeorm';
 import { PluginInstance } from './plugin-instance.entity';
 import { TenantOrganizationAwareCrudService } from '../core/crud';
 
-export interface UpsertPluginInstanceInput {
-  tenantId?: string;
-  organizationId?: string;
-  pluginName: string;
-  packageName: string;
-  version?: string;
-  config?: Record<string, any>;
-}
 
 @Injectable()
 export class PluginInstanceService extends TenantOrganizationAwareCrudService<PluginInstance> {
@@ -22,7 +14,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
     super(repo);
   }
 
-  async upsert(input: UpsertPluginInstanceInput) {
+  async upsert(input: PluginInstance) {
     const existing = await this.repo.findOne({
       where: {
         organizationId: input.organizationId,
@@ -33,6 +25,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
     if (existing) {
       existing.packageName = input.packageName;
       existing.version = input.version;
+      existing.source = input.source;
       existing.config = input.config ?? {};
       existing.tenantId = input.tenantId ?? existing.tenantId;
       return this.repo.save(existing);
@@ -44,8 +37,9 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
       pluginName: input.pluginName,
       packageName: input.packageName,
       version: input.version,
+      source: input.source,
       config: input.config ?? {},
     });
-    return this.repo.save(entity);
+    return this.create(entity);
   }
 }

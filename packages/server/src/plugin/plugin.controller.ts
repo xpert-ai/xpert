@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, Inject, Post } from '@nestjs/common'
 import { LazyModuleLoader } from '@nestjs/core'
-import { GLOBAL_ORGANIZATION_SCOPE, PLUGIN_METADATA_KEY, RequestContext, STRATEGY_META_KEY, StrategyBus } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, STRATEGY_META_KEY, StrategyBus } from '@xpert-ai/plugin-sdk'
 import { In } from 'typeorm'
 import { buildConfig } from './config'
 import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
@@ -46,31 +46,25 @@ export class PluginController {
 		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
 		const tenantId = RequestContext.currentTenantId()
 		const packageName = body.pluginName
+		const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 
 		const organizationBaseDir = getOrganizationPluginRoot(organizationId)
 		// 1) Install and register into current module context (mirrors registerPluginsAsync logic)
 		const { modules } = await registerPluginsAsync({
 			organizationId,
-			plugins: [packageName],
+			plugins: [packageNameWithVersion],
 			configs: { [packageName]: body.config },
 			baseDir: organizationBaseDir
 		})
 
 		// 2) Load the module, scan and initialize the strategy class.
 		for await (const dynamicModule of modules) {
-			console.log(`======= module ========`)
 			const loadedModuleRef = await this.lazyLoader.load(() => dynamicModule)
 			const strategyProviders = collectProvidersWithMetadata(loadedModuleRef, organizationId, body.pluginName)
 			for await (const instance of strategyProviders) {
 				const target = instance.metatype ?? instance.constructor
 				const strategyMeta = Reflect.getMetadata(STRATEGY_META_KEY, target)
-				const pluginMeta = Reflect.getMetadata(PLUGIN_METADATA_KEY, target)
-				if (pluginMeta) console.log(`PLUGIN_METADATA_KEY`, pluginMeta)
-				if (strategyMeta) console.log(`STRATEGY_META_KEY`, strategyMeta)
 				if (strategyMeta) {
-					console.log(
-						`Registering strategy ${target.name} from plugin ${body.pluginName} for organization ${organizationId}`
-					)
 					this.strategyBus.upsert(strategyMeta, {
 						instance,
 						sourceId: `${organizationId}:${body.pluginName}@${body.version ?? 'latest'}:${target.name}`,
@@ -97,6 +91,7 @@ export class PluginController {
 			pluginName,
 			packageName,
 			version: body.version,
+			source: 'marketplace',
 			config
 		})
 
