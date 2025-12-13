@@ -1,0 +1,65 @@
+<div class="absolute right-6 top-6 z-10 flex h-8 w-8 items-center justify-center rounded-2xl hover:cursor-pointer hover:bg-state-base-hover"
+  (click)="close()"
+>
+  <i class="ri-close-line"></i>
+</div>
+<div class="flex items-start gap-2 self-stretch pb-3 pl-6 pr-14 pt-6">
+  <div class="text-2xl font-semibold self-stretch text-text-primary">
+    {{ 'PAC.Plugin.InstallPlugin' | translate: {Default: 'Install Plugin'} }}
+  </div>
+</div>
+<div class="flex flex-col items-start justify-center gap-4 self-stretch px-6 py-3">
+  <div class="system-md-regular text-text-secondary">
+    @if (installedVersion() === plugin().version) {
+      <p>{{ 'PAC.Plugin.PluginAlreadyInstalled' | translate: {Default: 'The latest version of this plugin is already installed'} }}</p>
+    } @else {
+      @if (status() === 'installed') {
+        <p>{{ 'PAC.Plugin.PluginInstalled' | translate: {Default: 'Plugin Installed'} }}</p>
+      } @else if (status() === 'installing') {
+        <p>{{ 'PAC.Plugin.PluginInstalling' | translate: {Default: 'Installing Plugin'} }}</p>
+      } @else if (status() === 'error') {
+        <p>{{ 'PAC.Plugin.PluginInstallError' | translate: {Default: 'Plugin installation failed, please try again'} }}</p>
+      } @else {
+        <p>{{ 'PAC.Plugin.PluginWillInstall' | translate: {Default: 'The following plugin will be installed'} }}</p>
+      }
+      @if (error()) {
+        <p class="text-text-destructive">{{ error() }}</p>
+      }
+    }
+  </div>
+  <div class="relative flex flex-wrap content-start items-start gap-1 self-stretch rounded-2xl bg-slate-100 p-2">
+    <xp-plugin [plugin]="plugin()" [installed]="!!installed()">
+      <div version>
+        @if (installedVersion() && installedVersion() !== plugin().version) {
+          <div class="badge badge-s mx-1 badge-warning px-[5px] py-[3px] system-2xs-medium">{{installedVersion()}} -&gt; {{plugin().version}}</div>
+        } @else {
+          <div class="badge badge-s mx-1 px-[5px] py-[3px] system-2xs-medium font-mono">{{plugin().version}}</div>
+        }
+      </div>
+    </xp-plugin>
+    @if (status() === 'installing') {
+      <ngm-spin class="absolute inset-0 left-0 top-0 w-full h-full rounded-2xl backdrop-blur-sm bg-white/2" />
+    }
+  </div>
+</div>
+<div class="flex items-center justify-end gap-2 self-stretch p-6 pt-5">
+  @if (status() === 'installed' || installedVersion() === plugin().version) {
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large flex min-w-[72px] space-x-0.5"
+      (click)="close()">
+      <span>{{ 'PAC.Plugin.Close' | translate: {Default: 'Close'} }}</span>
+    </button>
+  } @else {
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large min-w-[72px]"
+      [disabled]="status() === 'installing'"
+      (click)="close()"
+    >
+      {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
+    </button>
+
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large flex min-w-[72px] space-x-0.5"
+      [disabled]="status() === 'installing'"
+      (click)="install()">
+      <span>{{ 'PAC.Plugin.Install' | translate: {Default: 'Install'} }}</span>
+    </button>
+  }
+</div>

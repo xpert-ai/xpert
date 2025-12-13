@@ -567,7 +567,17 @@
       "Category_vlm": "视觉模型",
       "Category_model": "语言模型",
       "Category_middleware": "中间件",
-      "Category_vector-store": "向量数据库"
+      "Category_vector-store": "向量数据库",
+      "GlobalPlugin": "这是一个面向所有组织的全局插件",
+      "RemovePlugin": "从您的组织中移除此插件",
+      "Uninstall_Title": "卸载插件",
+      "Uninstall_Message": "您确定要卸载此插件吗？",
+      "PluginInstalled": "插件已成功安装",
+      "PluginInstalling": "正在安装插件，请稍候...",
+      "PluginInstallError": "插件安装失败，请重试",
+      "PluginWillInstall": "即将安装以下插件",
+      "PluginAlreadyInstalled": "此插件的最新版本已安装",
+      "Close": "关闭"
     },
     "Workspace": {
       "NewTable": "新建表",

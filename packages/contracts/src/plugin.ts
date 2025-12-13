@@ -1,3 +1,4 @@
+import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model';
 import { IconDefinition } from './types'
 
 export type PluginName = string;
@@ -12,4 +13,12 @@ export interface PluginMeta {
   keywords?: string[]
   author: string
   homepage?: string
+}
+
+export interface IPlugin extends IBasePerTenantAndOrganizationEntityModel {
+  pluginName: string;
+  packageName: string;
+  version?: string;
+  source?: "marketplace" | "local" | "git" | "url";
+  config: Record<string, any>;
 }

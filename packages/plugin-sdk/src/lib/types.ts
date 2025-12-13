@@ -2,6 +2,11 @@ import { PluginMeta } from '@metad/contracts';
 import type { DynamicModule, INestApplicationContext } from '@nestjs/common';
 import type { ZodSchema } from 'zod';
 
+export const ORGANIZATION_METADATA_KEY = 'xpert:organizationId'
+export const PLUGIN_METADATA_KEY = 'xpert:pluginName'
+export const GLOBAL_ORGANIZATION_SCOPE = 'global'
+export const STRATEGY_META_KEY = 'XPERT_STRATEGY_META_KEY'
+
 export interface PluginLifecycle {
   /** Called after module registration but before application startup */
   onInit?(ctx: PluginContext): Promise<void> | void;

@@ -44,6 +44,7 @@ ormlogs.log
 .DS_Store
 Thumbs.db
 
+/apps/api/src/assets/plugins
 /apps/**/.cache
 /apps/**/node_modules
 /libs/**/.cache

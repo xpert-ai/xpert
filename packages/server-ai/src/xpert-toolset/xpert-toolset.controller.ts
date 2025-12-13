@@ -115,15 +115,19 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 		return this.service.getAllTags()
 	}
 
+	/**
+	 * Get all available toolset providers
+	 * 
+	 * @returns 
+	 */
 	@Get('providers')
 	async getAllToolProviders() {
-		return this.queryBus.execute(new ListBuiltinToolProvidersQuery()).then((items) =>
-			items.map((schema) =>
+		const items = await this.queryBus.execute(new ListBuiltinToolProvidersQuery())
+		return items.map((schema) =>
 					new ToolProviderDTO({
 						...schema.identity
 					}, this.baseUrl)
-			)
-		)
+				)
 	}
 	
 	@Post('provider/openapi/remote')

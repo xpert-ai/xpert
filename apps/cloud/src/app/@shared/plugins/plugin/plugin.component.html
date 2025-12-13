@@ -1,0 +1,55 @@
+@if (plugin(); as plugin) {
+  <div class="relative overflow-hidden rounded-xl border-[0.5px] border-components-panel-border bg-neutral-50 shadow-sm hover:shadow-md hover:bg-components-card-bg">
+    <div class="p-4 pb-3">
+      <div class="absolute right-0 top-0 flex pl-[13px]">
+        <svg
+          width="13"
+          height="18"
+          viewBox="0 0 13 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class="-mr-[1px] text-gray-100"
+        >
+          <path
+            id="Shape"
+            d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
+            fill="currentColor"
+          ></path>
+        </svg>
+        <div class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-gray-100 pr-2 leading-5 text-text-tertiary">
+          {{ 'PAC.Plugin.Category_' + plugin.category | translate: {Default: plugin.category} }}
+        </div>
+      </div>
+      <div class="flex">
+        <div class="relative flex">
+          <xp-icon [icon]="plugin.icon" size="24" class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl"/>
+          @if (installed()) {
+            <div class="flex justify-center items-center gap-2 absolute bottom-[-4px] right-[-4px] w-[18px] h-[18px] rounded-full border-2 border-solid border-components-panel-bg bg-components-panel-bg">
+              <i class="ri-checkbox-circle-fill text-lg text-state-success-solid"></i>
+            </div>
+          }
+        </div>
+        
+        <div class="ml-3 w-0 grow">
+          <div class="flex h-5 items-center">
+            <div class="system-md-semibold truncate text-text-secondary">{{ plugin.displayName | i18n }}</div>
+            <div class="flex shrink-0 items-center justify-center text-text-success ml-1">
+              <i class="ri-verified-badge-fill"></i>
+            </div>
+            <ng-content select="[version]"></ng-content>
+          </div>
+          <div class="flex h-4 items-center space-x-0.5 mt-0.5">
+            <a [href]=" plugin.author.url" target="_blank" class="system-xs-regular shrink-0 hover:underline text-text-tertiary">{{ plugin.author.name }}</a>
+            <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
+            <span class="system-xs-regular w-0 shrink-0 grow truncate text-text-tertiary">{{ plugin.name }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="system-xs-regular text-text-tertiary line-clamp-2 mt-2 h-10">
+        {{ plugin.description | i18n }}
+      </div>
+
+      <ng-content></ng-content>
+    </div>
+  </div>
+}

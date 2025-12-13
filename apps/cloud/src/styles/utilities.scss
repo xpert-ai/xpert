@@ -29,6 +29,9 @@
   .system-xs-medium {
     @apply text-xs font-medium;
   }
+  .system-2xs-medium {
+    @apply text-[10px] leading-3 font-medium;
+  }
   .system-kbd {
     @apply text-sm font-medium leading-4;
   }
@@ -79,7 +82,10 @@
   }
 
   .badge {
-    @apply inline-flex items-center justify-center border border-solid border-text-tertiary;
+    @apply inline-flex items-center justify-center border border-solid border-text-quaternary text-text-tertiary;
+    &.badge-warning {
+      @apply border-text-warning text-text-warning;
+    }
   }
 
   .badge-s {

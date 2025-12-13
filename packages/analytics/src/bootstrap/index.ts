@@ -1,10 +1,11 @@
 import { environment as env, getConfig, setConfig } from '@metad/server-config'
-import { AppService, AuthGuard, getPluginModules, initI18next, PluginModule, registerPluginsAsync, ServerAppModule, SharedModule } from '@metad/server-core'
+import { AppService, AuthGuard, initI18next, loadOrganizationPluginConfigs, PluginModule, registerPluginsAsync, ServerAppModule, SharedModule } from '@metad/server-core'
 import { IPluginConfig } from '@metad/server-common'
-import { Logger, LogLevel, Module } from '@nestjs/common'
+import { DynamicModule, Logger, LogLevel, Module } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
 import { useContainer } from 'class-validator';
 import cookieParser from 'cookie-parser'
 import { json, text, urlencoded } from 'express'
@@ -130,29 +131,35 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
 }
 
 export async function preBootstrapPlugins() {
-	const plugins = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || [];
-	const { modules } = await registerPluginsAsync({
-		plugins: [
-			'@xpert-ai/plugin-agent-middlewares',
-			// '@xpert-ai/plugin-dify',
-			// '@xpert-ai/plugin-file-system',
-			// '@xpert-ai/plugin-firecrawl',
-			'@xpert-ai/plugin-integration-github',
-			// '@xpert-ai/plugin-ocr-paddle',
-			'@xpert-ai/plugin-trigger-schedule',
-			'@xpert-ai/plugin-textsplitter-common',
-			'@xpert-ai/plugin-retriever-common',
-			// '@xpert-ai/plugin-tool-calculator',
-			'@xpert-ai/plugin-transformer-common',
-			'@xpert-ai/plugin-vlm-default',
-			// '@xpert-ai/plugin-vstore-chroma',
-			// '@xpert-ai/plugin-vstore-weaviate',
-			...plugins
-		],
-		// discovery: {
-			// prefix: '@xpert-ai/plugin-',
-		// }
-	});
+	const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || [];
+	const defaultGlobalPlugins = [
+		'@xpert-ai/plugin-agent-middlewares',
+		'@xpert-ai/plugin-integration-github',
+		// '@xpert-ai/plugin-ocr-paddle',
+		'@xpert-ai/plugin-trigger-schedule',
+		'@xpert-ai/plugin-textsplitter-common',
+		'@xpert-ai/plugin-retriever-common',
+		'@xpert-ai/plugin-transformer-common',
+		'@xpert-ai/plugin-vlm-default',
+		// '@xpert-ai/plugin-vstore-chroma',
+		// '@xpert-ai/plugin-vstore-weaviate',
+	];
+
+	const organizationPluginConfigs = await loadOrganizationPluginConfigs();
+
+	// If there is no persisted configuration, fallback to defaults + env for the global scope
+	const groups = [...organizationPluginConfigs, { organizationId: GLOBAL_ORGANIZATION_SCOPE, plugins: [...defaultGlobalPlugins, ...pluginsFromEnv], configs: {} }]
+
+	const modules: DynamicModule[] = [];
+	for await (const group of groups) {
+		const mergedPlugins = group.plugins
+		const { modules: orgModules } = await registerPluginsAsync({
+			organizationId: group.organizationId,
+			plugins: mergedPlugins,
+			configs: group.configs,
+		});
+		modules.push(...orgModules);
+	}
 
 	setConfig({plugins: modules});
 }
