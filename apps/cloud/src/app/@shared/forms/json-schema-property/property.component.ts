@@ -50,7 +50,7 @@ import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.
 export class JSONSchemaPropertyComponent {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
   readonly i18n = new NgmI18nPipe()
-  readonly widgetRegistry = inject(JsonSchemaWidgetStrategyRegistry)
+  readonly widgetRegistry? = inject(JsonSchemaWidgetStrategyRegistry, { optional: true })
 
   // Inputs
   readonly name = input<string>()
@@ -113,7 +113,7 @@ export class JSONSchemaPropertyComponent {
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
   readonly xUiHelp = computed(() => this.xUi()?.help)
   readonly xUiSpan = computed(() => this.xUi()?.span)
-  readonly hasCustomWidget = computed(() => this.widgetRegistry.has(this.xUiComponent()))
+  readonly hasCustomWidget = computed(() => this.widgetRegistry?.has(this.xUiComponent()))
 
   constructor() {
     // Waiting NgxControlValueAccessor has been initialized
