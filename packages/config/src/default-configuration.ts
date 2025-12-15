@@ -16,6 +16,7 @@ process.cwd();
 let assetPath = '';
 let assetPublicPath = '';
 let serverRoot = '';
+let dataPath = '';
 
 console.log(chalk.blueBright('Default Config -> __dirname: ' + __dirname));
 console.log(chalk.blueBright('Plugin Config -> process.cwd: ' + process.cwd()));
@@ -27,14 +28,17 @@ if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
 	serverRoot = '/srv/pangolin/';
 	assetPath = serverRoot + 'assets';
 	assetPublicPath = serverRoot + 'public';
+	dataPath = '/var/lib/xpert/data/'
 } else if (process.env.NODE_ENV === 'production') {
 	serverRoot = process.cwd()
 	assetPath = path.join(serverRoot, 'assets')
 	assetPublicPath = path.join(serverRoot, '..', 'public')
+	dataPath = '/var/lib/xpert/data/'
 } else {
 	serverRoot = path.resolve(__dirname, '../../../')
 	assetPath = path.join(serverRoot, ...['apps', 'api', 'src', 'assets'])
 	assetPublicPath = path.join(serverRoot, ...['apps', 'api', 'public'])
+	dataPath = path.join(serverRoot, 'tmp', 'data/')
 }
 
 console.log(chalk.blueBright('Default Config -> serverRoot: ' + serverRoot));
@@ -69,6 +73,7 @@ export const defaultConfiguration: IPluginConfig = {
 	assetOptions: {
 		assetPath: assetPath,
 		assetPublicPath: assetPublicPath,
-		serverRoot
+		serverRoot,
+		dataPath
 	}
 };

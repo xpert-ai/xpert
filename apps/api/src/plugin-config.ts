@@ -12,6 +12,7 @@ import { version } from './../version';
 let assetPath;
 let assetPublicPath;
 let serverRoot;
+let dataPath = '';
 
 console.log(chalk.magenta(`API Version %s`), version);
 console.log('Plugin Config -> __dirname: ' + __dirname);
@@ -23,14 +24,17 @@ if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
 	serverRoot = '/srv/pangolin/';
 	assetPath = serverRoot + 'assets';
 	assetPublicPath = serverRoot + 'public';
+	dataPath = '/var/lib/xpert/data/'
 } else if (process.env.NODE_ENV === 'production') {
 	serverRoot = process.cwd()
 	assetPath = path.join(serverRoot, 'assets')
 	assetPublicPath = path.join(serverRoot, '..', 'public')
+	dataPath = '/var/lib/xpert/data/'
 } else {
 	serverRoot = path.resolve(__dirname, '../../../')
 	assetPath = path.join(serverRoot, ...['apps', 'api', 'src', 'assets'])
 	assetPublicPath = path.join(serverRoot, ...['apps', 'api', 'public'])
+	dataPath = path.join(serverRoot, 'tmp', 'data/')
 }
 
 console.log('Plugin Config -> assetPath: ' + assetPath);
@@ -55,7 +59,8 @@ export const pluginConfig: IPluginConfig = {
 	assetOptions: {
 		assetPath: assetPath,
 		assetPublicPath: assetPublicPath,
-		serverRoot
+		serverRoot,
+		dataPath
 	},
 	// plugins: [KnowledgeBasePlugin, ChangelogPlugin]
 };

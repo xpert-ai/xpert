@@ -1,8 +1,8 @@
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
-import { PluginLoadError } from './errors';
 import { existsSync } from 'fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'path';
+import { PluginLoadError } from './errors';
 
 export interface PluginLoadOptions {
   /** Resolve modules relative to this base directory (expects a node_modules inside it) */

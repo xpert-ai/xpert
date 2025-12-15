@@ -1,4 +1,4 @@
-import { Inject, OnModuleInit } from "@nestjs/common"
+import { Inject, Logger, OnModuleInit } from "@nestjs/common"
 import { DiscoveryService, Reflector } from "@nestjs/core"
 import { filter } from "rxjs"
 import { RequestContext } from "./core/context"
@@ -7,6 +7,7 @@ import { GLOBAL_ORGANIZATION_SCOPE, ORGANIZATION_METADATA_KEY, PLUGIN_METADATA_K
 
 
 export class BaseStrategyRegistry<S> implements OnModuleInit {
+    private readonly logger = new Logger(BaseStrategyRegistry.name)
 
     @Inject(StrategyBus)
     protected readonly bus: StrategyBus
@@ -23,6 +24,7 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
 
     onModuleInit() {
         this.bus.events$.pipe(filter((event) => !event.strategyType || event.strategyType === this.strategyKey)).subscribe((evt) => {
+            this.logger.debug(`Received strategy bus event: ${JSON.stringify(evt)}`)
             if (evt.type === 'UPSERT') {
                 this.upsert(evt.entry.instance)
             } else if (evt.type === 'REMOVE') {
@@ -48,6 +50,7 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
             orgMap.set(type, instance as S)
             this.strategies.set(organizationId, orgMap)
             const pluginName = this.reflector.get<string>(PLUGIN_METADATA_KEY, target)
+            this.logger.debug(`Registered strategy of type ${type} for organization ${organizationId} from plugin ${pluginName}`)
             if (pluginName) {
                 const pluginStrategies = this.pluginStrategies.get(pluginName) ?? new Set<string>()
                 pluginStrategies.add(type)

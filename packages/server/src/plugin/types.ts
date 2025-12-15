@@ -31,3 +31,10 @@ export function isValueProvider(p: Provider): p is ValueProvider {
 export function isExistingProvider(p: Provider): p is ExistingProvider {
   return isCustomProvider(p) && 'useExisting' in p
 }
+
+/** Convert `<pkg>@1.2.3` -> `<pkg>` to align install/load paths. */
+export function normalizePluginName(pluginName: string) {
+  if (!pluginName.includes('@')) return pluginName;
+  const lastAt = pluginName.lastIndexOf('@');
+  return lastAt > 0 ? pluginName.slice(0, lastAt) : pluginName;
+}

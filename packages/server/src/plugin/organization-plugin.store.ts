@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
+import { normalizePluginName } from './types';
 
 export interface OrganizationPluginStoreOptions {
   /** Base directory to keep organization plugin workspaces, defaults to `<repo>/data/plugins` */
@@ -18,7 +19,7 @@ export interface InstallOrganizationPluginsOptions extends OrganizationPluginSto
   legacyPeerDeps?: boolean;
 }
 
-export const DEFAULT_ORG_PLUGIN_ROOT =  path.join(getConfig().assetOptions.assetPath, 'plugins');
+export const DEFAULT_ORG_PLUGIN_ROOT =  path.join(getConfig().assetOptions.serverRoot, 'plugins');
 export const DEFAULT_ORG_MANIFEST = 'plugins.json';
 
 function ensureDir(dir: string) {
@@ -48,13 +49,6 @@ export function getOrganizationPluginPath(
 ) {
   const normalized = normalizePluginName(pluginName);
   return path.join(getOrganizationPluginRoot(organizationId, opts), normalized);
-}
-
-/** Convert `<pkg>@1.2.3` -> `<pkg>` to align install/load paths. */
-function normalizePluginName(pluginName: string) {
-  if (!pluginName.includes('@')) return pluginName;
-  const lastAt = pluginName.lastIndexOf('@');
-  return lastAt > 0 ? pluginName.slice(0, lastAt) : pluginName;
 }
 
 export function readOrganizationManifest(organizationId: string, opts?: OrganizationPluginStoreOptions): string[] {

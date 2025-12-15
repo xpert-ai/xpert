@@ -1,7 +1,7 @@
-import { BadRequestException, Body, Controller, Delete, Get, Inject, Post } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Delete, Get, Inject, Logger, Post, UseGuards } from '@nestjs/common'
 import { LazyModuleLoader } from '@nestjs/core'
+import { ApiTags } from '@nestjs/swagger'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, STRATEGY_META_KEY, StrategyBus } from '@xpert-ai/plugin-sdk'
-import { In } from 'typeorm'
 import { buildConfig } from './config'
 import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
 import { PluginInstanceService } from './plugin-instance.service'
@@ -9,8 +9,12 @@ import { loadPlugin } from './plugin-loader'
 import { collectProvidersWithMetadata, hasLifecycleMethod, registerPluginsAsync } from './plugin.helper'
 import { LOADED_PLUGINS, LoadedPluginRecord } from './types'
 
+@ApiTags('Plugin')
+// @UseGuards(OrganizationPermissionGuard)
 @Controller('plugin')
 export class PluginController {
+	private readonly logger = new Logger(PluginController.name)
+
 	constructor(
 		@Inject(LOADED_PLUGINS)
 		private readonly loadedPlugins: Array<LoadedPluginRecord>,
@@ -59,11 +63,13 @@ export class PluginController {
 
 		// 2) Load the module, scan and initialize the strategy class.
 		for await (const dynamicModule of modules) {
+			this.logger.debug(`Loading plugin module for ${packageNameWithVersion} into organization ${organizationId}`)
 			const loadedModuleRef = await this.lazyLoader.load(() => dynamicModule)
-			const strategyProviders = collectProvidersWithMetadata(loadedModuleRef, organizationId, body.pluginName)
+			const strategyProviders = collectProvidersWithMetadata(loadedModuleRef, organizationId, body.pluginName, this.logger)
 			for await (const instance of strategyProviders) {
 				const target = instance.metatype ?? instance.constructor
 				const strategyMeta = Reflect.getMetadata(STRATEGY_META_KEY, target)
+				this.logger.debug(`Registering strategy ${strategyMeta} for plugin ${body.pluginName} in organization ${organizationId}`)
 				if (strategyMeta) {
 					this.strategyBus.upsert(strategyMeta, {
 						instance,
@@ -118,28 +124,8 @@ export class PluginController {
 		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
 		const tenantId = RequestContext.currentTenantId()
 
-		const { items } = await this.pluginInstanceService.findAll({
-			where: {
-				tenantId,
-				organizationId,
-				pluginName: In(body.names)
-			}
-		})
-
-		await this.pluginInstanceService.delete({
-			tenantId,
-			organizationId,
-			pluginName: In(body.names)
-		})
-
-		for (const item of items) {
-			this.strategyBus.remove(organizationId, item.pluginName)
-			const pluginIndex = this.loadedPlugins.findIndex((plugin) => plugin.organizationId === organizationId && plugin.name === item.pluginName)
-			if (pluginIndex !== -1) {
-				this.loadedPlugins.splice(pluginIndex, 1)
-			}
-		}
-
+		await this.pluginInstanceService.uninstall(tenantId, organizationId, body.names)
+		
 		return { success: true }
 	}
 }

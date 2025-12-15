@@ -1,11 +1,11 @@
 import { isNotEmpty } from '@metad/server-common';
 import { getConfig } from '@metad/server-config';
-import { DynamicModule, Type } from '@nestjs/common';
+import { DynamicModule, Type, Logger } from '@nestjs/common';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 import { ModuleRef, NestContainer } from '@nestjs/core';
 import { GLOBAL_ORGANIZATION_SCOPE, ORGANIZATION_METADATA_KEY, PLUGIN_METADATA, PLUGIN_METADATA_KEY, PluginLifecycleMethods } from '@xpert-ai/plugin-sdk';
 import { getOrganizationManifestPath, getOrganizationPluginPath, getOrganizationPluginRoot, installOrganizationPlugins, OrganizationPluginStoreOptions } from './organization-plugin.store';
-import { isClassProvider, isExistingProvider, isFactoryProvider, isValueProvider, LoadedPluginRecord } from './types';
+import { isClassProvider, isExistingProvider, isFactoryProvider, isValueProvider, LoadedPluginRecord, normalizePluginName } from './types';
 import { discoverPlugins } from './plugin-discovery';
 import { loadPlugin } from './plugin-loader';
 import { buildConfig } from './config';
@@ -137,25 +137,34 @@ export const loaded: LoadedPluginRecord[] = []
 export function collectProvidersWithMetadata<TMeta = any>(
   moduleRef: ModuleRef,
   organizationId: string,
-  pluginName: string
+  pluginName: string,
+  logger: Logger
 ) {
+
+  logger.debug(`Collecting providers for plugin '${pluginName}' under organization '${organizationId}'`);
   const container = (moduleRef as unknown as { container?: NestContainer }).container;
   if (!container?.getModules) return [];
 
   const providers: any[] = [];
   const seen = new Set<any>();
 
+  logger.debug(`Scanning modules in the NestJS container...`);
   for (const module of container.getModules().values()) {
-    const target = module.metatype ?? module.constructor;
+	const target = module.metatype ?? module.constructor;
     const modPluginName = Reflect.getMetadata(PLUGIN_METADATA_KEY, target);
     const modOrganization = Reflect.getMetadata(ORGANIZATION_METADATA_KEY, target);
+
     if (modOrganization !== organizationId || modPluginName !== pluginName) {
       continue;
     }
+
+	logger.debug(`Module matches organization ${modOrganization} and plugin ${modPluginName} criteria. Collecting providers...`);
     for (const wrapper of module.providers?.values?.() ?? []) {
       const instance = wrapper.instance;
       if (!instance || seen.has(instance)) continue;
 
+	  logger.debug(`Collecting provider instance: ${instance.constructor.name}`);
+	  
       providers.push(instance);
       seen.add(instance);
     }
@@ -179,7 +188,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 }
 
 /**
- * Registers plugins asynchronously for a given organization scope.
+ * Install and register plugins asynchronously for a given organization scope.
  * 1. Install plugins into the organization workspace.
  * 2. Load each plugin and build its configuration.
  * 3. Create a plugin context and register the plugin module.
@@ -189,7 +198,6 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
  * @returns 
  */
 export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) {
-	// Note: Nest's registerAsync usually returns a synchronous object. Here we provide a factory function for the caller to await first.
 	const organizationId = opts.organizationId ?? GLOBAL_ORGANIZATION_SCOPE;
 	const baseDirRoot =
 		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, opts) : process.cwd());
@@ -225,7 +233,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 		const mod = plugin.register(ctx);
 
 		// 4) Tag the module and its providers with organization and plugin metadata.
-		tagModuleWithOrganization(mod, organizationId, name);
+		tagModuleWithOrganization(mod, organizationId, normalizePluginName(name));
 		modules.push(mod);
 		const existing = loaded.findIndex(
 			(item) => item.organizationId === organizationId && item.name === plugin.meta.name,

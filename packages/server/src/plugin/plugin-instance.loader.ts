@@ -1,7 +1,7 @@
-import { DataSource, DataSourceOptions } from 'typeorm';
 import { getConfig } from '@metad/server-config';
-import { PluginInstance } from './plugin-instance.entity';
 import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk';
+import { DataSource, DataSourceOptions } from 'typeorm';
+import { PluginInstance } from './plugin-instance.entity';
 
 export interface OrganizationPluginConfig {
   organizationId?: string;
