@@ -5,31 +5,55 @@
 
     <form class="flex flex-wrap gap-4 p-4" [formGroup]="formGroup">
       <div class="flex-1">
-        <ngm-select class="w-full" [label]="'PAC.ChatBI.SemanticModel' | translate: {Default: 'Semantic Model'}" valueKey="key"
+        <ngm-select class="w-full" 
+          [class.ngm-select-error]="modelIdInvalid()"
+          [label]="'PAC.ChatBI.SemanticModel' | translate: {Default: 'Semantic Model'}" 
+          [placeholder]="'PAC.ChatBI.PleaseSelectSemanticModel' | translate: {Default: 'Please select a semantic model'}"
+          valueKey="key"
           [displayBehaviour]="DisplayBehaviour.descriptionOnly"
           formControlName="modelId"
           searchable
           [selectOptions]="models()"
         >
-          <a help [routerLink]="['/models/']" target="_blank" rel="noopener noreferrer" class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600">
+          <a help (click)="openSemanticModelPage($event)" class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600 cursor-pointer">
             {{'PAC.Xpert.HowtoCreate' | translate: {Default: 'How to create'} }}
             <i class="ri-external-link-line"></i>
           </a>
-
-          @if (modelIdRequiredError) {
-            <div ngmError>{{'PAC.KEY_WORDS.Required' | translate: {Default: 'Required'} }}</div>
+          
+          @if (hasNoModels()) {
+            <div ngmError class="flex flex-col gap-2">
+              <div>{{'PAC.ChatBI.NoSemanticModelsAvailable' | translate: {Default: 'No semantic models available, please create a semantic model first'} }}</div>
+              <a (click)="openSemanticModelPage($event)" 
+                class="inline-flex items-center gap-1 text-xs text-primary-500 hover:text-primary-600 underline cursor-pointer">
+                {{'PAC.ChatBI.CreateSemanticModel' | translate: {Default: 'Create Semantic Model'} }}
+                <i class="ri-external-link-line"></i>
+              </a>
+            </div>
           }
         </ngm-select>
       </div>
       
-      <ngm-select class="flex-1" [label]="'PAC.ChatBI.Entity' | translate: {Default: 'Entity'}" valueKey="key"
+      <ngm-select class="flex-1" 
+        [class.ngm-select-error]="entityInvalid()"
+        [label]="'PAC.ChatBI.Entity' | translate: {Default: 'Entity'}" 
+        [placeholder]="'PAC.ChatBI.PleaseSelectEntity' | translate: {Default: 'Please select an entity'}"
+        valueKey="key"
         [displayBehaviour]="DisplayBehaviour.descriptionOnly"
         formControlName="entity"
         searchable
         [selectOptions]="entities()"
       >
-        @if (entityRequiredError) {
-          <div ngmError>{{'PAC.KEY_WORDS.Required' | translate: {Default: 'Required'} }}</div>
+        @if (addEntityRoute()) {
+          <a help (click)="openAddEntityPage($event, addEntityRoute())" class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600 cursor-pointer">
+            {{'PAC.ChatBI.AddEntity' | translate: {Default: 'Add Entity'} }}
+            <i class="ri-external-link-line"></i>
+          </a>
+        }
+        
+        @if (hasNoEntities()) {
+          <div ngmError>
+            <div>{{'PAC.ChatBI.NoEntitiesAvailable' | translate: {Default: 'No entities available, please add an entity first'} }}</div>
+          </div>
         } @else if (entityNotFound()) {
           <div ngmError>{{'PAC.ChatBI.EntityNotFound' | translate: {Default: 'Entity not found'} }}</div>
         }

@@ -436,7 +436,7 @@ export class AuthService extends SocialAuthService {
 		})
 
 		const user = await this.userService.findOne(_user.id, {
-			relations: ['role'],
+			relations: ['role', 'tenant'],
 		})
 
 		if (input.organizationId) {

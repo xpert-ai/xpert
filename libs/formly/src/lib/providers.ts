@@ -72,6 +72,22 @@ export function formlyValidationConfig(translate: TranslateService) {
           })
         }
       },
+      {
+        name: 'pattern',
+        message(err, field: FormlyFieldConfig) {
+          // Check if it's an email pattern validation
+          if (field.key === 'email' || field.props?.type === 'email') {
+            return translate.stream('FORMLY.VALIDATION.EMAIL', { Default: 'Please enter a valid email address' })
+          }
+          return translate.stream('FORMLY.VALIDATION.PATTERN', { Default: 'Invalid format' })
+        }
+      },
+      {
+        name: 'email',
+        message() {
+          return translate.stream('FORMLY.VALIDATION.EMAIL', { Default: 'Please enter a valid email address' })
+        }
+      },
     ],
     types: [
       {

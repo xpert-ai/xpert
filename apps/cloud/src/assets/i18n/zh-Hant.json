@@ -2150,7 +2150,13 @@
       "IntegrationsWithPermission": "有權限的集成",
       "NewChatBIModel": "新建 ChatBI 模型",
       "ModelExists": "模型已存在",
-      "EntityNotFound": "未找到模型實體"
+      "EntityNotFound": "未找到模型實體",
+      "PleaseSelectSemanticModel": "請選擇語義模型",
+      "PleaseSelectEntity": "請選擇實體",
+      "NoSemanticModelsAvailable": "沒有可用的語義模型，請先創建語義模型",
+      "NoEntitiesAvailable": "沒有可用的實體，請先添加實體",
+      "AddEntity": "添加實體",
+      "CreateSemanticModel": "創建語義模型"
     },
     "Home": {
       "Insight": {
@@ -2901,6 +2907,7 @@
       "BasicInfo": "基礎信息",
       "APIAccess": "訪問 API",
       "Logs": "日誌",
+      "SelectTimeRange": "選擇時間範圍",
       "Monitoring": "監測",
       "Preview": "預覽",
       "Default": "默認",
@@ -4551,7 +4558,9 @@
       "MinLength": "至少有 {{minLength}} 個字符",
       "MaxLength": "最多有 {{maxLength}} 個字符",
       "Min": "值不得小於 {{min}}",
-      "Max": "值不得大於 {{max}}"
+      "Max": "值不得大於 {{max}}",
+      "EMAIL": "請輸入有效的郵箱地址",
+      "PATTERN": "格式無效"
     },
     "PROPERTY_SELECT": {
       "REFERENCE_LINE": "參考線",

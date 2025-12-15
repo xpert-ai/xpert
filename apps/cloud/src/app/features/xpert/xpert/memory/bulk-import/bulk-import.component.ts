@@ -4,10 +4,11 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
-import { LongTermMemoryTypeEnum } from '@metad/contracts'
-import { NgmDndDirective, OverlayAnimation1, readExcelWorkSheets } from '@metad/core'
+import { LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile } from '@metad/contracts'
+import { NgmDndDirective, OverlayAnimation1 } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { firstValueFrom } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -65,9 +66,19 @@ export class XpertMemoryBulkImportComponent {
   }
 
   async onFile(file: File) {
-    this.file.set(file)
-    const sheets = await readExcelWorkSheets(file)
-    this.rows.set(sheets[0]?.data)
+    try {
+      this.loading.set(true)
+      this.file.set(file)
+      // Call backend API to parse CSV with proper encoding detection
+      const parsedMemories = await firstValueFrom(
+        this.#xpertAPI.uploadAndParseCsv(this.xpertId(), this.type(), file)
+      )
+      this.rows.set(parsedMemories)
+    } catch (err) {
+      this.#toastr.error(getErrorMessage(err))
+    } finally {
+      this.loading.set(false)
+    }
   }
 
   async onFileSelected(event: Event) {

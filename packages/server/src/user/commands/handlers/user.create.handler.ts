@@ -38,14 +38,21 @@ export class UserCreateHandler implements ICommandHandler<UserCreateCommand> {
 			)
 		}
 
+		// Use default password if hash is not provided or empty
+		const password = input.hash && input.hash.trim() ? input.hash : '12345678'
+		const hash = await this.getPasswordHash(password)
+
 		return await this.userService.create({
 			...input,
-			hash: await this.getPasswordHash(input.hash),
+			hash,
 			emailVerified: true,
 		});
 	}
 
 	public async getPasswordHash(password: string): Promise<string> {
+		if (!password) {
+			throw new BadRequestException('Password is required')
+		}
 		return bcrypt.hash(password, this.saltRounds);
 	}
 }

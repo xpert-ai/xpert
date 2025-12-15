@@ -62,12 +62,17 @@ export class ChatBIModelComponent implements IsDirty {
     entityDescription: new FormControl(null)
   })
 
-  get modelIdRequiredError() {
-    return this.formGroup.get('modelId').errors?.required;
-  }
-  get entityRequiredError() {
-    return this.formGroup.get('entity').errors?.required;
-  }
+  // Check if modelId is invalid (required but not selected)
+  readonly modelIdInvalid = computed(() => {
+    const control = this.formGroup.get('modelId')
+    return control.invalid && (control.dirty || control.touched)
+  })
+
+  // Check if entity is invalid (required but not selected)
+  readonly entityInvalid = computed(() => {
+    const control = this.formGroup.get('entity')
+    return control.invalid && (control.dirty || control.touched)
+  })
 
   readonly modelId = toSignal(this.formGroup.get('modelId').valueChanges.pipe(startWith(this.formGroup.value?.modelId)))
 
@@ -84,6 +89,13 @@ export class ChatBIModelComponent implements IsDirty {
 
   readonly selectedModel = computed(() => this.models()?.find((item) => item.key === this.modelId()))
 
+  // Check if there are no semantic models available
+  readonly hasNoModels = computed(() => {
+    const modelsList = this.models()
+    // Return true if models list is not null and is an empty array
+    return modelsList !== null && Array.isArray(modelsList) && modelsList.length === 0
+  })
+
   readonly entities = derivedAsync(() => {
     return this.modelId()
       ? this.modelsService.getCubes(this.modelId()).pipe(
@@ -99,6 +111,24 @@ export class ChatBIModelComponent implements IsDirty {
   readonly cubeName = toSignal(this.formGroup.get('entity').valueChanges.pipe(startWith(this.formGroup.value?.entity)))
   readonly selectedCube = computed(() => this.entities()?.find((item) => item.key === this.cubeName())?.value)
   readonly entityNotFound = computed(() => this.cubeName() && !this.selectedCube())
+  
+  // Check if entities list is empty when a model is selected
+  // Only return true when entities have been loaded (not null) and the list is empty
+  readonly hasNoEntities = computed(() => {
+    const modelId = this.modelId()
+    const entitiesList = this.entities()
+    // Return true only if:
+    // 1. A model is selected
+    // 2. Entities list is not null (has been loaded)
+    // 3. Entities list is an empty array
+    return modelId && entitiesList !== null && Array.isArray(entitiesList) && entitiesList.length === 0
+  })
+  
+  // Get the route to add entity for the selected model
+  readonly addEntityRoute = computed(() => {
+    const modelId = this.modelId()
+    return modelId ? ['/models', modelId] : null
+  })
 
   readonly loading = signal(true)
 
@@ -161,5 +191,27 @@ export class ChatBIModelComponent implements IsDirty {
   close(refresh = false) {
     this.modelsComponent.refresh()
     this.router.navigate(['../'], { relativeTo: this.route })
+  }
+
+  /**
+   * Open semantic model page in a new tab
+   * Supports internationalization by using router.serializeUrl
+   */
+  openSemanticModelPage(event: Event) {
+    event.preventDefault()
+    event.stopPropagation()
+    const url = this.router.serializeUrl(this.router.createUrlTree(['/models']))
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  /**
+   * Open add entity page for the selected semantic model in a new tab
+   * Supports internationalization by using router.serializeUrl
+   */
+  openAddEntityPage(event: Event, route: string[]) {
+    event.preventDefault()
+    event.stopPropagation()
+    const url = this.router.serializeUrl(this.router.createUrlTree(route))
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 }

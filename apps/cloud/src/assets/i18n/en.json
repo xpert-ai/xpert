@@ -338,6 +338,29 @@
         "DATA_FACTORY_EDIT": "Manage Data Factory Configuration",
         "XPERT_EDIT": "Manage Difital Experts"
       }
+    },
+    "ChatBI": {
+      "NewChatBIModel": "New ChatBI Model",
+      "ModelExists": "Model already exists",
+      "EntityNotFound": "Entity not found",
+      "PleaseSelectSemanticModel": "Please select a semantic model",
+      "PleaseSelectEntity": "Please select an entity",
+      "NoSemanticModelsAvailable": "No semantic models available, please create a semantic model first",
+      "NoEntitiesAvailable": "No entities available, please add an entity first",
+      "AddEntity": "Add Entity",
+      "CreateSemanticModel": "Create Semantic Model",
+      "SemanticModel": "Semantic Model",
+      "Entity": "Entity",
+      "Description": "Description",
+      "Caption": "Caption",
+      "Model": "Model",
+      "EditModel": "Edit Model",
+      "DeleteModel": "Delete Model",
+      "AddModel": "Add Model"
+    },
+    "Xpert": {
+      "Logs": "Logs",
+      "SelectTimeRange": "Select time range"
     }
   },
   "STORY_DESIGNER": {
@@ -551,6 +574,29 @@
       "SetValues": "Set Values",
       "SetValuesPlaceholder": "e.g. value1, value2, value3",
       "SetValuesRequired": "Field \"{{fieldName}}\" is SET type, set values are required"
+    }
+  },
+  "FORMLY": {
+    "COMMON": {
+      "ADD": "Add",
+      "Apply": "Apply",
+      "Cancel": "Cancel",
+      "Search": "Search",
+      "Options": "Options",
+      "Clear": "Clear",
+      "Reset": "Reset",
+      "NotFoundValue": "Value not found: ",
+      "SemanticModel": "Semantic Model",
+      "Help": "Help"
+    },
+    "VALIDATION": {
+      "REQUIRED": "Required",
+      "MinLength": "Should have atleast {{minLength}} characters",
+      "MaxLength": "Should have less than {{maxLength}} characters",
+      "Min": "This value should be more than {{min}}",
+      "Max": "This value should be less than {{max}}",
+      "EMAIL": "Please enter a valid email address",
+      "PATTERN": "Invalid format"
     }
   }
 }

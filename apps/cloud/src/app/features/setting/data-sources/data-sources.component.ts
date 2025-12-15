@@ -109,9 +109,14 @@ export class PACDataSourcesComponent {
   }
 
   remove(data: IDataSource) {
+    // Get the latest data source information from the current list
+    // to ensure we show the updated name even if the data object is stale
+    const currentDataSource = this.dataSources()?.find((item) => item.id === data.id)
+    const displayName = currentDataSource?.name || data.name
+
     this.confirmDelete(
       {
-        value: data.name,
+        value: displayName,
         information: ''
       },
       this.dataSource.delete(data.id)

@@ -2787,6 +2787,15 @@
       "Clear": "清空",
       "Reset": "重置"
     },
+    "VALIDATION": {
+      "REQUIRED": "必填",
+      "MinLength": "至少有 {{minLength}} 个字符",
+      "MaxLength": "最多有 {{maxLength}} 个字符",
+      "Min": "值不得小于 {{min}}",
+      "Max": "值不得大于 {{max}}",
+      "EMAIL": "请输入有效的邮箱地址",
+      "PATTERN": "格式无效"
+    },
     "PROPERTY_SELECT": {
       "REFERENCE_LINE": "参考线",
       "None": "默认",

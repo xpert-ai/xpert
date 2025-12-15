@@ -51,6 +51,9 @@ export class NgmInputComponent implements ControlValueAccessor {
   readonly label = input<string>()
   readonly placeholder = input<string>()
   readonly type = input<string>(null)
+  readonly required = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
   @Input() defaultValue = null
   @Input() valueKey = 'value'
   readonly displayDensity = input<DisplayDensity | string>()

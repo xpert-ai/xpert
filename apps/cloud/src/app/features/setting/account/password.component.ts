@@ -48,7 +48,7 @@ import { UserFormsModule } from '../../../@shared/user/forms'
     />
     <mat-form-field appearance="fill" floatLabel="always" class="self-stretch">
       <mat-label>
-        {{ 'PAC.KEY_WORDS.CurrentPassword' | translate: { Default: 'Current Password' } }}
+        <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.CurrentPassword' | translate: { Default: 'Current Password' } }}
       </mat-label>
       <input type="password" matInput formControlName="hash" autocomplete="current-password" />
       <mat-error *ngIf="hash.invalid">{{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Error' } }}</mat-error>
@@ -86,13 +86,20 @@ import { UserFormsModule } from '../../../@shared/user/forms'
       </button>
     </div>
   </form>`,
-  styles: [``]
+  styles: [`
+    // Hide Material Design's default required marker (gray asterisk after label)
+    // We use our own red asterisk before the label instead
+    ::ng-deep .mat-form-field-required-marker,
+    ::ng-deep .mat-mdc-form-field-required-marker {
+      display: none !important;
+    }
+  `]
 })
 export class PACAccountPasswordComponent {
   user: User
   readonly passwordControl = new FormControl(null, [Validators.required, Validators.minLength(8)])
   passwordForm = new FormGroup({
-    hash: new FormControl(null),
+    hash: new FormControl(null, [Validators.required]), // Add required validator for current password
     password: this.passwordControl,
     confirmPassword: new FormControl(null, [Validators.required, matchWithValidator(this.passwordControl)])
   },

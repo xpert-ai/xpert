@@ -35,8 +35,17 @@ import {
 	ForbiddenException,
 	InternalServerErrorException,
 	Res,
-	NotFoundException
+	NotFoundException,
+	BadRequestException
 } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { UploadedFile } from '@metad/contracts'
+import { FileStorage, UploadedFileStorage } from '@metad/server-core'
+import path from 'path'
+import chardet from 'chardet'
+import iconv from 'iconv-lite'
+import * as XLSX from 'xlsx'
+import fsPromises from 'fs/promises'
 import { getErrorMessage, keepAlive, takeUntilClose, yaml } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -333,6 +342,165 @@ export class XpertController extends CrudController<Xpert> {
 		type: LongTermMemoryTypeEnum; memories: Array<TMemoryQA | TMemoryUserProfile>
 	}) {
 		return this.service.createBulkMemories(id, body)
+	}
+
+	@Post(':id/memory/bulk/upload')
+	@UseInterceptors(
+		FileInterceptor('file', {
+			storage: new FileStorage().storage({
+				dest: path.join('temp'), // Store in a temporary directory
+				prefix: 'memory-csv-upload'
+			})
+		})
+	)
+	@ApiOperation({ summary: 'Upload and parse CSV file for bulk memory import' })
+	@ApiResponse({
+		status: HttpStatus.OK,
+		description: 'Memories parsed from CSV file'
+	})
+	async uploadAndParseCsv(
+		@Param('id') id: string,
+		@Body() body: { type: LongTermMemoryTypeEnum },
+		@UploadedFileStorage() file: UploadedFile
+	): Promise<Array<TMemoryQA | TMemoryUserProfile>> {
+		const type = body.type
+		if (!file) {
+			throw new BadRequestException('No file uploaded')
+		}
+
+		const { path: filePath, mimetype, originalname } = file
+
+		if (mimetype !== 'text/csv' && !originalname.endsWith('.csv')) {
+			throw new BadRequestException('Only CSV files are supported')
+		}
+
+		try {
+			// Read file buffer
+			const buffer = await fsPromises.readFile(filePath)
+
+			// Function to check if string contains valid Chinese characters
+			const containsValidChinese = (str: string): boolean => {
+				return /[\u4e00-\u9fa5]/.test(str)
+			}
+
+			// Function to detect if string looks like mis-decoded UTF-8
+			const looksLikeMisDecoded = (str: string): boolean => {
+				return /[´°µÄÂÈøò·¢]{3,}/.test(str)
+			}
+
+			// Function to check if decoding is likely correct
+			const isValidDecoding = (decoded: string, encoding: string): boolean => {
+				if (decoded.includes('\uFFFD')) {
+					return false
+				}
+				
+				if (encoding === 'utf8' || encoding === 'utf-8') {
+					try {
+						Buffer.from(decoded, 'utf8')
+						return true
+					} catch {
+						return false
+					}
+				}
+				
+				return true
+			}
+
+			// Try different encodings
+			const encodingsToTry = ['utf8', 'gbk', 'gb18030', 'gb2312', 'big5']
+			
+			// Check for BOM
+			let startOffset = 0
+			if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+				startOffset = 3
+			}
+			
+			const bufferToDecode = startOffset > 0 ? buffer.slice(startOffset) : buffer
+
+			let content: string | null = null
+			let lastError: Error | null = null
+
+			for (const encoding of encodingsToTry) {
+				try {
+					const decoded = iconv.decode(bufferToDecode, encoding)
+					
+					if (!isValidDecoding(decoded, encoding)) {
+						continue
+					}
+
+					if (looksLikeMisDecoded(decoded)) {
+						continue
+					}
+
+					if (containsValidChinese(decoded)) {
+						content = decoded
+						break
+					}
+					
+					if (encoding === 'utf8' && !content && decoded.length > 0) {
+						content = decoded
+					} else if (!content && decoded.length > 0 && !decoded.match(/[^\x00-\x7F]/)) {
+						content = decoded
+					}
+				} catch (err) {
+					lastError = err
+				}
+			}
+
+			if (!content) {
+				try {
+					content = iconv.decode(bufferToDecode, 'utf8')
+				} catch (err) {
+					throw new BadRequestException(`Failed to decode CSV file. Tried encodings: ${encodingsToTry.join(', ')}. Error: ${lastError?.message || err.message}`)
+				}
+			}
+
+			if (!content) {
+				throw new BadRequestException('Failed to decode CSV file with any known encoding')
+			}
+
+			// Parse CSV with XLSX
+			const workbook = XLSX.read(content, { 
+				type: 'string',
+				codepage: 65001 // UTF-8 codepage
+			})
+
+			const sheet = workbook.Sheets[workbook.SheetNames[0]]
+			const jsonData = XLSX.utils.sheet_to_json(sheet) as any[]
+
+			// Map to memory format based on type
+			const memories: Array<TMemoryQA | TMemoryUserProfile> = jsonData.map((row: any) => {
+				if (type === LongTermMemoryTypeEnum.QA) {
+					return {
+						question: row.question || row.问题 || row.問題,
+						answer: row.answer || row.答案
+					} as TMemoryQA
+				} else if (type === LongTermMemoryTypeEnum.PROFILE) {
+					return {
+						profile: row.profile || row.档案 || row.檔案,
+						context: row.context || row.上下文
+					} as TMemoryUserProfile
+				}
+				return row
+			})
+
+			// Clean up temporary file
+			try {
+				await fsPromises.unlink(filePath)
+			} catch (err) {
+				// Ignore cleanup errors
+			}
+
+			return memories
+		} catch (error) {
+			// Clean up temporary file on error
+			try {
+				await fsPromises.unlink(filePath)
+			} catch (err) {
+				// Ignore cleanup errors
+			}
+			throw new BadRequestException(`Failed to parse CSV file: ${error.message}`)
+		}
 	}
 
 	@Post(':id/memory')

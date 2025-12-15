@@ -6,3 +6,17 @@
   display: inline-flex;
   color: var(--mat-form-field-error-text-color);
 }
+
+// Hide any Material Design required marker (gray asterisk)
+// We use our own red asterisk before the label instead
+:host ::ng-deep {
+  .mat-form-field-required-marker,
+  .mat-mdc-form-field-required-marker {
+    display: none !important;
+  }
+  
+  // Hide any required marker added via CSS ::after
+  .ngm-input-label::after {
+    content: none !important;
+  }
+}

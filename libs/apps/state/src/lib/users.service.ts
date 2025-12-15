@@ -81,4 +81,10 @@ export class UsersService {
   createBulk(users: IUserUpdateInput[]) {
     return this.http.post<IUser[]>(this.API_URL + `/bulk`, users)
   }
+
+  uploadAndParseCsv(file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return this.http.post<IUserUpdateInput[]>(this.API_URL + `/bulk/upload`, formData)
+  }
 }
