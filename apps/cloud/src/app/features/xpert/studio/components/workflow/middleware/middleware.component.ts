@@ -53,7 +53,7 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
 
   readonly agentMiddlewares = toSignal(this.agentAPI.agentMiddlewares$)
 
-  readonly providerMeta = computed(() => this.agentMiddlewares()?.find((m) => m.meta.name === this.provider())?.meta)
+  readonly providerMeta = computed(() => this.agentMiddlewares()?.find((m) => m.meta?.name === this.provider())?.meta)
   readonly #providerName = computed(() => this.providerMeta()?.name)
   readonly #options = computed(() => this.middlewareEntity()?.options ?? {}, {equal: isEqual})
   readonly #toolsRes = myRxResource({
