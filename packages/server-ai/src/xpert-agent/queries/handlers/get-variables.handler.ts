@@ -277,7 +277,12 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				for await (const toolset of toolsets) {
 					const toolVars = await toolset.getVariables()
 					if (toolVars) {
-						variables.push(...toolVars.map(toolsetVariableToVariable))
+						const states = toolVars.map(toolsetVariableToVariable)
+						states.forEach((state) => {
+							if (!variables.some((v) => v.name === state.name)) {
+								variables.push(state)
+							}
+						})
 					}
 				}
 			}

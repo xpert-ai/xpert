@@ -27,6 +27,7 @@ import {
 	StorageFile,
 	SecretToken,
 	Integration,
+	PluginInstance,
 } from './internal';
 
 export const coreEntities = [
@@ -57,5 +58,6 @@ export const coreEntities = [
 	CustomSmtp,
 	StorageFile,
 	SecretToken,
-	Integration
+	Integration,
+	PluginInstance
 ];

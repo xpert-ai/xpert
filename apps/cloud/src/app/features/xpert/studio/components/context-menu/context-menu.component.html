@@ -467,16 +467,23 @@
     <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
       {{ 'PAC.Xpert.AgentMiddlewares' | translate: {Default: 'Agent Middlewares'} }}
     </div>
-    @for (middleware of agentMiddlewares$ | async; track middleware.meta.name) {
+    @for (middleware of agentMiddlewares$ | async; track middleware.meta?.name) {
       <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
-        (click)="addMiddleware(middleware.meta.name)"
+        [cdkMenuItemDisabled]="!middleware.meta?.name"
+        (click)="addMiddleware(middleware.meta?.name)"
       >
-        @if (middleware.meta.icon) {
-          <xp-icon [icon]="middleware.meta.icon" class="w-6 h-6 shrink-0 mr-2" />
+        @if (!middleware.meta?.name) {
+          <div class="text-text-destructive">
+            {{ 'PAC.Xpert.UnknownMiddleware' | translate: {Default: 'Unknown Middleware'} }}
+          </div>
+        } @else {
+          @if (middleware.meta.icon) {
+            <xp-icon [icon]="middleware.meta.icon" class="w-6 h-6 shrink-0 mr-2" />
+          }
+          <div class="text-text-primary">
+            {{ middleware.meta.label | i18n }}
+          </div>
         }
-        <div class="text-text-primary">
-          {{ middleware.meta.label | i18n }}
-        </div>
       </div>
     }
   </div>

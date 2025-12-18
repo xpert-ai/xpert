@@ -115,6 +115,9 @@ export class ChatConversationComponent {
     })
   }
 
+  /**
+   * @deprecated use onConfirm with command resume instead
+   */
   onReject() {
     this.chatService.chat({ reject: true, command: this.command() })
     this.chatService.updateConversation({

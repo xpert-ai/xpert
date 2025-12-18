@@ -7,7 +7,8 @@ import { IXpertAgent } from './xpert-agent.model'
 import { IXpertProject } from './xpert-project.model'
 import { IStorageFile } from '../storage-file.model'
 import { IXpertTask } from './xpert-task.model'
-import { TInterruptMessage, TToolCall } from '../agent'
+import { TToolCall } from '../agent'
+import { TInterrupt } from '../agent/interrupt'
 
 
 export type TChatConversationOptions = {
@@ -33,12 +34,7 @@ export type TSensitiveOperation = {
   messageId?: string
   tasks?: {
     name: string;
-    interrupts: {
-      value?: TInterruptMessage;
-      when?: "during";
-      resumable?: boolean;
-      ns?: string[];
-    }[];
+    interrupts: TInterrupt[];
     type?: TToolCallType;
     info?: {
       name: string

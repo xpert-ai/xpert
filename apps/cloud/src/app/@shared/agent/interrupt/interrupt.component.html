@@ -1,2 +1,7 @@
-
+@if (message(); as message) {
+  <div class="mb-2">
+    <div class="text-lg font-semibold">{{message.title | i18n }}</div>
+    <div class="text-sm line-clamp-2 font-body text-text-secondary">{{message.message | i18n }}</div>
+  </div>
+}
 <ng-template #container></ng-template>

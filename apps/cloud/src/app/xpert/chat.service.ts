@@ -261,6 +261,9 @@ export abstract class ChatService {
       files: Partial<IStorageFile>[]
       confirm: boolean
       command: TInterruptCommand
+      /**
+       * @deprecated use onConfirm with command resume instead
+       */
       reject: boolean
       retry: boolean
     }>

@@ -58,7 +58,7 @@
   </div>
 
   @if (status() === eExecutionStatusEnum.INTERRUPTED && operation()) {
-    <xpert-agent-operation class="w-full mb-8"
+    <xp-xpert-agent-operation class="w-full mb-8"
       [operation]="operation()"
       [(command)]="command"
       (confirm)="onConfirm()"

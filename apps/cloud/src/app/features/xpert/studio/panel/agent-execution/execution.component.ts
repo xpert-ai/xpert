@@ -163,7 +163,13 @@ export class XpertStudioPanelAgentExecutionComponent {
     }
   }
 
-  startRunAgent(options?: { reject: boolean; confirm?: boolean }) {
+  startRunAgent(options?: {
+    /**
+     * @deprecated use onConfirm with command resume instead
+     */
+    reject: boolean;
+    confirm?: boolean
+  }) {
     const executionId = this.execution()?.id
     this.loading.set(true)
     // Clear
@@ -240,6 +246,9 @@ export class XpertStudioPanelAgentExecutionComponent {
     this.startRunAgent()
   }
 
+  /**
+   * @deprecated use onConfirm with command resume instead
+   */
   onReject() {
     this.input.set(null)
     this.startRunAgent({ reject: true })

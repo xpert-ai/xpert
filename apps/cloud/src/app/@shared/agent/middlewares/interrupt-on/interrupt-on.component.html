@@ -1,0 +1,104 @@
+<div class="space-y-4" [class.opacity-60]="readonly()">
+  <div class="flex flex-wrap items-center gap-2">
+    <select
+      class="min-w-[220px] rounded-lg border border-divider-regular bg-white px-2 py-1.5 text-sm text-text-primary focus:border-primary-400 focus:outline-none disabled:cursor-not-allowed"
+      [ngModel]="selectedTool()"
+      (ngModelChange)="selectedTool.set($event)"
+      [disabled]="readonly() || !addableTools().length"
+    >
+      <option [ngValue]="null" disabled>
+        {{ 'PAC.Xpert.SelectTool' | translate: {Default: 'Select a tool'} }}
+      </option>
+      @for (tool of addableTools(); track tool.name) {
+        <option [ngValue]="tool.name">{{ tool.name }}</option>
+      }
+    </select>
+
+    <button
+      type="button"
+      class="inline-flex items-center gap-1 rounded-lg border border-divider-regular bg-white px-3 py-1.5 text-sm text-text-primary shadow-sm hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-50"
+      [disabled]="readonly() || (!selectedTool() && !addableTools().length)"
+      (click)="addTool()"
+    >
+      <span>+</span>
+      <span>{{ 'PAC.Xpert.AddTool' | translate: {Default: 'Add tool'} }}</span>
+    </button>
+
+    @if (!availableTools().length) {
+      <span class="text-xs text-text-tertiary">
+        {{ 'PAC.Xpert.NoAvailableTools' | translate: {Default: 'No tools available for this agent'} }}
+      </span>
+    }
+  </div>
+
+  @if (!toolEntries().length) {
+    <div class="rounded-lg border border-dashed border-divider-regular bg-neutral-50 p-4 text-sm text-text-tertiary">
+      {{ 'PAC.Xpert.NoInterruptTools' | translate: {Default: 'No tools configured for approval yet'} }}
+    </div>
+  } @else {
+    <div class="space-y-3">
+      @for (tool of toolEntries(); track tool.name) {
+        <div class="rounded-xl border border-divider-regular bg-components-card-bg p-3 space-y-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <select
+              class="min-w-[220px] rounded-lg border border-divider-regular bg-white px-2 py-1.5 text-sm text-text-primary focus:border-primary-400 focus:outline-none disabled:cursor-not-allowed"
+              [ngModel]="tool.name"
+              (ngModelChange)="updateToolName(tool.name, $event)"
+              [disabled]="readonly()"
+            >
+              @for (option of toolOptions(); track option.name) {
+                <option [ngValue]="option.name">{{ option.name }}</option>
+              }
+            </select>
+
+            <button
+              type="button"
+              class="ml-auto inline-flex items-center rounded-lg px-2 py-1 text-xs text-text-secondary hover:bg-hover-bg disabled:cursor-not-allowed"
+              [disabled]="readonly()"
+              (click)="removeTool(tool.name)"
+            >
+              {{ 'PAC.ACTIONS.Remove' | translate: {Default: 'Remove'} }}
+            </button>
+          </div>
+
+          <div class="space-y-1">
+            <div class="text-xs font-medium text-text-secondary">
+              {{ 'PAC.Xpert.ToolDescription' | translate: {Default: 'Description'} }}
+            </div>
+            <textarea
+              class="w-full min-h-[70px] rounded-lg border border-divider-regular bg-white px-3 py-2 text-sm text-text-primary focus:border-primary-400 focus:outline-none disabled:cursor-not-allowed"
+              [ngModel]="tool.description"
+              (ngModelChange)="updateDescription(tool.name, $event)"
+              [disabled]="readonly()"
+              [placeholder]="'PAC.Xpert.ToolDescriptionPlaceholder' | translate: {Default: 'Describe what requires approval'}"
+            ></textarea>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-xs font-medium text-text-secondary">
+              {{ 'PAC.Xpert.AllowedDecisions' | translate: {Default: 'Allowed decisions'} }}
+            </div>
+            <div class="flex flex-wrap gap-4">
+              @for (decision of decisionOptions; track decision) {
+                <label class="inline-flex items-center gap-2 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 accent-primary-500"
+                    [checked]="tool.allowedDecisions.includes(decision)"
+                    (change)="toggleDecision(tool.name, decision, $event)"
+                    [disabled]="readonly()"
+                  />
+                  @switch (decision) {
+                    @case ('approve') { {{ 'PAC.ACTIONS.Approve' | translate: {Default: 'Approve'} }} }
+                    @case ('edit') { {{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }} }
+                    @default { {{ 'PAC.ACTIONS.Reject' | translate: {Default: 'Reject'} }} }
+                  }
+                </label>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,5 +1,6 @@
 import { SetMetadata } from '@nestjs/common'
 import path from 'path'
+import { STRATEGY_META_KEY } from '../types'
 
 
 export const AI_MODEL_PROVIDER = 'AI_MODEL_PROVIDER'
@@ -33,6 +34,7 @@ export function AIModelProviderStrategy(provider: string) {
   const dir = file ? path.dirname(file) : process.cwd()
 
   return function (target: any) {
+    SetMetadata(STRATEGY_META_KEY, AI_MODEL_PROVIDER)(target)
     // Ensure NestJS is discoverable
     SetMetadata(AI_MODEL_PROVIDER, provider)(target)
     // Write custom path (does not affect Discovery)

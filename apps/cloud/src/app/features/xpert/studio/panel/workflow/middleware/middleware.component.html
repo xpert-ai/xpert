@@ -19,6 +19,10 @@
   @if (configSchema(); as configSchema) {
     <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="configSchema" 
       [(ngModel)]="options"
+      [context]="{
+        draft: draft(),
+        entity: entity(),
+      }"
     />
   }
 </div>

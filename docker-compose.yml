@@ -24,6 +24,7 @@ services:
       OLAP_PORT: 8080
       API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
       SENTRY_DSN: ${SENTRY_DSN:-}
+      NPM_CONFIG_CACHE: /var/lib/xpert/data/npm-cache
     env_file:
       - .env
     healthcheck:
@@ -46,6 +47,8 @@ services:
       - ./docker/volumes/api/public:/srv/pangolin/public
       - ./docker/volumes/api/ms-playwright:/ms-playwright
       - ./docker/volumes/api/sandbox/:/sandbox/
+      - ./docker/volumes/api/plugins:/srv/pangolin/plugins
+      - ./docker/volumes/api/data/:/var/lib/xpert/data/
     networks:
       - overlay
 

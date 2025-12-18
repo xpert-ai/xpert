@@ -3,21 +3,18 @@ import { CqrsModule } from '@nestjs/cqrs';
 import chalk from 'chalk';
 import { TodoListMiddleware } from './todoListMiddleware';
 import { SummarizationMiddleware } from './summarization';
+import { HumanInTheLoopMiddleware } from './hitl';
 
 @XpertServerPlugin({
 	/**
 	 * An array of modules that will be imported and registered with the plugin.
 	 */
 	imports: [CqrsModule],
-	/**
-	 * An array of Entity classes. The plugin (or ORM) will
-	 * register these entities for use within the application.
-	 */
-	entities: [],
 
     providers: [
 		SummarizationMiddleware,
         TodoListMiddleware,
+		HumanInTheLoopMiddleware
     ],
 })
 export class AgentMiddlewaresModule implements IOnPluginBootstrap, IOnPluginDestroy {

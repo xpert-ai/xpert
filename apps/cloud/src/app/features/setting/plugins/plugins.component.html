@@ -87,9 +87,7 @@
       <div class="pb-3">
         <div class="grid grid-cols-2 gap-3">
           @for (plugin of filteredPlugins(); track plugin.name) {
-            <div
-              class="relative overflow-hidden rounded-xl border-[1.5px] border-background-section-burn p-1 bg-gray-100"
-            >
+            <div class="relative overflow-hidden rounded-xl border-[1.5px] border-background-section-burn p-1 bg-gray-100">
               <div
                 class="relative z-10 rounded-xl border-[0.5px]
                   bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
@@ -131,28 +129,22 @@
                     <div class="flex items-center justify-between">
                       <div class="text-sm text-text-tertiary font-body truncate" [title]="plugin.meta.description"
                         [ngmHighlight]="searchText()" [content]="plugin.meta.description">{{plugin.meta.description}}</div>
-                      <!-- <div>
+                      @if (plugin.isGlobal) {
+                        <div class="w-7 h-7 flex justify-center items-center"
+                          [matTooltip]="'PAC.Plugin.GlobalPlugin' | translate: { Default: 'This is a global plugin available to all organizations' }"
+                          matTooltipPosition="above">
+                          <i class="ri-global-line text-text-tertiary"></i>
+                        </div>
+                      } @else {
                         <div class="flex space-x-1">
-                          <button
-                            type="button"
-                            class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive"
-                            data-state="closed"
-                          >
-                            <svg
-                              viewBox="0 0 24 24"
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="24"
-                              height="24"
-                              fill="currentColor"
-                              class="remixicon h-4 w-4"
-                            >
-                              <path
-                                d="M17 6H22V8H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V8H2V6H7V3C7 2.44772 7.44772 2 8 2H16C16.5523 2 17 2.44772 17 3V6ZM18 8H6V20H18V8ZM9 11H11V17H9V11ZM13 11H15V17H13V11ZM9 4V6H15V4H9Z"
-                              ></path>
-                            </svg>
+                          <button type="button" class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive flex items-center justify-center"
+                            [matTooltip]="'PAC.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin from your organization' }"
+                            matTooltipPosition="above"
+                            (click)="uninstall(plugin)">
+                            <i class="ri-delete-bin-line"></i>
                           </button>
                         </div>
-                      </div> -->
+                      }
                     </div>
                   </div>
                 </div>
@@ -180,6 +172,10 @@
                   </div>
                 </div>
               </div>
+
+              @if (removing() === plugin.name) {
+                <ngm-spin class="absolute inset-0 backdrop-blur-sm bg-white/10" />
+              }
             </div>
           }
         </div>

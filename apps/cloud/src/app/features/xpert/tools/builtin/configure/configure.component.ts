@@ -30,6 +30,7 @@ import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
 import { environment } from '@cloud/environments/environment'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
+import { injectOrganizationId } from '@metad/cloud/state'
 
 /**
  * If toolset and tool do not have id, they are considered as templates.
@@ -68,6 +69,7 @@ export class XpertToolConfigureBuiltinComponent {
     toolset: IXpertToolset
     tools?: IXpertTool[]
   }>(DIALOG_DATA)
+  readonly organizationId = injectOrganizationId()
   readonly helpBaseUrl = injectHelpWebsite()
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
@@ -79,22 +81,6 @@ export class XpertToolConfigureBuiltinComponent {
   readonly toolsetId = computed(() => this.toolset()?.id)
 
   readonly #provider = derivedToolProvider(this.providerName)
-  // derivedAsync<{error?: string; loading: boolean; provider: IToolProvider;}>(() =>
-  //   this.providerName() ? this.#toolsetService.getProvider(this.providerName()).pipe(
-  //     map((provider) => ({provider, loading: false})),
-  //     catchError((err,) => {
-  //       return of({
-  //         error: getErrorMessage(err),
-  //         loading: false,
-  //         provider: null
-  //       })
-  //     }),
-  //     startWith({
-  //       loading: true,
-  //       provider: null
-  //     })
-  //   ) : of(null)
-  // )
   readonly provider = computed(() => this.#provider()?.provider)
   readonly pvLoading = computed(() => this.#provider()?.loading)
   readonly error = computed(() => this.#provider()?.error)
@@ -102,6 +88,12 @@ export class XpertToolConfigureBuiltinComponent {
   readonly pro = computed(() => this.provider()?.pro)
   readonly #helpUrl = computed(() => this.provider()?.help_url)
   readonly helpUrl = derivedHelpUrl(this.#helpUrl)
+  readonly avatar = computed(() => {
+    return this.provider()?.avatar && {
+      ...this.provider().avatar,
+      url: this.provider().avatar.url ? this.provider().avatar.url + `?org=${this.organizationId()}` : null
+    }
+  })
 
   readonly builtinTools = derivedAsync(() => {
     if (this.providerName()) {

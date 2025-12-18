@@ -115,15 +115,19 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 		return this.service.getAllTags()
 	}
 
+	/**
+	 * Get all available toolset providers
+	 * 
+	 * @returns 
+	 */
 	@Get('providers')
 	async getAllToolProviders() {
-		return this.queryBus.execute(new ListBuiltinToolProvidersQuery()).then((items) =>
-			items.map((schema) =>
+		const items = await this.queryBus.execute(new ListBuiltinToolProvidersQuery())
+		return items.map((schema) =>
 					new ToolProviderDTO({
 						...schema.identity
 					}, this.baseUrl)
-			)
-		)
+				)
 	}
 	
 	@Post('provider/openapi/remote')
@@ -174,8 +178,8 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 
 	@Public()
 	@Get('builtin-provider/:name/icon')
-	async getProviderIcon(@Param('name') provider: string, @Res() res: ServerResponse) {
-		const [icon, mimetype] = await this.queryBus.execute(new ToolProviderIconQuery(provider))
+	async getProviderIcon(@Param('name') provider: string, @Query('org') org: string, @Res() res: ServerResponse) {
+		const [icon, mimetype] = await this.queryBus.execute(new ToolProviderIconQuery({organizationId: org, provider}))
 		if (icon) {
 			res.setHeader('Content-Type', mimetype)
 			res.end(icon)

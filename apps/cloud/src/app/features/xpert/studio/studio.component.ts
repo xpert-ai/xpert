@@ -134,6 +134,11 @@ import { JsonSchemaWidgetStrategyRegistry, provideJsonSchemaWidgetStrategy } fro
       async load(): Promise<Type<unknown>> {
         return import('@cloud/app/@shared/copilot/copilot-model-select/index').then(m => m.CopilotModelSelectComponent)  
       }
+    }, {
+      name: 'agent-interrupt-on',
+      async load(): Promise<Type<unknown>> {
+        return import('@cloud/app/@shared/agent/middlewares').then(m => m.AgentInterruptOnComponent)  
+      }
     })
   ]
 })

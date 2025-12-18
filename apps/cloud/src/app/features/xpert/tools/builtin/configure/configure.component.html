@@ -1,7 +1,7 @@
 @if (provider(); as provider) {
   <div class="flex items-center px-4 pt-4 pb-2 gap-2 sticky top-0 bg-gray-200 z-10">
     <div class="relative shrink-0">
-      <emoji-avatar [avatar]="provider.avatar" class="rounded-lg overflow-hidden shadow-sm" />
+      <emoji-avatar [avatar]="avatar()" class="rounded-lg overflow-hidden shadow-sm" />
     </div>
     <div class="grow w-0 py-[1px]">
       <div class="flex items-center text-md leading-6 font-semibold text-gray-900">

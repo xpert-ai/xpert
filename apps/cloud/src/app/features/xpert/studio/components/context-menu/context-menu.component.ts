@@ -517,6 +517,7 @@ export class XpertStudioContextMenuComponent {
   }
 
   addMiddleware(provider: string) {
+    if (!provider) return
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.MIDDLEWARE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.MIDDLEWARE,

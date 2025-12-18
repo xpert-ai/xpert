@@ -6,15 +6,22 @@ export interface DiscoveryOptions {
   prefix?: string;
   /** Specify manifest file path (JSON), takes precedence over prefix scanning */
   manifestPath?: string; // e.g. ./plugins.json
+  /** Override the directory that contains node_modules, default: <cwd>/node_modules */
+  nodeModulesDir?: string;
 }
 
 export function discoverPlugins(cwd = process.cwd(), opts: DiscoveryOptions = {}): string[] {
-  const nodeModules = path.join(cwd, 'node_modules');
+  const manifestPath = opts.manifestPath
+    ? path.isAbsolute(opts.manifestPath)
+      ? opts.manifestPath
+      : path.resolve(cwd, opts.manifestPath)
+    : undefined;
+  const nodeModules = opts.nodeModulesDir ?? path.join(cwd, 'node_modules');
   const out = new Set<string>();
 
   // 1) Manifest takes precedence
-  if (opts.manifestPath && fs.existsSync(opts.manifestPath)) {
-    const list = JSON.parse(fs.readFileSync(opts.manifestPath, 'utf8')) as string[];
+  if (manifestPath && fs.existsSync(manifestPath)) {
+    const list = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as string[];
     list.forEach((p) => out.add(p));
     return Array.from(out);
   }

@@ -1,7 +1,7 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, ChangeDetectorRef, Component, computed, effect, inject, input, model } from '@angular/core'
+import { afterNextRender, booleanAttribute, ChangeDetectorRef, Component, computed, effect, inject, input, model } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -190,6 +190,12 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
         }))
       }
     }, { allowSignalWrites: true })
+
+    afterNextRender(() => {
+      setTimeout(() => {
+        this.#cdr.detectChanges()
+      }, 1000);
+    })
   }
 
   writeValue(obj: any): void {

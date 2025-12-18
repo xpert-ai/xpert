@@ -9,13 +9,14 @@ import { PluginAPIService } from '@metad/cloud/state'
 import { OverlayAnimations } from '@metad/core'
 import { debouncedSignal, myResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { PluginComponent } from '../plugin/plugin.component'
-import { TPlugin, TPluginWithDownloads } from '../types'
+import { TPlugin } from '@cloud/app/@shared/plugins'
+import { TPluginWithDownloads } from '../types'
+import { SettingsPluginComponent } from '../plugin/plugin.component'
 
 
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, CdkListboxModule, TranslateModule, FormsModule, NgmSelectComponent, PluginComponent],
+  imports: [CommonModule, CdkMenuModule, CdkListboxModule, TranslateModule, FormsModule, NgmSelectComponent, SettingsPluginComponent],
   selector: 'xp-plugins-marketplace',
   templateUrl: './marketplace.component.html',
   styleUrls: ['./marketplace.component.scss'],

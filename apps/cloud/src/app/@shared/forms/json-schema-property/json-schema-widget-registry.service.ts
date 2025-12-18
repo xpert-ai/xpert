@@ -1,4 +1,4 @@
-import { Inject, Injectable, InjectionToken, Optional, Provider, Type, signal, WritableSignal } from '@angular/core'
+import { Inject, Injectable, InjectionToken, Optional, Provider, Type, signal, WritableSignal, Signal } from '@angular/core'
 import { JsonSchema7TypeUnion } from 'zod-to-json-schema'
 import { TWorkflowVarGroup } from '../../../@core'
 
@@ -27,6 +27,7 @@ export interface JsonSchemaWidgetContext<T = unknown> {
   readonly?: boolean
   required?: boolean
   variables?: TWorkflowVarGroup[]
+  context?: Signal<Record<string, unknown>>
   update: (value: T) => void
 }
 
