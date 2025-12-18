@@ -238,7 +238,13 @@ export class ChatConversationPreviewComponent {
     effect(() => this.input.set(this.#audioRecorder.text()), { allowSignalWrites: true })
   }
 
-  chat(options?: { input?: string; confirm?: boolean; reject?: boolean; retry?: boolean }) {
+  chat(options?: { input?: string; confirm?: boolean;
+    /**
+     * @deprecated use confirm with command resume instead
+     */
+    reject?: boolean;
+    retry?: boolean
+  }) {
     if (this.loading()) return
 
     this.suggestionQuestions.set([]) // Clear suggestions after selection
@@ -550,6 +556,9 @@ export class ChatConversationPreviewComponent {
     })
   }
 
+  /**
+   * @deprecated use onConfirm with command resume instead
+   */
   onReject() {
     this.conversation.update((state) => {
       return{

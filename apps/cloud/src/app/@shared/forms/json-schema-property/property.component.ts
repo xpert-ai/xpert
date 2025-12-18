@@ -62,6 +62,7 @@ export class JSONSchemaPropertyComponent {
   readonly required = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
+  readonly context = input<Record<string, unknown> | undefined>(undefined)
 
   // Attrs
   get invalid() {

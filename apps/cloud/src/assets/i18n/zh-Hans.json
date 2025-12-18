@@ -842,6 +842,7 @@
     },
     "ACTIONS": {
       "Start": "开始",
+      "Send": "发送",
       "Back": "返回",
       "Run": "运行",
       "Rename": "重命名",
@@ -918,7 +919,9 @@
       "HelpLink": "帮助链接",
       "PasteHere": "粘贴到这里",
       "OpenInNewTab": "在新标签页中打开",
-      "SyncDataSourceTypes": "同步数据源类型"
+      "SyncDataSourceTypes": "同步数据源类型",
+      "Approve": "批准",
+      "Reject": "拒绝"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -2778,6 +2781,15 @@
       "AllProviders": "所有提供商"
     },
     "Xpert": {
+      "ActionToReview": "需要您审核的操作",
+      "ToolCall": "工具调用",
+      "ProposedArgs": "建议参数",
+      "EditArgs": "编辑参数(JSON)",
+      "RejectReason": "拒绝原因（可选）",
+      "RejectReasonPlaceholder": "解释为什么此工具调用不应运行",
+      "HITLNoChanges": "批准且不做更改",
+      "HITLEmpty": "当前没有需要审批的操作。",
+      "AllowedDecisions": "允许的决策",
       "AgentMiddlewares": "智能体中间件",
       "UnknownMiddleware": "未知中间件",
       "AgentMiddlewaresTooltip": "智能体按顺序加载中间件。中间件可以做：通过日志记录、分析和调试跟踪代理行为。转换提示、工具选择和输出格式。添加重试、回退和提前终止逻辑。应用速率限制、防护措施和个人身份信息检测。",

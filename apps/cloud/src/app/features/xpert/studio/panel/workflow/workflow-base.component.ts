@@ -30,6 +30,7 @@ export class XpertWorkflowBaseComponent {
   readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
 
+  readonly draft = computed(() => this.studioService.viewModel())
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
 
   readonly connections = toSignal(

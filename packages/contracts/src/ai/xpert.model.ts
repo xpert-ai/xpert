@@ -14,7 +14,8 @@ import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, TWFCase, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { IStorageFile } from '../storage-file.model'
-import { STATE_VARIABLE_HUMAN, TInterruptCommand } from '../agent/graph'
+import { STATE_VARIABLE_HUMAN } from '../agent/graph'
+import { TInterruptCommand } from '../agent/interrupt'
 
 export type ToolCall = LToolCall
 
@@ -564,6 +565,7 @@ export type TChatRequest = {
   confirm?: boolean
   /**
    * Reject the sensitive tool calls
+   * @deprecated use confirm with command resume instead
    */
   reject?: boolean
   /**

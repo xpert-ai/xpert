@@ -7,12 +7,8 @@
     <xpert-agent-identity [agent]="task.agent" class="w-full mb-2 p-2 border-[0.5px] border-solid border-divider-deep rounded-lg shadow-sm" />
   } -->
   <div class="mb-2">
-    @for (interrupt of task.interrupts; track interrupt) {
-      <div class="mb-2">
-        <div class="text-lg font-semibold">{{interrupt.value.title | i18n }}</div>
-        <div class="text-sm line-clamp-2 font-body text-text-secondary">{{interrupt.value.message | i18n }}</div>
-      </div>
-      <xpert-agent-interrupt [projectId]="projectId()" [conversationId]="conversationId()" [interrupt]="interrupt" [(value)]="resume" />
+    @for (interrupt of task.interrupts; track interrupt.id) {
+      <xp-xpert-agent-interrupt [projectId]="projectId()" [conversationId]="conversationId()" [interrupt]="interrupt" [(value)]="resume" />
     } @empty {
       <label class="font-semibold pb-2">{{task.info?.title || task.info?.name}}</label>
       <div class="flex flex-col gap-1">
@@ -35,14 +31,14 @@
 }
 
 <div class="mt-4 flex justify-between space-x-2">
-  <button type="button" class="btn disabled:btn-disabled btn-primary h-8 flex-1 space-x-2"
+  <button type="button" class="btn disabled:btn-disabled btn-primary h-8 w-40 space-x-2"
     [disabled]="readonly()"
     (click)="onConfirm()"
   >
-    <div class="w-full flex justify-center">{{ 'PAC.Xpert.Confirm' | translate: {Default: 'Confirm'} }}</div>
+    <div class="w-full flex justify-center">{{ 'PAC.ACTIONS.Send' | translate: {Default: 'Send'} }}</div>
   </button>
 
-  <button type="button" class="btn disabled:btn-disabled h-8 btn-danger pressable flex-1"
+  <!-- <button type="button" class="btn disabled:btn-disabled h-8 btn-danger pressable flex-1"
     [disabled]="readonly()"
     (click)="onReject()"
   >
@@ -50,5 +46,5 @@
       <i class="ri-close-line"></i>
       {{ 'PAC.Xpert.Reject' | translate: { Default: 'Reject' } }}
     </div>
-  </button>
+  </button> -->
 </div>

@@ -36,6 +36,7 @@ export class JsonSchemaWidgetOutletComponent {
   readonly readonly = input<boolean>(false)
   readonly required = input<boolean>(false)
   readonly variables = input<TWorkflowVarGroup[] | undefined>(undefined)
+  readonly context = input<Record<string, unknown> | undefined>(undefined)
 
   #componentRef?: ComponentRef<any>
   #destroyed = false
@@ -103,6 +104,7 @@ export class JsonSchemaWidgetOutletComponent {
       readonly: isReadonly,
       required: isRequired,
       variables,
+      context: this.context,
       update: (value) => {
         this.#value.set(value)
       }
