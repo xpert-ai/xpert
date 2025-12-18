@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { SlashSvgComponent } from '@metad/ocap-angular/common'
 import { attrModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { agentLabel, BIInterruptMessageType, TInterruptCommand, TSensitiveOperation, TToolCall } from '../../../@core'
+import { agentLabel, BIInterruptMessageType, TInterruptCommand, TInterruptMessage, TSensitiveOperation, TToolCall } from '../../../@core'
 import { XpertAgentIdentityComponent } from '../agent-identity/agent-identity.component'
 import { XpertAgentInterruptComponent } from '../interrupt/interrupt.component'
 
@@ -22,7 +22,7 @@ import { XpertAgentInterruptComponent } from '../interrupt/interrupt.component'
     XpertAgentIdentityComponent,
     XpertAgentInterruptComponent
   ],
-  selector: 'xpert-agent-operation',
+  selector: 'xp-xpert-agent-operation',
   templateUrl: 'operation.component.html',
   styleUrls: ['operation.component.scss']
 })
@@ -40,8 +40,13 @@ export class XpertAgentOperationComponent {
 
   // Outputs
   readonly command = model<TInterruptCommand>()
-  // readonly toolCallsChange = output<TToolCall[]>()
+  /**
+   * For all command to resume the operation
+   */
   readonly confirm = output()
+  /**
+   * @deprecated use confirm with command.resume instead
+   */
   readonly reject = output()
 
   // States
@@ -70,7 +75,8 @@ export class XpertAgentOperationComponent {
   }
 
   onConfirm() {
-    if (this.interrupts()[0]?.value?.type === BIInterruptMessageType.DeleteArtifact) {
+    const message = this.interrupts()[0]?.value as TInterruptMessage
+    if (message && message.type === BIInterruptMessageType.DeleteArtifact) {
       this.resume.set({confirm: true})
       setTimeout(() => {
         this.confirm.emit()
@@ -80,8 +86,12 @@ export class XpertAgentOperationComponent {
     }
   }
   
+  /**
+   * @deprecated use onConfirm with command resume instead
+   */
   onReject() {
-    if (this.interrupts()[0]?.value?.type === BIInterruptMessageType.DeleteArtifact) {
+    const message = this.interrupts()[0]?.value as TInterruptMessage
+    if (message && message.type === BIInterruptMessageType.DeleteArtifact) {
       this.resume.set({confirm: false})
       setTimeout(() => {
         this.confirm.emit()

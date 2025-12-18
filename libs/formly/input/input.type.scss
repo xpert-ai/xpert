@@ -1,3 +1,17 @@
 :host {
   @apply w-full flex flex-col;
 }
+
+// Hide Material Design's default required marker (gray asterisk after label)
+// We use our own red asterisk before the label instead
+:host ::ng-deep {
+  .mat-form-field-required-marker,
+  .mat-mdc-form-field-required-marker {
+    display: none !important;
+  }
+  
+  // Also hide any required marker added by Material Design form field
+  .ngm-input-label::after {
+    content: none !important;
+  }
+}

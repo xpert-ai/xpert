@@ -27,10 +27,10 @@ export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQu
 	constructor(private readonly queryBus: QueryBus) {}
 
 	public async execute(command: ToolProviderIconQuery): Promise<[Buffer, string]> {
-		const { provider } = command
+		const { provider, organizationId } = command.options
 
 		try {
-			const pluginProvider = this.toolsetRegistry.get(provider)
+			const pluginProvider = this.toolsetRegistry.get(provider, organizationId)
 			if (pluginProvider) {
 				const icon = pluginProvider.meta.icon
 				if (icon.svg) {

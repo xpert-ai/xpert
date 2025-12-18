@@ -39,7 +39,8 @@ export function injectConfirmDelete() {
 
   return <T>(info: TConfirmDeleteInfo, execution?: Observable<T> | (() => Observable<T>)) => {
     return dialog.open(CdkConfirmDeleteComponent, {
-      data: info
+      data: info,
+      minWidth: '480px',
     }).closed.pipe(
       switchMap((confirm) => {
         if (confirm) {

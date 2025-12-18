@@ -431,8 +431,15 @@ export function createMapStreamEvents(
 	}
 }
 
+/**
+ * Nodes without tags will default to unmute output. If you want to mute certain nodes, please add tags.
+ * 
+ * @param tags Tags of graph node
+ * @param unmutes List of unmute tag groups
+ * @returns Is mute
+ */
 function isMute(tags: string[], unmutes: TXpertAgentConfig['mute']) {
-	if (unmutes.some((_) => _.every((tag) => tags.includes(tag)))) {
+	if (!tags.length || unmutes.some((_) => _.every((tag) => tags.includes(tag)))) {
 		return false
 	}
 

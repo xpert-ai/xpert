@@ -1,0 +1,85 @@
+<div class="text-lg font-semibold uppercase tracking-[0.08em] text-text-secondary">
+  {{ 'PAC.Xpert.ActionToReview' | translate: {Default: 'Action to review'} }}
+</div>
+@for (action of actions(); track action.name; let i = $index) {
+  <section class="rounded-2xl border border-divider-deep bg-white/70 shadow-sm p-4 flex flex-col gap-3">
+    <div class="flex flex-col items-start justify-start gap-3">
+      <div class="space-y-1">
+        <div class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+          {{ 'PAC.Xpert.ToolCall' | translate: {Default: 'Tool Call'} }}
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-semibold text-text-primary">{{ action.name }}</span>
+          <span class="px-2 py-0.5 rounded-full text-[11px] bg-primary-50 text-primary-700">
+            {{ allowedDecisions(action).join(' / ') }}
+          </span>
+        </div>
+        @if (action.description) {
+          <p class="text-sm text-text-secondary whitespace-pre-line font-body">{{ action.description }}</p>
+        }
+      </div>
+
+      <div class="inline-flex overflow-hidden rounded-xl border border-divider divide-x divide-divider">
+        @for (option of allowedDecisions(action); track option) {
+          <button type="button"
+            class="px-3 py-1.5 text-sm font-medium transition-colors duration-150"
+            [ngClass]="decisionFor(i)?.type === option
+              ? 'bg-primary-500 text-white'
+              : 'text-text-tertiary hover:bg-neutral-50 hover:text-text-primary'"
+            (click)="onDecisionSelect(i, option)">
+            @switch (option) {
+              @case ('approve') { {{ 'PAC.ACTIONS.Approve' | translate: {Default: 'Approve'} }} }
+              @case ('edit') { {{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }} }
+              @default { {{ 'PAC.ACTIONS.Reject' | translate: {Default: 'Reject'} }} }
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="grid gap-3 md:grid-cols-2">
+      <div class="rounded-xl border border-dashed border-divider bg-neutral-50/60 p-3">
+        <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+          {{ 'PAC.Xpert.ProposedArgs' | translate: {Default: 'Proposed arguments'} }}
+        </label>
+        <pre class="text-sm whitespace-pre-wrap break-words font-mono text-text-secondary">{{ action.args | json }}</pre>
+      </div>
+
+      @if (decisionFor(i)?.type === 'edit') {
+        <div class="rounded-xl border border-divider bg-white p-3 space-y-2">
+          <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+            {{ 'PAC.Xpert.EditArgs' | translate: {Default: 'Edit arguments (JSON)'} }}
+          </label>
+          <textarea
+            class="w-full min-h-[150px] rounded-lg border border-divider bg-transparent px-3 py-2 text-sm font-mono leading-relaxed focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+            [ngModel]="argsText()[i]"
+            (ngModelChange)="onArgsChange(i, $event)"
+          ></textarea>
+          @if (parseErrors()[i]) {
+            <p class="text-xs text-text-destructive">{{ parseErrors()[i] }}</p>
+          }
+        </div>
+      } @else if (decisionFor(i)?.type === 'reject') {
+        <div class="rounded-xl border border-divider bg-white p-3 space-y-2">
+          <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+            {{ 'PAC.Xpert.RejectReason' | translate: {Default: 'Reason for rejection (optional)'} }}
+          </label>
+          <textarea
+            class="w-full min-h-[140px] rounded-lg border border-divider bg-transparent px-3 py-2 text-sm leading-relaxed focus:border-danger-400 focus:outline-none focus:ring-2 focus:ring-danger-200"
+            [ngModel]="decisionMessageFor(i)"
+            (ngModelChange)="onRejectMessageChange(i, $event)"
+            placeholder="{{ 'PAC.Xpert.RejectReasonPlaceholder' | translate: {Default: 'Explain why this tool call should not run'} }}"
+          ></textarea>
+        </div>
+      } @else {
+        <div class="rounded-xl border border-divider bg-white p-3 text-sm text-text-secondary flex items-center justify-center">
+          {{ 'PAC.Xpert.HITLNoChanges' | translate: {Default: 'Approve without changes'} }}
+        </div>
+      }
+    </div>
+  </section>
+} @empty {
+  <div class="rounded-xl border border-dashed border-divider p-4 text-sm text-text-secondary">
+    {{ 'PAC.Xpert.HITLEmpty' | translate: { Default: 'No actions need approval right now.' } }}
+  </div>
+}

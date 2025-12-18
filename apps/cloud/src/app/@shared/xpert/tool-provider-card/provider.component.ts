@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, input, output } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { injectOrganizationId } from '@metad/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { upperFirst } from 'lodash-es'
 import { injectHelpWebsite, ITag, IToolProvider, TagCategoryEnum } from '../../../@core'
@@ -16,6 +17,7 @@ import { EmojiAvatarComponent } from '../../avatar'
 })
 export class ToolProviderCardComponent {
   readonly helpWebsite = injectHelpWebsite()
+  readonly organizationId = injectOrganizationId()
 
   // Inputs
   readonly provider = input<IToolProvider>()
@@ -39,6 +41,13 @@ export class ToolProviderCardComponent {
   readonly helpTitle = input<string>(null)
 
   readonly create = output()
+
+  readonly avatar = computed(() => {
+    return this.provider()?.avatar && {
+      ...this.provider().avatar,
+      url: this.provider().avatar.url ? this.provider().avatar.url + `?org=${this.organizationId()}` : null
+    }
+  })
 
   onCreate() {
     this.create.emit()

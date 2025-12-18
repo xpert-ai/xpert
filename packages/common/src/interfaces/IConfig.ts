@@ -17,6 +17,7 @@ export interface IAssetOptions {
 	assetPath: string;
 	assetPublicPath: string;
 	serverRoot: string
+	dataPath: string
 }
 export interface IApiServerOptions {
 	host?: string;

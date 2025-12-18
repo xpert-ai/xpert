@@ -1,6 +1,10 @@
-import { SetMetadata } from '@nestjs/common';
+import { applyDecorators, SetMetadata } from '@nestjs/common';
+import { STRATEGY_META_KEY } from '../types';
 
 export const VECTOR_STORE_STRATEGY = 'VECTOR_STORE_STRATEGY';
 
 export const VectorStoreStrategy = (provider: string) =>
-  SetMetadata(VECTOR_STORE_STRATEGY, provider);
+  applyDecorators(
+    SetMetadata(VECTOR_STORE_STRATEGY, provider),
+    SetMetadata(STRATEGY_META_KEY, VECTOR_STORE_STRATEGY)
+  );

@@ -20,16 +20,24 @@ export class AIProvidersService {
 
 	private positions: Record<string, number> = null
 
+	/**
+	 * Find available Model Provider from plugin strategy first, then from built-in providers
+	 * 
+	 * @param name 
+	 * @param throwError 
+	 * @returns 
+	 */
 	getProvider(name: string, throwError = false): IAIModelProviderStrategy | undefined {
-		const provider = name ? this.registry.getProvider(name) : null
-		if (!provider) {
+		let provider: IAIModelProviderStrategy | undefined = null
+		if (name) {
 			try {
-			    return this.strategyRegistry.get(name)
+				provider = this.strategyRegistry.get(name)
 			} catch (error) {
-				if (throwError) {
-				    throw new Error(`AI Model Provider strategy not found for provider: ${name}`)
-				}
+				provider = this.registry.getProvider(name)
 			}
+		}
+		if (!provider && throwError) {
+			throw new Error(`AI Model Provider strategy not found for provider: ${name}`)
 		}
 		return provider
 	}

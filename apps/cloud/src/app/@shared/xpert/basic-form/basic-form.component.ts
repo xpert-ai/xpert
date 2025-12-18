@@ -85,23 +85,44 @@ export class XpertBasicFormComponent {
   constructor() {
     effect(() => {
       const name = this.name()
+      
+      // If name is empty or not provided, clear error and don't validate
+      // Only validate when user has entered content
+      if (!name || name.trim() === '') {
+        this.checking.set(false)
+        this.error.set(null)
+        return
+      }
+
       this.checking.set(true)
       this.error.set(null)
+      
+      // Only validate if name is not blank
+      if (!name || name.trim().length === 0) {
+        this.checking.set(false)
+        return
+      }
+
+      // Validate character set: only allow alphanumeric, dash, and spaces
       if (/[^a-zA-Z0-9-\s]/.test(name)) {
         this.error.set(
           this.#translate.instant('PAC.Xpert.NameContainsNonAlpha', {
             Default: 'Name contains non (alphabetic | - | blank) characters'
           })
         )
+        this.checking.set(false)
         return
       }
 
-      const slug = convertToUrlPath(name || '')
+      // Validate length: convert to URL path and check minimum length
+      const slug = convertToUrlPath(name)
       if (slug.length < 5) {
         this.error.set(this.#translate.instant('PAC.Xpert.TooShort', { Default: 'Too short' }))
+        this.checking.set(false)
         return
       }
 
+      // If validation passes, trigger name availability check
       this.name$.next(name)
     }, { allowSignalWrites: true })
   }

@@ -13,22 +13,25 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   BIInterruptMessageType,
   InterruptMessageType,
+  isInterruptMessage,
   TInterruptMessage,
   TSensitiveOperation
 } from '../../../@core'
 import { AbstractInterruptComponent } from '../types'
 import { XpAgentInterruptSelectComponent } from './select/select.component'
+import { XpAgentInterruptHitlComponent } from './hitl/hitl.component'
 
 /**
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule],
-  selector: 'xpert-agent-interrupt',
+  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe],
+  selector: 'xp-xpert-agent-interrupt',
   templateUrl: 'interrupt.component.html',
   styleUrls: ['interrupt.component.scss']
 })
@@ -47,14 +50,17 @@ export class XpertAgentInterruptComponent {
   readonly container = viewChild('container', { read: ViewContainerRef })
 
   // States
-  readonly message = computed(() => this.interrupt()?.value)
+  readonly interruptValue = computed(() => this.interrupt()?.value)
+  readonly message = computed(() => {
+    const value = this.interruptValue()
+    return isInterruptMessage(value) ? value as TInterruptMessage : null
+  })
 
   private componentRef!: ComponentRef<AbstractInterruptComponent>
 
   constructor() {
-    effect(
-      () => {
-        const message = this.message()
+    effect(() => {
+        const message = this.interruptValue() as TInterruptMessage
         if (message) {
           this.loadComponent(message).catch((error) => {
             console.error('Error loading component:', error)
@@ -89,18 +95,24 @@ async function importComponent(type: BIInterruptMessageType | InterruptMessageTy
   switch (type) {
     case InterruptMessageType.Select:
       return XpAgentInterruptSelectComponent
-    case BIInterruptMessageType.SwitchProject:
+    case BIInterruptMessageType.SwitchProject: {
       const { ProjectInterruptSwitchComponent } = await import('../../project/index')
       return ProjectInterruptSwitchComponent
-    case BIInterruptMessageType.SwitchSemanticModel:
+    }
+    case BIInterruptMessageType.SwitchSemanticModel: {
       const { InitModelComponent } = await import('../../model/index')
       return InitModelComponent
-    case InterruptMessageType.SlidesTemplate:
+    }
+    case InterruptMessageType.SlidesTemplate: {
       const { InterruptSlideComponent } = await import('../../files/interrupt-slide/interrupt-slide.component')
       return InterruptSlideComponent
-    case InterruptMessageType.SwitchGitHubRepository:
+    }
+    case InterruptMessageType.SwitchGitHubRepository: {
       const { ProjectSwitchRepositoryComponent } = await import('../../xp-project/index')
       return ProjectSwitchRepositoryComponent
+    }
+    default:
+      return XpAgentInterruptHitlComponent
   }
   return null
 }

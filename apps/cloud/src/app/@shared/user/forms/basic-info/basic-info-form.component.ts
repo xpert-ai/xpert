@@ -165,6 +165,21 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               placeholder: '',
               required: true,
               appearance: 'fill'
+            },
+            validators: {
+              pattern: {
+                expression: (control) => {
+                  if (!control.value || control.value.trim() === '') {
+                    return true // Let required validator handle empty values
+                  }
+                  const emailPattern = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/
+                  return emailPattern.test(control.value)
+                },
+                message: () => this.#translate.instant('FORMLY.VALIDATION.EMAIL', { Default: 'Please enter a valid email address' })
+              }
+            },
+            modelOptions: {
+              updateOn: 'blur'
             }
           },
           ...password,

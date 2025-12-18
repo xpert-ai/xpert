@@ -817,7 +817,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const baseRequest: ModelRequest = {
 				model: withFallbackModel,
 				messages: baseMessages,
-				systemMessage
+				systemMessage,
+				runtime: config
 			}
 			let systemMessageContent = systemMessage.content
 			const defaultModelHandler: WrapModelCallHandler = async (request) => {
@@ -833,7 +834,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (isBaseMessage(response) && isAIMessage(response)) {
 					const invalidToolCalls = response.invalid_tool_calls
 					if (invalidToolCalls?.length) {
-						const detail = invalidToolCalls.map((call) => `${call.name ?? call.id ?? 'tool'}: ${call.error ?? 'Invalid tool call'}`).join('; ')
+						const detail = invalidToolCalls.map((call) => `${call.name ?? call.id ?? 'tool'}: ${call.error ?? 'Invalid tool call'}\n${call.args}`).join('; ')
 						throw new InternalServerErrorException(
 							t('server-ai:Error.InvalidToolCalls') + detail
 						)

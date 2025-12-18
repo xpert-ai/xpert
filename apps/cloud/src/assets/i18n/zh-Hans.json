@@ -567,7 +567,21 @@
       "Category_vlm": "视觉模型",
       "Category_model": "语言模型",
       "Category_middleware": "中间件",
-      "Category_vector-store": "向量数据库"
+      "Category_vector-store": "向量数据库",
+      "GlobalPlugin": "这是一个面向所有组织的全局插件",
+      "RemovePlugin": "从您的组织中移除此插件",
+      "Uninstall_Title": "卸载插件",
+      "Uninstall_Message": "您确定要卸载此插件吗？",
+      "PluginInstalled": "插件已成功安装",
+      "PluginInstalling": "正在安装插件，请稍候...",
+      "PluginInstallError": "插件安装失败，请重试",
+      "PluginWillInstall": "即将安装以下插件",
+      "PluginAlreadyInstalled": "此插件的最新版本已安装",
+      "Close": "关闭",
+      "InstallSource": "安装来源",
+      "InstallFromNpm": "从 NPM 安装",
+      "NpmPackageName": "NPM 包名称",
+      "NpmPackageVersion": "包版本"
     },
     "Workspace": {
       "NewTable": "新建表",
@@ -832,6 +846,7 @@
     },
     "ACTIONS": {
       "Start": "开始",
+      "Send": "发送",
       "Back": "返回",
       "Run": "运行",
       "Rename": "重命名",
@@ -908,7 +923,9 @@
       "HelpLink": "帮助链接",
       "PasteHere": "粘贴到这里",
       "OpenInNewTab": "在新标签页中打开",
-      "SyncDataSourceTypes": "同步数据源类型"
+      "SyncDataSourceTypes": "同步数据源类型",
+      "Approve": "批准",
+      "Reject": "拒绝"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -2287,7 +2304,13 @@
       "IntegrationsWithPermission": "有权限的集成",
       "NewChatBIModel": "新建 ChatBI 模型",
       "ModelExists": "模型已存在",
-      "EntityNotFound": "未找到模型实体"
+      "EntityNotFound": "未找到模型实体",
+      "PleaseSelectSemanticModel": "请选择语义模型",
+      "PleaseSelectEntity": "请选择实体",
+      "NoSemanticModelsAvailable": "没有可用的语义模型，请先创建语义模型",
+      "NoEntitiesAvailable": "没有可用的实体，请先添加实体",
+      "AddEntity": "添加实体",
+      "CreateSemanticModel": "创建语义模型"
     },
     "Home": {
       "Insight": {
@@ -2768,7 +2791,18 @@
       "AllProviders": "所有提供商"
     },
     "Xpert": {
+      "ActionToReview": "需要您审核的操作",
+      "ToolDescriptionPlaceholder": "描述需要审批的内容",
+      "ToolCall": "工具调用",
+      "ProposedArgs": "建议参数",
+      "EditArgs": "编辑参数(JSON)",
+      "RejectReason": "拒绝原因（可选）",
+      "RejectReasonPlaceholder": "解释为什么此工具调用不应运行",
+      "HITLNoChanges": "批准且不做更改",
+      "HITLEmpty": "当前没有需要审批的操作。",
+      "AllowedDecisions": "允许的决策",
       "AgentMiddlewares": "智能体中间件",
+      "UnknownMiddleware": "未知中间件",
       "AgentMiddlewaresTooltip": "智能体按顺序加载中间件。中间件可以做：通过日志记录、分析和调试跟踪代理行为。转换提示、工具选择和输出格式。添加重试、回退和提前终止逻辑。应用速率限制、防护措施和个人身份信息检测。",
       "NoMiddlewares": "还没有添加中间件",
       "MiddlewareNotFound": "未找到中间件‘{{provider}}’",
@@ -3083,6 +3117,7 @@
       "BasicInfo": "基础信息",
       "APIAccess": "访问 API",
       "Logs": "日志",
+      "SelectTimeRange": "选择时间范围",
       "Monitoring": "监测",
       "Preview": "预览",
       "Default": "默认",
@@ -4744,7 +4779,9 @@
       "MinLength": "至少有 {{minLength}} 个字符",
       "MaxLength": "最多有 {{maxLength}} 个字符",
       "Min": "值不得小于 {{min}}",
-      "Max": "值不得大于 {{max}}"
+      "Max": "值不得大于 {{max}}",
+      "EMAIL": "请输入有效的邮箱地址",
+      "PATTERN": "格式无效"
     },
     "PROPERTY_SELECT": {
       "REFERENCE_LINE": "参考线",

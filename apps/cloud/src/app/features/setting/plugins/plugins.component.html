@@ -44,8 +44,7 @@
     <button
       type="button"
       class="btn disabled:btn-disabled btn-secondary btn-medium p-2 text-components-button-secondary-text"
-      [ngmTooltip]="inDevelopment"
-      [hideDelay]="100"
+      [cdkMenuTriggerFor]="installMenu"
     >
       <i class="ri-add-line"></i>
       <span class="pl-1">{{ 'PAC.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}</span>
@@ -87,9 +86,7 @@
       <div class="pb-3">
         <div class="grid grid-cols-2 gap-3">
           @for (plugin of filteredPlugins(); track plugin.name) {
-            <div
-              class="relative overflow-hidden rounded-xl border-[1.5px] border-background-section-burn p-1 bg-gray-100"
-            >
+            <div class="relative overflow-hidden rounded-xl border-[1.5px] border-background-section-burn p-1 bg-gray-100">
               <div
                 class="relative z-10 rounded-xl border-[0.5px]
                   bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
@@ -131,28 +128,22 @@
                     <div class="flex items-center justify-between">
                       <div class="text-sm text-text-tertiary font-body truncate" [title]="plugin.meta.description"
                         [ngmHighlight]="searchText()" [content]="plugin.meta.description">{{plugin.meta.description}}</div>
-                      <!-- <div>
+                      @if (plugin.isGlobal) {
+                        <div class="w-7 h-7 flex justify-center items-center"
+                          [matTooltip]="'PAC.Plugin.GlobalPlugin' | translate: { Default: 'This is a global plugin available to all organizations' }"
+                          matTooltipPosition="above">
+                          <i class="ri-global-line text-text-tertiary"></i>
+                        </div>
+                      } @else {
                         <div class="flex space-x-1">
-                          <button
-                            type="button"
-                            class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive"
-                            data-state="closed"
-                          >
-                            <svg
-                              viewBox="0 0 24 24"
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="24"
-                              height="24"
-                              fill="currentColor"
-                              class="remixicon h-4 w-4"
-                            >
-                              <path
-                                d="M17 6H22V8H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V8H2V6H7V3C7 2.44772 7.44772 2 8 2H16C16.5523 2 17 2.44772 17 3V6ZM18 8H6V20H18V8ZM9 11H11V17H9V11ZM13 11H15V17H13V11ZM9 4V6H15V4H9Z"
-                              ></path>
-                            </svg>
+                          <button type="button" class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive flex items-center justify-center"
+                            [matTooltip]="'PAC.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin from your organization' }"
+                            matTooltipPosition="above"
+                            (click)="uninstall(plugin)">
+                            <i class="ri-delete-bin-line"></i>
                           </button>
                         </div>
-                      </div> -->
+                      }
                     </div>
                   </div>
                 </div>
@@ -180,6 +171,10 @@
                   </div>
                 </div>
               </div>
+
+              @if (removing() === plugin.name) {
+                <ngm-spin class="absolute inset-0 backdrop-blur-sm bg-white/10" />
+              }
             </div>
           }
         </div>
@@ -189,6 +184,63 @@
 }
 
 
-<ng-template #inDevelopment>
-  <pac-in-development @overlayAnimation1 [feature]="'PAC.Plugin.InstallPlugins' | translate: {Default: 'Installing plugins...'}" class="w-80" />
+<ng-template #installMenu>
+  <div cdkMenu class="cdk-menu__large w-28">
+    <div class="font-semibold mb-2">
+      {{ 'PAC.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
+    </div>
+    <div cdkMenuItem class="" (click)="installNpm()">
+      <i class="ri-npmjs-line mr-1"></i> NPM
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #npmInstallDialog let-dialogRef="dialogRef">
+  <div class="w-full rounded-2xl bg-white px-6 py-5">
+    <div class="flex items-start justify-between pb-3">
+      <div class="text-xl font-semibold text-text-primary">
+        {{ 'PAC.Plugin.InstallFromNpm' | translate: { Default: 'Install from NPM' } }}
+      </div>
+      <button type="button" class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center" (click)="dialogRef.close()">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="relative flex flex-col gap-4">
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.NpmPackageName' | translate: { Default: 'NPM package name' } }}
+        </label>
+        <input class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          [placeholder]="'PAC.Plugin.InputPackageName' | translate: { Default: 'e.g. @scope/xpert-plugin' }"
+          [(ngModel)]="npmPackageName" />
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.NpmPackageVersion' | translate: { Default: 'Version (optional)' } }}
+        </label>
+        <input class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          [placeholder]="'PAC.Plugin.InputPackageVersion' | translate: { Default: 'e.g. 1.0.0' }"
+          [(ngModel)]="npmPackageVersion" />
+      </div>
+      @if (npmInstallError()) {
+        <div class="max-w-sm text-sm text-text-destructive">{{ npmInstallError() }}</div>
+      }
+      @if (npmInstalling()) {
+        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-white/2" />
+      }
+    </div>
+    <div class="flex items-center justify-end gap-2 pt-4">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
+        [disabled]="npmInstalling() || !npmPackageName()?.trim()"
+        (click)="confirmInstallNpm(dialogRef)">
+        @if (npmInstalling()) {
+          <ngm-spin small />
+        }
+        <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
+      </button>
+    </div>
+  </div>
 </ng-template>

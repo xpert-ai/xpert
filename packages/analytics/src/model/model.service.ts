@@ -309,7 +309,11 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			return await axios.post(`http://${olapHost}:${olapPort}/xmla`, query, { headers })
 		} catch (err) {
 			this.logger.error(err)
-			throw new Error(t('analytics:Error.FailedConnectToOLAP'))
+			// Provide more detailed error message including host and port
+			const errorMessage = err?.code === 'ECONNREFUSED' 
+				? t('analytics:Error.FailedConnectToOLAP') + ` (${olapHost}:${olapPort})`
+				: t('analytics:Error.FailedConnectToOLAP')
+			throw new Error(errorMessage)
 		}
 	}
 

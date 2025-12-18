@@ -1,10 +1,10 @@
 import { environment as env } from '@metad/server-config';
+import { RolesEnum } from '@metad/contracts';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { verify } from 'jsonwebtoken';
 import { Repository } from 'typeorm';
-import { RolesEnum } from '@metad/contracts';
 import { RequestContext } from './../../core/context';
 import { Employee } from './../../core/entities/internal';
 

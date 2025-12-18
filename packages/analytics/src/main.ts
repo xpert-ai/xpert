@@ -1,11 +1,11 @@
 import './polyfills';
-import { installPlugins } from '@metad/server-core';
+// import { installPlugins } from '@metad/server-core';
 import { bootstrap } from './bootstrap/index'
 import { prepare } from './core/prepare'
 
 prepare()
 
-installPlugins()
+// installPlugins()
 
 bootstrap({
     title: 'Xpert AI Debug',

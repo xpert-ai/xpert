@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common'
 import {
   ChunkMetadata,
   FileSystemPermission,
+  getErrorMessage,
   IImageUnderstandingStrategy,
   ImageUnderstandingStrategy,
   LLMPermission,
@@ -11,7 +12,6 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { buildChunkTree, collectTreeLeaves, IconType, IKnowledgeDocument } from '@metad/contracts'
 import { Document, DocumentInterface } from '@langchain/core/documents'
-import { join } from 'path'
 import sharp from 'sharp'
 import { v4 as uuid } from 'uuid'
 import { SvgIcon, VlmDefault } from './types'
@@ -117,29 +117,49 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
   private async runV(client: BaseChatModel, context: string, imagePath: string, config: TImageUnderstandingConfig): Promise<string> {
     const imageStr = await config.permissions.fileSystem.readFile(imagePath)
     const sharped = sharp(imageStr)
-    const imageData = await sharped.resize(1024).toBuffer()
-    const fileInfo = await sharped.metadata()
-    const mimetype = fileInfo.format ? `image/${fileInfo.format}` : 'image/png'
+    
+    // Reduce image size to minimize Base64 encoding length and avoid exceeding token limits
+    // Some model services (e.g., Xinference) have strict input length limits (2048 tokens)
+    // Resize to smaller dimension and compress to reduce Base64 string length
+    const imageData = await sharped
+      .resize(512, 512, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 85, mozjpeg: true })
+      .toBuffer()
+    
+    const mimetype = 'image/jpeg'
 
-    const response = await client.invoke([
-      {
-        role: 'system',
-        content: 'You are a professional assistant, helping people understand images in context. Please provide a narrative description of the image.'
-      },
-      {
-        role: 'user',
-        content: [
-          // { type: 'text', text: context },
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:${mimetype};base64,${imageData.toString('base64')}`
+    // Keep system message concise to minimize token usage
+    const systemMessage = 'You are a professional assistant, helping people understand images in context. Please provide a narrative description of the image.'
+    
+    try {
+      const response = await client.invoke([
+        {
+          role: 'system',
+          content: systemMessage
+        },
+        {
+          role: 'user',
+          content: [
+            // { type: 'text', text: context },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimetype};base64,${imageData.toString('base64')}`
+              }
             }
-          }
-        ]
-      }
-    ])
+          ]
+        }
+      ])
 
-    return response.content as string
+      return response.content as string
+    } catch (error) {
+      // Handle specific error about input length limit
+      const errorMessage = getErrorMessage(error)
+      if (errorMessage.includes('Range of input length') || errorMessage.includes('2048')) {
+        throw new Error(`Image understanding failed: Input length exceeds model limit (2048 tokens). The image may be too large or the model service has strict input length restrictions. Please try with a smaller image or adjust the model configuration. Original error: ${errorMessage}`)
+      }
+      // Re-throw other errors
+      throw error
+    }
   }
 }

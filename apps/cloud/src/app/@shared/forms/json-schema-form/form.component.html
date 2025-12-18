@@ -2,6 +2,7 @@
   <json-schema-property class="mb-1" [readonly]="readonly()" [schema]="param" [name]="param.name"
     [required]="isRequired(param.name)"
     [variables]="variables()"
+    [context]="context()"
     [ngModel]="value$()?.[param.name]"
     (ngModelChange)="updateValue(param.name, $event)" 
   />

@@ -348,6 +348,12 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
       );
     }
 
+    const model = await this.commandBus.execute(new CreateModelClientCommand<BaseLanguageModel>(userOptions.model, {
+          usageCallback: (event) => {
+            console.log('[Middleware Summarization] Model Usage:', event);
+          }
+        }))
+
     return {
       name: 'SummarizationMiddleware',
       tools: [],
@@ -377,12 +383,6 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
         const requiresProfile =
           triggerConditions.some((c) => "fraction" in c) ||
           "fraction" in validatedKeep;
-
-        const model = await this.commandBus.execute(new CreateModelClientCommand<BaseLanguageModel>(userOptions.model, {
-          usageCallback: (event) => {
-            console.log('[Middleware Summarization] Model Usage:', event);
-          }
-        }))
 
         if (requiresProfile && !getProfileLimits(model)) {
           throw new Error(

@@ -17,6 +17,7 @@ import {
 	IXpert,
 	KBDocumentStatusEnum,
 	KnowledgebaseChannel,
+	KnowledgebasePermission,
 	KnowledgebaseTypeEnum,
 	KnowledgeProviderEnum,
 	KNOWLEDGE_SOURCES_NAME,
@@ -31,11 +32,13 @@ import {
 	XpertAgentExecutionStatusEnum,
 	classificateDocumentCategory,
 	TCopilotModel,
-	KnowledgeDocumentMetadata
+	KnowledgeDocumentMetadata,
+	IUser
 } from '@metad/contracts'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
-import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
+import { QueryFailedError } from 'typeorm'
 import { OnEvent } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
@@ -58,6 +61,7 @@ import {
 import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
 import { RagCreateVStoreCommand } from '../rag-vstore'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
+import { GetXpertWorkspaceQuery } from '../xpert-workspace/queries'
 import { EventName_XpertPublished } from '../xpert/types'
 import { XpertService } from '../xpert/xpert.service'
 import { Knowledgebase } from './knowledgebase.entity'
@@ -104,6 +108,81 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		private readonly taskService: KnowledgebaseTaskService,
 	) {
 		super(repository)
+	}
+
+	/**
+	 * Override getAllByWorkspace to include knowledgebases with Public/Organization permissions
+	 * from other workspaces in the same organization
+	 */
+	async getAllByWorkspace(workspaceId: string, data: PaginationParams<Knowledgebase>, published: boolean, user: IUser) {
+		const { relations, order, take } = data ?? {}
+		let { where } = data ?? {}
+		where = where ?? {}
+		const organizationId = RequestContext.getOrganizationId()
+		
+		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
+			where = {
+				...(<FindOptionsWhere<Knowledgebase>>where),
+				workspaceId: IsNull(),
+				createdById: user.id
+			}
+			if (published) {
+				where.publishAt = Not(IsNull())
+			}
+			return this.findAll({
+				where,
+				relations,
+				order,
+				take
+			})
+		} else {
+			const workspace = await this.queryBus.execute(new GetXpertWorkspaceQuery(user, { id: workspaceId }))
+			if (!workspace) {
+				throw new NotFoundException(`Not found or no auth for xpert workspace '${workspaceId}'`)
+			}
+
+			// Build where conditions array to include:
+			// 1. Knowledgebases that belong to this workspace
+			// 2. Public knowledgebases from any workspace in the same organization
+			// 3. Organization knowledgebases from other workspaces in the same organization
+			const whereConditions: FindOptionsWhere<Knowledgebase>[] = [
+				{
+					...(<FindOptionsWhere<Knowledgebase>>where),
+					workspaceId: workspaceId
+				}
+			]
+
+			// Add Public knowledgebases from any workspace (excluding those already in this workspace)
+			// Note: Using Not(In([workspaceId])) to exclude the current workspace
+			whereConditions.push({
+				...(<FindOptionsWhere<Knowledgebase>>where),
+				permission: KnowledgebasePermission.Public,
+				organizationId: organizationId,
+				workspaceId: Not(In([workspaceId]))
+			})
+
+			// Add Organization knowledgebases from other workspaces in the same organization
+			whereConditions.push({
+				...(<FindOptionsWhere<Knowledgebase>>where),
+				permission: KnowledgebasePermission.Organization,
+				organizationId: organizationId,
+				workspaceId: Not(In([workspaceId]))
+			})
+
+			// Apply published filter if needed
+			if (published) {
+				whereConditions.forEach(condition => {
+					condition.publishAt = Not(IsNull())
+				})
+			}
+
+			return this.findAll({
+				where: whereConditions,
+				relations,
+				order,
+				take
+			})
+		}
 	}
 
 	async create(entity: Partial<IKnowledgebase>) {
@@ -173,8 +252,55 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	 */
 	async update(id: string, entity: Partial<Knowledgebase>) {
 		const _entity = await super.findOne(id)
-		assign(_entity, entity)
-		return await this.repository.save(_entity)
+		
+		// Check name uniqueness if name is being changed
+		if (entity.name && entity.name !== _entity.name) {
+			const tenantId = RequestContext.currentTenantId()
+			const organizationId = RequestContext.getOrganizationId()
+			
+			// Check if another knowledgebase with the same name exists (excluding current one)
+			const exist = await this.repository.findOne({
+				where: {
+					tenantId,
+					organizationId,
+					name: entity.name,
+					id: Not(id) // Exclude current knowledgebase
+				}
+			})
+			
+			if (exist) {
+				throw new BadRequestException(
+					this.i18nService.t('xpert.Error.NameExists', {
+						lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+					})
+				)
+			}
+		}
+		
+		try {
+			assign(_entity, entity)
+			return await this.repository.save(_entity)
+		} catch (error) {
+			// Catch database unique constraint errors as a fallback
+			// PostgreSQL error code for unique violation: 23505
+			// MySQL error code for duplicate entry: 1062
+			if (error instanceof QueryFailedError) {
+				const driverError = (error as any).driverError
+				const errorCode = driverError?.code || driverError?.errno
+				if (errorCode === '23505' || errorCode === 1062 || 
+					error.message?.includes('duplicate key') || 
+					error.message?.includes('UNIQUE constraint') ||
+					error.message?.includes('Duplicate entry')) {
+					throw new BadRequestException(
+						this.i18nService.t('xpert.Error.NameExists', {
+							lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+						})
+					)
+				}
+			}
+			// Re-throw other errors
+			throw error
+		}
 	}
 
 	async getTextSplitterStrategies() {

@@ -31,7 +31,9 @@
     (ngModelChange)="update($event)"
     [readonly]="readonly()"
     [required]="required()"
-    [variables]="variables()" />
+    [variables]="variables()"
+    [context]="context()"
+  />
 } @else {
   @switch (xUiComponent()) {
     @case ('remoteSelect') {

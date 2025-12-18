@@ -21,10 +21,15 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		user: IUser,
 		organizationId: string
 	): Promise<IUserOrganization | IUserOrganization[]> {
-		const roleName: string = user.role.name;
+		const roleName: string = user.role?.name;
 
-		if (roleName === RolesEnum.SUPER_ADMIN)
+		if (roleName === RolesEnum.SUPER_ADMIN) {
+			// Ensure tenant is available before accessing tenant.id
+			if (!user.tenant?.id) {
+				throw new Error('User tenant is required for SUPER_ADMIN role')
+			}
 			return this._addUserToAllOrganizations(user.id, user.tenant.id);
+		}
 
 		const entity: IUserOrganization = new UserOrganization();
 		entity.organizationId = organizationId;

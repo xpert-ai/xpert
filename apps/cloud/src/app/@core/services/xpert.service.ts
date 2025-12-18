@@ -183,6 +183,12 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   bulkCreateMemories(id: string, body: { type: LongTermMemoryTypeEnum; memories: (TMemoryQA | TMemoryUserProfile)[]}) {
     return this.httpClient.post(this.apiBaseUrl + `/${id}/memory/bulk`, body)
   }
+  uploadAndParseCsv(id: string, type: LongTermMemoryTypeEnum, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', type)
+    return this.httpClient.post<Array<TMemoryQA | TMemoryUserProfile>>(`${this.apiBaseUrl}/${id}/memory/bulk/upload`, formData)
+  }
   searchMemory(id: string, body: { type: LongTermMemoryTypeEnum; text: string; isDraft: boolean }) {
     return this.httpClient.post<SearchItem[]>(this.apiBaseUrl + `/${id}/memory/search`, body)
   }
