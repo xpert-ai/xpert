@@ -1,4 +1,11 @@
-import { BaseMessage } from "@langchain/core/messages";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type {
+  Runtime as LangGraphRuntime,
+  PregelOptions,
+  StreamMode,
+} from "@langchain/langgraph";
+import type { BaseMessage } from "@langchain/core/messages";
+
 
 /**
  * Type for the agent's built-in state properties.
@@ -31,3 +38,30 @@ export type AgentBuiltInState = {
    */
   structuredResponse?: Record<string, unknown>;
 };
+
+/**
+ * Type helper to check if TContext is an optional Zod schema
+ */
+type IsOptionalZodObject<T> = T extends any ? true : false;
+type IsDefaultZodObject<T> = T extends any ? true : false;
+
+export type WithMaybeContext<TContext> = undefined extends TContext
+  ? { readonly context?: TContext }
+  : IsOptionalZodObject<TContext> extends true
+  ? { readonly context?: TContext }
+  : IsDefaultZodObject<TContext> extends true
+  ? { readonly context?: TContext }
+  : { readonly context: TContext };
+
+/**
+ * Runtime information available to middleware (readonly).
+ */
+export type Runtime<TContext = unknown> = Partial<
+  Omit<LangGraphRuntime<TContext>, "context" | "configurable">
+> &
+  WithMaybeContext<TContext> & {
+    configurable?: {
+      thread_id?: string;
+      [key: string]: unknown;
+    };
+  };

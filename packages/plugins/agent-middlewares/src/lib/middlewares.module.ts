@@ -14,7 +14,7 @@ import { HumanInTheLoopMiddleware } from './hitl';
     providers: [
 		SummarizationMiddleware,
         TodoListMiddleware,
-		HumanInTheLoopMiddleware
+		HumanInTheLoopMiddleware,
     ],
 })
 export class AgentMiddlewaresModule implements IOnPluginBootstrap, IOnPluginDestroy {

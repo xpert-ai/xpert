@@ -5,6 +5,7 @@ import { AIMessage, isAIMessage, ToolMessage } from '@langchain/core/messages'
 import { TAgentMiddlewareMeta } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import {
+  AgentBuiltInState,
   AgentMiddleware,
   AgentMiddlewareStrategy,
   IAgentMiddlewareContext,
@@ -13,7 +14,6 @@ import {
   PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
-import type { AgentBuiltInState } from './runtime'
 
 const DescriptionFunctionSchema = z
   .function()
