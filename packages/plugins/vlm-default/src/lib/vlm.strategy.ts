@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common'
 import {
   ChunkMetadata,
   FileSystemPermission,
+  getErrorMessage,
   IImageUnderstandingStrategy,
   ImageUnderstandingStrategy,
   LLMPermission,
@@ -11,7 +12,6 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { buildChunkTree, collectTreeLeaves, IconType, IKnowledgeDocument } from '@metad/contracts'
 import { Document, DocumentInterface } from '@langchain/core/documents'
-import { join } from 'path'
 import sharp from 'sharp'
 import { v4 as uuid } from 'uuid'
 import { SvgIcon, VlmDefault } from './types'
@@ -154,7 +154,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
       return response.content as string
     } catch (error) {
       // Handle specific error about input length limit
-      const errorMessage = error?.message || String(error)
+      const errorMessage = getErrorMessage(error)
       if (errorMessage.includes('Range of input length') || errorMessage.includes('2048')) {
         throw new Error(`Image understanding failed: Input length exceeds model limit (2048 tokens). The image may be too large or the model service has strict input length restrictions. Please try with a smaller image or adjust the model configuration. Original error: ${errorMessage}`)
       }
