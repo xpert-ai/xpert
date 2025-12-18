@@ -7,6 +7,10 @@ import { CredentialsValidateFailedError } from '../errors'
 import { DeepseekLargeLanguageModel } from './llm/llm'
 import { DeepseekCredentials, toCredentialKwargs } from './types'
 
+/**
+ * @deprecated This provider has been migrated to xpert-plugins project.
+ * 此提供商已迁移到 xpert-plugins 项目。
+ */
 @Injectable()
 export class DeepseekProvider extends ModelProvider {
 	constructor() {
@@ -40,6 +44,10 @@ export class DeepseekProvider extends ModelProvider {
 	}
 }
 
+/**
+ * @deprecated This module has been migrated to xpert-plugins project.
+ * 此模块已迁移到 xpert-plugins 项目。
+ */
 @Module({
 	imports: [ConfigModule],
 	providers: [

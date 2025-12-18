@@ -8,6 +8,10 @@ import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { DeepseekCredentials, DeepseekModelCredentials, toCredentialKwargs } from '../types'
 
+/**
+ * @deprecated This class has been migrated to xpert-plugins project.
+ * 此类已迁移到 xpert-plugins 项目。
+ */
 @Injectable()
 export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 	readonly #logger = new Logger(DeepseekLargeLanguageModel.name)
