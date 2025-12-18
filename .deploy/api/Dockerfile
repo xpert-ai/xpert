@@ -49,9 +49,9 @@ RUN npm install --legacy-peer-deps
 RUN yarn build:plugins
 RUN yarn nx build api
 
-COPY --chown=node:node .deploy/api/install-plugins.sh ./
-RUN chmod +x install-plugins.sh
-RUN ./install-plugins.sh
+# COPY --chown=node:node .deploy/api/install-plugins.sh ./
+# RUN chmod +x install-plugins.sh
+# RUN ./install-plugins.sh
 
 #////////////////////////////////////////////////////////////////////////////////
 FROM node:20 AS production
