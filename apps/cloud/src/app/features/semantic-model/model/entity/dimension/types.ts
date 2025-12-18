@@ -7,7 +7,7 @@ export class TreeItemNode<T = any> {
   children?: TreeItemNode[]
   id: string
   name: string
-  label: string
+  caption: string
   role: AggregationRole
   raw: T
 }
@@ -16,7 +16,7 @@ export class TreeItemNode<T = any> {
 export class TreeItemFlatNode<T = any> {
   id: string
   name: string
-  label: string
+  caption: string
   level: number
   expandable: boolean
   role: AggregationRole
@@ -27,14 +27,14 @@ export function mapDimensionToTreeItemNode(dimension: PropertyDimension) {
   return {
     id: dimension.__id__,
     role: AggregationRole.dimension,
-    label: dimension.caption,
+    caption: dimension.caption,
     visible: dimension.visible,
     name: dimension.name,
     raw: dimension,
     children: dimension.hierarchies?.map((hierarchy) => {
       return {
         name: hierarchy.name,
-        label: hierarchy.caption,
+        caption: hierarchy.caption,
         dimension: dimension.name,
         id: hierarchy.__id__,
         role: AggregationRole.hierarchy,
@@ -46,7 +46,7 @@ export function mapDimensionToTreeItemNode(dimension: PropertyDimension) {
             hierarchy: hierarchy.name,
             id: level.__id__,
             role: AggregationRole.level,
-            label: level.caption,
+            caption: level.caption,
             children: null,
             raw: level
           }
