@@ -28,6 +28,12 @@ function ensureDir(dir: string) {
   }
 }
 
+function isPluginInstalled(pluginDir: string, pluginName: string) {
+  const normalizedName = normalizePluginName(pluginName);
+  const pkgJsonPath = path.join(pluginDir, 'node_modules', normalizedName, 'package.json');
+  return fs.existsSync(pkgJsonPath);
+}
+
 export function getOrganizationPluginRoot(organizationId: string, opts?: OrganizationPluginStoreOptions) {
   return path.join(opts?.rootDir ?? DEFAULT_ORG_PLUGIN_ROOT, organizationId);
 }
@@ -115,6 +121,11 @@ export function installOrganizationPlugins(
 
   for (const plugin of plugins) {
     const pluginDir = getOrganizationPluginPath(organizationId, plugin, opts);
+    if (isPluginInstalled(pluginDir, plugin)) {
+      console.log(chalk.yellow(`Plugin ${plugin} already installed at ${pluginDir}, skipping install.`));
+      manifest.add(plugin);
+      continue;
+    }
     ensureDir(pluginDir);
 
     const args = [
