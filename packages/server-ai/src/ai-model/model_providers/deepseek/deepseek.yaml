@@ -1,10 +1,10 @@
 provider: deepseek
 label:
-  en_US: deepseek (DEPRECATED)
-  zh_Hans: 深度求索 (已废弃)
+  en_US: deepseek (❌DEPRECATED)
+  zh_Hans: 深度求索 (❌已废弃)
 description:
-  en_US: "[DEPRECATED] Migrated to xpert-plugins. Models provided by deepseek, such as deepseek-chat、deepseek-coder."
-  zh_Hans: "[已废弃] 已迁移到 xpert-plugins。深度求索提供的模型，例如 deepseek-chat、deepseek-coder 。"
+  en_US: "❌[DEPRECATED] Migrated to xpert-plugins. Models provided by deepseek, such as deepseek-chat、deepseek-coder."
+  zh_Hans: "❌[已废弃] 已迁移到 xpert-plugins。深度求索提供的模型，例如 deepseek-chat、deepseek-coder 。"
 icon_small:
   en_US: icon_s_en.svg
 icon_large:
