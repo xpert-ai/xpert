@@ -2,6 +2,8 @@ import { LanguageModelLike } from '@langchain/core/language_models/base';
 import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { InteropZodObject } from '@langchain/core/utils/types'
+import { Runtime } from './runtime';
+
 
 /**
  * jump targets (user facing)
@@ -158,6 +160,8 @@ export interface ModelRequest<
   messages: BaseMessage[];
 
   systemMessage?: SystemMessage
+
+  runtime: Runtime<TContext>
 }
 
 /**

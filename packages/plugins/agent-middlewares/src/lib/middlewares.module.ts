@@ -3,6 +3,8 @@ import { CqrsModule } from '@nestjs/cqrs';
 import chalk from 'chalk';
 import { TodoListMiddleware } from './todoListMiddleware';
 import { SummarizationMiddleware } from './summarization';
+import { ModalFallbackMiddleware } from './modalfallback';
+import { ToolCallLimitMiddleware } from './toolCallLimit';
 
 @XpertServerPlugin({
 	/**
@@ -18,6 +20,8 @@ import { SummarizationMiddleware } from './summarization';
     providers: [
 		SummarizationMiddleware,
         TodoListMiddleware,
+        ModalFallbackMiddleware,
+        ToolCallLimitMiddleware,
     ],
 })
 export class AgentMiddlewaresModule implements IOnPluginBootstrap, IOnPluginDestroy {

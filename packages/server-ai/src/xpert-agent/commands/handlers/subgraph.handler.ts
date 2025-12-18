@@ -817,7 +817,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const baseRequest: ModelRequest = {
 				model: withFallbackModel,
 				messages: baseMessages,
-				systemMessage
+				systemMessage,
+				runtime: config
 			}
 			let systemMessageContent = systemMessage.content
 			const defaultModelHandler: WrapModelCallHandler = async (request) => {
