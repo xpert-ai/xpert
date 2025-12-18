@@ -19,6 +19,6 @@ export interface IPlugin extends IBasePerTenantAndOrganizationEntityModel {
   pluginName: string;
   packageName: string;
   version?: string;
-  source?: "marketplace" | "local" | "git" | "url";
+  source?: "marketplace" | "local" | "git" | "url" | "npm";
   config: Record<string, any>;
 }

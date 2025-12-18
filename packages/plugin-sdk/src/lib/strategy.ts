@@ -24,7 +24,6 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
 
     onModuleInit() {
         this.bus.events$.pipe(filter((event) => !event.strategyType || event.strategyType === this.strategyKey)).subscribe((evt) => {
-            this.logger.debug(`Received strategy bus event: ${JSON.stringify(evt)}`)
             if (evt.type === 'UPSERT') {
                 this.upsert(evt.entry.instance)
             } else if (evt.type === 'REMOVE') {

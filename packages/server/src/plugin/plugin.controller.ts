@@ -43,65 +43,71 @@ export class PluginController {
 	 * @returns
 	 */
 	@Post()
-	async installPlugin(@Body() body: { pluginName: string; version?: string; config?: Record<string, any> }) {
+	async installPlugin(@Body() body: { pluginName: string; version?: string; source?: "marketplace" | "local" | "git" | "url"; config?: Record<string, any> }) {
 		if (!body?.pluginName) {
 			throw new BadRequestException('Plugin package name is required')
 		}
+
 		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
 		const tenantId = RequestContext.currentTenantId()
 		const packageName = body.pluginName
-		const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
+		try {
+			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
+			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
+			// 1) Install and register into current module context (mirrors registerPluginsAsync logic)
+			const { modules } = await registerPluginsAsync({
+				organizationId,
+				plugins: [packageNameWithVersion],
+				configs: { [packageName]: body.config },
+				baseDir: organizationBaseDir
+			})
 
-		const organizationBaseDir = getOrganizationPluginRoot(organizationId)
-		// 1) Install and register into current module context (mirrors registerPluginsAsync logic)
-		const { modules } = await registerPluginsAsync({
-			organizationId,
-			plugins: [packageNameWithVersion],
-			configs: { [packageName]: body.config },
-			baseDir: organizationBaseDir
-		})
+			// 2) Load the module, scan and initialize the strategy class.
+			for await (const dynamicModule of modules) {
+				this.logger.debug(`Loading plugin module for ${packageNameWithVersion} into organization ${organizationId}`)
+				const loadedModuleRef = await this.lazyLoader.load(() => dynamicModule)
+				const strategyProviders = collectProvidersWithMetadata(loadedModuleRef, organizationId, body.pluginName, this.logger)
+				for await (const instance of strategyProviders) {
+					const target = instance.metatype ?? instance.constructor
+					const strategyMeta = Reflect.getMetadata(STRATEGY_META_KEY, target)
+					this.logger.debug(`Registering strategy ${strategyMeta} for plugin ${body.pluginName} in organization ${organizationId}`)
+					if (strategyMeta) {
+						this.strategyBus.upsert(strategyMeta, {
+							instance,
+							sourceId: `${organizationId}:${body.pluginName}@${body.version ?? 'latest'}:${target.name}`,
+							sourceKind: 'plugin'
+						})
+					}
+				}
 
-		// 2) Load the module, scan and initialize the strategy class.
-		for await (const dynamicModule of modules) {
-			this.logger.debug(`Loading plugin module for ${packageNameWithVersion} into organization ${organizationId}`)
-			const loadedModuleRef = await this.lazyLoader.load(() => dynamicModule)
-			const strategyProviders = collectProvidersWithMetadata(loadedModuleRef, organizationId, body.pluginName, this.logger)
-			for await (const instance of strategyProviders) {
-				const target = instance.metatype ?? instance.constructor
-				const strategyMeta = Reflect.getMetadata(STRATEGY_META_KEY, target)
-				this.logger.debug(`Registering strategy ${strategyMeta} for plugin ${body.pluginName} in organization ${organizationId}`)
-				if (strategyMeta) {
-					this.strategyBus.upsert(strategyMeta, {
-						instance,
-						sourceId: `${organizationId}:${body.pluginName}@${body.version ?? 'latest'}:${target.name}`,
-						sourceKind: 'plugin'
-					})
+				// If the plugin instance exists and it implements the specified lifecycle method, call it
+				if (loadedModuleRef && hasLifecycleMethod(loadedModuleRef, 'onPluginBootstrap')) {
+					await loadedModuleRef['onPluginBootstrap']()
 				}
 			}
 
-			// If the plugin instance exists and it implements the specified lifecycle method, call it
-			if (loadedModuleRef && hasLifecycleMethod(loadedModuleRef, 'onPluginBootstrap')) {
-				await loadedModuleRef['onPluginBootstrap']()
-			}
+			// 3) load plugin metadata to persist canonical plugin name/config
+			const pluginBaseDir = getOrganizationPluginPath(organizationId, packageName)
+			const plugin = await loadPlugin(packageName, { basedir: pluginBaseDir })
+			const pluginName = plugin.meta?.name ?? packageName
+			const config = buildConfig(pluginName, body.config ?? {}, plugin.config)
+
+			await this.pluginInstanceService.upsert({
+				tenantId,
+				organizationId,
+				pluginName,
+				packageName,
+				version: body.version,
+				source: body.source || 'marketplace',
+				config
+			})
+
+			return { success: true, name: pluginName, packageName, organizationId }
+		} catch (error) {
+			this.logger.error(`Failed to install plugin ${body.pluginName}`, error)
+			await this.pluginInstanceService.removePlugins(organizationId, [packageName])
+			throw new BadRequestException(`Failed to install plugin ${body.pluginName}: ${error.message}`)
 		}
-
-		// 3) load plugin metadata to persist canonical plugin name/config
-		const pluginBaseDir = getOrganizationPluginPath(organizationId, packageName)
-		const plugin = await loadPlugin(packageName, { basedir: pluginBaseDir })
-		const pluginName = plugin.meta?.name ?? packageName
-		const config = buildConfig(pluginName, body.config ?? {}, plugin.config)
-
-		await this.pluginInstanceService.upsert({
-			tenantId,
-			organizationId,
-			pluginName,
-			packageName,
-			version: body.version,
-			source: 'marketplace',
-			config
-		})
-
-		return { success: true, name: pluginName, packageName, organizationId }
 	}
 
 	@Post('by-names')

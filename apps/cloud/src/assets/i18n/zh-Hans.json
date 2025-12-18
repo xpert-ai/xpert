@@ -577,7 +577,11 @@
       "PluginInstallError": "插件安装失败，请重试",
       "PluginWillInstall": "即将安装以下插件",
       "PluginAlreadyInstalled": "此插件的最新版本已安装",
-      "Close": "关闭"
+      "Close": "关闭",
+      "InstallSource": "安装来源",
+      "InstallFromNpm": "从 NPM 安装",
+      "NpmPackageName": "NPM 包名称",
+      "NpmPackageVersion": "包版本"
     },
     "Workspace": {
       "NewTable": "新建表",

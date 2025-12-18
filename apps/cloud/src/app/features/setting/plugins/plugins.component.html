@@ -44,8 +44,7 @@
     <button
       type="button"
       class="btn disabled:btn-disabled btn-secondary btn-medium p-2 text-components-button-secondary-text"
-      [ngmTooltip]="inDevelopment"
-      [hideDelay]="100"
+      [cdkMenuTriggerFor]="installMenu"
     >
       <i class="ri-add-line"></i>
       <span class="pl-1">{{ 'PAC.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}</span>
@@ -185,6 +184,63 @@
 }
 
 
-<ng-template #inDevelopment>
-  <pac-in-development @overlayAnimation1 [feature]="'PAC.Plugin.InstallPlugins' | translate: {Default: 'Installing plugins...'}" class="w-80" />
+<ng-template #installMenu>
+  <div cdkMenu class="cdk-menu__large w-28">
+    <div class="font-semibold mb-2">
+      {{ 'PAC.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
+    </div>
+    <div cdkMenuItem class="" (click)="installNpm()">
+      <i class="ri-npmjs-line"></i> NPM
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #npmInstallDialog let-dialogRef="dialogRef">
+  <div class="w-full rounded-2xl bg-white px-6 py-5">
+    <div class="flex items-start justify-between pb-3">
+      <div class="text-xl font-semibold text-text-primary">
+        {{ 'PAC.Plugin.InstallFromNpm' | translate: { Default: 'Install from NPM' } }}
+      </div>
+      <button type="button" class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center" (click)="dialogRef.close()">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="relative flex flex-col gap-4">
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.NpmPackageName' | translate: { Default: 'NPM package name' } }}
+        </label>
+        <input class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          [placeholder]="'PAC.Plugin.InputPackageName' | translate: { Default: 'e.g. @scope/xpert-plugin' }"
+          [(ngModel)]="npmPackageName" />
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.NpmPackageVersion' | translate: { Default: 'Version (optional)' } }}
+        </label>
+        <input class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          [placeholder]="'PAC.Plugin.InputPackageVersion' | translate: { Default: 'e.g. 1.0.0' }"
+          [(ngModel)]="npmPackageVersion" />
+      </div>
+      @if (npmInstallError()) {
+        <div class="max-w-sm text-sm text-text-destructive">{{ npmInstallError() }}</div>
+      }
+      @if (npmInstalling()) {
+        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-white/2" />
+      }
+    </div>
+    <div class="flex items-center justify-end gap-2 pt-4">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
+        [disabled]="npmInstalling() || !npmPackageName()?.trim()"
+        (click)="confirmInstallNpm(dialogRef)">
+        @if (npmInstalling()) {
+          <ngm-spin small />
+        }
+        <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
+      </button>
+    </div>
+  </div>
 </ng-template>

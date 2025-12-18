@@ -68,8 +68,6 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 				pluginName: In(names)
 			}
 		})
-		const manifestPath = getOrganizationManifestPath(organizationId)
-		const normalizedTargets = new Set(items.map((item) => normalizePluginName(item.packageName ?? item.pluginName)))
 
 		await this.delete({
 			tenantId,
@@ -77,14 +75,20 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			pluginName: In(names)
 		})
 
-		for (const item of items) {
-			this.strategyBus.remove(organizationId, item.pluginName)
-			const pluginIndex = this.loadedPlugins.findIndex((plugin) => plugin.organizationId === organizationId && plugin.name === item.pluginName)
+		await this.removePlugins(organizationId, names)
+  }
+
+  async removePlugins(organizationId: string, names: string[]) {
+    const manifestPath = getOrganizationManifestPath(organizationId)
+		const normalizedTargets = new Set(names.map((item) => normalizePluginName(item)))
+    for (const pluginName of normalizedTargets) {
+			this.strategyBus.remove(organizationId, pluginName)
+			const pluginIndex = this.loadedPlugins.findIndex((plugin) => plugin.organizationId === organizationId && plugin.name === pluginName)
 			if (pluginIndex !== -1) {
 				this.loadedPlugins.splice(pluginIndex, 1)
 			}
 
-			const pluginDir = getOrganizationPluginPath(organizationId, item.packageName ?? item.pluginName)
+			const pluginDir = getOrganizationPluginPath(organizationId, pluginName)
 			rmSync(pluginDir, { recursive: true, force: true })
 		}
 
