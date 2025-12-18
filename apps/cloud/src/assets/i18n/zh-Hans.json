@@ -2792,6 +2792,7 @@
     },
     "Xpert": {
       "ActionToReview": "需要您审核的操作",
+      "ToolDescriptionPlaceholder": "描述需要审批的内容",
       "ToolCall": "工具调用",
       "ProposedArgs": "建议参数",
       "EditArgs": "编辑参数(JSON)",
