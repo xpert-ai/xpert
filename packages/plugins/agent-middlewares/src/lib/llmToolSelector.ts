@@ -1,13 +1,13 @@
 import { z } from "zod/v3";
+import z4 from "zod/v4";
 import { BaseLanguageModel } from "@langchain/core/language_models/base";
 import { interopSafeParse, type InferInteropZodInput } from "@langchain/core/utils/types";
 import { HumanMessage, isHumanMessage } from "@langchain/core/messages";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import { Inject, Injectable } from "@nestjs/common";
-import { AgentMiddleware, AgentMiddlewareStrategy, CreateModelClientCommand, IAgentMiddlewareContext, IAgentMiddlewareStrategy, ModelRequest, PromiseOrValue, Runtime } from "@xpert-ai/plugin-sdk";
-import { AiModelTypeEnum, ICopilotModel, TAgentMiddlewareMeta } from "@metad/contracts";
+import { AgentMiddleware, AgentMiddlewareStrategy, CreateModelClientCommand, IAgentMiddlewareContext, IAgentMiddlewareStrategy, ModelRequest, Runtime, WrapWorkflowNodeExecutionCommand } from "@xpert-ai/plugin-sdk";
+import { AiModelTypeEnum, ICopilotModel, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@metad/contracts";
 import { CommandBus } from "@nestjs/cqrs";
-import z4 from "zod/v4";
 
 
 const DEFAULT_SYSTEM_PROMPT =
@@ -69,6 +69,10 @@ export const LLMToolSelectorOptionsSchema = z.object({
    * only the first maxTools will be used. No limit if not specified.
    */
   maxTools: z.number().optional(),
+  /**
+   * Method for the model to output selected tools.
+   */
+  outputMethod: z.enum(['functionCalling', 'jsonMode', 'jsonSchema']).optional().nullable(),
   /**
    * Tool names to always include regardless of selection.
    * These do not count against the maxTools limit.
@@ -170,7 +174,6 @@ export class LLMToolSelectorNameMiddleware implements IAgentMiddlewareStrategy {
           'x-ui': {
             component: 'textarea',
             span: 2,
-            rows: 4,
           },
         },
         maxTools: {
@@ -183,6 +186,34 @@ export class LLMToolSelectorNameMiddleware implements IAgentMiddlewareStrategy {
             en_US: 'Maximum number of tools to select. No limit if not specified.',
             zh_Hans: '要选择的最大工具数。如果未指定，则无限制。',
           },
+        },
+        outputMethod: {
+          type: 'string',
+          title: {
+            en_US: 'Output Method',
+            zh_Hans: '输出方法',
+          },
+          description: {
+            en_US: 'Method for the model to output selected tools.',
+            zh_Hans: '模型输出所选工具的方法。',
+          },
+          enum: ['functionCalling', 'jsonMode', 'jsonSchema'],
+          'x-ui': {
+            enumLabels: {
+              functionCalling: {
+                en_US: 'Function Calling',
+                zh_Hans: '函数调用',
+              },
+              jsonMode: {
+                en_US: 'JSON Mode',
+                zh_Hans: 'JSON模式',
+              },
+              jsonSchema: {
+                en_US: 'JSON Schema',
+                zh_Hans: 'JSON架构',
+              }
+            }
+          }
         },
         alwaysInclude: {
           type: 'array',
@@ -197,6 +228,9 @@ export class LLMToolSelectorNameMiddleware implements IAgentMiddlewareStrategy {
           items: {
             type: 'string',
           },
+          'x-ui': {
+            span: 2,
+          }
         }
       }
     }
@@ -215,7 +249,8 @@ export class LLMToolSelectorNameMiddleware implements IAgentMiddlewareStrategy {
                 console.log('[Middleware llmToolSelector] Model Usage:', event);
               }
             }))
-
+    const commandBus = this.commandBus;
+    
     return {
       name: "LLMToolSelector",
       contextSchema: LLMToolSelectorOptionsSchema,
@@ -233,22 +268,50 @@ export class LLMToolSelectorNameMiddleware implements IAgentMiddlewareStrategy {
         const toolSelectionSchema = createToolSelectionResponse(
           selectionRequest.availableTools
         );
-        const structuredModel =
-          await selectionRequest.model.withStructuredOutput?.(
-            toolSelectionSchema
+        const structuredModel = selectionRequest.model.withStructuredOutput?.(
+            toolSelectionSchema,
+            {
+              method: userOptions.outputMethod || 'jsonSchema',
+            }
           );
 
-        const response = await structuredModel?.invoke([
-          { role: "system", content: selectionRequest.systemMessage },
-          selectionRequest.lastUserMessage,
-        ]);
+        // Execution logging
+        const configurable = request.runtime.configurable as TAgentRunnableConfigurable
+        const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
+        const response = await commandBus.execute(new WrapWorkflowNodeExecutionCommand(async () => {
+            const response = await structuredModel?.invoke([
+              { role: "system", content: selectionRequest.systemMessage },
+              selectionRequest.lastUserMessage,
+            ]);
 
-        // Response should be an object with a tools array
-        if (!response || typeof response !== "object" || !("tools" in response)) {
-          throw new Error(
-            `Expected object response with tools array, got ${typeof response}`
-          );
-        }
+            // Response should be an object with a tools array
+            if (!response || typeof response !== "object" || !("tools" in response)) {
+              throw new Error(
+                `Expected object response with tools array, got ${typeof response}`
+              );
+            }
+            return {
+              state: response as { tools: string[] },
+              output: response.tools
+            }
+        },
+        {
+          execution: {
+            category: 'workflow',
+            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+            inputs: {
+              system: selectionRequest.systemMessage,
+              user: selectionRequest.lastUserMessage.content
+            },
+            parentId: executionId,
+            threadId: thread_id,
+            checkpointNs: checkpoint_ns,
+            checkpointId: checkpoint_id,
+            agentKey: context.node.key,
+            title: context.node.title
+          },
+          subscriber
+        }))
 
         return handler(
           processSelectionResponse(
@@ -281,11 +344,11 @@ async function prepareSelectionRequest<
   runtime: Runtime<LLMToolSelectorConfig>
 ): Promise<SelectionRequest | undefined> {
   const model = options.model;
-  const maxTools = runtime.context.maxTools ?? options.maxTools;
+  const maxTools = runtime.context?.maxTools ?? options.maxTools;
   const alwaysInclude =
-    runtime.context.alwaysInclude ?? options.alwaysInclude ?? [];
+    runtime.context?.alwaysInclude ?? options.alwaysInclude ?? [];
   const systemPrompt =
-    runtime.context.systemPrompt ??
+    runtime.context?.systemPrompt ??
     options.systemPrompt ??
     DEFAULT_SYSTEM_PROMPT;
 
