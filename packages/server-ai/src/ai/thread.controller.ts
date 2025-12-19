@@ -2,7 +2,7 @@ import { CheckpointTuple } from '@langchain/langgraph'
 import { Metadata, Run, ThreadState } from '@langchain/langgraph-sdk'
 import { ChatMessageTypeEnum, IUser, IXpertAgentExecution, messageContentText } from '@metad/contracts'
 import { takeUntilClose } from '@metad/server-common'
-import { ApiKeyAuthGuard, CurrentUser, Public, TransformInterceptor } from '@metad/server-core'
+import { ApiKeyOrClientSecretAuthGuard, CurrentUser, Public, TransformInterceptor } from '@metad/server-core'
 import {
 	Body,
 	Controller,
@@ -37,7 +37,7 @@ import type { components } from './schemas/agent-protocol-schema'
 @ApiTags('AI/Threads')
 @ApiBearerAuth()
 @Public()
-@UseGuards(ApiKeyAuthGuard)
+@UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('threads')
 export class ThreadsController {

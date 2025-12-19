@@ -1,5 +1,5 @@
 import { IApiKey } from '@metad/contracts'
-import { ApiKeyAuthGuard, ApiKeyDecorator, Public, TransformInterceptor } from '@metad/server-core'
+import { ApiKeyOrClientSecretAuthGuard, ApiKeyDecorator, Public, TransformInterceptor } from '@metad/server-core'
 import { Body, Controller, Delete, Get, Logger, Param, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger'
@@ -16,7 +16,7 @@ import { CreateKnowledgebaseDTO } from '../knowledgebase/dto'
 @ApiTags('AI/Knowledges')
 @ApiBearerAuth()
 @Public()
-@UseGuards(ApiKeyAuthGuard)
+@UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('knowledges')
 export class KnowledgesController {

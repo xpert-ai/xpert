@@ -1,4 +1,4 @@
-import { StorageFileModule, TenantModule } from '@metad/server-core'
+import { SecretTokenModule, StorageFileModule, TenantModule } from '@metad/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
@@ -28,6 +28,7 @@ import { KnowledgesController } from './knowledge.controller'
 			}
 		]),
 		TenantModule,
+		SecretTokenModule,
 		CqrsModule,
 		CopilotModule,
 		CopilotUserModule,
