@@ -21,7 +21,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { AfterModelHandler, AgentMiddleware, AgentMiddlewareRegistry, BeforeModelHandler, ModelRequest, WrapModelCallHandler } from '@xpert-ai/plugin-sdk'
+import { AfterModelHandler, AgentBuiltInState, AgentMiddleware, AgentMiddlewareRegistry, BeforeModelHandler, ModelRequest, WrapModelCallHandler } from '@xpert-ai/plugin-sdk'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -814,10 +814,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				...(((enableMessageHistory || !humanMessages.length) ? messageHistory : [])),
 				...humanMessages
 			]
-			const baseRequest: ModelRequest = {
+			const baseRequest: ModelRequest<AgentBuiltInState> = {
 				model: withFallbackModel,
 				messages: baseMessages,
 				systemMessage,
+				tools: withTools,
+				state,
 				runtime: config
 			}
 			let systemMessageContent = systemMessage.content

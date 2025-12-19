@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { TodoListMiddleware } from './todoListMiddleware';
 import { SummarizationMiddleware } from './summarization';
 import { HumanInTheLoopMiddleware } from './hitl';
+import { LLMToolSelectorNameMiddleware } from './llmToolSelector';
 
 @XpertServerPlugin({
 	/**
@@ -15,6 +16,7 @@ import { HumanInTheLoopMiddleware } from './hitl';
 		SummarizationMiddleware,
         TodoListMiddleware,
 		HumanInTheLoopMiddleware,
+		LLMToolSelectorNameMiddleware
     ],
 })
 export class AgentMiddlewaresModule implements IOnPluginBootstrap, IOnPluginDestroy {
