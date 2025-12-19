@@ -7,6 +7,7 @@ import { ApiKeyController } from './api-key.controller'
 import { ApiKey } from './api-key.entity'
 import { ApiKeyService } from './api-key.service'
 import { QueryHandlers } from './queries/handlers'
+import { ApiKeyStrategy } from './api-key.strategy'
 
 @Module({
 	imports: [
@@ -16,7 +17,7 @@ import { QueryHandlers } from './queries/handlers'
 		TenantModule
 	],
 	controllers: [ApiKeyController],
-	providers: [ApiKeyService, ...QueryHandlers],
+	providers: [ApiKeyService, ApiKeyStrategy, ...QueryHandlers],
 	exports: [ApiKeyService]
 })
 export class ApiKeyModule {}
