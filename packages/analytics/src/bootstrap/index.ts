@@ -53,17 +53,16 @@ export async function bootstrap(options: {title: string; version: string}) {
 	)
 	app.use(json({ limit: '50mb' }))
 	app.use(urlencoded({ extended: true, limit: '50mb' }))
-
+	
+	// CORS
 	const headersForOpenAI =
 		'x-stainless-os, x-stainless-lang, x-stainless-package-version, x-stainless-runtime, x-stainless-arch, x-stainless-runtime-version, x-stainless-retry-count'
 	app.enableCors({
-		// origin: [...origins(env.clientBaseUrl), '*'],
-		origin: '*',
-  		credentials: false,
+		origin: [...origins(env.clientBaseUrl), ...origins(...(env.env['CORS_ALLOW_ORIGINS']?.split(',') || []))],
+		credentials: true,
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-		// credentials: true,
 		allowedHeaders:
-			'Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Length, Content-Language, Accept, Accept-Language, Observe, last-event-id, ' +
+			'Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Length, Content-Language, Accept, Accept-Language, Observe, last-event-id, X-Api-Key, ' +
 			headersForOpenAI
 	})
 
@@ -166,14 +165,17 @@ export async function preBootstrapPlugins() {
 	setConfig({plugins: modules});
 }
 
-function origins(url: string) {
-  const urls = []
-  if (url.startsWith('http')) {
-	urls.push(url)
-  } else if (url.startsWith('//')) {
-	urls.push('http:' + url, 'https:' + url)
-  } else {
-	urls.push('http://' + url, 'https://' + url)
-  }
-  return urls
+function origins(...urls: string[]) {
+  const results = []
+  for (let url of urls) {
+	url = url.trim()
+	if (url.startsWith('http')) {
+		results.push(url)
+	} else if (url.startsWith('//')) {
+		results.push('http:' + url, 'https:' + url)
+	} else {
+		results.push('http://' + url, 'https://' + url)
+	}
+	}
+  return results.map((u) => u.replace(/\/+$/, ''))
 }
