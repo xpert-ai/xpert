@@ -83,10 +83,10 @@
 
   .action-btn {
     @apply inline-flex cursor-pointer items-center justify-center origin-bottom transition-transform 
-      disabled:opacity-50 disabled:cursor-not-allowed;
+      text-text-tertiary disabled:opacity-50 disabled:cursor-not-allowed;
     
     &:not(:disabled) {
-      @apply hover:bg-hover-bg active:scale-95;
+      @apply hover:bg-hover-bg hover:text-base-content active:scale-95;
 
       &.primary {
         @apply hover:bg-primary-50 hover:text-primary-400 active:bg-primary-100 active:text-primary-500;
