@@ -1,7 +1,8 @@
 import { TChatOptions, TChatRequest } from '@metad/contracts'
-import { ICommand } from '@nestjs/cqrs'
+import { Command } from '@nestjs/cqrs'
+import { Observable } from 'rxjs'
 
-export class XpertChatCommand implements ICommand {
+export class XpertChatCommand extends Command<Observable<MessageEvent>> {
 	static readonly type = '[Xpert] Chat'
 
 	constructor(
@@ -12,5 +13,7 @@ export class XpertChatCommand implements ICommand {
 			fromEndUserId?: string
 			execution?: {id: string}
 		}
-	) {}
+	) {
+		super()
+	}
 }

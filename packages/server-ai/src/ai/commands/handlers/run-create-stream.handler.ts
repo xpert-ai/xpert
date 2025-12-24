@@ -14,7 +14,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: RunCreateStreamCommand): Promise<any> {
+	public async execute(command: RunCreateStreamCommand) {
 		const threadId = command.threadId
 		const runCreate = command.runCreate
 		const chatRequest = runCreate.input as unknown as TChatRequest
@@ -24,14 +24,22 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: runCreate.assistant_id }, {}))
 
 		// Update xpert id for chat conversation
-		conversation.xpertId = xpert.id
-		await this.commandBus.execute(new ChatConversationUpsertCommand(conversation))
+		if (!conversation.xpertId) {
+			conversation.xpertId = xpert.id
+			await this.commandBus.execute(new ChatConversationUpsertCommand(conversation))
+		}
 
 		const execution = await this.commandBus.execute(
-			new XpertAgentExecutionUpsertCommand({
-				threadId: conversation.threadId,
-				status: XpertAgentExecutionStatusEnum.RUNNING
-			})
+			new XpertAgentExecutionUpsertCommand(
+				omitBy(
+					{
+						id: chatRequest.executionId,
+						threadId: conversation.threadId,
+						status: XpertAgentExecutionStatusEnum.RUNNING
+					},
+					isNil
+				)
+			)
 		)
 		const stream = await this.commandBus.execute(
 			new XpertChatCommand(
@@ -50,7 +58,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		return {
 			execution,
 			stream: stream.pipe(
-				map((message: any) => {
+				map((message) => {
 					if (typeof message.data.data === 'object') {
 						return {
 							...message,
