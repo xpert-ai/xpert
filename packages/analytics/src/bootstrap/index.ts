@@ -154,12 +154,16 @@ export async function preBootstrapPlugins() {
 	const modules: DynamicModule[] = [];
 	for await (const group of groups) {
 		const mergedPlugins = group.plugins
-		const { modules: orgModules } = await registerPluginsAsync({
-			organizationId: group.organizationId,
-			plugins: mergedPlugins,
-			configs: group.configs,
-		});
-		modules.push(...orgModules);
+		try {
+			const { modules: orgModules } = await registerPluginsAsync({
+				organizationId: group.organizationId,
+				plugins: mergedPlugins,
+				configs: group.configs,
+			});
+			modules.push(...orgModules);
+		} catch (error) {
+			Logger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`);
+		}
 	}
 
 	setConfig({plugins: modules});

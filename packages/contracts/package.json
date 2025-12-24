@@ -15,6 +15,6 @@
   "module": "./index.esm.js",
   "main": "./index.cjs.js",
   "dependencies": {
-    "@xpert-ai/chatkit-types": "0.0.1"
+    "@xpert-ai/chatkit-types": "^0.0.4"
   }
 }

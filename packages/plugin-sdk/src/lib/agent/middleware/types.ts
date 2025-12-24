@@ -1,6 +1,7 @@
 import { LanguageModelLike } from '@langchain/core/language_models/base';
 import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
+import type { ToolCall } from "@langchain/core/messages/tool";
 import { InteropZodObject } from '@langchain/core/utils/types'
 import { Runtime } from './runtime';
 
@@ -197,6 +198,56 @@ export type WrapModelCallHook<
   handler: WrapModelCallHandler<TSchema, TContext>
 ) => PromiseOrValue<AIMessage>;
 
+
+/**
+ * Represents a tool call request for the wrapToolCall hook.
+ * Contains the tool call information along with the agent's current state and runtime.
+ */
+export interface ToolCallRequest<
+  TState extends Record<string, unknown> = Record<string, unknown>,
+  TContext = unknown
+> {
+  /**
+   * The tool call to be executed
+   */
+  toolCall: ToolCall;
+  /**
+   * The BaseTool instance being invoked.
+   * Provides access to tool metadata like name, description, schema, etc.
+   */
+  tool: ClientTool | ServerTool;
+  /**
+   * The current agent state (includes both middleware state and built-in state).
+   */
+  state: TState & AgentBuiltInState;
+  /**
+   * The runtime context containing metadata, signal, writer, interrupt, etc.
+   */
+  runtime: Runtime<TContext>;
+}
+
+/**
+ * Handler function type for wrapping tool calls.
+ * Takes a tool call request and returns the tool result or a command.
+ */
+export type ToolCallHandler<
+  TSchema extends Record<string, unknown> = AgentBuiltInState,
+  TContext = unknown
+> = (
+  request: ToolCallRequest<TSchema, TContext>
+) => PromiseOrValue<ToolMessage | Command>;
+
+/**
+ * Wrapper function type for the wrapToolCall hook.
+ * Allows middleware to intercept and modify tool execution.
+ */
+export type WrapToolCallHook<
+  TSchema extends InteropZodObject | undefined = undefined,
+  TContext = unknown
+> = (
+  request: ToolCallRequest<NormalizedSchemaInput<TSchema>, TContext>,
+  handler: ToolCallHandler<NormalizedSchemaInput<TSchema>, TContext>
+) => PromiseOrValue<ToolMessage | Command>;
 
 export interface AgentMiddleware<
   TSchema extends InteropZodObject | undefined = any,

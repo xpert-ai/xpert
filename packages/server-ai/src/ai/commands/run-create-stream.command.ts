@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs'
-import type { paths, components } from "../schemas/agent-protocol-schema"
+import type { components } from "../schemas/agent-protocol-schema"
 
 /**
  */
@@ -8,6 +8,6 @@ export class RunCreateStreamCommand implements ICommand {
 
 	constructor(
 		public readonly threadId: string,
-		public readonly input: components['schemas']['RunCreateStateful']
+		public readonly runCreate: components['schemas']['RunCreateStateful']
 	) {}
 }

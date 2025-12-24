@@ -1,4 +1,4 @@
-import { ToolCall as LToolCall } from '@langchain/core/dist/messages/tool'
+import { ToolCall as LToolCall } from '@langchain/core/messages/tool'
 import { RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { ITag } from '../tag-entity.model'

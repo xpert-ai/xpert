@@ -66,13 +66,15 @@ export type TAgentRunnableConfigurable = {
   signal?: AbortSignal
 }
 
+/**
+ * @deprecated use import { type ToolCall } from '@langchain/core/messages/tool';
+ */
 export type TToolCall = {
 	id?: string
 	name: string
 	type?: 'tool_call'
 	args: Record<string, any>
 }
-
 
 // Helpers
 export function channelName(name: string) {

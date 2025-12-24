@@ -1,4 +1,4 @@
-import { XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { TChatRequest, TInterruptCommand, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
@@ -16,11 +16,12 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
 	public async execute(command: RunCreateStreamCommand): Promise<any> {
 		const threadId = command.threadId
-		const input = command.input
+		const runCreate = command.runCreate
+		const chatRequest = runCreate.input as unknown as TChatRequest
 
 		// Find thread (conversation) and assistant (xpert)
 		const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
-		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: input.assistant_id }, {}))
+		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: runCreate.assistant_id }, {}))
 
 		// Update xpert id for chat conversation
 		conversation.xpertId = xpert.id
@@ -35,9 +36,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		const stream = await this.commandBus.execute(
 			new XpertChatCommand(
 				{
-					input: input.input as any,
+					input: chatRequest.input as any,
 					xpertId: xpert.id,
-					conversationId: conversation.id
+					conversationId: conversation.id,
+					command: chatRequest['command'] as TInterruptCommand
 				},
 				{
 					from: 'api',
