@@ -1,5 +1,5 @@
-import { AIMessage, isAIMessage, ToolMessage } from '@langchain/core/messages'
-import { ToolCall, } from '@langchain/core/messages/tool'
+import { ToolMessage } from '@langchain/core/messages'
+import { ToolCall } from '@langchain/core/messages/tool'
 import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
 import { tool } from '@langchain/core/tools'
 import { interrupt } from '@langchain/langgraph'
@@ -10,7 +10,6 @@ import {
   AgentMiddlewareStrategy,
   IAgentMiddlewareContext,
   IAgentMiddlewareStrategy,
-  JumpToTarget,
   PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
 import { ClientToolMessageInput, ClientToolRequest, ClientToolResponse } from '@xpert-ai/chatkit-types'
@@ -170,131 +169,47 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
     return {
       name: CLIENT_TOOL_MIDDLEWARE_NAME,
       tools,
-      afterModel: {
-        canJumpTo: ['model'],
-        hook: async (state, runtime) => {
-          const config = interopParse(contextSchema, {
-            ...options,
-            ...(runtime.context || {})
-          })
-          if (!config?.clientTools?.length) {
-            return
-          }
-
-          const { messages } = state
-          if (!messages.length) {
-            return
-          }
-
-          const lastMessage = [...messages].reverse().find((msg) => isAIMessage(msg)) as AIMessage
-          if (!lastMessage || !lastMessage.tool_calls?.length) {
-            return
-          }
-
-          const clientToolSet = config.clientTools
-          const clientToolCalls = lastMessage.tool_calls.filter((toolCall) => clientToolSet.some((ct) => ct.name === toolCall.name))
-
-          if (!clientToolCalls.length) {
-            return
-          }
-
-          const remainingToolCalls = lastMessage.tool_calls.filter(
-            (toolCall) => !clientToolSet.some((ct) => ct.name === toolCall.name)
-          )
-
-          const request: ClientToolRequest = {
-            clientToolCalls: clientToolCalls
-          }
-
-          const response = (await interrupt(request)) as ClientToolResponse
-          const toolMessages = response?.toolMessages
-
-          if (!Array.isArray(toolMessages)) {
-            throw new Error('Invalid ClientToolResponse: toolMessages must be an array')
-          }
-
-          if (toolMessages.length !== clientToolCalls.length) {
-            throw new Error(
-              `Number of toolMessages (${toolMessages.length}) does not match number of client tool calls (${clientToolCalls.length}).`
-            )
-          }
-
-          const resolvedToolMessages = toolMessages.map((message, index) =>
-            toToolMessage(message, clientToolCalls[index]!)
-          )
-
-          lastMessage.tool_calls = remainingToolCalls
-
-          const jumpTo: JumpToTarget | undefined = remainingToolCalls.length ? undefined : 'model'
-
-          return {
-            messages: [lastMessage, ...resolvedToolMessages],
-            jumpTo
-          }
-        }
-      },
       wrapToolCall: async (request, handler) => {
-        const toolName = request.toolCall.name;
-
-        
         const config = interopParse(contextSchema, {
-            ...options,
-            ...(runtime.context || {})
-          })
-          if (!config?.clientTools?.length) {
-            return
-          }
-
-          const { messages } = state
-          if (!messages.length) {
-            return
-          }
-
-          const lastMessage = [...messages].reverse().find((msg) => isAIMessage(msg)) as AIMessage
-          if (!lastMessage || !lastMessage.tool_calls?.length) {
-            return
-          }
-
-          const clientToolSet = config.clientTools
-          const clientToolCalls = lastMessage.tool_calls.filter((toolCall) => clientToolSet.some((ct) => ct.name === toolCall.name))
-
-          if (!clientToolCalls.length) {
-            return
-          }
-
-          const remainingToolCalls = lastMessage.tool_calls.filter(
-            (toolCall) => !clientToolSet.some((ct) => ct.name === toolCall.name)
-          )
-
-          const request: ClientToolRequest = {
-            clientToolCalls: clientToolCalls
-          }
-
-          const response = (await interrupt(request)) as ClientToolResponse
-          const toolMessages = response?.toolMessages
-
-          if (!Array.isArray(toolMessages)) {
-            throw new Error('Invalid ClientToolResponse: toolMessages must be an array')
-          }
-
-          if (toolMessages.length !== clientToolCalls.length) {
-            throw new Error(
-              `Number of toolMessages (${toolMessages.length}) does not match number of client tool calls (${clientToolCalls.length}).`
-            )
-          }
-
-          const resolvedToolMessages = toolMessages.map((message, index) =>
-            toToolMessage(message, clientToolCalls[index]!)
-          )
-
-          lastMessage.tool_calls = remainingToolCalls
-
-          const jumpTo: JumpToTarget | undefined = remainingToolCalls.length ? undefined : 'model'
-
-        return {
-          messages: [lastMessage, ...resolvedToolMessages],
-          jumpTo
+          ...options,
+          // ...(request.runtime.context || {})
+        })
+        if (!config?.clientTools?.length) {
+          return handler(request)
         }
+
+        const isClientTool = config.clientTools.some(
+          (clientTool) => clientTool.name === request.toolCall.name
+        )
+        if (!isClientTool) {
+          return handler(request)
+        }
+
+        const clientRequest: ClientToolRequest = {
+          clientToolCalls: [request.toolCall]
+        }
+
+        const response = (await interrupt(clientRequest)) as ClientToolResponse
+        const toolMessages = response?.toolMessages
+
+        if (!Array.isArray(toolMessages) || toolMessages.length !== 1) {
+          throw new Error(
+            'Invalid ClientToolResponse: toolMessages must be an array with exactly one item'
+          )
+        }
+
+        const message = toolMessages[0]
+        if (
+          message?.tool_call_id &&
+          request.toolCall.id &&
+          message.tool_call_id !== request.toolCall.id
+        ) {
+          throw new Error(
+            `Invalid ClientToolResponse: tool_call_id "${message.tool_call_id}" does not match "${request.toolCall.id}".`
+          )
+        }
+
+        return toToolMessage(message, request.toolCall)
       }
     }
   }

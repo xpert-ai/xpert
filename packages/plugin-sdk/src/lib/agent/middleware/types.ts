@@ -1,10 +1,11 @@
 import { LanguageModelLike } from '@langchain/core/language_models/base';
 import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool, DynamicTool, StructuredToolInterface } from '@langchain/core/tools';
-import type { ToolCall } from "@langchain/core/messages/tool";
+import type { ToolCall, ToolMessage } from "@langchain/core/messages/tool";
 import { InferInteropZodOutput, InteropZodObject } from '@langchain/core/utils/types'
 import { RunnableToolLike } from '@langchain/core/runnables';
 import { AgentBuiltInState, Runtime } from './runtime';
+import { Command } from '@langchain/langgraph';
 
 
 export type ServerTool = Record<string, unknown>;
@@ -22,6 +23,12 @@ export type NormalizedSchemaInput<
   : TSchema extends Record<string, unknown>
   ? TSchema & AgentBuiltInState
   : AgentBuiltInState;
+
+type NormalizeContextSchema<
+  TContextSchema extends InteropZodObject | undefined = undefined
+> = TContextSchema extends InteropZodObject
+  ? InferInteropZodOutput<TContextSchema>
+  : never;
 
 /**
  * jump targets (user facing)
@@ -420,8 +427,8 @@ export interface AgentMiddleware<
    * }
    * ```
    */
-  wrapToolCall?: (
-    request: ModelRequest<NormalizedSchemaInput<TSchema>, TFullContext>,
-    handler: WrapModelCallHandler<TSchema, TFullContext>
-  ) => PromiseOrValue<AIMessage>;
+  wrapToolCall?: WrapToolCallHook<
+    TSchema,
+    NormalizeContextSchema<TContextSchema>
+  >;
 }
