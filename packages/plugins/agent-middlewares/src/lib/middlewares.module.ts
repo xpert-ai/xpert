@@ -5,6 +5,7 @@ import { TodoListMiddleware } from './todoListMiddleware';
 import { SummarizationMiddleware } from './summarization';
 import { HumanInTheLoopMiddleware } from './hitl';
 import { ClientToolMiddleware } from './clientTool';
+import { LLMToolSelectorNameMiddleware } from './llmToolSelector';
 
 @XpertServerPlugin({
 	/**
@@ -16,6 +17,7 @@ import { ClientToolMiddleware } from './clientTool';
 		SummarizationMiddleware,
         TodoListMiddleware,
 		HumanInTheLoopMiddleware,
+		LLMToolSelectorNameMiddleware,
 		ClientToolMiddleware,
     ],
 })
