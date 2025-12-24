@@ -5,6 +5,7 @@ import { TodoListMiddleware } from './todoListMiddleware';
 import { SummarizationMiddleware } from './summarization';
 import { HumanInTheLoopMiddleware } from './hitl';
 import { ClientToolMiddleware } from './clientTool';
+import { ClientEffectMiddleware } from './clientEffect';
 import { LLMToolSelectorNameMiddleware } from './llmToolSelector';
 
 @XpertServerPlugin({
@@ -19,6 +20,7 @@ import { LLMToolSelectorNameMiddleware } from './llmToolSelector';
 		HumanInTheLoopMiddleware,
 		LLMToolSelectorNameMiddleware,
 		ClientToolMiddleware,
+		ClientEffectMiddleware,
     ],
 })
 export class AgentMiddlewaresModule implements IOnPluginBootstrap, IOnPluginDestroy {
