@@ -168,7 +168,7 @@ export class SmartEChartEngine extends SmartChartEngine<SmartChartEngineState> {
                   formatting,
                   getPropertyCaption
                 }, data)
-                  
+
                 if (customContext) {
                   // Support custom function return a promise or a object
                   customContext = await Promise.resolve(customContext)
@@ -399,7 +399,7 @@ export class SmartEChartEngine extends SmartChartEngine<SmartChartEngineState> {
       const category = getChartCategory(chartAnnotation)
       const chartSeries = getChartSeries(chartAnnotation)
 
-      const dimensions = uniqBy(chartAnnotation.dimensions, (a, b) => (a.hierarchy || a.dimension) === (b.hierarchy || b.dimension))
+      const dimensions = uniqBy(chartAnnotation.dimensions, (item: any) => item.hierarchy || item.dimension)
 
       const children = event.selected?.length ?
         event.selected
