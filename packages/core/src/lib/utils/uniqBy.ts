@@ -1,20 +1,28 @@
 /**
  * Array deduplication function (High performance O(N) version).
  * @param arr The array to deduplicate.
- * @param iteratee The property name (string) or mapping function ((item) => key).
+ * @param iteratee The property name (keyof T) or mapping function ((item) => key).
  */
-export function uniqBy<T>(arr: T[], iteratee: string | ((item: T) => any)): T[] {
-  const seen = new Set()
+type KeyFn<T, K> = (item: T) => K;
 
-  return arr.filter((item) => {
-    // Resolve the unique identifier (Key) for deduplication
-    const key = typeof iteratee === 'string' ? (item as any)[iteratee] : iteratee(item)
+export function uniqBy<T, K>(
+  arr: readonly T[],
+  iteratee: keyof T | KeyFn<T, K>
+): T[] {
+  const getKey: KeyFn<T, K | T[keyof T]> =
+    typeof iteratee === 'function'
+      ? iteratee
+      : (item) => item[iteratee];
 
-    // If the Key has already been seen, filter it out; otherwise, add to Set and keep it
-    if (seen.has(key)) {
-      return false
-    }
-    seen.add(key)
-    return true
-  })
+  const seen = new Set<K | T[keyof T]>();
+  const out: T[] = [];
+
+  for (const item of arr) {
+    const key = getKey(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+
+  return out;
 }

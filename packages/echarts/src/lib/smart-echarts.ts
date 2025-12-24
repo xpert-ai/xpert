@@ -168,7 +168,7 @@ export class SmartEChartEngine extends SmartChartEngine<SmartChartEngineState> {
                   formatting,
                   getPropertyCaption
                 }, data)
-                  
+
                 if (customContext) {
                   // Support custom function return a promise or a object
                   customContext = await Promise.resolve(customContext)
