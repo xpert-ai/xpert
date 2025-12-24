@@ -399,7 +399,7 @@ export class SmartEChartEngine extends SmartChartEngine<SmartChartEngineState> {
       const category = getChartCategory(chartAnnotation)
       const chartSeries = getChartSeries(chartAnnotation)
 
-      const dimensions = uniqBy(chartAnnotation.dimensions, (a, b) => (a.hierarchy || a.dimension) === (b.hierarchy || b.dimension))
+      const dimensions = uniqBy(chartAnnotation.dimensions, (item) => item.hierarchy || item.dimension)
 
       const children = event.selected?.length ?
         event.selected
