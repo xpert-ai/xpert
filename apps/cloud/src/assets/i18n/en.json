@@ -39,7 +39,9 @@
       "STORY": "Story",
       "USER": "User",
       "SUCCEED": "Succeed",
-      "Conversation": "Conversation"
+      "Conversation": "Conversation",
+      "SecretKey": "Key",
+      "Reference": "Reference"
     },
     "MENU": {
       "AGENT": "Agent",
@@ -360,7 +362,8 @@
     },
     "Xpert": {
       "Logs": "Logs",
-      "SelectTimeRange": "Select time range"
+      "SelectTimeRange": "Select time range",
+      "APIReference": "API Reference"
     }
   },
   "STORY_DESIGNER": {

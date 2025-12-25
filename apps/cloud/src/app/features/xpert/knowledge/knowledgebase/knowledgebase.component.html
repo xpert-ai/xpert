@@ -258,7 +258,7 @@
         (click)="openApiKey()"
       >
         <i class="ri-key-2-line"></i>
-        <span class="system-xs-medium px-[3px]">API Key</span>
+        <span class="system-xs-medium px-[3px]">API {{'PAC.KEY_WORDS.SecretKey' | translate: {Default: 'Key'} }}</span>
       </button>
       <button
         type="button"
@@ -266,7 +266,7 @@
         (click)="openApiReference()"
       >
         <i class="ri-book-open-line"></i>
-        <span class="system-xs-medium px-[3px]">API {{'PAC.KEY_WORDS.Reference' | translate: {Default: 'Reference'} }}</span>
+        <span class="system-xs-medium px-[3px]">{{ 'PAC.Xpert.APIReference' | translate: {Default: 'API Reference'} }}</span>
       </button>
     </div>
   </div>
