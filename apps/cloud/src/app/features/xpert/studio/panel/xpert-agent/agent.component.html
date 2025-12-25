@@ -1,12 +1,12 @@
 <div class="w-full flex flex-col overflow-auto">
   <div class="sticky top-0 flex flex-col bg-components-panel-bg w-full border-b-[0.5px] border-black/5 z-10">
-    <div class="flex justify-start items-center px-3 pt-3 pb-2">
+    <div class="flex justify-start items-center px-3 pt-3 pb-2 min-w-0">
       <emoji-avatar [avatar]="xpertAgent().avatar" editable small class="shrink-0 mr-2 overflow-hidden rounded-lg shadow-sm"
         [matTooltip]="xpertAgent().key"
         (avatarChange)="updateAvatar($event)" />
-      <div class="flex flex-col items-start">
+      <div class="flex flex-col items-start min-w-0 flex-1">
         <input
-          class="ngm-input-inline ngm-input-sm min-w-[100px] mr-2 px-1 py-0.5 text-base field font-semibold rounded-lg border border-transparent appearance-none outline-none text-gray-900 hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]"
+          class="ngm-input-inline ngm-input-sm min-w-[100px] max-w-full mr-2 px-1 py-0.5 text-base field font-semibold rounded-lg border border-transparent appearance-none outline-none text-gray-900 hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]"
           [placeholder]="'PAC.Xpert.EnterTitle' | translate: {Default: 'Enter title'} "
           [ngModel]="title()"
           (ngModelChange)="onTitleChange($event)"
@@ -14,7 +14,7 @@
         />
       </div>
 
-      <span class="flex-1"></span>
+      <span class="flex-shrink-0 w-2"></span>
 
       <div class="shrink-0 flex items-center">
         <div class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content
@@ -176,7 +176,7 @@
         <div>{{ 'PAC.Xpert.AddMessage' | translate: {Default: 'Add Message'} }}</div>
       </button>
     <!-- } -->
-    
+
     <!-- Vision part -->
     <div class="flex flex-col w-full px-2">
       <div class="flex justify-between items-center">
@@ -265,7 +265,7 @@
           matTooltipPosition="left"
         />
       </div>
-      
+
       <div class="flex justify-end items-center gap-1 w-full">
         <i class="ri-git-close-pull-request-fill text-base text-fuchsia-700"></i>
         <div class="text-sm">{{'PAC.Xpert.ParallelToolCalls' | translate: {Default: 'Parallel tool calls'} }}</div>
@@ -330,8 +330,8 @@
             <input matSliderThumb [value]="stopAfterAttempt()"
               (dragEnd)="updateRetry({stopAfterAttempt: $event.value})" >
           </mat-slider>
-    
-          <input class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900" 
+
+          <input class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900"
             [min]="1"
             [max]="10"
             [step]="1"
@@ -404,7 +404,7 @@
             <span class="text-text-secondary">{{ 'PAC.Xpert.DonotToolCallingAndStructured' | translate: {Default: 'Cannot use tool calls and structured output at the same time!'} }}</span>
           </div>
         }
-        <xpert-output-variables-edit class="" 
+        <xpert-output-variables-edit class=""
           [ngModel]="outputVariables()"
           (ngModelChange)="updateOutputVariables($event)"
         />
@@ -462,7 +462,7 @@
     </button>
 
     <div class="h-[1px] bg-divider-regular my-1"></div>
-    
+
     <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left"
       (click)="synchronous()">
       <i class="ri-refresh-line mr-1"></i>
