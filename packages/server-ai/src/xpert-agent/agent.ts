@@ -113,14 +113,12 @@ export function createMapStreamEvents(
 							} else if (xpert) {
 								chunk.xpertName = xpert.name
 							}
-
+							
 							if (typeof msg.content === 'string') {
 								chunk.text += msg.content
 							} else {
 								chunk.text += msg.content.map((_) => (_.type === 'text' || _.type === 'text_delta') ? _.text : '').join('')
 							}
-							// Debug log to track streaming content
-							logger.debug(`[STREAM] on_chat_model_stream: "${chunk.text}" (id: ${chunk.id})`)
 							return chunk
 						}
 
@@ -160,10 +158,14 @@ export function createMapStreamEvents(
 			}
 
 			case 'on_chain_stream': {
-				// Note: We intentionally don't return content here to avoid duplicate messages.
-				// The content is already handled by 'on_chat_model_stream' event.
-				// Returning content here would cause each token to be sent twice,
-				// resulting in duplicated text like "你好你好！！" during streaming.
+				if (!isMute(tags, unmutes)) {
+					const msg = data.chunk as AIMessageChunk
+					if (!msg.tool_call_chunks?.length) {
+						if (msg.content) {
+							return msg.content
+						}
+					}
+				}
 				break
 			}
 
