@@ -3,9 +3,9 @@
     <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
   }
 
-  <button action class="inline-flex items-center justify-center gap-2 max-w-[160px] whitespace-nowrap text-base font-medium leading-[normal] truncate cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary 
+  <button action class="inline-flex items-center justify-center gap-2 max-w-[160px] whitespace-nowrap text-base font-medium leading-[normal] truncate cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary
     hover:bg-hover-bg rounded-xl px-3.5 py-2 flex-row pl-3 pr-2.5 h-9 sm:px-3 border border-button-outline-border sm:border-0
-    text-text-secondary hover:text-text-primary" 
+    text-text-secondary hover:text-text-primary"
     type="button"
     [attr.active]="cmt.isOpen()"
     #cmt="cdkMenuTriggerFor"
@@ -22,7 +22,7 @@
 
 
 <ng-template #menu>
-  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary">
+  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary overflow-visible">
     <button class="flex justify-start items-center p-2 rounded-lg shadow-sm hover:shadow-md !bg-components-card-bg hover:!bg-neutral-50 sticky top-0 z-10"
       cdkMenuItem (click)="newConv()">
       <svg
@@ -48,14 +48,88 @@
       {{'PAC.Xpert.NewChat'  | translate: {Default: 'New Chat'} }}
     </button>
 
-    @for (item of xperts(); track item.id) {
-      <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newXpertConv(item)">
-        <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
-        <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{item.title || item.name}}</p>
-      </button>
+    <!-- Search digital experts -->
+    <div class="bg-components-card-bg border-b border-border px-2 py-2 mb-2 relative overflow-visible" (click)="$event.stopPropagation()">
+      <div class="relative">
+        <input
+          [placeholder]="('PAC.Chat.SearchXpert' | translate: {Default: '搜索数字专家'}) + '...'"
+          class="w-full px-3 py-2 bg-components-input-bg-normal border border-components-input-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          type="text"
+          [formControl]="searchControl"
+          (focus)="showXpertDropdown.set(true)"
+          (blur)="onSearchBlur()"
+        />
+        @if (searchingXperts()) {
+          <div class="absolute right-2 top-1/2 -translate-y-1/2">
+            <ngm-spin small />
+          </div>
+        }
+      </div>
+
+      <!-- Search results dropdown -->
+      @if (searchControl.value) {
+        <div class="absolute top-full left-0 right-0 mt-1 bg-components-card-bg border border-border rounded-lg shadow-lg z-[100] max-h-[400px] min-h-[120px] overflow-y-auto">
+          @if (searchingXperts()) {
+            <div class="p-4 text-center text-text-secondary">
+              <ngm-spin small />
+            </div>
+          } @else if (matchedXperts().length > 0) {
+            <div class="py-1">
+              @for (xpert of matchedXperts(); track xpert.id) {
+                <div
+                  class="px-4 py-2 hover:bg-button-ghost-hover cursor-pointer flex items-center gap-2"
+                  (mousedown)="selectXpert(xpert)"
+                >
+                  <emoji-avatar [avatar]="xpert.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm" />
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium text-text-primary truncate">{{ xpert.title || xpert.name }}</div>
+                    @if (xpert.description) {
+                      <div class="text-xs text-text-secondary truncate">{{ xpert.description }}</div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="p-4 text-center text-text-secondary">
+              {{ 'PAC.Chat.NoXpertFound' | translate: {Default: '未找到匹配的智能专家'} }}
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Published agents list -->
+    @if (filteredXperts().length > 0) {
+      @for (item of filteredXperts(); track item.id) {
+        <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newXpertConv(item)">
+          <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
+          <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{item.title || item.name}}</p>
+        </button>
+      }
     }
 
-    <!-- 
+    <!-- Empty state when no published agents -->
+    @if (hasNoPublishedXperts()) {
+      <div class="px-4 py-6 text-center">
+        <div class="flex flex-col items-center gap-3">
+          <i class="ri-robot-line text-4xl text-text-tertiary"></i>
+          <div class="text-sm text-text-secondary max-w-xs">
+            {{ 'PAC.Chat.NoPublishedXpert' | translate: {Default: '没有已发布的智能体，请在工作空间创建并点击"发布"发布智能管家'} }}
+          </div>
+          <a
+            routerLink="/xpert/w"
+            class="text-sm text-primary hover:underline flex items-center gap-1"
+            (click)="$event.stopPropagation()"
+          >
+            {{ 'PAC.Chat.GotoWorkspace' | translate: {Default: '前往工作空间'} }}
+            <i class="ri-arrow-right-line"></i>
+          </a>
+        </div>
+      </div>
+    }
+
+    <!--
     <label class="px-2 pb-2">{{'PAC.KEY_WORDS.Knowledgebases' | translate: {Default: 'Knowledgebases'} }}</label>
     <div class="max-h-64 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
       @if (knowledgebaseList()?.length) {

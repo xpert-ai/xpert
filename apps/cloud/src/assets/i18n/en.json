@@ -153,7 +153,11 @@
       "FileType_video": "Video",
       "FileType_image": "Image",
       "FileType_zip": "ZIP",
-      "FileType_unknown": "Unknown"
+      "FileType_unknown": "Unknown",
+      "SearchXpert": "Search Digital Expert",
+      "NoXpertFound": "No matching digital expert found",
+      "NoPublishedXpert": "No published digital experts. Please create one in the workspace and click \"Publish\" to publish it",
+      "GotoWorkspace": "Go to Workspace"
     },
     "title": {
       "short": "Analytics Cloud"
