@@ -40,8 +40,7 @@
       "USER": "User",
       "SUCCEED": "Succeed",
       "Conversation": "Conversation",
-      "SecretKey": "Key",
-      "Reference": "Reference"
+      "SecretKey": "Key"
     },
     "MENU": {
       "AGENT": "Agent",
@@ -363,6 +362,7 @@
     "Xpert": {
       "Logs": "Logs",
       "SelectTimeRange": "Select time range",
+      "APIKey": "API Key",
       "APIReference": "API Reference"
     }
   },
