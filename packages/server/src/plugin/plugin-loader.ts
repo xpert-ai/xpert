@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@metad/server-common';
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
 import { existsSync } from 'fs';
 import { createRequire } from 'node:module';
@@ -32,21 +33,22 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
     }
   };
   const target = resolveFromBase(modName);
-
+  let errorMessage = ''
   // Try ESM import
   try {
     return await import(target);
   } catch (e1) {
     console.warn(`ESM import failed for ${target}:`, e1);
+    errorMessage += `ESM import failed for ${target}: ${getErrorMessage(e1)}\n`;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       return cjsRequire(target);
     } catch (e2) {
+      errorMessage += `CJS require failed for ${target}: ${getErrorMessage(e2)}\n`;
       if (isProd) {
         // Production mode: only ESM + CJS allowed
-        throw new PluginLoadError(modName, 'Failed to load module in production (ESM/CJS)', e2);
+        throw new PluginLoadError(modName, errorMessage, e2);
       } else {
-        // console.warn(`[DEV] CJS require failed for ${modName}:`, e2);
         // Development mode: Try loading .ts files with ts-node
         try {
           // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -69,7 +71,8 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
           return cjsRequire(tsEntry);
         } catch (e3) {
           console.error(e3)
-          throw new PluginLoadError(modName, 'Failed to load module in dev (ESM/CJS/TS)', e3);
+          errorMessage += `Failed to load module in dev (ESM/CJS/TS): ${getErrorMessage(e3)}`;
+          throw new PluginLoadError(modName, errorMessage, e3);
         }
       }
     }
