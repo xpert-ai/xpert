@@ -360,7 +360,8 @@
     },
     "Xpert": {
       "Logs": "Logs",
-      "SelectTimeRange": "Select time range"
+      "SelectTimeRange": "Select time range",
+      "DuplicateExternalExpert": "Cannot create duplicate external expert"
     }
   },
   "STORY_DESIGNER": {

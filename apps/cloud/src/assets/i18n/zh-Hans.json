@@ -3132,6 +3132,7 @@
       "YouAreOwner": "你是所有者",
       "Owner": "所有者",
       "NoExternalExpert": "无外部专家",
+      "DuplicateExternalExpert": "无法重复创建同个外部专家",
       "DeleteAllDataXpert": "删除专家‘{{value}}’所有数据？",
       "ToolsetType_All": "所有",
       "ToolsetType_Provider": "提供商",

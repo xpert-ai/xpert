@@ -1,6 +1,7 @@
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, computed, effect, inject, signal, TemplateRef, ViewChild } from '@angular/core'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
@@ -97,6 +98,7 @@ import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.compone
     CommonModule,
     CdkMenuModule,
     TranslateModule,
+    MatTooltipModule,
     NgmI18nPipe,
     IconComponent,
     XpertStudioKnowledgeMenuComponent,
@@ -132,9 +134,20 @@ export class XpertStudioContextMenuComponent {
   readonly agents = computed(() => this.nodes()?.filter((n) => n.type === 'agent'))
   readonly xpertType = computed(() => this.apiService.team()?.type)
 
+  // Get existing external expert IDs
+  readonly existingXpertIds = computed(() => {
+    const xpertNodes = this.root.xperts() || []
+    return new Set(xpertNodes.map(node => node.entity?.id).filter(Boolean))
+  })
+
+  // Check if external expert already exists
+  isXpertExists(xpert: IXpert): boolean {
+    return this.existingXpertIds().has(xpert.id)
+  }
+
   // Workflow providers
   readonly triggerProviders = this.apiService.triggerProviders
- 
+
   // Knowledge Pipeline
   readonly pipelineType = signal<'source' | 'processor' | 'chunker' | 'understanding' | 'embedder'>('source')
   readonly dataSources$ = this.knowledgebaseAPI.documentSourceStrategies$
@@ -169,6 +182,14 @@ export class XpertStudioContextMenuComponent {
   }
 
   public addCollaborator(xpert: IXpert): void {
+    if (this.isXpertExists(xpert)) {
+      this.#toastr.warning(
+        this.#translate.instant('PAC.Xpert.DuplicateExternalExpert', {
+          Default: '无法重复创建同个外部专家'
+        })
+      )
+      return
+    }
     this.apiService.createCollaborator(this.root.contextMenuPosition, xpert)
   }
 
@@ -327,7 +348,7 @@ export class XpertStudioContextMenuComponent {
       title: this.#translate.instant('PAC.Workflow.JSONParse', { Default: 'JSON Parse' }) + (length ? ` ${length + 1}` : ''),
     } as IWorkflowNode)
   }
-  
+
   addWorkflowVariableAssigner() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ASSIGNER).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
