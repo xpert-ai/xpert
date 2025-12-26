@@ -1,3 +1,4 @@
+import { z } from 'zod/v3'
 import { ToolMessage } from '@langchain/core/messages'
 import { ToolCall } from '@langchain/core/messages/tool'
 import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
@@ -10,11 +11,10 @@ import {
   AgentMiddlewareStrategy,
   IAgentMiddlewareContext,
   IAgentMiddlewareStrategy,
+  JsonSchemaValidator,
   PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
 import { ClientToolMessageInput, ClientToolRequest, ClientToolResponse } from '@xpert-ai/chatkit-types'
-import { z } from 'zod/v3'
-import type { JSONSchema4 } from "json-schema";
 
 const contextSchema = z.object({
   /**
@@ -105,13 +105,20 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                 },
                 description: {
                   en_US: 'JSON schema describing the tool arguments.',
-                  zh_Hans: '描述工具参数的 JSON 架构。'
+                  zh_Hans: '描述工具参数的 JSON Schema。'
                 },
                 'x-ui': {
-                  component: 'textarea' //'json-schema-editor',
+                  component: 'code-editor', //'json-schema-editor',
+                  inputs: {
+                    language: 'json',
+                    editable: true,
+                    lineNumbers: true
+                  },
+                  help: 'https://json-schema.org/learn/getting-started-step-by-step'
                 }
               }
-            }
+            },
+            required: ['name']
           },
           'x-ui': {
             span: 2
@@ -158,13 +165,16 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
       })
     }
 
-    const tools = (options.clientTools || []).map((_) => tool(async (_, config) => {
-      return ''
-    }, {
-      name: _.name,
-      description: _.description,
-      schema: (_.schema ? JSON.parse(_.schema) : undefined) as JSONSchema4
-    }))
+    const tools = (options.clientTools || []).filter((_) => !!_).map((_) => {
+      const schema = new JsonSchemaValidator().parseAndValidate(_.schema)
+      return tool(async (_, config) => {
+          return ''
+        }, {
+          name: _.name,
+          description: _.description,
+          schema: schema
+        })
+    })
 
     return {
       name: CLIENT_TOOL_MIDDLEWARE_NAME,

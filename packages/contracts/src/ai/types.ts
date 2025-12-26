@@ -107,6 +107,8 @@ type JsonSchema7Meta = {
       inputs?: Record<string, unknown>
 
       enumLabels?: Record<string, I18nObject | string>;
+
+      styles?: Record<string, string>;
     }
 };
 export type JsonSchemaObjectType = {

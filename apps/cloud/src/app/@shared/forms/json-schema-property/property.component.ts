@@ -114,6 +114,7 @@ export class JSONSchemaPropertyComponent {
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
   readonly xUiHelp = computed(() => this.xUi()?.help)
   readonly xUiSpan = computed(() => this.xUi()?.span)
+  readonly xUiStyles = computed(() => this.xUi()?.styles)
   readonly hasCustomWidget = computed(() => this.widgetRegistry?.has(this.xUiComponent()))
 
   constructor() {

@@ -2,6 +2,9 @@ import { Logger } from '@nestjs/common'
 import path from 'path'
 import fs from 'fs';
 import yaml from 'yaml'
+import Ajv from 'ajv'
+import schemaDraft04 from 'ajv/dist/refs/json-schema-draft-06.json'
+import { JSONSchema4 } from 'json-schema'
 
 
 export function loadYamlFile<T>(
@@ -70,4 +73,34 @@ export function getErrorMessage(err: any): string {
   }
 
   return error
+}
+
+export class JsonSchemaValidator {
+  private ajv: Ajv
+
+  constructor() {
+    this.ajv = new Ajv({ strict: false })
+    this.ajv.addMetaSchema(schemaDraft04)
+  }
+
+  parseAndValidate(schemaStr?: string): JSONSchema4 | undefined {
+    if (!schemaStr) return undefined
+
+    let schema: unknown
+    try {
+      schema = JSON.parse(schemaStr)
+    } catch {
+      throw new Error('Schema is not valid JSON')
+    }
+
+    const validate = this.ajv.getSchema(schemaDraft04.$id)
+    if (!validate(schema)) {
+      throw new Error(
+        'Invalid JSON Schema: ' +
+        this.ajv.errorsText(validate.errors)
+      )
+    }
+
+    return schema as JSONSchema4
+  }
 }

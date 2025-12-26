@@ -65,6 +65,7 @@
     },
     "preserveConstEnums": true,
     "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
     "noUnusedLocals": false,
     "esModuleInterop": true,
     "noImplicitAny": false,

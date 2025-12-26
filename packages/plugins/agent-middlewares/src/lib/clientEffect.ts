@@ -7,10 +7,10 @@ import {
   AgentMiddlewareStrategy,
   IAgentMiddlewareContext,
   IAgentMiddlewareStrategy,
+  JsonSchemaValidator,
   PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
-import type { JSONSchema4 } from 'json-schema'
 
 const contextSchema = z.object({
   /**
@@ -19,9 +19,9 @@ const contextSchema = z.object({
    */
   clientEffects: z.array(z.object({
     name: z.string(),
-    description: z.string().optional(),
-    schema: z.string().optional(),
-    result: z.string().optional()
+    description: z.string().optional().nullable(),
+    schema: z.string().optional().nullable(),
+    result: z.string().optional().nullable()
   })).default([])
 })
 export type ClientEffectMiddlewareConfig = InferInteropZodInput<typeof contextSchema>
@@ -130,7 +130,16 @@ export class ClientEffectMiddleware implements IAgentMiddlewareStrategy {
                   zh_Hans: '描述工具参数的 JSON 架构。'
                 },
                 'x-ui': {
-                  component: 'textarea' //'json-schema-editor',
+                  component: 'code-editor', //'json-schema-editor',
+                  inputs: {
+                    language: 'json',
+                    editable: true,
+                    lineNumbers: true
+                  },
+                  styles: {
+                    'min-height': '150px'
+                  },
+                  help: 'https://json-schema.org/learn/getting-started-step-by-step'
                 }
               },
               result: {
@@ -167,13 +176,14 @@ export class ClientEffectMiddleware implements IAgentMiddlewareStrategy {
       throw new Error(`ClientEffectMiddleware configuration error: ${error.message}`)
     }
     const tools = (data?.clientEffects || []).map((effect) => {
+      const schema = new JsonSchemaValidator().parseAndValidate(effect.schema)
       const parsedResult = parseEffectResult(effect.result)
       return tool(async (_input) => {
         return parsedResult
       }, {
         name: effect.name,
         description: effect.description,
-        schema: (effect.schema ? JSON.parse(effect.schema) : undefined) as JSONSchema4
+        schema: schema
       })
     })
 
