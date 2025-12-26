@@ -2249,7 +2249,11 @@
       "FileDeleteError": "文件删除失败",
       "Delete": "删除",
       "AttachmentsMaxNumExceeded": "附件数量超过限制",
-      "AttachmentsAlreadyExists": "附件已存在"
+      "AttachmentsAlreadyExists": "附件已存在",
+      "SearchXpert": "搜索数字专家",
+      "NoXpertFound": "未找到匹配的智能专家",
+      "NoPublishedXpert": "没有已发布的智能体，请在工作空间创建并点击\"发布\"发布智能管家",
+      "GotoWorkspace": "前往工作空间"
     },
     "ChatBI": {
       "DeprecationNotes": "ChatBI 功能请使用数字专家智能体中的 ChatBI 工具集！",
@@ -3780,7 +3784,7 @@
       "CANCEL": "取消",
       "DELETE": "删除"
     }
-    
+
   },
   "STORY_DESIGNER": {
     "BUILDER_TITLE": "构建",
@@ -3899,7 +3903,7 @@
         "Indicators": "明细指标",
         "LookBack": "回顾期间数"
       },
-      
+
       "IFrame": {
         "SRC": "src"
       },
@@ -4010,7 +4014,7 @@
         "PresetBackground": "预设背景",
         "PageType": "类型"
       },
-    
+
       "ECHARTS": {
         "Common": {
           "Align": "对齐",
@@ -4719,13 +4723,13 @@
 
     },
     "ENTITY": {
-  
+
     },
     "PROPERTY": {
-      
+
     },
     "CALCULATION": {
-      
+
     },
 
     "VALUE_HELP": {
@@ -4756,7 +4760,7 @@
     "EDITOR": {
       "EDIT": "编辑"
     },
-   
+
     "Table": {
 
     }
@@ -4921,7 +4925,7 @@
       "ROLE": "选择角色"
     }
   },
-  
+
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密码重置",
