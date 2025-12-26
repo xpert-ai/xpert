@@ -205,6 +205,17 @@ export abstract class ChatService {
       { allowSignalWrites: true }
     )
 
+    effect(
+      () => {
+        // Sync feedbacks from remote conversation to local signal
+        const feedbacks = this.#conversation()?.feedbacks
+        if (feedbacks !== undefined) {
+          this.feedbacks.set(feedbacks ?? null)
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(() => {
       if (!this.conversationId()) {
         this.suggestionQuestions.set([])
