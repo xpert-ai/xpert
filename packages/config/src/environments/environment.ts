@@ -18,6 +18,7 @@ export const devEnvironment: IEnvironment = {
 	envName: 'dev',
 
 	env: {
+		...process.env,
 		LOG_LEVEL: (process.env.LOG_LEVEL || 'log') as LogLevel,
 		IS_DOCKER: process.env.IS_DOCKER
 	},

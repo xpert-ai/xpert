@@ -16,77 +16,56 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'xpert-ai/xpert' && github.event_name == 'push' && !contains(github.ref, 'beta')
     environment: production
+
+    permissions:
+      contents: read
+      id-token: write   # <- 关键：OIDC 必须要这个 :contentReference[oaicite:4]{index=4}
+
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
-      # Setup .npmrc file to publish to npm
-      - uses: actions/setup-node@v3
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
+
+      # 建议：确保 npm 足够新，避免 OIDC 支持不完整 :contentReference[oaicite:5]{index=5}
+      - name: Update npm
+        run: npm i -g npm@latest
+
       - run: yarn bootstrap
       - run: yarn build
-      # - run: npm publish --access public --tag latest
-      #   working-directory: ./dist/packages/copilot
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # - run: npm publish --access public --tag latest
-      #   working-directory: ./dist/packages/store
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - run: npm publish --access public --tag latest
         working-directory: ./dist/packages/core
-        # env:
-        #   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # - run: npm publish --access public --tag latest
-      #   working-directory: ./dist/packages/echarts
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # - run: npm publish --access public --tag latest
-      #   working-directory: ./dist/packages/angular
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # - run: npm publish --access public --tag latest
-      #   working-directory: ./dist/packages/xmla
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # 不需要 NODE_AUTH_TOKEN（Trusted Publishing 不用 token） :contentReference[oaicite:6]{index=6}
+
   publish-beta:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && contains(github.ref, 'beta')
     environment: production
+
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
-      # Setup .npmrc file to publish to npm
-      - uses: actions/setup-node@v3
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm
+        run: npm i -g npm@latest
+
       - run: yarn bootstrap
       - run: yarn build
-      # - run: npm publish --access public --tag beta
-      #   working-directory: ./dist/packages/copilot
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # - run: npm publish --access public --tag beta
-      #   working-directory: ./dist/packages/store
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - run: npm publish --access public --tag beta
         working-directory: ./dist/packages/core
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # - run: npm publish --access public --tag beta
-      #   working-directory: ./dist/packages/echarts
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # - run: npm publish --access public --tag beta
-      #   working-directory: ./dist/packages/angular
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # - run: npm publish --access public --tag beta
-      #   working-directory: ./dist/packages/xmla
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,4 +1,4 @@
-import { XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { TChatRequest, TInterruptCommand, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
@@ -14,30 +14,40 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: RunCreateStreamCommand): Promise<any> {
+	public async execute(command: RunCreateStreamCommand) {
 		const threadId = command.threadId
-		const input = command.input
+		const runCreate = command.runCreate
+		const chatRequest = runCreate.input as unknown as TChatRequest
 
 		// Find thread (conversation) and assistant (xpert)
 		const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
-		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: input.assistant_id }, {}))
+		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: runCreate.assistant_id }, {}))
 
 		// Update xpert id for chat conversation
-		conversation.xpertId = xpert.id
-		await this.commandBus.execute(new ChatConversationUpsertCommand(conversation))
+		if (!conversation.xpertId) {
+			conversation.xpertId = xpert.id
+			await this.commandBus.execute(new ChatConversationUpsertCommand(conversation))
+		}
 
 		const execution = await this.commandBus.execute(
-			new XpertAgentExecutionUpsertCommand({
-				threadId: conversation.threadId,
-				status: XpertAgentExecutionStatusEnum.RUNNING
-			})
+			new XpertAgentExecutionUpsertCommand(
+				omitBy(
+					{
+						id: chatRequest.executionId,
+						threadId: conversation.threadId,
+						status: XpertAgentExecutionStatusEnum.RUNNING
+					},
+					isNil
+				)
+			)
 		)
 		const stream = await this.commandBus.execute(
 			new XpertChatCommand(
 				{
-					input: input.input as any,
+					input: chatRequest.input as any,
 					xpertId: xpert.id,
-					conversationId: conversation.id
+					conversationId: conversation.id,
+					command: chatRequest['command'] as TInterruptCommand
 				},
 				{
 					from: 'api',
@@ -48,7 +58,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		return {
 			execution,
 			stream: stream.pipe(
-				map((message: any) => {
+				map((message) => {
 					if (typeof message.data.data === 'object') {
 						return {
 							...message,

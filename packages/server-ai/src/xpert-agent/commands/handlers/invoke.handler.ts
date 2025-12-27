@@ -259,7 +259,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
 					// Interrupted event
 					if (state.tasks?.length) {
-						const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
+						const operation = await this.queryBus.execute(
 								new CompleteToolCallsQuery(xpert.id, state.tasks, state.values, options.isDraft)
 							)
 						subscriber.next({

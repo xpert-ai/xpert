@@ -2,11 +2,13 @@ import { IApiKey, TChatOptions, TChatRequest, UploadedFile } from '@metad/contra
 import { keepAlive, takeUntilClose } from '@metad/server-common'
 import {
 	ApiKeyAuthGuard,
+	ApiKeyOrClientSecretAuthGuard,
 	ApiKeyDecorator,
 	FileStorage,
 	LazyFileInterceptor,
 	Public,
 	RequestContext,
+	SecretTokenService,
 	StorageFileService,
 	UploadedFileStorage
 } from '@metad/server-core'
@@ -30,6 +32,7 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
+import { randomBytes } from 'crypto'
 import path from 'path'
 import { In } from 'typeorm'
 import { ChatCommand } from '../chat/commands'
@@ -41,7 +44,7 @@ import { KnowledgeDocument } from '../core/entities/internal'
 @ApiTags('AI/v1')
 @ApiBearerAuth()
 @Public()
-@UseGuards(ApiKeyAuthGuard)
+@UseGuards(ApiKeyOrClientSecretAuthGuard)
 @Controller('v1')
 export class AIV1Controller {
 	readonly #logger = new Logger(AIV1Controller.name)
@@ -51,6 +54,7 @@ export class AIV1Controller {
 		private readonly commandBus: CommandBus,
 		private readonly kbService: KnowledgebaseService,
 		private readonly docService: KnowledgeDocumentService,
+		private readonly secretTokenService: SecretTokenService,
 		private readonly storageFileService: StorageFileService
 	) {}
 
@@ -141,5 +145,31 @@ export class AIV1Controller {
 	)
 	async create(@UploadedFileStorage() file: UploadedFile) {
 		return await this.storageFileService.createStorageFile(file)
+	}
+
+	@Post('chatkit/sessions')
+	@UseGuards(ApiKeyAuthGuard)
+	async createChatkitSession(@ApiKeyDecorator() apiKey: IApiKey, @Body() body: {
+		/**
+		 * Optional override for session expiration timing in seconds from creation. Defaults to 10 minutes.
+		 */
+		expires_after?: number
+	}) {
+		const token = `cs-x-${randomBytes(32).toString('hex')}`
+
+		const expires_after = body.expires_after && body.expires_after > 0 ? body.expires_after : 600
+		const validUntil = new Date(Date.now() + 1000 * expires_after)
+
+		await this.secretTokenService.create({
+			entityId: apiKey?.id,
+			token,
+			validUntil
+		})
+
+		return {
+			client_secret: token,
+			expires_at: validUntil,
+			expires_after: expires_after
+		}
 	}
 }

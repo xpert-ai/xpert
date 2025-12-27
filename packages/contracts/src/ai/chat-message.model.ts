@@ -1,10 +1,11 @@
-import { MessageContent, MessageContentImageUrl, MessageType } from '@langchain/core/messages';
+import { MessageType } from '@langchain/core/messages';
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
 import { XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model';
 import { JSONValue } from '../core.model';
 import { IStorageFile } from '../storage-file.model';
+import { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types';
 
 export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
     jobId: number | string;
@@ -12,71 +13,6 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
     progress?: number
     memoryKey?: string
   }>
-
-/**
- * Message step type: determines the type of canvas
- */
-// export enum ChatMessageStepType {
-//   ComputerUse = 'computer_use',
-//   File = 'file',
-//   Notice = 'notice'
-// }
-
-/**
- * Category of step message: determines the display components of computer use
- */
-export enum ChatMessageStepCategory {
-  /**
-   * List of items: urls, files, etc.
-   */
-  List = 'list',
-  /**
-   * Websearch results
-   */
-  WebSearch = 'web_search',
-  /**
-   * Files list
-   */
-  Files = 'files',
-  /**
-   * View a file
-   */
-  File = 'file',
-  /**
-   * Program Execution
-   */
-  Program = 'program',
-  /**
-   * Iframe
-   */
-  Iframe = 'iframe',
-
-  Memory = 'memory',
-
-  Tasks = 'tasks',
-
-  /**
-   * Knowledges (knowledge base retriever results)
-   */
-  Knowledges = 'knowledges'
-}
-
-/**
- * Step message type, in canvas and ai message.
- */
-export type TChatMessageStep<T = any> = TMessageComponent<TMessageComponentStep<T>>
-// {
-//   id?: string
-//   type?: ChatMessageStepType
-//   category?: ChatMessageStepCategory
-//   toolset?: string
-//   tool?: string
-//   title?: string
-//   message?: string
-//   created_date?: Date | string
-//   data?: T
-//   artifact?: any
-// }
 
 /**
  * Chat message entity type
@@ -168,104 +104,6 @@ export type CopilotChatMessage = CopilotBaseMessage & {
  */
 export interface CopilotMessageGroup extends CopilotBaseMessage {
   messages?: CopilotChatMessage[]
-}
-
-/**
- * Similar to {@link MessageContentText} | {@link MessageContentImageUrl}, which together form {@link MessageContentComplex}
- */
-export type TMessageContentComponent<T extends object = object> = {
-  id: string
-  type: 'component'
-  data: TMessageComponent<T>
-  xpertName?: string
-  agentKey?: string;
-}
-
-/**
- * Defines the data type of the sub-message of `component` type in the message `content` {@link MessageContentComplex}
- */
-export type TMessageComponent<T extends object = object> = T & {
-  id?: string
-  category: 'Dashboard' | 'Computer' | 'Tool'
-  type?: string
-  created_date?: Date | string
-}
-
-export type TMessageContentText = {
-  id?: string
-  xpertName?: string
-  agentKey?: string
-  type: "text";
-  text: string;
-};
-export type TMessageContentMemory = {
-  id?: string
-  agentKey?: string
-  type: "memory";
-  data: any[];
-};
-export type TMessageContentReasoning = {
-  id?: string
-  xpertName?: string
-  agentKey?: string
-  type: "reasoning";
-  text: string;
-};
-/**
- * Enhance {@link MessageContentComplex} in Langchain.js
- */
-export type TMessageContentComplex = (TMessageContentText | TMessageContentReasoning | MessageContentImageUrl | TMessageContentComponent | TMessageContentMemory | (Record<string, any> & {
-  type?: "text" | "image_url" | string;
-}) | (Record<string, any> & {
-  type?: never;
-})) & {
-  id?: string
-  xpertName?: string
-  agentKey?: string;
-  created_date?: Date | string
-}
-/**
- * Enhance {@link MessageContent} in Langchain.js
- */
-export type TMessageContent = string | TMessageContentComplex[];
-
-export type TMessageComponentIframe = {
-  type: 'iframe'
-  title: string
-  url?: string
-  data?: {
-    url?: string
-  }
-}
-
-export type TMessageComponentStep<T = JSONValue> = {
-  type: ChatMessageStepCategory
-  toolset: string
-  toolset_id: string
-  tool?: string
-  title: string
-  message: string
-  status: 'success' | 'fail' | 'running'
-  created_date: Date | string
-  end_date: Date | string
-  error?: string
-  data?: T
-  input?: any
-  output?: string
-  artifact?: any
-}
-
-/**
- * Data type for chat event message
- */
-export type TChatEventMessage = {
-  type?: string
-  title?: string
-  message?: string
-  status?: 'success' | 'fail' | 'running'
-  created_date?: Date | string
-  end_date?: Date | string
-  error?: string
 }
 
 // Type guards

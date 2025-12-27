@@ -12,7 +12,7 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
 		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: ThreadCreateCommand): Promise<any> {
+	public async execute(command: ThreadCreateCommand): Promise<ThreadDTO> {
 		const input = command.input
 		let conversation = null
 		if (input.thread_id) {

@@ -3,5 +3,9 @@
   "version": "0.0.1",
   "dependencies": {},
   "main": "./index.cjs",
-  "module": "./index.js"
+  "module": "./index.js",
+  "peerDependencies": {
+    "@xpert-ai/chatkit-types": "^0.0.4",
+    "@xpert-ai/plugin-sdk": "*"
+  }
 }

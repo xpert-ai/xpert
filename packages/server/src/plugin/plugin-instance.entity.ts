@@ -26,7 +26,7 @@ export class PluginInstance extends TenantOrganizationBaseEntity implements IPlu
   @ApiProperty({ type: () => String })
   @Column({ nullable: true })
   @IsString()
-  source?: "marketplace" | "local" | "git" | "url";
+  source?: "marketplace" | "local" | "git" | "url" | "npm" | "code";
 
   @ApiProperty({ type: () => Object, required: false })
   @Column({ type: 'jsonb', default: {} })

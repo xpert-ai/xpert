@@ -9,7 +9,8 @@
         "InconsistentTypes": "无法对类型不一致的变量‘{{types}}’进行聚合。支持的聚合类型：数组、字符串、对象。",
         "ModelNameExists": "模型名称‘{{modelName}}’已存在。请使用不同的名称。",
         "AIModelProviderNotFound": "AI 模型提供商‘{{name}}’未找到。",
-        "InvalidToolCalls": "模型返回了无效的工具调用："
+        "InvalidToolCalls": "模型返回了无效的工具调用：",
+        "HandleLLMTokensNoModel": "提供商 ‘{{provider}}’ 处理 LLM 令牌回调时未提供模型"
     },
     "tools": {
         "ListFiles": "列出文件",

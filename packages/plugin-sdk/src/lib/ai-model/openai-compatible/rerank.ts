@@ -65,7 +65,7 @@ export class OpenAICompatibleReranker implements IRerank {
         throw new Error('Invalid response format: missing results array')
       }
 
-      // 收集原始分数并进行归一化处理
+      // Collect raw scores and normalize them.
       const scores = output.map((r: any) => r.relevance_score)
       const minScore = Math.min(...scores)
       const maxScore = Math.max(...scores)

@@ -1,4 +1,4 @@
-import { StorageFileModule, TenantModule } from '@metad/server-core'
+import { SecretTokenModule, StorageFileModule, TenantModule } from '@metad/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
@@ -18,6 +18,10 @@ import { XpertModule } from '../xpert'
 import { StoreController } from './store.controller'
 import { ContextsController } from './context.controller'
 import { KnowledgesController } from './knowledge.controller'
+import { ConversationsController } from './conversation.controller'
+import { ChatConversationModule } from '../chat-conversation'
+import { ChatMessageModule } from '../chat-message'
+import { ChatMessageFeedbackModule } from '../chat-message-feedback'
 
 @Module({
 	imports: [
@@ -28,6 +32,7 @@ import { KnowledgesController } from './knowledge.controller'
 			}
 		]),
 		TenantModule,
+		SecretTokenModule,
 		CqrsModule,
 		CopilotModule,
 		CopilotUserModule,
@@ -35,7 +40,10 @@ import { KnowledgesController } from './knowledge.controller'
 		forwardRef(() => KnowledgebaseModule),
 		forwardRef(() => KnowledgeDocumentModule),
 		forwardRef(() => StorageFileModule),
-		forwardRef(() => XpertModule)
+		forwardRef(() => XpertModule),
+		forwardRef(() => ChatConversationModule),
+		forwardRef(() => ChatMessageModule),
+		forwardRef(() => ChatMessageFeedbackModule)
 	],
 	controllers: [
 		AIController,
@@ -44,6 +52,7 @@ import { KnowledgesController } from './knowledge.controller'
 		KnowledgesController,
 		AssistantsController,
 		ThreadsController,
+		ConversationsController,
 		StoreController,
 		
 	],

@@ -14,6 +14,7 @@ import { distinctUntilChanged, map } from 'rxjs'
 import {
   AiModelTypeEnum,
   CopilotServerService,
+  I18nObject,
   ICopilot,
   ICopilotModel,
   injectCopilotProviderService,
@@ -77,7 +78,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     transform: booleanAttribute
   })
 
-  readonly label = input<string>()
+  readonly label = input<string | I18nObject>()
 
   // States
   readonly __copilotModel = computed(() => this.cva.value$() ?? this.copilotModel())
@@ -194,7 +195,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     afterNextRender(() => {
       setTimeout(() => {
         this.#cdr.detectChanges()
-      }, 1000);
+      }, 600);
     })
   }
 
