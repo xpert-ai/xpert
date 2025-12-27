@@ -5,7 +5,7 @@ import { PluginInstance } from './plugin-instance.entity';
 
 export interface OrganizationPluginConfig {
   organizationId?: string;
-  plugins: string[];
+  plugins: {name: string; version?: string; source?: string}[];
   configs: Record<string, any>;
 }
 
@@ -47,7 +47,7 @@ export async function loadOrganizationPluginConfigs(): Promise<OrganizationPlugi
       const record = byOrg.get(orgId) ?? { organizationId: instance.organizationId, plugins: [], configs: {} };
       const packageName = instance.packageName || instance.pluginName
       const name = instance.version ? `${packageName}@${instance.version}` : packageName;
-      record.plugins.push(name);
+      record.plugins.push({ name, version: instance.version, source: instance.source });
       record.configs[instance.pluginName] = instance.config || {};
       byOrg.set(orgId, record);
     }

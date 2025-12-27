@@ -28,7 +28,7 @@ export async function bootstrap(options: {title: string; version: string}) {
 	const baseDir = config.assetOptions.serverRoot
 	await initI18next(path.join(baseDir, 'packages'))
 
-	@Module({ imports: [PluginModule.init(), BootstrapModule] })
+	@Module({ imports: [BootstrapModule, PluginModule.init()] })
     class RootModule {}
 	
 	const app = await NestFactory.create<NestExpressApplication>(RootModule, {
@@ -149,7 +149,9 @@ export async function preBootstrapPlugins() {
 	const organizationPluginConfigs = await loadOrganizationPluginConfigs();
 
 	// If there is no persisted configuration, fallback to defaults + env for the global scope
-	const groups = [...organizationPluginConfigs, { organizationId: GLOBAL_ORGANIZATION_SCOPE, plugins: [...defaultGlobalPlugins, ...pluginsFromEnv], configs: {} }]
+	const groups = [...organizationPluginConfigs, { organizationId: GLOBAL_ORGANIZATION_SCOPE, plugins: [
+		...defaultGlobalPlugins.map(name => ({ name, source: 'code' })), ...pluginsFromEnv.map(name => ({ name, source: 'local' }))
+	], configs: {} }]
 
 	const modules: DynamicModule[] = [];
 	for await (const group of groups) {
