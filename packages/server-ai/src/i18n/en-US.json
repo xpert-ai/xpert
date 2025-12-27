@@ -9,7 +9,8 @@
         "InconsistentTypes": "Cannot aggregate variables with inconsistent types '{{types}}'. Supported aggregation types: arrays, strings, objects.",
         "ModelNameExists": "Model name '{{modelName}}' already exists. Please choose a different name.",
         "AIModelProviderNotFound": "AI Model Provider '{{name}}' not found.",
-        "InvalidToolCalls": "Model returned invalid tool calls:"
+        "InvalidToolCalls": "Model returned invalid tool calls:",
+        "HandleLLMTokensNoModel": "Provider '{{provider}}' did not provide a model when handling LLM tokens"
     },
     "tools": {
         "ListFiles": "List files",
