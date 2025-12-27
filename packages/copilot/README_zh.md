@@ -1,4 +1,6 @@
-# Metad AI Copilot
+# ❌（已弃用）Metad AI Copilot
+
+❌ !已弃用，请使用 [ChatKit](https://github.com/xpert-ai/chatkit-js) 代替。
 
 [English](./README.md) | 中文
 
