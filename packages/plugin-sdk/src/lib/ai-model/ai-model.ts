@@ -5,12 +5,13 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as yaml from 'yaml'
 import { DefaultParameterName, PARAMETER_RULE_TEMPLATE, valueOf } from './entities'
-import { CommonParameterRules, IAIModel, ModelProfile, TChatModelOptions } from './types/'
 import { ModelProvider } from './abstract-provider';
 import { getPositionMap } from '../core';
+import { CommonParameterRules, IAIModel, TChatModelOptions } from './types/model'
+import { ModelProfile } from './types/profile'
 
 @Injectable()
-export abstract class AIModel implements IAIModel{
+export abstract class AIModel implements IAIModel {
 	protected logger = new Logger(AIModel.name)
 
 	protected modelSchemas: AIModelEntity[] | null = null
