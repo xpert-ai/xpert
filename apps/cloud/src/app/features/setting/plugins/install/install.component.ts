@@ -38,15 +38,40 @@ export class PluginInstallComponent {
   })
   readonly installed = computed(() => this.#installedPlugin.value()?.[0])
   readonly installedVersion = computed(() => this.installed()?.meta?.version)
+  readonly latestVersion = signal<string | null>(null)
+  readonly pluginVersion = computed(() => this.latestVersion() ?? this.plugin()?.version)
 
   readonly status = signal<'idle' | 'installing' | 'installed' | 'error'>('idle')
   readonly error = signal<string | null>(null)
 
-  // constructor() {
-  //   effect(() => {
-  //     console.log('Installing plugin', this.installed())
-  //   })
-  // }
+  constructor() {
+    effect((onCleanup) => {
+      const name = this.pluginName()
+      if (!name) {
+        this.latestVersion.set(null)
+        return
+      }
+
+      let cancelled = false
+      onCleanup(() => {
+        cancelled = true
+      })
+
+      const encoded = encodeURIComponent(name)
+      fetch(`https://registry.npmjs.org/${encoded}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (cancelled) return
+          const latest = data?.['dist-tags']?.latest
+          this.latestVersion.set(latest ?? null)
+        })
+        .catch(() => {
+          if (!cancelled) {
+            this.latestVersion.set(null)
+          }
+        })
+    }, { allowSignalWrites: true })
+  }
 
   close() {
     this.#dialogRef.close()
@@ -57,8 +82,7 @@ export class PluginInstallComponent {
     this.error.set(null)
     this.pluginAPI.create({
       pluginName: this.pluginName(),
-      version: this.plugin()?.version
-
+      version: this.pluginVersion()
     }).subscribe({
       next: () => {
         this.status.set('installed')
