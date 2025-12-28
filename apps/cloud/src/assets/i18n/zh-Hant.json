@@ -2097,12 +2097,12 @@
       "AttachmentsMaxNumExceeded": "附件數量超過限製",
       "AttachmentsAlreadyExists": "附件已存在",
       "SearchXpert": "搜尋數字專家",
-      "NoXpertFound": "未找到匹配的智能專家",
-      "NoPublishedXpert": "沒有已發布的智能體，請在工作空間創建並點擊\"發布\"發布智能管家",
+      "NoXpertFound": "未找到匹配的數字專家",
+      "NoPublishedXpert": "沒有已發布的數字專家，請在工作空間創建並點擊\"發布\"發布數字專家",
       "GotoWorkspace": "前往工作空間"
     },
     "ChatBI": {
-      "DeprecationNotes": "ChatBI 功能請使用數字專家智能體中的 ChatBI 工具集！",
+      "DeprecationNotes": "ChatBI 功能請使用數字專家中的 ChatBI 工具集！",
       "Title": "ChatBI-數據分析與洞察",
       "TransformData": "利用人工智能將數據轉化為洞察力。",
       "InputPlaceholder": "針對數據集詢問問題，按 Enter 發送",
