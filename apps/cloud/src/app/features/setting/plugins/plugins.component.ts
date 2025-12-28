@@ -2,7 +2,6 @@ import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from "@angular/cdk/menu";
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -12,7 +11,7 @@ import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { injectPluginAPI } from '@metad/cloud/state'
 import { OverlayAnimations } from '@metad/core'
 import { injectConfirmDelete, NgmHighlightDirective, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { debouncedSignal, linkedModel } from '@metad/ocap-angular/core'
+import { debouncedSignal, linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { I18nService } from '@cloud/app/@shared/i18n'
@@ -58,10 +57,15 @@ export class PluginsComponent {
     }
   })
 
-  readonly #plugins = toSignal(this.pluginAPI.getPlugins(), { initialValue: [] })
+  readonly #plugins = myRxResource({
+    request: () => ({}),
+    loader: () => this.pluginAPI.getPlugins()
+  })
+  
+  // toSignal(this.pluginAPI.getPlugins(), { initialValue: [] })
   readonly plugins = linkedModel({
     initialValue: [],
-    compute: () => this.#plugins(),
+    compute: () => this.#plugins.value(),
     update: (value) => {
       //
     }
@@ -71,8 +75,6 @@ export class PluginsComponent {
   readonly npmPackageVersion = model('')
   readonly npmInstalling = signal(false)
   readonly npmInstallError = signal<string | null>(null)
-
-  // readonly category = signal<'plugins' | 'marketplace'>('plugins')
 
   readonly searchText = model('')
   readonly #searchText = debouncedSignal(this.searchText, 300)
@@ -154,6 +156,10 @@ export class PluginsComponent {
     })
   }
 
+  reload() {
+    this.#plugins.reload()
+  }
+
   uninstall(plugin: {name: string; meta: {displayName?: string}}) {
     this.confirmDelete({
       title: this.i18nService.instant('PAC.Plugin.Uninstall_Title', { Default: 'Uninstall Plugin' }),
@@ -209,7 +215,7 @@ export class PluginsComponent {
       next: () => {
         this.npmInstalling.set(false)
         dialogRef.close()
-        this.pluginAPI.getPlugins().subscribe((plugins) => this.plugins.set(plugins))
+        this.#plugins.reload()
       },
       error: (err) => {
         this.npmInstallError.set(getErrorMessage(err))

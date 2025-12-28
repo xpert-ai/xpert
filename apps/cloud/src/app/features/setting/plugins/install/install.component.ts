@@ -19,12 +19,12 @@ import { TranslateModule } from '@ngx-translate/core'
 })
 export class PluginInstallComponent {
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<TPlugin>(DIALOG_DATA)
+  readonly #data = inject<{plugin: TPlugin; reload: () => void}>(DIALOG_DATA)
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
   readonly pluginAPI = injectPluginAPI()
   readonly #toastr = injectToastr()
 
-  readonly plugin = signal(this.#data)
+  readonly plugin = signal(this.#data.plugin)
   readonly pluginName = computed(() => this.plugin()?.name)
   readonly #installedPlugin = myRxResource({
     request: () => {
@@ -87,6 +87,7 @@ export class PluginInstallComponent {
       next: () => {
         this.status.set('installed')
         this.#installedPlugin.reload()
+        this.#data.reload()
       },
       error: (err) => {
         this.error.set(getErrorMessage(err))
