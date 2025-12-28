@@ -189,8 +189,6 @@ export class ChatXpertComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.searchXpertSub) {
-      this.searchXpertSub.unsubscribe()
-    }
+    this.searchXpertSub?.unsubscribe()
   }
 }
