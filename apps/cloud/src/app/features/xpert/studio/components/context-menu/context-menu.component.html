@@ -120,7 +120,7 @@
         [cdkMenuItemDisabled]="isXpertExists(xpert)"
         [class.opacity-50]="isXpertExists(xpert)"
         [class.cursor-not-allowed]="isXpertExists(xpert)"
-        [matTooltip]="isXpertExists(xpert) ? ('PAC.Xpert.DuplicateExternalExpert' | translate: {Default: '无法重复创建同个外部专家'}) : ''"
+        [matTooltip]="isXpertExists(xpert) ? ('PAC.Xpert.DuplicateExternalExpert' | translate: {Default: 'Cannot create duplicate external expert'}) : ''"
         [matTooltipDisabled]="!isXpertExists(xpert)"
         matTooltipPosition="right"
         class="relative">
