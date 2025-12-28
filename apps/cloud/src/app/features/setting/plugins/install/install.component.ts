@@ -86,6 +86,7 @@ export class PluginInstallComponent {
     }).subscribe({
       next: () => {
         this.status.set('installed')
+        this.#installedPlugin.reload()
       },
       error: (err) => {
         this.error.set(getErrorMessage(err))

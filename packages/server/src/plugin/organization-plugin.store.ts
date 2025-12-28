@@ -34,6 +34,20 @@ function isPluginInstalled(pluginDir: string, pluginName: string) {
   return fs.existsSync(pkgJsonPath);
 }
 
+function extractPluginVersion(pluginName: string) {
+  const atIndex = pluginName.lastIndexOf('@');
+  if (atIndex > 0) {
+    return pluginName.slice(atIndex + 1);
+  }
+  return '';
+}
+
+function getPluginDirName(pluginName: string) {
+  const normalized = normalizePluginName(pluginName);
+  const version = extractPluginVersion(pluginName);
+  return version ? `${normalized}@${version}` : normalized;
+}
+
 export function getOrganizationPluginRoot(organizationId: string, opts?: OrganizationPluginStoreOptions) {
   return path.join(opts?.rootDir ?? DEFAULT_ORG_PLUGIN_ROOT, organizationId);
 }
@@ -53,8 +67,8 @@ export function getOrganizationPluginPath(
   pluginName: string,
   opts?: OrganizationPluginStoreOptions,
 ) {
-  const normalized = normalizePluginName(pluginName);
-  return path.join(getOrganizationPluginRoot(organizationId, opts), normalized);
+  const dirName = getPluginDirName(pluginName);
+  return path.join(getOrganizationPluginRoot(organizationId, opts), dirName);
 }
 
 export function readOrganizationManifest(organizationId: string, opts?: OrganizationPluginStoreOptions): string[] {
@@ -79,18 +93,6 @@ export function writeOrganizationManifest(
   ensureDir(path.dirname(manifestPath));
   fs.writeFileSync(manifestPath, JSON.stringify(Array.from(new Set(plugins)), null, 2));
 }
-
-// export function discoverOrganizationPlugins(
-//   organizationId: string,
-//   opts?: OrganizationPluginStoreOptions & { discovery?: DiscoveryOptions },
-// ): string[] {
-//   const root = getOrganizationPluginRoot(organizationId, opts);
-//   const manifestPath = getOrganizationManifestPath(organizationId, opts);
-//   return discoverPlugins(root, {
-//     manifestPath,
-//     ...opts?.discovery,
-//   });
-// }
 
 /**
  * Install plugins into the given organization's plugin workspace and update its manifest.
