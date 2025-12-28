@@ -185,7 +185,7 @@ export class XpertStudioContextMenuComponent {
     if (this.isXpertExists(xpert)) {
       this.#toastr.warning(
         this.#translate.instant('PAC.Xpert.DuplicateExternalExpert', {
-          Default: '无法重复创建同个外部专家'
+          Default: 'Cannot create duplicate external expert'
         })
       )
       return
