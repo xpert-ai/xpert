@@ -39,7 +39,8 @@
       "STORY": "Story",
       "USER": "User",
       "SUCCEED": "Succeed",
-      "Conversation": "Conversation"
+      "Conversation": "Conversation",
+      "SecretKey": "Key"
     },
     "MENU": {
       "AGENT": "Agent",
@@ -360,7 +361,10 @@
     },
     "Xpert": {
       "Logs": "Logs",
-      "SelectTimeRange": "Select time range"
+      "SelectTimeRange": "Select time range",
+      "DuplicateExternalExpert": "Cannot create duplicate external expert",
+      "APIKey": "API Key",
+      "APIReference": "API Reference"
     }
   },
   "STORY_DESIGNER": {
