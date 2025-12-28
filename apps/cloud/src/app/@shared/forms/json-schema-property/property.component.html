@@ -8,8 +8,16 @@
         {{title | i18n}}
       </div>
     }
+    @if (hasCustomWidget()) {
+      @if (meta().description; as desc) {
+        <i class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
+          [matTooltip]="desc | i18n"
+          matTooltipPosition="above"></i>
+      }
+    }
     @if (xUiHelp(); as helpUrl) {
-      <a class="inline-flex items-center ml-2 text-sm text-text-tertiary hover:text-primary-500 hover:underline" [href]="helpUrl | i18n" target="_blank" rel="noopener noreferrer">
+      <a class="inline-flex items-center ml-2 text-sm text-text-tertiary opacity-80 hover:text-primary-500 hover:underline"
+        [href]="helpUrl | i18n" target="_blank" rel="noopener noreferrer">
         <i class="ri-book-open-line"></i>
       </a>
     }
@@ -116,12 +124,22 @@
           @case ('array') {
             <div class="flex flex-col gap-1">
               @for (item of value$(); track i; let i = $index) {
-                <div class="relative group/item">
-                  <json-schema-property class="w-full" [schema]="arraySchema().items" [ngModel]="item" (ngModelChange)="updateArray(i, $event)" />
-                  <button class="btn btn-small danger flex justify-center items-center w-6 h-6 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 z-20"
-                    (click)="removeArray(i)">
-                    <i class="ri-delete-bin-line"></i>
-                  </button>
+                <div class="relative flex group/item border border-solid border-transparent rounded-lg"
+                  [class.!border-text-destructive]="item?.__hover__">
+                  <json-schema-property class="flex-1 overflow-hidden"
+                    [schema]="arraySchema().items"
+                    [ngModel]="item"
+                    (ngModelChange)="updateArray(i, $event)"
+                  />
+                  <div class="relative shrink-0 px-1 w-0 group-hover/item:w-8">
+                    <button class="btn btn-small danger flex justify-center items-center w-6 h-6 absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 z-20"
+                      (click)="removeArray(i)"
+                      (mouseenter)="item && (item.__hover__=true)"
+                      (mouseleave)="item && (item.__hover__=false)"
+                    >
+                      <i class="ri-delete-bin-line"></i>
+                    </button>
+                  </div>
                 </div>
               } @empty {
                 <div class="flex justify-center text-sm rounded-lg p-2 text-text-secondary bg-neutral-50">

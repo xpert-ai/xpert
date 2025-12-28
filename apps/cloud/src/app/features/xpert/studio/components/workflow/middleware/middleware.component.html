@@ -29,58 +29,58 @@
 
 
 <div class="relative w-full flex flex-col justify-start items-stretch gap-1">
-  @for (item of tools(); track item.name) {
-    <div class="relative flex flex-col p-1 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
-      [matTooltip]="item.description"
-      matTooltipPosition="after"
-    >
-      <div class="flex items-center gap-1 px-1 text-left">
-        <i class="ri-hammer-line text-text-tertiary"></i>
-        <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50"
-          [title]="item.description || item.name">
-          {{item.name}}
-        </div>
-      </div>
-
-      <div class="flex flex-wrap gap-1 px-1">
-        @for (execution of item.executions; track execution) {
-          <div>
-            @switch (execution.status) {
-              @case ('running') {
-                <ngm-spin class="shrink-0 scale-90 origin-center" small />
-              }
-              @case ('fail') {
-                <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-                  [matTooltip]="execution.error"
-                  matTooltipPosition="above"
-                ></div>
-              }
-              @case ('success') {
-                <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-                  [floatUi]="popperContent"
-                  [appendTo]="'body'"
-                  [showTrigger]="eNgxFloatUiTriggers.hover"
-                  hideOnClickOutside
-                  [hideOnScroll]="true"
-                  [hideTimeout]="200"
-                >
-                </div>
-              }
-            }
-            <float-ui-content #popperContent>
-              <div class="text-sm text-left w-96 max-h-80 p-2 overflow-auto">
-                <div class="mb-2 font-semibold">{{ 'PAC.KEY_WORDS.Input' | translate: {Default: 'Input'} }}:</div>
-                <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-pre-wrap"/>
-              </div>
-            </float-ui-content>
-          </div>
-        }
-      </div>
+  @if (error()) {
+    <div class="text-xs text-text-destructive">
+      <i class="ri-error-warning-line mr-1 text-sm"></i>{{ error() }}
     </div>
-  } @empty {
-    @if (error()) {
-      <div class="text-xs text-text-destructive">
-        <i class="ri-error-warning-line mr-1 text-sm"></i>{{ error() }}
+  } @else {
+    @for (item of tools(); track item.name) {
+      <div class="relative flex flex-col p-1 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
+        [matTooltip]="item.description"
+        matTooltipPosition="after"
+      >
+        <div class="flex items-center gap-1 px-1 text-left">
+          <i class="ri-hammer-line text-text-tertiary"></i>
+          <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50"
+            [title]="item.description || item.name">
+            {{item.name}}
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-1 px-1">
+          @for (execution of item.executions; track execution) {
+            <div>
+              @switch (execution.status) {
+                @case ('running') {
+                  <ngm-spin class="shrink-0 scale-90 origin-center" small />
+                }
+                @case ('fail') {
+                  <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                    [matTooltip]="execution.error"
+                    matTooltipPosition="above"
+                  ></div>
+                }
+                @case ('success') {
+                  <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                    [floatUi]="popperContent"
+                    [appendTo]="'body'"
+                    [showTrigger]="eNgxFloatUiTriggers.hover"
+                    hideOnClickOutside
+                    [hideOnScroll]="true"
+                    [hideTimeout]="200"
+                  >
+                  </div>
+                }
+              }
+              <float-ui-content #popperContent>
+                <div class="text-sm text-left w-96 max-h-80 p-2 overflow-auto">
+                  <div class="mb-2 font-semibold">{{ 'PAC.KEY_WORDS.Input' | translate: {Default: 'Input'} }}:</div>
+                  <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-pre-wrap"/>
+                </div>
+              </float-ui-content>
+            </div>
+          }
+        </div>
       </div>
     }
   }

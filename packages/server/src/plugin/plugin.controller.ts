@@ -57,7 +57,7 @@ export class PluginController {
 			// 1) Install and register into current module context (mirrors registerPluginsAsync logic)
 			const { modules } = await registerPluginsAsync({
 				organizationId,
-				plugins: [packageNameWithVersion],
+				plugins: [{name: packageNameWithVersion, source: body.source}],
 				configs: { [packageName]: body.config },
 				baseDir: organizationBaseDir
 			})

@@ -1,4 +1,4 @@
-import { AiModelTypeEnum } from '../agent/'
+import { AiModelTypeEnum } from '../agent/index'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { ICopilot } from './copilot.model'

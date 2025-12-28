@@ -320,11 +320,6 @@ export class HumanInTheLoopMiddleware implements IAgentMiddlewareStrategy {
     context: IAgentMiddlewareContext
   ): PromiseOrValue<AgentMiddleware> {
 
-    // options.interruptOn = (options.interruptOn as unknown as string[] ?? []).reduce((acc, toolName) => {
-    //   acc[toolName] = true;
-    //   return acc;
-    // }, {} as Record<string, boolean>)
-
     const createActionAndConfig = async (
       toolCall: ToolCall,
       config: InterruptOnConfig,

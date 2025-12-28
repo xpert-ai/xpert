@@ -84,6 +84,12 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 						usageCallback(input.usage)
 					}
 
+					if (!input.model) {
+						const message = t('server-ai:Error.HandleLLMTokensNoModel', {provider: modelProvider.name})
+						this.#logger.error(message)
+						return
+					}
+
 					// Record token usage and abort if error
 					try {
 						await this.commandBus.execute(

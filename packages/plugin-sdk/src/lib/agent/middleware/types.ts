@@ -1,9 +1,34 @@
 import { LanguageModelLike } from '@langchain/core/language_models/base';
 import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages';
-import { DynamicStructuredTool } from '@langchain/core/tools';
-import { InteropZodObject } from '@langchain/core/utils/types'
-import { Runtime } from './runtime';
+import { DynamicStructuredTool, DynamicTool, StructuredToolInterface } from '@langchain/core/tools';
+import type { ToolCall, ToolMessage } from "@langchain/core/messages/tool";
+import { InferInteropZodOutput, InteropZodObject } from '@langchain/core/utils/types'
+import { RunnableToolLike } from '@langchain/core/runnables';
+import { AgentBuiltInState, Runtime } from './runtime';
+import { Command } from '@langchain/langgraph';
 
+
+export type ServerTool = Record<string, unknown>;
+export type ClientTool =
+  | StructuredToolInterface
+  | DynamicTool
+  | RunnableToolLike;
+
+export type NormalizedSchemaInput<
+  TSchema extends InteropZodObject | undefined | never = any
+> = [TSchema] extends [never]
+  ? AgentBuiltInState
+  : TSchema extends InteropZodObject
+  ? InferInteropZodOutput<TSchema> & AgentBuiltInState
+  : TSchema extends Record<string, unknown>
+  ? TSchema & AgentBuiltInState
+  : AgentBuiltInState;
+
+type NormalizeContextSchema<
+  TContextSchema extends InteropZodObject | undefined = undefined
+> = TContextSchema extends InteropZodObject
+  ? InferInteropZodOutput<TContextSchema>
+  : never;
 
 /**
  * jump targets (user facing)
@@ -147,7 +172,7 @@ export type AfterAgentHook<
  * @template TContext - The runtime context type for accessing metadata and control flow. Defaults to unknown.
  */
 export interface ModelRequest<
-  TState = any,
+  TState extends Record<string, unknown> = Record<string, unknown>,
   TContext = unknown
 > {
   /**
@@ -161,6 +186,33 @@ export interface ModelRequest<
 
   systemMessage?: SystemMessage
 
+  /**
+   * Tool choice configuration (model-specific format).
+   * Can be one of:
+   * - `"auto"`: means the model can pick between generating a message or calling one or more tools.
+   * - `"none"`: means the model will not call any tool and instead generates a message.
+   * - `"required"`: means the model must call one or more tools.
+   * - `{ type: "function", function: { name: string } }`: The model will use the specified function.
+   */
+  toolChoice?:
+    | "auto"
+    | "none"
+    | "required"
+    | { type: "function"; function: { name: string } };
+
+  /**
+   * The tools to make available for this step.
+   */
+  tools: (ServerTool | ClientTool)[];
+
+  /**
+   * The current agent state (includes both middleware state and built-in state).
+   */
+  state: TState & AgentBuiltInState;
+
+  /**
+   * The runtime context containing metadata, signal, writer, interrupt, etc.
+   */
   runtime: Runtime<TContext>
 }
 
@@ -174,7 +226,7 @@ export interface ModelRequest<
 export type WrapModelCallHandler<
   TSchema extends InteropZodObject | undefined = undefined,
   TContext = unknown
-> = (request: ModelRequest<TSchema, TContext>) => PromiseOrValue<AIMessage>;
+> = (request: ModelRequest<NormalizedSchemaInput<TSchema>, TContext>) => PromiseOrValue<AIMessage>;
 
 /**
  * Wrapper function type for the wrapModelCall hook.
@@ -193,10 +245,60 @@ export type WrapModelCallHook<
   TSchema extends InteropZodObject | undefined = undefined,
   TContext = unknown
 > = (
-  request: ModelRequest<TSchema, TContext>,
+  request: ModelRequest<NormalizedSchemaInput<TSchema>, TContext>,
   handler: WrapModelCallHandler<TSchema, TContext>
 ) => PromiseOrValue<AIMessage>;
 
+
+/**
+ * Represents a tool call request for the wrapToolCall hook.
+ * Contains the tool call information along with the agent's current state and runtime.
+ */
+export interface ToolCallRequest<
+  TState extends Record<string, unknown> = Record<string, unknown>,
+  TContext = unknown
+> {
+  /**
+   * The tool call to be executed
+   */
+  toolCall: ToolCall;
+  /**
+   * The BaseTool instance being invoked.
+   * Provides access to tool metadata like name, description, schema, etc.
+   */
+  tool: ClientTool | ServerTool;
+  /**
+   * The current agent state (includes both middleware state and built-in state).
+   */
+  state: TState & AgentBuiltInState;
+  /**
+   * The runtime context containing metadata, signal, writer, interrupt, etc.
+   */
+  runtime: Runtime<TContext>;
+}
+
+/**
+ * Handler function type for wrapping tool calls.
+ * Takes a tool call request and returns the tool result or a command.
+ */
+export type ToolCallHandler<
+  TSchema extends Record<string, unknown> = AgentBuiltInState,
+  TContext = unknown
+> = (
+  request: ToolCallRequest<TSchema, TContext>
+) => PromiseOrValue<ToolMessage | Command>;
+
+/**
+ * Wrapper function type for the wrapToolCall hook.
+ * Allows middleware to intercept and modify tool execution.
+ */
+export type WrapToolCallHook<
+  TSchema extends InteropZodObject | undefined = undefined,
+  TContext = unknown
+> = (
+  request: ToolCallRequest<NormalizedSchemaInput<TSchema>, TContext>,
+  handler: ToolCallHandler<NormalizedSchemaInput<TSchema>, TContext>
+) => PromiseOrValue<ToolMessage | Command>;
 
 export interface AgentMiddleware<
   TSchema extends InteropZodObject | undefined = any,
@@ -325,8 +427,8 @@ export interface AgentMiddleware<
    * }
    * ```
    */
-  wrapToolCall?: (
-    request: ModelRequest<TSchema, TFullContext>,
-    handler: WrapModelCallHandler<TSchema, TFullContext>
-  ) => PromiseOrValue<AIMessage>;
+  wrapToolCall?: WrapToolCallHook<
+    TSchema,
+    NormalizeContextSchema<TContextSchema>
+  >;
 }

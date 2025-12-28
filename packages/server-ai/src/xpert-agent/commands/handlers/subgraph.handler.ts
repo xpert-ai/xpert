@@ -21,7 +21,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { AfterModelHandler, AgentMiddleware, AgentMiddlewareRegistry, BeforeModelHandler, ModelRequest, WrapModelCallHandler } from '@xpert-ai/plugin-sdk'
+import { AfterModelHandler, AgentBuiltInState, AgentMiddleware, AgentMiddlewareRegistry, BeforeModelHandler, ModelRequest, WrapModelCallHandler, WrapToolCallHook } from '@xpert-ai/plugin-sdk'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -607,7 +607,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			afterModelHooks,
 			afterModelExecutionOrder,
 			afterAgentHooks,
-			afterAgentExecutionOrder
+			afterAgentExecutionOrder,
+			wrapToolCall
 		} = getModelHooks(graph, agent, agentMiddlewares)
 
 		// Model tools
@@ -814,10 +815,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				...(((enableMessageHistory || !humanMessages.length) ? messageHistory : [])),
 				...humanMessages
 			]
-			const baseRequest: ModelRequest = {
+			const baseRequest: ModelRequest<AgentBuiltInState> = {
 				model: withFallbackModel,
 				messages: baseMessages,
 				systemMessage,
+				tools: withTools,
+				state,
 				runtime: config
 			}
 			let systemMessageContent = systemMessage.content
@@ -995,7 +998,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			subgraphBuilder
 				.addNode(
 					name, 
-					new ToolNode([tool], { caller, variables, toolName: toolset.title }).withConfig({signal: abortController.signal}),
+					new ToolNode([tool], { caller, variables, toolName: toolset.title, wrapToolCall }).withConfig({signal: abortController.signal}),
 					{
 						ends,
 						metadata: omitBy({toolset: toolset.provider, toolsetId: toolset.id }, isNil)
@@ -1568,6 +1571,18 @@ function getModelHooks(graph: TXpertGraph, agent: IXpertAgent, agentMiddlewares:
     })
     .filter(Boolean);
   const afterAgentExecutionOrder = [...afterAgentHooks].reverse();
+  const wrapToolCall = agentMiddlewares.some((middleware) => middleware?.wrapToolCall)
+    ? agentMiddlewares.reduceRight<WrapToolCallHook>(
+        (next, middleware) => {
+          if (!middleware?.wrapToolCall) {
+            return next
+          }
+          return (request, handler) =>
+            middleware.wrapToolCall(request, (nextRequest) => next(nextRequest, handler))
+        },
+        (request, handler) => handler(request)
+      )
+    : undefined
 
   return {
     beforeAgentHooks,
@@ -1576,6 +1591,7 @@ function getModelHooks(graph: TXpertGraph, agent: IXpertAgent, agentMiddlewares:
     afterModelExecutionOrder,
     afterAgentHooks,
     afterAgentExecutionOrder,
+    wrapToolCall,
   };
 }
 

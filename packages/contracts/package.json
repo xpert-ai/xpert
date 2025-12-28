@@ -13,5 +13,8 @@
     "docs": "yarn typedoc --out ./.docs"
   },
   "module": "./index.esm.js",
-  "main": "./index.cjs.js"
+  "main": "./index.cjs.js",
+  "dependencies": {
+    "@xpert-ai/chatkit-types": "^0.0.4"
+  }
 }

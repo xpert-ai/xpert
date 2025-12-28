@@ -1,7 +1,7 @@
-<ngx-monaco-editor class="!h-full w-full max-h-full"
+<ngx-monaco-editor class="w-full max-h-full min-h-[100px]" ngmResizable [directions]="['bottom']"
   [options]="editorOptions()"
   [ngModel]="value$()"
-  (ngModelChange)="onChange($event)"
+  (ngModelChange)="onEditorChange($event)"
   (resized)="onResized()"
   (onInit)="onInit($event)"
 />

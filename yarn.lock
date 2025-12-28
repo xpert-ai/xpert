@@ -11110,6 +11110,11 @@
   resolved "https://registry.yarnpkg.com/@xmldom/xmldom/-/xmldom-0.8.11.tgz#b79de2d67389734c57c52595f7a7305e30c2d608"
   integrity sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==
 
+"@xpert-ai/chatkit-types@^0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@xpert-ai/chatkit-types/-/chatkit-types-0.0.4.tgz#25469551c8323ceddedc1fe25e6319e1f7e3bf31"
+  integrity sha512-M/eZKh2Q3LsFchxsIvjt24Yr1YaRR19dqFUJMnnxi5Jffw9IgRGkipjsp8PGN4jFjBrINJiThNm7R1zpCFdpKw==
+
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@xtuc/ieee754/-/ieee754-1.2.0.tgz#eef014a3145ae477a1cbc00cd1e552336dceb790"

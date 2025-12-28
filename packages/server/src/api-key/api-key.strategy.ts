@@ -3,7 +3,7 @@ import { QueryBus } from '@nestjs/cqrs'
 import { PassportStrategy } from '@nestjs/passport'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
-import { UseApiKeyQuery } from '../../api-key'
+import { UseApiKeyQuery } from './queries'
 
 @Injectable()
 export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {

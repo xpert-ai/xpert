@@ -10,7 +10,7 @@ export interface DiscoveryOptions {
   nodeModulesDir?: string;
 }
 
-export function discoverPlugins(cwd = process.cwd(), opts: DiscoveryOptions = {}): string[] {
+export function discoverPlugins(cwd = process.cwd(), opts: DiscoveryOptions = {}) {
   const manifestPath = opts.manifestPath
     ? path.isAbsolute(opts.manifestPath)
       ? opts.manifestPath
@@ -23,7 +23,7 @@ export function discoverPlugins(cwd = process.cwd(), opts: DiscoveryOptions = {}
   if (manifestPath && fs.existsSync(manifestPath)) {
     const list = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as string[];
     list.forEach((p) => out.add(p));
-    return Array.from(out);
+    return Array.from(out).map((p) => ({name: p.trim(), source: 'local'}));
   }
 
   // 2) Prefix scanning (only scan top-level and scoped packages)
@@ -45,5 +45,6 @@ export function discoverPlugins(cwd = process.cwd(), opts: DiscoveryOptions = {}
     // Top-level packages
     if (entry.startsWith(prefix)) out.add(entry);
   }
-  return Array.from(out);
+
+  return Array.from(out).map((p) => ({name: p.trim(), source: 'local'}));
 }

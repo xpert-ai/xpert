@@ -3,6 +3,7 @@ import {
   ToolMessage,
   AIMessage,
   isBaseMessage,
+  isToolMessage,
 } from "@langchain/core/messages";
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
 import { StructuredToolInterface } from "@langchain/core/tools";
@@ -12,6 +13,7 @@ import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
 import { channelName, ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, TVariableAssigner } from "@metad/contracts";
 import { getErrorMessage } from "@metad/server-common";
 import { setContextVariable } from "@langchain/core/context";
+import type { AgentBuiltInState, ToolCallHandler, ToolCallRequest, WrapToolCallHook } from "@xpert-ai/plugin-sdk";
 
 export type ToolNodeOptions = {
   name?: string;
@@ -20,6 +22,7 @@ export type ToolNodeOptions = {
   caller?: string
   variables?: TVariableAssigner[]
   toolName: string
+  wrapToolCall?: WrapToolCallHook
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,6 +40,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   variables: TVariableAssigner[]
   channel: string
   toolName: string
+  wrapToolCall?: WrapToolCallHook
 
   constructor(
     tools: (StructuredToolInterface | RunnableToolLike)[],
@@ -49,6 +53,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     this.caller = options?.caller
     this.variables = options?.variables
     this.toolName = options?.toolName
+    this.wrapToolCall = options?.wrapToolCall
 
     this.channel = options?.caller ? channelName(options.caller) : null
     // this.toolset = options?.toolset
@@ -56,10 +61,9 @@ export class ToolNode<T = any> extends Runnable<T, T> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async run(input: any, config: RunnableConfig): Promise<T> {
-    const message = Array.isArray(input)
-      ? input[input.length - 1] : this.channel ?
-       input[this.channel].messages[input[this.channel].messages.length - 1]
-         : input.messages[input.messages.length - 1]
+    const messages = Array.isArray(input) ? input : this.channel ?
+      input[this.channel]?.messages : input.messages
+    const message = messages ? messages[messages.length - 1] : null
 
     if (message?._getType() !== "ai") {
       throw new Error("ToolNode only accepts AIMessages as input.");
@@ -74,20 +78,46 @@ export class ToolNode<T = any> extends Runnable<T, T> {
           if (tool === undefined) {
             throw new Error(`Tool "${call.name}" not found.`);
           }
-          const output = await tool.invoke(
-            { ...call, type: "tool_call" },
-            {
-              ...config,
-              metadata: {
-                toolName: this.toolName
-              },
-              configurable: {
-                ...config.configurable,
-                tool_call_id: call.id,
-                // toolset: this.toolset
+
+          // Wrap tool call
+          const toolRequest: ToolCallRequest<AgentBuiltInState> = {
+            toolCall: call,
+            tool,
+            state: Array.isArray(input) ? { messages } : input,
+            runtime: config
+          }
+          const defaultHandler: ToolCallHandler = async (request) => {
+            const runtime = (request.runtime ?? config) as RunnableConfig;
+            const output = await tool.invoke(
+              { ...request.toolCall, type: "tool_call" },
+              {
+                ...runtime,
+                metadata: {
+                  toolName: this.toolName
+                },
+                configurable: {
+                  ...runtime.configurable,
+                  tool_call_id: request.toolCall.id,
+                  // toolset: this.toolset
+                }
               }
+            );
+            if (isBaseMessage(output) && isToolMessage(output)) {
+              return output;
             }
-          );
+            if (isCommand(output)) {
+              return output;
+            }
+            return new ToolMessage({
+              name: tool.name,
+              content:
+                typeof output === "string" ? output : JSON.stringify(output),
+              tool_call_id: request.toolCall.id,
+            });
+          };
+          const output = this.wrapToolCall
+            ? await this.wrapToolCall(toolRequest, defaultHandler)
+            : await defaultHandler(toolRequest);
           if (isBaseMessage(output) && output.getType() === "tool") {
             // Fix non-string content: should be fixed in langchain-mcp-adapters _convertCallToolResult line 367
             if (!!output.content && typeof output.content !== 'string') {

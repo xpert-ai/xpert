@@ -13,7 +13,7 @@ import {
 } from 'typeorm'
 import { FindOptionsWhere } from './FindOptionsWhere'
 
-type OperatorValue =
+export type OperatorValue =
   | { $eq?: any }
   | { $ne?: any }
   | { $in?: any[] }

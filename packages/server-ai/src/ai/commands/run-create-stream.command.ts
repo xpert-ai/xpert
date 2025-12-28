@@ -1,13 +1,20 @@
-import { ICommand } from '@nestjs/cqrs'
-import type { paths, components } from "../schemas/agent-protocol-schema"
+import { IXpertAgentExecution } from '@metad/contracts'
+import { Command } from '@nestjs/cqrs'
+import { Observable } from 'rxjs'
+import type { components } from '../schemas/agent-protocol-schema'
 
 /**
  */
-export class RunCreateStreamCommand implements ICommand {
+export class RunCreateStreamCommand extends Command<{
+	execution: IXpertAgentExecution
+	stream: Observable<MessageEvent>
+}> {
 	static readonly type = '[Agent Protocol] Create run stream'
 
 	constructor(
 		public readonly threadId: string,
-		public readonly input: components['schemas']['RunCreateStateful']
-	) {}
+		public readonly runCreate: components['schemas']['RunCreateStateful']
+	) {
+		super()
+	}
 }

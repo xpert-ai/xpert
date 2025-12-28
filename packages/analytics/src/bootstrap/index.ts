@@ -28,7 +28,7 @@ export async function bootstrap(options: {title: string; version: string}) {
 	const baseDir = config.assetOptions.serverRoot
 	await initI18next(path.join(baseDir, 'packages'))
 
-	@Module({ imports: [PluginModule.init(), BootstrapModule] })
+	@Module({ imports: [BootstrapModule, PluginModule.init()] })
     class RootModule {}
 	
 	const app = await NestFactory.create<NestExpressApplication>(RootModule, {
@@ -53,15 +53,16 @@ export async function bootstrap(options: {title: string; version: string}) {
 	)
 	app.use(json({ limit: '50mb' }))
 	app.use(urlencoded({ extended: true, limit: '50mb' }))
-
+	
+	// CORS
 	const headersForOpenAI =
 		'x-stainless-os, x-stainless-lang, x-stainless-package-version, x-stainless-runtime, x-stainless-arch, x-stainless-runtime-version, x-stainless-retry-count'
 	app.enableCors({
-		origin: [...origins(env.clientBaseUrl), '*'],
-		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+		origin: [...origins(env.clientBaseUrl), ...origins(...(env.env['CORS_ALLOW_ORIGINS']?.split(',') || []))],
 		credentials: true,
+		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		allowedHeaders:
-			'Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Length, Content-Language, Accept, Accept-Language, Observe, last-event-id, ' +
+			'Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Length, Content-Language, Accept, Accept-Language, Observe, last-event-id, X-Api-Key, ' +
 			headersForOpenAI
 	})
 
@@ -148,30 +149,39 @@ export async function preBootstrapPlugins() {
 	const organizationPluginConfigs = await loadOrganizationPluginConfigs();
 
 	// If there is no persisted configuration, fallback to defaults + env for the global scope
-	const groups = [...organizationPluginConfigs, { organizationId: GLOBAL_ORGANIZATION_SCOPE, plugins: [...defaultGlobalPlugins, ...pluginsFromEnv], configs: {} }]
+	const groups = [...organizationPluginConfigs, { organizationId: GLOBAL_ORGANIZATION_SCOPE, plugins: [
+		...defaultGlobalPlugins.map(name => ({ name, source: 'code' })), ...pluginsFromEnv.map(name => ({ name, source: 'local' }))
+	], configs: {} }]
 
 	const modules: DynamicModule[] = [];
 	for await (const group of groups) {
 		const mergedPlugins = group.plugins
-		const { modules: orgModules } = await registerPluginsAsync({
-			organizationId: group.organizationId,
-			plugins: mergedPlugins,
-			configs: group.configs,
-		});
-		modules.push(...orgModules);
+		try {
+			const { modules: orgModules } = await registerPluginsAsync({
+				organizationId: group.organizationId,
+				plugins: mergedPlugins,
+				configs: group.configs,
+			});
+			modules.push(...orgModules);
+		} catch (error) {
+			Logger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`);
+		}
 	}
 
 	setConfig({plugins: modules});
 }
 
-function origins(url: string) {
-  const urls = []
-  if (url.startsWith('http')) {
-	urls.push(url)
-  } else if (url.startsWith('//')) {
-	urls.push('http:' + url, 'https:' + url)
-  } else {
-	urls.push('http://' + url, 'https://' + url)
-  }
-  return urls
+function origins(...urls: string[]) {
+  const results = []
+  for (let url of urls) {
+	url = url.trim()
+	if (url.startsWith('http')) {
+		results.push(url)
+	} else if (url.startsWith('//')) {
+		results.push('http:' + url, 'https:' + url)
+	} else {
+		results.push('http://' + url, 'https://' + url)
+	}
+	}
+  return results.map((u) => u.replace(/\/+$/, ''))
 }
