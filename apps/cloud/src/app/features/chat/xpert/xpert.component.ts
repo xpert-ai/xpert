@@ -112,7 +112,7 @@ export class ChatXpertComponent implements OnDestroy {
       debounceTime(300),
       distinctUntilChanged(),
       switchMap((searchText) => {
-        if (!searchText || searchText.trim().length === 0) {
+        if (!searchText?.trim()) {
           this.matchedXperts.set([])
           this.showXpertDropdown.set(false)
           return of([])
