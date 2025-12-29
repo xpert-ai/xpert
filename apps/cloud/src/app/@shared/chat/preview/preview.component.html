@@ -98,41 +98,43 @@
                   </div>
                 }
 
-                @if (getFeedback(message.id); as feedback) {
-                  @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
-                    <div class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
-                      [matTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: {Default: 'Cancel like'}"
-                      matTooltipPosition="above"
-                      (click)="cancelFeedback(message, feedback.id)"
-                    >
-                      <i class="ri-thumb-up-line"></i>
-                    </div>
-                  } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
-                    <div class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
-                      [matTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: {Default: 'Cancel dislike'}"
-                      matTooltipPosition="above"
-                      (click)="cancelFeedback(message, feedback.id)"
-                    >
-                      <i class="ri-thumb-down-line"></i>
+                @if (feedbackReady(message)) {
+                  @if (getFeedback(message.id); as feedback) {
+                    @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
+                      <div class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
+                        [matTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: {Default: 'Cancel like'}"
+                        matTooltipPosition="above"
+                        (click)="cancelFeedback(message, feedback.id)"
+                      >
+                        <i class="ri-thumb-up-line"></i>
+                      </div>
+                    } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
+                      <div class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
+                        [matTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: {Default: 'Cancel dislike'}"
+                        matTooltipPosition="above"
+                        (click)="cancelFeedback(message, feedback.id)"
+                      >
+                        <i class="ri-thumb-down-line"></i>
+                      </div>
+                    }
+                  } @else {
+                    <div class="hidden group-hover:flex shrink-0 items-center p-1 bg-white border-[0.5px] border-gray-100 shadow-md text-gray-500 rounded-lg">
+                      <div class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
+                        [matTooltip]="'PAC.KEY_WORDS.Like' | translate: {Default: 'Like'}"
+                        matTooltipPosition="above"
+                        (click)="feedback(message, eFeedbackRatingEnum.LIKE)"
+                      >
+                        <i class="ri-thumb-up-line"></i>
+                      </div>
+                      <div class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
+                        [matTooltip]="'PAC.KEY_WORDS.Dislike' | translate: {Default: 'Dislike'}"
+                        matTooltipPosition="above"
+                        (click)="feedback(message, eFeedbackRatingEnum.DISLIKE)"
+                      >
+                        <i class="ri-thumb-down-line"></i>
+                      </div>
                     </div>
                   }
-                } @else {
-                  <div class="hidden group-hover:flex shrink-0 items-center p-1 bg-white border-[0.5px] border-gray-100 shadow-md text-gray-500 rounded-lg">
-                    <div class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
-                      [matTooltip]="'PAC.KEY_WORDS.Like' | translate: {Default: 'Like'}"
-                      matTooltipPosition="above"
-                      (click)="feedback(message, eFeedbackRatingEnum.LIKE)"
-                    >
-                      <i class="ri-thumb-up-line"></i>
-                    </div>
-                    <div class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
-                      [matTooltip]="'PAC.KEY_WORDS.Dislike' | translate: {Default: 'Dislike'}"
-                      matTooltipPosition="above"
-                      (click)="feedback(message, eFeedbackRatingEnum.DISLIKE)"
-                    >
-                      <i class="ri-thumb-down-line"></i>
-                    </div>
-                  </div>
                 }
                 </div>
               </div>
@@ -140,7 +142,7 @@
             </div>
           </div>
         }
-      }        
+      }
     } @empty {
       <div class="absolute flex flex-col justify-start items-center p-4 w-full max-w-full top-1/2 -translate-y-1/2">
         <div class="flex justify-center mb-2">
@@ -152,7 +154,7 @@
             </g>
           </svg>
         </div>
-        
+
         <div class="w-[256px] text-center text-[13px] text-gray-400">
           {{ 'PAC.Xpert.StartDebuggingDigitalExpert' | translate: {Default: 'Enter your content in the box below to start debugging Digital Expert'} }}
         </div>
@@ -201,7 +203,7 @@
         </div>
       }
     }
-    
+
     @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
       <xp-xpert-agent-operation class="w-full mb-8 bg-components-card-bg"
         [readonly]="readonly()"
@@ -218,7 +220,7 @@
           <i class="ri-information-2-line text-xl"></i>
         </div>
         <div class="flex-1 py-1 break-all">{{error()}}</div>
-    
+
         <button type="button" class="btn btn-small text-text-primary" (click)="onRetry()">
           {{ 'PAC.KEY_WORDS.Retry' | translate: {Default: 'Retry'} }}
         </button>
@@ -227,7 +229,7 @@
 
     <div class="pt-6 w-full max-w-full mx-auto"></div>
   </div>
-  
+
   <input id="dropzone-file" #fileDropRef class="hidden" [accept]="attachment_accept()" multiple type="file" name="files"
     (change)="fileBrowseHandler($event.target)"
     (click)="fileDropRef.value=null;"/>
@@ -237,7 +239,7 @@
       <div class="pb-4 w-full max-w-full mx-auto">
         <div class="relative bg-white border border-gray-200 rounded-xl mb-2">
           @if (attachments()?.length) {
-            <chat-attachments class="w-full p-1" editable [(attachments)]="attachments" 
+            <chat-attachments class="w-full p-1" editable [(attachments)]="attachments"
               (onCreated)="onAttachCreated($event)"
             />
           }
@@ -263,7 +265,7 @@
 
               @if (speechToText_enabled()) {
                 @if (speeching()) {
-                  
+
                 } @else {
                   <button type="button" class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg"
                     (click)="startRecording()">

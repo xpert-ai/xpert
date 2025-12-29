@@ -178,6 +178,17 @@ export class ChatConversationPreviewComponent {
   })
 
   readonly copiedMessages = signal<Record<string, boolean>>({})
+  readonly feedbackReady = (message: IChatMessage) => {
+    const status = message?.status as XpertAgentExecutionStatusEnum | string
+    const ended = new Set<XpertAgentExecutionStatusEnum | string>([
+      XpertAgentExecutionStatusEnum.SUCCESS,
+      XpertAgentExecutionStatusEnum.ERROR,
+      XpertAgentExecutionStatusEnum.TIMEOUT,
+      XpertAgentExecutionStatusEnum.INTERRUPTED,
+      'aborted'
+    ])
+    return ended.has(status)
+  }
 
   private convSub = toObservable(this.conversationId)
     .pipe(
@@ -203,7 +214,7 @@ export class ChatConversationPreviewComponent {
     })
 
   private chatSubscription: Subscription
-  
+
   // Attachments
   readonly attachment = computed(() => this.xpert()?.features?.attachment)
   readonly attachment_enabled = computed(() => this.attachment()?.enabled)
@@ -309,7 +320,7 @@ export class ChatConversationPreviewComponent {
             this.onChatError(msg.data)
           } else {
             if (msg.data) {
-              // Ignore non-data events 
+              // Ignore non-data events
               if (msg.data.startsWith(':')) {
                 return
               }
