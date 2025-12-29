@@ -26,7 +26,9 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 				'agents.copilotModel',
 				'knowledgebases',
 				'toolsets',
-				'executors'
+				'executors',
+				'executors.agent',
+				'executors.agent.copilotModel'
 			]
 		})
 		const tenantId = xpert.tenantId
@@ -35,11 +37,24 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 			const draft = xpert.draft
 			const nodes = draft.nodes ?? xpert.graph.nodes
 			const connections = draft.connections ?? xpert.graph.connections
-			const agentNode = nodes?.find(
+			let agentNode = nodes?.find(
 				(_) => _.type === 'agent' && (isKeyEqual(_.key, keyOrName) || isKeyEqual(_.entity.name, keyOrName))
 			)
 			if (!agentNode) {
-				return null
+				// Fallback to published agent when draft node is missing
+				const agents = [xpert.agent, ...(xpert.agents ?? [])]
+				const fallbackAgent = agents.find(
+					(_) => _ && (isKeyEqual(_.key, keyOrName) || isKeyEqual(_.name, keyOrName))
+				)
+				if (!fallbackAgent) {
+					return null
+				}
+				agentNode = {
+					key: fallbackAgent.key,
+					type: 'agent',
+					entity: fallbackAgent,
+					position: null
+				}
 			}
 			const agentKey = agentNode.key
 
@@ -82,7 +97,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 					...agent,
 					followers: [xpert.agent, ...xpert.agents].filter((_) => _.leaderKey === agent.key),
 					collaborators: agent.collaboratorNames
-						?.map((name) => xpert.executors.find((_) => _.name === name))
+						?.map((name) => xpert.executors.find((_) => _.name === name || _.id === name))
 						.filter(nonNullable),
 					team: xpert
 				}

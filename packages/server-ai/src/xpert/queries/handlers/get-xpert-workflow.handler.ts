@@ -20,7 +20,19 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 	public async execute(command: GetXpertWorkflowQuery): Promise<TXpertWorkflowQueryOutput> {
 		const { id, agentKey: keyOrName, draft } = command
 		const xpert = await this.service.findOne(id, {
-			relations: ['agent', 'agent.copilotModel', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']
+			relations: [
+				'agent',
+				'agent.copilotModel',
+				'copilotModel',
+				'copilotModel.copilot',
+				'agents',
+				'agents.copilotModel',
+				'knowledgebases',
+				'toolsets',
+				'executors',
+				'executors.agent',
+				'executors.agent.copilotModel'
+			]
 		})
 		const tenantId = xpert.tenantId
 
@@ -42,14 +54,25 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 
 			}
 			if (!agentNode) {
-				throw new Error(await this.i18nService.translate('xpert.Error.NoAgentInGraph', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
-					args: {
-						value: keyOrName
-					}
-				}))
+				// Fallback: try to find published agent to avoid hard failure
+				const agents = [xpert.agent, ...(xpert.agents ?? [])]
+				const fallbackAgent = agents.find((_) => _ && (_.key === keyOrName || _.name === keyOrName))
+				if (!fallbackAgent) {
+					throw new Error(await this.i18nService.translate('xpert.Error.NoAgentInGraph', {
+						lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+						args: {
+							value: keyOrName
+						}
+					}))
+				}
+				agentNode = {
+					key: fallbackAgent.key,
+					type: 'agent',
+					entity: fallbackAgent,
+					position: null
+				}
 			}
-			
+
 			const agentKey = agentNode.key
 
 			const toolNodes = connections
@@ -74,7 +97,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 			const fail = connections
 				.filter((_) => _.type === 'edge' && _.from === (agentKey + '/fail'))
 				.map((conn) => nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
-			
+
 			if (agentNode) {
 			    await this.fillCopilot(tenantId, (<IXpertAgent>agentNode.entity).copilotModel)
 			}
@@ -111,7 +134,9 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 					agent: {
 						...agent,
 						followers: [xpert.agent, ...xpert.agents].filter((_) => _.leaderKey === agent.key),
-						collaborators: agent.collaboratorNames?.map((name) => xpert.executors.find((_) => _.name === name)).filter(nonNullable),
+					collaborators: agent.collaboratorNames
+						?.map((name) => xpert.executors.find((_) => _.name === name || _.id === name))
+						.filter(nonNullable),
 						team: xpert
 					},
 					graph: xpert.graph,
@@ -128,8 +153,8 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 
 	/**
 	 * Find the runtime copilot fill in the copilot model for agent
-	 * 
-	 * @param copilotModel 
+	 *
+	 * @param copilotModel
 	 */
 	async fillCopilot(tenantId: string, copilotModel: ICopilotModel) {
 		if (copilotModel?.copilotId) {

@@ -53,7 +53,7 @@ export function getXpertAgent(xpert: IXpert, keyOrName: string, options: { isDra
 				...agent,
 				followers: [xpert.agent, ...xpert.agents].filter((_) => _.leaderKey === agent.key),
 				collaborators: agent.collaboratorNames
-					?.map((name) => xpert.executors.find((_) => _.name === name))
+					?.map((name) => xpert.executors.find((_) => _.name === name || _.id === name))
 					.filter(nonNullable),
 				team: xpert
 			}

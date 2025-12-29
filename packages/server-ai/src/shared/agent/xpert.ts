@@ -74,7 +74,17 @@ export class XpertCollaborator implements IXpertSubAgent {
 		const { options, thread_id, rootController, signal, variables, partners } = config
 		const { subscriber, leaderKey } = options
 
-		const {agent} = await queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent}>(new GetXpertWorkflowQuery(xpert.id,))
+		const {agent} = await queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent}>(
+			new GetXpertWorkflowQuery(
+				xpert.id,
+				undefined, // Collaborator entry uses its primary agent
+				config.options.isDraft
+			)
+		)
+
+		if (!agent) {
+			throw new Error(`Agent not found for xpert '${xpert.id || xpert.name}'`)
+		}
 
 		const execution: IXpertAgentExecution = {}
 
@@ -106,9 +116,9 @@ export class XpertCollaborator implements IXpertSubAgent {
 		)
 
 		// Prepare parameters
-		const parameters = xpert.agentConfig?.parameters ?? (xpert.agent.options?.hidden ? [] : xpert.agent.parameters)
+		const parameters = xpert.agentConfig?.parameters ?? (agent.options?.hidden ? [] : agent.parameters)
 
-		const uniqueName = xpert.slug
+		const uniqueName = xpert.slug || xpert.name
 
 		// Create Tool
 		const agentTool = tool(

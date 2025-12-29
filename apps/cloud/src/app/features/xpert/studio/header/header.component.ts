@@ -83,7 +83,20 @@ export class XpertStudioHeaderComponent {
   readonly latest = computed(() => this.team()?.latest)
   readonly versions = computed(() => {
     const versions = this.apiService.versions()?.filter(nonBlank)
-    return versions.sort((a, b) => Number(b.version) - Number(a.version))
+    const compareVersion = (a: string, b: string) => {
+      const as = (a || '').split('.').map((v) => Number(v))
+      const bs = (b || '').split('.').map((v) => Number(v))
+      const len = Math.max(as.length, bs.length)
+      for (let i = 0; i < len; i++) {
+        const av = as[i] ?? 0
+        const bv = bs[i] ?? 0
+        if (av !== bv) {
+          return bv - av
+        }
+      }
+      return 0
+    }
+    return versions.sort((a, b) => compareVersion(a.version, b.version))
   })
   readonly draft = this.apiService.pristineDraft
   readonly unsaved = this.apiService.unsaved
