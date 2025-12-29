@@ -1,6 +1,7 @@
 import { ConfigService } from '@metad/server-config'
 import { HttpException, HttpStatus, Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { RequestContext } from '@metad/server-core'
 import { AgentMiddlewareRegistry, ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync } from 'fs'
 import * as mime from 'mime-types'
@@ -28,9 +29,48 @@ export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQu
 
 	public async execute(command: ToolProviderIconQuery): Promise<[Buffer, string]> {
 		const { provider, organizationId } = command.options
+		
+		// Try to get organizationId from request context
+		const requestOrgId = RequestContext.getOrganizationId()
+		const resolvedOrganizationId = organizationId ?? requestOrgId
 
+		// Step 1: Try to get from plugin registry (npm installed plugins)
 		try {
-			const pluginProvider = this.toolsetRegistry.get(provider, organizationId)
+			let pluginProvider: any = null
+			
+			// If resolvedOrganizationId is undefined, try to find in all organizations
+			// This is because the icon endpoint is @Public(), which may not have authentication context,
+			// causing organizationId to be undefined
+			if (!resolvedOrganizationId) {
+				try {
+					const allStrategies = (this.toolsetRegistry as any).strategies
+					if (allStrategies) {
+						const orgKeys = Array.from(allStrategies.keys())
+						// Iterate through all organizations to find the plugin
+						for (const orgKey of orgKeys) {
+							const orgKeyStr = String(orgKey)
+							const orgStrategies = allStrategies.get(orgKey)
+							if (orgStrategies) {
+								const providerNames = Array.from(orgStrategies.keys())
+								if (providerNames.includes(provider)) {
+									try {
+										pluginProvider = this.toolsetRegistry.get(provider, orgKeyStr)
+										break
+									} catch (getErr) {
+										// Continue to try next organization
+									}
+								}
+							}
+						}
+					}
+				} catch (listErr) {
+					// If unable to access strategies, ignore error and continue to next step
+				}
+			} else {
+				// If organizationId is specified, lookup normally
+				pluginProvider = this.toolsetRegistry.get(provider, resolvedOrganizationId)
+			}
+			
 			if (pluginProvider) {
 				const icon = pluginProvider.meta.icon
 				if (icon.svg) {
@@ -45,47 +85,52 @@ export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQu
 				return [null, 'image/svg+xml']
 			}
 		} catch (err) {
-			const providers = await this.queryBus.execute<ListBuiltinToolProvidersQuery, TToolsetProviderSchema[]>(
-				new ListBuiltinToolProvidersQuery([provider])
-			)
-			if (providers[0]) {
-				const filePath = path.join(this.getProviderServerPath(provider), '_assets', providers[0].identity.icon)
-
-				if (!existsSync(filePath)) {
-					return [null, null]
-				}
-
-				const mimeType = mime.lookup(filePath) || 'application/octet-stream'
-				const byteData = readFileSync(filePath)
-				return [byteData, mimeType]
-			} else {
-				try {
-					const middleware = this.agentMiddlewareRegistry.get(provider)
-					// IconDefinition 类型的 icon 转成文件流返回
-					if (middleware?.meta?.icon) {
-						const icon = middleware.meta.icon
-						let buffer: Buffer
-						let mimetype = 'image/svg+xml'
-						if (icon.type === 'svg') {
-							// 假设是 SVG 字符串
-							buffer = Buffer.from(icon.value, 'utf-8')
-						} else if (icon.type === 'image') {
-							buffer = Buffer.from(icon.value, 'base64')
-							mimetype = 'image/png' // 假设是 PNG 图片
-						} else {
-							throw new HttpException(
-								'Icon format not supported:' + icon.type,
-								HttpStatus.UNSUPPORTED_MEDIA_TYPE
-							)
-						}
-						return [buffer, mimetype]
-					}
-				} catch (err) {
-					//
-				}
-				throw new ToolProviderNotFoundError(`Not found tool provider '${provider}'`)
-			}
+			// If not found in plugin registry, continue to try builtin providers
 		}
+
+		// Step 2: Try to get from builtin providers
+		const providers = await this.queryBus.execute<ListBuiltinToolProvidersQuery, TToolsetProviderSchema[]>(
+			new ListBuiltinToolProvidersQuery([provider])
+		)
+		
+		if (providers[0]) {
+			const filePath = path.join(this.getProviderServerPath(provider), '_assets', providers[0].identity.icon)
+
+			if (!existsSync(filePath)) {
+				return [null, null]
+			}
+
+			const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+			const byteData = readFileSync(filePath)
+			return [byteData, mimeType]
+		}
+
+		// Step 3: Try to get from middleware
+		try {
+			const middleware = this.agentMiddlewareRegistry.get(provider)
+			if (middleware?.meta?.icon) {
+				const icon = middleware.meta.icon
+				let buffer: Buffer
+				let mimetype = 'image/svg+xml'
+				if (icon.type === 'svg') {
+					buffer = Buffer.from(icon.value, 'utf-8')
+				} else if (icon.type === 'image') {
+					buffer = Buffer.from(icon.value, 'base64')
+					mimetype = 'image/png'
+				} else {
+					throw new HttpException(
+						'Icon format not supported:' + icon.type,
+						HttpStatus.UNSUPPORTED_MEDIA_TYPE
+					)
+				}
+				return [buffer, mimetype]
+			}
+		} catch (err) {
+			//
+		}
+
+		// All steps failed
+		throw new ToolProviderNotFoundError(`Not found tool provider '${provider}'`)
 	}
 
 	getProviderServerPath(name: string) {
