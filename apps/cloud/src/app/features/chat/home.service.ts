@@ -1,5 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core'
-import { injectXpertPreferences } from '@metad/cloud/state'
+import { IChatConversation, injectXpertPreferences } from '@metad/cloud/state'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, Observable, pipe, shareReplay } from 'rxjs'
 import { IXpert, LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
@@ -8,6 +8,11 @@ import { XpertHomeService } from '../../xpert'
 @Injectable()
 export class ChatHomeService extends XpertHomeService {
   readonly #preferences = injectXpertPreferences()
+
+  /**
+   * Latest conversation updated by ChatPlatformService, used to update the history list in real-time
+   */
+  readonly latestConversation = signal<IChatConversation>(null)
 
   readonly xperts = derivedFrom(
     [
@@ -62,7 +67,7 @@ export class ChatHomeService extends XpertHomeService {
   }
 
   /**
-   * 
+   *
    */
   selectPublicSemanticModel(id: string) {
     return this.selectSemanticModel(id)

@@ -219,6 +219,7 @@ export abstract class ChatService {
     effect(() => {
       if (!this.conversationId()) {
         this.suggestionQuestions.set([])
+        this.conversation.set(null)
       }
     }, { allowSignalWrites: true })
 
@@ -415,7 +416,7 @@ export abstract class ChatService {
                         }
                       }
                     }
-                    
+
                     return {
                       ...message,
                       events: [...(message.events ?? []), event.data]

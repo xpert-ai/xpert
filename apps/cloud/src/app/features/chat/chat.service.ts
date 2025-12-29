@@ -79,6 +79,17 @@ export class ChatPlatformService extends ChatService {
       },
       { allowSignalWrites: true }
     )
+
+    // Update latestConversation for real-time history list update
+    effect(
+      () => {
+        const conv = this.conversation()
+        if (conv?.id) {
+          this.homeService.latestConversation.set(conv)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   newConv(xpert?: IXpert) {

@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, HostListener, inject, signal, ViewContainerRef } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, HostListener, inject, signal, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -89,7 +89,7 @@ export class ChatHomeComponent {
       this.chatSidebar.set(state)
     }
   })
-  
+
   readonly menuOverlay = signal<TMenuOverlayType>(null)
   private leaveTimer = null
 
@@ -157,6 +157,28 @@ export class ChatHomeComponent {
 
   // Composition state for input method
   readonly isComposing = signal(false)
+
+  constructor() {
+    // Listen for conversation updates and add to history list in real-time
+    effect(() => {
+      const conv = this.homeService.latestConversation()
+      if (conv?.id) {
+        this.conversations.update((items) => {
+          if (!items) return [conv]
+          const index = items.findIndex((item) => item.id === conv.id)
+          if (index > -1) {
+            // Update existing conversation
+            const updated = [...items]
+            updated[index] = { ...updated[index], ...conv }
+            return updated
+          } else {
+            // Add new conversation at the beginning
+            return [conv, ...items]
+          }
+        })
+      }
+    }, { allowSignalWrites: true })
+  }
 
   toggleSidebar() {
     this.sidebarState.update((state) => (state === 'expanded' ? 'closed' : 'expanded'))
