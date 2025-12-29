@@ -1,10 +1,11 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { myRxResource } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { interval, Subscription } from 'rxjs'
 import { getErrorMessage, IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from '../../xpert'
 
@@ -29,6 +30,7 @@ export class ChatMessageExecutionPanelComponent {
   readonly #data = inject<{ id: string; xpert: IXpert }>(DIALOG_DATA, { optional: true })
   readonly #dialogRef = inject(DialogRef, { optional: true })
   readonly #executionService = inject(XpertAgentExecutionService)
+  readonly #destroyRef = inject(DestroyRef)
 
   // Inputs
   readonly id = input<string>(this.#data?.id) // ID of XpertAgentExecution
@@ -73,6 +75,42 @@ export class ChatMessageExecutionPanelComponent {
     }))
   })
 
+  // Polling subscription for real-time status updates
+  #pollingSubscription: Subscription | null = null
+
+  constructor() {
+    // Watch execution status and start/stop polling accordingly
+    effect(() => {
+      const execution = this.execution()
+      if (execution?.status === XpertAgentExecutionStatusEnum.RUNNING) {
+        this.#startPolling()
+      } else {
+        this.#stopPolling()
+      }
+    }, { allowSignalWrites: true })
+
+    // Stop polling when component is destroyed
+    this.#destroyRef.onDestroy(() => {
+      this.#stopPolling()
+    })
+  }
+
+  #startPolling() {
+    if (this.#pollingSubscription) {
+      return // Already polling
+    }
+    // Refresh every 2 seconds
+    this.#pollingSubscription = interval(2000).subscribe(() => {
+      this.#execution.reload()
+    })
+  }
+
+  #stopPolling() {
+    if (this.#pollingSubscription) {
+      this.#pollingSubscription.unsubscribe()
+      this.#pollingSubscription = null
+    }
+  }
 
   onClose() {
     this.close.emit()
