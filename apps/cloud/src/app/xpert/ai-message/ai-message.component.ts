@@ -108,6 +108,17 @@ export class ChatAiMessageComponent {
   readonly status = computed(() => this.message()?.status)
   readonly busy = computed(() => this.chatService.answering() && ['thinking', 'reasoning', 'answering'].includes(this.status()))
   readonly answering = computed(() => this.chatService.answering() && ['thinking', 'answering'].includes(this.status()))
+  readonly feedbackReady = computed(() => {
+    const status = this.status() as XpertAgentExecutionStatusEnum | string
+    const endedStatuses = new Set<XpertAgentExecutionStatusEnum | string>([
+      XpertAgentExecutionStatusEnum.SUCCESS,
+      XpertAgentExecutionStatusEnum.ERROR,
+      XpertAgentExecutionStatusEnum.TIMEOUT,
+      XpertAgentExecutionStatusEnum.INTERRUPTED,
+      'aborted'
+    ])
+    return !this.answering() && endedStatuses.has(status)
+  })
 
   readonly #contentStr = computed(() => {
     const content = this.message()?.content
