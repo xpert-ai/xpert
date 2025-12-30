@@ -180,14 +180,14 @@ export class ChatConversationPreviewComponent {
   readonly copiedMessages = signal<Record<string, boolean>>({})
   readonly feedbackReady = (message: IChatMessage) => {
     const status = message?.status as XpertAgentExecutionStatusEnum | string
-    const ended = new Set<XpertAgentExecutionStatusEnum | string>([
+    const endedStatuses = new Set<XpertAgentExecutionStatusEnum | string>([
       XpertAgentExecutionStatusEnum.SUCCESS,
       XpertAgentExecutionStatusEnum.ERROR,
       XpertAgentExecutionStatusEnum.TIMEOUT,
       XpertAgentExecutionStatusEnum.INTERRUPTED,
       'aborted'
     ])
-    return ended.has(status)
+    return endedStatuses.has(status)
   }
 
   private convSub = toObservable(this.conversationId)
