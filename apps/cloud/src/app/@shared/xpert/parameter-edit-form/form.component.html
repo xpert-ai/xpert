@@ -207,6 +207,7 @@
               [ngModel]="maximum()"
               [ngModelOptions]="{standalone: true}"
               (ngModelChange)="updateParameter('maximum', $event)"
+              (input)="onMaximumInput($event)"
             >
           </div>
         </div>
