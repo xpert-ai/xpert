@@ -36,7 +36,7 @@
   }
 
   @if (reasoning()) {
-    <chat-thought [message]="message()" 
+    <chat-thought [message]="message()"
       class="border-2 border-gray-200 rounded-3xl mb-4 overflow-clip bg-surface-container"
       [class.reasoning]="status() === 'reasoning'"
     />
@@ -50,7 +50,7 @@
       [collapse]="submessage.id && collapseMessages()[submessage.id]"
       (collapseChange)="updateCollapse(submessage.id, $event)"
     />
-    <chat-message-content class="px-2 z-0" [message]="message()" [content]="submessage" [last]="last" 
+    <chat-message-content class="px-2 z-0" [message]="message()" [content]="submessage" [last]="last"
       [collapse]="submessage.id && collapseMessages()[submessage.id]"
     />
   }
@@ -82,8 +82,8 @@
       </div>
     }
   </div>
-  
-<!-- 
+
+<!--
   @if (lastStep(); as step) {
     <div class="relative group flex-1 min-w-0 mt-2 cursor-pointer" (click)="toggleSteps()">
       <div [@listHeightStagger]="steps()"
@@ -118,7 +118,7 @@
         }
       </div>
 
-      <a class="absolute top-1 right-2 w-8 h-8 cursor-pointer flex justify-center items-center rounded-lg 
+      <a class="absolute top-1 right-2 w-8 h-8 cursor-pointer flex justify-center items-center rounded-lg
         hover:bg-hover-bg opacity-70 group-hover:opacity-100 bg-black/5 backdrop-blur-3xl"
         [matTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
         matTooltipPosition="above"
@@ -153,41 +153,43 @@
       </div>
     </div>
 
-    @if (getFeedback(message().id); as feedback) {
-      @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
-        <div class="flex items-center justify-center mx-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
-          [matTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: {Default: 'Cancel like'}"
-          matTooltipPosition="above"
-          (click)="cancelFeedback(message(), feedback.id)"
-        >
-          <i class="ri-thumb-up-line"></i>
-        </div>
-      } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
-        <div class="flex items-center justify-center mx-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
-          [matTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: {Default: 'Cancel dislike'}"
-          matTooltipPosition="above"
-          (click)="cancelFeedback(message(), feedback.id)"
-        >
-          <i class="ri-thumb-down-line"></i>
+    @if (feedbackReady()) {
+      @if (getFeedback(message().id); as feedback) {
+        @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
+          <div class="flex items-center justify-center mx-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
+            [matTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: {Default: 'Cancel like'}"
+            matTooltipPosition="above"
+            (click)="cancelFeedback(message(), feedback.id)"
+          >
+            <i class="ri-thumb-up-line"></i>
+          </div>
+        } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
+          <div class="flex items-center justify-center mx-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
+            [matTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: {Default: 'Cancel dislike'}"
+            matTooltipPosition="above"
+            (click)="cancelFeedback(message(), feedback.id)"
+          >
+            <i class="ri-thumb-down-line"></i>
+          </div>
+        }
+      } @else {
+        <div class="hidden group-hover/message:flex shrink-0 items-center p-0.5 bg-white border-[0.5px] border-gray-100 shadow-sm text-gray-500 rounded-lg">
+          <div class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
+            [matTooltip]="'PAC.KEY_WORDS.Like' | translate: {Default: 'Like'}"
+            matTooltipPosition="above"
+            (click)="feedback(message(), eFeedbackRatingEnum.LIKE)"
+          >
+            <i class="ri-thumb-up-line"></i>
+          </div>
+          <div class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
+            [matTooltip]="'PAC.KEY_WORDS.Dislike' | translate: {Default: 'Dislike'}"
+            matTooltipPosition="above"
+            (click)="feedback(message(), eFeedbackRatingEnum.DISLIKE)"
+          >
+            <i class="ri-thumb-down-line"></i>
+          </div>
         </div>
       }
-    } @else {
-      <div class="hidden group-hover/message:flex shrink-0 items-center p-0.5 bg-white border-[0.5px] border-gray-100 shadow-sm text-gray-500 rounded-lg">
-        <div class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
-          [matTooltip]="'PAC.KEY_WORDS.Like' | translate: {Default: 'Like'}"
-          matTooltipPosition="above"
-          (click)="feedback(message(), eFeedbackRatingEnum.LIKE)"
-        >
-          <i class="ri-thumb-up-line"></i>
-        </div>
-        <div class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
-          [matTooltip]="'PAC.KEY_WORDS.Dislike' | translate: {Default: 'Dislike'}"
-          matTooltipPosition="above"
-          (click)="feedback(message(), eFeedbackRatingEnum.DISLIKE)"
-        >
-          <i class="ri-thumb-down-line"></i>
-        </div>
-      </div>
     }
 
     @if (textToSpeech_enabled()) {
