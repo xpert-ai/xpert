@@ -104,21 +104,3 @@ export function genWorkflowKey(type: WorkflowNodeTypeEnum) {
   }
 }
 
-/**
- * Compare two version strings (e.g., "1.2.3") for sorting.
- * Returns a negative number if a < b, positive if a > b, or 0 if equal.
- * Used for descending sort (newest first).
- */
-export function compareVersion(a: string, b: string): number {
-  const as = (a || '').split('.').map((v) => Number(v))
-  const bs = (b || '').split('.').map((v) => Number(v))
-  const len = Math.max(as.length, bs.length)
-  for (let i = 0; i < len; i++) {
-    const av = as[i] ?? 0
-    const bv = bs[i] ?? 0
-    if (av !== bv) {
-      return bv - av
-    }
-  }
-  return 0
-}
