@@ -303,7 +303,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						store: options.store,
 						options: {
 							leaderKey: agentKey,
-							isDraft: command.options.isDraft,
+							isDraft: false,
 							subscriber
 						},
 						thread_id,

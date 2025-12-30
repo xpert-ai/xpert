@@ -54,23 +54,12 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 
 			}
 			if (!agentNode) {
-				// Fallback: try to find published agent to avoid hard failure
-				const agents = [xpert.agent, ...(xpert.agents ?? [])]
-				const fallbackAgent = agents.find((_) => _ && (_.key === keyOrName || _.name === keyOrName))
-				if (!fallbackAgent) {
-					throw new Error(await this.i18nService.translate('xpert.Error.NoAgentInGraph', {
-						lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
-						args: {
-							value: keyOrName
-						}
-					}))
-				}
-				agentNode = {
-					key: fallbackAgent.key,
-					type: 'agent',
-					entity: fallbackAgent,
-					position: null
-				}
+				throw new Error(await this.i18nService.translate('xpert.Error.NoAgentInGraph', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						value: keyOrName
+					}
+				}))
 			}
 
 			const agentKey = agentNode.key
@@ -134,9 +123,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 					agent: {
 						...agent,
 						followers: [xpert.agent, ...xpert.agents].filter((_) => _.leaderKey === agent.key),
-					collaborators: agent.collaboratorNames
-						?.map((name) => xpert.executors.find((_) => _.name === name || _.id === name))
-						.filter(nonNullable),
+						collaborators: agent.collaboratorNames?.map((name) => xpert.executors.find((_) => _.name === name)).filter(nonNullable),
 						team: xpert
 					},
 					graph: xpert.graph,

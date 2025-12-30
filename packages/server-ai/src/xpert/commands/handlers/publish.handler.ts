@@ -51,8 +51,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		const { items: allVersionXperts } = await this.xpertService.findAll({
 			where: {
 				workspaceId: xpert.workspaceId ?? IsNull(),
-				type: xpert.type,
-				slug: xpert.slug
+				name: xpert.name
 			}
 		})
 
@@ -91,7 +90,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		}
 		xpert.releaseNotes ??= ''
 		xpert.releaseNotes += (xpert.releaseNotes ? '\n\n' : '') + notes
-
+		
 		// Env
 		xpert.environmentId = environmentId
 
@@ -100,7 +99,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
 	/**
 	 * Backup current version
-	 *
+	 * 
 	 * @param team Team (leader)
 	 * @param version New version
 	 */
@@ -137,7 +136,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
 	/**
 	 * Publish draft of team to new version
-	 *
+	 * 
 	 * @param xpert Xpert
 	 * @param version New version
 	 * @param draft Xpert draft
@@ -164,7 +163,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 				const knowledgebaseIds = draft.connections.filter((_) => _.type === 'knowledge' && _.from === node.key).map((_) => _.to)
 				totalToolsetIds.push(...toolsetIds)
 				totalKnowledgebaseIds.push(...knowledgebaseIds)
-
+				
 				// All relative experts
 				const xpertIds = draft.connections.filter((_) => _.type === 'xpert' && _.from === node.key).map((_) => _.to)
 				const collaboratorNames = xpertIds.map((id) => xpertNodes.find((_) => _.key === id)?.entity.name).filter(Boolean)
@@ -172,7 +171,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 				const oldAgent = oldAgents.find((item) => item.key === node.key)
 				// Calc the leader of agent
 				const conn = draft.connections.find((_) => _.type === 'agent' && _.to === node.key)
-
+				
 				if (oldAgent) {
 					if (oldAgent.updatedAt.getTime() > new Date(node.entity.updatedAt).getTime()) {
 						throw new BadRequestException(
@@ -240,10 +239,10 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 					options: {
 						...(xpert.agent.options ?? {}),
 						hidden: true
-					}
+					}					
 				})
 			}
-
+			
 			// Delete unused agents
 			for await (const agent of oldAgents) {
 				if (!newAgents.some((_) => _.id === agent.id)) {
@@ -264,19 +263,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 			xpert.agents = newAgents
 			xpert.toolsets = uniq(totalToolsetIds).map((id) => ({id} as IXpertToolset))
 			xpert.knowledgebases = uniq(totalKnowledgebaseIds).map((id) => ({id} as IKnowledgebase))
-			const executorIds = uniq(totalXpertIds)
-			if (executorIds.length) {
-				const executors = await Promise.all(
-					executorIds.map((id) =>
-						this.xpertService.findOne(id, {
-							relations: ['agent', 'agent.copilotModel', 'copilotModel']
-						})
-					)
-				)
-				xpert.executors = executors.filter(Boolean)
-			} else {
-				xpert.executors = []
-			}
+			xpert.executors = uniq(totalXpertIds).map((id) => ({id} as IXpert))
 			// Recording graph node positions
 			xpert.options ??= {}
 			draft.nodes.forEach((node) => {
@@ -340,9 +327,9 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
 /**
  * Select the properties of agent to update or create from the draft
- *
+ * 
  * @param agent Draft
- * @returns
+ * @returns 
  */
 export function pickXpertAgent(agent: Partial<IXpertAgent>) {
   return pick(

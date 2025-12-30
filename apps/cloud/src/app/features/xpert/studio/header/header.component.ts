@@ -41,7 +41,6 @@ import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
-import { compareVersion } from '../../utils'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -84,7 +83,7 @@ export class XpertStudioHeaderComponent {
   readonly latest = computed(() => this.team()?.latest)
   readonly versions = computed(() => {
     const versions = this.apiService.versions()?.filter(nonBlank)
-    return versions.sort((a, b) => compareVersion(a.version, b.version))
+    return versions.sort((a, b) => Number(b.version) - Number(a.version))
   })
   readonly draft = this.apiService.pristineDraft
   readonly unsaved = this.apiService.unsaved
