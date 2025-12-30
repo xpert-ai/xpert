@@ -34,12 +34,11 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 					input: {
 						input
 					},
-					xpertId,
 					conversationId,
 					confirm: command.options?.confirm,
-					reject: command.options?.reject,
 				},
 				{
+					xpertId,
 					from: 'feishu',
 					fromEndUserId: userId,
 					language: larkMessage.language as LanguagesEnum

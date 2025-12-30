@@ -52,16 +52,6 @@ export type TInterruptMessage<T = unknown> = {
   data?: T
 }
 
-/**
- * Command to resume with streaming after human decision
- */
-export type TInterruptCommand = {
-  resume?: any
-  update?: any
-  toolCalls?: TToolCall[]
-  agentKey?: string
-}
-
 export function isInterruptMessage(obj: unknown): obj is TInterruptMessage {
   return obj && typeof obj === 'object' && 'type' in obj && 'category' in obj
 }

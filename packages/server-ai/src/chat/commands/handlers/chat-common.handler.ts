@@ -98,7 +98,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 	public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
 		const { tenantId, organizationId, user, knowledgebases, from: chatFrom } = command.options
-		const { conversationId, projectId, input, retry, reject, confirm } = command.request
+		const { conversationId, projectId, input, retry, confirm } = command.request
 		const userId = RequestContext.currentUserId()
 		const languageCode = command.options.language || user.preferredLanguage || 'en-US'
 
@@ -107,7 +107,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		let aiMessage: IChatMessage = null
 		let executionId: string
 		// Continue thread when confirm or reject operation
-		if (confirm || reject) {
+		if (confirm) {
 			if (isNil(conversationId)) {
 				throw new Error('Conversation ID is required for confirm or reject operation')
 			}
@@ -243,9 +243,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						checkpoint_ns: ''
 					}
 					let graphInput = null
-					if (reject) {
-						await rejectGraph(graph, config, command.request.command)
-					} else if (command.request.command) {
+					// if (reject) {
+					// 	await rejectGraph(graph, config, command.request.command)
+					// } else 
+					if (command.request.command) {
 						if (command.request.command.toolCalls?.length) {
 							await updateToolCalls(graph, config, command.request.command)
 						}

@@ -45,11 +45,11 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 			new XpertChatCommand(
 				{
 					input: chatRequest.input as any,
-					xpertId: xpert.id,
 					conversationId: conversation.id,
 					command: chatRequest['command'] as TInterruptCommand
 				},
 				{
+					xpertId: xpert.id,
 					from: 'api',
 					execution
 				}

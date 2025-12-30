@@ -12,7 +12,7 @@ export class ChatCommandHandler implements ICommandHandler<ChatCommand> {
 	) {}
 
 	public async execute(command: ChatCommand): Promise<Observable<MessageEvent>> {
-		if (command.request.xpertId) {
+		if (command.options.xpertId) {
 			return await this.commandBus.execute(new XpertChatCommand(command.request, command.options))
 		}
 

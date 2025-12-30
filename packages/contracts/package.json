@@ -1,6 +1,6 @@
 {
   "name": "@metad/contracts",
-  "version": "3.7.1",
+  "version": "3.7.2",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
@@ -15,6 +15,7 @@
   "module": "./index.esm.js",
   "main": "./index.cjs.js",
   "dependencies": {
-    "@xpert-ai/chatkit-types": "^0.0.4"
+    "@a2ui/lit": "^0.8.1",
+    "@xpert-ai/chatkit-types": "^0.0.8"
   }
 }

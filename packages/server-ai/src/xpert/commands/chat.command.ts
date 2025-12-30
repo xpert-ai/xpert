@@ -8,6 +8,7 @@ export class XpertChatCommand extends Command<Observable<MessageEvent>> {
 	constructor(
 		public readonly request: TChatRequest,
 		public readonly options?: TChatOptions & {
+			xpertId?: string
 			// Use xpert's draft
 			isDraft?: boolean
 			fromEndUserId?: string

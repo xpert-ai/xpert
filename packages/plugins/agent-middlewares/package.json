@@ -5,7 +5,7 @@
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {
-    "@xpert-ai/chatkit-types": "^0.0.4",
+    "@xpert-ai/chatkit-types": "^0.0.8",
     "@xpert-ai/plugin-sdk": "*"
   }
 }

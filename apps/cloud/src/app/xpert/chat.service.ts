@@ -307,17 +307,14 @@ export abstract class ChatService {
           input: options.content,
           files: options.files
         },
-        xpertId: this.xpert()?.id,
         conversationId: this.conversation()?.id,
         id: options.id,
         command: options.command,
         confirm: options.confirm,
-        reject: options.reject,
         retry: options.retry
       },
       {
-        knowledgebases: this.knowledgebases()?.map(({ id }) => id),
-        toolsets: this.toolsets()?.map(({ id }) => id)
+        xpertId: this.xpert()?.id,
       }
     ).subscribe({
       next: (msg) => {

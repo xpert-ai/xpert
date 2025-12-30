@@ -49,10 +49,10 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 					input: {
 						input: task.prompt
 					},
-					xpertId: task.xpertId
 				},
 				{
 					...options,
+					xpertId: task.xpertId,
 					timeZone: task.timeZone || options.timeZone,
 					from: 'job',
 					taskId: task.id
