@@ -125,8 +125,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						xpert,
 						options: {
 							parameters: input,
-							knowledgebases: options?.knowledgebases,
-							toolsets: options?.toolsets
 						},
 						from,
 						fromEndUserId
@@ -231,8 +229,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							...(options ?? {}),
 							store: memoryStore,
 							conversationId: conversation.id,
-							toolsets: null, // Does not support customizing whether to use tools
-							knowledgebases: null, // Does not support customizing whether to use knowledgebases
 							isDraft: options?.isDraft,
 							execution: { id: executionId, category: 'agent' },
 							command,

@@ -112,7 +112,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		// Create tools
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
-			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds, {
+			new ToolsetGetToolsCommand(agent.toolsetIds, {
 				projectId: options.projectId,
 				conversationId: options.conversationId,
 				xpertId: xpert.id,
@@ -208,7 +208,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		this.#logger.debug(`\nUse tools:\n${tools.length ? tools.map((_, i) => `${i+1}. ` + _.tool.name + ': ' + _.tool.description).join('\n') : 'No tools.'}`)
 
 		// Knowledgebases
-		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
+		const knowledgebaseIds = agent.knowledgebaseIds
 		if (knowledgebaseIds?.length) {
 			const recalls = team.agentConfig?.recalls
 			const retrievals = team.agentConfig?.retrievals
