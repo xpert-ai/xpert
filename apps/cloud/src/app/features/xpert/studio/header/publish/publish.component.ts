@@ -13,6 +13,7 @@ import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { XpertService } from '../../../xpert/xpert.service'
+import { compareVersion } from '../../../utils'
 
 @Component({
   standalone: true,
@@ -48,19 +49,6 @@ export class XpertPublishVersionComponent {
   readonly version = computed(() => this.xpert()?.version)
   readonly versions = computed(() => {
     const versions = this.studioService.versions()?.filter(nonBlank)
-    const compareVersion = (a: string, b: string) => {
-      const as = (a || '').split('.').map((v) => Number(v))
-      const bs = (b || '').split('.').map((v) => Number(v))
-      const len = Math.max(as.length, bs.length)
-      for (let i = 0; i < len; i++) {
-        const av = as[i] ?? 0
-        const bv = bs[i] ?? 0
-        if (av !== bv) {
-          return bv - av
-        }
-      }
-      return 0
-    }
     return versions?.sort((a, b) => compareVersion(a.version, b.version))
   })
 
