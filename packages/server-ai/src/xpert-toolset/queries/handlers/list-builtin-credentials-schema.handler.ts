@@ -20,58 +20,61 @@ export class ListBuiltinCredentialsSchemaHandler implements IQueryHandler<ListBu
 		const { provider } = command
 
 		// First check if it's a plugin toolset
-		const pluginStrategy = this.toolsetRegistry.get(provider)
-		if (pluginStrategy) {
-			// Plugin toolset: read from strategy's meta.configSchema
-			const configSchema = pluginStrategy.meta.configSchema
-			if (!configSchema || !configSchema.properties) {
-				return []
-			}
-
-			// Convert JSON Schema to ToolProviderCredentials[] format
-			const credentials: ToolProviderCredentials[] = []
-			const required = configSchema.required || []
-
-			for (const [name, property] of Object.entries(configSchema.properties)) {
-				const prop = property as any
-				const credential: ToolProviderCredentials = {
-					name,
-					required: required.includes(name),
-					label: prop.title || { en_US: name, zh_Hans: name },
-					placeholder: prop.description || prop.title,
-					help: prop.description,
-					default: prop.default,
-					type: CredentialsType.TEXT_INPUT
+		try {
+			const pluginStrategy = this.toolsetRegistry.get(provider)
+			if (pluginStrategy) {
+				// Plugin toolset: read from strategy's meta.configSchema
+				const configSchema = pluginStrategy.meta.configSchema
+				if (!configSchema || !configSchema.properties) {
+					return []
 				}
-
-				// Handle x-ui extensions (e.g., secretInput)
-				if (prop['x-ui']?.component === 'secretInput') {
-					credential.type = CredentialsType.SECRET_INPUT
-				} else if (prop.enum) {
-					// Handle enum type (dropdown list)
-					credential.type = CredentialsType.SELECT
-					credential.options = prop.enum.map((value: string | number | boolean) => {
-						const valueKey = String(value)
-						const enumLabels = prop['x-ui']?.enumLabels?.[valueKey] || {}
-						return {
-							value: valueKey,
-							label: enumLabels || { en_US: valueKey, zh_Hans: valueKey }
-						}
-					})
-				} else if (prop.type === 'boolean') {
-					credential.type = CredentialsType.BOOLEAN
-				} else if (prop.type === 'number' || prop.type === 'integer') {
-					credential.type = CredentialsType.NUMBER
-				} else {
-					credential.type = CredentialsType.TEXT_INPUT
+	
+				// Convert JSON Schema to ToolProviderCredentials[] format
+				const credentials: ToolProviderCredentials[] = []
+				const required = configSchema.required || []
+	
+				for (const [name, property] of Object.entries(configSchema.properties)) {
+					const prop = property as any
+					const credential: ToolProviderCredentials = {
+						name,
+						required: required.includes(name),
+						label: prop.title || { en_US: name, zh_Hans: name },
+						placeholder: prop.description || prop.title,
+						help: prop.description,
+						default: prop.default,
+						type: CredentialsType.TEXT_INPUT
+					}
+	
+					// Handle x-ui extensions (e.g., secretInput)
+					if (prop['x-ui']?.component === 'secretInput') {
+						credential.type = CredentialsType.SECRET_INPUT
+					} else if (prop.enum) {
+						// Handle enum type (dropdown list)
+						credential.type = CredentialsType.SELECT
+						credential.options = prop.enum.map((value: string | number | boolean) => {
+							const valueKey = String(value)
+							const enumLabels = prop['x-ui']?.enumLabels?.[valueKey] || {}
+							return {
+								value: valueKey,
+								label: enumLabels || { en_US: valueKey, zh_Hans: valueKey }
+							}
+						})
+					} else if (prop.type === 'boolean') {
+						credential.type = CredentialsType.BOOLEAN
+					} else if (prop.type === 'number' || prop.type === 'integer') {
+						credential.type = CredentialsType.NUMBER
+					} else {
+						credential.type = CredentialsType.TEXT_INPUT
+					}
+	
+					credentials.push(credential)
 				}
-
-				credentials.push(credential)
+	
+				return credentials
 			}
-
-			return credentials
+		} catch {
+			// Not a plugin toolset, will fallback to built-in below
 		}
-
 		// Built-in toolset: read from YAML
 		const toolProviders = await this.queryBus.execute<ListBuiltinToolProvidersQuery, TToolsetProviderSchema[]>(
 			new ListBuiltinToolProvidersQuery([provider])
