@@ -29,10 +29,10 @@ export const routes: Routes = [
         path: 'auth',
         component: XpertAuthorizationComponent
       },
-      {
-        path: 'develop',
-        loadComponent: () => import('./develop/develop.component').then((x) => x.XpertDevelopComponent)
-      },
+      // {
+      //   path: 'develop',
+      //   loadComponent: () => import('./develop/develop.component').then((x) => x.XpertDevelopComponent)
+      // },
       {
         path: 'logs',
         component: XpertLogsComponent
