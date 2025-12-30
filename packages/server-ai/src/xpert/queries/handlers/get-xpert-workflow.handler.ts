@@ -30,8 +30,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 				'knowledgebases',
 				'toolsets',
 				'executors',
-				'executors.agent',
-				'executors.agent.copilotModel'
+				'executors.agent'
 			]
 		})
 		const tenantId = xpert.tenantId
