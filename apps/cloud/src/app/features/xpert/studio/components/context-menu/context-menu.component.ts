@@ -1,11 +1,11 @@
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, computed, effect, inject, signal, TemplateRef, ViewChild } from '@angular/core'
+import { ChangeDetectorRef, Component, computed, effect, inject, model, signal, TemplateRef, ViewChild } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { debouncedSignal, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
   IWFNClassifier,
@@ -88,6 +88,9 @@ import { SelectionService } from '../../domain/selection.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
+import { FormsModule } from '@angular/forms'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { NgmCommonModule } from "@metad/ocap-angular/common";
 
 
 @Component({
@@ -96,6 +99,7 @@ import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.compone
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     CdkMenuModule,
     TranslateModule,
     MatTooltipModule,
@@ -105,7 +109,8 @@ import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.compone
     XpertStudioToolsetMenuComponent,
     XpertInlineProfileComponent,
     XpertWorkflowIconComponent,
-  ],
+    NgmCommonModule
+],
   templateUrl: './context-menu.component.html',
   styleUrl: './context-menu.component.scss'
 })
@@ -121,6 +126,7 @@ export class XpertStudioContextMenuComponent {
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #translate = inject(I18nService)
   readonly #toastr = inject(ToastrService)
+  readonly i18n = new NgmI18nPipe()
 
   @ViewChild(TemplateRef, { static: true })
   public template!: TemplateRef<CdkMenu>
@@ -154,7 +160,16 @@ export class XpertStudioContextMenuComponent {
   readonly transformers$ = this.knowledgebaseAPI.documentTransformerStrategies$
   readonly imageUnderstandings$ = this.knowledgebaseAPI.understandingStrategies$.pipe(map((items) => items.map((_) => _.meta)))
   readonly textSplitters$ = this.knowledgebaseAPI.textSplitterStrategies$
-  readonly agentMiddlewares$ = this.agentAPI.agentMiddlewares$
+
+  // Middlewares
+  readonly agentMiddlewares = toSignal(this.agentAPI.agentMiddlewares$)
+  readonly searchMiddlewares = model<string>('')
+  readonly #searchMiddlewaresTerm = debouncedSignal(this.searchMiddlewares, 300)
+  readonly filteredAgentMiddlewares = computed(() => this.agentMiddlewares()?.filter(middleware => {
+    const term = this.#searchMiddlewaresTerm()?.toLowerCase().trim()
+    return term ? middleware.meta.name.toLowerCase().includes(term)
+    || this.i18n.transform(middleware.meta.label).toLowerCase().includes(term) : true
+  }) ?? [])
 
   public ngOnInit(): void {
     this.subscriptions.add(this.subscribeToSelectionChanges())
