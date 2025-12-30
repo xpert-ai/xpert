@@ -1,5 +1,5 @@
 import { Location } from '@angular/common'
-import { effect, inject, Injectable } from '@angular/core'
+import { computed, effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
 import { nonNullable } from '@metad/ocap-core'
@@ -80,12 +80,22 @@ export class ChatPlatformService extends ChatService {
       { allowSignalWrites: true }
     )
 
+    // Track conversation ID and title to only update when they change
+    const conversationKey = computed(() => {
+      const conv = this.conversation()
+      return conv ? { id: conv.id, title: conv.title } : null
+    })
+
     // Update latestConversation for real-time history list update
+    // Only update when conversation ID or title changes
     effect(
       () => {
-        const conv = this.conversation()
-        if (conv?.id) {
-          this.homeService.latestConversation.set(conv)
+        const key = conversationKey()
+        if (key?.id) {
+          const conv = this.conversation()
+          if (conv) {
+            this.homeService.latestConversation.set(conv)
+          }
         }
       },
       { allowSignalWrites: true }

@@ -135,12 +135,9 @@ export class ChatHomeComponent {
     }
   })
 
-  readonly conversations = linkedModel({
-    initialValue: null,
-    compute: () => this.#conversations.value(),
-    update: (conversations) => {}
-  })
-  readonly taskConversations = computed(() => this.#conversations.value()?.filter((conv) => conv.taskId).slice(0, 10))
+  // Use a regular signal instead of linkedModel to allow manual updates
+  readonly conversations = signal<IChatConversation[]>(null)
+  readonly taskConversations = computed(() => this.conversations()?.filter((conv) => conv.taskId).slice(0, 10))
 
   readonly groups = computed(() => {
     const conversations = this.conversations()
@@ -159,6 +156,30 @@ export class ChatHomeComponent {
   readonly isComposing = signal(false)
 
   constructor() {
+    // Sync remote conversations to local signal, preserving local updates
+    effect(() => {
+      const remote = this.#conversations.value()
+      if (remote) {
+        this.conversations.update((current) => {
+          if (!current) return remote
+          // Merge remote data with local updates
+          const merged = [...remote]
+          // Preserve local updates that are not in remote data or have newer updates
+          current.forEach((localConv) => {
+            const remoteIndex = merged.findIndex((item) => item.id === localConv.id)
+            if (remoteIndex > -1) {
+              // Merge local updates with remote data (local takes precedence for real-time updates)
+              merged[remoteIndex] = { ...merged[remoteIndex], ...localConv }
+            } else {
+              // Add local-only conversations (newly created)
+              merged.unshift(localConv)
+            }
+          })
+          return merged
+        })
+      }
+    }, { allowSignalWrites: true })
+
     // Listen for conversation updates and add to history list in real-time
     effect(() => {
       const conv = this.homeService.latestConversation()
