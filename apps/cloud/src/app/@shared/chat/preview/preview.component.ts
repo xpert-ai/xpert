@@ -187,7 +187,7 @@ export class ChatConversationPreviewComponent {
       XpertAgentExecutionStatusEnum.INTERRUPTED,
       'aborted'
     ])
-    return ended.has(status)
+    return !this.answering() && ended.has(status)
   }
 
   private convSub = toObservable(this.conversationId)
