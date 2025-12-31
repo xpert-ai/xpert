@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, HostListener, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { listFadeIn } from 'apps/cloud/src/app/@core'
 import { SelectionService } from '../domain'
 import { XpertStudioComponent } from '../studio.component'
@@ -48,12 +48,27 @@ export class XpertStudioPanelComponent {
     return node ? [node] : []
   })
 
+  // Track if preview component has been created, keep it mounted once created
+  readonly previewCreated = signal(false)
+  readonly showPreview = computed(() => 
+    this.sidePanel() === 'preview' || this.previewCreated()
+  )
+
   readonly minPanelWidth = 420
   readonly maxPanelWidth = 720
   readonly panelWidth = signal(this.minPanelWidth)
   private isResizing = false
   private startX = 0
   private startWidth = 0
+
+  constructor() {
+    // Mark preview component as created when switching to preview panel
+    effect(() => {
+      if (this.sidePanel() === 'preview') {
+        this.previewCreated.set(true)
+      }
+    }, { allowSignalWrites: true })
+  }
 
   close() {
     this.selectionService.selectNode(null)

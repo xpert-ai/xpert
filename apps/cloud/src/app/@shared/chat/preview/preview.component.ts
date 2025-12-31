@@ -5,6 +5,7 @@ import {
   booleanAttribute,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -96,6 +97,9 @@ export class ChatConversationPreviewComponent {
   readonly confirmDel = injectConfirmDelete()
   readonly #audioRecorder = inject(AudioRecorderService)
   readonly #synthesizeService = inject(SynthesizeService)
+  readonly #destroyRef = inject(DestroyRef)
+
+  #destroyed = false
 
   // Inputs
   readonly conversationId = model<string>()
@@ -246,6 +250,11 @@ export class ChatConversationPreviewComponent {
     effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()), { allowSignalWrites: true })
     effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert), { allowSignalWrites: true })
     effect(() => this.input.set(this.#audioRecorder.text()), { allowSignalWrites: true })
+
+    // Set flag when component is destroyed to prevent operations on destroyed component
+    this.#destroyRef.onDestroy(() => {
+      this.#destroyed = true
+    })
   }
 
   chat(options?: { input?: string; confirm?: boolean;
@@ -312,6 +321,11 @@ export class ChatConversationPreviewComponent {
       )
       .subscribe({
         next: (msg) => {
+          // Check if component is destroyed to avoid operations on destroyed component
+          if (this.#destroyed) {
+            return
+          }
+
           if (msg.event === 'error') {
             this.onChatError(msg.data)
           } else {
@@ -331,6 +345,7 @@ export class ChatConversationPreviewComponent {
                   this.output.update((state) => state + event.data)
                 }
               } else if (event.type === ChatMessageTypeEnum.EVENT) {
+                // Component destroyed check is done at the beginning of next callback, emit directly here
                 this.chatEvent.emit(event)
                 switch (event.event) {
                   case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
@@ -369,9 +384,16 @@ export class ChatConversationPreviewComponent {
           }
         },
         error: (err) => {
-          this.onChatError(getErrorMessage(err))
+          // Check if component is destroyed before handling error
+          if (!this.#destroyed) {
+            this.onChatError(getErrorMessage(err))
+          }
         },
         complete: () => {
+          // Check if component is destroyed to avoid unnecessary operations
+          if (this.#destroyed) {
+            return
+          }
           this.loading.set(false)
           if (this.currentMessage()) {
             this.appendMessage({ ...this.currentMessage() })
@@ -388,6 +410,7 @@ export class ChatConversationPreviewComponent {
   }
 
   onChatError(message: string) {
+    // #destroyed check is already done in error callback, no need to check here
     this.loading.set(false)
     if (this.currentMessage()) {
       this.appendMessage({ ...this.currentMessage() })
