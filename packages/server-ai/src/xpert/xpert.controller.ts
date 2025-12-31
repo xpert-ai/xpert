@@ -285,6 +285,7 @@ export class XpertController extends CrudController<Xpert> {
 		}
 		const observable = await this.commandBus.execute(new XpertChatCommand(body.request, {
 			...body.options,
+			xpertId: id,
 			environment,
 			language,
 			timeZone,
