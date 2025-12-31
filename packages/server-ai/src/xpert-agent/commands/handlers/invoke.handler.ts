@@ -184,8 +184,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					date: format(new Date(), 'yyyy-MM-dd'),
 					datetime: new Date().toLocaleString(),
 					[STATE_SYS_VOLUME]: volumeClient.getVolumePath(getWorkspace(options.projectId, options.conversationId)),
-					[STATE_SYS_WORKSPACE_PATH]: await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, options.conversationId),
-					[STATE_SYS_WORKSPACE_URL]: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.conversationId)
+					[STATE_SYS_WORKSPACE_PATH]: await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, options.thread_id),
+					[STATE_SYS_WORKSPACE_URL]: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.thread_id)
 				},
 				[STATE_VARIABLE_HUMAN]: {
 					...state[STATE_VARIABLE_HUMAN],
@@ -259,7 +259,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
 					// Interrupted event
 					if (state.tasks?.length) {
-						const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
+						const operation = await this.queryBus.execute(
 								new CompleteToolCallsQuery(xpert.id, state.tasks, state.values, options.isDraft)
 							)
 						subscriber.next({

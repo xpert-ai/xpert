@@ -2095,10 +2095,14 @@
       "FileDeleteError": "文件刪除失敗",
       "Delete": "刪除",
       "AttachmentsMaxNumExceeded": "附件數量超過限製",
-      "AttachmentsAlreadyExists": "附件已存在"
+      "AttachmentsAlreadyExists": "附件已存在",
+      "SearchXpert": "搜尋數字專家",
+      "NoXpertFound": "未找到匹配的數字專家",
+      "NoPublishedXpert": "沒有已發布的數字專家，請在工作空間創建並點擊\"發布\"發布數字專家",
+      "GotoWorkspace": "前往工作空間"
     },
     "ChatBI": {
-      "DeprecationNotes": "ChatBI 功能請使用數字專家智能體中的 ChatBI 工具集！",
+      "DeprecationNotes": "ChatBI 功能請使用數字專家中的 ChatBI 工具集！",
       "Title": "ChatBI-數據分析與洞察",
       "TransformData": "利用人工智能將數據轉化為洞察力。",
       "InputPlaceholder": "針對數據集詢問問題，按 Enter 發送",
@@ -3090,7 +3094,8 @@
       "NewChat": "新聊天",
       "TracingAppPerf": "追蹤應用性能",
       "QRCodeSharing": "二維碼分享",
-      "APIReference": "API 參考",
+      "APIKey": "API 密鑰",
+      "APIReference": "API 參考文檔",
       "Copied": "已復製",
       "ReadyAIWebApp": "即用型 AI Web應用程序",
       "BackendServiceAPI": "後端服務 API",
@@ -3559,7 +3564,7 @@
       "CANCEL": "取消",
       "DELETE": "刪除"
     }
-    
+
   },
   "STORY_DESIGNER": {
     "BUILDER_TITLE": "構建",
@@ -3678,7 +3683,7 @@
         "Indicators": "明細指標",
         "LookBack": "回顧期間數"
       },
-      
+
       "IFrame": {
         "SRC": "src"
       },
@@ -3789,7 +3794,7 @@
         "PresetBackground": "預設背景",
         "PageType": "類型"
       },
-    
+
       "ECHARTS": {
         "Common": {
           "Align": "對齊",
@@ -4498,13 +4503,13 @@
 
     },
     "ENTITY": {
-  
+
     },
     "PROPERTY": {
-      
+
     },
     "CALCULATION": {
-      
+
     },
 
     "VALUE_HELP": {
@@ -4535,7 +4540,7 @@
     "EDITOR": {
       "EDIT": "編輯"
     },
-   
+
     "Table": {
 
     }
@@ -4700,7 +4705,7 @@
       "ROLE": "選擇角色"
     }
   },
-  
+
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密碼重置",

@@ -180,7 +180,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	/** Override the plugin workspace root for the organization. Defaults to data/plugins/<orgId> when organizationId is set. */
 	baseDir?: string;
 	/** Explicit list of plugin package names (takes precedence) */
-	plugins?: string[];
+	plugins?: {name: string; version?: string; source?: string}[];
 	/** Auto-discovery options (effective when plugins are not explicitly provided) */
 	discovery?: { prefix?: string; manifestPath?: string };
 	/** Configuration map injected by the main app (indexed by plugin name) */
@@ -214,11 +214,11 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 		: [];
 
 	// 1) install into organization workspace (and update manifest)
-	installOrganizationPlugins(organizationId, pluginNames);
+	installOrganizationPlugins(organizationId, pluginNames.filter(p => p.source !== 'code').map(p => p.name), opts);
 
 	const modules: DynamicModule[] = [];
 
-	for (const name of pluginNames) {
+	for (const {name} of pluginNames) {
 		const pluginBaseDir = opts.organizationId
 			? getOrganizationPluginPath(organizationId, name, opts)
 			: baseDirRoot;

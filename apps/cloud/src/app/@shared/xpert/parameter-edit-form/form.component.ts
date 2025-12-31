@@ -59,6 +59,19 @@ export class XpertParameterFormComponent {
     this.cva.value$.update((state) => ({ ...(state ?? {}), [name]: value }) as TXpertParameter)
   }
 
+  /**
+   * Validates and limits the maximum length input to 256.
+   * Fixes #328: No validation for the maximum length of numeric type agent parameters.
+   */
+  onMaximumInput(event: Event) {
+    const input = event.target as HTMLInputElement
+    const numValue = Number(input.value)
+    if (!isNaN(numValue) && numValue > 256) {
+      input.value = '256'
+      this.updateParameter('maximum', 256)
+    }
+  }
+
   drop(event: CdkDragDrop<string, string>) {
     const options = Array.from(this.options() ?? [])
     moveItemInArray(options, event.previousIndex, event.currentIndex)

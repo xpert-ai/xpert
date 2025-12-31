@@ -7,6 +7,7 @@ export class ChatCommand implements ICommand {
 	constructor(
 		public readonly request: TChatRequest,
 		public readonly options: TChatOptions & {
+			xpertId?: string
 			isDraft?: boolean
 			tenantId: string
 			organizationId: string

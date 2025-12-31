@@ -30,8 +30,9 @@ export async function createHumanMessage(
 	if (vision.variable) {
 		files = get(state, vision.variable, []) as Array<_TFile>
 	} else if (human.files?.length) {
+		const _files = human.files as Array<IStorageFile>
 		const storageFiles = await queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-			new GetStorageFileQuery(human.files.map((file) => file.id))
+			new GetStorageFileQuery(_files.map((file) => file.id))
 		)
 		files = await Promise.all(
 			storageFiles.map(async (file) => {

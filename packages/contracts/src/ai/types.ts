@@ -105,6 +105,10 @@ type JsonSchema7Meta = {
        * Additional inputs for the Custom UI component
        */
       inputs?: Record<string, unknown>
+
+      enumLabels?: Record<string, I18nObject | string>;
+
+      styles?: Record<string, string>;
     }
 };
 export type JsonSchemaObjectType = {

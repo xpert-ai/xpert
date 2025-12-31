@@ -92,8 +92,9 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 	async loadDocuments(config: LocalFileConfig): Promise<Document[]> {
 		const human = config[STATE_VARIABLE_HUMAN]
 		if (human?.files) {
+			const _files = human.files as Array<IStorageFile>
 			const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-				new GetStorageFileQuery(human.files.map((file) => file.id))
+				new GetStorageFileQuery(_files.map((file) => file.id))
 			)
 			// const fileProvider = new FileStorage().getProvider()
 			return storageFiles.map((file) => {

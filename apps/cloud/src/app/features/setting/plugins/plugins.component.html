@@ -237,7 +237,7 @@
         [disabled]="npmInstalling() || !npmPackageName()?.trim()"
         (click)="confirmInstallNpm(dialogRef)">
         @if (npmInstalling()) {
-          <ngm-spin small />
+          <ngm-spin small class="!text-primary-200" />
         }
         <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
       </button>

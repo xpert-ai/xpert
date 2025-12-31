@@ -37,7 +37,6 @@ import {
   SynthesizeService,
   TInterruptCommand,
   ToastrService,
-  TToolCall,
   TtsStreamPlayerService,
   TXpertParameter,
   uuid,
@@ -178,6 +177,17 @@ export class ChatConversationPreviewComponent {
   })
 
   readonly copiedMessages = signal<Record<string, boolean>>({})
+  readonly feedbackReady = (message: IChatMessage) => {
+    const status = message?.status as XpertAgentExecutionStatusEnum | string
+    const endedStatuses = new Set<XpertAgentExecutionStatusEnum | string>([
+      XpertAgentExecutionStatusEnum.SUCCESS,
+      XpertAgentExecutionStatusEnum.ERROR,
+      XpertAgentExecutionStatusEnum.TIMEOUT,
+      XpertAgentExecutionStatusEnum.INTERRUPTED,
+      'aborted'
+    ])
+    return endedStatuses.has(status)
+  }
 
   private convSub = toObservable(this.conversationId)
     .pipe(
@@ -203,7 +213,7 @@ export class ChatConversationPreviewComponent {
     })
 
   private chatSubscription: Subscription
-  
+
   // Attachments
   readonly attachment = computed(() => this.xpert()?.features?.attachment)
   readonly attachment_enabled = computed(() => this.attachment()?.enabled)
@@ -291,11 +301,8 @@ export class ChatConversationPreviewComponent {
             files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()}))
           },
           conversationId: this.conversation()?.id,
-          xpertId: this.xpert().id,
           environmentId: this.environmentId(),
-          // operation: options?.confirm ? this.command() : null,
           command: options?.confirm ? this.command() : null,
-          reject: options?.reject,
           confirm: options?.confirm,
           retry: options?.retry,
         },
@@ -309,7 +316,7 @@ export class ChatConversationPreviewComponent {
             this.onChatError(msg.data)
           } else {
             if (msg.data) {
-              // Ignore non-data events 
+              // Ignore non-data events
               if (msg.data.startsWith(':')) {
                 return
               }

@@ -20,7 +20,18 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 	public async execute(command: GetXpertWorkflowQuery): Promise<TXpertWorkflowQueryOutput> {
 		const { id, agentKey: keyOrName, draft } = command
 		const xpert = await this.service.findOne(id, {
-			relations: ['agent', 'agent.copilotModel', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']
+			relations: [
+				'agent',
+				'agent.copilotModel',
+				'copilotModel',
+				'copilotModel.copilot',
+				'agents',
+				'agents.copilotModel',
+				'knowledgebases',
+				'toolsets',
+				'executors',
+				'executors.agent'
+			]
 		})
 		const tenantId = xpert.tenantId
 
@@ -49,7 +60,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 					}
 				}))
 			}
-			
+
 			const agentKey = agentNode.key
 
 			const toolNodes = connections
@@ -74,7 +85,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 			const fail = connections
 				.filter((_) => _.type === 'edge' && _.from === (agentKey + '/fail'))
 				.map((conn) => nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
-			
+
 			if (agentNode) {
 			    await this.fillCopilot(tenantId, (<IXpertAgent>agentNode.entity).copilotModel)
 			}
@@ -128,8 +139,8 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 
 	/**
 	 * Find the runtime copilot fill in the copilot model for agent
-	 * 
-	 * @param copilotModel 
+	 *
+	 * @param copilotModel
 	 */
 	async fillCopilot(tenantId: string, copilotModel: ICopilotModel) {
 		if (copilotModel?.copilotId) {

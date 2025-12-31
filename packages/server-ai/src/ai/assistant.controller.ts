@@ -1,6 +1,6 @@
 import { Assistant } from '@langchain/langgraph-sdk'
 import { IXpert } from '@metad/contracts'
-import { ApiKeyAuthGuard, PaginationParams, Public, TransformInterceptor } from '@metad/server-core'
+import { ApiKeyOrClientSecretAuthGuard, PaginationParams, Public, TransformInterceptor } from '@metad/server-core'
 import { Body, Controller, Get, Logger, Param, Post, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -11,7 +11,7 @@ import { XpertService } from '../xpert'
 @ApiTags('AI/Assistants')
 @ApiBearerAuth()
 @Public()
-@UseGuards(ApiKeyAuthGuard)
+@UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('assistants')
 export class AssistantsController {

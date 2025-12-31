@@ -123,17 +123,19 @@ For Production, we recommend:
     - [x] digital experts
     - [x] long-term memory storage
     - [x] contextual files
+    - [x] Conversation management
     - [ ] knowledge bases
   - [ ] [SDK (Python)](https://github.com/xpert-ai/xpert-sdk-py)
 
 - [x] **Plugins** – extensible plugin system.
   - [x] Plugins system
   - [x] Marketplace to showcase the plugins ecosystem.
-  - [ ] Hot-swappable plugin system.
+  - [x] Hot-swappable plugin system.
 - [ ] **Chatkit** – front-end component library for embedding digital expert chat dialog.
-- [ ] **Widgets** – UI widgets that let large-model responses drive richer interface experiences.
+  - [x] ChatKit javascript version.
+- [x] **Widgets** – UI widgets that let large-model responses drive richer interface experiences.
 - [x] **Agent Middlewares** Plugin-based Agent Middleware.
-- [ ] **Agent Skills** – lightweight agent skills for rapid custom capability integration, offering a quicker alternative to MCP tools.
+- [x] **Agent Skills** – lightweight agent skills for rapid custom capability integration, offering a quicker alternative to MCP tools.
 
 ## 💌 Contact Us
 

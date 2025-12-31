@@ -1,5 +1,6 @@
 :host {
   @apply flex-1 flex flex-col justify-start items-start relative;
+  min-width: 0; // Allow flex children to shrink properly
 }
 
 .mat-mdc-input-element {

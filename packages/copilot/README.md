@@ -1,4 +1,6 @@
-# Metad AI Copilot
+# ❌ (Deprecated) Metad AI Copilot
+
+❌ !Deprecated use [ChatKit](https://github.com/xpert-ai/chatkit-js) instead.
 
 English | [中文](./README_zh.md)
 

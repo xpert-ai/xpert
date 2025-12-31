@@ -98,22 +98,24 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 
 ## 🗺️ 路线图
 
-- [ ] **SDK** – 简化 XpertAI 平台的 API 访问。
-  - [ ] [SDK (TypeScript)](https://github.com/xpert-ai/xpert-sdk-js)
+- [ ] **SDK** – 简化访问 XpertAI 平台的 API。
+  - [ ] [SDK（TypeScript）](https://github.com/xpert-ai/xpert-sdk-js)
     - [x] 数字专家
     - [x] 长期记忆存储
     - [x] 上下文文件
+    - [x] 会话管理
     - [ ] 知识库
-  - [ ] [SDK (Python)](https://github.com/xpert-ai/xpert-sdk-py)
+  - [ ] [SDK（Python）](https://github.com/xpert-ai/xpert-sdk-py)
 
 - [x] **插件** – 可扩展的插件系统。
   - [x] 插件系统
-  - [x] 展示插件生态的市场
-  - [ ] 热插拔插件系统
+  - [x] 用于展示插件生态的市场
+  - [x] 热插拔插件系统
 - [ ] **Chatkit** – 用于嵌入数字专家聊天对话的前端组件库。
-- [ ] **小部件** – 让大模型响应驱动更丰富界面体验的 UI 小部件。
+  - [x] ChatKit JavaScript 版本
+- [x] **小部件（Widgets）** – 让大模型回复驱动更丰富界面体验的 UI 组件。
 - [x] **智能体中间件** – 基于插件的智能体中间件。
-- [ ] **智能体技能** – 轻量级智能体技能, 快速集成自定义能力, 提供比 MCP 工具更快捷的替代方案。
+- [x] **智能体技能** – 轻量化的智能体技能，快速集成定制能力，比 MCP 工具更快捷。
 
 ## 💌 联系我们
 

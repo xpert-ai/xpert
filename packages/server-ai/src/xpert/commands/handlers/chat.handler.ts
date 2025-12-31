@@ -51,9 +51,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 	public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
 		const { options } = c
-		const { projectId, xpertId, conversationId, confirm, command, reject } = c.request
+		const { projectId, conversationId, confirm, command } = c.request
 		let { input, state } = c.request
-		const { taskId, from, fromEndUserId } = options ?? {}
+		const { xpertId, taskId, from, fromEndUserId } = options ?? {}
 		let { execution } = options ?? {}
 		const userId = RequestContext.currentUserId()
 
@@ -90,7 +90,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		let aiMessage: CopilotChatMessage
 		let executionId: string
 		// Continue thread when confirm or reject operation
-		if (confirm || reject) {
+		if (confirm) {
 			conversation = await this.queryBus.execute(
 				new GetChatConversationQuery({ id: conversationId }, ['messages'])
 			)
@@ -125,8 +125,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						xpert,
 						options: {
 							parameters: input,
-							knowledgebases: options?.knowledgebases,
-							toolsets: options?.toolsets
 						},
 						from,
 						fromEndUserId
@@ -231,12 +229,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							...(options ?? {}),
 							store: memoryStore,
 							conversationId: conversation.id,
-							toolsets: null, // Does not support customizing whether to use tools
-							knowledgebases: null, // Does not support customizing whether to use knowledgebases
 							isDraft: options?.isDraft,
 							execution: { id: executionId, category: 'agent' },
 							command,
-							reject,
 							memories,
 							summarizeTitle: !latestXpert.agentConfig?.summarizeTitle?.disable
 						})

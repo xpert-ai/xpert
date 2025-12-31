@@ -19,6 +19,7 @@ import { QueryHandlers } from './queries/handlers'
 		ChatConversationModule
 	],
 	controllers: [ChatMessageFeedbackController],
-	providers: [ChatMessageFeedbackService, ...QueryHandlers]
+	providers: [ChatMessageFeedbackService, ...QueryHandlers],
+	exports: [ChatMessageFeedbackService]
 })
 export class ChatMessageFeedbackModule {}

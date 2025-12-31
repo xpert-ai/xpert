@@ -271,6 +271,9 @@ export function findChannelByTool(values: typeof AgentStateAnnotation.State, too
 	return name ? [name, values[name] as TMessageChannel] : [null, null]
 }
 
+/**
+ * @deprecated Use `command` instead
+ */
 export async function rejectGraph(graph: CompiledStateGraph<any, any, any>, config: any, command: TInterruptCommand) {
 	const state = await graph.getState({ configurable: config })
 	const channel = channelName(command.agentKey)

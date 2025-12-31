@@ -1,3 +1,4 @@
+export * from '@xpert-ai/chatkit-types'
 export * from './ai-model.model'
 export * from './ai.model'
 export * from './chat.model'

@@ -139,6 +139,11 @@ import { JsonSchemaWidgetStrategyRegistry, provideJsonSchemaWidgetStrategy } fro
       async load(): Promise<Type<unknown>> {
         return import('@cloud/app/@shared/agent/middlewares').then(m => m.AgentInterruptOnComponent)  
       }
+    }, {
+      name: 'code-editor',
+      async load(): Promise<Type<unknown>> {
+        return import('@cloud/app/@shared/editors').then(m => m.CodeEditorComponent)
+      }
     })
   ]
 })

@@ -52,12 +52,14 @@ export class PluginController {
 		const tenantId = RequestContext.currentTenantId()
 		const packageName = body.pluginName
 		try {
+			await this.pluginInstanceService.uninstallByPackageName(tenantId, organizationId, packageName)
+
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
 			// 1) Install and register into current module context (mirrors registerPluginsAsync logic)
 			const { modules } = await registerPluginsAsync({
 				organizationId,
-				plugins: [packageNameWithVersion],
+				plugins: [{name: packageNameWithVersion, source: body.source}],
 				configs: { [packageName]: body.config },
 				baseDir: organizationBaseDir
 			})
@@ -87,7 +89,7 @@ export class PluginController {
 			}
 
 			// 3) load plugin metadata to persist canonical plugin name/config
-			const pluginBaseDir = getOrganizationPluginPath(organizationId, packageName)
+			const pluginBaseDir = getOrganizationPluginPath(organizationId, packageNameWithVersion)
 			const plugin = await loadPlugin(packageName, { basedir: pluginBaseDir })
 			const pluginName = plugin.meta?.name ?? packageName
 			const config = buildConfig(pluginName, body.config ?? {}, plugin.config)

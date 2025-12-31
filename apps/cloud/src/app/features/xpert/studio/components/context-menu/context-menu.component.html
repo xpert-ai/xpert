@@ -116,9 +116,17 @@
 <ng-template #collaboratorsMenu>
   <div cdkMenu class="cdk-menu__medium">
     @for (xpert of collaborators$ | async; track xpert.id) {
-      <div cdkMenuItem class="">
+      <div cdkMenuItem
+        [cdkMenuItemDisabled]="isXpertExists(xpert)"
+        [class.opacity-50]="isXpertExists(xpert)"
+        [class.cursor-not-allowed]="isXpertExists(xpert)"
+        [matTooltip]="isXpertExists(xpert) ? ('PAC.Xpert.DuplicateExternalExpert' | translate: {Default: 'Cannot create duplicate external expert'}) : ''"
+        [matTooltipDisabled]="!isXpertExists(xpert)"
+        matTooltipPosition="right"
+        class="relative">
         <xpert-inline-profile class="w-full max-w-sm my-0.5"
           [xpert]="xpert"
+          [class.pointer-events-none]="isXpertExists(xpert)"
           (click)="addCollaborator(xpert)"
         />
       </div>
@@ -190,7 +198,7 @@
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ASSIGNER" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">{{'PAC.Workflow.VariableAssigner' | translate: {Default: 'Variable Assigner'} }}</div>
     </div>
-    
+
     <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Transform' | translate: {Default: 'Transform'} }}
     </div>
@@ -318,7 +326,7 @@
         @if (provider.icon) {
           <xp-icon [icon]="provider.icon" class="w-6 h-6 shrink-0 mr-2" />
         }
-       
+
         <div class="text-text-primary">
           {{ provider.label | i18n }}
         </div>
@@ -464,10 +472,22 @@
 
 <ng-template #middlewaresMenu let-ref="ref">
   <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]">
-    <div class="flex items-start px-2 my-1 text-base font-medium text-text-tertiary">
-      {{ 'PAC.Xpert.AgentMiddlewares' | translate: {Default: 'Agent Middlewares'} }}
+    <div class="flex justify-center items-center px-2 my-1 text-base font-medium text-text-tertiary">
+      <span>{{ 'PAC.Xpert.AgentMiddlewares' | translate: {Default: 'Agent Middlewares'} }}</span>
+
+      <div class="relative w-[160px] ml-4">
+        <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
+        <input class="w-full appearance-none bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:bg-neutral-50 px-3 radius-md system-sm-regular pl-[26px]"
+          [placeholder]="'PAC.ACTIONS.Search' | translate: {Default: 'Search'}"
+          [(ngModel)]="searchMiddlewares"
+        >
+        @if (searchMiddlewares()) {
+          <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+            (click)="searchMiddlewares.set('')"></i>
+        }
+      </div>
     </div>
-    @for (middleware of agentMiddlewares$ | async; track middleware.meta?.name) {
+    @for (middleware of filteredAgentMiddlewares(); track middleware.meta?.name) {
       <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
         [cdkMenuItemDisabled]="!middleware.meta?.name"
         (click)="addMiddleware(middleware.meta?.name)"
@@ -480,9 +500,11 @@
           @if (middleware.meta.icon) {
             <xp-icon [icon]="middleware.meta.icon" class="w-6 h-6 shrink-0 mr-2" />
           }
-          <div class="text-text-primary">
-            {{ middleware.meta.label | i18n }}
-          </div>
+          @if (middleware.meta.label | i18n; as label) {
+            <div class="text-text-primary" [ngmHighlight]="searchMiddlewares()" [content]="label">
+              {{ label }}
+            </div>
+          }
         }
       </div>
     }

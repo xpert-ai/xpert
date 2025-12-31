@@ -205,6 +205,17 @@ export abstract class ChatService {
       { allowSignalWrites: true }
     )
 
+    effect(
+      () => {
+        // Sync feedbacks from remote conversation to local signal
+        const feedbacks = this.#conversation()?.feedbacks
+        if (feedbacks !== undefined) {
+          this.feedbacks.set(feedbacks ?? null)
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(() => {
       if (!this.conversationId()) {
         this.suggestionQuestions.set([])
@@ -296,17 +307,14 @@ export abstract class ChatService {
           input: options.content,
           files: options.files
         },
-        xpertId: this.xpert()?.id,
         conversationId: this.conversation()?.id,
         id: options.id,
         command: options.command,
         confirm: options.confirm,
-        reject: options.reject,
         retry: options.retry
       },
       {
-        knowledgebases: this.knowledgebases()?.map(({ id }) => id),
-        toolsets: this.toolsets()?.map(({ id }) => id)
+        xpertId: this.xpert()?.id,
       }
     ).subscribe({
       next: (msg) => {

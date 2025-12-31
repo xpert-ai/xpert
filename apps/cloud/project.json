@@ -102,8 +102,7 @@
           "packages/angular/_index.scss",
           "packages/copilot-angular/_index.scss",
           "apps/cloud/src/styles.scss",
-          "node_modules/@ctrl/ngx-emoji-mart/picker.css",
-          "node_modules/swagger-ui/dist/swagger-ui.css"
+          "node_modules/@ctrl/ngx-emoji-mart/picker.css"
         ],
         "stylePreprocessorOptions": {
           "includePaths": ["node_modules/"]

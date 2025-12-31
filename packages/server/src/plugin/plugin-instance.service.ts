@@ -1,11 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StrategyBus } from '@xpert-ai/plugin-sdk';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { In, Repository } from 'typeorm';
 import { PluginInstance } from './plugin-instance.entity';
 import { TenantOrganizationAwareCrudService } from '../core/crud';
-import { getOrganizationManifestPath, getOrganizationPluginPath } from './organization-plugin.store';
+import { getOrganizationManifestPath, getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store';
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from './types';
 
 
@@ -61,14 +62,6 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
    * @param names Plugin names to uninstall
    */
   async uninstall(tenantId: string, organizationId: string, names: string[]) {
-		const { items } = await this.findAll({
-			where: {
-				tenantId,
-				organizationId,
-				pluginName: In(names)
-			}
-		})
-
 		await this.delete({
 			tenantId,
 			organizationId,
@@ -78,8 +71,28 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		await this.removePlugins(organizationId, names)
   }
 
+	async uninstallByPackageName(tenantId: string, organizationId: string, packageName: string) {
+		const normalized = normalizePluginName(packageName)
+		const candidates = normalized === packageName ? [packageName] : [packageName, normalized]
+		const items = await this.repo.find({
+			where: {
+				tenantId,
+				organizationId,
+				packageName: In(candidates)
+			}
+		})
+
+		if (!items.length) {
+			return
+		}
+
+		const names = items.map((item) => item.pluginName)
+		await this.uninstall(tenantId, organizationId, names)
+	}
+
   async removePlugins(organizationId: string, names: string[]) {
     const manifestPath = getOrganizationManifestPath(organizationId)
+		const rootDir = getOrganizationPluginRoot(organizationId)
 		const normalizedTargets = new Set(names.map((item) => normalizePluginName(item)))
     for (const pluginName of normalizedTargets) {
 			this.strategyBus.remove(organizationId, pluginName)
@@ -90,6 +103,27 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 
 			const pluginDir = getOrganizationPluginPath(organizationId, pluginName)
 			rmSync(pluginDir, { recursive: true, force: true })
+
+			const segments = pluginName.split('/')
+			// Remove versioned plugin directories (e.g., @scope/pkg@1.2.3 or pkg@1.2.3) under the org root.
+			if (segments[0]?.startsWith('@') && segments[1]) {
+				const scopeDir = join(rootDir, segments[0])
+				if (existsSync(scopeDir)) {
+					for (const entry of readdirSync(scopeDir, { withFileTypes: true })) {
+						if (!entry.isDirectory()) continue
+						if (entry.name === segments[1] || entry.name.startsWith(`${segments[1]}@`)) {
+							rmSync(join(scopeDir, entry.name), { recursive: true, force: true })
+						}
+					}
+				}
+			} else if (existsSync(rootDir)) {
+				for (const entry of readdirSync(rootDir, { withFileTypes: true })) {
+					if (!entry.isDirectory()) continue
+					if (entry.name === pluginName || entry.name.startsWith(`${pluginName}@`)) {
+						rmSync(join(rootDir, entry.name), { recursive: true, force: true })
+					}
+				}
+			}
 		}
 
 		if (existsSync(manifestPath)) {

@@ -10,7 +10,7 @@
 </div>
 <div class="flex flex-col items-start justify-center gap-4 self-stretch px-6 py-3">
   <div class="system-md-regular text-text-secondary">
-    @if (installedVersion() === plugin().version) {
+    @if (installedVersion() === pluginVersion()) {
       <p>{{ 'PAC.Plugin.PluginAlreadyInstalled' | translate: {Default: 'The latest version of this plugin is already installed'} }}</p>
     } @else {
       @if (status() === 'installed') {
@@ -30,10 +30,10 @@
   <div class="relative flex flex-wrap content-start items-start gap-1 self-stretch rounded-2xl bg-slate-100 p-2">
     <xp-plugin [plugin]="plugin()" [installed]="!!installed()">
       <div version>
-        @if (installedVersion() && installedVersion() !== plugin().version) {
-          <div class="badge badge-s mx-1 badge-warning px-[5px] py-[3px] system-2xs-medium">{{installedVersion()}} -&gt; {{plugin().version}}</div>
+        @if (installedVersion() && installedVersion() !== pluginVersion()) {
+          <div class="badge badge-s mx-1 badge-warning px-[5px] py-[3px] system-2xs-medium">{{installedVersion()}} -&gt; {{pluginVersion()}}</div>
         } @else {
-          <div class="badge badge-s mx-1 px-[5px] py-[3px] system-2xs-medium font-mono">{{plugin().version}}</div>
+          <div class="badge badge-s mx-1 px-[5px] py-[3px] system-2xs-medium font-mono">{{pluginVersion()}}</div>
         }
       </div>
     </xp-plugin>
@@ -43,7 +43,7 @@
   </div>
 </div>
 <div class="flex items-center justify-end gap-2 self-stretch p-6 pt-5">
-  @if (status() === 'installed' || installedVersion() === plugin().version) {
+  @if (status() === 'installed' || installedVersion() === pluginVersion()) {
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-large flex min-w-[72px] space-x-0.5"
       (click)="close()">
       <span>{{ 'PAC.Plugin.Close' | translate: {Default: 'Close'} }}</span>

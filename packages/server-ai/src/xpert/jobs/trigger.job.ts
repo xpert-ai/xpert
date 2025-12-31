@@ -43,10 +43,10 @@ export class XpertTriggerConsumer {
 						new XpertChatCommand(
 							{
 								input: job.data[STATE_VARIABLE_HUMAN],
-								xpertId: job.data.xpertId,
 								state: job.data.state,
 							},
 							{
+								xpertId: job.data.xpertId,
 								from: job.data.from,
 								isDraft: job.data.isDraft,
 								execution: job.data.executionId ? { id: job.data.executionId } : null

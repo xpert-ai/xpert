@@ -143,7 +143,8 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
 							agent: identifyAgent(agent)
 						}
 					}
-					return null
+					
+					return task
 				}
 			})
 		)

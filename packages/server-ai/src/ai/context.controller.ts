@@ -1,6 +1,6 @@
 import { UploadedFile } from '@metad/contracts'
 import {
-	ApiKeyAuthGuard,
+	ApiKeyOrClientSecretAuthGuard,
 	FileStorage,
 	LazyFileInterceptor,
 	Public,
@@ -19,7 +19,7 @@ import path from 'path'
 @ApiTags('AI/Contexts')
 @ApiBearerAuth()
 @Public()
-@UseGuards(ApiKeyAuthGuard)
+@UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('contexts')
 export class ContextsController {

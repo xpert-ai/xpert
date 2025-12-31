@@ -1,4 +1,4 @@
-import { ToolCall as LToolCall } from '@langchain/core/dist/messages/tool'
+import { ToolCall as LToolCall } from '@langchain/core/messages/tool'
 import { RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { ITag } from '../tag-entity.model'
@@ -10,12 +10,9 @@ import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
-import { TChatFrom, TSensitiveOperation } from './chat.model'
+import { TChatFrom } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, TWFCase, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
-import { IStorageFile } from '../storage-file.model'
-import { STATE_VARIABLE_HUMAN } from '../agent/graph'
-import { TInterruptCommand } from '../agent/interrupt'
 
 export type ToolCall = LToolCall
 
@@ -506,87 +503,9 @@ export interface TXpertTeamConnection {
   readonly?: boolean
 }
 
-export enum ChatMessageTypeEnum {
-  // LOG = 'log',
-  MESSAGE = 'message',
-  EVENT = 'event'
-}
-
-/**
- * https://js.langchain.com/docs/how_to/streaming/#event-reference
- */
-export enum ChatMessageEventTypeEnum {
-  ON_CONVERSATION_START = 'on_conversation_start',
-  ON_CONVERSATION_END = 'on_conversation_end',
-  ON_MESSAGE_START = 'on_message_start',
-  ON_MESSAGE_END = 'on_message_end',
-  ON_TOOL_START = 'on_tool_start',
-  ON_TOOL_END = 'on_tool_end',
-  ON_TOOL_ERROR = 'on_tool_error',
-  /**
-   * Step message in tool call
-   */
-  ON_TOOL_MESSAGE = 'on_tool_message',
-  ON_AGENT_START = 'on_agent_start',
-  ON_AGENT_END = 'on_agent_end',
-  ON_RETRIEVER_START = 'on_retriever_start',
-  ON_RETRIEVER_END = 'on_retriever_end',
-  ON_RETRIEVER_ERROR = 'on_retriever_error',
-  ON_INTERRUPT = 'on_interrupt',
-  ON_ERROR = 'on_error',
-  ON_CHAT_EVENT = 'on_chat_event',
-}
-
-/**
- * Human input message, include parameters and attachments
- */
-export type TChatRequestHuman = {
-  input?: string
-  files?: Partial<IStorageFile>[]
-  [key: string]: unknown
-}
-
-export type TChatRequest = {
-  /**
-   * The human input, include parameters
-   */
-  input: TChatRequestHuman
-  /**
-   * Custom graph state
-   */
-  state?: {[STATE_VARIABLE_HUMAN]: TChatRequestHuman} & Record<string, any>
-  xpertId: string
-  agentKey?: string
-  projectId?: string
-  conversationId?: string
-  environmentId?: string
-  id?: string
-  executionId?: string
-  confirm?: boolean
-  /**
-   * Reject the sensitive tool calls
-   * @deprecated use confirm with command resume instead
-   */
-  reject?: boolean
-  /**
-   * Message to update parameters of last tool call message
-   * @deprecated use `command` instead
-   */
-  operation?: TSensitiveOperation
-  command?: TInterruptCommand
-  retry?: boolean
-}
-
 export type TChatOptions = {
+  xpertId?: string
   conversationId?: string
-  /**
-   * @deprecated
-   */
-  knowledgebases?: string[]
-  /**
-   * @deprecated
-   */
-  toolsets?: string[]
   /**
    * The language used by the current browser page
    */

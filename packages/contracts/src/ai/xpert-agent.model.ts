@@ -1,3 +1,4 @@
+import { TInterruptCommand } from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
@@ -6,7 +7,6 @@ import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, TXpertParameter } from './xpert.model'
 import { TVariableAssigner } from './xpert-workflow.model'
 import { TErrorHandling } from './types'
-import { TInterruptCommand } from '../agent'
 
 export type TXpertAgent = {
   key: string
