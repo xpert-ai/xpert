@@ -361,6 +361,30 @@
     "Xpert": {
       "Logs": "Logs",
       "SelectTimeRange": "Select time range"
+    },
+    "MODEL": {
+      "SelectAFactTable": "Select a fact table",
+      "Alias": "Alias",
+      "SQL": "SQL",
+      "JoinConfig": "Join Configuration",
+      "FactTable": "Fact Table",
+      "AddFactTable": "Add Fact Table",
+      "JoinTables": "Join Tables",
+      "AddJoinTable": "Add Join Table",
+      "NoJoinTables": "No join tables. Click \"Add Join Table\" to add one.",
+      "Tables": "Tables",
+      "AddTable": "Add Table",
+      "NoTables": "No tables. Click \"Add Table\" to add one.",
+      "AddJoinField": "Add join field",
+      "ConfigureJoin": "Configure join",
+      "FactTableNoLeftKey": "Fact table has no left key",
+      "SelectAField": "Select a field",
+      "NoOptions": "No options available",
+      "SingleTable": "Single Table",
+      "MultiTable": "Multi Table",
+      "SQLView": "SQL View",
+      "SelectATable": "Select a table",
+      "PleaseSelectTableFirst": "Please select a table first"
     }
   },
   "STORY_DESIGNER": {

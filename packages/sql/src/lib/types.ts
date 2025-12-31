@@ -94,16 +94,32 @@ export class SQLError extends Error {
   }
 }
 
-export function CubeFactTable(cube: Cube) {
-  const tableName = cube.fact?.table?.name
-  if (!tableName) {
-    throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
+/**
+ * Get the fact table name for a cube
+ * 
+ * Supports multiple configuration modes:
+ *   - Single table mode: cube.fact.table.name
+ *   - Multi-table mode: cube.tables[0].name (first table is fact table)
+ *   - SQL View mode: cube.fact.view.alias
+ * 
+ * @param cube Cube configuration
+ * @returns Fact table name
+ */
+export function CubeFactTable(cube: Cube): string {
+  // Priority 1: Direct fact table configuration
+  if (cube.fact?.table?.name) {
+    return cube.fact.table.name
   }
-  // if (!cube.tables?.[0]?.name) {
-  //   throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
-  // }
-  /**
-   * @todo 支持 SQL View 作为事实表
-   */
-  return tableName
+  
+  // Priority 2: Multi-table mode - first table is fact table
+  if (cube.tables && cube.tables.length > 0 && cube.tables[0].name) {
+    return cube.tables[0].name
+  }
+  
+  // Priority 3: SQL View mode
+  if (cube.fact?.view?.alias) {
+    return cube.fact.view.alias
+  }
+  
+  throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
 }

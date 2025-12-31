@@ -8,6 +8,7 @@ import { DiscordToolset } from './discord/discord'
 import { DuckDuckGoToolset } from './duckduckgo/duckduckgo'
 import { EmailToolset } from './email/email'
 import { FeishuMessageToolset } from './feishu_message/feishu_message'
+import { FreeAskInternetToolset } from './freeaskinternet/freeaskinternet'
 import { SearchAPIToolset } from './searchapi/searchapi'
 import { SerpAPIToolset } from './serpapi/serpapi'
 import { SerperToolset } from './serper/serper'
@@ -30,6 +31,7 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			TaskToolset,
 			PlanningToolset,
 			TavilyToolset,
+			FreeAskInternetToolset,
 			SearchAPIToolset,
 			SerpAPIToolset,
 			EmailToolset,

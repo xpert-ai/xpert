@@ -54,6 +54,10 @@
             "WebSearch": "Web Search",
             "Searching": "Searching"
         },
+        "FreeAskInternetSearch": {
+            "WebSearch": "Internet Search",
+            "Searching": "Searching"
+        },
         "Python": {
             "ExecPythonCode": "Executing Python code"
         },

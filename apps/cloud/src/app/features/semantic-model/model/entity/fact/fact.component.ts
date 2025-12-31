@@ -37,8 +37,8 @@ import { ToastrService, uuid } from 'apps/cloud/src/app/@core'
 import { isEmpty, values } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { Observable, firstValueFrom } from 'rxjs'
-import { filter, map, shareReplay, switchMap, tap, withLatestFrom } from 'rxjs/operators'
+import { Observable, combineLatest, firstValueFrom, of } from 'rxjs'
+import { catchError, filter, map, shareReplay, switchMap, tap, withLatestFrom } from 'rxjs/operators'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { ModelEntityService } from '../entity.service'
@@ -48,6 +48,45 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 
+/**
+ * Clean field name by removing SQL delimiters (brackets, quotes)
+ * Examples:
+ *   - "[uuid]" -> "uuid"
+ *   - "table.[field]" -> "table.field"
+ *   - '"field"' -> "field"
+ */
+function cleanFieldName(name: string): string {
+  if (!name || typeof name !== 'string') {
+    return ''
+  }
+  
+  let cleaned = name.trim()
+  
+  // Split by dot to handle table.field format
+  const parts = cleaned.split('.')
+  const cleanedParts = parts.map(part => {
+    let cleanPart = part.trim()
+    // Remove square brackets: [field] -> field
+    if (cleanPart.startsWith('[') && cleanPart.endsWith(']')) {
+      cleanPart = cleanPart.slice(1, -1)
+    }
+    // Remove double quotes: "field" -> field
+    if (cleanPart.startsWith('"') && cleanPart.endsWith('"')) {
+      cleanPart = cleanPart.slice(1, -1)
+    }
+    // Remove backticks: `field` -> field
+    if (cleanPart.startsWith('`') && cleanPart.endsWith('`')) {
+      cleanPart = cleanPart.slice(1, -1)
+    }
+    // Remove single quotes: 'field' -> field
+    if (cleanPart.startsWith("'") && cleanPart.endsWith("'")) {
+      cleanPart = cleanPart.slice(1, -1)
+    }
+    return cleanPart
+  })
+  
+  return cleanedParts.join('.')
+}
 
 @Component({
   standalone: true,
@@ -138,13 +177,86 @@ export class ModelCubeFactComponent {
   }))
 
   readonly fectTableFields = derivedAsync(() => {
-    return this.factTable$.pipe(
-      filter(nonBlank),
-      switchMap((tableName) => {
+    return this.cube$.pipe(
+      switchMap((cube) => {
         this.loading.set(true)
-        return this.modelService.selectOriginalEntityProperties(tableName).pipe(
-          tap(() => this.loading.set(false))
-        )
+        
+        // Check if it's multi-table mode
+        const isMultiTable = cube?.tables && cube.tables.length > 1
+        
+        if (isMultiTable) {
+          // Multi-table mode: merge fields from all tables
+          const tableNames = cube.tables.map(t => t.name).filter(nonBlank)
+          if (tableNames.length === 0) {
+            this.loading.set(false)
+            return of([])
+          }
+          
+          // Load properties from all tables and merge them
+          return combineLatest(
+            tableNames.map(tableName => 
+              this.modelService.selectOriginalEntityProperties(tableName).pipe(
+                map(properties => {
+                  return properties.map(p => {
+                    // Clean field name to remove SQL delimiters like brackets
+                    const cleanName = cleanFieldName(p.name)
+                    const cleanCaption = cleanFieldName(p.caption || p.name)
+                    return {
+                      ...p,
+                      // Add table prefix to field name to avoid conflicts
+                      name: `${tableName}.${cleanName}`,
+                      // Display table prefix in caption for dropdown selection
+                      caption: `${tableName}.${cleanCaption}`
+                    }
+                  })
+                }),
+                catchError((error) => {
+                  console.error(`[FactComponent] Error loading fields for table "${tableName}":`, error)
+                  return of([])
+                })
+              )
+            )
+          ).pipe(
+            map((allProperties) => {
+              // Flatten and deduplicate properties
+              const merged = allProperties.flat()
+              const unique = new Map()
+              merged.forEach(prop => {
+                if (!unique.has(prop.name)) {
+                  unique.set(prop.name, prop)
+                }
+              })
+              const result = Array.from(unique.values())
+              return result
+            }),
+            tap(() => this.loading.set(false))
+          )
+        } else {
+          // Single table mode: use fact table
+          return this.factTable$.pipe(
+            filter(nonBlank),
+            switchMap((tableName) => {
+              return this.modelService.selectOriginalEntityProperties(tableName).pipe(
+                map(properties => properties.map(p => {
+                  // Clean field name to remove SQL delimiters like brackets
+                  const cleanName = cleanFieldName(p.name)
+                  const cleanCaption = cleanFieldName(p.caption || p.name)
+                  return {
+                    ...p,
+                    name: cleanName,
+                    caption: cleanCaption
+                  }
+                })),
+                tap(() => this.loading.set(false)),
+                catchError((error) => {
+                  console.error(`[FactComponent] Error loading fields for table "${tableName}":`, error)
+                  this.loading.set(false)
+                  return of([])
+                })
+              )
+            })
+          )
+        }
       })
     )
   })

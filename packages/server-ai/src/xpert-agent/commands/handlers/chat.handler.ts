@@ -198,6 +198,10 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 											data: data
 										}
 									} as MessageEvent)
+								} else if (eventName === ChatMessageEventTypeEnum.ON_TOOL_MESSAGE) {
+									// ON_TOOL_MESSAGE events are handled by createMapStreamEvents in agent.ts
+									// No need to process here, just ignore to avoid warning
+									logger.debug(`ON_TOOL_MESSAGE event will be handled by createMapStreamEvents: ${runId}`)
 								} else {
 									logger.warn(`Unprocessed custom event in xpert agent: ${eventName} ${runId}`)
 								}

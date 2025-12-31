@@ -54,6 +54,10 @@
             "WebSearch": "网络搜索",
             "Searching": "正在搜索"
         },
+        "FreeAskInternetSearch": {
+            "WebSearch": "互联网搜索",
+            "Searching": "正在搜索"
+        },
         "Python": {
             "ExecPythonCode": "执行 Python 代码"
         },

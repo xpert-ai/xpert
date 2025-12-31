@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core'
 import { Cube } from '@metad/ocap-core'
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
-import { filter, map, switchMap } from 'rxjs'
+import { catchError, filter, map, switchMap } from 'rxjs'
+import { of } from 'rxjs'
 import { EntitySchemaService } from './entity-schema.service'
 import { CubeSchemaState } from './types'
 
@@ -9,11 +10,32 @@ import { CubeSchemaState } from './types'
 export class CubeAttributesSchema<T = Cube> extends EntitySchemaService<CubeSchemaState<T>> {
   public readonly cube$ = this.select((state) => state.cube)
   public readonly cubeName$ = this.cube$.pipe(map((cube) => cube?.name))
-  public readonly factName$ = this.cube$.pipe(map((cube) => cube?.tables?.[0]?.name))
+  public readonly factName$ = this.cube$.pipe(
+    map((cube) => {
+      // Get actual table name from cube configuration
+      // Priority: cube.tables[0].name > cube.fact.table.name > cube.fact.table
+      if (cube?.tables && cube.tables.length > 0 && cube.tables[0]?.name) {
+        return cube.tables[0].name
+      }
+      if (cube?.fact?.table) {
+        return typeof cube.fact.table === 'string' ? cube.fact.table : cube.fact.table.name
+      }
+      return null
+    })
+  )
 
-  public readonly fields$ = this.cubeName$.pipe(
+  /**
+   * Get fields from the fact table (not cube name)
+   * Uses the actual table name from cube configuration
+   */
+  public readonly fields$ = this.factName$.pipe(
     filter((name) => !!name),
-    switchMap((table) => this.modelService.selectOriginalEntityProperties(table)),
+    switchMap((table) => this.modelService.selectOriginalEntityProperties(table).pipe(
+      catchError((error) => {
+        console.warn(`[CubeAttributesSchema] Error loading fields for table "${table}":`, error)
+        return of([])
+      })
+    )),
     map((properties) => [
       { value: null, label: 'None' },
       ...properties.map((property) => ({ value: property.name, label: property.caption }))
@@ -25,7 +47,12 @@ export class CubeAttributesSchema<T = Cube> extends EntitySchemaService<CubeSche
    */
   public readonly factFields$ = this.factName$.pipe(
     filter((name) => !!name),
-    switchMap((table) => this.modelService.selectOriginalEntityProperties(table)),
+    switchMap((table) => this.modelService.selectOriginalEntityProperties(table).pipe(
+      catchError((error) => {
+        console.warn(`[CubeAttributesSchema] Error loading factFields for table "${table}":`, error)
+        return of([])
+      })
+    )),
     map((properties) => [
       { value: null, label: 'None' },
       ...properties.map((property) => ({ value: property.name, label: property.caption }))

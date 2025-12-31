@@ -19,8 +19,8 @@ services:
           'psql postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@localhost:5432/$${POSTGRES_DB} || exit 1'
         ]
     volumes:
-      - ./volumes/db/data:/var/lib/postgresql/data
-      - ./.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
+      - db_data:/var/lib/postgresql/data
+      - ../.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
     ports:
       - ${DB_PORT:-5432}:5432
     networks:
@@ -307,3 +307,7 @@ services:
               count: all
               capabilities: [gpu]
     restart: unless-stopped
+
+volumes:
+  db_data:
+    driver: local

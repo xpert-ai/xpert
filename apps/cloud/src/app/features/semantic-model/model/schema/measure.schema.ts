@@ -74,12 +74,13 @@ export class MeasureSchemaService extends CubeSchemaService {
               },
               {
                 key: 'column',
-                type: 'select',
+                type: 'ngm-select',
                 className,
                 props: {
                   label: COMMON?.Column ?? 'Column',
                   options: this.factFields$,
-                  searchable: true
+                  searchable: true,
+                  valueKey: 'key'
                 },
                 expressionProperties: {
                   'props.required':

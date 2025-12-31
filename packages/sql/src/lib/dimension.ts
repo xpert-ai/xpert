@@ -22,7 +22,7 @@ import {
 import {t} from 'i18next'
 import { Cast } from './functions'
 import { AggregateFunctions, C_MEASURES_ROW_COUNT, CubeFactTable } from './types'
-import { allMemberCaption, allMemberName, isSQLDialect, serializeIntrinsicName, serializeName, serializeTableAlias, serializeUniqueName } from './utils'
+import { allMemberCaption, allMemberName, cleanSqlDelimiters, isSQLDialect, parseColumnReference, serializeIntrinsicName, serializeName, serializeTableAlias, serializeUniqueName } from './utils'
 
 export interface ColumnContext {
   table?: string
@@ -62,6 +62,12 @@ export interface DimensionContext {
    * DB dialect
    */
   dialect: string
+  /**
+   * Cube name - used as table alias prefix for degenerate dimensions
+   * When dimension uses cube's fact/join tables directly (no own dimension tables),
+   * table aliases should use cubeName instead of hierarchy.name
+   */
+  cubeName?: string
   /**
    * Fact table name in Cube
    */
@@ -119,18 +125,54 @@ export function serializeHierarchyFrom(
 }
 
 export function serializeTablesJoin(prefix: string, tables: Table[], dialect: string, catalog: string) {
+  // Validate prefix to prevent invalid table aliases like "[]_tablename"
+  if (!prefix || !prefix.trim()) {
+    throw new Error('Table alias prefix (cube/hierarchy name) cannot be empty for multi-table joins')
+  }
+  
+  // Validate tables array
+  if (!tables || tables.length === 0) {
+    throw new Error('Tables array cannot be empty for multi-table joins')
+  }
+  
   const factTable = tables[0]
+  if (!factTable.name || !factTable.name.trim()) {
+    throw new Error('Fact table name cannot be empty')
+  }
+  
   const factTableAlias = serializeName(serializeTableAlias(prefix, factTable.name), dialect)
   let statement = serializeName(factTable.name, dialect, catalog) + ` AS ${factTableAlias}`
   const tableNames = [factTable.name]
   let leftTableAlias = factTableAlias
   tables.slice(1).forEach((table, i) => {
+    // Validate join table
+    if (!table.name || !table.name.trim()) {
+      throw new Error(`Join table at index ${i + 1} has no name configured`)
+    }
+    
     const exists = tableNames.filter((name) => name === table.name)
     const tableAlias = serializeName(
       serializeTableAlias(prefix, exists.length ? `${table.name}(${exists.length})` : table.name),
       dialect
     )
-    const conditions = table.join.fields
+    
+    // Validate join configuration
+    if (!table.join || !table.join.fields || table.join.fields.length === 0) {
+      throw new Error(`Table '${table.name}' has no join configuration. Please configure the join fields.`)
+    }
+    
+    // Validate join fields and build conditions
+    const validFields = table.join.fields.filter(field => {
+      const hasLeftKey = field.leftKey && field.leftKey.trim()
+      const hasRightKey = field.rightKey && field.rightKey.trim()
+      return hasLeftKey && hasRightKey
+    })
+    
+    if (validFields.length === 0) {
+      throw new Error(`Table '${table.name}' has no valid join fields configured. Each join field must have both leftKey and rightKey.`)
+    }
+    
+    const conditions = validFields
       .map(
         (field) =>
           `${leftTableAlias}.${serializeName(field.leftKey, dialect)} = ${tableAlias}.${serializeName(
@@ -156,10 +198,63 @@ export function serializeTablesJoin(prefix: string, tables: Table[], dialect: st
   return statement
 }
 
-export function getLevelColumn(level: PropertyLevel, table: string) {
+/**
+ * Get level column configuration for dimension field
+ * 
+ * Supports multi-table scenarios where level.column can be:
+ *   - A simple column name ("uuid") - uses provided table
+ *   - A table-prefixed column name ("cclts2.uuid") - uses specified table with alias
+ *   - level.table property can also specify the source table
+ * 
+ * @param level Level property configuration
+ * @param table Default table alias to use if column has no table prefix
+ * @param aliasPrefix Optional prefix for generating table alias when column has table prefix
+ *                    (e.g., hierarchy name or cube name)
+ * @returns DimensionField with resolved table and column
+ */
+export function getLevelColumn(level: PropertyLevel, table: string, aliasPrefix?: string) {
+  // Get column name, prefer nameColumn over column
+  let columnRef = level.nameColumn || level.column
+  
+  // If no column is explicitly set, try to extract from level name
+  // level.name might be a serialized unique name like "[uuid].[uuid]" or a simple name like "[uuid]"
+  if (!columnRef && level.name) {
+    // Extract the last part of the unique name as column (e.g., "[dim].[level]" -> "level")
+    const nameParts = level.name.split('].[')
+    const lastPart = nameParts[nameParts.length - 1]
+    // Clean the extracted name
+    columnRef = cleanSqlDelimiters(lastPart)
+  }
+  
+  // Also try caption as fallback
+  if (!columnRef && level.caption) {
+    columnRef = cleanSqlDelimiters(level.caption)
+  }
+  
+  // Parse column reference to support multi-table format (e.g., "cclts2.uuid")
+  const { table: parsedTable, column } = parseColumnReference(columnRef)
+  
+  // Validate column is not empty
+  if (!column) {
+    throw new Error(`Level '${level.name || level.caption}' has no column configured. Please set the 'column' property.`)
+  }
+  
+  // Priority: level.table > table prefix in column > provided table
+  let resolvedTable: string
+  if (level.table) {
+    // level.table is explicitly set, use it with alias prefix if provided
+    resolvedTable = aliasPrefix ? serializeTableAlias(aliasPrefix, level.table) : level.table
+  } else if (parsedTable) {
+    // Column has table prefix (e.g., "cclts2.uuid"), convert to alias format
+    resolvedTable = aliasPrefix ? serializeTableAlias(aliasPrefix, parsedTable) : parsedTable
+  } else {
+    // Use default table (already formatted as alias)
+    resolvedTable = table
+  }
+  
   const dimensionField: DimensionField = {
-    table,
-    column: level.nameColumn || level.column,
+    table: resolvedTable,
+    column,
   }
 
   // All need cast to string except `String` type in pg?
@@ -272,7 +367,7 @@ export function LevelMembers(
     selectFields.push({
       columns: levels.map((level) => {
         const table = level.table || dimensionTable
-        return getLevelColumn(level, table ? serializeTableAlias(hierarchy.name, table) : factTable)
+        return getLevelColumn(level, table ? serializeTableAlias(hierarchy.name, table) : factTable, hierarchy.name)
       }),
       alias: `memberKey`
     })
@@ -280,7 +375,7 @@ export function LevelMembers(
     const level = levels[levels.length - 1]
     const table = level.table || dimensionTable
     selectFields.push({
-      ...LevelCaptionField(table ? serializeTableAlias(hierarchy.name, table) : factTable, level, dialect),
+      ...LevelCaptionField(table ? serializeTableAlias(hierarchy.name, table) : factTable, level, dialect, hierarchy.name),
       alias: 'memberCaption'
     })
 
@@ -288,7 +383,7 @@ export function LevelMembers(
       selectFields.push({
         columns: levels.slice(0, levels.length - 1).map((level) => {
           const table = level.table || dimensionTable
-          return getLevelColumn(level, table ? serializeTableAlias(hierarchy.name, table) : factTable)
+          return getLevelColumn(level, table ? serializeTableAlias(hierarchy.name, table) : factTable, hierarchy.name)
         }),
         alias: `parentKey`
       })
@@ -299,12 +394,14 @@ export function LevelMembers(
       })
     }
 
-    // Ordinal Column
+    // Ordinal Column - support multi-table format
     orderBys = levels.map((level) => {
-      const table = level.table || dimensionTable
+      const ordinalColumnRef = level.ordinalColumn || level.column
+      const { table: parsedTable, column: ordinalColumn } = parseColumnReference(ordinalColumnRef)
+      const table = level.table || parsedTable || dimensionTable
       return {
         table: table ? serializeTableAlias(hierarchy.name, table) : factTable,
-        column: level.ordinalColumn || level.column
+        column: ordinalColumn
       }
     })
 
@@ -356,32 +453,78 @@ export function DimensionMembers(
 /**
  * Get the runtime SQL field configuration for level caption
  * 
- * @param table dimension table
- * @param level level property configuration
- * @param dialect database dialect
- * @returns 
+ * Supports multi-table scenarios where caption column can be:
+ *   - A simple column name ("name") - uses provided table
+ *   - A table-prefixed column name ("cclts2.name") - uses specified table with alias
+ * 
+ * @param table Default dimension table alias
+ * @param level Level property configuration
+ * @param dialect Database dialect
+ * @param aliasPrefix Optional prefix for generating table alias when column has table prefix
+ * @returns Column field configuration
  */
-export function LevelCaptionField(table: string, level: PropertyLevel, dialect: string) {
-  const captionColumn = level.captionColumn || level.nameColumn || level.column
+export function LevelCaptionField(table: string, level: PropertyLevel, dialect: string, aliasPrefix?: string) {
+  // Clean and resolve column reference
+  // Priority: captionColumn > nameColumn > column > extracted from level.name
+  let captionColumnRef = level.captionColumn || level.nameColumn || level.column
+  
+  // If no column is explicitly set, try to extract from level name
+  // level.name might be a serialized unique name like "[uuid].[uuid]" or a simple name like "[uuid]"
+  if (!captionColumnRef && level.name) {
+    // Extract the last part of the unique name as column (e.g., "[dim].[level]" -> "level")
+    const nameParts = level.name.split('].[')
+    const lastPart = nameParts[nameParts.length - 1]
+    // Clean the extracted name
+    captionColumnRef = cleanSqlDelimiters(lastPart)
+  }
+  
+  // Also try caption as fallback
+  if (!captionColumnRef && level.caption) {
+    captionColumnRef = cleanSqlDelimiters(level.caption)
+  }
+
+  // Helper function to resolve table with alias
+  const resolveTable = (parsedTable: string | null): string => {
+    if (level.table) {
+      return aliasPrefix ? serializeTableAlias(aliasPrefix, level.table) : level.table
+    } else if (parsedTable) {
+      return aliasPrefix ? serializeTableAlias(aliasPrefix, parsedTable) : parsedTable
+    }
+    return table
+  }
 
   if (level.captionExpression?.sql?.content && isSQLDialect(level.captionExpression.sql, dialect)) {
-    // Caption Expression
+    // Caption Expression - parse column reference for multi-table support
+    const { table: parsedTable, column: captionColumn } = parseColumnReference(captionColumnRef)
+    if (!captionColumn) {
+      const originalName = level.caption || level.name?.replace(/^\[|\]$/g, '').split('].[').pop() || level.name
+      throw new Error(`Level '${originalName}' has empty column in captionExpression context. Please configure a valid column.`)
+    }
     return {
-      table,
+      table: resolveTable(parsedTable),
       column: captionColumn,
       expression: level.captionExpression.sql.content, // Need to check dialect
       // alias: serializeIntrinsicName(dialect, level.hierarchy, IntrinsicMemberProperties.MEMBER_CAPTION)
     }
-  } else if (captionColumn) {
-    // CaptionColumn
+  } else if (captionColumnRef) {
+    // CaptionColumn - parse column reference for multi-table support
+    const { table: parsedTable, column: captionColumn } = parseColumnReference(captionColumnRef)
+    if (!captionColumn) {
+      const originalName = level.caption || level.name?.replace(/^\[|\]$/g, '').split('].[').pop() || level.name
+      throw new Error(`Level '${originalName}' has empty column. Please configure a valid column.`)
+    }
     return {
-      table,
+      table: resolveTable(parsedTable),
       column: captionColumn,
       // alias: serializeIntrinsicName(dialect, level.hierarchy, IntrinsicMemberProperties.MEMBER_CAPTION)
     }
   }
 
-  throw new Error(`Can't find caption column for level '${level.name}'`)
+  // Extract original level name for better error message
+  // level.name might be serialized unique name like "[uuid].[uuid]"
+  // Try to get original name from caption or parse from unique name
+  const originalName = level.caption || level.name?.replace(/^\[|\]$/g, '').split('].[').pop() || level.name
+  throw new Error(`Can't find caption column for level '${originalName}' (column=${level.column}, nameColumn=${level.nameColumn}, captionColumn=${level.captionColumn}). Please configure the 'column' property for this level.`)
 }
 
 /**
@@ -405,6 +548,7 @@ export function buildDimensionContext(
   }
 
   context.selectFields = context.selectFields ?? []
+  context.orderBys = context.orderBys ?? []
   context.schema = property
   context.dimension = row
 
@@ -442,7 +586,8 @@ export function buildDimensionContext(
       const levelTable = level.table || context.dimensionTable
       return getLevelColumn(
         level,
-        levelTable ? serializeTableAlias(context.hierarchy.name, levelTable) : context.factTable
+        levelTable ? serializeTableAlias(context.hierarchy.name, levelTable) : context.factTable,
+        context.hierarchy.name
       )
     })
 
@@ -454,7 +599,7 @@ export function buildDimensionContext(
     // }
 
     context.selectFields.push({
-      ...LevelCaptionField(table, level, dialect),
+      ...LevelCaptionField(table, level, dialect, context.hierarchy.name),
       alias: level.memberCaption
     })
 
@@ -473,18 +618,38 @@ export function buildDimensionContext(
     row.properties?.forEach((name) => {
       const property = level.properties?.find((item) => item.name === name)
       if (property) {
+        // Support multi-table: parse property column reference
+        const { table: propTable, column: propColumn } = parseColumnReference(property.column)
+        // Convert raw table name to alias format
+        let resolvedPropTable: string
+        if (propTable) {
+          resolvedPropTable = serializeTableAlias(context.hierarchy.name, propTable)
+        } else {
+          resolvedPropTable = table
+        }
         context.selectFields.push({
-          table,
-          column: property.column,
+          table: resolvedPropTable,
+          column: propColumn,
           alias: property.name
         })
       }
     })
 
-    // Ordinal Column
+    // Ordinal Column - support multi-table format
+    const ordinalColumnRef = level.ordinalColumn || level.nameColumn || level.column
+    const { table: ordinalTable, column: ordinalColumn } = parseColumnReference(ordinalColumnRef)
+    // Convert raw table name to alias format
+    let resolvedOrdinalTable: string
+    if (level.table) {
+      resolvedOrdinalTable = serializeTableAlias(context.hierarchy.name, level.table)
+    } else if (ordinalTable) {
+      resolvedOrdinalTable = serializeTableAlias(context.hierarchy.name, ordinalTable)
+    } else {
+      resolvedOrdinalTable = table
+    }
     context.orderBys.push({
-      table,
-      column: level.ordinalColumn || level.nameColumn || level.column
+      table: resolvedOrdinalTable,
+      column: ordinalColumn
     })
   } else {
     throw new Error(`Can't find Level ${row.level}`)
@@ -630,6 +795,9 @@ export function compileDimensionSchema(
   dimension: PropertyDimension,
   dialect?: string
 ): PropertyDimension {
+  // Clean dimension name to remove SQL delimiters like brackets
+  const cleanedDimensionName = cleanSqlDelimiters(dimension.name)
+  
   // Validators
   Object.entries(
     countBy(
@@ -638,16 +806,21 @@ export function compileDimensionSchema(
     )
   ).forEach(([name, count]: [string, any]) => {
     if (count > 1) {
-      throw new Error(t('Error.HierarchyNameDuplicated', {ns: 'sql', name, dimension: dimension.name, cube: entity}))
+      throw new Error(t('Error.HierarchyNameDuplicated', {ns: 'sql', name, dimension: cleanedDimensionName, cube: entity}))
     }
   })
 
-  const dimensionUniqueName = serializeUniqueName(dialect, dimension.name)
+  const dimensionUniqueName = serializeUniqueName(dialect, cleanedDimensionName)
 
   const hierarchies = dimension.hierarchies?.map((hierarchy) => {
     // Validator: If has dimension table then must set primaryKey
-    if (hierarchy.tables?.length && !hierarchy.primaryKey) {
-      throw new Error(`The primaryKey '${hierarchy.primaryKey}' of hierarchy '${hierarchy.name ?? ''}' is not correct!`)
+    // Check if primaryKey is a valid non-empty string (not null, undefined, empty string, or string 'null')
+    const hasValidPrimaryKey = hierarchy.primaryKey && 
+                                typeof hierarchy.primaryKey === 'string' && 
+                                hierarchy.primaryKey.trim() !== '' && 
+                                hierarchy.primaryKey.toLowerCase() !== 'null'
+    if (hierarchy.tables?.length && !hasValidPrimaryKey) {
+      throw new Error(`The primaryKey '${hierarchy.primaryKey ?? 'null'}' of hierarchy '${hierarchy.name ?? ''}' is not correct! Please set a valid primary key when dimension tables are defined.`)
     }
     // Validator: If has multiple dimension tables
     if (hierarchy.tables?.length > 1) {
@@ -659,14 +832,14 @@ export function compileDimensionSchema(
       }
     }
 
-    const hierarchyUniqueName = serializeUniqueName(dialect, dimension.name, hierarchy.name)
+    const hierarchyUniqueName = serializeUniqueName(dialect, cleanedDimensionName, hierarchy.name)
     const levels = hierarchy.levels?.map((level) => ({
       ...level,
       caption: level.caption ?? level.name,
-      name: serializeUniqueName(dialect, dimension.name, hierarchy.name, level.name),
+      name: serializeUniqueName(dialect, cleanedDimensionName, hierarchy.name, level.name),
       memberCaption: serializeUniqueName(
         dialect,
-        dimension.name,
+        cleanedDimensionName,
         hierarchy.name,
         level.name,
         IntrinsicMemberProperties.MEMBER_CAPTION
@@ -674,14 +847,14 @@ export function compileDimensionSchema(
       role: AggregationRole.level,
       properties: level.properties?.filter((_) => !!_?.name).map((property) => ({
         ...property,
-        name: serializeUniqueName(dialect, dimension.name, hierarchy.name, property.name),
+        name: serializeUniqueName(dialect, cleanedDimensionName, hierarchy.name, property.name),
         caption: property.caption || property.name,
       })) ?? []
     }))
 
     if (hierarchy.hasAll) {
-      const allLevelName = hierarchy.allLevelName || `(All ${hierarchy.name || dimension.name}s)`
-      const allLevelUniqueName = serializeUniqueName(dialect, dimension.name, hierarchy.name, allLevelName)
+      const allLevelName = hierarchy.allLevelName || `(All ${hierarchy.name || cleanedDimensionName}s)`
+      const allLevelUniqueName = serializeUniqueName(dialect, cleanedDimensionName, hierarchy.name, allLevelName)
       levels?.splice(0, 0, {
         name: allLevelUniqueName,
         caption: allLevelName,
@@ -699,7 +872,7 @@ export function compileDimensionSchema(
       entity,
       dimension: dimensionUniqueName,
       role: AggregationRole.hierarchy,
-      memberCaption: serializeUniqueName(dialect, dimension.name, hierarchy.name, IntrinsicMemberProperties.MEMBER_CAPTION),
+      memberCaption: serializeUniqueName(dialect, cleanedDimensionName, hierarchy.name, IntrinsicMemberProperties.MEMBER_CAPTION),
       allMember: hierarchy.hasAll ? `[${allMemberName(hierarchy)}]` : null,
       levels: levels?.map((level, i) => ({
         ...level,

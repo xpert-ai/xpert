@@ -44,28 +44,74 @@ export function serializeCubeFact(cube: Cube, dialect: string) {
     factTable = cube.fact.table
   }
 
-  let statement = serializeName(factTable.name, dialect)
-  const tableNames = [factTable.name]
-  cube.tables.slice(1).forEach((table) => {
+  // Get fact table name for filtering
+  const factTableName = factTable?.name || (factTable as any)
+  
+  if (!factTableName) {
+    throw new Error('Fact table name is required for SQL generation')
+  }
+
+  let statement = serializeName(factTableName, dialect)
+  const tableNames = [factTableName]
+  
+  // Filter out fact table from join tables to prevent duplication
+  // Only process tables that are different from the fact table
+  const joinTables = (cube.tables || []).slice(1).filter(
+    (table) => table.name && table.name.trim() && table.name !== factTableName
+  )
+  
+  // Track the left table alias for join conditions
+  // Start with fact table alias
+  let leftTableAlias = serializeName(factTableName, dialect)
+  
+  joinTables.forEach((table) => {
+    // Check if table name already exists (for duplicate table names)
     const exists = tableNames.filter((name) => name === table.name)
     const tableAlias = exists.length ? `${table.name}(${exists.length})` : table.name
-    const conditions = And(
-      ...Parentheses(
-        ...table.join.fields.map(
-          (field) =>
-            `${serializeName(factTable.name, dialect)}.${serializeName(field.leftKey, dialect)} = ${serializeName(
-              tableAlias,
-              dialect
-            )}.${serializeName(field.rightKey, dialect)}`
-        )
-      )
+    
+    // Validate join configuration
+    if (!table.join || !table.join.type || !table.join.fields || table.join.fields.length === 0) {
+      console.warn(`Join configuration is missing or invalid for table ${table.name}`)
+      return // Skip this table
+    }
+    
+    // Build join conditions
+    // Filter out invalid fields first
+    const validFields = table.join.fields.filter(
+      (field) => field && field.leftKey && field.leftKey.trim() && field.rightKey && field.rightKey.trim()
     )
-    statement = `${statement} ${table.join.type} JOIN ${serializeName(table.name, dialect)} AS ${serializeName(
-      tableAlias,
-      dialect
-    )} ON ${conditions}`
-
-    tableNames.push(table.name)
+    
+    if (validFields.length === 0) {
+      console.warn(`No valid join fields found for table ${table.name}`)
+      return // Skip this table if no valid fields
+    }
+    
+    // Use leftTableAlias instead of factTableName for chained joins
+    const conditionStatements = validFields.map((field) => {
+      // Use leftTableAlias for leftKey (previous table in join chain)
+      const leftKeyTable = leftTableAlias
+      // Use current table alias for rightKey
+      const rightKeyTable = serializeName(tableAlias, dialect)
+      
+      return `${leftKeyTable}.${serializeName(field.leftKey.trim(), dialect)} = ${rightKeyTable}.${serializeName(field.rightKey.trim(), dialect)}`
+    })
+    
+    // Build conditions using And and Parentheses
+    const conditions = And(...Parentheses(...conditionStatements))
+    
+    // Only add join if conditions are valid and not empty
+    if (conditions && conditions.trim() && table.join.type) {
+      statement = `${statement} ${table.join.type} JOIN ${serializeName(table.name, dialect)} AS ${serializeName(
+        tableAlias,
+        dialect
+      )} ON ${conditions}`
+      
+      // Update leftTableAlias for next join
+      leftTableAlias = serializeName(tableAlias, dialect)
+      tableNames.push(table.name)
+    } else {
+      console.warn(`Invalid join conditions for table ${table.name}, skipping join`)
+    }
   })
 
   return `SELECT * FROM ${statement}`
@@ -248,12 +294,38 @@ export function serializeLevelSelect(cubeContext: CubeContext, dialect: string, 
   return `SELECT ` + statement
 }
 
+/**
+ * Serialize FROM clause for cube query
+ * 
+ * Supports multi-table scenarios:
+ *   - If cube has multiple tables (cube.tables), use all tables with joins
+ *   - If cube has single fact table, use that table
+ *   - Dimensions are joined based on foreign key relationships
+ * 
+ * @param cubeContext Cube context containing schema and dimension info
+ * @param dialect SQL dialect
+ * @param catalog Optional catalog name
+ * @returns FROM clause string
+ */
 export function serializeCubeFrom(cubeContext: CubeContext, dialect: string, catalog?: string): string {
-  if (!cubeContext.schema.fact?.table) {
-    throw new Error(`Cube '${cubeContext.schema.name}' not have fact table.`)
+  const cube = cubeContext.schema
+  
+  // Determine tables to use - prioritize cube.tables for multi-table mode
+  let baseTables: any[] = []
+  
+  if (cube.tables && cube.tables.length > 0) {
+    // Multi-table mode: use all configured tables
+    baseTables = cube.tables
+  } else if (cube.fact?.table) {
+    // Single table mode: use fact table
+    baseTables = [cube.fact.table]
+  } else {
+    throw new Error(`Cube '${cube.name}' does not have a fact table configured.`)
   }
+  
+  // Build FROM clause with multi-table joins
   return (
-    serializeTablesJoin(cubeContext.schema.name, [cubeContext.schema.fact.table], dialect, catalog) +
+    serializeTablesJoin(cube.name, baseTables, dialect, catalog) +
     cubeContext.dimensions
       .filter((dimensionContext) => !!dimensionContext.dimensionTable)
       .map((dimensionContext) => {

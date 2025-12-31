@@ -5,6 +5,19 @@ import { uuid } from 'apps/cloud/src/app/@core'
 import { mapToTableColumnType } from '../../types'
 import { MODEL_TYPE } from '../types'
 
+/**
+ * Remove table prefix from caption if present (e.g., "tableName.fieldName" -> "fieldName")
+ * This is used when creating dimensions/measures to display clean names
+ */
+export function removeTablePrefixFromCaption(caption: string): string {
+  if (!caption) return caption
+  const dotIndex = caption.indexOf('.')
+  if (dotIndex > 0 && dotIndex < caption.length - 1) {
+    return caption.substring(dotIndex + 1)
+  }
+  return caption
+}
+
 export type CubeDimensionType = PropertyDimension & {
   isUsage?: boolean
 }
@@ -56,10 +69,12 @@ export function newDimensionFromTable(dimensions: PropertyDimension[], table: st
  * @returns
  */
 export function newDimensionFromColumn(column: Property, isOlap: boolean) {
+  // Remove table prefix from caption for display (e.g., "tableName.fieldName" -> "fieldName")
+  const cleanCaption = removeTablePrefixFromCaption(column.caption)
   return {
     __id__: uuid(),
     name: column.name,
-    caption: column.caption,
+    caption: cleanCaption,
     defaultHierarchy: column.defaultHierarchy,
     semantics: column.semantics,
     hierarchies: [
@@ -72,7 +87,7 @@ export function newDimensionFromColumn(column: Property, isOlap: boolean) {
           {
             __id__: uuid(),
             name: column.name,
-            caption: column.caption,
+            caption: cleanCaption,
             column: column.name,
             type: mapToTableColumnType(column.dataType),
             visible: true
