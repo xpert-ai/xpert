@@ -18,17 +18,29 @@ export function AIModelProviderStrategy(provider: string) {
   const callerLine = stack[decoratorIndex + 1]
 
   // Extract the file path
+  // Support both Unix and Windows paths
+  // Windows paths can be: E:\path, E:/path, file:///E:/path
+  // Unix paths can be: /Users/path, file:///Users/path
   const match =
-    callerLine?.match(/\((file:\/\/\/[^\s)]+)\)/) || // case 1: file:///path...
-    callerLine?.match(/\((\/[^\s)]+)\)/) || // case 2: (/Users/xxx)
-    callerLine?.match(/at (file:\/\/\/[^\s]+)/) || // case 3: at file:///...
-    callerLine?.match(/at (\/[^\s]+)/) // case 4: at /Users/xxx
+    callerLine?.match(/\((file:\/\/\/[^\s)]+)\)/) || // case 1: file:///path... (both Unix and Windows)
+    callerLine?.match(/\(([A-Za-z]:[\\\/][^\s)]+)\)/) || // case 2: Windows drive path (E:\path or E:/path)
+    callerLine?.match(/\((\/[^\s)]+)\)/) || // case 3: Unix absolute path (/Users/xxx)
+    callerLine?.match(/at (file:\/\/\/[^\s]+)/) || // case 4: at file:///... (both Unix and Windows)
+    callerLine?.match(/at ([A-Za-z]:[\\\/][^\s]+)/) || // case 5: at Windows drive path
+    callerLine?.match(/at (\/[^\s]+)/) // case 6: at Unix absolute path
 
   let file = match?.[1]
 
   // remove the file:/// prefix
   if (file?.startsWith('file:///')) {
+    file = file.replace('file:///', '')
+  } else if (file?.startsWith('file://')) {
     file = file.replace('file://', '')
+  }
+
+  // Normalize path separators (handle both \ and / on Windows)
+  if (file) {
+    file = path.normalize(file)
   }
 
   const dir = file ? path.dirname(file) : process.cwd()
