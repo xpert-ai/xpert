@@ -1,4 +1,4 @@
-import { TChatRequest, TInterruptCommand, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { STATE_VARIABLE_HUMAN, TChatRequest, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
@@ -31,10 +31,17 @@ const chatRequestSchema = z
 export function validateRunCreateInput(input: unknown): TChatRequest {
 	const parsed = chatRequestSchema.parse(typeof input === 'string' ? { input } : input)
 	const normalizedInput = typeof parsed.input === 'string' ? { input: parsed.input } : parsed.input
+	const rawState = parsed.state && typeof parsed.state === 'object' && !Array.isArray(parsed.state) ? parsed.state : undefined
 
 	return {
 		...parsed,
-		input: normalizedInput
+		input: normalizedInput,
+		state: rawState
+			? {
+					...rawState,
+					[STATE_VARIABLE_HUMAN]: rawState[STATE_VARIABLE_HUMAN] ?? normalizedInput
+			  }
+			: { [STATE_VARIABLE_HUMAN]: normalizedInput }
 	}
 }
 
@@ -76,9 +83,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		const stream = await this.commandBus.execute(
 			new XpertChatCommand(
 				{
-					input: chatRequest.input as any,
+					input: chatRequest.input,
+					state: chatRequest.state,
 					conversationId: conversation.id,
-					command: chatRequest['command'] as TInterruptCommand
+					command: chatRequest.command
 				},
 				{
 					xpertId: xpert.id,
