@@ -46,7 +46,9 @@ export class XpertParametersFormComponent {
       if (parameter.type === XpertParameterTypeEnum.SELECT) {
         return {
           ...parameter,
-          selectOptions: parameter.options.map((key) => ({
+          // Handle null/undefined options to prevent "Cannot read properties of null (reading 'map')" error
+          // when user creates SELECT parameter with only name but no options
+          selectOptions: (parameter.options ?? []).map((key) => ({
             value: key,
             label: key
           }))
