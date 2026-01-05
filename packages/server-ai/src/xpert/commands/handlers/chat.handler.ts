@@ -132,7 +132,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				)
 
 				// Remember
-				if (memory?.enabled && memory.profile?.enabled) {
+				if (memory?.enabled && memory.profile?.enabled && memoryStore) {
 					memories = await getLongTermMemory(memoryStore, xpertId, input.input)
 				}
 			}
@@ -205,7 +205,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 				// Memory Reply
 				const memoryReply = latestXpert.features?.memoryReply
-				if (memoryReply?.enabled) {
+				if (memoryReply?.enabled && memoryStore) {
 					const items = await memoryStore.search([xpertId, LongTermMemoryTypeEnum.QA], { query: input.input })
 					const memoryReplies = items.filter((item) => item.score >= (memoryReply.scoreThreshold ?? 0.8))
 					if (memoryReplies.length > 0) {

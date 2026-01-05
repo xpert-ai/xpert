@@ -32,12 +32,10 @@ export class CreateMemoryStoreHandler implements ICommandHandler<CreateMemorySto
 			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {})
 		)
 
+		// Embedding model is optional for memory store
 		if (!embeddings) {
-			throw new CopilotNotFoundException(
-				await this.i18nService.t('xpert.Error.EmbeddingModelForMemory', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
+			this.#logger.debug('Embedding model not configured for memory store, memory will be disabled')
+			return null
 		}
 
 		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
