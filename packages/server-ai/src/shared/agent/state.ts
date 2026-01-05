@@ -134,7 +134,7 @@ export function stateWithEnvironment(state: typeof AgentStateAnnotation.State, e
  * @returns
  */
 export function stateToParameters(state: typeof AgentStateAnnotation.State, environment?: IEnvironment) {
-	return {
+	const result = {
 		...stateWithEnvironment(state, environment),
 		...Object.keys(state).reduce((acc, key) => {
 			const value = state[key]
@@ -145,16 +145,26 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State, envi
 				acc[key] = key === 'messages' ? getBufferString(value as BaseMessage[]) : value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join('\n\n')
 			} else if (typeof value === 'object') {
 				acc[key] = Object.keys(value).reduce((objAcc, objKey) => {
-					objAcc[objKey] = objKey === 'messages' ? getBufferString(value[objKey]) : value[objKey]
+					const fieldValue = value[objKey]
+					if (objKey === 'messages') {
+						objAcc[objKey] = getBufferString(fieldValue)
+					} else if (typeof fieldValue === 'object' && fieldValue !== null) {
+						// Serialize nested objects/arrays to JSON string for template rendering
+						objAcc[objKey] = JSON.stringify(fieldValue, null, 2)
+					} else {
+						objAcc[objKey] = fieldValue
+					}
 					return objAcc
-				}, {})
+				}, {}
 			} else {
 				acc[key] = value
 			}
 
 			return acc
-		}, {}),
-  }
+		}, {})
+	}
+  
+	return result
 }
 
 
@@ -256,6 +266,7 @@ export type TSubAgent = {
 	stateGraph?: Runnable
 	nextNodes?: TXpertTeamNode[]
 	failNode?: TXpertTeamNode
+	channel?: TStateChannel
 }
 
 export function findChannelByTool(values: typeof AgentStateAnnotation.State, toolName: string): [string, TMessageChannel] {

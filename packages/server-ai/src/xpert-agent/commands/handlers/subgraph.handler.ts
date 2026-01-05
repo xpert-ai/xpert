@@ -376,7 +376,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (team.agentConfig?.interruptBefore?.includes(agentUniqueName(node.entity))) {
 					interruptBefore.push(node.key)
 				}
-				const {stateGraph, nextNodes, failNode} = await this.createAgentSubgraph(node.entity, {
+				const {stateGraph, nextNodes, failNode, channel} = await this.createAgentSubgraph(node.entity, {
 					mute: options.mute,
 					store: options.store,
 					xpert,
@@ -395,6 +395,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					isDraft: command.options.isDraft,
 					subscriber
 				})
+				
+				// Add agent channel to channels array
+				if (channel) {
+					channels.push(channel)
+				}
 				
 				// Conditional Edges
 				const ends = []
@@ -1203,6 +1208,51 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			// Record start time
 			const timeStart = Date.now()
+			
+			// Prepare inputs for execution record
+			let inputs = call?.args || {}
+			
+			// For workflow nodes, extract variables used in agent prompt
+			if (!isTool) {
+				// Extract variables from agent prompt template
+				const promptVars = new Set<string>()
+				const prompt = agent.prompt ?? ''
+				const promptTemplates = agent.promptTemplates ?? []
+				
+				// Combine all prompt texts
+				const allPromptText = [prompt, ...promptTemplates.map(t => t.text ?? '')].join('\n')
+				
+				// Match Mustache variables: {{variable}} or {{object.property}}
+				const varRegex = /\{\{([^}]+)\}\}/g
+				let match
+				while ((match = varRegex.exec(allPromptText)) !== null) {
+					const varPath = match[1].trim()
+					// Extract root variable name (before first dot)
+					const rootVar = varPath.split('.')[0]
+					promptVars.add(rootVar)
+				}
+				
+				// Only include variables that are used in prompt
+				promptVars.forEach(varName => {
+					const value = state[varName]
+					if (value !== undefined && value !== null) {
+						inputs[varName] = value
+					}
+				})
+				
+				// Always include human input if available (commonly used)
+				if (state[STATE_VARIABLE_HUMAN]?.input && !inputs[STATE_VARIABLE_HUMAN]) {
+					inputs.input = state[STATE_VARIABLE_HUMAN].input
+				}
+			}
+			
+			console.log(`\n=== Agent Execution Inputs Debug ===`)
+			console.log(`Agent key: ${agent.key}`)
+			console.log(`Is tool call: ${isTool}`)
+			console.log(`State keys:`, Object.keys(state))
+			console.log(`Prepared inputs keys:`, Object.keys(inputs || {}))
+			console.log(`=== End Inputs Debug ===\n`)
+			
 			const _execution = await this.commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					...execution,
@@ -1210,7 +1260,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					checkpointNs: configurable.checkpoint_ns,
 					xpert: { id: xpert.id } as IXpert,
 					agentKey: agent.key,
-					inputs: call?.args,
+					inputs,
 					parentId: executionId,
 					status: XpertAgentExecutionStatusEnum.RUNNING,
 					predecessor: configurable.agentKey
@@ -1223,6 +1273,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			let status = XpertAgentExecutionStatusEnum.SUCCESS
 			let error = null
 			let result = ''
+			let actualInputs = inputs // Will be updated with actual input after execution
 			const finalize = async () => {
 				const _state = await graph.getState(config)
 
@@ -1236,6 +1287,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						elapsedTime: timeEnd - timeStart,
 						status,
 						error,
+						inputs: actualInputs, // Use updated inputs with actual input
 						outputs: {
 							output: result
 						}
@@ -1278,7 +1330,50 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				)
 
 				const lastMessage = output.messages[output.messages.length - 1]
-				if (lastMessage && isAIMessage(lastMessage)) {
+				
+				// Extract actual input sent to LLM from messages
+				// Find the first HumanMessage in output.messages as the actual input
+				const humanMessages = output.messages.filter(msg => msg._getType() === 'human')
+				if (humanMessages.length > 0) {
+					const actualInput = humanMessages[0].content
+					// Update the execution inputs with actual input
+					actualInputs = {
+						...inputs,
+						actualInput: actualInput
+					}
+				}
+				
+				const channelOutput = output[channelName(agent.key)] as Record<string, any>
+				
+				// Try to extract structured output from channel
+				// Check for common structured output fields
+				let structuredOutput = null
+				if (channelOutput) {
+					// Try to find structured output in channel
+					const possibleOutputKeys = Object.keys(channelOutput).filter(key => 
+						!['agent', 'system', 'messages', 'error', 'summary'].includes(key)
+					)
+					
+					if (possibleOutputKeys.length > 0) {
+						// Build structured output from all non-standard keys
+						structuredOutput = {}
+						possibleOutputKeys.forEach(key => {
+							structuredOutput[key] = channelOutput[key]
+						})
+					}
+				}
+				
+				// Extract output with priority: structured output > channel.output > message content
+				if (structuredOutput && Object.keys(structuredOutput).length > 0) {
+					result = JSON.stringify(structuredOutput, null, 2)
+				} else if (channelOutput?.output) {
+					result = typeof channelOutput.output === 'string' 
+						? channelOutput.output 
+						: JSON.stringify(channelOutput.output, null, 2)
+				} else if (lastMessage && isAIMessage(lastMessage) && lastMessage.content) {
+					result = lastMessage.content as string
+				} else if (lastMessage?.content) {
+					// Fallback: even if not AIMessage, try to use content
 					result = lastMessage.content as string
 				}
 
@@ -1308,9 +1403,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					[channelName(agent.key)]: {
 						...(output[channelName(agent.key)] as Record<string, any>),
 						messages: output.messages, // Return full messages to parent graph
-						output: stringifyMessageContent(lastMessage.content)
+						output: result || stringifyMessageContent(lastMessage.content)
 					}
 				}
+				
+				// Debug: Check what was written to state
+				console.log(`\n=== Final State Debug ===`)
+				console.log(`State keys:`, Object.keys(nState))
+				const agentChannelState = nState[channelName(agent.key)]
+				if (agentChannelState) {
+					console.log(`Agent channel state keys:`, Object.keys(agentChannelState))
+					console.log(`Agent channel state.rules exists:`, !!agentChannelState.rules)
+					console.log(`Agent channel state.output length:`, agentChannelState.output?.length || 0)
+				}
+				console.log(`=== End Final State Debug ===\n`)
+				
 				// Write to memory
 				agent.options?.memories?.forEach((item) => {
 					if (item.inputType === 'constant') {
@@ -1341,6 +1448,20 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			nextNodes,
 			failNode,
 			stateGraph: stateGraph.withConfig({tags: [xpert.id]}),
+			channel: {
+				name: channelName(agent.key),
+				annotation: Annotation<Record<string, unknown>>({
+					reducer: (a, b) => {
+						return b
+							? {
+									...a,
+									...b
+								}
+							: a
+					},
+					default: () => ({})
+				})
+			}
 		} as TSubAgent
 	}
 }

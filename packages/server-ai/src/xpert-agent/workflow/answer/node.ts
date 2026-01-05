@@ -66,9 +66,38 @@ export function createAnswerNode(
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 
-				const aiMessage = await AIMessagePromptTemplate.fromTemplate(entity.promptTemplate ?? '', {
+				// Convert state to parameters for template rendering
+				const parameters = stateToParameters(state, environment)
+				
+				// Extract variables used in template
+				const templateVars = new Set<string>()
+				const template = entity.promptTemplate ?? ''
+				// Match Mustache variables: {{variable}} or {{object.property}}
+				const varRegex = /\{\{([^}]+)\}\}/g
+				let match
+				while ((match = varRegex.exec(template)) !== null) {
+					const varPath = match[1].trim()
+					templateVars.add(varPath)
+				}
+				
+				// Build inputs with only used variables
+				const inputs: Record<string, any> = {}
+				templateVars.forEach(varPath => {
+					// Support nested paths like "agent_xxx_channel.rules"
+					const parts = varPath.split('.')
+					let value = parameters
+					for (const part of parts) {
+						value = value?.[part]
+						if (value === undefined) break
+					}
+					if (value !== undefined) {
+						inputs[varPath] = value
+					}
+				})
+				
+				const aiMessage = await AIMessagePromptTemplate.fromTemplate(template, {
 					templateFormat: 'mustache'
-				}).format(stateToParameters(state, environment))
+				}).format(parameters)
 
 				const execution: IXpertAgentExecution = {
 					category: 'workflow',
@@ -78,7 +107,8 @@ export function createAnswerNode(
 					checkpointNs: checkpoint_ns,
 					checkpointId: checkpoint_id,
 					agentKey: node.key,
-					title: entity.title
+					title: entity.title,
+					inputs
 				}
 				return await wrapAgentExecution(
 					async () => {
