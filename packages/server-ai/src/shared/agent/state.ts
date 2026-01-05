@@ -155,7 +155,7 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State, envi
 						objAcc[objKey] = fieldValue
 					}
 					return objAcc
-				}, {}
+				}, {})
 			} else {
 				acc[key] = value
 			}
