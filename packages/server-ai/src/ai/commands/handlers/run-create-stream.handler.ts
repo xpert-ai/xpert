@@ -1,11 +1,49 @@
-import { STATE_VARIABLE_HUMAN, TChatRequest, TChatRequestHuman, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { STATE_VARIABLE_HUMAN, TChatRequest, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
+import z from 'zod'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import { FindXpertQuery, XpertChatCommand } from '../../../xpert'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
+
+const chatRequestSchema = z
+	.object({
+		input: z.union([
+			z.string().min(1),
+			z
+				.object({
+					input: z.string().min(1)
+				})
+				.passthrough()
+		]),
+		executionId: z.string().optional(),
+		command: z.any().optional(),
+		state: z.record(z.any()).optional(),
+		conversationId: z.string().optional(),
+		projectId: z.string().optional(),
+		confirm: z.boolean().optional(),
+		retry: z.boolean().optional()
+	})
+	.passthrough()
+
+export function validateRunCreateInput(input: unknown): TChatRequest {
+	const parsed = chatRequestSchema.parse(typeof input === 'string' ? { input } : input)
+	const normalizedInput = typeof parsed.input === 'string' ? { input: parsed.input } : parsed.input
+	const rawState = parsed.state && typeof parsed.state === 'object' && !Array.isArray(parsed.state) ? parsed.state : undefined
+
+	return {
+		...parsed,
+		input: normalizedInput,
+		state: rawState
+			? {
+					...rawState,
+					[STATE_VARIABLE_HUMAN]: rawState[STATE_VARIABLE_HUMAN] ?? normalizedInput
+			  }
+			: { [STATE_VARIABLE_HUMAN]: normalizedInput }
+	}
+}
 
 @CommandHandler(RunCreateStreamCommand)
 export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCommand> {
@@ -17,25 +55,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 	public async execute(command: RunCreateStreamCommand) {
 		const threadId = command.threadId
 		const runCreate = command.runCreate
-		const rawRequest =
-			runCreate.input && typeof runCreate.input === 'object' && !Array.isArray(runCreate.input)
-				? (runCreate.input as Record<string, any>)
-				: {}
-		const input = (rawRequest.input ?? {}) as TChatRequestHuman
-		const rawState =
-			rawRequest.state && typeof rawRequest.state === 'object' && !Array.isArray(rawRequest.state)
-				? (rawRequest.state as Record<string, any>)
-				: undefined
-		const chatRequest: TChatRequest = {
-			...rawRequest,
-			input,
-			state: rawState
-				? {
-						...rawState,
-						[STATE_VARIABLE_HUMAN]: rawState[STATE_VARIABLE_HUMAN] ?? input
-				  }
-				: { [STATE_VARIABLE_HUMAN]: input }
-		}
+		// Validate and normalize the incoming run input before handling chat request
+		const chatRequest = validateRunCreateInput(runCreate.input)
 
 		// Find thread (conversation) and assistant (xpert)
 		const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
