@@ -1,4 +1,4 @@
-import { TChatRequest, TInterruptCommand, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { STATE_VARIABLE_HUMAN, TChatRequest, TChatRequestHuman, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
@@ -17,7 +17,25 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 	public async execute(command: RunCreateStreamCommand) {
 		const threadId = command.threadId
 		const runCreate = command.runCreate
-		const chatRequest = runCreate.input as unknown as TChatRequest
+		const rawRequest =
+			runCreate.input && typeof runCreate.input === 'object' && !Array.isArray(runCreate.input)
+				? (runCreate.input as Record<string, any>)
+				: {}
+		const input = (rawRequest.input ?? {}) as TChatRequestHuman
+		const rawState =
+			rawRequest.state && typeof rawRequest.state === 'object' && !Array.isArray(rawRequest.state)
+				? (rawRequest.state as Record<string, any>)
+				: undefined
+		const chatRequest: TChatRequest = {
+			...rawRequest,
+			input,
+			state: rawState
+				? {
+						...rawState,
+						[STATE_VARIABLE_HUMAN]: rawState[STATE_VARIABLE_HUMAN] ?? input
+				  }
+				: { [STATE_VARIABLE_HUMAN]: input }
+		}
 
 		// Find thread (conversation) and assistant (xpert)
 		const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
@@ -44,9 +62,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		const stream = await this.commandBus.execute(
 			new XpertChatCommand(
 				{
-					input: chatRequest.input as any,
+					input: chatRequest.input,
+					state: chatRequest.state,
 					conversationId: conversation.id,
-					command: chatRequest['command'] as TInterruptCommand
+					command: chatRequest.command
 				},
 				{
 					xpertId: xpert.id,
