@@ -30,11 +30,12 @@ const chatRequestSchema = z
 
 export function validateRunCreateInput(input: unknown): TChatRequest {
 	const parsed = chatRequestSchema.parse(typeof input === 'string' ? { input } : input)
+	const normalizedInput = typeof parsed.input === 'string' ? { input: parsed.input } : parsed.input
 
 	return {
 		...parsed,
-		input: typeof parsed.input === 'string' ? { input: parsed.input } : parsed.input
-	} as TChatRequest
+		input: normalizedInput
+	}
 }
 
 @CommandHandler(RunCreateStreamCommand)
