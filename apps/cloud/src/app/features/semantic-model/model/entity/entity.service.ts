@@ -40,18 +40,60 @@ import {
   distinctUntilChanged,
   filter,
   map,
+  of,
   shareReplay,
   switchMap,
   tap,
-  withLatestFrom
+  withLatestFrom,
+  catchError
 } from 'rxjs'
+
+/**
+ * Clean field name by removing SQL delimiters (brackets, quotes)
+ * Examples:
+ *   - "[uuid]" -> "uuid"
+ *   - "table.[field]" -> "table.field"
+ *   - '"field"' -> "field"
+ */
+function cleanFieldName(name: string): string {
+  if (!name || typeof name !== 'string') {
+    return ''
+  }
+  
+  let cleaned = name.trim()
+  
+  // Split by dot to handle table.field format
+  const parts = cleaned.split('.')
+  const cleanedParts = parts.map(part => {
+    let cleanPart = part.trim()
+    // Remove square brackets: [field] -> field
+    if (cleanPart.startsWith('[') && cleanPart.endsWith(']')) {
+      cleanPart = cleanPart.slice(1, -1)
+    }
+    // Remove double quotes: "field" -> field
+    if (cleanPart.startsWith('"') && cleanPart.endsWith('"')) {
+      cleanPart = cleanPart.slice(1, -1)
+    }
+    // Remove backticks: `field` -> field
+    if (cleanPart.startsWith('`') && cleanPart.endsWith('`')) {
+      cleanPart = cleanPart.slice(1, -1)
+    }
+    // Remove single quotes: 'field' -> field
+    if (cleanPart.startsWith("'") && cleanPart.endsWith("'")) {
+      cleanPart = cleanPart.slice(1, -1)
+    }
+    return cleanPart
+  })
+  
+  return cleanedParts.join('.')
+}
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model'
 import { getSemanticModelKey } from '@metad/story/core'
 import { SemanticModelService } from '../model.service'
 import { createSubStore, dirtyCheckWith, write } from '../../store'
 import { EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
-import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable } from './types'
+import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable, removeTablePrefixFromCaption } from './types'
 
 /**
  * State servcie for Cube
@@ -137,10 +179,80 @@ export class ModelEntityService {
   )
    /**
    * Original Fact table fields
+   * In multi-table mode, merge fields from all tables with table prefix
    */
-  readonly factFields$ = this.factName$.pipe(
-    filter(nonBlank),
-    switchMap((table) => this.#modelService.selectOriginalEntityProperties(table)),
+  readonly factFields$ = this.cube$.pipe(
+    switchMap((cube) => {
+      if (!cube) {
+        return of([])
+      }
+      
+      // Check if it's multi-table mode (has multiple tables)
+      const isMultiTable = cube.tables && cube.tables.length > 1
+      
+      if (isMultiTable) {
+        // Multi-table mode: merge fields from all tables
+        const tableNames = cube.tables.map(t => t.name).filter(nonBlank)
+        if (tableNames.length === 0) {
+          return of([])
+        }
+        
+        // Load properties from all tables and merge them
+        return combineLatest(
+          tableNames.map(tableName => 
+            this.#modelService.selectOriginalEntityProperties(tableName).pipe(
+              map(properties => {
+                return properties.map(p => {
+                  // Clean field name to remove SQL delimiters like brackets
+                  const cleanName = cleanFieldName(p.name)
+                  const cleanCaption = cleanFieldName(p.caption || p.name)
+                  return {
+                    ...p,
+                    name: cleanName,
+                    // Add table prefix to distinguish fields from different tables
+                    _tableName: tableName,
+                    // Display table prefix in caption for dropdown selection
+                    caption: `${tableName}.${cleanCaption}`
+                  }
+                })
+              }),
+              catchError((error) => {
+                console.error(`[EntityService] Error loading fields for table "${tableName}":`, error)
+                return of([])
+              })
+            )
+          )
+        ).pipe(
+          map((allProperties) => {
+            // Flatten all properties without deduplication
+            // Each field keeps its table prefix in caption for identification
+            const merged = allProperties.flat()
+            return merged
+          })
+        )
+      } else {
+        // Single table mode: use fact table name
+        return this.factName$.pipe(
+          filter(nonBlank),
+          switchMap((table) => this.#modelService.selectOriginalEntityProperties(table).pipe(
+            map(properties => properties.map(p => {
+              // Clean field name to remove SQL delimiters like brackets
+              const cleanName = cleanFieldName(p.name)
+              const cleanCaption = cleanFieldName(p.caption || p.name)
+              return {
+                ...p,
+                name: cleanName,
+                caption: cleanCaption
+              }
+            })),
+            catchError((error) => {
+              console.error(`[EntityService] Error loading fields for table "${table}":`, error)
+              return of([])
+            })
+          ))
+        )
+      }
+    }),
     map((properties) => [
       {
         value: null,
@@ -173,8 +285,34 @@ export class ModelEntityService {
     shareReplay(1)
   )
 
-  readonly originalEntityType$ = this.entityName$.pipe(
-    switchMap((name) => this.#modelService.selectOriginalEntityType(name)),
+  /**
+   * Original entity type from database table (not cube)
+   * Uses actual table name from cube configuration, not cube name
+   */
+  readonly originalEntityType$ = this.cube$.pipe(
+    map((cube) => {
+      // Get actual table name from cube configuration
+      // Priority: cube.tables[0].name > cube.fact.table.name > cube.fact.table
+      if (cube?.tables && cube.tables.length > 0 && cube.tables[0]?.name) {
+        return cube.tables[0].name
+      }
+      if (cube?.fact?.table) {
+        return typeof cube.fact.table === 'string' ? cube.fact.table : cube.fact.table.name
+      }
+      return null
+    }),
+    filter((tableName): tableName is string => !!tableName),
+    switchMap((tableName) => this.#modelService.selectOriginalEntityType(tableName).pipe(
+      catchError((error) => {
+        console.warn(`[EntityService] Error loading originalEntityType for table "${tableName}":`, error)
+        // Return empty EntityType instead of throwing to prevent UI crash
+        return of({
+          name: tableName,
+          properties: {},
+          visible: true
+        } as EntityType)
+      })
+    )),
     takeUntilDestroyed(),
     shareReplay(1)
   )
@@ -514,11 +652,13 @@ export class ModelEntityService {
     let __id__: string = null
     if (event) {
       __id__ = uuid()
+      // Remove table prefix from caption for display (e.g., "tableName.fieldName" -> "fieldName")
+      const cleanCaption = removeTablePrefixFromCaption(event.caption)
       state.measures.splice(event.index, 0, {
         __id__,
         name: event.column,
         column: event.column,
-        caption: event.caption,
+        caption: cleanCaption,
         aggregator: 'sum',
         visible: true
       })

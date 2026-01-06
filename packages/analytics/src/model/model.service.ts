@@ -306,13 +306,25 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		}
 
 		try {
-			return await axios.post(`http://${olapHost}:${olapPort}/xmla`, query, { headers })
-		} catch (err) {
-			this.logger.error(err)
-			// Provide more detailed error message including host and port
-			const errorMessage = err?.code === 'ECONNREFUSED' 
-				? t('analytics:Error.FailedConnectToOLAP') + ` (${olapHost}:${olapPort})`
-				: t('analytics:Error.FailedConnectToOLAP')
+			return await axios.post(`http://${olapHost}:${olapPort}/xmla`, query, { 
+				headers,
+				timeout: 30000 // Set timeout to 30 seconds
+			})
+		} catch (err: any) {
+			this.logger.error(`Failed to connect to OLAP engine at ${olapHost}:${olapPort}`, err)
+			// Provide detailed error message based on error type
+			let errorMessage = t('analytics:Error.FailedConnectToOLAP')
+			if (err?.code === 'ECONNREFUSED') {
+				errorMessage = t('analytics:Error.FailedConnectToOLAP') + ` Connection refused at ${olapHost}:${olapPort}. Please check if the OLAP service is running.`
+			} else if (err?.code === 'ETIMEDOUT' || err?.code === 'ECONNABORTED') {
+				errorMessage = t('analytics:Error.FailedConnectToOLAP') + ` Connection timeout at ${olapHost}:${olapPort}. Please check network connectivity and service status.`
+			} else if (err?.response) {
+				errorMessage = t('analytics:Error.FailedConnectToOLAP') + ` OLAP engine returned error: ${err.response.status} ${err.response.statusText}`
+			} else if (err?.message) {
+				errorMessage = t('analytics:Error.FailedConnectToOLAP') + ` ${err.message}`
+			} else {
+				errorMessage = t('analytics:Error.FailedConnectToOLAP') + ` (${olapHost}:${olapPort})`
+			}
 			throw new Error(errorMessage)
 		}
 	}

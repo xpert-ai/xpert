@@ -21,7 +21,7 @@ import {
   uuid,
 } from '@metad/ocap-core'
 import { t } from 'i18next'
-import { catchError, combineLatest, distinctUntilChanged, filter, from, map, Observable, shareReplay, switchMap } from 'rxjs'
+import { catchError, combineLatest, distinctUntilChanged, filter, firstValueFrom, from, map, Observable, shareReplay, switchMap } from 'rxjs'
 import { compileCubeSchema } from './cube'
 import { compileDimensionSchema, DimensionMembers } from './dimension'
 import { SQLEntityService } from './entity.service'
@@ -214,6 +214,12 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
             }
           }
 
+          // Log available cubes for debugging when entity not found
+          if (schema?.cubes?.length) {
+            console.debug(`[SQLDataSource] Entity '${entity}' not found in cubes. Available cubes:`, 
+              schema.cubes.map(c => c.name).join(', '))
+          }
+
           return {}
         }),
         distinctUntilChanged(isEqual)
@@ -245,17 +251,52 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
             }
 
             // Other Entity is raw table
-            let schemas: SQLSchema[]
+            let schemas: SQLSchema[] | undefined
             if (type === 'VIEW') {
-              schemas = await this.fetchTableSchema(this.options.name, this.options.catalog || '', entity, cube.fact?.view?.sql?.content)
+              // For VIEW type, fetch schema using SQL content
+              try {
+                schemas = await this.fetchTableSchema(this.options.name, this.options.catalog || '', entity, cube.fact?.view?.sql?.content)
+              } catch (fetchError: any) {
+                const errorMsg = t('Error.NoMetadata4Entity', {ns: 'sql', entity})
+                const detailMsg = fetchError?.message ? `: ${fetchError.message}` : ''
+                throw new Error(`${errorMsg}${detailMsg}`)
+              }
             } else if (!cube) {
-              schemas = await this.fetchTableSchema(this.options.name, this.options.catalog || '', entity)
+              // Entity is a raw table name (could be from multi-table cube or standalone table)
+              // Always fetch the actual table schema from the database to get original fields
+              // This is important for multi-table join configuration where we need each table's own fields
+              try {
+                schemas = await this.fetchTableSchema(this.options.name, this.options.catalog || '', entity)
+              } catch (fetchError: any) {
+                // Provide more detailed error message
+                const errorMsg = t('Error.NoMetadata4Entity', {ns: 'sql', entity})
+                const detailMsg = fetchError?.message ? `: ${fetchError.message}` : ''
+                throw new Error(`${errorMsg}${detailMsg}`)
+              }
+            } else {
+              // If cube exists but type is not CUBE or VIEW, it's an unexpected state
+              // This shouldn't happen, but handle it gracefully
+              throw new Error(t('Error.NoMetadata4Entity', {ns: 'sql', entity}) + ` (Unexpected entity type: ${type || 'unknown'}, cube exists but not handled)`)
+            }
+            
+            // Check if schemas is defined and has data
+            if (!schemas || schemas.length === 0) {
+              // Provide helpful message about what went wrong
+              const entityType = type || 'raw table'
+              throw new Error(
+                t('Error.NoMetadata4Entity', {ns: 'sql', entity}) + 
+                ` (No schema returned. Entity '${entity}' was treated as ${entityType}. ` +
+                `If this is a cube name, ensure the cube is properly configured in the schema. ` +
+                `If this is a table name, ensure the table exists in the database.)`
+              )
             }
             
             const table = schemas[0]?.tables?.[0]
 
             if (!table) {
-              throw new Error(t('Error.NoMetadata4Entity', {ns: 'sql', entity}))
+              // Provide more detailed error message including schema information
+              const schemaInfo = schemas[0] ? `Schema: ${schemas[0].schema || 'default'}, Catalog: ${schemas[0].catalog || 'default'}` : 'No schema data'
+              throw new Error(t('Error.NoMetadata4Entity', {ns: 'sql', entity}) + ` (Table not found in schema. ${schemaInfo})`)
             }
 
             // this.updateCube(mapTableToCube(entity, table))
