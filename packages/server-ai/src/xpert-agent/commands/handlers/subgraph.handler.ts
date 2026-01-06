@@ -1246,13 +1246,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 			}
 			
-			console.log(`\n=== Agent Execution Inputs Debug ===`)
-			console.log(`Agent key: ${agent.key}`)
-			console.log(`Is tool call: ${isTool}`)
-			console.log(`State keys:`, Object.keys(state))
-			console.log(`Prepared inputs keys:`, Object.keys(inputs || {}))
-			console.log(`=== End Inputs Debug ===\n`)
-			
 			const _execution = await this.commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					...execution,
@@ -1273,7 +1266,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			let status = XpertAgentExecutionStatusEnum.SUCCESS
 			let error = null
 			let result = ''
-			let actualInputs = inputs // Will be updated with actual input after execution
+			let actualInputs = inputs // May be updated with actual input during execution if available
 			const finalize = async () => {
 				const _state = await graph.getState(config)
 
@@ -1346,20 +1339,35 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				const channelOutput = output[channelName(agent.key)] as Record<string, any>
 				
 				// Try to extract structured output from channel
-				// Check for common structured output fields
-				let structuredOutput = null
+				// Standard channel fields that should not be treated as structured output
+				const STANDARD_CHANNEL_FIELDS = [
+					'agent',
+					'system',
+					'messages',
+					'error',
+					'summary',
+					'output',      // The final output field
+					'metadata',    // Common metadata field
+					'timestamp',   // Timestamp field
+					'status',      // Status field
+					'input',       // Input field
+					'config',      // Configuration field
+				]
+				
+				let structuredOutput: Record<string, any> | null = null
 				if (channelOutput) {
 					// Try to find structured output in channel
+					// Only consider fields that are not standard channel fields
 					const possibleOutputKeys = Object.keys(channelOutput).filter(key => 
-						!['agent', 'system', 'messages', 'error', 'summary'].includes(key)
+						!STANDARD_CHANNEL_FIELDS.includes(key)
 					)
 					
 					if (possibleOutputKeys.length > 0) {
 						// Build structured output from all non-standard keys
-						structuredOutput = {}
-						possibleOutputKeys.forEach(key => {
-							structuredOutput[key] = channelOutput[key]
-						})
+						structuredOutput = possibleOutputKeys.reduce((acc, key) => {
+							acc[key] = channelOutput[key]
+							return acc
+						}, {} as Record<string, any>)
 					}
 				}
 				
@@ -1380,7 +1388,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				const nState: Record<string, any> = isTool ? {
 					messages: [
 						new ToolMessage({
-							content: lastMessage.content,
+							content: lastMessage?.content || '',
 							name: call.name,
 							tool_call_id: call.id ?? "",
 						})
@@ -1388,7 +1396,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					[channelName(leaderKey)]: {
 						messages: [
 							new ToolMessage({
-								content: lastMessage.content,
+								content: lastMessage?.content || '',
 								name: call.name,
 								tool_call_id: call.id ?? "",
 							})
@@ -1403,20 +1411,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					[channelName(agent.key)]: {
 						...(output[channelName(agent.key)] as Record<string, any>),
 						messages: output.messages, // Return full messages to parent graph
-						output: result || stringifyMessageContent(lastMessage.content)
+						output: result || stringifyMessageContent(lastMessage?.content)
 					}
 				}
-				
-				// Debug: Check what was written to state
-				console.log(`\n=== Final State Debug ===`)
-				console.log(`State keys:`, Object.keys(nState))
-				const agentChannelState = nState[channelName(agent.key)]
-				if (agentChannelState) {
-					console.log(`Agent channel state keys:`, Object.keys(agentChannelState))
-					console.log(`Agent channel state.rules exists:`, !!agentChannelState.rules)
-					console.log(`Agent channel state.output length:`, agentChannelState.output?.length || 0)
-				}
-				console.log(`=== End Final State Debug ===\n`)
 				
 				// Write to memory
 				agent.options?.memories?.forEach((item) => {
@@ -1424,7 +1421,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						nState[item.variableSelector] = item.value
 					} else if (item.inputType === 'variable') {
 						if (item.value === 'content') {
-							nState[item.variableSelector] = lastMessage.content
+							nState[item.variableSelector] = lastMessage?.content
 						}
 						// @todo more variables
 					}
@@ -1452,12 +1449,27 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				name: channelName(agent.key),
 				annotation: Annotation<Record<string, unknown>>({
 					reducer: (a, b) => {
-						return b
-							? {
-									...a,
-									...b
+						if (!b) return a
+						// Deep merge to preserve nested structured output fields
+						const result = { ...a }
+						for (const key in b) {
+							if (b[key] !== undefined) {
+								// If both values are plain objects, merge them recursively
+								if (
+									typeof b[key] === 'object' &&
+									b[key] !== null &&
+									!Array.isArray(b[key]) &&
+									typeof a[key] === 'object' &&
+									a[key] !== null &&
+									!Array.isArray(a[key])
+								) {
+									result[key] = { ...a[key], ...b[key] }
+								} else {
+									result[key] = b[key]
 								}
-							: a
+							}
+						}
+						return result
 					},
 					default: () => ({})
 				})

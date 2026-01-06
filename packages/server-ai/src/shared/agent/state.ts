@@ -149,8 +149,8 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State, envi
 					if (objKey === 'messages') {
 						objAcc[objKey] = getBufferString(fieldValue)
 					} else if (typeof fieldValue === 'object' && fieldValue !== null) {
-						// Serialize nested objects/arrays to JSON string for template rendering
-						objAcc[objKey] = JSON.stringify(fieldValue, null, 2)
+						// Preserve nested objects/arrays for direct property access in templates
+						objAcc[objKey] = fieldValue
 					} else {
 						objAcc[objKey] = fieldValue
 					}

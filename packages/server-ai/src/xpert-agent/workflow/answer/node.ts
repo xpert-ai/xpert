@@ -73,8 +73,9 @@ export function createAnswerNode(
 				const templateVars = new Set<string>()
 				const template = entity.promptTemplate ?? ''
 				// Match Mustache variables: {{variable}} or {{object.property}}
+				// Note: This regex handles simple cases and does not support nested braces or escaped braces
 				const varRegex = /\{\{([^}]+)\}\}/g
-				let match
+				let match: RegExpExecArray | null
 				while ((match = varRegex.exec(template)) !== null) {
 					const varPath = match[1].trim()
 					templateVars.add(varPath)
@@ -84,6 +85,9 @@ export function createAnswerNode(
 				const inputs: Record<string, any> = {}
 				templateVars.forEach(varPath => {
 					// Support nested paths like "agent_xxx_channel.rules"
+					// Note: This implementation uses simple dot notation and doesn't support array indices
+					// or special characters in property names. For complex paths like "items[0].name",
+					// the template variable should be pre-processed or use a different approach.
 					const parts = varPath.split('.')
 					let value = parameters
 					for (const part of parts) {
