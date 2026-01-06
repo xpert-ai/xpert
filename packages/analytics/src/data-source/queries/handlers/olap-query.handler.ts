@@ -38,31 +38,14 @@ export class OlapQueryHandler implements IQueryHandler<DataSourceOlapQuery> {
 		if (dataSource.type.protocol !== 'xmla') {
 			const olapHost = this.configService.get<string>('OLAP_HOST') || 'localhost'
 			const olapPort = this.configService.get<string>('OLAP_PORT') || '8080'
-			try {
-				const result = await axios.post(`http://${olapHost}:${olapPort}/xmla`, body, {
-					headers: {
-						Accept: 'text/xml, application/xml, application/soap+xml',
-						'Accept-Language': acceptLanguage || '',
-						'Content-Type': 'text/xml'
-					},
-					timeout: 30000 // Set timeout to 30 seconds
-				})
-				return result.data
-			} catch (err: any) {
-				this.logger.error(`Failed to connect to OLAP engine at ${olapHost}:${olapPort}`, err)
-				// Provide detailed error message based on error type
-				let errorMessage = 'Failed to connect to OLAP engine.'
-				if (err?.code === 'ECONNREFUSED') {
-					errorMessage = `Failed to connect to OLAP engine. Connection refused at ${olapHost}:${olapPort}. Please check if the OLAP service is running.`
-				} else if (err?.code === 'ETIMEDOUT' || err?.code === 'ECONNABORTED') {
-					errorMessage = `Failed to connect to OLAP engine. Connection timeout at ${olapHost}:${olapPort}. Please check network connectivity and service status.`
-				} else if (err?.response) {
-					errorMessage = `OLAP engine returned error: ${err.response.status} ${err.response.statusText}`
-				} else if (err?.message) {
-					errorMessage = `Failed to connect to OLAP engine: ${err.message}`
+			const result = await axios.post(`http://${olapHost}:${olapPort}/xmla`, body, {
+				headers: {
+					Accept: 'text/xml, application/xml, application/soap+xml',
+					'Accept-Language': acceptLanguage || '',
+					'Content-Type': 'text/xml'
 				}
-				throw new Error(errorMessage)
-			}
+			})
+			return result.data
 		}
 
 		let _runner: DBQueryRunner

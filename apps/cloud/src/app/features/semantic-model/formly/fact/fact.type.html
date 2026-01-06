@@ -9,8 +9,7 @@
 />
 
 @if (type() === 'table') {
-  <!-- Single table mode -->
-  <ngm-select searchable [selectOptions]="factTableOptions()"
+  <ngm-select searchable [selectOptions]="props.options$ | async"
     [placeholder]="'PAC.MODEL.SelectAFactTable' | translate: {Default: 'Select a fact table'}"
     [(ngModel)]="tableName"
   >
@@ -18,36 +17,7 @@
       <ngm-display-behaviour [option]="value" class="text-sm" [highlight]="search" />
     </ng-template>
   </ngm-select>
-} @else if (type() === 'multi-table') {
-  <!-- Multi-table mode -->
-  <div class="flex flex-col gap-4">
-    <!-- Tables list (fact table is the first one) -->
-    <div>
-      <div class="flex justify-between items-center mb-2">
-        <label class="block text-sm font-medium">
-          {{ 'PAC.MODEL.Tables' | translate: {Default: 'Tables'} }}
-        </label>
-        <button 
-          type="button"
-          class="px-3 py-1 text-sm rounded-lg border border-divider-regular hover:bg-components-input-bg-hover flex items-center gap-1"
-          (click)="addJoinTable()"
-        >
-          <i class="ri-add-line"></i>
-          {{ 'PAC.MODEL.AddTable' | translate: {Default: 'Add Table'} }}
-        </button>
-      </div>
-
-      <ngm-tables-join 
-        [dataSource]="dataSource()"
-        [tables]="allTables()"
-        [tableOptions]="props.options$"
-        [factTableName]="allTables()[0]?.name"
-        (tablesChange)="updateAllTables($event)"
-      />
-    </div>
-  </div>
 } @else if (type() === 'view') {
-  <!-- SQL view mode -->
   <div>
     <label>{{'PAC.MODEL.Alias' | translate: {Default: 'Alias'} }}</label>
     <input tabindex="0" class="block h-8 w-full appearance-none rounded-lg border border-transparent bg-components-input-bg-normal px-3 text-sm
@@ -55,14 +25,14 @@
           placeholder:text-sm placeholder:text-text-tertiary
           hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active
           focus:bg-components-input-bg-active focus:shadow-xs" 
-      [placeholder]="'PAC.MODEL.Alias' | translate: {Default: 'Alias'}" type="text"
+      placeholder="SQL Alias" type="text"
       [(ngModel)]="viewAlias"
     >
   </div>
   <div class="w-full">
     <label>{{'PAC.MODEL.SQL' | translate: {Default: 'SQL'} }}</label>
     <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular mt-1" 
-      [placeholder]="'PAC.MODEL.SQL' | translate: {Default: 'SQL'}"
+      placeholder="SQL"
       [(ngModel)]="sqlContent"
     ></textarea>
   </div>

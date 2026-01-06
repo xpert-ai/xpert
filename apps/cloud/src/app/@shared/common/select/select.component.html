@@ -4,7 +4,6 @@
   class="select-trigger group grow flex items-center rounded-lg cursor-pointer hover:bg-gray-200"
   [cdkMenuTriggerFor]="_disabled() ? null : menu"
   [cdkMenuTriggerData]="{ trigger: trigger }"
-  (cdkMenuClosed)="search.set('')"
 >
   @if (icon()) {
     <div class="w-4 h-4 flex justify-center items-center mr-1 text-text-tertiary group-hover:text-text-primary">
@@ -51,10 +50,7 @@
         }
       </div>
     }
-    <ul *ngIf="filteredOptions().length > 0" 
-      class="space-y-1" 
-      cdkListbox 
-      [cdkListboxMultiple]="multiple()"
+    <ul class="space-y-1" cdkListbox useActiveDescendant [cdkListboxMultiple]="multiple()"
       [cdkListboxDisabled]="readonly()"
       [cdkListboxValue]="values()"
       (cdkListboxValueChange)="selectValues($event)">
@@ -82,9 +78,6 @@
         </li>
       }
     </ul>
-    <div *ngIf="filteredOptions().length === 0" class="text-sm text-text-tertiary p-2 text-center">
-      {{ 'PAC.MODEL.NoOptions' | translate: {Default: 'No options available'} }}
-    </div>
 
     <ng-content select="[option]"></ng-content>
   </div>

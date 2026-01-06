@@ -8,7 +8,6 @@ import { getOrganizationManifestPath, getOrganizationPluginPath, getOrganization
 import { isClassProvider, isExistingProvider, isFactoryProvider, isValueProvider, LoadedPluginRecord, normalizePluginName } from './types';
 import { discoverPlugins } from './plugin-discovery';
 import { loadPlugin } from './plugin-loader';
-import { PluginLoadError } from './errors';
 import { buildConfig } from './config';
 import { createPluginContext } from './lifecycle';
 
@@ -220,46 +219,36 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 	const modules: DynamicModule[] = [];
 
 	for (const name of pluginNames) {
-		try {
-			const pluginBaseDir = opts.organizationId
-				? getOrganizationPluginPath(organizationId, name, opts)
-				: baseDirRoot;
-			// 2) Load each plugin and build its configuration.
-			const plugin = await loadPlugin(name, { basedir: pluginBaseDir });
-			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {};
-			const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config);
+		const pluginBaseDir = opts.organizationId
+			? getOrganizationPluginPath(organizationId, name, opts)
+			: baseDirRoot;
+		// 2) Load each plugin and build its configuration.
+		const plugin = await loadPlugin(name, { basedir: pluginBaseDir });
+		const cfgRaw = opts.configs?.[plugin.meta.name] ?? {};
+		const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config);
 
-			// 3) Create a plugin context and register the plugin module.
-			// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
-			const ctx = createPluginContext<any>({} as any, plugin.meta.name, cfg);
-			const mod = plugin.register(ctx);
+		// 3) Create a plugin context and register the plugin module.
+		// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
+		const ctx = createPluginContext<any>({} as any, plugin.meta.name, cfg);
+		const mod = plugin.register(ctx);
 
-			// 4) Tag the module and its providers with organization and plugin metadata.
-			tagModuleWithOrganization(mod, organizationId, normalizePluginName(name));
-			modules.push(mod);
-			const existing = loaded.findIndex(
-				(item) => item.organizationId === organizationId && item.name === plugin.meta.name,
-			);
-			if (existing >= 0) {
-				loaded.splice(existing, 1);
-			}
-			loaded.push({
-				organizationId,
-				name: plugin.meta.name,
-				packageName: name,
-				instance: plugin,
-				ctx,
-				baseDir: pluginBaseDir,
-			});
-		} catch (error) {
-			// Log error but continue loading other plugins
-			// This allows the server to start even if some plugins fail to load
-			console.error(`[PluginLoader] Failed to load plugin "${name}":`, error);
-			if (error instanceof PluginLoadError) {
-				console.error(`[PluginLoader] PluginLoadError: ${error.message}`);
-			}
-			// Continue with next plugin instead of throwing
+		// 4) Tag the module and its providers with organization and plugin metadata.
+		tagModuleWithOrganization(mod, organizationId, normalizePluginName(name));
+		modules.push(mod);
+		const existing = loaded.findIndex(
+			(item) => item.organizationId === organizationId && item.name === plugin.meta.name,
+		);
+		if (existing >= 0) {
+			loaded.splice(existing, 1);
 		}
+		loaded.push({
+			organizationId,
+			name: plugin.meta.name,
+			packageName: name,
+			instance: plugin,
+			ctx,
+			baseDir: pluginBaseDir,
+		});
 	}
 
 	return {

@@ -15,7 +15,7 @@ import {
 import { CubeContext } from './cube'
 import { Aggregate, And, Parentheses } from './functions'
 import { compileSlicer } from './sql-filter'
-import { parseColumnReference, serializeName, serializeTableAlias } from './utils'
+import { serializeName } from './utils'
 
 export function serializeCalculationProperty(
   cubeContext: CubeContext,
@@ -47,7 +47,7 @@ export function serializeRestrictedMeasure(
   aggregate: boolean,
   dialect: string
 ) {
-  const { factTable, schema } = cubeContext
+  const { factTable } = cubeContext
   if (indicator.measure) {
     const measure = getEntityProperty<PropertyMeasure>(cubeContext.entityType, indicator.measure)
     if (!measure) {
@@ -80,31 +80,10 @@ export function serializeRestrictedMeasure(
           ? `CASE WHEN ${And(...Parentheses(...conditions))} THEN ${column} ELSE NULL END`
           : column
     } else {
-      // Support multi-table: parse column reference to get table and column
-      // If measure.column contains table prefix (e.g., "cclts2.amount"), use that table
-      // Otherwise, use the fact table as default
-      if (typeof measure.column === 'number') {
-        column = measure.column
-      } else {
-        const { table: parsedTable, column: columnName } = parseColumnReference(measure.column as string)
-        
-        // Validate column name is not empty
-        if (!columnName) {
-          throw new Error(`Measure '${measure.name}' has no column configured. Please set the 'column' property.`)
-        }
-        
-        // In multi-table mode, convert raw table name to the correct alias
-        const isMultiTable = schema?.tables && schema.tables.length > 1
-        let tableName: string
-        
-        if (parsedTable) {
-          tableName = isMultiTable ? serializeTableAlias(schema.name, parsedTable) : parsedTable
-        } else {
-          tableName = factTable
-        }
-        
-        column = serializeName(tableName, dialect) + '.' + serializeName(columnName, dialect)
-      }
+      column =
+        typeof measure.column === 'number'
+          ? measure.column
+          : serializeName(factTable, dialect) + '.' + serializeName(measure.column, dialect)
 
       statement = conditions?.length
         ? Aggregate(`CASE WHEN ${And(...Parentheses(...conditions))} THEN ${column} ELSE NULL END`, measure.aggregator)
@@ -153,18 +132,11 @@ export function serializeCalculatedMeasure(
 
 /**
  * Serialize measure field (including various calculated measure fields) into execution statement
- * 
- * Supports multi-table scenarios where measure.column can be:
- *   - A number (constant value)
- *   - A simple column name ("amount") - uses fact table
- *   - A table-prefixed column name ("cclts2.amount") - uses specified table
- *   - measure.table property can also specify the source table
  *
- * @param cubeContext Cube context containing fact table info
- * @param measure Measure property configuration
- * @param aggregate Whether to apply aggregation
- * @param dialect SQL dialect
- * @returns Serialized measure expression
+ * @param fact
+ * @param measure
+ * @param dialect
+ * @returns
  */
 export function serializeMeasure(
   cubeContext: CubeContext,
@@ -172,7 +144,7 @@ export function serializeMeasure(
   aggregate: boolean,
   dialect: string
 ) {
-  const { factTable, schema } = cubeContext
+  const { factTable } = cubeContext
   if (isCalculationProperty(measure)) {
     return serializeCalculationProperty(cubeContext, measure, aggregate, dialect)
   }
@@ -180,34 +152,11 @@ export function serializeMeasure(
   let measureExpression = ''
   if (measure.measureExpression?.sql?.content) {
     measureExpression = measure.measureExpression.sql.content
-  } else if (typeof measure.column === 'number') {
-    measureExpression = String(measure.column)
   } else {
-    // Support multi-table: parse column reference to get table and column
-    // If column contains table prefix (e.g., "cclts2.amount"), use that table
-    // Otherwise, use the fact table as default
-    const { table: parsedTable, column: columnName } = parseColumnReference(measure.column as string)
-    
-    // Validate column name is not empty
-    if (!columnName) {
-      throw new Error(`Measure '${measure.name}' has no column configured. Please set the 'column' property.`)
-    }
-    
-    // In multi-table mode, table names in FROM clause use cube name as prefix (e.g., "[cube]_table")
-    // So we need to convert the raw table name to the correct alias
-    const isMultiTable = schema?.tables && schema.tables.length > 1
-    let tableName: string
-    
-    if (parsedTable) {
-      // Column has table prefix (e.g., "cclts2.amount")
-      // Convert to table alias format used in FROM clause
-      tableName = isMultiTable ? serializeTableAlias(schema.name, parsedTable) : parsedTable
-    } else {
-      // No table prefix, use fact table (which is already the correct alias in single table mode)
-      tableName = factTable
-    }
-    
-    measureExpression = serializeName(tableName, dialect) + '.' + serializeName(columnName, dialect)
+    measureExpression =
+      typeof measure.column === 'number'
+        ? measure.column
+        : serializeName(factTable, dialect) + '.' + serializeName(measure.column, dialect)
   }
 
   return aggregate ? `${Aggregate(measureExpression, measure.aggregator)}` : measureExpression

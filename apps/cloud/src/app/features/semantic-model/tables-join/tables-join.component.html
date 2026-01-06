@@ -1,5 +1,5 @@
 <div class="ngm-tables-join__container">
-  @for (item of tables$ | async; let i = $index; let isFirst = $first; let isLast = $last; track item.name || i) {
+  @for (item of tables$ | async; let i = $index; let isFirst = $first; let isLast = $last; track item.__id__) {
     @if (!isFirst) {
       <div class="table-join">
         <span class="join-icon join-icon-with-connector"
@@ -16,17 +16,9 @@
     }
 
     <div class="join-table">
-      <ngm-select 
-        [selectOptions]="$any(convertedTableOptions$ | async)"
-        [ngModel]="item.name"
-        (ngModelChange)="changeTableName(item, $event)"
-        [placeholder]="'PAC.MODEL.SelectATable' | translate: {Default: 'Select a table'}"
-        class="join-table-select"
-      >
-        <ng-template #option let-value let-search="search">
-          <ngm-display-behaviour [option]="value" class="text-sm" [highlight]="search" />
-        </ng-template>
-      </ngm-select>
+      <span class="join-table-name">
+        {{ item.name }}
+      </span>
     
       <button mat-icon-button displayDensity="compact"
         [cdkMenuTriggerFor]="tableMenu"
@@ -76,70 +68,40 @@
       <mat-divider></mat-divider>
 
       <div class="join-fields-form flex flex-col justify-start items-stretch" displayDensity="compact">
-        @if (!table?.name || !table.name.trim()) {
-          <div class="text-sm text-text-tertiary p-2 text-center">
-            {{ 'PAC.MODEL.PleaseSelectTableFirst' | translate: {Default: 'Please select a table first'} }}
-          </div>
-        } @else {
-          @if (!table.join?.type || !table.join?.fields?.length) {
-            <button class="fit-form-field" displayDensity="compact" mat-button
-              (click)="addJoinField(table)">
-              <mat-icon>add</mat-icon>
-              <span class="ml-1">{{ 'PAC.MODEL.AddJoinField' | translate: {Default: 'Add join field'} }}</span>
-            </button>
-          }
-          @for (joinField of table.join?.fields; track i; let i = $index; let isFirst = $first; let isLast = $last) {
-            <div class="join-field-item flex justify-around items-center">
-              <div class="flex flex-col">
-                <label class="text-xs text-text-secondary mb-1">
-                  {{ 'PAC.MODEL.ENTITY.LeftKey' | translate: {Default: 'Left Key'} }}
-                </label>
-                <ngm-select 
-                  [selectOptions]="getLeftFieldOptionsForSelect(table)() || []"
-                  [ngModel]="joinField.leftKey" 
-                  (ngModelChange)="changeLeftKey(table, i, $event)"
-                  [readonly]="isFirst && (tables$ | async)?.length === 1"
-                  [placeholder]="(isFirst && (tables$ | async)?.length === 1) ? ('PAC.MODEL.FactTableNoLeftKey' | translate: {Default: 'Fact table has no left key'}) : ('PAC.MODEL.SelectAField' | translate: {Default: 'Select a field'})"
-                  searchable
-                  (click)="$event.preventDefault();$event.stopPropagation()">
-                  <ng-template #option let-value let-search="search">
-                    <ngm-display-behaviour [option]="value" class="text-sm" [highlight]="search" />
-                  </ng-template>
-                </ngm-select>
-              </div>
+        @if (table.join?.type && !table.join?.fields?.length) {
+          <button class="fit-form-field" displayDensity="compact" mat-button
+            (click)="addJoinField(table)">
+            <mat-icon>add</mat-icon>
+          </button>
+        }
+        @for (joinField of table.join?.fields; track i; let i = $index; let isFirst = $first; let isLast = $last) {
+          <div class="join-field-item flex justify-around items-center">
+            <ngm-input [label]="'PAC.MODEL.ENTITY.LeftKey' | translate: {Default: 'Left Key'}"
+                [ngModel]="joinField.leftKey" (ngModelChange)="changeLeftKey(table, i, $event)"
+                [options]="selectLeftTableFields(table) | async"
+                (click)="$event.preventDefault();$event.stopPropagation()">
+            </ngm-input>
 
-              <div class="fit-form-field">
-                {{'PAC.MODEL.ENTITY.Equal' | translate: {Default: "Equal"} }}
-              </div>
-
-              <div class="flex flex-col">
-                <label class="text-xs text-text-secondary mb-1">
-                  {{ 'PAC.MODEL.ENTITY.RightKey' | translate: {Default: 'Right Key'} }}
-                </label>
-                <ngm-select 
-                  [selectOptions]="getFieldOptionsForSelect(table)() || []"
-                  [ngModel]="joinField.rightKey" 
-                  (ngModelChange)="changeRightKey(table, i, $event)"
-                  [placeholder]="'PAC.MODEL.SelectAField' | translate: {Default: 'Select a field'}"
-                  searchable
-                  (click)="$event.preventDefault();$event.stopPropagation()">
-                  <ng-template #option let-value let-search="search">
-                    <ngm-display-behaviour [option]="value" class="text-sm" [highlight]="search" />
-                  </ng-template>
-                </ngm-select>
-              </div>
-
-              @if (isFirst) {
-                <button class="fit-form-field" mat-button (click)="addJoinField(table)">
-                  <mat-icon>add</mat-icon>
-                </button>
-              } @else {
-                <button class="fit-form-field" mat-button (click)="removeJoinField(table, i)">
-                  <mat-icon>close</mat-icon>
-                </button>
-              }
+            <div class="fit-form-field">
+              {{'PAC.MODEL.ENTITY.Equal' | translate: {Default: "Equal"} }}
             </div>
-          }
+
+            <ngm-input [label]="'PAC.MODEL.ENTITY.RightKey' | translate: {Default: 'Right Key'}"
+              [ngModel]="joinField.rightKey" (ngModelChange)="changeRightKey(table, i, $event)"
+              [options]="selectTableType(table) | async"
+              (click)="$event.preventDefault();$event.stopPropagation()">
+            </ngm-input>
+
+            @if (isFirst) {
+              <button class="fit-form-field" mat-button (click)="addJoinField(table)">
+                <mat-icon>add</mat-icon>
+              </button>
+            } @else {
+              <button class="fit-form-field" mat-button (click)="removeJoinField(table, i)">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
         }
       </div>
     </div>

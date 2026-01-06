@@ -14,7 +14,7 @@ import {
 import { CubeContext } from './cube'
 import { createDimensionContext, DimensionContext } from './dimension'
 import { And, Not, Or, Parentheses } from './functions'
-import { allMemberName, parseColumnReference, serializeName, serializeTableAlias } from './utils'
+import { allMemberName, serializeName, serializeTableAlias } from './utils'
 
 
 export function convertFilterValue({ value }: IMember) {
@@ -58,7 +58,6 @@ export function compileSlicer(slicer: IFilter, cube: CubeContext, dialect: strin
     dimensionContext = createDimensionContext(entityType, slicer.dimension)
     dimensionContext.dialect = dialect
     dimensionContext.factTable = factTable
-    dimensionContext.cubeName = cube.schema.name
     cube.dimensions.push(dimensionContext)
   }
 
@@ -113,34 +112,12 @@ export function compileFilters(filters: Array<IFilter>, cube: CubeContext, diale
   return And(...Parentheses(...compact(flatten(filters.map((item) => compileSlicer(item, cube, dialect))))))
 }
 
-/**
- * Compile member filters into SQL conditions
- * 
- * Supports multi-table scenarios where level columns can be:
- *   - A simple column name ("uuid") - uses level.table or dimension table
- *   - A table-prefixed column name ("cclts2.uuid") - uses specified table
- * 
- * @param members Array of members to filter
- * @param levels Hierarchy levels
- * @param dimensionContext Dimension context containing table and dialect info
- * @returns Array of compiled filter conditions
- */
 export function compileMembers(members: IMember[], levels: PropertyLevel[], dimensionContext: DimensionContext) {
-  // Determine the alias prefix:
-  // - If hierarchy has its own tables, use hierarchy.name
-  // - If it's a degenerate dimension (uses cube's tables), use cubeName
-  const hasOwnTables = dimensionContext.hierarchy?.tables?.length > 0
-  const aliasPrefix = hasOwnTables ? dimensionContext.hierarchy.name : (dimensionContext.cubeName || dimensionContext.hierarchy.name)
-  
   return members.map((member) => {
     if (member.operator) {
       return levels.map((level) => {
-        // Support multi-table: parse column reference
-        const levelColumnRef = level.captionColumn || level.nameColumn || level.column
-        const { table: parsedTable, column: levelColumn } = parseColumnReference(levelColumnRef)
-        
-        // Priority: level.table > parsed table prefix > dimension table
-        const resolvedTable = level.table || parsedTable || dimensionContext.dimensionTable
+        const levelTable = level.table || dimensionContext.dimensionTable
+        const levelColumn = level.captionColumn || level.nameColumn || level.column
 
         if (!levelColumn) {
           throw new Error(
@@ -149,7 +126,7 @@ export function compileMembers(members: IMember[], levels: PropertyLevel[], dime
         }
 
         const columnName = `${serializeName(
-          resolvedTable ? serializeTableAlias(aliasPrefix, resolvedTable) : dimensionContext.factTable,
+          levelTable ? serializeTableAlias(dimensionContext.hierarchy.name, levelTable) : dimensionContext.factTable,
           dimensionContext.dialect
         )}.${serializeName(levelColumn, dimensionContext.dialect)}`
 
@@ -172,13 +149,9 @@ export function compileMembers(members: IMember[], levels: PropertyLevel[], dime
       )
       .map((value, i) => {
         const level = levels[i]
-        
-        // Support multi-table: parse column reference
-        const levelColumnRef = level.nameColumn || level.column
-        const { table: parsedTable, column: levelColumn } = parseColumnReference(levelColumnRef)
-        
-        // Priority: level.table > parsed table prefix > dimension table
-        const resolvedTable = level.table || parsedTable || dimensionContext.dimensionTable
+        const levelTable = level.table || dimensionContext.dimensionTable
+
+        const levelColumn = level.nameColumn || level.column
 
         if (!levelColumn) {
           throw new Error(
@@ -187,7 +160,7 @@ export function compileMembers(members: IMember[], levels: PropertyLevel[], dime
         }
 
         const columnName = `${serializeName(
-          resolvedTable ? serializeTableAlias(aliasPrefix, resolvedTable) : dimensionContext.factTable,
+          levelTable ? serializeTableAlias(dimensionContext.hierarchy.name, levelTable) : dimensionContext.factTable,
           dimensionContext.dialect
         )}.${serializeName(levelColumn, dimensionContext.dialect)}`
 

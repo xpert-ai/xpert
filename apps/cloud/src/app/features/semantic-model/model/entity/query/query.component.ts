@@ -29,7 +29,6 @@ import { MatButtonModule } from '@angular/material/button'
 import { getSemanticModelKey } from '@metad/story/core'
 import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
 import { typeOfObj } from '@cloud/app/@shared/model/types'
-import { serializeCubeFact } from '@metad/ocap-sql'
 
 @Component({
   standalone: true,
@@ -136,46 +135,6 @@ export class EntityQueryComponent {
       () => {
         if (nonNullable(this.statement())) {
           this.entityService.statement = this.statement()
-        }
-      },
-      { allowSignalWrites: true }
-    )
-    
-    // Auto-generate SQL when statement is empty and cube has multi-table configuration
-    effect(
-      () => {
-        const cube = this.cube()
-        const currentStatement = this.statement()
-        const isMDX = this.useMDX()
-        const dialect = this.dialect()
-        
-        // Only auto-generate for SQL mode (not MDX)
-        if (isMDX) {
-          return
-        }
-        
-        // Only generate if statement is empty or null
-        if (currentStatement && currentStatement.trim()) {
-          return
-        }
-        
-        // Only generate if cube has tables configured
-        if (!cube || !cube.tables || cube.tables.length === 0) {
-          return
-        }
-        
-        // Check if it's multi-table mode (has multiple tables with join configuration)
-        const isMultiTable = cube.tables.length > 1 && 
-          cube.tables.slice(1).every(table => table.join && table.join.type && table.join.fields && table.join.fields.length > 0)
-        
-        // Generate SQL for multi-table or single table
-        try {
-          const generatedSQL = serializeCubeFact(cube, dialect || '')
-          if (generatedSQL && generatedSQL.trim()) {
-            this.statement.set(generatedSQL)
-          }
-        } catch (error) {
-          console.warn('Failed to auto-generate SQL:', error)
         }
       },
       { allowSignalWrites: true }

@@ -1,7 +1,7 @@
 import { DataSourceProtocolEnum, IDataSource, IDSSchema, mapTranslationLanguage } from '@metad/contracts'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { QueryBus } from '@nestjs/cqrs'
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
@@ -18,8 +18,6 @@ const axios = _axios.default
 
 @Injectable()
 export class DataSourceService extends TenantOrganizationAwareCrudService<DataSource> {
-	private readonly logger = new Logger(DataSourceService.name)
-
 	constructor(
 		@InjectRepository(DataSource)
 		protected readonly dsRepository: Repository<DataSource>,
@@ -151,32 +149,15 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 		if (dataSource.type.protocol !== 'xmla') {
 			const olapHost = this.configService.get<string>('OLAP_HOST') || 'localhost'
 			const olapPort = this.configService.get<string>('OLAP_PORT') || '8080'
-			try {
-				return await axios
-					.post(`http://${olapHost}:${olapPort}/xmla`, body, {
-						headers: {
-							Accept: 'text/xml, application/xml, application/soap+xml',
-							'Accept-Language': acceptLanguage,
-							'Content-Type': 'text/xml'
-						},
-						timeout: 30000 // Set timeout to 30 seconds
-					})
-					.then(({ data }) => data)
-			} catch (err: any) {
-				this.logger.error(`Failed to connect to OLAP engine at ${olapHost}:${olapPort}`, err)
-				// Provide detailed error message based on error type
-				let errorMessage = 'Failed to connect to OLAP engine.'
-				if (err?.code === 'ECONNREFUSED') {
-					errorMessage = `Failed to connect to OLAP engine. Connection refused at ${olapHost}:${olapPort}. Please check if the OLAP service is running.`
-				} else if (err?.code === 'ETIMEDOUT' || err?.code === 'ECONNABORTED') {
-					errorMessage = `Failed to connect to OLAP engine. Connection timeout at ${olapHost}:${olapPort}. Please check network connectivity and service status.`
-				} else if (err?.response) {
-					errorMessage = `OLAP engine returned error: ${err.response.status} ${err.response.statusText}`
-				} else if (err?.message) {
-					errorMessage = `Failed to connect to OLAP engine: ${err.message}`
-				}
-				throw new Error(errorMessage)
-			}
+			return axios
+				.post(`http://${olapHost}:${olapPort}/xmla`, body, {
+					headers: {
+						Accept: 'text/xml, application/xml, application/soap+xml',
+						'Accept-Language': acceptLanguage,
+						'Content-Type': 'text/xml'
+					}
+				})
+				.then(({ data }) => data)
 		}
 
 		return await this.query(dataSource.id, body, {

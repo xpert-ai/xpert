@@ -24,7 +24,6 @@
   min-width: 100px;
   margin-bottom: 1rem;
   border-radius: 5px;
-  gap: 4px;
 
   &::before {
     content: '';
@@ -36,11 +35,6 @@
   .join-table-name {
     flex: 1;
     margin-left: 5px;
-  }
-
-  .join-table-select {
-    flex: 1;
-    min-width: 0;
   }
 }
 

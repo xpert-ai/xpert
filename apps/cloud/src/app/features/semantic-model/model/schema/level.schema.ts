@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { nonBlank } from '@metad/core'
 import { DimensionType, DisplayBehaviour, getLevelsHierarchy, PropertyLevel } from '@metad/ocap-core'
 import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { ISelectOption } from '@metad/ocap-angular/core'
 import { FormlyFieldConfig } from '@ngx-formly/core'
-import { combineLatest, Observable, of } from 'rxjs'
-import { catchError, combineLatestWith, filter, map, shareReplay, startWith, switchMap } from 'rxjs/operators'
+import { combineLatest, Observable } from 'rxjs'
+import { combineLatestWith, filter, map, shareReplay, startWith, switchMap } from 'rxjs/operators'
 import {
   CaptionExpressionAccordion,
   hiddenPropertiesAccordion,
@@ -18,45 +17,6 @@ import {
 } from '@cloud/app/@shared/model'
 import { CubeSchemaService } from './cube.schema'
 
-/**
- * Clean field name by removing SQL delimiters (brackets, quotes)
- * Examples:
- *   - "[uuid]" -> "uuid"
- *   - "table.[field]" -> "table.field"
- *   - '"field"' -> "field"
- */
-function cleanFieldName(name: string): string {
-  if (!name || typeof name !== 'string') {
-    return ''
-  }
-  
-  let cleaned = name.trim()
-  
-  // Split by dot to handle table.field format
-  const parts = cleaned.split('.')
-  const cleanedParts = parts.map(part => {
-    let cleanPart = part.trim()
-    // Remove square brackets: [field] -> field
-    if (cleanPart.startsWith('[') && cleanPart.endsWith(']')) {
-      cleanPart = cleanPart.slice(1, -1)
-    }
-    // Remove double quotes: "field" -> field
-    if (cleanPart.startsWith('"') && cleanPart.endsWith('"')) {
-      cleanPart = cleanPart.slice(1, -1)
-    }
-    // Remove backticks: `field` -> field
-    if (cleanPart.startsWith('`') && cleanPart.endsWith('`')) {
-      cleanPart = cleanPart.slice(1, -1)
-    }
-    // Remove single quotes: 'field' -> field
-    if (cleanPart.startsWith("'") && cleanPart.endsWith("'")) {
-      cleanPart = cleanPart.slice(1, -1)
-    }
-    return cleanPart
-  })
-  
-  return cleanedParts.join('.')
-}
 
 @Injectable()
 export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
@@ -101,79 +61,20 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
     this.factName$
   ]).pipe(map(([lTable, hTable, fact]) => lTable ?? hTable ?? fact))
 
-  /**
-   * Column options for level configuration
-   * In multi-table mode, load fields from all tables with table prefix
-   */
-  readonly columnOptions$: Observable<ISelectOption[]> = this.cube$.pipe(
-    switchMap((cube) => {
-      // Check if it's multi-table mode
-      const isMultiTable = cube?.tables && cube.tables.length > 1
-      
-      if (isMultiTable) {
-        // Multi-table mode: load fields from all tables
-        const tableNames = cube.tables.map(t => t.name).filter(nonBlank)
-        if (tableNames.length === 0) {
-          return of([])
-        }
-        
-        // Load properties from all tables and merge them
-        return combineLatest(
-          tableNames.map(tableName => 
-            this.modelService.selectOriginalEntityProperties(tableName).pipe(
-              map(properties => properties.map(p => {
-                // Clean field name to remove SQL delimiters like brackets
-                const cleanName = cleanFieldName(p.name)
-                const cleanCaption = cleanFieldName(p.caption || p.name)
-                return {
-                  key: `${tableName}.${cleanName}`,
-                  value: `${tableName}.${cleanName}`,
-                  // Display table prefix in caption for dropdown selection
-                  caption: `${tableName}.${cleanCaption}`
-                }
-              })),
-              catchError(() => of([]))
-            )
-          )
-        ).pipe(
-          map((allProperties) => {
-            const options: ISelectOption[] = [
-              {
-                key: null,
-                value: null,
-                caption: this.getTranslation('PAC.KEY_WORDS.None', { Default: 'None' })
-              }
-            ]
-            // Flatten all properties
-            allProperties.flat().forEach(prop => {
-              options.push(prop)
-            })
-            return options
-          })
-        )
-      } else {
-        // Single table mode: use original logic
-        return this.table$.pipe(
-          filter((table) => !!table),
-          switchMap((table) => this.modelService.selectOriginalEntityProperties(table)),
-          map((properties) => {
-            const options: ISelectOption[] = [
-              {
-                key: null,
-                value: null,
-                caption: this.getTranslation('PAC.KEY_WORDS.None', { Default: 'None' })
-              }
-            ]
-            properties?.forEach((property) => {
-              // Clean field name to remove SQL delimiters like brackets
-              const cleanName = cleanFieldName(property.name)
-              const cleanCaption = cleanFieldName(property.caption || property.name)
-              options.push({ key: cleanName, value: cleanName, caption: cleanCaption })
-            })
-            return options
-          })
-        )
-      }
+  readonly columnOptions$: Observable<ISelectOption[]> = this.table$.pipe(
+    filter((table) => !!table),
+    switchMap((table) => this.modelService.selectOriginalEntityProperties(table)),
+    map((properties) => {
+      const options = [
+        {
+          key: null,
+          value: null,
+          caption: this.getTranslation('PAC.KEY_WORDS.None', { Default: 'None' })
+        }]
+      properties?.forEach((property) => {
+        options.push({ key: property.name, value: property.name, caption: property.caption })
+      })
+      return options
     }),
     takeUntilDestroyed(),
     shareReplay(1)

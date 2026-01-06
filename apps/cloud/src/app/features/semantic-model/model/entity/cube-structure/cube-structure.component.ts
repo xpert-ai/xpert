@@ -28,7 +28,6 @@ import {
   CalculatedProperty,
   CalculationProperty,
   CalculationType,
-  Cube,
   DimensionUsage,
   ParameterProperty,
   PropertyMeasure,
@@ -141,14 +140,12 @@ export class ModelCubeStructureComponent {
   readonly dimensions = computed(() => {
     const dimensions = this.entityService.dimensions()
     const search = this.search()
-    
     if (search) {
       const text = search.trim().toLowerCase()
       return dimensions?.filter(
         ({ name, caption }) => name.toLowerCase().includes(text) || caption?.toLowerCase().includes(text)
       )
     }
-    
     return dimensions
   })
 
@@ -176,14 +173,12 @@ export class ModelCubeStructureComponent {
   readonly measures = computed(() => {
     const measures = this.entityService.measures()
     const search = this.search()
-    
     if (search) {
       const text = search.trim().toLowerCase()
       return measures?.filter(
         ({ name, caption }) => name.toLowerCase().includes(text) || caption?.toLowerCase().includes(text)
       )
     }
-    
     return measures
   })
 

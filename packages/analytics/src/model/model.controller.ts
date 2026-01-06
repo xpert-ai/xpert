@@ -34,7 +34,6 @@ import {
 	HttpCode,
 	HttpException,
 	HttpStatus,
-	Logger,
 	NotFoundException,
 	Param,
 	Post,
@@ -65,8 +64,6 @@ import { SemanticModelCacheService } from './cache/cache.service'
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller()
 export class ModelController extends CrudController<SemanticModel> {
-	private readonly logger = new Logger(ModelController.name)
-	
 	constructor(
 		private readonly modelService: SemanticModelService,
 		private readonly cacheService: SemanticModelCacheService,
@@ -214,12 +211,8 @@ export class ModelController extends CrudController<SemanticModel> {
 				acceptLanguage,
 				id: body.id
 			})
-		} catch(err) {
-			// Log the actual error for debugging
-			this.logger.error(`Query error for model ${modelId}:`, err)
-			// Return more descriptive error message
-			const errorMessage = err?.message || 'Query execution failed'
-			throw new ForbiddenException(errorMessage)
+		}catch(err) {
+			throw new ForbiddenException(err.message)
 		}
 	}
 

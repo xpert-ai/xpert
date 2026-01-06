@@ -28,7 +28,7 @@ import { Store, createStore, select, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { cloneDeep, isEqual, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, EMPTY, Observable, Subject, combineLatest, from, of } from 'rxjs'
+import { BehaviorSubject, EMPTY, Observable, Subject, combineLatest, from } from 'rxjs'
 import { catchError, combineLatestWith, debounce, debounceTime, delay, delayWhen, distinctUntilChanged, filter, map, shareReplay, skip, switchMap, take, tap } from 'rxjs/operators'
 import {
   ISemanticModel,
@@ -578,9 +578,6 @@ export class SemanticModelService {
     } as ModelCubeState
 
     this.newCube(cube)
-    // Immediately update DataSource schema to avoid race condition
-    // The entity page may try to load entitySet before the debounced update
-    this.updateDataSourceSchemaCube(cube)
     return state
   }
 
@@ -830,28 +827,7 @@ export class SemanticModelService {
         this.originalDataSource$.pipe(
           filter(nonNullable),
           take(1),
-          switchMap((dataSource) => {
-            return dataSource.selectEntityType(entity).pipe(
-              filter(isEntityType)
-            )
-          }),
-          catchError((error) => {
-            console.error(`[ModelService] Error loading entity type for "${entity}":`, error)
-            // Check if this is a cube name that doesn't exist as a table
-            // Return empty EntityType instead of throwing to prevent breaking the UI
-            const errorMessage = error?.message || String(error)
-            if (errorMessage.includes('No schema returned') || errorMessage.includes('未能获取到实体')) {
-              console.warn(`[ModelService] Entity "${entity}" appears to be a cube name, not a table. Returning empty EntityType.`)
-              return of({
-                name: entity,
-                properties: {},
-                visible: true
-              } as EntityType)
-            }
-            // Remove from cache so it can be retried
-            this._originalEntityTypes.delete(entity)
-            throw error
-          }),
+          switchMap((dataSource) => dataSource.selectEntityType(entity).pipe(filter(isEntityType))),
           takeUntilDestroyed(this.destroyRef),
           shareReplay(1)
         )

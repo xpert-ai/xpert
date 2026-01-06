@@ -29,7 +29,6 @@ import {
   LevelCaptionField,
   LevelContext
 } from './dimension'
-import { parseColumnReference } from './utils'
 import { AggregateFunctions, CubeFactTable } from './types'
 import { allMemberCaption, allMemberName, serializeIntrinsicName, serializeMeasureName, serializeTableAlias } from './utils'
 
@@ -162,7 +161,7 @@ export function buildCubeContext(
       // if (!property) {
       //   throw new Error(`未找到维度'${row.dimension}'`)
       // }
-      dimension = { dialect, factTable, cubeName: cube.name, schema: property, dimension: row, levels: [], role } as DimensionContext
+      dimension = { dialect, factTable, schema: property, dimension: row, levels: [], role } as DimensionContext
       context.dimensions.push(dimension)
     }
     if (isMeasure(row)) {
@@ -296,14 +295,7 @@ export function buildLevelContext(context: DimensionContext, row: Dimension, lev
 
   const hAlias = context.keyColumn
   const levelTable = level.table || context.dimensionTable
-  
-  // Determine the alias prefix:
-  // - If hierarchy has its own tables, use hierarchy.name
-  // - If it's a degenerate dimension (uses cube's tables), use cubeName
-  const hasOwnTables = context.hierarchy?.tables?.length > 0
-  const aliasPrefix = hasOwnTables ? context.hierarchy.name : (context.cubeName || context.hierarchy.name)
-  
-  const table = levelTable ? serializeTableAlias(aliasPrefix, levelTable) : context.factTable
+  const table = levelTable ? serializeTableAlias(context.hierarchy.name, levelTable) : context.factTable
 
   // const nameColumn = level.nameColumn || level.column
   // let captionColumn = level.captionColumn || level.nameColumn
@@ -321,23 +313,19 @@ export function buildLevelContext(context: DimensionContext, row: Dimension, lev
     //
     // captionColumn = captionColumn || nameColumn
     levelContext.selectFields.push({
-      columns: LevelsToColumns(levels, context, aliasPrefix),
+      columns: LevelsToColumns(levels, context),
       alias: hAlias
     })
     levelContext.selectFields.push({
-      ...LevelCaptionField(table, level, context.dialect, aliasPrefix),
+      ...LevelCaptionField(table, level, context.dialect),
       alias: context.hierarchy.memberCaption,
     })
-    // Ordinal column - support multi-table format
+    // Ordinal column
     levelContext.orderBys.push(
       ...levels.map((level) => {
-        const ordinalColumnRef = level.ordinalColumn || level.column
-        const { table: parsedTable, column: ordinalColumn } = parseColumnReference(ordinalColumnRef)
-        const levelTable = level.table || parsedTable || context.dimensionTable
-        const resolvedTable = levelTable ? serializeTableAlias(aliasPrefix, levelTable) : context.factTable
         return {
-          table: resolvedTable,
-          column: ordinalColumn
+          table,
+          column: level.ordinalColumn || level.column
         }
       })
     )
@@ -359,13 +347,9 @@ export function buildLevelContext(context: DimensionContext, row: Dimension, lev
   row.properties?.forEach((name) => {
     const property = level.properties?.find((item) => item.name === name)
     if (property) {
-      // Support multi-table format for property columns
-      const { table: parsedTable, column: propColumn } = parseColumnReference(property.column)
-      // Convert raw table name to alias format using aliasPrefix
-      const resolvedTable = parsedTable ? serializeTableAlias(aliasPrefix, parsedTable) : table
       levelContext.selectFields.push({
-        table: resolvedTable,
-        column: propColumn,
+        table,
+        column: property.column,
         alias: property.name
       })
     }
@@ -381,7 +365,7 @@ export function buildLevelContext(context: DimensionContext, row: Dimension, lev
       })
     } else {
       levelContext.selectFields.push({
-        columns: LevelsToColumns(levels.slice(0, levels.length - 1), context, aliasPrefix),
+        columns: LevelsToColumns(levels.slice(0, levels.length - 1), context),
         alias: serializeIntrinsicName(context.dialect, hAlias, IntrinsicMemberProperties.PARENT_UNIQUE_NAME)
       })
     }
@@ -394,7 +378,7 @@ export function buildLevelContext(context: DimensionContext, row: Dimension, lev
     // 排除最低层级(没有子节点)
     if (childrenLevels.length > levels.length) {
       levelContext.selectFields.push({
-        columns: LevelsToColumns(childrenLevels, context, aliasPrefix),
+        columns: LevelsToColumns(childrenLevels, context),
         alias: context.childrenCardinalityColumn,
         aggregate: AggregateFunctions.COUNT_DISTINCT
       })
@@ -409,33 +393,21 @@ export function buildLevelContext(context: DimensionContext, row: Dimension, lev
   return levelContext
 }
 
-/**
- * Convert levels to column configurations
- * 
- * @param levels Array of property levels
- * @param context Dimension context
- * @param aliasPrefix Optional prefix for table alias. If not provided, will determine based on context
- * @returns Array of dimension field configurations
- */
-export function LevelsToColumns(levels: PropertyLevel[], context: DimensionContext, aliasPrefix?: string) {
-  // Determine the alias prefix if not provided
-  const hasOwnTables = context.hierarchy?.tables?.length > 0
-  const resolvedPrefix = aliasPrefix ?? (hasOwnTables ? context.hierarchy.name : (context.cubeName || context.hierarchy.name))
-  
+export function LevelsToColumns(levels: PropertyLevel[], context: DimensionContext) {
   return levels.map((level) => {
     const levelTable = level.table || context.dimensionTable
-    const table = levelTable ? serializeTableAlias(resolvedPrefix, levelTable) : context.factTable
-    return getLevelColumn(level, table, resolvedPrefix)
+    const table = levelTable ? serializeTableAlias(context.hierarchy.name, levelTable) : context.factTable
+    return getLevelColumn(level, table)
   })
 }
 
 export function getOrBuildDimensionContext(cubeContext: CubeContext, row: Dimension) {
-  const { factTable, entityType, schema } = cubeContext
+  const { factTable, entityType } = cubeContext
   const { dialect } = entityType
   let dimension = cubeContext.dimensions.find((item) => item.dimension.dimension === row.dimension)
   if (!dimension) {
     dimension = buildCubeDimensionContext(
-      { dialect, factTable, cubeName: schema.name, dimension: row, levels: [], role: 'row', selectFields: [] },
+      { dialect, factTable, dimension: row, levels: [], role: 'row', selectFields: [] },
     )
     cubeContext.dimensions.push(dimension)
   }

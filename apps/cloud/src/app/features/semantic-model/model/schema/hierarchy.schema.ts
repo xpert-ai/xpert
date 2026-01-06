@@ -11,46 +11,6 @@ import { DimensionModeling } from './dimension.schema'
 import { CubeSchemaService } from './cube.schema'
 import { HiddenLLM } from '@cloud/app/@shared/model'
 
-/**
- * Clean field name by removing SQL delimiters (brackets, quotes)
- * Examples:
- *   - "[uuid]" -> "uuid"
- *   - "table.[field]" -> "table.field"
- *   - '"field"' -> "field"
- */
-function cleanFieldName(name: string): string {
-  if (!name || typeof name !== 'string') {
-    return ''
-  }
-  
-  let cleaned = name.trim()
-  
-  // Split by dot to handle table.field format
-  const parts = cleaned.split('.')
-  const cleanedParts = parts.map(part => {
-    let cleanPart = part.trim()
-    // Remove square brackets: [field] -> field
-    if (cleanPart.startsWith('[') && cleanPart.endsWith(']')) {
-      cleanPart = cleanPart.slice(1, -1)
-    }
-    // Remove double quotes: "field" -> field
-    if (cleanPart.startsWith('"') && cleanPart.endsWith('"')) {
-      cleanPart = cleanPart.slice(1, -1)
-    }
-    // Remove backticks: `field` -> field
-    if (cleanPart.startsWith('`') && cleanPart.endsWith('`')) {
-      cleanPart = cleanPart.slice(1, -1)
-    }
-    // Remove single quotes: 'field' -> field
-    if (cleanPart.startsWith("'") && cleanPart.endsWith("'")) {
-      cleanPart = cleanPart.slice(1, -1)
-    }
-    return cleanPart
-  })
-  
-  return cleanedParts.join('.')
-}
-
 @Injectable()
 export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dimension: EntityProperty} = {
   hierarchy: PropertyHierarchy;
@@ -331,15 +291,10 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
                         caption: this.getTranslation('PAC.KEY_WORDS.None', { Default: 'None' })
                       }
                     ]
-                    properties?.forEach((property) => {
-                      // Clean field name to remove SQL delimiters like brackets
-                      const cleanName = cleanFieldName(property.name)
-                      const cleanCaption = cleanFieldName(property.caption || property.name)
-                      columns.push({
-                        key: cleanName,
-                        caption: cleanCaption
-                      })
-                    })
+                    properties?.forEach((property) => columns.push({
+                      key: property.name,
+                      caption: property.caption
+                    }))
                     return columns
                   })
                 )
