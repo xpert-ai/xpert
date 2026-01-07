@@ -63,8 +63,9 @@ export interface Cube extends Entity {
    */
   tables?: Table[]
   fact?: {
-    type?: 'table' | 'view',
+    type?: 'table' | 'view' | 'tables',
     table?: Table
+    tables?: Table[] // Multi-fact join tables
     view?: View
     // views?: View[] // Not supported yet
   }

@@ -1,6 +1,6 @@
 import { C_MEASURES } from '@metad/ocap-core'
 import { buildCubeContext, compileCubeSchema, CubeContext } from './cube'
-import { CUBE_SALESORDER, ENTITY_TYPE_SALESORDER, PRODUCT_DIMENSION, SCHEMA, SHARED_DIMENSION_TIME } from './mock-data'
+import { CUBE_SALESORDER, ENTITY_TYPE_SALESORDER, SCHEMA } from './mock-data'
 import { queryCube, serializeCubeFact, serializeCubeFrom, transposePivot } from './query'
 
 const CUBE_CONTEXT: CubeContext = {
@@ -17,12 +17,7 @@ describe('Serialize SQL', () => {
   })
 
   it('query Dimension from Schema', async () => {
-    const { statement } = queryCube(
-      { name: 'sales', cubes: [CUBE_SALESORDER], dimensions: [SHARED_DIMENSION_TIME] },
-      { rows: [{ dimension: '[Time]' }] },
-      ENTITY_TYPE_SALESORDER,
-      ''
-    )
+    const { statement } = queryCube(CUBE_SALESORDER, { rows: [{ dimension: '[Time]' }] }, ENTITY_TYPE_SALESORDER, '')
 
     expect(statement).toEqual(
       "SELECT '(All)' AS `[Time]`, 'All' AS `[Time].[MEMBER_CAPTION]`, SUM( `salesorder_sales_fact`.`store_sales` ) AS `Sales` FROM `sales_fact` AS `salesorder_sales_fact` INNER JOIN `time_by_day` AS `[time]_time_by_day` ON `salesorder_sales_fact`.`time_id` = `[time]_time_by_day`.`time_id` GROUP BY 1"
@@ -31,7 +26,7 @@ describe('Serialize SQL', () => {
 
   it('query Dimension and Measure from Schema', async () => {
     const { statement } = queryCube(
-      { name: 'sales', cubes: [CUBE_SALESORDER], dimensions: [SHARED_DIMENSION_TIME] },
+      CUBE_SALESORDER,
       {
         rows: [{ dimension: '[Time]' }],
         columns: [
@@ -52,7 +47,7 @@ describe('Serialize SQL', () => {
 
   it('query Hierarchy from Schema', async () => {
     const { statement } = queryCube(
-      { name: 'sales', cubes: [CUBE_SALESORDER], dimensions: [] },
+      CUBE_SALESORDER,
       {
         rows: [
           {
@@ -80,7 +75,7 @@ describe('Serialize SQL', () => {
   it('query Multi Levels from same Hierarchy', async () => {
     try {
       const { statement } = queryCube(
-        { name: 'sales', cubes: [CUBE_SALESORDER], dimensions: [] },
+        CUBE_SALESORDER,
         {
           rows: [
             {
@@ -111,7 +106,7 @@ describe('Serialize SQL', () => {
 
   it('query Low Level from Hierarchy', async () => {
     const { statement } = queryCube(
-      { name: 'sales', cubes: [CUBE_SALESORDER], dimensions: [] },
+      CUBE_SALESORDER,
       {
         rows: [
           {
@@ -137,7 +132,8 @@ describe('Serialize SQL', () => {
   })
 
   it('Query Degenerate dimension', () => {
-    const { statement } = queryCube(SCHEMA,
+    const { statement } = queryCube(
+      SCHEMA,
       {
         rows: [
           {
@@ -220,7 +216,8 @@ describe('Build Cube', () => {
   })
 
   it('queryCube', () => {
-    const { statement } = queryCube(SCHEMA,
+    const { statement } = queryCube(
+      SCHEMA,
       {
         rows: [
           {
@@ -240,7 +237,8 @@ describe('Build Cube', () => {
   })
 
   it('queryCube with Calculated Member', () => {
-    const { statement } = queryCube(SCHEMA,
+    const { statement } = queryCube(
+      SCHEMA,
       {
         rows: [
           {
@@ -266,7 +264,8 @@ describe('Build Cube', () => {
   })
 
   it('queryCube with All dimension and Measures', () => {
-    const { statement } = queryCube(SCHEMA,
+    const { statement } = queryCube(
+      SCHEMA,
       {
         rows: [
           {
@@ -310,7 +309,8 @@ describe('Build Cube', () => {
   })
 
   it('queryCube with Two dimensions has same table', () => {
-    const { statement } = queryCube(SCHEMA,
+    const { statement } = queryCube(
+      SCHEMA,
       {
         rows: [
           {
@@ -356,7 +356,7 @@ describe('Query Cube with Filters', () => {
             },
             members: [
               {
-                value: '[Brand 1].[Product 1]'
+                key: '[Brand 1].[Product 1]'
               }
             ]
           }
@@ -385,7 +385,8 @@ describe('Query Cube with Filters', () => {
   })
 
   it('Build Cube Context with Filters', () => {
-    const { statement } = queryCube(SCHEMA,
+    const { statement } = queryCube(
+      SCHEMA,
       {
         rows: [
           {
@@ -401,7 +402,7 @@ describe('Query Cube with Filters', () => {
             },
             members: [
               {
-                value: '[Brand 1].[Product 1]'
+                key: '[Brand 1].[Product 1]'
               }
             ]
           }
@@ -422,11 +423,10 @@ describe('Hive DB', () => {
       serializeCubeFact(
         {
           name: 'Sales',
-          tables: [
-            {
-              name: 'SalesOrder'
-            }
-          ],
+          fact: {
+            type: 'table',
+            table: { name: 'SalesOrder' }
+          },
           defaultMeasure: ''
         },
         'hive'
@@ -434,8 +434,65 @@ describe('Hive DB', () => {
     ).toEqual('SELECT * FROM `SalesOrder`')
   })
 
+  it('serializeCubeFact with view', () => {
+    expect(
+      serializeCubeFact(
+        {
+          name: 'Sales',
+          fact: {
+            type: 'view',
+            view: {
+              alias: 'SalesView',
+              sql: { content: 'SELECT * FROM SalesOrder' }
+            }
+          },
+          defaultMeasure: ''
+        },
+        'hive'
+      )
+    ).toEqual('SELECT * FROM (SELECT * FROM SalesOrder) AS `SalesView`')
+  })
+
+  it('serializeCubeFact with tables', () => {
+    expect(
+      serializeCubeFact(
+        {
+          name: 'Sales',
+          fact: {
+            type: 'tables',
+            tables: [
+              {
+                name: 'fact_a'
+              },
+              {
+                name: 'fact_b',
+                join: {
+                  type: 'Left',
+                  fields: [{ leftKey: 'id', rightKey: 'a_id' }]
+                }
+              },
+              {
+                name: 'fact_c',
+                join: {
+                  type: 'Inner',
+                  leftTable: 'fact_a',
+                  fields: [{ leftKey: 'id', rightKey: 'a_id' }]
+                }
+              }
+            ]
+          },
+          defaultMeasure: ''
+        },
+        'hive'
+      )
+    ).toEqual(
+      'SELECT * FROM `fact_a` Left JOIN `fact_b` AS `fact_b` ON `fact_a`.`id` = `fact_b`.`a_id` Inner JOIN `fact_c` AS `fact_c` ON `fact_a`.`id` = `fact_c`.`a_id`'
+    )
+  })
+
   it('queryCube with Hive', () => {
-    const { statement } = queryCube(SCHEMA,
+    const { statement } = queryCube(
+      SCHEMA,
       {
         rows: [
           {
@@ -484,11 +541,7 @@ describe('Hive DB', () => {
 describe('Dimension display as hierarchy', () => {
   it('Basic', () => {
     const { statement } = queryCube(
-      {
-        name: 'Sales',
-        dimensions: [PRODUCT_DIMENSION, SHARED_DIMENSION_TIME],
-        cubes: [CUBE_SALESORDER]
-      },
+      CUBE_SALESORDER,
       {
         rows: [
           {
@@ -510,11 +563,7 @@ describe('Dimension display as hierarchy', () => {
 
   it('Two dimensions with displayHierarchy', () => {
     const { statement } = queryCube(
-      {
-        name: 'Sales',
-        dimensions: [PRODUCT_DIMENSION, SHARED_DIMENSION_TIME],
-        cubes: [CUBE_SALESORDER]
-      },
+      CUBE_SALESORDER,
       {
         rows: [
           {
@@ -544,9 +593,7 @@ describe('Transpose Pivot result', () => {
   it('Basic', () => {
     const { data, schema } = transposePivot(CUBE_CONTEXT, [])
 
-    expect(schema).toEqual(
-      {"recursiveHierarchy": undefined, "rowHierarchy": undefined}
-    )
+    expect(schema).toEqual({ recursiveHierarchy: undefined, rowHierarchy: undefined })
   })
 })
 
@@ -557,7 +604,7 @@ describe('Indicators', () => {
 
   it('query indicator', async () => {
     const { statement } = queryCube(
-      { name: 'sales', cubes: [CUBE_SALESORDER], dimensions: [SHARED_DIMENSION_TIME] },
+      CUBE_SALESORDER,
       {
         rows: [
           {
@@ -636,5 +683,4 @@ describe('Indicators', () => {
       `SELECT concat('[', CASE WHEN "[time]_time_by_day"."the_year" IS NULL THEN '#' ELSE CAST("[time]_time_by_day"."the_year" AS VARCHAR) END, ']') AS "[Time]", "[time]_time_by_day"."the_year" AS "[Time].[MEMBER_CAPTION]", SUM( CASE WHEN ( "[product]_product"."brand_name" = 'Excel' AND "[product]_product"."product_name" = 'Excel Monthly Auto Magazine' ) OR ( "[product]_product"."brand_name" = 'CDR' ) THEN "salesorder_sales_fact"."store_sales" ELSE NULL END ) AS "IwithAllMember" FROM "sales_fact" AS "salesorder_sales_fact" INNER JOIN "time_by_day" AS "[time]_time_by_day" ON "salesorder_sales_fact"."time_id" = "[time]_time_by_day"."time_id" INNER JOIN "product" AS "[product]_product" ON "salesorder_sales_fact"."product_id" = "[product]_product"."product_id" INNER JOIN "customer" AS "[customer]_customer" ON "salesorder_sales_fact"."customer_id" = "[customer]_customer"."customer_id" GROUP BY "[time]_time_by_day"."the_year" ORDER BY "[time]_time_by_day"."the_year"`
     )
   })
-
 })

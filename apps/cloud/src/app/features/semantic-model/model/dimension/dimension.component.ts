@@ -19,7 +19,6 @@ import { Observable, combineLatest, pipe } from 'rxjs'
 import { distinctUntilChanged, filter, map, startWith, switchMap, tap, withLatestFrom } from 'rxjs/operators'
 import { ToastrService, routeAnimations, uuid } from '../../../../@core'
 import { AppService } from '../../../../app.service'
-import { TablesJoinModule } from '../../tables-join'
 import { injectHierarchyCommand } from '../copilot'
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
@@ -50,8 +49,6 @@ import { ModelDimensionService } from './dimension.service'
     ResizerModule,
     SplitterModule,
     NgmCommonModule,
-
-    TablesJoinModule
   ]
 })
 export class ModelDimensionComponent implements OnInit {

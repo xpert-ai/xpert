@@ -118,6 +118,7 @@ export interface CubeContext {
   schema: Cube
   entityType: EntityType
   factTable: string
+  factTableAlias?: Record<string, string>
   dimensions: DimensionContext[]
   measures: Array<{ alias: string; order?: OrderDirection } & PropertyMeasure>
   slicers?: ISlicer[]
@@ -142,14 +143,15 @@ export function buildCubeContext(
   cube: Cube,
   options: QueryOptions,
   entityType: EntityType,
-  dialect: string
+  dialect: string,
+  factTableAlias?: Record<string, string>
 ): CubeContext {
   const factTable = CubeFactTableAlias(cube)
   if (!factTable) {
     throw new Error(`在模型中未找到事实表`)
   }
 
-  const context = { schema: cube, entityType, dimensions: [], measures: [], slicers: [], factTable } as CubeContext
+  const context = { schema: cube, entityType, dimensions: [], measures: [], slicers: [], factTable, factTableAlias } as CubeContext
 
   ;[
     ...(options.rows?.map((row) => ({ row, role: 'row' })) ?? []),
@@ -161,7 +163,7 @@ export function buildCubeContext(
       // if (!property) {
       //   throw new Error(`未找到维度'${row.dimension}'`)
       // }
-      dimension = { dialect, factTable, schema: property, dimension: row, levels: [], role } as DimensionContext
+      dimension = { dialect, factTable, factTableAlias, schema: property, dimension: row, levels: [], role } as DimensionContext
       context.dimensions.push(dimension)
     }
     if (isMeasure(row)) {
@@ -294,8 +296,8 @@ export function buildLevelContext(context: DimensionContext, row: Dimension, lev
   }
 
   const hAlias = context.keyColumn
-  const levelTable = level.table || context.dimensionTable
-  const table = levelTable ? serializeTableAlias(context.hierarchy.name, levelTable) : context.factTable
+  // const levelTable = level.table || context.dimensionTable
+  const table = levelTableAlias(level, context) // levelTable ? serializeTableAlias(context.hierarchy.name, levelTable) : context.factTable
 
   // const nameColumn = level.nameColumn || level.column
   // let captionColumn = level.captionColumn || level.nameColumn
@@ -375,7 +377,7 @@ export function buildLevelContext(context: DimensionContext, row: Dimension, lev
       context.hierarchy.hasAll ? 1 : 0,
       Math.min(lIndex + 2, context.hierarchy.levels.length)
     )
-    // 排除最低层级(没有子节点)
+    // Exclude the lowest level (those with no child nodes).
     if (childrenLevels.length > levels.length) {
       levelContext.selectFields.push({
         columns: LevelsToColumns(childrenLevels, context),
@@ -393,24 +395,23 @@ export function buildLevelContext(context: DimensionContext, row: Dimension, lev
   return levelContext
 }
 
-export function LevelsToColumns(levels: PropertyLevel[], context: DimensionContext) {
-  return levels.map((level) => {
-    const levelTable = level.table || context.dimensionTable
-    const table = levelTable ? serializeTableAlias(context.hierarchy.name, levelTable) : context.factTable
-    return getLevelColumn(level, table)
-  })
-}
-
-export function getOrBuildDimensionContext(cubeContext: CubeContext, row: Dimension) {
-  const { factTable, entityType } = cubeContext
-  const { dialect } = entityType
-  let dimension = cubeContext.dimensions.find((item) => item.dimension.dimension === row.dimension)
-  if (!dimension) {
-    dimension = buildCubeDimensionContext(
-      { dialect, factTable, dimension: row, levels: [], role: 'row', selectFields: [] },
-    )
-    cubeContext.dimensions.push(dimension)
+function levelTableAlias(level: PropertyLevel, context: DimensionContext) {
+  let table = ''
+  if (level.table) {
+    if (context.dimensionTable) {
+      table = serializeTableAlias(context.hierarchy.name, level.table)
+    } else {
+      table = context.factTableAlias?.[level.table] || level.table
+    }
+  } else {
+    table = context.dimensionTable ? serializeTableAlias(context.hierarchy.name, context.dimensionTable) : context.factTable
   }
 
-  return dimension
+  return table
+}
+
+export function LevelsToColumns(levels: PropertyLevel[], context: DimensionContext) {
+  return levels.map((level) => {
+    return getLevelColumn(level, levelTableAlias(level, context))
+  })
 }

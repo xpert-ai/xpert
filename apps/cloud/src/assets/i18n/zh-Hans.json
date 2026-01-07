@@ -1306,6 +1306,8 @@
       "CubeSchema": "模型信息",
       "SwitchSchemaDisplayMode": "切换纲要显示模式",
       "PinToSide": "固定到侧边",
+      "Tables": "表",
+      "AddTable": "添加表",
 
       "QUERY": {
         "TITLE": "查询实验室",
