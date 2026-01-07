@@ -8,7 +8,6 @@ export const environment: IEnvironment = {
    * Replace this with the actual API base URL in env file
    */
   API_BASE_URL: 'DOCKER_API_BASE_URL',
-  IS_ELECTRON: false,
   /**
    * Replace this with the actual API base URL in env file
    */

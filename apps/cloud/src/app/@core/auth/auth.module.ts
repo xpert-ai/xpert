@@ -3,7 +3,6 @@ import { NgModule } from '@angular/core'
 import { PacAuthModule } from '@metad/cloud/auth'
 import { AuthService } from '@metad/cloud/state'
 import { AuthStrategy } from './auth-strategy.service'
-import { AuthGuard } from './auth.guard'
 import { NoAuthGuard } from './no-auth.guard'
 import { SignInSuccessComponent } from './signin-success/sign-in-success.component'
 
@@ -50,7 +49,6 @@ const socialLinks = [
         register: { socialLinks }
       }
     }).providers,
-    AuthGuard,
     NoAuthGuard,
     AuthStrategy,
     AuthService
