@@ -1463,7 +1463,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 									a[key] !== null &&
 									!Array.isArray(a[key])
 								) {
-									result[key] = { ...a[key], ...b[key] }
+									// Type assertion: we've verified these are plain objects
+									result[key] = { 
+										...(a[key] as Record<string, unknown>), 
+										...(b[key] as Record<string, unknown>) 
+									}
 								} else {
 									result[key] = b[key]
 								}
