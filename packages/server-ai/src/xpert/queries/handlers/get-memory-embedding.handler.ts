@@ -31,12 +31,9 @@ export class GetXpertMemoryEmbeddingsHandler implements IQueryHandler<GetXpertMe
 			)
 		}
 
+		// Embedding model is optional, return null if not configured
 		if (!copilot?.enabled) {
-			throw new CopilotNotFoundException(
-				await this.i18nService.t('xpert.Error.EmbeddingCopilotNotFound', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
+			return null
 		}
 
 		let embeddings = null

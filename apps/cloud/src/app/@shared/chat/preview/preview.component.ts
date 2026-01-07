@@ -76,7 +76,7 @@ import { XpertAgentOperationComponent } from '../../agent'
     ChatAttachmentsComponent,
     ChatHumanMessageComponent
   ],
-  selector: 'chat-conversation-preview',
+  selector: 'xp-chat-conversation-preview',
   templateUrl: 'preview.component.html',
   styleUrls: ['preview.component.scss'],
   providers: [TtsStreamPlayerService, AudioRecorderService, SynthesizeService],

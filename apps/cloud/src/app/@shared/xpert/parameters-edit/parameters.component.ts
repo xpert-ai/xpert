@@ -102,6 +102,21 @@ export class XpertParametersEditComponent {
     this.onChange()
   }
 
+  /**
+   * Validates and limits the maximum length input to 256.
+   * Fixes #328: No validation for the maximum length of numeric type agent parameters.
+   */
+  onMaximumInput(index: number, event: Event) {
+    const input = event.target as HTMLInputElement
+    const numValue = Number(input.value)
+    if (!isNaN(numValue) && numValue > 256) {
+      input.value = '256'
+      this.parameters.at(index).get('maximum').setValue(256, { emitEvent: true })
+      this.form.markAsDirty()
+      this.onChange()
+    }
+  }
+
   deleteParameter(i: number) {
     this.parameters.removeAt(i)
     this.onChange()

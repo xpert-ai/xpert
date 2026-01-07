@@ -40,27 +40,29 @@
   }
 
   <div class="flex gap-2">
-    <!-- Preview component: keep mounted once created, use CSS display to control visibility -->
-    @if (showPreview()) {
-      <div [style.display]="sidePanel() === 'preview' ? 'block' : 'none'">
-        @if (sidePanel() === 'preview' && executionId()) {
-          <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto overflow-x-hidden
-            w-[420px] 2xl:w-[460px]"
-            (close)="closeExecution()"
-          />
+    @if (sidePanel(); as sidePanel) {
+      @switch (sidePanel) {
+        @case ('variables') {
+          <xpert-studio-panel-variables />
         }
-        <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
-      </div>
+        @case ('environments') {
+          <xpert-studio-panel-environment />
+        }
+      }
     }
-
-    <!-- Variables panel -->
-    @if (sidePanel() === 'variables') {
-      <xpert-studio-panel-variables />
-    }
-
-    <!-- Environment variables panel -->
-    @if (sidePanel() === 'environments') {
-      <xpert-studio-panel-environment />
+    @if (xpert()) {
+      <!-- Preview component: keep mounted once created, use CSS display to control visibility -->
+      @if (showPreview()) {
+        <div [style.display]="sidePanel() === 'preview' ? 'flex' : 'none'">
+          @if (sidePanel() === 'preview' && executionId()) {
+            <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto overflow-x-hidden
+              w-[420px] 2xl:w-[460px]"
+              (close)="closeExecution()"
+            />
+          }
+          <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
+        </div>
+      }
     }
   </div>
 </div>

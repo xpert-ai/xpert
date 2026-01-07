@@ -330,6 +330,7 @@
               <div>
                 <input matInput max="256" min="1" class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200" type="number"
                   formControlName="maximum"
+                  (input)="onMaximumInput(index, $event)"
                 >
               </div>
             </div>

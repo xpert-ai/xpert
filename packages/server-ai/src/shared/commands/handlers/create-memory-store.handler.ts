@@ -21,7 +21,7 @@ export class CreateMemoryStoreHandler implements ICommandHandler<CreateMemorySto
 		private readonly i18nService: I18nService
 	) {}
 
-	public async execute(command: CreateMemoryStoreCommand) {
+	public async execute(command: CreateMemoryStoreCommand): Promise<BaseStore | null> {
 		const { tenantId, organizationId, copilotModel } = command
 		const userId = RequestContext.currentUserId()
 		let copilot: ICopilot = null
@@ -38,12 +38,10 @@ export class CreateMemoryStoreHandler implements ICommandHandler<CreateMemorySto
 			)
 		}
 
+		// Embedding model is optional for memory store
 		if (!copilot?.enabled) {
-			throw new CopilotNotFoundException(
-				await this.i18nService.t('xpert.Error.EmbeddingCopilotNotFound', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
+			this.#logger.debug('Embedding model not configured for memory store, memory will be disabled')
+			return null
 		}
 
 		let embeddings = null
@@ -54,12 +52,10 @@ export class CreateMemoryStoreHandler implements ICommandHandler<CreateMemorySto
 			)
 		}
 
+		// Embedding model is optional for memory store
 		if (!embeddings) {
-			throw new CopilotNotFoundException(
-				await this.i18nService.t('xpert.Error.EmbeddingModelForMemory', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
+			this.#logger.debug('Embedding model not configured for memory store, memory will be disabled')
+			return null
 		}
 
 		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
