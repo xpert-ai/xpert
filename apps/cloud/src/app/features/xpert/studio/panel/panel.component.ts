@@ -51,7 +51,7 @@ export class XpertStudioPanelComponent {
   // Track if preview component has been created, keep it mounted once created
   readonly previewCreated = signal(false)
   readonly showPreview = computed(() => 
-    this.sidePanel() === 'preview' || this.previewCreated()
+    this.sidePanel() === 'preview' || (this.previewCreated() && this.sidePanel() !== null)
   )
 
   readonly minPanelWidth = 420

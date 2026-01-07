@@ -51,7 +51,7 @@ import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, Observable, of, timer, switchMap, tap, Subscription } from 'rxjs'
 import { effectAction } from '@metad/ocap-angular/core'
-import { toObservable } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
@@ -252,8 +252,12 @@ export class ChatConversationPreviewComponent {
     effect(() => this.input.set(this.#audioRecorder.text()), { allowSignalWrites: true })
 
     // Set flag when component is destroyed to prevent operations on destroyed component
+    // Also clean up chatSubscription as an extra safety measure
     this.#destroyRef.onDestroy(() => {
       this.#destroyed = true
+      if (this.chatSubscription && !this.chatSubscription.closed) {
+        this.chatSubscription.unsubscribe()
+      }
     })
   }
 
@@ -319,9 +323,11 @@ export class ChatConversationPreviewComponent {
           isDraft: true
         }
       )
+      .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (msg) => {
-          // Check if component is destroyed to avoid operations on destroyed component
+          // takeUntilDestroyed ensures subscription is cleaned up on component destruction,
+          // but we keep the check as an extra safety measure
           if (this.#destroyed) {
             return
           }
@@ -345,7 +351,10 @@ export class ChatConversationPreviewComponent {
                   this.output.update((state) => state + event.data)
                 }
               } else if (event.type === ChatMessageTypeEnum.EVENT) {
-                // Component destroyed check is done at the beginning of next callback, emit directly here
+                // Ensure component is not destroyed before emitting chat events
+                if (this.#destroyed) {
+                  return
+                }
                 this.chatEvent.emit(event)
                 switch (event.event) {
                   case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
@@ -384,13 +393,13 @@ export class ChatConversationPreviewComponent {
           }
         },
         error: (err) => {
-          // Check if component is destroyed before handling error
+          // takeUntilDestroyed ensures subscription is cleaned up, but keep check for safety
           if (!this.#destroyed) {
             this.onChatError(getErrorMessage(err))
           }
         },
         complete: () => {
-          // Check if component is destroyed to avoid unnecessary operations
+          // takeUntilDestroyed ensures subscription is cleaned up, but keep check for safety
           if (this.#destroyed) {
             return
           }
