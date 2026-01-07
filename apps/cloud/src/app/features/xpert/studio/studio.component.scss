@@ -19,10 +19,28 @@
         fill: var(--connection-color);
       }
     }
+    // Hover effect for connection line
+    &:hover:not(.f-selected) {
+      z-index: 1;
+      .f-connection-path {
+        stroke: var(--f-component-hover-border);
+        stroke-width: 3;
+        filter: drop-shadow(0 0 4px var(--f-component-hover-border));
+        transition: stroke-width 0.15s ease, filter 0.15s ease;
+      }
+      .connection-marker {
+        circle, rect, path {
+          fill: var(--f-component-hover-border);
+        }
+      }
+    }
+    .f-connection-path {
+      transition: stroke-width 0.15s ease, filter 0.15s ease;
+    }
     &.connecting {
       stroke-dasharray: 4, 2;
       animation: dash-flow 2s linear infinite;
-    
+
       .f-connection-path {
         stroke: var(--f-component-hover-border);
       }

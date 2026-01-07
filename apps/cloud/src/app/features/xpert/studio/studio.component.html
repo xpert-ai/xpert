@@ -20,6 +20,7 @@
     <f-snap-connection fType="bezier" [fSnapThreshold]="100"></f-snap-connection>
     @for (connection of connections(); track connection.key) {
       <f-connection #connComp [fType]="EFConnectionType.BEZIER" [fOffset]="6" [fRadius]="6"
+        [fConnectionId]="connection.key"
         [fReassignDisabled]="false"
         [fOutputId]="connection.from + '/' + connection.type"
         [fInputId]="connection.to + (connection.type === 'edge' ? '/edge' : '')"
