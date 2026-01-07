@@ -9,6 +9,7 @@ import {
   Component,
   computed,
   effect,
+  HostListener,
   inject,
   model,
   signal,
@@ -469,6 +470,127 @@ export class XpertStudioComponent {
 
   centerGroupOrNode(id: string,) {
     this.fCanvasComponent().centerGroupOrNode(id, true)
+  }
+
+  // Keyboard shortcuts
+  #copiedNode: TXpertTeamNode = null
+
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent) {
+    // Ignore if focus is in an input element
+    const target = event.target as HTMLElement
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return
+    }
+
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+    const ctrlKey = isMac ? event.metaKey : event.ctrlKey
+
+    // Delete/Backspace - Delete selection
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      event.preventDefault()
+      this.deleteSelection()
+      return
+    }
+
+    // Ctrl+C - Copy
+    if (ctrlKey && event.key === 'c') {
+      this.copySelection()
+      return
+    }
+
+    // Ctrl+V - Paste
+    if (ctrlKey && event.key === 'v') {
+      event.preventDefault()
+      this.pasteSelection()
+      return
+    }
+
+    // Ctrl+D - Duplicate
+    if (ctrlKey && event.key === 'd') {
+      event.preventDefault()
+      this.duplicateSelection()
+      return
+    }
+
+    // Ctrl+Z - Undo
+    if (ctrlKey && event.key === 'z' && !event.shiftKey) {
+      event.preventDefault()
+      this.apiService.undo()
+      return
+    }
+
+    // Ctrl+Y or Ctrl+Shift+Z - Redo
+    if (ctrlKey && (event.key === 'y' || (event.key === 'z' && event.shiftKey))) {
+      event.preventDefault()
+      this.apiService.redo()
+      return
+    }
+  }
+
+  copySelection() {
+    const selection = this.fFlowComponent().getSelection()
+    if (selection.fNodeIds.length === 1) {
+      const node = this.apiService.getNode(selection.fNodeIds[0])
+      if (node && (node.type === 'agent' || node.type === 'workflow')) {
+        this.#copiedNode = node
+        this.copyNode(node)
+      }
+    }
+  }
+
+  pasteSelection() {
+    if (this.#copiedNode) {
+      this.apiService.pasteNode({
+        ...this.#copiedNode,
+        position: {
+          x: this.#copiedNode.position.x + 50,
+          y: this.#copiedNode.position.y + 50
+        }
+      })
+    }
+  }
+
+  duplicateSelection() {
+    const selection = this.fFlowComponent().getSelection()
+    if (selection.fNodeIds.length === 1) {
+      const node = this.apiService.getNode(selection.fNodeIds[0])
+      if (node && (node.type === 'agent' || node.type === 'workflow')) {
+        this.duplicateNode(node)
+      }
+    }
+  }
+
+  deleteSelection() {
+    const selection = this.fFlowComponent().getSelection()
+
+    // Delete selected connections
+    selection.fConnectionIds.forEach(connectionKey => {
+      const connection = this.connections().find(c => c.key === connectionKey)
+      if (connection && !connection.readonly) {
+        const sourceId = connection.from + '/' + connection.type
+        const targetId = connection.to + (connection.type === 'edge' ? '/edge' : '')
+        this.apiService.removeConnection(sourceId, targetId)
+      }
+    })
+
+    // Delete selected nodes
+    selection.fNodeIds.forEach(nodeKey => {
+      const node = this.apiService.getNode(nodeKey)
+      if (node && !node.readonly && !node.parentId) {
+        this.deleteNode(node)
+      }
+    })
+
+    // Delete selected groups (xpert nodes)
+    selection.fGroupIds.forEach(groupKey => {
+      const group = this.xperts().find(x => x.key === groupKey)
+      if (group) {
+        this.removeNode(group.key)
+      }
+    })
+
+    this.fFlowComponent().clearSelection()
   }
 }
 
