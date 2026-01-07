@@ -5,6 +5,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   HostBinding,
   inject,
@@ -12,7 +13,7 @@ import {
   Optional,
   signal
 } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -72,11 +73,14 @@ export class PACDataSourceEditComponent {
 
   readonly dataSourceTypesAPI = inject(DataSourceTypesService)
   readonly dataSourceService = inject(DataSourceService)
+  readonly #destroyRef = inject(DestroyRef)
 
   readonly dataSourceId = signal(this.data?.id)
   readonly _loading = signal(false)
 
   model = {}
+  readonly modelSignal = signal({})
+  readonly formGroupValueSignal = signal<{ name?: string; useLocalAgent?: boolean; authType?: AuthenticationEnum }>({})
   formGroup = new FormGroup({
     name: new FormControl(),
     useLocalAgent: new FormControl(),
@@ -115,8 +119,26 @@ export class PACDataSourceEditComponent {
     return selected ? this.dataSourceTypes()?.find((item) => item.type === selected.type?.type) : null
   })
 
-  readonly formValue = toSignal(this.optionsFormGroup.valueChanges.pipe(startWith(this.optionsFormGroup.value)))
-  readonly dirty = computed(() => !isEqual(this.dataSource()?.options, omitBy(this.formValue(), isNil)))
+  readonly dirty = computed(() => {
+    const dataSource = this.dataSource()
+    if (!dataSource) return false
+    
+    // Check formGroup changes
+    const originalFormValue = {
+      name: dataSource.name,
+      useLocalAgent: dataSource.useLocalAgent,
+      authType: dataSource.authType
+    }
+    const currentFormValue = this.formGroupValueSignal()
+    const formGroupChanged = !isEqual(originalFormValue, currentFormValue)
+    
+    // Check options changes
+    const originalOptions = omitBy(dataSource.options || {}, isNil)
+    const currentOptions = omitBy(this.modelSignal(), isNil)
+    const optionsChanged = !isEqual(originalOptions, currentOptions)
+    
+    return formGroupChanged || optionsChanged
+  })
 
   constructor(
     private translateService: TranslateService,
@@ -126,13 +148,42 @@ export class PACDataSourceEditComponent {
     private serverAgent: ServerAgent,
     @Optional() private localAgent?: LocalAgent
   ) {
+    // Listen to formGroup value changes and update formGroupValueSignal in real-time
+    // Use startWith to initialize formGroupValueSignal with current form value
+    this.formGroup.valueChanges
+      .pipe(
+        startWith(this.formGroup.value),
+        takeUntilDestroyed(this.#destroyRef)
+      )
+      .subscribe((value) => {
+        this.formGroupValueSignal.set(value)
+      })
+
+    // Listen to optionsFormGroup value changes and update modelSignal in real-time
+    // Note: startWith is not needed here as the effect initializes the signal
+    this.optionsFormGroup.valueChanges
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((value) => {
+        this.model = value
+        this.modelSignal.set(value)
+      })
+    
     effect(
       () => {
         const dataSource = this.dataSource()
         if (dataSource) {
-          this.formGroup.patchValue(dataSource)
-          this.optionsFormGroup.patchValue(dataSource.options)
-          assign(this.model, dataSource.options)
+          // Use emitEvent: false to avoid triggering valueChanges during initialization
+          this.formGroup.patchValue(dataSource, { emitEvent: false })
+          this.optionsFormGroup.patchValue(dataSource.options, { emitEvent: false })
+          const options = dataSource.options || {}
+          assign(this.model, options)
+          this.modelSignal.set(cloneDeep(options))
+          // Initialize formGroupValueSignal
+          this.formGroupValueSignal.set({
+            name: dataSource.name,
+            useLocalAgent: dataSource.useLocalAgent,
+            authType: dataSource.authType
+          })
         }
       },
       { allowSignalWrites: true }
@@ -141,6 +192,13 @@ export class PACDataSourceEditComponent {
 
   onCancel() {
     this.dialogRef.close()
+  }
+
+  onModelChange(newModel: any) {
+    // Intentionally left blank: optionsFormGroup.valueChanges already updates
+    // this.model and this.modelSignal to avoid redundant updates.
+    // This method is kept for formly-form compatibility but does nothing
+    // as the subscription handles all updates.
   }
 
   async onSave() {
@@ -161,8 +219,15 @@ export class PACDataSourceEditComponent {
   onReset() {
     const dataSource = cloneDeep(this.data)
     this.formGroup.clearValidators()
-    this.formGroup.reset(dataSource)
-    this.model = dataSource.options
+    this.formGroup.reset(dataSource, { emitEvent: false })
+    const options = dataSource.options || {}
+    this.model = options
+    this.modelSignal.set(cloneDeep(options))
+    this.formGroupValueSignal.set({
+      name: dataSource.name,
+      useLocalAgent: dataSource.useLocalAgent,
+      authType: dataSource.authType
+    })
   }
 
   async ping() {
