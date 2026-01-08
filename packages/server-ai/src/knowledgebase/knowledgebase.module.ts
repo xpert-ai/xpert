@@ -11,6 +11,7 @@ import {
 	TextSplitterRegistry
 } from '@xpert-ai/plugin-sdk'
 import { CopilotModule } from '../copilot/copilot.module'
+import { CopilotModelModule } from '../copilot-model/copilot-model.module'
 import { KnowledgeDocumentModule } from '../knowledge-document/document.module'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { CommandHandlers } from './commands/handlers'
@@ -33,6 +34,7 @@ import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 		CqrsModule,
 		UserModule,
 		CopilotModule,
+		CopilotModelModule,
 		DatabaseModule,
 		forwardRef(() => XpertWorkspaceModule),
 		forwardRef(() => IntegrationModule),
