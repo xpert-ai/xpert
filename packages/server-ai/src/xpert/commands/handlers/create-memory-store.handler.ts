@@ -19,7 +19,7 @@ export class CreateMemoryStoreHandler implements ICommandHandler<CreateMemorySto
 		private readonly i18nService: I18nService
 	) {}
 
-	public async execute(command: CreateMemoryStoreCommand): Promise<BaseStore> {
+	public async execute(command: CreateMemoryStoreCommand): Promise<BaseStore | null> {
 		const xpert = command.xpert
 		const userId = command.userId
 		const { tenantId, organizationId } = command.xpert
@@ -32,12 +32,10 @@ export class CreateMemoryStoreHandler implements ICommandHandler<CreateMemorySto
 			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {})
 		)
 
+		// Embedding model is optional for memory store
 		if (!embeddings) {
-			throw new CopilotNotFoundException(
-				await this.i18nService.t('xpert.Error.EmbeddingModelForMemory', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
+			this.#logger.debug('Embedding model not configured for memory store, memory will be disabled')
+			return null
 		}
 
 		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(

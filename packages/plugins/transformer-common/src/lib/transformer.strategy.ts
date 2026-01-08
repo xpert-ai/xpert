@@ -123,7 +123,42 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         // Download the remote file to a local temporary directory
         fileAbsPath = await downloadRemoteFile(file.fileUrl, filePath)
       } else {
-        fileAbsPath = xpFileSystem.fullPath(file.filePath)
+        // Check if file.filePath is already an absolute path or contains full path segments
+        // If it is, use it directly; otherwise, use xpFileSystem.fullPath() to resolve it
+        if (file.filePath) {
+          const isAbsolutePath = path.isAbsolute(file.filePath)
+          // Also check if it looks like a full path even without leading slash
+          // (e.g., contains /apps/api/public/ or /项目/ or starts with Users/ or home/)
+          const looksLikeFullPath = !isAbsolutePath && (
+            file.filePath.startsWith('Users/') ||
+            file.filePath.startsWith('home/')
+          )
+          
+          if (isAbsolutePath) {
+            fileAbsPath = file.filePath
+          } else if (looksLikeFullPath) {
+            // If it looks like a full path but doesn't start with /, add it
+            fileAbsPath = file.filePath.startsWith('/') ? file.filePath : '/' + file.filePath
+          } else {
+            // Use xpFileSystem.fullPath() to resolve relative path to absolute path
+            // xpFileSystem.basePath is set to storage provider's rootPath
+            fileAbsPath = xpFileSystem.fullPath(file.filePath)
+          }
+          
+          // Verify file exists and log path for debugging
+          try {
+            await fsPromises.access(fileAbsPath)
+            // Use warn level to ensure it's visible (default log level is 'warn', so debug/log may not output)
+            this.#logger.warn(`[Transformer] File found: ${fileAbsPath}, original filePath: ${file.filePath}`)
+          } catch (err: any) {
+            // Log error with detailed information for debugging
+            const basePath = xpFileSystem ? (xpFileSystem as any).basePath : 'N/A'
+            this.#logger.error(`[Transformer] File not found: ${fileAbsPath}, original filePath: ${file.filePath}, xpFileSystem.basePath: ${basePath}`)
+            throw new Error(`File not found: ${fileAbsPath}`)
+          }
+        } else {
+          fileAbsPath = ''
+        }
         file.fileUrl ??= xpFileSystem.fullUrl(file.filePath)
       }
       let data: DocumentInterface[]

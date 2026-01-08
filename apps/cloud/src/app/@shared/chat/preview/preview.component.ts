@@ -5,6 +5,7 @@ import {
   booleanAttribute,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -50,7 +51,7 @@ import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, Observable, of, timer, switchMap, tap, Subscription } from 'rxjs'
 import { effectAction } from '@metad/ocap-angular/core'
-import { toObservable } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
@@ -75,7 +76,7 @@ import { XpertAgentOperationComponent } from '../../agent'
     ChatAttachmentsComponent,
     ChatHumanMessageComponent
   ],
-  selector: 'chat-conversation-preview',
+  selector: 'xp-chat-conversation-preview',
   templateUrl: 'preview.component.html',
   styleUrls: ['preview.component.scss'],
   providers: [TtsStreamPlayerService, AudioRecorderService, SynthesizeService],
@@ -96,6 +97,8 @@ export class ChatConversationPreviewComponent {
   readonly confirmDel = injectConfirmDelete()
   readonly #audioRecorder = inject(AudioRecorderService)
   readonly #synthesizeService = inject(SynthesizeService)
+  readonly #destroyRef = inject(DestroyRef)
+  #destroyed = false
 
   // Inputs
   readonly conversationId = model<string>()
@@ -246,6 +249,10 @@ export class ChatConversationPreviewComponent {
     effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()), { allowSignalWrites: true })
     effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert), { allowSignalWrites: true })
     effect(() => this.input.set(this.#audioRecorder.text()), { allowSignalWrites: true })
+
+    this.#destroyRef.onDestroy(() => {
+      this.#destroyed = true
+    })
   }
 
   chat(options?: { input?: string; confirm?: boolean;
@@ -310,6 +317,7 @@ export class ChatConversationPreviewComponent {
           isDraft: true
         }
       )
+      .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (msg) => {
           if (msg.event === 'error') {
@@ -372,6 +380,9 @@ export class ChatConversationPreviewComponent {
           this.onChatError(getErrorMessage(err))
         },
         complete: () => {
+          if (this.#destroyed) {
+            return
+          }
           this.loading.set(false)
           if (this.currentMessage()) {
             this.appendMessage({ ...this.currentMessage() })

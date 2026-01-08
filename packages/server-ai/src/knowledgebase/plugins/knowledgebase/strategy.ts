@@ -4,6 +4,7 @@ import {
 	IEnvironment,
 	IKnowledgeDocument,
 	IKnowledgeDocumentChunk,
+	IKnowledgebaseTask,
 	IWFNKnowledgeBase,
 	IWorkflowNode,
 	IXpertAgentExecution,
@@ -18,7 +19,8 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
-import { getErrorMessage, runWithConcurrencyLimit } from '@metad/server-common'
+import { getErrorMessage, omit, runWithConcurrencyLimit } from '@metad/server-common'
+import { isUUID } from 'class-validator'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { countTokensSafe, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
@@ -89,8 +91,6 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 				const knowledgebaseState = state[KnowledgebaseChannel]
 				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId'] as string
 				const knowledgeTaskId = knowledgebaseState?.[KnowledgeTask] as string
-				const stage = knowledgebaseState?.['stage']
-				const isTest = stage === 'preview' || isDraft
 
 				const values = entity.inputs.map((input) => get(stateEnv, input)) as Partial<IKnowledgeDocument[]>[]
 				const inputDocuments = values.filter((docs) => !!docs).flat()
@@ -109,22 +109,8 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 				return await wrapAgentExecution(
 					async () => {
 						let statisticsInformation = ''
-						if (isTest) {
-							await this.taskService.update(knowledgeTaskId, {status: 'success'})
-							statisticsInformation += `- This is a test run, no documents were processed. \n`
-							return {
-								state: {
-									[channelName(node.key)]: {
-										[InfoChannelName]: statisticsInformation.trim(),
-										[TaskChannelName]: {
-											status: 'success',
-										}
-									}
-								},
-								output: statisticsInformation.trim()
-							}
-						}
-
+						
+						// Always store documents to knowledge base, no test mode check
 						const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, {
 							relations: ['copilotModel', 'copilotModel.copilot']
 						})
@@ -137,13 +123,72 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 							throw new Error(`Error initializing vector store: ${getErrorMessage(err)}`)
 						}
 
-						const { items: documents } = await this.documentService.findAll({
-							where: {
-								id: In(inputDocuments.map(({id}) => id) as string[]),
-								knowledgebaseId
-							},
-							// relations: ['chunks']
-						})
+						// Separate valid UUIDs and shortuuid IDs
+						const validDocumentIds = inputDocuments
+							.map(({id}) => id)
+							.filter((id): id is string => !!id && isUUID(id))
+						
+						const shortuuidIds = inputDocuments
+							.map(({id}) => id)
+							.filter((id): id is string => !!id && !isUUID(id))
+						
+						let documents: IKnowledgeDocument[] = []
+						
+						// Query documents with valid UUIDs from database
+						if (validDocumentIds.length > 0) {
+							const { items } = await this.documentService.findAll({
+								where: {
+									id: In(validDocumentIds),
+									knowledgebaseId
+								},
+								// relations: ['chunks']
+							})
+							documents.push(...items)
+						}
+						
+						// Get documents with shortuuid IDs from task context
+						if (shortuuidIds.length > 0 && knowledgeTaskId) {
+							const task = await this.taskService.findOne(knowledgeTaskId)
+							if (task?.context?.documents) {
+								const contextDocuments = task.context.documents.filter((doc) => 
+									doc.id && shortuuidIds.includes(doc.id)
+								)
+								// Convert context documents to IKnowledgeDocument format and create them in database
+								for (const contextDoc of contextDocuments) {
+									try {
+										// Try to create the document in database if it doesn't exist
+										const createdDoc = await this.documentService.create({
+											...omit(contextDoc, 'id'),
+											knowledgebaseId,
+											status: contextDoc.status || KBDocumentStatusEnum.WAITING,
+											tasks: [{id: knowledgeTaskId} as IKnowledgebaseTask]
+										})
+										documents.push(createdDoc)
+									} catch (err) {
+										this.logger.warn(`Failed to create document from context: ${getErrorMessage(err)}`)
+										// If creation fails, use the context document as-is (it may already exist)
+										documents.push(contextDoc as IKnowledgeDocument)
+									}
+								}
+							}
+						}
+						
+						if (documents.length === 0) {
+							this.logger.warn(`No documents found. Valid UUIDs: ${validDocumentIds.length}, ShortUUIDs: ${shortuuidIds.length}`)
+							statisticsInformation += `- Warning: No documents found to process. \n`
+							await this.taskService.update(knowledgeTaskId, {status: 'success'})
+							return {
+								state: {
+									[channelName(node.key)]: {
+										[InfoChannelName]: statisticsInformation.trim(),
+										[TaskChannelName]: {
+											status: 'success',
+										}
+									}
+								},
+								output: statisticsInformation.trim()
+							}
+						}
 						
 						const tasks = documents.map((document, index) => async () => {
 							statisticsInformation += `- Document ${index + 1} - ${document.name}: \n`
@@ -241,12 +286,10 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 						subscriber: subscriber,
 						execution,
 						catchError: async (error) => {
-							if (!isTest) {
-								for await (const {id} of inputDocuments) {
-									await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
-								}
-								await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
+							for await (const {id} of inputDocuments) {
+								await this.documentService.update(id, { status: KBDocumentStatusEnum.ERROR, processMsg: getErrorMessage(error) })
 							}
+							await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
 						}
 					}
 				)()

@@ -1,5 +1,5 @@
 import { IIntegration } from '@metad/contracts'
-import { IntegrationService, RequestContext } from '@metad/server-core'
+import { FileStorage, IntegrationService, RequestContext } from '@metad/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { FileSystemPermission, XpFileSystem } from '@xpert-ai/plugin-sdk'
@@ -23,16 +23,15 @@ export class PluginPermissionsHandler implements ICommandHandler<PluginPermissio
 			(permission) => permission.type === 'filesystem'
 		) as FileSystemPermission
 		if (fsPermission) {
-			const volumeClient = new VolumeClient({
-				tenantId: RequestContext.currentTenantId(),
-				catalog: 'knowledges',
-				userId: RequestContext.currentUserId(),
-				knowledgeId: command.context.knowledgebaseId
-			})
+			// Use storage file provider's rootPath as basePath instead of knowledge base volume path
+			// This ensures file paths relative to storage rootPath work correctly
+			const fileStorage = new FileStorage()
+			const storageProvider = fileStorage.getProvider()
+			const basePath = storageProvider.config.rootPath
 			
 			permissions['fileSystem'] = new XpFileSystem(
 				fsPermission,
-				volumeClient.getVolumePath(command.context.folder ?? ''),
+				basePath,
 				sandboxVolumeUrl(`/knowledges/${command.context.knowledgebaseId}/${command.context.folder ?? ''}`)
 			)
 		}

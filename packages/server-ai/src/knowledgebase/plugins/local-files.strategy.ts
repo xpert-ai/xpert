@@ -96,14 +96,14 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 			const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
 				new GetStorageFileQuery(_files.map((file) => file.id))
 			)
-			// const fileProvider = new FileStorage().getProvider()
+			// Use relative path (file.file) directly, which is relative to the storage provider's rootPath
+			// The transformer will use xpFileSystem.fullPath() to resolve it to absolute path
 			return storageFiles.map((file) => {
-				// const fullPath = fileProvider.path(file.file)
 				return new Document({
 					pageContent: '',
 					metadata: {
 						source: 'file-system',
-						// filePath: fullPath,
+						filePath: file.file, // Use relative path directly
 						fileUrl: file.fileUrl,
 						size: file.size,
 						originalName: file.originalName,
