@@ -4,7 +4,8 @@ import { EchartsViewerComponent } from './echarts-viewer.component'
 @Component({
   selector: 'chat-echarts-wrapper',
   standalone: true,
-  template: ''
+  template: '',
+  styles: [`:host { display: block; min-width: 400px; width: 100%; }`]
 })
 export class EchartsWrapperComponent implements AfterViewInit {
   @Input() code = ''
