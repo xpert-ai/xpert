@@ -1,14 +1,58 @@
 import { Injectable } from '@angular/core'
+import { toObservable } from '@angular/core/rxjs-interop'
+import { HiddenLLM, MeasureExpressionAccordion, MODEL_TYPE } from '@cloud/app/@shared/model'
+import { nonBlank, PropertyMeasure } from '@metad/ocap-core'
 import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
-import { map } from 'rxjs'
-import { HiddenLLM, MeasureExpressionAccordion } from '@cloud/app/@shared/model'
+import { combineLatest, filter, map, switchMap } from 'rxjs'
 import { CubeSchemaService } from './cube.schema'
 
 @Injectable()
-export class MeasureSchemaService extends CubeSchemaService {
+export class MeasureSchemaService extends CubeSchemaService<PropertyMeasure> {
+  readonly modelType = this.modelService.modelType
+  readonly modelType$ = toObservable(this.modelService.modelType)
+
+  readonly factTableOptions$ = this.factTables$.pipe(
+    map((tables) =>
+      tables.map((table) => ({
+        value: table.name,
+        caption: table.caption || table.name
+      }))
+    )
+  )
+
+  // Fact name
+  readonly measureTableName$ = combineLatest([this.modeling$, this.cube$]).pipe(
+    map(([modeling, cube]) => {
+      if (!cube) return null;
+      if (cube.fact?.type === 'table') {
+        return cube.fact.table?.name
+      } else if (cube.fact?.type === 'view') {
+        return cube.fact.view?.alias
+      } else {
+        return modeling?.table || cube.fact?.tables?.[0]?.name
+      }
+    })
+  )
+  readonly factFields$ = this.measureTableName$.pipe(
+      filter(nonBlank),
+      switchMap((table) => this.modelService.selectOriginalEntityProperties(table)),
+      map((properties) => [
+        {
+          value: null,
+          key: null,
+          caption: this.getTranslation('PAC.KEY_WORDS.None', { Default: 'None' })
+        },
+        ...properties.map((property) => ({
+          value: property.name,
+          key: property.name,
+          caption: property.caption
+        }))
+      ])
+    )
+
   getSchema() {
-    return this.translate.stream('PAC.MODEL.SCHEMA').pipe(
-      map((SCHEMA) => {
+    return combineLatest([this.translate.stream('PAC.MODEL.SCHEMA'), this.modelType$]).pipe(
+      map(([SCHEMA]) => {
         this.SCHEMA = SCHEMA
 
         return [
@@ -72,6 +116,19 @@ export class MeasureSchemaService extends CubeSchemaService {
                   autosize: true
                 }
               },
+              ...(this.modelType() === MODEL_TYPE.SQL ? [
+                {
+                  key: 'table',
+                  type: 'select',
+                  className,
+                  props: {
+                    label: COMMON?.Table ?? 'Table',
+                    options: this.factTableOptions$,
+                    searchable: true,
+                    key: 'key'
+                  },
+                },
+              ] : []),
               {
                 key: 'column',
                 type: 'select',
@@ -150,9 +207,7 @@ export class MeasureSchemaService extends CubeSchemaService {
                 help: this.helpWebsite() + '/docs/models/dimension-designer/semantics/'
               },
               fieldGroupClassName: FORMLY_ROW,
-              fieldGroup: [
-                HiddenLLM(COMMON),
-              ]
+              fieldGroup: [HiddenLLM(COMMON)]
             }
           ])
         ]

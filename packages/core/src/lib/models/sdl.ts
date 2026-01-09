@@ -259,6 +259,10 @@ export type PropertyDimension = Property
 
 export interface PropertyMeasure extends EntityProperty {
   formatting?: Measure['formatting']
+  /**
+   * Specify the original table of the measure when there are multiple fact tables.
+   */
+  table?: string
   column?: string
   aggregator?: string
   formatString?: string
