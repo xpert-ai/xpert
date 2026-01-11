@@ -126,7 +126,6 @@ For Production, we recommend:
     - [x] Conversation management
     - [ ] knowledge bases
   - [ ] [SDK (Python)](https://github.com/xpert-ai/xpert-sdk-py)
-
 - [x] **Plugins** – extensible plugin system.
   - [x] Plugins system
   - [x] Marketplace to showcase the plugins ecosystem.
@@ -136,6 +135,17 @@ For Production, we recommend:
 - [x] **Widgets** – UI widgets that let large-model responses drive richer interface experiences.
 - [x] **Agent Middlewares** Plugin-based Agent Middleware.
 - [x] **Agent Skills** – lightweight agent skills for rapid custom capability integration, offering a quicker alternative to MCP tools.
+- [ ] **Audit, Security, Compliance** – Enterprise-grade features to ensure data privacy and compliance.
+  - [ ] Audit logs
+  - [ ] Role-based access control
+  - [ ] Data encryption
+- [ ] **Sandbox** – Secure testing environment, isolating experiments from production.
+- [ ] **Trace**, **Evaluation** – Observability and evaluation tools for agents and workflows.
+  - [ ] Trace system
+  - [ ] Evaluation framework
+- [ ] System monitoring and alerting
+  - [ ] Sentry integration
+  - [ ] Prometheus integration
 
 ## 💌 Contact Us
 
