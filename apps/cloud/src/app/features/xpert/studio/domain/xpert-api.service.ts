@@ -62,7 +62,7 @@ import {
 import { PACCopilotService } from '../../../services'
 import { EReloadReason, IStudioStore, TStateHistory } from './types'
 import { CreateTeamHandler, CreateTeamRequest, ExpandTeamRequest, ExpandTeamHandler, UpdateXpertHandler, UpdateXpertRequest } from './xpert'
-import { genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
+import { genAgentKey, genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
 import { XpertService } from '../../xpert/xpert.service'
 
@@ -464,7 +464,7 @@ export class XpertStudioApiService {
 
   // Knowledge
   public createKnowledge(position: IPoint, knowledge: IKnowledgebase): void {
-    new CreateNodeHandler(this.store).handle(new CreateNodeRequest('knowledge', position, knowledge))
+    new CreateNodeHandler(this.store).handle(new CreateNodeRequest('knowledge', position, null, knowledge))
     this.#reload.next(EReloadReason.KNOWLEDGE_CREATED)
   }
 
@@ -491,17 +491,27 @@ export class XpertStudioApiService {
     this.#reload.next(EReloadReason.JUST_RELOAD)
   }
 
-  private updateNode(key: string, value: Partial<TXpertTeamNode>): void {
-    new UpdateNodeHandler(this.store).handle(new UpdateNodeRequest(key, value))
-  }
   public removeNode(key: string) {
     // Remove node
     const event = new RemoveNodeHandler(this.store).handle(new RemoveNodeRequest(key))
     event && this.#reload.next(event)
   }
   // Agent node
-  public createAgent(position: IPoint, agent?: Partial<IXpertAgent>): void {
+  /**
+   * 
+   * @param position Put new node at position
+   * @param agent Agent node
+   * @param fromKey From which node
+   */
+  public createAgent(position: IPoint, agent?: Partial<IXpertAgent>, fromKey?: string): void {
+    const agentKey = agent?.key ?? genAgentKey()
     new CreateNodeHandler(this.store).handle(new CreateNodeRequest('agent', position, agent))
+    if (fromKey) {
+      this.createConnection({
+        sourceId: fromKey,
+        targetId: agentKey
+      })
+    }
     this.#reload.next(EReloadReason.AGENT_CREATED)
   }
   /**
@@ -520,7 +530,7 @@ export class XpertStudioApiService {
   }
   // Toolset node
   public createToolset(position: IPoint, toolset: IXpertToolset): void {
-    new CreateNodeHandler(this.store).handle(new CreateNodeRequest('toolset', position, toolset))
+    new CreateNodeHandler(this.store).handle(new CreateNodeRequest('toolset', position, null, toolset))
     this.#reload.next(EReloadReason.TOOLSET_CREATED)
   }
   public updateXpertAgent(key: string, entity: Partial<IXpertAgent>, options?: {emitEvent: boolean}) {
@@ -587,18 +597,58 @@ export class XpertStudioApiService {
     }, reason)
   }
 
+  #updateNode(key: string, fn: (source: Partial<TXpertTeamNode>) => Partial<TXpertTeamNode>) {
+    this.store.update((state) => {
+      const draft = structuredClone(state.draft)
+      const index = draft.nodes.findIndex((_) => _.key === key)
+      if (index > -1) {
+        draft.nodes[index] = fn(draft.nodes[index]) as TXpertTeamNode
+      } else {
+        throw new Error(`Node with key ${key} not found!`)
+      }
+
+      // Recalculate hash of the node
+      draft.nodes[index].hash = calculateHash(JSON.stringify(omit(draft.nodes[index], 'hash')))
+
+      return {
+        draft
+      }
+    })
+  }
+
   updateToolset(key: string, toolset: IXpertToolset) {
-    this.updateNode(key, {entity: toolset})
+    this.#updateNode(key, (source) => ({ ...source, entity: toolset } as Partial<TXpertTeamNode>))
     this.#reload.next(EReloadReason.TOOLSET_CREATED)
+  }
+
+  updateNode(key: string, fn: (source: Partial<TXpertTeamNode>) => Partial<TXpertTeamNode>) {
+    this.#updateNode(key, fn)
+    this.#reload.next(EReloadReason.XPERT_UPDATED)
   }
 
   updateCanvas(event: FCanvasChangeEvent) {
     this.updateXpertOptions({ position: event.position, scale: event.scale }, EReloadReason.CANVAS_CHANGED)
   }
 
+  addNode(position: IPoint, node: Partial<TXpertTeamNode>) {
+    new CreateNodeHandler(this.store).handle(new CreateNodeRequest(node.type, position, node))
+    this.#reload.next(EReloadReason.XPERT_UPDATED)
+  }
+
   // Logic blocks of workflow
-  addBlock(position: IPoint, entity: Partial<IWorkflowNode>) {
-    new CreateWorkflowNodeHandler(this.store).handle(new CreateWorkflowNodeRequest(position, entity))
+  addBlock(position: IPoint, entity: Partial<IWorkflowNode>, fromNode?: TXpertTeamNode) {
+    new CreateWorkflowNodeHandler(this.store).handle(new CreateWorkflowNodeRequest(
+      fromNode?.position ? {x: fromNode.position.x + 200, y: fromNode.position.y } : position
+      , entity
+      , {
+      parentId: fromNode?.parentId
+    }))
+    if (fromNode) {
+      this.createConnection({
+        sourceId: fromNode.key,
+        targetId: entity.key
+      })
+    }
     this.#reload.next(EReloadReason.XPERT_UPDATED)
   }
 

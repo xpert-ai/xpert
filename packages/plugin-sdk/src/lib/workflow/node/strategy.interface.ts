@@ -5,9 +5,11 @@ import {
   IWorkflowNode,
   TWorkflowNodeMeta,
   TXpertGraph,
+  TWorkflowVarGroup,
   TXpertParameter,
   TXpertTeamNode
 } from '@metad/contracts'
+import { PromiseOrValue } from '../../types'
 
 export type TWorkflowNodeParams<TConfig = any> = {
   xpertId: string
@@ -45,7 +47,9 @@ export interface IWorkflowNodeStrategy<TConfig = any, TResult = any> {
     xpertId: string
     environment: IEnvironment
     isDraft: boolean
-  }): TWorkflowNodeResult
+  }): PromiseOrValue<TWorkflowNodeResult>
+
+  inputVariables?(entity: IWorkflowNode, variables?: TWorkflowVarGroup[]): TXpertParameter[]
 
   outputVariables(entity: IWorkflowNode): TXpertParameter[]
 }

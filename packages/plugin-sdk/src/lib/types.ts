@@ -50,3 +50,5 @@ export interface PluginLogger {
   warn(msg: string, meta?: any): void;
   error(msg: string, meta?: any): void;
 }
+
+export type PromiseOrValue<T> = T | Promise<T>;

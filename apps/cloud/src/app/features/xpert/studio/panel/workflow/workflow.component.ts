@@ -55,6 +55,7 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
 import { XpertWorkflowPanelJSONStringifyComponent } from './json-stringify/json-stringify.component'
 import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.component'
 import { XpertWorkflowMiddlewareComponent } from './middleware/middleware.component'
+import { XpertWorkflowStartComponent } from './start/start.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -72,6 +73,7 @@ import { XpertWorkflowMiddlewareComponent } from './middleware/middleware.compon
     NgmDensityDirective,
     NgmSpinComponent,
     IconComponent,
+    XpertWorkflowStartComponent,
     XpertStudioPanelWorkflowIfelseComponent,
     XpertStudioPanelWorkflowIteratingComponent,
     XpertStudioPanelWorkflowAnswerComponent,
@@ -106,7 +108,7 @@ import { XpertWorkflowMiddlewareComponent } from './middleware/middleware.compon
     XpertWorkflowPanelDBDeleteComponent,
     XpertWorkflowPanelJSONStringifyComponent,
     XpertWorkflowPanelJSONParseComponent,
-    XpertWorkflowMiddlewareComponent
+    XpertWorkflowMiddlewareComponent,
   ],
   animations: [IfAnimation,]
 })

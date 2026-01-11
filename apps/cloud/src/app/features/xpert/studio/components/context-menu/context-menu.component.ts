@@ -63,7 +63,8 @@ import {
   genXpertSkillKey,
   IWFNMiddleware,
   genXpertMiddlewareKey,
-  injectXpertAgentAPI
+  injectXpertAgentAPI,
+  TXpertTeamNode
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -187,13 +188,13 @@ export class XpertStudioContextMenuComponent {
     })
   }
 
-  async createAgent(menu: CdkMenu) {
+  createAgent(menu: CdkMenu, byNode: TXpertTeamNode) {
     menu.menuStack.closeAll()
     const length = this.agents()?.length ?? 0
     this.apiService.createAgent(this.root.contextMenuPosition, {
       title:
-        (await this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' })) + ' ' + (length ? ` ${length + 1}` : '')
-    })
+        (this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' })) + ' ' + (length ? ` ${length + 1}` : '')
+    }, byNode?.key)
   }
 
   public addCollaborator(xpert: IXpert): void {
@@ -256,30 +257,49 @@ export class XpertStudioContextMenuComponent {
     } as IWFNIfElse)
   }
 
-  async addWorkflowIterating() {
+  addWorkflowIterating() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ITERATING).length ?? 0
-    this.apiService.addBlock(this.root.contextMenuPosition, {
-      type: WorkflowNodeTypeEnum.ITERATING,
-      key: genXpertIteratingKey(),
-      title: await this.#translate.instant('PAC.Workflow.Iterating', { Default: 'Iterating' }) + (length ? ` ${length + 1}` : '')
+    const iteratingKey = genXpertIteratingKey()
+    this.apiService.addNode(this.root.contextMenuPosition, {
+      key: iteratingKey,
+      type: 'workflow',
+      size: { width: 120, height: 60 },
+      entity: {
+        id: '',
+        type: WorkflowNodeTypeEnum.ITERATING,
+        key: iteratingKey,
+        title: this.#translate.instant('PAC.Workflow.Iterating', { Default: 'Iterating' }) + (length ? ` ${length + 1}` : ''),
+      }
+    })
+    const startKey = iteratingKey+ '_start'
+    this.apiService.addNode(this.root.contextMenuPosition, {
+      type: 'workflow',
+      key: startKey,
+      parentId: iteratingKey,
+      size: { width: 46, height: 46 },
+      entity: {
+        id: startKey,
+        type: WorkflowNodeTypeEnum.START,
+        key: startKey,
+      }
     })
   }
 
-  async addWorkflowAnswer() {
+  addWorkflowAnswer() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ANSWER).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.ANSWER,
       key: genXpertAnswerKey(),
-      title: await this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' }) + (length ? ` ${length + 1}` : '')
+      title: this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' }) + (length ? ` ${length + 1}` : '')
     })
   }
 
-  async addWorkflowQuestionClassifier() {
+  addWorkflowQuestionClassifier() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CLASSIFIER).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CLASSIFIER,
       key: genXpertClassifierKey(),
-      title: (await this.#translate.instant('PAC.Workflow.QuestionClassifier', { Default: 'Question Classifier' })) + ` ${length + 1}`,
+      title: this.#translate.instant('PAC.Workflow.QuestionClassifier', { Default: 'Question Classifier' }) + ` ${length + 1}`,
       inputVariables: ['human.input'],
       classes: [
         {
@@ -292,23 +312,23 @@ export class XpertStudioContextMenuComponent {
     } as IWFNClassifier)
   }
 
-  async addWorkflowKnowledgeRetrieval() {
+  addWorkflowKnowledgeRetrieval() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.KNOWLEDGE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.KNOWLEDGE,
       key: genXpertKnowledgeKey(),
-      title: await this.#translate.instant('PAC.Workflow.KnowledgeRetrieval', { Default: 'Knowledge Retrieval' }) + (length ? ` ${length + 1}` : ''),
+      title: this.#translate.instant('PAC.Workflow.KnowledgeRetrieval', { Default: 'Knowledge Retrieval' }) + (length ? ` ${length + 1}` : ''),
       queryVariable: `input`,
       knowledgebases: []
     } as IWFNKnowledgeRetrieval)
   }
 
-  async addWorkflowCode() {
+  addWorkflowCode() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CODE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CODE,
       key: genXpertCodeKey(),
-      title: await this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }) + ` ${length + 1}`,
+      title: this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }) + ` ${length + 1}`,
       language: 'javascript',
       code: `return {"result": arg1 + arg2};`,
       inputs: [
@@ -330,12 +350,12 @@ export class XpertStudioContextMenuComponent {
     } as IWFNCode)
   }
 
-  async addWorkflowTemplate() {
+  addWorkflowTemplate() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.TEMPLATE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TEMPLATE,
       key: genXpertTemplateKey(),
-      title: await this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template Transform' }) + (length ? ` ${length + 1}` : ''),
+      title: this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template Transform' }) + (length ? ` ${length + 1}` : ''),
       code: `{{arg1}}`,
       inputParams: [
         {
@@ -355,13 +375,15 @@ export class XpertStudioContextMenuComponent {
     } as IWorkflowNode)
   }
 
-  addWorkflowJSONParse() {
+  addWorkflowJSONParse(fromNode: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.JSON_PARSE).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.JSON_PARSE,
       key: genJSONParseKey(),
       title: this.#translate.instant('PAC.Workflow.JSONParse', { Default: 'JSON Parse' }) + (length ? ` ${length + 1}` : ''),
-    } as IWorkflowNode)
+    } as IWorkflowNode,
+    fromNode
+    )
   }
 
   addWorkflowVariableAssigner() {

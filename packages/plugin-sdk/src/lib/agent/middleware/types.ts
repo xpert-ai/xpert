@@ -4,8 +4,9 @@ import { DynamicStructuredTool, DynamicTool, StructuredToolInterface } from '@la
 import type { ToolCall, ToolMessage } from "@langchain/core/messages/tool";
 import { InferInteropZodOutput, InteropZodObject } from '@langchain/core/utils/types'
 import { RunnableToolLike } from '@langchain/core/runnables';
-import { AgentBuiltInState, Runtime } from './runtime';
 import { Command } from '@langchain/langgraph';
+import { AgentBuiltInState, Runtime } from './runtime';
+import { PromiseOrValue } from '../../types';
 
 
 export type ServerTool = Record<string, unknown>;
@@ -36,8 +37,6 @@ type NormalizeContextSchema<
 export const JUMP_TO_TARGETS = ["model", "tools", "end"] as const;
 export type JumpToTarget = (typeof JUMP_TO_TARGETS)[number];
 
-
-export type PromiseOrValue<T> = T | Promise<T>;
 
 /**
  * Result type for middleware functions.

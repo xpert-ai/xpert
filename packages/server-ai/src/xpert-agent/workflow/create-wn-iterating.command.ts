@@ -3,6 +3,9 @@ import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { TAgentSubgraphParams } from '../agent'
 
+/**
+ * @deprecated use Plugin instead
+ */
 export class CreateWNIteratingCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Create workflow node iterating'
 

@@ -271,7 +271,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				try {
 					const creator = this.nodeRegistry.get(node.entity.type)
 
-					const result = creator.create({graph, node, xpertId, environment: options.environment, isDraft: options.isDraft})
+					const result = await creator.create({graph, node, xpertId, environment: options.environment, isDraft: options.isDraft})
 
 					workflow = {
 						workflowNode: {

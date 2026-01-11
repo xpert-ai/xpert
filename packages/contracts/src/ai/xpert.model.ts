@@ -442,39 +442,51 @@ export type TXpertTeamDraft = TXpertGraph & {
 
 export type TXpertTeamNodeType = 'agent' | 'knowledge' | 'toolset' | 'xpert' | 'workflow'
 
-export type TXpertTeamNode = {
+export type TXpertTeamNodeBase = {
   key: string
-  type: TXpertTeamNodeType
   position: IRect
   size?: ISize
   hash?: string
   parentId?: string
   readonly?: boolean
-} & (
-  | {
-      type: 'agent'
-      entity: IXpertAgent
-    }
-  | {
-      type: 'knowledge'
-      entity: IKnowledgebase
-    }
-  | {
-      type: 'toolset'
-      entity: IXpertToolset
-    }
-  | {
-      type: 'xpert'
-      entity: IXpert
-      nodes?: TXpertTeamNode[]
-      connections?: TXpertTeamConnection[]
-      expanded?: boolean
-    }
-  | {
-      type: 'workflow'
-      entity: IWorkflowNode
-    }
-)
+}
+
+/** type -> entity + extra props */
+export type TXpertTeamNodeSpec = {
+  agent: {
+    entity: IXpertAgent
+  }
+  knowledge: {
+    entity: IKnowledgebase
+  }
+  toolset: {
+    entity: IXpertToolset
+  }
+  xpert: {
+    entity: IXpert
+    nodes?: TXpertTeamNode[]
+    connections?: TXpertTeamConnection[]
+    expanded?: boolean
+  }
+  workflow: {
+    entity: IWorkflowNode
+  }
+}
+
+/** If you want TXpertTeamNodeType always match spec keys */
+export type TXpertTeamNodeType2 = keyof TXpertTeamNodeSpec
+
+export type TXpertTeamNode<T extends TXpertTeamNodeType = TXpertTeamNodeType> =
+  T extends TXpertTeamNodeType
+    ? TXpertTeamNodeBase & { type: T } & TXpertTeamNodeSpec[T]
+    : never
+
+export type NodeOf<T extends keyof TXpertTeamNodeSpec> = TXpertTeamNode<T>
+
+export type NodeEntity<T extends keyof TXpertTeamNodeSpec> =
+  TXpertTeamNodeSpec[T]['entity']
+
+export type AnyNodeEntity = NodeEntity<keyof TXpertTeamNodeSpec>
 
 export interface IRect extends IPoint, Partial<ISize> {
   gravityCenter?: IPoint
@@ -555,4 +567,12 @@ export type TKBRetrievalSettings = {
      */
     fields: Record<string, object>
   }
+}
+
+// Helper guards
+export function isXpertNodeType<T extends TXpertTeamNodeType>(
+  type: T
+): (node: TXpertTeamNode) => node is NodeOf<T> {
+  return (node: TXpertTeamNode): node is NodeOf<T> =>
+    node.type === type
 }

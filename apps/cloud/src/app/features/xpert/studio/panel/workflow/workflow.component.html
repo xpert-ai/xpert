@@ -76,6 +76,8 @@
 </div>
 
 @switch (type()) {
+  @case (eWorkflowNodeTypeEnum.START) {
+  }
   @case (eWorkflowNodeTypeEnum.TRIGGER) {
     <xpert-workflow-trigger [node]="node()" [entity]="wfNode()" />
   }

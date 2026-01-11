@@ -14,6 +14,8 @@ export type TWorkflowNodeMeta = {
 export type TWorkflowTriggerMeta = TWorkflowNodeMeta
 
 export enum WorkflowNodeTypeEnum {
+  START = 'start',
+  END = 'end',
   /**
    * Trigger
    */

@@ -21,13 +21,15 @@ import { compact, get, isString } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
-import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
 import { CompileGraphCommand } from '../../commands'
-import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import { AgentStateAnnotation, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 const PARALLEL_MAXIMUM = 2
 
+/**
+ * @deprecated use Plugin instead
+ */
 @CommandHandler(CreateWNIteratingCommand)
 export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIteratingCommand> {
 	readonly #logger = new Logger(CreateWNIteratingHandler.name)
@@ -326,10 +328,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 
 					return {
 						[channelName(node.key)]: {
-							[STATE_VARIABLE_ITERATING_OUTPUT]: outputs,
-							[STATE_VARIABLE_ITERATING_OUTPUT_STR]: outputs?.map((_) =>
-								typeof _ === 'string' ? _ : JSON.stringify(_, null, 2)
-							).join('\n'),
+							output: outputs
 						}
 					}
 				}),

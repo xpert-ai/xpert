@@ -3,6 +3,7 @@
   (fCreateConnection)="addConnection($event)"
   (fReassignConnection)="reassignConnection($event)"
   (fSelectionChange)="selectionChanged($event)"
+  (fDropToGroup)="onDropToGroup($event)"
   (contextmenu)="onContextMenu($event)"
   #menuTrigger="cdkContextMenuTriggerFor"
   [cdkContextMenuTriggerFor]="menu.template"
@@ -101,6 +102,7 @@
             <xpert-studio-node-workflow class=""
               [node]="node"
               [startNodes]="startNodes()"
+              [menu]="menu"
             />
           }
         }
@@ -154,8 +156,8 @@
       <div class="group" [class.f-selected]="selectedNodeKey() === group.key"
         fGroup [fGroupId]="group.key" [fGroupParentId]="group.parentId" [fGroupPosition]="group.position"
         [fGroupSize]="group.size" fDragHandle
-        (fGroupPositionChange)="moveXpertGroup($event, group.key)"
-        (fGroupSizeChange)="resizeXpertGroup($event, group.key)"
+        (fGroupPositionChange)="moveGroup($event, group.key)"
+        (fGroupSizeChange)="resizeGroup($event, group.key)"
         (mousedown)="onMouseDown($event)"
         (click)="onSelectNode($event, group)"
 
@@ -207,6 +209,61 @@
             }
           </div>
           
+          <div class="flex items-center justify-center w-6 h-6 p-0.5 rounded-md cursor-pointer
+            hover:bg-red-500/10 hover:text-red-500"
+            (click)="removeNode(group.key)">
+            <i class="ri-close-line"></i>
+          </div>
+        </div>
+      </div>
+    }
+
+     @for (group of groups(); track group.key) {
+      <div class="group" [class.f-selected]="selectedNodeKey() === group.key"
+        fGroup [fGroupId]="group.key" [fGroupParentId]="group.parentId" [fGroupPosition]="group.position"
+        [fGroupSize]="group.size" fDragHandle
+        fIncludePadding
+        fAutoExpandOnChildHit
+        (fGroupPositionChange)="moveGroup($event, group.key)"
+        (fGroupSizeChange)="resizeGroup($event, group.key)"
+        (mousedown)="onMouseDown($event)"
+        (click)="onSelectNode($event, group)"
+      >
+        <div class="group-title flex items-center gap-1">
+          <span class="truncate text-text-secondary">{{ group.entity.title }}</span>
+        </div>
+        <div fResizeHandle [fResizeHandleType]="eResizeHandleType.LEFT_TOP" class="z-10">
+          <svg class="rotate-180" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 9.75V6H13.5V9.75C13.5 11.8211 11.8211 13.5 9.75 13.5H6V12H9.75C10.9926 12 12 10.9926 12 9.75Z" fill="black" fill-opacity="0.16"></path>
+          </svg>
+        </div>
+        <div fResizeHandle [fResizeHandleType]="eResizeHandleType.RIGHT_TOP" class="z-10">
+          <svg class="-rotate-90" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 9.75V6H13.5V9.75C13.5 11.8211 11.8211 13.5 9.75 13.5H6V12H9.75C10.9926 12 12 10.9926 12 9.75Z" fill="black" fill-opacity="0.16"></path>
+          </svg>
+        </div>
+        <div fResizeHandle [fResizeHandleType]="eResizeHandleType.LEFT_BOTTOM" class="z-10">
+          <svg class="rotate-90" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 9.75V6H13.5V9.75C13.5 11.8211 11.8211 13.5 9.75 13.5H6V12H9.75C10.9926 12 12 10.9926 12 9.75Z" fill="black" fill-opacity="0.16"></path>
+          </svg>
+        </div>
+        <div fResizeHandle [fResizeHandleType]="eResizeHandleType.RIGHT_BOTTOM" class="z-10">
+          <svg class="" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 9.75V6H13.5V9.75C13.5 11.8211 11.8211 13.5 9.75 13.5H6V12H9.75C10.9926 12 12 10.9926 12 9.75Z" fill="black" fill-opacity="0.16"></path>
+          </svg>
+        </div>
+
+        <div fNodeInput class="left edge absolute"
+          [fInputId]="group.key + '/edge'" fInputConnectableSide="left" ></div>
+        <div fNodeOutput class="edge absolute -right-[4px] top-[7px]"
+          [fOutputId]="group.key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true">
+          <div class="inner-dot cursor-crosshair">
+            <i class="ri-add-line text-sm text-white"></i>
+          </div>
+        </div>
+
+        <div class="node-toolbar absolute right-2 top-1 flex items-center gap-1 p-0.5 rounded-lg border-[0.5px]
+          bg-white border-gray-100 shadow-xs text-gray-500">
           <div class="flex items-center justify-center w-6 h-6 p-0.5 rounded-md cursor-pointer
             hover:bg-red-500/10 hover:text-red-500"
             (click)="removeNode(group.key)">

@@ -25,7 +25,7 @@
       .f-connection-path {
         stroke: var(--f-component-hover-border);
         stroke-width: 3;
-        filter: drop-shadow(0 0 4px var(--f-component-hover-border));
+        // filter: drop-shadow(0 0 4px var(--f-component-hover-border));
         transition: stroke-width 0.15s ease, filter 0.15s ease;
       }
       .connection-marker {
@@ -111,7 +111,38 @@
     }
   }
 
-  .f-node.f-component {
+  .node-output-bottom {
+    .f-component.f-node-output {
+      border-radius: 0;
+      width: var(--output-size);
+      height: 3px;
+      @apply bg-blue-500;
+    }
+  }
+
+  .f-component.f-node-input.left {
+    border-radius: 0;
+    width: 3px;
+    height: 10px;
+    border: none;
+    @apply bg-blue-500;
+  }
+  
+  .f-component.f-node-input.edge {
+    border-radius: 0;
+    width: 3px;
+    height: 10px;
+    @apply bg-blue-500;
+  }
+
+  .f-component.f-node-output.edge {
+    border-radius: 0;
+    width: 3px;
+    height: var(--output-size);
+    @apply bg-blue-500;
+  }
+
+  .f-node.f-component, .f-group.f-component {
     .f-component.f-node-output {
       svg, .ri-add-line {
         visibility: hidden;
@@ -149,28 +180,7 @@
         }
       }
     }
-
-    .f-component.f-node-input.left {
-      border-radius: 0;
-      width: 3px;
-      height: 10px;
-      border: none;
-      @apply bg-blue-500;
-    }
   }
-
-  .node-output-bottom {
-    .f-component.f-node-output {
-      // position: relative;
-      // bottom: 0;
-      // left: initial;
-      border-radius: 0;
-      width: var(--output-size);
-      height: 3px;
-      @apply bg-blue-500;
-    }
-  }
-  
 }
 
 .f-node.f-component, .f-group.f-component {
@@ -226,7 +236,7 @@ f-flow {
   display: block;
   background-color: var(--team-group-bg);
   padding: 15px;
-  @apply border border-solid border-transparent;
+  @apply border-2 border-dashed border-transparent;
 
   .group-title {
     position: absolute;
@@ -235,8 +245,19 @@ f-flow {
   }
 
   &.f-selected {
-    @apply border border-solid border-primary-500;
+    @apply border-primary-500;
 
+    .f-resize-handle {
+      display: block;
+    }
+  }
+
+  &.f-grouping-over-boundary {
+    @apply border-primary-400;
+  }
+
+  &:hover {
+    @apply border-primary-200;
     .f-resize-handle {
       display: block;
     }

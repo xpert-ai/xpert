@@ -1,0 +1,10 @@
+<div fNodeOutput [fOutputId]="node().key + '/workflow'" fOutputConnectableSide="right" class="right group " [fOutputMultiple]="true"
+  [fCanBeConnectedInputs]="canBeConnectedInputs()"
+  #menuTrigger="cdkMenuTriggerFor"
+  [cdkMenuTriggerFor]="menu().template"
+  [cdkMenuTriggerData]="{fromNode: node(), menuTrigger: menuTrigger}"
+>
+  <div class="inner-dot cursor-crosshair">
+    <i class="ri-add-line w-2 h-2 text-white"></i>
+  </div>
+</div>
