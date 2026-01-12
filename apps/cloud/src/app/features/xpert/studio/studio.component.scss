@@ -159,7 +159,7 @@
       }
     }
 
-    &:not(.ngm-executor-agent):hover {
+    &:hover {
       .f-component.f-node-output {
         .inner-dot {
           width: var(--output-size);

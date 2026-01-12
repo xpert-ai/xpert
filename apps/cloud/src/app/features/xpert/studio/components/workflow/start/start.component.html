@@ -1,4 +1,5 @@
-<div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group " [fOutputMultiple]="true"
+<div fNodeOutput class="absolute -right-2 top-4 group" 
+  [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true"
   [fCanBeConnectedInputs]="canBeConnectedInputs()"
   #menuTrigger="cdkMenuTriggerFor"
   [cdkMenuTriggerFor]="menu().template"

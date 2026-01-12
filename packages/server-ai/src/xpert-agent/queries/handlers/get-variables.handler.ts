@@ -236,7 +236,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			nodeKey = chatStarters.length ? chatStarters[0].key : nodeKey
 		}
 		const node = _graph.nodes?.find((_) => _.key === nodeKey)
-		const graphKeys = _graph.nodes && nodeKey && type === 'input' ? collectGraphKeys(_graph, nodeKey) : [nodeKey]
+		const graphKeys = _graph.nodes && nodeKey ? collectGraphKeys(_graph, nodeKey) : [nodeKey]
 		const graphs = _graph.nodes
 			? graphKeys.length
 				? graphKeys.map((key) => getCurrentGraph(_graph, key))

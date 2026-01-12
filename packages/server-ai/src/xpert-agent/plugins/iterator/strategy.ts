@@ -8,10 +8,7 @@ import {
 	IteratorItemParameterName,
 	IWFNIterator,
 	IWorkflowNode,
-	IXpert,
-	IXpertAgent,
 	IXpertAgentExecution,
-	setStateVariable,
 	TAgentRunnableConfigurable,
 	TWorkflowVarGroup,
 	TXpertGraph,
@@ -25,10 +22,9 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { compact, get, isString } from 'lodash'
-import { AgentStateAnnotation, stateToParameters } from '../../../shared'
+import { AgentStateAnnotation } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
-import { CompileGraphCommand } from '../../commands'
-import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
+import { XpertWorkflowSubgraphCommand } from '../../commands/workflow-subgraph.command'
 
 const PARALLEL_MAXIMUM = 2
 export const STATE_VARIABLE_ITERATOR_OUTPUT = 'output'
@@ -96,37 +92,23 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 
 		const entity = node.entity as IWFNIterator
 
-		// Get the subgraph
-		const connections = graph.connections.filter(
-			(conn) => (conn.type === 'agent' || conn.type === 'xpert') && conn.from === node.key
+		const subgraphNodes = graph.nodes.filter(
+			(n) => n.parentId === node.key && (n.type === 'agent' || n.type === 'workflow')
 		)
-		if (connections.length > 1) {
-			throw new InternalServerErrorException(this.translate('xpert.Error.MultiNodeNotSupported', entity))
-		}
-		if (connections.length < 1) {
+		if (!subgraphNodes.length) {
 			throw new InternalServerErrorException(this.translate('xpert.Error.NoChildNodeForLoop', entity))
 		}
-
-		let extXpert: IXpert = null
-		let _xpertId = xpertId
-		let agentKey: string = null
-		if (connections[0].type === 'xpert') {
-			// Collaborator (external xpert)
-			const collaboratorNode = graph.nodes.find(
-				(n) => n.type === 'xpert' && n.key === connections[0].to
-			) as TXpertTeamNode & { type: 'xpert' }
-			if (collaboratorNode) {
-				extXpert = collaboratorNode.entity
-				_xpertId = collaboratorNode.key
-				agentKey = collaboratorNode.entity.agent.key
+		const subgraphNodeKeys = new Set(subgraphNodes.map((n) => n.key))
+		const subgraphConnections = graph.connections.filter((conn) => {
+			if (!(conn.type === 'edge' || conn.type === 'workflow')) {
+				return false
 			}
-		} else {
-			const agentNode = graph.nodes.find(
-				(n) => n.type === 'agent' && n.key === connections[0].to
-			) as TXpertTeamNode & { type: 'agent' }
-			if (agentNode) {
-				agentKey = agentNode.key
-			}
+			const fromKey = conn.from.split('/')[0]
+			return subgraphNodeKeys.has(fromKey) && subgraphNodeKeys.has(conn.to)
+		})
+		const subgraphGraph: TXpertGraph = {
+			nodes: subgraphNodes,
+			connections: subgraphConnections
 		}
 
 		const inputVariable = entity.inputVariable
@@ -137,65 +119,46 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 		}
 
 		let subgraph = null
-		const execution: IXpertAgentExecution = {}
 		const abortController = new AbortController()
-		// Create graph by command
-		if (extXpert) {
-			const compiled = await this.commandBus.execute<
-				CompileGraphCommand,
-				{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
-			>(
-				new CompileGraphCommand(agentKey, { id: _xpertId }, {
+		const compiled = await this.commandBus.execute<
+			XpertWorkflowSubgraphCommand,
+			{ graph: CompiledStateGraph<any, any, any> }
+		>(
+			new XpertWorkflowSubgraphCommand(
+				{ id: xpertId },
+				graph,
+				subgraphGraph,
+				{
 					isDraft,
-					// mute: command.options.mute,
-					// store: command.options.store,
-					execution,
 					rootController: abortController,
 					signal: abortController.signal,
-					// subscriber,
-					environment
-				} as any)
-			)
-			subgraph = compiled.graph
-		} else {
-			const compiled = await this.commandBus.execute<
-				XpertAgentSubgraphCommand,
-				{ agent: IXpertAgent; graph: CompiledStateGraph<any, any, any> }
-			>(
-				new XpertAgentSubgraphCommand(agentKey, { id: _xpertId }, {
-					isDraft,
-					// mute: command.options.mute,
-					// store: command.options.store,
-					isStart: true,
-					rootController: abortController,
-					signal: abortController.signal,
-					execution,
-					// subscriber,
 					disableCheckpointer: true, // The loop node cannot record the execution log correctly, so the Checkpointer is temporarily disabled.
-					channel: channelName(agentKey),
-					partners: [],
 					environment
-				} as any)
+				} as any
 			)
-			subgraph = compiled.graph
-		}
+		)
+		subgraph = compiled.graph
 
 		return {
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { subscriber, executionId } = configurable
-				const stateEnv = stateToParameters(state, environment)
 				const parameterValue = get(state, inputVariable)
 
 				const parallel = entity.parallel
 				const maximum = entity.maximum ?? PARALLEL_MAXIMUM
 				const errorMode = entity.errorMode
 				const invokeSubgraph = async (item, index: number) => {
-					const originalState = isString(item)
-						? { [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
-						: { ...(item ?? {}), [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
-					const inputs = {}
-					const _state = { ...state, ...originalState }
+					// const originalState = isString(item)
+					// 	? { [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
+					// 	: { ...(item ?? {}), [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
+					const inputs = {
+						[channelName(node.key)]: {
+							$index: index,
+							$item: item
+						}
+					}
+					// const _state = { ...state, ...originalState }
 					// inputs = inputParams.reduce((acc, curr) => {
 					// 	setStateVariable(acc, curr.variable, get(_state, curr.name))
 					// 	return acc
@@ -217,12 +180,7 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 								inputs: inputs,
 								parentId: itemExecution.id
 							}
-							if (extXpert) {
-								subAgentExecution.xpertId = extXpert.id
-							} else {
-								subAgentExecution.xpertId = xpertId
-								subAgentExecution.agentKey = agentKey
-							}
+							subAgentExecution.xpertId = xpertId
 
 							const retState = await wrapAgentExecution(
 								async () => {
@@ -248,11 +206,10 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 										acc[curr.name] = get(retState, curr.variable)
 										return acc
 									}, {})
-									const output = retState[channelName(agentKey)]?.output
 
 									return {
 										state: outputItem,
-										output: output
+										output: outputItem
 									}
 								},
 								{
@@ -265,7 +222,7 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 
 							return {
 								state: retState,
-								output: retState as string
+								output: retState as any
 							}
 						},
 						{

@@ -1,6 +1,6 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { CdkContextMenuTrigger, CdkMenuModule } from '@angular/cdk/menu'
 import {Clipboard} from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import {
@@ -166,6 +166,7 @@ export class XpertStudioComponent {
   readonly fFlowComponent = viewChild(FFlowComponent)
   readonly fCanvasComponent = viewChild(FCanvasComponent)
   readonly fZoom = viewChild(FZoomDirective)
+  readonly contextMenuTrigger = viewChild('menuTrigger', { read: CdkContextMenuTrigger })
 
   // States
   public contextMenuPosition: IPoint = PointExtensions.initialize(0, 0)
@@ -322,6 +323,11 @@ export class XpertStudioComponent {
 
   public addConnection(event: FCreateConnectionEvent): void {
     if (!event.fInputId) {
+      this.contextMenuTrigger().menuData = {
+        menuTrigger: this.contextMenuTrigger(),
+        fromNode: this.apiService.getNode(event.fOutputId),
+      }
+      this.contextMenuTrigger().open(event.fDropPosition)
       return
     }
 
