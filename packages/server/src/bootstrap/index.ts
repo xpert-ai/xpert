@@ -19,10 +19,10 @@ import { ServerAppModule } from '../server.module';
 import { AuthGuard } from './../shared/guards';
 
 async function createSessionOptions(): Promise<SessionOptions> {
-	const sessionSecret = env.EXPRESS_SESSION_SECRET
+	const sessionSecret = env.EXPRESS_SESSION_SECRET;
 	if (!sessionSecret) {
-		Logger.error('EXPRESS_SESSION_SECRET is not configured')
-		throw new Error('EXPRESS_SESSION_SECRET is required for session middleware')
+		Logger.error('EXPRESS_SESSION_SECRET is not configured');
+		throw new Error('EXPRESS_SESSION_SECRET is required for session middleware');
 	}
 
 	const sessionOptions: SessionOptions = {
@@ -33,7 +33,7 @@ async function createSessionOptions(): Promise<SessionOptions> {
 
 	const redisUrl =
 		process.env.REDIS_URL ||
-		`redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`
+		`redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`;
 
 	try {
 		const redisClient = createClient({
@@ -41,22 +41,22 @@ async function createSessionOptions(): Promise<SessionOptions> {
 			username: process.env.REDIS_USER || undefined,
 			password: process.env.REDIS_PASSWORD || undefined,
 			socket: process.env.REDIS_TLS === 'true' ? { tls: true } : undefined
-		})
+		});
 		redisClient.on('error', (error) =>
 			Logger.error(`Redis session client error: ${error?.message ?? error}`)
-		)
-		await redisClient.connect()
-		sessionOptions.resave = false
-		sessionOptions.saveUninitialized = false
+		);
+		await redisClient.connect();
+		sessionOptions.resave = false;
+		sessionOptions.saveUninitialized = false;
 		sessionOptions.store = new RedisStore({
 			client: redisClient,
 			prefix: 'sess:'
-		})
+		});
 	} catch (err) {
-		Logger.warn(`Failed to connect Redis for session store, using in-memory sessions: ${err?.message ?? err}`)
+		Logger.warn(`Failed to connect Redis for session store, using in-memory sessions: ${err?.message ?? err}`);
 	}
 
-	return sessionOptions
+	return sessionOptions;
 }
 
 export async function bootstrap(
