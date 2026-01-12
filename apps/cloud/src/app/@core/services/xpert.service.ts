@@ -223,7 +223,7 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   /**
    * Get avaiable variables for workflow node
    */
-  getWorkflowVariables(id: string, nodeKey: string, environmentId?: string, inputs?: string[]) {
+  getWorkflowVariables(id: string, nodeKey: string, type: 'input' | 'output', environmentId?: string, inputs?: string[]) {
     let params = new HttpParams()
     if (environmentId) {
       params = params.append('environment', environmentId)
@@ -231,12 +231,15 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     if (inputs?.length) {
       params = params.append('inputs', inputs.join(','))
     }
+    if (type) {
+      params = params.append('type', type)
+    }
     return this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/workflow/${nodeKey}/variables`, {params})
   }
 
   getNodeVariables(options: TXpertVariablesOptions) {
     if (options.workflowKey) {
-      return this.getWorkflowVariables(options.xpertId, options.workflowKey, options.environmentId, options.inputs)
+      return this.getWorkflowVariables(options.xpertId, options.workflowKey, options.type, options.environmentId, options.inputs)
     } else {
       return this.getVariables(options.xpertId, options.type, {
         agentKey: options.agentKey,

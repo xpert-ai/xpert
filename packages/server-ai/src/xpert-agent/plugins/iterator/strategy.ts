@@ -96,7 +96,7 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 
 		const entity = node.entity as IWFNIterator
 
-		// Get the only child agent node
+		// Get the subgraph
 		const connections = graph.connections.filter(
 			(conn) => (conn.type === 'agent' || conn.type === 'xpert') && conn.from === node.key
 		)
@@ -130,12 +130,7 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 		}
 
 		const inputVariable = entity.inputVariable
-		const inputParams = entity.inputParams
 		const outputParams = entity.outputParams
-
-		if (!inputParams?.length) {
-			throw new InternalServerErrorException(this.translate('xpert.Error.InputParamsRequired', entity))
-		}
 
 		if (!outputParams?.length) {
 			throw new InternalServerErrorException(this.translate('xpert.Error.OutputParamsRequired', entity))
@@ -199,12 +194,12 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 					const originalState = isString(item)
 						? { [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
 						: { ...(item ?? {}), [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
-					let inputs = {}
+					const inputs = {}
 					const _state = { ...state, ...originalState }
-					inputs = inputParams.reduce((acc, curr) => {
-						setStateVariable(acc, curr.variable, get(_state, curr.name))
-						return acc
-					}, inputs)
+					// inputs = inputParams.reduce((acc, curr) => {
+					// 	setStateVariable(acc, curr.variable, get(_state, curr.name))
+					// 	return acc
+					// }, inputs)
 
 					const itemExecution: IXpertAgentExecution = {
 						category: 'workflow',

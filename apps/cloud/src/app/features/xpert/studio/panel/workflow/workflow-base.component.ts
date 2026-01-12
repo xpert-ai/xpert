@@ -70,7 +70,7 @@ export class XpertWorkflowBaseComponent {
     request: () => ({
         xpertId: this.xpertId(),
         workflowKey: this.key(),
-        type: 'input',
+        // type: 'input',
         environmentId: this.studioService.environmentId(),
         connections: this.connections(),
         inputs: this.iteratorInputs()

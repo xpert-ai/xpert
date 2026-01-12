@@ -3497,7 +3497,8 @@
       "KnowledgeMetadataFilter": "元数据过滤",
       "MetadataFilterConditions": "元数据过滤条件",
       "SelectFieldsAsMetadataFilter": "选择用作元数据过滤条件的字段",
-      "Conditions": "条件"
+      "Conditions": "条件",
+      "VariableNameOrOverwriteElement": "变量名，默认覆盖当前元素"
     },
     "MCP": {
       "Logs": "日志",

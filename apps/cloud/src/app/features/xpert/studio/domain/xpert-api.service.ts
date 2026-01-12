@@ -645,7 +645,7 @@ export class XpertStudioApiService {
     }))
     if (fromNode) {
       this.createConnection({
-        sourceId: fromNode.key,
+        sourceId: fromNode.key + '/edge',
         targetId: entity.key
       })
     }
@@ -749,7 +749,7 @@ export class XpertStudioApiService {
 
   getVariables(options: {xpertId: string; workflowKey?: string; agentKey?: string; type: 'input' | 'output'}) {
     if (options.workflowKey) {
-      return this.xpertAPI.getWorkflowVariables(options.xpertId, options.workflowKey, this.environmentId())
+      return this.xpertAPI.getWorkflowVariables(options.xpertId, options.workflowKey, options.type, this.environmentId())
     } else {
       return this.xpertAPI.getVariables(options.xpertId, options.type, {
         agentKey: options.agentKey, 

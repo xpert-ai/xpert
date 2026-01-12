@@ -525,6 +525,9 @@ export function genJSONParseKey() {
 export function genXpertIteratorKey() {
   return letterStartSUID('Iterator_')
 }
+export function genXpertStartKey(key: string) {
+  return key + '_start'
+}
 
 export function isAgentKey(key: string) {
   return key?.toLowerCase().startsWith('agent_')

@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import {
+  genXpertStartKey,
   getVariableSchema,
   injectToastr,
   IteratorIndexParameterName,
@@ -18,11 +19,11 @@ import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, TSelectOption } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { attrModel, linkedModel } from '@metad/core'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-iterator',
@@ -59,6 +60,7 @@ export class XpertStudioPanelWorkflowIteratorComponent extends XpertWorkflowBase
   readonly entity = input<IWorkflowNode>()
 
   // States
+  readonly nodeKey = computed(() => this.node()?.key)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly iteratingEntity = computed(() => this.entity() as IWFNIterator)
   readonly iterating = linkedModel({
@@ -119,9 +121,10 @@ export class XpertStudioPanelWorkflowIteratorComponent extends XpertWorkflowBase
   readonly subVarOptions = computed<TXpertVariablesOptions>(() => {
     return {
       xpertId: this.subXpertKey() ?? this.xpertId(),
-      agentKey: this.subXpertAgentKey() ?? this.subAgentKey(),
+      workflowKey: genXpertStartKey(this.nodeKey()),
       type: 'output',
       environmentId: this.studioService.environmentId(),
+      inputs: [this.nodeKey()],
       connections: this.connections()
     }
   })

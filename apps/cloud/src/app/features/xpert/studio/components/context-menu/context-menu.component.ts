@@ -65,7 +65,8 @@ import {
   genXpertMiddlewareKey,
   injectXpertAgentAPI,
   TXpertTeamNode,
-  genXpertIteratorKey
+  genXpertIteratorKey,
+  genXpertStartKey
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -271,7 +272,7 @@ export class XpertStudioContextMenuComponent {
         title: this.#translate.instant('PAC.Workflow.Iterator', { Default: 'Iterator' }) + (length ? ` ${length + 1}` : ''),
       }
     })
-    const startKey = iteratorKey+ '_start'
+    const startKey = genXpertStartKey(iteratorKey)
     this.apiService.addNode(this.root.contextMenuPosition, {
       type: 'workflow',
       key: startKey,
