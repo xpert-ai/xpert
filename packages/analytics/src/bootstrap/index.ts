@@ -24,8 +24,14 @@ const LOGGER_LEVELS = ['error', 'warn', 'log', 'debug', 'verbose'] as LogLevel[]
 const LoggerIndex = LOGGER_LEVELS.findIndex((value) => value === (process.env.LOG_LEVEL || 'warn'))
 
 async function createSessionOptions(): Promise<SessionOptions> {
+	const sessionSecret = env.EXPRESS_SESSION_SECRET
+	if (!sessionSecret) {
+		Logger.error('EXPRESS_SESSION_SECRET is not configured')
+		throw new Error('EXPRESS_SESSION_SECRET is required for session middleware')
+	}
+
 	const sessionOptions: SessionOptions = {
-		secret: env.EXPRESS_SESSION_SECRET,
+		secret: sessionSecret,
 		resave: true,
 		saveUninitialized: true,
 		cookie: { secure: env.production }
@@ -42,6 +48,9 @@ async function createSessionOptions(): Promise<SessionOptions> {
 			password: process.env.REDIS_PASSWORD || undefined,
 			socket: process.env.REDIS_TLS === 'true' ? { tls: true } : undefined
 		})
+		redisClient.on('error', (error) =>
+			Logger.error(`Redis session client error: ${error?.message ?? error}`)
+		)
 		await redisClient.connect()
 		sessionOptions.resave = false
 		sessionOptions.saveUninitialized = false

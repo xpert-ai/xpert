@@ -1,5 +1,5 @@
 // import csurf from 'csurf';
-import { INestApplication, Type } from '@nestjs/common';
+import { INestApplication, Logger, Type } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 // import { SentryService } from '@ntegral/nestjs-sentry';
@@ -19,8 +19,14 @@ import { ServerAppModule } from '../server.module';
 import { AuthGuard } from './../shared/guards';
 
 async function createSessionOptions(): Promise<SessionOptions> {
+	const sessionSecret = env.EXPRESS_SESSION_SECRET
+	if (!sessionSecret) {
+		Logger.error('EXPRESS_SESSION_SECRET is not configured')
+		throw new Error('EXPRESS_SESSION_SECRET is required for session middleware')
+	}
+
 	const sessionOptions: SessionOptions = {
-		secret: env.EXPRESS_SESSION_SECRET,
+		secret: sessionSecret,
 		resave: true,
 		saveUninitialized: true
 	}
@@ -36,6 +42,9 @@ async function createSessionOptions(): Promise<SessionOptions> {
 			password: process.env.REDIS_PASSWORD || undefined,
 			socket: process.env.REDIS_TLS === 'true' ? { tls: true } : undefined
 		})
+		redisClient.on('error', (error) =>
+			Logger.error(`Redis session client error: ${error?.message ?? error}`)
+		)
 		await redisClient.connect()
 		sessionOptions.resave = false
 		sessionOptions.saveUninitialized = false
@@ -44,7 +53,7 @@ async function createSessionOptions(): Promise<SessionOptions> {
 			prefix: 'sess:'
 		})
 	} catch (err) {
-		console.warn(`Failed to connect Redis for session store, using in-memory sessions: ${err?.message ?? err}`)
+		Logger.warn(`Failed to connect Redis for session store, using in-memory sessions: ${err?.message ?? err}`)
 	}
 
 	return sessionOptions
