@@ -170,10 +170,10 @@
     </div>
 
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
-      (click)="addWorkflowIterating()"
+      (click)="addWorkflowIterator()"
     >
-      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ITERATING" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{'PAC.Xpert.Iterating' | translate: {Default: 'Iterating'} }}</div>
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ITERATOR" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Xpert.Iterator' | translate: {Default: 'Iterator'} }}</div>
     </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowSubflow()"

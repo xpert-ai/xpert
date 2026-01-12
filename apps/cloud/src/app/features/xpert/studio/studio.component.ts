@@ -50,7 +50,6 @@ import {
   AiModelTypeEnum,
   findStartNodes,
   injectHelpWebsite,
-  isWorkflowKey,
   IWFNTrigger,
   IXpertAgent,
   IXpertToolset,
@@ -65,6 +64,8 @@ import {
   XpertTypeEnum,
   XpertWorkspaceService,
   isXpertNodeType,
+  isIteratingKey,
+  isRouterKey,
 } from '../../../@core'
 import {
   XpertAgentExecutionStatusComponent,
@@ -622,4 +623,8 @@ function extractXpertGroup(results: TXpertTeamNode[], nodes: TXpertTeamNode[], p
       extractXpertGroup(results, (node as NodeOf<'xpert'>).nodes, node.key)
     }
   })
+}
+
+export function isWorkflowKey(key: string) {
+  return isRouterKey(key) || isIteratingKey(key)
 }

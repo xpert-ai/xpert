@@ -6,7 +6,7 @@ export type XpertStudioNodeStatus = 'success' | 'error' | 'template'
 
 export const VISION_DEFAULT_VARIABLE = `human.files`
 
-export const GROUP_NODE_TYPES = [WorkflowNodeTypeEnum.ITERATING]
+export const GROUP_NODE_TYPES = [WorkflowNodeTypeEnum.ITERATOR]
 
 export function provideJsonSchemaWidgets() {
   return provideJsonSchemaWidgetStrategy(

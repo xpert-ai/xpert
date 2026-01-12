@@ -32,13 +32,13 @@ export class XpertWorkflowBaseComponent {
 
   readonly draft = computed(() => this.studioService.viewModel())
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
-  readonly iteratingInputs = computed(() => {
+  readonly iteratorInputs = computed(() => {
     const parentId = this.node()?.parentId
     if (!parentId) {
       return undefined
     }
     const parent = this.nodes()?.find((node) => node.key === parentId)
-    if (parent?.type === 'workflow' && parent.entity?.type === WorkflowNodeTypeEnum.ITERATING) {
+    if (parent?.type === 'workflow' && parent.entity?.type === WorkflowNodeTypeEnum.ITERATOR) {
       return [parent.key]
     }
     return undefined
@@ -63,7 +63,7 @@ export class XpertWorkflowBaseComponent {
     agentKey: this.key(),
     environmentId: this.studioService.environmentId(),
     connections: this.connections(),
-    inputs: this.iteratingInputs()
+    inputs: this.iteratorInputs()
   }))
 
   readonly #variables = myRxResource({
@@ -73,7 +73,7 @@ export class XpertWorkflowBaseComponent {
         type: 'input',
         environmentId: this.studioService.environmentId(),
         connections: this.connections(),
-        inputs: this.iteratingInputs()
+        inputs: this.iteratorInputs()
       } as TXpertVariablesOptions),
     loader: ({ request }) => {
       return request ? this.xpertAPI.getNodeVariables(request) : of(null)

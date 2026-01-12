@@ -64,7 +64,8 @@ import {
   IWFNMiddleware,
   genXpertMiddlewareKey,
   injectXpertAgentAPI,
-  TXpertTeamNode
+  TXpertTeamNode,
+  genXpertIteratorKey
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
@@ -74,7 +75,6 @@ import {
   genXpertClassifierKey,
   genXpertCodeKey,
   genXpertHttpKey,
-  genXpertIteratingKey,
   genXpertKnowledgeKey,
   genXpertNoteKey,
   genXpertRouterKey,
@@ -257,25 +257,25 @@ export class XpertStudioContextMenuComponent {
     } as IWFNIfElse)
   }
 
-  addWorkflowIterating() {
-    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ITERATING).length ?? 0
-    const iteratingKey = genXpertIteratingKey()
+  addWorkflowIterator() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ITERATOR).length ?? 0
+    const iteratorKey = genXpertIteratorKey()
     this.apiService.addNode(this.root.contextMenuPosition, {
-      key: iteratingKey,
+      key: iteratorKey,
       type: 'workflow',
       size: { width: 120, height: 60 },
       entity: {
         id: '',
-        type: WorkflowNodeTypeEnum.ITERATING,
-        key: iteratingKey,
-        title: this.#translate.instant('PAC.Workflow.Iterating', { Default: 'Iterating' }) + (length ? ` ${length + 1}` : ''),
+        type: WorkflowNodeTypeEnum.ITERATOR,
+        key: iteratorKey,
+        title: this.#translate.instant('PAC.Workflow.Iterator', { Default: 'Iterator' }) + (length ? ` ${length + 1}` : ''),
       }
     })
-    const startKey = iteratingKey+ '_start'
+    const startKey = iteratorKey+ '_start'
     this.apiService.addNode(this.root.contextMenuPosition, {
       type: 'workflow',
       key: startKey,
-      parentId: iteratingKey,
+      parentId: iteratorKey,
       size: { width: 46, height: 46 },
       entity: {
         id: startKey,

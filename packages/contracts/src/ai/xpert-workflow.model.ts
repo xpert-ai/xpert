@@ -30,7 +30,11 @@ export enum WorkflowNodeTypeEnum {
   IF_ELSE = 'if-else',
   LIST_OPERATOR = 'list-operator',
   VARIABLE_AGGREGATOR = 'variable-aggregator',
+  /**
+   * @deprecated use ITERATOR instead
+   */
   ITERATING = 'iterating',
+  ITERATOR = 'iterator',
   HTTP = 'http',
   SUBFLOW = 'subflow',
   TOOL = 'tool',
@@ -189,10 +193,33 @@ export interface IWFNVariableAggregator extends IWorkflowNode {
   // method?: 'concat' | 'merge' | 'custom'
 }
 
-// export interface IWFNSplitter extends IWorkflowNode {
-//   type: WorkflowNodeTypeEnum.SPLITTER
-// }
+export interface IWFNIterator extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.ITERATOR
+  /**
+   * Variable name of input array in state
+   */
+  inputVariable: string
+  // inputParams?: TXpertRefParameter[]
+  outputParams?: TXpertRefParameter[]
+  /**
+   * Execute in parallel, otherwise execute sequentially
+   */
+  parallel?: boolean
+  /**
+   * Maximum number of parallel task
+   */
+  maximum?: number
 
+  /**
+   * - terminate: terminate on error
+   * - ignore: ignore error and continue
+   * - remove: remove error output
+   */
+  errorMode?: 'terminate' | 'ignore' | 'remove'
+}
+/**
+ * @deprecated use IWFNIterator instead
+ */
 export interface IWFNIterating extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.ITERATING
   /**
@@ -219,10 +246,18 @@ export interface IWFNIterating extends IWorkflowNode {
 }
 
 /**
- * The parameter name that represents the entire current element in array
+ * @deprecated use `IteratorItemParameterName` instead
  */
 export const IteratingItemParameterName = '$item'
+/**
+ * @deprecated use `IteratorIndexParameterName` instead
+ */
 export const IteratingIndexParameterName = '$index'
+/**
+ * The parameter name that represents the entire current element in array
+ */
+export const IteratorItemParameterName = '$item'
+export const IteratorIndexParameterName = '$index'
 
 export interface IWFNAnswer extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.ANSWER
@@ -487,6 +522,9 @@ export function genJSONStringifyKey() {
 export function genJSONParseKey() {
   return letterStartSUID('JSONParse_')
 }
+export function genXpertIteratorKey() {
+  return letterStartSUID('Iterator_')
+}
 
 export function isAgentKey(key: string) {
   return key?.toLowerCase().startsWith('agent_')
@@ -495,13 +533,15 @@ export function isAgentKey(key: string) {
 export function isRouterKey(key: string) {
   return key?.toLowerCase().startsWith('router_')
 }
-
+/**
+ * @deprecated use `isIteratorKey` instead
+ */
 export function isIteratingKey(key: string) {
   return key?.toLowerCase().startsWith('iterating_')
 }
 
-export function isWorkflowKey(key: string) {
-  return isRouterKey(key) || isIteratingKey(key)
+export function isIteratorKey(key: string) {
+  return key?.toLowerCase().startsWith('iterator_')
 }
 
 export function workflowNodeIdentifier(node: IWorkflowNode) {

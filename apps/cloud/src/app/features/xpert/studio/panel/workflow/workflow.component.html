@@ -96,6 +96,9 @@
   @case (eWorkflowNodeTypeEnum.ITERATING) {
     <xpert-studio-panel-workflow-iterating [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.ITERATOR) {
+    <xpert-studio-panel-workflow-iterator [node]="node()" [entity]="wfNode()" />
+  }
   @case (eWorkflowNodeTypeEnum.ANSWER) {
     <xpert-studio-panel-workflow-answer [node]="node()" [entity]="wfNode()" />
   }

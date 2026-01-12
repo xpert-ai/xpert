@@ -4,9 +4,9 @@ import {
 	channelName,
 	getVariableSchema,
 	IEnvironment,
-	IteratingIndexParameterName,
-	IteratingItemParameterName,
-	IWFNIterating,
+	IteratorIndexParameterName,
+	IteratorItemParameterName,
+	IWFNIterator,
 	IWorkflowNode,
 	IXpert,
 	IXpertAgent,
@@ -31,13 +31,13 @@ import { CompileGraphCommand } from '../../commands'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 
 const PARALLEL_MAXIMUM = 2
-export const STATE_VARIABLE_ITERATING_OUTPUT = 'output'
-export const STATE_VARIABLE_ITERATING_OUTPUT_STR = 'output_str'
+export const STATE_VARIABLE_ITERATOR_OUTPUT = 'output'
+export const STATE_VARIABLE_ITERATOR_OUTPUT_STR = 'output_str'
 
-export function iteratingOutputVariables(iterating: IWFNIterating) {
+export function iteratingOutputVariables(iterating: IWFNIterator) {
 	return [
 		{
-			name: STATE_VARIABLE_ITERATING_OUTPUT,
+			name: STATE_VARIABLE_ITERATOR_OUTPUT,
 			type: iterating.outputParams?.length ? XpertParameterTypeEnum.ARRAY : XpertParameterTypeEnum.STRING,
 			item:
 				iterating.outputParams?.map((item) => ({
@@ -50,7 +50,7 @@ export function iteratingOutputVariables(iterating: IWFNIterating) {
 			}
 		},
 		{
-			name: STATE_VARIABLE_ITERATING_OUTPUT_STR,
+			name: STATE_VARIABLE_ITERATOR_OUTPUT_STR,
 			type: XpertParameterTypeEnum.ARRAY_STRING,
 			description: {
 				en_US: 'Serialized data sequence',
@@ -61,9 +61,9 @@ export function iteratingOutputVariables(iterating: IWFNIterating) {
 }
 
 @Injectable()
-@WorkflowNodeStrategy(WorkflowNodeTypeEnum.ITERATING)
-export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
-	readonly #logger = new Logger(WorkflowIteratingNodeStrategy.name)
+@WorkflowNodeStrategy(WorkflowNodeTypeEnum.ITERATOR)
+export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
+	readonly #logger = new Logger(WorkflowIteratorNodeStrategy.name)
 
 	@Inject(CommandBus)
 	private readonly commandBus: CommandBus
@@ -72,9 +72,9 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 	private readonly queryBus: QueryBus
 
 	readonly meta = {
-		name: WorkflowNodeTypeEnum.ITERATING,
+		name: WorkflowNodeTypeEnum.ITERATOR,
 		label: {
-			en_US: 'Iterating',
+			en_US: 'Iterator',
 			zh_Hans: '迭代'
 		},
 		icon: null,
@@ -94,7 +94,7 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 	}) {
 		const { xpertId, graph, node, isDraft, environment } = payload
 
-		const entity = node.entity as IWFNIterating
+		const entity = node.entity as IWFNIterator
 
 		// Get the only child agent node
 		const connections = graph.connections.filter(
@@ -197,8 +197,8 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 				const errorMode = entity.errorMode
 				const invokeSubgraph = async (item, index: number) => {
 					const originalState = isString(item)
-						? { [IteratingIndexParameterName]: index, [IteratingItemParameterName]: item }
-						: { ...(item ?? {}), [IteratingIndexParameterName]: index, [IteratingItemParameterName]: item }
+						? { [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
+						: { ...(item ?? {}), [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
 					let inputs = {}
 					const _state = { ...state, ...originalState }
 					inputs = inputParams.reduce((acc, curr) => {
@@ -208,7 +208,7 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 
 					const itemExecution: IXpertAgentExecution = {
 						category: 'workflow',
-						type: WorkflowNodeTypeEnum.ITERATING,
+						type: WorkflowNodeTypeEnum.ITERATOR,
 						// xpert: { id: xpertId } as IXpert,
 						agentKey: node.key,
 						inputs: item,
@@ -247,7 +247,7 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 									)
 
 									const outputItem = outputParams.reduce((acc, curr) => {
-										if (curr.name === IteratingItemParameterName) {
+										if (curr.name === IteratorItemParameterName) {
 											return get(retState, curr.variable)
 										}
 										acc[curr.name] = get(retState, curr.variable)
@@ -376,8 +376,8 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 
 				return {
 					[channelName(node.key)]: {
-						[STATE_VARIABLE_ITERATING_OUTPUT]: outputs,
-						[STATE_VARIABLE_ITERATING_OUTPUT_STR]: outputs
+						[STATE_VARIABLE_ITERATOR_OUTPUT]: outputs,
+						[STATE_VARIABLE_ITERATOR_OUTPUT_STR]: outputs
 							?.map((_) => (typeof _ === 'string' ? _ : JSON.stringify(_, null, 2)))
 							.join('\n')
 					}
@@ -388,12 +388,12 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 	}
 
 	inputVariables(entity: IWorkflowNode, variables?: TWorkflowVarGroup[]): TXpertParameter[] {
-		const node = entity as IWFNIterating
+		const node = entity as IWFNIterator
 		const itemSchema = resolveItemSchema(node.inputVariable, variables)
 
 		return [
 			{
-				name: IteratingIndexParameterName,
+				name: IteratorIndexParameterName,
 				type: XpertParameterTypeEnum.NUMBER,
 				description: {
 					en_US: 'Current index',
@@ -401,7 +401,7 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 				}
 			},
 			{
-				name: IteratingItemParameterName,
+				name: IteratorItemParameterName,
 				type: itemSchema.type,
 				item: itemSchema.item,
 				description: {
@@ -413,7 +413,7 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 	}
 
 	outputVariables(entity: IWorkflowNode): TXpertParameter[] {
-		return iteratingOutputVariables(entity as IWFNIterating)
+		return iteratingOutputVariables(entity as IWFNIterator)
 	}
 
 	translate(key: string, options): string {

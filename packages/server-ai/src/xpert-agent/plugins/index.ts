@@ -1,5 +1,5 @@
 import { WorkflowAssignerNodeStrategy, WorkflowAssignerNodeValidator } from "./assigner"
-import { WorkflowIteratingNodeStrategy } from "./iterating"
+import { WorkflowIteratorNodeStrategy } from "./iterator"
 import { WorkflowJSONParseNodeStrategy, WorkflowJSONParseNodeValidator } from "./json-parse"
 import { WorkflowJSONStringifyNodeStrategy, WorkflowJSONStringifyNodeValidator } from "./json-stringify"
 import { WorkflowListOperatorNodeStrategy, WorkflowListOperatorNodeValidator } from "./list-operator"
@@ -18,7 +18,7 @@ export const Validators = [
 ]
 
 export const Strategies = [
-    WorkflowIteratingNodeStrategy,
+    WorkflowIteratorNodeStrategy,
     WorkflowListOperatorNodeStrategy,
     WorkflowVariableAggregatorNodeStrategy,
     WorkflowAssignerNodeStrategy,

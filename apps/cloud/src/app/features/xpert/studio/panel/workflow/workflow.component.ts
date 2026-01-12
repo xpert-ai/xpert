@@ -56,6 +56,7 @@ import { XpertWorkflowPanelJSONStringifyComponent } from './json-stringify/json-
 import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.component'
 import { XpertWorkflowMiddlewareComponent } from './middleware/middleware.component'
 import { XpertWorkflowStartComponent } from './start/start.component'
+import { XpertStudioPanelWorkflowIteratorComponent } from './iterator/iterator.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -76,6 +77,7 @@ import { XpertWorkflowStartComponent } from './start/start.component'
     XpertWorkflowStartComponent,
     XpertStudioPanelWorkflowIfelseComponent,
     XpertStudioPanelWorkflowIteratingComponent,
+    XpertStudioPanelWorkflowIteratorComponent,
     XpertStudioPanelWorkflowAnswerComponent,
     XpertStudioPanelWorkflowCodeComponent,
     XpertWorkflowCodeTestComponent,
