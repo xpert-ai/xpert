@@ -5,14 +5,16 @@ import { DynamicModule, Logger, LogLevel, Module } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import RedisStore from 'connect-redis'
 import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
 import { useContainer } from 'class-validator';
 import cookieParser from 'cookie-parser'
 import { json, text, urlencoded } from 'express'
-import expressSession from 'express-session'
+import expressSession, { SessionOptions } from 'express-session'
 import i18next from 'i18next'
 import * as middleware from 'i18next-http-middleware'
 import path from 'path'
+import { createClient } from 'redis'
 import { AnalyticsModule } from '../app.module'
 import { AnalyticsService } from '../app.service'
 import { BootstrapModule } from './bootstrap.module'
@@ -20,6 +22,39 @@ import { BootstrapModule } from './bootstrap.module'
 
 const LOGGER_LEVELS = ['error', 'warn', 'log', 'debug', 'verbose'] as LogLevel[]
 const LoggerIndex = LOGGER_LEVELS.findIndex((value) => value === (process.env.LOG_LEVEL || 'warn'))
+
+async function createSessionOptions(): Promise<SessionOptions> {
+	const sessionOptions: SessionOptions = {
+		secret: env.EXPRESS_SESSION_SECRET,
+		resave: true,
+		saveUninitialized: true,
+		cookie: { secure: env.production }
+	}
+
+	const redisUrl =
+		process.env.REDIS_URL ||
+		`redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`
+
+	try {
+		const redisClient = createClient({
+			url: redisUrl,
+			username: process.env.REDIS_USER || undefined,
+			password: process.env.REDIS_PASSWORD || undefined,
+			socket: process.env.REDIS_TLS === 'true' ? { tls: true } : undefined
+		})
+		await redisClient.connect()
+		sessionOptions.resave = false
+		sessionOptions.saveUninitialized = false
+		sessionOptions.store = new RedisStore({
+			client: redisClient,
+			prefix: 'sess:'
+		})
+	} catch (err) {
+		Logger.warn(`Failed to connect Redis for session store, falling back to in-memory store: ${err?.message ?? err}`)
+	}
+
+	return sessionOptions
+}
 
 export async function bootstrap(options: {title: string; version: string}) {
 	// Pre-bootstrap the application configuration
@@ -67,15 +102,7 @@ export async function bootstrap(options: {title: string; version: string}) {
 	})
 
 	// Sessions
-	app.use(
-		// this runs in memory, so we lose sessions on restart of server/pod
-		expressSession({
-			secret: env.EXPRESS_SESSION_SECRET,
-			resave: true, // we use this because Memory store does not support 'touch' method
-			saveUninitialized: true,
-			cookie: { secure: env.production } // TODO
-		})
-	)
+	app.use(expressSession(await createSessionOptions()))
 
 	const globalPrefix = 'api'
 	app.setGlobalPrefix(globalPrefix)
