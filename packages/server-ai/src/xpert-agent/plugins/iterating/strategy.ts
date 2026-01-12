@@ -424,7 +424,7 @@ export class WorkflowIteratingNodeStrategy implements IWorkflowNodeStrategy {
 function resolveItemSchema(
 	inputVariable: string,
 	variables?: TWorkflowVarGroup[]
-): { type: XpertParameterTypeEnum; item?: TXpertParameter[] } {
+): Partial<TXpertParameter> {
 	if (!inputVariable || !variables?.length) {
 		return { type: XpertParameterTypeEnum.STRING }
 	}

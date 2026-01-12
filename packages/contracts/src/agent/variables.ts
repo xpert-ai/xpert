@@ -12,12 +12,12 @@ import { TXpertParameter, XpertParameterTypeEnum } from "../ai/xpert.model"
  */
 export function getVariableSchema(variables: TWorkflowVarGroup[], variable: string) {
     const [groupName, ...rest] = variable?.split('.') ?? []
-
     const group = variables?.find((_) => (rest.length ? _.group?.name === groupName : !_.group?.name))
+    const selectVariable = group?.variables.find((_) => _.name === (rest.join('.') || groupName))
 
     return {
         group,
-        variable: group?.variables.find((_) => _.name === (rest.join('.') || groupName))
+        variable: selectVariable
     }
 }
 
