@@ -29,7 +29,7 @@ async function createSessionOptions(): Promise<SessionOptions> {
 		secret: sessionSecret,
 		resave: true,
 		saveUninitialized: true
-	}
+	};
 
 	const redisUrl =
 		process.env.REDIS_URL ||

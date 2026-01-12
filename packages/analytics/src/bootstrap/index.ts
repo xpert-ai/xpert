@@ -35,7 +35,7 @@ async function createSessionOptions(): Promise<SessionOptions> {
 		resave: true,
 		saveUninitialized: true,
 		cookie: { secure: env.production }
-	}
+	};
 
 	const redisUrl =
 		process.env.REDIS_URL ||
