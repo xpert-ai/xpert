@@ -75,7 +75,6 @@ export class XpertStudioPanelWorkflowIteratorComponent extends XpertWorkflowBase
   readonly maximum = computed(() => this.iteratingEntity()?.maximum)
   readonly errorMode = computed(() => this.iteratingEntity()?.errorMode)
   
-  readonly inputParams = attrModel(this.iterating, 'inputParams')
   readonly outputParams = attrModel(this.iterating, 'outputParams')
 
   readonly errorModeOptions: TSelectOption<IWFNIterator['errorMode']>[] = [
@@ -112,7 +111,6 @@ export class XpertStudioPanelWorkflowIteratorComponent extends XpertWorkflowBase
 
   // readonly variables = model<TWorkflowVarGroup[]>()
   readonly inputVariableItem = computed(() => getVariableSchema(this.variables(), this.inputVariable()).variable?.item)
-  readonly restInputParams = computed(() => this.inputParams()?.filter((p) => p.name !== IteratorIndexParameterName && p.name !== IteratorItemParameterName && !this.inputVariableItem()?.some((_) => _.name === p.name)))
 
   readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.iteratingEntity()?.key)?.to)
   readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
@@ -145,53 +143,6 @@ export class XpertStudioPanelWorkflowIteratorComponent extends XpertWorkflowBase
         ...entity,
         [name]: value
       } as IWorkflowNode
-    })
-  }
-
-  addInput() {
-    this.inputParams.update((params) => [...(params ?? []), {name: null, variable: ''}])
-  }
-
-  getInputParam(name: string) {
-    return this.inputParams()?.find((_) => _.name === name)?.variable
-  }
-
-  updateInputParam(name: string, variable: string) {
-    this.inputParams.update((params) => {
-      params ??= []
-      const index = params?.findIndex((_) => _.name === name)
-      if (index > -1) {
-        params[index] = {
-          name,
-          variable
-        }
-      } else {
-        params.push({
-          name,
-          variable
-        })
-      }
-      return [...params]
-    })
-  }
-
-  updateInputParamName(name: string, newName: string) {
-    this.inputParams.update((params) => {
-      params ??= []
-      const index = params?.findIndex((_) => _.name === name)
-      if (index > -1) {
-        params[index] = {
-          ...params[index],
-          name: newName,
-        }
-      }
-      return [...params]
-    })
-  }
-
-  removeInputParam(name: string) {
-    this.inputParams.update((params) => {
-      return params?.filter((_) => _.name !== name)
     })
   }
 
