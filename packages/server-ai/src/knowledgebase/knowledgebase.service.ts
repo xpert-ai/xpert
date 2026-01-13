@@ -32,12 +32,14 @@ import {
 	XpertAgentExecutionStatusEnum,
 	classificateDocumentCategory,
 	TCopilotModel,
+	ICopilotModel,
 	KnowledgeDocumentMetadata,
 	IUser
 } from '@metad/contracts'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { QueryFailedError } from 'typeorm'
 import { OnEvent } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -58,6 +60,7 @@ import {
 	CopilotModelGetEmbeddingsQuery,
 	CopilotModelGetRerankQuery
 } from '../copilot-model/queries/index'
+import { CopilotModelService } from '../copilot-model/copilot-model.service'
 import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
 import { RagCreateVStoreCommand } from '../rag-vstore'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
@@ -100,6 +103,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	@Inject(XpertService)
 	private readonly xpertService: XpertService
+
+	@Inject(CopilotModelService)
+	private readonly copilotModelService: CopilotModelService
 
 	constructor(
 		@InjectRepository(Knowledgebase)
@@ -433,14 +439,68 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	}
 
 	async getVisionModel(knowledgebaseId: string, visionModel: TCopilotModel) {
+		// If visionModel is not provided, try to get it from knowledgebase
 		if (!visionModel) {
 			const knowledgebase = await this.findOne(knowledgebaseId, { relations: ['visionModel', 'visionModel.copilot'] })
-			visionModel = knowledgebase.visionModel
+			visionModel = knowledgebase?.visionModel
 		}
-		const copilot = visionModel?.copilot
-		if (!copilot) {
+		
+		// If still no visionModel, throw error
+		if (!visionModel) {
 			throw new BadRequestException(t('server-ai:Error.KBReqVisionModel'))
 		}
+		
+		// If visionModel exists but copilot relation is not loaded, try to load it
+		let copilot = visionModel?.copilot
+		if (!copilot) {
+			// Try to load copilot from knowledgebase first (if visionModel has an id)
+			const visionModelWithId = visionModel as ICopilotModel
+			if (visionModelWithId?.id) {
+				const knowledgebase = await this.findOne(knowledgebaseId, { relations: ['visionModel', 'visionModel.copilot'] })
+				if (knowledgebase?.visionModel?.id === visionModelWithId.id) {
+					copilot = knowledgebase.visionModel?.copilot
+					visionModel = knowledgebase.visionModel
+				}
+			}
+			
+			// If still no copilot, try to load CopilotModel by id to get copilot relation
+			if (!copilot && visionModelWithId?.id) {
+				try {
+					const loadedModel = await this.copilotModelService.findOne(visionModelWithId.id, { relations: ['copilot', 'copilot.modelProvider'] })
+					if (loadedModel?.copilot) {
+						copilot = loadedModel.copilot
+						visionModel.copilot = copilot
+						if (loadedModel.copilotId && !visionModel.copilotId) {
+							visionModel.copilotId = loadedModel.copilotId
+						}
+					}
+				} catch (err) {
+					this.#logger.warn(`Failed to load CopilotModel ${visionModelWithId.id}: ${getErrorMessage(err)}`)
+				}
+			}
+			
+			// If still no copilot, query it directly using copilotId
+			if (!copilot && visionModel.copilotId) {
+				const { CopilotGetOneQuery } = await import('../copilot/queries')
+				try {
+					copilot = await this.queryBus.execute(
+						new CopilotGetOneQuery(RequestContext.currentTenantId(), visionModel.copilotId, ['modelProvider'])
+					)
+					if (copilot) {
+						visionModel.copilot = copilot
+					}
+				} catch (err) {
+					this.#logger.warn(`Failed to load copilot for visionModel ${visionModel.copilotId}: ${getErrorMessage(err)}`)
+				}
+			}
+		}
+		
+		// If still no copilot, throw error
+		if (!copilot) {
+			this.#logger.error(`Vision model copilot not found. visionModel: ${JSON.stringify({ id: (visionModel as ICopilotModel)?.id, copilotId: visionModel.copilotId })}`)
+			throw new BadRequestException(t('server-ai:Error.KBReqVisionModel'))
+		}
+		
 		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
 			new CopilotModelGetChatModelQuery(copilot, visionModel, {
 				usageCallback: (token) => {
