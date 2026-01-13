@@ -1,5 +1,4 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { CompiledStateGraph } from '@langchain/langgraph'
 import {
 	channelName,
 	getVariableSchema,
@@ -21,7 +20,7 @@ import { Inject, Injectable, InternalServerErrorException, Logger } from '@nestj
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import { compact, get, isString } from 'lodash'
+import { compact, get } from 'lodash'
 import { AgentStateAnnotation } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { XpertWorkflowSubgraphCommand } from '../../commands/workflow-subgraph.command'
@@ -118,31 +117,31 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 			throw new InternalServerErrorException(this.translate('xpert.Error.OutputParamsRequired', entity))
 		}
 
-		let subgraph = null
-		const abortController = new AbortController()
-		const compiled = await this.commandBus.execute<
-			XpertWorkflowSubgraphCommand,
-			{ graph: CompiledStateGraph<any, any, any> }
-		>(
-			new XpertWorkflowSubgraphCommand(
-				{ id: xpertId },
-				graph,
-				subgraphGraph,
-				{
-					isDraft,
-					rootController: abortController,
-					signal: abortController.signal,
-					disableCheckpointer: true, // The loop node cannot record the execution log correctly, so the Checkpointer is temporarily disabled.
-					environment
-				} as any
-			)
-		)
-		subgraph = compiled.graph
-
 		return {
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { subscriber, executionId } = configurable
+				const execution: IXpertAgentExecution = {}
+				let subgraph = null
+				const abortController = new AbortController()
+				const compiled = await this.commandBus.execute(
+					new XpertWorkflowSubgraphCommand(
+						{ id: xpertId },
+						graph,
+						subgraphGraph,
+						{
+							isDraft,
+							rootController: abortController,
+							signal: abortController.signal,
+							disableCheckpointer: true, // The loop node cannot record the execution log correctly, so the Checkpointer is temporarily disabled.
+							environment,
+							execution,
+							subscriber
+						} as any
+					)
+				)
+				subgraph = compiled.graph
+				
 				const parameterValue = get(state, inputVariable)
 
 				const parallel = entity.parallel

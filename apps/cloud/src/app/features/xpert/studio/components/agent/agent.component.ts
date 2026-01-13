@@ -41,13 +41,14 @@ export class XpertStudioNodeAgentComponent {
   readonly xpertAgent = computed(() => this.node().entity)
   readonly key = computed(() => this.node().key)
   readonly isStart = computed(() => !this.isRoot() && this.startNodes()?.includes(this.key()))
+  readonly parentNode = computed(() => this.studioService.viewModel().nodes.find((_) => _.key === this.node()?.parentId))
 
   readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
 
   readonly xperts = this.studioComponent.xperts
   readonly xpert = computed(() => {
-    if (this.node()?.parentId) {
-      return this.xperts()?.find((_) => _.key === this.node()?.parentId)?.entity
+    if (this.parentNode()?.type === 'xpert') {
+      return this.xperts()?.find((_) => _.key === this.parentNode().key)?.entity
     }
     return this.studioService.viewModel()?.team
   })

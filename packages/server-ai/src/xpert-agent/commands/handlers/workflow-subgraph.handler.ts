@@ -1,13 +1,14 @@
 import { BaseMessage } from '@langchain/core/messages'
-import { RunnableLike } from '@langchain/core/runnables'
+import { RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import { Annotation, CompiledStateGraph, END, messagesStateReducer, Send, START, StateGraph } from '@langchain/langgraph'
 import {
 	channelName,
 	IXpert,
 	IXpertAgentExecution,
+	TAgentRunnableConfigurable,
 	TXpertGraph,
 	TXpertTeamNode,
-	WorkflowNodeTypeEnum
+	WorkflowNodeTypeEnum,
 } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -26,6 +27,7 @@ import {
 } from '../../../shared'
 import { XpertConfigException } from '../../../core/errors'
 import { FindXpertQuery } from '../../../xpert/queries'
+import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 type TWorkflowSubgraphResult = {
 	graph: CompiledStateGraph<any, any, any>
@@ -149,7 +151,36 @@ export class XpertWorkflowSubgraphHandler implements ICommandHandler<XpertWorkfl
 
 			const { nextNodes, failNode } = getAgentWorkflowEdges(subGraph, node.key)
 			nodes[node.key] = {
-				graph: compiled.graph,
+				graph: RunnableLambda.from(async (state, config) => {
+					const configurable: TAgentRunnableConfigurable = config.configurable as TAgentRunnableConfigurable
+					const { executionId } = configurable
+
+					return await wrapAgentExecution(async (execution) => {
+						const newState = await compiled.graph.invoke(state, config)
+						return {
+							state: {
+								[channelName(node.key)]: {
+									...(newState[channelName(node.key)] ?? {} as any),
+								}
+							},
+							output: newState.output as any
+						}
+					}, {
+						commandBus: this.commandBus,
+						queryBus: this.queryBus,
+						subscriber,
+						execution: {
+							...execution,
+							threadId: configurable.thread_id,
+							checkpointNs: configurable.checkpoint_ns,
+							xpert: { id: xpert.id } as IXpert,
+							agentKey: node.key,
+							inputs: {},
+							parentId: executionId,
+							predecessor: configurable.agentKey
+						}
+					})()
+				}),
 				ends: failNode ? [failNode.key] : []
 			}
 
