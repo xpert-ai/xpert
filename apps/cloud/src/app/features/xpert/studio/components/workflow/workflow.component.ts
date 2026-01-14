@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
@@ -11,6 +11,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
+import { IconComponent } from "@cloud/app/@shared/avatar"
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
@@ -36,7 +37,6 @@ import { XpertWorkflowNodeUnderstandingComponent } from './understanding/underst
 import { XpertWorkflowNodeKnowledgeBaseComponent } from './knowledge-base/knowledge-base.component'
 import { XpertWorkflowNodeListOperatorComponent } from './list-operator/list-operator.component'
 import { XpertWorkflowNodeVariableAggregatorComponent } from './variable-aggregator/variable-aggregator.component'
-import { IconComponent } from "@cloud/app/@shared/avatar";
 import { XpertWorkflowNodeDBInsertComponent } from './db-insert/db-insert.component'
 import { XpertWorkflowNodeDBUpdateComponent } from './db-update/db-update.component'
 import { XpertWorkflowNodeDBQueryComponent } from './db-query/db-query.component'
@@ -46,6 +46,8 @@ import { XpertWorkflowNodeJSONStringifyComponent } from './json-stringify/json-s
 import { XpertWorkflowNodeJSONParseComponent } from './json-parse/json-parse.component'
 import { XpertWorkflowNodeSkillComponent } from './skill/skill.component'
 import { XpertWorkflowNodeMiddlewareComponent } from './middleware/middleware.component'
+import { XpertWorkflowNodeStartComponent } from './start/start.component'
+import { XpertStudioContextMenuComponent } from '../context-menu/context-menu.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -59,6 +61,7 @@ import { XpertWorkflowNodeMiddlewareComponent } from './middleware/middleware.co
     MatTooltipModule,
     TranslateModule,
     XpertWorkflowIconComponent,
+    XpertWorkflowNodeStartComponent,
     XpertStudioNodeWorkflowIfelseComponent,
     XpertStudioNodeWorkflowIteratingComponent,
     XpertStudioNodeWorkflowAnswerComponent,
@@ -107,6 +110,7 @@ export class XpertStudioNodeWorkflowComponent {
 
   // Inputs
   readonly node = input<TXpertTeamNode>()
+  readonly menu = input<XpertStudioContextMenuComponent>()
   readonly startNodes = input<string[]>()
 
   // States
@@ -119,6 +123,7 @@ export class XpertStudioNodeWorkflowComponent {
   readonly isStart = computed(() => this.startNodes()?.includes(this.key()))
 
   readonly NoInputs = [
+    WorkflowNodeTypeEnum.START,
     WorkflowNodeTypeEnum.NOTE,
     WorkflowNodeTypeEnum.TRIGGER,
     WorkflowNodeTypeEnum.TASK,

@@ -273,7 +273,7 @@ export interface QueryOptions<T = any> {
   search?: string
   params?: Array<string>
 
-  // 分页 TODO
+  // Paging @TODO
   paging?: {
     top?: number
     skip?: number

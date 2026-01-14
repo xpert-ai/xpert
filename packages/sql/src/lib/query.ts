@@ -12,6 +12,7 @@ import {
   PropertyMeasure,
   QueryOptions,
   RecursiveHierarchyType,
+  Table,
   wrapHierarchyValue
 } from '@metad/ocap-core'
 import { buildCubeContext, CubeContext } from './cube'
@@ -20,8 +21,7 @@ import {
   serializeColumn,
   serializeColumnContext,
   serializeGroupByDimensions,
-  serializeHierarchyFrom,
-  serializeTablesJoin
+  serializeHierarchyFrom
 } from './dimension'
 import { And, Parentheses } from './functions'
 import { compileFilters } from './sql-filter'
@@ -38,37 +38,207 @@ export function serializeFrom(cube: Cube, entityType: EntityType, dialect: strin
   return `(${expression}) AS ${serializeName(entityType.name, dialect)}`
 }
 
+/**
+ * Serialize cube fact table with joins
+ */
 export function serializeCubeFact(cube: Cube, dialect: string) {
-  let factTable = cube.tables[0]
-  if (cube.fact?.type === 'table') {
-    factTable = cube.fact.table
+  return `SELECT * FROM ${serializeFactFrom(cube, dialect)}`
+}
+
+function serializeFactFrom(
+  cube: Cube,
+  dialect: string,
+  options?: {
+    prefix?: string
+    catalog?: string
+    viewAlias?: string
+    factTableAlias?: Record<string, string>
+  }
+) {
+  const fact = cube.fact
+  if (!fact?.type) {
+    throw new Error(`Cube '${cube.name}' not have fact definition.`)
   }
 
-  let statement = serializeName(factTable.name, dialect)
-  const tableNames = [factTable.name]
-  cube.tables.slice(1).forEach((table) => {
-    const exists = tableNames.filter((name) => name === table.name)
-    const tableAlias = exists.length ? `${table.name}(${exists.length})` : table.name
+  switch (fact.type) {
+    case 'table': {
+      if (!fact.table) {
+        throw new Error(`Cube '${cube.name}' not have fact table.`)
+      }
+      return serializeFactTablesJoin(
+        [fact.table],
+        dialect,
+        { prefix: options?.prefix, catalog: options?.catalog },
+        options?.factTableAlias
+      )
+    }
+    case 'tables': {
+      if (!fact.tables?.length) {
+        throw new Error(`Cube '${cube.name}' not have fact tables.`)
+      }
+      return serializeFactTablesJoin(
+        fact.tables,
+        dialect,
+        { prefix: options?.prefix, catalog: options?.catalog },
+        options?.factTableAlias
+      )
+    }
+    case 'view': {
+      const view = fact.view
+      if (!view?.sql?.content) {
+        throw new Error(`Cube '${cube.name}' not have fact view sql.`)
+      }
+      const viewAlias = options?.viewAlias ?? view.alias
+      if (!viewAlias) {
+        throw new Error(`Cube '${cube.name}' not have fact view alias.`)
+      }
+      return `(${view.sql.content}) AS ${serializeName(viewAlias, dialect)}`
+    }
+    default:
+      throw new Error(`Cube '${cube.name}' has unsupported fact type.`)
+  }
+}
+
+function buildFactTableAliasMap(
+  cube: Cube,
+  options?: {
+    prefix?: string
+    viewAlias?: string
+  }
+) {
+  const fact = cube.fact
+  if (!fact?.type) {
+    throw new Error(`Cube '${cube.name}' not have fact definition.`)
+  }
+
+  const aliasMap: Record<string, string> = {}
+  const aliasCounts = new Map<string, number>()
+  const reserveAlias = (tableName: string) => {
+    const count = aliasCounts.get(tableName) ?? 0
+    const aliasBase = count ? `${tableName}(${count})` : tableName
+    aliasCounts.set(tableName, count + 1)
+    const alias = options?.prefix ? serializeTableAlias(options.prefix, aliasBase) : aliasBase
+    aliasMap[aliasBase] = alias
+  }
+
+  switch (fact.type) {
+    case 'table': {
+      if (!fact.table) {
+        throw new Error(`Cube '${cube.name}' not have fact table.`)
+      }
+      reserveAlias(fact.table.name)
+      break
+    }
+    case 'tables': {
+      if (!fact.tables?.length) {
+        throw new Error(`Cube '${cube.name}' not have fact tables.`)
+      }
+      fact.tables.forEach((table) => reserveAlias(table.name))
+      break
+    }
+    case 'view': {
+      const view = fact.view
+      if (!view?.sql?.content) {
+        throw new Error(`Cube '${cube.name}' not have fact view sql.`)
+      }
+      const viewAlias = options?.viewAlias ?? view.alias
+      if (!viewAlias) {
+        throw new Error(`Cube '${cube.name}' not have fact view alias.`)
+      }
+      if (view.alias && view.alias !== viewAlias) {
+        aliasMap[view.alias] = viewAlias
+      } else {
+        aliasMap[viewAlias] = viewAlias
+      }
+      break
+    }
+    default:
+      throw new Error(`Cube '${cube.name}' has unsupported fact type.`)
+  }
+
+  return aliasMap
+}
+
+function resolveFactLeftTableAlias(
+  leftTable: string,
+  knownAliases: Set<string>,
+  aliasesByName: Map<string, string[]>
+) {
+  if (knownAliases.has(leftTable)) {
+    return leftTable
+  }
+  const aliases = aliasesByName.get(leftTable)
+  if (aliases?.length) {
+    return aliases[0]
+  }
+  throw new Error(`Can't find leftTable '${leftTable}' in cube fact tables.`)
+}
+
+function serializeFactTablesJoin(
+  tables: Table[],
+  dialect: string,
+  options?: {
+    prefix?: string
+    catalog?: string
+  },
+  factTableAlias?: Record<string, string>
+) {
+  const knownAliases = new Set<string>()
+  const aliasesByName = new Map<string, string[]>()
+
+  const reserveAlias = (tableName: string) => {
+    const aliases = aliasesByName.get(tableName) ?? []
+    const aliasBase = aliases.length ? `${tableName}(${aliases.length})` : tableName
+    const alias =
+      factTableAlias?.[aliasBase] ?? (options?.prefix ? serializeTableAlias(options.prefix, aliasBase) : aliasBase)
+    aliases.push(alias)
+    aliasesByName.set(tableName, aliases)
+    knownAliases.add(alias)
+    return alias
+  }
+
+  const factTable = tables[0]
+  const factTableAliasName = reserveAlias(factTable.name)
+  let statement = serializeName(factTable.name, dialect, options?.catalog)
+  if (factTableAliasName !== factTable.name) {
+    statement += ` AS ${serializeName(factTableAliasName, dialect)}`
+  }
+
+  let leftTableAlias = factTableAliasName
+  tables.slice(1).forEach((table) => {
+    if (!table.join?.fields?.length) {
+      throw new Error(`Fact table join fields are required for table '${table.name}'.`)
+    }
+
+    const leftAlias = table.join.leftTable
+      ? resolveFactLeftTableAlias(table.join.leftTable, knownAliases, aliasesByName)
+      : leftTableAlias
+    const tableAlias = reserveAlias(table.name)
+
     const conditions = And(
       ...Parentheses(
         ...table.join.fields.map(
           (field) =>
-            `${serializeName(factTable.name, dialect)}.${serializeName(field.leftKey, dialect)} = ${serializeName(
+            `${serializeName(leftAlias, dialect)}.${serializeName(field.leftKey, dialect)} = ${serializeName(
               tableAlias,
               dialect
             )}.${serializeName(field.rightKey, dialect)}`
         )
       )
     )
-    statement = `${statement} ${table.join.type} JOIN ${serializeName(table.name, dialect)} AS ${serializeName(
+    statement = `${statement} ${table.join.type} JOIN ${serializeName(
+      table.name,
+      dialect,
+      options?.catalog
+    )} AS ${serializeName(
       tableAlias,
       dialect
     )} ON ${conditions}`
 
-    tableNames.push(table.name)
+    leftTableAlias = tableAlias
   })
 
-  return `SELECT * FROM ${statement}`
+  return statement
 }
 
 /**
@@ -86,7 +256,11 @@ export function queryCube(cube: Cube,
   dialect: string,
   catalog?: string
 ) {
-  const cubeContext: CubeContext = buildCubeContext(cube, options, entityType, dialect)
+  const factTableAlias = buildFactTableAliasMap(cube, {
+    prefix: entityType.name,
+    viewAlias: entityType.name
+  })
+  const cubeContext: CubeContext = buildCubeContext(cube, options, entityType, dialect, factTableAlias)
   // Compile Slicers
   const conditions = []
   cubeContext.filterString = options.filterString || ''
@@ -195,9 +369,6 @@ export function serializeLevelSelect(cubeContext: CubeContext, dialect: string, 
 
   let statement: string
   if (cubeContext.measures.length) {
-    // fact table in cube
-    // const fact = serializeTableAlias(cube.name, cube.tables[0].name) // use factTable in CubeContext
-
     statement =
       dimensionsStatement +
       (dimensionsStatement ? ', ' : '') +
@@ -248,12 +419,20 @@ export function serializeLevelSelect(cubeContext: CubeContext, dialect: string, 
   return `SELECT ` + statement
 }
 
-export function serializeCubeFrom(cubeContext: CubeContext, dialect: string, catalog?: string): string {
-  if (!cubeContext.schema.fact?.table) {
-    throw new Error(`Cube '${cubeContext.schema.name}' not have fact table.`)
-  }
+export function serializeCubeFrom(
+  cubeContext: CubeContext,
+  dialect: string,
+  catalog?: string,
+): string {
+  const factTableAlias = cubeContext.factTableAlias
+  const statement = serializeFactFrom(cubeContext.schema, dialect, {
+    prefix: cubeContext.schema.name,
+    catalog,
+    viewAlias: cubeContext.factTable,
+    factTableAlias
+  })
   return (
-    serializeTablesJoin(cubeContext.schema.name, [cubeContext.schema.fact.table], dialect, catalog) +
+    statement +
     cubeContext.dimensions
       .filter((dimensionContext) => !!dimensionContext.dimensionTable)
       .map((dimensionContext) => {

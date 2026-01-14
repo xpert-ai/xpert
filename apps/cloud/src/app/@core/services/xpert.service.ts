@@ -39,6 +39,7 @@ export type TXpertVariablesOptions = {
   type?: 'input' | 'output';
   isDraft?: boolean;
   connections: string[];
+  inputs?: string[];
 }
 
 
@@ -200,8 +201,8 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   /**
    * Get avaiable variables for agent or global variables
    */
-  getVariables(id: string, type: 'input' | 'output', options: {agentKey?: string; environmentId?: string; isDraft?: boolean}) {
-    const { agentKey, environmentId, isDraft } = options
+  getVariables(id: string, type: 'input' | 'output', options: {agentKey?: string; environmentId?: string; isDraft?: boolean; inputs?: string[]}) {
+    const { agentKey, environmentId, isDraft, inputs } = options
     let params = new HttpParams()
     if (environmentId) {
       params = params.append('environment', environmentId)
@@ -212,6 +213,9 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     if (isDraft != null) {
       params = params.append('isDraft', isDraft)
     }
+    if (inputs?.length) {
+      params = params.append('inputs', inputs.join(','))
+    }
     return agentKey ? this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`, {params})
     : this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/variables`, {params})
   }
@@ -219,22 +223,29 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   /**
    * Get avaiable variables for workflow node
    */
-  getWorkflowVariables(id: string, nodeKey: string, environmentId?: string) {
+  getWorkflowVariables(id: string, nodeKey: string, type: 'input' | 'output', environmentId?: string, inputs?: string[]) {
     let params = new HttpParams()
     if (environmentId) {
       params = params.append('environment', environmentId)
+    }
+    if (inputs?.length) {
+      params = params.append('inputs', inputs.join(','))
+    }
+    if (type) {
+      params = params.append('type', type)
     }
     return this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/workflow/${nodeKey}/variables`, {params})
   }
 
   getNodeVariables(options: TXpertVariablesOptions) {
     if (options.workflowKey) {
-      return this.getWorkflowVariables(options.xpertId, options.workflowKey, options.environmentId)
+      return this.getWorkflowVariables(options.xpertId, options.workflowKey, options.type, options.environmentId, options.inputs)
     } else {
       return this.getVariables(options.xpertId, options.type, {
         agentKey: options.agentKey,
         environmentId: options.environmentId,
-        isDraft: options.isDraft
+        isDraft: options.isDraft,
+        inputs: options.inputs
       })
     }
   }

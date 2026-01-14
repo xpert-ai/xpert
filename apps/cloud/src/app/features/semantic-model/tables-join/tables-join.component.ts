@@ -1,10 +1,34 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
+import { FormsModule } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
+import { MatDividerModule } from '@angular/material/divider'
+import { MatIconModule } from '@angular/material/icon'
+import { MatSelectModule } from '@angular/material/select'
+import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { Join, Table } from '@metad/ocap-core'
+import { TranslateModule } from '@ngx-translate/core'
 import { cloneDeep, isEqual, values } from 'lodash-es'
 import { BehaviorSubject, EMPTY, map, shareReplay } from 'rxjs'
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    CdkMenuModule,
+
+    MatIconModule,
+    MatSelectModule,
+    MatDividerModule,
+    MatButtonModule,
+    TranslateModule,
+
+    OcapCoreModule,
+    NgmCommonModule
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-tables-join',
   templateUrl: 'tables-join.component.html',

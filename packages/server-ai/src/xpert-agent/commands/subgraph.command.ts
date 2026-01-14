@@ -1,5 +1,5 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import { IXpert, IXpertAgentExecution, TChatOptions, TXpertParameter } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TChatOptions, TXpertGraph, TXpertParameter } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { TAgentSubgraphParams } from '../agent'
@@ -31,7 +31,7 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			 * @deprecated use executionId in configurable
 			 */
 			rootExecutionId?: string
-			execution?: IXpertAgentExecution
+			execution: IXpertAgentExecution
 			// Langgraph thread id
 			thread_id?: string
 			// Use xpert's draft
@@ -52,6 +52,10 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			 * @deprecated Is it still useful?
 			 */
 			variables?: TXpertParameter[]
+			/**
+			 * Override graph for subgraph creation
+			 */
+			graph?: TXpertGraph
 			channel: string
 			partners?: string[]
 			handoffTools?: DynamicStructuredTool[]

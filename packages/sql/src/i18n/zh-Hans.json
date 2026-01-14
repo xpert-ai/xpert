@@ -4,6 +4,7 @@
         "NoMetadata4Entity": "未能获取到实体‘{{entity}}’的运行时元数据",
         "HierarchyNameDuplicated": "数据集‘{{cube}}’维度‘{{dimension}}’中的层次结构名称‘{{name}}’不能重复。",
         "TablesNoJoin": "表‘{{tables}}’需要配置关联字段",
-        "NoPrimaryKeyTable": "未配置层次结构‘{{hierarchy}}’的主键表"
+        "NoPrimaryKeyTable": "未配置层次结构‘{{hierarchy}}’的主键表",
+        "NoFactTable": "未找到多维数据集‘{{cubeName}}’的事实表"
     }
 }

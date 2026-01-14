@@ -34,8 +34,8 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
     map((hierarchy) => hierarchy?.primaryKeyTable ?? hierarchy?.tables?.[0]?.name)
   )
 
-  readonly hierarchyTables$ = this.hierarchy$.pipe(
-    map((hierarchy) => {
+  readonly hierarchyTables$ = combineLatest([this.hierarchy$, this.factTables$]).pipe(
+    map(([hierarchy, tables]) => {
       const options = [
         {
           value: null,
@@ -43,13 +43,23 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
           caption: this.getTranslation('PAC.KEY_WORDS.Default', { Default: 'Default' })
         }
       ]
-      hierarchy?.tables.forEach((table) => {
-        options.push({
-          value: table.name,
-          key: table.name,
-          caption: table.name
+      if (hierarchy?.tables?.length > 0) {
+        hierarchy?.tables.forEach((table) => {
+          options.push({
+            value: table.name,
+            key: table.name,
+            caption: table.name
+          })
         })
-      })
+      } else if (tables?.length > 0) {
+        tables.forEach((table) => {
+          options.push({
+            value: table.name,
+            key: table.name,
+            caption: table.caption || table.name
+          })
+        })
+      }
       return options
     })
   )

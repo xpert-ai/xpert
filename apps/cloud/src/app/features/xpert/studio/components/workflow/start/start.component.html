@@ -1,0 +1,13 @@
+<div fNodeOutput class="edge absolute -right-[4px] top-4"
+  [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true"
+  [fCanBeConnectedInputs]="canBeConnectedInputs()"
+  #menuTrigger="cdkMenuTriggerFor"
+  [cdkMenuTriggerFor]="menu().template"
+  [cdkMenuTriggerData]="{fromNode: node(), menuTrigger: menuTrigger}"
+>
+  <div class="inner-dot cursor-crosshair flex justify-center items-center" 
+    [matTooltip]="'PAC.Xpert.ConnectWorkflow' | translate: {Default: 'Connect Workflow'}"
+    matTooltipPosition="above">
+    <i class="ri-add-line text-white"></i>
+  </div>
+</div>

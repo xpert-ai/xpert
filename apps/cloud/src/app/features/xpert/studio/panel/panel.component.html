@@ -39,19 +39,9 @@
     </div>
   }
 
-  @if (sidePanel(); as sidePanel) {
-    <div class="flex gap-2">
+  <div class="flex gap-2">
+    @if (sidePanel(); as sidePanel) {
       @switch (sidePanel) {
-        @case ('preview') {
-          @if (executionId()) {
-            <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto overflow-x-hidden
-              w-[420px] 2xl:w-[460px]"
-              (close)="closeExecution()"
-            />
-          }
-          <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
-        }
-
         @case ('variables') {
           <xpert-studio-panel-variables />
         }
@@ -59,7 +49,18 @@
           <xpert-studio-panel-environment />
         }
       }
-
-    </div>
-  }
+    }
+    @if (xpert()) {
+      <div class=""
+        [ngClass]="sidePanel() === 'preview' ? 'flex' : 'hidden'">
+        @if (executionId()) {
+          <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto overflow-x-hidden
+            w-[420px] 2xl:w-[460px]"
+            (close)="closeExecution()"
+          />
+        }
+        <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
+      </div>
+    }
+  </div>
 </div>
