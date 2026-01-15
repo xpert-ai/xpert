@@ -57,6 +57,7 @@ import {
   NodeOf,
   ToastrService,
   TXpertAgentConfig,
+  TXpertTeamConnection,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
@@ -170,6 +171,8 @@ export class XpertStudioComponent {
 
   // States
   public contextMenuPosition: IPoint = PointExtensions.initialize(0, 0)
+  // Connection to insert a node into (when adding node on a connection line)
+  public insertConnection: TXpertTeamConnection | null = null
 
   private subscriptions$ = new Subscription()
 
@@ -319,6 +322,34 @@ export class XpertStudioComponent {
     this.contextMenuPosition = this.fFlowComponent().getPositionInFlow(
       PointExtensions.initialize(event.clientX, event.clientY)
     )
+    // Clear insert connection when using right-click context menu
+    this.insertConnection = null
+  }
+
+  /**
+   * Set the context menu position to the center of the connection
+   * and store the connection info for inserting a node
+   * @param connection The connection data to insert a node into
+   */
+  public setConnectionCenterPosition(connection: TXpertTeamConnection): void {
+    const fromNode = this.apiService.getNode(connection.from)
+    const toNode = this.apiService.getNode(connection.to)
+    if (fromNode?.position && toNode?.position) {
+      this.contextMenuPosition = {
+        x: (fromNode.position.x + toNode.position.x) / 2,
+        y: (fromNode.position.y + toNode.position.y) / 2
+      }
+      // Store the connection info for reconnecting after node creation
+      this.insertConnection = connection
+    }
+  }
+
+  /**
+   * Clear the insert connection state
+   * Called when context menu is opened from right-click (not from connection button)
+   */
+  public clearInsertConnection(): void {
+    this.insertConnection = null
   }
 
   public addConnection(event: FCreateConnectionEvent): void {
