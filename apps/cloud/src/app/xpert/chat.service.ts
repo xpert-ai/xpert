@@ -279,6 +279,13 @@ export abstract class ChatService {
       retry: boolean
     }>
   ) {
+    // Clear previous suggestion questions when starting a new round of chat.
+    // Purpose: avoid showing stale suggestions until the current round generates new ones.
+    if (this.suggestion_enabled()) {
+      this.suggesting.set(false)
+      this.suggestionQuestions.set([])
+    }
+
     this.answering.set(true)
     this.conversation.update((state) => ({ ...(state ?? {}), status: 'busy', error: null }) as IChatConversation)
 
