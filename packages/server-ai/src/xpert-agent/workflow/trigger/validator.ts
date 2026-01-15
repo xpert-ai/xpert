@@ -17,6 +17,25 @@ export class WorkflowTriggerValidator {
 			(node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER
 		)
 		const items: ChecklistItem[] = []
+
+		// Only one trigger node is allowed for an expert.
+		// Purpose: prevent multiple triggers from being configured at the same time (server-side enforcement).
+		if (triggerNodes.length > 1) {
+			for (const node of triggerNodes.slice(1)) {
+				items.push({
+					node: node.key,
+					ruleCode: 'TRIGGER_NODE_ONLY_ONE',
+					field: 'nodes',
+					value: '',
+					message: {
+						en_US: `Only one trigger node is allowed`,
+						zh_Hans: `一个专家只能有一个触发器节点`
+					},
+					level: 'error'
+				})
+			}
+		}
+
 		for await (const node of triggerNodes) {
 			const entity = <IWFNTrigger>node.entity
 			if (!entity.from || entity.from === 'chat') {
