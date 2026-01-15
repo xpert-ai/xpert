@@ -47,8 +47,23 @@
             <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
           </svg>
         }
-        <div fConnectionCenter class="opacity-0 group-hover/connection:z-10 group-hover/connection:opacity-100">
-          <xpert-studio-connection-center [connection]="connection" class="w-[100px] text-text-primary" />
+        <div fConnectionCenter class="flex flex-col items-center opacity-0 group-hover/connection:z-10 group-hover/connection:opacity-100">
+          <!-- Add node button centered on connection -->
+          @if (!connection.readonly) {
+            <button 
+              type="button"
+              class="flex items-center justify-center w-6 h-6 rounded-full bg-primary-500 hover:bg-primary-600 text-white shadow-md cursor-pointer transition-colors"
+              [cdkMenuTriggerFor]="menu.template"
+              [cdkMenuTriggerData]="{menuTrigger: menuTrigger}"
+              (click)="setConnectionCenterPosition(connection); $event.stopPropagation()"
+            >
+              <i class="ri-add-line text-sm"></i>
+            </button>
+          }
+          <!-- Toolset connection info below the button -->
+          @if (connection.type === 'toolset') {
+            <xpert-studio-connection-center [connection]="connection" class="mt-1 text-text-primary" />
+          }
         </div>
       </f-connection>
     }
