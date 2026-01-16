@@ -58,7 +58,8 @@ export class CompileGraphHandler implements ICommandHandler<CompileGraphCommand>
 					rootController: rootController,
 					signal: rootController.signal,
 					channel: channelName(agent.key),
-					partners: []
+					partners: [],
+					execution: {}
 				})
 			)
 		}

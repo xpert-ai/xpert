@@ -40,6 +40,10 @@
 }
 
 @switch(type()) {
+  @case (eWorkflowNodeTypeEnum.START) {
+    <xp-xpert-workflow-node-start class="px-3" [node]="node()" [entity]="entity()"
+      [menu]="menu()" />
+  }
   @case (eWorkflowNodeTypeEnum.TRIGGER) {
     <xpert-workflow-node-trigger class="px-3" [node]="node()" [entity]="entity()" />
   }

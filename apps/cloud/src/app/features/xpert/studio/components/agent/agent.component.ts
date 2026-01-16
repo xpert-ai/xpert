@@ -3,7 +3,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { agentLabel, agentUniqueName, AiModelTypeEnum, TXpertTeamNode, WorkflowNodeTypeEnum } from 'apps/cloud/src/app/@core'
+import { agentLabel, agentUniqueName, AiModelTypeEnum, NodeEntity, TXpertTeamNode, WorkflowNodeTypeEnum } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
@@ -33,7 +33,7 @@ export class XpertStudioNodeAgentComponent {
   readonly studioComponent = inject(XpertStudioComponent)
 
   // Inputs
-  readonly node = input<TXpertTeamNode & { type: 'agent' }>()
+  readonly node = input<TXpertTeamNode<'agent'>>()
   readonly isRoot = input<boolean>(false)
   readonly startNodes = input<string[]>()
 
@@ -41,13 +41,14 @@ export class XpertStudioNodeAgentComponent {
   readonly xpertAgent = computed(() => this.node().entity)
   readonly key = computed(() => this.node().key)
   readonly isStart = computed(() => !this.isRoot() && this.startNodes()?.includes(this.key()))
+  readonly parentNode = computed(() => this.studioService.viewModel().nodes.find((_) => _.key === this.node()?.parentId))
 
   readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
 
   readonly xperts = this.studioComponent.xperts
   readonly xpert = computed(() => {
-    if (this.node()?.parentId) {
-      return this.xperts()?.find((_) => _.key === this.node()?.parentId)?.entity
+    if (this.parentNode()?.type === 'xpert') {
+      return this.xperts()?.find((_) => _.key === this.parentNode().key)?.entity
     }
     return this.studioService.viewModel()?.team
   })
@@ -70,16 +71,24 @@ export class XpertStudioNodeAgentComponent {
 
   readonly nodes = computed(() => this.studioService.viewModel().nodes)
 
+  readonly nodeParentId = computed(() => this.node()?.parentId)
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
+      .filter((_) => this.nodeParentId() ? _.parentId === this.nodeParentId() : !_.parentId)
       .filter((_) => !(_.type === 'workflow' && ![
           WorkflowNodeTypeEnum.AGENT_TOOL,
           WorkflowNodeTypeEnum.TASK,
           WorkflowNodeTypeEnum.MIDDLEWARE,
           WorkflowNodeTypeEnum.SKILL,
-        ].includes(_.entity.type))
+        ].includes((<NodeEntity<'workflow'>>_.entity).type))
       )
       .map((_) => _.key)
+  )
+  readonly canBeConnectedWorkflow = computed(() =>
+    this.nodes()
+      .filter((_) => this.nodeParentId() ? _.parentId === this.nodeParentId() : !_.parentId)
+      .filter((_) => _.type === 'agent' || _.type === 'workflow')
+      .map((_) => _.key + '/edge')
   )
 
   private get hostElement(): HTMLElement {

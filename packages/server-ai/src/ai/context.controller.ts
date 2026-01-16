@@ -8,7 +8,7 @@ import {
 	TransformInterceptor,
 	UploadedFileStorage
 } from '@metad/server-core'
-import { Controller, ExecutionContext, Logger, Post, UseGuards, UseInterceptors } from '@nestjs/common'
+import { Controller, Delete, ExecutionContext, Logger, Param, Post, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import path from 'path'
@@ -44,5 +44,10 @@ export class ContextsController {
 	)
 	async create(@UploadedFileStorage() file: UploadedFile) {
 		return await this.storageFileService.createStorageFile(file)
+	}
+
+	@Delete('file/:id')
+	async delete(@Param('id') id: string) {
+		return await this.storageFileService.deleteStorageFile(id)
 	}
 }

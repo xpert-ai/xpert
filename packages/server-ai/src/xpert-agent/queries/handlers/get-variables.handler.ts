@@ -3,7 +3,6 @@ import {
 	getAgentVarGroup,
 	getCurrentGraph,
 	getWorkflowTriggers,
-	IWFNIterating,
 	IWFNKnowledgeRetrieval,
 	IWFNSubflow,
 	IWorkflowNode,
@@ -20,7 +19,7 @@ import {
 	XpertParameterTypeEnum
 } from '@metad/contracts'
 import { omit } from '@metad/server-common'
-import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
 import { EnvironmentService } from '../../../environment'
@@ -32,7 +31,6 @@ import {
 	classifierOutputVariables,
 	codeOutputVariables,
 	httpOutoutVariables,
-	iteratingOutputVariables,
 	knowledgeOutputVariables,
 	subflowOutputVariables,
 	templateOutputVariables,
@@ -53,14 +51,13 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		private readonly xpertService: XpertService,
 		private readonly environmentService: EnvironmentService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
 	) {}
 
 	public async execute(command: XpertAgentVariablesQuery): Promise<TWorkflowVarGroup[]> {
-		const { xpertId, type, isDraft, environmentId } = command.options
+		const { xpertId, isDraft, environmentId } = command.options
+		const type = command.options.type || 'output'
 		let { nodeKey } = command.options
-
-		// const xpert = await this.xpertService.findOne(xpertId, { select: ['id', 'agentConfig', 'draft', 'graph'] })
+		const inputKeys = new Set(command.options.inputs ?? [])
 
 		const xpert = await this.xpertService.findOne(xpertId, {
 			relations: [
@@ -239,7 +236,14 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			nodeKey = chatStarters.length ? chatStarters[0].key : nodeKey
 		}
 		const node = _graph.nodes?.find((_) => _.key === nodeKey)
-		const graph = _graph.nodes ? getCurrentGraph(_graph, nodeKey) : _graph
+		const graphKeys = _graph.nodes && nodeKey ? collectGraphKeys(_graph, nodeKey) : [nodeKey]
+		const graphs = _graph.nodes
+			? graphKeys.length
+				? graphKeys.map((key) => getCurrentGraph(_graph, key))
+				: [getCurrentGraph(_graph, nodeKey)]
+			: [_graph]
+		const graphsForVariables = graphs
+		const currentGraph = graphs[0]
 
 		// Current agent variables (parameters)
 		if (nodeKey && node?.type === 'agent' && type === 'input') {
@@ -249,127 +253,145 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			// varGroups.push(getAgentVarGroup(node.key, graph))
 		}
 
-		if (type === 'input') {
-			return varGroups
-		}
+		const processedAgentKeys = new Set<string>()
+		const processedWorkflowKeys = new Set<string>()
 
-		// Other agents
-		const agentNodes = graph?.nodes?.filter((_) => _.type === 'agent')
-		if (agentNodes) {
-			for await (const node of agentNodes) {
-				const g = getAgentVarGroup(node.key, graph)
-				varGroups.push(g)
+		for await (const graph of graphsForVariables) {
+			const isCurrentGraph = graph === currentGraph
+			// Other agents
+			const agentNodes = graph?.nodes?.filter((_) => _.type === 'agent')
+			if (agentNodes) {
+				for await (const node of agentNodes) {
+					if (type === 'input' && isCurrentGraph && node.key === nodeKey) {
+						processedAgentKeys.add(node.key)
+						continue
+					}
+					if (processedAgentKeys.has(node.key)) {
+						continue
+					}
+					processedAgentKeys.add(node.key)
 
-				// const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-				// 	new GetXpertAgentQuery(xpertId, node.key, isDraft)
-				// )
-				const agent = getXpertAgent(xpert, node.key, { isDraft })
+					const g = getAgentVarGroup(node.key, graph)
+					varGroups.push(g)
 
-				// Add parameters of agent into global variables
-				if (agent.parameters) {
-					variables.push(...agent.parameters.filter((_) => _.name).map(xpertParameterToVariable))
-				}
+					// const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+					// 	new GetXpertAgentQuery(xpertId, node.key, isDraft)
+					// )
+					const agent = getXpertAgent(xpert, node.key, { isDraft })
 
-				// Add toolset's states into global variables
-				const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
-					new ToolsetGetToolsCommand(agent.toolsetIds)
-				)
-				for await (const toolset of toolsets) {
-					const toolVars = await toolset.getVariables()
-					if (toolVars) {
-						const states = toolVars.map(toolsetVariableToVariable)
-						states.forEach((state) => {
-							if (!variables.some((v) => v.name === state.name)) {
-								variables.push(state)
-							}
-						})
+					// Add parameters of agent into global variables
+					if (agent.parameters) {
+						variables.push(...agent.parameters.filter((_) => _.name).map(xpertParameterToVariable))
+					}
+
+					// Add toolset's states into global variables
+					const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
+						new ToolsetGetToolsCommand(agent.toolsetIds)
+					)
+					for await (const toolset of toolsets) {
+						const toolVars = await toolset.getVariables()
+						if (toolVars) {
+							const states = toolVars.map(toolsetVariableToVariable)
+							states.forEach((state) => {
+								if (!variables.some((v) => v.name === state.name)) {
+									variables.push(state)
+								}
+							})
+						}
 					}
 				}
 			}
-		}
 
-		// Workflow nodes
-		const workflowNodes = graph?.nodes?.filter((_) => _.type === 'workflow' && (_.entity.type === WorkflowNodeTypeEnum.SOURCE || _.key !== nodeKey))
-		if (workflowNodes) {
-			for await (const node of workflowNodes) {
-				const entity = node.entity as IWorkflowNode
-				const variables: TXpertParameter[] = []
-				const varGroup: TWorkflowVarGroup = {
-					group: {
-						name: channelName(entity.key),
-						description: entity.title || {
-							en_US: entity.key
-						}
-					},
-					variables
-				}
+			// Workflow nodes
+			const workflowNodes = graph?.nodes?.filter(
+				(_) => _.type === 'workflow' && (_.entity.type === WorkflowNodeTypeEnum.SOURCE || _.key !== nodeKey)
+			)
+			if (workflowNodes) {
+				for await (const node of workflowNodes) {
+					if (processedWorkflowKeys.has(node.key)) {
+						continue
+					}
+					processedWorkflowKeys.add(node.key)
 
-				switch (entity.type) {
-					case WorkflowNodeTypeEnum.TRIGGER: {
-						variables.push(...triggerOutputVariables(entity))
-						varGroups.push(varGroup)
-						break
+					const entity = node.entity as IWorkflowNode
+					const variables: TXpertParameter[] = []
+					const varGroup: TWorkflowVarGroup = {
+						group: {
+							name: channelName(entity.key),
+							description: entity.title || {
+								en_US: entity.key
+							}
+						},
+						variables
 					}
-					case WorkflowNodeTypeEnum.CODE: {
-						variables.push(...codeOutputVariables(entity))
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.HTTP: {
-						variables.push(...httpOutoutVariables())
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.KNOWLEDGE: {
-						variables.push(...knowledgeOutputVariables(entity as IWFNKnowledgeRetrieval))
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.SUBFLOW: {
-						variables.push(...subflowOutputVariables(entity as IWFNSubflow))
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.ITERATING: {
-						variables.push(...iteratingOutputVariables(entity as IWFNIterating))
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.TEMPLATE: {
-						variables.push(...templateOutputVariables(entity))
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.CLASSIFIER: {
-						variables.push(...classifierOutputVariables(entity))
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.TOOL: {
-						variables.push(...toolOutputVariables(entity))
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.ANSWER: {
-						variables.push(...answerOutputVariables(entity))
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.AGENT_TOOL: {
-						variables.push(...agentToolOutputVariables(entity))
-						varGroups.push(varGroup)
-						break
-					}
-					case WorkflowNodeTypeEnum.IF_ELSE: {
-						break
-					}
-					default: {
-						try {
-							const creator = this.nodeRegistry.get(entity.type)
-							variables.push(...creator.outputVariables(entity))
+
+					switch (entity.type) {
+						case WorkflowNodeTypeEnum.TRIGGER: {
+							variables.push(...triggerOutputVariables(entity))
 							varGroups.push(varGroup)
-						} catch (error) {
-							console.error(`Error processing node ${node.key}:`, error)
+							break
+						}
+						case WorkflowNodeTypeEnum.CODE: {
+							variables.push(...codeOutputVariables(entity))
+							varGroups.push(varGroup)
+							break
+						}
+						case WorkflowNodeTypeEnum.HTTP: {
+							variables.push(...httpOutoutVariables())
+							varGroups.push(varGroup)
+							break
+						}
+						case WorkflowNodeTypeEnum.KNOWLEDGE: {
+							variables.push(...knowledgeOutputVariables(entity as IWFNKnowledgeRetrieval))
+							varGroups.push(varGroup)
+							break
+						}
+						case WorkflowNodeTypeEnum.SUBFLOW: {
+							variables.push(...subflowOutputVariables(entity as IWFNSubflow))
+							varGroups.push(varGroup)
+							break
+						}
+						case WorkflowNodeTypeEnum.TEMPLATE: {
+							variables.push(...templateOutputVariables(entity))
+							varGroups.push(varGroup)
+							break
+						}
+						case WorkflowNodeTypeEnum.CLASSIFIER: {
+							variables.push(...classifierOutputVariables(entity))
+							varGroups.push(varGroup)
+							break
+						}
+						case WorkflowNodeTypeEnum.TOOL: {
+							variables.push(...toolOutputVariables(entity))
+							varGroups.push(varGroup)
+							break
+						}
+						case WorkflowNodeTypeEnum.ANSWER: {
+							variables.push(...answerOutputVariables(entity))
+							varGroups.push(varGroup)
+							break
+						}
+						case WorkflowNodeTypeEnum.AGENT_TOOL: {
+							variables.push(...agentToolOutputVariables(entity))
+							varGroups.push(varGroup)
+							break
+						}
+						case WorkflowNodeTypeEnum.IF_ELSE: {
+							break
+						}
+						default: {
+							try {
+								const creator = this.nodeRegistry.get(entity.type)
+								const workflowVariables = (type === 'output' && inputKeys.has(entity.key) ||
+									type === 'input') && creator.inputVariables
+										? creator.inputVariables(entity, varGroups)
+										: creator.outputVariables(entity)
+								variables.push(...workflowVariables)
+								varGroups.push(varGroup)
+							} catch (error) {
+								console.error(`Error processing node ${node.key}:`, error)
+							}
+							break
 						}
 					}
 				}
@@ -415,4 +437,16 @@ function xpertParameterToVariable(parameter: TXpertParameter) {
 }
 function toolsetVariableToVariable(variable: TStateVariable) {
 	return omit(variable, 'reducer', 'default') as TStateVariable
+}
+
+function collectGraphKeys(graph: TXpertGraph, key: string, visited = new Set<string>()): string[] {
+	if (!key || visited.has(key)) {
+		return []
+	}
+	visited.add(key)
+	const node = graph.nodes?.find((_) => _.key === key)
+	if (node?.parentId) {
+		return [key, ...collectGraphKeys(graph, node.parentId, visited)]
+	}
+	return [key]
 }

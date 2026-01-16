@@ -91,9 +91,10 @@
       [copilotModel]="copilotModel()"
     />
 
-    <div class="edge absolute -right-[4px] top-[7px]" fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true">
+    <div class="edge absolute -right-[4px] top-[7px]" fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true"
+      [fCanBeConnectedInputs]="canBeConnectedWorkflow()">
       <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectWorkflow' | translate: {Default: 'Connect Workflow'}" matTooltipPosition="above">
-        <ngm-plus-svg class="w-2 h-2 text-white" />
+        <ngm-plus-svg class="text-white" />
       </div>
     </div>
   </div>

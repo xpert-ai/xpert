@@ -64,8 +64,13 @@ export interface DimensionContext {
   dialect: string
   /**
    * Fact table name in Cube
+   * @deprecated use factTableAlias instead
    */
   factTable?: string
+  /**
+   * Fact table alias mapping in Cube
+   */
+  factTableAlias?: Record<string, string>
   /**
    * Dimension in request {@link Dimension}
    */

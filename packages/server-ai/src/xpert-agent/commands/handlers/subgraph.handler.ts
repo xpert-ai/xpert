@@ -69,13 +69,23 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const abortController = new AbortController()
 		signal?.addEventListener('abort', () => abortController.abort())
 
-		const {agent, graph, next, fail} = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
+		const {agent, graph: xpertGraph, next: agentNext, fail: agentFail} = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
 			new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
 		)
 		if (!agent) {
 			throw new NotFoundException(
 				`Xpert agent not found for '${xpert.name}' and key or name '${agentKeyOrName}', draft is ${command.options?.isDraft}`
 			)
+		}
+
+		let graph = xpertGraph
+		let next = agentNext
+		let fail = agentFail
+		if (command.options.graph) {
+			graph = command.options.graph
+			const { nextNodes, failNodes } = this.getAgentWorkflowEdges(graph, agent.key)
+			next = nextNodes
+			fail = failNodes
 		}
 
 		// Hidden this agent node: the graph created is a pure workflow starting from start node
@@ -1139,6 +1149,28 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 	 * @param config 
 	 * @returns 
 	 */
+	private getAgentWorkflowEdges(graph: TXpertGraph, agentKey: string) {
+		const nodeMap = new Map(graph.nodes.map((node) => [node.key, node]))
+		const nextNodes = graph.connections
+			.filter((conn) => ['edge', 'workflow'].includes(conn.type) && conn.from === agentKey)
+			.map((conn) => nodeMap.get(conn.to))
+			.filter(
+				(node): node is TXpertTeamNode =>
+					!!node &&
+					(node.type === 'agent' || node.type === 'workflow') &&
+					!(node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TASK)
+			)
+		const failNodes = graph.connections
+			.filter((conn) => conn.type === 'edge' && conn.from === `${agentKey}/fail`)
+			.map((conn) => nodeMap.get(conn.to))
+			.filter((node): node is TXpertTeamNode => !!node && (node.type === 'agent' || node.type === 'workflow'))
+
+		return {
+			nextNodes,
+			failNodes
+		}
+	}
+
 	async createAgentSubgraph(
 		agent: IXpertAgent,
 		config: TAgentSubgraphParams & {

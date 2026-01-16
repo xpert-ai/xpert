@@ -1,18 +1,19 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { CdkContextMenuTrigger, CdkMenuModule } from '@angular/cdk/menu'
 import {Clipboard} from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   computed,
   effect,
+  HostListener,
   inject,
   model,
   signal,
-  Type,
   viewChild
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -28,6 +29,7 @@ import {
   FCanvasComponent,
   FConnectionComponent,
   FCreateConnectionEvent,
+  FDropToGroupEvent,
   FFlowComponent,
   FFlowModule,
   FReassignConnectionEvent,
@@ -43,14 +45,16 @@ import { NGXLogger } from 'ngx-logger'
 import { injectParams } from 'ngxtension/inject-params'
 import { Observable, Subscription } from 'rxjs'
 import { debounceTime, delay, map, tap } from 'rxjs/operators'
+import { JsonSchemaWidgetStrategyRegistry } from '@cloud/app/@shared/forms'
 import {
   AiModelTypeEnum,
   findStartNodes,
   injectHelpWebsite,
-  isWorkflowKey,
   IWFNTrigger,
   IXpertAgent,
   IXpertToolset,
+  NodeEntity,
+  NodeOf,
   ToastrService,
   TXpertAgentConfig,
   TXpertTeamNode,
@@ -58,7 +62,10 @@ import {
   XpertAgentExecutionStatusEnum,
   XpertAPIService,
   XpertTypeEnum,
-  XpertWorkspaceService
+  XpertWorkspaceService,
+  isXpertNodeType,
+  isIteratingKey,
+  isRouterKey,
 } from '../../../@core'
 import {
   XpertAgentExecutionStatusComponent,
@@ -81,7 +88,7 @@ import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioFeaturesComponent } from './features/features.component'
 import { XpertService } from '../xpert/xpert.service'
-import { JsonSchemaWidgetStrategyRegistry, provideJsonSchemaWidgetStrategy } from '@cloud/app/@shared/forms'
+import { GROUP_NODE_TYPES, provideJsonSchemaWidgets } from './types'
 
 
 @Component({
@@ -126,25 +133,7 @@ import { JsonSchemaWidgetStrategyRegistry, provideJsonSchemaWidgetStrategy } fro
     SelectionService,
     XpertExecutionService,
     JsonSchemaWidgetStrategyRegistry,
-    ...provideJsonSchemaWidgetStrategy({
-      name: 'ai-model-select',
-      /**
-       * Lazy load the real component.
-       */
-      async load(): Promise<Type<unknown>> {
-        return import('@cloud/app/@shared/copilot/copilot-model-select/index').then(m => m.CopilotModelSelectComponent)  
-      }
-    }, {
-      name: 'agent-interrupt-on',
-      async load(): Promise<Type<unknown>> {
-        return import('@cloud/app/@shared/agent/middlewares').then(m => m.AgentInterruptOnComponent)  
-      }
-    }, {
-      name: 'code-editor',
-      async load(): Promise<Type<unknown>> {
-        return import('@cloud/app/@shared/editors').then(m => m.CodeEditorComponent)
-      }
-    })
+    ...provideJsonSchemaWidgets()
   ]
 })
 export class XpertStudioComponent {
@@ -177,6 +166,7 @@ export class XpertStudioComponent {
   readonly fFlowComponent = viewChild(FFlowComponent)
   readonly fCanvasComponent = viewChild(FCanvasComponent)
   readonly fZoom = viewChild(FZoomDirective)
+  readonly contextMenuTrigger = viewChild('menuTrigger', { read: CdkContextMenuTrigger })
 
   // States
   public contextMenuPosition: IPoint = PointExtensions.initialize(0, 0)
@@ -199,8 +189,8 @@ export class XpertStudioComponent {
    */
   readonly nodes = computed(() => {
     const viewModelNodes = this.viewModel()?.nodes ?? []
-    const nodes = viewModelNodes.filter((_) => _.type !== 'xpert')
-    const xpertNodes = viewModelNodes.filter((_) => _.type === 'xpert') as any
+    const nodes = viewModelNodes.filter((_) => _.type !== 'xpert' && !(isXpertNodeType('workflow')(_) && GROUP_NODE_TYPES.includes(_.entity?.type)))
+    const xpertNodes = viewModelNodes.filter((_) => _.type === 'xpert') as TXpertTeamNode<'xpert'>[]
 
     xpertNodes.forEach((node) => {
       extractXpertNodes(nodes, node)
@@ -208,7 +198,7 @@ export class XpertStudioComponent {
     return nodes
   })
   readonly xperts = computed(() => {
-    const xperts: (TXpertTeamNode & {type: 'xpert'})[] = []
+    const xperts: (NodeOf<'xpert'>)[] = []
     extractXpertGroup(xperts, this.viewModel()?.nodes)
     return xperts
   })
@@ -216,8 +206,8 @@ export class XpertStudioComponent {
     const viewModelConnections = [...(this.viewModel()?.connections ?? [])]
     // Add connections from external xpert nodes
     this.viewModel()
-      ?.nodes?.filter((_) => _.type === 'xpert')
-      .forEach((node: any) => {
+      ?.nodes?.filter(isXpertNodeType('xpert'))
+      .forEach((node) => {
         node.connections?.forEach((connection) => {
           viewModelConnections.push({...connection, readonly: true})
         })
@@ -245,6 +235,12 @@ export class XpertStudioComponent {
         running
       }
     })
+  })
+
+  readonly groups = computed(() => {
+    const draft = this.viewModel()
+    if (!draft) return []
+    return draft.nodes.filter(isXpertNodeType('workflow')).filter((n) => GROUP_NODE_TYPES.includes(n.entity.type))
   })
 
   public isSingleSelection = true
@@ -289,10 +285,10 @@ export class XpertStudioComponent {
         this.xpertService.paramId.set(this.paramId())
       }
     }, { allowSignalWrites: true })
-  }
 
-  public ngOnInit(): void {
-    this.subscriptions$.add(this.subscribeOnReloadData())
+    afterNextRender(() => {
+      this.subscriptions$.add(this.subscribeOnReloadData())
+    })
   }
 
   private subscribeOnReloadData(): Subscription {
@@ -327,6 +323,11 @@ export class XpertStudioComponent {
 
   public addConnection(event: FCreateConnectionEvent): void {
     if (!event.fInputId) {
+      this.contextMenuTrigger().menuData = {
+        menuTrigger: this.contextMenuTrigger(),
+        fromNode: this.apiService.getNode(event.fOutputId),
+      }
+      this.contextMenuTrigger().open(event.fDropPosition)
       return
     }
 
@@ -350,11 +351,10 @@ export class XpertStudioComponent {
     this.apiService.moveNode(key, point)
   }
 
-  public moveXpertGroup(point: IPoint, key: string): void {
+  public moveGroup(point: IPoint, key: string): void {
     this.apiService.moveNode(key, point)
-
   }
-  public resizeXpertGroup(point: IRect, key: string): void {
+  public resizeGroup(point: IRect, key: string): void {
     this.apiService.resizeNode(key, point)
   }
   public expandXpertTeam(xpert: TXpertTeamNode) {
@@ -457,7 +457,8 @@ export class XpertStudioComponent {
     }
 
     // Remove parameters of xpert when removed chat trigger point
-    if (node.type === 'workflow' && node.entity?.type === WorkflowNodeTypeEnum.TRIGGER && (<IWFNTrigger>node.entity).from === 'chat') {
+    if (node.type === 'workflow' && (<NodeEntity<'workflow'>>node.entity)?.type === WorkflowNodeTypeEnum.TRIGGER
+      && (<IWFNTrigger>node.entity).from === 'chat') {
       this.apiService.agentConfig.update((state) => {
           return {
             ...(state ?? {}),
@@ -470,12 +471,151 @@ export class XpertStudioComponent {
   centerGroupOrNode(id: string,) {
     this.fCanvasComponent().centerGroupOrNode(id, true)
   }
+
+  // Keyboard shortcuts
+  #copiedNode: TXpertTeamNode = null
+
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent) {
+    // Ignore if focus is in an input element
+    const target = event.target as HTMLElement
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return
+    }
+
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+    const ctrlKey = isMac ? event.metaKey : event.ctrlKey
+
+    // Delete/Backspace - Delete selection
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      event.preventDefault()
+      this.deleteSelection()
+      return
+    }
+
+    // Ctrl+C - Copy
+    if (ctrlKey && event.key === 'c') {
+      this.copySelection()
+      return
+    }
+
+    // Ctrl+V - Paste
+    if (ctrlKey && event.key === 'v') {
+      event.preventDefault()
+      this.pasteSelection()
+      return
+    }
+
+    // Ctrl+D - Duplicate
+    if (ctrlKey && event.key === 'd') {
+      event.preventDefault()
+      this.duplicateSelection()
+      return
+    }
+
+    // Ctrl+Z - Undo
+    if (ctrlKey && event.key === 'z' && !event.shiftKey) {
+      event.preventDefault()
+      this.apiService.undo()
+      return
+    }
+
+    // Ctrl+Y or Ctrl+Shift+Z - Redo
+    if (ctrlKey && (event.key === 'y' || (event.key === 'z' && event.shiftKey))) {
+      event.preventDefault()
+      this.apiService.redo()
+      return
+    }
+  }
+
+  copySelection() {
+    const selection = this.fFlowComponent().getSelection()
+    if (selection.fNodeIds.length === 1) {
+      const node = this.apiService.getNode(selection.fNodeIds[0])
+      if (node && (node.type === 'agent' || node.type === 'workflow')) {
+        this.#copiedNode = node
+        this.copyNode(node)
+      }
+    }
+  }
+
+  pasteSelection() {
+    if (this.#copiedNode) {
+      this.apiService.pasteNode({
+        ...this.#copiedNode,
+        position: {
+          x: this.#copiedNode.position.x + 50,
+          y: this.#copiedNode.position.y + 50
+        }
+      })
+    }
+  }
+
+  duplicateSelection() {
+    const selection = this.fFlowComponent().getSelection()
+    if (selection.fNodeIds.length === 1) {
+      const node = this.apiService.getNode(selection.fNodeIds[0])
+      if (node && (node.type === 'agent' || node.type === 'workflow')) {
+        this.duplicateNode(node)
+      }
+    }
+  }
+
+  deleteSelection() {
+    const selection = this.fFlowComponent().getSelection()
+
+    // Delete selected connections
+    selection.fConnectionIds.forEach(connectionKey => {
+      const connection = this.connections().find(c => c.key === connectionKey)
+      if (connection && !connection.readonly) {
+        const sourceId = connection.from + '/' + connection.type
+        const targetId = connection.to + (connection.type === 'edge' ? '/edge' : '')
+        this.apiService.removeConnection(sourceId, targetId)
+      }
+    })
+
+    // Delete selected nodes
+    selection.fNodeIds.forEach(nodeKey => {
+      const node = this.apiService.getNode(nodeKey)
+      if (node && !node.readonly && !node.parentId) {
+        this.deleteNode(node)
+      }
+    })
+
+    // Delete selected groups (xpert nodes)
+    selection.fGroupIds.forEach(groupKey => {
+      const group = this.xperts().find(x => x.key === groupKey)
+      if (group) {
+        this.removeNode(group.key)
+      }
+    })
+
+    this.fFlowComponent().clearSelection()
+  }
+
+  onDropToGroup(event: FDropToGroupEvent) {
+     if (!event.fTargetNode) {
+      console.warn('Drop to group without target node', event)
+      return
+    }
+    
+    console.log('Drop to group', event)
+    for (const key of event.fNodes) {
+      this.apiService.updateNode(key, (state) => {
+        console.log('Update node parentId', state, event.fTargetNode)
+        return {
+          ...state,
+          parentId: event.fTargetNode
+        }
+      })
+    }
+  }
 }
 
-function extractXpertNodes(nodes: TXpertTeamNode[], xpertNode: TXpertTeamNode & { type: 'xpert' }) {
+function extractXpertNodes(nodes: TXpertTeamNode[], xpertNode: TXpertTeamNode<'xpert'>) {
   xpertNode.nodes?.forEach((node) => {
     if (node.type === 'xpert') {
-      extractXpertNodes(nodes, node)
+      extractXpertNodes(nodes, node as TXpertTeamNode<'xpert'>)
     } else {
       nodes.push({ ...node, parentId: xpertNode.key, readonly: true })
     }
@@ -486,7 +626,11 @@ function extractXpertGroup(results: TXpertTeamNode[], nodes: TXpertTeamNode[], p
   nodes?.forEach((node) => {
     if (node.type === 'xpert') {
       results.push({...node, parentId})
-      extractXpertGroup(results, node.nodes, node.key)
+      extractXpertGroup(results, (node as NodeOf<'xpert'>).nodes, node.key)
     }
   })
+}
+
+export function isWorkflowKey(key: string) {
+  return isRouterKey(key) || isIteratingKey(key)
 }

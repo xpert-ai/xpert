@@ -6,7 +6,7 @@ ARG DEMO
 
 # ==================================================== Stage ==========================================================#
 # Copy package.json, Install npm dependencies and Build
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 
 LABEL maintainer="meta.digital.cloud@gmail.com"
 LABEL org.opencontainers.image.source="https://github.com/xpert-ai/xpert"
@@ -64,6 +64,9 @@ COPY --chown=nginx:nginx .deploy/webapp/entrypoint.prod.sh ./
 COPY --chown=nginx:nginx .deploy/webapp/nginx.compose.conf /etc/nginx/conf.d/compose.conf.template
 COPY --chown=nginx:nginx .deploy/webapp/nginx.prod.conf /etc/nginx/conf.d/prod.conf.template
 COPY --chown=nginx:nginx --from=build /srv/pangolin/dist/apps/cloud .
+COPY --chown=nginx:nginx --from=build /srv/pangolin/node_modules/@xpert-ai/chatkit-ui/dist/app ./chatkit
+
+RUN sed -i 's#"/assets/#"/chatkit/assets/#g' /srv/pangolin/chatkit/index.html
 
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh && \
     chmod a+rw /etc/nginx/conf.d/compose.conf.template /etc/nginx/conf.d/prod.conf.template

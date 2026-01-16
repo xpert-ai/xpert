@@ -27,7 +27,13 @@ export function createParameters(parameters: TXpertParameter[]): Record<string, 
 				break
 			}
 			case XpertParameterTypeEnum.SELECT: {
-				value = z.enum(parameter.options as any)
+				// If options are provided and not empty, use enum validation
+				// Otherwise, fall back to string type to avoid runtime errors
+				if (parameter.options && parameter.options.length > 0) {
+					value = z.enum(parameter.options as any)
+				} else {
+					value = z.string()
+				}
 				break
 			}
 			case XpertParameterTypeEnum.ARRAY_STRING: {
@@ -60,9 +66,9 @@ export function createParameters(parameters: TXpertParameter[]): Record<string, 
 
 /**
  * Complete parameter definitions, such as adding a list of file fields to file array.
- * 
- * @param parameters 
- * @returns 
+ *
+ * @param parameters
+ * @returns
  */
 export function completeParametersDef(parameters: TXpertParameter[]): TXpertParameter[] {
 	return parameters.map((parameter) => {

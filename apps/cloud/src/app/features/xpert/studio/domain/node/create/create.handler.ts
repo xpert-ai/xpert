@@ -18,7 +18,7 @@ export class CreateNodeHandler implements IHandler<CreateNodeRequest> {
         }
       }
 
-      const key = request.entity?.id ?? (<TXpertToolset>request.entity)?.key ?? genAgentKey()
+      const key = request.node?.key ?? request.entity?.id ?? (<TXpertToolset>request.entity)?.key ?? genAgentKey()
       let entity = null
       switch(request.type) {
         case 'agent': {
@@ -39,10 +39,11 @@ export class CreateNodeHandler implements IHandler<CreateNodeRequest> {
       }
 
       const node = {
+        ...(request.node ?? {}),
         type: request.type,
         key,
         position: request.position,
-        entity
+        entity: entity ?? request.node?.entity ?? null
       } as TXpertTeamNode
 
       draft.nodes.push(node)
