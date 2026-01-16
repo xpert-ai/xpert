@@ -3,6 +3,53 @@ import { z } from 'zod'
 import { ARRAY_FILE_ITEMS } from "./constants"
 
 /**
+ * Validate user-provided parameter values against parameter definitions.
+ *
+ * English note: This is used as a backend safety net to prevent oversized inputs
+ * (e.g., string length > maximum) from silently passing into the agent runtime.
+ */
+export function validateXpertParameterValues(
+	parameters: TXpertParameter[] | undefined | null,
+	values: Record<string, unknown> | undefined | null
+): void {
+	if (!parameters?.length || !values) {
+		return
+	}
+
+	for (const parameter of parameters) {
+		// Only validate provided values; do not enforce "required" here to avoid behavior changes.
+		const raw = (values as any)?.[parameter.name]
+		if (raw == null) {
+			continue
+		}
+
+		const maximum = typeof parameter.maximum === 'number' ? parameter.maximum : null
+		if (!maximum || !Number.isFinite(maximum)) {
+			continue
+		}
+
+		if (
+			parameter.type === XpertParameterTypeEnum.STRING ||
+			parameter.type === XpertParameterTypeEnum.TEXT ||
+			parameter.type === XpertParameterTypeEnum.PARAGRAPH ||
+			parameter.type === XpertParameterTypeEnum.SECRET
+		) {
+			if (typeof raw === 'string' && raw.length > maximum) {
+				throw new Error(`Parameter "${parameter.name}" length should not be greater than ${maximum}`)
+			}
+		} else if (parameter.type === XpertParameterTypeEnum.NUMBER) {
+			// English note: For NUMBER type, "maximum" means max digit length (not numeric value).
+			// We count only digits 0-9, ignoring sign and decimal separator.
+			const str = typeof raw === 'number' ? String(raw) : String(raw ?? '')
+			const digitLength = (str.match(/\d/g) ?? []).length
+			if (digitLength > maximum) {
+				throw new Error(`Parameter "${parameter.name}" digit length should not be greater than ${maximum}`)
+			}
+		}
+	}
+}
+
+/**
  * Create zod schema for custom parameters of agent
  *
  * @param parameters
@@ -16,6 +63,12 @@ export function createParameters(parameters: TXpertParameter[]): Record<string, 
 			case XpertParameterTypeEnum.TEXT:
 			case XpertParameterTypeEnum.PARAGRAPH: {
 				value = z.string()
+				// English note: "maximum" is used by the UI as maxLength for string-like parameters.
+				if (typeof parameter.maximum === 'number' && Number.isFinite(parameter.maximum)) {
+					value = value.max(parameter.maximum, {
+						message: `Parameter "${parameter.name}" length should not be greater than ${parameter.maximum}`
+					})
+				}
 				break
 			}
 			case XpertParameterTypeEnum.BOOLEAN: {
@@ -24,6 +77,20 @@ export function createParameters(parameters: TXpertParameter[]): Record<string, 
 			}
 			case XpertParameterTypeEnum.NUMBER: {
 				value = z.number()
+				// English note: For NUMBER type, "maximum" means max digit length (not numeric value).
+				// Note: Leading zeros are not preserved when the value is a number.
+				if (typeof parameter.maximum === 'number' && Number.isFinite(parameter.maximum)) {
+					value = value.refine(
+						(num) => {
+							const str = String(num)
+							const digitLength = (str.match(/\d/g) ?? []).length
+							return digitLength <= parameter.maximum
+						},
+						{
+							message: `Parameter "${parameter.name}" digit length should not be greater than ${parameter.maximum}`
+						}
+					)
+				}
 				break
 			}
 			case XpertParameterTypeEnum.SELECT: {
