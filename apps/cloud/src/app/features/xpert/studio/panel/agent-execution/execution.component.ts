@@ -21,6 +21,8 @@ import {
   IXpertAgent,
   IXpertAgentExecution,
   messageContentText,
+  TXpertParameter,
+  XpertParameterTypeEnum,
   TInterruptCommand,
   ToastrService,
   TToolCall,
@@ -170,6 +172,12 @@ export class XpertStudioPanelAgentExecutionComponent {
     reject: boolean;
     confirm?: boolean
   }) {
+    // English note: Validate user inputs against parameter definitions before sending to server.
+    // This provides instant feedback and prevents avoidable backend errors.
+    if (!this.validateParameterValues(this.parameters(), this.parameterValue() ?? {})) {
+      return
+    }
+
     const executionId = this.execution()?.id
     this.loading.set(true)
     // Clear
@@ -215,6 +223,51 @@ export class XpertStudioPanelAgentExecutionComponent {
           this.loading.set(false)
         }
       })
+  }
+
+  /**
+   * Validate parameter values for max length / maximum constraints.
+   *
+   * Returns false when invalid and shows a user-facing error message.
+   */
+  private validateParameterValues(parameters: TXpertParameter[] | null | undefined, values: Record<string, unknown>): boolean {
+    if (!parameters?.length) {
+      return true
+    }
+
+    for (const parameter of parameters) {
+      const raw = (values as any)?.[parameter.name]
+      if (raw == null) {
+        continue
+      }
+
+      const maximum = typeof parameter.maximum === 'number' ? parameter.maximum : null
+      if (!maximum || !Number.isFinite(maximum)) {
+        continue
+      }
+
+      if (
+        parameter.type === XpertParameterTypeEnum.STRING ||
+        parameter.type === XpertParameterTypeEnum.TEXT ||
+        parameter.type === XpertParameterTypeEnum.PARAGRAPH ||
+        parameter.type === XpertParameterTypeEnum.SECRET
+      ) {
+        if (typeof raw === 'string' && raw.length > maximum) {
+          this.#toastr.error(`参数 "${parameter.name}" 超出最大长度限制：${maximum}`)
+          return false
+        }
+      } else if (parameter.type === XpertParameterTypeEnum.NUMBER) {
+        // English note: For NUMBER type, "maximum" means max digit length (not numeric value).
+        const str = typeof raw === 'number' ? String(raw) : String(raw ?? '')
+        const digitLength = (str.match(/\d/g) ?? []).length
+        if (digitLength > maximum) {
+          this.#toastr.error(`参数 "${parameter.name}" 超出最大长度限制：${maximum}`)
+          return false
+        }
+      }
+    }
+
+    return true
   }
 
   onChatError(message: string) {
