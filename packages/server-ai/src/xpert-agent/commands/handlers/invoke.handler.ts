@@ -43,7 +43,6 @@ import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService } from '../../../environment'
 import { getWorkspace, VolumeClient } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
-import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -170,10 +169,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				graphInput = new Command(pick(options.command, 'resume', 'update'))
 			}
 		} else if(state[STATE_VARIABLE_HUMAN]) {
-			// English note: Validate human-provided parameter values before building graph input.
-			// This prevents oversized strings (max length) from silently passing into runtime.
-			validateXpertParameterValues(agent?.parameters, state[STATE_VARIABLE_HUMAN] as any)
-
 			const volumeClient = new VolumeClient({tenantId, catalog: 'users', userId, projectId: options.projectId})
 			graphInput = {
 				...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
