@@ -76,12 +76,15 @@ export class SuggestedQuestionsHandler implements ICommandHandler<SuggestedQuest
 			}
 		)
 
+		// Use functionCalling method instead of default JSON mode
+		// because some providers (e.g. DeepSeek) don't support response_format parameter
 		const structuredOutput = chatModel.withStructuredOutput<{
 			questions: string[]
 		}>(
 			z.object({
 				questions: z.array(z.string().describe('Suggested Question')).max(5, 'Maximum 5 questions')
-			})
+			}),
+			{ method: 'functionCalling' }
 		)
 		const output = await prompt.pipe(structuredOutput).invoke([])
 
