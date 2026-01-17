@@ -72,12 +72,22 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 			const data = await this.loadSheet(doc, volumeClient)
 			const documents: Document[] = []
 			for (const row of data) {
-				const metadata = { raw: row, documentId: doc.id, chunkId: uuid() }
+				// pageContent always contains all fields for display
+				// searchContent in metadata contains only indexed fields for retrieval matching
+				const metadata: any = { raw: row, documentId: doc.id, chunkId: uuid() }
+				
+				// If indexedFields exist, store searchContent (indexed fields only) in metadata for vectorization
+				// Store full pageContent in metadata to restore after retrieval
+				const fullPageContent = JSON.stringify(row)
+				if (parserConfig?.indexedFields?.length) {
+					metadata.searchContent = JSON.stringify(pick(row, parserConfig.indexedFields))
+					// Store full content in metadata for restoration after retrieval
+					metadata.fullPageContent = fullPageContent
+				}
+				
 				documents.push(
 					new Document({
-						pageContent: parserConfig?.indexedFields?.length
-							? JSON.stringify(pick(row, parserConfig.indexedFields))
-							: JSON.stringify(row),
+						pageContent: fullPageContent,
 						metadata
 					})
 				)

@@ -42,7 +42,39 @@ export class KnowledgeDocumentStore {
 		chunks.forEach((item) => {
 			this.fillMetadata(item, knowledgeDocument)
 		})
-		return await this.vStore.addDocuments(chunks)
+		
+		// For table documents with indexedFields, use searchContent for vectorization
+		// Store full pageContent in metadata.fullPageContent for restoration after retrieval
+		const chunksForEmbedding = chunks.map((chunk) => {
+			// If searchContent exists in metadata, use it for vectorization (indexed fields only)
+			// Store full pageContent in metadata for later restoration
+			if (chunk.metadata?.searchContent) {
+				// Preserve full pageContent in metadata
+				chunk.metadata.fullPageContent = chunk.pageContent
+				// Use searchContent (indexed fields only) for vectorization
+				return {
+					...chunk,
+					pageContent: chunk.metadata.searchContent
+				}
+			}
+			return chunk
+		})
+		
+		return await this.vStore.addDocuments(chunksForEmbedding)
+	}
+	
+	/**
+	 * Restore full pageContent from metadata for retrieved documents
+	 * This is needed for table documents where only indexed fields were used for vectorization
+	 */
+	private restorePageContent(doc: DocumentInterface): DocumentInterface {
+		if (doc.metadata?.fullPageContent) {
+			return {
+				...doc,
+				pageContent: doc.metadata.fullPageContent
+			}
+		}
+		return doc
 	}
 
 	async deleteKnowledgeDocument(item: IKnowledgeDocument) {
@@ -61,16 +93,18 @@ export class KnowledgeDocumentStore {
 			...(options.filter ?? {}),
 			knowledgeId
 		})
+		// Restore full pageContent for table documents
+		const restoredDocs = docs.map((doc) => this.restorePageContent(doc))
 		const skip = options.skip ?? 0
 		return {
-			items: options.take ? docs.slice(skip, skip + options.take) : docs,
-			total: docs.length
+			items: options.take ? restoredDocs.slice(skip, skip + options.take) : restoredDocs,
+			total: restoredDocs.length
 		}
 	}
 
 	async getChunk(id: string) {
 		const docs = await this.vStore.similaritySearch('*', 1, {chunkId: id})
-		return docs[0]
+		return docs[0] ? this.restorePageContent(docs[0]) : undefined
 	}
 
 	async deleteChunk(id: string) {
@@ -107,7 +141,9 @@ export class KnowledgeDocumentStore {
 			_filter.enabled = true
 		}
 
-		return this.vStore.similaritySearchWithScore(query, k, _filter, _callbacks)
+		const results = await this.vStore.similaritySearchWithScore(query, k, _filter, _callbacks)
+		// Restore full pageContent for table documents
+		return results.map(([doc, score]) => [this.restorePageContent(doc), score])
 	}
 
 	async rerank(docs: DocumentInterface[], query: string, options: {
