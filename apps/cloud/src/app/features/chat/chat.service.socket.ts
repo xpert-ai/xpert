@@ -338,6 +338,28 @@ export class ChatWebsocketService {
 
   cancelMessage() {
     this.answering.set(false)
+
+    // Immediately update conversation status and abort running messages (don't wait for server response)
+    this.conversation.update((state) => ({
+      ...(state ?? {}),
+      status: 'idle'
+    }) as IChatConversation)
+
+    // Abort the latest message and its sub-messages
+    this.updateLatestMessage((lastMessage) => {
+      // Update status of sub-messages including running tool calls to 'aborted'
+      const updatedMessages = lastMessage.messages?.map((m) => {
+        if (m.status === 'thinking' || m.status === 'running') {
+          return { ...m, status: 'aborted' }
+        }
+        if (m.data?.status === 'thinking' || m.data?.status === 'running') {
+          return { ...m, data: { ...m.data, status: 'aborted' } }
+        }
+        return m
+      })
+      return { ...lastMessage, messages: updatedMessages, status: 'aborted' }
+    })
+
     return this.chatService.message({
       event: ChatGatewayEvent.CancelChain,
       data: {
@@ -433,9 +455,14 @@ export class ChatWebsocketService {
   abortMessage(id: string) {
     this.updateLatestMessage((lastMessage) => {
       if (lastMessage.id === id) {
+        // Update status of sub-messages including running tool calls to 'aborted'
         lastMessage.messages = lastMessage.messages?.map((m) => {
-          if (m.status === 'thinking') {
+          if (m.status === 'thinking' || m.status === 'running') {
             return { ...m, status: 'aborted' }
+          }
+          // Also handle nested data.status for component messages
+          if (m.data?.status === 'thinking' || m.data?.status === 'running') {
+            return { ...m, data: { ...m.data, status: 'aborted' } }
           }
           return m
         })
