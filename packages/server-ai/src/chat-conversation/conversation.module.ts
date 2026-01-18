@@ -11,6 +11,7 @@ import { ChatConversationService } from './conversation.service'
 import { QueryHandlers } from './queries/handlers'
 import { ConversationSummaryProcessor } from './summary.job'
 import { ChatMessageModule } from '../chat-message/chat-message.module'
+import { ExecutionCancelModule } from '../shared'
 
 @Module({
 	imports: [
@@ -24,6 +25,7 @@ import { ChatMessageModule } from '../chat-message/chat-message.module'
 		}),
 		forwardRef(() => StorageFileModule),
 		forwardRef(() => ChatMessageModule),
+		ExecutionCancelModule,
 	],
 	controllers: [ChatConversationController],
 	providers: [ChatConversationService, ConversationSummaryProcessor, ...CommandHandlers, ...QueryHandlers],

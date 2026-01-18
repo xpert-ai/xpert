@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
-import { DateRelativePipe, OrderTypeEnum, routeAnimations, TChatConversationLog, XpertAPIService } from '@cloud/app/@core'
+import { ChatConversationService, DateRelativePipe, OrderTypeEnum, routeAnimations, TChatConversationLog, XpertAPIService } from '@cloud/app/@core'
 import { XpertComponent } from '../xpert.component'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 import { ChatConversationPreviewComponent, ChatMessageExecutionPanelComponent } from '@cloud/app/@shared/chat'
@@ -40,6 +40,7 @@ import { ChatConversationPreviewComponent, ChatMessageExecutionPanelComponent } 
 export class XpertLogsComponent {
   TimeRanges = TimeRangeOptions
   readonly xpertService = inject(XpertAPIService)
+  readonly conversationService = inject(ChatConversationService)
   readonly xpertComponent = inject(XpertComponent)
 
   readonly xpert = this.xpertComponent.latestXpert
@@ -114,5 +115,24 @@ export class XpertLogsComponent {
 
   closeExecution() {
     this.executionId.set(null)
+  }
+
+  cancelConversation(event: MouseEvent, conversation: TChatConversationLog) {
+    event.stopPropagation()
+    if (conversation.status !== 'busy') {
+      return
+    }
+
+    this.conversationService.cancelConversation(conversation.id).subscribe({
+      next: () => {
+        this.conversations.update((state) =>
+          state.map((item) =>
+            item.id === conversation.id
+              ? { ...item, status: 'interrupted' }
+              : item
+          )
+        )
+      }
+    })
   }
 }

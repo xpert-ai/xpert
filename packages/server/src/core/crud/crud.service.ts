@@ -395,6 +395,7 @@ export abstract class CrudService<T extends BaseEntity>
 			if (isForeignKeyConstraintError(err)) {
 				throw new BadRequestException('Cannot delete: record is still referenced by another table.');
 			}
+			console.error(err);
 			throw new NotFoundException(`The record was not found`, err);
 		}
 	}

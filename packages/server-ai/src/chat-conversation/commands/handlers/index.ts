@@ -6,6 +6,7 @@ import { ListConvFilesHandler } from './list-files.handler'
 import { ScheduleSummaryJobHandler } from './schedule-summary.handler'
 import { ConvFileUpsertHandler } from './upsert-file.handler'
 import { ChatConversationUpsertHandler } from './upsert.handler'
+import { CancelConversationHandler } from './cancel-conversation.handler'
 
 export const CommandHandlers = [
     ChatConversationUpsertHandler,
@@ -15,5 +16,6 @@ export const CommandHandlers = [
     ConvFileGetByPathCommandHandler,
     ConvFileUpsertHandler,
     ConvFileDeleteHandler,
-    ListConvFilesHandler
+    ListConvFilesHandler,
+    CancelConversationHandler
 ]

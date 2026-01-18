@@ -8,9 +8,7 @@ import {
 	channelName,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
-	GRAPH_NODE_TITLE_CONVERSATION,
 	IKnowledgebaseTask,
-	IXpertAgent,
 	KnowledgebaseChannel,
 	KnowledgeTask,
 	LanguagesEnum,
@@ -21,7 +19,6 @@ import {
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	TInterruptCommand,
-	TSensitiveOperation,
 	TXpertAgentConfig,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
@@ -41,7 +38,7 @@ import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService } from '../../../environment'
-import { getWorkspace, VolumeClient } from '../../../shared'
+import { getWorkspace, VolumeClient, ExecutionCancelService } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 
 @CommandHandler(XpertAgentInvokeCommand)
@@ -54,6 +51,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		private readonly checkpointSaver: CopilotCheckpointSaver,
 		private readonly envService: EnvironmentService,
 		private readonly i18nService: I18nService,
+		private readonly executionCancelService: ExecutionCancelService,
 	) {}
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
@@ -73,6 +71,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		}
 
 		const abortController = new AbortController()
+		if (execution?.id) {
+			this.executionCancelService.register(execution.id, abortController)
+		}
 		const { graph, agent, xpertGraph } = await this.commandBus.execute(
 			new CompileGraphCommand(agentKeyOrName, xpert, {
 				...options,
@@ -318,6 +319,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				finalize: () => {
 					// For cleanup toolset...
 					abortController.abort()
+					if (execution?.id) {
+						this.executionCancelService.unregister(execution.id)
+					}
 				}
 			})
 		)

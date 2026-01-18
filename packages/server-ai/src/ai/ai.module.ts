@@ -1,4 +1,4 @@
-import { SecretTokenModule, StorageFileModule, TenantModule } from '@metad/server-core'
+import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@metad/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
@@ -22,6 +22,7 @@ import { ConversationsController } from './conversation.controller'
 import { ChatConversationModule } from '../chat-conversation'
 import { ChatMessageModule } from '../chat-message'
 import { ChatMessageFeedbackModule } from '../chat-message-feedback'
+import { RedisSseStreamService } from './stream/redis-sse.service'
 
 @Module({
 	imports: [
@@ -33,6 +34,7 @@ import { ChatMessageFeedbackModule } from '../chat-message-feedback'
 		]),
 		TenantModule,
 		SecretTokenModule,
+		RedisModule,
 		CqrsModule,
 		CopilotModule,
 		CopilotUserModule,
@@ -56,6 +58,6 @@ import { ChatMessageFeedbackModule } from '../chat-message-feedback'
 		StoreController,
 		
 	],
-	providers: [AiService, ...CommandHandlers, ...QueryHandlers]
+	providers: [AiService, RedisSseStreamService, ...CommandHandlers, ...QueryHandlers]
 })
 export class AIModule {}

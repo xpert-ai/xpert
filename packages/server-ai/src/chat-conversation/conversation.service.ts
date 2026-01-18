@@ -148,4 +148,5 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		const conversation = await this.findOne(id, { relations: ['attachments'] })
 		return conversation.attachments
 	}
+
 }

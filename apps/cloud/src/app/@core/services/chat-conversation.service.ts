@@ -46,6 +46,10 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`)
   }
 
+  cancelConversation(id: string) {
+    return this.httpClient.post<{ canceledExecutionIds: string[] }>(this.apiBaseUrl + `/${id}/cancel`, {})
+  }
+
   // Files
 
   getFiles(id: string, path = '') {

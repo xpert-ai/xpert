@@ -1,12 +1,14 @@
 import { STATE_VARIABLE_HUMAN, TChatRequest, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
-import { map } from 'rxjs/operators'
+import { map, tap } from 'rxjs/operators'
 import z from 'zod'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import { FindXpertQuery, XpertChatCommand } from '../../../xpert'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
+import { RedisSseStreamService } from '../../stream/redis-sse.service'
 
 const chatRequestSchema = z
 	.object({
@@ -47,9 +49,12 @@ export function validateRunCreateInput(input: unknown): TChatRequest {
 
 @CommandHandler(RunCreateStreamCommand)
 export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCommand> {
+	readonly #logger = new Logger(RunCreateStreamHandler.name)
+
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly redisSseStreamService: RedisSseStreamService
 	) {}
 
 	public async execute(command: RunCreateStreamCommand) {
@@ -110,6 +115,11 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 					}
 
 					return message
+				}),
+				tap((message) => {
+					this.redisSseStreamService.appendEvent(threadId, execution.id, message.data).catch((error) => {
+						this.#logger.warn(`Failed to persist SSE event: ${error}`)
+					})
 				})
 			)
 		}

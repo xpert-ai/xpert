@@ -1,7 +1,6 @@
 import { CheckpointTuple } from '@langchain/langgraph'
 import { Metadata, Run, ThreadState } from '@langchain/langgraph-sdk'
 import { ChatMessageTypeEnum, IUser, IXpertAgentExecution, messageContentText } from '@metad/contracts'
-import { takeUntilClose } from '@metad/server-common'
 import { ApiKeyOrClientSecretAuthGuard, CurrentUser, Public, TransformInterceptor } from '@metad/server-core'
 import {
 	Body,
@@ -9,6 +8,8 @@ import {
 	Delete,
 	Get,
 	Header,
+	Headers,
+	HttpException,
 	HttpCode,
 	HttpStatus,
 	Logger,
@@ -33,6 +34,8 @@ import { AiService } from './ai.service'
 import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from './commands'
 import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
+import { RedisSseStreamService } from './stream/redis-sse.service'
+import { CancelConversationCommand } from '../chat-conversation'
 
 @ApiTags('AI/Threads')
 @ApiBearerAuth()
@@ -46,7 +49,8 @@ export class ThreadsController {
 	constructor(
 		private readonly aiService: AiService,
 		private readonly queryBus: QueryBus,
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		private readonly redisSseStreamService: RedisSseStreamService
 	) {}
 
 	// Threads: A thread contains the accumulated outputs of a group of runs.
@@ -169,13 +173,30 @@ export class ThreadsController {
 	async runStream(
 		@Res() res: Response,
 		@Param('thread_id') thread_id: string,
-		@Body() body: components['schemas']['RunCreateStateful']
+		@Body() body: components['schemas']['RunCreateStateful'],
+		@Headers('last-event-id') lastEventId?: string
 	) {
-		const { stream } = await this.commandBus.execute<
+		const { stream, execution } = await this.commandBus.execute<
 			RunCreateStreamCommand,
 			{ stream: Observable<MessageEvent>; execution: IXpertAgentExecution }
 		>(new RunCreateStreamCommand(thread_id, body))
-		return stream.pipe(takeUntilClose(res))
+		stream.subscribe()
+		const { lockId, stream: sseStream } = await this.redisSseStreamService.createSseStream({
+			threadId: thread_id,
+			runId: execution.id,
+			lastEventId,
+			mode: 'create'
+		})
+
+		if (!lockId) {
+			throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
+		}
+
+		res.on('close', () => {
+			this.redisSseStreamService.releaseLock(thread_id, execution.id, lockId).catch(() => null)
+		})
+
+		return sseStream
 	}
 
 	/**
@@ -206,10 +227,61 @@ export class ThreadsController {
 		)
 	}
 
+	/**
+	 * Join existing run stream (supports Last-Event-ID resume).
+	 *
+	 * @param res
+	 * @param thread_id
+	 * @param run_id
+	 * @param lastEventId
+	 * @returns
+	 */
+	@Header('content-type', 'text/event-stream')
+	@Header('Connection', 'keep-alive')
+	@Get(':thread_id/runs/:run_id/stream')
+	@Sse()
+	async joinRunStream(
+		@Res() res: Response,
+		@Param('thread_id') thread_id: string,
+		@Param('run_id') run_id: string,
+		@Headers('last-event-id') lastEventId?: string
+	) {
+		const { lockId, stream } = await this.redisSseStreamService.createSseStream({
+			threadId: thread_id,
+			runId: run_id,
+			lastEventId,
+			mode: 'join'
+		})
+
+		if (!lockId) {
+			throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
+		}
+
+		res.on('close', () => {
+			this.redisSseStreamService.releaseLock(thread_id, run_id, lockId).catch(() => null)
+		})
+
+		return stream
+	}
+
 	@Get(':thread_id/runs/:run_id')
 	async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
 		const execution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(run_id))
 		return transformRun(execution)
+	}
+
+	@Post(':thread_id/runs/:run_id/cancel')
+	async cancelThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
+		// Cancel the run
+		try {
+			return await this.commandBus.execute(new CancelConversationCommand({
+				threadId: thread_id,
+				executionId: run_id
+			}))
+		} catch (error) {
+			console.error('Error cancelling conversation:', error)
+			throw error
+		}
 	}
 
 	// Others

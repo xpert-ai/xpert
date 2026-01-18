@@ -9,13 +9,14 @@ import {
 	transformWhere,
 	UUIDValidationPipe
 } from '@metad/server-core'
-import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common'
+import { Controller, Get, HttpStatus, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Like } from 'typeorm'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
+import { CancelConversationCommand } from './commands'
 import { VolumeClient } from '../shared'
 
 @ApiTags('ChatConversation')
@@ -80,6 +81,16 @@ export class ChatConversationController extends CrudController<ChatConversation>
 	@Get(':id/state')
 	async getThreadState(@Param('id', UUIDValidationPipe) id: string): Promise<any> {
 		return await this.service.getThreadState(id)
+	}
+
+	@Post(':id/cancel')
+	async cancelConversation(@Param('id', UUIDValidationPipe) id: string) {
+		try {
+			return await this.commandBus.execute(new CancelConversationCommand({ conversationId: id }))
+		} catch (error) {
+			console.error('Error cancelling conversation:', error)
+			throw error
+		}
 	}
 
 	@Get('xpert/:id')

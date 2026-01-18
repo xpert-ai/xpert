@@ -35,6 +35,9 @@
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
           {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
         </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-28">
+          {{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -97,6 +100,15 @@
             }
           </td>
           <td class="px-4 py-2">{{ conv.updatedAt | relative }}</td>
+          <td class="px-4 py-2">
+            <button
+              class="text-xs font-medium px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              [disabled]="conv.status !== 'busy'"
+              (click)="cancelConversation($event, conv)"
+            >
+              {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
+            </button>
+          </td>
         </tr>
       }
     </tbody>

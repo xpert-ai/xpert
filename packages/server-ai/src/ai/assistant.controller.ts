@@ -66,6 +66,7 @@ function transformAssistant(xpert: IXpert) {
 			avatar: xpert.avatar,
 			slug: xpert.slug,
 			type: xpert.type,
+			title: xpert.title,
 			tags: xpert.tags?.length ? xpert.tags : undefined,
 		}, isNil),
 		context: null
