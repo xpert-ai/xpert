@@ -4,6 +4,8 @@ import type { RedisClientType } from 'redis'
 import { randomUUID } from 'crypto'
 import { Observable } from 'rxjs'
 
+const SSE_COMPLETE_EVENT = 'complete'
+
 interface StreamEntry {
 	id: string
 	data: unknown
@@ -12,7 +14,7 @@ interface StreamEntry {
 export interface SseMessageEvent {
 	data: unknown
 	id?: string
-	event?: string
+	type?: string
 	retry?: number
 }
 
@@ -72,6 +74,10 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 		}
 	}
 
+	async appendCompleteEvent(threadId: string, runId: string, payload?: Record<string, unknown>) {
+		return this.appendEvent(threadId, runId, { ...(payload ?? {}), type: SSE_COMPLETE_EVENT })
+	}
+
 	async createSseStream(options: CreateSseStreamOptions) {
 		const { threadId, runId } = options
 		const streamKey = this.getStreamKey(threadId, runId)
@@ -94,6 +100,24 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 			const readBlockMs = this.getReadBlockMs()
 			const readCount = this.getReadCount()
 
+			const emitEntry = (entry: StreamEntry) => {
+				if (!active) return true
+				const isComplete = this.isCompletePayload(entry.data)
+				const message: SseMessageEvent = {
+					id: entry.id,
+					data: entry.data,
+					...(isComplete ? { type: SSE_COMPLETE_EVENT } : {})
+				}
+				subscriber.next(message)
+				lastId = entry.id
+				if (isComplete) {
+					active = false
+					subscriber.complete()
+					return true
+				}
+				return false
+			}
+
 			const refreshInterval = setInterval(() => {
 				this.refreshLock(lockKey, lockId, lockTtl).catch((err) => {
 					this.#logger.warn(`Failed to refresh SSE lock: ${err}`)
@@ -106,8 +130,9 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 						const replayEntries = await this.readRange(streamKey, lastId, readCount)
 						for (const entry of replayEntries) {
 							if (!active) return
-							subscriber.next({ id: entry.id, data: entry.data })
-							lastId = entry.id
+							if (emitEntry(entry)) {
+								return
+							}
 						}
 					}
 
@@ -118,8 +143,9 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 						}
 						for (const entry of entries) {
 							if (!active) return
-							subscriber.next({ id: entry.id, data: entry.data })
-							lastId = entry.id
+							if (emitEntry(entry)) {
+								return
+							}
 						}
 					}
 				} catch (error) {
@@ -189,7 +215,15 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 		}
 	}
 
+	private isCompletePayload(data: unknown) {
+		return typeof data === 'object' && data !== null && (data as { type?: string }).type === SSE_COMPLETE_EVENT
+	}
+
 	private normalizeStartId(lastEventId: string | undefined, mode: 'create' | 'join') {
+		const normalized = lastEventId?.trim()
+		if (normalized) {
+			return normalized
+		}
 		return '0-0'
 	}
 

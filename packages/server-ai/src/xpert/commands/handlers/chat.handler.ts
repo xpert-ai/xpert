@@ -265,6 +265,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 										}
 										case (ChatMessageEventTypeEnum.ON_CHAT_EVENT): {
 											if (event.data.data?.type === 'sandbox') {
+												conversation.options ??= {}
 												conversation.options.features ??= []
 												conversation.options.features.push('sandbox')
 												conversation.options.features = uniq(conversation.options.features)
@@ -310,9 +311,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(entity))
 
 								// Update ai message
-								aiMessage.status = _execution?.status ?? status
 								if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
+									aiMessage.status = XpertAgentExecutionStatusEnum.ERROR
 									aiMessage.error = _execution.error
+								} else if (status) {
+									aiMessage.status = status
+									aiMessage.error = error
 								}
 								await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
 

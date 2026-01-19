@@ -2,7 +2,7 @@ import { STATE_VARIABLE_HUMAN, TChatRequest, XpertAgentExecutionStatusEnum } fro
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
-import { map, tap } from 'rxjs/operators'
+import { finalize, map, tap } from 'rxjs/operators'
 import z from 'zod'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import { FindXpertQuery, XpertChatCommand } from '../../../xpert'
@@ -119,6 +119,11 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 				tap((message) => {
 					this.redisSseStreamService.appendEvent(threadId, execution.id, message.data).catch((error) => {
 						this.#logger.warn(`Failed to persist SSE event: ${error}`)
+					})
+				}),
+				finalize(() => {
+					this.redisSseStreamService.appendCompleteEvent(threadId, execution.id).catch((error) => {
+						this.#logger.warn(`Failed to persist SSE complete event: ${error}`)
 					})
 				})
 			)
