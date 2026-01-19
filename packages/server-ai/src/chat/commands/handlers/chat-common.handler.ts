@@ -98,7 +98,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 	public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
 		const { tenantId, organizationId, user, from: chatFrom } = command.options
-		const { conversationId, projectId, input, retry, confirm } = command.request
+		const { conversationId, projectId, input, retry, confirm, checkpointId } = command.request as { checkpointId?: string } & typeof command.request
 		const userId = RequestContext.currentUserId()
 		const languageCode = command.options.language || user.preferredLanguage || 'en-US'
 
@@ -239,7 +239,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					// Run
 					const config = {
 						thread_id,
-						checkpoint_ns: ''
+						checkpoint_ns: '',
+						// Use checkpoint id to resume thread state when retrying
+						...(checkpointId ? { checkpoint_id: checkpointId } : {})
 					}
 					let graphInput = null
 					// if (reject) {

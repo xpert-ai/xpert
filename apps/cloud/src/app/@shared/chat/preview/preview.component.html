@@ -215,7 +215,8 @@
       }
     }
 
-    @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
+    @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation() && showOperationPanel()) {
+      <!-- Operation panel appears only when inputs are required -->
       <xp-xpert-agent-operation class="w-full mb-8 bg-components-card-bg"
         [readonly]="readonly()"
         [operation]="operation()"

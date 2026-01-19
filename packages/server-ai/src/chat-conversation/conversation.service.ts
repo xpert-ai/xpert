@@ -8,8 +8,10 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
 import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
+import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CreateCopilotStoreCommand } from '../copilot-store'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
+import { XpertAgentExecutionOneQuery } from '../xpert-agent-execution/queries/get-one.query'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationPublicDTO } from './dto'
 
@@ -20,6 +22,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 	constructor(
 		@InjectRepository(ChatConversation)
 		public repository: Repository<ChatConversation>,
+		@InjectRepository(CopilotCheckpoint)
+		private readonly checkpointRepository: Repository<CopilotCheckpoint>,
 		private readonly messageService: ChatMessageService,
 		readonly commandBus: CommandBus,
 		readonly queryBus: QueryBus,
@@ -147,5 +151,54 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 	async getAttachments(id: string) {
 		const conversation = await this.findOne(id, { relations: ['attachments'] })
 		return conversation.attachments
+	}
+
+	async rollbackToMessage(conversationId: string, messageId: string) {
+		// Rollback conversation to the nearest human message before the target
+		const conversation = await this.findOne(conversationId, { relations: ['messages'] })
+		const messages = [...(conversation.messages ?? [])].sort((a, b) => {
+			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+		})
+		const targetIndex = messages.findIndex((message) => message.id === messageId)
+		if (targetIndex < 0) {
+			throw new Error('Message not found')
+		}
+		let humanIndex = -1
+		for (let i = targetIndex; i >= 0; i--) {
+			if (['human', 'user'].includes(messages[i].role as string)) {
+				humanIndex = i
+				break
+			}
+		}
+		if (humanIndex < 0) {
+			throw new Error('Human message not found')
+		}
+		const messagesToDelete = messages.slice(humanIndex + 1)
+		if (messagesToDelete.length) {
+			await this.messageService.deleteByIds(messagesToDelete.map((message) => message.id))
+		}
+		await this.repository.update(conversationId, {
+			status: 'idle',
+			error: null
+		})
+		let rollbackCheckpointId: string = null
+		const targetExecutionId = messages[targetIndex]?.executionId
+		if (targetExecutionId) {
+			const execution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(targetExecutionId))
+			if (execution?.checkpointId) {
+				const checkpoint = await this.checkpointRepository.findOne({
+					where: {
+						thread_id: conversation.threadId,
+						checkpoint_ns: execution.checkpointNs ?? '',
+						checkpoint_id: execution.checkpointId
+					}
+				})
+				rollbackCheckpointId = checkpoint?.parent_id ?? execution.checkpointId
+			}
+		}
+		return {
+			checkpointId: rollbackCheckpointId,
+			humanMessageId: messages[humanIndex]?.id
+		}
 	}
 }

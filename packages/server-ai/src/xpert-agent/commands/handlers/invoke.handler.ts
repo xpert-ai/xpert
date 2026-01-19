@@ -41,7 +41,7 @@ import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService } from '../../../environment'
-import { getWorkspace, VolumeClient } from '../../../shared'
+import { createHumanMessage, getWorkspace, VolumeClient } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 
 @CommandHandler(XpertAgentInvokeCommand)
@@ -120,7 +120,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const thread_id = command.options.thread_id
 		const config = {
 			thread_id,
-			checkpoint_ns: ''
+			checkpoint_ns: '',
+			// Use checkpoint id to resume thread state when retrying
+			...(options.checkpointId ? { checkpoint_id: options.checkpointId } : {})
 		}
 
 		const recordLastState = async () => {
@@ -170,13 +172,35 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			}
 		} else if(state[STATE_VARIABLE_HUMAN]) {
 			const volumeClient = new VolumeClient({tenantId, catalog: 'users', userId, projectId: options.projectId})
+			const agentChannel = channelName(agent.key)
+			const hasRootMessages = !!state?.messages?.length
+			const hasAgentMessages = !!state?.[agentChannel]?.messages?.length
+			const shouldInjectHumanMessage = !hasRootMessages && !hasAgentMessages && !!state[STATE_VARIABLE_HUMAN]?.input
+			const humanMessage = shouldInjectHumanMessage
+				? await createHumanMessage(
+						this.commandBus,
+						this.queryBus,
+						{ [STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN] },
+						agent.options?.vision
+					)
+				: null
 			graphInput = {
+				...(state ?? {}),
 				...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
 				/**
 				 * @deprecated use `human.input` instead
 				 */
 				input: state[STATE_VARIABLE_HUMAN].input,
-				...(state ?? {}),
+				// Ensure graph has the real human message for execution logs and prompt input
+				...(shouldInjectHumanMessage
+					? {
+							messages: [humanMessage],
+							[agentChannel]: {
+								...(state?.[agentChannel] ?? {}),
+								messages: [humanMessage]
+							}
+						}
+					: {}),
 				[STATE_VARIABLE_SYS]: {
 					language: languageCode,
 					user_email: user.email,

@@ -519,6 +519,10 @@ export type TChatOptions = {
   xpertId?: string
   conversationId?: string
   /**
+   * Optional checkpoint id to resume thread state
+   */
+  checkpointId?: string
+  /**
    * The language used by the current browser page
    */
   language?: LanguagesEnum

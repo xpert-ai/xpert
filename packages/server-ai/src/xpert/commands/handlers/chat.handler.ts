@@ -51,7 +51,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 	public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
 		const { options } = c
-		const { projectId, conversationId, confirm, command } = c.request
+		const { projectId, conversationId, confirm, command, checkpointId } = c.request as { checkpointId?: string } & typeof c.request
 		let { input, state } = c.request
 		const { xpertId, taskId, from, fromEndUserId } = options ?? {}
 		let { execution } = options ?? {}
@@ -227,6 +227,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					agentObservable = await this.commandBus.execute<XpertAgentChatCommand, Promise<Observable<MessageEvent>>>(
 						new XpertAgentChatCommand(state, xpert.agent.key, xpert, {
 							...(options ?? {}),
+							checkpointId,
 							store: memoryStore,
 							conversationId: conversation.id,
 							isDraft: options?.isDraft,

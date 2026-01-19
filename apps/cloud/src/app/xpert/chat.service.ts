@@ -278,6 +278,7 @@ export abstract class ChatService {
        */
       reject: boolean
       retry: boolean
+      checkpointId?: string
     }>
   ) {
     this.answering.set(true)
@@ -300,20 +301,23 @@ export abstract class ChatService {
       // })
     }
 
+    const request = {
+      input: {
+        ...(this.parametersValue() ?? {}),
+        input: options.content,
+        files: options.files
+      },
+      conversationId: this.conversation()?.id,
+      id: options.id,
+      command: options.command,
+      confirm: options.confirm,
+      retry: options.retry,
+      checkpointId: options.checkpointId
+    } as TChatRequest & { checkpointId?: string }
+
     this.chatSubscription = this.chatRequest(
       this.xpert()?.slug,
-      {
-        input: {
-          ...(this.parametersValue() ?? {}),
-          input: options.content,
-          files: options.files
-        },
-        conversationId: this.conversation()?.id,
-        id: options.id,
-        command: options.command,
-        confirm: options.confirm,
-        retry: options.retry
-      },
+      request,
       {
         xpertId: this.xpert()?.id,
       }
@@ -584,36 +588,57 @@ export abstract class ChatService {
   }
 
   retryMessageById(messageId: string) {
-    // Retry a specific conversation turn based on the previous human message
+    // Rollback to the target message and retry without later context
+    const conversation = this.conversation()
+    if (!conversation?.id) {
+      this.#toastr.error('Conversation not found')
+      return
+    }
     const messages = this.messages()
     const targetIndex = messages.findIndex((message) => message.id === messageId)
     if (targetIndex < 0) {
       this.#toastr.error('Message not found')
       return
     }
-    const previousHuman = messages
-      .slice(0, targetIndex)
-      .reverse()
-      .find((message) => message.role === 'user' || message.role === 'human')
-    if (!previousHuman) {
+    let previousHumanIndex = -1
+    for (let i = targetIndex; i >= 0; i--) {
+      if (messages[i].role === 'user' || messages[i].role === 'human') {
+        previousHumanIndex = i
+        break
+      }
+    }
+    if (previousHumanIndex < 0) {
       this.#toastr.error('Human message not found')
       return
     }
+    const previousHuman = messages[previousHumanIndex]
     const content = messageContentText(previousHuman.content)
     if (!content) {
       this.#toastr.error('Message is empty')
       return
     }
-    const id = uuid()
-    // Add a new human message for the retry action
-    this.appendMessage({
-      id,
-      role: 'user',
-      content,
-      attachments: previousHuman.attachments as IStorageFile[]
+    const truncatedMessages = messages.slice(0, previousHumanIndex + 1)
+    this.conversationService.rollback(conversation.id, messageId).subscribe({
+      next: (result) => {
+        // Trim local messages to keep UI in sync with server rollback
+        this.#messages.update(() => [...(truncatedMessages as TCopilotChatMessage[])])
+        this.updateConversation({
+          status: 'busy',
+          error: null
+        })
+        this.chat({
+          // Reuse the original human message id to avoid duplicate replies
+          id: result?.humanMessageId ?? previousHuman.id,
+          content,
+          files: previousHuman.attachments as IStorageFile[],
+          retry: true,
+          checkpointId: result?.checkpointId
+        })
+      },
+      error: (error) => {
+        this.#toastr.error(getErrorMessage(error))
+      }
     })
-    // Trigger retry with the original input content and attachments
-    this.chat({ id, content, files: previousHuman.attachments as IStorageFile[] })
   }
 
   // Abstract methods
