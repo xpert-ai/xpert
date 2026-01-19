@@ -17,6 +17,7 @@ import {
   IXpert,
   IXpertProject,
   IXpertToolset,
+  messageContentText,
   shortTitle,
   TChatMessageStep,
   TChatOptions,
@@ -580,6 +581,39 @@ export abstract class ChatService {
         error: event.data.error
       }
     })
+  }
+
+  retryMessageById(messageId: string) {
+    // Retry a specific conversation turn based on the previous human message
+    const messages = this.messages()
+    const targetIndex = messages.findIndex((message) => message.id === messageId)
+    if (targetIndex < 0) {
+      this.#toastr.error('Message not found')
+      return
+    }
+    const previousHuman = messages
+      .slice(0, targetIndex)
+      .reverse()
+      .find((message) => message.role === 'user' || message.role === 'human')
+    if (!previousHuman) {
+      this.#toastr.error('Human message not found')
+      return
+    }
+    const content = messageContentText(previousHuman.content)
+    if (!content) {
+      this.#toastr.error('Message is empty')
+      return
+    }
+    const id = uuid()
+    // Add a new human message for the retry action
+    this.appendMessage({
+      id,
+      role: 'user',
+      content,
+      attachments: previousHuman.attachments as IStorageFile[]
+    })
+    // Trigger retry with the original input content and attachments
+    this.chat({ id, content, files: previousHuman.attachments as IStorageFile[] })
   }
 
   // Abstract methods

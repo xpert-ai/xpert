@@ -35,6 +35,7 @@ import {
   IChatMessageFeedback,
   IStorageFile,
   IXpert,
+  messageContentText,
   SynthesizeService,
   TInterruptCommand,
   ToastrService,
@@ -255,7 +256,7 @@ export class ChatConversationPreviewComponent {
     })
   }
 
-  chat(options?: { input?: string; confirm?: boolean;
+  chat(options?: { input?: string; confirm?: boolean; files?: IStorageFile[];
     /**
      * @deprecated use confirm with command resume instead
      */
@@ -267,13 +268,16 @@ export class ChatConversationPreviewComponent {
     this.suggestionQuestions.set([]) // Clear suggestions after selection
     this.loading.set(true)
 
+    const requestFiles = options?.files ?? this.files()
+    const shouldClearAttachments = !options?.files
+
     if (options?.input) {
       // Add to user message
       this.appendMessage({
         role: 'human',
         content: options.input,
         id: uuid(),
-        attachments: this.files()
+        attachments: requestFiles
       })
       this.input.set('')
       this.currentMessage.set({
@@ -305,7 +309,7 @@ export class ChatConversationPreviewComponent {
           input: {
             ...(this.parameterValue() ?? {}),
             input: options?.input,
-            files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()}))
+            files: requestFiles?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()}))
           },
           conversationId: this.conversation()?.id,
           environmentId: this.environmentId(),
@@ -394,8 +398,10 @@ export class ChatConversationPreviewComponent {
         }
       })
 
-    // Clear
-    this.attachments.set([])
+    // Clear only when using current attachments
+    if (shouldClearAttachments) {
+      this.attachments.set([])
+    }
   }
 
   onChatError(message: string) {
@@ -604,6 +610,37 @@ export class ChatConversationPreviewComponent {
     } else {
       this.close.emit()
     }
+  }
+
+  onRetryMessage(message: IChatMessage) {
+    // Retry the previous human message for the selected AI response
+    const previousHuman = this.findPreviousHumanMessage(message?.id)
+    if (!previousHuman) {
+      this.#toastr.error('Human message not found')
+      return
+    }
+    const content = messageContentText(previousHuman.content)
+    if (!content) {
+      this.#toastr.error('Message is empty')
+      return
+    }
+    this.chat({
+      input: content,
+      files: previousHuman.attachments as IStorageFile[]
+    })
+  }
+
+  private findPreviousHumanMessage(messageId?: string) {
+    // Find the nearest human message before the target message
+    const messages = this.messages()
+    const index = messages?.findIndex((item) => item.id === messageId) ?? -1
+    if (index < 0) {
+      return null
+    }
+    return messages
+      .slice(0, index)
+      .reverse()
+      .find((item) => item.role === 'human' || item.role === 'user') ?? null
   }
 
   readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading
