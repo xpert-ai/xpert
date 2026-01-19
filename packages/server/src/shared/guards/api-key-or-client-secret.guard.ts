@@ -1,6 +1,8 @@
 import { ExecutionContext, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AuthGuard as PassportAuthGaurd } from '@nestjs/passport'
+import { isObservable, lastValueFrom, Observable } from 'rxjs'
+import { CoreAuthGuard } from './core-auth.guard'
 
 const CLIENT_SECRET_PREFIX = 'cs-x-'
 
@@ -23,6 +25,29 @@ export class ApiKeyOrClientSecretAuthGuard extends PassportAuthGaurd('api-key') 
 			return guard.canActivate(context)
 		}
 
-		return super.canActivate(context)
+		return this.tryApiKeyOrFallbackAuth(context)
+	}
+
+	private async tryApiKeyOrFallbackAuth(context: ExecutionContext): Promise<boolean> {
+		try {
+			const apiKeyResult = await this.resolveCanActivate(super.canActivate(context))
+			if (apiKeyResult) {
+				return true
+			}
+		} catch (error) {
+			// Ignore api-key errors and try JWT/basic/oidc.
+		}
+
+		const guard = new CoreAuthGuard(this._reflector)
+		return this.resolveCanActivate(guard.canActivate(context))
+	}
+
+	private async resolveCanActivate(
+		result: boolean | Promise<boolean> | Observable<boolean>
+	): Promise<boolean> {
+		if (isObservable(result)) {
+			return lastValueFrom(result)
+		}
+		return await result
 	}
 }

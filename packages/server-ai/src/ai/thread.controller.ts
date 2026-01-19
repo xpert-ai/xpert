@@ -150,10 +150,7 @@ export class ThreadsController {
 	 */
 	@Post(':thread_id/runs')
 	async createRun(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
-		const { stream, execution } = await this.commandBus.execute<
-			RunCreateStreamCommand,
-			{ stream: Observable<MessageEvent>; execution: IXpertAgentExecution }
-		>(new RunCreateStreamCommand(thread_id, body))
+		const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
 		stream.subscribe()
 		return transformRun(execution)
 	}
@@ -176,10 +173,7 @@ export class ThreadsController {
 		@Body() body: components['schemas']['RunCreateStateful'],
 		@Headers('last-event-id') lastEventId?: string
 	) {
-		const { stream, execution } = await this.commandBus.execute<
-			RunCreateStreamCommand,
-			{ stream: Observable<MessageEvent>; execution: IXpertAgentExecution }
-		>(new RunCreateStreamCommand(thread_id, body))
+		const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
 		stream.subscribe()
 		const { lockId, stream: sseStream } = await this.redisSseStreamService.createSseStream({
 			threadId: thread_id,

@@ -16,7 +16,10 @@ type JwtPayload = {
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 	constructor(private readonly authService: AuthService, private readonly configService: ConfigService) {
 		super({
-			jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+			jwtFromRequest: ExtractJwt.fromExtractors([
+				ExtractJwt.fromAuthHeaderAsBearerToken(),
+				ExtractJwt.fromHeader('x-api-key'), // when `jwt` in `x-api-key` header
+			]),
 			ignoreExpiration: false,
 			secretOrKey: configService.get('JWT_SECRET')
 		});
