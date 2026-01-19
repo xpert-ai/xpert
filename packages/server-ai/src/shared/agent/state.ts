@@ -128,12 +128,15 @@ export function stateWithEnvironment(state: typeof AgentStateAnnotation.State, e
  * 
  * - `getBufferString` for message list.
  * - Convert other state variables to string or JSON.
+ * - Expand user params from `human.__params__` to top level for template access.
  *
  * @param state
  * @param environment
  * @returns
  */
 export function stateToParameters(state: typeof AgentStateAnnotation.State, environment?: IEnvironment) {
+	// Extract user params stored in human.__params__ (added by invoke.handler)
+	const userParams = (state.human as Record<string, unknown>)?.__params__ as Record<string, unknown> || {}
 	return {
 		...stateWithEnvironment(state, environment),
 		...Object.keys(state).reduce((acc, key) => {
@@ -154,6 +157,8 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State, envi
 
 			return acc
 		}, {}),
+		// Spread user params to top level so template can access {{aaaa}}, {{bbb}}, etc.
+		...userParams,
   }
 }
 

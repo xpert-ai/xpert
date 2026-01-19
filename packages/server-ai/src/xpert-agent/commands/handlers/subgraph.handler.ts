@@ -754,10 +754,31 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				// Is new human input: use message templates or input message
 				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
 				if (humanTemplates?.length) {
-					for await (const temp of humanTemplates) {
-						humanMessages.push(await HumanMessagePromptTemplate.fromTemplate(temp.text, {
-							templateFormat: 'mustache'
-						}).format(parameters))
+					// Check if templates reference {{input}} or {{human.input}}
+					const allTemplateText = humanTemplates.map(t => t.text ?? '').join('')
+					const inputReferenced = /{{\s*(input|human\.input)\s*}}/.test(allTemplateText)
+					
+					if (inputReferenced) {
+						// Templates include user input, render them normally
+						for await (const temp of humanTemplates) {
+							humanMessages.push(await HumanMessagePromptTemplate.fromTemplate(temp.text, {
+								templateFormat: 'mustache'
+							}).format(parameters))
+						}
+					} else if (state.human?.input) {
+						// Templates don't include user input, skip template rendering
+						// and send structured message with parameter names and values in JSON format
+						const { input: userInput, files, __params__, ...otherHumanParams } = state.human as Record<string, unknown>
+						const userParams = __params__ || otherHumanParams
+						const hasParams = userParams && Object.keys(userParams).length > 0
+						
+						let messageContent = ''
+						if (hasParams) {
+							messageContent += `Input parameters:\n\`\`\`json\n${JSON.stringify(userParams, null, 2)}\n\`\`\`\n\n`
+						}
+						messageContent += `Question: ${userInput}`
+						
+						humanMessages.push(new HumanMessage(messageContent))
 					}
 				}
 				if (!humanMessages.length && state.human) {

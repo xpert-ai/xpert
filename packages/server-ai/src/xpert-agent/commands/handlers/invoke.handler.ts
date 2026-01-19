@@ -44,6 +44,39 @@ import { EnvironmentService } from '../../../environment'
 import { getWorkspace, VolumeClient } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 
+/**
+ * Expand dotted string keys into nested objects.
+ * e.g., {"sys.language": "hello"} => {sys: {language: "hello"}}
+ * 
+ * @param obj - The object with dotted keys
+ * @returns A new object with nested structure
+ */
+function expandDottedKeys(obj: Record<string, unknown>): Record<string, unknown> {
+	if (!obj || typeof obj !== 'object') {
+		return obj
+	}
+	const result: Record<string, unknown> = {}
+	for (const [key, value] of Object.entries(obj)) {
+		if (key.includes('.')) {
+			// Split dotted key and create nested structure
+			const parts = key.split('.')
+			let current = result
+			for (let i = 0; i < parts.length - 1; i++) {
+				const part = parts[i]
+				if (!current[part] || typeof current[part] !== 'object') {
+					current[part] = {}
+				}
+				current = current[part] as Record<string, unknown>
+			}
+			current[parts[parts.length - 1]] = value
+		} else {
+			// Keep non-dotted keys as-is
+			result[key] = value
+		}
+	}
+	return result
+}
+
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
 	readonly #logger = new Logger(XpertAgentInvokeHandler.name)
@@ -170,25 +203,37 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			}
 		} else if(state[STATE_VARIABLE_HUMAN]) {
 			const volumeClient = new VolumeClient({tenantId, catalog: 'users', userId, projectId: options.projectId})
+			// Expand dotted keys (e.g., "sys.language" -> {sys: {language: ...}})
+			// so mustache template can access them as {{sys.language}}
+			const humanParams = expandDottedKeys(omit(state[STATE_VARIABLE_HUMAN], 'input', 'files') as Record<string, unknown>)
+			// System default variables
+			const sysDefaults = {
+				language: languageCode,
+				user_email: user.email,
+				timezone: user.timeZone || options.timeZone,
+				date: format(new Date(), 'yyyy-MM-dd'),
+				datetime: new Date().toLocaleString(),
+				[STATE_SYS_VOLUME]: volumeClient.getVolumePath(getWorkspace(options.projectId, options.conversationId)),
+				[STATE_SYS_WORKSPACE_PATH]: await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, options.thread_id),
+				[STATE_SYS_WORKSPACE_URL]: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.thread_id)
+			}
+			// Merge system defaults with user-provided sys params (user params take precedence)
+			const userSysParams = (humanParams[STATE_VARIABLE_SYS] as Record<string, unknown>) || {}
 			graphInput = {
-				...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
 				/**
 				 * @deprecated use `human.input` instead
 				 */
 				input: state[STATE_VARIABLE_HUMAN].input,
 				...(state ?? {}),
 				[STATE_VARIABLE_SYS]: {
-					language: languageCode,
-					user_email: user.email,
-					timezone: user.timeZone || options.timeZone,
-					date: format(new Date(), 'yyyy-MM-dd'),
-					datetime: new Date().toLocaleString(),
-					[STATE_SYS_VOLUME]: volumeClient.getVolumePath(getWorkspace(options.projectId, options.conversationId)),
-					[STATE_SYS_WORKSPACE_PATH]: await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, options.thread_id),
-					[STATE_SYS_WORKSPACE_URL]: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.thread_id)
+					...sysDefaults,
+					...userSysParams  // User params override system defaults
 				},
 				[STATE_VARIABLE_HUMAN]: {
 					...state[STATE_VARIABLE_HUMAN],
+					// Store expanded user params in human object for template access
+					// (LangGraph state schema only accepts defined keys, custom keys are ignored)
+					__params__: humanParams
 				},
 				memories
 			}
