@@ -76,13 +76,11 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 				// searchContent in metadata contains only indexed fields for retrieval matching
 				const metadata: any = { raw: row, documentId: doc.id, chunkId: uuid() }
 				
-				// If indexedFields exist, store searchContent (indexed fields only) in metadata for vectorization
-				// Store full pageContent in metadata to restore after retrieval
+				// Build full pageContent for display and persistence
 				const fullPageContent = JSON.stringify(row)
 				if (parserConfig?.indexedFields?.length) {
+					// Store indexed fields only for vectorization when configured
 					metadata.searchContent = JSON.stringify(pick(row, parserConfig.indexedFields))
-					// Store full content in metadata for restoration after retrieval
-					metadata.fullPageContent = fullPageContent
 				}
 				
 				documents.push(

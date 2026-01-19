@@ -164,15 +164,14 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 									let count = 0
 									while (batchSize * count < chunks.length) {
 										const batch = chunks.slice(batchSize * count, batchSize * (count + 1))
-									// Count and Record token usage
-									// For table documents with indexedFields, count tokens based on searchContent (what gets vectorized)
-									// Otherwise, count tokens based on full pageContent
-									let tokenUsed = 0
-									batch.forEach((chunk) => {
-										const contentForEmbedding = chunk.metadata?.searchContent ?? chunk.pageContent
-										chunk.metadata.tokens = countTokensSafe(contentForEmbedding)
-										tokenUsed += chunk.metadata.tokens
-									})
+										// Count and Record token usage for embedding
+										// Use searchContent when present, otherwise fall back to full pageContent
+										let tokenUsed = 0
+										batch.forEach((chunk) => {
+											const contentForEmbedding = chunk.metadata?.searchContent ?? chunk.pageContent
+											chunk.metadata.tokens = countTokensSafe(contentForEmbedding)
+											tokenUsed += chunk.metadata.tokens
+										})
 										docTokenUsed += tokenUsed
 										await this.commandBus.execute(
 											new CopilotTokenRecordCommand({

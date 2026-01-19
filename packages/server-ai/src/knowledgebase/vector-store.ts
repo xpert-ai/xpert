@@ -49,11 +49,15 @@ export class KnowledgeDocumentStore {
 			// If searchContent exists in metadata, use it for vectorization (indexed fields only)
 			// Store full pageContent in metadata for later restoration
 			if (chunk.metadata?.searchContent) {
-				// Preserve full pageContent in metadata
-				chunk.metadata.fullPageContent = chunk.pageContent
-				// Use searchContent (indexed fields only) for vectorization
+				// Clone metadata to avoid mutating the original chunk
 				return {
 					...chunk,
+					metadata: {
+						...chunk.metadata,
+						// Preserve full pageContent for later restoration
+						fullPageContent: chunk.pageContent
+					},
+					// Use searchContent (indexed fields only) for vectorization
 					pageContent: chunk.metadata.searchContent
 				}
 			}
