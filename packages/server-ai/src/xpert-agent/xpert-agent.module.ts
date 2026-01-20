@@ -17,6 +17,7 @@ import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
 import { Strategies, Validators as PluginValidators } from './plugins'
 import { ExecutionCancelModule } from '../shared'
+import { SandboxModule } from '../sandbox/sandbox.module'
 
 @Module({
 	imports: [
@@ -31,7 +32,8 @@ import { ExecutionCancelModule } from '../shared'
 		XpertAgentExecutionModule,
 		forwardRef(() => XpertModule),
 		forwardRef(() => EnvironmentModule),
-		ExecutionCancelModule
+		ExecutionCancelModule,
+		SandboxModule
 	],
 	controllers: [XpertAgentController],
 	providers: [

@@ -44,6 +44,7 @@ import { GetXpertMemoryEmbeddingsQuery } from './queries'
 import { EventNameXpertValidate, QUEUE_XPERT_TRIGGER, TTriggerJob, XpertDraftValidateEvent } from './types'
 import { FreeNodeValidator } from './validators'
 import { Xpert } from './xpert.entity'
+import { SandboxService } from '../sandbox/sandbox.service'
 
 @Injectable()
 export class XpertService extends TenantOrganizationAwareCrudService<Xpert> implements OnModuleInit {
@@ -58,6 +59,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 		private readonly queryBus: QueryBus,
 		private readonly eventEmitter: EventEmitter2,
 		private readonly triggerRegistry: WorkflowTriggerRegistry,
+		private readonly sandboxService: SandboxService,
 		private readonly redisLockService: RedisLockService,
 		@InjectQueue(QUEUE_XPERT_TRIGGER)
 		private triggerQueue: Queue<TTriggerJob>
@@ -487,6 +489,10 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 		return this.triggerRegistry.list().map((provider) => ({
 			...provider.meta
 		}))
+	}
+
+	async getSandboxProviders() {
+		return this.sandboxService.listProviders()
 	}
 
 	async publishTriggers(xpert: IXpert) {

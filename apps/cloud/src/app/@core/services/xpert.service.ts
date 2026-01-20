@@ -1,6 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { injectXpertPreferences, LanguagesEnum, LongTermMemoryTypeEnum, PaginationParams, TCopilotStore, timeRangeToParams, TMemoryQA, TMemoryUserProfile, toHttpParams, TWorkflowTriggerMeta } from '@metad/cloud/state'
+import { injectXpertPreferences, LanguagesEnum, LongTermMemoryTypeEnum, PaginationParams, TCopilotStore, timeRangeToParams, TMemoryQA, TMemoryUserProfile, toHttpParams, TSandboxProviderMeta, TWorkflowTriggerMeta } from '@metad/cloud/state'
 import { toParams } from '@metad/ocap-angular/core'
 import { HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -40,6 +40,11 @@ export type TXpertVariablesOptions = {
   isDraft?: boolean;
   connections: string[];
   inputs?: string[];
+}
+
+export type TSandboxProvider = {
+  type: string
+  meta: TSandboxProviderMeta
 }
 
 
@@ -326,6 +331,10 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   getTriggerProviders() {
     return this.httpClient.get<TWorkflowTriggerMeta[]>(this.apiBaseUrl + `/triggers/providers`)
+  }
+
+  getSandboxProviders() {
+    return this.httpClient.get<TSandboxProvider[]>(this.apiBaseUrl + `/sandbox/providers`)
   }
 
   // Statistics

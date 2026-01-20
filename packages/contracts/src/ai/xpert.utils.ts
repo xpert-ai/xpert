@@ -9,6 +9,13 @@ export function omitXpertRelations(xpert: Partial<IXpert>) {
   return rest
 }
 
+/**
+ * Figure out latest xpert or draft xpert.
+ * 
+ * @param xpert 
+ * @param isDraft Is draft
+ * @returns 
+ */
 export function figureOutXpert(xpert: IXpert, isDraft: boolean) {
   return (isDraft ? xpert.draft?.team : xpert) ?? xpert
 }

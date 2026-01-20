@@ -17,10 +17,21 @@ import { XpertStudioFeaturesSuggestionComponent } from './suggestion/suggestion.
 import { XpertStudioFeaturesTTSComponent } from './tts/tts.component'
 import { XpertStudioFeaturesSTTComponent } from './stt/stt.component'
 import { XpertStudioFeaturesMemoryReplyComponent } from './memory-reply/memory-reply.component'
+import { XpertStudioFeaturesSandboxComponent } from './sandbox/sandbox.component'
 import { linkedXpertFeaturesModel } from './types'
 import { injectHelpWebsite } from '@cloud/app/@core'
 
-type ViewType = 'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'suggestion' | 'tts' | 'stt' | 'memoryReply'
+type ViewType =
+  | 'summarize'
+  | 'attachment'
+  | 'memory'
+  | 'title'
+  | 'opener'
+  | 'suggestion'
+  | 'tts'
+  | 'stt'
+  | 'memoryReply'
+  | 'sandbox'
 
 @Component({
   selector: 'xpert-studio-features',
@@ -41,7 +52,8 @@ type ViewType = 'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'su
     XpertStudioFeaturesSuggestionComponent,
     XpertStudioFeaturesTTSComponent,
     XpertStudioFeaturesSTTComponent,
-    XpertStudioFeaturesMemoryReplyComponent
+    XpertStudioFeaturesMemoryReplyComponent,
+    XpertStudioFeaturesSandboxComponent
   ],
   templateUrl: './features.component.html',
   styleUrl: './features.component.scss',
@@ -69,6 +81,7 @@ export class XpertStudioFeaturesComponent {
   readonly textToSpeech = attrModel(this.features, 'textToSpeech')
   readonly speechToText = attrModel(this.features, 'speechToText')
   readonly memoryReply = attrModel(this.features, 'memoryReply')
+  readonly sandbox = attrModel(this.features, 'sandbox')
   readonly enabledAttachment = computed(() => this.attachment()?.enabled)
   readonly fileTypes = computed(() => this.attachment()?.fileTypes)
   readonly maxNum = computed(() => this.attachment()?.maxNum)
@@ -78,6 +91,7 @@ export class XpertStudioFeaturesComponent {
   readonly textToSpeech_enabled = attrModel(this.textToSpeech, 'enabled')
   readonly speechToText_enabled = attrModel(this.speechToText, 'enabled')
   readonly memoryReply_enabled = attrModel(this.memoryReply, 'enabled')
+  readonly sandbox_enabled = attrModel(this.sandbox, 'enabled')
 
   toggleView(view: ViewType) {
     this.view.update((state) => (state === view ? null : view))

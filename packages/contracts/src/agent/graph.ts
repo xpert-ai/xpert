@@ -33,6 +33,12 @@ export type TMessageChannel = {
   error?: string | null
 }
 
+export type TSandboxConfigurable = {
+  provider?: string
+  workingDirectory?: string
+  backend?: unknown
+}
+
 export type TAgentRunnableConfigurable = {
   /**
    * Thread id
@@ -62,6 +68,10 @@ export type TAgentRunnableConfigurable = {
    * Execution id of agent workflow node
    */
   executionId: string
+  /**
+   * Sandbox backend context
+   */
+  sandbox?: TSandboxConfigurable
 //   /**
 //    * Knowledge xpert's knowledgebase
 //    */

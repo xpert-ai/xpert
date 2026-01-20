@@ -227,6 +227,38 @@
   <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
     <div class="mb-2 flex items-center gap-2">
       <div class="shrink-0 w-6 h-6 flex justify-center items-center">
+        <i class="ri-terminal-box-fill text-lg text-amber-500"></i>
+      </div>
+      <div class="font-semibold flex grow items-center"
+        [ngClass]="{'text-text-primary': sandbox_enabled(), 'text-text-secondary': !sandbox_enabled()}">
+        {{ 'PAC.Xpert.Sandbox' | translate: {Default: 'Sandbox'} }}</div>
+      
+      <div class="flex items-center">
+        <button type="button" class="btn flex items-center h-8 rounded-lg"
+          [class.text-primary-500]="view() === 'sandbox' && sandbox_enabled()"
+          [disabled]="!sandbox_enabled()"
+          (click)="toggleView('sandbox')"
+        >
+          <i class="ri-settings-5-line text-lg"></i>
+          <div class="ml-1 leading-[18px] text-sm font-medium">{{ 'PAC.Xpert.Settings' | translate: {Default: 'Settings'} }}</div>
+        </button>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+
+        <mat-slide-toggle [(ngModel)]="sandbox_enabled"
+          labelPosition="before"
+          ngm-density small
+        />
+      </div>
+    </div>
+
+    @if (view() === 'sandbox' && sandbox_enabled()) {
+      <xpert-studio-features-sandbox @heightChangeAnimation class="mt-4" />
+    }
+  </div>
+
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
+    <div class="mb-2 flex items-center gap-2">
+      <div class="shrink-0 w-6 h-6 flex justify-center items-center">
         <i class="ri-speak-ai-fill text-lg text-teal-500"></i>
       </div>
       <div class="font-semibold flex grow items-center"

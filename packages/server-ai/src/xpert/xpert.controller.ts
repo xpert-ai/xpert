@@ -158,6 +158,11 @@ export class XpertController extends CrudController<Xpert> {
 	async getTriggerProviders() {
 		return this.service.getTriggerProviders()
 	}
+
+	@Get('sandbox/providers')
+	async getSandboxProviders() {
+		return this.service.getSandboxProviders()
+	}
 	
 	@Get('slug/:slug')
 	async getOneBySlug(@Param('slug') slug: string,) {

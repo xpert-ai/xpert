@@ -33,6 +33,11 @@ export enum XpertTypeEnum {
   Knowledge = 'knowledge',
 }
 
+export type TXpertSandboxFeature = {
+  enabled: boolean
+  provider?: string
+}
+
 export type TXpertFeatures = {
   opener: {
     enabled: boolean
@@ -67,6 +72,11 @@ export type TXpertFeatures = {
     enabled: boolean
     scoreThreshold?: number
   }
+
+  /**
+   * Sandbox feature
+   */
+  sandbox?: TXpertSandboxFeature
 }
 
 export type TXpert = {

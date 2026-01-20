@@ -19,6 +19,7 @@ import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { BullModule } from '@nestjs/bull'
 import { QUEUE_XPERT_TRIGGER } from './types'
 import { XpertTriggerConsumer } from './jobs/trigger.job'
+import { SandboxModule } from '../sandbox/sandbox.module'
 
 @Module({
     imports: [
@@ -33,6 +34,7 @@ import { XpertTriggerConsumer } from './jobs/trigger.job'
         forwardRef(() => UserModule),
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => EnvironmentModule),
+        SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,
         BullModule.registerQueue({

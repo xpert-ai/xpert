@@ -18,13 +18,16 @@ import {
 	STATE_SYS_WORKSPACE_URL,
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
+	TSandboxConfigurable,
 	TInterruptCommand,
 	TXpertAgentConfig,
-	XpertAgentExecutionStatusEnum
+	XpertAgentExecutionStatusEnum,
+	figureOutXpert,
+	IXpert
 } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
-import { omit } from '@metad/server-common'
+import { getErrorMessage, omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
@@ -40,6 +43,7 @@ import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService } from '../../../environment'
 import { getWorkspace, VolumeClient, ExecutionCancelService } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
+import { SandboxService } from '../../../sandbox/sandbox.service'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -52,6 +56,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		private readonly envService: EnvironmentService,
 		private readonly i18nService: I18nService,
 		private readonly executionCancelService: ExecutionCancelService,
+		private readonly sandboxService: SandboxService,
 	) {}
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
@@ -63,6 +68,40 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const user = RequestContext.currentUser()
 		const mute = [] as TXpertAgentConfig['mute']
 		let unmutes = [] as TXpertAgentConfig['mute']
+		const threadId = options.thread_id
+		const workspacePath = await VolumeClient.getWorkspacePath(
+			tenantId,
+			options.projectId,
+			userId,
+			threadId
+		)
+		const workspaceUrl = VolumeClient.getWorkspaceUrl(options.projectId, userId, threadId)
+		const sessionId = options.conversationId ?? threadId ?? execution?.id
+		let sandboxContext: TSandboxConfigurable = null
+		const latestXpert = figureOutXpert(xpert as IXpert, options?.isDraft)
+		const sandboxFeature = latestXpert.features?.sandbox
+		if (sandboxFeature?.enabled) {
+			const providerType =
+				sandboxFeature.provider ?? this.sandboxService.getDefaultProviderType()
+			if (providerType && sessionId) {
+				try {
+					const backend = await this.sandboxService.getOrCreateBackend({
+						sessionId,
+						provider: providerType,
+						workingDirectory: workspacePath
+					})
+					sandboxContext = {
+						provider: providerType,
+						workingDirectory: workspacePath,
+						backend
+					}
+				} catch (err) {
+					this.#logger.warn(
+						`Sandbox provider "${providerType}" init failed: ${getErrorMessage(err)}`
+					)
+				}
+			}
+		}
 
 		// Env
 		if (!options.environment && xpert.environmentId) {
@@ -185,8 +224,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					date: format(new Date(), 'yyyy-MM-dd'),
 					datetime: new Date().toLocaleString(),
 					[STATE_SYS_VOLUME]: volumeClient.getVolumePath(getWorkspace(options.projectId, options.conversationId)),
-					[STATE_SYS_WORKSPACE_PATH]: await VolumeClient.getWorkspacePath(tenantId, options.projectId, userId, options.thread_id),
-					[STATE_SYS_WORKSPACE_URL]: VolumeClient.getWorkspaceUrl(options.projectId, userId, options.thread_id)
+					[STATE_SYS_WORKSPACE_PATH]: workspacePath,
+					[STATE_SYS_WORKSPACE_URL]: workspaceUrl
 				},
 				[STATE_VARIABLE_HUMAN]: {
 					...state[STATE_VARIABLE_HUMAN],
@@ -209,6 +248,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						executionId: execution.id,
 						xpertId: xpert.id,
 						agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
+						sandbox: sandboxContext,
 						/**
 						 * @deprecated use customEvents instead
 						 */

@@ -1,0 +1,40 @@
+<div class="">
+  <div class="text-sm font-medium uppercase mb-1 text-text-tertiary">
+    {{ 'PAC.Xpert.SandboxProvider' | translate: {Default: 'Sandbox Provider'} }}
+  </div>
+  @if (providers().length === 0) {
+    <div class="text-xs text-text-tertiary">
+      {{ 'PAC.Xpert.NoSandboxProvider' | translate: {Default: 'No sandbox providers available'} }}
+    </div>
+  } @else {
+    <div class="space-y-1">
+      @for (item of providers(); track item.type) {
+        <div
+          class="cursor-pointer select-none rounded-lg border border-components-option-card-option-border bg-components-option-card-option-bg px-3 py-2 hover:border-components-option-card-option-border-hover hover:bg-components-option-card-option-bg-hover"
+          [class.border-primary-500]="isSelected(item.type)"
+          [class.bg-primary-50]="isSelected(item.type)"
+          (click)="selectProvider(item.type)"
+        >
+          <div class="flex items-center">
+            <div class="grow">
+              <div class="text-sm font-medium text-text-primary">
+                {{ item.meta?.name || item.type }}
+              </div>
+              <div class="uppercase text-xs mt-1 text-text-tertiary">
+                {{ item.type }}
+              </div>
+            </div>
+            <div
+              class="flex h-5 w-5 cursor-pointer items-center justify-center rounded-[4px] shadow-xs shadow-shadow-shadow-3 border border-components-checkbox-border bg-components-checkbox-bg-unchecked hover:bg-components-checkbox-bg-unchecked-hover hover:border-components-checkbox-border-hover shrink-0 text-white"
+              [class.bg-components-checkbox-bg]="isSelected(item.type)"
+            >
+              @if (isSelected(item.type)) {
+                <i class="ri-check-line"></i>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
