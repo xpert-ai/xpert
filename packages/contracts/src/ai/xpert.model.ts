@@ -557,6 +557,10 @@ export type TChatOptions = {
    */
   environment?: IEnvironment
   /**
+   * PRO: Specify a sandbox environment container to run in
+   */
+  sandboxEnvironmentId?: string
+  /**
    * Specify additional tools
    */
   tools?: (StructuredToolInterface | RunnableToolLike)[]

@@ -60,6 +60,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 	public async execute(command: RunCreateStreamCommand) {
 		const threadId = command.threadId
 		const runCreate = command.runCreate
+		const sandboxEnvironmentId =
+			(runCreate as { sandbox_environment_id?: string })?.sandbox_environment_id ??
+			(runCreate as { sandboxEnvironmentId?: string })?.sandboxEnvironmentId
 		// Validate and normalize the incoming run input before handling chat request
 		const chatRequest = validateRunCreateInput(runCreate.input)
 
@@ -96,7 +99,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 				{
 					xpertId: xpert.id,
 					from: 'api',
-					execution
+					execution,
+					sandboxEnvironmentId
 				}
 			)
 		)
