@@ -2565,7 +2565,7 @@
       "ProcessDocuments": "处理文档",
       "KnowledgebaseSettings": "知识库设置",
       "KnowledgebaseSettingsDescription": "在这里，您可以修改此知识库的属性和检索设置。",
-      "OnlyIndexedFields": "只有被索引的字段能被检索到，包含其他的全量字段在 metadata 中展示。",
+      "OnlyIndexedFields": "所有表格内容都会参与解析，只有勾选为索引的列内容参与检索匹配。",
       "NameAndIcon": "名称和图标",
       "ModelConfiguration": "模型配置",
       "RetrievalSettings": "检索设置",
