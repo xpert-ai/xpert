@@ -19,7 +19,7 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write   # <- 关键：OIDC 必须要这个 :contentReference[oaicite:4]{index=4}
+      id-token: write   # <- Key point: OIDC requires this: :contentReference[oaicite:4]{index=4}
 
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      # 建议：确保 npm 足够新，避免 OIDC 支持不完整 :contentReference[oaicite:5]{index=5}
+      # Recommendation: Ensure npm is up-to-date to avoid incomplete OIDC support :contentReference[oaicite:5]{index=5}
       - name: Update npm
         run: npm i -g npm@latest
 
@@ -40,7 +40,7 @@ jobs:
 
       - run: npm publish --access public --tag latest
         working-directory: ./dist/packages/core
-        # 不需要 NODE_AUTH_TOKEN（Trusted Publishing 不用 token） :contentReference[oaicite:6]{index=6}
+        # No need for NODE_AUTH_TOKEN (Trusted Publishing does not require a token) :contentReference[oaicite:6]{index=6}
 
   publish-beta:
     runs-on: ubuntu-latest

@@ -77,7 +77,7 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
       xpertId: this.subXpertKey() ?? this.xpertId(),
       agentKey: this.subXpertAgentKey() ?? this.subAgentKey(),
       type: 'output',
-      isDraft: false,
+      isDraft: true,
       environmentId: this.studioService.environmentId(),
       connections: this.connections()
     }

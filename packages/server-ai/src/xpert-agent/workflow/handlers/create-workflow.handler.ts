@@ -219,59 +219,11 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				})
 				break
 			}
-			// case WorkflowNodeTypeEnum.SOURCE: {
-			// 	workflow = createSourceNode(graph, node, {
-			// 		commandBus: this.commandBus,
-			// 		queryBus: this.queryBus,
-			// 		xpertId,
-			// 		environment: options.environment
-			// 	})
-			// 	break
-			// }
-			// case WorkflowNodeTypeEnum.PROCESSOR: {
-			// 	workflow = createProcessorNode(graph, node, {
-			// 		commandBus: this.commandBus,
-			// 		queryBus: this.queryBus,
-			// 		xpertId,
-			// 		environment: options.environment,
-			// 		isDraft: options.isDraft
-			// 	})
-			// 	break
-			// }
-			// case WorkflowNodeTypeEnum.CHUNKER: {
-			// 	workflow = createChunkerNode(graph, node, {
-			// 		commandBus: this.commandBus,
-			// 		queryBus: this.queryBus,
-			// 		xpertId,
-			// 		environment: options.environment
-			// 	})
-			// 	break
-			// }
-			// case WorkflowNodeTypeEnum.UNDERSTANDING: {
-			// 	workflow = createUnderstandingNode(graph, node, {
-			// 		commandBus: this.commandBus,
-			// 		queryBus: this.queryBus,
-			// 		xpertId,
-			// 		environment: options.environment,
-			// 		isDraft: options.isDraft
-			// 	})
-			// 	break
-			// }
-			// case WorkflowNodeTypeEnum.KNOWLEDGE_BASE: {
-			// 	workflow = createKnowledgeBaseNode(graph, node, {
-			// 		commandBus: this.commandBus,
-			// 		queryBus: this.queryBus,
-			// 		xpertId,
-			// 		environment: options.environment,
-			// 		isDraft: options.isDraft
-			// 	})
-			// 	break
-			// }
 			default:
 				try {
 					const creator = this.nodeRegistry.get(node.entity.type)
 
-					const result = creator.create({graph, node, xpertId, environment: options.environment, isDraft: options.isDraft})
+					const result = await creator.create({graph, node, xpertId, environment: options.environment, isDraft: options.isDraft})
 
 					workflow = {
 						workflowNode: {
@@ -295,6 +247,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					}
 					break
 				} catch (error) {
+					console.error(error)
 				    throw new Error(`Unsupported workflow node type: ${node.entity?.type}: ${error.message}`)
 				}
 		}

@@ -1,16 +1,46 @@
 @for (parameter of params(); track parameter.name) {
   <div class="xl:flex flex-col justify-start items-stretch">
-    <div class="h-6 mb-1 flex justify-start items-center gap-0.5 text-text-secondary">
-      @if (!parameter.optional) {
-        <span class="text-red-500">*</span>
-      }
-      <ngm-variable-svg class="shrink-0 w-4 h-4 text-primary-500" />
-      <div class="text-sm text-primary-500">{{parameter.name}}</div>
-      <ngm-slash-svg class="" />
-      <div class="text-xs truncate text-text-tertiary" [title]="parameter.description | i18n">
-        {{ parameter.description | i18n }}
+    <!-- Render nested parameters recursively if parameter is OBJECT type with items -->
+    @if (parameter.type === eXpertParameterTypeEnum.OBJECT && parameter.item && parameter.item.length > 0) {
+      <!-- First level parameter title - aligned with other parameters -->
+      <div class="xl:flex flex-col justify-start items-stretch">
+        <div class="h-6 mb-1 flex justify-start items-center gap-0.5 text-text-secondary">
+          @if (!parameter.optional) {
+            <span class="text-red-500">*</span>
+          }
+          <ngm-variable-svg class="shrink-0 w-4 h-4 text-primary-500" />
+          <div class="text-sm font-medium text-primary-600">{{parameter.name}}</div>
+          <ngm-slash-svg class="" />
+          <div class="text-xs truncate text-text-tertiary" [title]="parameter.description | i18n">
+            {{ parameter.description | i18n }}
+          </div>
+        </div>
+        
+        <!-- Child parameters with indentation and border -->
+        <div class="flex flex-col gap-2 border-l-2 border-gray-200 pl-3 ml-2">
+          <xpert-parameters-form 
+            class="w-full"
+            [readonly]="readonly()"
+            [parameters]="parameter.item"
+            [ngModel]="getNestedValue(parameter.name)"
+            (ngModelChange)="updateNestedValue(parameter.name, $event)"
+          />
+        </div>
       </div>
-    </div>
+    } @else {
+      <!-- Render flat parameter -->
+      <div class="xl:flex flex-col justify-start items-stretch">
+        <div class="h-6 mb-1 flex justify-start items-center gap-0.5 text-text-secondary">
+          @if (!parameter.optional) {
+            <span class="text-red-500">*</span>
+          }
+          <ngm-variable-svg class="shrink-0 w-4 h-4 text-primary-500" />
+          <div class="text-sm text-primary-500">{{parameter.name}}</div>
+          <ngm-slash-svg class="" />
+          <div class="text-xs truncate text-text-tertiary" [title]="parameter.description | i18n">
+            {{ parameter.description | i18n }}
+          </div>
+        </div>
 
     @switch (parameter.type) {
       @case (eXpertParameterTypeEnum.TEXT) {
@@ -56,17 +86,18 @@
         ></textarea>
       }
 
-      @case (eXpertParameterTypeEnum.SELECT) {
-        <ngm-select class="flex-1"
-          [placeholder]="(parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
-          [readonly]="readonly()"
-          [nullable]="parameter.optional"
-          [selectOptions]="parameter.selectOptions"
-          [ngModel]="getParameter(parameter.name)"
-          (ngModelChange)="updateParameter(parameter.name, $event)"
-        ></ngm-select>
-      }
+          @case (eXpertParameterTypeEnum.SELECT) {
+            <ngm-select class="flex-1"
+              placeholder=""
+              [readonly]="readonly()"
+              [nullable]="parameter.optional"
+              [selectOptions]="parameter.selectOptions"
+              [ngModel]="getParameter(parameter.name)"
+              (ngModelChange)="updateParameter(parameter.name, $event)"
+            ></ngm-select>
+          }
+        }
+      </div>
     }
-    
   </div>
 }

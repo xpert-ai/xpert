@@ -18,6 +18,7 @@ export class CreateWorkflowNodeHandler implements IHandler<CreateWorkflowNodeReq
       }
 
       const node = {
+        ...(request.node ?? {}),
         type: 'workflow',
         key: request.entity.key,
         position: request.position,

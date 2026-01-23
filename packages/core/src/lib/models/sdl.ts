@@ -63,8 +63,9 @@ export interface Cube extends Entity {
    */
   tables?: Table[]
   fact?: {
-    type?: 'table' | 'view',
+    type?: 'table' | 'view' | 'tables',
     table?: Table
+    tables?: Table[] // Multi-fact join tables
     view?: View
     // views?: View[] // Not supported yet
   }
@@ -258,6 +259,10 @@ export type PropertyDimension = Property
 
 export interface PropertyMeasure extends EntityProperty {
   formatting?: Measure['formatting']
+  /**
+   * Specify the original table of the measure when there are multiple fact tables.
+   */
+  table?: string
   column?: string
   aggregator?: string
   formatString?: string

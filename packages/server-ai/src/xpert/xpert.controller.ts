@@ -528,9 +528,16 @@ export class XpertController extends CrudController<Xpert> {
 	}
 
 	@Get(':id/variables')
-	async getVariables(@Param('id') id: string, @Query('environment') environmentId: string) {
+	async getVariables(
+		@Param('id') id: string,
+		@Query('environment') environmentId: string,
+		@Query('inputs') inputs: string
+	) {
 		try {
-			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, isDraft: true, environmentId}))
+			const inputKeys = inputs ? inputs.split(',').map((value) => value.trim()).filter(Boolean) : undefined
+			return await this.queryBus.execute(
+				new XpertAgentVariablesQuery({xpertId: id, isDraft: true, environmentId, inputs: inputKeys})
+			)
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
@@ -542,25 +549,34 @@ export class XpertController extends CrudController<Xpert> {
 		@Param('agent') agentKey: string, 
 		@Query('environment') environmentId: string,
 		@Query('isDraft') isDraft: string,
-		@Query('type') type: 'input' | 'output'
+		@Query('type') type: 'input' | 'output',
+		@Query('inputs') inputs: string
 	) {
 		try {
+			const inputKeys = inputs ? inputs.split(',').map((value) => value.trim()).filter(Boolean) : undefined
 			return await this.queryBus.execute(new XpertAgentVariablesQuery({
-				xpertId: id, type, nodeKey: agentKey, isDraft: !(isDraft === 'false'), environmentId}))
+				xpertId: id, type, nodeKey: agentKey, isDraft: !(isDraft === 'false'), environmentId, inputs: inputKeys}))
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
 	}
 
+	/**
+	 * Get available variables for a workflow node
+	 */
 	@Get(':id/workflow/:key/variables')
 	async getWorkflowVariables(
 		@Param('id') id: string, 
 		@Param('key') nodeKey: string, 
 		@Query('environment') environmentId: string,
-		@Query('type') type: 'input' | 'output'
+		@Query('type') type: 'input' | 'output',
+		@Query('inputs') inputs: string
 	) {
 		try {
-			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type, nodeKey, isDraft: true, environmentId}))
+			const inputKeys = inputs ? inputs.split(',').map((value) => value.trim()).filter(Boolean) : undefined
+			return await this.queryBus.execute(
+				new XpertAgentVariablesQuery({xpertId: id, type, nodeKey, isDraft: true, environmentId, inputs: inputKeys})
+			)
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}

@@ -6,6 +6,9 @@ import { IStudioStore } from '../../types'
 import { UpdateNodeRequest } from './update.request'
 import { calculateHash } from '@cloud/app/@shared/utils'
 
+/**
+ * @deprecated
+ */
 export class UpdateNodeHandler implements IHandler<UpdateNodeRequest> {
   constructor(private store: Store<StoreDef, IStudioStore>) {}
 

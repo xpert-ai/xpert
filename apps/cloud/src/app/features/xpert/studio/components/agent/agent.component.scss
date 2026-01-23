@@ -2,13 +2,6 @@
   @apply flex flex-col justify-start items-start pb-1.5;
 }
 
-.f-component.f-node-output.edge {
-  border-radius: 0;
-  width: 3px;
-  height: var(--output-size);
-  @apply bg-blue-500;
-}
-
 .f-component.f-node-output.edge.danger {
   @apply bg-orange-500;
 }

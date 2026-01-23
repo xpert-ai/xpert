@@ -448,6 +448,7 @@
       "JSONParse": "JSON 反序列化",
       "Answer": "回答",
       "Iterating": "迭代",
+      "Iterator": "迭代",
       "Router": "路由",
       "Agent": "智能体",
       "Subflow": "子流程",
@@ -475,7 +476,8 @@
       "NewData": "新增数据",
       "SQLCustom": "SQL 自定义",
       "UpdateData": "更新数据",
-      "DeleteData": "删除数据"
+      "DeleteData": "删除数据",
+      "OnlyOneTrigger": "一个专家只能有一个对话触发器"
     },
     "Pipeline": {
       "AuthenticationMethod": "认证方式",
@@ -1306,6 +1308,8 @@
       "CubeSchema": "模型信息",
       "SwitchSchemaDisplayMode": "切换纲要显示模式",
       "PinToSide": "固定到侧边",
+      "Tables": "表",
+      "AddTable": "添加表",
 
       "QUERY": {
         "TITLE": "查询实验室",
@@ -2561,7 +2565,7 @@
       "ProcessDocuments": "处理文档",
       "KnowledgebaseSettings": "知识库设置",
       "KnowledgebaseSettingsDescription": "在这里，您可以修改此知识库的属性和检索设置。",
-      "OnlyIndexedFields": "只有被索引的字段能被检索到，包含其他的全量字段在 metadata 中展示。",
+      "OnlyIndexedFields": "所有表格内容都会参与解析，只有勾选为索引的列内容参与检索匹配。",
       "NameAndIcon": "名称和图标",
       "ModelConfiguration": "模型配置",
       "RetrievalSettings": "检索设置",
@@ -3410,6 +3414,7 @@
       "AtLeastOneTool": "至少启用一个工具",
       "ConnectMCPTools": "连接到 MCP 服务以获取工具列表",
       "Iterating": "迭代",
+      "Iterator": "迭代",
       "Next": "下一步",
       "ErrorModePlaceholder": "选择一种响应错误的方式",
       "Parallelization": "并行",
@@ -3443,6 +3448,7 @@
       "AddInputVariables": "添加输入变量",
       "OutputVariables": "输出变量",
       "AddOutputVariables": "添加输出变量",
+      "ClickAddToAddVariable": "点击“+”按钮添加变量",
       "Transform": "转换",
       "Code": "代码执行",
       "Template": "模版",
@@ -3492,7 +3498,8 @@
       "KnowledgeMetadataFilter": "元数据过滤",
       "MetadataFilterConditions": "元数据过滤条件",
       "SelectFieldsAsMetadataFilter": "选择用作元数据过滤条件的字段",
-      "Conditions": "条件"
+      "Conditions": "条件",
+      "VariableNameOrOverwriteElement": "变量名，默认覆盖当前元素"
     },
     "MCP": {
       "Logs": "日志",

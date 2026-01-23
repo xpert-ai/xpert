@@ -4,10 +4,12 @@ import { XpertAgentSwarmHandler } from './create-swarm.handler'
 import { XpertAgentInvokeHandler } from './invoke.handler'
 import { XpertAgentSubgraphHandler } from './subgraph.handler'
 import { CreateSummarizeTitleAgentHandler } from './summarize-title.handler'
+import { XpertWorkflowSubgraphHandler } from './workflow-subgraph.handler'
 
 export const CommandHandlers = [
 	XpertAgentChatHandler,
 	XpertAgentSubgraphHandler,
+	XpertWorkflowSubgraphHandler,
 	XpertAgentSwarmHandler,
 	XpertAgentInvokeHandler,
 	CompileGraphHandler,

@@ -47,6 +47,9 @@
     }
     .f-connection-selection {
       fill: none;
+      stroke: transparent;
+      stroke-width: 12;
+      pointer-events: stroke;
     }
     .f-connection-path {
       fill: none;

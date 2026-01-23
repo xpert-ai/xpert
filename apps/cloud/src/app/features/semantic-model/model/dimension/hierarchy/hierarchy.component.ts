@@ -45,7 +45,7 @@ import {
   tap,
   withLatestFrom
 } from 'rxjs/operators'
-import { TablesJoinModule } from '../../../tables-join'
+import { TablesJoinComponent } from '../../../tables-join'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, HierarchyColumnType, TOOLBAR_ACTION_CATEGORY } from '../../types'
@@ -90,7 +90,7 @@ import { MatToolbarModule } from '@angular/material/toolbar'
     SplitterModule,
     NgmEntitySchemaComponent,
     NgmCommonModule,
-    TablesJoinModule,
+    TablesJoinComponent,
     HierarchyTableComponent
   ]
 })

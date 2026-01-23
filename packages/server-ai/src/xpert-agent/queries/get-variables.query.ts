@@ -1,9 +1,10 @@
-import { IQuery } from '@nestjs/cqrs'
+import { TWorkflowVarGroup } from '@metad/contracts'
+import { Query } from '@nestjs/cqrs'
 
 /**
  * Get state variables definations of xpert agent or workflow node.
  */
-export class XpertAgentVariablesQuery implements IQuery {
+export class XpertAgentVariablesQuery extends Query<TWorkflowVarGroup[]> {
 	static readonly type = '[Xpert Agent] Get state variables'
 
 	constructor(
@@ -11,6 +12,7 @@ export class XpertAgentVariablesQuery implements IQuery {
 			xpertId: string
 			type?: 'input' | 'output'
 			nodeKey?: string,
+			inputs?: string[],
 
 			/**
 			 * Draft First
@@ -18,5 +20,7 @@ export class XpertAgentVariablesQuery implements IQuery {
 			isDraft?: boolean,
 			environmentId?: string
 		},
-	) {}
+	) {
+		super()
+	}
 }

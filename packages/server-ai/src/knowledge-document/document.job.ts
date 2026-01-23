@@ -90,10 +90,12 @@ export class KnowledgeDocumentConsumer {
 					let count = 0
 					while (batchSize * count < chunks.length) {
 						const batch = chunks.slice(batchSize * count, batchSize * (count + 1))
-						// Count and Record token usage
+						// Count and Record token usage for embedding
+						// Use searchContent when present, otherwise fall back to full pageContent
 						let tokenUsed = 0
 						batch.forEach((chunk) => {
-							chunk.metadata.tokens = countTokensSafe(chunk.pageContent)
+							const contentForEmbedding = chunk.metadata?.searchContent ?? chunk.pageContent
+							chunk.metadata.tokens = countTokensSafe(contentForEmbedding)
 							tokenUsed += chunk.metadata.tokens
 						})
 						docTokenUsed += tokenUsed

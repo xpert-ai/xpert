@@ -69,13 +69,23 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const abortController = new AbortController()
 		signal?.addEventListener('abort', () => abortController.abort())
 
-		const {agent, graph, next, fail} = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
+		const {agent, graph: xpertGraph, next: agentNext, fail: agentFail} = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
 			new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
 		)
 		if (!agent) {
 			throw new NotFoundException(
 				`Xpert agent not found for '${xpert.name}' and key or name '${agentKeyOrName}', draft is ${command.options?.isDraft}`
 			)
+		}
+
+		let graph = xpertGraph
+		let next = agentNext
+		let fail = agentFail
+		if (command.options.graph) {
+			graph = command.options.graph
+			const { nextNodes, failNodes } = this.getAgentWorkflowEdges(graph, agent.key)
+			next = nextNodes
+			fail = failNodes
 		}
 
 		// Hidden this agent node: the graph created is a pure workflow starting from start node
@@ -376,7 +386,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (team.agentConfig?.interruptBefore?.includes(agentUniqueName(node.entity))) {
 					interruptBefore.push(node.key)
 				}
-				const {stateGraph, nextNodes, failNode} = await this.createAgentSubgraph(node.entity, {
+				const {stateGraph, nextNodes, failNode, channel} = await this.createAgentSubgraph(node.entity, {
 					mute: options.mute,
 					store: options.store,
 					xpert,
@@ -395,6 +405,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					isDraft: command.options.isDraft,
 					subscriber
 				})
+				
+				// Add agent channel to channels array
+				if (channel) {
+					channels.push(channel)
+				}
 				
 				// Conditional Edges
 				const ends = []
@@ -1139,6 +1154,28 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 	 * @param config 
 	 * @returns 
 	 */
+	private getAgentWorkflowEdges(graph: TXpertGraph, agentKey: string) {
+		const nodeMap = new Map(graph.nodes.map((node) => [node.key, node]))
+		const nextNodes = graph.connections
+			.filter((conn) => ['edge', 'workflow'].includes(conn.type) && conn.from === agentKey)
+			.map((conn) => nodeMap.get(conn.to))
+			.filter(
+				(node): node is TXpertTeamNode =>
+					!!node &&
+					(node.type === 'agent' || node.type === 'workflow') &&
+					!(node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TASK)
+			)
+		const failNodes = graph.connections
+			.filter((conn) => conn.type === 'edge' && conn.from === `${agentKey}/fail`)
+			.map((conn) => nodeMap.get(conn.to))
+			.filter((node): node is TXpertTeamNode => !!node && (node.type === 'agent' || node.type === 'workflow'))
+
+		return {
+			nextNodes,
+			failNodes
+		}
+	}
+
 	async createAgentSubgraph(
 		agent: IXpertAgent,
 		config: TAgentSubgraphParams & {
@@ -1203,6 +1240,44 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			// Record start time
 			const timeStart = Date.now()
+			
+			// Prepare inputs for execution record
+			let inputs = call?.args || {}
+			
+			// For workflow nodes, extract variables used in agent prompt
+			if (!isTool) {
+				// Extract variables from agent prompt template
+				const promptVars = new Set<string>()
+				const prompt = agent.prompt ?? ''
+				const promptTemplates = agent.promptTemplates ?? []
+				
+				// Combine all prompt texts
+				const allPromptText = [prompt, ...promptTemplates.map(t => t.text ?? '')].join('\n')
+				
+				// Match Mustache variables: {{variable}} or {{object.property}}
+				const varRegex = /\{\{([^}]+)\}\}/g
+				let match
+				while ((match = varRegex.exec(allPromptText)) !== null) {
+					const varPath = match[1].trim()
+					// Extract root variable name (before first dot)
+					const rootVar = varPath.split('.')[0]
+					promptVars.add(rootVar)
+				}
+				
+				// Only include variables that are used in prompt
+				promptVars.forEach(varName => {
+					const value = state[varName]
+					if (value !== undefined && value !== null) {
+						inputs[varName] = value
+					}
+				})
+				
+				// Always include human input if available (commonly used)
+				if (state[STATE_VARIABLE_HUMAN]?.input && !inputs[STATE_VARIABLE_HUMAN]) {
+					inputs.input = state[STATE_VARIABLE_HUMAN].input
+				}
+			}
+			
 			const _execution = await this.commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					...execution,
@@ -1210,7 +1285,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					checkpointNs: configurable.checkpoint_ns,
 					xpert: { id: xpert.id } as IXpert,
 					agentKey: agent.key,
-					inputs: call?.args,
+					inputs,
 					parentId: executionId,
 					status: XpertAgentExecutionStatusEnum.RUNNING,
 					predecessor: configurable.agentKey
@@ -1223,6 +1298,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			let status = XpertAgentExecutionStatusEnum.SUCCESS
 			let error = null
 			let result = ''
+			let actualInputs = inputs // May be updated with actual input during execution if available
 			const finalize = async () => {
 				const _state = await graph.getState(config)
 
@@ -1236,6 +1312,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						elapsedTime: timeEnd - timeStart,
 						status,
 						error,
+						inputs: actualInputs, // Use updated inputs with actual input
 						outputs: {
 							output: result
 						}
@@ -1278,14 +1355,72 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				)
 
 				const lastMessage = output.messages[output.messages.length - 1]
-				if (lastMessage && isAIMessage(lastMessage)) {
+				
+				// Extract actual input sent to LLM from messages
+				// Find the first HumanMessage in output.messages as the actual input
+				const humanMessages = output.messages.filter(msg => msg._getType() === 'human')
+				if (humanMessages.length > 0) {
+					const actualInput = humanMessages[0].content
+					// Update the execution inputs with actual input
+					actualInputs = {
+						...inputs,
+						actualInput: actualInput
+					}
+				}
+				
+				const channelOutput = output[channelName(agent.key)] as Record<string, any>
+				
+				// Try to extract structured output from channel
+				// Standard channel fields that should not be treated as structured output
+				const STANDARD_CHANNEL_FIELDS = [
+					'agent',
+					'system',
+					'messages',
+					'error',
+					'summary',
+					'output',      // The final output field
+					'metadata',    // Common metadata field
+					'timestamp',   // Timestamp field
+					'status',      // Status field
+					'input',       // Input field
+					'config',      // Configuration field
+				]
+				
+				let structuredOutput: Record<string, any> | null = null
+				if (channelOutput) {
+					// Try to find structured output in channel
+					// Only consider fields that are not standard channel fields
+					const possibleOutputKeys = Object.keys(channelOutput).filter(key => 
+						!STANDARD_CHANNEL_FIELDS.includes(key)
+					)
+					
+					if (possibleOutputKeys.length > 0) {
+						// Build structured output from all non-standard keys
+						structuredOutput = possibleOutputKeys.reduce((acc, key) => {
+							acc[key] = channelOutput[key]
+							return acc
+						}, {} as Record<string, any>)
+					}
+				}
+				
+				// Extract output with priority: structured output > channel.output > message content
+				if (structuredOutput && Object.keys(structuredOutput).length > 0) {
+					result = JSON.stringify(structuredOutput, null, 2)
+				} else if (channelOutput?.output) {
+					result = typeof channelOutput.output === 'string' 
+						? channelOutput.output 
+						: JSON.stringify(channelOutput.output, null, 2)
+				} else if (lastMessage && isAIMessage(lastMessage) && lastMessage.content) {
+					result = lastMessage.content as string
+				} else if (lastMessage?.content) {
+					// Fallback: even if not AIMessage, try to use content
 					result = lastMessage.content as string
 				}
 
 				const nState: Record<string, any> = isTool ? {
 					messages: [
 						new ToolMessage({
-							content: lastMessage.content,
+							content: lastMessage?.content || '',
 							name: call.name,
 							tool_call_id: call.id ?? "",
 						})
@@ -1293,7 +1428,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					[channelName(leaderKey)]: {
 						messages: [
 							new ToolMessage({
-								content: lastMessage.content,
+								content: lastMessage?.content || '',
 								name: call.name,
 								tool_call_id: call.id ?? "",
 							})
@@ -1308,16 +1443,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					[channelName(agent.key)]: {
 						...(output[channelName(agent.key)] as Record<string, any>),
 						messages: output.messages, // Return full messages to parent graph
-						output: stringifyMessageContent(lastMessage.content)
+						output: result || stringifyMessageContent(lastMessage?.content)
 					}
 				}
+				
 				// Write to memory
 				agent.options?.memories?.forEach((item) => {
 					if (item.inputType === 'constant') {
 						nState[item.variableSelector] = item.value
 					} else if (item.inputType === 'variable') {
 						if (item.value === 'content') {
-							nState[item.variableSelector] = lastMessage.content
+							nState[item.variableSelector] = lastMessage?.content
 						}
 						// @todo more variables
 					}
@@ -1341,6 +1477,39 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			nextNodes,
 			failNode,
 			stateGraph: stateGraph.withConfig({tags: [xpert.id]}),
+			channel: {
+				name: channelName(agent.key),
+				annotation: Annotation<Record<string, unknown>>({
+					reducer: (a, b) => {
+						if (!b) return a
+						// Deep merge to preserve nested structured output fields
+						const result = { ...a }
+						for (const key in b) {
+							if (b[key] !== undefined) {
+								// If both values are plain objects, merge them recursively
+								if (
+									typeof b[key] === 'object' &&
+									b[key] !== null &&
+									!Array.isArray(b[key]) &&
+									typeof a[key] === 'object' &&
+									a[key] !== null &&
+									!Array.isArray(a[key])
+								) {
+									// Type assertion: we've verified these are plain objects
+									result[key] = { 
+										...(a[key] as Record<string, unknown>), 
+										...(b[key] as Record<string, unknown>) 
+									}
+								} else {
+									result[key] = b[key]
+								}
+							}
+						}
+						return result
+					},
+					default: () => ({})
+				})
+			}
 		} as TSubAgent
 	}
 }

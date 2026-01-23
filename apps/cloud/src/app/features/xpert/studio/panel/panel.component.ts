@@ -35,8 +35,9 @@ import { XpertStudioPanelEnvironmentComponent } from './environment/environment.
   animations: [listFadeIn(100)]
 })
 export class XpertStudioPanelComponent {
-  readonly xpertStudioComponent = inject(XpertStudioComponent)
+  readonly studioComponent = inject(XpertStudioComponent)
   readonly selectionService = inject(SelectionService)
+
 
   // Inputs
   readonly sidePanel = model<'preview' | 'variables' | 'environments'>(null)
@@ -47,6 +48,7 @@ export class XpertStudioPanelComponent {
     const node = this.selectionService.selectedNode()
     return node ? [node] : []
   })
+  readonly xpert = this.studioComponent.xpert
 
   readonly minPanelWidth = 420
   readonly maxPanelWidth = 720
