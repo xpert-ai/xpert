@@ -476,7 +476,8 @@
       "NewData": "新增数据",
       "SQLCustom": "SQL 自定义",
       "UpdateData": "更新数据",
-      "DeleteData": "删除数据"
+      "DeleteData": "删除数据",
+      "OnlyOneTrigger": "一个专家只能有一个对话触发器"
     },
     "Pipeline": {
       "AuthenticationMethod": "认证方式",
