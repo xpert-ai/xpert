@@ -42,46 +42,49 @@
           </div>
         </div>
 
-        @switch (parameter.type) {
-          @case (eXpertParameterTypeEnum.TEXT) {
-            <input
-                class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-                placeholder=""
-                type="text"
-                [disabled]="readonly()"
-                [ngModel]="getParameter(parameter.name)"
-                (ngModelChange)="updateParameter(parameter.name, $event)"
-            />
-          }
-          @case (eXpertParameterTypeEnum.STRING) {
-            <input
-                class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-                placeholder=""
-                type="text"
-                [disabled]="readonly()"
-                [ngModel]="getParameter(parameter.name)"
-                (ngModelChange)="updateParameter(parameter.name, $event)"
-            />
-          }
-          @case (eXpertParameterTypeEnum.NUMBER) {
-            <input
-                class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-                placeholder=""
-                type="number"
-                [disabled]="readonly()"
-                [ngModel]="getParameter(parameter.name)"
-                (ngModelChange)="updateParameter(parameter.name, $event)"
-            />
-          }
-          @case (eXpertParameterTypeEnum.PARAGRAPH) {
-            <textarea
-              class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-[120px] bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-              [disabled]="readonly()"
-              placeholder=""
-              [ngModel]="getParameter(parameter.name)"
-              (ngModelChange)="updateParameter(parameter.name, $event)"
-            ></textarea>
-          }
+    @switch (parameter.type) {
+      @case (eXpertParameterTypeEnum.TEXT) {
+        <input
+            class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+            [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+            type="text"
+            [attr.maxlength]="parameter.maximum ?? null"
+            [disabled]="readonly()"
+            [ngModel]="getParameter(parameter.name)"
+            (ngModelChange)="updateParameter(parameter.name, $event)"
+        />
+      }
+      @case (eXpertParameterTypeEnum.STRING) {
+        <input
+            class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+            [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+            type="text"
+            [attr.maxlength]="parameter.maximum ?? null"
+            [disabled]="readonly()"
+            [ngModel]="getParameter(parameter.name)"
+            (ngModelChange)="updateParameter(parameter.name, $event)"
+        />
+      }
+      @case (eXpertParameterTypeEnum.NUMBER) {
+        <input
+            class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+            [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+            type="number"
+            [disabled]="readonly()"
+            [ngModel]="getParameter(parameter.name)"
+            (ngModelChange)="updateParameter(parameter.name, $event)"
+        />
+      }
+      @case (eXpertParameterTypeEnum.PARAGRAPH) {
+        <textarea
+          class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-[120px] bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+          [disabled]="readonly()"
+          [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+          [attr.maxlength]="parameter.maximum ?? null"
+          [ngModel]="getParameter(parameter.name)"
+          (ngModelChange)="updateParameter(parameter.name, $event)"
+        ></textarea>
+      }
 
           @case (eXpertParameterTypeEnum.SELECT) {
             <ngm-select class="flex-1"
