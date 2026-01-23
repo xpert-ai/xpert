@@ -402,11 +402,6 @@ export interface components {
             /** @description The assistant ID or graph name to run. If using graph name, will default to first assistant created from that graph. */
             assistant_id: string;
             /**
-             * PRO: Sandbox Environment Id
-             * PRO: @description Sandbox environment ID to force using the specified container.
-             */
-            sandbox_environment_id?: string;
-            /**
              * Input
              * @description The input to the graph.
              */

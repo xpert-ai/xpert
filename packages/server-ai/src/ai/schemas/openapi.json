@@ -1415,12 +1415,6 @@
 						],
 						"description": "The assistant ID or graph name to run. If using graph name, will default to first assistant created from that graph."
 					},
-					"sandbox_environment_id": {
-						"type": "string",
-						"format": "uuid",
-						"title": "Sandbox Environment Id",
-						"description": "Sandbox environment ID to force using the specified container."
-					},
 					"input": {
 						"anyOf": [
 							{

@@ -16,7 +16,7 @@ const chatRequestSchema = z
 			z.string().min(1),
 			z
 				.object({
-					input: z.string().min(1)
+					input: z.string().min(1).optional()
 				})
 				.passthrough()
 		]),
@@ -29,11 +29,22 @@ const chatRequestSchema = z
 		retry: z.boolean().optional()
 	})
 	.passthrough()
+	.refine(
+		(data) => {
+			// Check if at least one of the three fields is present
+			return data.input != null || data.command != null || data.state != null
+		},
+		{
+			message: "At least one of 'input', 'command', or 'state' must be provided.",
+			path: ['state'] // Pointing the error to 'input' as a representative path
+		}
+	)
 
 export function validateRunCreateInput(input: unknown): TChatRequest {
 	const parsed = chatRequestSchema.parse(typeof input === 'string' ? { input } : input)
 	const normalizedInput = typeof parsed.input === 'string' ? { input: parsed.input } : parsed.input
-	const rawState = parsed.state && typeof parsed.state === 'object' && !Array.isArray(parsed.state) ? parsed.state : undefined
+	const rawState =
+		parsed.state && typeof parsed.state === 'object' && !Array.isArray(parsed.state) ? parsed.state : undefined
 
 	return {
 		...parsed,
@@ -42,7 +53,7 @@ export function validateRunCreateInput(input: unknown): TChatRequest {
 			? {
 					...rawState,
 					[STATE_VARIABLE_HUMAN]: rawState[STATE_VARIABLE_HUMAN] ?? normalizedInput
-			  }
+				}
 			: { [STATE_VARIABLE_HUMAN]: normalizedInput }
 	}
 }
@@ -60,9 +71,6 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 	public async execute(command: RunCreateStreamCommand) {
 		const threadId = command.threadId
 		const runCreate = command.runCreate
-		const sandboxEnvironmentId =
-			(runCreate as { sandbox_environment_id?: string })?.sandbox_environment_id ??
-			(runCreate as { sandboxEnvironmentId?: string })?.sandboxEnvironmentId
 		// Validate and normalize the incoming run input before handling chat request
 		const chatRequest = validateRunCreateInput(runCreate.input)
 
@@ -100,7 +108,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 					xpertId: xpert.id,
 					from: 'api',
 					execution,
-					sandboxEnvironmentId
+					sandboxEnvironmentId: (chatRequest as any).sandboxEnvironmentId
 				}
 			)
 		)
