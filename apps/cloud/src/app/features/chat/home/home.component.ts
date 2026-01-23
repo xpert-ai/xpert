@@ -176,8 +176,10 @@ export class ChatHomeComponent {
     }, 200)
   }
 
+  // Start a new conversation (same behavior as chat header's new chat button)
   newConversation() {
     this.homeService.conversationId.set(null)
+    this.homeService.conversation.set(null)
     this.currentPage.set({ type: 'conversation' })
   }
 
