@@ -447,13 +447,12 @@ export class XpertStudioContextMenuComponent {
   }
 
   addWorkflowTrigger(from: string | TWorkflowTriggerMeta) {
-    // Only one trigger node is allowed for an expert.
-    // Purpose: block creating multiple trigger nodes from UI.
-    const hasTrigger = this.nodes()?.some(
-      (n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.TRIGGER
+    // Only one chat trigger node is allowed for an expert.
+    const hasTrigger = from === 'chat' && this.nodes()?.some(
+      (n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.TRIGGER && (<IWFNTrigger>n.entity).from === 'chat'
     )
     if (hasTrigger) {
-      this.#toastr.danger(this.#translate.instant('PAC.Workflow.OnlyOneTrigger', { Default: '一个专家只能有一个触发器' }))
+      this.#toastr.danger(this.#translate.instant('PAC.Workflow.OnlyOneTrigger', { Default: 'An expert can only have one chat trigger.' }))
       return
     }
 
