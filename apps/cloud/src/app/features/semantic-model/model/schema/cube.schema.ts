@@ -32,6 +32,37 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
     })
   )
 
+  readonly factTables$ = this.cube$.pipe(
+    map((cube) => {
+      if (!cube) {
+        return []
+      }
+      const tables = []
+      switch (cube.fact?.type) {
+        case 'table':
+          if (cube.fact.table) {
+            tables.push(cube.fact.table)
+          }
+          break
+        case 'tables':
+          if (cube.fact.tables) {
+            tables.push(...cube.fact.tables)
+          }
+          break
+        case 'view':
+          if (cube.fact.view) {
+            tables.push({ key: cube.fact.view.alias, caption: cube.fact.view.alias })
+          }
+          break
+        default:
+          if (cube.tables) {
+            tables.push(...cube.tables)
+          }
+      }
+      return tables
+    })
+  )
+
   readonly measures$ = this.cube$.pipe(
     map((cube) => {
       const measures = [
@@ -101,8 +132,8 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
   SCHEMA: any
 
   getSchema() {
-    return this.translate.stream('PAC.MODEL.SCHEMA').pipe(
-      map((SCHEMA) => {
+    return combineLatest([this.translate.stream('PAC.MODEL.SCHEMA'), this.modelService.modelType$]).pipe(
+      map(([SCHEMA, modelType]) => {
         this.SCHEMA = SCHEMA
         const CUBE = this.SCHEMA?.CUBE
         return [
@@ -211,7 +242,9 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
           props: {
             label: COMMON?.FactTable ?? 'Fact Table',
             valueKey: 'key',
-            options$: this.tableOptions$
+            options$: this.tableOptions$,
+            dataSource: this.modelService.origiDataSource()?.options.key,
+            modelType: this.modelService.modelType()
           },
           className: 'my-4'
         },

@@ -1,4 +1,10 @@
 @switch (type()) {
+  @case (eWorkflowNodeTypeEnum.START) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-500
+      w-full h-full rounded-lg shadow-sm shrink-0">
+      <i class="ri-home-3-fill"></i>
+    </div>
+  }
   @case (eWorkflowNodeTypeEnum.TRIGGER) {
     <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-500
       w-full h-full rounded-lg shadow-sm shrink-0">
@@ -42,6 +48,13 @@
     </div>
   } -->
   @case (eWorkflowNodeTypeEnum.ITERATING) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
+      w-full h-full rounded-lg shadow-sm
+      shrink-0">
+      <i class="ri-repeat-2-line"></i>
+    </div>
+  }
+  @case (eWorkflowNodeTypeEnum.ITERATOR) {
     <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
       w-full h-full rounded-lg shadow-sm
       shrink-0">

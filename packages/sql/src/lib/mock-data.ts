@@ -374,7 +374,10 @@ export const SHARED_DIMENSION_TIME: PropertyDimension = {
 export const CUBE_SALESORDER: Cube = {
   name: 'SalesOrder',
   caption: '销售订单',
-  tables: [{ name: 'sales_fact' }],
+  fact: {
+    type: 'table',
+    table: { name: 'sales_fact' }
+  },
   defaultMeasure: 'Sales',
   visible: true,
   dimensionUsages: [

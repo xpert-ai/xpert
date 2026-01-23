@@ -431,7 +431,7 @@ export function propertyPath2Dimension(path: string | Dimension, entityType: Ent
 }
 
 /**
- * 根据 ID 从 Cube 中找到 Hierarchy
+ * Find the Hierarchy from the Cube by ID
  *
  * @param cube
  * @param id

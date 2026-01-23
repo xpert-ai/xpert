@@ -14,6 +14,7 @@ import {
   XpertParameterTypeEnum
 } from '../../../@core/types'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
+import { expandVariablesWithItems } from '../types'
 
 /**
  *
@@ -56,9 +57,7 @@ export class StateVariableSelectComponent {
   // States
   readonly variables = model<TWorkflowVarGroup[]>()
   readonly value$ = this.cva.value$
-  readonly selected = computed(() => getVariableSchema(this.variables(), this.value$()))
-  readonly group = computed(() => this.selected().group)
-  readonly variable = computed(() => this.selected().variable)
+  
   readonly variableType = computed(() => this.variable()?.type)
 
   readonly #variables = myRxResource({
@@ -68,6 +67,18 @@ export class StateVariableSelectComponent {
     }
   })
   readonly loading = computed(() => this.#variables.status() === 'loading')
+
+  readonly flatVariables = computed(() => {
+    const variables = this.variables()
+    if (!variables) {
+      return
+    }
+    const expandedVariables = expandVariablesWithItems(variables)
+    return expandedVariables
+  })
+  readonly selected = computed(() => getVariableSchema(this.flatVariables(), this.value$()))
+  readonly group = computed(() => this.selected().group)
+  readonly variable = computed(() => this.selected().variable)
 
   constructor() {
     effect(

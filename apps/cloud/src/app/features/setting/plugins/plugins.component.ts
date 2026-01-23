@@ -62,12 +62,11 @@ export class PluginsComponent {
     loader: () => this.pluginAPI.getPlugins()
   })
   
-  // toSignal(this.pluginAPI.getPlugins(), { initialValue: [] })
   readonly plugins = linkedModel({
     initialValue: [],
-    compute: () => this.#plugins.value(),
-    update: (value) => {
-      //
+    compute: () => this.#plugins.value() ?? [],
+    update: () => {
+      // No-op
     }
   })
   readonly removing = signal('')

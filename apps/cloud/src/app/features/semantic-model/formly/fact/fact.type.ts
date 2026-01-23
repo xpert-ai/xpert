@@ -1,5 +1,17 @@
+import { A11yModule } from '@angular/cdk/a11y'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, inject, Injector, OnInit, runInInjectionContext, signal } from '@angular/core'
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  Injector,
+  OnInit,
+  runInInjectionContext,
+  signal
+} from '@angular/core'
 import { FormControl, FormsModule } from '@angular/forms'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { attrModel, bindFormControlToSignal, linkedModel } from '@metad/core'
@@ -8,12 +20,25 @@ import { TSelectOption } from '@metad/ocap-angular/core'
 import { Cube } from '@metad/ocap-core'
 import { FieldType } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { Observable } from 'rxjs'
+import { MODEL_TYPE } from '../../model/types'
+import { TablesJoinComponent } from '../../tables-join'
 
 /**
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmRadioSelectComponent, NgmSelectComponent, NgmDisplayBehaviourComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CdkMenuModule,
+    TranslateModule,
+    NgmRadioSelectComponent,
+    NgmSelectComponent,
+    NgmDisplayBehaviourComponent,
+    TablesJoinComponent,
+    A11yModule
+  ],
   selector: 'ngm-formly-fact',
   templateUrl: `fact.type.html`,
   host: {
@@ -23,23 +48,38 @@ import { TranslateModule } from '@ngx-translate/core'
 })
 export class NgmFactComponent extends FieldType implements OnInit {
   readonly injector = inject(Injector)
+  readonly #destroyRef = inject(DestroyRef)
 
-  readonly selectOptions = signal<TSelectOption[]>([
-    {
-      value: 'table',
-      label: {
-        en_US: 'Table',
-        zh_Hans: '表'
+  readonly modelType = signal<MODEL_TYPE | null>(null)
+  readonly selectOptions = computed(() => {
+    const modelType = this.modelType()
+    const options: TSelectOption[] = [
+      {
+        value: 'table',
+        label: {
+          en_US: 'Table',
+          zh_Hans: '表'
+        }
       }
-    },
-    {
+    ]
+    if (modelType === MODEL_TYPE.SQL) {
+      options.push({
+        value: 'tables',
+        label: {
+          en_US: 'Tables',
+          zh_Hans: '多表'
+        }
+      })
+    }
+    options.push({
       value: 'view',
       label: {
         en_US: 'View',
         zh_Hans: '视图'
       }
-    }
-  ])
+    })
+    return options
+  })
 
   // Placeholder signal for form control value
   readonly value = signal<Cube['fact']>(null)
@@ -68,6 +108,14 @@ export class NgmFactComponent extends FieldType implements OnInit {
     }
   })
 
+  readonly tables = linkedModel({
+    initialValue: null,
+    compute: () => this.value()?.tables,
+    update: (tables) => {
+      this.value.update((state) => ({ ...(state ?? {}), tables }))
+    }
+  })
+
   readonly view = linkedModel({
     initialValue: null,
     compute: () => this.value()?.view,
@@ -81,7 +129,32 @@ export class NgmFactComponent extends FieldType implements OnInit {
 
   readonly sqlContent = attrModel(this.viewSql, 'content')
 
+  // Props
+  get options$() {
+    return this.props['options$'] as Observable<
+      {
+        value: string
+        label: string
+      }[]
+    >
+  }
+  get dataSource() {
+    return this.props['dataSource'] as string
+  }
+
   private cleanup?: () => void
+
+  constructor() {
+    super()
+    this.#destroyRef.onDestroy(() => {
+      // Clean up subscription to prevent memory leaks
+      this.cleanup?.()
+    })
+
+    afterNextRender(() => {
+      this.modelType.set(this.props['modelType'] ?? null)
+    })
+  }
 
   ngOnInit(): void {
     runInInjectionContext(this.injector, () => {
@@ -89,8 +162,11 @@ export class NgmFactComponent extends FieldType implements OnInit {
     })
   }
 
-  ngOnDestroy(): void {
-    // Clean up subscription to prevent memory leaks
-    this.cleanup?.()
+  addJoinTable(table: string) {
+    this.tables.update((tables) => {
+      const updatedTables = tables ? [...tables] : []
+      updatedTables.push({ name: table, join: { type: 'Inner', fields: [] } })
+      return updatedTables
+    })
   }
 }

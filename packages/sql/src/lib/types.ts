@@ -1,4 +1,5 @@
 import { Cube, DataSourceOptions, DataSourceSettings, Dimension, Measure, Property } from '@metad/ocap-core'
+import { t } from 'i18next'
 
 // Built-in measure field - row count
 export const C_MEASURES_ROW_COUNT = 'Measures_Row_Count'
@@ -94,16 +95,28 @@ export class SQLError extends Error {
   }
 }
 
+/**
+ * Get fact table name from cube definition
+ */
 export function CubeFactTable(cube: Cube) {
-  const tableName = cube.fact?.table?.name
-  if (!tableName) {
-    throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
+  let tableName = null
+  switch (cube.fact?.type) {
+    case 'table':
+      tableName = cube.fact?.table?.name
+      break
+    case 'tables':
+      tableName = cube.fact?.tables?.[0]?.name
+      break
+    case 'view':
+      tableName = cube.fact?.view?.alias
+      break
   }
-  // if (!cube.tables?.[0]?.name) {
-  //   throw new Error(`未找到多维数据集 '${cube.name}' 的事实表`)
-  // }
-  /**
-   * @todo 支持 SQL View 作为事实表
-   */
+
+  if (!tableName) {
+    throw new Error(
+      t('Error.NoFactTable', {ns: 'sql', cubeName: cube.name})
+    )
+  }
+
   return tableName
 }

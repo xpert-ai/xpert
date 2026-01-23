@@ -144,7 +144,10 @@ export function serializeMeasure(
   aggregate: boolean,
   dialect: string
 ) {
-  const { factTable } = cubeContext
+  let factTable = measure.table || cubeContext.factTable
+  if (measure.table && cubeContext.factTableAlias) {
+    factTable = cubeContext.factTableAlias[measure.table] || factTable
+  }
   if (isCalculationProperty(measure)) {
     return serializeCalculationProperty(cubeContext, measure, aggregate, dialect)
   }

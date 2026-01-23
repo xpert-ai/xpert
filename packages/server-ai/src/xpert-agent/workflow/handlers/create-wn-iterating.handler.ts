@@ -28,6 +28,9 @@ import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 const PARALLEL_MAXIMUM = 2
 
+/**
+ * @deprecated use Iterator Plugin instead
+ */
 @CommandHandler(CreateWNIteratingCommand)
 export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIteratingCommand> {
 	readonly #logger = new Logger(CreateWNIteratingHandler.name)

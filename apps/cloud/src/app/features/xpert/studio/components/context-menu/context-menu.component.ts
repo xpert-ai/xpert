@@ -63,17 +63,20 @@ import {
   genXpertSkillKey,
   IWFNMiddleware,
   genXpertMiddlewareKey,
-  injectXpertAgentAPI
+  injectXpertAgentAPI,
+  TXpertTeamNode,
+  genXpertIteratorKey,
+  genXpertStartKey
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { map, Subscription } from 'rxjs'
 import {
+  genAgentKey,
   genXpertAnswerKey,
   genXpertAssignerKey,
   genXpertClassifierKey,
   genXpertCodeKey,
   genXpertHttpKey,
-  genXpertIteratingKey,
   genXpertKnowledgeKey,
   genXpertNoteKey,
   genXpertRouterKey,
@@ -187,13 +190,48 @@ export class XpertStudioContextMenuComponent {
     })
   }
 
-  async createAgent(menu: CdkMenu) {
+  /**
+   * Reconnect the connection after inserting a new node
+   * Original: A -> B, After: A -> newNode -> B
+   * @param newNodeKey The key of the newly created node
+   */
+  private reconnectAfterInsert(newNodeKey: string): void {
+    const connection = this.root.insertConnection
+    if (!connection) return
+
+    // Build connection IDs based on connection type
+    const sourceId = connection.from + '/' + connection.type
+    const targetId = connection.to + (connection.type === 'edge' ? '/edge' : '')
+
+    // Remove original connection: A -> B
+    this.apiService.removeConnection(sourceId, targetId)
+
+    // Create new connection: A -> newNode
+    this.apiService.createConnection({
+      sourceId: sourceId,
+      targetId: newNodeKey + (connection.type === 'edge' ? '/edge' : '')
+    })
+
+    // Create new connection: newNode -> B
+    this.apiService.createConnection({
+      sourceId: newNodeKey + (connection.type === 'edge' ? '/edge' : '/' + connection.type),
+      targetId: targetId
+    })
+
+    // Clear the insert connection state
+    this.root.insertConnection = null
+  }
+
+  createAgent(menu: CdkMenu, byNode: TXpertTeamNode) {
     menu.menuStack.closeAll()
     const length = this.agents()?.length ?? 0
+    const key = genAgentKey()
     this.apiService.createAgent(this.root.contextMenuPosition, {
+      key,
       title:
-        (await this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' })) + ' ' + (length ? ` ${length + 1}` : '')
-    })
+        (this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' })) + ' ' + (length ? ` ${length + 1}` : '')
+    }, byNode?.key)
+    this.reconnectAfterInsert(key)
   }
 
   public addCollaborator(xpert: IXpert): void {
@@ -205,7 +243,17 @@ export class XpertStudioContextMenuComponent {
       )
       return
     }
+    // Store connection info before async call
+    const insertConnection = this.root.insertConnection
     this.apiService.createCollaborator(this.root.contextMenuPosition, xpert)
+    // External expert node uses xpert.id as key
+    if (insertConnection) {
+      // Delay reconnect to allow node creation to complete
+      setTimeout(() => {
+        this.root.insertConnection = insertConnection
+        this.reconnectAfterInsert(xpert.id)
+      }, 100)
+    }
   }
 
   public deleteNode(menu: CdkMenu, node: string): void {
@@ -233,19 +281,22 @@ export class XpertStudioContextMenuComponent {
     }
   }
 
-  async addWorkflowNote() {
+  async addWorkflowNote(fromNode?: TXpertTeamNode) {
+    const key = genXpertNoteKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.NOTE,
-      key: genXpertNoteKey(),
+      key,
       title: await this.#translate.instant('PAC.Workflow.Note', { Default: 'Note' })
-    } as IWorkflowNode)
+    } as IWorkflowNode, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  async addWorkflowRouter() {
+  async addWorkflowRouter(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.IF_ELSE).length ?? 0
+    const key = genXpertRouterKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.IF_ELSE,
-      key: genXpertRouterKey(),
+      key,
       title: await this.#translate.instant('PAC.Workflow.Router', { Default: 'Router' }) + (length ? ` ${length + 1}` : ''),
       cases: [
         {
@@ -253,33 +304,67 @@ export class XpertStudioContextMenuComponent {
           conditions: []
         }
       ]
-    } as IWFNIfElse)
+    } as IWFNIfElse, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  async addWorkflowIterating() {
-    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ITERATING).length ?? 0
-    this.apiService.addBlock(this.root.contextMenuPosition, {
-      type: WorkflowNodeTypeEnum.ITERATING,
-      key: genXpertIteratingKey(),
-      title: await this.#translate.instant('PAC.Workflow.Iterating', { Default: 'Iterating' }) + (length ? ` ${length + 1}` : '')
+  addWorkflowIterator(fromNode?: TXpertTeamNode) {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ITERATOR).length ?? 0
+    const iteratorKey = genXpertIteratorKey()
+    const position = fromNode?.position
+      ? { x: fromNode.position.x + 200, y: fromNode.position.y }
+      : this.root.contextMenuPosition
+    this.apiService.addNode(position, {
+      key: iteratorKey,
+      type: 'workflow',
+      parentId: fromNode?.parentId,
+      size: { width: 120, height: 60 },
+      entity: {
+        id: '',
+        type: WorkflowNodeTypeEnum.ITERATOR,
+        key: iteratorKey,
+        title: this.#translate.instant('PAC.Workflow.Iterator', { Default: 'Iterator' }) + (length ? ` ${length + 1}` : ''),
+      }
     })
+    if (fromNode) {
+      this.apiService.createConnection({
+        sourceId: fromNode.key + '/edge',
+        targetId: iteratorKey
+      })
+    }
+    const startKey = genXpertStartKey(iteratorKey)
+    this.apiService.addNode(position, {
+      type: 'workflow',
+      key: startKey,
+      parentId: iteratorKey,
+      size: { width: 46, height: 46 },
+      entity: {
+        id: startKey,
+        type: WorkflowNodeTypeEnum.START,
+        key: startKey,
+      }
+    })
+    this.reconnectAfterInsert(iteratorKey)
   }
 
-  async addWorkflowAnswer() {
+  addWorkflowAnswer(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ANSWER).length ?? 0
+    const key = genXpertAnswerKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.ANSWER,
-      key: genXpertAnswerKey(),
-      title: await this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' }) + (length ? ` ${length + 1}` : '')
-    })
+      key,
+      title: this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' }) + (length ? ` ${length + 1}` : '')
+    }, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  async addWorkflowQuestionClassifier() {
+  addWorkflowQuestionClassifier(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CLASSIFIER).length ?? 0
+    const key = genXpertClassifierKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CLASSIFIER,
-      key: genXpertClassifierKey(),
-      title: (await this.#translate.instant('PAC.Workflow.QuestionClassifier', { Default: 'Question Classifier' })) + ` ${length + 1}`,
+      key,
+      title: this.#translate.instant('PAC.Workflow.QuestionClassifier', { Default: 'Question Classifier' }) + ` ${length + 1}`,
       inputVariables: ['human.input'],
       classes: [
         {
@@ -289,26 +374,30 @@ export class XpertStudioContextMenuComponent {
           description: '',
         },
       ]
-    } as IWFNClassifier)
+    } as IWFNClassifier, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  async addWorkflowKnowledgeRetrieval() {
+  addWorkflowKnowledgeRetrieval(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.KNOWLEDGE).length ?? 0
+    const key = genXpertKnowledgeKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.KNOWLEDGE,
-      key: genXpertKnowledgeKey(),
-      title: await this.#translate.instant('PAC.Workflow.KnowledgeRetrieval', { Default: 'Knowledge Retrieval' }) + (length ? ` ${length + 1}` : ''),
+      key,
+      title: this.#translate.instant('PAC.Workflow.KnowledgeRetrieval', { Default: 'Knowledge Retrieval' }) + (length ? ` ${length + 1}` : ''),
       queryVariable: `input`,
       knowledgebases: []
-    } as IWFNKnowledgeRetrieval)
+    } as IWFNKnowledgeRetrieval, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  async addWorkflowCode() {
+  addWorkflowCode(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CODE).length ?? 0
+    const key = genXpertCodeKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CODE,
-      key: genXpertCodeKey(),
-      title: await this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }) + ` ${length + 1}`,
+      key,
+      title: this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }) + ` ${length + 1}`,
       language: 'javascript',
       code: `return {"result": arg1 + arg2};`,
       inputs: [
@@ -327,15 +416,17 @@ export class XpertStudioContextMenuComponent {
           name: 'result'
         }
       ]
-    } as IWFNCode)
+    } as IWFNCode, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  async addWorkflowTemplate() {
+  addWorkflowTemplate(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.TEMPLATE).length ?? 0
+    const key = genXpertTemplateKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TEMPLATE,
-      key: genXpertTemplateKey(),
-      title: await this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template Transform' }) + (length ? ` ${length + 1}` : ''),
+      key,
+      title: this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template Transform' }) + (length ? ` ${length + 1}` : ''),
       code: `{{arg1}}`,
       inputParams: [
         {
@@ -343,32 +434,42 @@ export class XpertStudioContextMenuComponent {
           variable: ''
         }
       ]
-    } as IWFNTemplate)
+    } as IWFNTemplate, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  addWorkflowJSONStringify() {
+  addWorkflowJSONStringify(fromNode: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.JSON_STRINGIFY).length ?? 0
+    const key = genJSONStringifyKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
-      type: WorkflowNodeTypeEnum.JSON_STRINGIFY,
-      key: genJSONStringifyKey(),
-      title: this.#translate.instant('PAC.Workflow.JSONStringify', { Default: 'JSON Stringify' }) + (length ? ` ${length + 1}` : ''),
-    } as IWorkflowNode)
+        type: WorkflowNodeTypeEnum.JSON_STRINGIFY,
+        key,
+        title: this.#translate.instant('PAC.Workflow.JSONStringify', { Default: 'JSON Stringify' }) + (length ? ` ${length + 1}` : ''),
+      } as IWorkflowNode,
+      fromNode
+    )
+    this.reconnectAfterInsert(key)
   }
 
-  addWorkflowJSONParse() {
+  addWorkflowJSONParse(fromNode: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.JSON_PARSE).length ?? 0
+    const key = genJSONParseKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
-      type: WorkflowNodeTypeEnum.JSON_PARSE,
-      key: genJSONParseKey(),
-      title: this.#translate.instant('PAC.Workflow.JSONParse', { Default: 'JSON Parse' }) + (length ? ` ${length + 1}` : ''),
-    } as IWorkflowNode)
+        type: WorkflowNodeTypeEnum.JSON_PARSE,
+        key,
+        title: this.#translate.instant('PAC.Workflow.JSONParse', { Default: 'JSON Parse' }) + (length ? ` ${length + 1}` : ''),
+      } as IWorkflowNode,
+      fromNode
+    )
+    this.reconnectAfterInsert(key)
   }
 
-  addWorkflowVariableAssigner() {
+  addWorkflowVariableAssigner(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ASSIGNER).length ?? 0
+    const key = genXpertAssignerKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.ASSIGNER,
-      key: genXpertAssignerKey(),
+      key,
       title: this.#translate.instant('PAC.Workflow.VariableAssigner', { Default: 'Variable Assigner' }) + ` ${length + 1}`,
       assigners: [
         {
@@ -377,73 +478,88 @@ export class XpertStudioContextMenuComponent {
           inputType: 'variable'
         }
       ]
-    } as IWFNAssigner)
+    } as IWFNAssigner, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  async addWorkflowHttp() {
+  async addWorkflowHttp(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.HTTP).length ?? 0
+    const key = genXpertHttpKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.HTTP,
-      key: genXpertHttpKey(),
+      key,
       method: 'get',
       title: await this.#translate.instant('PAC.Workflow.HTTPRequest', { Default: 'HTTP Request' }) + (length ? ` ${length + 1}` : '')
-    } as IWFNHttp)
+    } as IWFNHttp, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  async addWorkflowTool() {
+  async addWorkflowTool(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.TOOL).length ?? 0
+    const key = genXpertToolKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TOOL,
-      key: genXpertToolKey(),
+      key,
       title: await this.#translate.instant('PAC.Workflow.Tool', { Default: 'Tool' }) + (length ? ` ${length + 1}` : '')
-    } as IWFNTool)
+    } as IWFNTool, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  async addWorkflowSubflow() {
+  async addWorkflowSubflow(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.SUBFLOW).length ?? 0
+    const key = genXpertSubflowKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.SUBFLOW,
-      key: genXpertSubflowKey(),
+      key,
       title: await this.#translate.instant('PAC.Workflow.Subflow', { Default: 'Subflow' }) + (length ? ` ${length + 1}` : '')
-    } as IWFNSubflow)
+    } as IWFNSubflow, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  addWorkflowListOperator() {
+  addWorkflowListOperator(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.LIST_OPERATOR).length ?? 0
+    const key = genListOperatorKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.LIST_OPERATOR,
-      key: genListOperatorKey(),
+      key,
       title: this.#translate.instant('PAC.Workflow.ListOperator', { Default: 'List Operator' }) + (length ? ` ${length + 1}` : '')
-    } as IWFNListOperator)
+    } as IWFNListOperator, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  addWorkflowVariableAggregator() {
+  addWorkflowVariableAggregator(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR).length ?? 0
+    const key = genVariableAggregatorKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR,
-      key: genVariableAggregatorKey(),
+      key,
       title: this.#translate.instant('PAC.Workflow.VariableAggregator', { Default: 'Variable Aggregator' }) + (length ? ` ${length + 1}` : '')
-    } as IWFNVariableAggregator)
+    } as IWFNVariableAggregator, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  addWorkflowAgentTool() {
+  addWorkflowAgentTool(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.AGENT_TOOL).length ?? 0
+    const key = genXpertAgentToolKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.AGENT_TOOL,
-      key: genXpertAgentToolKey(),
+      key,
       title: this.#translate.instant('PAC.Workflow.AgentTool', { Default: 'Agent Tool' }) + (length ? ` ${length + 1}` : '')
-    } as IWFNAgentTool)
+    } as IWFNAgentTool, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
-  addWorkflowTask() {
+  addWorkflowTask(fromNode?: TXpertTeamNode) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.TASK).length ?? 0
+    const key = genXpertTaskKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TASK,
-      key: genXpertTaskKey(),
+      key,
       title: this.#translate.instant('PAC.Workflow.TaskHandover', { Default: 'Task Handover' }) + (length ? ` ${length + 1}` : ''),
       descriptionPrefix: TASK_DESCRIPTION_PREFIX,
       descriptionSuffix: TASK_DESCRIPTION_SUFFIX
-    } as IWFNTask)
+    } as IWFNTask, fromNode)
+    this.reconnectAfterInsert(key)
   }
 
   addWorkflowTrigger(from: string | TWorkflowTriggerMeta) {
@@ -456,67 +572,83 @@ export class XpertStudioContextMenuComponent {
       return
     }
 
+    const key = genXpertTriggerKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TRIGGER,
-      key: genXpertTriggerKey(),
+      key,
       title: this.#translate.instant('PAC.Workflow.Trigger', { Default: 'Trigger' }),
       from: typeof from === 'string' ? from : from.name
     } as IWFNTrigger)
+    this.reconnectAfterInsert(key)
   }
 
   onSelectToolset({toolset, provider}: {toolset?: IXpertToolset; provider?: IToolProvider}) {
+    let key: string | undefined
     if (toolset) {
+      key = toolset.key ?? toolset.id
       this.apiService.createToolset(this.root.contextMenuPosition, toolset)
     }
     if (provider) {
+      key = uuid()
       this.apiService.createToolset(this.root.contextMenuPosition, {
-            key: uuid(),
+            key,
             category: XpertToolsetCategoryEnum.BUILTIN,
             type: provider.name,
             name: provider.name
           })
+    }
+    if (key) {
+      this.reconnectAfterInsert(key)
     }
   }
 
   // Knowledge Pipelines
   addPipelineSource(provider: IDocumentSourceProvider) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.SOURCE).length ?? 0
+    const key = genPipelineSourceKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.SOURCE,
-      key: genPipelineSourceKey(),
+      key,
       title: this.#translate.instant('PAC.Xpert.Source', { Default: 'Source' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNSource)
+    this.reconnectAfterInsert(key)
   }
 
   addPipelineProcessor(provider: IDocumentProcessorProvider) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.PROCESSOR).length ?? 0
+    const key = genPipelineProcessorKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.PROCESSOR,
-      key: genPipelineProcessorKey(),
+      key,
       title: this.#translate.instant('PAC.Xpert.Processor', { Default: 'Processor' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNProcessor)
+    this.reconnectAfterInsert(key)
   }
 
   addPipelineChunker(provider: IDocumentChunkerProvider) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CHUNKER).length ?? 0
+    const key = genPipelineChunkerKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CHUNKER,
-      key: genPipelineChunkerKey(),
+      key,
       title: this.#translate.instant('PAC.Xpert.Chunker', { Default: 'Chunker' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNChunker)
+    this.reconnectAfterInsert(key)
   }
 
   addPipelineUnderstanding(provider: IDocumentUnderstandingProvider) {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.UNDERSTANDING).length ?? 0
+    const key = genPipelineUnderstandingKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.UNDERSTANDING,
-      key: genPipelineUnderstandingKey(),
+      key,
       title: this.#translate.instant('PAC.Pipeline.Understanding', { Default: 'Understanding' }) + (length ? ` ${length + 1}` : ''),
       provider: provider.name,
     } as IWFNUnderstanding)
+    this.reconnectAfterInsert(key)
   }
 
   addWorkflowDatabase(type: WorkflowNodeTypeEnum) {
@@ -549,26 +681,31 @@ export class XpertStudioContextMenuComponent {
       key,
       title,
     } as IWorkflowNodeDBOperation)
+    this.reconnectAfterInsert(key)
   }
 
   // Pro
   addSkill() {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.SKILL).length ?? 0
+    const key = genXpertSkillKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.SKILL,
-      key: genXpertSkillKey(),
+      key,
       title: this.#translate.instant('PAC.Workflow.Skill', { Default: 'Skill' }) + (length ? ` ${length + 1}` : ''),
     } as IWFNSkill)
+    this.reconnectAfterInsert(key)
   }
 
   addMiddleware(provider: string) {
     if (!provider) return
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.MIDDLEWARE).length ?? 0
+    const key = genXpertMiddlewareKey()
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.MIDDLEWARE,
-      key: genXpertMiddlewareKey(),
+      key,
       title: this.#translate.instant('PAC.KEY_WORDS.Middleware', { Default: 'Middleware' }) + (length ? ` ${length + 1}` : ''),
       provider,
     } as IWFNMiddleware)
+    this.reconnectAfterInsert(key)
   }
 }

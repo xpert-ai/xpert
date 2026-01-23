@@ -96,8 +96,6 @@ export class InlineDimensionComponent {
     effect(() => {
       if (this.dimension()) {
         this.dataSource.data = [mapDimensionToTreeItemNode(this.dimension())]
-
-        console.log(this.dataSource.data)
       }
     })
   }

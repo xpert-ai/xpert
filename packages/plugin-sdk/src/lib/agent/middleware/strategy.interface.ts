@@ -1,5 +1,6 @@
 import { IWFNMiddleware, TAgentMiddlewareMeta } from '@metad/contracts'
-import { AgentMiddleware, PromiseOrValue } from './types'
+import { AgentMiddleware } from './types'
+import { PromiseOrValue } from '../../types'
 
 export interface IAgentMiddlewareContext {
   tenantId: string

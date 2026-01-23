@@ -8,32 +8,71 @@
   [(ngModel)]="type" 
 />
 
-@if (type() === 'table') {
-  <ngm-select searchable [selectOptions]="props.options$ | async"
-    [placeholder]="'PAC.MODEL.SelectAFactTable' | translate: {Default: 'Select a fact table'}"
-    [(ngModel)]="tableName"
-  >
-    <ng-template #option let-value let-search="search">
-      <ngm-display-behaviour [option]="value" class="text-sm" [highlight]="search" />
-    </ng-template>
-  </ngm-select>
-} @else if (type() === 'view') {
-  <div>
-    <label>{{'PAC.MODEL.Alias' | translate: {Default: 'Alias'} }}</label>
-    <input tabindex="0" class="block h-8 w-full appearance-none rounded-lg border border-transparent bg-components-input-bg-normal px-3 text-sm
-          text-components-input-text-filled caret-primary-600 outline-none
-          placeholder:text-sm placeholder:text-text-tertiary
-          hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active
-          focus:bg-components-input-bg-active focus:shadow-xs" 
-      placeholder="SQL Alias" type="text"
-      [(ngModel)]="viewAlias"
+@switch(type()) {
+  @case ('table') {
+    <ngm-select searchable [selectOptions]="props.options$ | async"
+      [placeholder]="'PAC.MODEL.SelectAFactTable' | translate: {Default: 'Select a fact table'}"
+      [(ngModel)]="tableName"
     >
-  </div>
-  <div class="w-full">
-    <label>{{'PAC.MODEL.SQL' | translate: {Default: 'SQL'} }}</label>
-    <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular mt-1" 
-      placeholder="SQL"
-      [(ngModel)]="sqlContent"
-    ></textarea>
-  </div>
+      <ng-template #option let-value let-search="search">
+        <ngm-display-behaviour [option]="value" class="text-sm" [highlight]="search" />
+      </ng-template>
+    </ngm-select>
+  }
+  @case ('tables') {
+    <!-- Multi-table mode -->
+    <div class="flex flex-col gap-4">
+      <!-- Tables list (fact table is the first one) -->
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <label class="block text-sm font-medium">
+            {{ 'PAC.MODEL.Tables' | translate: {Default: 'Tables'} }}
+          </label>
+          <button 
+            type="button"
+            class="px-3 py-1 text-sm rounded-lg border border-divider-regular hover:bg-components-input-bg-hover flex items-center gap-1"
+            #trigger="cdkMenuTriggerFor"
+            [cdkMenuTriggerFor]="tablesMenu"
+          >
+            <i class="ri-add-line"></i>
+            {{ 'PAC.MODEL.AddTable' | translate: {Default: 'Add Table'} }}
+          </button>
+        </div>
+
+        <ngm-tables-join [(tables)]="tables"
+          [dataSource]="dataSource"
+        />
+      </div>
+    </div>
+  }
+  @case ('view') {
+    <div>
+      <label>{{'PAC.MODEL.Alias' | translate: {Default: 'Alias'} }}</label>
+      <input tabindex="0" class="block h-8 w-full appearance-none rounded-lg border border-transparent bg-components-input-bg-normal px-3 text-sm
+            text-components-input-text-filled caret-primary-600 outline-none
+            placeholder:text-sm placeholder:text-text-tertiary
+            hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active
+            focus:bg-components-input-bg-active focus:shadow-xs" 
+        placeholder="SQL Alias" type="text"
+        [(ngModel)]="viewAlias"
+      >
+    </div>
+    <div class="w-full">
+      <label>{{'PAC.MODEL.SQL' | translate: {Default: 'SQL'} }}</label>
+      <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular mt-1" 
+        placeholder="SQL"
+        [(ngModel)]="sqlContent"
+      ></textarea>
+    </div>
+  }
 }
+
+<ng-template #tablesMenu>
+  <div cdkMenu class="cdk-menu__large">
+    @for (item of options$ | async; track $index) {
+      <button cdkMenuItem class="text-text-secondary hover:text-text-primary" (click)="addJoinTable(item.value)">
+        <i class="ri-table-line mr-1"></i>{{ item.label }}
+      </button>
+    }
+  </div>
+</ng-template>
