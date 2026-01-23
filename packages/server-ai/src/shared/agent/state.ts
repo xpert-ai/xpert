@@ -4,6 +4,7 @@ import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
 import {
 	channelName,
 	IEnvironment,
+	IXpertAgent,
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	STATE_VARIABLE_TITLE_CHANNEL,
@@ -22,6 +23,7 @@ import { Subscriber } from 'rxjs'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
 import { commonTimes } from './time'
+import { identifyAgent } from './utils'
 
 export type TAgentStateSystem = {
 	language: string
@@ -108,6 +110,22 @@ export const AgentStateAnnotation = Annotation.Root({
 	})
 })
 
+export function createAgentChannel(agent: IXpertAgent) {
+	return Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
+		reducer: (a, b) => {
+			return b ? {
+				...a,
+				...b,
+				messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+			} : a
+		},
+		default: () => ({
+			agent: identifyAgent(agent),
+			system: '',
+			messages: []
+		})
+	})
+}
 
 export function stateWithEnvironment(state: typeof AgentStateAnnotation.State, environment?: IEnvironment) {
 	const initValue: Record<string, any> = {}
@@ -134,7 +152,7 @@ export function stateWithEnvironment(state: typeof AgentStateAnnotation.State, e
  * @returns
  */
 export function stateToParameters(state: typeof AgentStateAnnotation.State, environment?: IEnvironment) {
-	const result = {
+	return {
 		...stateWithEnvironment(state, environment),
 		...Object.keys(state).reduce((acc, key) => {
 			const value = state[key]
@@ -145,15 +163,7 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State, envi
 				acc[key] = key === 'messages' ? getBufferString(value as BaseMessage[]) : value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join('\n\n')
 			} else if (typeof value === 'object') {
 				acc[key] = Object.keys(value).reduce((objAcc, objKey) => {
-					const fieldValue = value[objKey]
-					if (objKey === 'messages') {
-						objAcc[objKey] = getBufferString(fieldValue)
-					} else if (typeof fieldValue === 'object' && fieldValue !== null) {
-						// Preserve nested objects/arrays for direct property access in templates
-						objAcc[objKey] = fieldValue
-					} else {
-						objAcc[objKey] = fieldValue
-					}
+					objAcc[objKey] = objKey === 'messages' ? getBufferString(value[objKey]) : value[objKey]
 					return objAcc
 				}, {})
 			} else {
@@ -161,12 +171,9 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State, envi
 			}
 
 			return acc
-		}, {})
-	}
-  
-	return result
+		}, {}),
+  }
 }
-
 
 /**
  * Convert a state variable definition to a state variable.
@@ -266,7 +273,6 @@ export type TSubAgent = {
 	stateGraph?: Runnable
 	nextNodes?: TXpertTeamNode[]
 	failNode?: TXpertTeamNode
-	channel?: TStateChannel
 }
 
 export function findChannelByTool(values: typeof AgentStateAnnotation.State, toolName: string): [string, TMessageChannel] {
