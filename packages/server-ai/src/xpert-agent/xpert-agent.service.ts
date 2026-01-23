@@ -39,7 +39,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 			new FindXpertQuery({ id: xpertId }, { relations: ['agent'], isDraft: true })
 		)
 		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
-			new XpertAgentChatCommand({ [STATE_VARIABLE_HUMAN]: params.input }, params.agentKey, xpert, {
+			new XpertAgentChatCommand({ [STATE_VARIABLE_HUMAN]: params.input, ...(params.state ?? {}) }, params.agentKey, xpert, {
 				...options,
 				isDraft: true,
 				store: null,
