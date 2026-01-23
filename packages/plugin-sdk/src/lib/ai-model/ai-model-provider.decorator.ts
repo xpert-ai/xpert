@@ -31,6 +31,20 @@ export function AIModelProviderStrategy(provider: string) {
     file = file.replace('file://', '')
   }
 
+  // Strip :line:col suffix (e.g. "/path/file.js:37:5" -> "/path/file.js")
+  if (file) {
+    file = file.replace(/:\d+:\d+$/, '')
+  }
+
+  // Decode URL-encoded paths (e.g. Chinese characters: %E9%A1%B9%E7%9B%AE -> 项目)
+  if (file) {
+    try {
+      file = decodeURIComponent(file)
+    } catch {
+      // keep as-is if decode fails
+    }
+  }
+
   const dir = file ? path.dirname(file) : process.cwd()
 
   return function (target: any) {
