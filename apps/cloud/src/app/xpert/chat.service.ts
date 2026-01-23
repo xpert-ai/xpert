@@ -465,6 +465,14 @@ export abstract class ChatService {
   cancelMessage() {
     this.chatSubscription?.unsubscribe()
     this.answering.set(false)
+
+    // Update conversation status to indicate it's no longer busy
+    // This will stop the relativeTimes pipe from updating (condition: conversationStatus === 'busy')
+    this.conversation.update((state) => ({
+      ...(state ?? {}),
+      status: 'idle'
+    }) as IChatConversation)
+
     // Update status of ai message
     this.updateLatestMessage((lastM) => {
       return {

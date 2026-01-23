@@ -21,8 +21,6 @@ import {
   IXpertAgent,
   IXpertAgentExecution,
   messageContentText,
-  TXpertParameter,
-  XpertParameterTypeEnum,
   STATE_VARIABLE_HUMAN,
   TInterruptCommand,
   ToastrService,

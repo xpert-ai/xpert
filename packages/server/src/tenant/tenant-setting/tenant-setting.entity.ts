@@ -1,10 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Entity, Column } from 'typeorm';
-import { ITenant } from '@metad/contracts';
 import { TenantBaseEntity } from '../../core/entities/internal';
 
 @Entity('tenant_setting')
-export class TenantSetting extends TenantBaseEntity implements ITenant {
+export class TenantSetting extends TenantBaseEntity {
 	@ApiProperty({ type: () => String })
 	@Column({ nullable: false })
 	name?: string;

@@ -7,7 +7,6 @@ export const environment: IEnvironment = {
 	production: false,
 	DEMO: false,
 	API_BASE_URL: API_BASE_URL,
-	IS_ELECTRON: false,
 	enableLocalAgent: false,
 
 	GOOGLE_AUTH_LINK: API_BASE_URL + '/api/auth/google',

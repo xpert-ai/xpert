@@ -9,7 +9,7 @@
   [formControl]="valueFormControl"
   [selectOptions]="selectOptions()"
 
-  [class.ngm-select-error]="error() || formControl.invalid"
+  [class.ngm-select-error]="error() || (formControl.invalid && formControl.touched)"
 >
   @if (props?.help) {
     <a ngmLabel [href]="props.help" target="_blank" rel="noopener noreferrer" class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal">
@@ -17,7 +17,7 @@
       <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
     </a>
   }
-  @if (formControl.invalid) {
+  @if (formControl.invalid && formControl.touched) {
     <formly-validation-message ngmError [field]="field" />
   }
   @if (error()) {
