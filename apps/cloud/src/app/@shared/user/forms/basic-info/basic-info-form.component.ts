@@ -92,6 +92,10 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               required: true,
               appearance: 'fill',
               minLength: 8
+            },
+            // Validate on blur instead of on change
+            modelOptions: {
+              updateOn: 'blur' as const
             }
           },
           {
@@ -116,6 +120,10 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
                 message: (error, field: FormlyFieldConfig) =>
                   this.#translate.instant('PAC.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
               }
+            },
+            // Validate on blur instead of on change
+            modelOptions: {
+              updateOn: 'blur' as const
             }
           }
         ]
@@ -154,6 +162,10 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               label: TRANSLATES?.Username ?? 'Username',
               required: true,
               appearance: 'fill'
+            },
+            // Validate on blur instead of on change
+            modelOptions: {
+              updateOn: 'blur' as const
             }
           },
           {
@@ -198,6 +210,10 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               appearance: 'fill',
               valueKey: 'key',
               displayBehaviour: DisplayBehaviour.descriptionOnly
+            },
+            // Validate on blur instead of on change
+            modelOptions: {
+              updateOn: 'blur' as const
             }
           },
           {
@@ -256,6 +272,9 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
   }
 
   async registerUser(organizationId?: string, createdById?: string) {
+    // Mark all fields as touched to trigger validation display on save
+    this.form.markAllAsTouched()
+    
     if (this.form.valid) {
       const { tenant } = this.#store.user
       const user: IUser = {
