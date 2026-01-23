@@ -748,43 +748,23 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const humanMessages: HumanMessage[] = []
 			const messageHistory = getChannelState(state, agentChannel)?.messages ?? []
 
-
 			// Determine whether it is Agent reflection (last message is not HumanMessage)
 			const lastMessage = messageHistory[messageHistory.length - 1]
-			const shouldProcessHumanInput = isStart || !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name))
-			
-			if (shouldProcessHumanInput) {
+			if (isStart || !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name))) {
 				// Is new human input: use message templates or input message
-				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim() && _.role === 'human')
-				
+				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
 				if (humanTemplates?.length) {
 					for await (const temp of humanTemplates) {
-						const renderedMessage = await HumanMessagePromptTemplate.fromTemplate(temp.text, {
+						humanMessages.push(await HumanMessagePromptTemplate.fromTemplate(temp.text, {
 							templateFormat: 'mustache'
-						}).format(parameters)
-						// Filter out empty messages - if template renders to empty, skip it
-						const messageContent = typeof renderedMessage.content === 'string' ? renderedMessage.content.trim() : JSON.stringify(renderedMessage.content)
-						if (messageContent.length > 0) {
-							humanMessages.push(renderedMessage)
-						} else {
-							this.#logger.warn(`[DEBUG] Skipping empty rendered template message`)
-						}
+						}).format(parameters))
 					}
 				}
-				
 				if (!humanMessages.length && state.human) {
 					// Add attachments
-					const fallbackMessage = await createHumanMessage(this.commandBus, this.queryBus, state, agent.options?.vision)
-					const fallbackContent = typeof fallbackMessage.content === 'string' ? fallbackMessage.content.trim() : JSON.stringify(fallbackMessage.content)
-					this.#logger.warn(`[DEBUG] Fallback message content length: ${fallbackContent.length}, content preview: ${fallbackContent.substring(0, 100)}`)
-					if (fallbackContent.length > 0) {
-						humanMessages.push(fallbackMessage)
-					} else {
-						this.#logger.warn(`[DEBUG] Fallback message is also empty!`)
-					}
+					humanMessages.push(await createHumanMessage(this.commandBus, this.queryBus, state, agent.options?.vision))
 				}
 			}
-			
 
 			return {
 				systemMessage,
