@@ -1,7 +1,7 @@
 import { inject, NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AnalyticsPermissionsEnum, AuthGuard } from '../@core'
+import { AnalyticsPermissionsEnum, authGuard } from '../@core'
 import { FeaturesComponent } from './features.component'
 import { NotFoundComponent } from '../@shared/not-found'
 import { AppService } from '../app.service'
@@ -24,7 +24,7 @@ const routes: Routes = [
       {
         path: 'chat',
         loadChildren: () => import('./chat/routes').then(m => m.routes),
-        canActivate: [AuthGuard],
+        canActivate: [authGuard],
         data: {
           title: 'Chat',
         }
@@ -32,7 +32,7 @@ const routes: Routes = [
       {
         path: 'explore',
         loadChildren: () => import('./xpert/explore/routes').then(m => m.routes),
-        canActivate: [AuthGuard],
+        canActivate: [authGuard],
         data: {
           title: 'Explore Xperts',
         }
@@ -41,7 +41,7 @@ const routes: Routes = [
         path: 'xpert',
         loadChildren: () => import('./xpert/routes').then(m => m.routes),
         canActivate: [
-          AuthGuard,
+          authGuard,
           () => {
             const appService = inject(AppService)
             appService.inWorkspace.set(true)
@@ -61,7 +61,7 @@ const routes: Routes = [
       // BI Routers
       {
         path: 'dashboard',
-        canActivate: [AuthGuard],
+        canActivate: [authGuard],
         data: {
           title: 'Dashboard',
           permissions: {
@@ -74,7 +74,7 @@ const routes: Routes = [
       {
         path: 'models',
         loadChildren: () => import('./semantic-model/model.module').then((m) => m.SemanticModelModule),
-        canActivate: [AuthGuard, NgxPermissionsGuard],
+        canActivate: [authGuard, NgxPermissionsGuard],
         data: {
           title: 'Models',
           permissions: {
@@ -86,7 +86,7 @@ const routes: Routes = [
       {
         path: 'project',
         loadChildren: () => import('./project/project.module').then((m) => m.ProjectModule),
-        canActivate: [AuthGuard, NgxPermissionsGuard],
+        canActivate: [authGuard, NgxPermissionsGuard],
         data: {
           title: 'Project',
           permissions: {
@@ -98,7 +98,7 @@ const routes: Routes = [
       {
         path: 'story',
         loadChildren: () => import('./story/story.module').then((m) => m.PACStoryModule),
-        canActivate: [AuthGuard, NgxPermissionsGuard],
+        canActivate: [authGuard, NgxPermissionsGuard],
         data: {
           title: 'Story',
           permissions: {
@@ -110,7 +110,7 @@ const routes: Routes = [
       {
         path: 'indicator',
         loadChildren: () => import('./indicator/indicator.module').then((m) => m.PACIndicatorModule),
-        canActivate: [AuthGuard],
+        canActivate: [authGuard],
         data: {
           title: 'Indicator',
         }
@@ -118,12 +118,12 @@ const routes: Routes = [
       // {
       //   path: 'subscription',
       //   loadChildren: () => import('./subscription/subscription.module').then((m) => m.PACSubscriptionModule),
-      //   canActivate: [AuthGuard]
+      //   canActivate: [authGuard]
       // },
       {
         path: 'indicator-app',
         loadChildren: () => import('@metad/cloud/indicator-market').then((m) => m.IndicatorMarketModule),
-        canActivate: [AuthGuard],
+        canActivate: [authGuard],
         data: {
           title: 'Indicator-app',
           permissions: {
@@ -142,7 +142,7 @@ const routes: Routes = [
       {
         path: 'chatbi',
         loadChildren: () => import('./chatbi/routes').then(m => m.routes),
-        canActivate: [AuthGuard],
+        canActivate: [authGuard],
         data: {
           title: 'Chat-BI',
         }
@@ -150,7 +150,7 @@ const routes: Routes = [
       {
         path: 'data',
         loadChildren: () => import('./data-factory/routes').then(m => m.routes),
-        canActivate: [AuthGuard],
+        canActivate: [authGuard],
         data: {
           title: 'Data-Factory',
         }
@@ -159,7 +159,7 @@ const routes: Routes = [
       {
         path: 'settings',
         loadChildren: () => import('./setting/setting.module').then((m) => m.SettingModule),
-        canActivate: [AuthGuard],
+        canActivate: [authGuard],
         data: {
           title: 'Settings',
         }

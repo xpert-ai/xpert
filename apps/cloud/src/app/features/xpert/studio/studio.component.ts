@@ -57,6 +57,7 @@ import {
   NodeOf,
   ToastrService,
   TXpertAgentConfig,
+  TXpertTeamConnection,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
@@ -88,7 +89,7 @@ import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioFeaturesComponent } from './features/features.component'
 import { XpertService } from '../xpert/xpert.service'
-import { GROUP_NODE_TYPES, provideJsonSchemaWidgets } from './types'
+import { GROUP_NODE_TYPES, provideJsonSchemaWidgets, readClipboardNode } from './types'
 
 
 @Component({
@@ -170,6 +171,8 @@ export class XpertStudioComponent {
 
   // States
   public contextMenuPosition: IPoint = PointExtensions.initialize(0, 0)
+  // Connection to insert a node into (when adding node on a connection line)
+  public insertConnection: TXpertTeamConnection | null = null
 
   private subscriptions$ = new Subscription()
 
@@ -319,6 +322,34 @@ export class XpertStudioComponent {
     this.contextMenuPosition = this.fFlowComponent().getPositionInFlow(
       PointExtensions.initialize(event.clientX, event.clientY)
     )
+    // Clear insert connection when using right-click context menu
+    this.insertConnection = null
+  }
+
+  /**
+   * Set the context menu position to the center of the connection
+   * and store the connection info for inserting a node
+   * @param connection The connection data to insert a node into
+   */
+  public setConnectionCenterPosition(connection: TXpertTeamConnection): void {
+    const fromNode = this.apiService.getNode(connection.from)
+    const toNode = this.apiService.getNode(connection.to)
+    if (fromNode?.position && toNode?.position) {
+      this.contextMenuPosition = {
+        x: (fromNode.position.x + toNode.position.x) / 2,
+        y: (fromNode.position.y + toNode.position.y) / 2
+      }
+      // Store the connection info for reconnecting after node creation
+      this.insertConnection = connection
+    }
+  }
+
+  /**
+   * Clear the insert connection state
+   * Called when context menu is opened from right-click (not from connection button)
+   */
+  public clearInsertConnection(): void {
+    this.insertConnection = null
   }
 
   public addConnection(event: FCreateConnectionEvent): void {
@@ -382,6 +413,7 @@ export class XpertStudioComponent {
     this.mousePosition.x = $event.screenX
     this.mousePosition.y = $event.screenY
   }
+
   public onSelectNode($event: MouseEvent, node: TXpertTeamNode) {
     if (Math.abs(this.mousePosition.x - $event.screenX) < 5 && 
         Math.abs(this.mousePosition.y - $event.screenY) < 5) {
@@ -477,14 +509,22 @@ export class XpertStudioComponent {
 
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent) {
-    // Ignore if focus is in an input element
     const target = event.target as HTMLElement
+    const flowElement = this.fFlowComponent()?.hostElement
+    const activeElement = document.activeElement as HTMLElement | null
+
+    const isInFlow = !!flowElement && ((!!activeElement && flowElement.contains(activeElement)) || flowElement.contains(target))
+    if (!isInFlow) {
+      return
+    }
+
+    // Ignore if focus is in an input element
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
       return
     }
 
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
-    const ctrlKey = isMac ? event.metaKey : event.ctrlKey
+    const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
+    const ctrlKey = isMac ? event.metaKey : event.ctrlKey;
 
     // Delete/Backspace - Delete selection
     if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -539,13 +579,16 @@ export class XpertStudioComponent {
     }
   }
 
-  pasteSelection() {
-    if (this.#copiedNode) {
+  async pasteSelection() {
+    const { node: clipboardNode } = await readClipboardNode()
+    const sourceNode = clipboardNode ?? this.#copiedNode
+
+    if (sourceNode) {
       this.apiService.pasteNode({
-        ...this.#copiedNode,
+        ...sourceNode,
         position: {
-          x: this.#copiedNode.position.x + 50,
-          y: this.#copiedNode.position.y + 50
+          x: sourceNode.position.x + 50,
+          y: sourceNode.position.y + 50
         }
       })
     }

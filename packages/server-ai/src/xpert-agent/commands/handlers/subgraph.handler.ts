@@ -9,7 +9,6 @@ import {
 	END,
 	LangGraphRunnableConfig,
 	MessagesAnnotation,
-	messagesStateReducer,
 	Send,
 	START,
 	StateGraph
@@ -41,7 +40,7 @@ import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphPa
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs, getAgentMiddlewares, orderNodesByKeyOrder } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs, getAgentMiddlewares, orderNodesByKeyOrder, createAgentChannel } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { AgenticWorkflowTypes } from '../../types'
@@ -240,30 +239,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					}),
 				})
 			}
-			// const retrievers = knowledgebaseIds.map((id) => ({
-			// 	retriever: createKnowledgeRetriever(this.queryBus, id, {
-			// 		recall: {...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {})},
-			// 		retrieval: retrievals?.[id]
-			// 	}),
-			// 	weight: recalls?.[id]?.weight
-			// }))
-			// const retriever = new EnsembleRetriever({
-			// 	retrievers: retrievers.map(({retriever}) => retriever),
-			// 	weights: retrievers.map(({weight}) => weight ?? 0.5),
-			//   })
-			// tools.push({
-			// 	toolset: {
-			// 		id: knowledgebaseIds.join(','),
-			// 		provider: 'knowledgebase',
-			// 		title: translate({en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
-			// 	},
-			// 	caller: agent.key,
-			// 	tool: retriever.asTool({
-			// 		name: "knowledge_retriever",
-			// 		description: "Get knowledges about question.",
-			// 		schema: z.string().describe(`key information of question`),
-			// 	  }),
-			// })
 		}
 
 		/**
@@ -404,6 +379,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					environment: options.environment,
 					isDraft: command.options.isDraft,
 					subscriber
+				})
+				
+				channels.push({
+					name: channelName(node.key),
+					annotation: createAgentChannel(node.entity)
 				})
 				
 				// Conditional Edges
@@ -683,20 +663,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key)
 					return [
 						channelName(key),
-						Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
-							reducer: (a, b) => {
-								return b ? {
-									...a,
-									...b,
-									messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
-								} : a
-							},
-							default: () => ({
-								agent: identifyAgent(agent),
-								system: '',
-								messages: []
-							})
-						})
+						createAgentChannel(agent.entity as IXpertAgent)
 					]
 				}
 				// for workflow
@@ -750,7 +717,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			// Determine whether it is Agent reflection (last message is not HumanMessage)
 			const lastMessage = messageHistory[messageHistory.length - 1]
-			if (isStart || !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name))) {
+			// Check if last message is already a HumanMessage to avoid duplicate injection
+			const lastMessageIsHuman = isBaseMessage(lastMessage) && lastMessage._getType() === 'human'
+			// Only create humanMessages if:
+			// 1. Last message is NOT already a HumanMessage (avoid duplicates)
+			// 2. AND either isStart OR last message is not a ToolMessage (normal flow)
+			if (!lastMessageIsHuman && (isStart || !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name)))) {
 				// Is new human input: use message templates or input message
 				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
 				if (humanTemplates?.length) {
@@ -1310,6 +1282,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				)
 
 				const lastMessage = output.messages[output.messages.length - 1]
+				
 				if (lastMessage && isAIMessage(lastMessage)) {
 					result = lastMessage.content as string
 				}

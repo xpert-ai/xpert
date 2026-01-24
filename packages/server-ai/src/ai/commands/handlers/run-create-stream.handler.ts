@@ -24,7 +24,8 @@ const chatRequestSchema = z
 		conversationId: z.string().optional(),
 		projectId: z.string().optional(),
 		confirm: z.boolean().optional(),
-		retry: z.boolean().optional()
+		retry: z.boolean().optional(),
+		checkpointId: z.string().optional()
 	})
 	.passthrough()
 
@@ -86,7 +87,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 					input: chatRequest.input,
 					state: chatRequest.state,
 					conversationId: conversation.id,
-					command: chatRequest.command
+					command: chatRequest.command,
 				},
 				{
 					xpertId: xpert.id,

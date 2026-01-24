@@ -130,9 +130,7 @@ export class FeatureToggleComponent {
     }
     return this._featureStoreService.changedFeature(request).pipe(
       tap(() => {
-        if (!environment.IS_ELECTRON) {
-          window.location.reload()
-        }
+        window.location.reload()
       })
     )
   }

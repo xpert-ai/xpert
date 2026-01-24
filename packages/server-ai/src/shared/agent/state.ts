@@ -4,6 +4,7 @@ import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
 import {
 	channelName,
 	IEnvironment,
+	IXpertAgent,
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	STATE_VARIABLE_TITLE_CHANNEL,
@@ -22,6 +23,7 @@ import { Subscriber } from 'rxjs'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
 import { commonTimes } from './time'
+import { identifyAgent } from './utils'
 
 export type TAgentStateSystem = {
 	language: string
@@ -108,6 +110,22 @@ export const AgentStateAnnotation = Annotation.Root({
 	})
 })
 
+export function createAgentChannel(agent: IXpertAgent) {
+	return Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
+		reducer: (a, b) => {
+			return b ? {
+				...a,
+				...b,
+				messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+			} : a
+		},
+		default: () => ({
+			agent: identifyAgent(agent),
+			system: '',
+			messages: []
+		})
+	})
+}
 
 export function stateWithEnvironment(state: typeof AgentStateAnnotation.State, environment?: IEnvironment) {
 	const initValue: Record<string, any> = {}
@@ -156,7 +174,6 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State, envi
 		}, {}),
   }
 }
-
 
 /**
  * Convert a state variable definition to a state variable.

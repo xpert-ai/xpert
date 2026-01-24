@@ -76,6 +76,11 @@ export class ChatConversationComponent {
   readonly error = computed(() => this.conversation()?.error)
   readonly operation = computed(() => this.chatService.conversation()?.operation)
   readonly command = model<TInterruptCommand>()
+  // Show operation panel only when user input is required
+  readonly showOperationPanel = computed(() => {
+    const tasks = this.operation()?.tasks ?? []
+    return tasks.some((task) => (task.parameters?.length ?? 0) > 0 || (task.interrupts?.length ?? 0) > 0)
+  })
 
   readonly primaryAgent = computed(() => this.xpert()?.agent)
   readonly parameters = computed(() => this.xpert()?.agentConfig?.parameters ?? (

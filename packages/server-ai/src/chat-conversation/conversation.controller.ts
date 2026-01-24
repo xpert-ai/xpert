@@ -9,7 +9,7 @@ import {
 	transformWhere,
 	UUIDValidationPipe
 } from '@metad/server-core'
-import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Get, HttpStatus, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Like } from 'typeorm'

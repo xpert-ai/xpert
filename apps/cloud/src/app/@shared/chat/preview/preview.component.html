@@ -53,6 +53,17 @@
                       hidden: !(synthesizeLoading() || isPlaying()),
                       flex: synthesizeLoading() || isPlaying()
                     }">
+                    @if (!readonly()) {
+                      <!-- Retry button for this message -->
+                      <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium
+                        bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+                        [matTooltip]="'PAC.KEY_WORDS.Retry' | translate: {Default: 'Retry'} "
+                        matTooltipPosition="above"
+                        (click)="onRetryMessage(message)"
+                      >
+                        <i class="ri-repeat-2-line"></i>
+                      </div>
+                    }
                     <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium
                       bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
                       [matTooltip]="'PAC.KEY_WORDS.Copy' | translate: {Default: 'Copy'} "
@@ -204,7 +215,8 @@
       }
     }
 
-    @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
+    @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation() && showOperationPanel()) {
+      <!-- Operation panel appears only when inputs are required -->
       <xp-xpert-agent-operation class="w-full mb-8 bg-components-card-bg"
         [readonly]="readonly()"
         [operation]="operation()"
