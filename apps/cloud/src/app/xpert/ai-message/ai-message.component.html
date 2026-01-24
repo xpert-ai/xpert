@@ -136,6 +136,16 @@
 
   <div class="absolute left-0 bottom-2 flex justify-end items-center gap-1">
     <div class="hidden group-hover/message:flex gap-1 p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
+      <!-- Retry button for this message -->
+      <div class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable
+        bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+        [matTooltip]="'PAC.KEY_WORDS.Retry' | translate: {Default: 'Retry'}"
+        matTooltipPosition="above"
+        [class.opacity-40]="!canRetry()"
+        (click)="onRetryMessage()"
+      >
+        <i class="ri-repeat-2-line"></i>
+      </div>
       <div class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable
         bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
         [matTooltip]="'PAC.Xpert.Logs' | translate: {Default: 'Logs'}"

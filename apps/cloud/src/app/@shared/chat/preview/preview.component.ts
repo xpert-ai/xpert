@@ -35,7 +35,9 @@ import {
   IChatMessageFeedback,
   IStorageFile,
   IXpert,
+  messageContentText,
   SynthesizeService,
+  TChatRequest,
   TInterruptCommand,
   ToastrService,
   TtsStreamPlayerService,
@@ -158,6 +160,11 @@ export class ChatConversationPreviewComponent {
   // Interrupt operation
   readonly operation = computed(() => this.conversation()?.operation)
   readonly command = model<TInterruptCommand>()
+  // Show operation panel only when user input is required
+  readonly showOperationPanel = computed(() => {
+    const tasks = this.operation()?.tasks ?? []
+    return tasks.some((task) => (task.parameters?.length ?? 0) > 0 || (task.interrupts?.length ?? 0) > 0)
+  })
 
   readonly lastMessage = computed(() => {
     const messages = this._messages()
@@ -255,7 +262,7 @@ export class ChatConversationPreviewComponent {
     })
   }
 
-  chat(options?: { input?: string; confirm?: boolean;
+  chat(options?: { input?: string; confirm?: boolean; files?: IStorageFile[]; checkpointId?: string; messageId?: string; reuseHuman?: boolean;
     /**
      * @deprecated use confirm with command resume instead
      */
@@ -267,15 +274,27 @@ export class ChatConversationPreviewComponent {
     this.suggestionQuestions.set([]) // Clear suggestions after selection
     this.loading.set(true)
 
-    if (options?.input) {
+    const requestFiles = options?.files ?? this.files()
+    const shouldClearAttachments = !options?.files
+
+    const shouldAppendHuman = !!options?.input && !options?.reuseHuman
+    if (shouldAppendHuman) {
       // Add to user message
       this.appendMessage({
         role: 'human',
         content: options.input,
         id: uuid(),
-        attachments: this.files()
+        attachments: requestFiles
       })
       this.input.set('')
+      this.currentMessage.set({
+        id: uuid(),
+        role: 'ai',
+        content: '',
+        status: 'thinking'
+      })
+    } else if (options?.input && options?.reuseHuman) {
+      // Reuse existing human message for retry without duplication
       this.currentMessage.set({
         id: uuid(),
         role: 'ai',
@@ -298,21 +317,27 @@ export class ChatConversationPreviewComponent {
     if (this.chatSubscription && !this.chatSubscription?.closed) {
       this.chatSubscription.unsubscribe()
     }
+    // Include checkpointId to resume thread state when retrying
+    const request = {
+      input: {
+        ...(this.parameterValue() ?? {}),
+        input: options?.input,
+        files: requestFiles?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()}))
+      },
+      conversationId: this.conversation()?.id,
+      // Reuse the original human message id to avoid duplicate replies
+      id: options?.messageId,
+      environmentId: this.environmentId(),
+      command: options?.confirm ? this.command() : null,
+      confirm: options?.confirm,
+      retry: options?.retry,
+      checkpointId: options?.checkpointId
+    } as TChatRequest & { checkpointId?: string }
+
     this.chatSubscription = this.xpertService
       .chat(
         this.xpert().id,
-        {
-          input: {
-            ...(this.parameterValue() ?? {}),
-            input: options?.input,
-            files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()}))
-          },
-          conversationId: this.conversation()?.id,
-          environmentId: this.environmentId(),
-          command: options?.confirm ? this.command() : null,
-          confirm: options?.confirm,
-          retry: options?.retry,
-        },
+        request,
         {
           isDraft: true
         }
@@ -394,8 +419,10 @@ export class ChatConversationPreviewComponent {
         }
       })
 
-    // Clear
-    this.attachments.set([])
+    // Clear only when using current attachments
+    if (shouldClearAttachments) {
+      this.attachments.set([])
+    }
   }
 
   onChatError(message: string) {
@@ -604,6 +631,66 @@ export class ChatConversationPreviewComponent {
     } else {
       this.close.emit()
     }
+  }
+
+  onRetryMessage(message: IChatMessage) {
+    // Avoid duplicate retries while a response is in progress
+    if (this.loading()) {
+      return
+    }
+    // Rollback to the target message and retry without later context
+    const conversation = this.conversation()
+    if (!conversation?.id) {
+      this.#toastr.error('Conversation not found')
+      return
+    }
+    const messages = this.messages()
+    const targetIndex = messages?.findIndex((item) => item.id === message?.id) ?? -1
+    if (targetIndex < 0) {
+      this.#toastr.error('Message not found')
+      return
+    }
+    let previousHumanIndex = -1
+    for (let i = targetIndex; i >= 0; i--) {
+      if (messages[i].role === 'human' || messages[i].role === 'user') {
+        previousHumanIndex = i
+        break
+      }
+    }
+    if (previousHumanIndex < 0) {
+      this.#toastr.error('Human message not found')
+      return
+    }
+    const previousHuman = messages[previousHumanIndex]
+    const content = messageContentText(previousHuman.content)
+    if (!content) {
+      this.#toastr.error('Message is empty')
+      return
+    }
+    const truncatedMessages = messages.slice(0, previousHumanIndex + 1)
+    this.conversationService.rollback(conversation.id, message.id).subscribe({
+      next: (result) => {
+        // Trim local messages to keep UI in sync with server rollback
+        this._messages.set(truncatedMessages as IChatMessage[])
+        this.conversation.update((state) => ({
+          ...(state ?? {}),
+          status: 'busy',
+          error: null
+        }))
+        this.chat({
+          input: content,
+          files: previousHuman.attachments as IStorageFile[],
+          retry: true,
+          checkpointId: result?.checkpointId,
+          // Use the original human id to prevent duplicated answers
+          messageId: result?.humanMessageId ?? previousHuman.id,
+          reuseHuman: true
+        })
+      },
+      error: (error) => {
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 
   readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading

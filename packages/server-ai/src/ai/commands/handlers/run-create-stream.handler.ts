@@ -24,7 +24,8 @@ const chatRequestSchema = z
 		conversationId: z.string().optional(),
 		projectId: z.string().optional(),
 		confirm: z.boolean().optional(),
-		retry: z.boolean().optional()
+		retry: z.boolean().optional(),
+		checkpointId: z.string().optional()
 	})
 	.passthrough()
 

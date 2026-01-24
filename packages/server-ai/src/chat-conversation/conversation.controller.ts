@@ -9,7 +9,7 @@ import {
 	transformWhere,
 	UUIDValidationPipe
 } from '@metad/server-core'
-import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Get, HttpStatus, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Like } from 'typeorm'
@@ -114,5 +114,13 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		})
 
 		return await client.list({ path: path || conversation.threadId, deepth })
+	}
+
+	@Post(':id/rollback')
+	async rollbackToMessage(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Body() body: { messageId: string }
+	) {
+		return await this.service.rollbackToMessage(id, body.messageId)
 	}
 }

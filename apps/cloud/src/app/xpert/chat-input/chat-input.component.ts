@@ -68,6 +68,7 @@ export class ChatInputComponent {
   readonly answering = this.chatService.answering
   readonly xpert = this.chatService.xpert
   readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
+  readonly hasConversation = computed(() => !!this.chatService.conversation()?.id)
 
   readonly isComposing = signal(false)
 
