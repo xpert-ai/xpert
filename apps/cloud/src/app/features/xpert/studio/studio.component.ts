@@ -89,7 +89,7 @@ import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioFeaturesComponent } from './features/features.component'
 import { XpertService } from '../xpert/xpert.service'
-import { GROUP_NODE_TYPES, provideJsonSchemaWidgets } from './types'
+import { GROUP_NODE_TYPES, provideJsonSchemaWidgets, readClipboardNode } from './types'
 
 
 @Component({
@@ -413,6 +413,7 @@ export class XpertStudioComponent {
     this.mousePosition.x = $event.screenX
     this.mousePosition.y = $event.screenY
   }
+
   public onSelectNode($event: MouseEvent, node: TXpertTeamNode) {
     if (Math.abs(this.mousePosition.x - $event.screenX) < 5 && 
         Math.abs(this.mousePosition.y - $event.screenY) < 5) {
@@ -508,14 +509,22 @@ export class XpertStudioComponent {
 
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent) {
-    // Ignore if focus is in an input element
     const target = event.target as HTMLElement
+    const flowElement = this.fFlowComponent()?.hostElement
+    const activeElement = document.activeElement as HTMLElement | null
+
+    const isInFlow = !!flowElement && ((!!activeElement && flowElement.contains(activeElement)) || flowElement.contains(target))
+    if (!isInFlow) {
+      return
+    }
+
+    // Ignore if focus is in an input element
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
       return
     }
 
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
-    const ctrlKey = isMac ? event.metaKey : event.ctrlKey
+    const isMac = /Macintosh|Mac OS X/.test(navigator.userAgent);
+    const ctrlKey = isMac ? event.metaKey : event.ctrlKey;
 
     // Delete/Backspace - Delete selection
     if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -570,13 +579,16 @@ export class XpertStudioComponent {
     }
   }
 
-  pasteSelection() {
-    if (this.#copiedNode) {
+  async pasteSelection() {
+    const { node: clipboardNode } = await readClipboardNode()
+    const sourceNode = clipboardNode ?? this.#copiedNode
+
+    if (sourceNode) {
       this.apiService.pasteNode({
-        ...this.#copiedNode,
+        ...sourceNode,
         position: {
-          x: this.#copiedNode.position.x + 50,
-          y: this.#copiedNode.position.y + 50
+          x: sourceNode.position.x + 50,
+          y: sourceNode.position.y + 50
         }
       })
     }

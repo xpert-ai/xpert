@@ -89,6 +89,7 @@ import {
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
 import { XpertStudioComponent } from '../../studio.component'
+import { readClipboardNode } from '../../types'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
 import { FormsModule } from '@angular/forms'
@@ -264,17 +265,21 @@ export class XpertStudioContextMenuComponent {
   }
 
   async pasteNode() {
-    const nodeText = await navigator.clipboard.readText()
-    try {
-      const node = JSON.parse(nodeText)
+    const { node, hasText, error } = await readClipboardNode()
+    if (node) {
       this.apiService.pasteNode({
         ...node,
         position: {
           ...this.root.contextMenuPosition
         }
       })
-    } catch (err) {
-      console.error(err)
+      return
+    }
+
+    if (hasText) {
+      if (error) {
+        console.error(error)
+      }
       this.#toastr.error(
         this.#translate.instant('PAC.Xpert.UnableParseContent', { Default: 'Unable to parse content' })
       )
