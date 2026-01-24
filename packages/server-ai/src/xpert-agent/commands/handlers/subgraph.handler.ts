@@ -750,7 +750,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			// Determine whether it is Agent reflection (last message is not HumanMessage)
 			const lastMessage = messageHistory[messageHistory.length - 1]
-			if (isStart || !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name))) {
+			// Check if last message is already a HumanMessage to avoid duplicate injection
+			const lastMessageIsHuman = isBaseMessage(lastMessage) && lastMessage._getType() === 'human'
+			// Only create humanMessages if:
+			// 1. Last message is NOT already a HumanMessage (avoid duplicates)
+			// 2. AND either isStart OR last message is not a ToolMessage (normal flow)
+			if (!lastMessageIsHuman && (isStart || !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name)))) {
 				// Is new human input: use message templates or input message
 				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
 				if (humanTemplates?.length) {

@@ -273,9 +273,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					}
 
 					const recordLastState = async () => {
+						// Don't pass checkpoint_id here - we want the LATEST state, not the state
+						// from when graph execution started (which would be the retry checkpoint).
 						const state = await graph.getState({
 							configurable: {
-								...config
+								thread_id: config.thread_id,
+								checkpoint_ns: config.checkpoint_ns ?? ''
+								// Intentionally omit checkpoint_id to get latest state
 							}
 						})
 
@@ -283,13 +287,18 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							state.config ?? state.parentConfig
 						)
 
-						// @todo checkpoint_id The source of the value should be wrong
-						execution.checkpointNs = state.config?.configurable?.checkpoint_ns ?? checkpoint?.checkpoint_ns
-						execution.checkpointId = state.config?.configurable?.checkpoint_id ?? checkpoint?.checkpoint_id
-
+						// Use checkpoint from saver as primary source (most up-to-date),
+						// fallback to state.config for backwards compatibility.
+						// pendingWrites takes highest priority if present.
 						if (pendingWrites?.length) {
 							execution.checkpointNs = pendingWrites[0].checkpoint_ns
 							execution.checkpointId = pendingWrites[0].checkpoint_id
+						} else if (checkpoint?.checkpoint_id) {
+							execution.checkpointNs = checkpoint.checkpoint_ns
+							execution.checkpointId = checkpoint.checkpoint_id
+						} else {
+							execution.checkpointNs = state.config?.configurable?.checkpoint_ns
+							execution.checkpointId = state.config?.configurable?.checkpoint_id
 						}
 						// Update execution title from graph states
 						if (state.values.title) {
