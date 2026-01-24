@@ -2,12 +2,31 @@ import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMess
 import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
+import { Column, DeleteDateColumn, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId, Tree, TreeChildren, TreeParent } from 'typeorm'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
 
 @Entity('chat_message')
 @Index(['conversationId'])
+@Tree('closure-table')
 export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMessage {
+		
+	/*
+	|--------------------------------------------------------------------------
+	| Parent-children relationship 
+	|--------------------------------------------------------------------------
+	*/
+	@TreeChildren()
+	children: ChatMessage[]
+
+	@ApiPropertyOptional({ type: () => ChatMessage, description: 'Parent Message' })
+	@IsOptional()
+	@TreeParent()
+	@JoinColumn({ name: 'parentId' })
+	parent?: ChatMessage;
+
+	@IsOptional()
+	@Column({ nullable: true })
+	parentId?: string;
 
 	@ApiProperty({ type: () => String })
 	@IsString()
@@ -56,6 +75,13 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	events?: TChatMessageStep[]
+
+	/**
+	 * Soft Delete
+	 */
+	@ApiPropertyOptional({ type: () => 'timestamptz' })
+	@DeleteDateColumn({ nullable: true })
+	deletedAt?: Date
 
 	/*
     |--------------------------------------------------------------------------

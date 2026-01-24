@@ -239,30 +239,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					}),
 				})
 			}
-			// const retrievers = knowledgebaseIds.map((id) => ({
-			// 	retriever: createKnowledgeRetriever(this.queryBus, id, {
-			// 		recall: {...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {})},
-			// 		retrieval: retrievals?.[id]
-			// 	}),
-			// 	weight: recalls?.[id]?.weight
-			// }))
-			// const retriever = new EnsembleRetriever({
-			// 	retrievers: retrievers.map(({retriever}) => retriever),
-			// 	weights: retrievers.map(({weight}) => weight ?? 0.5),
-			//   })
-			// tools.push({
-			// 	toolset: {
-			// 		id: knowledgebaseIds.join(','),
-			// 		provider: 'knowledgebase',
-			// 		title: translate({en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
-			// 	},
-			// 	caller: agent.key,
-			// 	tool: retriever.asTool({
-			// 		name: "knowledge_retriever",
-			// 		description: "Get knowledges about question.",
-			// 		schema: z.string().describe(`key information of question`),
-			// 	  }),
-			// })
 		}
 
 		/**
@@ -688,20 +664,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					return [
 						channelName(key),
 						createAgentChannel(agent.entity as IXpertAgent)
-						// Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
-						// 	reducer: (a, b) => {
-						// 		return b ? {
-						// 			...a,
-						// 			...b,
-						// 			messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
-						// 		} : a
-						// 	},
-						// 	default: () => ({
-						// 		agent: identifyAgent(agent),
-						// 		system: '',
-						// 		messages: []
-						// 	})
-						// })
 					]
 				}
 				// for workflow

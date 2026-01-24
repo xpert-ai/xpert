@@ -18,6 +18,10 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
  * Chat message entity type
  */
 export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
+  parent?: IChatMessage | null
+  children?: IChatMessage[]
+  parentId?: string | null
+  
   /**
    * Files
    */

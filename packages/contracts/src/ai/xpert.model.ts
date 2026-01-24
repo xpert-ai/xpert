@@ -518,10 +518,13 @@ export interface TXpertTeamConnection {
 export type TChatOptions = {
   xpertId?: string
   conversationId?: string
-  /**
-   * Optional checkpoint id to resume thread state
-   */
+  messageId?: string
+  
+  // Langgraph thread id
+  thread_id?: string
+  // checkpoint id to resume thread state
   checkpointId?: string
+
   /**
    * The language used by the current browser page
    */

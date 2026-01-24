@@ -8,9 +8,7 @@ import {
 	channelName,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
-	GRAPH_NODE_TITLE_CONVERSATION,
 	IKnowledgebaseTask,
-	IXpertAgent,
 	KnowledgebaseChannel,
 	KnowledgeTask,
 	LanguagesEnum,
@@ -21,7 +19,6 @@ import {
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	TInterruptCommand,
-	TSensitiveOperation,
 	TXpertAgentConfig,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
@@ -41,7 +38,7 @@ import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { EnvironmentService } from '../../../environment'
-import { createHumanMessage, getWorkspace, VolumeClient } from '../../../shared'
+import { getWorkspace, VolumeClient } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 
@@ -179,22 +176,22 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			validateXpertParameterValues(agent?.parameters, state[STATE_VARIABLE_HUMAN] as any)
 
 			const volumeClient = new VolumeClient({tenantId, catalog: 'users', userId, projectId: options.projectId})
-			const agentChannel = channelName(agent.key)
-			const hasRootMessages = !!state?.messages?.length
-			const hasAgentMessages = !!state?.[agentChannel]?.messages?.length
-			// When resuming from checkpoint (checkpointId exists), don't inject HumanMessage
-			// because the checkpoint already contains the conversation history including HumanMessage.
-			// We only need to re-generate the AI response.
-			const isResumeFromCheckpoint = !!options.checkpointId
-			const shouldInjectHumanMessage = !isResumeFromCheckpoint && !hasRootMessages && !hasAgentMessages && !!state[STATE_VARIABLE_HUMAN]?.input
-			const humanMessage = shouldInjectHumanMessage
-				? await createHumanMessage(
-						this.commandBus,
-						this.queryBus,
-						{ [STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN] },
-						agent.options?.vision
-					)
-				: null
+			// const agentChannel = channelName(agent.key)
+			// const hasRootMessages = !!state?.messages?.length
+			// const hasAgentMessages = !!state?.[agentChannel]?.messages?.length
+			// // When resuming from checkpoint (checkpointId exists), don't inject HumanMessage
+			// // because the checkpoint already contains the conversation history including HumanMessage.
+			// // We only need to re-generate the AI response.
+			// const isResumeFromCheckpoint = !!options.checkpointId
+			// const shouldInjectHumanMessage = !isResumeFromCheckpoint && !hasRootMessages && !hasAgentMessages && !!state[STATE_VARIABLE_HUMAN]?.input
+			// const humanMessage = shouldInjectHumanMessage
+			// 	? await createHumanMessage(
+			// 			this.commandBus,
+			// 			this.queryBus,
+			// 			{ [STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN] },
+			// 			agent.options?.vision
+			// 		)
+			// 	: null
 			graphInput = {
 				...(state ?? {}),
 				...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
@@ -202,17 +199,17 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				 * @deprecated use `human.input` instead
 				 */
 				input: state[STATE_VARIABLE_HUMAN].input,
-				// Ensure graph has the real human message for execution logs and prompt input
-				// Skip injecting when resuming from checkpoint to avoid duplicates
-				...(shouldInjectHumanMessage
-					? {
-							messages: [humanMessage],
-							[agentChannel]: {
-								...(state?.[agentChannel] ?? {}),
-								messages: [humanMessage]
-							}
-						}
-					: {}),
+				// // Ensure graph has the real human message for execution logs and prompt input
+				// // Skip injecting when resuming from checkpoint to avoid duplicates
+				// ...(shouldInjectHumanMessage
+				// 	? {
+				// 			messages: [humanMessage],
+				// 			[agentChannel]: {
+				// 				...(state?.[agentChannel] ?? {}),
+				// 				messages: [humanMessage]
+				// 			}
+				// 		}
+				// 	: {}),
 				[STATE_VARIABLE_SYS]: {
 					language: languageCode,
 					user_email: user.email,

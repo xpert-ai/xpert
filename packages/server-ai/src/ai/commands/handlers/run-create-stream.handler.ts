@@ -87,7 +87,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 					input: chatRequest.input,
 					state: chatRequest.state,
 					conversationId: conversation.id,
-					command: chatRequest.command
+					command: chatRequest.command,
 				},
 				{
 					xpertId: xpert.id,

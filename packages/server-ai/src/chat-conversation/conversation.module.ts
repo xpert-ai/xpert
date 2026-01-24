@@ -11,13 +11,11 @@ import { ChatConversationService } from './conversation.service'
 import { QueryHandlers } from './queries/handlers'
 import { ConversationSummaryProcessor } from './summary.job'
 import { ChatMessageModule } from '../chat-message/chat-message.module'
-import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 
 @Module({
 	imports: [
 		RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
-		// Provide checkpoint repository for rollback logic
-		TypeOrmModule.forFeature([ChatConversation, CopilotCheckpoint]),
+		TypeOrmModule.forFeature([ChatConversation]),
 		SharedModule,
 		CqrsModule,
 

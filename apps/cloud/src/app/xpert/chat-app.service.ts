@@ -74,7 +74,7 @@ export class ChatAppService extends ChatService {
     })
   }
   
-  getConversation(id: string) {
+  fetchConversation(id: string) {
     return this.xpert() ? this.xpertService.getAppConversation(this.xpert().slug, id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
      : of(null)
   }

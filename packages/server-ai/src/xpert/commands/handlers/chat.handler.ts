@@ -37,6 +37,8 @@ import { XpertAgentChatCommand } from '../../../xpert-agent/'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared'
+import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution'
+import { CopilotCheckpointService } from '../../../copilot-checkpoint'
 
 
 @CommandHandler(XpertChatCommand)
@@ -45,13 +47,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 	constructor(
 		private readonly xpertService: XpertService,
+		private readonly checkpointService: CopilotCheckpointService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 	) {}
 
 	public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
 		const { options } = c
-		const { projectId, conversationId, confirm, command, checkpointId } = c.request as { checkpointId?: string } & typeof c.request
+		const { projectId, conversationId, confirm, retry, command } = c.request
 		let { input, state } = c.request
 		const { xpertId, taskId, from, fromEndUserId } = options ?? {}
 		let { execution } = options ?? {}
@@ -89,6 +92,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		let conversation: IChatConversation
 		let aiMessage: CopilotChatMessage
 		let executionId: string
+		let checkpointId: string = null
 		// Continue thread when confirm or reject operation
 		if (confirm) {
 			conversation = await this.queryBus.execute(
@@ -128,7 +132,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						},
 						from,
 						fromEndUserId
-					})
+					}, ['messages'])
 				)
 
 				// Remember
@@ -150,19 +154,39 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			)
 			executionId = execution.id
 
-			const _humanMessage: Partial<IChatMessage> = {
-				role: 'human',
-				content: input.input,
-				conversationId: conversation.id,
-				...(input.files ? {
-					attachments: input.files as IStorageFile[],
-				} : {})
+			let userMessage: IChatMessage = null
+			if (retry) {
+				const retryMessage = conversation.messages.find((_) => _.id === c.options.messageId)
+				const execution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(retryMessage.executionId))
+				if (execution?.checkpointId) {
+					const checkpoint = await this.checkpointService.findOne({
+						where: {
+							thread_id: conversation.threadId,
+							checkpoint_ns: execution.checkpointNs ?? '',
+							checkpoint_id: execution.checkpointId
+						}
+					})
+					checkpointId = checkpoint?.parent_id ?? execution.checkpointId
+				}
+				userMessage = conversation.messages.find((_) => _.id === retryMessage.parentId)
+			} else {
+				const _humanMessage: Partial<IChatMessage> = {
+					parent: conversation.messages[conversation.messages.length - 1],
+					role: 'human',
+					content: input.input,
+					conversationId: conversation.id,
+					...(input.files ? {
+						attachments: input.files as IStorageFile[],
+					} : {})
+				}
+				userMessage = await this.commandBus.execute(
+					new ChatMessageUpsertCommand(_humanMessage)
+				)
 			}
-			const userMessage = await this.commandBus.execute(
-				new ChatMessageUpsertCommand(_humanMessage)
-			)
+			
 			aiMessage = await this.commandBus.execute(
 				new ChatMessageUpsertCommand({
+					parent: userMessage,
 					role: 'ai',
 					content: ``,
 					executionId,
@@ -227,14 +251,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					agentObservable = await this.commandBus.execute<XpertAgentChatCommand, Promise<Observable<MessageEvent>>>(
 						new XpertAgentChatCommand(state, xpert.agent.key, xpert, {
 							...(options ?? {}),
-							checkpointId,
 							store: memoryStore,
 							conversationId: conversation.id,
 							isDraft: options?.isDraft,
 							execution: { id: executionId, category: 'agent' },
 							command,
 							memories,
-							summarizeTitle: !latestXpert.agentConfig?.summarizeTitle?.disable
+							summarizeTitle: !latestXpert.agentConfig?.summarizeTitle?.disable,
+							checkpointId: checkpointId
 						})
 					)
 				}

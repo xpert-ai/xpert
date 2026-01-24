@@ -293,6 +293,14 @@ export class ChatAiMessageComponent {
     if (!this.canRetry()) {
       return
     }
-    this.chatService.retryMessageById(this.message().id)
+    // this.chatService.retryMessageById(this.message().id)
+    this.chatService.chat({
+      retry: true,
+      command: {
+        resume: {
+        }
+      },
+      messageId: this.message().id
+    })
   }
 }

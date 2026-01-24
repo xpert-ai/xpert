@@ -115,12 +115,4 @@ export class ChatConversationController extends CrudController<ChatConversation>
 
 		return await client.list({ path: path || conversation.threadId, deepth })
 	}
-
-	@Post(':id/rollback')
-	async rollbackToMessage(
-		@Param('id', UUIDValidationPipe) id: string,
-		@Body() body: { messageId: string }
-	) {
-		return await this.service.rollbackToMessage(id, body.messageId)
-	}
 }
