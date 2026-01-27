@@ -44,6 +44,7 @@ import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessag
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { AgenticWorkflowTypes } from '../../types'
+import { cloneDeep } from '@metad/ocap-core'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -1205,6 +1206,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const configurable: TAgentRunnableConfigurable = config.configurable as TAgentRunnableConfigurable
 			const { executionId } = configurable
 
+			const _state = cloneDeep(state)
+
 			// Record start time
 			const timeStart = Date.now()
 			const _execution = await this.commandBus.execute(
@@ -1255,11 +1258,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 
 			try {
+				console.log(`isTool:`, isTool)
 				const subState = {
-					...state,
+					..._state,
 					...(isTool ? {
 						...call.args,
 						[STATE_VARIABLE_HUMAN]: {
+							..._state[STATE_VARIABLE_HUMAN],
 							input: call.args.input,
 						}
 						// [`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
