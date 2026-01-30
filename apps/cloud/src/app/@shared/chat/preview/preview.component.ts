@@ -36,6 +36,7 @@ import {
   IStorageFile,
   IXpert,
   SynthesizeService,
+  TChatRequest,
   TInterruptCommand,
   ToastrService,
   TtsStreamPlayerService,
@@ -158,6 +159,11 @@ export class ChatConversationPreviewComponent {
   // Interrupt operation
   readonly operation = computed(() => this.conversation()?.operation)
   readonly command = model<TInterruptCommand>()
+  // Show operation panel only when user input is required
+  readonly showOperationPanel = computed(() => {
+    const tasks = this.operation()?.tasks ?? []
+    return tasks.some((task) => (task.parameters?.length ?? 0) > 0 || (task.interrupts?.length ?? 0) > 0)
+  })
 
   readonly lastMessage = computed(() => {
     const messages = this._messages()
@@ -255,7 +261,12 @@ export class ChatConversationPreviewComponent {
     })
   }
 
-  chat(options?: { input?: string; confirm?: boolean;
+  chat(options?: {
+    input?: string;
+    confirm?: boolean;
+    files?: IStorageFile[];
+    messageId?: string;
+    command?: TInterruptCommand;
     /**
      * @deprecated use confirm with command resume instead
      */
@@ -267,15 +278,27 @@ export class ChatConversationPreviewComponent {
     this.suggestionQuestions.set([]) // Clear suggestions after selection
     this.loading.set(true)
 
-    if (options?.input) {
+    const requestFiles = options?.files ?? this.files()
+    const shouldClearAttachments = !options?.files
+
+    const shouldAppendHuman = !!options?.input
+    if (shouldAppendHuman) {
       // Add to user message
       this.appendMessage({
         role: 'human',
         content: options.input,
         id: uuid(),
-        attachments: this.files()
+        attachments: requestFiles
       })
       this.input.set('')
+      this.currentMessage.set({
+        id: uuid(),
+        role: 'ai',
+        content: '',
+        status: 'thinking'
+      })
+    } else if (options?.input) {
+      // Reuse existing human message for retry without duplication
       this.currentMessage.set({
         id: uuid(),
         role: 'ai',
@@ -298,23 +321,29 @@ export class ChatConversationPreviewComponent {
     if (this.chatSubscription && !this.chatSubscription?.closed) {
       this.chatSubscription.unsubscribe()
     }
+    // Include checkpointId to resume thread state when retrying
+    const request = {
+      input: options.retry ? undefined : {
+        ...(this.parameterValue() ?? {}),
+        input: options?.input,
+        files: requestFiles?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()}))
+      },
+      conversationId: this.conversation()?.id,
+      // Reuse the original human message id to avoid duplicate replies
+      id: options?.messageId,
+      environmentId: this.environmentId(),
+      command: options?.confirm ? this.command() : options.command,
+      confirm: options?.confirm,
+      retry: options?.retry,
+    } as TChatRequest
+
     this.chatSubscription = this.xpertService
       .chat(
         this.xpert().id,
+        request,
         {
-          input: {
-            ...(this.parameterValue() ?? {}),
-            input: options?.input,
-            files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()}))
-          },
-          conversationId: this.conversation()?.id,
-          environmentId: this.environmentId(),
-          command: options?.confirm ? this.command() : null,
-          confirm: options?.confirm,
-          retry: options?.retry,
-        },
-        {
-          isDraft: true
+          isDraft: true,
+          messageId: options?.messageId
         }
       )
       .pipe(takeUntilDestroyed(this.#destroyRef))
@@ -394,8 +423,10 @@ export class ChatConversationPreviewComponent {
         }
       })
 
-    // Clear
-    this.attachments.set([])
+    // Clear only when using current attachments
+    if (shouldClearAttachments) {
+      this.attachments.set([])
+    }
   }
 
   onChatError(message: string) {
@@ -604,6 +635,37 @@ export class ChatConversationPreviewComponent {
     } else {
       this.close.emit()
     }
+  }
+
+  onRetryMessage(message: IChatMessage) {
+    // Avoid duplicate retries while a response is in progress
+    if (this.loading()) {
+      return
+    }
+
+    // Rollback to the target message and retry without later context
+    const conversation = this.conversation()
+    if (!conversation?.id) {
+      this.#toastr.error('Conversation not found')
+      return
+    }
+    const messages = this.messages()
+    const targetIndex = messages?.findIndex((item) => item.id === message?.id) ?? -1
+    if (targetIndex < 0) {
+      this.#toastr.error('Message not found')
+      return
+    }
+
+    this._messages.set(messages.slice(0, targetIndex))
+
+    this.chat({
+      retry: true,
+      command: {
+        resume: {
+        }
+      },
+      messageId: message.id
+    })
   }
 
   readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading

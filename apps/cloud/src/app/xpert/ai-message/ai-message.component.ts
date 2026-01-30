@@ -108,6 +108,7 @@ export class ChatAiMessageComponent {
   readonly status = computed(() => this.message()?.status)
   readonly busy = computed(() => this.chatService.answering() && ['thinking', 'reasoning', 'answering'].includes(this.status()))
   readonly answering = computed(() => this.chatService.answering() && ['thinking', 'answering'].includes(this.status()))
+  readonly canRetry = computed(() => !!this.message()?.id && !this.chatService.answering())
   readonly feedbackReady = computed(() => {
     const status = this.status() as XpertAgentExecutionStatusEnum | string
     const endedStatuses = new Set<XpertAgentExecutionStatusEnum | string>([
@@ -285,5 +286,21 @@ export class ChatAiMessageComponent {
   readonly isPlaying = this.#synthesizeService.isPlaying
   readAloud(message: IChatMessage) {
     this.#synthesizeService.readAloud(message.conversationId, message)
+  }
+
+  onRetryMessage() {
+    // Trigger retry for the current AI message
+    if (!this.canRetry()) {
+      return
+    }
+    // this.chatService.retryMessageById(this.message().id)
+    this.chatService.chat({
+      retry: true,
+      command: {
+        resume: {
+        }
+      },
+      messageId: this.message().id
+    })
   }
 }

@@ -42,7 +42,6 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { UploadedFile } from '@metad/contracts'
 import { FileStorage, UploadedFileStorage } from '@metad/server-core'
 import path from 'path'
-import chardet from 'chardet'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
@@ -206,7 +205,7 @@ export class XpertController extends CrudController<Xpert> {
 	@UseGuards(XpertGuard)
 	@Post(':id/draft')
 	async saveDraft(@Param('id') id: string, @Body() draft: TXpertTeamDraft) {
-		// todo 检查有权限编辑此 xpert role
+		// todo Check if you have permission to edit this xpert role
 		draft.savedAt = new Date()
 		// Save draft
 		return await this.service.saveDraft(id, draft)
@@ -215,7 +214,7 @@ export class XpertController extends CrudController<Xpert> {
 	@UseGuards(XpertGuard)
 	@Put(':id/draft')
 	async updateDraft(@Param('id') id: string, @Body() draft: TXpertTeamDraft) {
-		// todo 检查有权限编辑此 xpert role
+		// todo Check if you have permission to edit this xpert role
 		draft.savedAt = new Date()
 		// Save draft
 		return await this.service.updateDraft(id, draft)
@@ -280,7 +279,8 @@ export class XpertController extends CrudController<Xpert> {
 		body: {
 			request: TChatRequest
 			options: {
-				isDraft: boolean
+				isDraft: boolean;
+				messageId: string;
 			}
 		}
 	) {
@@ -350,6 +350,9 @@ export class XpertController extends CrudController<Xpert> {
 		return this.service.createBulkMemories(id, body)
 	}
 
+	/**
+	 * @todo Refactoring is required
+	 */
 	@Post(':id/memory/bulk/upload')
 	@UseInterceptors(
 		FileInterceptor('file', {

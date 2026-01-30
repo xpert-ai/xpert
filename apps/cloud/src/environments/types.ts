@@ -19,8 +19,6 @@ export type IEnvironment = {
 
     API_BASE_URL: string
 
-    IS_ELECTRON: boolean
-
     GOOGLE_AUTH_LINK?: string
     FACEBOOK_AUTH_LINK?: string
     LINKEDIN_AUTH_LINK?: string

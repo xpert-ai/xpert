@@ -139,7 +139,7 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
-  chat(id: string, request: TChatRequest, options: { isDraft: boolean }) {
+  chat(id: string, request: TChatRequest, options: { messageId?: string; isDraft: boolean }) {
     return this.fetchEventSource(this.baseUrl + this.apiBaseUrl + `/${id}/chat`, JSON.stringify({ request, options }))
   }
 

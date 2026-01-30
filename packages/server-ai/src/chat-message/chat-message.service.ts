@@ -11,10 +11,16 @@ export class ChatMessageService extends TenantOrganizationAwareCrudService<ChatM
 
 	constructor(
 		@InjectRepository(ChatMessage)
-		chatRepository: Repository<ChatMessage>,
+		repository: Repository<ChatMessage>,
 		readonly commandBus: CommandBus,
 		readonly queryBus: QueryBus
 	) {
-		super(chatRepository)
+		super(repository)
+	}
+
+	async deleteByIds(ids: string[]) {
+		for await (const id of ids) {
+			await this.softRemove(id)
+		}
 	}
 }

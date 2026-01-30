@@ -44,6 +44,7 @@ import { EnvironmentService } from '../../../environment'
 import { getWorkspace, VolumeClient, ExecutionCancelService } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { SandboxService } from '../../../sandbox/sandbox.service'
+import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -160,13 +161,19 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const thread_id = command.options.thread_id
 		const config = {
 			thread_id,
-			checkpoint_ns: ''
+			checkpoint_ns: '',
+			// Use checkpoint id to resume thread state when retrying
+			...(options.checkpointId ? { checkpoint_id: options.checkpointId } : {})
 		}
 
 		const recordLastState = async () => {
+			// Don't pass checkpoint_id here - we want the LATEST state, not the state
+			// from when graph execution started (which would be the retry checkpoint).
 			const state = await graph.getState({
 				configurable: {
-					...config
+					thread_id: config.thread_id,
+					checkpoint_ns: config.checkpoint_ns ?? ''
+					// Intentionally omit checkpoint_id to get latest state
 				}
 			})
 
@@ -174,20 +181,18 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				state.config ?? state.parentConfig
 			)
 
-			// const checkpoints = await this.queryBus.execute(new GetCopilotCheckpointsByParentQuery(pick(
-			// 	state.parentConfig?.configurable,
-			// 	'thread_id',
-			// 	'checkpoint_ns',
-			// 	'checkpoint_id'
-			// )))
-
-			// @todo checkpoint_id The source of the value should be wrong
-			execution.checkpointNs = state.config?.configurable?.checkpoint_ns ?? checkpoint?.checkpoint_ns
-			execution.checkpointId = state.config?.configurable?.checkpoint_id ?? checkpoint?.checkpoint_id
-
+			// Use checkpoint from saver as primary source (most up-to-date),
+			// fallback to state.config for backwards compatibility.
+			// pendingWrites takes highest priority if present.
 			if (pendingWrites?.length) {
 				execution.checkpointNs = pendingWrites[0].checkpoint_ns
 				execution.checkpointId = pendingWrites[0].checkpoint_id
+			} else if (checkpoint?.checkpoint_id) {
+				execution.checkpointNs = checkpoint.checkpoint_ns
+				execution.checkpointId = checkpoint.checkpoint_id
+			} else {
+				execution.checkpointNs = state.config?.configurable?.checkpoint_ns
+				execution.checkpointId = state.config?.configurable?.checkpoint_id
 			}
 			// Update execution title from graph states
 			if (state.values.title) {
@@ -209,14 +214,45 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				graphInput = new Command(pick(options.command, 'resume', 'update'))
 			}
 		} else if(state[STATE_VARIABLE_HUMAN]) {
+			// English note: Validate human-provided parameter values before building graph input.
+			// This prevents oversized strings (max length) from silently passing into runtime.
+			validateXpertParameterValues(agent?.parameters, state[STATE_VARIABLE_HUMAN] as any)
+
 			const volumeClient = new VolumeClient({tenantId, catalog: 'users', userId, projectId: options.projectId})
+			// const agentChannel = channelName(agent.key)
+			// const hasRootMessages = !!state?.messages?.length
+			// const hasAgentMessages = !!state?.[agentChannel]?.messages?.length
+			// // When resuming from checkpoint (checkpointId exists), don't inject HumanMessage
+			// // because the checkpoint already contains the conversation history including HumanMessage.
+			// // We only need to re-generate the AI response.
+			// const isResumeFromCheckpoint = !!options.checkpointId
+			// const shouldInjectHumanMessage = !isResumeFromCheckpoint && !hasRootMessages && !hasAgentMessages && !!state[STATE_VARIABLE_HUMAN]?.input
+			// const humanMessage = shouldInjectHumanMessage
+			// 	? await createHumanMessage(
+			// 			this.commandBus,
+			// 			this.queryBus,
+			// 			{ [STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN] },
+			// 			agent.options?.vision
+			// 		)
+			// 	: null
 			graphInput = {
+				...(state ?? {}),
 				...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
 				/**
 				 * @deprecated use `human.input` instead
 				 */
 				input: state[STATE_VARIABLE_HUMAN].input,
-				...(state ?? {}),
+				// // Ensure graph has the real human message for execution logs and prompt input
+				// // Skip injecting when resuming from checkpoint to avoid duplicates
+				// ...(shouldInjectHumanMessage
+				// 	? {
+				// 			messages: [humanMessage],
+				// 			[agentChannel]: {
+				// 				...(state?.[agentChannel] ?? {}),
+				// 				messages: [humanMessage]
+				// 			}
+				// 		}
+				// 	: {}),
 				[STATE_VARIABLE_SYS]: {
 					language: languageCode,
 					user_email: user.email,

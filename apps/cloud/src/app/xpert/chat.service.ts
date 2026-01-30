@@ -38,6 +38,92 @@ import { AppService } from '../app.service'
 import { XpertHomeService } from './home.service'
 import { TCopilotChatMessage } from './types'
 
+function getCreatedAtMs(value: unknown): number {
+  if (!value) {
+    return 0
+  }
+  const date = value instanceof Date ? value : new Date(value as string)
+  const time = date.getTime()
+  return Number.isFinite(time) ? time : 0
+}
+
+/**
+ * Keep only the newest child per parentId chain, while preserving the original list order.
+ */
+function filterLatestMessages<T extends { id?: string; parentId?: string | null; createdAt?: Date }>(
+  messages?: T[] | null
+): T[] | null | undefined {
+  if (!messages?.length) {
+    return messages ?? null
+  }
+
+  const byId = new Map<string, T>()
+  const indexById = new Map<string, number>()
+  const childrenByParent = new Map<string | null, T[]>()
+
+  messages.forEach((message, index) => {
+    if (!message?.id) {
+      return
+    }
+    byId.set(message.id, message)
+    indexById.set(message.id, index)
+    const parentId = message.parentId ?? null
+    const siblings = childrenByParent.get(parentId)
+    if (siblings) {
+      siblings.push(message)
+    } else {
+      childrenByParent.set(parentId, [message])
+    }
+  })
+
+  const roots = messages.filter((message) => {
+    if (!message?.id) {
+      return false
+    }
+    const parentId = message.parentId
+    return !parentId || !byId.has(parentId)
+  })
+
+  const keep = new Set<string>()
+
+  const pickLatest = (children: T[]) => {
+    return children.reduce<T | null>((latest, child) => {
+      if (!latest) {
+        return child
+      }
+      const childTime = getCreatedAtMs(child.createdAt)
+      const latestTime = getCreatedAtMs(latest.createdAt)
+      if (childTime > latestTime) {
+        return child
+      }
+      if (childTime < latestTime) {
+        return latest
+      }
+      const childIndex = indexById.get(child.id) ?? -1
+      const latestIndex = indexById.get(latest.id) ?? -1
+      return childIndex > latestIndex ? child : latest
+    }, null)
+  }
+
+  roots.forEach((root) => {
+    let current: T | null = root
+    while (current && !keep.has(current.id)) {
+      keep.add(current.id)
+      const children = childrenByParent.get(current.id)
+      if (!children?.length) {
+        break
+      }
+      current = pickLatest(children)
+    }
+  })
+
+  if (!keep.size) {
+    return messages
+  }
+
+  return messages.filter((message) => !message?.id || keep.has(message.id))
+}
+
 /**
  * The context of a single chat is not shared between conversations
  */
@@ -85,7 +171,7 @@ export abstract class ChatService {
     const id = this.conversationId()
     return id
       ? combineLatest([
-          this.getConversation(id).pipe(
+          this.fetchConversation(id).pipe(
             catchError((httpError: HttpErrorResponse) => {
               if (httpError.status === 404) {
                 this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', 'PAC.KEY_WORDS.Conversation', {
@@ -110,6 +196,7 @@ export abstract class ChatService {
             return {
               conversation: conversation ? {
                 ...conversation,
+                messages: filterLatestMessages(conversation.messages),
                 title: conversation.title || shortTitle(conversation.options?.parameters?.input)
               } : null,
               feedbacks,
@@ -227,7 +314,7 @@ export abstract class ChatService {
     // })
   }
 
-  getConversation(id: string) {
+  fetchConversation(id: string) {
     return this.conversationService.getById(id, {
       relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages', 'messages.attachments', 'task']
     })
@@ -277,8 +364,16 @@ export abstract class ChatService {
        */
       reject: boolean
       retry: boolean
+      messageId?: string
     }>
   ) {
+    // Clear previous suggestion questions when starting a new round of chat.
+    // Purpose: avoid showing stale suggestions until the current round generates new ones.
+    if (this.suggestion_enabled()) {
+      this.suggesting.set(false)
+      this.suggestionQuestions.set([])
+    }
+
     this.answering.set(true)
     this.conversation.update((state) => ({ ...(state ?? {}), status: 'busy', error: null }) as IChatConversation)
 
@@ -299,22 +394,25 @@ export abstract class ChatService {
       // })
     }
 
+    const request = {
+      input: options.retry ? null : {
+        ...(this.parametersValue() ?? {}),
+        input: options.content,
+        files: options.files
+      },
+      conversationId: this.conversation()?.id,
+      id: options.id,
+      command: options.command,
+      confirm: options.confirm,
+      retry: options.retry,
+    } as TChatRequest
+
     this.chatSubscription = this.chatRequest(
       this.xpert()?.slug,
-      {
-        input: {
-          ...(this.parametersValue() ?? {}),
-          input: options.content,
-          files: options.files
-        },
-        conversationId: this.conversation()?.id,
-        id: options.id,
-        command: options.command,
-        confirm: options.confirm,
-        retry: options.retry
-      },
+      request,
       {
         xpertId: this.xpert()?.id,
+        messageId: options.messageId,
       }
     ).subscribe({
       next: (msg) => {
@@ -458,6 +556,14 @@ export abstract class ChatService {
   cancelMessage() {
     this.chatSubscription?.unsubscribe()
     this.answering.set(false)
+
+    // Update conversation status to indicate it's no longer busy
+    // This will stop the relativeTimes pipe from updating (condition: conversationStatus === 'busy')
+    this.conversation.update((state) => ({
+      ...(state ?? {}),
+      status: 'idle'
+    }) as IChatConversation)
+
     // Update status of ai message
     this.updateLatestMessage((lastM) => {
       return {
