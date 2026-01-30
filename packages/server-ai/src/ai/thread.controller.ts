@@ -1,6 +1,6 @@
 import { CheckpointTuple } from '@langchain/langgraph'
 import { Metadata, Run, ThreadState } from '@langchain/langgraph-sdk'
-import { ChatMessageTypeEnum, IUser, IXpertAgentExecution, messageContentText } from '@metad/contracts'
+import { ChatMessageTypeEnum, IUser, IXpertAgentExecution, messageContentText, USAGE_HOUR_FORMAT } from '@metad/contracts'
 import { ApiKeyOrClientSecretAuthGuard, CurrentUser, Public, TransformInterceptor } from '@metad/server-core'
 import {
 	Body,
@@ -36,6 +36,8 @@ import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
 import { RedisSseStreamService } from './stream/redis-sse.service'
 import { CancelConversationCommand } from '../chat-conversation'
+import { format } from 'date-fns/format'
+import { CopilotUserUsageQuery } from '../copilot-user/queries'
 
 @ApiTags('AI/Threads')
 @ApiBearerAuth()
@@ -279,6 +281,12 @@ export class ThreadsController {
 	}
 
 	// Others
+	@Get(':thread_id/usage')
+	async getThreadUsage(@Param('thread_id') threadId: string, @Query('start') start: string,
+			@Query('end') end?: string) {
+		const endHour = end ?? format(new Date(), USAGE_HOUR_FORMAT)
+		return await this.queryBus.execute(new CopilotUserUsageQuery({ start, end: endHour, threadId }))
+	}
 }
 
 function transformRun(execution: IXpertAgentExecution) {

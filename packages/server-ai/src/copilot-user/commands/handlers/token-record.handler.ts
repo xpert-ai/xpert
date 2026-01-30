@@ -1,6 +1,7 @@
-import { mapTranslationLanguage } from '@metad/contracts'
+import { mapTranslationLanguage, USAGE_HOUR_FORMAT } from '@metad/contracts'
 import { InvalidConfigurationException, RequestContext } from '@metad/server-core'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { format } from 'date-fns/format'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
@@ -19,7 +20,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 
 	public async execute(command: CopilotTokenRecordCommand): Promise<void> {
 		const { input } = command
-		const { organizationId, userId, model, tokenUsed } = input
+		const { organizationId, userId, model, tokenUsed, xpertId, threadId } = input
 		const copilotId = input.copilotId ?? input.copilot?.id
 
 		if (!model) {
@@ -31,6 +32,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 		}
 
 		if (tokenUsed > 0) {
+			const usageHour = format(new Date(), USAGE_HOUR_FORMAT)
 			const copilot = await this.queryBus.execute(
 				new CopilotGetOneQuery(input.tenantId, copilotId, ['modelProvider'])
 			)
@@ -39,9 +41,12 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 				copilotId,
 				organizationId,
 				userId,
+				xpertId,
+				threadId,
 				orgId: copilot.organizationId,
 				provider: copilot.modelProvider.providerName,
 				model,
+				usageHour,
 				tokenLimit: copilot.tokenBalance,
 				tokenUsed,
 				priceUsed: input.priceUsed,

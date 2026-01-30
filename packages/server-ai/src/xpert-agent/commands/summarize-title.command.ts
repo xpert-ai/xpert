@@ -9,11 +9,12 @@ export class CreateSummarizeTitleAgentCommand implements ICommand {
 
 	constructor(
 		public readonly options: {
-            xpert?: IXpert;
-            copilot?: ICopilot;
-            rootController: AbortController; 
-            rootExecutionId: string; 
-            channel: string;
+			rootController: AbortController
+			rootExecutionId: string
+			threadId: string
+			channel: string
+                  xpert?: IXpert
+			copilot?: ICopilot
 		}
 	) {}
 }

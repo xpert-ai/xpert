@@ -805,6 +805,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		const titleAgent = await this.commandBus.execute(
 			new CreateSummarizeTitleAgentCommand({
+				threadId: thread_id,
 				copilot,
 				rootController: abortController,
 				rootExecutionId: execution.id,

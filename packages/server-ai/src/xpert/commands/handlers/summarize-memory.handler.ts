@@ -38,7 +38,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 	) {}
 
 	public async execute(command: XpertSummarizeMemoryCommand) {
-		const { id, executionId } = command
+		const { id, threadId, executionId } = command
 		const { types, userId } = command.options
 		const xpert = await this.xpertService.findOne(id, { relations: ['agent'] })
 
@@ -80,7 +80,8 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 			new GetXpertChatModelQuery(primaryAgent.team, primaryAgent, {
 				abortController,
-				usageCallback: assignExecutionUsage(execution)
+				usageCallback: assignExecutionUsage(execution),
+				threadId
 			})
 		)
 

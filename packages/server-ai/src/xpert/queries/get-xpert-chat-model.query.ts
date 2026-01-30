@@ -16,11 +16,12 @@ export class GetXpertChatModelQuery implements IQuery {
 		 * @deprecated use copilotModel in options
 		 */
 		public readonly agent: IXpertAgent,
-        public readonly options: {
+		public readonly options: {
 			copilotModel?: TCopilotModel
 			abortController?: AbortController;
 			// tokenCallback?: (tokens: number) => void
 			usageCallback: (tokens: ILLMUsage) => void
+			threadId: string
 		}
 	) {}
 }

@@ -1,7 +1,6 @@
 import { mapTranslationLanguage } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { IsNull } from 'typeorm'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
 import { CopilotUserService } from '../../copilot-user.service'
@@ -20,24 +19,22 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
 		const { input } = command
 		const { copilot, tenantId, organizationId, userId } = input
 
-		const existing = await this.copilotUserService.findOneOrFailByWhereOptions({
-				tenantId,
-				organizationId,
-				orgId: copilot.organizationId ?? IsNull(),
-				userId,
-				provider: copilot.modelProvider.providerName,
-				model: input.model
-			})
+		const usage = await this.copilotUserService.getUsageSummary({
+			tenantId,
+			organizationId,
+			orgId: copilot.organizationId ?? null,
+			userId,
+			provider: copilot.modelProvider.providerName,
+			model: input.model
+		})
 
-		if (existing.success) {
-			if (existing.record.tokenLimit && existing.record.tokenUsed >= existing.record.tokenLimit) {
-				throw new ExceedingLimitException(
-					await this.i18nService.t('copilot.Error.TokenExceedsLimit', {
-						lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
-						args: {model: input.model}
-					})
-				)
-			}
+		if (usage.tokenLimit && usage.tokenUsed >= usage.tokenLimit) {
+			throw new ExceedingLimitException(
+				await this.i18nService.t('copilot.Error.TokenExceedsLimit', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {model: input.model}
+				})
+			)
 		}
 
 		const orgExisting = await this.copilotOrganizationService.findOneOrFailByOptions({

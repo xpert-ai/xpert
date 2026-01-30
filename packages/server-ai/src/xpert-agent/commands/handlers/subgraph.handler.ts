@@ -104,7 +104,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 				new GetXpertChatModelQuery(agent.team, agent, {
 					abortController: rootController,
-					usageCallback: assignExecutionUsage(execution)
+					usageCallback: assignExecutionUsage(execution),
+					threadId: thread_id
 				})
 			)
 
@@ -767,7 +768,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					new GetXpertChatModelQuery(agent.team, null, {
 						copilotModel: agent.options.fallback.copilotModel,
 						abortController: rootController,
-						usageCallback: assignExecutionUsage(execution)
+						usageCallback: assignExecutionUsage(execution),
+						threadId: thread_id
 					})
 				)
 				const {structuredChatModel: fallbackChatModel} = withStructured(_fallbackChatModel, agent, withTools)
@@ -1027,7 +1029,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					xpert: team,
 					rootController: rootController,
 					rootExecutionId: command.options.rootExecutionId,
-					channel: agentChannel
+					channel: agentChannel,
+					threadId: thread_id,
 				})
 			)
 			subgraphBuilder.addNode(GRAPH_NODE_TITLE_CONVERSATION, titleAgent)

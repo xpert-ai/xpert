@@ -9,6 +9,8 @@ export class CopilotTokenRecordCommand implements ICommand {
 			tenantId: string
 			organizationId?: string
 			userId: string
+			xpertId?: string
+			threadId?: string
 			copilotId?: string
 			copilot?: ICopilot
 			model?: string

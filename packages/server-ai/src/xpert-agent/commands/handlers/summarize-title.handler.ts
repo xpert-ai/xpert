@@ -39,7 +39,7 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 	) {}
 
 	public async execute(command: CreateSummarizeTitleAgentCommand) {
-		const { xpert, copilot, rootController, rootExecutionId, channel } = command.options
+		const { xpert, copilot, rootController, threadId, rootExecutionId, channel } = command.options
 
 		// Record execution
 		const execution = {} as TXpertAgentExecution
@@ -61,7 +61,8 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 				new GetXpertChatModelQuery(xpert, null, {
 					copilotModel: copilotModel,
 					abortController: rootController,
-					usageCallback: assignExecutionUsage(execution)
+					usageCallback: assignExecutionUsage(execution),
+					threadId
 				})
 			)
 		} else if (copilot) {

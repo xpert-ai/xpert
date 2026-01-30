@@ -16,6 +16,8 @@ export class CopilotModelGetChatModelQuery implements IQuery {
 			abortController?: AbortController;
 			// tokenCallback?: (tokens: number) => void
 			usageCallback: (tokens: ILLMUsage) => void
+			xpertId?: string
+			threadId?: string
 		}
 	) {}
 }

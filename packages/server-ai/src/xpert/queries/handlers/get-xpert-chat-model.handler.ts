@@ -34,7 +34,11 @@ export class GetXpertChatModelQueryHandler implements IQueryHandler<GetXpertChat
 		}
 
 		return await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-			new CopilotModelGetChatModelQuery(copilot, copilotModel, options)
+			new CopilotModelGetChatModelQuery(copilot, copilotModel, {
+				...options,
+				xpertId: xpert.id,
+				threadId: options?.threadId
+			})
 		)
 	}
 }

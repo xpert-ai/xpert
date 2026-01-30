@@ -45,6 +45,12 @@ export class CopilotUser extends TenantOrganizationBaseEntity implements ICopilo
 	@Column({ nullable: true, })
 	model?: string
 
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true, length: 13 })
+	usageHour: string
+
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
@@ -150,4 +156,16 @@ export class CopilotUser extends TenantOrganizationBaseEntity implements ICopilo
 	@IsString()
 	@Column({ nullable: true })
 	copilotId?: string
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	xpertId?: string
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true, length: 100 })
+	threadId: string
 }

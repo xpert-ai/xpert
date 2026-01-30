@@ -24,7 +24,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 	) {}
 
 	public async execute(command: CopilotModelGetChatModelQuery) {
-		const { abortController, usageCallback } = command.options ?? {}
+		const { abortController, usageCallback, xpertId, threadId } = command.options ?? {}
 		let copilot = command.copilot
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
@@ -98,6 +98,8 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 								tenantId,
 								organizationId,
 								userId,
+								xpertId,
+								threadId,
 								copilot,
 								model: input.model,
 								tokenUsed: input.usage?.totalTokens,

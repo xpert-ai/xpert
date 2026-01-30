@@ -9,6 +9,7 @@ export class XpertSummarizeMemoryCommand implements ICommand {
 
 	constructor(
         public readonly id: string,
+        public readonly threadId: string,
         public readonly executionId: string,
         public readonly options: {
             types: LongTermMemoryTypeEnum[]

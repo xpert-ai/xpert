@@ -47,7 +47,7 @@ export class ConversationSummaryProcessor {
 				async () => {
 					try {
 						const memoryKey = await this.commandBus.execute(
-							new XpertSummarizeMemoryCommand(conversation.xpertId, message.executionId, {
+							new XpertSummarizeMemoryCommand(conversation.xpertId, conversation.threadId, message.executionId, {
 								types,
 								isDraft: true,
 								userId

@@ -9,7 +9,6 @@ import {
 	UseValidationPipe
 } from '@metad/server-core'
 import { Body, Controller, Get, Logger, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { CopilotUser } from './copilot-user.entity'
 import { CopilotUserService } from './copilot-user.service'
@@ -21,10 +20,8 @@ import { PublicCopilotUserDto } from './dto/public-copilot-user'
 @Controller()
 export class CopilotUserController extends CrudController<CopilotUser> {
 	readonly #logger = new Logger(CopilotUserController.name)
-	constructor(
-		readonly service: CopilotUserService,
-		private readonly commandBus: CommandBus
-	) {
+	
+	constructor(readonly service: CopilotUserService) {
 		super(service)
 	}
 
@@ -37,7 +34,7 @@ export class CopilotUserController extends CrudController<CopilotUser> {
 		@Query('$relations', ParseJsonPipe) relations: PaginationParams<CopilotUser>['relations'],
 		@Query('$order', ParseJsonPipe) order: PaginationParams<CopilotUser>['order'],
 		@Query('$take') take: PaginationParams<CopilotUser>['take'],
-		@Query('$skip') skip: PaginationParams<CopilotUser>['skip'],
+		@Query('$skip') skip: PaginationParams<CopilotUser>['skip']
 	): Promise<IPagination<PublicCopilotUserDto>> {
 		const result = await this.service.findAll({ where, relations, order, take, skip })
 		return {

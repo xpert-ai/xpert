@@ -7,6 +7,7 @@ import { CopilotUser } from './copilot-user.entity'
 import { CopilotUserService } from './copilot-user.service'
 import { CopilotUserController } from './copilot-user.controller'
 import { CommandHandlers } from './commands/handlers'
+import { QueryHandlers } from './queries/handlers'
 import { CopilotOrganizationModule } from '../copilot-organization/index'
 
 @Module({
@@ -19,7 +20,7 @@ import { CopilotOrganizationModule } from '../copilot-organization/index'
         CopilotOrganizationModule
     ],
     controllers: [CopilotUserController],
-    providers: [CopilotUserService, ...CommandHandlers],
+    providers: [CopilotUserService, ...CommandHandlers, ...QueryHandlers],
     exports: [CopilotUserService]
 })
 export class CopilotUserModule { }

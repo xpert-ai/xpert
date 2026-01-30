@@ -102,7 +102,8 @@ export class CreateWNClassifierHandler implements ICommandHandler<CreateWNClassi
 						new GetXpertChatModelQuery(xpert, null, {
 							copilotModel: copilotModel,
 							abortController: controller,
-							usageCallback: assignExecutionUsage(execution)
+							usageCallback: assignExecutionUsage(execution),
+							threadId: thread_id
 						})
 					)
 

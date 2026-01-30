@@ -178,6 +178,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 												tenantId: knowledgebase.tenantId,
 												organizationId: knowledgebase.organizationId,
 												userId,
+												xpertId,
 												copilotId: knowledgebase.copilotModel.copilot.id,
 												tokenUsed,
 												model: vectorStore.embeddingModel
