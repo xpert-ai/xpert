@@ -20,7 +20,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { AfterModelHandler, AgentBuiltInState, AgentMiddleware, AgentMiddlewareRegistry, BeforeModelHandler, ModelRequest, WrapModelCallHandler, WrapToolCallHook } from '@xpert-ai/plugin-sdk'
+import { AfterModelHandler, AgentBuiltInState, AgentMiddleware, AgentMiddlewareRegistry, BeforeModelHandler, IAgentMiddlewareContext, ModelRequest, WrapModelCallHandler, WrapToolCallHook } from '@xpert-ai/plugin-sdk'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -66,7 +66,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		// Signal controller in this subgraph
 		const abortController = new AbortController()
-		signal?.addEventListener('abort', () => abortController.abort())
+		// Create a named handler so we can remove it later
+		const abortHandler = () => abortController.abort()
+		signal?.addEventListener('abort', abortHandler)
+		// Clean up the listener when this subgraph's controller is aborted
+		abortController.signal.addEventListener('abort', () => {
+			signal?.removeEventListener('abort', abortHandler)
+		}, { once: true })
 
 		const {agent, graph: xpertGraph, next: agentNext, fail: agentFail} = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
 			new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
@@ -156,7 +162,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const items = await toolset.initTools()
 			const _variables = await toolset.getVariables()
 			toolsetVarirables.push(...(_variables ?? []))
-			stateVariables.push(...toolsetVarirables)
+			stateVariables.push(...(_variables ?? []))
 			// Filter available tools by agent
 			const availableTools = agent.options?.availableTools?.[toolset.getName()] ?? []
 			items.filter((tool) => availableTools.length ? availableTools.includes(tool.name) : true)
@@ -531,6 +537,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Agent middlewares
+		const toolMap = tools.reduce<IAgentMiddlewareContext['tools']>((map, item) => {
+				map.set(item.tool.name, item.tool)
+				return map
+			}, new Map())
 		const agentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(graph, agent, this.agentMiddlewareRegistry, {
 			tenantId: xpert.tenantId,
 			userId: RequestContext.currentUserId(),
@@ -539,19 +549,23 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			conversationId: options.conversationId,
 			xpertId: xpert.id,
 			agentKey,
+			tools: toolMap
 		})
 		// Middleware tools
 		const middlewareTools: TGraphTool[] = agentMiddlewares
 			.filter((middleware) => middleware?.tools?.length)
 			.flatMap((middleware) =>
-				middleware.tools.map((tool) => ({
-					toolset: {
-						provider: middleware.name,
-						title: tool.name,
-					},
-					caller: agent.key,
-					tool
-				}))
+				middleware.tools.map((tool) => {
+					toolMap.set(tool.name, tool)
+					return {
+						toolset: {
+							provider: middleware.name,
+							title: tool.name,
+						},
+						caller: agent.key,
+						tool
+					}
+				})
 			)
 		if (middlewareTools.length) {
 			tools.push(...middlewareTools)
