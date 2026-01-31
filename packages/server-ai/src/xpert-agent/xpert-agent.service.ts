@@ -67,7 +67,8 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 		const middleware = await strategy.createMiddleware(options, {
 			tenantId: RequestContext.currentTenantId(),
 			userId: RequestContext.currentUserId(),
-			node: null
+			node: null,
+			tools: null
 		})
 		return (
 			middleware.tools?.map((tool) => ({
