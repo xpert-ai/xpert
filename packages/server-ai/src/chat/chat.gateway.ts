@@ -10,9 +10,9 @@ import {
 	WebSocketServer,
 	WsResponse
 } from '@nestjs/websockets'
+import { WsJWTGuard, WsUser } from '@metad/server-core'
 import { from, map, Observable, switchMap } from 'rxjs'
 import { Server, Socket } from 'socket.io'
-import { WsJWTGuard, WsUser } from '@metad/server-core'
 import { CancelChatCommand, ChatWSCommand } from './commands'
 
 @WebSocketGateway({

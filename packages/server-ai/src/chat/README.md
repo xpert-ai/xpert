@@ -81,11 +81,14 @@ async function tool(_, config) => {
 }
 ```
 
-## Event message
+## Event Message
 
 当消息类型为 **Event** 时，需要设置 event 类型为 `ChatMessageEventTypeEnum`，并且需要设置代表具体数据的 `data` 字段。
 
+使用如下代码片段发出类型为 `ON_CHAT_EVENT` 的事件消息：
+
 ```typescript
+// Rxjs 的方式
 subscriber.next({
     data: {
         type: ChatMessageTypeEnum.EVENT,
@@ -97,6 +100,7 @@ subscriber.next({
     }
 } as MessageEvent)
 
+// CustomEvent 的方式
 await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
     id: `sandbox-ready-${userId || RequestContext.currentUserId()}`,
     title: t('server-ai:Sandbox.Starting'),

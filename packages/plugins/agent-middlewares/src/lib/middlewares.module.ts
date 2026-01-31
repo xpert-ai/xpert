@@ -8,6 +8,7 @@ import { ClientToolMiddleware } from './clientTool';
 import { ClientEffectMiddleware } from './clientEffect';
 import { LLMToolSelectorNameMiddleware } from './llmToolSelector';
 import { LocalShellSandboxProvider } from './localShellSandbox.provider';
+import { StructuredOutputMiddleware } from './structuredOutput';
 
 @XpertServerPlugin({
 	/**
@@ -23,6 +24,7 @@ import { LocalShellSandboxProvider } from './localShellSandbox.provider';
 		ClientToolMiddleware,
 		ClientEffectMiddleware,
 		LocalShellSandboxProvider,
+		StructuredOutputMiddleware,
     ],
 })
 export class AgentMiddlewaresModule implements IOnPluginBootstrap, IOnPluginDestroy {
