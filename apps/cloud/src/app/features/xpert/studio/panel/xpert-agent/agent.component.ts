@@ -37,8 +37,7 @@ import {
   XpertParameterTypeEnum,
   TSelectOption,
   TXpertTeamNode,
-  CopilotServerService,
-  ModelFeature
+  CopilotServerService
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -61,7 +60,7 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@metad/core'
 import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
-import { VISION_DEFAULT_VARIABLE } from '../../types'
+import { ATTACHMENT_DEFAULT_VARIABLE } from '../../types'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { XpertStudioPanelMiddlewareSectionComponent } from './middleware-section/middleware.component'
@@ -192,17 +191,25 @@ export class XpertStudioPanelAgentComponent {
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
   readonly memories = computed(() => this.agentOptions()?.memories)
   readonly parallelToolCalls = computed(() => this.agentOptions()?.parallelToolCalls ?? true)
-  readonly vision = attrModel(this.agentOptions, 'vision')
-  readonly visionEnabled = attrModel(this.vision, 'enabled')
-  readonly resolution = attrModel(this.vision, 'resolution')
-  readonly visionVariable = linkedModel({
+  readonly attachment = linkedModel({
     initialValue: null,
-    compute: () => this.vision()?.variable ?? VISION_DEFAULT_VARIABLE,
-    update: (variable) => {
-      this.vision.update((state) => ({...(state ?? {}), variable}))
+    compute: () => this.agentOptions()?.attachment ?? this.agentOptions()?.vision,
+    update: (attachment) => {
+      this.agentOptions.update((state) => ({
+        ...(state ?? {}),
+        attachment
+      }))
     }
   })
-  readonly visionCanEnable = computed(() => this.selectedAiModel()?.features?.includes(ModelFeature.VISION))
+  readonly attachmentEnabled = attrModel(this.attachment, 'enabled')
+  readonly attachmentResolution = attrModel(this.attachment, 'resolution')
+  readonly attachmentVariable = linkedModel({
+    initialValue: null,
+    compute: () => this.attachment()?.variable ?? ATTACHMENT_DEFAULT_VARIABLE,
+    update: (variable) => {
+      this.attachment.update((state) => ({...(state ?? {}), variable}))
+    }
+  })
   readonly draft = this.apiService.viewModel
   readonly toolsets = computed(() => {
     const draft = this.draft()
@@ -395,11 +402,6 @@ export class XpertStudioPanelAgentComponent {
       { allowSignalWrites: true }
     )
 
-    effect(() => {
-      if (this.selectedAiModel() && !this.visionCanEnable()) {
-        this.visionEnabled.set(false)
-      }
-    }, { allowSignalWrites: true })
   }
 
   onNameChange(event: string) {
