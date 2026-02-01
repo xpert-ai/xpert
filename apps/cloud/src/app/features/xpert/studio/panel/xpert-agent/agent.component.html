@@ -177,43 +177,42 @@
       </button>
     <!-- } -->
 
-    <!-- Vision part -->
+    <!-- Attachment part -->
     <div class="flex flex-col w-full px-2">
       <div class="flex justify-between items-center">
         <div class="uppercase font-semibold text-base">
-          {{'PAC.Xpert.Vision' | translate: {Default: 'Vision'} }}
+          {{'PAC.Xpert.Attachments' | translate: {Default: 'Attachments'} }}
         </div>
 
         <mat-slide-toggle class=""
           labelPosition="before"
           ngm-density="xs"
-          [disabled]="!visionCanEnable()"
-          [(ngModel)]="visionEnabled"
+          [(ngModel)]="attachmentEnabled"
         />
       </div>
 
-      @if (visionEnabled()) {
-        <div class="p-2">
+      @if (attachmentEnabled()) {
+        <div class="p-2 space-y-4">
           <div class="py-2">
             <xpert-state-variable-select nullable [varOptions]="varOptions()" [types]="[
                 eXpertParameterTypeEnum.ARRAY,
                 eXpertParameterTypeEnum.ARRAY_FILE,
                 eXpertParameterTypeEnum.FILE
               ]"
-              [(ngModel)]="visionVariable"
+              [(ngModel)]="attachmentVariable"
             />
           </div>
           <div class="flex items-center justify-between">
             <div class="mr-2 text-sm font-medium uppercase text-text-secondary">{{'PAC.Xpert.Resolution' | translate: {Default: 'Resolution'} }}</div>
             <div class="flex items-center space-x-1">
               <div class="system-sm-regular flex h-8 items-center rounded-md px-2 text-text-secondary cursor-pointer border-[1.5px] shadow-xs justify-center hover:text-text-primary"
-                [class.border-components-option-card-option-selected-border]="resolution() === 'high'"
-                (click)="resolution.set('high')">
+                [class.border-components-option-card-option-selected-border]="attachmentResolution() === 'high'"
+                (click)="attachmentResolution.set('high')">
                 <span>{{'PAC.Xpert.High' | translate: {Default: 'High'} }}</span>
               </div>
               <div class="system-sm-regular flex h-8 items-center rounded-md px-2 text-text-secondary cursor-pointer border-[1.5px] hover:shadow-xs justify-center hover:text-text-primary"
-                [class.border-components-option-card-option-selected-border]="resolution() === 'low'"
-                (click)="resolution.set('low')">
+                [class.border-components-option-card-option-selected-border]="attachmentResolution() === 'low'"
+                (click)="attachmentResolution.set('low')">
                 <span>{{'PAC.Xpert.Low' | translate: {Default: 'Low'} }}</span>
               </div>
             </div>

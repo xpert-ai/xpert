@@ -1,6 +1,5 @@
 import { Logger } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { PGMemberVectorStore } from '../../vector-store'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ClearEmbeddingMembersCommand } from '../clear-embedding.command'
 import { CreateVectorStoreCommand } from '../create-vector-store.command'
 
@@ -10,7 +9,6 @@ export class ClearEmbeddingMembersHandler implements ICommandHandler<ClearEmbedd
 
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
 	) {}
 
 	public async execute(command: ClearEmbeddingMembersCommand) {
@@ -18,9 +16,7 @@ export class ClearEmbeddingMembersHandler implements ICommandHandler<ClearEmbedd
 		const { dimension, isDraft } = command.params ?? {}
 
 		const id = `${modelKey}:${cube}` + (isDraft ? `:draft` : ``)
-		const vectorStore = await this.commandBus.execute<CreateVectorStoreCommand, PGMemberVectorStore>(
-			new CreateVectorStoreCommand(id)
-		)
+		const {vectorStore} = await this.commandBus.execute(new CreateVectorStoreCommand(id))
 		if (dimension) {
 			await vectorStore.deleteDimension(dimension)
 		} else {

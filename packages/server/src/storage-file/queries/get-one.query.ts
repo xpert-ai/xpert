@@ -1,7 +1,10 @@
-import { IQuery } from '@nestjs/cqrs'
+import { IStorageFile } from '@metad/contracts'
+import { Query } from '@nestjs/cqrs'
 
-export class GetStorageFileQuery implements IQuery {
+export class GetStorageFileQuery extends Query<IStorageFile[]> {
 	static readonly type = '[StorageFile] Get files'
 
-	constructor(public readonly ids: string[],) {}
+	constructor(public readonly ids: string[],) {
+		super()
+	}
 }

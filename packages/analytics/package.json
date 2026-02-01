@@ -1,6 +1,6 @@
 {
 	"name": "@metad/analytics",
-	"version": "3.7.4",
+	"version": "3.7.5",
 	"type": "commonjs",
 	"license": "AGPL-3.0",
 	"scripts": {

@@ -162,25 +162,38 @@ export type TXpertAgentOptions = {
    */
   structuredOutputMethod?: "functionCalling" | "jsonMode" | "jsonSchema" | string
   /**
-   * Vision config of agent
+   * @deprecated use attachment
    */
-  vision?: {
-    enabled?: boolean
-    /**
-     * Variable name that store the list of files to be understood
-     */
-    variable?: string
-    /**
-     * Image resolution for vision tasks
-     */
-    resolution?: 'high' | 'low'
-  }
+  vision?: TXpertAgentVision
+  /**
+   * Attachment config of agent
+   */
+  attachment?: TXpertAgentAttachment
   /**
    * Config of middlewares for agent
    */
   middlewares?: {
     order: string[]
   }
+}
+
+export type TXpertAgentVision = {
+  enabled?: boolean
+  /**
+   * Variable name that store the list of files to be understood
+   */
+  variable?: string
+  /**
+   * Image resolution for vision tasks
+   */
+  resolution?: 'high' | 'low'
+}
+
+export type TXpertAgentAttachment = TXpertAgentVision & {
+  /**
+   * Max number of files to be processed
+   */
+  maxNum?: number
 }
 
 export type TAgentPromptTemplate = {

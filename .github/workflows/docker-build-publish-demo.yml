@@ -3,8 +3,6 @@ name: Build and Publish Docker Images Demo
 on:
   push:
     branches: [ "develop" ]
-  pull_request:
-    branches: [ "develop" ]
 
 permissions:
   contents: read

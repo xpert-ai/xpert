@@ -286,7 +286,7 @@ nodes:
             provided the necessary information.
           name: verification
       options:
-        vision:
+        attachment:
           enabled: true
         structuredOutputMethod: jsonMode
         memories: []
