@@ -3,6 +3,8 @@ import { ToolMessage } from '@langchain/core/messages'
 import { ToolCall } from '@langchain/core/messages/tool'
 import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
 import { tool } from '@langchain/core/tools'
+import { CallbackManager, type Callbacks } from '@langchain/core/callbacks/manager'
+import type { Serialized } from '@langchain/core/load/serializable'
 import { interrupt } from '@langchain/langgraph'
 import { TAgentMiddlewareMeta } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
@@ -132,6 +134,7 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
     options: NonNullable<ClientToolMiddlewareConfig>,
     _context: IAgentMiddlewareContext
   ): PromiseOrValue<AgentMiddleware> {
+    void _context
     const toToolMessage = (
       message: ClientToolMessageInput | ToolMessage,
       toolCall: ToolCall
@@ -167,7 +170,9 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
 
     const tools = (options.clientTools || []).filter((_) => !!_).map((_) => {
       const schema = new JsonSchemaValidator().parseAndValidate(_.schema)
-      return tool(async (_, config) => {
+      return tool(async (input, config) => {
+          void input
+          void config
           return ''
         }, {
           name: _.name,
@@ -195,31 +200,63 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
           return handler(request)
         }
 
-        const clientRequest: ClientToolRequest = {
-          clientToolCalls: [request.toolCall]
+        const runtimeConfig = (request.runtime ?? {}) as {
+          callbacks?: unknown
+          tags?: string[]
+          metadata?: Record<string, unknown>
         }
+        const callbackManager = CallbackManager.configure(
+          runtimeConfig.callbacks as Callbacks | undefined,
+          undefined,
+          runtimeConfig.tags,
+          undefined,
+          runtimeConfig.metadata,
+          undefined
+        )
+        const serializedTool = typeof (request.tool as { toJSON?: () => unknown })?.toJSON === 'function'
+          ? (request.tool as { toJSON: () => unknown }).toJSON()
+          : { name: request.toolCall.name }
+        const runManager = await callbackManager?.handleToolStart(
+          serializedTool as Serialized,
+          JSON.stringify(request.toolCall),
+          request.toolCall.id,
+          undefined,
+          runtimeConfig.tags,
+          runtimeConfig.metadata
+        )
 
-        const response = (await interrupt(clientRequest)) as ClientToolResponse
-        const toolMessages = response?.toolMessages
+        try {
+          const clientRequest: ClientToolRequest = {
+            clientToolCalls: [request.toolCall]
+          }
 
-        if (!Array.isArray(toolMessages) || toolMessages.length !== 1) {
-          throw new Error(
-            'Invalid ClientToolResponse: toolMessages must be an array with exactly one item'
-          )
+          const response = (await interrupt(clientRequest)) as ClientToolResponse
+          const toolMessages = response?.toolMessages
+
+          if (!Array.isArray(toolMessages) || toolMessages.length !== 1) {
+            throw new Error(
+              'Invalid ClientToolResponse: toolMessages must be an array with exactly one item'
+            )
+          }
+
+          const message = toolMessages[0]
+          if (
+            message?.tool_call_id &&
+            request.toolCall.id &&
+            message.tool_call_id !== request.toolCall.id
+          ) {
+            throw new Error(
+              `Invalid ClientToolResponse: tool_call_id "${message.tool_call_id}" does not match "${request.toolCall.id}".`
+            )
+          }
+
+          const toolMessage = toToolMessage(message, request.toolCall)
+          await runManager?.handleToolEnd(toolMessage)
+          return toolMessage
+        } catch (error) {
+          await runManager?.handleToolError(error)
+          throw error
         }
-
-        const message = toolMessages[0]
-        if (
-          message?.tool_call_id &&
-          request.toolCall.id &&
-          message.tool_call_id !== request.toolCall.id
-        ) {
-          throw new Error(
-            `Invalid ClientToolResponse: tool_call_id "${message.tool_call_id}" does not match "${request.toolCall.id}".`
-          )
-        }
-
-        return toToolMessage(message, request.toolCall)
       }
     }
   }
