@@ -19,33 +19,36 @@ export async function createHumanMessage(
 	commandBus: CommandBus,
 	queryBus: QueryBus,
 	state: Partial<typeof AgentStateAnnotation.State>,
-	vision: TXpertAgentOptions['vision']
+	attachment?: TXpertAgentOptions['attachment'] | TXpertAgentOptions['vision']
 ) {
 	const { human } = state
 	const { input } = human
-	if (!vision?.enabled) {
+	if (!attachment?.enabled) {
 		return new HumanMessage(typeof input === 'string' ? input : JSON.stringify(input ?? ''))
 	}
-	let files: Array<_TFile> = []
-	if (vision.variable) {
-		files = get(state, vision.variable, []) as Array<_TFile>
+	let _files = [] as Array<_TFile & {id?: string}>
+	if (attachment.variable) {
+		_files = get(state, attachment.variable, []) as Array<_TFile>
 	} else if (human.files?.length) {
-		const _files = human.files as Array<IStorageFile>
-		const storageFiles = await queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-			new GetStorageFileQuery(_files.map((file) => file.id))
-		)
-		files = await Promise.all(
-			storageFiles.map(async (file) => {
-				const provider = new FileStorage().getProvider(file.storageProvider)
-				return {
-					id: file.id,
-					filePath: provider.path(file.file),
-					fileUrl: provider.url(file.file),
-					mimeType: file.mimetype
-				}
-			})
-		)
+		_files = human.files as Array<_TFile & {id?: string}>
 	}
+	const files: Array<_TFile> = await Promise.all(
+		_files.map(async (file) => {
+			if (file.id) {
+				const storageFiles = await queryBus.execute(new GetStorageFileQuery([file.id]))
+				const _file = storageFiles[0] as IStorageFile
+				const provider = new FileStorage().getProvider(_file.storageProvider)
+				return {
+					id: _file.id,
+					filePath: provider.path(_file.file),
+					fileUrl: provider.url(_file.file),
+					mimeType: _file.mimetype
+				}
+			}
+
+			return file
+		})
+	)
 
 	if (files?.length) {
 		return new HumanMessage({
@@ -54,7 +57,7 @@ export async function createHumanMessage(
 					files.map(async (file) => {
 						if (file.mimeType?.startsWith('image')) {
 							let imageData = await fs.promises.readFile(file.filePath)
-							if (vision?.resolution === 'low') {
+							if (attachment?.resolution === 'low') {
 								imageData = await sharp(imageData).resize(1024).toBuffer()
 							}
 							return {
@@ -81,10 +84,10 @@ export async function createHumanMessage(
 						}
 
 						// Process other files as text
-						const docs = await commandBus.execute<LoadFileCommand, Document[]>(new LoadFileCommand(file))
+						const docs = await commandBus.execute(new LoadFileCommand(file))
 						return {
 							type: 'text',
-							text: `File: ${file.filePath}\n<file_content>\n${docs?.map((doc) => doc.pageContent).join('\n') || 'No text recognized!'}\n</file_content>`
+							text: `Attachment File: ${file.filePath}\n<file_content>\n${docs?.map((doc) => doc.pageContent).join('\n') || 'No text recognized!'}\n</file_content>`
 						}
 					})
 				)),

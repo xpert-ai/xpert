@@ -4,7 +4,11 @@ import { provideJsonSchemaWidgetStrategy } from '@cloud/app/@shared/forms'
 
 export type XpertStudioNodeStatus = 'success' | 'error' | 'template'
 
-export const VISION_DEFAULT_VARIABLE = `human.files`
+export const ATTACHMENT_DEFAULT_VARIABLE = `human.files`
+/**
+ * @deprecated use ATTACHMENT_DEFAULT_VARIABLE
+ */
+export const VISION_DEFAULT_VARIABLE = ATTACHMENT_DEFAULT_VARIABLE
 
 export const GROUP_NODE_TYPES = [WorkflowNodeTypeEnum.ITERATOR]
 
