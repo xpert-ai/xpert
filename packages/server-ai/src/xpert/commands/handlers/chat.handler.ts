@@ -94,7 +94,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		let executionId: string
 		let checkpointId: string = null
 		// Continue thread when confirm or reject operation
-		if (confirm) {
+		if (confirm || command) {
 			conversation = await this.queryBus.execute(
 				new GetChatConversationQuery({ id: conversationId }, ['messages'])
 			)
