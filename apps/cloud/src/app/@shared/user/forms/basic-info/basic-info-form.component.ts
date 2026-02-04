@@ -1,4 +1,5 @@
-import { Component, ElementRef, forwardRef, inject, Input, ViewChild } from '@angular/core'
+import { DestroyRef, Component, ElementRef, EventEmitter, forwardRef, inject, Input, Output, ViewChild } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { AuthService } from '@metad/cloud/state'
 import { ITag, IUser } from '@metad/contracts'
@@ -8,7 +9,7 @@ import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { timezones } from 'apps/cloud/src/app/@core/constants'
-import { firstValueFrom, map } from 'rxjs'
+import { firstValueFrom, map, startWith } from 'rxjs'
 import { LANGUAGES, RoleService, Store } from '../../../../@core'
 
 @Component({
@@ -30,6 +31,10 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
   readonly #roleService = inject(RoleService)
   readonly #authService = inject(AuthService)
   readonly #translate = inject(TranslateService)
+  readonly #destroyRef = inject(DestroyRef)
+
+  /** Emits when form validity changes so parent (OnPush) can update Apply button */
+  @Output() readonly validityChange = new EventEmitter<boolean>()
 
   UPLOADER_PLACEHOLDER = 'FORM.PLACEHOLDERS.UPLOADER_PLACEHOLDER'
 
@@ -92,10 +97,6 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               required: true,
               appearance: 'fill',
               minLength: 8
-            },
-            // Validate on blur instead of on change
-            modelOptions: {
-              updateOn: 'blur' as const
             }
           },
           {
@@ -120,10 +121,6 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
                 message: (error, field: FormlyFieldConfig) =>
                   this.#translate.instant('PAC.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
               }
-            },
-            // Validate on blur instead of on change
-            modelOptions: {
-              updateOn: 'blur' as const
             }
           }
         ]
@@ -162,10 +159,6 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               label: TRANSLATES?.Username ?? 'Username',
               required: true,
               appearance: 'fill'
-            },
-            // Validate on blur instead of on change
-            modelOptions: {
-              updateOn: 'blur' as const
             }
           },
           {
@@ -189,9 +182,6 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
                 },
                 message: () => this.#translate.instant('FORMLY.VALIDATION.EMAIL', { Default: 'Please enter a valid email address' })
               }
-            },
-            modelOptions: {
-              updateOn: 'blur'
             }
           },
           ...password,
@@ -210,10 +200,6 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
               appearance: 'fill',
               valueKey: 'key',
               displayBehaviour: DisplayBehaviour.descriptionOnly
-            },
-            // Validate on blur instead of on change
-            modelOptions: {
-              updateOn: 'blur' as const
             }
           },
           {
@@ -265,6 +251,12 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
         }
       }
     ]
+
+    // Emit validity so parent (OnPush) can enable/disable Apply button
+    queueMicrotask(() => this.validityChange.emit(this.form.valid))
+    this.form.statusChanges
+      .pipe(startWith(this.form.status), takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.validityChange.emit(this.form.valid))
   }
 
   onFormChange(model: any) {

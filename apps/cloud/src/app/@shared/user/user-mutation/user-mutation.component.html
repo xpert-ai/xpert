@@ -8,6 +8,7 @@
   <pac-user-basic-info-form [password]="true"
     [isAdmin]="isAdmin"
     [isSuperAdmin]="isSuperAdmin"
+    (validityChange)="formValid = $event"
     #userBasicInfo
   />
 </div>
@@ -18,7 +19,7 @@
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
     <button mat-raised-button color="accent"
-      [disabled]="userBasicInfo.invalid"
+      [disabled]="!formValid"
       (click)="add()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
