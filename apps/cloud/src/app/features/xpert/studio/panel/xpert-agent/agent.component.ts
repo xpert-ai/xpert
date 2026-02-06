@@ -11,7 +11,7 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { FormsModule } from '@angular/forms' 
+import { FormsModule } from '@angular/forms'  
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ICopilotModel,
@@ -230,12 +230,8 @@ export class XpertStudioPanelAgentComponent {
   readonly draft = this.apiService.viewModel
   readonly toolsets = computed(() => {
     const draft = this.draft()
-    return draft.connections
-      ?.filter((conn) => conn.from === this.key())
-      .map(
-        (conn) =>
-          draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & { type: 'toolset' }
-      )
+    return draft.connections?.filter((conn) => conn.from === this.key())
+      .map((conn) => draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & {type: 'toolset'})
       .filter(nonNullable)
   })
 
@@ -338,12 +334,12 @@ export class XpertStudioPanelAgentComponent {
 
   readonly #variables = myRxResource({
     request: () =>({
-        xpertId: this.xpertId(),
-        agentKey: this.key(),
-        environmentId: this.apiService.environmentId(),
-        connections: this.connections(),
-        inputs: this.iteratorInputs()
-      }) as TXpertVariablesOptions,
+      xpertId: this.xpertId(),
+      agentKey: this.key(),
+      environmentId: this.apiService.environmentId(),
+      connections: this.connections(),
+      inputs: this.iteratorInputs()
+    }) as TXpertVariablesOptions,
       loader: ({ request }) => {
         return request ? this.xpertAPI.getNodeVariables(request) : of(null)
     }
@@ -575,7 +571,7 @@ export class XpertStudioPanelAgentComponent {
   updateOptions(value: Partial<TXpertAgentOptions>) {
     const options = this.xpertAgent().options ?? {}
     this.apiService.updateXpertAgent(this.key(), {
-      options: {...options, ...value } 
+      options: {...options, ...value }
     })
   }
 
