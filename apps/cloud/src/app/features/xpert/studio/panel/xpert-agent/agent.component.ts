@@ -197,7 +197,7 @@ export class XpertStudioPanelAgentComponent {
     update: (options) => {
       this.apiService.updateXpertAgent(this.key(), {options})
     }
-  })  })
+  })
   readonly enableMessageHistory = computed(() => !this.agentOptions()?.disableMessageHistory)
   readonly historyVariable = attrModel(this.agentOptions, 'historyVariable')
   readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
@@ -233,7 +233,7 @@ export class XpertStudioPanelAgentComponent {
       .map((conn) => draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & {type: 'toolset'})
       .filter(nonNullable)
   })
-
+  
   // Error handling
   readonly retry = computed(() => this.xpertAgent()?.options?.retry)
   readonly retryEnabled = computed(() => this.retry()?.enabled)
