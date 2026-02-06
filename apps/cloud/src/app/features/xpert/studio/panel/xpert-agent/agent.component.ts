@@ -37,7 +37,9 @@ import {
   XpertParameterTypeEnum,
   TSelectOption,
   TXpertTeamNode,
-  CopilotServerService
+  WorkflowNodeTypeEnum,
+  CopilotServerService,
+  ModelFeature
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -45,12 +47,27 @@ import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/exec
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelToolsetSectionComponent } from './toolset-section/toolset.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, catchError, distinctUntilChanged, filter, map, of, retry, shareReplay, startWith, switchMap } from 'rxjs'
+import {
+  BehaviorSubject,
+  catchError,
+  distinctUntilChanged,
+  filter,
+  map,
+  of,
+  retry,
+  shareReplay,
+  startWith,
+  switchMap
+} from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
 import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { XpertOutputVariablesEditComponent, XpertParametersEditComponent, XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
+import {
+  XpertOutputVariablesEditComponent,
+  XpertParametersEditComponent,
+  XpertVariablesAssignerComponent
+} from 'apps/cloud/src/app/@shared/xpert'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { isEqual, uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
@@ -98,7 +115,7 @@ import { XpertStudioPanelMiddlewareSectionComponent } from './middleware-section
     XpertWorkflowErrorHandlingComponent
   ],
   host: {
-    tabindex: '-1',
+    tabindex: '-1'
   },
   animations: [IfAnimation, ...OverlayAnimations]
 })
@@ -122,6 +139,20 @@ export class XpertStudioPanelAgentComponent {
   readonly key = input<string>()
   readonly nodes = computed(() => this.apiService.viewModel()?.nodes)
   readonly node = computed(() => this.nodes()?.find((_) => _.key === this.key()))
+  readonly iteratorInputs = computed(
+    () => {
+      const parentId = this.node()?.parentId
+      if (!parentId) {
+        return undefined
+      }
+      const parent = this.nodes()?.find((node) => node.key === parentId)
+      if (parent?.type === 'workflow' && parent.entity?.type === WorkflowNodeTypeEnum.ITERATOR) {
+        return [parent.key]
+      }
+      return undefined
+    },
+    { equal: isEqual }
+  )
   readonly xpertAgent = computed(() => this.node()?.entity as IXpertAgent)
   readonly promptInputElement = viewChild('editablePrompt', { read: ElementRef<HTMLDivElement> })
 
@@ -175,12 +206,12 @@ export class XpertStudioPanelAgentComponent {
       }
     }
   })
-  
+
   readonly agentOptions = linkedModel({
     initialValue: null,
     compute: () => this.xpertAgent()?.options,
     update: (options) => {
-      this.apiService.updateXpertAgent(this.key(), {options})
+      this.apiService.updateXpertAgent(this.key(), { options })
     }
   })
   readonly enableMessageHistory = computed(() => !this.agentOptions()?.disableMessageHistory)
@@ -207,14 +238,19 @@ export class XpertStudioPanelAgentComponent {
     initialValue: null,
     compute: () => this.attachment()?.variable ?? ATTACHMENT_DEFAULT_VARIABLE,
     update: (variable) => {
-      this.attachment.update((state) => ({...(state ?? {}), variable}))
+      this.attachment.update((state) => ({ ...(state ?? {}), variable }))
     }
   })
+  readonly attachmentCanEnable = computed(() => this.selectedAiModel()?.features?.includes(ModelFeature.VISION))
   readonly draft = this.apiService.viewModel
   readonly toolsets = computed(() => {
     const draft = this.draft()
-    return draft.connections?.filter((conn) => conn.from === this.key())
-      .map((conn) => draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & {type: 'toolset'})
+    return draft.connections
+      ?.filter((conn) => conn.from === this.key())
+      .map(
+        (conn) =>
+          draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & { type: 'toolset' }
+      )
       .filter(nonNullable)
   })
 
@@ -231,17 +267,21 @@ export class XpertStudioPanelAgentComponent {
   // LinkedModels
   readonly structuredOutputMethod = attrModel(this.agentOptions, 'structuredOutputMethod')
   readonly structuredOutputMethodOption = computed(() => {
-    return this.StructuredOutputMethodOptions.find((_) => this.structuredOutputMethod() ? _.value === this.structuredOutputMethod() : !_.value)
+    return this.StructuredOutputMethodOptions.find((_) =>
+      this.structuredOutputMethod() ? _.value === this.structuredOutputMethod() : !_.value
+    )
   })
-
 
   readonly nameError = computed(() => {
     const name = this.name()
     if (name) {
       const isValidName = /^[a-zA-Z0-9 _-]+$/.test(name)
-      return !isValidName || this.nodes()
-        .filter((_) => _.key !== this.key())
-        .some((n) => n.type === 'agent' && n.entity.name === name)
+      return (
+        !isValidName ||
+        this.nodes()
+          .filter((_) => _.key !== this.key())
+          .some((n) => n.type === 'agent' && n.entity.name === name)
+      )
     }
     return false
   })
@@ -259,7 +299,8 @@ export class XpertStudioPanelAgentComponent {
     const copilotId = this.copilotId()
     return this.copilotServer.getCopilotModels(modelType).pipe(
       map((copilots) => {
-        return copilots?.filter((_) => copilotId ? _.id === copilotId : true )
+        return copilots
+          ?.filter((_) => (copilotId ? _.id === copilotId : true))
           .sort((a, b) => {
             const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
             return roleOrder[a.role] - roleOrder[b.role]
@@ -275,8 +316,9 @@ export class XpertStudioPanelAgentComponent {
     return this.copilotWithModels()?.find((_) => _.id === this.copilotId())
   })
   readonly selectedAiModel = computed(() =>
-    this.selectedCopilotWithModels()?.providerWithModels?.models?.find((_) => _.model === this.model() &&
-      (this.copilotModelType() ? _.model_type === this.copilotModelType() : true))
+    this.selectedCopilotWithModels()?.providerWithModels?.models?.find(
+      (_) => _.model === this.model() && (this.copilotModelType() ? _.model_type === this.copilotModelType() : true)
+    )
   )
 
   readonly openedExecution = signal(false)
@@ -285,14 +327,14 @@ export class XpertStudioPanelAgentComponent {
   readonly executions = derivedAsync(() => {
     const xpertId = this.xpertId()
     const agentKey = this.key()
-    return this.executionService.findAllByXpertAgent(xpertId, agentKey, {
-      order: {
-        updatedAt: OrderTypeEnum.DESC
-      },
-      take: 50
-    }).pipe(
-      map(({items}) => items)
-    )
+    return this.executionService
+      .findAllByXpertAgent(xpertId, agentKey, {
+        order: {
+          updatedAt: OrderTypeEnum.DESC
+        },
+        take: 50
+      })
+      .pipe(map(({ items }) => items))
   })
 
   readonly connections = toSignal(
@@ -313,19 +355,22 @@ export class XpertStudioPanelAgentComponent {
     agentKey: this.key(),
     environmentId: this.apiService.environmentId(),
     connections: this.connections(),
+    inputs: this.iteratorInputs()
   }))
 
   readonly #variables = myRxResource({
-    request: () => ({
-      xpertId: this.xpertId(),
-      agentKey: this.key(),
-      environmentId: this.apiService.environmentId(),
-      connections: this.connections(),
-    } as TXpertVariablesOptions),
-      loader: ({ request }) => {
-        return request ? this.xpertAPI.getNodeVariables(request) : of(null)
-      }
-    })
+    request: () =>
+      ({
+        xpertId: this.xpertId(),
+        agentKey: this.key(),
+        environmentId: this.apiService.environmentId(),
+        connections: this.connections(),
+        inputs: this.iteratorInputs()
+      }) as TXpertVariablesOptions,
+    loader: ({ request }) => {
+      return request ? this.xpertAPI.getNodeVariables(request) : of(null)
+    }
+  })
   readonly variables = this.#variables.value
 
   readonly promptTemplateFullscreen = signal<string>(null)
@@ -335,10 +380,12 @@ export class XpertStudioPanelAgentComponent {
   // Diagram of agents
   readonly refreshDiagram$ = new BehaviorSubject<void>(null)
   readonly diagram$ = this.refreshDiagram$.pipe(
-    switchMap(() => this.xpertAPI.getDiagram(this.xpert().id, this.key()).pipe(
-      map((imageBlob) => imageBlob ? {image: URL.createObjectURL(imageBlob), error: null} : null),
-      catchError((err) => of({image: null, error: getErrorMessage(err)})),
-      startWith(null))
+    switchMap(() =>
+      this.xpertAPI.getDiagram(this.xpert().id, this.key()).pipe(
+        map((imageBlob) => (imageBlob ? { image: URL.createObjectURL(imageBlob), error: null } : null)),
+        catchError((err) => of({ image: null, error: getErrorMessage(err) })),
+        startWith(null)
+      )
     ),
     shareReplay(1)
   )
@@ -402,6 +449,14 @@ export class XpertStudioPanelAgentComponent {
       { allowSignalWrites: true }
     )
 
+    effect(
+      () => {
+        if (this.selectedAiModel() && !this.attachmentCanEnable()) {
+          this.attachmentEnabled.set(false)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   onNameChange(event: string) {
@@ -469,7 +524,7 @@ export class XpertStudioPanelAgentComponent {
   updateParallelToolCalls(value: boolean) {
     const options = this.xpertAgent().options ?? {}
     this.apiService.updateXpertAgent(this.key(), {
-      options: {...options, parallelToolCalls: value }
+      options: { ...options, parallelToolCalls: value }
     })
   }
 
@@ -484,16 +539,15 @@ export class XpertStudioPanelAgentComponent {
   updateEnMessageHistory(enable: boolean) {
     const options = this.xpertAgent().options ?? {}
     this.apiService.updateXpertAgent(this.key(), {
-      options: {...options, disableMessageHistory: !enable }
+      options: { ...options, disableMessageHistory: !enable }
     })
   }
 
   addMessage() {
     const promptTemplates = this.promptTemplates()
-    this.apiService.updateXpertAgent(this.key(), { promptTemplates: [
-      ...(promptTemplates ?? []),
-      {id: uuid(), role: 'human', text: ''}
-    ]})
+    this.apiService.updateXpertAgent(this.key(), {
+      promptTemplates: [...(promptTemplates ?? []), { id: uuid(), role: 'human', text: '' }]
+    })
   }
 
   updatePromptTemplate(index: number, value: string) {
@@ -502,7 +556,7 @@ export class XpertStudioPanelAgentComponent {
       ...promptTemplates[index],
       text: value
     }
-    this.apiService.updateXpertAgent(this.key(), { promptTemplates: [...promptTemplates]})
+    this.apiService.updateXpertAgent(this.key(), { promptTemplates: [...promptTemplates] })
   }
 
   removePrompt(index: number) {
@@ -545,23 +599,23 @@ export class XpertStudioPanelAgentComponent {
   updateOptions(value: Partial<TXpertAgentOptions>) {
     const options = this.xpertAgent().options ?? {}
     this.apiService.updateXpertAgent(this.key(), {
-      options: {...options, ...value }
+      options: { ...options, ...value }
     })
   }
 
   updateRetry(value: Partial<TXpertAgentOptions['retry']>) {
     const retry = this.retry() ?? {}
-    this.updateOptions({retry: {...retry, ...value}})
+    this.updateOptions({ retry: { ...retry, ...value } })
   }
 
   updateFallback(value: Partial<TXpertAgentOptions['fallback']>) {
     const fallback = this.fallback() ?? {}
-    this.updateOptions({fallback: {...fallback, ...value}})
+    this.updateOptions({ fallback: { ...fallback, ...value } })
   }
 
   updateErrorHandling(value: Partial<TXpertAgentOptions['errorHandling']>) {
     const errorHandling = this.errorHandling() ?? {}
-    this.updateOptions({errorHandling: {...errorHandling, ...value}})
+    this.updateOptions({ errorHandling: { ...errorHandling, ...value } })
   }
 
   moveToNode() {
