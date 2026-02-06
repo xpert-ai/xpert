@@ -156,8 +156,8 @@ export class XpertStudioPanelAgentComponent {
     compute: () => this.xpert()?.agentConfig,
     update: (config) => {
       this.apiService.updateXpertAgentConfig(config)
-    }
-  })
+     }
+    })
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
   readonly mute = computed(() => this.agentConfig()?.mute)
@@ -358,10 +358,9 @@ export class XpertStudioPanelAgentComponent {
   readonly refreshDiagram$ = new BehaviorSubject<void>(null)
   readonly diagram$ = this.refreshDiagram$.pipe(
     switchMap(() => this.xpertAPI.getDiagram(this.xpert().id, this.key()).pipe(
-        map((imageBlob) => (imageBlob ? { image: URL.createObjectURL(imageBlob), error: null } : null)),
-        catchError((err) => of({ image: null, error: getErrorMessage(err) })),
-        startWith(null)
-      )
+      map((imageBlob) => imageBlob ? {image: URL.createObjectURL(imageBlob), error: null} : null),
+      catchError((err) => of({image: null, error: getErrorMessage(err)})),
+      startWith(null))
     ),
     shareReplay(1)
   )
@@ -500,7 +499,7 @@ export class XpertStudioPanelAgentComponent {
   updateParallelToolCalls(value: boolean) {
     const options = this.xpertAgent().options ?? {}
     this.apiService.updateXpertAgent(this.key(), {
-      options: { ...options, parallelToolCalls: value }
+      options: {...options, parallelToolCalls: value }
     })
   }
 
@@ -515,15 +514,16 @@ export class XpertStudioPanelAgentComponent {
   updateEnMessageHistory(enable: boolean) {
     const options = this.xpertAgent().options ?? {}
     this.apiService.updateXpertAgent(this.key(), {
-      options: { ...options, disableMessageHistory: !enable }
+      options: {...options, disableMessageHistory: !enable }
     })
   }
 
   addMessage() {
     const promptTemplates = this.promptTemplates()
-    this.apiService.updateXpertAgent(this.key(), {
-      promptTemplates: [...(promptTemplates ?? []), { id: uuid(), role: 'human', text: '' }]
-    })
+    this.apiService.updateXpertAgent(this.key(), { promptTemplates: [
+      ...(promptTemplates ?? []),
+      {id: uuid(), role: 'human', text: ''}
+    ]})
   }
 
   updatePromptTemplate(index: number, value: string) {
@@ -575,23 +575,23 @@ export class XpertStudioPanelAgentComponent {
   updateOptions(value: Partial<TXpertAgentOptions>) {
     const options = this.xpertAgent().options ?? {}
     this.apiService.updateXpertAgent(this.key(), {
-      options: {...options, ...value}
+      options: {...options, ...value } 
     })
   }
 
   updateRetry(value: Partial<TXpertAgentOptions['retry']>) {
     const retry = this.retry() ?? {}
-    this.updateOptions({ retry: {...retry, ...value} })
+    this.updateOptions({retry: {...retry, ...value}})
   }
 
   updateFallback(value: Partial<TXpertAgentOptions['fallback']>) {
     const fallback = this.fallback() ?? {}
-    this.updateOptions({ fallback: {...fallback, ...value} })
+    this.updateOptions({fallback: {...fallback, ...value}})
   }
 
   updateErrorHandling(value: Partial<TXpertAgentOptions['errorHandling']>) {
     const errorHandling = this.errorHandling() ?? {}
-    this.updateOptions({ errorHandling: {...errorHandling, ...value} })
+    this.updateOptions({errorHandling: {...errorHandling, ...value}})
   }
 
   moveToNode() {
