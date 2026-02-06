@@ -5,3 +5,10 @@
 .mat-mdc-slider {
   @apply min-w-[200px] w-full;
 }
+
+.arrow-icon {
+  @apply text-primary-600;
+  font-size: 1.25rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
