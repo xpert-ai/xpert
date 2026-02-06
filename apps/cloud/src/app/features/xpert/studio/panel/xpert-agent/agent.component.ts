@@ -156,8 +156,8 @@ export class XpertStudioPanelAgentComponent {
     compute: () => this.xpert()?.agentConfig,
     update: (config) => {
       this.apiService.updateXpertAgentConfig(config)
-     }
-    })
+    }
+  })
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
   readonly mute = computed(() => this.agentConfig()?.mute)
@@ -175,7 +175,6 @@ export class XpertStudioPanelAgentComponent {
           this.agentConfig.update((config) => ({
             ...config,
             mute: [...(config?.mute ?? []), [key]]
-
           }))
         }
       } else {
@@ -198,7 +197,7 @@ export class XpertStudioPanelAgentComponent {
     update: (options) => {
       this.apiService.updateXpertAgent(this.key(), {options})
     }
-  })
+  })  })
   readonly enableMessageHistory = computed(() => !this.agentOptions()?.disableMessageHistory)
   readonly historyVariable = attrModel(this.agentOptions, 'historyVariable')
   readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
@@ -234,7 +233,7 @@ export class XpertStudioPanelAgentComponent {
       .map((conn) => draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & {type: 'toolset'})
       .filter(nonNullable)
   })
-  
+
   // Error handling
   readonly retry = computed(() => this.xpertAgent()?.options?.retry)
   readonly retryEnabled = computed(() => this.retry()?.enabled)
