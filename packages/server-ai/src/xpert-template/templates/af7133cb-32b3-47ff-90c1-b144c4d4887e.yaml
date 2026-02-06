@@ -149,7 +149,7 @@ nodes:
       parameters: null
       outputVariables: null
       options:
-        vision:
+        attachment:
           enabled: false
       copilotModel: null
       leaderKey: null
