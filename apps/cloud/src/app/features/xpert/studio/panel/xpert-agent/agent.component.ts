@@ -175,6 +175,7 @@ export class XpertStudioPanelAgentComponent {
           this.agentConfig.update((config) => ({
             ...config,
             mute: [...(config?.mute ?? []), [key]]
+
           }))
         }
       } else {
@@ -233,7 +234,6 @@ export class XpertStudioPanelAgentComponent {
       .map((conn) => draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & {type: 'toolset'})
       .filter(nonNullable)
   })
-
   
   // Error handling
   readonly retry = computed(() => this.xpertAgent()?.options?.retry)
