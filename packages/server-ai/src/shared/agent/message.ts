@@ -28,7 +28,8 @@ export async function createHumanMessage(
 	}
 	let _files = [] as Array<_TFile & {id?: string}>
 	if (attachment.variable) {
-		_files = get(state, attachment.variable, []) as Array<_TFile>
+		const variableFiles = get(state, attachment.variable, []) as Array<_TFile> | _TFile
+		_files = Array.isArray(variableFiles) ? variableFiles : variableFiles ? [variableFiles] : []
 	} else if (human.files?.length) {
 		_files = human.files as Array<_TFile & {id?: string}>
 	}
