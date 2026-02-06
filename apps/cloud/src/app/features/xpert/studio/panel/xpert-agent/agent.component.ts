@@ -191,7 +191,6 @@ export class XpertStudioPanelAgentComponent {
       }
     }
   })
-
   readonly agentOptions = linkedModel({
     initialValue: null,
     compute: () => this.xpertAgent()?.options,
@@ -235,6 +234,7 @@ export class XpertStudioPanelAgentComponent {
       .filter(nonNullable)
   })
 
+  
   // Error handling
   readonly retry = computed(() => this.xpertAgent()?.options?.retry)
   readonly retryEnabled = computed(() => this.retry()?.enabled)
@@ -333,7 +333,7 @@ export class XpertStudioPanelAgentComponent {
   }))
 
   readonly #variables = myRxResource({
-    request: () =>({
+    request: () => ({
       xpertId: this.xpertId(),
       agentKey: this.key(),
       environmentId: this.apiService.environmentId(),
