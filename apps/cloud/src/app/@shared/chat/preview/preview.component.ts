@@ -99,6 +99,7 @@ export class ChatConversationPreviewComponent {
   readonly #audioRecorder = inject(AudioRecorderService)
   readonly #synthesizeService = inject(SynthesizeService)
   readonly #destroyRef = inject(DestroyRef)
+
   #destroyed = false
 
   // Inputs
@@ -256,8 +257,13 @@ export class ChatConversationPreviewComponent {
     effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert), { allowSignalWrites: true })
     effect(() => this.input.set(this.#audioRecorder.text()), { allowSignalWrites: true })
 
+    // Set flag when component is destroyed to prevent operations on destroyed component
+    // Also clean up chatSubscription as an extra safety measure
     this.#destroyRef.onDestroy(() => {
       this.#destroyed = true
+      if (this.chatSubscription && !this.chatSubscription.closed) {
+        this.chatSubscription.unsubscribe()
+      }
     })
   }
 
@@ -349,6 +355,12 @@ export class ChatConversationPreviewComponent {
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (msg) => {
+          // takeUntilDestroyed ensures subscription is cleaned up on component destruction,
+          // but we keep the check as an extra safety measure
+          if (this.#destroyed) {
+            return
+          }
+
           if (msg.event === 'error') {
             this.onChatError(msg.data)
           } else {
@@ -368,6 +380,10 @@ export class ChatConversationPreviewComponent {
                   this.output.update((state) => state + event.data)
                 }
               } else if (event.type === ChatMessageTypeEnum.EVENT) {
+                // Ensure component is not destroyed before emitting chat events
+                if (this.#destroyed) {
+                  return
+                }
                 this.chatEvent.emit(event)
                 switch (event.event) {
                   case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
@@ -406,9 +422,13 @@ export class ChatConversationPreviewComponent {
           }
         },
         error: (err) => {
-          this.onChatError(getErrorMessage(err))
+          // takeUntilDestroyed ensures subscription is cleaned up, but keep check for safety
+          if (!this.#destroyed) {
+            this.onChatError(getErrorMessage(err))
+          }
         },
         complete: () => {
+          // takeUntilDestroyed ensures subscription is cleaned up, but keep check for safety
           if (this.#destroyed) {
             return
           }
@@ -430,6 +450,7 @@ export class ChatConversationPreviewComponent {
   }
 
   onChatError(message: string) {
+    // #destroyed check is already done in error callback, no need to check here
     this.loading.set(false)
     if (this.currentMessage()) {
       this.appendMessage({ ...this.currentMessage() })
