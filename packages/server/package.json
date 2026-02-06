@@ -34,6 +34,7 @@
 		"class-transformer": "^0.5.1",
 		"class-validator": "^0.13.1",
 		"cls-hooked": "^4.2.2",
+		"connect-redis": "^7.1.0",
 		"cookie-parser": "1.4.7",
 		"date-fns": "^3.0.4",
 		"email-templates": "^8.0.8",

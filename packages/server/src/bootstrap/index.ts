@@ -1,20 +1,63 @@
 // import csurf from 'csurf';
-import { INestApplication, Type } from '@nestjs/common';
+import { INestApplication, Logger, Type } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 // import { SentryService } from '@ntegral/nestjs-sentry';
-import expressSession from 'express-session';
+import expressSession, { SessionOptions } from 'express-session';
 import helmet from 'helmet';
 import chalk from 'chalk';
 import { urlencoded, json } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { EntitySubscriberInterface } from 'typeorm';
+import RedisStore from 'connect-redis';
+import { createClient } from 'redis';
 import { getConfig, setConfig, environment as env } from '@metad/server-config';
 import { coreEntities } from '../core/entities';
 import { coreSubscribers } from './../core/entities/subscribers';
 import { AppService } from '../app.service';
 import { ServerAppModule } from '../server.module';
 import { AuthGuard } from './../shared/guards';
+
+async function createSessionOptions(): Promise<SessionOptions> {
+	const sessionSecret = env.EXPRESS_SESSION_SECRET;
+	if (!sessionSecret) {
+		Logger.error('EXPRESS_SESSION_SECRET is not configured');
+		throw new Error('EXPRESS_SESSION_SECRET is required for session middleware');
+	}
+
+	const sessionOptions: SessionOptions = {
+		secret: sessionSecret,
+		resave: true,
+		saveUninitialized: true
+	};
+
+	const redisUrl =
+		process.env.REDIS_URL ||
+		`redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`;
+
+	try {
+		const redisClient = createClient({
+			url: redisUrl,
+			username: process.env.REDIS_USER || undefined,
+			password: process.env.REDIS_PASSWORD || undefined,
+			socket: process.env.REDIS_TLS === 'true' ? { tls: true } : undefined
+		});
+		redisClient.on('error', (error) =>
+			Logger.error(`Redis session client error: ${error?.message ?? error}`)
+		);
+		await redisClient.connect();
+		sessionOptions.resave = false;
+		sessionOptions.saveUninitialized = false;
+		sessionOptions.store = new RedisStore({
+			client: redisClient,
+			prefix: 'sess:'
+		});
+	} catch (err) {
+		Logger.warn(`Failed to connect Redis for session store, using in-memory sessions: ${err?.message ?? err}`);
+	}
+
+	return sessionOptions;
+}
 
 export async function bootstrap(
 	pluginConfig?: Partial<any>
@@ -47,13 +90,7 @@ export async function bootstrap(
 	// the csurf module requires either a session middleware or cookie-parser to be initialized first.
 	// app.use(csurf());
 
-	app.use(
-		expressSession({
-			secret: env.EXPRESS_SESSION_SECRET,
-			resave: true,
-			saveUninitialized: true
-		})
-	);
+	app.use(expressSession(await createSessionOptions()));
 
 	app.use(helmet());
 	const globalPrefix = 'api';
