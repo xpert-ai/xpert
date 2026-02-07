@@ -8,8 +8,6 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { instanceToPlain } from 'class-transformer';
-import { verify } from 'jsonwebtoken';
-import { environment } from '@metad/server-config';
 import { RolesEnum } from '@metad/contracts';
 import { RequestContext } from './../../core/context';
 
@@ -20,15 +18,12 @@ export class SerializerInterceptor extends ClassSerializerInterceptor implements
 		ctx: ExecutionContext,
 		next: CallHandler
 	): Observable<any> {
-		const token = RequestContext.currentToken();
-		const { role } = verify(token, environment.JWT_SECRET) as {
-			id: string;
-			role: RolesEnum;
-		};
+		const role = RequestContext.currentUser()?.role?.name as RolesEnum;
+		const groups = role ? [role] : [];
 		return next
 			.handle()
 			.pipe(
-				map((data) => instanceToPlain(data, { groups: [role] }))
+				map((data) => instanceToPlain(data, groups.length ? { groups } : {}))
 			);
 	}
 }

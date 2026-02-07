@@ -3,7 +3,6 @@ import { RolesEnum } from '@metad/contracts';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { verify } from 'jsonwebtoken';
 import { Repository } from 'typeorm';
 import { RequestContext } from './../../core/context';
 import { Employee } from './../../core/entities/internal';
@@ -27,12 +26,9 @@ export class OrganizationPermissionGuard implements CanActivate {
 		if (!permissions) {
 			isAuthorized = true;
 		} else {
-			const token = RequestContext.currentToken();
-			const { employeeId, role } = verify(token, env.JWT_SECRET) as {
-				id: string;
-				role: string;
-				employeeId: string;
-			};
+			const currentUser = RequestContext.currentUser();
+			const role = currentUser?.role?.name;
+			const employeeId = currentUser?.employeeId ?? currentUser?.employee?.id;
 
 			if (
 				env.allowSuperAdminRole === true &&
@@ -41,15 +37,18 @@ export class OrganizationPermissionGuard implements CanActivate {
 				return true;
 			}
 
-			console.log(`employeeId`, employeeId)
+			const userId = currentUser?.id;
+			if (!employeeId && !userId) {
+				return false;
+			}
 
 			const employee = await this.employeeRepository.findOne({
-				where: { id: employeeId },
+				where: employeeId ? { id: employeeId } : { userId },
 				relations: ['organization']
 			})
 
 			let organizationId: string;
-			if (employeeId && employee.organization) {
+			if (employee?.organization) {
 				organizationId = employee.organization.id;
 				isAuthorized = permissions.filter((p) => employee.organization[p]).length > 0;
 			}

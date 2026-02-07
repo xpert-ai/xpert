@@ -5,10 +5,8 @@ import {
 	LanguagesEnum,
 	RolesEnum
 } from '@metad/contracts';
-import { environment as env } from '@metad/server-config';
 import cls from 'cls-hooked';
 import { ExtractJwt } from 'passport-jwt';
-import { JsonWebTokenError, verify } from 'jsonwebtoken';
 
 /**
  * @deprecated use RequestContext from @xpert-ai/plugin-sdk
@@ -138,30 +136,13 @@ export class RequestContext {
 		findPermissions: Array<PermissionsEnum | string>,
 		throwError?: boolean
 	): boolean {
-		const requestContext = RequestContext.currentRequestContext();
-
-		if (requestContext) {
-			// tslint:disable-next-line
-			const token = ExtractJwt.fromAuthHeaderAsBearerToken()(
-				requestContext.request as any
+		const permissions = this.currentPermissions();
+		if (permissions.length > 0) {
+			const found = permissions.filter(
+				(value) => findPermissions.indexOf(value) >= 0
 			);
-
-			if (token) {
-				const { permissions } = verify(token, env.JWT_SECRET) as {
-					id: string;
-					permissions: PermissionsEnum[];
-				};
-				if (permissions) {
-					const found = permissions.filter(
-						(value) => findPermissions.indexOf(value) >= 0
-					);
-
-					if (found.length === findPermissions.length) {
-						return true;
-					}
-				} else {
-					return false;
-				}
+			if (found.length === findPermissions.length) {
+				return true;
 			}
 		}
 
@@ -175,25 +156,13 @@ export class RequestContext {
 		findPermissions: PermissionsEnum[],
 		throwError?: boolean
 	): boolean {
-		const requestContext = RequestContext.currentRequestContext();
-
-		if (requestContext) {
-			// tslint:disable-next-line
-			const token = ExtractJwt.fromAuthHeaderAsBearerToken()(
-				requestContext.request as any
+		const permissions = this.currentPermissions();
+		if (permissions.length > 0) {
+			const found = permissions.filter(
+				(value) => findPermissions.indexOf(value as PermissionsEnum) >= 0
 			);
-
-			if (token) {
-				const { permissions } = verify(token, env.JWT_SECRET) as {
-					id: string;
-					permissions: PermissionsEnum[];
-				};
-				const found = permissions.filter(
-					(value) => findPermissions.indexOf(value) >= 0
-				);
-				if (found.length > 0) {
-					return true;
-				}
+			if (found.length > 0) {
+				return true;
 			}
 		}
 
@@ -239,26 +208,26 @@ export class RequestContext {
 	static hasRoles(roles: RolesEnum[], throwError?: boolean): boolean {
 		const context = RequestContext.currentRequestContext();
 		if (context) {
-			try {
-				// tslint:disable-next-line
-				const token = this.currentToken();
-				if (token) {
-					const { role } = verify(token, env.JWT_SECRET) as { id: string; role: RolesEnum };
-					return roles.includes(role ?? null);
-				} else if (this.currentUser().role) {
-					return roles.includes(this.currentUser().role.name as RolesEnum)
-				}
-			} catch (error) {
-				if (error instanceof JsonWebTokenError) {
-					return false;
-				} else {
-					throw error;
-				}
+			const role = this.currentUser()?.role?.name;
+			if (role) {
+				return roles.includes(role as RolesEnum);
 			}
 		}
 		if (throwError) {
 			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
 		}
 		return false;
+	}
+
+	private static currentPermissions(): Array<PermissionsEnum | string> {
+		const rolePermissions = this.currentUser()?.role?.rolePermissions;
+		if (!rolePermissions?.length) {
+			return [];
+		}
+
+		return rolePermissions
+			.filter((rolePermission) => rolePermission?.enabled)
+			.map((rolePermission) => rolePermission?.permission)
+			.filter((permission): permission is PermissionsEnum | string => !!permission);
 	}
 }

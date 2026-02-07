@@ -1,12 +1,10 @@
 import { PermissionsEnum } from '@metad/contracts';
 import { isEmpty, PERMISSIONS_METADATA, removeDuplicates } from '@metad/server-common';
-import { environment as env } from '@metad/server-config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { CanActivate, ExecutionContext, Inject, Injectable, Logger, Type } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CommandBus } from '@nestjs/cqrs';
 import { Cache } from 'cache-manager';
-import { verify } from 'jsonwebtoken';
 import { RequestContext } from './../../core/context';
 import { CheckRolePermissionCommand } from '../../role-permission/commands/index';
 
@@ -39,13 +37,19 @@ export class PermissionGuard implements CanActivate {
 		}
 
 		// Check user authorization
-		const token = RequestContext.currentToken();
-
-		const { id, role } = verify(token, env.JWT_SECRET) as { id: string; role: string };
+		const currentUser = RequestContext.currentUser();
+		const id = currentUser?.id;
+		const role = currentUser?.role?.name ?? currentUser?.roleId;
 
 		// Retrieve current role ID and tenant ID from RequestContext
 		const tenantId = RequestContext.currentTenantId();
 		const roleId = RequestContext.currentRoleId();
+		if (!currentUser || !tenantId || !roleId) {
+			this.#logger.warn(
+				`Authorization context missing: userId=${id ?? 'unknown'}, tenantId=${tenantId ?? 'unknown'}, roleId=${roleId ?? 'unknown'}`
+			);
+			return false;
+		}
 
 		const cacheKey = `userPermissions:${tenantId}_${roleId}_${permissions.join('_')}`;
 

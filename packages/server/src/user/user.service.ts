@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, InsertResult, SelectQueryBuilder, Like, Brackets, WhereExpressionBuilder, In } from 'typeorm';
+import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In } from 'typeorm';
 import bcrypt from 'bcryptjs';
 import { environment as env } from '@metad/server-config'
 import { User } from './user.entity';
@@ -95,6 +95,8 @@ export class UserService extends TenantAwareCrudService<User> {
 			.createQueryBuilder('user')
 			.where('user.id = :id', { id })
 			.leftJoinAndSelect('user.role', 'role')
+			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
+			.leftJoinAndSelect('user.employee', 'employee')
 			.getOne();
 	}
 
@@ -103,6 +105,8 @@ export class UserService extends TenantAwareCrudService<User> {
 			.createQueryBuilder('user')
 			.where('user.thirdPartyId = :thirdPartyId', { thirdPartyId })
 			.leftJoinAndSelect('user.role', 'role')
+			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
+			.leftJoinAndSelect('user.employee', 'employee')
 			.getOne();
 	}
 
