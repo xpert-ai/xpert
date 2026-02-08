@@ -12,19 +12,6 @@
       <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
     }
   </div>
-  <div class="tab relative pb-2.5 cursor-pointer system-xl-semibold"
-    [routerLink]="['./', 'database']"
-    [routerLinkActiveOptions]="{ exact: false }"
-    routerLinkActive
-    #rla2="routerLinkActive"
-    [class.active]="rla2.isActive">
-    <div class="text-text-primary">
-      {{ 'PAC.KEY_WORDS.Database' | translate: {Default: 'Database'} }}
-    </div>
-    @if (rla2.isActive) {
-      <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
-    }
-  </div>
 </nav>
 
 <div class="flex-1 relative flex overflow-hidden" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
