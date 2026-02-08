@@ -38,6 +38,9 @@ export class UserMutationComponent implements OnInit {
   tags: ITag[]
   selectedTags: any
 
+  /** Form validity from child; used for Apply button (works with OnPush) */
+  formValid = false
+
   @Input() public isAdmin: boolean
   @Input() public isSuperAdmin: boolean
 
