@@ -15,13 +15,14 @@
           [class.bg-primary-50]="isSelected(item.type)"
           (click)="selectProvider(item.type)"
         >
-          <div class="flex items-center">
+          <div class="flex items-start">
+            <xp-icon [icon]="item.meta?.icon" class="h-6 w-6 mr-3 shrink-0"></xp-icon>
             <div class="grow">
               <div class="text-sm font-medium text-text-primary">
-                {{ item.meta?.name || item.type }}
+                {{ item.meta?.name | i18n }}
               </div>
               <div class="uppercase text-xs mt-1 text-text-tertiary">
-                {{ item.type }}
+                {{ item.meta?.description | i18n }}
               </div>
             </div>
             <div
