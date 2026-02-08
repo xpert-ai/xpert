@@ -1,4 +1,7 @@
 <div>
+  @if (required()) {
+    <span class="text-red-500">*</span>
+  }
   @if (label()) {
     <label class="ngm-select-label shrink-0" [title]="label()">
       {{label()}}
