@@ -435,21 +435,16 @@ export class LarkChannelStrategy implements IChatChannel<TIntegrationLarkOptions
 		avatar?: string
 	}> {
 		const client = this.larkService.createClient(integration)
-		const res = await client.request({
-			method: 'GET',
-			url: 'https://open.feishu.cn/open-apis/bot/v3/info',
-			data: {},
-			params: {}
-		})
+		const bot = await this.larkService.getBotInfo(client, integration.options?.isLark)
 		return {
-			id: res.bot?.open_id,
-			name: res.bot?.app_name,
-			avatar: res.bot?.avatar_url
+			id: bot?.open_id,
+			name: bot?.app_name,
+			avatar: bot?.avatar_url
 		}
 	}
 
 	/**
-	 * Validate integration config
+	 * Validate integration config by actually testing the connection
 	 *
 	 * @param config - Config to validate
 	 * @returns Validation result
@@ -466,6 +461,29 @@ export class LarkChannelStrategy implements IChatChannel<TIntegrationLarkOptions
 
 		if (!config.appSecret) {
 			errors.push('App Secret is required')
+		}
+
+		if (errors.length > 0) {
+			return { valid: false, errors }
+		}
+
+		// Actually test the connection by calling Lark API
+		try {
+			const client = this.larkService.createClientFromConfig(config)
+			const botInfoUrl = config?.isLark
+				? 'https://open.larksuite.com/open-apis/bot/v3/info'
+				: 'https://open.feishu.cn/open-apis/bot/v3/info'
+			const res = await client.request({
+				method: 'GET',
+				url: botInfoUrl,
+				data: {},
+				params: {}
+			})
+			if (!res.bot?.open_id) {
+				errors.push('Failed to get bot info from Lark API')
+			}
+		} catch (error: any) {
+			errors.push(`Lark API connection failed: ${error.message}`)
 		}
 
 		return {

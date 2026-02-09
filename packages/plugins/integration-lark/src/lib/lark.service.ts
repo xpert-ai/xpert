@@ -42,6 +42,12 @@ export class LarkService {
 
 	// ==================== Core Client Management ====================
 
+	private getBotInfoUrl(isLark?: boolean): string {
+		return isLark
+			? 'https://open.larksuite.com/open-apis/bot/v3/info'
+			: 'https://open.feishu.cn/open-apis/bot/v3/info'
+	}
+
 	/**
 	 * Create a Lark client for the given integration
 	 *
@@ -49,11 +55,21 @@ export class LarkService {
 	 * @returns Lark client instance
 	 */
 	createClient(integration: IIntegration<TIntegrationLarkOptions>): lark.Client {
+		return this.createClientFromConfig(integration.options)
+	}
+
+	/**
+	 * Create a Lark client from config options directly (without full integration object)
+	 *
+	 * @param config - Lark config options
+	 * @returns Lark client instance
+	 */
+	createClientFromConfig(config: TIntegrationLarkOptions): lark.Client {
 		return new lark.Client({
-			appId: integration.options.appId,
-			appSecret: integration.options.appSecret,
+			appId: config.appId,
+			appSecret: config.appSecret,
 			appType: lark.AppType.SelfBuild,
-			domain: integration.options.isLark ? lark.Domain.Lark : lark.Domain.Feishu,
+			domain: config.isLark ? lark.Domain.Lark : lark.Domain.Feishu,
 			loggerLevel: lark.LoggerLevel.debug
 		})
 	}
@@ -74,7 +90,7 @@ export class LarkService {
 				bot: null
 			}
 			this.clients.set(integration.id, item)
-			this.getBotInfo(client).then((bot) => (item.bot = bot))
+			this.getBotInfo(client, integration.options?.isLark).then((bot) => (item.bot = bot))
 		}
 		return item
 	}
@@ -109,10 +125,10 @@ export class LarkService {
 	 * @param client - Lark client
 	 * @returns Bot information
 	 */
-	async getBotInfo(client: lark.Client) {
+	async getBotInfo(client: lark.Client, isLark?: boolean) {
 		const res = await client.request({
 			method: 'GET',
-			url: 'https://open.feishu.cn/open-apis/bot/v3/info',
+			url: this.getBotInfoUrl(isLark),
 			data: {},
 			params: {}
 		})
@@ -127,7 +143,7 @@ export class LarkService {
 	 */
 	async test(integration: IIntegration) {
 		const client = this.createClient(integration)
-		return await this.getBotInfo(client)
+		return await this.getBotInfo(client, integration.options?.isLark)
 	}
 
 	// ==================== User Management ====================
