@@ -11,6 +11,7 @@
       "options": {
         "target": "node",
         "compiler": "tsc",
+        "memoryLimit": 4096,
         "outputPath": "dist/apps/api",
         "main": "apps/api/src/main.ts",
         "tsConfig": "apps/api/tsconfig.app.json",

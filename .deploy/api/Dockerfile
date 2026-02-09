@@ -34,6 +34,7 @@ COPY --chown=node:node packages/plugin-sdk/package.json ./packages/plugin-sdk/
 COPY --chown=node:node .deploy/api/package.json ./
 COPY --chown=node:node yarn.lock ./
 COPY --chown=node:node .eslintrc.json ./
+COPY --chown=node:node .nxignore ./
 
 RUN npm install --legacy-peer-deps
 
@@ -47,7 +48,7 @@ RUN rm -rf packages/angular packages/copilot-angular
 # Reinstall built-in plugins dependencies
 RUN npm install --legacy-peer-deps
 RUN yarn build:plugins
-RUN yarn nx build api
+RUN yarn nx build api --verbose
 
 # COPY --chown=node:node .deploy/api/install-plugins.sh ./
 # RUN chmod +x install-plugins.sh
