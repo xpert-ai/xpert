@@ -8,6 +8,8 @@ import { PluginLoadError } from './errors';
 export interface PluginLoadOptions {
   /** Resolve modules relative to this base directory (expects a node_modules inside it) */
   basedir?: string;
+  /** If true, resolve as a built-in plugin from dist/packages/plugins */
+  builtin?: boolean;
 }
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -87,6 +89,18 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
     if (atIndex > 0) {
       modName = modName.slice(0, atIndex);
     }
+  }
+
+  // For built-in plugins, resolve from dist/packages/plugins directory
+  if (opts.builtin) {
+    const pluginShortName = modName.replace(/^@xpert-ai\/plugin-/, '');
+    const builtinPath = resolve(opts.basedir ?? process.cwd(), 'dist/packages/plugins', pluginShortName);
+    const m = await loadModule(builtinPath, { basedir: opts.basedir });
+    const plugin = (m?.default ?? m) as XpertPlugin;
+    if (!plugin?.meta || typeof plugin.register !== 'function') {
+      throw new PluginLoadError(modName, 'Module does not export a valid XpertPlugin');
+    }
+    return plugin;
   }
 
   const m = await loadModule(modName, opts);

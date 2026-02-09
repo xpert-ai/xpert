@@ -3,6 +3,9 @@ import type { ClassProvider, ExistingProvider, FactoryProvider, Provider, ValueP
 // Expose a list of loaded plugins through a global provider for lifecycle control.
 export const LOADED_PLUGINS = 'XPERT_LOADED_PLUGINS';
 
+// Token for built-in XpertPlugin package names
+export const BUILTIN_XPERT_PLUGINS = 'XPERT_BUILTIN_PLUGINS';
+
 export interface LoadedPluginRecord {
   organizationId: string;
   name: string;
@@ -10,6 +13,7 @@ export interface LoadedPluginRecord {
   ctx: any;
   packageName?: string;
   baseDir?: string;
+  source?: string;
 }
 
 export function isCustomProvider(p: Provider): p is Exclude<Provider, () => void> {

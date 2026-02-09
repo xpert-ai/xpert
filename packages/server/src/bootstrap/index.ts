@@ -20,9 +20,13 @@ export async function bootstrap(
 	pluginConfig?: Partial<any>
 ): Promise<INestApplication> {
 	const config = await registerPluginConfig(pluginConfig);
-	
+
 	const { BootstrapModule } = await import('./bootstrap.module');
-	const app = await NestFactory.create<NestExpressApplication>(BootstrapModule, {
+
+	// Use forRootAsync to support async plugin loading
+	const bootstrapModule = await BootstrapModule.forRootAsync();
+
+	const app = await NestFactory.create<NestExpressApplication>(bootstrapModule, {
 		logger: ['error', 'warn']
 	});
 
