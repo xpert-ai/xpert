@@ -39,6 +39,7 @@ import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution'
 import { CopilotCheckpointService } from '../../../copilot-checkpoint'
+import { ExecutionRuntimeService } from '../../../runtime'
 
 
 @CommandHandler(XpertChatCommand)
@@ -50,6 +51,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		private readonly checkpointService: CopilotCheckpointService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
+		private readonly executionRuntime: ExecutionRuntimeService,
 	) {}
 
 	public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
@@ -196,6 +198,27 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			)
 		}
 
+		// Register run with ExecutionRuntime for cancel support
+		const runId = this.executionRuntime.generateRunId()
+		const sessionKey = this.executionRuntime.sessionKeyResolver.resolveForChat({
+			conversationId: conversation.id,
+			xpertId,
+			userId,
+			fromEndUserId
+		})
+		const tenantId = RequestContext.currentTenantId()
+		this.executionRuntime.runRegistry.registerRun({
+			runId,
+			sessionKey,
+			globalLane: 'main',
+			abortController,
+			source: 'xpert',
+			conversationId: conversation.id,
+			executionId,
+			userId,
+			tenantId
+		})
+
 		return new Observable<MessageEvent>((subscriber) => {
 			// New conversation
 			subscriber.next({
@@ -255,6 +278,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							conversationId: conversation.id,
 							isDraft: options?.isDraft,
 							execution: { id: executionId, category: 'agent' },
+							abortController,
 							command,
 							memories,
 							summarizeTitle: !latestXpert.agentConfig?.summarizeTitle?.disable,
@@ -477,7 +501,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			// It will be triggered when the subscription ends normally or is unsubscribed.
 			// This function can be used for cleanup work.
 			return () => {
-				//
+				// Complete run in ExecutionRuntime
+				this.executionRuntime.runRegistry.completeRun(runId)
 			}
 		})
 	}

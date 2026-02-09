@@ -34,7 +34,11 @@ export class XpertAgentInvokeCommand implements ICommand {
 			 * Long-term memory store
 			 */
 			store: BaseStore
-			
+			/**
+			 * Abort controller from parent context
+			 */
+			abortController?: AbortController
+
 			command?: TInterruptCommand
 			reject?: boolean
 

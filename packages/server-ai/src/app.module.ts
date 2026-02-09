@@ -35,6 +35,7 @@ import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
+import { ExecutionRuntimeModule } from './runtime'
 
 @Module({
 	imports: [
@@ -72,6 +73,7 @@ import { XpertTableModule } from './xpert-table'
 		RagVStoreModule,
 		RagWebModule,
 		SandboxModule,
+		ExecutionRuntimeModule,
 	],
 	controllers: [],
 	providers: [...EventHandlers, ...CommandHandlers]

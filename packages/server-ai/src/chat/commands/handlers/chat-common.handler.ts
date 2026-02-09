@@ -82,6 +82,7 @@ import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
 import { CONFIG_KEY_CREDENTIALS, _BaseToolset, AgentStateAnnotation, BaseTool, createHumanMessage, CreateMemoryStoreCommand, rejectGraph, stateToParameters, stateVariable, TAgentSubgraphParams, ToolNode, translate, updateToolCalls, VolumeClient } from '../../../shared'
+import { ExecutionRuntimeService, SessionKeyResolver } from '../../../runtime'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -94,6 +95,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		private readonly projectService: XpertProjectService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
+		private readonly executionRuntime: ExecutionRuntimeService,
 	) {}
 
 	public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
@@ -184,6 +186,25 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const project = await this.getProject(projectId)
 
 		const abortController = new AbortController()
+
+		// Register run with ExecutionRuntime for cancel support
+		const runId = this.executionRuntime.generateRunId()
+		const sessionKey = this.executionRuntime.sessionKeyResolver.resolveForChat({
+			conversationId: conversation.id,
+			userId
+		})
+		this.executionRuntime.runRegistry.registerRun({
+			runId,
+			sessionKey,
+			globalLane: 'main',
+			abortController,
+			source: 'chat',
+			conversationId: conversation.id,
+			executionId,
+			userId,
+			tenantId
+		})
+
 		const timeStart = Date.now()
 		let status = XpertAgentExecutionStatusEnum.SUCCESS
 		// Collect the output text into execution
@@ -515,6 +536,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					}
 				},
 				finalize: async () => {
+					// Complete run in ExecutionRuntime
+					this.executionRuntime.runRegistry.completeRun(runId)
+
 					if (aiMessage) {
 						try {
 							// Update ai message

@@ -26,6 +26,10 @@ export class XpertAgentChatCommand implements ICommand {
 			 * Use this execution or create a new record
 			 */
 			execution?: IXpertAgentExecution
+			/**
+			 * Abort controller from parent context
+			 */
+			abortController?: AbortController
 
 			command?: TInterruptCommand
 			reject?: boolean

@@ -110,7 +110,22 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			options.environment = environment
 		}
 
+		// Create local AbortController and link it with parent's signal if available
 		const abortController = new AbortController()
+
+		// If parent has an abortController, link them so parent abort propagates to child
+		if (options.abortController) {
+			const parentSignal = options.abortController.signal
+			if (parentSignal.aborted) {
+				// Already aborted
+				abortController.abort(parentSignal.reason)
+			} else {
+				parentSignal.addEventListener('abort', () => {
+					abortController.abort(parentSignal.reason)
+				}, { once: true })
+			}
+		}
+
 		if (execution?.id) {
 			this.executionCancelService.register(execution.id, abortController)
 		}
