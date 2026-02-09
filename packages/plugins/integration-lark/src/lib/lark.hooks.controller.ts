@@ -47,6 +47,14 @@ export class LarkHooksController {
 			throw new BadRequestException(`Integration ${integrationId} not found. Please save the integration first before configuring webhook URL in Lark.`)
 		}
 
+		// Handle Lark webhook URL verification challenge explicitly (plain + encrypted body).
+		// This avoids dispatching to event handlers and prevents 500 on malformed encrypted challenge payloads.
+		const challenge = this.resolveUrlVerificationChallenge(req.body, integration.options)
+		if (challenge) {
+			res.status(200).json({ challenge })
+			return
+		}
+
 		const ctx: TChatEventContext<TIntegrationLarkOptions> = {
 			integration,
 			tenantId: integration.tenantId,
@@ -70,6 +78,45 @@ export class LarkHooksController {
 
 		const handler = this.larkChannel.createEventHandler(ctx, handlers)
 		await handler(req, res)
+	}
+
+	private resolveUrlVerificationChallenge(body: any, options: TIntegrationLarkOptions): string | null {
+		const verify = (payload: any) => {
+			if (payload?.type !== 'url_verification') {
+				return null
+			}
+
+			if (!payload?.challenge) {
+				throw new BadRequestException('Missing challenge in Lark url_verification payload')
+			}
+
+			if (options?.verificationToken && payload?.token !== options.verificationToken) {
+				throw new ForbiddenException('Invalid Lark verification token')
+			}
+
+			return payload.challenge as string
+		}
+
+		if (body?.type === 'url_verification') {
+			return verify(body)
+		}
+
+		// Encrypted webhook payload usually contains only one field: { encrypt: "..." }.
+		if (body?.encrypt && Object.keys(body).length === 1) {
+			if (!options?.encryptKey) {
+				throw new BadRequestException('Encrypt Key is required for encrypted Lark webhook payload')
+			}
+
+			try {
+				const decrypted = new lark.AESCipher(options.encryptKey).decrypt(body.encrypt)
+				const payload = JSON.parse(decrypted)
+				return verify(payload)
+			} catch (error: any) {
+				throw new BadRequestException(`Failed to decrypt Lark webhook payload: ${error?.message || 'Unknown error'}`)
+			}
+		}
+
+		return null
 	}
 
 	@Post('test')

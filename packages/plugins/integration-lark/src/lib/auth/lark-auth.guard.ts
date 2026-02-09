@@ -18,12 +18,6 @@ export class LarkAuthGuard extends PassportAuthGaurd(['lark-token']) {
 			return true
 		}
 
-		// If body only contains 'encrypt' field, it might be an encrypted url_verification
-		// Let it pass through to the handler for proper decryption and challenge handling
-		if (data?.encrypt && Object.keys(data).length === 1) {
-			return true
-		}
-
 		return super.canActivate(context)
 	}
 }
