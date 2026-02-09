@@ -16,11 +16,11 @@ import { CopilotStoreModule } from './copilot-store/copilot-store.module'
 import { CopilotUserModule } from './copilot-user'
 import { EventHandlers } from './core/events'
 import { GraphragModule } from './graphrag/graphrag.module'
-import { IntegrationLarkModule } from './integration-lark/index'
 import { KnowledgeDocumentModule } from './knowledge-document/index'
 import { KnowledgebaseModule } from './knowledgebase/index'
 import { RagWebModule } from './rag-web/rag-web.module'
 import { SandboxModule } from './sandbox/sandbox.module'
+import { CommandHandlers } from './shared'
 import { XpertModule } from './xpert'
 import { XpertAgentExecutionModule } from './xpert-agent-execution'
 import { XpertAgentModule } from './xpert-agent/index'
@@ -30,7 +30,6 @@ import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 import { XpertToolModule } from './xpert-tool/index'
 import { XpertToolsetModule } from './xpert-toolset/index'
 import { XpertWorkspaceModule } from './xpert-workspace'
-import { CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
 import { EnvironmentModule } from './environment'
@@ -67,7 +66,6 @@ import { XpertTableModule } from './xpert-table'
 		XpertTableModule,
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
-		IntegrationLarkModule,
 		IntegrationGithubModule,
 		RagVStoreModule,
 		RagWebModule,
