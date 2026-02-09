@@ -45,6 +45,9 @@ export interface CoreChatApi {
       isDraft?: boolean;
       fromEndUserId?: string;
       execution?: { id: string };
+      tenantId?: string;
+      organizationId?: string;
+      user?: IUser;
     }
   ): Promise<Observable<MessageEvent>>;
   upsertChatMessage(entity: Partial<IChatMessage>): Promise<void>;

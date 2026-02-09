@@ -1,10 +1,16 @@
 import { UserModule } from '@metad/server-core'
 import { Module, forwardRef } from '@nestjs/common'
-import { CqrsModule } from '@nestjs/cqrs'
+import { CqrsModule, CommandBus } from '@nestjs/cqrs'
+import type { Provider } from '@nestjs/common'
+import { RequestContext } from '@metad/server-core'
+import { CORE_PLUGIN_API_TOKENS, CoreChatApi } from '@xpert-ai/plugin-sdk'
 import { AIModule } from './ai'
 import { ChatModule } from './chat'
+import { ChatCommand } from './chat/commands'
 import { ChatConversationModule } from './chat-conversation'
+import { ChatConversationService } from './chat-conversation'
 import { ChatMessageModule } from './chat-message'
+import { ChatMessageUpsertCommand } from './chat-message/commands'
 import { ChatMessageFeedbackModule } from './chat-message-feedback'
 import { CopilotModule } from './copilot'
 import { CopilotCheckpointModule } from './copilot-checkpoint'
@@ -34,6 +40,41 @@ import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
+
+const CoreChatApiProvider: Provider = {
+	provide: CORE_PLUGIN_API_TOKENS.chat,
+	useFactory: (commandBus, conversationService): CoreChatApi => ({
+		chatXpert: async (request, options) => {
+			const tenantId = options?.tenantId ?? RequestContext.currentTenantId()
+			const organizationId = options?.organizationId ?? RequestContext.getOrganizationId()
+			const user = options?.user ?? RequestContext.currentUser()
+
+			if (!tenantId || !organizationId || !user) {
+				throw new Error('Missing request context for core chat api')
+			}
+
+			return await commandBus.execute(
+				new ChatCommand(request, {
+					...(options ?? {}),
+					tenantId,
+					organizationId,
+					user
+				})
+			)
+		},
+		upsertChatMessage: async (entity) => {
+			await commandBus.execute(new ChatMessageUpsertCommand(entity))
+		},
+		getChatConversation: async (id, relations) => {
+			try {
+				return await conversationService.findOne(id, relations?.length ? { relations } : undefined)
+			} catch {
+				return null
+			}
+		}
+	}),
+	inject: [CommandBus, ChatConversationService]
+}
 
 @Module({
 	imports: [
@@ -72,6 +113,6 @@ import { XpertTableModule } from './xpert-table'
 		SandboxModule,
 	],
 	controllers: [],
-	providers: [...EventHandlers, ...CommandHandlers]
+	providers: [...EventHandlers, ...CommandHandlers, CoreChatApiProvider]
 })
 export class ServerAIModule {}

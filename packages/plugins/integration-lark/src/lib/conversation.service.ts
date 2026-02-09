@@ -15,7 +15,7 @@ import { LarkCoreApi } from './lark-core-api.service'
 
 @Injectable()
 export class LarkConversationService implements OnModuleDestroy {
-	readonly #logger = new Logger(LarkConversationService.name)
+	private readonly logger = new Logger(LarkConversationService.name)
 
 	public static readonly prefix = 'lark:chat'
 
@@ -146,7 +146,7 @@ export class LarkConversationService implements OnModuleDestroy {
 			queue.process(1, async (job) => {
 				const user = await this.core.user.findById(job.data.userId, { relations: ['role'] })
 				if (!user) {
-					this.#logger.warn(`User ${job.data.userId} not found, skip job ${job.id}`)
+					this.logger.warn(`User ${job.data.userId} not found, skip job ${job.id}`)
 					return
 				}
 
@@ -160,7 +160,7 @@ export class LarkConversationService implements OnModuleDestroy {
 							)
 							return `Processed message: ${job.id}`
 						} catch (err) {
-							this.#logger.error(err)
+							this.logger.error(err)
 						}
 					}
 				)
@@ -195,7 +195,7 @@ export class LarkConversationService implements OnModuleDestroy {
 	async handleMessage(message: TChatInboundMessage, ctx: TChatEventContext<TIntegrationLarkOptions>): Promise<void> {
 		const user = RequestContext.currentUser()
 		if (!user) {
-			this.#logger.warn('No user in request context, cannot handle message')
+			this.logger.warn('No user in request context, cannot handle message')
 			return
 		}
 
@@ -225,13 +225,13 @@ export class LarkConversationService implements OnModuleDestroy {
 	async handleCardAction(action: TChatCardAction, ctx: TChatEventContext<TIntegrationLarkOptions>): Promise<void> {
 		const { xpertId } = ctx.integration.options ?? {}
 		if (!xpertId) {
-			this.#logger.warn('No xpertId configured for integration')
+			this.logger.warn('No xpertId configured for integration')
 			return
 		}
 
 		const user = RequestContext.currentUser()
 		if (!user) {
-			this.#logger.warn('No user in request context, cannot handle card action')
+			this.logger.warn('No user in request context, cannot handle card action')
 			return
 		}
 

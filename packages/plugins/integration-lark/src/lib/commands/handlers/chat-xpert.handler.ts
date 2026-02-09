@@ -16,7 +16,7 @@ import { LarkCoreApi } from '../../lark-core-api.service'
 
 @CommandHandler(LarkChatXpertCommand)
 export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertCommand> {
-	readonly #logger = new Logger(LarkChatXpertHandler.name)
+	private readonly logger = new Logger(LarkChatXpertHandler.name)
 
 	constructor(
 		private readonly conversationService: LarkConversationService,
@@ -32,23 +32,26 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 		// Thinking message
 		await larkMessage.update({ status: 'thinking' })
 
-		const observable = await this.core.chat.chatXpert(
-			{
-				input: {
-					input
+			const observable = await this.core.chat.chatXpert(
+				{
+					input: {
+						input
+					},
+					conversationId,
+					confirm: command.options?.confirm
 				},
-				conversationId,
-				confirm: command.options?.confirm
-			},
-			{
-				xpertId,
-				from: 'feishu',
-				fromEndUserId: userId,
-				language: larkMessage.language as LanguagesEnum,
-				// Channel context for notification middleware
-				channelType: 'lark',
-				integrationId: larkMessage.integrationId,
-				chatId: larkMessage.chatId,
+				{
+					xpertId,
+					from: 'feishu',
+					fromEndUserId: userId,
+					tenantId: RequestContext.currentTenantId(),
+					organizationId: RequestContext.getOrganizationId(),
+					user: RequestContext.currentUser(),
+					language: larkMessage.language as LanguagesEnum,
+					// Channel context for notification middleware
+					channelType: 'lark',
+					integrationId: larkMessage.integrationId,
+					chatId: larkMessage.chatId,
 				channelUserId: larkMessage.senderOpenId // Use Lark sender's open_id
 			}
 		)
@@ -67,7 +70,7 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 								if (message.data.type === 'update') {
 									larkMessage.update(message.data.data)
 								} else if (message.data.type !== 'text') {
-									this.#logger.warn(`Unprocessed messages: `, message)
+									this.logger.warn(`Unprocessed messages: `, message)
 								}
 							}
 						} else if (message.type === ChatMessageTypeEnum.EVENT) {
@@ -76,7 +79,7 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 									this.conversationService
 										.setConversation(userId, xpertId, message.data.id)
 										.catch((err) => {
-											this.#logger.error(err)
+											this.logger.error(err)
 										})
 									break
 								}
@@ -90,11 +93,11 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 										message.data.operation
 									) {
 										larkMessage.confirm(message.data.operation).catch((err) => {
-											this.#logger.error(err)
+											this.logger.error(err)
 										})
 									} else if (message.data.status === XpertAgentExecutionStatusEnum.ERROR) {
 										larkMessage.error(message.data.error || `Internal Error`).catch((err) => {
-											this.#logger.error(err)
+											this.logger.error(err)
 										})
 									}
 									break
@@ -105,12 +108,12 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 									break
 								}
 								default: {
-									this.#logger.warn(`Unprocessed events: `, message)
+									this.logger.warn(`Unprocessed events: `, message)
 								}
 							}
 						}
 					} else {
-						this.#logger.warn(`Unrecognized event: `, event)
+						this.logger.warn(`Unrecognized event: `, event)
 					}
 				},
 				error: (error) => {
@@ -126,7 +129,7 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 								elements: [{ tag: 'markdown', content: responseMessageContent }]
 							})
 							.catch((error) => {
-								this.#logger.error(error)
+								this.logger.error(error)
 							})
 					} else if (command.options?.reject) {
 						larkMessage
@@ -135,14 +138,14 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 								elements: []
 							})
 							.catch((error) => {
-								this.#logger.error(error)
+								this.logger.error(error)
 							})
 					}
 
 					this.saveLarkMessage(larkMessage)
 						.then(() => resolve(larkMessage))
 						.catch((error) => {
-							this.#logger.error(error)
+							this.logger.error(error)
 							reject(error)
 						})
 				}

@@ -4,7 +4,6 @@ import { ChatLarkMessage } from '../../chat/message'
 import { LarkConversationService } from '../../conversation.service'
 import { LarkService } from '../../lark.service'
 import { LarkCoreApi } from '../../lark-core-api.service'
-import { LarkChatAgentCommand } from '../chat-agent.command'
 import { LarkChatXpertCommand } from '../chat-xpert.command'
 import { LarkMessageCommand } from '../mesage.command'
 
@@ -51,6 +50,13 @@ export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
 			)
 		}
 
-		return await this.commandBus.execute(new LarkChatAgentCommand(options))
+		await this.larkService.errorMessage(
+			{
+				integrationId,
+				chatId: options.chatId
+			},
+			new Error('No xpertId configured for this Lark integration. Please configure xpertId first.')
+		)
+		return null
 	}
 }
