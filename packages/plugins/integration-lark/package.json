@@ -5,7 +5,8 @@
   "module": "./index.js",
   "private": true,
   "dependencies": {
-    "@larksuiteoapi/node-sdk": "^1.x"
+    "@larksuiteoapi/node-sdk": "^1.x",
+    "axios": "^1.6.8"
   },
   "peerDependencies": {
     "@nestjs/common": ">=10",

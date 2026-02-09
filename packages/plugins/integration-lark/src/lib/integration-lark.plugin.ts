@@ -1,10 +1,11 @@
 import chalk from 'chalk'
-import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy, ChatChannelRegistry } from '@xpert-ai/plugin-sdk'
+import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-ai/plugin-sdk'
 import { CqrsModule } from '@nestjs/cqrs'
 import { DiscoveryModule } from '@nestjs/core'
 
 import { LarkService } from './lark.service'
 import { LarkChannelStrategy } from './lark-channel.strategy'
+import { LarkIntegrationStrategy } from './lark-integration.strategy'
 import { LarkHooksController } from './lark.hooks.controller'
 import { LarkConversationService } from './conversation.service'
 import { LarkTokenStrategy } from './auth/lark-token.strategy'
@@ -21,12 +22,12 @@ import { QueryHandlers } from './queries/handlers'
 		LarkService,
 		LarkConversationService,
 		LarkChannelStrategy,
-		ChatChannelRegistry,
+		LarkIntegrationStrategy,
 		...CommandHandlers,
 		...QueryHandlers,
 		LarkTokenStrategy
 	],
-	exports: [LarkService, LarkChannelStrategy, ChatChannelRegistry]
+	exports: [LarkService, LarkChannelStrategy, LarkIntegrationStrategy]
 })
 export class IntegrationLarkPlugin implements IOnPluginBootstrap, IOnPluginDestroy {
 	private logEnabled = true
