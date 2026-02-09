@@ -2,7 +2,7 @@ import { tool } from '@langchain/core/tools'
 import { firstValueFrom, Subject, Subscriber, takeUntil } from 'rxjs'
 import { ChatBILarkContext, TABLE_PAGE_SIZE } from '../types'
 import { ChartAnnotation, ChartBusinessService, ChartDimensionRoleType, EntityType, FilteringLogic, formatNumber, formatShortNumber, getChartSeries, getEntityHierarchy, getEntityProperty, getPropertyHierarchy, getPropertyMeasure, isBlank, ISlicer, isNil, isTimeRangesSlicer, PresentationVariant, PropertyHierarchy, PropertyMeasure, slicerAsString, timeRangesSlicerAsString, toAdvancedFilter, tryFixDimension, tryFixOrder, tryFixSlicer, tryFixVariableSlicer, workOutTimeRangeSlicers } from '@metad/ocap-core'
-import { ChatLarkMessage } from '@metad/server-ai'
+import { LARK_HEADER_TEMPLATE, LARK_LOGO_ICON } from '../lark.constants'
 import { createDualAxisChart, createSeriesChart } from '../charts/combination'
 import { createBaseChart, FeishuMessageChartType } from '../charts/chart'
 import { getErrorMessage, race, shortuuid } from '@metad/server-common'
@@ -133,8 +133,8 @@ async function drawChartMessage(
 	}
 
 	const header = {
-		template: ChatLarkMessage.headerTemplate,
-		icon: ChatLarkMessage.logoIcon,
+		template: LARK_HEADER_TEMPLATE,
+		icon: LARK_LOGO_ICON,
 		title: {
 			tag: 'plain_text',
 			content: i18n?.['AnalysisConditions'] || 'Analysis conditions'

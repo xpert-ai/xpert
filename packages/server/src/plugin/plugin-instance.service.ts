@@ -98,6 +98,14 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			this.strategyBus.remove(organizationId, pluginName)
 			const pluginIndex = this.loadedPlugins.findIndex((plugin) => plugin.organizationId === organizationId && plugin.name === pluginName)
 			if (pluginIndex !== -1) {
+				const record = this.loadedPlugins[pluginIndex]
+				if (record?.instance && typeof record.instance.onStop === 'function') {
+					try {
+						await record.instance.onStop(record.ctx)
+					} catch (error) {
+						this.logger.warn(`Plugin onStop failed for ${pluginName}`, error)
+					}
+				}
 				this.loadedPlugins.splice(pluginIndex, 1)
 			}
 

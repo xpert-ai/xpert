@@ -69,6 +69,15 @@ export interface IntegrationPermission extends BasePermission {
   scope?: string[];
 }
 
+/**
+ * 6. Core API Permission
+ * Example: { type: 'core-api', tokens: ['integration', 'cache'] }
+ */
+export interface CoreApiPermission extends BasePermission {
+  type: 'core-api';
+  tokens: Array<import('./plugin-api').CorePluginApiTokenName>;
+}
+
 // /**
 //  * 4. Document Permission
 //  * Example: { type: 'document', formats: ['pdf'], operations: ['load', 'transform'] }
@@ -88,6 +97,7 @@ export type Permission =
   | KnowledgePermission
   | FileSystemPermission
   | IntegrationPermission
+  | CoreApiPermission
 //   | DocumentPermission
 //   | ExternalPermission;
 

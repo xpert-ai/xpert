@@ -571,6 +571,24 @@ export type TChatOptions = {
    * Specify additional tools
    */
   tools?: (StructuredToolInterface | RunnableToolLike)[]
+
+  // Channel context for messaging platforms (Lark, WeChat, DingTalk, etc.)
+  /**
+   * Channel type identifier
+   */
+  channelType?: string
+  /**
+   * Integration ID for the channel
+   */
+  integrationId?: string
+  /**
+   * Chat/conversation ID in the channel
+   */
+  chatId?: string
+  /**
+   * User ID in the channel platform
+   */
+  channelUserId?: string
 }
 
 /**

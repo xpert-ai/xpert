@@ -1,4 +1,5 @@
 export * from './file-system'
+export * from './plugin-api'
 export * from './permissions'
 export * from './schema'
 export * from './i18n'

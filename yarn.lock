@@ -4807,6 +4807,19 @@
     qs "^6.13.0"
     ws "^8.16.0"
 
+"@larksuiteoapi/node-sdk@^1.x":
+  version "1.58.0"
+  resolved "https://registry.yarnpkg.com/@larksuiteoapi/node-sdk/-/node-sdk-1.58.0.tgz#b2924d45bbf41adcb0a9573491dc7f72bcb57b2c"
+  integrity sha512-NcQNHdGuHOxOWY3bRGS9WldwpbR6+k7Fi0H1IJXDNNmbSrEB/8rLwqHRC8tAbbj/Mp8TWH/v1O+p487m6xskxw==
+  dependencies:
+    axios "~1.13.3"
+    lodash.identity "^3.0.0"
+    lodash.merge "^4.6.2"
+    lodash.pickby "^4.6.0"
+    protobufjs "^7.2.6"
+    qs "^6.13.0"
+    ws "^8.16.0"
+
 "@leichtgewicht/ip-codec@^2.0.1":
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/@leichtgewicht/ip-codec/-/ip-codec-2.0.5.tgz#4fc56c15c580b9adb7dc3c333a134e540b44bfb1"
@@ -11632,6 +11645,15 @@ axios@^1.11.0, axios@^1.6.0, axios@^1.8.3:
   version "1.11.0"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.11.0.tgz#c2ec219e35e414c025b2095e8b8280278478fdb6"
   integrity sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==
+  dependencies:
+    follow-redirects "^1.15.6"
+    form-data "^4.0.4"
+    proxy-from-env "^1.1.0"
+
+axios@~1.13.3:
+  version "1.13.4"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.13.4.tgz#15d109a4817fb82f73aea910d41a2c85606076bc"
+  integrity sha512-1wVkUaAO6WyaYtCkcYCOx12ZgpGf9Zif+qXa4n+oYzK558YryKqiL6UWwd5DqiH3VRW0GYhTZQ/vlgJrCoNQlg==
   dependencies:
     follow-redirects "^1.15.6"
     form-data "^4.0.4"

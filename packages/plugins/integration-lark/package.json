@@ -1,0 +1,19 @@
+{
+  "name": "@xpert-ai/plugin-integration-lark",
+  "version": "0.0.1",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "private": true,
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.x",
+    "axios": "^1.6.8"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=10",
+    "@nestjs/core": ">=10",
+    "@nestjs/cqrs": ">=10",
+    "@xpert-ai/plugin-sdk": "*",
+    "@metad/contracts": "*",
+    "zod": ">=3.22.4"
+  }
+}

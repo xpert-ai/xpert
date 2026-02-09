@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Subject } from 'rxjs';
+import { ReplaySubject } from 'rxjs';
 import { StrategyEntry } from './types';
 
 export type StrategyBusEvent<S = any> =
@@ -8,7 +8,7 @@ export type StrategyBusEvent<S = any> =
 
 @Injectable()
 export class StrategyBus {
-  private readonly subject = new Subject<StrategyBusEvent>();
+  private readonly subject = new ReplaySubject<StrategyBusEvent>(256);
 
   readonly events$ = this.subject.asObservable();
 

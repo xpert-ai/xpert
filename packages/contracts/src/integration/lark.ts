@@ -36,38 +36,33 @@ export const IntegrationLarkProvider: TIntegrationProvider = {
         }
       },
       xpertId: {
-        type: 'remote-select',
+        type: 'string',
         title: {
           en_US: 'Xpert',
           zh_Hans: '数字专家'
         },
-        placeholder: {
+        description: {
           en_US: 'Choose a corresponding digital expert',
           zh_Hans: '选择一个对应的数字专家'
         },
-        selectUrl: '/api/xpert/select-options'
+        'x-ui': {
+          component: 'remoteSelect',
+          selectUrl: '/api/xpert/select-options'
+        }
       },
       preferLanguage: {
-        type: 'select',
+        type: 'string',
         title: {
           en_US: 'Preferred Language',
           zh_Hans: '首选语言'
         },
-        options: [
-          {
-            value: 'en',
-            label: {
-              en_US: 'English',
-              zh_Hans: '英语'
-            }
-          }, {
-            value: 'zh',
-            label: {
-              en_US: 'Chinese',
-              zh_Hans: '中文'
-            }
+        enum: ['en', 'zh'],
+        'x-ui': {
+          enumLabels: {
+            en: { en_US: 'English', zh_Hans: '英语' },
+            zh: { en_US: 'Chinese', zh_Hans: '中文' }
           }
-        ]
+        }
       },
     },
     required: ['appId', 'appSecret'],
