@@ -2,7 +2,7 @@ import { ToolMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
 import { ChatMessageTypeEnum, JSONValue } from '@metad/contracts'
-import { ChatLarkMessage } from '@metad/server-ai'
+import { LARK_HEADER_TEMPLATE, LARK_LOGO_ICON } from '../lark.constants'
 import { shortuuid } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { t } from 'i18next'
@@ -152,8 +152,8 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 									tag: 'plain_text',
 									content: ''
 								},
-								template: ChatLarkMessage.headerTemplate,
-								icon: ChatLarkMessage.logoIcon
+								template: LARK_HEADER_TEMPLATE,
+								icon: LARK_LOGO_ICON
 							}
 						} as unknown as JSONValue
 					}
