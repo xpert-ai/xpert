@@ -3,6 +3,13 @@
   "version": "0.0.1",
   "main": "./index.cjs",
   "module": "./index.js",
-  "dependencies": {
+  "dependencies": {},
+  "peerDependencies": {
+    "@nestjs/common": ">=10",
+    "@nestjs/config": ">=3",
+    "@nestjs/core": ">=10",
+    "@nestjs/schedule": ">=6",
+    "@xpert-ai/plugin-sdk": ">=0.0.1",
+    "zod": ">=3.22.4"
   }
 }

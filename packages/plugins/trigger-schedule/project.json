@@ -26,7 +26,9 @@
         "format": ["cjs", "esm"],
         "external": [
           "@nestjs/common",
+          "@nestjs/config",
           "@nestjs/core",
+          "@nestjs/schedule",
           "@nestjs/microservices",
           "kafkajs",
           "amqplib",
