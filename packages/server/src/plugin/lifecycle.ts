@@ -1,101 +1,55 @@
 import type { INestApplicationContext } from '@nestjs/common';
-import { CORE_PLUGIN_API_TOKENS, createPluginLogger } from '@xpert-ai/plugin-sdk';
-import type { CoreApiPermission, CorePluginApiTokenName, Permissions, PluginRuntimeContext } from '@xpert-ai/plugin-sdk';
-import { createCorePluginApi } from './core-plugin-api';
+import { ModuleRef } from '@nestjs/core';
+import { createPluginLogger, INTEGRATION_PERMISSION_SERVICE_TOKEN, USER_PERMISSION_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk';
+import type { PluginContext } from '@xpert-ai/plugin-sdk';
+import type { Permissions } from '@xpert-ai/plugin-sdk';
 
-const RESTRICTED_APP_CONTEXT_ERROR = 'non-code plugin cannot access Nest app context; use ctx.api';
-
-interface PluginContextOptions {
-  allowed?: CorePluginApiTokenName[];
-  allowResolve?: boolean;
-  allowAppContext?: boolean;
-  pluginName?: string;
+const PROTECTED_PERMISSION_TOKENS: Record<string, string> = {
+  [INTEGRATION_PERMISSION_SERVICE_TOKEN]: 'integration',
+  [USER_PERMISSION_SERVICE_TOKEN]: 'user',
 }
 
-function throwRestrictedAppContextError(pluginName?: string): never {
-  const message = pluginName
-    ? `[plugin:${pluginName}] ${RESTRICTED_APP_CONTEXT_ERROR}`
-    : RESTRICTED_APP_CONTEXT_ERROR;
-  throw new Error(message);
+function stringifyToken(token: any) {
+  if (typeof token === 'string') {
+    return token
+  }
+  if (typeof token === 'symbol') {
+    return token.toString()
+  }
+  return token?.name ?? String(token)
 }
 
-export function createRestrictedPluginAppContext(pluginName?: string): INestApplicationContext {
-  return {
-    get: () => throwRestrictedAppContextError(pluginName),
-    select: () => throwRestrictedAppContextError(pluginName),
-    resolve: () => throwRestrictedAppContextError(pluginName),
-  } as unknown as INestApplicationContext;
+function assertPermissionForToken(name: string, token: any, permissionTypes: Set<string>) {
+  const requiredPermission = PROTECTED_PERMISSION_TOKENS[token]
+  if (!requiredPermission) {
+    return
+  }
+  if (!permissionTypes.has(requiredPermission)) {
+    throw new Error(
+      `Plugin '${name}' attempted to resolve '${stringifyToken(token)}' without declaring '${requiredPermission}' permission.`
+    )
+  }
 }
 
 export function createPluginContext<TConfig extends object>(
-  app: INestApplicationContext,
+  app: ModuleRef,
   name: string,
   config: TConfig,
-  options?: PluginContextOptions
-): PluginRuntimeContext<TConfig> {
-  const allowResolve = options?.allowResolve ?? true;
-  const allowAppContext = options?.allowAppContext ?? true;
-  return {
-    app: allowAppContext ? app : createRestrictedPluginAppContext(options?.pluginName ?? name),
+  permissions: Permissions = [],
+): PluginContext<TConfig> {
+  const permissionTypes = new Set(permissions.map((permission) => permission.type))
+  const ctx: PluginContext<TConfig> = {
+    module: app,
     config,
     logger: createPluginLogger(`plugin:${name}`),
-    api: createCorePluginApi(app as any, { allowed: options?.allowed }),
-    resolve: allowResolve
-      ? (token: any) => app.get(token, { strict: false })
-      : () => {
-        throw new Error('Plugin context resolve is disabled');
+    resolve: (token) => {
+      assertPermissionForToken(name, token, permissionTypes)
+      const currentApp = ctx.app
+      if (!currentApp || typeof currentApp.get !== 'function') {
+        throw new Error(`Plugin '${name}' context is not bound to a Nest application context yet.`)
       }
-  };
-}
-
-export function attachPluginContext<TConfig extends object>(
-  ctx: PluginRuntimeContext<TConfig>,
-  app: INestApplicationContext,
-  options?: PluginContextOptions
-): PluginRuntimeContext<TConfig> {
-  const allowResolve = options?.allowResolve ?? true;
-  const allowAppContext = options?.allowAppContext ?? true;
-  ctx.app = allowAppContext ? app : createRestrictedPluginAppContext(options?.pluginName);
-  ctx.api = createCorePluginApi(app as any, { allowed: options?.allowed });
-  ctx.resolve = allowResolve
-    ? (token: any) => app.get(token, { strict: false })
-    : () => {
-        throw new Error('Plugin context resolve is disabled');
-      };
-  return ctx;
-}
-
-export function resolveCoreApiAllowList(
-  plugin: { permissions?: Permissions } | undefined,
-  source?: string
-): CorePluginApiTokenName[] | undefined {
-  const permissions = plugin?.permissions ?? [];
-  const coreApi = permissions.find((item) => item.type === 'core-api') as CoreApiPermission | undefined;
-  if (coreApi) {
-    const allowed = new Set<CorePluginApiTokenName>();
-    const validNames = new Set(Object.keys(CORE_PLUGIN_API_TOKENS) as CorePluginApiTokenName[]);
-    for (const token of coreApi.tokens ?? []) {
-      if (validNames.has(token)) {
-        allowed.add(token);
-      }
-    }
-    return Array.from(allowed);
+      return currentApp.get(token, { strict: false })
+    },
   }
-
-  if (source === 'code') {
-    return undefined; // allow all for built-in plugins
-  }
-
-  return []; // deny all for non-code plugins unless explicitly declared
-}
-
-export function resolvePluginAccessPolicy(
-  plugin: { permissions?: Permissions } | undefined,
-  source?: string
-) {
-  return {
-    allowed: resolveCoreApiAllowList(plugin, source),
-    allowResolve: source === 'code',
-    allowAppContext: source === 'code',
-  };
+  return ctx
 }

@@ -1,11 +1,16 @@
 import * as lark from '@larksuiteoapi/node-sdk'
 import { IIntegration, TIntegrationLarkOptions } from '@metad/contracts'
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common'
+import {
+	INTEGRATION_PERMISSION_SERVICE_TOKEN,
+	IntegrationPermissionService,
+	PluginContext,
+} from '@xpert-ai/plugin-sdk'
+import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import { PassportStrategy } from '@nestjs/passport'
 import express from 'express'
 import { Strategy } from 'passport'
 import { LarkService } from '../lark.service'
-import { LarkCoreApi } from '../lark-core-api.service'
+import { LARK_PLUGIN_CONTEXT } from '../tokens'
 
 @Injectable()
 export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') {
@@ -13,12 +18,23 @@ export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') 
 		throw new Error('Method not implemented.')
 	}
 	readonly logger = new Logger(LarkTokenStrategy.name)
+	private _integrationPermissionService: IntegrationPermissionService
 
 	constructor(
 		private readonly larkService: LarkService,
-		private readonly core: LarkCoreApi
+		@Inject(LARK_PLUGIN_CONTEXT)
+		private readonly pluginContext: PluginContext,
 	) {
 		super()
+	}
+
+	private get integrationPermissionService(): IntegrationPermissionService {
+		if (!this._integrationPermissionService) {
+			this._integrationPermissionService = this.pluginContext.resolve(
+				INTEGRATION_PERMISSION_SERVICE_TOKEN
+			)
+		}
+		return this._integrationPermissionService
 	}
 
 	authenticate(req: express.Request, options: { session: boolean; property: string }) {
@@ -29,7 +45,7 @@ export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') 
 		;(async () => {
 			try {
 				const integration: IIntegration<TIntegrationLarkOptions> =
-					await this.core.integration.findById(integrationId, { relations: ['tenant'] })
+					await this.integrationPermissionService.read(integrationId, { relations: ['tenant'] })
 				if (!integration) {
 					throw new Error(`Integration ${integrationId} not found`)
 				}
@@ -69,6 +85,9 @@ export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') 
 						integration.tenantId,
 						union_id
 					)
+					if (!user) {
+						throw new UnauthorizedException(`No mapped user found for union_id '${union_id}'`)
+					}
 
 					// Set language header
 					req.headers['language'] = integration.options?.preferLanguage || user.preferredLanguage

@@ -12,16 +12,24 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ChatLarkMessage } from '../../chat/message'
 import { LarkConversationService } from '../../conversation.service'
 import { LarkChatXpertCommand } from '../chat-xpert.command'
-import { LarkCoreApi } from '../../lark-core-api.service'
+
+function createUnavailableChatApi() {
+	return {
+		chatXpert: async (..._args: any[]): Promise<any> => {
+			throw new Error('Chat service is not available in Lark plugin context')
+		},
+		upsertChatMessage: async (..._args: any[]): Promise<any> => {
+			throw new Error('Chat service is not available in Lark plugin context')
+		},
+	}
+}
 
 @CommandHandler(LarkChatXpertCommand)
 export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertCommand> {
 	private readonly logger = new Logger(LarkChatXpertHandler.name)
+	private readonly chat = createUnavailableChatApi()
 
-	constructor(
-		private readonly conversationService: LarkConversationService,
-		private readonly core: LarkCoreApi
-	) {}
+	constructor(private readonly conversationService: LarkConversationService) {}
 
 	public async execute(command: LarkChatXpertCommand) {
 		const { xpertId, input, larkMessage } = command
@@ -32,7 +40,7 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 		// Thinking message
 		await larkMessage.update({ status: 'thinking' })
 
-			const observable = await this.core.chat.chatXpert(
+			const observable = await this.chat.chatXpert(
 				{
 					input: {
 						input
@@ -155,7 +163,7 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 
 	async saveLarkMessage(message: ChatLarkMessage) {
 		if (message.messageId) {
-			await this.core.chat.upsertChatMessage({
+			await this.chat.upsertChatMessage({
 				id: message.messageId,
 				thirdPartyMessage: (message.toJSON() as SerializedConstructor).kwargs
 			})

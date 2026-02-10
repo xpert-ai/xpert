@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { IntegrationLarkPlugin } from './lib/integration-lark.plugin'
-import { LarkCoreApi } from './lib/lark-core-api.service'
 import { LARK_PLUGIN_CONTEXT } from './lib/tokens'
+import { iconImage } from './lib/types'
 
 export * from './lib/queries'
 
@@ -17,7 +17,7 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
 		category: 'integration',
 		icon: {
 			type: 'image',
-			value: '/assets/images/integrations/lark.svg'
+			value: iconImage
 		},
 		displayName: 'Lark / Feishu Integration',
 		description: 'Bidirectional messaging integration with Lark (Feishu) platform',
@@ -29,10 +29,8 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
 		schema: ConfigSchema
 	},
 	permissions: [
-		{
-			type: 'core-api',
-			tokens: ['config', 'cache', 'integration', 'user', 'role', 'i18n', 'chat']
-		}
+		{ type: 'integration', service: 'lark', operations: ['read'] },
+		{ type: 'user', operations: ['read'] },
 	],
 	register(ctx) {
 		ctx.logger.log('Registering Lark integration plugin')
@@ -41,9 +39,8 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
 			global: true,
 			providers: [
 				{ provide: LARK_PLUGIN_CONTEXT, useValue: ctx },
-				LarkCoreApi
 			],
-			exports: [LarkCoreApi]
+			exports: []
 		}
 	},
 	async onStart(ctx) {

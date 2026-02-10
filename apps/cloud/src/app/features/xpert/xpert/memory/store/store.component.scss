@@ -1,4 +1,4 @@
 :host {
-  @apply relative flex flex-col justify-start items-stretch h-full w-full bg-components-panel-bg;
+  @apply relative flex flex-col justify-start items-stretch h-full w-full pt-4 bg-components-panel-bg;
   --ngx-json-font-family: theme('fontFamily.mono');
 }

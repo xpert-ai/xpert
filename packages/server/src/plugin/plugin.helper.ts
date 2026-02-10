@@ -147,48 +147,24 @@ export function collectProvidersWithMetadata<TMeta = any>(
 
   const providers: any[] = [];
   const seen = new Set<any>();
-  const normalizedPluginName = normalizePluginName(pluginName);
 
   logger.debug(`Scanning modules in the NestJS container...`);
   for (const module of container.getModules().values()) {
-    const moduleTarget = module.metatype ?? module.constructor;
-    const modulePluginName = Reflect.getMetadata(PLUGIN_METADATA_KEY, moduleTarget);
-    const moduleOrganization = Reflect.getMetadata(ORGANIZATION_METADATA_KEY, moduleTarget);
+	const target = module.metatype ?? module.constructor;
+    const modPluginName = Reflect.getMetadata(PLUGIN_METADATA_KEY, target);
+    const modOrganization = Reflect.getMetadata(ORGANIZATION_METADATA_KEY, target);
 
+    if (modOrganization !== organizationId || modPluginName !== pluginName) {
+      continue;
+    }
+
+	logger.debug(`Module matches organization ${modOrganization} and plugin ${modPluginName} criteria. Collecting providers...`);
     for (const wrapper of module.providers?.values?.() ?? []) {
-      const providerTarget =
-        wrapper?.metatype ??
-        (typeof wrapper?.token === 'function' ? wrapper.token : undefined) ??
-        wrapper?.instance?.constructor;
-      const providerPluginName = providerTarget
-        ? Reflect.getMetadata(PLUGIN_METADATA_KEY, providerTarget)
-        : undefined;
-      const providerOrganization = providerTarget
-        ? Reflect.getMetadata(ORGANIZATION_METADATA_KEY, providerTarget)
-        : undefined;
-
-      const candidatePluginName = providerPluginName ?? modulePluginName;
-      const candidateOrganization = providerOrganization ?? moduleOrganization;
-      const isPluginMatched =
-        typeof candidatePluginName === 'string' &&
-        normalizePluginName(candidatePluginName) === normalizedPluginName;
-
-      if (!isPluginMatched || candidateOrganization !== organizationId) {
-        continue;
-      }
-
-      let instance = wrapper.instance;
-      if (!instance) {
-        try {
-          // PRO: Force provider resolution to avoid missing strategy instances because of bootstrap ordering.
-          instance = moduleRef.get(wrapper.token, { strict: false });
-        } catch {
-          continue;
-        }
-      }
+      const instance = wrapper.instance;
       if (!instance || seen.has(instance)) continue;
 
-      logger.debug(`Collecting provider instance: ${instance.constructor?.name ?? '(anonymous)'}`);
+	  logger.debug(`Collecting provider instance: ${instance.constructor.name}`);
+	  
       providers.push(instance);
       seen.add(instance);
     }
@@ -201,6 +177,8 @@ export function collectProvidersWithMetadata<TMeta = any>(
 export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions {
 	/** The organization scope for plugin discovery/loading. Defaults to 'global'. */
 	organizationId?: string;
+	/** Nest module context for resolving dependencies during registration. */
+	module?: ModuleRef;
 	/** Override the plugin workspace root for the organization. Defaults to data/plugins/<orgId> when organizationId is set. */
 	baseDir?: string;
 	/** Explicit list of plugin package names (takes precedence) */
@@ -217,9 +195,9 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
  * 2. Load each plugin and build its configuration.
  * 3. Create a plugin context and register the plugin module.
  * 4. Tag the module and its providers with organization and plugin metadata.
- *
- * @param opts
- * @returns
+ * 
+ * @param opts 
+ * @returns 
  */
 export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) {
 	const organizationId = opts.organizationId ?? GLOBAL_ORGANIZATION_SCOPE;
@@ -242,49 +220,37 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 
 	const modules: DynamicModule[] = [];
 
-	for (const {name, source} of pluginNames) {
-		try {
-			const isBuiltin = source === 'code';
-			// For built-in plugins (source: 'code'), always use serverRoot as base
-			// For installed plugins, use the organization plugin path or baseDirRoot
-			const pluginBaseDir = isBuiltin
-				? (opts.baseDir ?? process.cwd())  // Built-in plugins are in dist/packages/plugins relative to project root
-				: opts.organizationId
-					? getOrganizationPluginPath(organizationId, name, opts)
-					: baseDirRoot;
-			// 2) Load each plugin and build its configuration.
-			const plugin = await loadPlugin(name, { basedir: pluginBaseDir, builtin: isBuiltin });
-			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {};
-			const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config);
+	for (const {name} of pluginNames) {
+		const pluginBaseDir = opts.organizationId
+			? getOrganizationPluginPath(organizationId, name, opts)
+			: baseDirRoot;
+		// 2) Load each plugin and build its configuration.
+		const plugin = await loadPlugin(name, { basedir: pluginBaseDir });
+		const cfgRaw = opts.configs?.[plugin.meta.name] ?? {};
+		const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config);
 
-			// 3) Create a plugin context and register the plugin module.
-			// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
-			const ctx = createPluginContext<any>({} as any, plugin.meta.name, cfg);
-			const mod = plugin.register(ctx);
+		// 3) Create a plugin context and register the plugin module.
+		// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
+		const ctx = createPluginContext<any>(opts.module, plugin.meta.name, cfg, plugin.permissions ?? []);
+		const mod = plugin.register(ctx);
 
-			// 4) Tag the module and its providers with organization and plugin metadata.
-			const pluginIdentity = normalizePluginName(plugin.meta?.name ?? name);
-			tagModuleWithOrganization(mod, organizationId, pluginIdentity);
-			modules.push(mod);
-			const existing = loaded.findIndex(
-				(item) => item.organizationId === organizationId && item.name === pluginIdentity,
-			);
-			if (existing >= 0) {
-				loaded.splice(existing, 1);
-			}
-			loaded.push({
-				organizationId,
-				name: pluginIdentity,
-				packageName: name,
-				instance: plugin,
-				ctx,
-				baseDir: pluginBaseDir,
-				source,
-			});
-		} catch (error) {
-			const message = (error as Error)?.message ?? String(error);
-			console.error(`Failed to load plugin ${name} for organization ${organizationId}: ${message}`);
+		// 4) Tag the module and its providers with organization and plugin metadata.
+		tagModuleWithOrganization(mod, organizationId, normalizePluginName(name));
+		modules.push(mod);
+		const existing = loaded.findIndex(
+			(item) => item.organizationId === organizationId && item.name === plugin.meta.name,
+		);
+		if (existing >= 0) {
+			loaded.splice(existing, 1);
 		}
+		loaded.push({
+			organizationId,
+			name: plugin.meta.name,
+			packageName: name,
+			instance: plugin,
+			ctx,
+			baseDir: pluginBaseDir,
+		});
 	}
 
 	return {
@@ -302,12 +268,8 @@ function tagModuleWithOrganization(mod: DynamicModule, organizationId: string, p
 
 function tagModuleProvidersWithOrganization(plugin: DynamicModule, organizationId: string, pluginName: string) {
 	const pluginModule = isDynamicModule(plugin) ? plugin.module : plugin;
-	// Get providers from both the module class metadata and the DynamicModule object
-	const { providers: classProviders } = reflectDynamicModuleMetadata(pluginModule);
-	const dynamicProviders = isDynamicModule(plugin) ? (plugin.providers || []) : [];
-	const allProviders = [...classProviders, ...dynamicProviders];
-
-	for (const provider of allProviders) {
+	const { imports, providers, exports } = reflectDynamicModuleMetadata(pluginModule);
+	for (const provider of providers) {
 		const target =
 			(typeof provider === 'function' && provider) ||
 			(isClassProvider(provider) && provider.useClass) ||

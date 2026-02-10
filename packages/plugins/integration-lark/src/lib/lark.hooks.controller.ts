@@ -1,6 +1,13 @@
 import * as lark from '@larksuiteoapi/node-sdk'
 import { IIntegration, mapTranslationLanguage, TIntegrationLarkOptions, TranslationLanguageMap } from '@metad/contracts'
-import { RequestContext, TChatEventContext, TChatEventHandlers } from '@xpert-ai/plugin-sdk'
+import {
+	INTEGRATION_PERMISSION_SERVICE_TOKEN,
+	IntegrationPermissionService,
+	PluginContext,
+	RequestContext,
+	TChatEventContext,
+	TChatEventHandlers,
+} from '@xpert-ai/plugin-sdk'
 import {
 	BadRequestException,
 	Body,
@@ -8,6 +15,7 @@ import {
 	ForbiddenException,
 	Get,
 	HttpCode,
+	Inject,
 	Param,
 	Post,
 	Query,
@@ -22,16 +30,28 @@ import { Public } from './decorators/public.decorator'
 import { LarkChannelStrategy } from './lark-channel.strategy'
 import { LarkConversationService } from './conversation.service'
 import { LarkService } from './lark.service'
-import { LarkCoreApi } from './lark-core-api.service'
+import { LARK_PLUGIN_CONTEXT } from './tokens'
 
 @Controller('lark')
 export class LarkHooksController {
+	private _integrationPermissionService: IntegrationPermissionService
+
 	constructor(
 		private readonly larkService: LarkService,
+		@Inject(LARK_PLUGIN_CONTEXT)
+		private readonly pluginContext: PluginContext,
 		private readonly larkChannel: LarkChannelStrategy,
 		private readonly conversation: LarkConversationService,
-		private readonly core: LarkCoreApi
 	) {}
+
+	private get integrationPermissionService(): IntegrationPermissionService {
+		if (!this._integrationPermissionService) {
+			this._integrationPermissionService = this.pluginContext.resolve(
+				INTEGRATION_PERMISSION_SERVICE_TOKEN
+			)
+		}
+		return this._integrationPermissionService
+	}
 
 	@Public()
 	@UseGuards(LarkAuthGuard)
@@ -42,7 +62,12 @@ export class LarkHooksController {
 		@Request() req: express.Request,
 		@Response() res: express.Response
 	): Promise<void> {
-		const integration = await this.core.integration.findById(integrationId, { relations: ['tenant'] })
+		const integration = await this.integrationPermissionService.read<IIntegration<TIntegrationLarkOptions>>(
+			integrationId,
+			{
+				relations: ['tenant'],
+			}
+		)
 		if (!integration) {
 			throw new BadRequestException(`Integration ${integrationId} not found. Please save the integration first before configuring webhook URL in Lark.`)
 		}
@@ -119,84 +144,84 @@ export class LarkHooksController {
 		return null
 	}
 
-	@Post('test')
-	async connect(@Body() integration: IIntegration) {
-		try {
-			const botInfo = await this.larkService.test(integration)
-			if (!botInfo) {
-				const error = await this.core.i18n.t('integration.Lark.Error_BotPermission', {
-					lang: TranslationLanguageMap[RequestContext.getLanguageCode()] || RequestContext.getLanguageCode()
-				})
-				throw new ForbiddenException(error)
-			}
-			if (!integration.avatar) {
-				integration.avatar = {
-					url: botInfo.avatar_url
-				}
-			}
-			return integration
-		} catch (err: any) {
-			const errorMessage = await this.core.i18n.t('integration.Lark.Error.CredentialsFailed', {
-				lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-			})
-			throw new ForbiddenException(`${errorMessage}: ${err.message}`)
-		}
-	}
+	// @Post('test')
+	// async connect(@Body() integration: IIntegration) {
+	// 	try {
+	// 		const botInfo = await this.larkService.test(integration)
+	// 		if (!botInfo) {
+	// 			const error = await this.core.i18n.t('integration.Lark.Error_BotPermission', {
+	// 				lang: TranslationLanguageMap[RequestContext.getLanguageCode()] || RequestContext.getLanguageCode()
+	// 			})
+	// 			throw new ForbiddenException(error)
+	// 		}
+	// 		if (!integration.avatar) {
+	// 			integration.avatar = {
+	// 				url: botInfo.avatar_url
+	// 			}
+	// 		}
+	// 		return integration
+	// 	} catch (err: any) {
+	// 		const errorMessage = await this.core.i18n.t('integration.Lark.Error.CredentialsFailed', {
+	// 			lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+	// 		})
+	// 		throw new ForbiddenException(`${errorMessage}: ${err.message}`)
+	// 	}
+	// }
 
-	@Get('chat-select-options')
-	async getChatSelectOptions(@Query('integration') id: string) {
-		if (!id) {
-			throw new BadRequestException(
-				await this.core.i18n.t('integration.Lark.Error_SelectAIntegration', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
-		}
-		const client = await this.larkService.getOrCreateLarkClientById(id)
-		try {
-			const result = await client.im.chat.list()
-			const items = result.data.items
-			return items.map((item) => ({
-				value: item.chat_id,
-				label: item.name,
-				icon: item.avatar
-			}))
-		} catch (err: any) {
-			if ((<AxiosError>err).response?.data) {
-				throw new BadRequestException(err.response.data.msg)
-			}
-			throw new BadRequestException(err)
-		}
-	}
+	// @Get('chat-select-options')
+	// async getChatSelectOptions(@Query('integration') id: string) {
+	// 	if (!id) {
+	// 		throw new BadRequestException(
+	// 			await this.core.i18n.t('integration.Lark.Error_SelectAIntegration', {
+	// 				lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+	// 			})
+	// 		)
+	// 	}
+	// 	const client = await this.larkService.getOrCreateLarkClientById(id)
+	// 	try {
+	// 		const result = await client.im.chat.list()
+	// 		const items = result.data.items
+	// 		return items.map((item) => ({
+	// 			value: item.chat_id,
+	// 			label: item.name,
+	// 			icon: item.avatar
+	// 		}))
+	// 	} catch (err: any) {
+	// 		if ((<AxiosError>err).response?.data) {
+	// 			throw new BadRequestException(err.response.data.msg)
+	// 		}
+	// 		throw new BadRequestException(err)
+	// 	}
+	// }
 
-	@Get('user-select-options')
-	async getUserSelectOptions(@Query('integration') id: string) {
-		if (!id) {
-			throw new BadRequestException(
-				await this.core.i18n.t('integration.Lark.Error_SelectAIntegration', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
-		}
-		const client = await this.larkService.getOrCreateLarkClientById(id)
+	// @Get('user-select-options')
+	// async getUserSelectOptions(@Query('integration') id: string) {
+	// 	if (!id) {
+	// 		throw new BadRequestException(
+	// 			await this.core.i18n.t('integration.Lark.Error_SelectAIntegration', {
+	// 				lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+	// 			})
+	// 		)
+	// 	}
+	// 	const client = await this.larkService.getOrCreateLarkClientById(id)
 
-		try {
-			const result = await client.contact.user.list({
-				params: {}
-			})
-			const items = result.data.items
+	// 	try {
+	// 		const result = await client.contact.user.list({
+	// 			params: {}
+	// 		})
+	// 		const items = result.data.items
 
-			// Use open_id to match resolveReceiveId() in LarkChannelStrategy
-			return items.map((item) => ({
-				value: item.open_id,
-				label: item.name || item.email || item.mobile,
-				icon: item.avatar
-			}))
-		} catch (err: any) {
-			if ((<AxiosError>err).response?.data) {
-				throw new BadRequestException(err.response.data.msg)
-			}
-			throw new BadRequestException(err)
-		}
-	}
+	// 		// Use open_id to match resolveReceiveId() in LarkChannelStrategy
+	// 		return items.map((item) => ({
+	// 			value: item.open_id,
+	// 			label: item.name || item.email || item.mobile,
+	// 			icon: item.avatar
+	// 		}))
+	// 	} catch (err: any) {
+	// 		if ((<AxiosError>err).response?.data) {
+	// 			throw new BadRequestException(err.response.data.msg)
+	// 		}
+	// 		throw new BadRequestException(err)
+	// 	}
+	// }
 }

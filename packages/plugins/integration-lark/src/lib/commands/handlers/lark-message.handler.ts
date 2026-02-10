@@ -1,25 +1,43 @@
 import { TIntegrationLarkOptions } from '@metad/contracts'
+import {
+	INTEGRATION_PERMISSION_SERVICE_TOKEN,
+	IntegrationPermissionService,
+	PluginContext,
+} from '@xpert-ai/plugin-sdk'
+import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ChatLarkMessage } from '../../chat/message'
 import { LarkConversationService } from '../../conversation.service'
 import { LarkService } from '../../lark.service'
-import { LarkCoreApi } from '../../lark-core-api.service'
+import { LARK_PLUGIN_CONTEXT } from '../../tokens'
 import { LarkChatXpertCommand } from '../chat-xpert.command'
 import { LarkMessageCommand } from '../mesage.command'
 
 @CommandHandler(LarkMessageCommand)
 export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
+	private _integrationPermissionService: IntegrationPermissionService
+
 	constructor(
 		private readonly larkService: LarkService,
 		private readonly conversationService: LarkConversationService,
-		private readonly core: LarkCoreApi,
+		@Inject(LARK_PLUGIN_CONTEXT)
+		private readonly pluginContext: PluginContext,
 		private readonly commandBus: CommandBus
 	) {}
+
+	private get integrationPermissionService(): IntegrationPermissionService {
+		if (!this._integrationPermissionService) {
+			this._integrationPermissionService = this.pluginContext.resolve(
+				INTEGRATION_PERMISSION_SERVICE_TOKEN
+			)
+		}
+		return this._integrationPermissionService
+	}
 
 	public async execute(command: LarkMessageCommand): Promise<unknown> {
 		const { options } = command
 		const { userId, integrationId, message, input } = options
-		const integration = await this.core.integration.findById(integrationId)
+		const integration = await this.integrationPermissionService.read(integrationId)
 		if (!integration) {
 			throw new Error(`Integration ${integrationId} not found`)
 		}

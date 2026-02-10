@@ -1,0 +1,15 @@
+#
+
+可以直接这样拿：
+
+1. 你这个项目 Swagger 挂在 `swg`，所以 JSON 地址是 `GET /swg-json`（见 `packages/analytics/src/bootstrap/index.ts:104`）。
+2. `/ai` 前缀来自 `AIModule` 路由注册（见 `packages/server-ai/src/ai/ai.module.ts:31`）。
+3. 导出只包含 `/ai` 的 OpenAPI 文件：
+
+```bash
+curl -s http://localhost:3000/swg-json \
+| jq '.paths |= with_entries(select(.key | startswith("/api/ai") or startswith("/ai")))' \
+> openapi.ai.json
+```
+
+如果你想要一个独立地址（比如 `/swg-ai-json`）我可以帮你把 `bootstrap` 里加一份只 `include: [AIModule]` 的 Swagger 文档。

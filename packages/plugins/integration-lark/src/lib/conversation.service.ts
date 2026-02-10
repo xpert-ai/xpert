@@ -2,16 +2,16 @@ import { mapTranslationLanguage, TIntegrationLarkOptions } from '@metad/contract
 import { RequestContext, runWithRequestContext, TChatInboundMessage, TChatCardAction, TChatEventContext } from '@xpert-ai/plugin-sdk'
 import { forwardRef, Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Cache } from 'cache-manager'
 import Bull from 'bull'
 import { Queue } from 'bull'
-import * as Redis from 'ioredis'
 import type { Observable } from 'rxjs'
 import { ChatLarkMessage } from './chat/message'
 import { LarkMessageCommand } from './commands'
 import { LarkChatXpertCommand } from './commands/chat-xpert.command'
 import { LarkService } from './lark.service'
 import { ChatLarkContext, isConfirmAction, isEndAction, isRejectAction } from './types'
-import { LarkCoreApi } from './lark-core-api.service'
 
 @Injectable()
 export class LarkConversationService implements OnModuleDestroy {
@@ -22,32 +22,33 @@ export class LarkConversationService implements OnModuleDestroy {
 	private userQueues: Map<string, Queue> = new Map()
 
 	constructor(
-		private readonly core: LarkCoreApi,
 		private readonly commandBus: CommandBus,
 		@Inject(forwardRef(() => LarkService))
-		private readonly larkService: LarkService
+		private readonly larkService: LarkService,
+		@Inject(CACHE_MANAGER)
+		private readonly cacheManager: Cache
 	) {}
 
-	private getRedisOptions(): Redis.RedisOptions {
-		const config = this.core.config
-		const port = Number(config.get('REDIS_PORT') ?? 6379)
-		return {
-			host: config.get('REDIS_HOST') || 'localhost',
-			port: Number.isNaN(port) ? 6379 : port,
-			username: config.get('REDIS.USERNAME') || config.get('REDIS_USERNAME') || '',
-			password: config.get('REDIS_PASSWORD') || ''
-		}
-	}
+	// private getRedisOptions(): Redis.RedisOptions {
+	// 	const config = this.core.config
+	// 	const port = Number(config.get('REDIS_PORT') ?? 6379)
+	// 	return {
+	// 		host: config.get('REDIS_HOST') || 'localhost',
+	// 		port: Number.isNaN(port) ? 6379 : port,
+	// 		username: config.get('REDIS.USERNAME') || config.get('REDIS_USERNAME') || '',
+	// 		password: config.get('REDIS_PASSWORD') || ''
+	// 	}
+	// }
 
 	async getConversation(userId: string, xpertId: string) {
 		const key = LarkConversationService.prefix + `:${userId}:${xpertId}`
-		return await this.core.cache.get<string>(key)
+		return await this.cacheManager.get<string>(key)
 	}
 
 	async setConversation(userId: string, xpertId: string, conversationId: string) {
 		const key = LarkConversationService.prefix + `:${userId}:${xpertId}`
-		await this.core.cache.set(key, conversationId, 60 * 10 * 1000) // 10 min conversation live
-		await this.core.cache.get<string>(key)
+		await this.cacheManager.set(key, conversationId, 60 * 10 * 1000) // 10 min conversation live
+		await this.cacheManager.get<string>(key)
 	}
 
 	async ask(xpertId: string, content: string, message: ChatLarkMessage) {
@@ -64,8 +65,8 @@ export class LarkConversationService implements OnModuleDestroy {
 	async getLastMessage(userId: string, xpertId: string) {
 		const id = await this.getConversation(userId, xpertId)
 		if (id) {
-			const conversation = await this.core.chat.getChatConversation(id, ['messages'])
-			return conversation?.messages?.slice(-1)[0] ?? null
+			// const conversation = await this.core.chat.getChatConversation(id, ['messages'])
+			// return conversation?.messages?.slice(-1)[0] ?? null
 		}
 		return null
 	}
@@ -102,7 +103,7 @@ export class LarkConversationService implements OnModuleDestroy {
 
 		if (isEndAction(action)) {
 			await prevMessage.end()
-			await this.core.cache.del(LarkConversationService.prefix + `:${userId}:${xpertId}`)
+			await this.cacheManager.del(LarkConversationService.prefix + `:${userId}:${xpertId}`)
 		} else if (isConfirmAction(action)) {
 			await prevMessage.done()
 			await this.commandBus.execute(
@@ -137,21 +138,21 @@ export class LarkConversationService implements OnModuleDestroy {
 	async getUserQueue(userId: string): Promise<Bull.Queue> {
 		if (!this.userQueues.has(userId)) {
 			const queue = new Bull(`lark:user:${userId}`, {
-				redis: this.getRedisOptions()
+				// redis: this.getRedisOptions()
 			})
 
 			/**
 			 * Bind processing logic, maximum concurrency is one
 			 */
 			queue.process(1, async (job) => {
-				const user = await this.core.user.findById(job.data.userId, { relations: ['role'] })
-				if (!user) {
-					this.logger.warn(`User ${job.data.userId} not found, skip job ${job.id}`)
-					return
-				}
+				// const user = await this.core.user.findById(job.data.userId, { relations: ['role'] })
+				// if (!user) {
+				// 	this.logger.warn(`User ${job.data.userId} not found, skip job ${job.id}`)
+				// 	return
+				// }
 
 				runWithRequestContext(
-					{ user, headers: { ['organization-id']: job.data.organizationId } },
+					{ user: null, headers: { ['organization-id']: job.data.organizationId } },
 					{},
 					async () => {
 						try {

@@ -84,10 +84,13 @@ export class NgmSelectComponent implements ControlValueAccessor
   readonly displayDensity = input<DisplayDensity | string>()
   /**
    * The name of key field of option 
-  */
- readonly valueKey = input<'value' | 'key' | string>('value')
- readonly label = input<string>()
- readonly placeholder = input<string>()
+   */
+  readonly valueKey = input<'value' | 'key' | string>('value')
+  readonly label = input<string>()
+  readonly placeholder = input<string>()
+  readonly required = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   readonly searchable = input<boolean, string | boolean>(false, {
     transform: booleanAttribute

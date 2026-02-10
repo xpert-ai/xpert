@@ -1,7 +1,7 @@
 import { PluginMeta } from '@metad/contracts';
 import type { DynamicModule, INestApplicationContext } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import type { ZodSchema } from 'zod';
-import type { CorePluginApi } from './core/plugin-api';
 import type { Permissions } from './core/permissions';
 
 export const ORGANIZATION_METADATA_KEY = 'xpert:organizationId'
@@ -33,20 +33,18 @@ export interface PluginConfigSpec<T extends object = any> {
 export interface XpertPlugin<TConfig extends object = any> extends PluginLifecycle, PluginHealth {
   meta: PluginMeta;
   config?: PluginConfigSpec<TConfig>;
+  /** Declares the required system-level permissions for this plugin. */
   permissions?: Permissions;
   /** Returns the DynamicModule to be mounted to the main application (can be set as global) */
   register(ctx: PluginContext<TConfig>): DynamicModule;
 }
 
 export interface PluginContext<TConfig extends object = any> {
-  app: INestApplicationContext;      // Nest runtime context (injected after startup)
+  module: ModuleRef;    // The root module of the plugin
+  app?: INestApplicationContext;      // Nest runtime context (injected after startup)
   logger: PluginLogger;              // Logger wrapper provided by SDK
   config: TConfig;                   // Final config after validation and merging
-  api: CorePluginApi;
-}
-
-export interface PluginRuntimeContext<TConfig extends object = any> extends PluginContext<TConfig> {
-  /** PRO: Internal helper to access other Providers in the container. */
+  /** Helper method to access other Providers in the container */
   resolve<TInput = any, TResult = TInput>(token: any): TResult;
 }
 

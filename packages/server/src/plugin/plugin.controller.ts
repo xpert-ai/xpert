@@ -1,33 +1,13 @@
-import { PermissionsEnum } from '@metad/contracts'
 import { BadRequestException, Body, Controller, Delete, Get, Inject, Logger, Post, UseGuards } from '@nestjs/common'
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApiTags } from '@nestjs/swagger'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, STRATEGY_META_KEY, StrategyBus } from '@xpert-ai/plugin-sdk'
-import { Permissions } from '../shared/decorators'
-import { PermissionGuard } from '../shared/guards'
 import { buildConfig } from './config'
 import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
-import { attachPluginContext, resolvePluginAccessPolicy } from './lifecycle'
 import { collectProvidersWithMetadata, hasLifecycleMethod, registerPluginsAsync } from './plugin.helper'
 import { LOADED_PLUGINS, LoadedPluginRecord } from './types'
-
-type PluginInstallSource = 'marketplace' | 'local' | 'git' | 'url'
-
-const PLUGIN_INSTALL_SOURCES = new Set<PluginInstallSource>(['marketplace', 'local', 'git', 'url'])
-
-function normalizePluginInstallSource(source?: string): PluginInstallSource {
-	if (!source) {
-		return 'marketplace'
-	}
-	if (source === 'code') {
-		throw new BadRequestException('Plugin source "code" is reserved for built-in plugins')
-	}
-	return PLUGIN_INSTALL_SOURCES.has(source as PluginInstallSource)
-		? (source as PluginInstallSource)
-		: 'marketplace'
-}
 
 @ApiTags('Plugin')
 // @UseGuards(OrganizationPermissionGuard)
@@ -41,7 +21,7 @@ export class PluginController {
 		private readonly pluginInstanceService: PluginInstanceService,
 		private readonly strategyBus: StrategyBus,
 		private readonly lazyLoader: LazyModuleLoader,
-		private readonly moduleRef: ModuleRef
+		private readonly moduleRef: ModuleRef,
 	) {}
 
 	@Get()
@@ -64,13 +44,10 @@ export class PluginController {
 	 * @returns
 	 */
 	@Post()
-	@UseGuards(PermissionGuard)
-	@Permissions(PermissionsEnum.ALL_ORG_EDIT)
-	async installPlugin(@Body() body: { pluginName: string; version?: string; source?: string; config?: Record<string, any> }) {
+	async installPlugin(@Body() body: { pluginName: string; version?: string; source?: "marketplace" | "local" | "git" | "url"; config?: Record<string, any> }) {
 		if (!body?.pluginName) {
 			throw new BadRequestException('Plugin package name is required')
 		}
-		const source = normalizePluginInstallSource(body.source)
 
 		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
 		const tenantId = RequestContext.currentTenantId()
@@ -82,8 +59,9 @@ export class PluginController {
 			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
 			// 1) Install and register into current module context (mirrors registerPluginsAsync logic)
 			const { modules } = await registerPluginsAsync({
+				module: this.moduleRef,
 				organizationId,
-				plugins: [{name: packageNameWithVersion, source}],
+				plugins: [{name: packageNameWithVersion, source: body.source}],
 				configs: { [packageName]: body.config },
 				baseDir: organizationBaseDir
 			})
@@ -118,32 +96,13 @@ export class PluginController {
 			const pluginName = plugin.meta?.name ?? packageName
 			const config = buildConfig(pluginName, body.config ?? {}, plugin.config)
 
-			const loadedRecord = this.loadedPlugins.find(
-				(item) => item.organizationId === organizationId && item.name === pluginName
-			)
-			if (loadedRecord) {
-				const { allowed, allowResolve, allowAppContext } = resolvePluginAccessPolicy(loadedRecord.instance, loadedRecord.source)
-				attachPluginContext(loadedRecord.ctx, this.moduleRef as any, {
-					allowed,
-					allowResolve,
-					allowAppContext,
-					pluginName: loadedRecord.name
-				})
-				if (typeof loadedRecord.instance?.onInit === 'function') {
-					await loadedRecord.instance.onInit(loadedRecord.ctx)
-				}
-				if (typeof loadedRecord.instance?.onStart === 'function') {
-					await loadedRecord.instance.onStart(loadedRecord.ctx)
-				}
-			}
-
 			await this.pluginInstanceService.upsert({
 				tenantId,
 				organizationId,
 				pluginName,
 				packageName,
 				version: body.version,
-				source,
+				source: body.source || 'marketplace',
 				config
 			})
 
@@ -168,8 +127,6 @@ export class PluginController {
 	}
 
 	@Delete('uninstall')
-	@UseGuards(PermissionGuard)
-	@Permissions(PermissionsEnum.ALL_ORG_EDIT)
 	async uninstall(@Body() body: { names: string[] }) {
 		if (!body?.names || body.names.length === 0) {
 			throw new BadRequestException('Plugin names are required')
@@ -178,7 +135,7 @@ export class PluginController {
 		const tenantId = RequestContext.currentTenantId()
 
 		await this.pluginInstanceService.uninstall(tenantId, organizationId, body.names)
-
+		
 		return { success: true }
 	}
 }
