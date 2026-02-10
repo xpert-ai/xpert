@@ -16,7 +16,6 @@ import { CopilotStoreModule } from './copilot-store/copilot-store.module'
 import { CopilotUserModule } from './copilot-user'
 import { EventHandlers } from './core/events'
 import { GraphragModule } from './graphrag/graphrag.module'
-import { IntegrationLarkModule } from './integration-lark/index'
 import { KnowledgeDocumentModule } from './knowledge-document/index'
 import { KnowledgebaseModule } from './knowledgebase/index'
 import { RagWebModule } from './rag-web/rag-web.module'
@@ -67,7 +66,6 @@ import { XpertTableModule } from './xpert-table'
 		XpertTableModule,
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
-		IntegrationLarkModule,
 		IntegrationGithubModule,
 		RagVStoreModule,
 		RagWebModule,

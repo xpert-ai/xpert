@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Delete, Get, Inject, Logger, Post, UseGuards } from '@nestjs/common'
-import { LazyModuleLoader } from '@nestjs/core'
+import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApiTags } from '@nestjs/swagger'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, STRATEGY_META_KEY, StrategyBus } from '@xpert-ai/plugin-sdk'
 import { buildConfig } from './config'
@@ -20,7 +20,8 @@ export class PluginController {
 		private readonly loadedPlugins: Array<LoadedPluginRecord>,
 		private readonly pluginInstanceService: PluginInstanceService,
 		private readonly strategyBus: StrategyBus,
-		private readonly lazyLoader: LazyModuleLoader
+		private readonly lazyLoader: LazyModuleLoader,
+		private readonly moduleRef: ModuleRef,
 	) {}
 
 	@Get()
@@ -58,6 +59,7 @@ export class PluginController {
 			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
 			// 1) Install and register into current module context (mirrors registerPluginsAsync logic)
 			const { modules } = await registerPluginsAsync({
+				module: this.moduleRef,
 				organizationId,
 				plugins: [{name: packageNameWithVersion, source: body.source}],
 				configs: { [packageName]: body.config },

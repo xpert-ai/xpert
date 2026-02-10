@@ -177,6 +177,8 @@ export function collectProvidersWithMetadata<TMeta = any>(
 export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions {
 	/** The organization scope for plugin discovery/loading. Defaults to 'global'. */
 	organizationId?: string;
+	/** Nest module context for resolving dependencies during registration. */
+	module?: ModuleRef;
 	/** Override the plugin workspace root for the organization. Defaults to data/plugins/<orgId> when organizationId is set. */
 	baseDir?: string;
 	/** Explicit list of plugin package names (takes precedence) */
@@ -229,7 +231,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 
 		// 3) Create a plugin context and register the plugin module.
 		// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
-		const ctx = createPluginContext<any>({} as any, plugin.meta.name, cfg);
+		const ctx = createPluginContext<any>(opts.module, plugin.meta.name, cfg, plugin.permissions ?? []);
 		const mod = plugin.register(ctx);
 
 		// 4) Tag the module and its providers with organization and plugin metadata.

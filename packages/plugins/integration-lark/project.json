@@ -1,0 +1,56 @@
+{
+  "name": "integration-lark",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/integration-lark/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "generatorOptions": {
+        "packageRoot": "dist/{projectRoot}",
+        "currentVersionResolver": "git-tag"
+      }
+    }
+  },
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugins/integration-lark",
+        "main": "packages/plugins/integration-lark/src/index.ts",
+        "tsConfig": "packages/plugins/integration-lark/tsconfig.lib.json",
+        "assets": [],
+        "project": "packages/plugins/integration-lark/package.json",
+        "compiler": "tsc",
+        "format": ["cjs", "esm"],
+        "external": [
+          "@nestjs/common",
+          "@nestjs/core",
+          "@nestjs/cqrs",
+          "@nestjs/microservices",
+          "@larksuiteoapi/node-sdk",
+          "kafkajs",
+          "amqplib",
+          "mqtt",
+          "nats",
+          "fsevents",
+          "bull",
+          "ioredis"
+        ]
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "packages/plugins/integration-lark/jest.config.ts"
+      }
+    }
+  }
+}

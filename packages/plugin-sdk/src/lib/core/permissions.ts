@@ -6,6 +6,8 @@
  * Core system will check and inject allowed resources accordingly.
  */
 
+import type { IIntegration, IUser } from "@metad/contracts";
+
 /**
  * Base Permission type
  */
@@ -69,6 +71,40 @@ export interface IntegrationPermission extends BasePermission {
   scope?: string[];
 }
 
+/**
+ * 6. User Permission
+ * Example: { type: 'user', operations: ['read'] }
+ */
+export interface UserPermission extends BasePermission {
+  type: 'user';
+  operations?: Array<'read' | 'write' | 'update' | 'delete'>;
+  scope?: string[];
+}
+
+/**
+ * System token for resolving integration read service from plugin context.
+ */
+export const INTEGRATION_PERMISSION_SERVICE_TOKEN = 'XPERT_PLUGIN_INTEGRATION_PERMISSION_SERVICE'
+
+/**
+ * System token for resolving user read service from plugin context.
+ */
+export const USER_PERMISSION_SERVICE_TOKEN = 'XPERT_PLUGIN_USER_PERMISSION_SERVICE'
+
+/**
+ * Read-only integration permission service exposed to plugins.
+ */
+export interface IntegrationPermissionService {
+  read<TIntegration = IIntegration>(id: string, options?: Record<string, any>): Promise<TIntegration | null>
+}
+
+/**
+ * Read-only user permission service exposed to plugins.
+ */
+export interface UserPermissionService {
+  read<TUser = IUser>(criteria: Record<string, any>): Promise<TUser | null>
+}
+
 // /**
 //  * 4. Document Permission
 //  * Example: { type: 'document', formats: ['pdf'], operations: ['load', 'transform'] }
@@ -88,6 +124,7 @@ export type Permission =
   | KnowledgePermission
   | FileSystemPermission
   | IntegrationPermission
+  | UserPermission
 //   | DocumentPermission
 //   | ExternalPermission;
 

@@ -2,13 +2,22 @@ import { ConfigModule, ConfigService, getConfig } from '@metad/server-config'
 import { DynamicModule, Global, Inject, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { PluginLifecycleMethods, StrategyBus } from '@xpert-ai/plugin-sdk'
+import {
+	INTEGRATION_PERMISSION_SERVICE_TOKEN,
+	PluginLifecycleMethods,
+	StrategyBus,
+	USER_PERMISSION_SERVICE_TOKEN,
+} from '@xpert-ai/plugin-sdk'
 import chalk from 'chalk'
 import { PluginController } from './plugin.controller'
 import { getPluginModules, hasLifecycleMethod, loaded } from './plugin.helper'
 import { LOADED_PLUGINS } from './types'
 import { PluginInstance } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
+import {
+	PluginIntegrationPermissionService,
+	PluginUserPermissionService,
+} from './plugin-permission.service'
 
 
 @Global()
@@ -16,7 +25,15 @@ import { PluginInstanceService } from './plugin-instance.service'
 	imports: [ConfigModule, TypeOrmModule.forFeature([PluginInstance])],
 	controllers: [PluginController],
 	exports: [StrategyBus],
-	providers: [{ provide: LOADED_PLUGINS, useValue: loaded }, PluginInstanceService, StrategyBus]
+	providers: [
+		{ provide: LOADED_PLUGINS, useValue: loaded },
+		{ provide: INTEGRATION_PERMISSION_SERVICE_TOKEN, useExisting: PluginIntegrationPermissionService },
+		{ provide: USER_PERMISSION_SERVICE_TOKEN, useExisting: PluginUserPermissionService },
+		PluginInstanceService,
+		PluginIntegrationPermissionService,
+		PluginUserPermissionService,
+		StrategyBus,
+	]
 })
 export class PluginModule implements OnModuleInit, OnModuleDestroy {
 	/**
@@ -43,6 +60,10 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 	 * Lifecycle hook called once the module has been initialized.
 	 */
 	async onModuleInit() {
+		for (const item of loaded) {
+			item.ctx.module = this.moduleRef
+		}
+
 		await this.bootstrapPluginLifecycleMethods('onPluginBootstrap', (instance: Function) => {
 			const pluginName = instance.constructor.name || '(anonymous plugin)'
 			console.log(chalk.white(`Bootstrapped Plugin [${pluginName}]`))

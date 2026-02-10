@@ -1,5 +1,6 @@
 export * from './plugin.module'
 export * from './plugin.helper'
+export * from './plugin-permission.service'
 // export * from './plugin-install'
 export * from './organization-plugin.store'
 export * from './plugin-instance.entity'
