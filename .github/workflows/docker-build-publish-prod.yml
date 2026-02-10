@@ -19,9 +19,9 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          - { name: "xpert-api", context: ".deploy/api", image_name: "xpert-api" }
-          - { name: "xpert-webapp", context: ".deploy/webapp", image_name: "xpert-webapp" }
-          - { name: "ocap-olap", context: ".deploy/olap", image_name: "ocap-olap" }
+          - { name: "xpert-api", context: ".deploy/api", image_name: "xpert-api", node_options: "--max-old-space-size=4096" }
+          - { name: "xpert-webapp", context: ".deploy/webapp", image_name: "xpert-webapp", node_options: "--max-old-space-size=4096" }
+          - { name: "ocap-olap", context: ".deploy/olap", image_name: "ocap-olap", node_options: "--max-old-space-size=4096" }
     steps:
       - uses: actions/checkout@v4
 
@@ -38,6 +38,8 @@ jobs:
           file: ${{ matrix.service.context }}/Dockerfile
           load: true
           platforms: linux/amd64
+          build-args: |
+            NODE_OPTIONS=${{ matrix.service.node_options }}
           tags: |
             metadc/${{ matrix.service.image_name }}:latest
             ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest

@@ -16,7 +16,7 @@ ENV CI=true
 # We make NODE_OPTIONS and other env vars passed as build argument to be available in this stage
 ARG NODE_OPTIONS
 
-ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=60000"}
+ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=4096"}
 
 RUN apk --update add bash && \
     # apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev && \
