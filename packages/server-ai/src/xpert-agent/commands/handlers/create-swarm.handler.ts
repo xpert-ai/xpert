@@ -24,6 +24,13 @@ import { messageEvent } from '../../agent'
 import { XpertAgentSwarmCommand } from '../create-swarm.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { AgentStateAnnotation } from '../../../shared/'
+import {
+	createForwardingController,
+	enqueueLocalTaskAndWait,
+	ExecutionQueueService,
+	HandoffQueueService,
+	LocalQueueTaskService
+} from '../../../handoff'
 
 @CommandHandler(XpertAgentSwarmCommand)
 export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCommand> {
@@ -33,7 +40,10 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 		private readonly checkpointer: CopilotCheckpointSaver,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService
+		private readonly i18nService: I18nService,
+		private readonly executionRuntime: ExecutionQueueService,
+		private readonly handoffQueue: HandoffQueueService,
+		private readonly localTaskService: LocalQueueTaskService
 	) {}
 
 	public async execute(command: XpertAgentSwarmCommand): Promise<{
@@ -164,7 +174,40 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 						subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, fullExecution))
 					}
 					try {
-						const output = await graph.invoke(state, {...config, configurable: {...config.configurable, agentKey: member}} )
+						const runId = this.executionRuntime.generateRunId()
+						const sessionKey =
+							this.executionRuntime.sessionKeyResolver.resolveForSubagent({
+								threadId: configurable.thread_id,
+								agentKey: member,
+								executionId: __execution.id
+							})
+
+							const output = await enqueueLocalTaskAndWait(
+								this.localTaskService,
+								this.handoffQueue,
+							{
+								id: runId,
+								tenantId: xpert.tenantId,
+								sessionKey,
+								conversationId: command.options.conversationId,
+								executionId: __execution.id,
+								source: 'xpert',
+								requestedLane: 'subagent',
+								task: async ({ signal: queueSignal }) => {
+									const laneController = createForwardingController([
+										signal,
+										config.signal,
+										queueSignal
+									])
+
+									return graph.invoke(state, {
+										...config,
+										signal: laneController.signal,
+										configurable: { ...config.configurable, agentKey: member }
+									})
+									}
+								}
+							)
 
 						const lastMessage = output.messages[output.messages.length - 1]
 						if (lastMessage && isAIMessage(lastMessage)) {

@@ -17,8 +17,7 @@ export class XpertAgentExecutionUpsertHandler implements ICommandHandler<XpertAg
 	public async execute(command: XpertAgentExecutionUpsertCommand): Promise<IXpertAgentExecution> {
 		const entity = command.execution
 		if (entity.id) {
-			await this.executionService.update(entity.id, entity)
-			return await this.executionService.findOne(entity.id)
+			return await this.executionService.update(entity.id, entity)
 		}
 		return await this.executionService.create(entity)
 	}

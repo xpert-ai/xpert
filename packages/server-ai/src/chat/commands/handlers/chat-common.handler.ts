@@ -82,7 +82,14 @@ import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
 import { CONFIG_KEY_CREDENTIALS, _BaseToolset, AgentStateAnnotation, BaseTool, createHumanMessage, CreateMemoryStoreCommand, rejectGraph, stateToParameters, stateVariable, TAgentSubgraphParams, ToolNode, translate, updateToolCalls, VolumeClient } from '../../../shared'
-import { ExecutionRuntimeService, SessionKeyResolver } from '../../../runtime'
+import {
+	abortRunAfterDisconnectGrace,
+	enqueueLocalTaskAndWait,
+	ExecutionQueueService,
+	LocalQueueTaskService,
+	resolveClientDisconnectGraceMs
+} from '../../../handoff'
+import { HandoffQueueService } from '../../../handoff/dispatcher/message-queue.service'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -95,7 +102,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		private readonly projectService: XpertProjectService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly executionRuntime: ExecutionRuntimeService,
+		private readonly executionRuntime: ExecutionQueueService,
+		private readonly localQueueTaskService: LocalQueueTaskService,
+		private readonly handoffQueue: HandoffQueueService
 	) {}
 
 	public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
@@ -186,23 +195,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const project = await this.getProject(projectId)
 
 		const abortController = new AbortController()
+		const disconnectGraceMs = resolveClientDisconnectGraceMs()
 
-		// Register run with ExecutionRuntime for cancel support
+		// Two-gate runtime metadata
 		const runId = this.executionRuntime.generateRunId()
 		const sessionKey = this.executionRuntime.sessionKeyResolver.resolveForChat({
 			conversationId: conversation.id,
 			userId
-		})
-		this.executionRuntime.runRegistry.registerRun({
-			runId,
-			sessionKey,
-			globalLane: 'main',
-			abortController,
-			source: 'chat',
-			conversationId: conversation.id,
-			executionId,
-			userId,
-			tenantId
 		})
 
 		const timeStart = Date.now()
@@ -336,19 +335,25 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							const timeEnd = Date.now()
 
 							// Record End time
-							await this.commandBus.execute(
-								new XpertAgentExecutionUpsertCommand({
-									...execution,
-									elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
-									status,
-									error,
-									outputs: {
-										output: result
-									}
-								})
-							)
+								await this.commandBus.execute(
+									new XpertAgentExecutionUpsertCommand({
+										...execution,
+										elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
+										status,
+										error,
+										outputs: {
+											output: result
+										}
+									})
+								)
 
-							let convStatus: TChatConversationStatus = 'idle'
+								if (aiMessage) {
+									aiMessage.status = status
+									aiMessage.error = error
+									await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
+								}
+
+								let convStatus: TChatConversationStatus = 'idle'
 							if (status === XpertAgentExecutionStatusEnum.ERROR) {
 								convStatus = 'error'
 							} else if (status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
@@ -468,7 +473,6 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						complete().catch((err) => this.#logger.error(err))
 					}
 				} catch (err) {
-					console.error(err)
 					this.#logger.error(err)
 					const entity = {
 						id: conversation.id,
@@ -488,29 +492,66 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			})
 
 			const logger = this.#logger
-			reflect.invoke(input, {
-				callbacks: [
-					{
-						handleCustomEvent(eventName, data, runId) {
-							if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
-								logger.debug(`========= handle custom event in project:`, eventName, runId)
-								subscriber.next({
-									data: {
-										type: ChatMessageTypeEnum.EVENT,
-										event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-										data: data
-									}
-								} as MessageEvent)
-							} else {
-								logger.warn(`Unprocessed custom event in project:`, eventName, runId)
+			void enqueueLocalTaskAndWait(
+				this.localQueueTaskService,
+				this.handoffQueue,
+				{
+					id: runId,
+					tenantId,
+					organizationId,
+					userId,
+					sessionKey,
+					conversationId: conversation.id,
+					executionId,
+					source: 'chat',
+					requestedLane: 'main',
+					task: async ({ signal }) => {
+						const onAbort = () => {
+							if (!abortController.signal.aborted) {
+								abortController.abort(signal.reason)
 							}
-						},
-					},
-				],
-			}).catch((err) => {
-				console.error(err)
-			})
-		}).pipe(
+						}
+
+						if (signal.aborted) {
+							onAbort()
+						} else {
+							signal.addEventListener('abort', onAbort, { once: true })
+						}
+
+						try {
+							await reflect.invoke(input, {
+								callbacks: [
+									{
+										handleCustomEvent(eventName, data, runId) {
+											if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
+												logger.debug(`========= handle custom event in project:`, eventName, runId)
+												subscriber.next({
+													data: {
+														type: ChatMessageTypeEnum.EVENT,
+														event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+														data
+													}
+												} as MessageEvent)
+											} else {
+												logger.warn(`Unprocessed custom event in project:`, eventName, runId)
+											}
+										},
+									},
+								],
+							})
+						} finally {
+							signal.removeEventListener('abort', onAbort)
+						}
+					}
+				}
+			)
+				.catch((err) => {
+					this.#logger.error(err)
+					if (!subscriber.closed) {
+						subscriber.error(err)
+					}
+				})
+			}).pipe(
 			tap({
 				next: (event) => {
 					if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
@@ -535,22 +576,17 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						}
 					}
 				},
-				finalize: async () => {
-					// Complete run in ExecutionRuntime
-					this.executionRuntime.runRegistry.completeRun(runId)
-
-					if (aiMessage) {
-						try {
-							// Update ai message
-							aiMessage.status = status
-							await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
-						} catch (err) {
-							this.#logger.error(err)
-						}
+						finalize: async () => {
+							// Delay cancellation to tolerate short network disconnects/reconnects.
+							abortRunAfterDisconnectGrace({
+								executionQueue: this.executionRuntime,
+								runId,
+								abortController,
+								graceMs: disconnectGraceMs
+						})
 					}
-				}
-			})
-		)
+				})
+			)
 	}
 
 	async createReactAgent(

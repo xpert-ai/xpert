@@ -63,10 +63,15 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
 		const { state, agentKeyOrName, xpert, options } = command
 		const { execution, subscriber, reject, memories } = options
-		const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
-		const userId = RequestContext.currentUserId()
-		const user = RequestContext.currentUser()
+		const optionContext = options as {
+			user?: any
+			tenantId?: string
+			organizationId?: string
+		}
+		const user = RequestContext.currentUser() ?? optionContext.user
+		const tenantId = RequestContext.currentTenantId() ?? optionContext.tenantId ?? user?.tenantId
+		const organizationId = RequestContext.getOrganizationId() ?? optionContext.organizationId
+		const userId = RequestContext.currentUserId() ?? optionContext.user?.id
 		const mute = [] as TXpertAgentConfig['mute']
 		let unmutes = [] as TXpertAgentConfig['mute']
 		const threadId = options.thread_id
@@ -217,7 +222,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			return state
 		}
 
-		const languageCode = options.language || user.preferredLanguage || 'en-US'
+		const languageCode = options.language || user?.preferredLanguage || 'en-US'
 		let graphInput = null
 		if (reject) {
 			await this.reject(graph, config, options.command)
@@ -270,8 +275,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				// 	: {}),
 				[STATE_VARIABLE_SYS]: {
 					language: languageCode,
-					user_email: user.email,
-					timezone: user.timeZone || options.timeZone,
+					user_email: user?.email ?? '',
+					timezone: user?.timeZone || options.timeZone,
 					date: format(new Date(), 'yyyy-MM-dd'),
 					datetime: new Date().toLocaleString(),
 					[STATE_SYS_VOLUME]: volumeClient.getVolumePath(getWorkspace(options.projectId, options.conversationId)),

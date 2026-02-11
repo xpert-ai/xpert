@@ -24,6 +24,13 @@ import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 import { CompileGraphCommand } from '../../commands'
 import { AgentStateAnnotation, nextWorkflowNodes } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
+import {
+	createForwardingController,
+	enqueueLocalTaskAndWait,
+	ExecutionQueueService,
+	HandoffQueueService,
+	LocalQueueTaskService
+} from '../../../handoff'
 
 @CommandHandler(CreateWNSubflowCommand)
 export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCommand> {
@@ -32,7 +39,10 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService
+		private readonly i18nService: I18nService,
+		private readonly executionRuntime: ExecutionQueueService,
+		private readonly handoffQueue: HandoffQueueService,
+		private readonly localTaskService: LocalQueueTaskService
 	) {}
 
 	public async execute(command: CreateWNSubflowCommand) {
@@ -177,22 +187,51 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 							}
 
 							const _state = await wrapAgentExecution(
-								async (execution) => {
-									const retState = await subgraph.invoke(
-										{
-											[STATE_VARIABLE_INPUT]: state[STATE_VARIABLE_INPUT],
-											[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS],
-											...inputs
-										},
-										{
-											...config,
-											signal: abortController.signal,
-											configurable: {
-												...config.configurable,
+									async (execution) => {
+										const runId = this.executionRuntime.generateRunId()
+										const sessionKey =
+											this.executionRuntime.sessionKeyResolver.resolveForSubagent({
+												threadId: thread_id,
+												agentKey,
 												executionId: execution.id
+											})
+
+										const retState = await enqueueLocalTaskAndWait(
+											this.localTaskService,
+											this.handoffQueue,
+											{
+												id: runId,
+												tenantId: RequestContext.currentTenantId(),
+												sessionKey,
+												conversationId: command.options.conversationId,
+												executionId: execution.id,
+												source: 'xpert',
+												requestedLane: 'subagent',
+												task: async ({ signal: queueSignal }) => {
+													const laneController = createForwardingController([
+														abortController.signal,
+														config.signal,
+														queueSignal
+													])
+
+													return subgraph.invoke(
+														{
+															[STATE_VARIABLE_INPUT]: state[STATE_VARIABLE_INPUT],
+															[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS],
+															...inputs
+														},
+														{
+															...config,
+															signal: laneController.signal,
+															configurable: {
+																...config.configurable,
+																executionId: execution.id
+															}
+														}
+													)
+												}
 											}
-										}
-									)
+										)
 
 									const outputState = outputParams?.reduce((acc, curr) => {
 										acc[curr.name] = get(retState, curr.variable)

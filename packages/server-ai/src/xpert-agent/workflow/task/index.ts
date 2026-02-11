@@ -19,12 +19,20 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
+import { RequestContext } from '@metad/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import { z } from 'zod'
 import { AgentStateAnnotation, TAgentSubgraphParams, TGraphTool } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
+import {
+	createForwardingController,
+	enqueueLocalTaskAndWait,
+	type ExecutionQueueService,
+	type HandoffQueueService,
+	type LocalQueueTaskService
+} from '../../../handoff'
 
 /**
  * Create task tools for agent
@@ -37,6 +45,10 @@ export async function createWorkflowTaskTools(
 	params: TAgentSubgraphParams & {
 		commandBus: CommandBus
 		queryBus: QueryBus
+		executionRuntime: ExecutionQueueService
+		handoffQueue: HandoffQueueService
+		localTaskService: LocalQueueTaskService
+		tenantId?: string
 	}
 ) {
 	const tools: TGraphTool[] = []
@@ -68,6 +80,10 @@ function createTaskTool(
 	params: TAgentSubgraphParams & {
 		commandBus: CommandBus
 		queryBus: QueryBus
+		executionRuntime: ExecutionQueueService
+		handoffQueue: HandoffQueueService
+		localTaskService: LocalQueueTaskService
+		tenantId?: string
 	}
 ) {
 	const subAgentNodes = graph.connections
@@ -143,7 +159,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
 
 			// Instantiate sub-agent graph
 			const agentKey = agentNode.key
-			const abortController = new AbortController()
+			const abortController = createForwardingController([signal])
 			const execution: IXpertAgentExecution = {
 				category: 'agent',
 				inputs: { input: _.description },
@@ -155,20 +171,20 @@ ${taskEntity.descriptionSuffix ?? ''}`
 				title: agentNode.title
 			}
 
-			signal?.addEventListener('abort', () => {
-				// Handle abort signal
-				abortController.abort()
-				if (execution.status !== XpertAgentExecutionStatusEnum.SUCCESS) {
-					dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-						id: toolCallId,
-						category: 'Tool',
-						status: 'fail',
-						end_date: new Date().toISOString()
-					} as TMessageComponent<Partial<TMessageComponentStep>>).catch((err) => {
-						console.error(err)
-					})
-				}
-			})
+			signal?.addEventListener(
+				'abort',
+				() => {
+					if (execution.status !== XpertAgentExecutionStatusEnum.SUCCESS) {
+						dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+							id: toolCallId,
+							category: 'Tool',
+							status: 'fail',
+							end_date: new Date().toISOString()
+						} as TMessageComponent<Partial<TMessageComponentStep>>).catch(() => undefined)
+					}
+				},
+				{ once: true }
+			)
 
 			// Update event message
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
@@ -204,21 +220,48 @@ ${taskEntity.descriptionSuffix ?? ''}`
 			)
 			const subgraph = compiled.graph
 
-			const lastMessage = await wrapAgentExecution(
+				const lastMessage = await wrapAgentExecution(
 				async (execution) => {
-					const outputState = await subgraph.invoke(
+					const runId = params.executionRuntime.generateRunId()
+					const sessionKey =
+						params.executionRuntime.sessionKeyResolver.resolveForSubagent({
+							threadId: thread_id,
+							agentKey,
+							executionId: execution.id
+						})
+					const outputState = await enqueueLocalTaskAndWait(
+						params.localTaskService,
+						params.handoffQueue,
 						{
-							[STATE_VARIABLE_HUMAN]: {
-								input: _.description
-							},
-							[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS]
-						},
-						{
-							...config,
-							configurable: {
-								...config.configurable,
-								executionId: execution.id
-							},
+							id: runId,
+							tenantId: params.tenantId ?? RequestContext.currentTenantId(),
+							sessionKey,
+							conversationId: params.conversationId,
+							executionId: execution.id,
+							source: 'xpert',
+							requestedLane: 'subagent',
+							task: async ({ signal: queueSignal }) => {
+								const laneController = createForwardingController([
+									abortController.signal,
+									queueSignal
+								])
+								return subgraph.invoke(
+									{
+										[STATE_VARIABLE_HUMAN]: {
+											input: _.description
+										},
+										[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS]
+									},
+									{
+										...config,
+										signal: laneController.signal,
+										configurable: {
+											...config.configurable,
+											executionId: execution.id
+										},
+									}
+								)
+							}
 						}
 					)
 

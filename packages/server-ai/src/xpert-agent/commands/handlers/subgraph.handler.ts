@@ -44,6 +44,13 @@ import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessag
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { AgenticWorkflowTypes } from '../../types'
+import {
+	createForwardingController,
+	enqueueLocalTaskAndWait,
+	ExecutionQueueService,
+	HandoffQueueService,
+	LocalQueueTaskService
+} from '../../../handoff'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -57,7 +64,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService
+		private readonly i18nService: I18nService,
+		private readonly executionRuntime: ExecutionQueueService,
+		private readonly handoffQueue: HandoffQueueService,
+		private readonly localTaskService: LocalQueueTaskService
 	) {}
 
 	public async execute(command: XpertAgentSubgraphCommand): Promise<TAgentSubgraphResult> {
@@ -196,8 +206,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			isDraft: command.options.isDraft,
 			mute: command.options.mute,
 			store: command.options.store,
+			tenantId: xpert.tenantId,
 			commandBus: this.commandBus,
 			queryBus: this.queryBus,
+			executionRuntime: this.executionRuntime,
+			handoffQueue: this.handoffQueue,
+			localTaskService: this.localTaskService
 		})
 		tools.push(...taskTools.tools)
 		endNodes.push(...taskTools.endNodes)
@@ -262,6 +276,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					mute: options.mute,
 					store: options.store,
 					xpert,
+					conversationId: options.conversationId,
 					options: {
 						leaderKey: agent.key,
 						isDraft: command.options.isDraft,
@@ -1164,6 +1179,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		agent: IXpertAgent,
 		config: TAgentSubgraphParams & {
 			xpert: Partial<IXpert>
+			conversationId?: string
 			options: {
 				leaderKey: string
 				isDraft: boolean
@@ -1180,7 +1196,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			partners: string[]
 		}
 	) {
-		const { xpert, options, isTool, thread_id, rootController, signal, variables, partners } = config
+		const { xpert, options, isTool, thread_id, rootController, signal, variables, partners, conversationId } = config
 		const { subscriber, leaderKey } = options
 		const execution: IXpertAgentExecution = {}
 
@@ -1271,68 +1287,96 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, fullExecution))
 			}
 
-			try {
-				const subState = {
-					...state,
-					...(isTool ? {
-						...call.args,
-						[STATE_VARIABLE_HUMAN]: {
-							input: call.args.input,
-						}
-						// [`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
-					} : {}),
-				}
-				const output = await graph.invoke(
-					subState,
-					{
-						...config,
-						signal, 
-						configurable: {
-							...config.configurable,
-							agentKey: agent.key,
-							executionId: _execution.id
-						},
-						metadata: {
-							agentKey: agent.key,
-						}
+				try {
+					const subState = {
+						...state,
+						...(isTool ? {
+							...call.args,
+							[STATE_VARIABLE_HUMAN]: {
+								input: call.args.input,
+							}
+							// [`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
+						} : {}),
 					}
-				)
+					const runId = this.executionRuntime.generateRunId()
+					const sessionKey = this.executionRuntime.sessionKeyResolver.resolveForSubagent({
+						threadId: configurable.thread_id,
+						agentKey: agent.key,
+						executionId: _execution.id
+					})
 
-				const lastMessage = output.messages[output.messages.length - 1]
-				
-				if (lastMessage && isAIMessage(lastMessage)) {
-					result = lastMessage.content as string
-				}
+					const output = await enqueueLocalTaskAndWait(
+						this.localTaskService,
+						this.handoffQueue,
+						{
+							id: runId,
+							tenantId: xpert.tenantId,
+							sessionKey,
+							conversationId,
+							executionId: _execution.id,
+							source: 'xpert',
+							requestedLane: 'subagent',
+							task: async ({ signal: queueSignal }) => {
+								const laneController = createForwardingController([
+									signal,
+									rootController?.signal,
+									config.signal,
+									queueSignal
+								])
 
-				const nState: Record<string, any> = isTool ? {
-					messages: [
-						new ToolMessage({
-							content: lastMessage.content,
-							name: call.name,
-							tool_call_id: call.id ?? "",
-						})
-					],
-					[channelName(leaderKey)]: {
-						messages: [
-							new ToolMessage({
-								content: lastMessage.content,
-								name: call.name,
-								tool_call_id: call.id ?? "",
-							})
-						]
-					},
-					[channelName(agent.key)]: {
-						...(output[channelName(agent.key)] as Record<string, any>),
-						messages: [lastMessage]
+								return graph.invoke(subState, {
+									...config,
+									signal: laneController.signal,
+									configurable: {
+										...config.configurable,
+										agentKey: agent.key,
+										executionId: _execution.id
+									},
+									metadata: {
+										agentKey: agent.key,
+									}
+								})
+							}
+						}
+					)
+
+					const lastMessage = output.messages[output.messages.length - 1]
+
+					if (lastMessage && isAIMessage(lastMessage)) {
+						result = lastMessage.content as string
 					}
-				} : {
-					messages: [lastMessage],
-					[channelName(agent.key)]: {
-						...(output[channelName(agent.key)] as Record<string, any>),
-						messages: output.messages, // Return full messages to parent graph
-						output: stringifyMessageContent(lastMessage.content)
-					}
-				}
+
+					const nState: Record<string, any> = isTool
+						? {
+							messages: [
+								new ToolMessage({
+									content: lastMessage.content,
+									name: call.name,
+									tool_call_id: call.id ?? "",
+								})
+							],
+							[channelName(leaderKey)]: {
+								messages: [
+									new ToolMessage({
+										content: lastMessage.content,
+										name: call.name,
+										tool_call_id: call.id ?? "",
+									})
+								]
+							},
+							[channelName(agent.key)]: {
+								...(output[channelName(agent.key)] as Record<string, any>),
+								messages: [lastMessage]
+							}
+						}
+						: {
+							messages: [lastMessage],
+							[channelName(agent.key)]: {
+								...(output[channelName(agent.key)] as Record<string, any>),
+								messages: output.messages, // Return full messages to parent graph
+								output: stringifyMessageContent(lastMessage.content)
+							}
+						}
 				// Write to memory
 				agent.options?.memories?.forEach((item) => {
 					if (item.inputType === 'constant') {

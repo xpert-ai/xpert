@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { ExecutionRuntimeService } from '../../../runtime'
+import { ExecutionQueueService } from '../../../handoff'
 import { ExecutionCancelService } from '../../../shared/execution/execution-cancel.service'
 import { CancelChatCommand } from '../cancel-chat.command'
 
@@ -14,13 +14,13 @@ export class CancelChatHandler implements ICommandHandler<CancelChatCommand> {
 	private readonly logger = new Logger(CancelChatHandler.name)
 
 	constructor(
-		private readonly executionRuntime: ExecutionRuntimeService,
+		private readonly executionRuntime: ExecutionQueueService,
 		private readonly executionCancelService: ExecutionCancelService
 	) {}
 
 	public async execute(command: CancelChatCommand): Promise<CancelChatResult> {
-		const { tenantId, user, data } = command.input
-		const { conversationId, id: messageId } = data
+		const { user, data } = command.input
+		const { conversationId, id: runId } = data
 
 		const result: CancelChatResult = {
 			abortedRunIds: [],
@@ -28,8 +28,17 @@ export class CancelChatHandler implements ICommandHandler<CancelChatCommand> {
 		}
 
 		this.logger.log(
-			`Cancel request: conversationId=${conversationId}, messageId=${messageId}, user=${user?.id}`
+			`Cancel request: conversationId=${conversationId}, runId=${runId}, user=${user?.id}`
 		)
+
+		// Strategy 0: Abort explicit runId if provided
+		if (runId && this.executionRuntime.abortByRunId(runId, 'User canceled')) {
+			result.abortedRunIds.push(runId)
+		}
+
+		const runsForConversation = conversationId
+			? this.executionRuntime.getRunsByConversation(conversationId)
+			: []
 
 		// Strategy 1: Abort by conversationId through runtime registry
 		if (conversationId) {
@@ -50,9 +59,8 @@ export class CancelChatHandler implements ICommandHandler<CancelChatCommand> {
 		// This handles runs that were registered directly with executionCancelService
 		// (e.g., from xpert-agent/invoke.handler)
 		if (conversationId) {
-			// Get runs from runtime that have executionId
-			const runsWithExecution = this.executionRuntime
-				.getRunsByConversation(conversationId)
+			// Get runs from runtime snapshot that have executionId
+			const runsWithExecution = runsForConversation
 				.filter((r) => r.executionId)
 				.map((r) => r.executionId!)
 

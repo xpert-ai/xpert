@@ -25,6 +25,13 @@ import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } 
 import { CompileGraphCommand } from '../../commands'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
+import {
+	createForwardingController,
+	enqueueLocalTaskAndWait,
+	ExecutionQueueService,
+	HandoffQueueService,
+	LocalQueueTaskService
+} from '../../../handoff'
 
 const PARALLEL_MAXIMUM = 2
 
@@ -38,7 +45,10 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService
+		private readonly i18nService: I18nService,
+		private readonly executionRuntime: ExecutionQueueService,
+		private readonly handoffQueue: HandoffQueueService,
+		private readonly localTaskService: LocalQueueTaskService
 	) {}
 
 	public async execute(command: CreateWNIteratingCommand) {
@@ -184,21 +194,49 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 		
 								const retState = await wrapAgentExecution(
 									async () => {
-										const retState = await subgraph.invoke(
+										const runId = this.executionRuntime.generateRunId()
+										const sessionKey =
+											this.executionRuntime.sessionKeyResolver.resolveForSubagent({
+												threadId: configurable.thread_id,
+												agentKey,
+												executionId: subAgentExecution.id
+											})
+
+										const retState = await enqueueLocalTaskAndWait(
+											this.localTaskService,
+											this.handoffQueue,
 											{
-												...state,
-												...inputs
-											},
-											{
-												...config,
-												signal: controller.signal,
-												configurable: {
-													...config.configurable,
-													executionId: subAgentExecution.id
+												id: runId,
+												tenantId: RequestContext.currentTenantId(),
+												sessionKey,
+												conversationId: command.options.conversationId,
+												executionId: subAgentExecution.id,
+												source: 'xpert',
+												requestedLane: 'subagent',
+												task: async ({ signal: queueSignal }) => {
+													const laneController = createForwardingController([
+														controller.signal,
+														queueSignal
+													])
+
+													return subgraph.invoke(
+														{
+															...state,
+															...inputs
+														},
+														{
+															...config,
+															signal: laneController.signal,
+															configurable: {
+																...config.configurable,
+																executionId: subAgentExecution.id
+															}
+														}
+													)
 												}
 											}
 										)
-		
+
 										const outputItem = outputParams.reduce((acc, curr) => {
 											if (curr.name === IteratingItemParameterName) {
 												return get(retState, curr.variable)
@@ -235,16 +273,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 						)()
 					}
 
-					const controller = new AbortController()
-					config.signal.addEventListener('abort', () => {
-						if (!controller.signal.aborted) {
-							try {
-								controller.abort()
-							} catch (err) {
-								//
-							}
-						}
-					})
+					const controller = createForwardingController([config.signal])
 
 					let outputs = null
 					if (Array.isArray(parameterValue)) {

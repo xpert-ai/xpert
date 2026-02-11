@@ -28,6 +28,13 @@ import {
 import { XpertConfigException } from '../../../core/errors'
 import { FindXpertQuery } from '../../../xpert/queries'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
+import {
+	createForwardingController,
+	enqueueLocalTaskAndWait,
+	ExecutionQueueService,
+	HandoffQueueService,
+	LocalQueueTaskService
+} from '../../../handoff'
 
 type TWorkflowSubgraphResult = {
 	graph: CompiledStateGraph<any, any, any>
@@ -40,7 +47,10 @@ export class XpertWorkflowSubgraphHandler implements ICommandHandler<XpertWorkfl
 	constructor(
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly executionRuntime: ExecutionQueueService,
+		private readonly handoffQueue: HandoffQueueService,
+		private readonly localTaskService: LocalQueueTaskService
 	) {}
 
 	public async execute(command: XpertWorkflowSubgraphCommand): Promise<TWorkflowSubgraphResult> {
@@ -156,7 +166,39 @@ export class XpertWorkflowSubgraphHandler implements ICommandHandler<XpertWorkfl
 					const { executionId } = configurable
 
 					return await wrapAgentExecution(async (execution) => {
-						const newState = await compiled.graph.invoke(state, config)
+						const runId = this.executionRuntime.generateRunId()
+						const sessionKey =
+							this.executionRuntime.sessionKeyResolver.resolveForSubagent({
+								threadId: configurable.thread_id,
+								agentKey: node.key,
+								executionId: execution.id
+							})
+
+						const newState = await enqueueLocalTaskAndWait(
+							this.localTaskService,
+							this.handoffQueue,
+							{
+								id: runId,
+								tenantId: xpert?.tenantId,
+								sessionKey,
+								conversationId: options.conversationId,
+								executionId: execution.id,
+								source: 'xpert',
+								requestedLane: 'subagent',
+								task: async ({ signal: queueSignal }) => {
+									const laneController = createForwardingController([
+										signal,
+										config.signal,
+										queueSignal
+									])
+
+									return compiled.graph.invoke(state, {
+										...config,
+										signal: laneController.signal
+									})
+								}
+							}
+						)
 						return {
 							state: {
 								[channelName(node.key)]: {

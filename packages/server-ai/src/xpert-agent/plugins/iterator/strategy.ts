@@ -16,6 +16,7 @@ import {
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
+import { RequestContext } from '@metad/server-core'
 import { Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
@@ -24,6 +25,13 @@ import { compact, get } from 'lodash'
 import { AgentStateAnnotation } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { XpertWorkflowSubgraphCommand } from '../../commands/workflow-subgraph.command'
+import {
+	createForwardingController,
+	enqueueLocalTaskAndWait,
+	ExecutionQueueService,
+	HandoffQueueService,
+	LocalQueueTaskService
+} from '../../../handoff'
 
 const PARALLEL_MAXIMUM = 2
 export const STATE_VARIABLE_ITERATOR_OUTPUT = 'output'
@@ -65,6 +73,15 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 
 	@Inject(QueryBus)
 	private readonly queryBus: QueryBus
+
+	@Inject(ExecutionQueueService)
+	private readonly executionRuntime: ExecutionQueueService
+
+	@Inject(HandoffQueueService)
+	private readonly handoffQueue: HandoffQueueService
+
+	@Inject(LocalQueueTaskService)
+	private readonly localTaskService: LocalQueueTaskService
 
 	readonly meta = {
 		name: WorkflowNodeTypeEnum.ITERATOR,
@@ -183,24 +200,52 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 							}
 							subAgentExecution.xpertId = xpertId
 
-							const retState = await wrapAgentExecution(
-								async () => {
-									const retState = await subgraph.invoke(
-										{
-											...state,
-											...inputs
-										},
-										{
-											...config,
-											signal: controller.signal,
-											configurable: {
-												...config.configurable,
+								const retState = await wrapAgentExecution(
+									async () => {
+										const runId = this.executionRuntime.generateRunId()
+										const sessionKey =
+											this.executionRuntime.sessionKeyResolver.resolveForSubagent({
+												threadId: configurable.thread_id,
+												agentKey: node.key,
 												executionId: subAgentExecution.id
-											}
-										}
-									)
+											})
 
-									const outputItem = outputParams.reduce((acc, curr) => {
+										const retState = await enqueueLocalTaskAndWait(
+											this.localTaskService,
+											this.handoffQueue,
+											{
+												id: runId,
+												tenantId: RequestContext.currentTenantId(),
+												sessionKey,
+												conversationId: (configurable as any).conversationId,
+												executionId: subAgentExecution.id,
+												source: 'xpert',
+												requestedLane: 'subagent',
+												task: async ({ signal: queueSignal }) => {
+													const laneController = createForwardingController([
+														controller.signal,
+														queueSignal
+													])
+
+													return subgraph.invoke(
+														{
+															...state,
+															...inputs
+														},
+														{
+															...config,
+															signal: laneController.signal,
+															configurable: {
+																...config.configurable,
+																executionId: subAgentExecution.id
+															}
+														}
+													)
+												}
+											}
+										)
+
+										const outputItem = outputParams.reduce((acc, curr) => {
 										if (curr.name === IteratorItemParameterName) {
 											return get(retState, curr.variable)
 										}
@@ -235,16 +280,7 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 					)()
 				}
 
-				const controller = new AbortController()
-				config.signal.addEventListener('abort', () => {
-					if (!controller.signal.aborted) {
-						try {
-							controller.abort()
-						} catch (err) {
-							//
-						}
-					}
-				})
+				const controller = createForwardingController([config.signal])
 
 				let outputs = null
 				if (Array.isArray(parameterValue)) {

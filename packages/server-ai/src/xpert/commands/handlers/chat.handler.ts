@@ -20,7 +20,7 @@ import {
 } from '@metad/contracts'
 import { appendMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext, runWithRequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { catchError, concat, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
@@ -39,7 +39,14 @@ import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution'
 import { CopilotCheckpointService } from '../../../copilot-checkpoint'
-import { ExecutionRuntimeService } from '../../../runtime'
+import {
+	abortRunAfterDisconnectGrace,
+	enqueueLocalTaskAndWait,
+	ExecutionQueueService,
+	LocalQueueTaskService,
+	resolveClientDisconnectGraceMs
+} from '../../../handoff'
+import { HandoffQueueService } from '../../../handoff/dispatcher/message-queue.service'
 
 
 @CommandHandler(XpertChatCommand)
@@ -51,16 +58,26 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		private readonly checkpointService: CopilotCheckpointService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly executionRuntime: ExecutionRuntimeService,
+		private readonly executionRuntime: ExecutionQueueService,
+		private readonly localQueueTaskService: LocalQueueTaskService,
+		private readonly handoffQueue: HandoffQueueService,
 	) {}
 
 	public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
 		const { options } = c
+		const optionContext = (options ?? {}) as {
+			tenantId?: string
+			organizationId?: string
+			user?: any
+		}
 		const { projectId, conversationId, confirm, retry, command } = c.request
 		let { input, state } = c.request
 		const { xpertId, taskId, from, fromEndUserId } = options ?? {}
 		let { execution } = options ?? {}
-		const userId = RequestContext.currentUserId()
+		const currentUser = RequestContext.currentUser() ?? optionContext.user
+		const userId = RequestContext.currentUserId() ?? currentUser?.id
+		let tenantId = RequestContext.currentTenantId() ?? optionContext.tenantId ?? currentUser?.tenantId
+		let organizationId = RequestContext.getOrganizationId() ?? optionContext.organizationId
 
 		if (!input) {
 			input = state?.[STATE_VARIABLE_HUMAN]
@@ -72,13 +89,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const timeStart = Date.now()
 
 		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent', 'knowledgebase'] })
+		tenantId = tenantId ?? xpert?.tenantId
+		organizationId = organizationId ?? xpert?.organizationId
 		const latestXpert = figureOutXpert(xpert, options?.isDraft)
 		const abortController = new AbortController()
 		const memory = latestXpert.memory
 		const memoryStore: BaseStore | null = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore | null>(
 			new CreateMemoryStoreCommand(
-				RequestContext.currentTenantId(),
-				RequestContext.getOrganizationId(),
+				tenantId,
+				organizationId,
 				latestXpert.memory?.copilotModel,
 				{
 					abortController,
@@ -198,7 +217,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			)
 		}
 
-		// Register run with ExecutionRuntime for cancel support
+		// Two-gate runtime metadata
 		const runId = this.executionRuntime.generateRunId()
 		const sessionKey = this.executionRuntime.sessionKeyResolver.resolveForChat({
 			conversationId: conversation.id,
@@ -206,18 +225,34 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			userId,
 			fromEndUserId
 		})
-		const tenantId = RequestContext.currentTenantId()
-		this.executionRuntime.runRegistry.registerRun({
-			runId,
-			sessionKey,
-			globalLane: 'main',
-			abortController,
-			source: 'xpert',
-			conversationId: conversation.id,
-			executionId,
-			userId,
-			tenantId
-		})
+		const disconnectGraceMs = resolveClientDisconnectGraceMs()
+		const runUser =
+			currentUser && tenantId && !currentUser.tenantId
+				? {
+						...currentUser,
+						tenantId
+				  }
+				: currentUser
+		const runInCapturedRequestContext = <T>(task: () => Promise<T>): Promise<T> => {
+			if (!runUser || !organizationId) {
+				return task()
+			}
+
+			return new Promise<T>((resolve, reject) => {
+				runWithRequestContext(
+					{
+						user: runUser,
+						headers: {
+							['organization-id']: organizationId,
+							...(tenantId ? { ['tenant-id']: tenantId } : {})
+						}
+					},
+					() => {
+						task().then(resolve).catch(reject)
+					}
+				)
+			})
+		}
 
 		return new Observable<MessageEvent>((subscriber) => {
 			// New conversation
@@ -244,7 +279,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			} as MessageEvent);
 
 			const logger = this.#logger
-			RunnableLambda.from(async (input: TChatRequestHuman) => {
+			const reflect = RunnableLambda.from(async (input: TChatRequestHuman) => {
 				let status = XpertAgentExecutionStatusEnum.SUCCESS
 				let error = null
 				let result = ''
@@ -287,204 +322,290 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					)
 				}
 
-				let _execution = null
-				let operation: TSensitiveOperation = null
-				concat(
-					agentObservable.pipe(
-						tap({
-							next: (event) => {
-								if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
-									appendMessageContent(aiMessage, event.data.data)
-									result += messageContentText(event.data.data)
-								} else if (
-									event.data.type === ChatMessageTypeEnum.EVENT
-								) {
-									switch(event.data.event) {
-										case (ChatMessageEventTypeEnum.ON_AGENT_END): {
-											_execution = event.data.data
-											break
-										}
-										case (ChatMessageEventTypeEnum.ON_INTERRUPT): {
-											operation = event.data.data
-											break
-										}
-										case (ChatMessageEventTypeEnum.ON_TOOL_MESSAGE): {
-											appendMessageSteps(aiMessage, [event.data.data])
-											break
-										}
-										case (ChatMessageEventTypeEnum.ON_CHAT_EVENT): {
-											if (event.data.data?.type === 'sandbox') {
-												conversation.options ??= {}
-												conversation.options.features ??= []
-												conversation.options.features.push('sandbox')
-												conversation.options.features = uniq(conversation.options.features)
-											}
-											break
-										}
-									}
-								}
+					let _execution = null
+					let operation: TSensitiveOperation = null
+					await new Promise<void>((resolve) => {
+						let settled = false
+						let unsubscribePersistPromise: Promise<void> | null = null
+						const finish = () => {
+							if (settled) {
+								return
 							}
-						}),
-						catchError((err) => {
-							status = XpertAgentExecutionStatusEnum.ERROR
-							error = getErrorMessage(err)
-							return EMPTY
-						})
-					),
-					// Then do the final async work after the agent stream
-					of(true).pipe(
-						switchMap(async () => {
-							try {
-								// Record Execution
-								const timeEnd = Date.now()
-
-								const entity = _execution?.status === XpertAgentExecutionStatusEnum.ERROR ||
-									status === XpertAgentExecutionStatusEnum.ERROR
-										? {
-												id: executionId,
-												elapsedTime: timeEnd - timeStart,
-												status: XpertAgentExecutionStatusEnum.ERROR,
-												error: _execution?.error || error,
-												outputs: {
-													output: result
-												}
-											}
-										: {
-												id: executionId,
-												elapsedTime: timeEnd - timeStart,
-												status,
-												outputs: {
-													output: result
-												}
-											}
-								await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(entity))
-
-								// Update ai message
-								if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
-									aiMessage.status = XpertAgentExecutionStatusEnum.ERROR
-									aiMessage.error = _execution.error
-								} else if (status) {
-									aiMessage.status = status
-									aiMessage.error = error
-								}
-								await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
-
-								subscriber.next({
-									data: {
-										type: ChatMessageTypeEnum.EVENT,
-										event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
-										data: { ...aiMessage }
-									}
-								} as MessageEvent)
-
-								// Update conversation
-								let convStatus: TChatConversationStatus = 'idle'
-								if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
-									convStatus = 'error'
-								} else if (_execution?.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
-									convStatus = 'interrupted'
-								}
-								const _conversation = await this.commandBus.execute(
-									new ChatConversationUpsertCommand({
-										id: conversation.id,
-										status: convStatus,
-										title: conversation.title || _execution?.title || shortTitle(input?.input),
-										operation,
-										error: _execution?.error,
-										options: conversation.options,
-									})
-								)
-
-								// Schedule summary job
-								if (memory?.enabled && memory.profile?.enabled && convStatus === 'idle') {
-									await this.commandBus.execute(
-										new ScheduleSummaryJobCommand(conversation.id, userId, memory)
-									)
-								}
-
-								return {
-									data: {
-										type: ChatMessageTypeEnum.EVENT,
-										event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
-										data: {
-											id: _conversation.id,
-											title: _conversation.title,
-											status: _conversation.status,
-											operation: _conversation.operation,
-											error: _conversation.error
-										}
-									}
-								} as MessageEvent
-							} catch (err) {
-								this.#logger.warn(err)
-								subscriber.error(err)
-							}
-						})
-					)
-				)
-				.pipe(
-					tap({
-						/**
-						 * This function is triggered when the stream is unsubscribed
-						 */
-						unsubscribe: async () => {
-							this.#logger.debug(`Canceled by client!`)
-							try {
-								// Record Execution
-								const timeEnd = Date.now()
-
-								await this.commandBus.execute(new XpertAgentExecutionUpsertCommand({
-									id: executionId,
-									elapsedTime: timeEnd - timeStart,
-									status: XpertAgentExecutionStatusEnum.ERROR,
-									error: 'Aborted!',
-									outputs: {
-										output: result
-									}
-								}))
-
-								await this.commandBus.execute(new ChatMessageUpsertCommand({
-									...aiMessage,
-									status: XpertAgentExecutionStatusEnum.SUCCESS,
-								}))
-
-								await this.commandBus.execute(
-									new ChatConversationUpsertCommand({
-										id: conversation.id,
-										status: 'idle',
-										title: conversation.title || _execution?.title || shortTitle(input?.input),
-										options: conversation.options,
-									})
-								)
-							} catch(err) {
-								this.#logger.error(err)
+							settled = true
+							abortController.signal.removeEventListener('abort', abortHandler)
+							resolve()
+						}
+						const abortHandler = () => {
+							subscription.unsubscribe()
+							if (unsubscribePersistPromise) {
+								unsubscribePersistPromise.finally(finish)
+							} else {
+								finish()
 							}
 						}
-					})
-				)
-				.subscribe(subscriber)
-			}).invoke(input, {
-				callbacks: [
-					{
-						handleCustomEvent(eventName, data, runId) {
-							if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
-								logger.debug(`========= handle custom event in xpert:`, eventName, runId)
-								subscriber.next({
-									data: {
-										type: ChatMessageTypeEnum.EVENT,
-										event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-										data: data
+
+						const subscription = concat(
+							agentObservable.pipe(
+							tap({
+								next: (event) => {
+									if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
+										appendMessageContent(aiMessage, event.data.data)
+										result += messageContentText(event.data.data)
+									} else if (
+										event.data.type === ChatMessageTypeEnum.EVENT
+									) {
+										switch(event.data.event) {
+											case (ChatMessageEventTypeEnum.ON_AGENT_END): {
+												_execution = event.data.data
+												break
+											}
+											case (ChatMessageEventTypeEnum.ON_INTERRUPT): {
+												operation = event.data.data
+												break
+											}
+											case (ChatMessageEventTypeEnum.ON_TOOL_MESSAGE): {
+												appendMessageSteps(aiMessage, [event.data.data])
+												break
+											}
+											case (ChatMessageEventTypeEnum.ON_CHAT_EVENT): {
+												if (event.data.data?.type === 'sandbox') {
+													conversation.options ??= {}
+													conversation.options.features ??= []
+													conversation.options.features.push('sandbox')
+													conversation.options.features = uniq(conversation.options.features)
+												}
+												break
+											}
+										}
 									}
-								} as MessageEvent)
-							} else {
-								logger.warn(`Unprocessed custom event in xpert:`, eventName, runId)
-							}
+								}
+							}),
+							catchError((err) => {
+								status = XpertAgentExecutionStatusEnum.ERROR
+								error = getErrorMessage(err)
+								return EMPTY
+							})
+						),
+						// Then do the final async work after the agent stream
+						of(true).pipe(
+							switchMap(async () => {
+								try {
+									// Record Execution
+									const timeEnd = Date.now()
+
+									const entity = _execution?.status === XpertAgentExecutionStatusEnum.ERROR ||
+										status === XpertAgentExecutionStatusEnum.ERROR
+											? {
+													id: executionId,
+													elapsedTime: timeEnd - timeStart,
+													status: XpertAgentExecutionStatusEnum.ERROR,
+													error: _execution?.error || error,
+													outputs: {
+														output: result
+													}
+												}
+											: {
+													id: executionId,
+													elapsedTime: timeEnd - timeStart,
+													status,
+													outputs: {
+														output: result
+													}
+												}
+									await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(entity))
+
+									// Update ai message
+									if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
+										aiMessage.status = XpertAgentExecutionStatusEnum.ERROR
+										aiMessage.error = _execution.error
+									} else if (status) {
+										aiMessage.status = status
+										aiMessage.error = error
+									}
+									await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
+
+									subscriber.next({
+										data: {
+											type: ChatMessageTypeEnum.EVENT,
+											event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
+											data: { ...aiMessage }
+										}
+									} as MessageEvent)
+
+									// Update conversation
+									let convStatus: TChatConversationStatus = 'idle'
+									if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
+										convStatus = 'error'
+									} else if (_execution?.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+										convStatus = 'interrupted'
+									}
+									const _conversation = await this.commandBus.execute(
+										new ChatConversationUpsertCommand({
+											id: conversation.id,
+											status: convStatus,
+											title: conversation.title || _execution?.title || shortTitle(input?.input),
+											operation,
+											error: _execution?.error,
+											options: conversation.options,
+										})
+									)
+
+									// Schedule summary job
+									if (memory?.enabled && memory.profile?.enabled && convStatus === 'idle') {
+										await this.commandBus.execute(
+											new ScheduleSummaryJobCommand(conversation.id, userId, memory)
+										)
+									}
+
+									return {
+										data: {
+											type: ChatMessageTypeEnum.EVENT,
+											event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
+											data: {
+												id: _conversation.id,
+												title: _conversation.title,
+												status: _conversation.status,
+												operation: _conversation.operation,
+												error: _conversation.error
+											}
+										}
+									} as MessageEvent
+								} catch (err) {
+									this.#logger.warn(err)
+									subscriber.error(err)
+								}
+							})
+						)
+					)
+						.pipe(
+							tap({
+								/**
+								 * This function is triggered when the stream is unsubscribed
+								 */
+								unsubscribe: () => {
+									this.#logger.debug(`Canceled by client!`)
+									const abortReason = 'Aborted by client disconnect'
+									status = XpertAgentExecutionStatusEnum.INTERRUPTED
+									error = abortReason
+									unsubscribePersistPromise = runInCapturedRequestContext(async () => {
+										// Record Execution
+										const timeEnd = Date.now()
+
+										await this.commandBus.execute(
+											new XpertAgentExecutionUpsertCommand({
+												id: executionId,
+												elapsedTime: timeEnd - timeStart,
+												status: XpertAgentExecutionStatusEnum.INTERRUPTED,
+												error: abortReason,
+												outputs: {
+													output: result
+												}
+											})
+										)
+
+										await this.commandBus.execute(
+											new ChatMessageUpsertCommand({
+												...aiMessage,
+												status: XpertAgentExecutionStatusEnum.INTERRUPTED,
+												error: abortReason
+											})
+										)
+
+										await this.commandBus.execute(
+											new ChatConversationUpsertCommand({
+												id: conversation.id,
+												status: 'interrupted',
+												title: conversation.title || _execution?.title || shortTitle(input?.input),
+												error: abortReason,
+												options: conversation.options
+											})
+										)
+									})
+										.catch((err) => {
+											this.#logger.error(err)
+										})
+										.then(() => undefined)
+								}
+							})
+						)
+						.subscribe({
+						next: (event) => {
+							subscriber.next(event)
 						},
-					},
-				],
-			}).catch((err) => {
-				console.error(err)
-				subscriber.next({
+						error: (err) => {
+							if (!subscriber.closed) {
+								subscriber.error(err)
+							}
+							finish()
+						},
+						complete: () => {
+							if (!subscriber.closed) {
+								subscriber.complete()
+							}
+							finish()
+						}
+					})
+
+					abortController.signal.addEventListener('abort', abortHandler, { once: true })
+				})
+			})
+				void enqueueLocalTaskAndWait(
+					this.localQueueTaskService,
+					this.handoffQueue,
+					{
+						id: runId,
+						tenantId,
+						organizationId,
+						userId,
+						user: runUser,
+						sessionKey,
+						conversationId: conversation.id,
+						executionId,
+					source: 'xpert',
+					requestedLane: 'main',
+					task: async ({ signal }) => {
+						const onAbort = () => {
+							if (!abortController.signal.aborted) {
+								abortController.abort(signal.reason)
+							}
+						}
+
+						if (signal.aborted) {
+							onAbort()
+						} else {
+							signal.addEventListener('abort', onAbort, { once: true })
+						}
+
+						try {
+							await reflect.invoke(input, {
+								callbacks: [
+									{
+										handleCustomEvent(eventName, data, runId) {
+											if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
+												logger.debug(`========= handle custom event in xpert:`, eventName, runId)
+												subscriber.next({
+													data: {
+														type: ChatMessageTypeEnum.EVENT,
+														event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+														data
+													}
+												} as MessageEvent)
+											} else {
+												logger.warn(`Unprocessed custom event in xpert:`, eventName, runId)
+											}
+										},
+									},
+								],
+							})
+						} finally {
+							signal.removeEventListener('abort', onAbort)
+						}
+					}
+				}
+			)
+				.catch((err) => {
+					this.#logger.error(err)
+					subscriber.next({
 						data: {
 							type: ChatMessageTypeEnum.EVENT,
 							event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
@@ -495,18 +616,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							}
 						}
 					} as MessageEvent)
-				subscriber.error(err)
-			})
+					subscriber.error(err)
+				})
 
-			// It will be triggered when the subscription ends normally or is unsubscribed.
-			// This function can be used for cleanup work.
-			return () => {
-				// Complete run in ExecutionRuntime
-				this.executionRuntime.runRegistry.completeRun(runId)
-			}
-		})
+				// It will be triggered when the subscription ends normally or is unsubscribed.
+					return () => {
+						abortRunAfterDisconnectGrace({
+							executionQueue: this.executionRuntime,
+							runId,
+							abortController,
+							graceMs: disconnectGraceMs
+						})
+				}
+			})
+		}
 	}
-}
 
 async function getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
 	return await store?.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
