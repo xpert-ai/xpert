@@ -1,4 +1,4 @@
-import { CORE_PLUGIN_API_TOKENS, CoreCacheApi, CoreChatApi, CoreConfigApi, CoreI18nApi, CoreIntegrationApi, CoreRoleApi, CoreUserApi } from '@xpert-ai/plugin-sdk'
+import { CORE_PLUGIN_API_TOKENS, CoreCacheApi, CoreChatApi, CoreConfigApi, CoreHandoffApi, CoreI18nApi, CoreIntegrationApi, CoreRoleApi, CoreUserApi } from '@xpert-ai/plugin-sdk'
 import type { PluginContext } from '@xpert-ai/plugin-sdk'
 import { Inject, Injectable } from '@nestjs/common'
 import { LARK_PLUGIN_CONTEXT } from './tokens'
@@ -11,30 +11,34 @@ export class LarkCoreApi {
 	) {}
 
 	get config(): CoreConfigApi {
-		return this.ctx.api.get(CORE_PLUGIN_API_TOKENS.config)
+		return this.ctx.resolve(CORE_PLUGIN_API_TOKENS.config)
 	}
 
 	get cache(): CoreCacheApi {
-		return this.ctx.api.get(CORE_PLUGIN_API_TOKENS.cache)
+		return this.ctx.resolve(CORE_PLUGIN_API_TOKENS.cache)
 	}
 
 	get integration(): CoreIntegrationApi {
-		return this.ctx.api.get(CORE_PLUGIN_API_TOKENS.integration)
+		return this.ctx.resolve(CORE_PLUGIN_API_TOKENS.integration)
 	}
 
 	get user(): CoreUserApi {
-		return this.ctx.api.get(CORE_PLUGIN_API_TOKENS.user)
+		return this.ctx.resolve(CORE_PLUGIN_API_TOKENS.user)
 	}
 
 	get role(): CoreRoleApi {
-		return this.ctx.api.get(CORE_PLUGIN_API_TOKENS.role)
+		return this.ctx.resolve(CORE_PLUGIN_API_TOKENS.role)
 	}
 
 	get i18n(): CoreI18nApi {
-		return this.ctx.api.get(CORE_PLUGIN_API_TOKENS.i18n)
+		return this.ctx.resolve(CORE_PLUGIN_API_TOKENS.i18n)
 	}
 
 	get chat(): CoreChatApi {
-		return this.ctx.api.get(CORE_PLUGIN_API_TOKENS.chat)
+		return this.ctx.resolve(CORE_PLUGIN_API_TOKENS.chat)
+	}
+
+	get handoff(): CoreHandoffApi {
+		return this.ctx.resolve(CORE_PLUGIN_API_TOKENS.handoff)
 	}
 }

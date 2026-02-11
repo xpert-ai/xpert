@@ -35,7 +35,6 @@
           "mqtt",
           "nats",
           "fsevents",
-          "bull",
           "ioredis"
         ]
       }

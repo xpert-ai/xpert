@@ -28,6 +28,9 @@ export type ChatLarkContext<T = any> = {
 	senderOpenId?: string
 	message?: T
 	input?: string
+	abortSignal?: AbortSignal
+	runtimeRunId?: string
+	runtimeSessionKey?: string
 }
 
 export type TLarkEvent = {

@@ -11,23 +11,35 @@ import { LarkConversationService } from './conversation.service'
 import { LarkTokenStrategy } from './auth/lark-token.strategy'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
+import { LarkExecutionQueueService } from './lark-execution-queue.service'
+import { LarkChannelRuntimeManager } from './lark-channel-runtime.manager'
+import { LarkHandoffTaskProcessor } from './lark-handoff.processor'
 
 @XpertServerPlugin({
 	imports: [
 		DiscoveryModule,
-		CqrsModule,
+		CqrsModule
 	],
 	controllers: [LarkHooksController],
 	providers: [
 		LarkService,
+		LarkExecutionQueueService,
+		LarkChannelRuntimeManager,
 		LarkConversationService,
+		LarkHandoffTaskProcessor,
 		LarkChannelStrategy,
 		LarkIntegrationStrategy,
 		...CommandHandlers,
 		...QueryHandlers,
 		LarkTokenStrategy
 	],
-	exports: [LarkService, LarkChannelStrategy, LarkIntegrationStrategy]
+	exports: [
+		LarkService,
+		LarkExecutionQueueService,
+		LarkChannelRuntimeManager,
+		LarkChannelStrategy,
+		LarkIntegrationStrategy
+	]
 })
 export class IntegrationLarkPlugin implements IOnPluginBootstrap, IOnPluginDestroy {
 	private logEnabled = true

@@ -1,13 +1,6 @@
 import * as lark from '@larksuiteoapi/node-sdk'
 import { IIntegration, mapTranslationLanguage, TIntegrationLarkOptions, TranslationLanguageMap } from '@metad/contracts'
-import {
-	INTEGRATION_PERMISSION_SERVICE_TOKEN,
-	IntegrationPermissionService,
-	PluginContext,
-	RequestContext,
-	TChatEventContext,
-	TChatEventHandlers,
-} from '@xpert-ai/plugin-sdk'
+import { RequestContext, TChatEventContext, TChatEventHandlers } from '@xpert-ai/plugin-sdk'
 import {
 	BadRequestException,
 	Body,
@@ -15,7 +8,6 @@ import {
 	ForbiddenException,
 	Get,
 	HttpCode,
-	Inject,
 	Param,
 	Post,
 	Query,
@@ -28,30 +20,20 @@ import express from 'express'
 import { LarkAuthGuard } from './auth/lark-auth.guard'
 import { Public } from './decorators/public.decorator'
 import { LarkChannelStrategy } from './lark-channel.strategy'
+import { LarkChannelRuntimeManager } from './lark-channel-runtime.manager'
 import { LarkConversationService } from './conversation.service'
 import { LarkService } from './lark.service'
-import { LARK_PLUGIN_CONTEXT } from './tokens'
+import { LarkCoreApi } from './lark-core-api.service'
 
 @Controller('lark')
 export class LarkHooksController {
-	private _integrationPermissionService: IntegrationPermissionService
-
 	constructor(
 		private readonly larkService: LarkService,
-		@Inject(LARK_PLUGIN_CONTEXT)
-		private readonly pluginContext: PluginContext,
 		private readonly larkChannel: LarkChannelStrategy,
 		private readonly conversation: LarkConversationService,
+		private readonly core: LarkCoreApi,
+		private readonly channelRuntimeManager: LarkChannelRuntimeManager
 	) {}
-
-	private get integrationPermissionService(): IntegrationPermissionService {
-		if (!this._integrationPermissionService) {
-			this._integrationPermissionService = this.pluginContext.resolve(
-				INTEGRATION_PERMISSION_SERVICE_TOKEN
-			)
-		}
-		return this._integrationPermissionService
-	}
 
 	@Public()
 	@UseGuards(LarkAuthGuard)
@@ -62,12 +44,7 @@ export class LarkHooksController {
 		@Request() req: express.Request,
 		@Response() res: express.Response
 	): Promise<void> {
-		const integration = await this.integrationPermissionService.read<IIntegration<TIntegrationLarkOptions>>(
-			integrationId,
-			{
-				relations: ['tenant'],
-			}
-		)
+		const integration = await this.core.integration.findById(integrationId, { relations: ['tenant'] })
 		if (!integration) {
 			throw new BadRequestException(`Integration ${integrationId} not found. Please save the integration first before configuring webhook URL in Lark.`)
 		}
@@ -77,6 +54,22 @@ export class LarkHooksController {
 		const challenge = this.resolveUrlVerificationChallenge(req.body, integration.options)
 		if (challenge) {
 			res.status(200).json({ challenge })
+			return
+		}
+
+		const accountId = integration.id
+		const isRunning = this.channelRuntimeManager.isAccountRunning(
+			'lark',
+			integration.id,
+			accountId
+		)
+		if (!isRunning) {
+			res.status(503).json({
+				code: 'ACCOUNT_RUNTIME_STOPPED',
+				message: `Lark account runtime is stopped for integration ${integration.id}`,
+				integrationId: integration.id,
+				accountId
+			})
 			return
 		}
 
@@ -101,8 +94,13 @@ export class LarkHooksController {
 			}
 		}
 
-		const handler = this.larkChannel.createEventHandler(ctx, handlers)
-		await handler(req, res)
+		try {
+			const handler = this.larkChannel.createEventHandler(ctx, handlers)
+			await handler(req, res)
+		} catch (error) {
+			this.channelRuntimeManager.noteAccountError('lark', integration.id, accountId, error)
+			throw error
+		}
 	}
 
 	private resolveUrlVerificationChallenge(body: any, options: TIntegrationLarkOptions): string | null {
@@ -144,84 +142,154 @@ export class LarkHooksController {
 		return null
 	}
 
-	// @Post('test')
-	// async connect(@Body() integration: IIntegration) {
-	// 	try {
-	// 		const botInfo = await this.larkService.test(integration)
-	// 		if (!botInfo) {
-	// 			const error = await this.core.i18n.t('integration.Lark.Error_BotPermission', {
-	// 				lang: TranslationLanguageMap[RequestContext.getLanguageCode()] || RequestContext.getLanguageCode()
-	// 			})
-	// 			throw new ForbiddenException(error)
-	// 		}
-	// 		if (!integration.avatar) {
-	// 			integration.avatar = {
-	// 				url: botInfo.avatar_url
-	// 			}
-	// 		}
-	// 		return integration
-	// 	} catch (err: any) {
-	// 		const errorMessage = await this.core.i18n.t('integration.Lark.Error.CredentialsFailed', {
-	// 			lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-	// 		})
-	// 		throw new ForbiddenException(`${errorMessage}: ${err.message}`)
-	// 	}
-	// }
+	@Post('runtime/:id/start')
+	async startRuntime(@Param('id') integrationId: string, @Query('accountId') accountId?: string) {
+		const integration = await this.core.integration.findById(integrationId)
+		if (!integration) {
+			throw new BadRequestException(`Integration ${integrationId} not found`)
+		}
 
-	// @Get('chat-select-options')
-	// async getChatSelectOptions(@Query('integration') id: string) {
-	// 	if (!id) {
-	// 		throw new BadRequestException(
-	// 			await this.core.i18n.t('integration.Lark.Error_SelectAIntegration', {
-	// 				lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-	// 			})
-	// 		)
-	// 	}
-	// 	const client = await this.larkService.getOrCreateLarkClientById(id)
-	// 	try {
-	// 		const result = await client.im.chat.list()
-	// 		const items = result.data.items
-	// 		return items.map((item) => ({
-	// 			value: item.chat_id,
-	// 			label: item.name,
-	// 			icon: item.avatar
-	// 		}))
-	// 	} catch (err: any) {
-	// 		if ((<AxiosError>err).response?.data) {
-	// 			throw new BadRequestException(err.response.data.msg)
-	// 		}
-	// 		throw new BadRequestException(err)
-	// 	}
-	// }
+		return this.channelRuntimeManager.startAccount(
+			'lark',
+			integrationId,
+			accountId || integration.id
+		)
+	}
 
-	// @Get('user-select-options')
-	// async getUserSelectOptions(@Query('integration') id: string) {
-	// 	if (!id) {
-	// 		throw new BadRequestException(
-	// 			await this.core.i18n.t('integration.Lark.Error_SelectAIntegration', {
-	// 				lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-	// 			})
-	// 		)
-	// 	}
-	// 	const client = await this.larkService.getOrCreateLarkClientById(id)
+	@Post('runtime/:id/stop')
+	async stopRuntime(
+		@Param('id') integrationId: string,
+		@Query('accountId') accountId?: string,
+		@Body() body?: { reason?: string }
+	) {
+		const integration = await this.core.integration.findById(integrationId)
+		if (!integration) {
+			throw new BadRequestException(`Integration ${integrationId} not found`)
+		}
 
-	// 	try {
-	// 		const result = await client.contact.user.list({
-	// 			params: {}
-	// 		})
-	// 		const items = result.data.items
+		const defaultAccountId = accountId || integration.id
+		const result = this.channelRuntimeManager.stopAccount(
+			'lark',
+			integrationId,
+			defaultAccountId,
+			body?.reason || 'Lark account runtime stopped manually'
+		)
 
-	// 		// Use open_id to match resolveReceiveId() in LarkChannelStrategy
-	// 		return items.map((item) => ({
-	// 			value: item.open_id,
-	// 			label: item.name || item.email || item.mobile,
-	// 			icon: item.avatar
-	// 		}))
-	// 	} catch (err: any) {
-	// 		if ((<AxiosError>err).response?.data) {
-	// 			throw new BadRequestException(err.response.data.msg)
-	// 		}
-	// 		throw new BadRequestException(err)
-	// 	}
-	// }
+		// Backward compatibility: also stop legacy appId-bound runtime if present.
+		const legacyAccountId = integration.options?.appId
+		if (!accountId && legacyAccountId && legacyAccountId !== defaultAccountId) {
+			const legacy = this.channelRuntimeManager.stopAccount(
+				'lark',
+				integrationId,
+				legacyAccountId,
+				body?.reason || 'Lark account runtime stopped manually (legacy key)'
+			)
+			return {
+				...result,
+				abortedRunIds: Array.from(new Set([...result.abortedRunIds, ...legacy.abortedRunIds]))
+			}
+		}
+
+		return result
+	}
+
+	@Get('runtime/:id/status')
+	async runtimeStatus(@Param('id') integrationId: string, @Query('accountId') accountId?: string) {
+		const integration = await this.core.integration.findById(integrationId)
+		if (!integration) {
+			throw new BadRequestException(`Integration ${integrationId} not found`)
+		}
+
+		return this.channelRuntimeManager.getAccountStatus(
+			'lark',
+			integrationId,
+			accountId || integration.id
+		)
+	}
+
+	@Get('runtime/snapshot')
+	async runtimeSnapshot() {
+		return this.channelRuntimeManager.listRuntimeSnapshot()
+	}
+
+	@Post('test')
+	async connect(@Body() integration: IIntegration) {
+		try {
+			const botInfo = await this.larkService.test(integration)
+			if (!botInfo) {
+				const error = await this.core.i18n.t('integration.Lark.Error_BotPermission', {
+					lang: TranslationLanguageMap[RequestContext.getLanguageCode()] || RequestContext.getLanguageCode()
+				})
+				throw new ForbiddenException(error)
+			}
+			if (!integration.avatar) {
+				integration.avatar = {
+					url: botInfo.avatar_url
+				}
+			}
+			return integration
+		} catch (err: any) {
+			const errorMessage = await this.core.i18n.t('integration.Lark.Error.CredentialsFailed', {
+				lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+			})
+			throw new ForbiddenException(`${errorMessage}: ${err.message}`)
+		}
+	}
+
+	@Get('chat-select-options')
+	async getChatSelectOptions(@Query('integration') id: string) {
+		if (!id) {
+			throw new BadRequestException(
+				await this.core.i18n.t('integration.Lark.Error_SelectAIntegration', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				})
+			)
+		}
+		const client = await this.larkService.getOrCreateLarkClientById(id)
+		try {
+			const result = await client.im.chat.list()
+			const items = result.data.items
+			return items.map((item) => ({
+				value: item.chat_id,
+				label: item.name,
+				icon: item.avatar
+			}))
+		} catch (err: any) {
+			if ((<AxiosError>err).response?.data) {
+				throw new BadRequestException(err.response.data.msg)
+			}
+			throw new BadRequestException(err)
+		}
+	}
+
+	@Get('user-select-options')
+	async getUserSelectOptions(@Query('integration') id: string) {
+		if (!id) {
+			throw new BadRequestException(
+				await this.core.i18n.t('integration.Lark.Error_SelectAIntegration', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				})
+			)
+		}
+		const client = await this.larkService.getOrCreateLarkClientById(id)
+
+		try {
+			const result = await client.contact.user.list({
+				params: {}
+			})
+			const items = result.data.items
+
+			// Use open_id to match resolveReceiveId() in LarkChannelStrategy
+			return items.map((item) => ({
+				value: item.open_id,
+				label: item.name || item.email || item.mobile,
+				icon: item.avatar
+			}))
+		} catch (err: any) {
+			if ((<AxiosError>err).response?.data) {
+				throw new BadRequestException(err.response.data.msg)
+			}
+			throw new BadRequestException(err)
+		}
+	}
 }

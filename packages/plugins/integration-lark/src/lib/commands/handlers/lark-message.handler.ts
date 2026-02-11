@@ -64,7 +64,9 @@ export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
 			)
 
 			return await this.commandBus.execute(
-				new LarkChatXpertCommand(integration.options.xpertId, text, larkMessage)
+				new LarkChatXpertCommand(integration.options.xpertId, text, larkMessage, {
+					abortSignal: options.abortSignal
+				})
 			)
 		}
 

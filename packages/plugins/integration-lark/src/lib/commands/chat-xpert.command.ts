@@ -11,6 +11,7 @@ export class LarkChatXpertCommand implements ICommand {
 		public readonly options?: {
 			confirm?: boolean
 			reject?: boolean
+			abortSignal?: AbortSignal
 		}
 	) {}
 }
