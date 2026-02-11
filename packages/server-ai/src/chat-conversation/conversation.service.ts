@@ -6,7 +6,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
-import { DeepPartial, Repository } from 'typeorm'
+import { DeepPartial, FindOneOptions, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
@@ -26,6 +26,37 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		@InjectQueue('conversation-summary') private summaryQueue: Queue
 	) {
 		super(repository)
+	}
+
+	async update(id: string, entity: Partial<ChatConversation>) {
+		let record: ChatConversation | null = null
+		try {
+			record = await super.findOne(id)
+		} catch (error: any) {
+			if (isNotFoundError(error)) {
+				this.logger.debug(`Scoped conversation lookup missed id=${id}, falling back to id-only lookup`)
+				record = await this.findOneByIdAnyScope(id)
+			} else {
+				throw error
+			}
+		}
+
+		if (!record) {
+			throw new Error(`Conversation ${id} not found`)
+		}
+
+		Object.assign(record, entity)
+		return await this.repository.save(record)
+	}
+
+	async findOneByIdAnyScope(id: string, options?: FindOneOptions<ChatConversation>): Promise<ChatConversation | null> {
+		return this.repository.findOne({
+			...(options ?? {}),
+			where: {
+				id,
+				...((options?.where as Record<string, any>) ?? {})
+			} as any
+		})
 	}
 
 	async findAllByXpert(xpertId: string, options: PaginationParams<ChatConversation>) {
@@ -149,4 +180,16 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		return conversation.attachments
 	}
 
+}
+
+function isNotFoundError(error: unknown): boolean {
+	if (!error || typeof error !== 'object') {
+		return false
+	}
+	const anyError = error as any
+	return (
+		anyError?.status === 404 ||
+		anyError?.response?.statusCode === 404 ||
+		`${anyError?.message ?? ''}`.toLowerCase().includes('requested record was not found')
+	)
 }

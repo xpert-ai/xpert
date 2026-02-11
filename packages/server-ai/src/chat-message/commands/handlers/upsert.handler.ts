@@ -14,8 +14,8 @@ export class ChatMessageUpsertHandler implements ICommandHandler<ChatMessageUpse
 		const entity = command.entity
 
 		if (entity.id) {
-			await this.service.update(entity.id, entity as ChatMessage)
-			return await this.service.findOne(entity.id)
+			const updated = await this.service.update(entity.id, entity as ChatMessage)
+			return (await this.service.findOneByIdAnyScope(entity.id)) ?? updated
 		}
 		return await this.service.create(entity)
 	}

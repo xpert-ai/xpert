@@ -16,13 +16,31 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 
 	public async execute(command: XpertAgentExecutionOneQuery): Promise<IXpertAgentExecution> {
 		const id = command.id
-		const execution = await this.service.findOne(id, { relations: ['createdBy', 'xpert'] })
+		const execution = await this.resolveExecution(id)
 		const agents = getXpertDraftAgents(execution.xpert)
 		const expandedExecution = await this.expandExecutionLatestCheckpoint({
 			...execution,
 			agent: execution.agentKey ? agents.find((agent) => agent.key === execution.agentKey) : null
 		})
 		return await this.expandExecutionTree(expandedExecution, agents)
+	}
+
+	private async resolveExecution(id: string): Promise<IXpertAgentExecution> {
+		try {
+			return await this.service.findOne(id, { relations: ['createdBy', 'xpert'] })
+		} catch (error: any) {
+			if (!isNotFoundError(error)) {
+				throw error
+			}
+
+			const fallback = await this.service.findOneByIdAnyScope(id, {
+				relations: ['createdBy', 'xpert']
+			})
+			if (!fallback) {
+				throw error
+			}
+			return fallback
+		}
 	}
 
 	private async expandExecutionTree(
@@ -97,6 +115,18 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 			// agent
 		})
 	}
+}
+
+function isNotFoundError(error: unknown): boolean {
+	if (!error || typeof error !== 'object') {
+		return false
+	}
+	const anyError = error as any
+	return (
+		anyError?.status === 404 ||
+		anyError?.response?.statusCode === 404 ||
+		`${anyError?.message ?? ''}`.toLowerCase().includes('requested record was not found')
+	)
 }
 
 function getXpertDraft(xpert: IXpert) {
