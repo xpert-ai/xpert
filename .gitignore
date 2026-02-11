@@ -78,3 +78,5 @@ Thumbs.db
 .volumes/
 
 docker/volumes/
+
+CLAUDE.md

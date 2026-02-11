@@ -2,15 +2,75 @@
     "templates": {
         "en-US": {
             "categories": [
+                "Project",
                 "Agent",
                 "Workflow",
-                "HR",
                 "Programming",
                 "Writing",
                 "Assistant",
                 "Analysis"
             ],
             "recommendedApps": [
+                {
+                    "name": "Demo - code project toolset",
+                    "type": "agent",
+                    "title": "React Project Programmer",
+                    "description": "Demonstrates how to use the code project tool set to automatically create a front-end project program and package it for deployment to a static page server.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "globe_with_meridians"
+                        },
+                        "background": "rgba(224, 242, 254, 0.8)"
+                    },
+                    "id": "50e75714-627d-4614-9366-3ad326bc1427",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "gpt-4o"
+                    },
+                    "category": "Programming",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Demo - browser-use toolset",
+                    "type": "agent",
+                    "title": "Browser-use Expert",
+                    "description": "Demonstrates how to use a browser to use tools to automatically browse the web and crawl content.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "desktop_computer"
+                        },
+                        "background": "rgba(230, 244, 215, 0.8)"
+                    },
+                    "id": "5dce8175-805d-4ba6-b73d-2836307aa02b",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "gpt-4o"
+                    },
+                    "category": "Agent",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Demo - bash toolset",
+                    "type": "agent",
+                    "title": "Bash Command Operators",
+                    "description": "Demonstrates how to use bash command-line and file tools to execute operating system commands in a virtual environment to complete a specified task.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "computer"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "b5fb14cc-27aa-466c-a734-d0c188a6ee38",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "gpt-4o"
+                    },
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
                 {
                     "name": "Smart HR Assistant",
                     "type": "agent",
@@ -253,9 +313,9 @@
         },
         "zh-Hans": {
             "categories": [
+                "Project",
                 "Agent",
                 "Workflow",
-                "HR",
                 "Programming",
                 "Writing",
                 "Assistant",
@@ -281,6 +341,142 @@
                         "modelType": "llm",
                         "model": "deepseek-chat"
                     }
+                },
+                {
+                    "name": "Demo - Semantic Model Manager",
+                    "type": "agent",
+                    "title": "语义模型建模专家",
+                    "description": "我是语义模型管理专家，擅长将复杂数据结构转化为清晰易懂的业务语义模型，帮你构建标准化的数据基础。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "building_construction",
+                            "colons": ":building_construction:",
+                            "unified": "1F3D7-FE0F"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "93eef6a8-338d-40fe-a68c-f9d3a755cc47",
+                    "category": "Analysis",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Demo - Indicators Manager",
+                    "type": "agent",
+                    "title": "指标管理专家",
+                    "description": "我是指标管理专家，负责定义、维护和解析关键业务指标，确保你的每一个分析都有统一、可信的口径支撑。有什么需求都可以向我提问。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "chart_with_upwards_trend",
+                            "colons": ":chart_with_upwards_trend:",
+                            "unified": "1F4C8"
+                        },
+                        "background": "rgba(254, 247, 195, 0.8)"
+                    },
+                    "id": "e81a53cc-3fde-4a0e-be5c-28ae97a73fcd",
+                    "category": "Analysis",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Demo - Deepresearch Single-agent",
+                    "type": "project",
+                    "title": "深度研究项目组（单智能体）",
+                    "description": "演示如何使用代码项目、网络搜索等工具集进行主题深度研究，并生成各式化的研究报告。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "globe_with_meridians"
+                        },
+                        "background": "rgba(224, 242, 254, 0.8)"
+                    },
+                    "id": "c7f5a79d-ae1e-455a-8773-8412a43b6643",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    },
+                    "category": "Project",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Demo - Deepresearch Multi-agent",
+                    "type": "project",
+                    "title": "深度研究项目组（多智能体）",
+                    "description": "演示如何使用代码项目、网络搜索等工具集进行主题深度研究，并生成各式化的研究报告。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "globe_with_meridians"
+                        },
+                        "background": "rgba(224, 242, 254, 0.8)"
+                    },
+                    "id": "c7f5a79d-ae1e-455a-8773-8412a43b6642",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    },
+                    "category": "Project",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Demo - code project toolset",
+                    "type": "agent",
+                    "title": "React 项目程序员",
+                    "description": "演示如何使用代码项目工具集自动创建前端项目程序并打包部署到静态页面服务器",
+                    "avatar": {
+                        "emoji": {
+                            "id": "globe_with_meridians"
+                        },
+                        "background": "rgba(224, 242, 254, 0.8)"
+                    },
+                    "id": "50e75714-627d-4614-9366-3ad326bc1428",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    },
+                    "category": "Programming",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Demo - browser-use toolset",
+                    "type": "agent",
+                    "title": "Browser-use 专家",
+                    "description": "演示如何使用浏览器使用工具自动浏览网页并抓取内容。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "desktop_computer"
+                        },
+                        "background": "rgba(230, 244, 215, 0.8)"
+                    },
+                    "id": "5dce8175-805d-4ba6-b73d-2836307aa01b",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    },
+                    "category": "Agent",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Demo - bash toolset",
+                    "type": "agent",
+                    "title": "Bash 命令行操作员",
+                    "description": "演示如何使用命令行工具和文件工具在虚拟环境中执行操作系统命令以完成指定任务。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "computer"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "b5fb14cc-27aa-466c-a734-d0c188a6ee37",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    },
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
                 },
                 {
                     "name": "Open Deep Researcher",
@@ -677,7 +873,7 @@
                 },
                 "background": "rgba(239, 241, 245, 0.8)"
             },
-            "export_data": "team:\n  name: OpenAI Tasks\n  type: agent\n  title: Replicate OpenAI tasks\n  description: I implemented the equivalent functionality of the OpenAI tasks and\n    can freely configure the agent structure.\n  avatar:\n    emoji:\n      id: clock7\n    background: rgba(239, 241, 245, 0.8)\n  starters:\n    - Schedule a task to be executed every minute. Tell me a joke and send it to\n      Lark\n    - Schedule a scheduled task every morning to check the latest stock quotes\n      and send them to email\n    - null\n    - null\n  options:\n    position:\n      x: 124.53079455437864\n      y: 79.52239435692718\n    scale: 0.6999999999999997\n    agent:\n      Agent_VvWnFr9uyk:\n        position:\n          x: 312.85719086628825\n          y: 76.75001138157987\n      Agent_R7rrxo4BBT:\n        position:\n          x: 80\n          y: 320\n      Agent_kbfMLLShF0:\n        position:\n          x: 480\n          y: 320\n    toolset:\n      91fe32da-6385-4aa6-bfa3-41dc59edc1df:\n        position:\n          x: 880\n          y: 300\n      8402879f-6a98-4c43-b6af-7d8279182ef6:\n        position:\n          x: -100.00000000000003\n          y: 540\n      bffefaee-4bfd-4d91-af5e-cba902af1d5e:\n        position:\n          x: 720\n          y: 540\n      5c0cc617-0889-43c6-a6fd-916c9546f927:\n        position:\n          x: 338.024778400266\n          y: 606.3680794283152\n      6d5dfda7-cc0b-4614-8970-36c8993ec92d:\n        position:\n          x: 300\n          y: 540\n  agentConfig:\n    endNodes:\n      - send_mail\n      - send_mail_batch\n      - feishu_create_message\n  memory: null\n  summarize: null\n  version: \"9\"\n  agent:\n    key: Agent_VvWnFr9uyk\n    name: null\n    title: Tasks Manager\n    description: Helps you manage scheduled tasks\n    avatar: null\n    prompt: >-\n      Use the `*_task` tool to schedule **tasks** to do later. They could\n      include reminders, daily news summaries, and scheduled searches — or even\n      conditional tasks, where you regularly check something for the user.\n\n      Set `agentKey` parameter to 'task-to-email' or 'task-to-feishu'.\n\n      - `task-to-email` can send email.\n\n      - `task-to-feishu` can send feishu message.\n\n\n      To create a task, provide a **name** **prompt** and **schedule**\n\n      **name** should be short, imperative, and start with a verb. DO NOT\n      include the date or time requested.\n\n\n      **prompt** should be a summary of the user's request but DO NOT include\n      any time scheduling info.\n          - For simple reminders, use \"Tell me to...\"\n          - For requests that require a search, use \"Search for...\"\n          - For conditional requests, include something like \"...and notify me if so.\"\n\n      **schedule** must be given in cron job format.\n          - If the user does not specify a time, make a best guess.\n          - Prefer the RRULE: property whenever possible.\n          - DO NOT specify SUMMARY and DO NOT specify DTEND properties in the VEVENT.\n          - For conditional tasks, choose a sensible frequency for your recurring schedule. (Weekly is usually good, but for time-sensitive things use a more frequent schedule.)\n\n      If you want to delete a task, please first query the task list and select\n      the task to delete. \n        Please answer in {{sys.language}} language.\n    promptTemplates: null\n    parameters: null\n    outputVariables: null\n    options: null\n    copilotModel: null\n    leaderKey: null\n    collaboratorNames: []\n    toolsetIds:\n      - 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n    knowledgebaseIds: []\n  copilotModel:\n    modelType: llm\n    model: gpt-4o\n    options: null\n  tags: []\nnodes:\n  - type: agent\n    key: Agent_VvWnFr9uyk\n    position:\n      x: 312.85719086628825\n      y: 76.75001138157987\n    entity:\n      key: Agent_VvWnFr9uyk\n      name: null\n      title: Tasks Manager\n      description: Helps you manage scheduled tasks\n      avatar: null\n      prompt: >-\n        Use the `*_task` tool to schedule **tasks** to do later. They could\n        include reminders, daily news summaries, and scheduled searches — or\n        even conditional tasks, where you regularly check something for the\n        user.\n\n        Set `agentKey` parameter to 'task-to-email' or 'task-to-feishu'.\n\n        - `task-to-email` can send email.\n\n        - `task-to-feishu` can send feishu message.\n\n\n        To create a task, provide a **name** **prompt** and **schedule**\n\n        **name** should be short, imperative, and start with a verb. DO NOT\n        include the date or time requested.\n\n\n        **prompt** should be a summary of the user's request but DO NOT include\n        any time scheduling info.\n            - For simple reminders, use \"Tell me to...\"\n            - For requests that require a search, use \"Search for...\"\n            - For conditional requests, include something like \"...and notify me if so.\"\n\n        **schedule** must be given in cron job format.\n            - If the user does not specify a time, make a best guess.\n            - Prefer the RRULE: property whenever possible.\n            - DO NOT specify SUMMARY and DO NOT specify DTEND properties in the VEVENT.\n            - For conditional tasks, choose a sensible frequency for your recurring schedule. (Weekly is usually good, but for time-sensitive things use a more frequent schedule.)\n\n        If you want to delete a task, please first query the task list and\n        select the task to delete. \n          Please answer in {{sys.language}} language.\n      promptTemplates: null\n      parameters: null\n      outputVariables: null\n      options: null\n      copilotModel: null\n      leaderKey: null\n      collaboratorNames: []\n      toolsetIds:\n        - 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n      knowledgebaseIds: []\n  - type: agent\n    key: Agent_R7rrxo4BBT\n    position:\n      x: 80\n      y: 320\n    entity:\n      key: Agent_R7rrxo4BBT\n      name: task-to-email\n      title: Task to email\n      description: Execute the task and send the result to email\n      avatar: null\n      prompt: >-\n        DO NOT answer directly. Instead, use the `send-mail` tool to send the\n        email to the address: {{user_email}}. Fill in the content of the email\n        with the answer to the user's question.\n\n        Please answer in {{sys.language}} language.\n      promptTemplates: null\n      parameters: []\n      outputVariables: null\n      options: null\n      copilotModel: null\n      leaderKey: Agent_VvWnFr9uyk\n      collaboratorNames: []\n      toolsetIds:\n        - 8402879f-6a98-4c43-b6af-7d8279182ef6\n        - 6d5dfda7-cc0b-4614-8970-36c8993ec92d\n      knowledgebaseIds: []\n    hash: fa9f8ffbfe997223c47a28ecfeebee8da1c8ba2a9907d49edaf59aff49c7ac39\n  - type: agent\n    key: Agent_kbfMLLShF0\n    position:\n      x: 480\n      y: 320\n    entity:\n      key: Agent_kbfMLLShF0\n      name: task-to-feishu\n      title: Task to feishu\n      description: Execute the task and send the result to Feishu message\n      avatar: null\n      prompt: >-\n        Do not reply to the user directly. Instead, use the tool\n        'feishu_create_message' to send a feishu message to the user.\n\n\n        Please answer in {{sys.language}} language.\n      promptTemplates: null\n      parameters: null\n      outputVariables: null\n      options: null\n      copilotModel: null\n      leaderKey: Agent_VvWnFr9uyk\n      collaboratorNames: []\n      toolsetIds:\n        - bffefaee-4bfd-4d91-af5e-cba902af1d5e\n        - 6d5dfda7-cc0b-4614-8970-36c8993ec92d\n      knowledgebaseIds: []\n    hash: ffcdc42964b8184309f7b9f1d490a4191e3b161d908a186d2fea444fec88ba9f\n  - key: 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n    type: toolset\n    position:\n      x: 880\n      y: 300\n    entity:\n      id: 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n      name: Scheduled tasks\n      type: task\n      category: builtin\n      description: Manage scheduled tasks\n      avatar:\n        url: //api.mtda.cloud/api/xpert-toolset/builtin-provider/task/icon\n      options:\n        toolPositions:\n          create_task: 0\n          list_task: 1\n          delete_task: 2\n      privacyPolicy: null\n      customDisclaimer: null\n      tags: []\n      tools:\n        - id: 32791ca3-4a9c-4cd7-876a-d6e137a1cda5\n          name: create_task\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n        - id: 76536bf0-9866-4d30-84fb-0c5419022bfd\n          name: list_task\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n        - id: a70008a9-ab10-479e-b563-54752f782464\n          name: delete_task\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n    hash: 8c3226177bf5e1fd016d92f51da54b8f65231c0fbf1798a3718e95e489d10b56\n  - key: 8402879f-6a98-4c43-b6af-7d8279182ef6\n    type: toolset\n    position:\n      x: -100.00000000000003\n      y: 540\n    entity:\n      id: 8402879f-6a98-4c43-b6af-7d8279182ef6\n      name: Send email\n      type: email\n      category: builtin\n      description: Send email to user\n      avatar:\n        url: //api.mtda.cloud/api/xpert-toolset/builtin-provider/email/icon\n      options:\n        toolPositions:\n          send_mail: 0\n          send_mail_batch: 1\n      privacyPolicy: null\n      customDisclaimer: null\n      tags: []\n      tools:\n        - id: 907670da-eb71-4abb-b58f-fff10eea2e58\n          name: send_mail\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n        - id: 564edf6b-28fd-4e38-95aa-2acf56c1a524\n          name: send_mail_batch\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n    hash: 409459ccb68f9099bde5a78aa34791073e24f53d58860c1d63c074e9cde6f2a5\n  - key: 6d5dfda7-cc0b-4614-8970-36c8993ec92d\n    type: toolset\n    position:\n      x: 300\n      y: 540\n    entity:\n      id: 6d5dfda7-cc0b-4614-8970-36c8993ec92d\n      name: Search Engine\n      type: tavily\n      category: builtin\n      description: Search for the latest online information\n      avatar:\n        url: //api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon\n      options:\n        toolPositions:\n          tavily_search: 0\n      privacyPolicy: null\n      customDisclaimer: null\n      tags: []\n      tools:\n        - id: 7a90fc41-8ef8-422d-a5f5-83254f0b6a3d\n          name: tavily_search\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n    hash: 89b220e93ed146c307492b56201ecb717d99358ed0182255c03720d50394910e\n  - key: bffefaee-4bfd-4d91-af5e-cba902af1d5e\n    type: toolset\n    position:\n      x: 720\n      y: 540\n    entity:\n      id: bffefaee-4bfd-4d91-af5e-cba902af1d5e\n      name: 📢 Task Notification\n      type: feishu_message\n      category: builtin\n      description: Send task notification to feishu\n      avatar:\n        url: //api.mtda.cloud/api/xpert-toolset/builtin-provider/feishu_message/icon\n      options:\n        toolPositions:\n          feishu_create_message: 0\n      privacyPolicy: null\n      customDisclaimer: null\n      tags: []\n      tools:\n        - id: ca5694a2-6a9d-4107-b36e-afa6f29cc36c\n          name: feishu_create_message\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n    hash: 4805a2bf3ef5f32684b168eec456726a521fd4cb3bd1f73ec2eb8c27a520579c\nconnections:\n  - type: toolset\n    key: Agent_VvWnFr9uyk/91fe32da-6385-4aa6-bfa3-41dc59edc1df\n    from: Agent_VvWnFr9uyk\n    to: 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n  - type: agent\n    key: Agent_VvWnFr9uyk/Agent_R7rrxo4BBT\n    from: Agent_VvWnFr9uyk\n    to: Agent_R7rrxo4BBT\n  - type: toolset\n    key: Agent_R7rrxo4BBT/8402879f-6a98-4c43-b6af-7d8279182ef6\n    from: Agent_R7rrxo4BBT\n    to: 8402879f-6a98-4c43-b6af-7d8279182ef6\n  - type: toolset\n    key: Agent_R7rrxo4BBT/6d5dfda7-cc0b-4614-8970-36c8993ec92d\n    from: Agent_R7rrxo4BBT\n    to: 6d5dfda7-cc0b-4614-8970-36c8993ec92d\n  - type: agent\n    key: Agent_VvWnFr9uyk/Agent_kbfMLLShF0\n    from: Agent_VvWnFr9uyk\n    to: Agent_kbfMLLShF0\n  - type: toolset\n    key: Agent_kbfMLLShF0/bffefaee-4bfd-4d91-af5e-cba902af1d5e\n    from: Agent_kbfMLLShF0\n    to: bffefaee-4bfd-4d91-af5e-cba902af1d5e\n  - type: toolset\n    key: Agent_kbfMLLShF0/6d5dfda7-cc0b-4614-8970-36c8993ec92d\n    from: Agent_kbfMLLShF0\n    to: 6d5dfda7-cc0b-4614-8970-36c8993ec92d\n"
+            "export_data": "team:\n  name: OpenAI Tasks\n  type: agent\n  title: Replicate OpenAI tasks\n  description: I implemented the equivalent functionality of the OpenAI tasks and\n    can freely configure the agent structure.\n  avatar:\n    emoji:\n      id: clock7\n    background: rgba(239, 241, 245, 0.8)\n  starters:\n    - Schedule a task to be executed every minute. Tell me a joke and send it to\n      email\n    - Schedule a scheduled task every morning to check the latest stock quotes\n      and send them to email\n    - null\n    - null\n  options:\n    position:\n      x: 124.53079455437864\n      y: 79.52239435692718\n    scale: 0.6999999999999997\n    agent:\n      Agent_VvWnFr9uyk:\n        position:\n          x: 312.85719086628825\n          y: 76.75001138157987\n      Agent_R7rrxo4BBT:\n        position:\n          x: 80\n          y: 320\n    toolset:\n      91fe32da-6385-4aa6-bfa3-41dc59edc1df:\n        position:\n          x: 880\n          y: 300\n      8402879f-6a98-4c43-b6af-7d8279182ef6:\n        position:\n          x: -100.00000000000003\n          y: 540\n      5c0cc617-0889-43c6-a6fd-916c9546f927:\n        position:\n          x: 338.024778400266\n          y: 606.3680794283152\n      6d5dfda7-cc0b-4614-8970-36c8993ec92d:\n        position:\n          x: 300\n          y: 540\n  agentConfig:\n    endNodes:\n      - send_mail\n      - send_mail_batch\n  memory: null\n  summarize: null\n  version: \"9\"\n  agent:\n    key: Agent_VvWnFr9uyk\n    name: null\n    title: Tasks Manager\n    description: Helps you manage scheduled tasks\n    avatar: null\n    prompt: >-\n      Use the `*_task` tool to schedule **tasks** to do later. They could\n      include reminders, daily news summaries, and scheduled searches — or even\n      conditional tasks, where you regularly check something for the user.\n\n      Set `agentKey` parameter to 'task-to-email'.\n\n      - `task-to-email` can send email.\n\n\n      To create a task, provide a **name** **prompt** and **schedule**\n\n      **name** should be short, imperative, and start with a verb. DO NOT\n      include the date or time requested.\n\n\n      **prompt** should be a summary of the user's request but DO NOT include\n      any time scheduling info.\n          - For simple reminders, use \"Tell me to...\"\n          - For requests that require a search, use \"Search for...\"\n          - For conditional requests, include something like \"...and notify me if so.\"\n\n      **schedule** must be given in cron job format.\n          - If the user does not specify a time, make a best guess.\n          - Prefer the RRULE: property whenever possible.\n          - DO NOT specify SUMMARY and DO NOT specify DTEND properties in the VEVENT.\n          - For conditional tasks, choose a sensible frequency for your recurring schedule. (Weekly is usually good, but for time-sensitive things use a more frequent schedule.)\n\n      If you want to delete a task, please first query the task list and select\n      the task to delete. \n        Please answer in {{sys.language}} language.\n    promptTemplates: null\n    parameters: null\n    outputVariables: null\n    options: null\n    copilotModel: null\n    leaderKey: null\n    collaboratorNames: []\n    toolsetIds:\n      - 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n    knowledgebaseIds: []\n  copilotModel:\n    modelType: llm\n    model: gpt-4o\n    options: null\n  tags: []\nnodes:\n  - type: agent\n    key: Agent_VvWnFr9uyk\n    position:\n      x: 312.85719086628825\n      y: 76.75001138157987\n    entity:\n      key: Agent_VvWnFr9uyk\n      name: null\n      title: Tasks Manager\n      description: Helps you manage scheduled tasks\n      avatar: null\n      prompt: >-\n        Use the `*_task` tool to schedule **tasks** to do later. They could\n        include reminders, daily news summaries, and scheduled searches — or\n        even conditional tasks, where you regularly check something for the\n        user.\n\n        Set `agentKey` parameter to 'task-to-email'.\n\n        - `task-to-email` can send email.\n\n\n        To create a task, provide a **name** **prompt** and **schedule**\n\n        **name** should be short, imperative, and start with a verb. DO NOT\n        include the date or time requested.\n\n\n        **prompt** should be a summary of the user's request but DO NOT include\n        any time scheduling info.\n            - For simple reminders, use \"Tell me to...\"\n            - For requests that require a search, use \"Search for...\"\n            - For conditional requests, include something like \"...and notify me if so.\"\n\n        **schedule** must be given in cron job format.\n            - If the user does not specify a time, make a best guess.\n            - Prefer the RRULE: property whenever possible.\n            - DO NOT specify SUMMARY and DO NOT specify DTEND properties in the VEVENT.\n            - For conditional tasks, choose a sensible frequency for your recurring schedule. (Weekly is usually good, but for time-sensitive things use a more frequent schedule.)\n\n        If you want to delete a task, please first query the task list and\n        select the task to delete. \n          Please answer in {{sys.language}} language.\n      promptTemplates: null\n      parameters: null\n      outputVariables: null\n      options: null\n      copilotModel: null\n      leaderKey: null\n      collaboratorNames: []\n      toolsetIds:\n        - 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n      knowledgebaseIds: []\n  - type: agent\n    key: Agent_R7rrxo4BBT\n    position:\n      x: 80\n      y: 320\n    entity:\n      key: Agent_R7rrxo4BBT\n      name: task-to-email\n      title: Task to email\n      description: Execute the task and send the result to email\n      avatar: null\n      prompt: >-\n        DO NOT answer directly. Instead, use the `send-mail` tool to send the\n        email to the address: {{user_email}}. Fill in the content of the email\n        with the answer to the user's question.\n\n        Please answer in {{sys.language}} language.\n      promptTemplates: null\n      parameters: []\n      outputVariables: null\n      options: null\n      copilotModel: null\n      leaderKey: Agent_VvWnFr9uyk\n      collaboratorNames: []\n      toolsetIds:\n        - 8402879f-6a98-4c43-b6af-7d8279182ef6\n        - 6d5dfda7-cc0b-4614-8970-36c8993ec92d\n      knowledgebaseIds: []\n    hash: fa9f8ffbfe997223c47a28ecfeebee8da1c8ba2a9907d49edaf59aff49c7ac39\n  - key: 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n    type: toolset\n    position:\n      x: 880\n      y: 300\n    entity:\n      id: 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n      name: Scheduled tasks\n      type: task\n      category: builtin\n      description: Manage scheduled tasks\n      avatar:\n        url: //api.mtda.cloud/api/xpert-toolset/builtin-provider/task/icon\n      options:\n        toolPositions:\n          create_task: 0\n          list_task: 1\n          delete_task: 2\n      privacyPolicy: null\n      customDisclaimer: null\n      tags: []\n      tools:\n        - id: 32791ca3-4a9c-4cd7-876a-d6e137a1cda5\n          name: create_task\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n        - id: 76536bf0-9866-4d30-84fb-0c5419022bfd\n          name: list_task\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n        - id: a70008a9-ab10-479e-b563-54752f782464\n          name: delete_task\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n    hash: 8c3226177bf5e1fd016d92f51da54b8f65231c0fbf1798a3718e95e489d10b56\n  - key: 8402879f-6a98-4c43-b6af-7d8279182ef6\n    type: toolset\n    position:\n      x: -100.00000000000003\n      y: 540\n    entity:\n      id: 8402879f-6a98-4c43-b6af-7d8279182ef6\n      name: Send email\n      type: email\n      category: builtin\n      description: Send email to user\n      avatar:\n        url: //api.mtda.cloud/api/xpert-toolset/builtin-provider/email/icon\n      options:\n        toolPositions:\n          send_mail: 0\n          send_mail_batch: 1\n      privacyPolicy: null\n      customDisclaimer: null\n      tags: []\n      tools:\n        - id: 907670da-eb71-4abb-b58f-fff10eea2e58\n          name: send_mail\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n        - id: 564edf6b-28fd-4e38-95aa-2acf56c1a524\n          name: send_mail_batch\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n    hash: 409459ccb68f9099bde5a78aa34791073e24f53d58860c1d63c074e9cde6f2a5\n  - key: 6d5dfda7-cc0b-4614-8970-36c8993ec92d\n    type: toolset\n    position:\n      x: 300\n      y: 540\n    entity:\n      id: 6d5dfda7-cc0b-4614-8970-36c8993ec92d\n      name: Search Engine\n      type: tavily\n      category: builtin\n      description: Search for the latest online information\n      avatar:\n        url: //api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon\n      options:\n        toolPositions:\n          tavily_search: 0\n      privacyPolicy: null\n      customDisclaimer: null\n      tags: []\n      tools:\n        - id: 7a90fc41-8ef8-422d-a5f5-83254f0b6a3d\n          name: tavily_search\n          description: null\n          avatar: null\n          enabled: true\n          parameters: null\n          options: null\n    hash: 89b220e93ed146c307492b56201ecb717d99358ed0182255c03720d50394910e\nconnections:\n  - type: toolset\n    key: Agent_VvWnFr9uyk/91fe32da-6385-4aa6-bfa3-41dc59edc1df\n    from: Agent_VvWnFr9uyk\n    to: 91fe32da-6385-4aa6-bfa3-41dc59edc1df\n  - type: agent\n    key: Agent_VvWnFr9uyk/Agent_R7rrxo4BBT\n    from: Agent_VvWnFr9uyk\n    to: Agent_R7rrxo4BBT\n  - type: toolset\n    key: Agent_R7rrxo4BBT/8402879f-6a98-4c43-b6af-7d8279182ef6\n    from: Agent_R7rrxo4BBT\n    to: 8402879f-6a98-4c43-b6af-7d8279182ef6\n  - type: toolset\n    key: Agent_R7rrxo4BBT/6d5dfda7-cc0b-4614-8970-36c8993ec92d\n    from: Agent_R7rrxo4BBT\n    to: 6d5dfda7-cc0b-4614-8970-36c8993ec92d"
         },
         "de56c3f5-2951-4faa-8229-2f19c1d43304": {
             "name": "Deep Research with Deepseek r1",

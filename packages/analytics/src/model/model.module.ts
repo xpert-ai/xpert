@@ -1,4 +1,5 @@
 import { RedisModule, SharedModule, TenantModule, UserModule } from '@metad/server-core'
+import { ExecutionQueueCoreModule } from '@metad/server-ai'
 import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -39,7 +40,8 @@ import { ModelQueryLogModule } from '../model-query-log'
 		BusinessAreaUserModule,
 		BusinessAreaModule,
 		RedisModule,
-		ModelQueryLogModule
+		ModelQueryLogModule,
+		ExecutionQueueCoreModule
 	],
 	controllers: [ModelController],
 	providers: [
