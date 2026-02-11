@@ -14,7 +14,6 @@ import {
 	UsePipes,
 	ValidationPipe,
 	ForbiddenException,
-	HttpException,
 	ClassSerializerInterceptor,
 	BadRequestException,
 } from '@nestjs/common';
@@ -22,7 +21,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadedFile } from '@metad/contracts';
 import { FileStorage, UploadedFileStorage } from '../core/file-storage';
 import path from 'path';
-import chardet from 'chardet';
 import iconv from 'iconv-lite';
 import * as XLSX from 'xlsx';
 import fsPromises from 'fs/promises';
@@ -42,7 +40,6 @@ import {
 	RolesEnum
 } from '@metad/contracts';
 import { CrudController, PaginationParams } from './../core/crud';
-import { TransformInterceptor } from './../core/interceptors';
 import { RequestContext } from '../core/context';
 import { UUIDValidationPipe, ParseJsonPipe } from './../shared/pipes';
 import { PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards';
@@ -57,7 +54,7 @@ import { UserPasswordDTO } from './dto';
 
 @ApiTags('User')
 @ApiBearerAuth()
-// 这个原来作用是什么？ 导致了异常被包装成正常的返回 statuscode
+// What was the original purpose of this? It caused exceptions to be wrapped into normal return statuscode.
 // @UseInterceptors(TransformInterceptor)
 @Controller()
 export class UserController extends CrudController<User> {
@@ -87,9 +84,9 @@ export class UserController extends CrudController<User> {
 	})
 	@Get('/me')
 	async findMe(
-		@Query('data', ParseJsonPipe) data: any
+		@Query('data', ParseJsonPipe) data: {relations: string[]}
 	): Promise<User> {
-		const { relations = [] } = data;
+		const { relations = [] } = data ?? {};
 		const id = RequestContext.currentUserId();
 		return await this.userService.findOne(id, {
 			relations

@@ -2,10 +2,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import {
 	IEmailVerification,
 	IEmployee,
-	IOrganization,
 	IRole,
 	ITag,
 	IUser,
+	IUserOrganization,
 	LanguagesEnum,
 	UserType,
 } from '@metad/contracts'
@@ -212,7 +212,7 @@ export class User extends TenantBaseEntity implements IUser {
 		}
 	)
 	@JoinColumn()
-	organizations?: IOrganization[]
+	organizations?: IUserOrganization[]
 }
 
 export class UserPreferredLanguageDTO {

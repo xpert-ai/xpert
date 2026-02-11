@@ -2,7 +2,7 @@ import { IRole } from './role.model';
 import { IBasePerTenantEntityModel } from './base-entity.model';
 import { ITag } from './tag-entity.model';
 import { IEmployee } from './employee.model';
-import { IOrganization } from './organization.model';
+import { IUserOrganization } from './user-organization.model';
 
 export enum UserType {
 	USER = 'user',             // Regular user
@@ -28,9 +28,8 @@ export interface IUser extends IBasePerTenantEntityModel {
 	tags?: ITag[];
 	preferredLanguage?: string;
 	paymentsId?: string;
-	// preferredComponentLayout?: string;
 	fullName?: string;
-	organizations?: IOrganization[];
+	organizations?: IUserOrganization[];
 	isImporting?: boolean;
 	sourceId?: string;
 	emailVerified?: boolean
