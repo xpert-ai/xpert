@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
-import { REDIS_CLIENT } from '@metad/server-core'
 import type { RedisClientType } from 'redis'
 
 const EXECUTION_CANCEL_CHANNEL = 'ai:execution:cancel'
+const REDIS_CLIENT_TOKEN = 'REDIS_CLIENT'
 
 interface CancelPayload {
 	executionIds: string[]
@@ -15,7 +15,7 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
 	readonly #controllers = new Map<string, AbortController>()
 	private subscriber?: RedisClientType
 
-	constructor(@Inject(REDIS_CLIENT) private readonly redis: RedisClientType) {}
+	constructor(@Inject(REDIS_CLIENT_TOKEN) private readonly redis: RedisClientType) {}
 
 	async onModuleInit() {
 		this.subscriber = this.redis.duplicate()

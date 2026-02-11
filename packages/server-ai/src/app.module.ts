@@ -3,7 +3,7 @@ import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule, CommandBus } from '@nestjs/cqrs'
 import type { Provider } from '@nestjs/common'
 import { RequestContext } from '@metad/server-core'
-import { CORE_PLUGIN_API_TOKENS, CoreChatApi } from '@xpert-ai/plugin-sdk'
+import { CORE_PLUGIN_API_TOKENS, CoreChatApi, CoreHandoffApi } from '@xpert-ai/plugin-sdk'
 import { AIModule } from './ai'
 import { ChatModule } from './chat'
 import { ChatCommand } from './chat/commands'
@@ -40,7 +40,9 @@ import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
-import { ExecutionRuntimeModule } from './runtime'
+import { ExecutionQueueModule } from './handoff'
+import { ExecutionQueueService } from './handoff'
+import { HandoffQueueService } from './handoff'
 
 const CoreChatApiProvider: Provider = {
 	provide: CORE_PLUGIN_API_TOKENS.chat,
@@ -75,6 +77,28 @@ const CoreChatApiProvider: Provider = {
 		}
 	}),
 	inject: [CommandBus, ChatConversationService]
+}
+
+const CoreHandoffApiProvider: Provider = {
+	provide: CORE_PLUGIN_API_TOKENS.handoff,
+	useFactory: (
+		handoffQueue: HandoffQueueService,
+		executionQueue: ExecutionQueueService
+	): CoreHandoffApi => ({
+		enqueue: async (message, options) => handoffQueue.enqueue(message as any, options),
+		enqueueAndWait: async (message, options) =>
+			handoffQueue.enqueueAndWait(message as any, options as any),
+		abortByRunId: (runId, reason) => executionQueue.abortByRunId(runId, reason),
+		abortBySessionKey: (sessionKey, reason) =>
+			executionQueue.abortBySessionKey(sessionKey, reason),
+		abortByIntegration: (integrationId, reason) =>
+			executionQueue.abortByIntegration(integrationId, reason),
+		getIntegrationRunCount: (integrationId) =>
+			executionQueue.getRunCountByIntegration(integrationId),
+		getIntegrationRunIds: (integrationId) =>
+			executionQueue.getRunsByIntegration(integrationId).map((run) => run.runId)
+	}),
+	inject: [HandoffQueueService, ExecutionQueueService]
 }
 
 @Module({
@@ -112,9 +136,14 @@ const CoreChatApiProvider: Provider = {
 		RagVStoreModule,
 		RagWebModule,
 		SandboxModule,
-		ExecutionRuntimeModule,
+		ExecutionQueueModule,
 	],
 	controllers: [],
-	providers: [...EventHandlers, ...CommandHandlers, CoreChatApiProvider]
+	providers: [
+		...EventHandlers,
+		...CommandHandlers,
+		CoreChatApiProvider,
+		CoreHandoffApiProvider
+	]
 })
 export class ServerAIModule {}

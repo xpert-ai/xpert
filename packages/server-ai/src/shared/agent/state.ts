@@ -262,6 +262,10 @@ export type TAgentSubgraphParams = {
 	subscriber: Subscriber<MessageEvent>
 	isDraft: boolean
 	environment?: IEnvironment
+	/**
+	 * Parent chat conversation id for cancel propagation across subagents/workflow nodes.
+	 */
+	conversationId?: string
 }
 
 /**
