@@ -54,6 +54,75 @@ export interface CoreChatApi {
   getChatConversation(id: string, relations?: string[]): Promise<IChatConversation | null>;
 }
 
+export type HandoffLaneName = 'main' | 'subagent' | 'cron' | 'nested';
+export type HandoffRunSource = 'chat' | 'xpert' | 'lark' | 'analytics' | 'api';
+
+export interface CoreHandoffMessage {
+  id: string;
+  type: string;
+  version: number;
+  tenantId: string;
+  organizationId?: string;
+  userId?: string;
+  sessionKey: string;
+  threadId?: string;
+  conversationId?: string;
+  sourceAgent?: string;
+  targetAgent?: string;
+  businessKey: string;
+  attempt: number;
+  maxAttempts: number;
+  enqueuedAt: number;
+  traceId: string;
+  parentMessageId?: string;
+  source?: HandoffRunSource;
+  requestedLane?: HandoffLaneName;
+  payload: Record<string, unknown>;
+  headers?: Record<string, string>;
+}
+
+export interface CoreHandoffProcessContext {
+  runId: string;
+  traceId: string;
+  abortSignal: AbortSignal;
+  emit?: (event: unknown) => void;
+}
+
+export type CoreHandoffProcessResult =
+  | {
+      status: 'ok';
+      outbound?: CoreHandoffMessage[];
+    }
+  | {
+      status: 'retry';
+      delayMs: number;
+      reason?: string;
+    }
+  | {
+      status: 'dead';
+      reason: string;
+    };
+
+export interface CoreHandoffApi {
+  enqueue(
+    message: CoreHandoffMessage,
+    options?: { delayMs?: number }
+  ): Promise<{ id: string }>;
+  enqueueAndWait(
+    message: CoreHandoffMessage,
+    options?: {
+      delayMs?: number;
+      timeoutMs?: number;
+      onEvent?: (event: unknown) => void;
+    }
+  ): Promise<CoreHandoffProcessResult>;
+  abortByRunId(runId: string, reason?: string): boolean;
+  abortBySessionKey(sessionKey: string, reason?: string): string[];
+  abortByIntegration(integrationId: string, reason?: string): string[];
+  getIntegrationRunCount(integrationId: string): number;
+  getIntegrationRunIds(integrationId: string): string[];
+}
+
 export const CORE_PLUGIN_API_TOKENS = {
   config: Symbol('core:config') as CorePluginApiToken<CoreConfigApi>,
   cache: Symbol('core:cache') as CorePluginApiToken<CoreCacheApi>,
@@ -61,5 +130,6 @@ export const CORE_PLUGIN_API_TOKENS = {
   user: Symbol('core:user') as CorePluginApiToken<CoreUserApi>,
   role: Symbol('core:role') as CorePluginApiToken<CoreRoleApi>,
   i18n: Symbol('core:i18n') as CorePluginApiToken<CoreI18nApi>,
-  chat: Symbol('core:chat') as CorePluginApiToken<CoreChatApi>
+  chat: Symbol('core:chat') as CorePluginApiToken<CoreChatApi>,
+  handoff: Symbol('core:handoff') as CorePluginApiToken<CoreHandoffApi>
 } as const;

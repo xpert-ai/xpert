@@ -1,16 +1,17 @@
-import { ConfigModule, ConfigService, getConfig } from '@metad/server-config'
+import { ConfigModule, ConfigService, getConfig, setConfig } from '@metad/server-config'
 import { DynamicModule, Global, Inject, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import {
 	INTEGRATION_PERMISSION_SERVICE_TOKEN,
+	GLOBAL_ORGANIZATION_SCOPE,
 	PluginLifecycleMethods,
 	StrategyBus,
 	USER_PERMISSION_SERVICE_TOKEN,
 } from '@xpert-ai/plugin-sdk'
 import chalk from 'chalk'
 import { PluginController } from './plugin.controller'
-import { getPluginModules, hasLifecycleMethod, loaded } from './plugin.helper'
+import { getPluginModules, hasLifecycleMethod, loaded, registerPluginsAsync } from './plugin.helper'
 import { LOADED_PLUGINS } from './types'
 import { PluginInstance } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
@@ -51,6 +52,31 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 		}
 	}
 
+	/**
+	 * Backward-compatible async initialization path used by legacy bootstrap code.
+	 * It resolves built-in plugin package names into dynamic plugin modules, merges
+	 * them into runtime config, and then delegates to `init()`.
+	 */
+	static async initAsync(builtinPlugins: string[] = []): Promise<DynamicModule> {
+		if (!builtinPlugins.length) {
+			return this.init()
+		}
+
+		const config = getConfig()
+		const plugins = Array.isArray(config.plugins) ? config.plugins : []
+		const { modules } = await registerPluginsAsync({
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			plugins: builtinPlugins.map((name) => ({ name, source: 'code' })),
+			baseDir: config.assetOptions.serverRoot,
+		})
+
+		setConfig({
+			plugins: [...plugins, ...modules],
+		})
+
+		return this.init()
+	}
+
 	constructor(
 		@Inject() private readonly moduleRef: ModuleRef,
 		@Inject() private readonly configService: ConfigService
@@ -62,6 +88,7 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 	async onModuleInit() {
 		for (const item of loaded) {
 			item.ctx.module = this.moduleRef
+			item.ctx.app = this.moduleRef as any
 		}
 
 		await this.bootstrapPluginLifecycleMethods('onPluginBootstrap', (instance: Function) => {
