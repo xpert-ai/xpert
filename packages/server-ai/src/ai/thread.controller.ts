@@ -36,8 +36,8 @@ import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
 import { RedisSseStreamService } from './stream/redis-sse.service'
 import { CancelConversationCommand } from '../chat-conversation'
-import { format } from 'date-fns/format'
 import { CopilotUserUsageQuery } from '../copilot-user/queries'
+import { formatInUTC0 } from '../shared/utils'
 
 @ApiTags('AI/Threads')
 @ApiBearerAuth()
@@ -153,7 +153,11 @@ export class ThreadsController {
 	@Post(':thread_id/runs')
 	async createRun(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
 		const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
-		stream.subscribe()
+		stream.subscribe({
+			error: (err) => {
+				console.error('Error in run stream in background:', err)
+			}
+		})
 		return transformRun(execution)
 	}
 
@@ -176,7 +180,11 @@ export class ThreadsController {
 		@Headers('last-event-id') lastEventId?: string
 	) {
 		const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
-		stream.subscribe()
+		stream.subscribe({
+			error: (err) => {
+				console.error('Error in run stream:', err)
+			}
+		})
 		const { lockId, stream: sseStream } = await this.redisSseStreamService.createSseStream({
 			threadId: thread_id,
 			runId: execution.id,
@@ -284,7 +292,7 @@ export class ThreadsController {
 	@Get(':thread_id/usage')
 	async getThreadUsage(@Param('thread_id') threadId: string, @Query('start') start: string,
 			@Query('end') end?: string) {
-		const endHour = end ?? format(new Date(), USAGE_HOUR_FORMAT)
+		const endHour = end ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
 		return await this.queryBus.execute(new CopilotUserUsageQuery({ start, end: endHour, threadId }))
 	}
 }

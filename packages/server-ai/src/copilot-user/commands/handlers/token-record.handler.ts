@@ -1,11 +1,11 @@
 import { mapTranslationLanguage, USAGE_HOUR_FORMAT } from '@metad/contracts'
 import { InvalidConfigurationException, RequestContext } from '@metad/server-core'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { format } from 'date-fns/format'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
 import { ExceedingLimitException } from '../../../core/errors'
+import { formatInUTC0 } from '../../../shared/utils'
 import { CopilotUserService } from '../../copilot-user.service'
 import { CopilotTokenRecordCommand } from '../token-record.command'
 
@@ -32,7 +32,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 		}
 
 		if (tokenUsed > 0) {
-			const usageHour = format(new Date(), USAGE_HOUR_FORMAT)
+			const usageHour = formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
 			const copilot = await this.queryBus.execute(
 				new CopilotGetOneQuery(input.tenantId, copilotId, ['modelProvider'])
 			)

@@ -1,11 +1,11 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { format } from 'date-fns/format'
 import { Repository } from 'typeorm'
 import { CopilotUser } from '../../copilot-user.entity'
 import { CopilotUserUsageQuery } from '../copilot-user-usage.query'
 import { USAGE_HOUR_FORMAT } from '@metad/contracts'
+import { formatInUTC0 } from '../../../shared/utils'
 
 @QueryHandler(CopilotUserUsageQuery)
 export class CopilotUserUsageHandler implements IQueryHandler<CopilotUserUsageQuery> {
@@ -18,7 +18,7 @@ export class CopilotUserUsageHandler implements IQueryHandler<CopilotUserUsageQu
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const { userId, xpertId, start, end, threadId } = command.params
-		const endHour = end ?? format(new Date(), USAGE_HOUR_FORMAT)
+		const endHour = end ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
 
 		const query = this.repository
 			.createQueryBuilder('copilot_user')
