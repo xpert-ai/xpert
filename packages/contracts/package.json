@@ -16,6 +16,6 @@
   "main": "./index.cjs.js",
   "dependencies": {
     "@a2ui/lit": "^0.8.1",
-    "@xpert-ai/chatkit-types": "^0.0.8"
+    "@xpert-ai/chatkit-types": "^0.0.12"
   }
 }

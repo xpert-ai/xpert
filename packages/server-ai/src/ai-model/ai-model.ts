@@ -203,13 +203,19 @@ export abstract class AIModel implements IAIModel {
 
 	getModelProfile(model: string, credentials: unknown): ModelProfile {
 		const modelSchema = this.getModelSchema(model, credentials)
-		return modelSchema && {
+		if (!modelSchema) return null
+		const profile: ModelProfile = {
 			maxInputTokens: modelSchema.model_properties?.context_size,
 			toolCalling: modelSchema.features?.includes(ModelFeature.TOOL_CALL) ||
 				modelSchema.features?.includes(ModelFeature.MULTI_TOOL_CALL) ||
 				  modelSchema.features?.includes(ModelFeature.STREAM_TOOL_CALL),
 			structuredOutput: modelSchema.features?.includes(ModelFeature.STRUCTURED_OUTPUT),
 		}
+		const maxTokensRule = modelSchema.parameter_rules?.find((rule) => rule.name === 'max_tokens')
+		if (maxTokensRule) {
+			profile.maxOutputTokens = maxTokensRule.max
+		}
+		return profile
 	}
 }
 

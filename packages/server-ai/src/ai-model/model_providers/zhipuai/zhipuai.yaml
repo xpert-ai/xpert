@@ -1,7 +1,7 @@
 provider: zhipuai
 label:
-  zh_Hans: 智谱 AI
-  en_US: ZHIPU AI
+  zh_Hans: 智谱 AI (❌已废弃, 迁移至插件)
+  en_US: ZHIPU AI (❌DEPRECATED migrated to plugin)
 icon_small:
   en_US: icon_s_en.svg
 icon_large:
