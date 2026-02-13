@@ -26,10 +26,12 @@ export class StatisticsDailyMessagesHandler implements IQueryHandler<StatisticsD
 			.select('DATE(conversation."createdAt") as date')
 			.addSelect('COUNT(DISTINCT chat_message.id) as count')
 			.where('conversation.tenantId = :tenantId', {tenantId})
-			.andWhere('conversation.organizationId = :organizationId', {organizationId})
 			.andWhere('conversation.from != :from', { from: 'debugger' })
 			.andWhere('chat_message.role = :role', { role: 'ai' })
 
+		if (!xpertId) {
+			query.andWhere('conversation.organizationId = :organizationId', {organizationId})
+		}
 		if (xpertId) {
 			query.andWhere('conversation.xpertId = :xpertId', { xpertId })
 		}

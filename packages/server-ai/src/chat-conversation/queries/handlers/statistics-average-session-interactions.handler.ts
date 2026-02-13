@@ -30,10 +30,12 @@ export class StatisticsAverageSessionInteractionsHandler
 			.addSelect('COUNT( DISTINCT conversation.id)', 'conversations_count')
 			.addSelect('COUNT(*) / COUNT( DISTINCT conversation.id)', 'count')
 			.where('conversation.tenantId = :tenantId', {tenantId})
-			.andWhere('conversation.organizationId = :organizationId', {organizationId})
 			.andWhere('conversation.from != :from', { from: 'debugger' })
 			.andWhere('chat_message.role = :role', { role: 'human' })
 
+		if (!xpertId) {
+			query.andWhere('conversation.organizationId = :organizationId', {organizationId})
+		}
 		if (xpertId) {
 			query.andWhere('conversation.xpertId = :xpertId', { xpertId })
 		}

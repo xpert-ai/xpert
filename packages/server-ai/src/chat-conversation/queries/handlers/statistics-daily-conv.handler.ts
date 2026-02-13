@@ -25,9 +25,11 @@ export class StatisticsDailyConvHandler implements IQueryHandler<StatisticsDaily
 			.select('DATE("createdAt") as date')
 			.addSelect('COUNT(*) as count')
 			.where('conversation.tenantId = :tenantId', {tenantId})
-			.andWhere('conversation.organizationId = :organizationId', {organizationId})
 			.andWhere('conversation.from != :from', { from: 'debugger' })
 
+		if (!xpertId) {
+			query.andWhere('conversation.organizationId = :organizationId', {organizationId})
+		}
 		if (xpertId) {
 			query.andWhere('conversation.xpertId = :xpertId', { xpertId })
 		}

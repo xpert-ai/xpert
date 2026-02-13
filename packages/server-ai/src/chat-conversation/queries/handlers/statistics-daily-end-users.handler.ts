@@ -24,9 +24,11 @@ export class StatisticsDailyEndUsersHandler implements IQueryHandler<StatisticsD
 			.select('DATE("createdAt") as date')
 			.addSelect('COUNT(DISTINCT COALESCE("fromEndUserId", "createdById"::text)) as count')
 			.where('conversation.tenantId = :tenantId', {tenantId})
-			.andWhere('conversation.organizationId = :organizationId', {organizationId})
 			.andWhere('conversation.from != :from', { from: 'debugger' })
 
+		if (!xpertId) {
+			query.andWhere('conversation.organizationId = :organizationId', {organizationId})
+		}
 		if (xpertId) {
 			query.andWhere('conversation.xpertId = :xpertId', { xpertId })
 		}

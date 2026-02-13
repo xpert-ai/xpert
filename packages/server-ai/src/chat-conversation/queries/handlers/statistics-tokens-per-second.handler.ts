@@ -22,7 +22,20 @@ export class StatisticsTokensPerSecondHandler
 
 		const repository = this.repository
 
-        const where = xpertId ? `AND cc."xpertId" = $7` : ''
+		const params: Array<string> = [tenantId, 'debugger', 'ai', start || '0', end || '']
+		let paramIndex = params.length + 1
+		let organizationWhere = ''
+		let xpertWhere = ''
+
+		if (!xpertId) {
+			organizationWhere = `AND cc."organizationId" = $${paramIndex}`
+			params.push(organizationId)
+			paramIndex++
+		}
+		if (xpertId) {
+			xpertWhere = `AND cc."xpertId" = $${paramIndex}`
+			params.push(xpertId)
+		}
 
 		return await repository.manager.query(`SELECT 
     date, 
@@ -44,11 +57,12 @@ FROM (
         ON execution."id" = cm."executionId" 
     WHERE 
         cc."tenantId" = $1
-        AND cc."organizationId" = $2
-        AND cc."from" != $3 ${where}
-        AND cm."role" = $4
-        AND cc."createdAt" >= $5
-        AND cc."createdAt" <= $6
+        ${organizationWhere}
+        ${xpertWhere}
+        AND cc."from" != $2
+        AND cm."role" = $3
+        AND cc."createdAt" >= $4
+        AND cc."createdAt" <= $5
         AND execution."responseLatency" > 0
     GROUP BY 
         date
@@ -72,11 +86,12 @@ FROM (
         ON subexecution."parentId" = execution."id" 
     WHERE 
         cc."tenantId" = $1
-        AND cc."organizationId" = $2
-        AND cc."from" != $3 ${where}
-        AND cm."role" = $4
-        AND cc."createdAt" >= $5
-        AND cc."createdAt" <= $6
+        ${organizationWhere}
+        ${xpertWhere}
+        AND cc."from" != $2
+        AND cm."role" = $3
+        AND cc."createdAt" >= $4
+        AND cc."createdAt" <= $5
         AND subexecution."responseLatency" > 0
     GROUP BY 
         date
@@ -84,6 +99,6 @@ FROM (
 GROUP BY 
     date 
 ORDER BY 
-    date ASC;`, [tenantId, organizationId, 'debugger', 'ai', start || '0', end || '', ...(xpertId ? [xpertId] : [])])
+    date ASC;`, params)
 	}
 }

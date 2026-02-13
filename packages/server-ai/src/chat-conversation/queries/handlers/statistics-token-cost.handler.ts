@@ -1,18 +1,17 @@
+import { RequestContext } from '@metad/server-core'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Logger } from '@nestjs/common'
 import { Repository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
-import { ChatConversationService } from '../../conversation.service'
 import { StatisticsTokenCostQuery } from '../statistics-token-cost.query'
-import { RequestContext } from '@metad/server-core'
-import { InjectRepository } from '@nestjs/typeorm'
 
 @QueryHandler(StatisticsTokenCostQuery)
-export class StatisticsTokenCostQueryHandler implements IQueryHandler<StatisticsTokenCostQuery>
-{
-	constructor(
-        @InjectRepository(ChatConversation)
-        public repository: Repository<ChatConversation>,
-        private readonly service: ChatConversationService) {}
+export class StatisticsTokenCostQueryHandler implements IQueryHandler<StatisticsTokenCostQuery> {
+    private readonly logger = new Logger(StatisticsTokenCostQueryHandler.name)
+
+    @InjectRepository(ChatConversation)
+    public repository: Repository<ChatConversation>
 
 	public async execute(command: StatisticsTokenCostQuery) {
 		const { xpertId, start, end } = command
@@ -20,10 +19,24 @@ export class StatisticsTokenCostQueryHandler implements IQueryHandler<Statistics
 		const organizationId = RequestContext.getOrganizationId()
 
 		const repository = this.repository
-        
-        const where = xpertId ? `AND cc."xpertId" = $7` : ''
 
-        return await repository.manager.query(`SELECT 
+		const params: Array<string> = [tenantId, 'debugger', 'ai', start || '0', end || '']
+		let paramIndex = params.length + 1
+		let organizationWhere = ''
+		let xpertWhere = ''
+
+		// For xpert-specific monitor, aggregate all usages by xpertId across organizations.
+		if (!xpertId) {
+			organizationWhere = `AND cc."organizationId" = $${paramIndex}`
+			params.push(organizationId)
+			paramIndex++
+		}
+		if (xpertId) {
+			xpertWhere = `AND cc."xpertId" = $${paramIndex}`
+			params.push(xpertId)
+		}
+
+        const query = `SELECT 
     date,
     model,
     COALESCE(currency, '') AS currency,
@@ -46,11 +59,12 @@ FROM (
         ON execution."id" = cm."executionId" 
     WHERE 
         cc."tenantId" = $1
-        AND cc."organizationId" = $2
-        AND cc."from" != $3 ${where}
-        AND cm."role" = $4
-        AND cc."createdAt" >= $5
-        AND cc."createdAt" <= $6
+        ${organizationWhere}
+        ${xpertWhere}
+        AND cc."from" != $2
+        AND cm."role" = $3
+        AND cc."createdAt" >= $4::timestamptz
+        AND cc."createdAt" <= $5::timestamptz
     GROUP BY 
         date, model, execution.currency
 
@@ -75,11 +89,12 @@ FROM (
         ON subexecution."parentId" = execution."id" 
     WHERE 
         cc."tenantId" = $1
-        AND cc."organizationId" = $2
-        AND cc."from" != $3 ${where}
-        AND cm."role" = $4
-        AND cc."createdAt" >= $5
-        AND cc."createdAt" <= $6
+        ${organizationWhere}
+        ${xpertWhere}
+        AND cc."from" != $2
+        AND cm."role" = $3
+        AND cc."createdAt" >= $4::timestamptz
+        AND cc."createdAt" <= $5::timestamptz
     GROUP BY 
         date, model, subexecution.currency
 ) AS combined_data
@@ -87,7 +102,9 @@ WHERE tokens > 0
 GROUP BY 
     date, model, currency
 ORDER BY 
-    date ASC;`, [tenantId, organizationId, 'debugger', 'ai', start || '0', end || '', ...(xpertId ? [xpertId] : [])])
+    date ASC;`
 
+        this.logger.verbose('Executing StatisticsTokenCostQuery with query:', query, 'and params:', params)
+        return await repository.manager.query(query, params)
 	}
 }
