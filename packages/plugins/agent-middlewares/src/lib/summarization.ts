@@ -15,7 +15,6 @@ import {
 } from "@langchain/core/messages";
 import {
   BaseLanguageModel,
-  getModelContextSize,
 } from "@langchain/core/language_models/base";
 import {
   interopSafeParse,
@@ -24,7 +23,7 @@ import {
 import { REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
-import { AgentMiddleware, AgentMiddlewareStrategy, CreateModelClientCommand, IAgentMiddlewareContext, IAgentMiddlewareStrategy, WrapWorkflowNodeExecutionCommand } from "@xpert-ai/plugin-sdk";
+import { AgentMiddleware, AgentMiddlewareStrategy, CreateModelClientCommand, getModelContextSize, IAgentMiddlewareContext, IAgentMiddlewareStrategy, WrapWorkflowNodeExecutionCommand } from "@xpert-ai/plugin-sdk";
 import { AiModelTypeEnum, ICopilotModel, JSONValue, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@metad/contracts";
 import { isNil, omitBy } from "lodash";
 import { countTokensApproximately, hasToolCalls } from "./utils";
@@ -140,36 +139,6 @@ const contextSchema = z.object({
 export type SummarizationMiddlewareConfig = InferInteropZodInput<
   typeof contextSchema
 >;
-
-export function getProfileLimits(input: BaseLanguageModel): number | undefined {
-  // Backward compatibility for langchain <1.0.0
-  if (input.metadata && "profile" in input.metadata) {
-    const profile = input.metadata['profile'] as object;
-    if ("maxInputTokens" in profile && (typeof profile.maxInputTokens === "number" || profile.maxInputTokens == null)) {
-      return (profile.maxInputTokens as number) ?? undefined;
-    }
-  }
-  // Langchain v1.0.0+
-  if (
-    "profile" in input &&
-    typeof input.profile === "object" &&
-    input.profile &&
-    "maxInputTokens" in input.profile &&
-    (typeof input.profile.maxInputTokens === "number" ||
-      input.profile.maxInputTokens == null)
-  ) {
-    return (input.profile.maxInputTokens as number) ?? undefined;
-  }
-
-  if ("model" in input && typeof input.model === "string") {
-    return getModelContextSize(input.model);
-  }
-  if ("modelName" in input && typeof input.modelName === "string") {
-    return getModelContextSize(input.modelName);
-  }
-
-  return undefined;
-}
 
 @Injectable()
 @AgentMiddlewareStrategy('SummarizationMiddleware')
@@ -384,7 +353,7 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
           triggerConditions.some((c) => "fraction" in c) ||
           "fraction" in validatedKeep;
 
-        if (requiresProfile && !getProfileLimits(model)) {
+        if (requiresProfile && !getModelContextSize(model)) {
           throw new Error(
             "Model profile information is required to use fractional token limits. " +
               "Use absolute token counts instead."
@@ -562,7 +531,7 @@ async function shouldSummarize(
 
     if (trigger.fraction !== undefined) {
       hasAnyProperty = true;
-      const maxInputTokens = getProfileLimits(model);
+      const maxInputTokens = getModelContextSize(model);
       if (typeof maxInputTokens === "number") {
         const threshold = Math.floor(maxInputTokens * trigger.fraction);
         if (totalTokens < threshold) {
@@ -624,7 +593,7 @@ async function findTokenBasedCutoff(
   let targetTokenCount: number;
 
   if ("fraction" in keep && keep.fraction !== undefined) {
-    const maxInputTokens = getProfileLimits(model);
+    const maxInputTokens = getModelContextSize(model);
     if (typeof maxInputTokens !== "number") {
       return;
     }
