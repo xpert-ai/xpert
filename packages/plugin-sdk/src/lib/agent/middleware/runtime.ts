@@ -5,6 +5,7 @@ import type {
   StreamMode,
 } from "@langchain/langgraph";
 import type { BaseMessage } from "@langchain/core/messages";
+import { TSandboxConfigurable } from "@metad/contracts";
 
 
 /**
@@ -62,6 +63,7 @@ export type Runtime<TContext = unknown> = Partial<
   WithMaybeContext<TContext> & {
     configurable?: {
       thread_id?: string;
+      sandbox?: TSandboxConfigurable | null;
       [key: string]: unknown;
     };
   };
