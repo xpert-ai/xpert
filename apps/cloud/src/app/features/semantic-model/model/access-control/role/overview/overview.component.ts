@@ -13,6 +13,7 @@ import { Dialog } from '@angular/cdk/dialog'
 
 
 @Component({
+  standalone: false,
   selector: 'pac-model-access-role-overview',
   templateUrl: 'overview.component.html',
   styleUrls: ['overview.component.scss']

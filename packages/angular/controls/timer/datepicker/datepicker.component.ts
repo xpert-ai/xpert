@@ -38,6 +38,7 @@ import { NgmSmartFilterService } from '../../smart-filter.service'
   selector: 'ngm-member-datepicker',
   templateUrl: './datepicker.component.html',
   styleUrls: ['./datepicker.component.scss'],
+  standalone: false,
   host: {
     class: 'ngm-member-datepicker'
   },

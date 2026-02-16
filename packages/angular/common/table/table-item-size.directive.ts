@@ -25,6 +25,7 @@ const defaults = {
 
 @Directive({
   selector: 'cdk-virtual-scroll-viewport[tvsItemSize]',
+  standalone: false,
   providers: [{
     provide: VIRTUAL_SCROLL_STRATEGY,
     useFactory: _tableVirtualScrollDirectiveStrategyFactory,

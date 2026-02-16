@@ -13,7 +13,7 @@ $sidebar-width: 200px;
 $sidebar-collapsed-width: 40px;
 
 @mixin color($theme) {
-  $config: mat.get-color-config($theme);
+  $config: mat.m2-get-color-config($theme);
 
   $primary: map.get($config, 'primary');
   $accent: map.get($config, accent);
@@ -46,7 +46,7 @@ $sidebar-collapsed-width: 40px;
       background: unset;
       border-bottom: unset;
       line-height: 40px;
-      color: mat.get-color-from-palette($primary, 'darker-contrast');
+      color: mat.m2-get-color-from-palette($primary, 'darker-contrast');
 
       .mat-divider-vertical {
         height: 20px;
@@ -69,7 +69,7 @@ $sidebar-collapsed-width: 40px;
       .mat-mdc-tab-link {
         height: 36px;
         padding: 0 1rem;
-        color: mat.get-color-from-palette($primary, '100-contrast');
+        color: mat.m2-get-color-from-palette($primary, '100-contrast');
       }
     }
   }
@@ -102,7 +102,7 @@ $sidebar-collapsed-width: 40px;
   // }
 
   .cdk-overlay-container .ant-menu-submenu-popup > .ant-menu {
-    background-color: mat.get-color-from-palette($primary, 900);
+    background-color: mat.m2-get-color-from-palette($primary, 900);
     user-select: none;
   }
 
@@ -113,7 +113,7 @@ $sidebar-collapsed-width: 40px;
       box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
     }
     &:active {
-      box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, mat.get-color-from-palette($primary, 300) 0px 0px 0px 1px;
+      box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, mat.m2-get-color-from-palette($primary, 300) 0px 0px 0px 1px;
     }
   }
 
@@ -152,7 +152,7 @@ $sidebar-collapsed-width: 40px;
   }
 
   .pac-pro-tag {
-    background-color: mat.get-color-from-palette($accent, 300);
+    background-color: mat.m2-get-color-from-palette($accent, 300);
     padding: 1px 5px;
     border-radius: 5px;
   }
@@ -173,7 +173,7 @@ $sidebar-collapsed-width: 40px;
       align-items: center;
 
       &.mat-mdc-tab-label-active {
-        background-color: mat.get-color-from-palette($background, background);
+        background-color: mat.m2-get-color-from-palette($background, background);
       }
 
       .pac-nav-tab__close {
@@ -187,7 +187,7 @@ $sidebar-collapsed-width: 40px;
         content: "";
         height: 15px;
         width: 2px;
-        background-color: mat.get-color-from-palette($foreground, divider);
+        background-color: mat.m2-get-color-from-palette($foreground, divider);
         position: absolute;
         right: 0;
         border-radius: 2px;
@@ -227,7 +227,7 @@ $sidebar-collapsed-width: 40px;
         height: 32px;
 
         &.mat-accent {
-          background-color: color.change(mat.get-color-from-palette($accent), $alpha: 0.1);
+          background-color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.1);
         }
       }
     }
@@ -258,9 +258,9 @@ $sidebar-collapsed-width: 40px;
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: mat.m2-get-color-config($theme);
+  $density: mat.m2-get-density-config($theme);
+  $typography: mat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

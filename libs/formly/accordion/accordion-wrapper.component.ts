@@ -6,6 +6,7 @@ import { isNil } from 'lodash-es';
 
 @Component({
   selector: 'ngm-formly-accordion',
+  standalone: false,
   templateUrl: './accordion-wrapper.component.html',
   styleUrls: ['./accordion-wrapper.component.scss'],
   host: {

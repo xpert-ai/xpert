@@ -26,6 +26,7 @@ import { CountdownGlobalConfig } from './countdown.config';
  */
 @Component({
   selector: 'countdown',
+  standalone: false,
   template: `
     <ng-container *ngIf="!render">
       <span [innerHTML]="i.text"></span>

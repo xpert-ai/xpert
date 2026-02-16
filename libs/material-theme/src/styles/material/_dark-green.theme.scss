@@ -10,11 +10,11 @@
 @use './dark.theme' as dark-theme;
 
 // Define a theme.
-$primary: mat.define-palette(mat.$green-palette, 600);
-$accent: mat.define-palette(mat.$amber-palette, A700, A400, A200);
+$primary: mat.m2-define-palette(mat.$m2-green-palette, 600);
+$accent: mat.m2-define-palette(mat.$m2-amber-palette, A700, A400, A200);
 
 $dark-theme: map.deep-merge(
-  mat.define-dark-theme((
+  mat.m2-define-dark-theme((
     color: (
       primary: $primary,
       accent: $accent,
@@ -28,16 +28,16 @@ $dark-theme: map.deep-merge(
   )
 );
 
-$config: mat.get-color-config($dark-theme);
+$config: mat.m2-get-color-config($dark-theme);
 $foreground: map.get($config, foreground);
 
 .dark.dark-green {
-  --ngm-color-primary: #{mat.get-color-from-palette($primary)};
-  --ngm-color-on-primary-container: #{darken(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container: #{lighten(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container-variant: #{color.change(mat.get-color-from-palette($primary), $alpha: 0.1)};
-  --ngm-color-secondary: #{mat.get-color-from-palette($accent)};
-  --ngm-color-secondary-container: #{lighten(mat.get-color-from-palette($accent), 30%)};
+  --ngm-color-primary: #{mat.m2-get-color-from-palette($primary)};
+  --ngm-color-on-primary-container: #{darken(mat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container: #{lighten(mat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container-variant: #{color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.1)};
+  --ngm-color-secondary: #{mat.m2-get-color-from-palette($accent)};
+  --ngm-color-secondary-container: #{lighten(mat.m2-get-color-from-palette($accent), 30%)};
   --ngm-color-outline: #{map.get($foreground, divider)};
 
   // Include all theme styles for the mat components.

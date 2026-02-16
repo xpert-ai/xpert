@@ -10,6 +10,7 @@ import {
 import { AppService } from './app.service'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-root',
   templateUrl: './app.component.html',

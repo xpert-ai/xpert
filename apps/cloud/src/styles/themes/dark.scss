@@ -1,4 +1,4 @@
-@use '@angular/material/core/tokens/token-utils';
+@use 'libs/material-theme/src/styles/material/token-utils-compat' as token-utils;
 @use 'libs/material-theme/src/styles/material/dark.theme' as dark-theme;
 @use 'libs/apps/indicator-market/src/lib/indicator-market-theme' as indicator-market;
 @use '../../app/features/features-theme' as features;

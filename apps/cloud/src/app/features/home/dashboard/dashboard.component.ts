@@ -10,7 +10,7 @@ import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { TimeGranularity } from '@metad/ocap-core'
 import { NxStoryModule } from '@metad/story/story'
 import { TranslateModule } from '@ngx-translate/core'
-import { GridType, GridsterComponent, GridsterConfig, GridsterItem, GridsterModule } from 'angular-gridster2'
+import { GridType, Gridster, GridsterConfig, GridsterItem as GridsterItemComponent, GridsterItemConfig } from 'angular-gridster2'
 import { cloneDeep, compact, isEqual, pick } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -66,7 +66,8 @@ const QuickGuidesInit = {
     SharedModule,
     MaterialModule,
     TranslateModule,
-    GridsterModule,
+    Gridster,
+    GridsterItemComponent,
     NxStoryModule,
 
     StoryWidgetFeedComponent,
@@ -91,7 +92,7 @@ export class DashboardComponent extends TranslationBaseComponent implements OnIn
   private toastrService = inject(ToastrService)
   readonly _dialog = inject(MatDialog)
 
-  @ViewChild(GridsterComponent) gridster: GridsterComponent
+  @ViewChild(Gridster) gridster: Gridster
 
   searchControl = new FormControl<string>('')
   searching$ = new BehaviorSubject<boolean>(false)
@@ -423,7 +424,7 @@ export class DashboardComponent extends TranslationBaseComponent implements OnIn
     this.toggleEdit()
   }
 
-  onGridsterItemChange({ item }: { item: GridsterItem }, feed: any) {
+  onGridsterItemChange({ item }: { item: GridsterItemConfig }, feed: any) {
     // this.feeds = this.feeds
   }
 }

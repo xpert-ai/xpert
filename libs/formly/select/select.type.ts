@@ -6,13 +6,14 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { nonNullable } from '@metad/core'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
 import { EMPTY, Observable, catchError, startWith } from 'rxjs'
+
+const isNonNullable = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined
 
 /**
  * Props:
@@ -64,7 +65,7 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
       const error = isSignal(this.props.error) ? this.props.error() : null
       if (isString(error)) {
         this.error.set(error)
-      } else if (nonNullable(this.value()) && nonNullable(this.selectOptions()) && !this.selectOptions().find((option) => option[this.props?.valueKey ?? 'value'] === this.value())) {
+      } else if (isNonNullable(this.value()) && isNonNullable(this.selectOptions()) && !this.selectOptions().find((option) => option[this.props?.valueKey ?? 'value'] === this.value())) {
         this.error.set(
           this.#translate.instant('FORMLY.COMMON.NotFoundValue', { Default: 'Not found value: ' }) + this.value()
         )

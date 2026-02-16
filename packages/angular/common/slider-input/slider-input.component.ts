@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   HostBinding,
   Input,
   ViewChild,
@@ -11,14 +10,7 @@ import {
   signal
 } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import {
-  CanColor,
-  CanDisable,
-  CanDisableRipple,
-  mixinColor,
-  mixinDisableRipple,
-  mixinDisabled
-} from '@angular/material/core'
+import { ThemePalette } from '@angular/material/core'
 import { MatInputModule } from '@angular/material/input'
 import { MatSlider, MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
 
@@ -45,18 +37,10 @@ import { MatSlider, MatSliderDragEvent, MatSliderModule } from '@angular/materia
   ],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatInputModule, MatSliderModule]
 })
-export class NgmSliderInputComponent
-  extends mixinColor(
-    mixinDisabled(
-      mixinDisableRipple(
-        class {
-          constructor(public _elementRef: ElementRef) {}
-        }
-      )
-    )
-  )
-  implements CanDisable, CanColor, CanDisableRipple, ControlValueAccessor
-{
+export class NgmSliderInputComponent implements ControlValueAccessor {
+  @Input() disabled = false
+  @Input() disableRipple = false
+  @Input() color: ThemePalette = null
   @HostBinding('class.ngm-slider-input') _isSliderInputComponent = true
 
   @Input() label: string
@@ -96,10 +80,6 @@ export class NgmSliderInputComponent
 
   onChange: (input: any) => void
   onTouched: () => void
-
-  constructor(_elementRef: ElementRef) {
-    super(_elementRef)
-  }
 
   ngAfterContentInit(): void {
     if (this.autoScale) {

@@ -5,6 +5,7 @@ import { TranslationBaseComponent } from '../../../../@shared/language'
 import { effectAction } from '@metad/ocap-angular/core'
 
 @Component({
+  standalone: false,
   selector: 'pac-tenant-demo',
   templateUrl: 'demo.component.html',
   styles: [':host {display: block; padding-top: 1rem;}']

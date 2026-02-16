@@ -9,7 +9,8 @@ import { EditorThemeMap } from './types'
 declare var monaco: any
 
 @Directive({
-  selector: '[ngmEditor]'
+  selector: '[ngmEditor]',
+  standalone: false
 })
 export class NgmBaseEditorDirective implements ControlValueAccessor, OnDestroy {
   readonly themeService = inject(NgmThemeService)

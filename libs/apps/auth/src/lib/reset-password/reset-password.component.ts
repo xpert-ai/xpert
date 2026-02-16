@@ -10,6 +10,7 @@ import { getDeepFromObject } from '../helpers'
 import { PacAuthResult, PacAuthService, PasswordStrengthEnum, matchValidator, passwordStrength } from '../services'
 
 @Component({
+  standalone: false,
   selector: 'pac-reset-password',
   templateUrl: 'reset-password.component.html',
   styleUrls: ['reset-password.component.scss']

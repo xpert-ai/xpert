@@ -19,6 +19,7 @@ export type TreeTableColumn = Property & {
   selector: 'ngm-tree-table',
   templateUrl: 'tree-table.component.html',
   styleUrls: ['tree-table.component.scss'],
+  standalone: false,
   host: {
     'class': 'ngm-tree-table'
   }

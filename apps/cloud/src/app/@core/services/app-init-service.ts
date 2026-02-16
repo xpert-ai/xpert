@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core'
+import { Inject, Injectable } from '@angular/core'
 import { Router } from '@angular/router'
 import { Ability, AbilityBuilder } from '@casl/ability'
 import { IUser } from '@metad/contracts'
@@ -22,7 +22,7 @@ export class AppInitService {
     private readonly router: Router,
     private readonly store: Store,
     private readonly ngxPermissionsService: NgxPermissionsService,
-    private readonly ability: Ability,
+    @Inject(Ability) private readonly ability: Ability,
   ) {}
 
   async init() {

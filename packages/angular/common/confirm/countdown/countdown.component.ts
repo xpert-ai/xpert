@@ -16,7 +16,8 @@ import { CountdownConfig, CountdownEvent, CountdownTimer } from '../../countdown
       }
     `
   ],
-  providers: [CountdownTimer]
+  providers: [CountdownTimer],
+  standalone: false
 })
 export class NgmCountdownConfirmationComponent {
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true

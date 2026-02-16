@@ -1,8 +1,6 @@
 {
-    "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
-    "dest": "../../../dist/libs/formly/textarea",
-    "lib": {
-      "entryFile": "./index.ts"
-    }
+  "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
+  "lib": {
+    "entryFile": "./index.ts"
   }
-  
+}

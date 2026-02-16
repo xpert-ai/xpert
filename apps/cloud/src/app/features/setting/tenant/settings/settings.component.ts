@@ -10,6 +10,7 @@ interface ItemData {
 }
 
 @Component({
+  standalone: false,
   selector: 'pac-tenant-settings',
   templateUrl: 'settings.component.html',
   styles: [':host {display: block; width: 100%; padding: 1rem;}']

@@ -41,6 +41,7 @@ import { NxGridSelectionSummary, NX_GRID_SELECTION_SUMMARY } from './selection-s
 import { NxSmartGridOptions, NX_SMART_GRID_DEFAULT_OPTIONS, WidgetDesignerType } from './types'
 
 @Component({
+  standalone: false,
   selector: 'pac-widget-smart-grid',
   templateUrl: './smart-grid.component.html',
   styleUrls: ['./smart-grid.component.scss'],

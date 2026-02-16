@@ -1,5 +1,6 @@
 import { BooleanInput, coerceBooleanProperty } from '@angular/cdk/coercion'
-import { ComponentPortal } from '@angular/cdk/portal'
+import { ComponentPortal, PortalModule } from '@angular/cdk/portal'
+import { CommonModule } from '@angular/common'
 import {
   ChangeDetectorRef,
   Component,
@@ -16,16 +17,24 @@ import {
   signal
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { MatButtonModule } from '@angular/material/button'
+import { MatIconModule } from '@angular/material/icon'
 import { MatTabGroup } from '@angular/material/tabs'
+import { MatToolbarModule } from '@angular/material/toolbar'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { nonNullable } from '@metad/core'
+import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, filter, map } from 'rxjs/operators'
 import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE, STORY_DESIGNER_SCHEMA } from '../types'
 import { NxSettingsPanelService } from './settings-panel.service'
 
 @Component({
+  standalone: true,
   selector: 'ngm-settings-panel',
   templateUrl: './settings-panel.component.html',
   styleUrls: ['./settings-panel.component.scss'],
+  imports: [CommonModule, PortalModule, MatButtonModule, MatIconModule, MatToolbarModule, MatTooltipModule, TranslateModule, OcapCoreModule],
   host: {
     class: 'ngm-settings-panel'
   }

@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatCommonModule } from '@angular/material/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { FormlyFieldSortComponent } from './sort.type'
 
@@ -9,7 +8,6 @@ import { FormlyFieldSortComponent } from './sort.type'
   declarations: [],
   imports: [
     CommonModule,
-    MatCommonModule,
     FormsModule,
     ReactiveFormsModule,
     FormlyModule.forChild({

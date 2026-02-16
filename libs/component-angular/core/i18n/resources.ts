@@ -1,5 +1,11 @@
-import { cloneValue } from "@metad/core";
 import { IValueHelpResourceStrings, ValueHelpResourceStringsEN } from "./value-help-resources";
+
+const cloneValue = <T>(value: T): T => {
+    if (typeof structuredClone === 'function') {
+        return structuredClone(value);
+    }
+    return JSON.parse(JSON.stringify(value)) as T;
+};
 
 export interface IResourceStrings extends IValueHelpResourceStrings { }
 

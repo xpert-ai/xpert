@@ -21,6 +21,7 @@ import { CubeStateService } from './cube.service'
  * https://stackblitz.com/edit/angular-cdk-nested-drag-drop-tree-structure?file=src%2Fapp%2Fapp.component.html
  */
 @Component({
+  standalone: false,
   selector: 'pac-model-access-cube',
   templateUrl: 'cube.component.html',
   styleUrls: ['cube.component.scss'],

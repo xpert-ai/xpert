@@ -1,12 +1,33 @@
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
+import { MatCheckboxModule } from '@angular/material/checkbox'
+import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatInputModule } from '@angular/material/input'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { TranslateModule } from '@ngx-translate/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { InviteService, ToastrService } from '@metad/cloud/state'
 import { IInvite, IUserRegistrationInput } from '@metad/contracts'
-import { TranslateService } from '@ngx-translate/core'
 import { tap } from 'rxjs/operators'
+import { AcceptInviteFormComponent } from './accept-invite-form/accept-invite-form.component'
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    MatFormFieldModule,
+    MatButtonModule,
+    MatInputModule,
+    MatCheckboxModule,
+    MatProgressSpinnerModule,
+    AcceptInviteFormComponent
+  ],
   selector: 'pac-auth-accept-invite',
   styleUrls: ['./accept-invite.component.scss'],
   templateUrl: 'accept-invite.component.html'
@@ -22,7 +43,6 @@ export class AcceptInvitePageComponent implements OnInit {
     private readonly router: Router,
     private readonly route: ActivatedRoute,
     private inviteService: InviteService,
-    private translate: TranslateService,
     private toastrService: ToastrService,
     private _cdr: ChangeDetectorRef
   ) {}

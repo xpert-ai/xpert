@@ -1,7 +1,6 @@
 import { FocusableOption } from '@angular/cdk/a11y'
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { Directive, ElementRef, HostBinding, Input } from '@angular/core'
-import { CanColor, mixinColor } from '@angular/material/core'
 import { Subject } from 'rxjs'
 
 export type ngmAppearance =
@@ -15,21 +14,15 @@ export type ngmAppearance =
   | 'dashed'
   | 'danger'
 
-const _NgmAppearanceBase = mixinColor(
-  class {
-    constructor(public _elementRef: ElementRef) {}
-  }
-)
-
 @Directive({
   standalone: true,
   selector: '[ngmAppearance]',
-  inputs: ['color'],
   host: {
     '(focus)': 'focus()'
   }
 })
-export class AppearanceDirective extends _NgmAppearanceBase implements CanColor, FocusableOption {
+export class AppearanceDirective implements FocusableOption {
+  @Input() color: string | null = null
   @Input() ngmAppearance: ngmAppearance = 'filled'
 
   /**
@@ -107,14 +100,12 @@ export class AppearanceDirective extends _NgmAppearanceBase implements CanColor,
   disabled?: boolean
   /** Whether the chip has focus. */
   _hasFocus = false
-  constructor(elementRef: ElementRef) {
-    super(elementRef)
-  }
+  constructor(private readonly elementRef: ElementRef<HTMLElement>) {}
 
   /** Allows for programmatic focusing of the chip. */
   focus(): void {
     if (!this._hasFocus) {
-      this._elementRef.nativeElement.focus()
+      this.elementRef.nativeElement.focus()
       this._onFocus.next({ chip: this })
     }
     this._hasFocus = true

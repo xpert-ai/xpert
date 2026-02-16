@@ -4,7 +4,8 @@ import { IUser } from '@metad/contracts'
 /**
  * @deprecated 重复定义
  */
-@Pipe({ name: 'createdBy' })
+@Pipe({
+  standalone: false, name: 'createdBy' })
 export class CreatedByUserPipe implements PipeTransform {
   transform(value: IUser): string {
     if (!value) {

@@ -3,7 +3,7 @@
 @use '@angular/material' as mat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
@@ -18,8 +18,8 @@
 
       &:hover,
       &:focus {
-        background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.05);
-        color: mat.get-color-from-palette($primary);
+        background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.05);
+        color: mat.m2-get-color-from-palette($primary);
 
         .ngm-display-behaviour__option-value {
           opacity: 1;
@@ -27,14 +27,14 @@
       }
 
       .mat-icon-rtl-mirror {
-        color: color.change(mat.get-color-from-palette($primary), $alpha: 0.3);
+        color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.3);
       }
     }
 
     .ngm-tree_selection.cdk-tree {
       .cdk-tree-node.selected {
-        background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.2);
-        color: mat.get-color-from-palette($primary);
+        background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.2);
+        color: mat.m2-get-color-from-palette($primary);
       }
     }
   }

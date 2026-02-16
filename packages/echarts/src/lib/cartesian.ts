@@ -14,7 +14,7 @@ import {
   omitBlank,
   QueryReturn
 } from '@metad/ocap-core'
-import { LinearGradient } from 'echarts/lib/util/graphic'
+import { graphic } from 'echarts/core'
 import {t} from 'i18next'
 import { includes, indexOf, sumBy } from 'lodash-es'
 import { axisOrient, getMeasureAxis } from './components/axis'
@@ -298,7 +298,7 @@ export function getVisualMapValueAxisIndex(
 
 export function getLegendColorForVisualMap(colors) {
   if (colors && colors.length > 2) {
-    return new LinearGradient(0, 0, 1, 0, [
+    return new graphic.LinearGradient(0, 0, 1, 0, [
       {
         offset: 0,
         color: colors[0]
@@ -313,7 +313,7 @@ export function getLegendColorForVisualMap(colors) {
       }
     ])
   } else if (colors && colors.length > 1) {
-    return new LinearGradient(0, 0, 1, 0, [
+    return new graphic.LinearGradient(0, 0, 1, 0, [
       {
         offset: 0,
         color: colors[0]

@@ -51,6 +51,7 @@ export interface AnalyticalCardState extends StoryWidgetState<WidgetAnalyticalCa
 }
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-widget-analytical-card',
   templateUrl: './analytical-card.component.html',

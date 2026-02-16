@@ -27,6 +27,7 @@ export class XpertStudioKnowledgeMenuComponent {
   readonly cdkMenu = inject(CdkMenu)
   private root = inject(XpertStudioComponent)
   readonly apiService = inject(XpertStudioApiService)
+  readonly isSelected = false
 
   readonly knowledges = toSignal(this.apiService.knowledgebases$)
 

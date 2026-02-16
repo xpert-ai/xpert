@@ -22,6 +22,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
 
 @Component({
+  standalone: false,
   selector: 'pac-roles',
   templateUrl: './roles.component.html',
   styleUrls: ['./roles.component.scss']

@@ -9,7 +9,7 @@
 @use './tree-select/tree-select-theme' as tree-select;
 
 @mixin common-color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $accent: map.get($config, accent);
 
   @include splitter.color($config-or-theme);

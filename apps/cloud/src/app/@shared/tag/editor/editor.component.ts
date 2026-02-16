@@ -47,6 +47,7 @@ export class TagEditorComponent implements ControlValueAccessor {
   private tagService = inject(TagService)
   private store = inject(Store)
 
+  disabled = false
   @Input() color: ThemePalette
   // @Input() category: string
   readonly category = input<TagCategoryEnum>(null)
@@ -103,6 +104,7 @@ export class TagEditorComponent implements ControlValueAccessor {
     this.onTouched = fn
   }
   setDisabledState?(isDisabled: boolean): void {
+    this.disabled = isDisabled
     isDisabled ? this.tagCtrl.disable({ emitEvent: false }) : this.tagCtrl.enable({ emitEvent: false })
   }
 

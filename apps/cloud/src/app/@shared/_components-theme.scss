@@ -4,7 +4,7 @@
 @import '../@core/variables';
 
 @mixin color($theme) {
-  $config: mat.get-color-config($theme);
+  $config: mat.m2-get-color-config($theme);
   $is-dark-theme: map.get($config, is-dark);
 
   $primary: map.get($config, 'primary');
@@ -12,18 +12,18 @@
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $fill-background:
-    mat.get-color-from-palette($foreground, base, if($is-dark-theme, 0.05, 0.02));
+    mat.m2-get-color-from-palette($foreground, base, if($is-dark-theme, 0.05, 0.02));
   $fill-disabled-background:
-    mat.get-color-from-palette($foreground, base, if($is-dark-theme, 0.05, 0.02));
+    mat.m2-get-color-from-palette($foreground, base, if($is-dark-theme, 0.05, 0.02));
 
   .mat-form-field-appearance-fill .mdc-text-field--filled:not(.mdc-text-field--disabled) {
     background-color: $fill-background;
   }
 
   // a {
-  //   color: mat.get-color-from-palette($foreground, text);
+  //   color: mat.m2-get-color-from-palette($foreground, text);
   //   &:hover {
-  //     color: mat.get-color-from-palette($primary, 500);
+  //     color: mat.m2-get-color-from-palette($primary, 500);
   //   }
   // }
 
@@ -74,7 +74,7 @@
   .mat-mdc-icon-button,
   .mat-stroked-button {
     &.mat-success {
-      color: mat.get-color-from-palette($success-palette);
+      color: mat.m2-get-color-from-palette($success-palette);
     }
   }
 
@@ -89,11 +89,11 @@
     .mat-step-icon {
       width: 40px;
       height: 40px;
-      border: 2px solid mat.get-color-from-palette($primary);
+      border: 2px solid mat.m2-get-color-from-palette($primary);
       background-color: unset;
-      color: mat.get-color-from-palette($foreground, text);
+      color: mat.m2-get-color-from-palette($foreground, text);
       &.mat-step-icon-selected {
-        background-color: mat.get-color-from-palette($primary);
+        background-color: mat.m2-get-color-from-palette($primary);
         color: white;
       }
     }
@@ -117,7 +117,7 @@
 
     &.mat-color-accent {
       .selected.mat-menu-item {
-        color: mat.get-color-from-palette($accent);
+        color: mat.m2-get-color-from-palette($accent);
       }
     }
   }
@@ -239,7 +239,7 @@
   }
 
   .ngxp__container > .ngxp__arrow::before {
-    background-color: mat.get-color-from-palette($background, card);
+    background-color: mat.m2-get-color-from-palette($background, card);
   }
 
   .ngm-selection-list {
@@ -333,7 +333,7 @@
   }
 
   .active.mat-menu-item {
-    color: mat.get-color-from-palette($accent);
+    color: mat.m2-get-color-from-palette($accent);
     font-weight: 600;
   }
 
@@ -385,9 +385,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: mat.m2-get-color-config($theme);
+  $density: mat.m2-get-density-config($theme);
+  $typography: mat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

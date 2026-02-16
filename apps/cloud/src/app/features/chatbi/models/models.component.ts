@@ -53,7 +53,9 @@ export class ChatbiModelsComponent {
   readonly loadingCubes = this.chatbiService.loadingCubes
   readonly cubeSelectOptions = computed(() => {
     const search = this.searchText()
-    let cubes = this.chatbiService.cubes()?.map((item) => ({ key: item.name, caption: item.caption, value: item }))
+    let cubes = this.chatbiService
+      .cubes()
+      ?.map((item) => ({ key: item.name, caption: item.caption, value: item, expanded: false }))
     if (search) {
       cubes = cubes?.filter(
         (item) => item.caption?.toLowerCase().includes(search) || item.key.toLowerCase().includes(search)
@@ -75,8 +77,8 @@ export class ChatbiModelsComponent {
     this.chatbiService.setEntity(key)
   }
 
-  toggleExpanded(option) {
-    option.expanded =!option.expanded
+  toggleExpanded(option: { expanded?: boolean }) {
+    option.expanded = !option.expanded
   }
 
   close() {

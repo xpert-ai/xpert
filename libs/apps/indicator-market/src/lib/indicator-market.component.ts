@@ -36,6 +36,7 @@ import { TIndicatorItemData } from '@metad/ocap-angular/indicator'
 
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-indicator-market',
   templateUrl: 'indicator-market.component.html',

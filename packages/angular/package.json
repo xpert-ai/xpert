@@ -15,17 +15,17 @@
     "url": "git+https://github.com/xpert-ai/xpert.git"
   },
   "peerDependencies": {
-    "@angular/cdk": "^17.0.0",
-    "@angular/common": "^17.0.0",
-    "@angular/core": "^17.0.0",
-    "@angular/material": "^17.0.0",
-    "@angular/material-date-fns-adapter": "^17.0.0",
+    "@angular/cdk": "^21.0.0",
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/material": "^21.0.0",
+    "@angular/material-date-fns-adapter": "^21.0.0",
     "@metad/ocap-core": "^2.3.0",
-    "@ngx-translate/core": "^15.0.0",
+    "@ngx-translate/core": "^17.0.0",
     "lodash-es": "^4.17.21",
-    "marked": "^9.0.0",
+    "marked": "^17.0.0",
     "ngx-popperjs": ">=15.0.4",
-    "ngx-markdown": ">=17.1.1",
+    "ngx-markdown": ">=21.1.0",
     "ngx-logger": "^5.0.12"
   },
   "dependencies": {

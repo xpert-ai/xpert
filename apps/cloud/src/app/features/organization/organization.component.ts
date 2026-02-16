@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 
 @Component({
+  standalone: false,
   selector: 'pac-organization',
   templateUrl: './organization.component.html',
   styleUrls: ['./organization.component.scss']

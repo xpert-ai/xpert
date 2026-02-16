@@ -3,15 +3,15 @@
 @use '../../../theming' as ocap;
 
 // Define a theme.
-$primary: mat.define-palette(mat.$blue-grey-palette, 600);
-$accent:  mat.define-palette(mat.$amber-palette, A700, A400, A200);
+$primary: mat.m2-define-palette(mat.$m2-blue-grey-palette, 600);
+$accent:  mat.m2-define-palette(mat.$m2-amber-palette, A700, A400, A200);
 
 // $material-typeface: "Lato, 'Noto Serif SC', monospace";
-// // mat.$light-theme-background-palette: map-merge(mat.$light-theme-background-palette, (surface: rgba(255, 255, 255, 0.875)));
-// $custom-typography: mat.define-typography-config(
+// // mat.$m2-light-theme-background-palette: map-merge(mat.$m2-light-theme-background-palette, (surface: rgba(255, 255, 255, 0.875)));
+// $custom-typography: mat.m2-define-typography-config(
 //   $font-family: $material-typeface
 // );
-$mat-theme: mat.define-light-theme((
+$mat-theme: mat.m2-define-light-theme((
   color: (
     primary: $primary,
     accent:  $accent,

@@ -26,7 +26,7 @@ describe('ShortNumberPipe test', () => {
 
     it('shortnumber test', () => {
         const shortNumber = TestBed.inject(ShortNumberPipe)
-        expect(shortNumber.transform(number, '3', 'K,M,B,T,Q')).toEqual([3.4343, 'M'])
+        expect(shortNumber.transform(number, 'zh-Hans', '3', 'K,M,B,T,Q')).toEqual([3.4343242342, 'M'])
     })
 
     it('#formatShortNumber', () => {

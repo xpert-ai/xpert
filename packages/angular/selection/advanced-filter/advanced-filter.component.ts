@@ -67,6 +67,7 @@ class ExpressionOperandItem extends ExpressionItem {
   selector: 'ngm-advanced-filter',
   templateUrl: './advanced-filter.component.html',
   styleUrls: ['./advanced-filter.component.scss'],
+  standalone: false,
   host: {
     class: 'ngm-advanced-filter'
   },

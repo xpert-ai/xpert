@@ -5,6 +5,7 @@ import { MatStepper } from '@angular/material/stepper'
 import { combineLatest } from 'rxjs'
 
 @Component({
+  standalone: false,
   selector: 'pac-organization-step-form',
   templateUrl: './organization-step-form.component.html',
   styleUrls: ['./organization-step-form.component.scss'],

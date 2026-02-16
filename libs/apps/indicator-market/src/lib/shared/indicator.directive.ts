@@ -4,6 +4,7 @@ import { IndicatorState } from '../types'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 @Directive({
+  standalone: false,
   selector: '[pacIndicator]',
   exportAs: 'pacIndicator',
   providers: [SmartIndicatorDataService]

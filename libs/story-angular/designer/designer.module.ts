@@ -16,7 +16,6 @@ import { DesignerPanelComponent } from './panel/panel.component'
 import { NgmSettingsPanelComponent } from './settings-panel/settings-panel.component'
 
 @NgModule({
-  declarations: [NgmSettingsPanelComponent, NxComponentSettingsComponent, DesignerPanelComponent],
   imports: [
     CommonModule,
     FormsModule,
@@ -33,6 +32,9 @@ import { NgmSettingsPanelComponent } from './settings-panel/settings-panel.compo
 
     // OCAP Modules
     OcapCoreModule,
+    NgmSettingsPanelComponent,
+    NxComponentSettingsComponent,
+    DesignerPanelComponent
   ],
   exports: [NgmSettingsPanelComponent, NxComponentSettingsComponent, DesignerPanelComponent]
 })

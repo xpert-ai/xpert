@@ -146,7 +146,7 @@ export class CubeStudioDimensionLevelComponent {
   )
 
   @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: KeyboardEvent) {
+  handleEscapeKey(event: Event) {
     const element = this.elementRef.nativeElement as HTMLElement
     if (document.activeElement && element.contains(document.activeElement)) {
       this.close.emit()

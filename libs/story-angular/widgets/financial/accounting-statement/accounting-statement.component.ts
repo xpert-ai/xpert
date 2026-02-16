@@ -11,6 +11,7 @@ interface IndicatorData extends IndicatorOption {
 }
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-widget-accounting-statement',
   templateUrl: './accounting-statement.component.html',

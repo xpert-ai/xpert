@@ -13,6 +13,7 @@ import { firstValueFrom, map, startWith } from 'rxjs'
 import { LANGUAGES, RoleService, Store } from '../../../../@core'
 
 @Component({
+  standalone: false,
   selector: 'pac-user-basic-info-form',
   templateUrl: 'basic-info-form.component.html',
   styleUrls: ['basic-info-form.component.scss'],

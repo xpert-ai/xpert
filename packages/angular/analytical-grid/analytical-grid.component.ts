@@ -97,6 +97,7 @@ import { NgmTreeFlatDataSource } from './tree-flat-data-source'
   selector: 'ngm-analytical-grid',
   templateUrl: 'analytical-grid.component.html',
   styleUrls: ['analytical-grid.component.scss'],
+  standalone: false,
   host: {
     '[attr.tabindex]': 'disabled ? -1 : 0',
     '[attr.disabled]': 'disabled || null',

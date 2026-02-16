@@ -25,6 +25,7 @@ export interface FormlyCheckboxFieldConfig extends FormlyFieldConfig<CheckboxPro
 
 @Component({
   selector: 'ngm-formly-mat-checkbox',
+  standalone: false,
   template: `
     <mat-checkbox
       [formControl]="formControl"

@@ -1,5 +1,5 @@
 <ng-container *ngIf="shortNumber; else noShort">
-    <span class="ngm-object-number--value" *ngIf="_number | shortNumber:locale as values">
+    <span class="ngm-object-number--value" *ngIf="shortNumberValues as values">
         {{values[0] | number:digitsInfo}}
         <span class="ngm-object-number--short-unit">{{values[1]||''}}</span>
     </span>

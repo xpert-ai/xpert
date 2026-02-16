@@ -19,7 +19,8 @@ import { SlicersCapacity } from '../types'
 @Component({
   selector: 'ngm-slicer-bar',
   templateUrl: 'slicer-bar.component.html',
-  styleUrls: ['slicer-bar.component.scss']
+  styleUrls: ['slicer-bar.component.scss'],
+  standalone: false
 })
 export class SlicerBarComponent extends BaseSlicersComponent implements OnInit {
   DisplayBehaviour = DisplayBehaviour

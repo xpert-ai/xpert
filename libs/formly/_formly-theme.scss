@@ -5,12 +5,12 @@
 @mixin removeable($foreground) {
   border: 1px dashed transparent;
   &:hover {
-    border-color: mat.get-color-from-palette($foreground, divider);
+    border-color: mat.m2-get-color-from-palette($foreground, divider);
   }
 }
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $foreground: map.get($config, foreground);
   $background: map.get($config, background);
   $primary: map.get($config, primary);
@@ -75,7 +75,7 @@
         text-align: center;
       }
       .ngm-color.ngm-color__null {
-        border: 1px dashed mat.get-color-from-palette($foreground, divider);
+        border: 1px dashed mat.m2-get-color-from-palette($foreground, divider);
       }
     }
   }
@@ -147,9 +147,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: mat.m2-get-color-config($theme);
+  $density: mat.m2-get-density-config($theme);
+  $typography: mat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

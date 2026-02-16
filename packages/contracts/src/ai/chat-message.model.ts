@@ -5,7 +5,7 @@ import { LongTermMemoryTypeEnum } from './xpert.model'
 import { XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model';
 import { JSONValue } from '../core.model';
 import { IStorageFile } from '../storage-file.model';
-import { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types';
+import type { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types';
 
 export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
     jobId: number | string;

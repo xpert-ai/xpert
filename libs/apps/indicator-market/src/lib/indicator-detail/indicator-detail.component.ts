@@ -79,6 +79,7 @@ import { IndicatorsStore } from '../services/store'
 import { IndicatorState, Trend, TrendColor, TrendReverseColor } from '../types'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-indicator-detail',
   templateUrl: 'indicator-detail.component.html',

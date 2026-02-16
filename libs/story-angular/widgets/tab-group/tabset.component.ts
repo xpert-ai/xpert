@@ -63,6 +63,7 @@ export interface WidgetSwiperState {
 }
 
 @Component({
+  standalone: false,
   selector: 'pac-story-widget-tabgroup',
   templateUrl: './tabset.component.html',
   styleUrls: ['./tabset.component.scss'],

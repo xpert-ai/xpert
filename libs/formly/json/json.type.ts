@@ -17,6 +17,7 @@ import {
   @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'pac-formly-json',
+    standalone: false,
     templateUrl: './json.type.html',
     styleUrls: ['./json.type.scss'],
   })

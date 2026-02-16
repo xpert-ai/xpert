@@ -10,6 +10,7 @@ import { BehaviorSubject, distinctUntilChanged, map, shareReplay, withLatestFrom
   selector: 'ngm-slicer-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
+  standalone: false,
   host: {
     class: 'ngm-slicer-select'
   },

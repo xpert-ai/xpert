@@ -13,6 +13,7 @@ import { AccessControlStateService } from '../access-control.service'
 import { RoleStateService } from './role.service'
 
 @Component({
+  standalone: false,
   selector: 'pac-model-role',
   templateUrl: 'role.component.html',
   providers: [RoleStateService],

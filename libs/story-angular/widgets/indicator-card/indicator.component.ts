@@ -25,6 +25,7 @@ interface MiddleIndicator extends HeadIndicator {
 }
 
 @Component({
+  standalone: false,
   selector: 'pac-indicator-card',
   templateUrl: 'indicator.component.html',
   styleUrls: ['indicator.component.scss'],

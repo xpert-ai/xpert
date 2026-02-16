@@ -10,7 +10,8 @@ import {
   QueryReturn,
   nonNullable
 } from '@metad/ocap-core'
-import { CallbackDataParams } from 'echarts/types/dist/shared'
+
+type CallbackDataParams = Record<string, any>
 
 
 export enum AxisEnum {

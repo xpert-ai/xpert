@@ -13,6 +13,7 @@ export interface FormlyToggleFieldConfig extends FormlyFieldConfig<ToggleProps> 
 
 @Component({
   selector: 'ngm-formly-mat-toggle',
+  standalone: false,
   template: `
     <mat-slide-toggle class="text-sm" ngm-density  small
       [id]="id"

@@ -30,7 +30,8 @@ import { MatSnackBarRef, MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar'
     host: {
       'class': 'ngm-confirm-snackbar',
     },
-    styleUrls: ['./confirm-snack-bar.scss']
+    styleUrls: ['./confirm-snack-bar.scss'],
+    standalone: false
 })
 export class NgmConfirmSnackBar implements ConfirmActionSnackBar {
 

@@ -18,6 +18,7 @@ import { getDeepFromObject } from '../helpers'
 import { PacAuthService } from '../services/auth.service'
 
 @Component({
+  standalone: false,
   selector: 'pac-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],

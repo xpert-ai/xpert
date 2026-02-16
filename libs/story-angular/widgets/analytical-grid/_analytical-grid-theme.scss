@@ -2,14 +2,14 @@
 @use '@angular/material' as mat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
 
   .ngm-analytical-grid {
     // &.striped {
     //   .mat-row:nth-child(even){
-    //     background-color: lighten(mat.get-color-from-palette($background, hover), 50%);
+    //     background-color: lighten(mat.m2-get-color-from-palette($background, hover), 50%);
     //   }
     // }
 
@@ -26,9 +26,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.get-color-config($theme);
-  $density: mat.get-density-config($theme);
-  $typography: mat.get-typography-config($theme);
+  $color: mat.m2-get-color-config($theme);
+  $density: mat.m2-get-density-config($theme);
+  $typography: mat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

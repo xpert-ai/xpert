@@ -7,7 +7,8 @@ import { BehaviorSubject, map } from 'rxjs'
 @Component({
   selector: 'ngm-sort-by',
   templateUrl: 'sort-by.component.html',
-  styleUrls: ['sort-by.component.scss']
+  styleUrls: ['sort-by.component.scss'],
+  standalone: false
 })
 export class SortByComponent implements OnInit {
   AggregationRole = AggregationRole

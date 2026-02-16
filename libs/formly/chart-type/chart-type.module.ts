@@ -13,7 +13,6 @@ import { MatSelectModule } from '@angular/material/select'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { NgmSchemaFormComponent } from '@metad/story/designer'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
@@ -41,7 +40,6 @@ import { PACFormlyChartTypeComponent } from './chart-type.component'
     DensityDirective,
     NgmCommonModule,
     ResizerModule,
-    NgmSchemaFormComponent,
 
     FormlyModule.forChild({
       types: [

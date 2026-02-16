@@ -10,6 +10,7 @@ import { PreferencesSchema } from './schema'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 @Component({
+  standalone: false,
   selector: 'ngm-settings-preferences',
   templateUrl: './preferences.component.html',
   styleUrls: ['./preferences.component.scss']

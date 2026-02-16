@@ -7,7 +7,9 @@
   "targets": {
     "build": {
       "executor": "@angular-devkit/build-angular:browser",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/apps/cloud",
         "index": "apps/cloud/src/index.html",
@@ -105,10 +107,11 @@
           "node_modules/@ctrl/ngx-emoji-mart/picker.css"
         ],
         "stylePreprocessorOptions": {
-          "includePaths": ["node_modules/"]
+          "includePaths": [
+            "node_modules/"
+          ]
         },
         "scripts": [
-          "node_modules/marked/marked.min.js",
           "node_modules/prismjs/prism.js",
           "node_modules/prismjs/components/prism-json.min.js",
           "node_modules/prismjs/components/prism-jsx.min.js",
@@ -161,12 +164,16 @@
       "defaultConfiguration": "production",
       "dependsOn": [
         {
-          "projects": ["contracts"],
+          "projects": [
+            "contracts"
+          ],
           "target": "build",
           "params": "ignore"
         },
         {
-          "projects": ["sql"],
+          "projects": [
+            "sql"
+          ],
           "target": "build",
           "params": "ignore"
         }
@@ -197,12 +204,17 @@
     "lint": {
       "executor": "@nx/eslint:lint",
       "options": {
-        "lintFilePatterns": ["apps/cloud/src/**/*.ts", "apps/cloud/src/**/*.html"]
+        "lintFilePatterns": [
+          "apps/cloud/src/**/*.ts",
+          "apps/cloud/src/**/*.html"
+        ]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/apps/cloud"],
+      "outputs": [
+        "{workspaceRoot}/coverage/apps/cloud"
+      ],
       "options": {
         "jestConfig": "apps/cloud/jest.config.ts",
         "webWorkerTsConfig": "apps/cloud/tsconfig.worker.json"

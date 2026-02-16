@@ -57,10 +57,10 @@ export async function createHumanMessage(
 				...(await Promise.all(
 					files.map(async (file) => {
 						if (file.mimeType?.startsWith('image')) {
-							let imageData = await fs.promises.readFile(file.filePath)
-							if (attachment?.resolution === 'low') {
-								imageData = await sharp(imageData).resize(1024).toBuffer()
-							}
+							const sourceImageData = await fs.promises.readFile(file.filePath)
+							const imageData = attachment?.resolution === 'low'
+								? await sharp(Buffer.from(sourceImageData)).resize(1024).toBuffer()
+								: Buffer.from(sourceImageData)
 							return {
 								type: 'image_url',
 								image_url: {

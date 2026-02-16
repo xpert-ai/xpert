@@ -438,8 +438,10 @@ export class KeyPerformanceIndicatorService<T> extends SmartBusinessService<T> i
     return selects
   }
 
-  _getPath(set, ...names) {
-    return names.map((name) => (isString(set[name]) ? set[name] : null)).filter((field) => !!field)
+  _getPath(set: Record<string, any>, ...names: string[]): Array<Dimension | Measure> {
+    return names
+      .map((name) => (isString(set[name]) ? set[name] : null))
+      .filter((field) => !!field) as Array<Dimension | Measure>
   }
 
   _getPatternPath(set, ...names) {

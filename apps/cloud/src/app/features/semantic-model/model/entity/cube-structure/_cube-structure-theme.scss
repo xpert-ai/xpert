@@ -3,7 +3,7 @@
 @use '@angular/material' as mat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
@@ -32,8 +32,8 @@
         font-size: 0.75rem;
 
         &:hover, &:focus {
-          background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.1);
-          color: mat.get-color-from-palette($primary);
+          background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.1);
+          color: mat.m2-get-color-from-palette($primary);
 
           .ngm-display-behaviour--option-value {
             opacity: 1;
@@ -41,8 +41,8 @@
         }
 
         &.selected {
-          background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.2);
-          color: mat.get-color-from-palette($primary);
+          background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.2);
+          color: mat.m2-get-color-from-palette($primary);
         }
 
         &.cdk-tree-node {
@@ -101,7 +101,7 @@
     .ngm-action-strip  {
       position: absolute;
       right: 0;
-      background-color: mat.get-color-from-palette($background, card);
+      background-color: mat.m2-get-color-from-palette($background, card);
       border-radius: 15px;
     }
   }

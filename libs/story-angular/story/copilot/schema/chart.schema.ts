@@ -14,10 +14,10 @@ import {
   omit,
   tryFixDimension
 } from '@metad/ocap-core'
-import { ChartMainTypeEnum } from '@metad/story/widgets/analytical-card'
 import { z } from 'zod'
 
 const ChartTypes = makeChartEnum()
+const ChartMainTypes = new Set(Object.values(ChartTypes))
 
 export const EChartsOptions = z
   .object({
@@ -91,7 +91,7 @@ export function chartAnnotationCheck(
     return acc
   }, {})
 
-  if (chartAnnotation.chartType?.type && !ChartMainTypeEnum[chartAnnotation.chartType.type]) {
+  if (chartAnnotation.chartType?.type && !ChartMainTypes.has(chartAnnotation.chartType.type)) {
     chartType = assignDeepOmitBlank(
       cloneDeep(getChartType(chartAnnotation.chartType.type)?.value.chartType),
       omit(chartType, 'type'),

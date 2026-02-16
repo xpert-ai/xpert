@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_ORGANIZATION_STATUS } from '@metad/cloud/state'
+import { API_ORGANIZATION_STATUS } from '../../../../../../libs/apps/state/src/lib/constants'
 import { ComponentStore } from '@metad/store'
 import { assign } from 'lodash-es'
 import { Observable } from 'rxjs'

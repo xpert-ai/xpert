@@ -11,6 +11,7 @@ import { PacAuthResult, PacAuthService } from '../services';
 
 
 @Component({
+  standalone: false,
   selector: 'pac-logout',
   templateUrl: './logout.component.html',
 })

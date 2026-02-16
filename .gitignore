@@ -21,6 +21,7 @@ packages/angular/.storybook/index.css
 *.launch
 .settings/
 *.sublime-workspace
+.nx/
 
 # IDE - VSCode
 .vscode/*

@@ -4,6 +4,7 @@ import { routeAnimations, Store } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
+  standalone: false,
   selector: 'pac-tenant-custom-smtp',
   templateUrl: './custom-smtp.component.html',
   styleUrls: ['./custom-smtp.component.scss'],

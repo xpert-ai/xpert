@@ -24,6 +24,7 @@ const DOCUMENT_COMPONENT_VALUE_ACCESSOR = {
  * * 支持从 EntitySet 上计算出 `@parameter` 的值
  */
 @Component({
+  standalone: false,
   selector: 'pac-story-widget-document',
   templateUrl: './document.component.html',
   styleUrls: ['./document.component.scss'],

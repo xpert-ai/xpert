@@ -8,6 +8,7 @@ import { FieldType, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core
 import { BehaviorSubject, Observable, map } from 'rxjs'
 
 @Component({
+  standalone: false,
   selector: 'ngm-formly-chart-property',
   templateUrl: './chart-property.component.html',
   styleUrls: ['./chart-property.component.scss']

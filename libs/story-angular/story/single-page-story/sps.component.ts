@@ -113,12 +113,12 @@ export class SinglePageStoryComponent {
   }
 
   @HostListener('document:keydown.alt', ['$event'])
-  onAltKeydown(event: KeyboardEvent) {
+  onAltKeydown(_event: Event) {
     this.storyService.patchState({ isPanMode: true })
   }
 
   @HostListener('document:keyup.alt', ['$event'])
-  onAltKeyUp(event: KeyboardEvent) {
+  onAltKeyUp(_event: Event) {
     this.storyService.patchState({ isPanMode: false })
   }
 

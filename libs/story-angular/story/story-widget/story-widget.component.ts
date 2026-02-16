@@ -916,7 +916,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKeydown(event: KeyboardEvent) {
+  onEscapeKeydown(_event: Event) {
     if (this.fullscreen) {
       this.fullscreen = false
     }

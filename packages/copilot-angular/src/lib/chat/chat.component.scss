@@ -104,7 +104,7 @@
 
 .copilot-role-list {
   .copilot-role-list-item.active {
-    @apply bg-primary-100 text-primary-600 font-medium shadow-sm;
+    @apply bg-gray-100 text-neutral-800 font-medium shadow-sm dark:bg-gray-100/10 dark:text-neutral-300;
   }
 }
 

@@ -196,7 +196,7 @@ export class StoryPointComponent extends TranslationBaseComponent {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKeydown(event: KeyboardEvent) {
+  onEscapeKeydown(event: Event) {
     this.toggleFullscreen(false)
   }
 }

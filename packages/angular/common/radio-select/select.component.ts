@@ -14,7 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'ngm-radio-select',
-    '[attr.disabled]': 'isDisabled || null',
+    '[attr.disabled]': 'isDisabled() || null',
     '[class.simple]': 'simple()',
   },
   hostDirectives: [
@@ -31,6 +31,9 @@ export class NgmRadioSelectComponent {
   protected cva = inject<NgxControlValueAccessor<any | null>>(NgxControlValueAccessor)
 
   readonly selectOptions = input<TSelectOption[]>()
+  readonly isDisabled = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
 
   readonly simple = input<boolean, string | boolean>(false, {
     transform: booleanAttribute

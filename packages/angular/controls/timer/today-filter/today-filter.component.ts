@@ -122,6 +122,7 @@ export class NgmTodayFilterComponent implements OnInit, OnChanges, ControlValueA
     </div>
   </mat-form-field> `,
   styleUrls: ['./today-filter.component.scss'],
+  standalone: false,
   providers: [
     {
       provide: MAT_DATE_FORMATS,
@@ -200,6 +201,7 @@ export class NxQuarterFilterComponent implements ControlValueAccessor {
 </div>
 `,
   styleUrls: ['./today-filter.component.scss'],
+  standalone: false,
   providers: [
     {
       provide: MAT_DATE_FORMATS,
@@ -279,6 +281,7 @@ export class NxMonthFilterComponent implements ControlValueAccessor {
     </div>
   </mat-form-field>`,
   styleUrls: ['./today-filter.component.scss'],
+  standalone: false,
   providers: [
     {
       provide: MAT_DATE_FORMATS,

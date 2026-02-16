@@ -35,6 +35,7 @@ export interface IndicatorStoreState extends EntityState<IndicatorState> {
   initialized: boolean
   dataSources: DataSources
   currentPage: number
+  tag: IndicatorTagEnum
 
   locale?: string
 

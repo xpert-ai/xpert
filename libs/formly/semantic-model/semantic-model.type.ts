@@ -2,12 +2,14 @@ import { Component, DestroyRef, OnInit, effect, inject, signal } from '@angular/
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { Router } from '@angular/router'
-import { nonNullable } from '@metad/core'
 import { FieldType } from '@ngx-formly/core'
 import { Observable, startWith } from 'rxjs'
 
+const isNonNullable = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined
+
 @Component({
   selector: 'pac-formly-semantic-model',
+  standalone: false,
   template: `<ngm-select
     displayDensity="compact"
     [label]="'FORMLY.COMMON.SemanticModel' | translate: { Default: 'Semantic Model' }"
@@ -55,7 +57,7 @@ export class PACFormlySemanticModelComponent extends FieldType implements OnInit
   readonly notFound = signal<string | null>(null)
 
   #validatorEffectRef = effect(() => {
-    if (nonNullable(this.value()) && nonNullable(this.selectOptions()) && !this.selectOptions().find((option) => option.key === this.value())) {
+    if (isNonNullable(this.value()) && isNonNullable(this.selectOptions()) && !this.selectOptions().find((option) => option.key === this.value())) {
       this.notFound.set(this.value())
     } else {
       this.notFound.set(null)

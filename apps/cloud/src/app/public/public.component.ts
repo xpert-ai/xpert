@@ -2,6 +2,7 @@ import { Component } from '@angular/core'
 import { routeAnimations } from '../@core'
 
 @Component({
+  standalone: false,
   selector: 'metad-ocap-public',
   templateUrl: 'public.component.html',
   styles: [

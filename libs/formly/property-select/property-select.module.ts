@@ -10,8 +10,7 @@ import { DensityDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NxChromaticPreviewComponent } from '@metad/components/palette'
-import { PropertyCapacity, PropertyModule } from '@metad/components/property'
-import { NxDesignerModule } from '@metad/story/designer'
+import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
 import { NgmColorsComponent } from '@metad/components/form-field'
 import { PACFormlyPropertySelectComponent } from './property-select.component'
 
@@ -28,8 +27,7 @@ import { PACFormlyPropertySelectComponent } from './property-select.component'
     MatCheckboxModule,
     TranslateModule,
 
-    PropertyModule,
-    NxDesignerModule,
+    NgmEntityModule,
     NxChromaticPreviewComponent,
     DensityDirective,
     NgmColorsComponent,

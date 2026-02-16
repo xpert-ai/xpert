@@ -36,7 +36,8 @@ export async function mapChartAnnotation(chartAnnotation: ChartAnnotation): Prom
   }
 
   if (chartType.mapUrl) {
-    const variant = tinymd5(chartType.mapUrl + (chartType.isTopoJSON ? (chartType.features ?? '' + chartType.mesh ?? '') : ''), 5)
+    const topoVariantSuffix = `${chartType.features ?? ''}${chartType.mesh ?? ''}`
+    const variant = tinymd5(chartType.mapUrl + (chartType.isTopoJSON ? topoVariantSuffix : ''), 5)
     const mapType = chartType.map + '-' + variant
 
     if (!registerMaps[mapType]) {

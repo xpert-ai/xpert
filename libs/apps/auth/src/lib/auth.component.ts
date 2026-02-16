@@ -8,6 +8,7 @@ import { PacAuthService } from './services/auth.service'
 
 
 @Component({
+  standalone: false,
   selector: 'pac-auth',
   styleUrls: ['./auth.component.scss'],
   templateUrl: './auth.component.html',

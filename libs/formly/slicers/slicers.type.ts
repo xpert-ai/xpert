@@ -5,6 +5,7 @@ import { isObservable, Observable, of } from 'rxjs'
 
 @Component({
   selector: 'pac-formly-slicers',
+  standalone: false,
   template: `
 <div>{{props?.label}}</div>
 <ngm-slicers editable inline

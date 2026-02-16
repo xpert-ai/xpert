@@ -3,7 +3,7 @@
 @use '@angular/material' as mat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $primary: map.get($config, 'primary');
   $accent: map.get($config, accent);
   $background: map.get($config, background);
@@ -12,8 +12,8 @@
   .ngm-tree-select__panel.mat-mdc-autocomplete-panel {
     &:not(.multiple) {
       .mat-mdc-option.mat-selected:not(.mat-active):not(:hover) {
-        color: mat.get-color-from-palette($accent);
-        background-color: lighten(mat.get-color-from-palette($background, hover), 50%);
+        color: mat.m2-get-color-from-palette($accent);
+        background-color: lighten(mat.m2-get-color-from-palette($background, hover), 50%);
       }
     }
   }
@@ -31,13 +31,13 @@
 
         &:hover,
         &:focus {
-          background-color: color.change(mat.get-color-from-palette($background, hover), $alpha: 0.03);
-          // color: mat.get-color-from-palette($primary);
+          background-color: color.change(mat.m2-get-color-from-palette($background, hover), $alpha: 0.03);
+          // color: mat.m2-get-color-from-palette($primary);
         }
 
         &.selected {
-          background-color: color.change(mat.get-color-from-palette($background, hover), $alpha: 0.05);
-          // color: mat.get-color-from-palette($background,);
+          background-color: color.change(mat.m2-get-color-from-palette($background, hover), $alpha: 0.05);
+          // color: mat.m2-get-color-from-palette($background,);
         }
       }
     }
@@ -47,18 +47,18 @@
     &.mat-accent {
       .cdk-tree.selection {
         .mat-icon-rtl-mirror {
-          color: color.change(mat.get-color-from-palette($accent), $alpha: 0.3);
+          color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.3);
         }
         .cdk-tree-node {
           &:hover,
           &:focus {
-            background-color: color.change(mat.get-color-from-palette($accent), $alpha: 0.03);
-            color: mat.get-color-from-palette($accent);
+            background-color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.03);
+            color: mat.m2-get-color-from-palette($accent);
           }
 
           &.selected {
-            background-color: color.change(mat.get-color-from-palette($accent), $alpha: 0.05);
-            color: mat.get-color-from-palette($accent);
+            background-color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.05);
+            color: mat.m2-get-color-from-palette($accent);
           }
         }
       }
@@ -67,18 +67,18 @@
     &.mat-primary {
       .cdk-tree.selection {
         .mat-icon-rtl-mirror {
-          color: color.change(mat.get-color-from-palette($primary), $alpha: 0.3);
+          color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.3);
         }
         .cdk-tree-node {
           &:hover,
           &:focus {
-            background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.03);
-            color: mat.get-color-from-palette($primary);
+            background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.03);
+            color: mat.m2-get-color-from-palette($primary);
           }
 
           &.selected {
-            background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.05);
-            color: mat.get-color-from-palette($primary);
+            background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.05);
+            color: mat.m2-get-color-from-palette($primary);
           }
         }
       }

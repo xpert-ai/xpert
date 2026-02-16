@@ -9,6 +9,7 @@ import { UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
+  standalone: false,
   selector: 'pac-model-access-overview',
   templateUrl: 'overview.component.html',
   styleUrls: ['overview.component.scss']

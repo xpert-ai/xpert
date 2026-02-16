@@ -6,7 +6,7 @@ module.exports = {
   globals: {},
   coverageDirectory: '../../coverage/apps/cloud',
   transform: {
-    '^.+.(ts|mjs|js|html)$': [
+    '^.+\\.(ts|mjs|js|html|svg)$': [
       'jest-preset-angular',
       {
         tsconfig: '<rootDir>/tsconfig.spec.json',
@@ -14,7 +14,7 @@ module.exports = {
       }
     ]
   },
-  transformIgnorePatterns: ['node_modules/(?!.*.mjs$)'],
+  transformIgnorePatterns: ['node_modules/(?!lodash-es|nanoid|marked|@angular/common/locales|.*.mjs$)'],
   snapshotSerializers: [
     'jest-preset-angular/build/serializers/no-ng-attributes',
     'jest-preset-angular/build/serializers/ng-snapshot',

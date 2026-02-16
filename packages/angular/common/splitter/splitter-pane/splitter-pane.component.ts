@@ -4,6 +4,7 @@ import { Component, ElementRef, EventEmitter, HostBinding, Input, Output } from 
   selector: 'ngm-splitter-pane',
   templateUrl: './splitter-pane.component.html',
   styleUrls: ['./splitter-pane.component.scss'],
+  standalone: false
 })
 export class SplitterPaneComponent {
 

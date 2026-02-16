@@ -49,6 +49,7 @@ import { getFeatureMenus } from './menus'
 
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-features',
   templateUrl: './features.component.html',

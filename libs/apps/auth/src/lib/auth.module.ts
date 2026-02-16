@@ -10,10 +10,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTabsModule } from '@angular/material/tabs'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import {MatDividerModule} from '@angular/material/divider'
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import { MatProgressSpinner } from '@angular/material/progress-spinner'
 import { RouterModule } from '@angular/router'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { MtxAlertModule } from '@ng-matero/extensions/alert'
 import { TranslateModule } from '@ngx-translate/core'
 import { PacAuthRoutingModule } from './auth-routing.module'
 import { PacAuthComponent } from './auth.component'
@@ -28,7 +26,6 @@ import {
   PAC_AUTH_TOKEN_INTERCEPTOR_FILTER,
   PAC_AUTH_USER_OPTIONS
 } from './auth.options'
-import { PacMenuComponent } from './components/menu/menu.component'
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component'
 import { NoAuthGuard } from './guards/no-auth.guard'
 import { deepExtend } from './helpers'
@@ -45,7 +42,6 @@ import { PacTokenService } from './services/token/token.service'
 import { PacAuthStrategy } from './strategies/auth-strategy'
 import { PacAuthStrategyOptions } from './strategies/auth-strategy-options'
 import { VarifyEmailComponent } from './verify-email/verify-email.component'
-import { AcceptInviteModule } from './accept-invite/accept-invite.module'
 
 export function nbStrategiesFactory(options: PacAuthOptions, injector: Injector): PacAuthStrategy[] {
   const strategies = []
@@ -79,24 +75,7 @@ export function nbOptionsFactory(options) {
     ReactiveFormsModule,
     RouterModule,
     PacAuthRoutingModule,
-    MatIconModule,
     TranslateModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatTabsModule,
-    MatTooltipModule,
-    MatProgressBarModule,
-    MatCheckboxModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
-    
-    MtxAlertModule,
-
-    OcapCoreModule,
-
-    AcceptInviteModule,
-    PacMenuComponent
   ],
   exports: [
     PacAuthComponent,
@@ -104,7 +83,6 @@ export function nbOptionsFactory(options) {
     UserRegisterComponent,
     UserRegisterResultComponent,
     PacLogoutComponent,
-    PacMenuComponent,
   ],
   providers: [
     PacAuthService,
@@ -116,7 +94,7 @@ export function nbOptionsFactory(options) {
     PacAuthTokenParceler,
     {
       provide: PAC_AUTH_TOKENS,
-      useFactory: function nbOptionsFactory(options) {
+      useFactory: function nbOptionsFactory() {
         return {}
       },
       deps: [PAC_AUTH_STRATEGIES]

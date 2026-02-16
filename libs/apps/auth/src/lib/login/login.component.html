@@ -1,83 +1,97 @@
 <form [formGroup]="form" (ngSubmit)="submit()" role="form" class="flex flex-col justify-start items-stretch">
 
   <div class="w-full md:mt-0 sm:max-w-md xl:p-0">
-    <mat-tab-group mat-align-tabs="start" mat-stretch-tabs="false"  disableRipple>
-      <mat-tab [label]="'Auth.Signin' | translate: {Default: 'Sign-in'}">
-        <div class="flex flex-col justify-start items-stretch p-2 mt-2 gap-2">
-          <ng-container *ngIf="showMessages.error && errors?.length && !loading">
-            <mtx-alert *ngFor="let error of errors; let i = index" type="warning" dismissible (closed)="errors.splice(i, 1)">
+    <!-- Tab Navigation -->
+    <div class="border-b border-gray-200 dark:border-gray-700">
+      <button type="button" class="px-4 py-2 text-base font-medium text-gray-900 dark:text-white border-b-2 border-blue-600">
+        {{ 'Auth.Signin' | translate: {Default: 'Sign-in'} }}
+      </button>
+    </div>
+    <!-- Tab Content -->
+    <div class="flex flex-col justify-start items-stretch p-2 mt-2 gap-2">
+      @if (showMessages.error && errors?.length && !loading) {
+        @for (error of errors; track $index) {
+          <div class="flex items-center gap-2 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-700">
+            <span class="flex-1 text-sm text-yellow-800 dark:text-yellow-300">
               {{ 'Auth.' + error | translate: {Default: error} }}
-            </mtx-alert>
-          </ng-container>
-          <div>
-            <label for="email" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
-              {{ 'AUTH.LOGIN.ACCOUNT' | translate: {Default: 'Account'} }}
-            </label>
-            <input matInput type="email" name="email" id="email" formControlName="userName" [placeholder]="'AUTH.LOGIN.USERNAME' | translate: {Default: 'Username / Email'} "
-              class="ngm-input-element"
-              required>
+            </span>
+            <button type="button" (click)="errors.splice($index, 1)" class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-200">
+              <span class="sr-only">Close</span>
+              ✕
+            </button>
           </div>
-          <div>
-              <label for="password" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
-                {{ 'AUTH.LOGIN.PASSWORD' | translate: {Default: 'Password'} }}
-              </label>
-              <input matInput type="password" name="password" id="password" formControlName="password"
-                placeholder="••••••••"
-                class="ngm-input-element"
-                required>
-          </div>
-        </div>
-      </mat-tab>
-    </mat-tab-group>
+        }
+      }
+      <div>
+        <label for="email" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
+          {{ 'AUTH.LOGIN.ACCOUNT' | translate: {Default: 'Account'} }}
+        </label>
+        <input type="email" name="email" id="email" formControlName="userName" [placeholder]="'AUTH.LOGIN.USERNAME' | translate: {Default: 'Username / Email'}"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          required>
+      </div>
+      <div>
+        <label for="password" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
+          {{ 'AUTH.LOGIN.PASSWORD' | translate: {Default: 'Password'} }}
+        </label>
+        <input type="password" name="password" id="password" formControlName="password"
+          placeholder="••••••••"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          required>
+      </div>
+    </div>
   </div>
 
   <div class="pac-auth__login-remember flex justify-between items-center">
-    <mat-checkbox formControlName="rememberMe">{{ 'AUTH.LOGIN.REMEMBER' | translate: {Default: 'Remember'} }}</mat-checkbox>
-    <a class="forgot" routerLink="/auth/request-password">{{ 'AUTH.LOGIN.FORGOT-PASSWORD' | translate: {Default: 'Forgot Password'} }}</a>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" formControlName="rememberMe" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 accent-blue-600">
+      <span class="text-sm text-gray-900 dark:text-white">{{ 'AUTH.LOGIN.REMEMBER' | translate: {Default: 'Remember'} }}</span>
+    </label>
+    <a class="forgot text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300" routerLink="/auth/request-password">
+      {{ 'AUTH.LOGIN.FORGOT-PASSWORD' | translate: {Default: 'Forgot Password'} }}
+    </a>
   </div>
 
-  <button class="ngm-button relative inline-flex items-center justify-center cursor-pointer p-0.5 mb-2 overflow-hidden text-sm font-medium text-gray-900 rounded-lg group
-    bg-gradient-to-br from-green-400 to-blue-600 group-hover:from-green-400 group-hover:to-blue-600 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800
-    disabled:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50
-    "
+  <button class="relative inline-flex items-center justify-center cursor-pointer p-0.5 mb-2 overflow-hidden text-sm font-medium rounded-lg group bg-gradient-to-br from-green-400 to-blue-600 group-hover:from-green-400 group-hover:to-blue-600 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 disabled:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
     [disabled]="form.invalid || loading"
-    [class.ngm-button-disabled]="form.invalid || loading">
-    <span class="relative w-full px-5 py-2.5 transition-all ease-in duration-75 bg-white rounded-md
-      group-hover:bg-opacity-0 group-disabled:bg-opacity-100
-      dark:bg-gray-900">
+    type="submit">
+    <span class="relative w-full px-5 py-2.5 transition-all ease-in duration-75 bg-white rounded-md group-hover:bg-opacity-0 group-disabled:bg-opacity-100 dark:bg-gray-900">
       {{ 'AUTH.LOGIN.SUBMIT' | translate: {Default: 'Submit'} }}
     </span>
   </button>
 
   <div class="pac-auth__login-remember flex justify-end items-center">
-    <a class="register" routerLink="/auth/register">{{ 'AUTH.LOGIN.SIGNUP' | translate: {Default: 'Signup'} }}</a>
+    <a class="register text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300" routerLink="/auth/register">
+      {{ 'AUTH.LOGIN.SIGNUP' | translate: {Default: 'Signup'} }}
+    </a>
   </div>
 
 </form>
 
 <div class="pac-login__signins flex flex-wrap justify-center items-center gap-2">
   @if (enableDingtalk()) {
-    <button mat-icon-button (click)="open('dingtalk', 'window')" class="pac-login__signin-button"
-      [matTooltip]="'AUTH.LOGIN.DINGTALK' | translate: {Default: 'Dingtalk'}">
-      <img class="m-auto" src="/assets/images/destinations/dingtalk.svg">
+    <button (click)="open('dingtalk', 'window')" class="pac-login__signin-button p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+      [title]="'AUTH.LOGIN.DINGTALK' | translate: {Default: 'Dingtalk'}">
+      <img class="w-6 h-6" src="/assets/images/destinations/dingtalk.svg" alt="Dingtalk">
     </button>
   }
   @if (enableFeishu()) {
-    <button mat-icon-button (click)="open('feishu', 'window')" class="pac-login__signin-button"
-      [matTooltip]="'AUTH.LOGIN.FEISHU' | translate: {Default: 'Feishu'}">
-      <img class="m-auto" src="/assets/images/destinations/feishu.png">
+    <button (click)="open('feishu', 'window')" class="pac-login__signin-button p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      [title]="'AUTH.LOGIN.FEISHU' | translate: {Default: 'Feishu'}">
+      <img class="w-6 h-6" src="/assets/images/destinations/feishu.png" alt="Feishu">
     </button>
   }
 
   @if (enableGithub()) {
-    <button mat-icon-button (click)="open('github', 'window')" class="pac-login__signin-button"
-      [matTooltip]="'AUTH.LOGIN.GITHUB' | translate: {Default: 'Github'}">
-      <img class="m-auto" src="/assets/images/destinations/GitHub-Mark-120px-plus.png">
+    <button (click)="open('github', 'window')" class="pac-login__signin-button p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      [title]="'AUTH.LOGIN.GITHUB' | translate: {Default: 'Github'}">
+      <img class="w-6 h-6" src="/assets/images/destinations/GitHub-Mark-120px-plus.png" alt="Github">
     </button>
   }
 </div>
 
-<div *ngIf="loading" class="absolute top-1/2 left-1/2 -mt-4 -ml-4 z-10">
-  <mat-spinner diameter="30" strokeWidth="2">
-  </mat-spinner>
-</div>
+@if (loading) {
+  <div class="absolute top-1/2 left-1/2 -mt-4 -ml-4 z-10">
+    <div class="w-8 h-8 border-4 border-gray-300 dark:border-gray-600 border-t-blue-600 rounded-full animate-spin"></div>
+  </div>
+}

@@ -1,5 +1,9 @@
 import { CommonModule } from '@angular/common'
-import { HttpClient, HttpClientModule } from '@angular/common/http'
+import {
+  HttpClient,
+  provideHttpClient,
+  withInterceptorsFromDi
+} from '@angular/common/http'
 import {
   ModuleWithProviders,
   NgModule,
@@ -12,18 +16,15 @@ import {
   TranslateLoader,
   TranslateModule
 } from '@ngx-translate/core'
-import { AuthModule } from './auth/auth.module'
 import { throwIfAlreadyLoaded } from './module-import-guard'
 import { HttpLoaderFactory } from './theme'
 import { NgmMissingTranslationHandler } from '@metad/ocap-angular/core'
-import { MAT_DATE_LOCALE } from '@angular/material/core'
-import { zhCN } from 'date-fns/locale'
+
 
 
 @NgModule({
   imports: [
     CommonModule,
-    HttpClientModule,
     FormsModule,
 
     // 3rd party
@@ -38,15 +39,9 @@ import { zhCN } from 'date-fns/locale'
         useFactory: HttpLoaderFactory,
         deps: [HttpClient]
       }
-    }),
-
-    AuthModule,
+    })
   ],
-  exports: [
-    // 3rd party
-    // FontAwesomeModule,
-    TranslateModule,
-  ],
+  // providers: [provideHttpClient(withInterceptorsFromDi())],
   declarations: [
   ]
 })
@@ -59,7 +54,7 @@ export class CoreModule {
     return {
       ngModule: CoreModule,
       providers: [
-        { provide: MAT_DATE_LOCALE, useValue: zhCN },
+        // { provide: MAT_DATE_LOCALE, useValue: zhCN },
       ]
     }
   }

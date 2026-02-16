@@ -1,6 +1,6 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
-import { TMessageContentComplex } from '@xpert-ai/chatkit-types'
+import type { TMessageContentComplex } from '@xpert-ai/chatkit-types'
 import { Subscriber } from 'rxjs'
 import { IWFNTrigger, TWorkflowVarGroup, WorkflowNodeTypeEnum } from '../ai/xpert-workflow.model'
 import { TStateVariable, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai/xpert.model'

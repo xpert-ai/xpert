@@ -1,13 +1,15 @@
-import { ComponentPortal } from '@angular/cdk/portal'
+import { ComponentPortal, PortalModule } from '@angular/cdk/portal'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { filter } from 'rxjs/operators'
 import { NxSettingsPanelService } from '../settings-panel/settings-panel.service'
 
 @Component({
+  standalone: true,
   selector: 'pac-designer-panel',
   templateUrl: './panel.component.html',
   styleUrls: ['./panel.component.scss'],
+  imports: [PortalModule],
   host: {
     class: 'pac-designer-panel'
   }

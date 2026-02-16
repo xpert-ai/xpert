@@ -64,6 +64,7 @@ export interface NxFilterControl {
 }
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-widget-filter-bar',
   templateUrl: './filter-bar.component.html',
@@ -413,7 +414,7 @@ export class NxSmartFilterBarComponent
   }
 
   @HostListener('click', ['$event'])
-  private handleClick(event) {
+  protected handleClick(_event: MouseEvent) {
     this.selectedField.set(null)
   }
 

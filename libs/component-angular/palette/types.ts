@@ -1,4 +1,25 @@
-import { rgb2hex } from '@metad/core'
+const rgb2hex = (value: string): string => {
+  if (!value) {
+    return value
+  }
+
+  const normalized = value.trim()
+  if (normalized.startsWith('#')) {
+    return normalized
+  }
+
+  const match = normalized.match(/^rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i)
+  if (!match) {
+    return normalized
+  }
+
+  const [r, g, b] = match.slice(1, 4).map((channel) => {
+    const parsed = Number(channel)
+    return Math.max(0, Math.min(255, parsed))
+  })
+
+  return `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`
+}
 
 export interface NxChromatics {
   [key: string]: NxChromatic

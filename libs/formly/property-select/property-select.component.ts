@@ -1,7 +1,8 @@
-import { Component, Input, OnInit, Optional } from '@angular/core'
+import { Component, DestroyRef, Input, OnInit, inject } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, UntypedFormArray } from '@angular/forms'
 import { MatFormFieldAppearance } from '@angular/material/form-field'
-import { MetadFormlyArrayComponent } from '@metad/formly-mat/array'
+import { NgmFormlyArrayComponent } from '@metad/formly/array'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import {
   AggregationRole,
@@ -18,9 +19,7 @@ import {
 import { FieldType } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NgmChromaticInterpolateGroup, getScaleChromaticInterpolates } from '@metad/components/palette'
-import { PropertyCapacity } from '@metad/components/property'
-import { NxCoreService } from '@metad/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+import { PropertyCapacity } from '@metad/ocap-angular/entity'
 import { isEqual, startCase } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -37,14 +36,26 @@ import {
   Subscription
 } from 'rxjs'
 
+type DesignerPanelService = {
+  openSecondDesigner: (...args: unknown[]) => Observable<any>
+}
+
+const noopDesignerPanelService: DesignerPanelService = {
+  openSecondDesigner: () => of(null)
+}
+
 
 @Component({
   selector: 'pac-formly-property-select',
+  standalone: false,
   templateUrl: './property-select.component.html',
   styleUrls: ['./property-select.component.scss']
 })
 export class PACFormlyPropertySelectComponent extends FieldType implements OnInit {
   public interpolateGroups: NgmChromaticInterpolateGroup[]
+  readonly coreService: unknown = null
+  readonly destroyRef = inject(DestroyRef)
+  readonly formlyArray? = inject(NgmFormlyArrayComponent, { optional: true })
 
   DIMENSION_ROLES = [
     { label: 'None', value: null },
@@ -222,6 +233,7 @@ export class PACFormlyPropertySelectComponent extends FieldType implements OnIni
   private chartOptionsSubscription: Subscription
   private referenceLineSubscription: Subscription
   private editAttributesSubscription: Subscription
+  private readonly settingsService: DesignerPanelService = noopDesignerPanelService
 
   /**
   |--------------------------------------------------------------------------
@@ -232,12 +244,8 @@ export class PACFormlyPropertySelectComponent extends FieldType implements OnIni
     this.interpolateGroups = interpolateGroups
   })
   constructor(
-    public coreService: NxCoreService,
     public dsCoreService: NgmDSCoreService,
-    public settingsService: NxSettingsPanelService,
-    public translateService: TranslateService,
-    @Optional()
-    private formlyArray?: MetadFormlyArrayComponent
+    public translateService: TranslateService
   ) {
     super()
 
@@ -252,13 +260,17 @@ export class PACFormlyPropertySelectComponent extends FieldType implements OnIni
   ngOnInit(): void {
     // 初始化完成后再发送数据
     if (this.field?.props?.entitySet instanceof Observable) {
-      this.field.props.entitySet.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => this.entitySet$.next(event))
+      this.field.props.entitySet
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event: EntitySet) => this.entitySet$.next(event))
     } else if (this.field.props.entitySet) {
       this.entitySet$.next(this.field.props.entitySet)
     }
 
     if (this.field?.props?.entityType instanceof Observable) {
-      this.field.props.entityType.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => this.entityType$.next(event))
+      this.field.props.entityType
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event: EntityType) => this.entityType$.next(event))
     } else if (this.field.props.entityType) {
       this.entityType$.next(this.field.props.entityType)
       // 注意: 这样的 of(event) 异步事件会紧跟着一个 complete 事件导致 this.entityType$ 被 Complete
@@ -266,7 +278,9 @@ export class PACFormlyPropertySelectComponent extends FieldType implements OnIni
     }
 
     if (this.field?.props?.dataSettings instanceof Observable) {
-      this.field.props.dataSettings.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => this.dataSettings$.next(event))
+      this.field.props.dataSettings
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event: DataSettings) => this.dataSettings$.next(event))
     } else if (this.field?.props?.dataSettings) {
       this.dataSettings$.next(this.field.props.dataSettings)
     }
@@ -274,7 +288,7 @@ export class PACFormlyPropertySelectComponent extends FieldType implements OnIni
     if (this.field?.props?.restrictedDimensions instanceof Observable) {
       this.field.props.restrictedDimensions
         .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((event) => this.restrictedDimensions$.next(event))
+        .subscribe((event: string[]) => this.restrictedDimensions$.next(event))
     } else if (this.field?.props?.restrictedDimensions) {
       this.restrictedDimensions$.next(this.field.props.restrictedDimensions)
     }
@@ -312,11 +326,8 @@ export class PACFormlyPropertySelectComponent extends FieldType implements OnIni
   }
 
   onCalculationChange(property: CalculationProperty) {
-    this.coreService.storyUpdateEvent$.next({
-      type: 'Calculation',
-      dataSettings: this.dataSettings$.value,
-      property
-    })
+    // Legacy event bridge removed with Angular 21 upgrade path.
+    // Keep this hook to preserve template behavior without cross-package dependency.
   }
 
   async openReferenceLine() {

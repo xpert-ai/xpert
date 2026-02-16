@@ -1,9 +1,26 @@
-import 'jest-preset-angular/setup-jest'
+import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone'
+import { ReadableStream, TransformStream, WritableStream } from 'node:stream/web'
 
-import { getTestBed } from '@angular/core/testing'
-import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing'
+if (!(globalThis as any).ReadableStream) {
+  ;(globalThis as any).ReadableStream = ReadableStream
+}
 
-getTestBed().resetTestEnvironment()
-getTestBed().initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting(), {
+if (!(globalThis as any).WritableStream) {
+  ;(globalThis as any).WritableStream = WritableStream
+}
+
+if (!(globalThis as any).TransformStream) {
+  ;(globalThis as any).TransformStream = TransformStream
+}
+
+if (!(globalThis as any).ResizeObserver) {
+  ;(globalThis as any).ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}
+
+setupZoneTestEnv({
   teardown: { destroyAfterEach: false }
 })

@@ -192,7 +192,7 @@ export class CopilotBasicComponent {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: KeyboardEvent) {
+  handleEscapeKey(event: Event) {
     if (this.editingId()) {
       this.editingId.set(null)
       this.name.set('')

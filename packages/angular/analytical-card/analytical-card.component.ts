@@ -105,6 +105,7 @@ export interface AnalyticalCardState {
   selector: 'ngm-analytical-card',
   templateUrl: './analytical-card.component.html',
   styleUrls: ['./analytical-card.component.scss'],
+  standalone: false,
   providers: [AnalyticalCardService],
   host: {
     '[class.ngm-density__compact]': `!displayDensity||displayDensity==='compact'`,

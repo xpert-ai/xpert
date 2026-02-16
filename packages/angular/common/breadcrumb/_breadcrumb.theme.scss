@@ -33,15 +33,15 @@
 }
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $foreground: map-get($config, foreground);
   $primary: map-get($config, primary);
 
   $step-background: map-get(map-get($config, background), background);
   $step-active-background: map-get($primary, 300);
   $step-hover-background: map-get($primary, 400);
-  $step-color: mat.get-color-from-palette(map-get($config, background), darker); // map-get(map-get($config, foreground), text);
-  $step-active-color: mat.get-color-from-palette($primary, '500-contrast'); // map-get(map-get($config, foreground), text);
+  $step-color: mat.m2-get-color-from-palette(map-get($config, background), darker); // map-get(map-get($config, foreground), text);
+  $step-active-color: mat.m2-get-color-from-palette($primary, '500-contrast'); // map-get(map-get($config, foreground), text);
   $step-divider-color: map-get(map-get($config, accent), 500);
 
   .ngm-breadcrumb-bar {
@@ -132,9 +132,9 @@
 }
 
 @mixin theme($theme) {
-  $color: theming.get-color-config($theme);
-  $density: theming.get-density-config($theme);
-  $typography: theming.get-typography-config($theme);
+  $color: theming.m2-get-color-config($theme);
+  $density: theming.m2-get-density-config($theme);
+  $typography: theming.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

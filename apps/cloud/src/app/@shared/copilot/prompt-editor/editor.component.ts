@@ -309,7 +309,7 @@ export class CopilotPromptEditorComponent {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: KeyboardEvent) {
+  handleEscapeKey(event: Event) {
     this.hideSuggestions()
     this.#editor()?.focus()
   }

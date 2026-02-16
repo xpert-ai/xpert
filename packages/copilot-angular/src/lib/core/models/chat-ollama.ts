@@ -1,5 +1,5 @@
 import { ChatOllama, ChatOllamaInput } from '@langchain/ollama'
-import { Ollama } from 'ollama/dist/browser'
+import { Ollama } from 'ollama/browser'
 
 export class NgmChatOllama extends ChatOllama {
   constructor(fields?: ChatOllamaInput & { headers: HeadersInit }) {

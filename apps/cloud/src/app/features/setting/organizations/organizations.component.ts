@@ -8,6 +8,7 @@ import { ManageEntityBaseComponent } from '../../../@shared/directives'
 
 
 @Component({
+  standalone: false,
   selector: 'pac-organizations',
   templateUrl: './organizations.component.html',
   styleUrls: ['./organizations.component.scss'],

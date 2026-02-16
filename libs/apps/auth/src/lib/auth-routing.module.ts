@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
-import { AcceptInvitePageComponent } from './accept-invite/accept-invite.component'
 import { PacAuthComponent } from './auth.component'
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component'
 import { NoAuthGuard } from './guards/no-auth.guard'
@@ -44,7 +43,7 @@ const routes: Routes = [
       },
       {
 				path: 'accept-invite',
-				component: AcceptInvitePageComponent,
+        loadComponent: () => import('./accept-invite/accept-invite.component').then((m) => m.AcceptInvitePageComponent),
 				canActivate: [NoAuthGuard]
 			},
       {

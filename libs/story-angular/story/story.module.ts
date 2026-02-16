@@ -8,7 +8,6 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { IsNilPipe, NgMapPipeModule, NxCoreModule } from '@metad/core'
 import { NxStoryResponsiveModule } from '@metad/story/responsive'
-import { GridsterModule } from 'angular-gridster2'
 import { NxStorySharedModule } from './shared.module'
 import { StorySharesComponent } from './shares/shares.component'
 import { NxStoryPointComponent } from './story-point/story-point.component'
@@ -23,7 +22,6 @@ import { SinglePageStoryComponent } from './single-page-story/sps.component'
     NxStorySharedModule,
     OverlayModule,
     CdkMenuModule,
-    GridsterModule,
     HammerModule,
     TranslateModule,
     IsNilPipe,

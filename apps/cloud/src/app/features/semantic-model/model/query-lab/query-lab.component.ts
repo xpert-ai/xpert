@@ -17,6 +17,7 @@ import { QueryLabService } from './query-lab.service'
 import { ModelComponent } from '../model.component'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-model-query-lab',
   templateUrl: 'query-lab.component.html',

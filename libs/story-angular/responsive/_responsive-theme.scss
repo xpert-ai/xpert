@@ -3,7 +3,7 @@
 @use '@angular/material' as mat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
@@ -34,7 +34,7 @@
 
     &.editable {
       padding-top: var(--header-size);
-      border: 2px solid mat.get-color-from-palette($primary, 200);
+      border: 2px solid mat.m2-get-color-from-palette($primary, 200);
       transition: all .1s ease-in;
       border-radius: 5px;
 
@@ -43,9 +43,9 @@
       }
 
       .ngm-responsive__item.widget {
-        border: 1px solid mat.get-color-from-palette($foreground, divider);
+        border: 1px solid mat.m2-get-color-from-palette($foreground, divider);
         &.active {
-          border: 1px dashed mat.get-color-from-palette($accent);
+          border: 1px dashed mat.m2-get-color-from-palette($accent);
         }
       }
 
@@ -58,8 +58,8 @@
         text-align: center;
         border-top-left-radius: 3px;
         border-top-right-radius: 3px;
-        background-color: mat.get-color-from-palette($primary, 100);
-        color: mat.get-color-from-palette($primary, '100-contrast');
+        background-color: mat.m2-get-color-from-palette($primary, 100);
+        color: mat.m2-get-color-from-palette($primary, '100-contrast');
 
         &::before {
           content: '••••';
@@ -73,12 +73,12 @@
       }
 
       &.active {
-        background: mat.get-color-from-palette($accent, 100);
-        border: 2px dashed mat.get-color-from-palette($accent);
+        background: mat.m2-get-color-from-palette($accent, 100);
+        border: 2px dashed mat.m2-get-color-from-palette($accent);
 
         .ngm-responsive__header {
-          background-color: mat.get-color-from-palette($accent, 100);
-          color: mat.get-color-from-palette($accent, '100-contrast');
+          background-color: mat.m2-get-color-from-palette($accent, 100);
+          color: mat.m2-get-color-from-palette($accent, '100-contrast');
         }
       }
     }
@@ -104,14 +104,14 @@
 
 @mixin theme($theme) {
 
-  $density: mat.get-density-config($theme);
+  $density: mat.m2-get-density-config($theme);
 
-  $color-config: mat.get-color-config($theme);
+  $color-config: mat.m2-get-color-config($theme);
   @if $color-config != null {
     @include color($theme);
   }
 
-  $typography-config: mat.get-typography-config($theme);
+  $typography-config: mat.m2-get-typography-config($theme);
   @if $typography-config != null {
     @include typography($theme);
   }

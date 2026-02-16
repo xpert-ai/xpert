@@ -23,6 +23,7 @@ import { TranslationBaseComponent } from '../../../language/translation-base.com
 import { Store } from './../../../../@core/services'
 
 @Component({
+  standalone: false,
   selector: 'pac-email-invite-form',
   templateUrl: 'email-invite-form.component.html',
   styleUrls: ['email-invite-form.component.scss']

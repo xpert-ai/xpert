@@ -2,7 +2,7 @@
 @use '@angular/material' as mat;
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $foreground: map.get($config, foreground);
   $background: map.get($config, background);
   $primary: map.get($config, primary);
@@ -16,7 +16,7 @@
       position: relative;
 
       &:hover {
-        border-bottom-color: mat.get-color-from-palette($foreground, divider);
+        border-bottom-color: mat.m2-get-color-from-palette($foreground, divider);
         > .ngm-formly__remove {
           visibility: visible;
           opacity: 1;
@@ -35,7 +35,7 @@
     }
 
     .ngm-formly-cdk__drag-list.empty {
-      border: 1px dashed mat.get-color-from-palette($foreground, divider);;
+      border: 1px dashed mat.m2-get-color-from-palette($foreground, divider);;
       border-radius: 3px;
     }
   }
@@ -47,7 +47,7 @@
     }
   }
   .ngm-formly-cdk__drag-placeholder {
-    background: mat.get-color-from-palette($background, hover);
-    border: dotted 3px mat.get-color-from-palette($primary, 500);
+    background: mat.m2-get-color-from-palette($background, hover);
+    border: dotted 3px mat.m2-get-color-from-palette($primary, 500);
   }
 }

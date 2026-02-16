@@ -26,6 +26,7 @@ export interface AnalyticalGridState extends StoryWidgetState<WidgetAnalyticalGr
 }
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-widget-analytical-grid',
   templateUrl: 'analytical-grid.component.html',

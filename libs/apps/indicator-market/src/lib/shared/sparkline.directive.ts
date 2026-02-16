@@ -22,6 +22,7 @@ import { IndicatorState, StatisticalType, Trend, TrendColor, TrendReverseColor }
  * @deprecated use the individual `NgmIndicatorComponent` for indicator
  */
 @Directive({
+  standalone: false,
   selector: '[pacSparkLine]'
 })
 export class AppSparkLineDirective {

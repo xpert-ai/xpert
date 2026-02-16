@@ -5,7 +5,7 @@ import { AIMessage, BaseMessage, HumanMessage, isAIMessage } from '@langchain/co
 import { StringOutputParser } from '@langchain/core/output_parsers'
 import { Runnable } from '@langchain/core/runnables'
 import { ToolInputParsingException } from '@langchain/core/tools'
-import { PregelInputType } from '@langchain/langgraph/dist/pregel'
+import type { PregelInputType } from '@langchain/langgraph/pregel'
 import { BaseCheckpointSaver, END, GraphValueError, StateGraph } from '@langchain/langgraph/web'
 import {
   CopilotAgentType,
@@ -589,7 +589,7 @@ export class NgmCopilotEngineService implements CopilotEngine {
           ...conversation,
           status: 'error'
         }))
-        return
+        return ''
       }
     }
 

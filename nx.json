@@ -17,10 +17,6 @@
       "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
       "cache": true
     },
-    "build-storybook": {
-      "inputs": ["default", "^production", "!{projectRoot}/.storybook/**/*"],
-      "cache": true
-    },
     "e2e": {
       "cache": true
     },

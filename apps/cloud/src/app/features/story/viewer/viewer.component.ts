@@ -21,7 +21,6 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
-import { AbilityModule } from '@casl/angular'
 import { FavoritesService, StoriesService } from '@metad/cloud/state'
 import { NxCoreService } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -57,7 +56,6 @@ import { TranslationBaseComponent } from '../../../@shared/language'
     MaterialModule,
     DragDropModule,
     CdkMenuModule,
-    AbilityModule,
     TranslateModule,
     OcapCoreModule,
     NxStoryModule,
@@ -336,17 +334,17 @@ export class StoryViewerComponent extends TranslationBaseComponent implements On
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKeydown(event: KeyboardEvent) {
+  onEscapeKeydown(event: Event) {
     this.toggleFullscreen(false)
   }
 
   @HostListener('document:keydown.alt', ['$event'])
-  onSpaceKeydown(event: KeyboardEvent) {
+  onSpaceKeydown(event: Event) {
     this.storyService.patchState({ isPanMode: true })
   }
 
   @HostListener('document:keyup.alt', ['$event'])
-  onSpaceKeyUp(event: KeyboardEvent) {
+  onSpaceKeyUp(event: Event) {
     this.storyService.patchState({ isPanMode: false })
   }
 

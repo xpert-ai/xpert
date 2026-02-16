@@ -14,12 +14,12 @@
 
 
 // Define a theme.
-$primary: mat.define-palette(mat.$blue-grey-palette, 600);
-$accent:  mat.define-palette(mat.$amber-palette, A700, A400, A200);
+$primary: mat.m2-define-palette(mat.$m2-blue-grey-palette, 600);
+$accent:  mat.m2-define-palette(mat.$m2-amber-palette, A700, A400, A200);
 
 $material-typeface: Lato, 'Noto Serif SC', monospace;
 
-$mat-theme: mat.define-light-theme(
+$mat-theme: mat.m2-define-light-theme(
   (
     color: (
       primary: $primary,
@@ -29,7 +29,7 @@ $mat-theme: mat.define-light-theme(
   ),
 );
 
-$custom-typography: mat.define-typography-config(
+$custom-typography: mat.m2-define-typography-config(
   $font-family: $material-typeface
 );
 
@@ -54,17 +54,17 @@ $custom-typography: mat.define-typography-config(
 @include ocap.common-density($mat-theme);
 @include auth.theme($mat-theme);
 
-$config: mat.get-color-config($mat-theme);
+$config: mat.m2-get-color-config($mat-theme);
 $foreground: map.get($config, foreground);
 
 // Set color for the Story component separately to override global styles
 .ngm-theme-light, .ngm-story-container.ngm-theme-light.light {
-  --ngm-color-primary: #{mat.get-color-from-palette($primary)};
-  --ngm-color-on-primary-container: #{darken(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container: #{lighten(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container-variant: #{color.change(mat.get-color-from-palette($primary), $alpha: 0.1)};
-  --ngm-color-secondary: #{mat.get-color-from-palette($accent)};
-  --ngm-color-secondary-container: #{lighten(mat.get-color-from-palette($accent), 30%)};
+  --ngm-color-primary: #{mat.m2-get-color-from-palette($primary)};
+  --ngm-color-on-primary-container: #{darken(mat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container: #{lighten(mat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container-variant: #{color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.1)};
+  --ngm-color-secondary: #{mat.m2-get-color-from-palette($accent)};
+  --ngm-color-secondary-container: #{lighten(mat.m2-get-color-from-palette($accent), 30%)};
   --ngm-color-outline: #{map.get($foreground, divider)};
 
   // @include mat.all-component-colors($mat-theme);

@@ -1,4 +1,4 @@
-import { STATE_VARIABLE_HUMAN, TChatRequestHuman, TInterruptCommand } from '@xpert-ai/chatkit-types'
+import type { TChatRequestHuman, TInterruptCommand } from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
@@ -225,7 +225,7 @@ export type TChatAgentParams = {
     [key: string]: unknown
   }
   state: {
-    [STATE_VARIABLE_HUMAN]: TChatRequestHuman
+    human: TChatRequestHuman
     [key: string]: any
   }
   agentKey: string

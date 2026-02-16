@@ -3,6 +3,7 @@ import { FieldType } from '@ngx-formly/core'
 
 @Component({
   selector: 'pac-formly-empty',
+  standalone: false,
   template: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [

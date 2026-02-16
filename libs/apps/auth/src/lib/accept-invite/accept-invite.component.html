@@ -1,11 +1,20 @@
-<mat-spinner *ngIf="loading" diameter="30" strokeWidth="2"></mat-spinner>
+@if (loading) {
+    <mat-spinner diameter="30" strokeWidth="2"></mat-spinner>
+}
 
-<ng-container *ngIf="!loading">
-    <mtx-alert *ngIf="inviteLoadErrorMessage" type="warning">
-        {{ 'Auth.' + inviteLoadErrorMessage | translate: {Default: inviteLoadErrorMessage} }}
-    </mtx-alert>
+@if (!loading) {
+    @if (inviteLoadErrorMessage) {
+        <div class="rounded-lg border border-yellow-400 bg-yellow-50 p-4 text-yellow-800 dark:border-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-200">
+            <p class="flex items-center gap-2">
+            <svg class="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            {{ 'Auth.' + inviteLoadErrorMessage | translate: {Default: inviteLoadErrorMessage} }}
+            </p>
+        </div>
+    }
 
-    <div *ngIf="!inviteLoadErrorMessage">
+    @if (!inviteLoadErrorMessage) {
         <div class="register-header">
             <h2>
                 {{
@@ -26,6 +35,6 @@
         <pac-accept-invite-form
             [invitation]="invitation"
             (submitForm)="submitForm($event)"
-        ></pac-accept-invite-form>
-    </div>
-</ng-container>
+        />
+    }
+}

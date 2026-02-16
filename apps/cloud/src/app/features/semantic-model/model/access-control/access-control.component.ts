@@ -30,6 +30,7 @@ import { ModelComponent } from '../model.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
+  standalone: false,
   selector: 'pac-model-access-control',
   templateUrl: 'access-control.component.html',
   providers: [AccessControlStateService],

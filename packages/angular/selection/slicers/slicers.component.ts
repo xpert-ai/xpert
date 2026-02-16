@@ -31,6 +31,7 @@ import { SlicersCapacity } from '../types'
   selector: 'ngm-slicers',
   templateUrl: 'slicers.component.html',
   styleUrls: ['slicers.component.scss'],
+  standalone: false,
   inputs: ['dataSettings'],
   providers: [
     {

@@ -4,6 +4,7 @@ import { filter } from 'rxjs/operators'
 import { Store } from '../../services/store.service'
 
 @Component({
+  standalone: false,
   selector: 'pac-sign-in-success',
   templateUrl: './sign-in-success.component.html'
 })

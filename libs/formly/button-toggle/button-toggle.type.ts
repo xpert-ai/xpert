@@ -4,6 +4,7 @@ import { FieldType } from '@ngx-formly/core'
 
 @Component({
   selector: 'pac-formly-button-toggle',
+  standalone: false,
   template: `
 <label class="text-sm">{{to.label}}</label>
 <mat-button-toggle-group [formControl]="_formControl" [multiple]="to?.multiple" ngmAppearance="outline" color="accent" displayDensity="compact">

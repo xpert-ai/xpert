@@ -1,4 +1,4 @@
 @use '@angular/material' as mat;
 
 $status-bar-height: 15px;
-$success-palette: mat.define-palette(mat.$teal-palette, 500);
+$success-palette: mat.m2-define-palette(mat.$m2-teal-palette, 500);

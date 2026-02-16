@@ -18,6 +18,7 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
 
 @Component({
   selector: 'pac-formly-textarea',
+  standalone: false,
   template: `
 <label *ngIf="props?.label" class="p-1 text-ellipsis whitespace-nowrap overflow-hidden">{{to.label}}</label>
 <textarea class="ngm-input-element"

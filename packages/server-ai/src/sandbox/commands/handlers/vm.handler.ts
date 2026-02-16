@@ -3,9 +3,22 @@ import { Inject, Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
 import { spawn } from 'child_process'
-import { ExternalCopy, Isolate } from 'isolated-vm'
 import { SandboxVMCommand } from '../vm.command'
 import { runPythonFunction } from './python'
+
+let isolatedVmModule: typeof import('isolated-vm') | null = null
+
+function getIsolatedVmModule() {
+	if (!isolatedVmModule) {
+		try {
+			isolatedVmModule = require('isolated-vm')
+		} catch (error) {
+			throw new Error('JavaScript sandbox dependency "isolated-vm" is unavailable in current environment')
+		}
+	}
+
+	return isolatedVmModule
+}
 
 @CommandHandler(SandboxVMCommand)
 export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand> {
@@ -28,6 +41,7 @@ export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand> {
 	}
 
 	async runJavaScriptCode(parameters: any, code: string): Promise<any> {
+		const { ExternalCopy, Isolate } = getIsolatedVmModule()
 		const isolate = new Isolate({ memoryLimit: 128 }) // 128MB 内存限制
 		const contextified = await isolate.createContext()
 		const jail = contextified.global

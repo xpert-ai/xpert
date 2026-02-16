@@ -1,4 +1,4 @@
-import { NxChartType } from "@metad/core"
+import { ChartTypeEnum as NxChartType } from '@metad/ocap-core'
 
 export const CHART_TYPE_ICONS = {
   [NxChartType.Pie]: {

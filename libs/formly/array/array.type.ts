@@ -8,6 +8,7 @@ import { FieldArrayType } from '@ngx-formly/core';
  */
 @Component({
   selector: 'ngm-formly-array',
+  standalone: false,
   template: `
 @if (to.label) {
   <div class="ngm-formly__title">

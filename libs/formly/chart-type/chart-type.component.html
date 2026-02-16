@@ -128,7 +128,13 @@
         <span>{{ 'FORMLY.CHART.ChartOptions' | translate: {Default: 'Chart Options'} }}</span>
       </div>
 
-      <ngm-schema-form class="w-full" [(ngModel)]="chartOptions" name="chartOptions" />
+      <textarea
+        class="w-full min-h-28 p-2 text-xs font-mono bg-transparent border-0 outline-none resize-y"
+        [ngModel]="chartOptionsJsonText"
+        (ngModelChange)="onChartOptionsJsonChange($event)"
+        name="chartOptions"
+        spellcheck="false"
+      ></textarea>
     </div>
     
   </div>

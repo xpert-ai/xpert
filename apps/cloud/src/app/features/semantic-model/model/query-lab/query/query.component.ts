@@ -40,6 +40,7 @@ import { QueryCopilotEngineService } from './copilot.service'
 import { QueryService } from './query.service'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-model-query',
   templateUrl: 'query.component.html',

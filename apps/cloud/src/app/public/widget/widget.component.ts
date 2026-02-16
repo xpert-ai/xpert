@@ -14,6 +14,7 @@ import { effectStoryTheme, registerStoryThemes } from '../../@theme'
 import { provideStory } from '@metad/story'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-public-widget',
   templateUrl: 'widget.component.html',

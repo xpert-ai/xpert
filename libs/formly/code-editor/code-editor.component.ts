@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs'
 
 @Component({
   selector: 'pac-formly-code-editor',
+  standalone: false,
   templateUrl: './code-editor.component.html',
   styleUrls: ['./code-editor.component.scss']
 })

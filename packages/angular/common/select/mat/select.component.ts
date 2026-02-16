@@ -29,6 +29,7 @@ import {
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
+import { ThemePalette } from '@angular/material/core'
 import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -78,6 +79,10 @@ import { isEqual } from 'lodash-es'
 })
 export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAccessor {
   readonly #destroyRef = inject(DestroyRef)
+
+  @Input() disabled = false
+  @Input() disableRipple = false
+  @Input() color: ThemePalette = null
 
   @HostBinding('class.ngm-mat-select') _isSelectComponent = true
 
@@ -209,6 +214,7 @@ export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAcc
     this.onTouched = fn
   }
   setDisabledState?(isDisabled: boolean): void {
+    this.disabled = isDisabled
     isDisabled ? this.formControl.disable() : this.formControl.enable()
   }
 

@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common'
+import { animate, query, stagger, style, transition, trigger } from '@angular/animations'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete'
@@ -7,9 +8,16 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { listEnterAnimation } from '@metad/core'
 import { Subject, debounceTime } from 'rxjs'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+
+const listEnterAnimation = trigger('listEnterAnimation', [
+  transition('* <=> *', [
+    query(':enter', [style({ opacity: 0 }), stagger('20ms', animate('100ms ease-out', style({ opacity: 1 })))], {
+      optional: true
+    })
+  ])
+])
 
 @Component({
   standalone: true,

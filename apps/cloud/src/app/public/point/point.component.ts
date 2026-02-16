@@ -15,6 +15,7 @@ import { registerWasmAgentModel } from '../../@core'
 import { provideStory } from '@metad/story'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-public-point',
   templateUrl: 'point.component.html',

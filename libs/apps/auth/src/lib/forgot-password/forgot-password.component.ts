@@ -8,6 +8,7 @@ import { getDeepFromObject } from '../helpers'
 import { PacAuthResult, PacAuthService } from '../services'
 
 @Component({
+  standalone: false,
   selector: 'pac-auth-forgot-password',
   templateUrl: 'forgot-password.component.html',
   styleUrls: ['forgot-password.component.scss']

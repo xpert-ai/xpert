@@ -3,8 +3,7 @@ import { BaseStringPromptTemplate, ChatPromptTemplate } from '@langchain/core/pr
 import { BaseRetriever } from '@langchain/core/retrievers'
 import { DynamicStructuredTool, DynamicTool } from '@langchain/core/tools'
 import { BaseCheckpointSaver, CompiledStateGraph, StateGraph } from '@langchain/langgraph'
-import { StateDefinition } from '@langchain/langgraph/dist/graph/annotation'
-import { ChannelReducers } from '@langchain/langgraph/dist/graph/state'
+import { StateDefinition } from '@langchain/langgraph'
 import { Observable } from 'rxjs'
 import { CopilotChatMessage } from './types/types'
 

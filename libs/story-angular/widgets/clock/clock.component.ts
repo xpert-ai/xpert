@@ -1,16 +1,18 @@
-import { Component, ElementRef, OnInit } from '@angular/core'
-import { DataSettings } from '@metad/ocap-core'
+import { Component, ElementRef, OnInit, output } from '@angular/core'
+import { DataSettings, ISlicer } from '@metad/ocap-core'
 import { IStoryWidget, resizeObservable } from '@metad/core'
-import { AnyObject } from 'immer/dist/internal'
 import { interval } from 'rxjs'
 import { map, pluck, shareReplay } from 'rxjs/operators'
 import { FocusOrigin, FocusableOption } from '@angular/cdk/a11y'
+
+type AnyObject = Record<string, any>
 
 export interface NxWidgetClockOptions {
   //
 }
 
 @Component({
+  standalone: false,
   selector: 'ngm-story-widget-clock',
   template: `<div
     ngmTransformScale
@@ -72,6 +74,8 @@ export class NxWidgetClockComponent implements OnInit, IStoryWidget<NxWidgetCloc
 
   dataSettings: DataSettings
   options: NxWidgetClockOptions
+  readonly slicersChange = output<ISlicer[]>()
+  readonly linkSlicersChange = output<ISlicer[]>()
   locale?: string
   editable: boolean
 

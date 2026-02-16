@@ -76,6 +76,7 @@ function extractPromptVariables(promptText: string): string[] {
 })
 export class XpertStudioPanelAgentExecutionComponent {
   eExecutionStatusEnum = XpertAgentExecutionStatusEnum
+  readonly isSelected = false
 
   readonly xpertAgentService = inject(XpertAgentService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)

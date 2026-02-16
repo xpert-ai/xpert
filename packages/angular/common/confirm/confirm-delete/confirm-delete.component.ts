@@ -7,7 +7,8 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 @Component({
   selector: 'ngm-confirm-delete',
   templateUrl: './confirm-delete.component.html',
-  styleUrls: ['./confirm-delete.component.scss']
+  styleUrls: ['./confirm-delete.component.scss'],
+  standalone: false
 })
 export class NgmConfirmDeleteComponent {
   readonly data = inject<{ title?: string; value: any; information: string }>(MAT_DIALOG_DATA)

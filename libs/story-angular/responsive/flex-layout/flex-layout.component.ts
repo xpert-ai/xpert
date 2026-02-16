@@ -15,6 +15,7 @@ import { ResponsiveService } from '../responsive.service'
 import { FlexItemType, FlexLayout } from '../types'
 
 @Component({
+  standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-flex-layout',
   templateUrl: 'flex-layout.component.html',

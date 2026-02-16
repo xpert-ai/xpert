@@ -15,6 +15,7 @@ import { Subject } from 'rxjs'
 /** Custom `MatFormFieldControl` for telephone number input. */
 @Component({
   selector: 'pac-array-input',
+  standalone: false,
   templateUrl: 'array-input.component.html',
   styleUrls: ['array-input.component.scss'],
   providers: [{ provide: MatFormFieldControl, useExisting: ArrayInputComponent }],

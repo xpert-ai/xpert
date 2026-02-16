@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { PacAuthModule } from '@metad/cloud/auth'
+import { PacMenuComponent } from '@metad/cloud/auth'
 import { NgmFormlyModule, provideFormly, provideFormlyMaterial } from '@metad/formly'
 import { registerEChartsThemes } from '@metad/material-theme'
 import { NgmDrawerContentComponent, NgmDrawerTriggerComponent, NgmTableComponent, ResizerModule } from '@metad/ocap-angular/common'
@@ -44,7 +44,7 @@ registerEChartsThemes()
     CdkMenuModule,
     MaterialModule,
     SharedModule,
-    PacAuthModule,
+    PacMenuComponent,
     PACThemeModule,
     AssetsComponent,
     ProjectSelectorComponent,

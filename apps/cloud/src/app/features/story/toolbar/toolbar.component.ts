@@ -661,17 +661,17 @@ export class StoryToolbarComponent implements OnInit {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKeydown(event: KeyboardEvent) {
+  onEscapeKeydown(event: Event) {
     this.toggleFullscreen(false)
   }
 
   @HostListener('document:keydown.alt', ['$event'])
-  onSpaceKeydown(event: KeyboardEvent) {
+  onSpaceKeydown(event: Event) {
     this.storyService.patchState({ isPanMode: true })
   }
 
   @HostListener('document:keyup.alt', ['$event'])
-  onSpaceKeyUp(event: KeyboardEvent) {
+  onSpaceKeyUp(event: Event) {
     this.storyService.patchState({ isPanMode: false })
   }
 }

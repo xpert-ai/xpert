@@ -11,6 +11,7 @@ import { effectStoryTheme, registerStoryThemes } from '../../@theme'
 import { AppService } from '../../app.service'
 
 @Component({
+  standalone: false,
   selector: 'pac-story-viewer',
   templateUrl: 'story.component.html',
   styleUrls: ['story.component.scss'],

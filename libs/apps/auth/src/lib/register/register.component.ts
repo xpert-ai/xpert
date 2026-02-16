@@ -9,6 +9,7 @@ import { matchValidator, PacAuthResult, PacAuthService, passwordStrength, Passwo
 
 
 @Component({
+  standalone: false,
   selector: 'pac-register',
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],

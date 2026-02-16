@@ -113,6 +113,7 @@ import { ThemePalette } from '@angular/material/core'
 export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccessor
 {
   readonly #destroyRef = inject(DestroyRef)
+  _animationMode: 'NoopAnimations' | 'BrowserAnimations' = 'BrowserAnimations'
   
   @Input() appearance: MatFormFieldAppearance
   @Input() floatLabel: FloatLabelType

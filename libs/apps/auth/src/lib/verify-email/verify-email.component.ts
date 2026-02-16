@@ -7,6 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 
 @Component({
+  standalone: false,
   selector: 'pac-auth-varify-email',
   templateUrl: 'varify-email.component.html',
   styles: [

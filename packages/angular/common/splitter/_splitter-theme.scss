@@ -1,7 +1,7 @@
 @use 'sass:map';
 @use 'sass:color';
 @use '@angular/material' as mat;
-@use '@angular/material/core/tokens/token-utils';
+@use 'libs/material-theme/src/styles/material/token-utils-compat' as token-utils;
 @use '@angular/material/core/style/sass-utils';
 
 // The prefix used to generate the fully qualified name for tokens in this file.
@@ -26,14 +26,14 @@ $prefix: (ngm, splitter);
 }
 
 @mixin color($config-or-theme) {
-  $config: mat.get-color-config($config-or-theme);
+  $config: mat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
   $accent: map.get($config, accent);
 
-  $splitter-color: mat.get-color-from-palette($foreground, divider);
-  $splitter-focus-color: mat.get-color-from-palette($accent, 500);
+  $splitter-color: mat.m2-get-color-from-palette($foreground, divider);
+  $splitter-focus-color: mat.m2-get-color-from-palette($accent, 500);
 
   @include token-utils.use-tokens($prefix, get-token-slots()) {
     .ngm-splitter-bar {

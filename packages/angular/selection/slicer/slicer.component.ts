@@ -18,7 +18,8 @@ import { BaseSlicersComponent } from '../base-slicers'
 @Component({
   selector: 'ngm-slicer',
   templateUrl: 'slicer.component.html',
-  styleUrls: ['slicer.component.scss']
+  styleUrls: ['slicer.component.scss'],
+  standalone: false
 })
 export class SlicerComponent extends BaseSlicersComponent {
   private translate = inject(TranslateService)

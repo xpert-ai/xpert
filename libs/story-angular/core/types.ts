@@ -25,7 +25,7 @@ import {
 } from '@metad/ocap-core'
 import { NxWatermarkOptions } from '@metad/components/trial-watermark'
 import { DefaultDataSettings, IStoryWidget } from '@metad/core'
-import { GridsterConfig, GridsterItem } from 'angular-gridster2'
+import { GridsterConfig, GridsterItemConfig } from 'angular-gridster2'
 import ShortUniqueId from 'short-unique-id'
 
 export const I18N_STORY_NAMESPACE = 'Story'
@@ -398,7 +398,7 @@ export interface WidgetStyling {
 export interface StoryWidget extends StoryWidgetKey {
   name: string
   title?: string
-  position: GridsterItem
+  position: GridsterItemConfig
   component: WidgetComponentType | string
   dataSettings?: DataSettings
   linkedAnalysis?: LinkedAnalysisSettings

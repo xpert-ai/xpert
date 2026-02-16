@@ -1,10 +1,10 @@
-import { ChangeDetectorRef, Directive, HostBinding, HostListener, Inject } from '@angular/core'
+import { ChangeDetectorRef, Directive, HostBinding, HostListener } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
-import { NX_SCALE_CHROMATIC } from '@metad/core'
 // import { NxScaleChromaticService } from './scale-chromatic.service'
 
 @Directive({
   selector: '[nxScaleChromatic]',
+  standalone: false,
 })
 export class NxScaleChromaticDirective {
   constructor(

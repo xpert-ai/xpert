@@ -3,6 +3,7 @@ import { FieldWrapper } from '@ngx-formly/core';
 
 @Component({
   selector: 'ngm-formly-panel-wrapper',
+  standalone: false,
   template: `
 <div *ngIf="props?.label" class="ngm-formly__title">{{ props.label }}</div>
 <div class="card-body">

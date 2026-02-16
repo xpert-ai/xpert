@@ -1,5 +1,5 @@
 import { PlatformModule } from '@angular/cdk/platform'
-import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http'
+import { HTTP_INTERCEPTORS, HttpClientModule, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { APP_INITIALIZER, LOCALE_ID, NgModule } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { MatSnackBarModule } from '@angular/material/snack-bar'
@@ -8,7 +8,6 @@ import { provideAnimations } from '@angular/platform-browser/animations'
 import { RouteReuseStrategy } from '@angular/router'
 import { ServiceWorkerModule } from '@angular/service-worker'
 import { Ability, PureAbility } from '@casl/ability'
-import { AbilityModule } from '@casl/angular'
 import { NxCoreModule } from '@metad/core'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { NgxPermissionsModule } from 'ngx-permissions'
@@ -23,12 +22,12 @@ import {
   TokenInterceptor,
   UpdateService
 } from './@core'
+import { AuthModule } from './@core/auth/auth.module'
 import { AppRoutingModule } from './app-routing.module'
 import { AppComponent } from './app.component'
 import { PAC_API_BASE_URL } from '@metad/cloud/auth'
 import { environment } from '../environments/environment'
-import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core'
-import { DateFnsAdapter, MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter'
+import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
 import { initI18n } from './@shared/i18n'
 import { CustomElementsService, initializeCustomElements, provideChatMarkdown } from './@shared/chat'
 
@@ -44,17 +43,14 @@ function detectSubjectType(subject) {
 @NgModule({
   declarations: [AppComponent],
   imports: [
-    // angular
     BrowserModule,
     PlatformModule,
     HammerModule,
-
-    // RouterModule.forRoot([], { initialNavigation: 'enabledBlocking' }),
-    HttpClientModule,
     ReactiveFormsModule,
     AppRoutingModule,
     MatSnackBarModule,
     CoreModule.forRoot(),
+    AuthModule,
     NgxPermissionsModule.forRoot(),
     LoggerModule.forRoot({
       level: NgxLoggerLevel.WARN,
@@ -63,7 +59,6 @@ function detectSubjectType(subject) {
       enableSourceMaps: true
     }),
     NxCoreModule.forRoot(),
-    AbilityModule,
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: false, // environment.production,
       // Register the ServiceWorker as soon as the app is stable
@@ -72,6 +67,7 @@ function detectSubjectType(subject) {
     }),
   ],
   providers: [
+    provideHttpClient(withInterceptorsFromDi()),
     provideAnimations(),
     // UpdateService,
     {
@@ -121,11 +117,7 @@ function detectSubjectType(subject) {
       provide: PAC_API_BASE_URL,
       useValue: environment.API_BASE_URL
     },
-    {
-      provide: DateAdapter,
-      useClass: DateFnsAdapter
-    },
-    { provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS },
+    provideDateFnsAdapter(),
     {
       provide: APP_INITIALIZER,
       useFactory: initializeCustomElements,

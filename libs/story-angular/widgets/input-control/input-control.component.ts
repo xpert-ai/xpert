@@ -67,6 +67,7 @@ enum InputControlMenus {
 }
 
 @Component({
+  standalone: false,
   selector: 'pac-input-control',
   templateUrl: './input-control.component.html',
   styleUrls: ['./input-control.component.scss'],

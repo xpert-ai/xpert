@@ -12,13 +12,13 @@
 $material-typeface: Lato, 'Noto Serif SC', monospace;
 
 // Define a theme.
-$primary: mat.define-palette(mat.$blue-palette, 500);
-$accent: mat.define-palette(mat.$amber-palette, A700, A400, A200);
+$primary: mat.m2-define-palette(mat.$m2-blue-palette, 500);
+$accent: mat.m2-define-palette(mat.$m2-amber-palette, A700, A400, A200);
 
 $light-secondary-text: rgba(white, 0.7);
 $light-disabled-text: rgba(white, 0.5);
 $light-dividers: rgba(white, 0.12);
-$grey-palette: mat.$blue-grey-palette;
+$grey-palette: mat.$m2-blue-grey-palette;
 
 $background: (
   status-bar: #151a30,
@@ -56,7 +56,7 @@ $foreground: (
 );
 
 $dark-theme: map.deep-merge(
-  mat.define-dark-theme((
+  mat.m2-define-dark-theme((
     color: (
       primary: $primary,
       accent: $accent,
@@ -70,17 +70,17 @@ $dark-theme: map.deep-merge(
   )
 );
 
-$custom-typography: mat.define-typography-config(
+$custom-typography: mat.m2-define-typography-config(
   $font-family: $material-typeface
 );
 
 .dark, .ngm-story__device.ngm-theme-dark.dark {
-  --ngm-color-primary: #{mat.get-color-from-palette($primary)};
-  --ngm-color-on-primary-container: #{darken(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container: #{lighten(mat.get-color-from-palette($primary), 30%)};
-  --ngm-color-primary-container-variant: #{color.change(mat.get-color-from-palette($primary), $alpha: 0.1)};
-  --ngm-color-secondary: #{mat.get-color-from-palette($accent)};
-  --ngm-color-secondary-container: #{lighten(mat.get-color-from-palette($accent), 30%)};
+  --ngm-color-primary: #{mat.m2-get-color-from-palette($primary)};
+  --ngm-color-on-primary-container: #{darken(mat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container: #{lighten(mat.m2-get-color-from-palette($primary), 30%)};
+  --ngm-color-primary-container-variant: #{color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.1)};
+  --ngm-color-secondary: #{mat.m2-get-color-from-palette($accent)};
+  --ngm-color-secondary-container: #{lighten(mat.m2-get-color-from-palette($accent), 30%)};
   --ngm-color-outline: #{map.get($foreground, divider)};
 
   // Include all theme styles for the mat components.

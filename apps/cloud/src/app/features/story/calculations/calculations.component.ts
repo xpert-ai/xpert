@@ -122,7 +122,7 @@ export class StoryCalculationsComponent {
     switchMap(() =>
       this.storyService.modelCubes$.pipe(
         map((models) => {
-          const items = []
+          const items: ISelectOption<{ dataSource: string; modelId: string }>[] = []
           models.forEach((model, index) => {
             items.push(
               ...model.cubes.map((cube) => ({
@@ -148,7 +148,7 @@ export class StoryCalculationsComponent {
       )
     ),
     combineLatestWith(toObservable(this.entitySearch)),
-    map(([cubes, text]) => filterSearch(cubes, text))
+    map(([cubes, text]) => filterSearch(cubes, text) as ISelectOption<{ dataSource: string; modelId: string }>[] )
   )
 
   readonly property = signal<CalculationProperty>(null)

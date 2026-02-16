@@ -1,6 +1,9 @@
 import { Directive, HostBinding, Input, OnChanges, SimpleChanges } from '@angular/core'
 
-@Directive({ selector: '[semanticColor]' })
+@Directive({
+  selector: '[semanticColor]',
+  standalone: false
+})
 export class SemanticColorDirective implements OnChanges {
   @Input() semanticColor: number
 

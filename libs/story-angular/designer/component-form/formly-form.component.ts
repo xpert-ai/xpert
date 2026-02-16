@@ -1,8 +1,9 @@
 import { animate, style, transition, trigger } from '@angular/animations'
+import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, Output, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { FormGroup } from '@angular/forms'
-import { FormlyFieldConfig, FormlyFormOptions } from '@ngx-formly/core'
+import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormlyFieldConfig, FormlyFormOptions, FormlyModule } from '@ngx-formly/core'
 import { cloneDeep, isEqual } from 'lodash-es'
 import { EMPTY, Observable, Subject, isObservable, of, timer } from 'rxjs'
 import {
@@ -28,9 +29,11 @@ import {
  * 
  */
 @Component({
+  standalone: true,
   selector: 'ngm-component-settings',
   templateUrl: 'formly-form.component.html',
   styleUrls: ['formly-form.component.scss'],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, FormlyModule],
   animations: [
     trigger('settingsComponent', [
       transition(':enter', [

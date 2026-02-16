@@ -1,9 +1,14 @@
+import { CommonModule } from '@angular/common'
 import { FocusMonitor, FocusOrigin } from '@angular/cdk/a11y'
 import { Component, ElementRef, Renderer2, ViewEncapsulation, computed, inject } from '@angular/core'
 import { cloneDeep } from '@metad/ocap-core'
-import { AbstractStoryWidget, StoryWidgetState, StoryWidgetStyling } from '@metad/core'
+import { AbstractStoryWidget, IsNilPipe, StoryWidgetState, StoryWidgetStyling } from '@metad/core'
 import { ComponentStyling, WidgetComponentType, componentStyling } from '@metad/story/core'
-import { WidgetComponentType as IndicatorCardWidgetType } from '@metad/story/widgets/indicator-card'
+import { PlaceholderAddComponent } from '@metad/story/story'
+import { WidgetAnalyticalCardModule } from '@metad/story/widgets/analytical-card'
+import { WidgetAnalyticalGridModule } from '@metad/story/widgets/analytical-grid'
+import { AccountingIndicatorCardModule, WidgetComponentType as IndicatorCardWidgetType } from '@metad/story/widgets/indicator-card'
+import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, map } from 'rxjs'
 // import Swiper core and required components
 import SwiperCore, {
@@ -80,6 +85,16 @@ export interface WidgetSwiperStyling extends StoryWidgetStyling {
 }
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    TranslateModule,
+    IsNilPipe,
+    AccountingIndicatorCardModule,
+    WidgetAnalyticalCardModule,
+    WidgetAnalyticalGridModule,
+    PlaceholderAddComponent
+  ],
   encapsulation: ViewEncapsulation.None,
   selector: 'pac-story-widget-swiper',
   templateUrl: './swiper.component.html',

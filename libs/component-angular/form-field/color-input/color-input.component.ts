@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, ElementRef, Input, forwardRef } from '@angular/core'
+import { ChangeDetectionStrategy, Component, Input, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { CanColor, CanDisable, mixinColor, mixinDisabled } from '@angular/material/core'
 import { MatInputModule } from '@angular/material/input'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { ColorFormat, MtxColorpickerModule } from '@ng-matero/extensions/colorpicker'
@@ -29,13 +28,9 @@ import { TranslateModule } from '@ngx-translate/core'
     }
   ]
 })
-export class NgmColorInputComponent extends mixinColor(
-  mixinDisabled(
-    class {
-      constructor(public _elementRef: ElementRef) {}
-    }
-  )
-) implements CanDisable, CanColor, ControlValueAccessor {
+export class NgmColorInputComponent implements ControlValueAccessor {
+  @Input() disabled = false
+  @Input() color: string | null = null
   @Input() label: string
   @Input() default = '#00000000'
   @Input() format: ColorFormat

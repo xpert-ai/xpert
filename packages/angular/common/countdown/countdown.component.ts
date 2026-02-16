@@ -32,6 +32,7 @@ import { CountdownGlobalConfig } from './countdown.config';
   host: { '[class.count-down]': 'true' },
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class NgmCountdownComponent implements OnInit, OnChanges, OnDestroy {
   private frequency = 1000;

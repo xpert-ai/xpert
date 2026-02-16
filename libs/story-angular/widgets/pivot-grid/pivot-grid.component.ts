@@ -24,6 +24,7 @@ import { TreeGridGroupingPipe } from './tree-grid-grouping.pipe'
 
 @UntilDestroy()
 @Component({
+  standalone: false,
   selector: 'pac-widget-pivot-grid',
   templateUrl: './pivot-grid.component.html',
   styleUrls: ['./pivot-grid.component.scss'],
