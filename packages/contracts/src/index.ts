@@ -1,3 +1,4 @@
+export * from './app.model'
 export * from './types'
 export * from './contact.model'
 export * from './core.model'

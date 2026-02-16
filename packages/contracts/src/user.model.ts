@@ -66,6 +66,7 @@ export interface IUserRegistrationInput {
 	user: IUser;
 	password?: string;
 	confirmPassword?: string
+	smsVerificationToken?: string
 	originalUrl?: string;
 	organizationId?: string;
 	createdById?: string;
@@ -77,6 +78,26 @@ export interface IUserRegistrationInput {
 export interface IUserLoginInput {
 	email: string;
 	password: string;
+}
+
+export interface ISendSmsCodeInput {
+	mobile: string
+}
+
+export interface ISendSmsCodeResponse {
+	success: boolean
+	expiresIn: number
+	resendIn: number
+}
+
+export interface IVerifySmsCodeInput {
+	mobile: string
+	code: string
+}
+
+export interface IVerifySmsCodeResponse {
+	verificationToken: string
+	expiresIn: number
 }
 
 export interface IAuthResponse {
