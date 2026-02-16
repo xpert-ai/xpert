@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@a2ui/lit': 0.8.1
   '@langchain/core': 0.3.72
   langchain: 0.3.31
   '@modelcontextprotocol/sdk': 1.12.1
@@ -1022,7 +1023,7 @@ importers:
   packages/contracts:
     dependencies:
       '@a2ui/lit':
-        specifier: ^0.8.1
+        specifier: 0.8.1
         version: 0.8.1(signal-polyfill@0.2.2)
       '@xpert-ai/chatkit-types':
         specifier: ^0.0.12
@@ -8291,13 +8292,13 @@ packages:
   '@xpert-ai/chatkit-types@0.0.12':
     resolution: {integrity: sha512-YLAG8asj/PpplKwH3+GfiswTDzk8m9pqcy3dsHA7Qow3WrzMk0G8pZya11MaFBMG3ynAsGV3oRHlikvaZJmtmQ==}
     peerDependencies:
-      '@a2ui/lit': ^0.8.1
+      '@a2ui/lit': 0.8.1
       '@langchain/core': 0.3.72
 
   '@xpert-ai/chatkit-types@0.0.8':
     resolution: {integrity: sha512-Q7SIUWMp5pPST9B2WdycnRg4WkXTBLCXlGw8duVvDnRALIlIIPL0q4u+P1kIWaUF7P2/GHWNZxjSLUHgZOVaEw==}
     peerDependencies:
-      '@a2ui/lit': ^0.8.1
+      '@a2ui/lit': 0.8.1
       '@langchain/core': 0.3.72
       '@langchain/langgraph-sdk': ^1.0.0
 
@@ -33972,7 +33973,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.13.5(debug@4.4.3))
+      retry-axios: 2.6.0(axios@1.13.5)
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -39317,7 +39318,7 @@ snapshots:
 
   ret@0.1.15: {}
 
-  retry-axios@2.6.0(axios@1.13.5(debug@4.4.3)):
+  retry-axios@2.6.0(axios@1.13.5):
     dependencies:
       axios: 1.13.5(debug@4.4.3)
 

@@ -278,6 +278,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@a2ui/lit": "0.8.1",
       "@langchain/core": "0.3.72",
       "langchain": "0.3.31",
       "@modelcontextprotocol/sdk": "1.12.1",

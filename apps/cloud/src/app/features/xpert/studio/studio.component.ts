@@ -427,7 +427,7 @@ export class XpertStudioComponent {
   }
 
   removeConnection(connection: FConnectionComponent) {
-    this.apiService.removeConnection(connection.fOutputId, connection.fInputId)
+    this.apiService.removeConnection(connection.fOutputId(), connection.fInputId())
   }
 
   onCanvasChange = effectAction((origin$: Observable<FCanvasChangeEvent>) => {
