@@ -99,7 +99,7 @@
     "projectsRelationship": "independent",
     "projects": ["packages/contracts", "packages/server", "packages/plugin-sdk", "mysql"],
     "version": {
-      "preVersionCommand": "yarn nx run-many -t build"
+      "preVersionCommand": "pnpm nx run-many -t build"
     }
   },
   "plugins": [

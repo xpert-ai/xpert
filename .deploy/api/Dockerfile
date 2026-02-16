@@ -9,9 +9,8 @@ LABEL org.opencontainers.image.source=https://github.com/xpert-ai/xpert
 
 ENV CI=true
 
-RUN apk --update add bash jq && npm i -g npm
-
-RUN npm install yarn -g --force
+RUN apk --update add bash jq && npm i -g npm && \
+    corepack enable && corepack prepare pnpm@10.24.0 --activate
 RUN mkdir /srv/pangolin && chown -R node:node /srv/pangolin
 
 USER node:node
@@ -32,11 +31,13 @@ COPY --chown=node:node packages/analytics/package.json ./packages/analytics/
 COPY --chown=node:node packages/plugin-sdk/package.json ./packages/plugin-sdk/
 
 COPY --chown=node:node .deploy/api/package.json ./
-COPY --chown=node:node yarn.lock ./
+COPY --chown=node:node pnpm-lock.yaml ./
+COPY --chown=node:node pnpm-workspace.yaml ./
+COPY --chown=node:node .npmrc ./
 COPY --chown=node:node .eslintrc.json ./
 COPY --chown=node:node .nxignore ./
 
-RUN npm install --legacy-peer-deps
+RUN pnpm install --no-frozen-lockfile
 
 COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
@@ -46,9 +47,9 @@ COPY --chown=node:node apps/api ./apps/api
 RUN rm -rf packages/angular packages/copilot-angular
 
 # Reinstall built-in plugins dependencies
-RUN npm install --legacy-peer-deps
-RUN yarn build:plugins
-RUN yarn nx build api --verbose
+RUN pnpm install --no-frozen-lockfile
+RUN pnpm build:plugins
+RUN pnpm nx build api --verbose
 
 # COPY --chown=node:node .deploy/api/install-plugins.sh ./
 # RUN chmod +x install-plugins.sh
@@ -89,6 +90,7 @@ RUN apt-get install -y python3-pip && \
 WORKDIR /srv/pangolin
 
 RUN npm install pm2 -g
+RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 COPY --chown=node:node wait ./
 # COPY dist and dependencies
@@ -97,15 +99,16 @@ COPY --chown=node:node --from=build /srv/pangolin/packages/contracts/dist ./pack
 COPY --chown=node:node --from=build /srv/pangolin/packages/plugin-sdk/dist ./packages/plugin-sdk
 COPY --chown=node:node --from=build /srv/pangolin/dist/apps/api .
 COPY --chown=node:node --from=build /srv/pangolin/tsconfig.base.json ./
-COPY --chown=node:node --from=build /srv/pangolin/package-lock.json .
+COPY --chown=node:node --from=build /srv/pangolin/pnpm-lock.yaml ./
+COPY --chown=node:node --from=build /srv/pangolin/pnpm-workspace.yaml ./
+COPY --chown=node:node --from=build /srv/pangolin/.npmrc ./
 COPY --chown=node:node .deploy/api/package-prod.json ./package.json
 
 COPY --chown=node:node .deploy/api/entrypoint.compose.sh ./
 COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
-# RUN yarn config set network-timeout 300000
-RUN npm install --legacy-peer-deps && \
+RUN pnpm install --prod --no-frozen-lockfile && \
     touch ormlogs.log && chown -R node:node /srv/pangolin
 
 USER node:node

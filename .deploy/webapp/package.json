@@ -25,7 +25,7 @@
     "BI"
   ],
   "scripts": {
-    "build:cloud:prod": "yarn nx build cloud --configuration=production"
+    "build:cloud:prod": "pnpm nx build cloud --configuration=production"
   },
   "dependencies": {
     "@angular/animations": "~17.3.0",
@@ -199,13 +199,16 @@
     "libs/*",
     "packages/*"
   ],
-  "resolutions": {
-    "@langchain/core": "0.3.72",
-    "langchain": "0.3.31",
-    "zod": "3.25.67",
-    "minimatch": "9.0.4"
-  },
   "nx": {
     "includedScripts": []
-  }
+  },
+  "pnpm": {
+    "overrides": {
+      "@langchain/core": "0.3.72",
+      "langchain": "0.3.31",
+      "zod": "3.25.67",
+      "minimatch": "9.0.4"
+    }
+  },
+  "packageManager": "pnpm@10.24.0"
 }

@@ -5,36 +5,36 @@
   "license": "AGPL-3.0",
   "homepage": "https://xpertai.cn",
   "repository": {
-		"type": "git",
-		"url": "https://github.com/xpert-ai/xpert.git"
-	},
-	"bugs": {
-		"url": "https://github.com/xpert-ai/xpert/issues"
-	},
+    "type": "git",
+    "url": "https://github.com/xpert-ai/xpert.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xpert-ai/xpert/issues"
+  },
   "private": true,
   "author": {
-		"name": "XpertAI Co. LTD",
-		"email": "service@xpertai.cn",
-		"url": "https://xpertai.cn"
-	},
+    "name": "XpertAI Co. LTD",
+    "email": "service@xpertai.cn",
+    "url": "https://xpertai.cn"
+  },
   "scripts": {
-    "ng": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=4096 yarn nx",
-    "typeorm": "yarn ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json node_modules/.bin/typeorm",
-    "typeorm:sync": "yarn typeorm schema:sync",
-    "typeorm:seeds": "yarn typeorm migration:run",
-    "typeorm:flush": "yarn typeorm migration:revert",
-    "typeorm:create": "yarn typeorm migration:create",
-    "typeorm:preserve": "yarn typeorm:sync -- -f=ormconfig && yarn typeorm:seeds -- -f=ormconfig",
+    "ng": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=4096 pnpm nx",
+    "typeorm": "pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json node_modules/.bin/typeorm",
+    "typeorm:sync": "pnpm typeorm schema:sync",
+    "typeorm:seeds": "pnpm typeorm migration:run",
+    "typeorm:flush": "pnpm typeorm migration:revert",
+    "typeorm:create": "pnpm typeorm migration:create",
+    "typeorm:preserve": "pnpm typeorm:sync -- -f=ormconfig && pnpm typeorm:seeds -- -f=ormconfig",
     "start:debug": "nodemon --config nodemon-debug.json",
-    "build": "yarn ng build api",
-    "build:prod": "yarn ng build api --prod",
-    "seed": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8192 yarn ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json src/seed.ts",
-    "seed:build": "yarn ng run api:seed",
-    "seed:all": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8192 yarn ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json src/seed-all.ts",
-    "seed:module": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8192 yarn ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json src/seed-module.ts --name",
-    "seed:all:build": "yarn ng run api:seed-all",
-    "seed:prod": "cross-env NODE_ENV=production NODE_OPTIONS=--max_old_space_size=8192 yarn ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json src/seed.ts",
-    "seed:prod:build": "yarn ng run api:seed -c=production"
+    "build": "pnpm ng build api",
+    "build:prod": "pnpm ng build api --prod",
+    "seed": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8192 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json src/seed.ts",
+    "seed:build": "pnpm ng run api:seed",
+    "seed:all": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8192 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json src/seed-all.ts",
+    "seed:module": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8192 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json src/seed-module.ts --name",
+    "seed:all:build": "pnpm ng run api:seed-all",
+    "seed:prod": "cross-env NODE_ENV=production NODE_OPTIONS=--max_old_space_size=8192 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json src/seed.ts",
+    "seed:prod:build": "pnpm ng run api:seed -c=production"
   },
   "dependencies": {
     "@nestjs/platform-socket.io": "^11.1.6",

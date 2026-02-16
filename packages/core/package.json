@@ -20,6 +20,6 @@
     "date-fns": "^3.0.4"
   },
   "scripts": {
-    "docs": "yarn typedoc --out ./.docs"
+    "docs": "pnpm typedoc --out ./.docs"
   }
 }

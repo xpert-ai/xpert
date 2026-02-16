@@ -35,8 +35,14 @@ jobs:
       - name: Update npm
         run: npm i -g npm@latest
 
-      - run: yarn bootstrap
-      - run: yarn build
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.24.0 --activate
+          pnpm --version
+
+      - run: pnpm bootstrap
+      - run: pnpm build
 
       - run: npm publish --access public --tag latest
         working-directory: ./dist/packages/core
@@ -64,8 +70,14 @@ jobs:
       - name: Update npm
         run: npm i -g npm@latest
 
-      - run: yarn bootstrap
-      - run: yarn build
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.24.0 --activate
+          pnpm --version
+
+      - run: pnpm bootstrap
+      - run: pnpm build
 
       - run: npm publish --access public --tag beta
         working-directory: ./dist/packages/core

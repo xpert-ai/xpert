@@ -109,7 +109,7 @@ export class SeedDataService {
 	}
 
 	/**
-	 * This config is applied only for `yarn seed:*` type calls because
+	 * This config is applied only for `pnpm seed:*` type calls because
 	 * that is when connection is created by this service itself.
 	 */
 	overrideDbConfig = {

@@ -3,7 +3,7 @@
   "version": "3.7.5",
   "license": "AGPL-3.0",
   "scripts": {
-    "docs": "yarn typedoc --out ./.docs"
+    "docs": "pnpm typedoc --out ./.docs"
   },
   "peerDependencies": {
     "nanoid": "^4.0.2",

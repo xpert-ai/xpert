@@ -19,6 +19,7 @@ ARG NODE_OPTIONS
 ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=4096"}
 
 RUN apk --update add bash && \
+    corepack enable && corepack prepare pnpm@10.24.0 --activate && \
     # apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev && \
     mkdir /srv/pangolin && chown -R node:node /srv/pangolin
 
@@ -31,12 +32,12 @@ COPY --chown=node:node packages/contracts/package.json ./packages/contracts/
 COPY --chown=node:node packages/copilot-angular/package.json ./packages/copilot-angular/
 COPY --chown=node:node apps/cloud/package.json ./apps/cloud/
 
-RUN yarn config set network-timeout 300000
-
 COPY --chown=node:node .deploy/webapp/package.json ./package.json
-COPY --chown=node:node yarn.lock ./yarn.lock
+COPY --chown=node:node pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --chown=node:node pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --chown=node:node .npmrc ./.npmrc
 COPY --chown=node:node .eslintrc.json ./
-RUN yarn install
+RUN pnpm install --no-frozen-lockfile
 
 COPY nx.json ./
 COPY tsconfig.base.json ./
@@ -44,7 +45,7 @@ COPY packages ./packages
 COPY libs ./libs
 COPY apps/cloud ./apps/cloud
 
-RUN yarn build:cloud:prod
+RUN pnpm build:cloud:prod
 
 # ==================================================== Stage ==========================================================#
 FROM nginx:alpine AS production
