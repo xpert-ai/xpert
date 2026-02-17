@@ -65,7 +65,9 @@
       "@xpert-ai/plugin-vstore-chroma": ["packages/plugins/vstore-chroma/src/index.ts"],
       "@xpert-ai/plugin-vstore-weaviate": ["packages/plugins/vstore-weaviate/src/index.ts"],
       "ngx-echarts": ["packages/ngx-echarts/src/public-api"],
-      "ollama/browser": ["node_modules/ollama/dist/browser.cjs"]
+      "ollama/browser": ["node_modules/ollama/dist/browser.cjs"],
+      "@xpert-ai/headless-ui": ["packages/ui/src/index.ts"],
+      "@xpert-ai/headless-ui/*": ["packages/ui/src/lib/*"]
     },
     "preserveConstEnums": true,
     "allowSyntheticDefaultImports": true,

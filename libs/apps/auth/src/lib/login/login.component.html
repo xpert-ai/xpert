@@ -3,7 +3,10 @@
   <div class="w-full md:mt-0 sm:max-w-md xl:p-0">
     <!-- Tab Navigation -->
     <div class="border-b border-gray-200 dark:border-gray-700">
-      <button type="button" class="px-4 py-2 text-base font-medium text-gray-900 dark:text-white border-b-2 border-blue-600">
+      <button
+        z-button
+        type="button"
+      >
         {{ 'Auth.Signin' | translate: {Default: 'Sign-in'} }}
       </button>
     </div>
@@ -15,7 +18,14 @@
             <span class="flex-1 text-sm text-yellow-800 dark:text-yellow-300">
               {{ 'Auth.' + error | translate: {Default: error} }}
             </span>
-            <button type="button" (click)="errors.splice($index, 1)" class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-200">
+            <button
+              z-button
+              type="button"
+              zType="ghost"
+              zSize="icon-xs"
+              (click)="errors.splice($index, 1)"
+              class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-200"
+            >
               <span class="sr-only">Close</span>
               ✕
             </button>
@@ -26,18 +36,31 @@
         <label for="email" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
           {{ 'AUTH.LOGIN.ACCOUNT' | translate: {Default: 'Account'} }}
         </label>
-        <input type="email" name="email" id="email" formControlName="userName" [placeholder]="'AUTH.LOGIN.USERNAME' | translate: {Default: 'Username / Email'}"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required>
+        <input
+          z-input
+          type="email"
+          name="email"
+          id="email"
+          formControlName="userName"
+          [placeholder]="'AUTH.LOGIN.USERNAME' | translate: {Default: 'Username / Email'}"
+          class="bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+          required
+        >
       </div>
       <div>
         <label for="password" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
           {{ 'AUTH.LOGIN.PASSWORD' | translate: {Default: 'Password'} }}
         </label>
-        <input type="password" name="password" id="password" formControlName="password"
+        <input
+          z-input
+          type="password"
+          name="password"
+          id="password"
+          formControlName="password"
           placeholder="••••••••"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required>
+          class="bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+          required
+        >
       </div>
     </div>
   </div>
@@ -52,12 +75,15 @@
     </a>
   </div>
 
-  <button class="relative inline-flex items-center justify-center cursor-pointer p-0.5 mb-2 overflow-hidden text-sm font-medium rounded-lg group bg-gradient-to-br from-green-400 to-blue-600 group-hover:from-green-400 group-hover:to-blue-600 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 disabled:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+  <button
+    z-button
+    zFull
+    [zLoading]="loading"
+    class="mb-2 h-10 text-sm font-medium"
     [disabled]="form.invalid || loading"
-    type="submit">
-    <span class="relative w-full px-5 py-2.5 transition-all ease-in duration-75 bg-white rounded-md group-hover:bg-opacity-0 group-disabled:bg-opacity-100 dark:bg-gray-900">
-      {{ 'AUTH.LOGIN.SUBMIT' | translate: {Default: 'Submit'} }}
-    </span>
+    type="submit"
+  >
+    {{ 'AUTH.LOGIN.SUBMIT' | translate: {Default: 'Submit'} }}
   </button>
 
   <div class="pac-auth__login-remember flex justify-end items-center">
@@ -70,21 +96,39 @@
 
 <div class="pac-login__signins flex flex-wrap justify-center items-center gap-2">
   @if (enableDingtalk()) {
-    <button (click)="open('dingtalk', 'window')" class="pac-login__signin-button p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
-      [title]="'AUTH.LOGIN.DINGTALK' | translate: {Default: 'Dingtalk'}">
+    <button
+      z-button
+      zType="outline"
+      zSize="icon-lg"
+      (click)="open('dingtalk', 'window')"
+      class="pac-login__signin-button rounded-lg border border-gray-300 p-2 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
+      [title]="'AUTH.LOGIN.DINGTALK' | translate: {Default: 'Dingtalk'}"
+    >
       <img class="w-6 h-6" src="/assets/images/destinations/dingtalk.svg" alt="Dingtalk">
     </button>
   }
   @if (enableFeishu()) {
-    <button (click)="open('feishu', 'window')" class="pac-login__signin-button p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-      [title]="'AUTH.LOGIN.FEISHU' | translate: {Default: 'Feishu'}">
+    <button
+      z-button
+      zType="outline"
+      zSize="icon-lg"
+      (click)="open('feishu', 'window')"
+      class="pac-login__signin-button rounded-lg border border-gray-300 p-2 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
+      [title]="'AUTH.LOGIN.FEISHU' | translate: {Default: 'Feishu'}"
+    >
       <img class="w-6 h-6" src="/assets/images/destinations/feishu.png" alt="Feishu">
     </button>
   }
 
   @if (enableGithub()) {
-    <button (click)="open('github', 'window')" class="pac-login__signin-button p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-      [title]="'AUTH.LOGIN.GITHUB' | translate: {Default: 'Github'}">
+    <button
+      z-button
+      zType="outline"
+      zSize="icon-lg"
+      (click)="open('github', 'window')"
+      class="pac-login__signin-button rounded-lg border border-gray-300 p-2 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
+      [title]="'AUTH.LOGIN.GITHUB' | translate: {Default: 'Github'}"
+    >
       <img class="w-6 h-6" src="/assets/images/destinations/GitHub-Mark-120px-plus.png" alt="Github">
     </button>
   }

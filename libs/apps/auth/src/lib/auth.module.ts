@@ -1,18 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { Injector, ModuleWithProviders, NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTabsModule } from '@angular/material/tabs'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import {MatDividerModule} from '@angular/material/divider'
-import { MatProgressSpinner } from '@angular/material/progress-spinner'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { PacAuthRoutingModule } from './auth-routing.module'
 import { PacAuthComponent } from './auth.component'
 import {
@@ -76,6 +67,8 @@ export function nbOptionsFactory(options) {
     RouterModule,
     PacAuthRoutingModule,
     TranslateModule,
+    ZardButtonComponent,
+    ZardInputDirective
   ],
   exports: [
     PacAuthComponent,

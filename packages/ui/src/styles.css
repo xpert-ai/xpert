@@ -1,0 +1,53 @@
+:root {
+  --ui-bg: 255 255 255;
+  --ui-surface: 248 250 252;
+  --ui-border: 203 213 225;
+  --ui-text: 15 23 42;
+  --ui-muted: 100 116 139;
+  --ui-primary: 37 99 235;
+  --ui-primary-foreground: 255 255 255;
+  --ui-danger: 220 38 38;
+  --ui-danger-foreground: 255 255 255;
+  --ui-ring: 59 130 246;
+  --ui-radius-sm: 0.375rem;
+  --ui-radius-md: 0.625rem;
+  --ui-radius-lg: 0.875rem;
+  --ui-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --ui-shadow-md: 0 10px 30px rgba(15, 23, 42, 0.12);
+  --radius-sm: var(--ui-radius-sm);
+  --radius-md: var(--ui-radius-md);
+  --radius-lg: var(--ui-radius-lg);
+}
+
+.dark {
+  --ui-bg: 2 6 23;
+  --ui-surface: 15 23 42;
+  --ui-border: 51 65 85;
+  --ui-text: 226 232 240;
+  --ui-muted: 148 163 184;
+  --ui-primary: 96 165 250;
+  --ui-primary-foreground: 15 23 42;
+  --ui-danger: 248 113 113;
+  --ui-danger-foreground: 15 23 42;
+  --ui-ring: 125 211 252;
+}
+
+.xp-ui-shell {
+  border-radius: 1rem;
+  border: 1px solid rgb(var(--ui-border) / 0.9);
+  background: linear-gradient(135deg, rgb(var(--ui-bg) / 0.96), rgb(var(--ui-surface) / 0.96));
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.xp-ui-code-card {
+  border-radius: 0.75rem;
+  border: 1px solid rgb(var(--ui-border) / 0.9);
+  padding: 1rem;
+  background-color: rgb(var(--ui-bg) / 0.75);
+  backdrop-filter: blur(10px);
+}
+
+.xp-ui-focus-ring:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 2px rgb(var(--ui-bg)), 0 0 0 4px rgb(var(--ui-ring) / 0.7);
+}

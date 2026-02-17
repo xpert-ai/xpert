@@ -30,6 +30,8 @@ module.exports = {
           900: '#263238'
         },
         primary: {
+          DEFAULT: 'rgb(var(--ui-primary) / <alpha-value>)',
+          foreground: 'rgb(var(--ui-primary-foreground) / <alpha-value>)',
           25: '#f5f8ff',
           50: '#eff4ff',
           100: '#d1e0ff',
@@ -41,6 +43,23 @@ module.exports = {
           700: '#004eeb',
           800: '#0040c1',
           900: '#00359e',
+        },
+        background: 'rgb(var(--ui-bg) / <alpha-value>)',
+        foreground: 'rgb(var(--ui-text) / <alpha-value>)',
+        border: 'rgb(var(--ui-border) / <alpha-value>)',
+        input: 'rgb(var(--ui-border) / <alpha-value>)',
+        ring: 'rgb(var(--ui-ring) / <alpha-value>)',
+        muted: {
+          DEFAULT: 'rgb(var(--ui-surface) / <alpha-value>)',
+          foreground: 'rgb(var(--ui-muted) / <alpha-value>)'
+        },
+        secondary: {
+          DEFAULT: 'rgb(var(--ui-surface) / <alpha-value>)',
+          foreground: 'rgb(var(--ui-text) / <alpha-value>)'
+        },
+        destructive: {
+          DEFAULT: 'rgb(var(--ui-danger) / <alpha-value>)',
+          foreground: 'rgb(var(--ui-danger-foreground) / <alpha-value>)'
         },
         accent: {
           50: '#fff8e1',
