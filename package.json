@@ -255,7 +255,8 @@
     "libs/*",
     "packages/*",
     "packages/plugins/*",
-    "docs"
+    "docs",
+    "legacies/*"
   ],
   "nx": {
     "includedScripts": []

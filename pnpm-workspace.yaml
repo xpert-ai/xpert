@@ -4,3 +4,4 @@ packages:
   - 'packages/*'
   - 'packages/plugins/*'
   - 'docs'
+  - 'legacies/*'

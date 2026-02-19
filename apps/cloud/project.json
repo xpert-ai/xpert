@@ -102,7 +102,6 @@
         ],
         "styles": [
           "packages/angular/_index.scss",
-          "packages/copilot-angular/_index.scss",
           "packages/ui/styles.css",
           "apps/cloud/src/styles.scss",
           "node_modules/@ctrl/ngx-emoji-mart/picker.css"
