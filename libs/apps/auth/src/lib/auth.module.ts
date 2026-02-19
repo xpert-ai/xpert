@@ -3,7 +3,7 @@ import { Injector, ModuleWithProviders, NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardInputDirective, ZardTabComponent, ZardTabGroupComponent } from '@xpert-ai/headless-ui'
 import { PacAuthRoutingModule } from './auth-routing.module'
 import { PacAuthComponent } from './auth.component'
 import {
@@ -68,7 +68,10 @@ export function nbOptionsFactory(options) {
     PacAuthRoutingModule,
     TranslateModule,
     ZardButtonComponent,
-    ZardInputDirective
+    ZardInputDirective,
+    ZardTabGroupComponent,
+    ZardTabComponent,
+    ZardCheckboxComponent
   ],
   exports: [
     PacAuthComponent,

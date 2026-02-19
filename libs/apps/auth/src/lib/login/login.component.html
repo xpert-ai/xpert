@@ -2,74 +2,70 @@
 
   <div class="w-full md:mt-0 sm:max-w-md xl:p-0">
     <!-- Tab Navigation -->
-    <div class="border-b border-gray-200 dark:border-gray-700">
-      <button
-        z-button
-        type="button"
-      >
-        {{ 'Auth.Signin' | translate: {Default: 'Sign-in'} }}
-      </button>
-    </div>
-    <!-- Tab Content -->
-    <div class="flex flex-col justify-start items-stretch p-2 mt-2 gap-2">
-      @if (showMessages.error && errors?.length && !loading) {
-        @for (error of errors; track $index) {
-          <div class="flex items-center gap-2 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-700">
-            <span class="flex-1 text-sm text-yellow-800 dark:text-yellow-300">
-              {{ 'Auth.' + error | translate: {Default: error} }}
-            </span>
-            <button
-              z-button
-              type="button"
-              zType="ghost"
-              zSize="icon-xs"
-              (click)="errors.splice($index, 1)"
-              class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-200"
+    <z-tab-group class="border-b border-gray-200 dark:border-gray-700">
+      <z-tab label="{{ 'Auth.Signin' | translate: {Default: 'Sign-in'} }}">
+        <!-- Tab Content -->
+        <div class="flex flex-col justify-start items-stretch p-2 mt-2 gap-2">
+          @if (showMessages.error && errors?.length && !loading) {
+            @for (error of errors; track $index) {
+              <div class="flex items-center gap-2 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-700">
+                <span class="flex-1 text-sm text-yellow-800 dark:text-yellow-300">
+                  {{ 'Auth.' + error | translate: {Default: error} }}
+                </span>
+                <button
+                  z-button
+                  type="button"
+                  zType="ghost"
+                  zSize="icon-xs"
+                  (click)="errors.splice($index, 1)"
+                  class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-200"
+                >
+                  <span class="sr-only">Close</span>
+                  ✕
+                </button>
+              </div>
+            }
+          }
+          <div>
+            <label for="email" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
+              {{ 'AUTH.LOGIN.ACCOUNT' | translate: {Default: 'Account'} }}
+            </label>
+            <input
+              z-input
+              type="email"
+              name="email"
+              id="email"
+              formControlName="userName"
+              [placeholder]="'AUTH.LOGIN.USERNAME' | translate: {Default: 'Username / Email'}"
+              class="bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+              required
             >
-              <span class="sr-only">Close</span>
-              ✕
-            </button>
           </div>
-        }
-      }
-      <div>
-        <label for="email" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
-          {{ 'AUTH.LOGIN.ACCOUNT' | translate: {Default: 'Account'} }}
-        </label>
-        <input
-          z-input
-          type="email"
-          name="email"
-          id="email"
-          formControlName="userName"
-          [placeholder]="'AUTH.LOGIN.USERNAME' | translate: {Default: 'Username / Email'}"
-          class="bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
-          required
-        >
-      </div>
-      <div>
-        <label for="password" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
-          {{ 'AUTH.LOGIN.PASSWORD' | translate: {Default: 'Password'} }}
-        </label>
-        <input
-          z-input
-          type="password"
-          name="password"
-          id="password"
-          formControlName="password"
-          placeholder="••••••••"
-          class="bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
-          required
-        >
-      </div>
-    </div>
+          <div>
+            <label for="password" class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
+              {{ 'AUTH.LOGIN.PASSWORD' | translate: {Default: 'Password'} }}
+            </label>
+            <input
+              z-input
+              type="password"
+              name="password"
+              id="password"
+              formControlName="password"
+              placeholder="••••••••"
+              class="bg-white text-gray-900 placeholder-gray-400 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+              required
+            >
+          </div>
+        </div>
+      </z-tab>
+    </z-tab-group>
   </div>
 
-  <div class="pac-auth__login-remember flex justify-between items-center">
-    <label class="flex items-center gap-2 cursor-pointer">
-      <input type="checkbox" formControlName="rememberMe" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 accent-blue-600">
-      <span class="text-sm text-gray-900 dark:text-white">{{ 'AUTH.LOGIN.REMEMBER' | translate: {Default: 'Remember'} }}</span>
-    </label>
+  <div class="pac-auth__login-remember flex justify-between items-center my-2">
+    <span z-checkbox formControlName="rememberMe">
+      {{ 'AUTH.LOGIN.REMEMBER' | translate: {Default: 'Remember'} }}
+    </span>
+
     <a class="forgot text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300" routerLink="/auth/request-password">
       {{ 'AUTH.LOGIN.FORGOT-PASSWORD' | translate: {Default: 'Forgot Password'} }}
     </a>
@@ -133,9 +129,3 @@
     </button>
   }
 </div>
-
-@if (loading) {
-  <div class="absolute top-1/2 left-1/2 -mt-4 -ml-4 z-10">
-    <div class="w-8 h-8 border-4 border-gray-300 dark:border-gray-600 border-t-blue-600 rounded-full animate-spin"></div>
-  </div>
-}
