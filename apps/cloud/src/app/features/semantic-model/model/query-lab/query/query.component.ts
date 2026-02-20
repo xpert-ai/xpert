@@ -327,12 +327,6 @@ ${calcEntityTypePrompt(entityType)}
       { allowSignalWrites: true }
     )
 
-    // Set individual engine to global copilot chat
-    // this.featuresComponent.copilotEngine = this.#copilotEngine
-    this.#destroyRef.onDestroy(() => {
-      this.featuresComponent.copilotEngine = null
-    })
-
     // Sync statement in local and store
     effect(
       () => {

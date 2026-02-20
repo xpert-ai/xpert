@@ -2,6 +2,7 @@ import { Location } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   HostListener,
   OnInit,
@@ -13,7 +14,6 @@ import {
   viewChild
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatDrawerMode, MatSidenav, MatSidenavContainer } from '@angular/material/sidenav'
 import {
   Event,
   NavigationCancel,
@@ -26,9 +26,7 @@ import {
 import { PacMenuItem } from '@metad/cloud/auth'
 import { injectUserPreferences, UsersService } from '@metad/cloud/state'
 import { isNotEmpty, nonNullable } from '@metad/core'
-import { NgmCopilotChatComponent, NgmCopilotEngineService } from '@metad/copilot-angular'
 import { TranslateService } from '@ngx-translate/core'
-import { attrModel } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
 import { combineLatestWith } from 'rxjs'
@@ -44,7 +42,6 @@ import {
   routeAnimations
 } from '../@core'
 import { AppService } from '../app.service'
-import { injectChatCommand } from '../@shared/copilot'
 import { getFeatureMenus } from './menus'
 
 
@@ -63,15 +60,11 @@ export class FeaturesComponent implements OnInit {
   readonly #destroyRef = inject(DestroyRef)
   readonly #preferences = injectUserPreferences()
 
-  readonly sidenav = viewChild('sidenav', { read: MatSidenav })
-  readonly copilotChat = viewChild('copilotChat', { read: NgmCopilotChatComponent })
-
   // States
-  readonly fixedLayoutSider = attrModel(this.#preferences, 'fixedLayoutSider')
+  readonly sidebarCollapsed = signal(false);
+  // readonly fixedLayoutSider = attrModel(this.#preferences, 'fixedLayoutSider')
+  // readonly isSideMode = computed(() => !!this.fixedLayoutSider())
 
-  copilotEngine: NgmCopilotEngineService | null = null
-  readonly sidenavMode = signal<MatDrawerMode>('over')
-  readonly sidenavOpened = model(false)
   isEmployee: boolean
   organization: IOrganization
   user: IUser
@@ -121,12 +114,7 @@ export class FeaturesComponent implements OnInit {
     })
   )
 
-  get isCollapsed() {
-    return this.sidenavOpened() && this.sidenavMode() === 'side'
-  }
-
   assetsInit = false
-  readonly copilotDrawerOpened = model(false)
   readonly loading = signal(false)
 
   readonly title = this.appService.title
@@ -144,12 +132,6 @@ export class FeaturesComponent implements OnInit {
   |--------------------------------------------------------------------------
   */
   readonly menus = signal<PacMenuItem[]>([])
-  /**
-  |--------------------------------------------------------------------------
-  | Copilots
-  |--------------------------------------------------------------------------
-  */
-  readonly chatCommand = injectChatCommand()
 
   /**
   |--------------------------------------------------------------------------
@@ -183,20 +165,7 @@ export class FeaturesComponent implements OnInit {
       .pipe(filter((e: Event | RouterEvent): e is RouterEvent => e instanceof RouterEvent))
       .subscribe((e: RouterEvent) => {
         this.navigationInterceptor(e)
-        if (e instanceof NavigationEnd && this.sidenavMode() === 'over') {
-          this.sidenav().close()
-        }
       })
-
-    effect(() => {
-      if (this.fixedLayoutSider()) {
-        this.sidenavMode.set('side')
-        this.sidenavOpened.set(true)
-      } else {
-        this.sidenavMode.set('over')
-        this.sidenavOpened.set(false)
-      }
-    }, { allowSignalWrites: true })
   }
 
   async ngOnInit() {
@@ -301,19 +270,12 @@ export class FeaturesComponent implements OnInit {
     })
   }
 
-  toggleSidenav(sidenav: MatSidenavContainer) {
-    if (this.sidenavMode() === 'over') {
-      this.sidenavMode.set('side')
-      setTimeout(() => {
-        sidenav.ngDoCheck()
-      }, 200)
-      this.fixedLayoutSider.set(true)
-    } else {
-      this.sidenav().toggle()
-      setTimeout(() => {
-        this.fixedLayoutSider.set(false)
-      }, 1000)
-    }
+  toggleSidebar() {
+    this.sidebarCollapsed.update(collapsed => !collapsed);
+  }
+ 
+  onCollapsedChange(collapsed: boolean) {
+    this.sidebarCollapsed.set(collapsed);
   }
 
   navigate(link: MenuCatalog) {
@@ -383,29 +345,5 @@ export class FeaturesComponent implements OnInit {
 
   toEnableCopilot() {
     this.router.navigate(['settings', 'copilot'])
-  }
-
-  @HostListener('window:keydown', ['$event'])
-  onKeyDown(event: KeyboardEvent) {
-    if (event.metaKey || event.ctrlKey) {
-      if (event.shiftKey) {
-        //
-      } else {
-        switch (event.key) {
-          case 'b':
-          case 'B':
-            this.copilotDrawerOpened.update((value) => !value)
-            event.preventDefault()
-            break
-          case '/':
-            this.copilotDrawerOpened.set(true)
-            event.preventDefault()
-            setTimeout(() => {
-              this.copilotChat().focus('/')
-            }, 500)
-            break
-        }
-      }
-    }
   }
 }

@@ -32,17 +32,15 @@ $prefix: (ngm, shell);
     --mat-toolbar-container-background-color: var(#{token-utils.get-token-variable(bg-color)});
   }
   :host {
-    --mat-sidenav-content-background-color: var(#{token-utils.get-token-variable(primary-container-bg-color)});
     --ngm-copilot-bg-color: var(#{token-utils.get-token-variable(copilot-bg-color)});
   }
 
   .pac-features__sidenav {
-    --mat-sidenav-container-background-color: var(#{token-utils.get-token-variable(bg-color)});
+    background-color: var(#{token-utils.get-token-variable(bg-color)});
   }
 }
 
 :host {
-  --mat-sidenav-container-divider-color: transparent;
   @include token-utils.create-token-values($prefix, get-token-slots());
 
   flex: 1;
@@ -50,15 +48,21 @@ $prefix: (ngm, shell);
   max-width: 100%;
 }
 
-.mat-sidenav.pac-features__sidenav {
-  &.mat-drawer-over {
-    --mat-sidenav-container-width: 260px;
-  }
-  &.mat-drawer-side {
-    --mat-sidenav-container-width: 68px;
-    @apply duration-200 ease-in-out;
-    transition: width;
-  }
+.pac-features__sidenav-shell {
+  @apply relative h-full shrink-0 z-30;
+}
+
+.pac-features__sidenav-shell--over {
+  @apply absolute top-0 left-0 bottom-0;
+}
+
+.pac-features__sidenav {
+  @apply h-full duration-200 ease-in-out;
+  transition: width;
+}
+
+.pac-features__sidenav-backdrop {
+  @apply border-0 p-0;
 }
 
 .pac_brand {
@@ -82,9 +86,9 @@ $prefix: (ngm, shell);
   @apply flex flex-col overflow-hidden ;
 }
 
-.mat-drawer-container.pac-fullscreen {
+.pac-features__layout.pac-fullscreen {
   z-index: 2;
-  & > .mat-drawer-content {
+  & > .pac_sidenav-content {
     z-index: 3;
   }
 }
@@ -145,11 +149,5 @@ emoji-avatar.copilot-thinking {
 ::ng-deep {
   .pac-toolbar-search__autocomplete.mat-mdc-autocomplete-panel {
     @apply relative mt-2 max-h-[456px] min-w-[240px];
-  }
-
-  .pac-features__sidenav {
-    .mat-drawer-inner-container {
-      @apply flex flex-col overflow-hidden;
-    }
   }
 }

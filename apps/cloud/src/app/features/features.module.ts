@@ -33,6 +33,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { PACCopilotService } from './services'
 import { MaterialModule } from '../@shared/material.module'
 import { SharedModule } from '../@shared/shared.module'
+import { LayoutComponent, SidebarComponent } from '@xpert-ai/headless-ui/components/layout'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 registerEChartsThemes()
 
@@ -44,6 +46,9 @@ registerEChartsThemes()
     CdkMenuModule,
     MaterialModule,
     SharedModule,
+    LayoutComponent,
+    ZardIconComponent,
+    SidebarComponent,
     PacMenuComponent,
     PACThemeModule,
     AssetsComponent,

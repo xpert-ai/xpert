@@ -17,6 +17,8 @@
     "baseUrl": ".",
     "paths": {
       "@cloud/*": ["apps/cloud/src/*"],
+      "@/shared/*": ["packages/ui/src/lib/*"],
+      "@/src/lib/*": ["packages/ui/src/lib/*"],
       "@metad/adapter": ["legacies/adapter/src/index.ts"],
       "@metad/analytics": ["packages/analytics/src/index.ts"],
       "@metad/cloud/auth": ["libs/apps/auth/src/index.ts"],
