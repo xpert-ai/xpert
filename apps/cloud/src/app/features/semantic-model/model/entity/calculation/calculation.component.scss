@@ -1,3 +1,5 @@
+@config "../../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   --mat-sidenav-content-background-color: transparent;
   @apply relative grow flex flex-col max-w-full;

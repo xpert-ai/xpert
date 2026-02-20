@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   --mat-sidenav-container-width: 16rem;
   --mat-sidenav-container-divider-color: var(--color-divider-regular);

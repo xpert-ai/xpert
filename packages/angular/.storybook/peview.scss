@@ -2,10 +2,9 @@
 @use 'sass:color';
 @use '@angular/material' as mat;
 @use '../theming' as ocap;
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@config "../../../apps/cloud/tailwind.config.js";
+@reference "tailwindcss";
+@import 'tailwindcss';
 
 // Define a theme.
 $primary: mat.define-palette(mat.$blue-grey-palette, 600);

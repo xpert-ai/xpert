@@ -1,3 +1,5 @@
+@config "../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   border-top-left-radius: var(--ngm-primary-container-rounded);
   @apply relative flex flex-col bg-gradient-to-br from-neutral-50 to-neutral-100 h-full;

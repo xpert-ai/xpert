@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   --mat-expansion-container-background-color: var(--ngm-color-surface-container-low);
   --mat-sidenav-content-background-color: var(--color-components-panel-bg);

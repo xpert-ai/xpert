@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply mx-auto flex h-[100vh] max-w-[1048px];
 }

@@ -1,7 +1,9 @@
+
+
 @use 'sass:map';
 @use '@angular/material' as mat;
 @use './mat-table/table-theme' as table-theme;
-
+@reference "tailwindcss";
 @mixin removeable($foreground) {
   border: 1px dashed transparent;
   &:hover {

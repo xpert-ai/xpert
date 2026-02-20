@@ -6,7 +6,7 @@
 @use './semantic-model/semantic-models' as semantic-models;
 @use './indicator/indicator-theme' as indicator;
 @use './home/home-theme' as home;
-@import '../@core/variables';
+@use '../@core/variables';
 
 $shell-bar-height: 48px;
 $sidebar-width: 200px;

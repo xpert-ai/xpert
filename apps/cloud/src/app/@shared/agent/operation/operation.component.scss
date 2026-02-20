@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply p-4 border border-solid border-divider-deep rounded-2xl flex flex-col transition-all duration-200 ease-in-out;
 }

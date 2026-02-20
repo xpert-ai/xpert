@@ -1,3 +1,5 @@
+@config "../../../../tailwind.workspace.config.js";
+@reference "tailwindcss";
 :host {
   @apply flex justify-start px-4 text-text-primary;
 }

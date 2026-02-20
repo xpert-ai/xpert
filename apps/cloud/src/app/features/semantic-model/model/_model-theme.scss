@@ -1,9 +1,11 @@
+
+
 @use 'sass:map';
 @use 'sass:color';
 @use '@angular/material' as mat;
 @use './entity/entity-theme' as entity;
 @use './query-lab/query-lab-theme' as query-lab;
-
+@reference "tailwindcss";
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);

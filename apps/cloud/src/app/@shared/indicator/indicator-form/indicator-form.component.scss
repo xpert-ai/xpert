@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   --mat-sidenav-content-background-color: var(--ngm-project-color-surface);
   @apply relative flex flex-col h-full overflow-auto max-h-[90vh];

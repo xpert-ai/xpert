@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply relative flex flex-col justify-start items-stretch gap-4 text-left;
 }

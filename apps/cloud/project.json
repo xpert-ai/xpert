@@ -6,14 +6,14 @@
   "prefix": "pac",
   "targets": {
     "build": {
-      "executor": "@angular-devkit/build-angular:browser",
+      "executor": "@angular/build:application",
       "outputs": [
         "{options.outputPath}"
       ],
       "options": {
         "outputPath": "dist/apps/cloud",
         "index": "apps/cloud/src/index.html",
-        "main": "apps/cloud/src/main.ts",
+        "browser": "apps/cloud/src/main.ts",
         "polyfills": [
           "zone.js",
           "apps/cloud/src/polyfills.ts"
@@ -101,14 +101,14 @@
           "apps/cloud/src/manifest.webmanifest"
         ],
         "styles": [
-          "packages/angular/_index.scss",
           "packages/ui/styles.css",
           "apps/cloud/src/styles.scss",
           "node_modules/@ctrl/ngx-emoji-mart/picker.css"
         ],
         "stylePreprocessorOptions": {
           "includePaths": [
-            "node_modules/"
+            "node_modules/",
+            "."
           ]
         },
         "scripts": [
@@ -124,8 +124,7 @@
           "node_modules/prismjs/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js",
           "node_modules/clipboard/dist/clipboard.min.js"
         ],
-        "serviceWorker": true,
-        "ngswConfigPath": "apps/cloud/ngsw-config.json",
+        "serviceWorker": "apps/cloud/ngsw-config.json",
         "webWorkerTsConfig": "apps/cloud/tsconfig.worker.json"
       },
       "configurations": {
@@ -149,13 +148,10 @@
             }
           ],
           "outputHashing": "all",
-          "serviceWorker": true,
-          "ngswConfigPath": "apps/cloud/ngsw-config.json"
+          "serviceWorker": "apps/cloud/ngsw-config.json"
         },
         "development": {
-          "buildOptimizer": false,
           "optimization": false,
-          "vendorChunk": true,
           "extractLicenses": false,
           "sourceMap": true,
           "namedChunks": true
@@ -180,7 +176,7 @@
       ]
     },
     "serve": {
-      "executor": "@angular-devkit/build-angular:dev-server",
+      "executor": "@angular/build:dev-server",
       "options": {
         "proxyConfig": "apps/cloud/proxy.conf.json"
       },
@@ -196,7 +192,7 @@
       "defaultConfiguration": "development"
     },
     "extract-i18n": {
-      "executor": "@angular-devkit/build-angular:extract-i18n",
+      "executor": "@angular/build:extract-i18n",
       "options": {
         "buildTarget": "cloud:build"
       }

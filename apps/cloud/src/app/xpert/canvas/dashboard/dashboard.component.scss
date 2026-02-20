@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply block w-[535px] sm:w-[360px] md:w-[400px] lg:w-[535px] max-h-full transition-all;
   &.expand {

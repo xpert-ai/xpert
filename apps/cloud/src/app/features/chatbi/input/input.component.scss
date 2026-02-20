@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 .ngm-colpilot__input {
   background: transparent;
 }

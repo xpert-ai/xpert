@@ -1,11 +1,12 @@
+@use "sass:map";
 @use '@angular/material' as mat;
 
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
-  $background: map-get($config, background);
-  $foreground: map-get($config, foreground);
-  $primary: map-get($config, primary);
-  $accent: map-get($config, accent);
+  $background: map.get($config, background);
+  $foreground: map.get($config, foreground);
+  $primary: map.get($config, primary);
+  $accent: map.get($config, accent);
 
   // .pac-public-point {
   //   background: mat.m2-get-color-from-palette($background, background);

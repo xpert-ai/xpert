@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
     @apply relative rounded-xl shadow-sm flex flex-col transition-all duration-200 ease-in-out hover:shadow-lg;
 }

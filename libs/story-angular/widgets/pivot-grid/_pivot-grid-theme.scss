@@ -1,9 +1,10 @@
+@use "sass:map";
 @use '@angular/material' as mat;
 
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
-  $foreground: map-get($config, foreground);
-  $primary: map-get($config, primary);
+  $foreground: map.get($config, foreground);
+  $primary: map.get($config, primary);
 
   .pac-widget-pivot-grid {
     .igx-grid,

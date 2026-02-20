@@ -1,3 +1,5 @@
+@config "../../../tailwind.workspace.config.js";
+@reference "tailwindcss";
 :host {
   @apply relative overflow-hidden flex flex-col;
 

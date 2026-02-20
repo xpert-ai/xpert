@@ -1,3 +1,4 @@
+@reference "tailwindcss";
 .ngm-appearance-opacity {
   opacity: 0.5;
 }
@@ -54,7 +55,7 @@
 
   &.ngm-appearance-hero {
     --border-radius: 1.5rem;
-    --mat-standard-button-toggle-divider-color: theme(colors.transparent);
+    --mat-standard-button-toggle-divider-color: transparent;
     @apply p-1.5 bg-gray-100 dark:bg-gray-500/10;
     .mat-button-toggle.mat-button-toggle-appearance-standard {
       border-radius: calc(var(--border-radius) - 3px);

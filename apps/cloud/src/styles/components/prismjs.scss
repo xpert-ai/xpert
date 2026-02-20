@@ -1,5 +1,7 @@
-@use "sass:meta";
 
+
+@use "sass:meta";
+@reference "tailwindcss";
 body.light {
   @include meta.load-css("prismjs/themes/prism-tomorrow.min.css");
 }

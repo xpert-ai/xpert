@@ -1,3 +1,5 @@
+@config "../../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 .ngm-cdk-menu {
     @apply w-60 p-1.5;
 }

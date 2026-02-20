@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   --ngm-monaco-editor-bg: theme(colors.neutral.100);
   @apply block overflow-hidden w-[535px] sm:w-[360px] md:w-[400px] lg:w-[535px] transition-all;

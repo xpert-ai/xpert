@@ -1,13 +1,10 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
 
-@import './common/input/_input.component.scss';
-@import './common/select/_select.component.scss';
-@import './common/search/_search.component.scss';
-@import './common/resizer/_resizer.directive.scss';
-@import './controls/smart-filter/_smart-filter.component.scss';
-@import './analytical-grid/_analytical-grid.component.scss';
-@import './core/directives/_appearance.scss';
-@import './core/style/index.scss';
-@import './selection/_selection.scss';
+@use 'common/input/_input.component.scss';
+@use 'common/select/_select.component.scss';
+@use 'common/search/_search.component.scss';
+@use 'common/resizer/_resizer.directive.scss';
+@use 'controls/smart-filter/_smart-filter.component.scss';
+@use 'analytical-grid/_analytical-grid.component.scss';
+@use 'core/directives/_appearance.scss';
+@use 'core/style/index.scss';
+@use 'selection/_selection.scss';

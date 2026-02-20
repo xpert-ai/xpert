@@ -6,6 +6,10 @@
 	"scripts": {
 		"start": "nx start cloud"
 	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "^4.1.18",
+		"tailwindcss": "^4.1.18"
+	},
 	"dependencies": {
 		"@foblex/2d": "^1.2.2",
 		"@foblex/drag-toolkit": "^1.1.0",

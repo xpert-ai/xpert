@@ -1,5 +1,7 @@
-@import 'swiper/css';
-@import 'swiper/css/bundle';
+@config "../../../../tailwind.workspace.config.js";
+@reference "tailwindcss";
+@import url('swiper/css');
+@import url('swiper/css/bundle');
 
 .swiper-slide {
   padding: 5px;

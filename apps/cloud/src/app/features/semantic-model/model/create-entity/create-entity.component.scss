@@ -1,3 +1,5 @@
+@config "../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply grow flex overflow-hidden max-h-[80vh] max-w-5xl text-text-primary;
 }

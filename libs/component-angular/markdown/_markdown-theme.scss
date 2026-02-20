@@ -1,10 +1,11 @@
+@use "sass:map";
 @use '@angular/material' as mat;
 
 
 @mixin ngm-markdown-color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
-  $foreground: map-get($config, foreground);
-  $primary: map-get($config, primary);
+  $foreground: map.get($config, foreground);
+  $primary: map.get($config, primary);
 
   .ngm-markdown {
     pre {

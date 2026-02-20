@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 .ngm-tables-join__container {
   display: flex;
   flex-wrap: wrap;

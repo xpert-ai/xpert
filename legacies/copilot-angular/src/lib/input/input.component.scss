@@ -1,3 +1,5 @@
+@config "../../../../../apps/cloud/tailwind.config.js";
+@reference "tailwindcss";
 :host {
     @apply block;
 }

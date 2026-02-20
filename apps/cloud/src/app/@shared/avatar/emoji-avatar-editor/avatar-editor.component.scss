@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 .active[role='tabpanel'] {
   display: block !important;
 }

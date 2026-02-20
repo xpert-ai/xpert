@@ -1,3 +1,4 @@
+@reference "tailwindcss";
 .pac-creation-card {
   @apply flex flex-col justify-center items-center rounded-xl border cursor-pointer ring-2 ring-transparent ring-offset-2 ring-offset-transparent
     border-gray-100 hover:border-gray-200 dark:border-neutral-800 dark:hover:border-neutral-500;

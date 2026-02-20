@@ -1,3 +1,5 @@
+@config "../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   // --mat-sidenav-container-background-color: transparent;
   --mat-sidenav-content-background-color: transparent;

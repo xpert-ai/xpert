@@ -1,3 +1,4 @@
+@reference "tailwindcss";
 .ngm-tree_selection.cdk-tree {
   .cdk-tree-node {
     @apply hover:bg-black/5 dark:hover:bg-white/20;

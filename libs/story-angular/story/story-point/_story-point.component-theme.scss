@@ -1,17 +1,18 @@
+@use "sass:map";
 @use 'sass:color';
 @use '@angular/material' as mat;
 
 @mixin ngm-story-point($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
-  $foreground: map-get($config, foreground);
-  $background: map-get($config, background);
-  $primary: map-get($config, primary);
-  $accent: map-get($config, accent);
+  $foreground: map.get($config, foreground);
+  $background: map.get($config, background);
+  $primary: map.get($config, primary);
+  $accent: map.get($config, accent);
 
-  $grid-divider: 1px dashed map-get($foreground, divider);
+  $grid-divider: 1px dashed map.get($foreground, divider);
 
   %widget-editable {
-    border-color: map-get($accent, 500);
+    border-color: map.get($accent, 500);
     .ngm-drag-handler {
       background-color: mat.m2-get-color-from-palette($foreground, divider);
     }
@@ -59,7 +60,7 @@
           @extend %widget-editable;
         }
         &:hover.editable:not(.active) {
-          border-color: color.change(map-get($accent, 500), $alpha: 0.5);
+          border-color: color.change(map.get($accent, 500), $alpha: 0.5);
         }
       }
       
@@ -75,7 +76,7 @@
     }
     &.display-grid {
       .ngm-story__widget {
-        border-color: map-get($foreground, divider);
+        border-color: map.get($foreground, divider);
       }
     }
     
@@ -90,11 +91,11 @@
     }
 
     .gridster-item-resizable-handler:hover {
-      background-color: map-get($foreground, divider);
+      background-color: map.get($foreground, divider);
     }
 
     .gridster-preview {
-      background-color: map-get($foreground, divider);
+      background-color: map.get($foreground, divider);
     }
   }
 

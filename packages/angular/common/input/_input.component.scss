@@ -1,6 +1,8 @@
+
+
 @use 'libs/material-theme/src/styles/material/token-utils-compat' as token-utils;
 @use '@angular/material/core/style/sass-utils';
-
+@reference "tailwindcss";
 /* The prefix used to generate the fully qualified name for tokens in this file. */
 $prefix: (ngm, color);
 

@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 .content {
   @apply px-2 py-1 rounded-lg flex items-center whitespace-nowrap;
 }

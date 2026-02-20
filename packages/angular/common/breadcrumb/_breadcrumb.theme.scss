@@ -1,6 +1,7 @@
+@use "sass:map";
 @use '@angular/material' as mat;
 @use '@angular/material' as theming;
-@import './breadcrumb-variables';
+@use 'breadcrumb-variables';
 
 @mixin _ngm-breadcrumb-height($height) {
   $counter: calc(#{$height} / 2);
@@ -34,15 +35,15 @@
 
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
-  $foreground: map-get($config, foreground);
-  $primary: map-get($config, primary);
+  $foreground: map.get($config, foreground);
+  $primary: map.get($config, primary);
 
-  $step-background: map-get(map-get($config, background), background);
-  $step-active-background: map-get($primary, 300);
-  $step-hover-background: map-get($primary, 400);
-  $step-color: mat.m2-get-color-from-palette(map-get($config, background), darker); // map-get(map-get($config, foreground), text);
+  $step-background: map.get(map.get($config, background), background);
+  $step-active-background: map.get($primary, 300);
+  $step-hover-background: map.get($primary, 400);
+  $step-color: mat.m2-get-color-from-palette(map.get($config, background), darker); // map-get(map-get($config, foreground), text);
   $step-active-color: mat.m2-get-color-from-palette($primary, '500-contrast'); // map-get(map-get($config, foreground), text);
-  $step-divider-color: map-get(map-get($config, accent), 500);
+  $step-divider-color: map.get(map.get($config, accent), 500);
 
   .ngm-breadcrumb-bar {
     &:not(.disabled) {

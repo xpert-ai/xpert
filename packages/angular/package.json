@@ -31,5 +31,8 @@
   "dependencies": {
     "tslib": "^2.3.0"
   },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18"
+  },
   "sideEffects": false
 }

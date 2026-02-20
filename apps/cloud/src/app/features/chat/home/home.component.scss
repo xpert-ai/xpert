@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   --sidebar-width: 17rem;
   --sidebar-width-icon: 3.5rem;

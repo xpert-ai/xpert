@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 .workspace-item.active {
   @apply text-primary-500 font-semibold;
 }

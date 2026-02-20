@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   --mat-tree-container-background-color: transparent;
   @apply flex flex-col overflow-hidden;

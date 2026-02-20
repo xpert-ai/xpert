@@ -1,3 +1,5 @@
+@config "../../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
     @apply h-full flex flex-col overflow-auto bg-components-card-bg rounded-2xl;
 }

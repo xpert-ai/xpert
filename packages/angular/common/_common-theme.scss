@@ -20,7 +20,7 @@
 
   .ngm-display-behaviour {
     .ngm-display-behaviour__highlight {
-      color: map-get($accent, 500);
+      color: map.get($accent, 500);
     }
   }
 

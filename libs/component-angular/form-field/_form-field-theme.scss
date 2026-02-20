@@ -3,8 +3,8 @@
 
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
-  $background: map-get($config, background);
-  $primary: map-get($config, primary);
+  $background: map.get($config, background);
+  $primary: map.get($config, primary);
 
   .ngm-color-input {
     .mtx-colorpicker-toggle {

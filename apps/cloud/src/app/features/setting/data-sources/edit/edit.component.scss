@@ -1,3 +1,5 @@
+@config "../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply max-h-[80vh] text-text-primary;
 }

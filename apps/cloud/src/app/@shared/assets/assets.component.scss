@@ -1,3 +1,5 @@
+@config "../../../../tailwind.config.js";
+@reference "tailwindcss";
 .assets-list {
   padding-top: 0;
   .mat-mdc-list-item {

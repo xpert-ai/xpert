@@ -1,7 +1,9 @@
-@import './features/home/_home';
-@import './features/project/_project.component';
-@import './features/_features.component';
-@import './@shared/components';
+@use "sass:meta";
+@reference "tailwindcss";
+@include meta.load-css('features/home/_home');
+@include meta.load-css('features/project/_project.component');
+@include meta.load-css('features/_features.component');
+@include meta.load-css('@shared/components');
 
 .pac-page-header {
   @apply flex flex-col justify-start items-stretch gap-2 px-4 pt-4;

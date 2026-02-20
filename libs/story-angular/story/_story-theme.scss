@@ -1,21 +1,22 @@
+@use "sass:map";
 @use '@angular/material' as mat;
 
-@import './story-point/story-point.component-theme';
-@import './story-widget/story-widget.component-theme';
+@use 'story-point/story-point.component-theme';
+@use 'story-widget/story-widget.component-theme';
 
 $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
 
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
-  $background: map-get($config, background);
-  $foreground: map-get($config, foreground);
-  $primary: map-get($config, primary);
-  $accent: map-get($config, accent);
+  $background: map.get($config, background);
+  $foreground: map.get($config, foreground);
+  $primary: map.get($config, primary);
+  $accent: map.get($config, accent);
 
-  $grid-divider: 1px dashed map-get($foreground, divider);
+  $grid-divider: 1px dashed map.get($foreground, divider);
 
-  @include ngm-story-point($config-or-theme);
-  @include ngm-story-widget($config-or-theme);
+  @include story-point.ngm-story-point($config-or-theme);
+  @include story-widget.ngm-story-widget($config-or-theme);
 
   .ngm-story {
     color: mat.m2-get-color-from-palette($foreground, text);

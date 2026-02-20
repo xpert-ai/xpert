@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host::ng-deep {
   .cdk-option[aria-selected='true'] {
     input.checkbox {

@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 .cdk-drag-preview {
   @apply bg-components-card-bg border-none box-border rounded-lg shadow-md;
 }

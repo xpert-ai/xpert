@@ -1,3 +1,5 @@
+@config "../../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply block grow rounded-2xl p-3;
 }

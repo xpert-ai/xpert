@@ -1,3 +1,5 @@
+@config "../../../../../../../tailwind.workspace.config.js";
+@reference "tailwindcss";
 :host:not(.collapsed) {
   .pac-router-link {
     @apply hover:bg-black/5 dark:hover:bg-white/10;

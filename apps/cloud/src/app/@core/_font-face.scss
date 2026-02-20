@@ -1,8 +1,8 @@
-@import 'lato-font/scss/public-api';
-$lato-font-path: '/assets/fonts/lato';
-@include lato-include-font('normal');
-@include lato-include-font('black');
-@include lato-include-font('medium');
+@use 'lato-font/scss/public-api';
+public-api.$lato-font-path: '/assets/fonts/lato';
+@include public-api.lato-include-font('normal');
+@include public-api.lato-include-font('black');
+@include public-api.lato-include-font('medium');
 
 /* cyrillic */
 @font-face {

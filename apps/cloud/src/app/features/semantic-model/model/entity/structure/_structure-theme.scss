@@ -23,11 +23,11 @@
       cursor: pointer;
 
       &:hover {
-        background-color: opacify(mat.m2-get-color-from-palette($primary-palette, 100), 0.8);
+        background-color: color.adjust(mat.m2-get-color-from-palette($primary-palette, 100), $alpha: 0.8);
       }
 
       &.selected {
-        background-color: opacify(mat.m2-get-color-from-palette($primary-palette, 300), 0.8);
+        background-color: color.adjust(mat.m2-get-color-from-palette($primary-palette, 300), $alpha: 0.8);
       }
     }
 

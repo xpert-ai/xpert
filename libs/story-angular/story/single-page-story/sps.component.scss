@@ -1,3 +1,5 @@
+@config "../../../../tailwind.workspace.config.js";
+@reference "tailwindcss";
 :host {
   background-color: var(--ngm-color-surface);
   display: flex;

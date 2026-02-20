@@ -1,9 +1,11 @@
+
+
 @use 'sass:map';
 @use '@angular/material' as mat;
 @use './model/entity/structure/structure-theme' as structure;
 @use './model/entity/cube-structure/cube-structure-theme' as cube-structure;
 @use './model/model-theme' as model;
-
+@reference "tailwindcss";
 @mixin color($theme) {
   $config: mat.m2-get-color-config($theme);
 

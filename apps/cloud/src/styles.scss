@@ -1,26 +1,32 @@
+@use "sass:meta";
 /* You can add global styles to this file, and also import other style files */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@config "../tailwind.config.js";
+@import 'tailwindcss' source(none);
+@source "./app/**/*.{ts,html,scss,sass,css}";
+@source "../../../libs/**/*.{ts,html,scss,sass,css}";
+@source "../../../packages/**/*.{ts,html,scss,sass,css}";
+@source "../../../legacies/**/*.{ts,html,scss,sass,css}";
 
-@import '~remixicon/fonts/remixicon.css';
+@import 'remixicon/fonts/remixicon.css';
 // @import '~quill/dist/quill.core.css';
 // @import '~quill/dist/quill.snow.css';
-@import './app/@core/font-face';
+@include meta.load-css('app/@core/font-face');
 
-@import './styles/themes/base';
-@import './styles/themes/default';
-@import './styles/themes/dark';
-@import './styles/themes/dark-green';
-@import './styles/themes/thin';
-@import './styles/utilities';
-@import './styles/components/index';
-@import './app/_app.component';
+@include meta.load-css('../../../packages/angular/_index.scss');
 
-@import 'libs/formly/_formly';
-@import 'libs/story-angular/src/lib/_index';
-@import 'libs/apps/indicator-market/index';
+@include meta.load-css('styles/themes/base');
+@include meta.load-css('styles/themes/default');
+@include meta.load-css('styles/themes/dark');
+@include meta.load-css('styles/themes/dark-green');
+@include meta.load-css('styles/themes/thin');
+@include meta.load-css('styles/utilities');
+@include meta.load-css('styles/components/index');
+@include meta.load-css('app/_app.component');
+
+@include meta.load-css('libs/formly/_formly');
+@include meta.load-css('libs/story-angular/src/lib/_index');
+@include meta.load-css('libs/apps/indicator-market/index');
 
 html,
 body {

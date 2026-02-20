@@ -1,7 +1,9 @@
+
+
 @use 'sass:map';
 @use 'sass:color';
 @use '@angular/material' as mat;
-
+@reference "tailwindcss";
 @mixin color($theme) {
   $config: mat.m2-get-color-config($theme);
 

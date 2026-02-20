@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply relative flex min-h-[400px] max-h-[100vh] transition-all duration-300;
 }

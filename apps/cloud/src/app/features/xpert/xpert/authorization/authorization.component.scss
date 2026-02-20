@@ -1,3 +1,5 @@
+@config "../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply block flex-1 bg-components-panel-bg h-full;
 }

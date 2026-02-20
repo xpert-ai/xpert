@@ -1,3 +1,5 @@
+@config "../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   border-top-left-radius: var(--ngm-primary-container-rounded);
   @apply relative flex justify-start w-full h-full overflow-hidden;

@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
     @apply w-full flex flex-col;
     --mdc-elevated-card-container-color: var(--ngm-color-surface-container);

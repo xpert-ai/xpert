@@ -1,5 +1,8 @@
-@use '../../../@theme/flow-common';
 
+
+@use '../../../@theme/flow-common';
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply flex w-full h-full bg-gray-100;
   --output-size: 14px;

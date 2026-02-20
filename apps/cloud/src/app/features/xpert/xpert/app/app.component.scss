@@ -1,3 +1,5 @@
+@config "../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply shadow-sm border-[0.5px] rounded-xl overflow-hidden border-gray-200;
 }

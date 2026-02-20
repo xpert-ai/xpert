@@ -1,3 +1,5 @@
+@config "../../../../../../apps/cloud/tailwind.config.js";
+@reference "tailwindcss";
 .ngm-copilot-ai-message__table {
   @apply my-2 rounded-lg border border-slate-100 dark:border-slate-700;
 

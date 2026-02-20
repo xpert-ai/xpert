@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   .container {
     @apply cursor-pointer bg-gray-100;

@@ -1,3 +1,5 @@
+@config "../../../../apps/cloud/tailwind.config.js";
+@reference "tailwindcss";
 markdown.ngm-copilot-markdown {
   --ngm-copilot-table-radius: .375rem;
   --ngm-copilot-link: hsl(214.6 60 45%);

@@ -1,3 +1,4 @@
+@reference "tailwindcss";
 .ngm-list.mdc-list {
   .mdc-list-item {
     @apply hover:bg-black/5 dark:hover:bg-white/5;
@@ -8,8 +9,8 @@
   @apply text-white rounded-lg duration-300;
 
   &.active {
-    --mdc-list-list-item-label-text-color: theme(colors.slate.500);
-    --mdc-list-list-item-hover-label-text-color: theme(colors.slate.600);
+    --mdc-list-list-item-label-text-color: theme('colors.slate.500');
+    --mdc-list-list-item-hover-label-text-color: theme('colors.slate.600');
     @apply bg-slate-50;
   }
 

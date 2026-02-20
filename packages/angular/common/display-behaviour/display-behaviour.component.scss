@@ -1,3 +1,5 @@
+@config "../../../../tailwind.workspace.config.js";
+@reference "tailwindcss";
 :host {
   display: flex;
   place-content: center space-between;

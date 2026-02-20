@@ -1,3 +1,5 @@
+@config "../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply block rounded-3xl overflow-hidden bg-components-card-bg;
 }

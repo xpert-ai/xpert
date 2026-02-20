@@ -32,8 +32,7 @@ import {
   Property,
 } from '@metad/ocap-core'
 import { ECharts, format, time, use, registerMap, graphic, getMap } from 'echarts/core'
-import {GlobeComponent, Geo3DComponent}  from 'echarts-gl/components'
-import { Lines3DChart, Polygons3DChart, SurfaceChart, Map3DChart, ScatterGLChart, GraphGLChart, FlowGLChart, LinesGLChart } from 'echarts-gl/charts'
+import * as echartsGL from 'echarts-gl/dist/echarts-gl.js'
 
 import {
   BehaviorSubject,
@@ -73,7 +72,8 @@ import { waterfallChart } from './waterfall'
 import { fromFetch } from 'rxjs/fetch'
 import { t } from 'i18next'
 
-use([GlobeComponent, Geo3DComponent, Lines3DChart, Polygons3DChart, SurfaceChart, Map3DChart, ScatterGLChart, GraphGLChart, FlowGLChart, LinesGLChart])
+// Keep echarts-gl UMD bundle in the build for its runtime registration side effects.
+void echartsGL
 
 export class SmartEChartEngine extends SmartChartEngine<SmartChartEngineState> {
   get echarts() {

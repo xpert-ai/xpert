@@ -1,3 +1,5 @@
+@config "../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   --mdc-linear-progress-track-height: 2px;
   --mdc-linear-progress-active-indicator-height: 2px;

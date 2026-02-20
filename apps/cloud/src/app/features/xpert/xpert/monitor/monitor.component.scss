@@ -1,3 +1,5 @@
+@config "../../../../../../tailwind.config.js";
+@reference "tailwindcss";
 :host {
   @apply flex flex-col justify-start items-stretch h-full w-full px-12 py-6 overflow-auto bg-components-panel-bg;
 }

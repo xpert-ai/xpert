@@ -1,7 +1,7 @@
+@use '../@core/variables';
 @use 'sass:map';
-@use 'sass:color';
 @use '@angular/material' as mat;
-@import '../@core/variables';
+@reference "tailwindcss";
 
 @mixin color($theme) {
   $config: mat.m2-get-color-config($theme);
@@ -11,10 +11,14 @@
   $accent: map.get($config, 'accent');
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
+  $fill-opacity: 0.02;
+  @if $is-dark-theme {
+    $fill-opacity: 0.05;
+  }
   $fill-background:
-    mat.m2-get-color-from-palette($foreground, base, if($is-dark-theme, 0.05, 0.02));
+    mat.m2-get-color-from-palette($foreground, base, $fill-opacity);
   $fill-disabled-background:
-    mat.m2-get-color-from-palette($foreground, base, if($is-dark-theme, 0.05, 0.02));
+    mat.m2-get-color-from-palette($foreground, base, $fill-opacity);
 
   .mat-form-field-appearance-fill .mdc-text-field--filled:not(.mdc-text-field--disabled) {
     background-color: $fill-background;
@@ -74,7 +78,7 @@
   .mat-mdc-icon-button,
   .mat-stroked-button {
     &.mat-success {
-      color: mat.m2-get-color-from-palette($success-palette);
+      color: mat.m2-get-color-from-palette(variables.$success-palette);
     }
   }
 
