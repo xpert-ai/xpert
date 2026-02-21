@@ -1,5 +1,4 @@
-@config "../../../../../../tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../../styles/tailwind-reference.css";
 :host {
   // --mat-sidenav-container-background-color: transparent;
   --mat-sidenav-content-background-color: transparent;

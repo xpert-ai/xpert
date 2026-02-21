@@ -1,5 +1,4 @@
-@config "../../../../../apps/cloud/tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../../tailwind-workspace-reference.css";
 :host {
   background-color: var(--ngm-copilot-bg-color, theme('colors.white'));
   font-family: var(--ngm-copilot-font-family);

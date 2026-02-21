@@ -1,5 +1,4 @@
-@config "../../../tailwind.workspace.config.js";
-@reference "tailwindcss";
+@reference "../../../tailwind-workspace-reference.css";
 :host {
     @apply flex items-center w-full h-full py-2;
 }

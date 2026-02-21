@@ -1,5 +1,4 @@
-@config "../../../../../../tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../../styles/tailwind-reference.css";
 :host {
   @apply min-h-full p-4 flex flex-col overflow-auto w-full;
 }

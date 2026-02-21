@@ -1,5 +1,4 @@
-@config "../../../../tailwind.workspace.config.js";
-@reference "tailwindcss";
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   --mdc-list-list-item-one-line-container-height: 34px;
 }

@@ -1,5 +1,4 @@
-@config "../../../../tailwind.workspace.config.js";
-@reference "tailwindcss";
+@reference "../../../../tailwind-workspace-reference.css";
 $card-padding: .5em;
 
 :host {

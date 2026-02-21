@@ -1,5 +1,4 @@
-@config "../../../../../../tailwind.workspace.config.js";
-@reference "tailwindcss";
+@reference "../../../../../../tailwind-workspace-reference.css";
 :host {
   @apply w-[368px] flex flex-col max-w-full px-8 mb-8;
 }

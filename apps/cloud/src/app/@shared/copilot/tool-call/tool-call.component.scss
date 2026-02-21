@@ -1,5 +1,4 @@
-@config "../../../../../tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply flex flex-col rounded-lg max-h-[160px] p-1 border border-solid border-transparent
   hover:border-primary-200;

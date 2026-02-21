@@ -1,5 +1,4 @@
-@config "../../../tailwind.workspace.config.js";
-@reference "tailwindcss";
+@reference "../../../tailwind-workspace-reference.css";
 :host {
   --mat-expansion-header-text-size: 12px;
   --ngm-chart-type-surface: var(--ngm-color-surface, var(--mat-sys-surface, #fff));

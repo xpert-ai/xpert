@@ -1,5 +1,4 @@
-@config "../../../../../../../tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../../../styles/tailwind-reference.css";
 .mat-expansion-panel-header-description {
   @apply  justify-end items-center gap-1;
 }

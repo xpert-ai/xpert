@@ -1,5 +1,4 @@
-@config "../../../../../../../../../tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../../../../../styles/tailwind-reference.css";
 :host {
   @apply relative py-5 px-6 w-full grow space-y-6 overflow-auto;
 }

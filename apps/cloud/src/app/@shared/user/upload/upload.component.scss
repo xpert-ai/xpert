@@ -1,5 +1,4 @@
-@config "../../../../../tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply relative flex justify-start px-6 py-4 rounded-2xl bg-components-card-bg;
 }

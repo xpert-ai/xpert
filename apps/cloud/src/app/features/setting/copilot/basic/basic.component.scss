@@ -1,5 +1,4 @@
-@config "../../../../../../tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../../styles/tailwind-reference.css";
 :host {
   --mat-expansion-container-shape: 1rem;
   @apply w-full p-4 overflow-auto;

@@ -1,8 +1,7 @@
 
 
 @use '../../../@theme/flow-common';
-@config "../../../../../tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply relative block w-full h-full;
 }

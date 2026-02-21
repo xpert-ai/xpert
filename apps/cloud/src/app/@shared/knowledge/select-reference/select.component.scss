@@ -1,5 +1,4 @@
-@config "../../../../../tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../styles/tailwind-reference.css";
 :host {
   @apply max-w-[480px] w-[400px] flex flex-col justify-start p-6 bg-components-card-bg rounded-2xl;
 }

@@ -1,5 +1,4 @@
-@config "../../../../tailwind.workspace.config.js";
-@reference "tailwindcss";
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   @apply flex flex-col items-stretch justify-start pb-1 overflow-hidden;
 }

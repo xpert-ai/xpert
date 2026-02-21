@@ -1,5 +1,4 @@
-@config "../../../../../../apps/cloud/tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../../../tailwind-workspace-reference.css";
 :host {
   @apply block relative;
 

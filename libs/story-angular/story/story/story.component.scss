@@ -1,5 +1,4 @@
-@config "../../../../tailwind.workspace.config.js";
-@reference "tailwindcss";
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   background: var(--ngm-color-surface);
   @apply block relative w-full h-full overflow-hidden;

@@ -1,4 +1,4 @@
-@reference "tailwindcss";
+@reference "../../../tailwind-workspace-reference.css";
 .cdk-overlay-pane:not(.mat-mdc-autocomplete-panel-above) {
   .ngm-autocomplete-panel.mat-mdc-autocomplete-panel {
     @apply mt-2;

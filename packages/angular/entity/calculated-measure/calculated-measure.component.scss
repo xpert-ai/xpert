@@ -1,5 +1,4 @@
-@config "../../../../tailwind.workspace.config.js";
-@reference "tailwindcss";
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   --mat-sidenav-container-divider-color: var(--ngm-color-outline-variant);
 

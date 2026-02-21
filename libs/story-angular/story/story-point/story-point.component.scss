@@ -1,8 +1,7 @@
 
 
 @use '@angular/material' as mat;
-@config "../../../../tailwind.workspace.config.js";
-@reference "tailwindcss";
+@reference "../../../../tailwind-workspace-reference.css";
 :host {
   // @apply inline-block; // Why inline-block?
   @apply block;

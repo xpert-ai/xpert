@@ -40,7 +40,7 @@
     </div>
   </z-sidebar>
 
-  <z-content class="pac_sidenav-content max-h-full min-w-0 flex-1" cdkDropListGroup>
+  <z-content class="max-h-full min-w-0 flex-1 overflow-auto" cdkDropListGroup>
     <mat-toolbar class="pac__shell-bar flex justify-between items-center md:gap-2">
       <div class="flex justify-start items-center gap-2">
         @if (navigation$ | async; as navigation) {

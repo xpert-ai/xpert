@@ -1,5 +1,4 @@
-@config "../../../../../apps/cloud/tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../../../tailwind-workspace-reference.css";
 :host {
   --mat-dialog-with-actions-content-padding: .5rem;
   --mdc-filled-button-container-shape: .75rem;

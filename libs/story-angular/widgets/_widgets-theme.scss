@@ -10,7 +10,7 @@
 @use './filter-bar/filter-bar-theme' as filter-bar;
 @use './pivot-grid/pivot-grid-theme' as pivot-grid;
 @use './kpi/kpi-card-theme' as kpi;
-@reference "tailwindcss";
+@reference "../../../tailwind-workspace-reference.css";
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);

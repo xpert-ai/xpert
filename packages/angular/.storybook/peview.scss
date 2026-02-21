@@ -2,8 +2,7 @@
 @use 'sass:color';
 @use '@angular/material' as mat;
 @use '../theming' as ocap;
-@config "../../../apps/cloud/tailwind.config.js";
-@reference "tailwindcss";
+@reference "../../../tailwind-workspace-reference.css";
 @import 'tailwindcss';
 
 // Define a theme.
