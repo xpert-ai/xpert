@@ -43,13 +43,6 @@
   <z-content class="pac_sidenav-content max-h-full min-w-0 flex-1" cdkDropListGroup>
     <mat-toolbar class="pac__shell-bar flex justify-between items-center md:gap-2">
       <div class="flex justify-start items-center gap-2">
-        @if (!isMobile()) {
-          <button (click)="back()" type="button" class="p-1 w-8 h-8 flex justify-center items-center rounded-lg text-xl
-             text-text-tertiary hover:text-text-secondary hover:bg-white hover:shadow-lg active:shadow-sm">
-            <i class="ri-arrow-left-s-line"></i>
-          </button>
-        }
-
         @if (navigation$ | async; as navigation) {
           <div class="flex items-center text-sm overflow-hidden">
             @if (appService.inProject()) {

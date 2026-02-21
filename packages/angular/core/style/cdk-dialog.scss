@@ -39,11 +39,9 @@
   @apply outline-none max-h-[100vh];
 }
 
-// @layer components {
-//   .cdk-dialog-card {
-//     @apply bg-components-card-bg rounded-2xl p-4;
-//   }
-// }
+.cdk-dialog-card {
+  @apply bg-components-card-bg rounded-2xl p-4;
+}
 
 .cdk-overlay-backdrop.xp-overlay-share-sheet {
   pointer-events: auto;
