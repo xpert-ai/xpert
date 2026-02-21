@@ -13,7 +13,6 @@ import {
 } from '@metad/ocap-angular/core'
 import { NGM_WASM_AGENT_WORKER, WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { DataSource, Type } from '@metad/ocap-core'
-import { NgmCopilotChatComponent } from '@metad/copilot-angular'
 import { NX_STORY_FEED, NX_STORY_MODEL, NX_STORY_STORE } from '@metad/story/core'
 import { environment } from '../../environments/environment'
 import { DirtyCheckGuard, LocalAgent, ServerAgent, ServerSocketAgent, provideLogger } from '../@core/index'
@@ -31,10 +30,8 @@ import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { EmojiAvatarComponent } from '../@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { PACCopilotService } from './services'
-import { MaterialModule } from '../@shared/material.module'
-import { SharedModule } from '../@shared/shared.module'
 import { LayoutComponent, SidebarComponent } from '@xpert-ai/headless-ui/components/layout'
-import { ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardAvatarComponent, ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
 registerEChartsThemes()
 
@@ -44,8 +41,6 @@ registerEChartsThemes()
     CommonModule,
     FeaturesRoutingModule,
     CdkMenuModule,
-    MaterialModule,
-    SharedModule,
     LayoutComponent,
     ZardIconComponent,
     SidebarComponent,
@@ -63,7 +58,12 @@ registerEChartsThemes()
     // Formly
     NgmFormlyModule,
 
-    NgmCopilotChatComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardAvatarComponent,
+    ZardDividerComponent,
+    ...ZardMenuImports,
+
     NgmDrawerTriggerComponent,
     NgmDrawerContainerComponent,
     NgmDrawerComponent,

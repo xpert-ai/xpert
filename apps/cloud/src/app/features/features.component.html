@@ -9,7 +9,7 @@
     (zCollapsedChange)="onCollapsedChange($event)"
     class="p-0!"
   >
-    <div class="h-full flex flex-col overflow-auto">
+    <nav class="h-full flex flex-col overflow-auto">
       <div class="flex items-center justify-between p-3">
         @if (sidebarCollapsed()) {
           <div></div>
@@ -37,11 +37,17 @@
           <!-- <pac-tune class="flex justify-center"/> -->
         </div>
       </pac-menu>
-    </div>
+
+      <div class="mt-auto">
+        @if (isAuthenticated$ | async; as user) {
+          <pac-header-user [user]="user" />
+        }
+      </div>
+    </nav>
   </z-sidebar>
 
   <z-content class="max-h-full min-w-0 flex-1 overflow-auto" cdkDropListGroup>
-    <mat-toolbar class="pac__shell-bar flex justify-between items-center md:gap-2">
+    <!-- <mat-toolbar class="pac__shell-bar flex justify-between items-center md:gap-2">
       <div class="flex justify-start items-center gap-2">
         @if (navigation$ | async; as navigation) {
           <div class="flex items-center text-sm overflow-hidden">
@@ -71,8 +77,6 @@
       <div class="flex flex-1">
       </div>
 
-      <!-- <header-notify></header-notify> -->
-
       <div class="pac-toolbar-search relative w-32 hidden sm:flex md:w-80 items-center max-w-xs text-base">
         <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-2 h-4 w-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -99,7 +103,7 @@
       @if (isAuthenticated$ | async; as user) {
         <pac-header-user [user]="user" />
       }
-    </mat-toolbar>
+    </mat-toolbar> -->
 
     <div class="flex-1 relative flex" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
       <router-outlet #o="outlet"></router-outlet>
@@ -108,7 +112,7 @@
 </z-layout>
 
 @if (loading()) {
-  <mat-progress-bar class="pac-router__progress-bar absolute top-0 left-0 w-full z-10"
+  <!-- <mat-progress-bar class="pac-router__progress-bar absolute top-0 left-0 w-full z-10"
     color="accent" mode="indeterminate" >
-  </mat-progress-bar>
+  </mat-progress-bar> -->
 }

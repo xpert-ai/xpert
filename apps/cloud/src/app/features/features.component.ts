@@ -72,7 +72,7 @@ export class FeaturesComponent implements OnInit {
   readonly appService = this.#appService
 
   // States
-  readonly sidebarCollapsed = signal(false);
+  readonly sidebarCollapsed = signal(true);
   // readonly fixedLayoutSider = attrModel(this.#preferences, 'fixedLayoutSider')
   // readonly isSideMode = computed(() => !!this.fixedLayoutSider())
 
