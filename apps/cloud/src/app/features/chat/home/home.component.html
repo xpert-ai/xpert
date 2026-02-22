@@ -20,7 +20,7 @@
         <button
           data-sidebar="menu-button"
           tabindex="-1"
-          class="peer/menu-button flex items-center gap-2 overflow-hidden text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active py-2.5 ps-[11px] pe-[11px] rounded-full border border-border-l1 bg-surface-l1 justify-between text-text-secondary hover:text-text-primary h-[2.5rem] mx-[.125rem]"
+          class="peer/menu-button flex items-center gap-2 overflow-hidden text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 text-sm hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active py-2.5 ps-[11px] pe-[11px] rounded-full border border-(--border) bg-surface-l1 justify-between text-text-secondary hover:text-text-primary h-[2.5rem] mx-[.125rem]"
           aria-label="Search"
           (click)="openConversations()"
         >
@@ -203,7 +203,7 @@
             <div style="overflow: hidden; height: auto">
               <div class="flex flex-row mt-1">
                 <div class="cursor-pointer ms-[10px] me-[4px]">
-                  <div class="border-l border-border-l1 h-full ms-[6px] me-[4px]"></div>
+                  <div class="border-l border-(--border) h-full ms-[6px] me-[4px]"></div>
                 </div>
                 <ng-container *ngTemplateOutlet="projectsTempl"></ng-container>
               </div>
@@ -265,7 +265,7 @@
             <div style="overflow: hidden; height: auto">
               <div class="flex flex-row mt-1">
                 <div class="cursor-pointer ms-[6px] me-[4px]">
-                  <div class="border-l border-border-l1 h-full ms-[12px] me-[4px]"></div>
+                  <div class="border-l border-(--border) h-full ms-[12px] me-[4px]"></div>
                 </div>
                 <ng-container *ngTemplateOutlet="histories"></ng-container>
               </div>

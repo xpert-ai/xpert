@@ -9,8 +9,6 @@
 @source "../../../legacies/**/*.{ts,html,scss,sass,css}";
 
 @import 'remixicon/fonts/remixicon.css';
-// @import '~quill/dist/quill.core.css';
-// @import '~quill/dist/quill.snow.css';
 @include meta.load-css('app/@core/font-face');
 
 @include meta.load-css('../../../packages/angular/_index.scss');
@@ -52,10 +50,6 @@ body {
   }
 }
 
-// 不能阻止所有的滚动, 因为有的需要滚动
-// .cdk-virtual-scroll-orientation-vertical .cdk-virtual-scroll-content-wrapper {
-//   max-width: 100%;
-// }
 .ngm-smart-echarts__tooltip {
   z-index: 100 !important;
 }

@@ -1,9 +1,9 @@
 <div class="flex-1 min-w-0 min-h-full flex flex-col max-w-full">
-  <header class="header sm:h-auto sticky top-0 left-0 right-0 z-20 bg-neutral-100">
-    <div class="h-[52px] px-2 py-3 sm:px-5 items-center flex justify-between">
+  <header class="header sm:h-auto sticky top-0 left-0 right-0 z-20 bg-(--background)">
+    <div class="h-13 px-2 py-3 sm:px-5 items-center flex justify-between">
       <div class="flex flex-row items-center gap-0.5 start-3">
         <a
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover h-10 w-10 rounded-full
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-button-ghost-hover h-10 w-10 rounded-full
             text-text-secondary hover:text-text-primary"
           type="button"
           [matTooltip]="('PAC.Chat.NewChat' | translate: {Default: 'New Chat'}) + ' ⌘J'"
@@ -15,7 +15,7 @@
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            class="stroke-[2]"
+            class="stroke-2"
             stroke-width="2"
           >
             <path
@@ -30,47 +30,6 @@
             ></path>
           </svg>
         </a>
-        <!-- <button
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover h-10 w-10 rounded-full
-            hover:bg-hover-bg"
-          type="button"
-          aria-label="Share conversation"
-          [matTooltip]="'Share conversation'"
-        >
-          <span style="opacity: 1; transform: none"
-            ><svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              class="stroke-[2]"
-              stroke-width="2"
-            >
-              <path d="M6.99609 9L11.9961 4L16.9961 9M6.99609 9M12 16V4" stroke="currentColor"></path>
-              <path
-                d="M4 15V16C4 18.2091 5.79086 20 8 20H16C18.2091 20 20 18.2091 20 16V15"
-                stroke="currentColor"
-              ></path></svg
-          ></span>
-        </button> -->
-        <!-- <button
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary 
-            hover:bg-hover-bg h-10 w-10 rounded-full"
-          type="button"
-          aria-label="History"
-          [matTooltip]="('PAC.Chat.History' | translate: {Default: 'History'}) +' ⌘K'"
-          (click)="openConversations()"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="stroke-[2]">
-            <path d="M3 5L19 5" stroke="currentColor" stroke-linecap="square" stroke-linejoin="round"></path>
-            <path d="M3 12H7" stroke="currentColor" stroke-linecap="square" stroke-linejoin="round"></path>
-            <circle cx="16" cy="15" r="4" stroke="currentColor"></circle>
-            <path d="M19 18L21 20" stroke="currentColor" stroke-linecap="square"></path>
-            <path d="M3 19H7" stroke="currentColor" stroke-linecap="square" stroke-linejoin="round"></path>
-          </svg>
-        </button> -->
-
         <ng-content select="[header]"></ng-content>
       </div>
       <div class="text-lg font-medium flex-1 min-w-0 mx-4 text-center hidden sm:block overflow-hidden text-ellipsis whitespace-nowrap">
