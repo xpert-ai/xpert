@@ -4,7 +4,7 @@
   [attr.data-collapsible]="sidebarState() === 'closed' ? 'icon' : 'expanded'"
 >
   <div
-    class="flex flex-col h-full w-[--sidebar-width] transition-[left,right,width] ease-linear group-data-[collapsible=icon]:w-[--sidebar-width-icon] border-r border-solid border-gray-200 dark:border-gray-700"
+    class="flex flex-col h-full w-(--sidebar-width) transition-[left,right,width] ease-linear group-data-[collapsible=icon]:w-(--sidebar-width-icon) border-r border-solid border-gray-200 dark:border-gray-700"
     [ngClass]="{
       'cursor-w-resize': sidebarState() === 'expanded',
       'cursor-e-resize': sidebarState() === 'closed',

@@ -1,5 +1,14 @@
-<button type="button" class="inline-flex items-center rounded-3xl py-1 pr-2.5 pl-1 text-sm text-gray-700 hover:bg-gray-200 mobile:px-1"
+<button type="button" class="inline-flex items-center rounded-3xl py-1 pr-2.5 pl-1 text-sm text-gray-700 hover:bg-gray-200 mobile:px-1 cursor-pointer"
   [cdkMenuTriggerFor]="menu"
+  [cdkMenuPosition]="[
+    {
+      originX: 'end',
+      originY: 'bottom',
+      overlayX: 'start',
+      overlayY: 'bottom',
+      offsetX: 3,
+    }
+  ]"
 >
   @if (user().imageUrl) {
     <div class="w-8 h-8 rounded-full overflow-hidden flex items-center">
