@@ -51,16 +51,18 @@
       }
     }
     @if (xpert()) {
-      <div class=""
-        [ngClass]="sidePanel() === 'preview' ? 'flex' : 'hidden'">
-        @if (executionId()) {
-          <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto overflow-x-hidden
-            w-[420px] 2xl:w-[460px]"
-            (close)="closeExecution()"
-          />
-        }
-        <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
-      </div>
+      <!-- Preview component: keep mounted once created, use CSS display to control visibility -->
+      @if (showPreview()) {
+        <div [style.display]="sidePanel() === 'preview' ? 'flex' : 'none'">
+          @if (sidePanel() === 'preview' && executionId()) {
+            <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto overflow-x-hidden
+              w-[420px] 2xl:w-[460px]"
+              (close)="closeExecution()"
+            />
+          }
+          <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
+        </div>
+      }
     }
   </div>
 </div>
