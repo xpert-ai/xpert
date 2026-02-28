@@ -59,6 +59,18 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
     this.formControl.markAsTouched()
   }
 
+  onModelChange(value: any) {
+    this.newValue = value
+    // Immediately update formControl instead of waiting for blur
+    // This ensures formControl.valueChanges triggers on every input
+    if (this.oldValue !== value) {
+      this.formControl.setValue(value, { emitEvent: true })
+      this.formControl.markAsDirty()
+      // Keep oldValue in sync to avoid duplicate updates on blur
+      this.oldValue = value
+    }
+  }
+
   onBlur() {
     if (this.oldValue !== this.newValue) {
       this.formControl.setValue(this.newValue)
