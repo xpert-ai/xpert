@@ -38,6 +38,27 @@ export interface GrepMatch {
 }
 
 /**
+ * Read mode for file reading operations.
+ */
+export type ReadMode = 'slice' | 'indentation';
+
+/**
+ * Configuration for indentation-aware file reading.
+ */
+export interface IndentationOptions {
+  /** Anchor line number (1-indexed), defaults to offset */
+  anchor_line?: number;
+  /** Maximum indentation depth to collect; 0 means unlimited */
+  max_levels?: number;
+  /** Whether to include sibling blocks at the same indentation level */
+  include_siblings?: boolean;
+  /** Whether to include header lines (comments) above the anchor block */
+  include_header?: boolean;
+  /** Hard cap on returned lines */
+  max_lines?: number;
+}
+
+/**
  * File data structure used by backends.
  *
  * All file data is represented as objects with this structure:
@@ -92,6 +113,41 @@ export interface EditResult {
   /** Number of replacements made, undefined on failure */
   occurrences?: number;
   /** Metadata for the edit operation, attached to the ToolMessage */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Single edit operation for multi-edit.
+ */
+export interface EditOperation {
+  /** String to find and replace */
+  oldString: string;
+  /** Replacement string */
+  newString: string;
+  /** If true, replace all occurrences (default: false) */
+  replaceAll?: boolean;
+}
+
+/**
+ * Result from backend multi-edit operations.
+ *
+ * Checkpoint backends populate filesUpdate with {file_path: file_data} for LangGraph state.
+ * External backends set filesUpdate to null (already persisted to disk/S3/database/etc).
+ */
+export interface MultiEditResult {
+  /** Error message on failure, undefined on success */
+  error?: string;
+  /** File path of edited file, undefined on failure */
+  path?: string;
+  /**
+   * State update dict for checkpoint backends, null for external storage.
+   * Checkpoint backends populate this with {file_path: file_data} for LangGraph state.
+   * External backends set null (already persisted to disk/S3/database/etc).
+   */
+  filesUpdate?: Record<string, FileData> | null;
+  /** Results from each individual edit operation */
+  results?: EditResult[];
+  /** Metadata for the multi-edit operation, attached to the ToolMessage */
   metadata?: Record<string, unknown>;
 }
 
@@ -163,14 +219,38 @@ export interface BackendProtocol {
   lsInfo(path: string): MaybePromise<FileInfo[]>;
 
   /**
+   * List directory contents recursively with depth control and pagination.
+   *
+   * @param dirPath - Absolute path to directory
+   * @param offset - 1-indexed entry number to start from (default: 1)
+   * @param limit - Maximum number of entries to return (default: 25)
+   * @param depth - Maximum depth to traverse (default: 2)
+   * @returns Human-readable directory tree with indentation
+   */
+  listDir(
+    dirPath: string,
+    offset?: number,
+    limit?: number,
+    depth?: number,
+  ): MaybePromise<string>;
+
+  /**
    * Read file content with line numbers or an error string.
    *
    * @param filePath - Absolute file path
-   * @param offset - Line offset to start reading from (0-indexed), default 0
-   * @param limit - Maximum number of lines to read, default 500
+   * @param offset - Line offset to start reading from (1-indexed), default 1
+   * @param limit - Maximum number of lines to read, default 2000
+   * @param mode - Read mode: 'slice' (default) or 'indentation'
+   * @param indentation - Configuration for indentation mode
    * @returns Formatted file content with line numbers, or error message
    */
-  read(filePath: string, offset?: number, limit?: number): MaybePromise<string>;
+  read(
+    filePath: string,
+    offset?: number,
+    limit?: number,
+    mode?: ReadMode,
+    indentation?: IndentationOptions
+  ): MaybePromise<string>;
 
   /**
    * Structured search results or error string for invalid input.
@@ -179,14 +259,28 @@ export interface BackendProtocol {
    *
    * @param pattern - Regex pattern to search for
    * @param path - Base path to search from (default: null)
-   * @param glob - Optional glob pattern to filter files (e.g., "*.py")
+   * @param include - Optional glob pattern to filter files (e.g., "*.py")
    * @returns List of GrepMatch objects or error string for invalid regex
    */
   grepRaw(
     pattern: string,
     path?: string | null,
-    glob?: string | null,
+    include?: string | null,
   ): MaybePromise<GrepMatch[] | string>;
+
+  /**
+   * Search file contents for a regex pattern, returning human-readable output.
+   *
+   * @param pattern - Regex pattern to search for
+   * @param path - Base path to search from (default: workspace root)
+   * @param include - Optional glob pattern to filter files (e.g., "*.js", "*.{ts,tsx}")
+   * @returns Human-readable output with matches grouped by file
+   */
+  grep(
+    pattern: string,
+    path?: string | null,
+    include?: string | null,
+  ): MaybePromise<string>;
 
   /**
    * Structured glob matching returning FileInfo objects.
@@ -198,6 +292,15 @@ export interface BackendProtocol {
   globInfo(pattern: string, path?: string): MaybePromise<FileInfo[]>;
 
   /**
+   * Find files matching a glob pattern, returning human-readable output.
+   *
+   * @param pattern - Glob pattern (e.g., `*.py`, `**\/*.ts`)
+   * @param path - Base path to search from (default: workspace root)
+   * @returns Human-readable output with matching file paths
+   */
+  glob(pattern: string, path?: string): MaybePromise<string>;
+
+  /**
    * Create a new file.
    *
    * @param filePath - Absolute file path
@@ -205,6 +308,15 @@ export interface BackendProtocol {
    * @returns WriteResult with error populated on failure
    */
   write(filePath: string, content: string): MaybePromise<WriteResult>;
+
+  /**
+   * Append content to a file. Creates the file if it doesn't exist.
+   *
+   * @param filePath - Absolute file path
+   * @param content - Content to append
+   * @returns WriteResult with error populated on failure
+   */
+  append(filePath: string, content: string): MaybePromise<WriteResult>;
 
   /**
    * Edit a file by replacing string occurrences.
@@ -221,6 +333,20 @@ export interface BackendProtocol {
     newString: string,
     replaceAll?: boolean,
   ): MaybePromise<EditResult>;
+
+  /**
+   * Perform multiple sequential edits on a single file.
+   * All edits are applied sequentially, with each edit operating on the result of the previous edit.
+   * All edits must succeed for the operation to succeed (atomic).
+   *
+   * @param filePath - Absolute file path
+   * @param edits - Array of edit operations to perform sequentially
+   * @returns MultiEditResult with error, path, filesUpdate, and individual results
+   */
+  multiEdit(
+    filePath: string,
+    edits: EditOperation[],
+  ): MaybePromise<MultiEditResult>;
 
   /**
    * Upload multiple files.
