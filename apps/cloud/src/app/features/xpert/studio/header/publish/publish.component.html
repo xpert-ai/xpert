@@ -35,7 +35,7 @@
 
   <div>{{ 'PAC.Xpert.VersionHistory' | translate: {Default: 'Version History'} }}</div>
   <ul class="w-full max-h-80 overflow-auto">
-    @for (item of versions(); track version) {
+    @for (item of versions(); track item.version) {
       <li class="group flex justify-between items-center px-4 py-2 rounded-lg text-sm hover:bg-hover-bg">
         <div class="flex items-center">
           @if (item.version) {

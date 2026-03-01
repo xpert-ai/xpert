@@ -75,4 +75,17 @@ export class XpertAgentController extends CrudController<XpertAgent> {
 			throw new BadRequestException(getErrorMessage(err))
 		}
 	}
+
+	@Post('middlewares/:provider/tools/:toolName/test')
+	async testMiddlewareTool(
+		@Param('provider') provider: string,
+		@Param('toolName') toolName: string,
+		@Body() body: { options?: any; parameters?: Record<string, any> }
+	) {
+		try {
+			return await this.service.testMiddlewareTool(provider, toolName, body)
+		} catch (err) {
+			throw new BadRequestException(getErrorMessage(err))
+		}
+	}
 }

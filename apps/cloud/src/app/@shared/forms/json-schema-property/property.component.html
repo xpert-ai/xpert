@@ -45,7 +45,12 @@
 } @else {
   @switch (xUiComponent()) {
     @case ('remoteSelect') {
-      <ngm-remote-select class="w-full h-9" [url]="xUi().selectUrl"
+      <xpert-remote-select class="w-full h-9"
+        [url]="xUi().selectUrl"
+        [params]="depends()"
+        [multiple]="xUi().multiple"
+        [variable]="xUi().variable"
+        [variables]="variables()"
         [placeholder]="((meta().description || meta().title || '' ) | i18n) + (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' )"
         [(ngModel)]="value$"
       />

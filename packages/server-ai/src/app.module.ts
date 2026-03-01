@@ -16,7 +16,6 @@ import { CopilotStoreModule } from './copilot-store/copilot-store.module'
 import { CopilotUserModule } from './copilot-user'
 import { EventHandlers } from './core/events'
 import { GraphragModule } from './graphrag/graphrag.module'
-import { IntegrationLarkModule } from './integration-lark/index'
 import { KnowledgeDocumentModule } from './knowledge-document/index'
 import { KnowledgebaseModule } from './knowledgebase/index'
 import { RagWebModule } from './rag-web/rag-web.module'
@@ -35,6 +34,7 @@ import { RagVStoreModule } from './rag-vstore'
 import { IntegrationGithubModule } from './integration-github'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
+import { HandoffQueueModule } from './handoff/message-queue.module'
 
 @Module({
 	imports: [
@@ -55,6 +55,7 @@ import { XpertTableModule } from './xpert-table'
 		CopilotStoreModule,
 		EnvironmentModule,
 		GraphragModule,
+		HandoffQueueModule,
 		XpertModule,
 		XpertAgentModule,
 		XpertAgentExecutionModule,
@@ -67,7 +68,6 @@ import { XpertTableModule } from './xpert-table'
 		XpertTableModule,
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
-		IntegrationLarkModule,
 		IntegrationGithubModule,
 		RagVStoreModule,
 		RagWebModule,

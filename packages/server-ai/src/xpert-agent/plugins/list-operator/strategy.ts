@@ -8,6 +8,7 @@ import {
 	IXpertAgentExecution,
 	TAgentRunnableConfigurable,
 	TWFCaseCondition,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -31,7 +32,7 @@ const LastRecordChannelName = 'last_record'
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.LIST_OPERATOR)
 export class WorkflowListOperatorNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.LIST_OPERATOR,
 		label: {
 			en_US: 'List operator',

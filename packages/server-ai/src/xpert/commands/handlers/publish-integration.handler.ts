@@ -5,6 +5,9 @@ import { Xpert } from '../../xpert.entity'
 import { XpertService } from '../../xpert.service'
 import { XpertPublishIntegrationCommand } from '../publish-integration.command'
 
+/**
+ * @deprecated use workflow trigger instead
+ */
 @CommandHandler(XpertPublishIntegrationCommand)
 export class XpertPublishIntegrationHandler implements ICommandHandler<XpertPublishIntegrationCommand> {
 	readonly #logger = new Logger(XpertPublishIntegrationHandler.name)

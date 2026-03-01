@@ -1,5 +1,12 @@
 import { TWorkflowTriggerMeta, TXpertTeamNode } from '@metad/contracts'
 
+export type TWorkflowTriggerBootstrapMode = 'replay_publish' | 'skip'
+
+export type TWorkflowTriggerBootstrapConfig = {
+  mode: TWorkflowTriggerBootstrapMode
+  critical?: boolean
+}
+
 export type TWorkflowTriggerParams<T> = {
   xpertId: string
   agentKey?: string
@@ -9,6 +16,15 @@ export type TWorkflowTriggerParams<T> = {
 
 export interface IWorkflowTriggerStrategy<T> {
   meta: TWorkflowTriggerMeta
+
+  /**
+   * Controls how this trigger should be recovered during system bootstrap.
+   *
+   * Default when omitted:
+   * - mode: "replay_publish"
+   * - critical: false
+   */
+  bootstrap?: TWorkflowTriggerBootstrapConfig
 
   validate(payload: TWorkflowTriggerParams<T>): Promise<any[]>
 

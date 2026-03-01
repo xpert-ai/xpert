@@ -1,5 +1,8 @@
 import { ICommand } from '@nestjs/cqrs'
 
+/**
+ * @deprecated use workflow trigger instead
+ */
 export class XpertDelIntegrationCommand implements ICommand {
 	static readonly type = '[Xpert] Delete integration'
 

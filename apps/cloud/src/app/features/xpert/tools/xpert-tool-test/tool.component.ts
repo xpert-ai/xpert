@@ -9,8 +9,8 @@ import { IfAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IXpertTool, ToastrService, XpertToolService, XpertToolsetService } from 'apps/cloud/src/app/@core'
-import { of, shareReplay, switchMap, tap } from 'rxjs'
+import { IXpertTool, ToastrService, TWorkflowVarGroup, XpertToolService, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import { Observable, of, shareReplay, switchMap, tap } from 'rxjs'
 import { XpertToolsetToolTestComponent } from '../tool-test'
 
 @Component({
@@ -43,19 +43,22 @@ export class XpertToolTestComponent {
   readonly tool = input<IXpertTool>()
   readonly disabled = input<boolean>(false)
   readonly enabled = model<boolean>()
+  readonly variables = input<TWorkflowVarGroup[]>()
+  readonly testToolRequest = input<
+    ((payload: { tool: IXpertTool; parameters: Record<string, any> }) => Observable<unknown>) | null
+  >(null)
+  readonly parameters = model<Record<string, any>>(null)
 
   // Outputs
   readonly saveParameters = output<Record<string, string>>()
 
-  readonly toolId = computed(() => this.tool()?.id)
-
-  readonly toolDetail$ = toObservable(this.toolId).pipe(
-    switchMap((id) => {
-      if (id) {
+  readonly toolDetail$ = toObservable(this.tool).pipe(
+    switchMap((tool) => {
+      if (tool?.id) {
         this.loading.set(true)
-        return this.toolService.getOneById(id)
+        return this.toolService.getOneById(tool.id)
       }
-      return of(null)
+      return of(tool ?? null)
     }),
     tap(() => this.loading.set(false)),
     shareReplay(1)

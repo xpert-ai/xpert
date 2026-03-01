@@ -42,6 +42,16 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
       options
     )
   }
+
+  testAgentMiddlewareTool(provider: string, toolName: string, options: any, parameters: Record<string, any>) {
+    return this.httpClient.post(
+      this.apiBaseUrl + `/middlewares/${provider}/tools/${toolName}/test`,
+      {
+        options,
+        parameters
+      }
+    )
+  }
 }
 
 export function injectXpertAgentAPI() {

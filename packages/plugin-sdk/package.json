@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-sdk",
-  "version": "3.7.5",
+  "version": "3.8.0",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
@@ -20,6 +20,7 @@
   "peerDependencies": {
     "@langchain/core": "*",
     "@metad/contracts": "*",
+    "@metad/ocap-core": "*",
     "@nestjs/common": "*",
     "@nestjs/core": "*",
     "@nestjs/cqrs": "*",

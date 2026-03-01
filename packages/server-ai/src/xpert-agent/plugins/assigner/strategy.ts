@@ -6,6 +6,7 @@ import {
 	IXpertAgentExecution,
 	setStateVariable,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -25,7 +26,7 @@ const ErrorChannelName = 'error'
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.ASSIGNER)
 export class WorkflowAssignerNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.ASSIGNER,
 		label: {
 			en_US: 'Assigner',

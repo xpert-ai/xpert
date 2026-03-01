@@ -353,7 +353,8 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
           triggerConditions.some((c) => "fraction" in c) ||
           "fraction" in validatedKeep;
 
-        if (requiresProfile && !getModelContextSize(model)) {
+        const modelContextSize = getModelContextSize(userOptions.model);
+        if (requiresProfile && typeof modelContextSize !== "number") {
           throw new Error(
             "Model profile information is required to use fractional token limits. " +
               "Use absolute token counts instead."
@@ -385,7 +386,7 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
           state.messages,
           totalTokens,
           triggerConditions,
-          model
+          modelContextSize
         );
 
         if (!doSummarize) {
@@ -399,7 +400,7 @@ export class SummarizationMiddleware implements IAgentMiddlewareStrategy {
           conversationMessages,
           validatedKeep,
           tokenCounter,
-          model
+          modelContextSize
         );
 
         if (cutoffIndex <= 0) {
@@ -505,7 +506,7 @@ async function shouldSummarize(
   messages: BaseMessage[],
   totalTokens: number,
   triggerConditions: ContextSize[],
-  model: BaseLanguageModel
+  modelContextSize?: number
 ): Promise<boolean> {
   if (triggerConditions.length === 0) {
     return false;
@@ -531,9 +532,8 @@ async function shouldSummarize(
 
     if (trigger.fraction !== undefined) {
       hasAnyProperty = true;
-      const maxInputTokens = getModelContextSize(model);
-      if (typeof maxInputTokens === "number") {
-        const threshold = Math.floor(maxInputTokens * trigger.fraction);
+      if (typeof modelContextSize === "number") {
+        const threshold = Math.floor(modelContextSize * trigger.fraction);
         if (totalTokens < threshold) {
           conditionMet = false;
         }
@@ -557,14 +557,14 @@ async function determineCutoffIndex(
   messages: BaseMessage[],
   keep: ContextSize,
   tokenCounter: TokenCounter,
-  model: BaseLanguageModel
+  modelContextSize?: number
 ): Promise<number> {
   if ("tokens" in keep || "fraction" in keep) {
     const tokenBasedCutoff = await findTokenBasedCutoff(
       messages,
       keep,
       tokenCounter,
-      model
+      modelContextSize
     );
     if (typeof tokenBasedCutoff === "number") {
       return tokenBasedCutoff;
@@ -584,7 +584,7 @@ async function findTokenBasedCutoff(
   messages: BaseMessage[],
   keep: ContextSize,
   tokenCounter: TokenCounter,
-  model: BaseLanguageModel
+  modelContextSize?: number
 ): Promise<number | undefined> {
   if (messages.length === 0) {
     return 0;
@@ -593,11 +593,10 @@ async function findTokenBasedCutoff(
   let targetTokenCount: number;
 
   if ("fraction" in keep && keep.fraction !== undefined) {
-    const maxInputTokens = getModelContextSize(model);
-    if (typeof maxInputTokens !== "number") {
+    if (typeof modelContextSize !== "number") {
       return;
     }
-    targetTokenCount = Math.floor(maxInputTokens * keep.fraction);
+    targetTokenCount = Math.floor(modelContextSize * keep.fraction);
   } else if ("tokens" in keep && keep.tokens !== undefined) {
     targetTokenCount = Math.floor(keep.tokens);
   } else {

@@ -1,14 +1,14 @@
 import { forwardRef, Module } from '@nestjs/common'
+import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { DiscoveryModule, RouterModule } from '@nestjs/core'
+import { IntegrationStrategyRegistry } from '@xpert-ai/plugin-sdk'
 import { TenantModule } from '../tenant/tenant.module'
+import { CommandHandlers } from './commands/handlers'
 import { IntegrationController } from './integration.controller'
 import { Integration } from './integration.entity'
 import { IntegrationService } from './integration.service'
-import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
-import { IntegrationStrategyRegistry } from '@xpert-ai/plugin-sdk'
 
 @Module({
 	imports: [

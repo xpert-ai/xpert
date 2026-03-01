@@ -8,7 +8,7 @@ import { CalculatorToolset } from './toolset'
 @ToolsetStrategy(Calculator)
 export class CalculatorStrategy implements IToolsetStrategy<any> {
 
-  meta = {
+  meta: IToolsetStrategy<any>['meta'] = {
     author: 'Xpert AI',
     tags: ['calculator', 'tool'],
     name: Calculator,
@@ -22,7 +22,8 @@ export class CalculatorStrategy implements IToolsetStrategy<any> {
       zh_Hans: '计算器工具集。'
     },
     icon: {
-      png: icon,
+      type: 'image',
+      value: icon,
       color: '#14b8a6'
     },
     configSchema: {

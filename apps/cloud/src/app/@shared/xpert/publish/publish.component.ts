@@ -26,7 +26,9 @@ import { EmojiAvatarComponent } from '../../avatar'
 import { IntegrationFormComponent } from '../../integration'
 import { environment } from '@cloud/environments/environment'
 
-
+/**
+ * @deprecated use triggers in workflow instead
+ */
 @Component({
   standalone: true,
   selector: 'xpert-publish-dialog',

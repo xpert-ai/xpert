@@ -55,8 +55,8 @@ export class SandboxController {
 		const volume = VolumeClient.getSandboxVolumeRoot(tenant)
 
 		if (environment.envName === 'dev') {
-			// Remove leading "/users/{uuid}/" or "/projects/{uuid}/" from path if present
-			const leadingPathRegex = /^(users|projects)\/[0-9a-fA-F-]{36}\//
+			// Remove leading "/user/{uuid}/" or "/project/{uuid}/" from path if present
+			const leadingPathRegex = /^(user|project|knowledges)\/[0-9a-fA-F-]{36}\//
 			if (leadingPathRegex.test(subpath)) {
 				subpath = subpath.replace(leadingPathRegex, '')
 			}

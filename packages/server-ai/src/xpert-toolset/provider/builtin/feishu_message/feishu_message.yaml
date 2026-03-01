@@ -5,8 +5,8 @@ identity:
     en_US: Lark Message
     zh_Hans: 飞书消息
   description:
-    en_US: Lark Message Toolset 
-    zh_Hans: 飞书消息工具集
+    en_US: "Lark Message Toolset (Deprecated: migrate to IntegrationLarkPlugin LarkNotifyMiddleware)"
+    zh_Hans: "飞书消息工具集（已废弃：请迁移到 IntegrationLarkPlugin 的 LarkNotifyMiddleware）"
   icon: icon.svg
   tags:
     - social

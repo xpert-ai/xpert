@@ -1,5 +1,7 @@
 import { ITenant, TChatConversationStatus } from "@metad/contracts"
 
+export type TIntegrationLarkOptions = any
+
 export type LarkMessage = {
 	data: {
 		receive_id: string

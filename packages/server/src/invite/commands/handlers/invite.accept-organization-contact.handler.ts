@@ -62,8 +62,8 @@ export class InviteAcceptOrganizationContactHandler
 			new TenantFeatureOrganizationCreateCommand([tenant])
 		);
 
-		let { contact = {} } = contactOrganization;
-		delete contactOrganization['contact'];
+		// let { contact = {} } = contactOrganization;
+		// delete contactOrganization['contact'];
 
 		// 4. Create Organization for the contact
 		const organization: IOrganization = await this.organizationService.create({
@@ -78,14 +78,14 @@ export class InviteAcceptOrganizationContactHandler
 
 		// 6. Create contact details of created organization
 		const { id: organizationId } = organization;
-		const { id: tenantId } = tenant;
-		contact = Object.assign({}, contact, {
-			organizationId,
-			tenantId
-		});
+		// const { id: tenantId } = tenant;
+		// contact = Object.assign({}, contact, {
+		// 	organizationId,
+		// 	tenantId
+		// });
 
 		await this.organizationService.create({
-			contact,
+			// contact,
 			...organization
 		});
 

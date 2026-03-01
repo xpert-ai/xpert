@@ -1,5 +1,5 @@
 import * as lark from '@larksuiteoapi/node-sdk'
-import { IIntegration, IUser, TIntegrationLarkOptions, TranslateOptions } from '@metad/contracts'
+import { IIntegration, IUser, TranslateOptions } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { ConfigService, IEnvironment } from '@metad/server-config'
 import { UserService, RoleService, RequestContext, IntegrationService } from '@metad/server-core'
@@ -12,7 +12,7 @@ import express from 'express'
 import { filter, Observable, Observer, Subject, Subscriber } from 'rxjs'
 import { I18nService } from 'nestjs-i18n';
 import { LarkBotMenuCommand } from './commands'
-import { ChatLarkContext, LarkMessage } from './types'
+import { ChatLarkContext, LarkMessage, TIntegrationLarkOptions } from './types'
 import { LarkConversationService } from './conversation.service'
 
 @Injectable()

@@ -6,6 +6,7 @@ import {
 	IWorkflowNode,
 	IXpertAgentExecution,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -25,7 +26,7 @@ const OutputChannelName = 'output'
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.JSON_PARSE)
 export class WorkflowJSONParseNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.JSON_PARSE,
 		label: {
 			en_US: 'JSON Parse',

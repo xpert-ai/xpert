@@ -1,0 +1,97 @@
+version: 1
+defaultQueue: handoff
+defaultLane: main
+
+# Queue layer: physical isolation and capacity governance.
+queues:
+  realtime:
+    bullQueueName: handoff:realtime
+    maxInFlight: 200
+  batch:
+    bullQueueName: handoff:batch
+    maxInFlight: 500
+  integration:
+    bullQueueName: handoff:integration
+    maxInFlight: 150
+  default:
+    bullQueueName: handoff
+    maxInFlight: 300
+
+# Lane layer: scheduler policy. `mapToLane` maps policy lane to runtime lane.
+lanePolicy:
+  high:
+    weight: 5
+    maxConcurrent: 40
+    maxQueued: 1000
+    mapToLane: main
+  normal:
+    weight: 3
+    maxConcurrent: 80
+    maxQueued: 3000
+    mapToLane: main
+  low:
+    weight: 1
+    maxConcurrent: 20
+    maxQueued: 5000
+    mapToLane: cron
+
+# Type layer: per-message-type strategy.
+typePolicies:
+  agent.chat.v1:
+    queue: realtime
+    lane: high
+    timeoutMs: 8000
+    retry:
+      maxAttempts: 2
+      backoff: exponential
+      baseDelayMs: 300
+      maxDelayMs: 5000
+      jitter: full
+      retryOn: [429, 500, 502, 503, 504]
+    idempotency:
+      keyFrom: idempotencyKey
+      windowMs: 120000
+  agent.report.build.v1:
+    queue: batch
+    lane: normal
+    timeoutMs: 300000
+    retry:
+      maxAttempts: 5
+      backoff: exponential
+      baseDelayMs: 2000
+      maxDelayMs: 60000
+      jitter: equal
+      retryOn: [500, 502, 503, 504]
+    idempotency:
+      keyFrom: businessKey
+      windowMs: 86400000
+  agent.chat_dispatch.v1:
+    queue: realtime
+    lane: high
+    timeoutMs: 120000
+    retry:
+      maxAttempts: 2
+      backoff: exponential
+      baseDelayMs: 300
+      maxDelayMs: 5000
+      jitter: full
+      retryOn: [429, 500, 502, 503, 504]
+  system.chat_message_upsert.v1:
+    queue: realtime
+    lane: main
+    timeoutMs: 30000
+    retry:
+      maxAttempts: 2
+      backoff: fixed
+      baseDelayMs: 500
+      maxDelayMs: 2000
+      jitter: none
+      retryOn: [429, 500, 502, 503, 504]
+
+routes:
+  - match:
+      typePrefix: channel.lark.
+    target:
+      queue: integration
+      lane: normal
+      timeoutMs: 30000

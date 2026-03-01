@@ -6,6 +6,7 @@ import {
 	IWorkflowNode,
 	IXpertAgentExecution,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -25,7 +26,7 @@ import { XpertTableService } from '../../xpert-table.service'
 export class WorkflowDBInsertNodeStrategy implements IWorkflowNodeStrategy {
 	readonly logger = new Logger(WorkflowDBInsertNodeStrategy.name)
 
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.DB_INSERT,
 		label: {
 			en_US: 'Database Insert',

@@ -14,7 +14,7 @@ import {
 import { omit, pick } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { groupBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
@@ -22,6 +22,7 @@ import { IsNull } from 'typeorm'
 import { Xpert } from '../../xpert.entity'
 import { XpertService } from '../../xpert.service'
 import { XpertPublishCommand } from '../publish.command'
+import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 import { XpertAgentService } from '../../../xpert-agent'
 import { EventName_XpertPublished } from "../../types"
 
@@ -33,6 +34,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		private readonly xpertService: XpertService,
 		private readonly xpertAgentService: XpertAgentService,
 		private readonly i18nService: I18nService,
+		private readonly commandBus: CommandBus,
 		private readonly eventEmitter: EventEmitter2,
 	) {}
 
@@ -141,8 +143,9 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 	 * @param version New version
 	 * @param draft Xpert draft
 	 */
-    async publish(xpert: Xpert, version: string, draft: TXpertTeamDraft) {
+	async publish(xpert: Xpert, version: string, draft: TXpertTeamDraft) {
 		this.#logger.debug(`Publish Xpert '${xpert.name}' to new version '${version}'`)
+		const previousGraph = xpert.graph
 
 		const xpertOptions = draft.team?.options ?? xpert.options ?? {}
 
@@ -301,7 +304,12 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		const _xpert = await this.xpertService.save(xpert)
 
 		// Publish triggers
-		await this.xpertService.publishTriggers(_xpert)
+		await this.commandBus.execute(
+			new XpertPublishTriggersCommand(_xpert, {
+				strict: true,
+				previousGraph
+			})
+		)
 
 		await this.eventEmitter.emitAsync(EventName_XpertPublished, _xpert)
 

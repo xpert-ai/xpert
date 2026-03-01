@@ -107,9 +107,16 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
       params: new HttpParams().append('newVersion', newVersion)
     })
   }
+
+  /**
+   * @deprecated use workflow trigger instead
+   */
   publishIntegration(id: string, integration: Partial<IIntegration>) {
     return this.httpClient.post<IIntegration>(this.apiBaseUrl + `/${id}/publish/integration`, integration)
   }
+  /**
+   * @deprecated use workflow trigger instead
+   */
   removeIntegration(xpertId: string, id: string) {
     return this.httpClient.delete(this.apiBaseUrl + `/${xpertId}/publish/integration/${id}`)
   }

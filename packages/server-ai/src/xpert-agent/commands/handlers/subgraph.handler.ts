@@ -556,6 +556,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			.filter((middleware) => middleware?.tools?.length)
 			.flatMap((middleware) =>
 				middleware.tools.map((tool) => {
+					if (team.agentConfig?.tools?.[tool.name]?.description) {
+						tool.description = team.agentConfig.tools[tool.name].description
+					}
 					toolMap.set(tool.name, tool)
 					return {
 						toolset: {
@@ -563,7 +566,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 							title: tool.name,
 						},
 						caller: agent.key,
-						tool
+						tool,
+						variables: team.agentConfig?.tools?.[tool.name]?.memories || team.agentConfig?.toolsMemory?.[tool.name]
 					}
 				})
 			)
@@ -898,6 +902,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const agentDecisionNode = afterModelExecutionOrder[afterModelExecutionOrder.length - 1]?.key ?? agentKey
 		const afterAgentEntryNode = afterAgentExecutionOrder[0]?.key
 		const agentFinalExitNode = afterAgentExecutionOrder[afterAgentExecutionOrder.length - 1]?.key ?? agentDecisionNode
+		// Only trigger start nodes need special routing into the agent start chain.
+		const triggerStartNodeKeys = new Set(
+			(isStart ? startNodes : []).filter((key) => {
+				const node = graph.nodes.find((_) => _.key === key)
+				return node?.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER
+			})
+		)
 
 		const subgraphBuilder = new StateGraph<any, any, any, string>(SubgraphStateAnnotation)
 
@@ -1105,7 +1116,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 									  )
 			Object.entries(edges).forEach(([name, value]) => {
 				const ends: string[] = Array.isArray(value) ? value : [value]
-				ends.forEach((end) => subgraphBuilder.addEdge(name, end))
+				ends.forEach((end) => {
+					// Ensure trigger-first entry runs beforeAgent hooks by entering from agentStartNode.
+					if (triggerStartNodeKeys.has(name) && end === agentKey) {
+						subgraphBuilder.addEdge(name, agentStartNode)
+						return
+					}
+					subgraphBuilder.addEdge(name, end)
+				})
 			})
 			Object.keys(conditionalEdges).forEach((name) => subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0] as any, conditionalEdges[name][1]))
 		}

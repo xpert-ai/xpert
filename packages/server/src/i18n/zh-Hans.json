@@ -1,0 +1,9 @@
+{
+	"Error": {
+		"PluginPackageNameRequired": "插件包名不能为空",
+		"PluginSystemLevelInstallForbidden": "插件 {{name}} 为系统级插件，不能通过此 API 安装",
+		"PluginInstallFailed": "安装插件 {{pluginName}} 失败：{{errorMessage}}",
+		"PluginNamesRequired": "插件名称不能为空",
+		"PluginSystemUninstallForbidden": "插件 {{name}} 为系统插件，不能卸载"
+	}
+}

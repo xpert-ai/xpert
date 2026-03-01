@@ -5,6 +5,8 @@ import { ChatMessageService } from '../../../chat-message/chat-message.service'
 import { ExecutionCancelService } from '../../../shared/'
 import { IChatMessage, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
+import { Logger } from '@nestjs/common'
+import { StopHandoffMessageCommand } from '../../../handoff/commands'
 
 /**
  * Handler to cancel
@@ -18,6 +20,8 @@ import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution
  */
 @CommandHandler(CancelConversationCommand)
 export class CancelConversationHandler implements ICommandHandler<CancelConversationCommand> {
+	private readonly logger = new Logger(CancelConversationHandler.name)
+
 	constructor(
 		private readonly service: ChatConversationService,
 		private readonly messageService: ChatMessageService,
@@ -83,6 +87,20 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
 
 		if (executionIds.length) {
 			await this.executionCancelService.cancelExecutions(executionIds, 'Canceled by user')
+			try {
+				await this.commandBus.execute(
+					new StopHandoffMessageCommand({
+						executionIds,
+						reason: 'Canceled by user'
+					})
+				)
+			} catch (error) {
+				this.logger.warn(
+					`Failed to stop handoff messages for executions [${executionIds.join(', ')}]: ${
+						(error as Error)?.message ?? error
+					}`
+				)
+			}
 		}
 
 		await this.service.update(conversation.id, {

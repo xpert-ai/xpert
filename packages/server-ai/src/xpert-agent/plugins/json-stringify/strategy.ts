@@ -6,6 +6,7 @@ import {
 	IWorkflowNode,
 	IXpertAgentExecution,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -25,7 +26,7 @@ const OutputChannelName = 'output'
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.JSON_STRINGIFY)
 export class WorkflowJSONStringifyNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.JSON_STRINGIFY,
 		label: {
 			en_US: 'JSON Stringify',

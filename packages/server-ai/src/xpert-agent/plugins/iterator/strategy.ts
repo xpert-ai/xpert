@@ -9,6 +9,7 @@ import {
 	IWorkflowNode,
 	IXpertAgentExecution,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TWorkflowVarGroup,
 	TXpertGraph,
 	TXpertParameter,
@@ -66,7 +67,7 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 	@Inject(QueryBus)
 	private readonly queryBus: QueryBus
 
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.ITERATOR,
 		label: {
 			en_US: 'Iterator',

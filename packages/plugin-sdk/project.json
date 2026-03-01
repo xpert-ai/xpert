@@ -27,6 +27,7 @@
           "@langchain/openai",
           "@langchain/langgraph",
           "@metad/contracts",
+          "@metad/ocap-core",
           "@nestjs/common",
           "@nestjs/core",
           "@nestjs/cqrs",
@@ -64,6 +65,13 @@
     },
     "nx-release-publish": {
       "executor": "@nx/js:release-publish",
+      "dependsOn": [
+        {
+          "target": "nx-release-publish",
+          "dependencies": true,
+          "params": "forward"
+        }
+      ],
       "options": {
         "packageRoot": "packages/plugin-sdk/dist",
         "access": "public"

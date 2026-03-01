@@ -22,10 +22,11 @@ import { ANALYTICS_ROLE_PERMISSIONS } from './role-permissions'
 export function prepare() {
 	const allEntities = coreEntities as Array<Type<any>>
 	allEntities.push(...ALL_AI_ENTITIES, ...ALL_ENTITIES)
+	coreSubscribers.push(...AiSubscribers, ...analyticsSubscribers)
 	setConfig({
 		dbConnectionOptions: {
 			entities: allEntities,
-			subscribers: [...coreSubscribers, ...AiSubscribers, ...analyticsSubscribers]
+			subscribers: coreSubscribers
 		}
 	})
 

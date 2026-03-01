@@ -11,6 +11,7 @@ import {
 	KnowledgebaseChannel,
 	KnowledgeTask,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -37,7 +38,7 @@ import { PromptTemplate } from '@langchain/core/prompts'
 export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 	readonly logger = new Logger(WorkflowChunkerNodeStrategy.name)
 
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.CHUNKER,
 		label: {
 			en_US: 'Chunker',

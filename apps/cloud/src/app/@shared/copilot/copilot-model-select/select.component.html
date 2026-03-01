@@ -209,7 +209,7 @@
             [matTooltip]="item.deprecated ? ('PAC.Copilot.Deprecated' | translate: {Default: 'Deprecated'}) : ''"
             matTooltipPosition="before"
             [disabled]="item.deprecated"
-            (click)="setModel(copilot, item.model);mt.close()"
+            (click)="setModel(copilot, item);mt.close()"
           >
           @if (copilot.providerWithModels.icon_small) {
             <img [src]="(copilot.providerWithModels.icon_small | i18n)" class="w-4 h-4 inline-block">

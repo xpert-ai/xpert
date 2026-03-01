@@ -22,7 +22,8 @@ import {
 	STATE_VARIABLE_HUMAN,
 	IKnowledgebaseTask,
 	KNOWLEDGE_FOLDER_ID_NAME,
-	DocumentSourceProviderCategoryEnum
+	DocumentSourceProviderCategoryEnum,
+	TWorkflowNodeMeta
 } from '@metad/contracts'
 import { PromptTemplate } from '@langchain/core/prompts'
 import { getErrorMessage, omit, shortuuid } from '@metad/server-common'
@@ -40,7 +41,7 @@ import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, s
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.SOURCE)
 export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.SOURCE,
 		label: {
 			en_US: 'Document Source',

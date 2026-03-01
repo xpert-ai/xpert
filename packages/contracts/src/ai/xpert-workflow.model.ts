@@ -1,14 +1,14 @@
 import { I18nObject, IconDefinition, letterStartSUID } from "../types"
 import { ICopilotModel } from "./copilot-model.model"
 import { TKBRecallParams } from "./knowledgebase.model"
-import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
+import { ApiAuthType, JsonSchemaObjectType, TErrorHandling, TXpertRefParameter } from "./types"
 import { TKBRetrievalSettings, TStateVariable, TXpertParameter } from "./xpert.model"
 
 export type TWorkflowNodeMeta = {
   name: string
   label: I18nObject
   icon: IconDefinition
-  configSchema: any
+  configSchema: JsonSchemaObjectType
 }
 
 export type TWorkflowTriggerMeta = TWorkflowNodeMeta

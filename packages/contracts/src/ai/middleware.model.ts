@@ -7,6 +7,18 @@ export interface IWFNMiddleware extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.MIDDLEWARE
   provider: string
   options?: Record<string, any>
+  tools?: Record<string, TMiddlewareToolConfig | boolean>
+}
+
+export type TMiddlewareToolConfig = {
+  enabled?: boolean
+}
+
+export function isMiddlewareToolEnabled(config?: TMiddlewareToolConfig | boolean) {
+  if (typeof config === 'boolean') {
+    return config
+  }
+  return config?.enabled !== false
 }
 
 export function genXpertMiddlewareKey() {

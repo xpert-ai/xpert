@@ -4,6 +4,9 @@ import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { XpertService } from '../../xpert.service'
 import { XpertDelIntegrationCommand } from '../del-integration.command'
 
+/**
+ * @deprecated use workflow trigger instead
+ */
 @CommandHandler(XpertDelIntegrationCommand)
 export class XpertDelIntegrationHandler implements ICommandHandler<XpertDelIntegrationCommand> {
 	readonly #logger = new Logger(XpertDelIntegrationHandler.name)

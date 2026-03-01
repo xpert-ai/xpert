@@ -38,9 +38,13 @@ English | [中文](./README_zh.md)
 
 ## 💡 What's New
 
-**🚀 3.7 Agent Middleware Released!**
+**🚀 3.8 Sandbox Environment!**
 
-XpertAI 3.7 officially launches the Agent Middleware feature, providing developers with fine-grained control and visual orchestration capabilities over agent execution flows through a modular plugin architecture. This feature is compatible with the LangChain ecosystem, supports flexible composition of middleware nodes such as logging, security, and transformation, empowering enterprises to rapidly build observable and extensible agent workflows.
+XpertAI 3.8 releases the Agent Sandbox feature, providing an isolated execution and file operation environment for agents. One of the core capabilities of the sandbox plugin is the provider plugin mechanism. Through custom providers, you can integrate different runtime infrastructures, such as:
+
+- Docker/Podman container systems
+- [Runloop](https://runloop.ai/), [Modal](https://modal.com/), [Daytona](https://daytona.io/)
+- Remote virtual machines or secure sandbox services
 
 ## Agent-Workflow Hybrid Architecture
 
@@ -139,7 +143,7 @@ For Production, we recommend:
   - [ ] Audit logs
   - [ ] Role-based access control
   - [ ] Data encryption
-- [ ] **Sandbox** – Secure testing environment, isolating experiments from production.
+- [x] **Sandbox** – Secure testing environment, isolating experiments from production.
 - [ ] **Trace**, **Evaluation** – Observability and evaluation tools for agents and workflows.
   - [ ] Trace system
   - [ ] Evaluation framework

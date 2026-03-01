@@ -15,7 +15,8 @@ export class IntegrationService extends OrganizationBaseCrudService<IIntegration
   }
 
   test(integration: Partial<IIntegration>) {
-    return this.httpClient.post(API_PREFIX + `/${integration.provider}/test`, integration)
+    // return this.httpClient.post(API_PREFIX + `/${integration.provider}/test`, integration)
+    return this.httpClient.post<Record<string, string>>(API_INTEGRATION + '/test', integration)
   }
 
   selectOptions(options: {provider?: string; features?: IntegrationFeatureEnum[]}) {

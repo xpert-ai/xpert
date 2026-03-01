@@ -85,7 +85,7 @@
     <div class="w-full">
       <div class="pb-3">
         <div class="grid grid-cols-2 gap-3">
-          @for (plugin of filteredPlugins(); track plugin.name) {
+          @for (plugin of filteredPlugins(); track plugin.__trackId) {
             <div class="relative overflow-hidden rounded-xl border-[1.5px] border-(--border) p-1 bg-gray-100">
               <div
                 class="relative z-10 rounded-xl border-[0.5px]

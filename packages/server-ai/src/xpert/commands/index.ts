@@ -1,5 +1,7 @@
 export * from './create.command'
 export * from './publish.command'
+export * from './publish-triggers.command'
+export * from './enqueue-trigger-dispatch.command'
 export * from './execute.command'
 export * from './chat.command'
 export * from './import.command'

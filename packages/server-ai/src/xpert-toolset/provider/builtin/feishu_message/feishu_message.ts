@@ -7,6 +7,10 @@ import { CreateMessageTool } from './tools/create-message'
 import { FeishuToolEnum, TFeishuMessageToolCredentials } from './types'
 import { BaseTool } from '../../../../shared'
 
+
+/**
+ * @deprecated use lark plugin instead
+ */
 export class FeishuMessageToolset extends BuiltinToolset<BaseTool, TFeishuMessageToolCredentials> {
 	static provider = 'feishu_message'
 

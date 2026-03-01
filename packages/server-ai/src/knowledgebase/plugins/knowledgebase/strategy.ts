@@ -12,6 +12,7 @@ import {
 	KnowledgeDocumentMetadata,
 	KnowledgeTask,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -43,7 +44,7 @@ const TaskChannelName = 'task'
 export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy {
 	private readonly logger = new Logger(WorkflowKnowledgeBaseNodeStrategy.name)
 
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.KNOWLEDGE_BASE,
 		label: {
 			en_US: 'Knowledge Base',

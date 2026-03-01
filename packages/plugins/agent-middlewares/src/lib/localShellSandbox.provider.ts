@@ -107,7 +107,6 @@ const LOCAL_SHELL_SANDBOX_ICON = `<?xml version="1.0" encoding="utf-8"?>
  */
 export class LocalShellSandbox extends BaseSandbox {
   readonly id: string;
-  private readonly workingDirectory: string;
   private readonly timeout: number;
 
   /**

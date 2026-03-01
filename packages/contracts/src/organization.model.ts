@@ -74,7 +74,6 @@ export interface IOrganization extends IBasePerTenantEntityModel {
 	defaultStartTime?: string;
 	defaultEndTime?: string;
 	registrationDate?: Date;
-	contact: IContact;
 	separateInvoiceItemTaxAndDiscount?: boolean;
 	minimumProjectSize?: string;
 	show_clients?: boolean;

@@ -93,11 +93,11 @@ export type TChatInboundMessage = {
 /**
  * Card action event - triggered when user clicks card button
  */
-export type TChatCardAction = {
+export type TChatCardAction<V = unknown> = {
 	/** Action type/tag */
 	type: string
 	/** Action value */
-	value: any
+	value: V
 	/** Message ID the card belongs to */
 	messageId: string
 	/** Chat ID */
