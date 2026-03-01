@@ -6,13 +6,14 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { nonBlank, SlideUpAnimation } from '@metad/core'
-import { injectConfirm, injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, IXpert, ToastrService, TSelectOption, XpertAPIService } from '@cloud/app/@core'
 import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { XpertService } from '../../../xpert/xpert.service'
+import { injectConfirm } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

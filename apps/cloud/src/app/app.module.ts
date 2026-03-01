@@ -11,6 +11,7 @@ import { Ability, PureAbility } from '@casl/ability'
 import { NxCoreModule } from '@metad/core'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { NgxPermissionsModule } from 'ngx-permissions'
+import { provideUiI18nAdapterFactory, type UiI18nAdapter } from '@xpert-ai/headless-ui'
 import {
   APIInterceptor,
   AppInitService,
@@ -28,7 +29,7 @@ import { AppComponent } from './app.component'
 import { PAC_API_BASE_URL } from '@metad/cloud/auth'
 import { environment } from '../environments/environment'
 import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
-import { initI18n } from './@shared/i18n'
+import { I18nService, initI18n } from './@shared/i18n'
 import { CustomElementsService, initializeCustomElements, provideChatMarkdown } from './@shared/chat'
 
 const TYPE_KEY = '__subject__'
@@ -117,6 +118,20 @@ function detectSubjectType(subject) {
       provide: PAC_API_BASE_URL,
       useValue: environment.API_BASE_URL
     },
+    provideUiI18nAdapterFactory(
+      (i18nService: I18nService): UiI18nAdapter => ({
+        getLanguage: () => i18nService.currentLanguage,
+        translate: (key, options) =>
+          i18nService.translate(
+            key,
+            options as {
+              ns?: string
+              Default?: string
+            } & Record<string, string>
+          )
+      }),
+      [I18nService]
+    ),
     provideDateFnsAdapter(),
     {
       provide: APP_INITIALIZER,

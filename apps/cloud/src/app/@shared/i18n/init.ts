@@ -11,7 +11,7 @@ export async function initI18n() {
       fallbackLng: 'en',
       fallbackNS: 'common',
       // debug: true,
-      ns: ['common', 'core', 'sql', 'xmla', 'echarts'],
+      ns: ['common', 'core', 'sql', 'xmla', 'echarts', 'xp-ui'],
       defaultNS: 'common', // default namespace
       backend: {
         loadPath: '/assets/locales/{{ns}}/{{lng}}.json',

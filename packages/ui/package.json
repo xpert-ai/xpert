@@ -8,7 +8,8 @@
     "@angular/common": "^21.1.0",
     "@angular/core": "^21.1.0",
     "@angular/forms": "^21.1.0",
-    "@angular/platform-browser": "^21.1.0"
+    "@angular/platform-browser": "^21.1.0",
+    "i18next": "^23.14.0"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

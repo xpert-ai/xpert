@@ -5,7 +5,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 ## General
 
 - Prefer `rg` for search; keep edits ASCII; do not revert user changes.
-- Avoid Angular Material (deprecated). Use Angular CDK + TailwindCSS v3 for UI. Do not import `@angular/material` modules in new code.
+- Avoid Angular Material and Angular CDK (deprecated). Use Angular Aria + TailwindCSS v4 for UI components. Do not import `@angular/material` or `@angular/cdk` modules in new code.
 - Use standalone Angular components with signals, the new control flow like `@for/@if`, and reactive forms. Keep templates Tailwind-first.
 - Keep comments succinct; add only when clarifying non-obvious logic.
 

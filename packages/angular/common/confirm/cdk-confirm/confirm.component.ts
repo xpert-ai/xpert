@@ -32,6 +32,9 @@ export class CdkConfirmComponent {
   readonly information = computed(() => this.#data?.information)
 }
 
+/**
+ * @deprecated Use `injectConfirm` in ui instead
+ */
 export function injectConfirm() {
   const dialog = inject(Dialog)
 
