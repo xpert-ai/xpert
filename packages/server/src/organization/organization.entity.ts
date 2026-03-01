@@ -4,9 +4,7 @@ import {
 	Index,
 	JoinColumn,
 	ManyToMany,
-	ManyToOne,
 	OneToMany,
-	RelationId
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
@@ -28,7 +26,6 @@ import {
 	WeekDaysEnum,
 	MinimumProjectSizeEnum,
 	CurrencyPosition,
-	IContact,
 	ITag,
 	IEmployee,
 	IOrganizationLanguage,
@@ -36,7 +33,6 @@ import {
 	LanguagesEnum
 } from '@metad/contracts';
 import {
-	Contact,
 	Employee,
 	FeatureOrganization,
 	OrganizationLanguage,
@@ -389,51 +385,16 @@ export class Organization extends TenantBaseEntity implements IOrganization {
 	@IsEnum(LanguagesEnum)
 	@Column({ nullable: true })
 	preferredLanguage?: LanguagesEnum
-	
-	/*
-    |--------------------------------------------------------------------------
-    | @ManyToOne 
-    |--------------------------------------------------------------------------
-    */
-	
-	// Contact
-	@ApiProperty({ type: () => Contact })
-	@ManyToOne(() => Contact, (contact) => contact.organization, {
-		nullable: true,
-		cascade: true,
-		onDelete: 'SET NULL'
-	})
-	contact: IContact;
-
-	@ApiProperty({ type: () => String, readOnly: true })
-	@RelationId((organization: Organization) => organization.contact)
-	readonly contactId?: string;
 
 	/*
     |--------------------------------------------------------------------------
     | @OneToMany 
     |--------------------------------------------------------------------------
     */
-
-	// @ApiPropertyOptional({ type: () => Invoice, isArray: true })
-	// @OneToMany(() => Invoice, (invoice) => invoice.fromOrganization)
-	// @JoinColumn()
-	// invoices?: IInvoice[];
-
 	@ApiProperty({ type: () => Employee })
 	@OneToMany(() => Employee, (employee) => employee.organization)
 	@JoinColumn()
 	employees?: IEmployee[];
-
-	// @ApiProperty({ type: () => Deal })
-	// @OneToMany(() => Deal, (deal) => deal.organization)
-	// @JoinColumn()
-	// deals?: IDeal[];
-
-	// @ApiProperty({ type: () => OrganizationAward })
-	// @OneToMany(() => OrganizationAward, (award) => award.organization)
-	// @JoinColumn()
-	// awards?: IOrganizationAward[];
 
 	@ApiProperty({ type: () => OrganizationLanguage })
 	@OneToMany(() => OrganizationLanguage, (language) => language.organization)
@@ -444,37 +405,6 @@ export class Organization extends TenantBaseEntity implements IOrganization {
 	@OneToMany(() => FeatureOrganization, (featureOrganization) => featureOrganization.organization)
 	featureOrganizations?: IFeatureOrganization[];
 
-	// @ApiPropertyOptional({ type: () => Payment, isArray: true })
-	// @OneToMany(() => Payment, (payment) => payment.organization, {
-	// 	onDelete: 'SET NULL'
-	// })
-	// @JoinColumn()
-	// payments?: IPayment[];
-
-	// @ApiPropertyOptional({ type: () => OrganizationSprint, isArray: true })
-	// @OneToMany(() => OrganizationSprint, (sprint) => sprint.organization)
-	// @JoinColumn()
-	// organizationSprints?: IOrganizationSprint[];
-
-	// @ApiPropertyOptional({ type: () => InvoiceEstimateHistory, isArray: true })
-	// @OneToMany(() => InvoiceEstimateHistory, (invoiceEstimateHistory) => invoiceEstimateHistory.organization, { 
-	// 	onDelete: 'SET NULL' 
-	// })
-	// @JoinColumn()
-	// invoiceEstimateHistories?: IInvoiceEstimateHistory[];
-
-	// @ApiProperty({ type: () => AccountingTemplate })
-	// @OneToMany(() => AccountingTemplate, (accountingTemplate) => accountingTemplate.organization, { 
-	// 	onDelete: 'SET NULL' 
-	// })
-	// @JoinColumn()
-	// accountingTemplates?: IAccountingTemplate[];
-
-	// @ApiProperty({ type: () => ReportOrganization })
-	// @OneToMany(() => ReportOrganization, (reportOrganization) => reportOrganization.organization)
-	// @JoinColumn()
-	// reportOrganizations?: IReportOrganization[];
-
 	/*
     |--------------------------------------------------------------------------
     | @ManyToMany 
@@ -484,8 +414,4 @@ export class Organization extends TenantBaseEntity implements IOrganization {
 	@ApiProperty({ type: () => Tag })
 	@ManyToMany(() => Tag, (it) => it.organizations)
 	tags: ITag[];
-
-	// @ApiProperty({ type: () => Skill })
-	// @ManyToMany(() => Skill, (skill) => skill.organizations)
-	// skills: ISkill[];
 }

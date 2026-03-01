@@ -1,7 +1,7 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
-import { CdkMenuModule } from "@angular/cdk/menu";
+import { CdkMenuModule } from "@angular/cdk/menu"
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
+import { Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -63,8 +63,12 @@ export class PluginsComponent {
   })
   
   readonly plugins = linkedModel({
-    initialValue: [],
-    compute: () => this.#plugins.value() ?? [],
+    initialValue: [] as Array<any>,
+    compute: () =>
+      (this.#plugins.value() ?? []).map((plugin, index) => ({
+        ...plugin,
+        __trackId: this.buildPluginTrackId(plugin, index)
+      })),
     update: () => {
       // No-op
     }
@@ -98,7 +102,7 @@ export class PluginsComponent {
         (plugin) =>
           plugin.meta.description?.toLowerCase().includes(searchText) ||
           plugin.meta.displayName?.toLowerCase().includes(searchText) ||
-          plugin.name.toLowerCase().includes(searchText) ||
+          (typeof plugin.name === 'string' && plugin.name.toLowerCase().includes(searchText)) ||
           plugin.meta.keywords?.some((keyword) => keyword.toLowerCase().includes(searchText))
       )
     }
@@ -141,9 +145,26 @@ export class PluginsComponent {
 
   // constructor() {
   //   effect(() => {
-  //     console.log(this.plugins())
+  //     console.log(this.filteredPlugins())
   //   })
   // }
+
+  private buildPluginTrackId(plugin: any, index: number): string {
+    const name =
+      typeof plugin?.name === 'string'
+        ? plugin.name
+        : typeof plugin?.meta?.name === 'string'
+          ? plugin.meta.name
+          : `plugin-${index}`
+    const scope =
+      typeof plugin?.organizationId === 'string'
+        ? plugin.organizationId
+        : plugin?.isGlobal
+          ? 'global'
+          : 'org'
+
+    return `${scope}:${name}:${index}`
+  }
 
   toggleKeyword(keyword: string) {
     this.keywords.update((keywords) => {

@@ -324,6 +324,7 @@ export type TXpertAgentConfig = {
      * Custom description for the tool
      */
     description?: string
+    parameters?: Record<string, any>
   }>
 }
 

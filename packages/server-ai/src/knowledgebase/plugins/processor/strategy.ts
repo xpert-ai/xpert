@@ -11,6 +11,7 @@ import {
 	KnowledgebaseChannel,
 	KnowledgeTask,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -34,7 +35,7 @@ import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, s
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.PROCESSOR)
 export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.PROCESSOR,
 		label: {
 			en_US: 'Processor',

@@ -12,6 +12,7 @@ import {
 	KnowledgebaseChannel,
 	KnowledgeTask,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -21,7 +22,7 @@ import {
 import { getErrorMessage } from '@metad/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ChunkMetadata, IImageUnderstandingStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
+import { IImageUnderstandingStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { get } from 'lodash-es'
 import { In } from 'typeorm'
 import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
@@ -39,7 +40,7 @@ const DocumentsChannelName = 'documents'
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.UNDERSTANDING)
 export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.UNDERSTANDING,
 		label: {
 			en_US: 'Understanding',

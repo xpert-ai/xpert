@@ -145,13 +145,7 @@ export class IntegrationComponent implements IsDirty {
 
   readonly loading = signal(true)
 
-  readonly webhookUrl = computed(() => {
-    const webhookUrl = this.integrationProvider()?.webhookUrl
-    if (this.integration() && webhookUrl) {
-      return webhookUrl.replace('{{apiBaseUrl}}', this.apiBaseUrl).replace('{{integrationId}}', this.integration().id)
-    }
-    return null
-  })
+  readonly webhookUrl = signal('')
 
   constructor() {
     effect(
@@ -199,7 +193,11 @@ export class IntegrationComponent implements IsDirty {
     this.loading.set(true)
     this.integrationAPI.test(this.formGroup.value).subscribe({
       next: (result) => {
-        this.formGroup.patchValue(result)
+        if (result?.webhookUrl) {
+          this.webhookUrl.set(result.webhookUrl)
+        } else if (result) {
+          this.formGroup.patchValue(result)
+        }
         this.formGroup.markAsDirty()
         this.loading.set(false)
         this.#toastr.success('PAC.Messages.TestSuccessfully', { Default: 'Test successfully!' })

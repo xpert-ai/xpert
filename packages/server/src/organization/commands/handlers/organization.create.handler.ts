@@ -47,8 +47,8 @@ export class OrganizationCreateHandler
 			}
 		});
 
-		let { contact = {} } = input;
-		delete input['contact'];
+		// let { contact = {} } = input;
+		// delete input['contact'];
 
 		// 3. Create organization
 		const createdOrganization: IOrganization = await this.organizationService.create({
@@ -92,13 +92,13 @@ export class OrganizationCreateHandler
 
 		//5. Create contact details of created organization
 		const { id } = createdOrganization;
-		contact = Object.assign({}, contact, {
-			organizationId: id,
-			tenantId
-		});
+		// contact = Object.assign({}, contact, {
+		// 	organizationId: id,
+		// 	tenantId
+		// });
 
 		const organization = await this.organizationService.create({
-			contact,
+			// contact,
 			...createdOrganization
 		});
 

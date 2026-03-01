@@ -6,6 +6,7 @@ import {
 	IWorkflowNode,
 	IXpertAgentExecution,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -27,7 +28,7 @@ const ResultChannelName = 'result'
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR)
 export class WorkflowVariableAggregatorNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.VARIABLE_AGGREGATOR,
 		label: {
 			en_US: 'Variable aggregator',

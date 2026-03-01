@@ -1,19 +1,28 @@
-import { CopilotCheckpointModule, CopilotKnowledgeModule, CopilotModule, MCPModule, XpertToolsetModule } from '@metad/server-ai'
-import { CacheModule } from '@nestjs/cache-manager'
+import {
+	CopilotCheckpointModule,
+	CopilotKnowledgeModule,
+	CopilotModule,
+	MCPModule,
+	XpertToolsetModule
+} from '@metad/server-ai'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
+import { ANALYTICS_PERMISSION_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 import { ChatBIModelModule } from '../chatbi-model'
 import { provideOcap } from '../model/ocap/'
 import { CalculatorService } from './toolset/mcp/chatbi'
 import { QueryHandlers } from './queries/handlers'
 import { SemanticModelModule } from '../model'
 import { IndicatorModule } from '../indicator'
+import {
+	PluginAnalyticsPermissionService,
+	registerAnalyticsPluginServicePermissionHandler
+} from '../plugin/permissions'
 
 /**
  */
 @Module({
 	imports: [
-		// CacheModule.register(),
 		CqrsModule,
 		CopilotModule,
 		CopilotCheckpointModule,
@@ -36,7 +45,17 @@ import { IndicatorModule } from '../indicator'
 		})
 	],
 	controllers: [],
-	providers: [...provideOcap(), ...QueryHandlers, CalculatorService],
+	providers: [
+		{ provide: ANALYTICS_PERMISSION_SERVICE_TOKEN, useExisting: PluginAnalyticsPermissionService },
+		PluginAnalyticsPermissionService,
+		...provideOcap(),
+		...QueryHandlers,
+		CalculatorService
+	],
 	exports: []
 })
-export class AiBiModule {}
+export class AiBiModule {
+	constructor() {
+		registerAnalyticsPluginServicePermissionHandler()
+	}
+}

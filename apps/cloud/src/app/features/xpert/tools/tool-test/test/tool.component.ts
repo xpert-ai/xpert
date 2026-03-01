@@ -24,11 +24,12 @@ import {
   IXpertToolset,
   ToastrService,
   TToolParameter,
+  TWorkflowVarGroup,
   XpertToolService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { isNil, omit } from 'lodash-es'
-import { Subscription } from 'rxjs'
+import { Observable, Subscription } from 'rxjs'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 
 
@@ -63,6 +64,11 @@ export class XpertToolsetToolTestComponent {
     transform: booleanAttribute
   })
   readonly enabled = model<boolean>()
+  readonly variables = input<TWorkflowVarGroup[]>()
+  readonly testToolRequest = input<
+    ((payload: { tool: IXpertTool; parameters: Record<string, any> }) => Observable<unknown>) | null
+  >(null)
+  readonly parameters = model<Record<string, any>>(null)
 
   // Outputs
   readonly saveParameters = output<Record<string, string>>()
@@ -78,8 +84,7 @@ export class XpertToolsetToolTestComponent {
     const parameters = this.schema()?.parameters ?? this.tool()?.provider?.parameters
     return parameters?.filter((_) => isNil(_.visible) || _.visible || this.visibleAll())
   })
-
-  readonly parameters = model<Record<string, any>>(null)
+  
   readonly invalid = computed(() => this.parameterList()?.some((param) => param.required && isNil(this.parameters()?.[param.name])))
   readonly testResult = signal(null)
 
@@ -106,19 +111,26 @@ export class XpertToolsetToolTestComponent {
   testTool() {
     this.loading.set(true)
     this.testResult.set(null)
-    this.#testSubscription = this.toolService
-      .test({
-        ...this.tool(),
-        toolset: this.toolset() ? omit(this.toolset(), 'tools') : this.tool().toolset,
-        parameters: this.parameters(),
-      })
-      .subscribe({
+    const testToolRequest = this.testToolRequest()
+    const request$ = testToolRequest
+      ? testToolRequest({
+          tool: this.tool(),
+          parameters: this.parameters()
+        })
+      : this.toolService.test({
+          ...this.tool(),
+          toolset: this.toolset() ? omit(this.toolset(), 'tools') : this.tool().toolset,
+          parameters: this.parameters()
+        })
+    this.#testSubscription = request$.subscribe({
         next: (result) => {
           this.loading.set(false)
-          if (result) {
+          if (result == null) {
+            this.testResult.set(null)
+          } else if (typeof result === 'string') {
             this.testResult.set(result)
           } else {
-            this.testResult.set(null)
+            this.testResult.set(JSON.stringify(result, null, 2))
           }
         },
         error: (error) => {

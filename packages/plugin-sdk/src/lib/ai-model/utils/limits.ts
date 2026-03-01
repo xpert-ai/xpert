@@ -1,7 +1,12 @@
 import { BaseLanguageModel, getModelContextSize as _getModelContextSize } from "@langchain/core/language_models/base";
+import { ICopilotModel, ModelPropertyKey } from "@metad/contracts";
 import { ModelProfile } from "../types";
 
-export function getModelContextSize(input: BaseLanguageModel): number | undefined {
+export function getModelContextSize(input: BaseLanguageModel | ICopilotModel): number | undefined {
+  if (isCopilotModel(input)) {
+    return normalizeContextSize(input.options?.[ModelPropertyKey.CONTEXT_SIZE]);
+  }
+
   // Backward compatibility for langchain <1.0.0
   if (input.metadata && "profile" in input.metadata) {
     const profile = input.metadata['profile'] as ModelProfile;
@@ -28,5 +33,22 @@ export function getModelContextSize(input: BaseLanguageModel): number | undefine
     return _getModelContextSize(input.modelName);
   }
 
+  return undefined;
+}
+
+function isCopilotModel(input: BaseLanguageModel | ICopilotModel): input is ICopilotModel {
+  return typeof input === "object" && input !== null && !("invoke" in input);
+}
+
+export function normalizeContextSize(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.floor(value);
+  }
+  if (typeof value === "string") {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
   return undefined;
 }

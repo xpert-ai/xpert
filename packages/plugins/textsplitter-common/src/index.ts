@@ -1,15 +1,15 @@
-import { z } from 'zod';
-import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
-import { TextSplitterPlugin } from './lib/textsplitter.plugin';
-import { svg } from './lib/types';
+import { z } from 'zod'
+import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
+import { TextSplitterPlugin } from './lib/textsplitter.plugin'
+import { svg } from './lib/types'
 
-const ConfigSchema = z.object({
-});
+const ConfigSchema = z.object({})
 
 const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
   meta: {
     name: '@xpert-ai/plugin-textsplitter-common',
     version: '1.0.0',
+    level: 'system',
     category: 'tools',
     icon: {
       type: 'svg',
@@ -20,21 +20,21 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
     description: 'Provide Text Splitting common functionality',
     keywords: ['text', 'splitter'],
     author: 'XpertAI Team',
-    homepage: 'https://xpertai.cloud',
+    homepage: 'https://xpertai.cloud'
   },
   config: {
-    schema: ConfigSchema,
+    schema: ConfigSchema
   },
   register(ctx) {
-    ctx.logger.log('register text splitter plugin');
-    return { module: TextSplitterPlugin, global: true };
+    ctx.logger.log('register text splitter plugin')
+    return { module: TextSplitterPlugin, global: true }
   },
   async onStart(ctx) {
-    ctx.logger.log('text splitter plugin started');
+    ctx.logger.log('text splitter plugin started')
   },
   async onStop(ctx) {
-    ctx.logger.log('text splitter plugin stopped');
-  },
-};
+    ctx.logger.log('text splitter plugin stopped')
+  }
+}
 
-export default plugin;
+export default plugin

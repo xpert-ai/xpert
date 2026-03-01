@@ -15,7 +15,14 @@
 
   @if (expand()) {
     <ng-content></ng-content>
-    <xpert-toolset-tool-test @heightChangeAnimation [tool]="toolDetail$ | async"  />
+    <xpert-toolset-tool-test
+      @heightChangeAnimation
+      [tool]="toolDetail$ | async"
+      [(parameters)]="parameters"
+      [testToolRequest]="testToolRequest()"
+      [variables]="variables()"
+      (saveParameters)="saveParameters.emit($event)"
+    />
   }
 
   @if (loading()) {

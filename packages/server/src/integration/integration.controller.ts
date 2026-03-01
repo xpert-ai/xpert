@@ -1,5 +1,5 @@
 import { IIntegration, INTEGRATION_PROVIDERS, IntegrationEnum, IntegrationFeatureEnum } from '@metad/contracts'
-import { Body, Controller, Get, Post, Query, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Get, InternalServerErrorException, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'
 import { FindOptionsWhere } from 'typeorm'
@@ -33,7 +33,11 @@ export class IntegrationController extends CrudController<Integration> {
 
 	@Post('test')
 	async connect(@Body() integration: IIntegration) {
-		await this.service.test(integration)
+		try {
+			return await this.service.test(integration)
+		} catch (error) {
+			throw new InternalServerErrorException(error)
+		}
 	}
 
 	@Get('select-options')

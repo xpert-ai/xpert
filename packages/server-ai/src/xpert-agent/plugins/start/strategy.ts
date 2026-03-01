@@ -4,6 +4,7 @@ import {
 	IEnvironment,
 	IWorkflowNode,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -26,7 +27,7 @@ export class WorkflowStartNodeStrategy implements IWorkflowNodeStrategy {
 	@Inject(QueryBus)
 	private readonly queryBus: QueryBus
 
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.START,
 		label: {
 			en_US: 'Start',

@@ -10,6 +10,7 @@ import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../copilot-user'
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../../core/errors'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
+import { ensureCopilotModelContextSize } from '../../utils/context-size'
 
 
 @CommandHandler(CreateModelClientCommand)
@@ -65,6 +66,8 @@ export class CreateModelClientHandler implements ICommandHandler<CreateModelClie
         t('server-ai:Error.AIModelProviderNotFound', {name: copilot.modelProvider.providerName})
       )
     }
+
+    ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
 
     return modelProvider.getModelInstance(
       copilotModel.modelType,

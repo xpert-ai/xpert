@@ -19,8 +19,10 @@ import {
   ICopilotModel,
   injectCopilotProviderService,
   injectCopilots,
+  ModelPropertyKey,
   ModelFeature,
-  ParameterType
+  ParameterType,
+  ProviderModel
 } from '../../../@core'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 
@@ -181,14 +183,24 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   constructor() {
     effect(() => {
-      if (this.cva.value$() && !this.cva.value$().options && this.modelParameterRules()) {
-        this.cva.value$.update((value) => ({
-          ...value,
-          options: this.modelParameterRules().reduce((acc, curr) => {
-            acc[curr.name] = curr.default
-            return acc
-          }, {} as Record<string, any>)
-        }))
+      const value = this.cva.value$()
+      const rules = this.modelParameterRules()
+      if (value && rules?.length && this.shouldInitDefaultOptions(value.options)) {
+        const contextSize = this.parseContextSize(value.options?.[ModelPropertyKey.CONTEXT_SIZE])
+        this.cva.value$.update((current) => {
+          if (!current) {
+            return current
+          }
+          return {
+            ...current,
+            options: rules.reduce((acc, curr) => {
+              acc[curr.name] = curr.default
+              return acc
+            }, {
+              ...(typeof contextSize === 'number' ? {[ModelPropertyKey.CONTEXT_SIZE]: contextSize} : {})
+            } as Record<string, any>)
+          }
+        })
       }
     }, { allowSignalWrites: true })
 
@@ -212,27 +224,27 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     this.cva.setDisabledState(isDisabled)
   }
 
-  updateValue(value: ICopilotModel) {
+  updateValue(value: ICopilotModel | null) {
     if (!this.readonly()) {
       this.cva.value$.set(value)
     }
   }
 
-  initModel(copilotId: string, model: string) {
-    this.updateValue({
+  initModel(copilotId: string, model?: ProviderModel | null) {
+    this.updateValue(this.withModelContextSize({
       copilotId,
-      model,
+      model: model?.model ?? this.model(),
       modelType: this.modelType()
-    })
+    }, model))
   }
 
-  setModel(copilot: ICopilot, model: string) {
-    const nValue = {
+  setModel(copilot: ICopilot, model: ProviderModel) {
+    const nValue = this.withModelContextSize({
       ...(this.cva.value$() ?? {}),
-      model,
+      model: model.model,
       copilotId: copilot.id,
       modelType: this.modelType()
-    }
+    }, model)
     this.updateValue(nValue)
   }
 
@@ -242,7 +254,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   updateParameter(name: string, value: any) {
     if (!this.cva.value$()) {
-      this.initModel(this.copilotId(), this.model())
+      this.initModel(this.copilotId(), this.selectedAiModel())
     }
     
     this.updateValue(
@@ -258,5 +270,44 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   delete() {
     this.updateValue(null)
+  }
+
+  private withModelContextSize(value: Partial<ICopilotModel>, model?: ProviderModel | null): ICopilotModel {
+    const contextSize = this.parseContextSize(model?.model_properties?.[ModelPropertyKey.CONTEXT_SIZE])
+    const options = {
+      ...(value.options ?? {})
+    }
+
+    if (typeof contextSize === 'number') {
+      options[ModelPropertyKey.CONTEXT_SIZE] = contextSize
+    } else {
+      delete options[ModelPropertyKey.CONTEXT_SIZE]
+    }
+
+    return {
+      ...value,
+      options: Object.keys(options).length ? options : undefined
+    } as ICopilotModel
+  }
+
+  private parseContextSize(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return Math.floor(value)
+    }
+    if (typeof value === 'string') {
+      const parsed = Number.parseInt(value, 10)
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed
+      }
+    }
+    return undefined
+  }
+
+  private shouldInitDefaultOptions(options?: Record<string, any>): boolean {
+    if (!options) {
+      return true
+    }
+    const keys = Object.keys(options).filter((key) => options[key] !== undefined)
+    return keys.length === 0 || (keys.length === 1 && keys[0] === ModelPropertyKey.CONTEXT_SIZE)
   }
 }

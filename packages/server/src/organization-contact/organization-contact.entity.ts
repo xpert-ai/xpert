@@ -22,9 +22,7 @@ import {
 	ContactType,
 	ITag,
 	IContact,
-
 	OrganizationContactBudgetTypeEnum,
-
 } from '@metad/contracts';
 import {
 	Contact,
@@ -106,26 +104,26 @@ export class OrganizationContact
 	// @Column({ nullable: true })
 	// createdBy?: string;
 
-	/*
-    |--------------------------------------------------------------------------
-    | @ManyToOne 
-    |--------------------------------------------------------------------------
-    */
-	// Client Contact 
-	@ApiProperty({ type: () => Contact })
-	@ManyToOne(() => Contact, (contact) => contact.organization_contacts, {
-		nullable: true,
-		onDelete: 'SET NULL'
-	})
-	@JoinColumn()
-	contact: IContact;
+	// /*
+    // |--------------------------------------------------------------------------
+    // | @ManyToOne 
+    // |--------------------------------------------------------------------------
+    // */
+	// // Client Contact 
+	// @ApiProperty({ type: () => Contact })
+	// @ManyToOne(() => Contact, (contact) => contact.organization_contacts, {
+	// 	nullable: true,
+	// 	onDelete: 'SET NULL'
+	// })
+	// @JoinColumn()
+	// contact: IContact;
 
-	@ApiProperty({ type: () => String, readOnly: true })
-	@RelationId((it: OrganizationContact) => it.contact)
-	@IsString()
-	@Index()
-	@Column({ nullable: true })
-	readonly contactId?: string;
+	// @ApiProperty({ type: () => String, readOnly: true })
+	// @RelationId((it: OrganizationContact) => it.contact)
+	// @IsString()
+	// @Index()
+	// @Column({ nullable: true })
+	// readonly contactId?: string;
 
 	// /*
     // |--------------------------------------------------------------------------

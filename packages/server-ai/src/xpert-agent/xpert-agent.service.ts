@@ -1,4 +1,4 @@
-import { STATE_VARIABLE_HUMAN, TChatAgentParams, TChatOptions } from '@metad/contracts'
+import { IWFNMiddleware, STATE_VARIABLE_HUMAN, TChatAgentParams, TChatOptions, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -7,6 +7,7 @@ import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { assign } from 'lodash'
 import { Observable } from 'rxjs'
 import { Repository } from 'typeorm'
+import { ToolSchemaParser } from '../shared'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertAgentChatCommand } from './commands'
 import { XpertAgent } from './xpert-agent.entity'
@@ -62,20 +63,59 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 		})
 	}
 
+	private createMiddlewareNode(provider: string, options: any): IWFNMiddleware {
+		return {
+			id: null,
+			key: null,
+			type: WorkflowNodeTypeEnum.MIDDLEWARE,
+			provider,
+			options
+		}
+	}
+
+	private normalizeSchema(schema: any) {
+		if (!schema) {
+			return null
+		}
+		try {
+			if ((schema as any)?._def) {
+				return ToolSchemaParser.parseZodToJsonSchema(schema)
+			}
+			return JSON.parse(JSON.stringify(schema))
+		} catch {
+			return null
+		}
+	}
+
 	async getMiddlewareTools(provider: string, options: any) {
 		const strategy = this.agentMiddlewareRegistry.get(provider)
 		const middleware = await strategy.createMiddleware(options, {
 			tenantId: RequestContext.currentTenantId(),
 			userId: RequestContext.currentUserId(),
-			node: null,
-			tools: null
+			node: this.createMiddlewareNode(provider, options),
+			tools: new Map()
 		})
 		return (
 			middleware.tools?.map((tool) => ({
 				name: tool.name,
 				description: tool.description,
-				schema: JSON.parse(JSON.stringify(tool.schema))
+				schema: this.normalizeSchema(tool.schema)
 			})) ?? []
 		)
+	}
+
+	async testMiddlewareTool(provider: string, toolName: string, body: { options?: any; parameters?: Record<string, any> }) {
+		const strategy = this.agentMiddlewareRegistry.get(provider)
+		const middleware = await strategy.createMiddleware(body?.options, {
+			tenantId: RequestContext.currentTenantId(),
+			userId: RequestContext.currentUserId(),
+			node: this.createMiddlewareNode(provider, body?.options),
+			tools: new Map()
+		})
+		const tool = middleware?.tools?.find((tool) => tool.name === toolName)
+		if (!tool) {
+			throw new Error(`Middleware tool '${toolName}' not found in provider '${provider}'`)
+		}
+		return await tool.invoke(body?.parameters ?? {})
 	}
 }

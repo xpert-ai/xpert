@@ -3,53 +3,43 @@ import {
 	convertToUrlPath,
 	ICopilotStore,
 	IUser,
-	IWFNTrigger,
-	IXpert,
 	IXpertAgentExecution,
 	LongTermMemoryTypeEnum,
 	OrderTypeEnum,
-	STATE_VARIABLE_HUMAN,
-	TChatFrom,
 	TMemoryQA,
 	TMemoryUserProfile,
-	TXpertTeamDraft,
-	WorkflowNodeTypeEnum
+	TXpertTeamDraft
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import {
 	OptionParams,
 	PaginationParams,
-	RedisLockService,
 	RequestContext,
 	TenantOrganizationAwareCrudService,
 	transformWhere,
 	UserPublicDTO,
 	UserService
 } from '@metad/server-core'
-import { InjectQueue } from '@nestjs/bull'
-import { HttpException, HttpStatus, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
-import { IWorkflowTriggerStrategy, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
-import { Queue } from 'bull'
+import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
 import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
+import { SandboxService } from '../sandbox/sandbox.service'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
 import { GetXpertMemoryEmbeddingsQuery } from './queries'
-import { EventNameXpertValidate, QUEUE_XPERT_TRIGGER, TTriggerJob, XpertDraftValidateEvent } from './types'
+import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
 import { FreeNodeValidator } from './validators'
 import { Xpert } from './xpert.entity'
-import { SandboxService } from '../sandbox/sandbox.service'
 
 @Injectable()
-export class XpertService extends TenantOrganizationAwareCrudService<Xpert> implements OnModuleInit {
-	readonly #logger = new Logger(XpertService.name)
-
+export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 	constructor(
 		@InjectRepository(Xpert)
 		public readonly repository: Repository<Xpert>,
@@ -59,31 +49,9 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 		private readonly queryBus: QueryBus,
 		private readonly eventEmitter: EventEmitter2,
 		private readonly triggerRegistry: WorkflowTriggerRegistry,
-		private readonly sandboxService: SandboxService,
-		private readonly redisLockService: RedisLockService,
-		@InjectQueue(QUEUE_XPERT_TRIGGER)
-		private triggerQueue: Queue<TTriggerJob>
+		private readonly sandboxService: SandboxService
 	) {
 		super(repository)
-	}
-
-	async onModuleInit() {
-		const { items } = await this.findAll({ where: { latest: true, publishAt: Not(IsNull()) } })
-		for (const xpert of items) {
-			const triggers = xpert.graph?.nodes?.filter(
-				(node) =>
-					node.type === 'workflow' &&
-					node.entity.type === WorkflowNodeTypeEnum.TRIGGER &&
-					(<IWFNTrigger>node.entity).from !== 'chat'
-			)
-			if (triggers?.length) {
-				const lockId = await this.redisLockService.acquireLock('job:trigger:' + xpert.id, 10000)
-				if (!lockId) {
-					continue
-				}
-				await this.publishTriggers(xpert)
-			}
-		}
 	}
 
 	/**
@@ -493,62 +461,5 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> impl
 
 	async getSandboxProviders() {
 		return this.sandboxService.listProviders()
-	}
-
-	async publishTriggers(xpert: IXpert) {
-		const triggers = xpert.graph.nodes
-			.filter((_) => _.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.TRIGGER)
-			.map((node) => node.entity as IWFNTrigger)
-			.filter((node) => node.from && node.from !== 'chat')
-		for await (const node of triggers) {
-			let provider: IWorkflowTriggerStrategy<any>
-			try {
-				provider = this.triggerRegistry.get(node.from)
-			} catch (err) {
-				continue
-			}
-			provider.publish(
-				{
-					xpertId: xpert.id,
-					config: node.config
-				},
-				(payload) => {
-					// Handle the payload if needed
-					console.log(`Trigger '${node.from}' executed with payload:`, payload)
-					this.addTriggerJob(xpert.id, null, payload.state, {
-						trigger: node,
-						isDraft: false,
-						from: 'job'
-					}).catch((err) => {
-						this.#logger.error(`Add trigger job error: ${getErrorMessage(err)}`)
-					})
-				}
-			)
-		}
-	}
-
-	async addTriggerJob(
-		xpertId: string,
-		userId: string,
-		state: {
-			[STATE_VARIABLE_HUMAN]: Record<string, any>
-			[key: string]: any
-		},
-		params: {
-			trigger: IWFNTrigger
-			isDraft: boolean,
-			from: TChatFrom
-			executionId?: string
-		}
-	) {
-		await this.triggerQueue.add({
-			userId: userId,
-			xpertId,
-			isDraft: params.isDraft,
-			state,
-			from: params.from,
-			trigger: params.trigger,
-			executionId: params.executionId
-		})
 	}
 }

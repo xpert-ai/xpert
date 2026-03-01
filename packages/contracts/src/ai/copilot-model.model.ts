@@ -27,5 +27,9 @@ export type TCopilotModel = {
 }
 
 export type TCopilotModelOptions = {
+  /**
+   * Max input context size of selected model
+   */
+  context_size?: number
   [key: string]: any
 }

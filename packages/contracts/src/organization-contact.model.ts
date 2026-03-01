@@ -18,7 +18,7 @@ export interface IOrganizationContact extends IBaseEntityWithMembers {
 	imageUrl?: string;
 	inviteStatus?: string;
 	tags: ITag[];
-	contact: IContact;
+	// contact: IContact;
 	budget?: number;
 	budgetType?: OrganizationContactBudgetTypeEnum;
 }

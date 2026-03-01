@@ -19,10 +19,137 @@
   @if (configSchema(); as configSchema) {
     <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="configSchema" 
       [(ngModel)]="options"
+      [variables]="variables()"
       [context]="{
         draft: draft(),
         entity: entity(),
       }"
     />
+  }
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4 space-y-3">
+  <div class="font-bold mb-2">
+    {{ 'PAC.Common.Tools' | translate: {Default: 'Tools'} }}
+  </div>
+
+  @if (loadingTools()) {
+    <div class="text-sm text-text-tertiary">
+      {{ 'PAC.Common.Loading' | translate: {Default: 'Loading...'} }}
+    </div>
+  } @else if (toolError()) {
+    <div class="text-sm text-red-500">
+      {{ toolError() }}
+    </div>
+  } @else if (!middlewareTools().length) {
+    <div class="text-sm text-text-tertiary">
+      {{ 'PAC.Xpert.NoTools' | translate: {Default: 'No tools'} }}
+    </div>
+  } @else {
+    <div class="w-full flex flex-col gap-2">
+      @for (item of middlewareToolItems(); track item.name) {
+        <div class="w-full flex flex-col">
+          <div class="w-full flex justify-start items-center">
+            <button class="w-7 h-7 shrink-0 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
+              (click)="toggleExpand(item.name)"
+            >
+              <i class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
+                [ngClass]="{'rotate-90': !expandTools()[item.name]}"></i>
+            </button>
+
+            <span class="px-2 truncate" [title]="item.description || item.name">
+              {{ item.name }}
+            </span>
+            <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
+              {{ item.name }}
+            </div>
+          </div>
+
+          @if (expandTools()[item.name]) {
+            <div class="px-2 my-2 text-sm text-text-secondary line-clamp-3">{{ item.description || '-' }}</div>
+
+            <div class="w-full flex justify-end px-2 mb-4">
+              <label class="flex items-center gap-2 text-sm text-text-secondary">
+                <span>{{ 'PAC.Common.Enabled' | translate: {Default: 'Enabled'} }}</span>
+                <input
+                  type="checkbox"
+                  class="h-4 w-4"
+                  [ngModel]="isToolEnabled(item.name)"
+                  (ngModelChange)="setToolEnabled(item.name, $event)"
+                />
+              </label>
+            </div>
+
+            <div class="px-2 font-semibold">{{ 'PAC.Xpert.ToolDescription' | translate: {Default: 'Tool Description'} }}</div>
+            <div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0 font-mono">
+              <textarea class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none
+                placeholder:text-gray-400 caret-[#295EFF]" 
+                placeholder="{{'PAC.Xpert.AddDescription' | translate: {Default: 'Add description'} }}..."
+                [ngModel]="getToolDescription(item.name, item.description)"
+                (ngModelChange)="updateToolDescription(item.name, $event)"
+              ></textarea>
+            </div>
+
+            <div class="w-full flex justify-end px-2 mb-4">
+              <label class="flex items-center gap-2 text-sm text-text-secondary">
+                <span>{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</span>
+                <input
+                  type="checkbox"
+                  class="h-4 w-4"
+                  [ngModel]="getSensitive(item.name)"
+                  (ngModelChange)="updateSensitive(item.name, $event)"
+                />
+              </label>
+            </div>
+
+            <div class="w-full flex justify-end px-2 mb-4">
+              <label class="flex items-center gap-2 text-sm text-text-secondary">
+                <span>{{'PAC.Xpert.End' | translate: {Default: 'End'} }}</span>
+                <input
+                  type="checkbox"
+                  class="h-4 w-4"
+                  [ngModel]="isEnd(item.name)"
+                  (ngModelChange)="updateEnd(item.name, $event)"
+                />
+              </label>
+            </div>
+
+            <div class="w-full flex justify-end px-2 mb-4">
+              <label class="flex items-center gap-2 text-sm text-text-secondary">
+                <span>{{'PAC.Xpert.ToolMemory' | translate: {Default: 'Tool Memory'} }}</span>
+                <input
+                  type="checkbox"
+                  class="h-4 w-4"
+                  [ngModel]="!!toolMemory(item.name)"
+                  (ngModelChange)="toggleToolMemory(item.name, $event)"
+                />
+              </label>
+            </div>
+
+            @if (toolMemory(item.name)) {
+              <xpert-variables-assigner class="p-2"
+                [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
+                [tooltip]="'PAC.Xpert.WriteToolResultToMemoryTooltip' | translate: {Default: 'Write tool output to global memory of the digital expert'}"
+                type="tool"
+                [variables]="variables()"
+                [memories]="toolMemory(item.name)"
+                (memoriesChange)="updateToolMemory(item.name, $event)"
+              />
+            }
+
+            <xpert-tool-test
+              [tool]="item.xpertTool"
+              [variables]="variables()"
+              [parameters]="getToolParameters(item.name)"
+              [testToolRequest]="middlewareToolTester(item.name)"
+              class="w-full px-2 mt-4"
+              (saveParameters)="saveDefaultParameters(item.name, $event)"
+            />
+          }
+        </div>
+      }
+    </div>
   }
 </div>

@@ -1,5 +1,5 @@
 import * as lark from '@larksuiteoapi/node-sdk'
-import { IIntegration, TIntegrationLarkOptions } from '@metad/contracts'
+import { IIntegration } from '@metad/contracts'
 import { IntegrationService } from '@metad/server-core'
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
@@ -7,6 +7,8 @@ import { PassportStrategy } from '@nestjs/passport'
 import express from 'express'
 import { Strategy } from 'passport'
 import { LarkService } from '../lark.service'
+
+type TIntegrationLarkOptions = any
 
 @Injectable()
 export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') {

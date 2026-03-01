@@ -1,4 +1,3 @@
-import { TIntegrationLarkOptions } from '@metad/contracts'
 import { IntegrationService } from '@metad/server-core'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ChatLarkMessage } from '../../chat/message'
@@ -7,6 +6,7 @@ import { LarkService } from '../../lark.service'
 import { LarkChatAgentCommand } from '../chat-agent.command'
 import { LarkChatXpertCommand } from '../chat-xpert.command'
 import { LarkMessageCommand } from '../mesage.command'
+import { TIntegrationLarkOptions } from '../../types'
 
 @CommandHandler(LarkMessageCommand)
 export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {

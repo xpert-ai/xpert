@@ -205,7 +205,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 						},
 					],
 				}).catch((err) => {
-					console.error(err)
+					console.error(`[${xpert.title || xpert.name}]`, err)
 					subscriber.next({
 							data: {
 								type: ChatMessageTypeEnum.EVENT,

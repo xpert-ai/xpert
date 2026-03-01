@@ -1,5 +1,5 @@
 import i18next from 'i18next'
-import {t} from 'i18next'
+import { t } from 'i18next'
 import FsBackend from 'i18next-fs-backend'
 import middleware from 'i18next-http-middleware'
 import path from 'path'
@@ -16,7 +16,7 @@ export async function initI18next(baseDir: string) {
 			fallbackNS: 'common',
 			defaultNS: 'common',
 			preload: ['en', 'en-US', 'zh-Hans'],
-			ns: ['core', 'sql', 'xmla', 'common', 'server-ai', 'analytics'], // list your namespaces
+			ns: ['core', 'sql', 'xmla', 'common', 'server', 'server-ai', 'analytics'], // list your namespaces
 			backend: {
 				loadPath: path.resolve(baseDir, '{{ns}}/src/i18n/{{lng}}.json')
 			},
@@ -29,7 +29,7 @@ export async function initI18next(baseDir: string) {
 				escapeValue: false
 			}
 		})
-	
+
 	// Monkey patch i18next.t
 	const originalT = i18next.t.bind(i18next)
 	i18next.t = ((key: any, options?: any) => {
@@ -38,9 +38,9 @@ export async function initI18next(baseDir: string) {
 		// If there was already lng in the original call, keep it
 		const finalOptions = {
 			lng: lang,
-			...(options ?? {}),
-		};
+			...(options ?? {})
+		}
 
-		return originalT(key, finalOptions);
-	}) as any;
+		return originalT(key, finalOptions)
+	}) as any
 }

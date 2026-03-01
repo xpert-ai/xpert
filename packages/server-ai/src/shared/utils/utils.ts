@@ -86,7 +86,7 @@ export function sandboxVolumeUrl(volume: string, workspaceId?: string) {
  * @deprecated Unable to meet unified volume classification
  */
 export function sandboxVolume(projectId: string, userId: string) {
-	return projectId ? `/projects/${projectId}` : `/users/${userId}`
+	return projectId ? `/project/${projectId}` : `/user/${userId}`
 }
 export function getWorkspace(projectId: string, conversationId: string) {
     return projectId ? '' : conversationId

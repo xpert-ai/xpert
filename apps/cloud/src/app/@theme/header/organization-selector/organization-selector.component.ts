@@ -56,7 +56,7 @@ export class OrganizationSelectorComponent implements OnInit {
           this.userOrganizationService.getAll(
             [
               'organization',
-              'organization.contact',
+              // 'organization.contact',
               'organization.featureOrganizations',
               'organization.featureOrganizations.feature'
             ],
@@ -106,6 +106,7 @@ export class OrganizationSelectorComponent implements OnInit {
         })
       )
   )
+
   readonly organizations = computed(() => {
     if (this.search()) {
       return this.#organizations()?.filter((org) => org.name.toLowerCase().includes(this.search().toLowerCase()))

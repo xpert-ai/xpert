@@ -1,0 +1,40 @@
+{
+  "name": "@xpert-ai/plugin-integration-lark",
+  "version": "0.0.1",
+  "xpert": {
+    "plugin": {
+      "level": "organization"
+    }
+  },
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "private": true,
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@xpert-plugins-starter/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src/i18n",
+    "!**/*.tsbuildinfo"
+  ],
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.x",
+    "axios": "^1.6.8"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=10",
+    "@nestjs/core": ">=10",
+    "@nestjs/cqrs": ">=10",
+    "@xpert-ai/plugin-sdk": "*",
+    "@metad/contracts": "*",
+    "@metad/ocap-core": "*",
+    "zod": ">=3.22.4"
+  }
+}

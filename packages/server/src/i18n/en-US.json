@@ -1,0 +1,9 @@
+{
+	"Error": {
+		"PluginPackageNameRequired": "Plugin package name is required",
+		"PluginSystemLevelInstallForbidden": "Plugin {{name}} is system-level and cannot be installed from this API",
+		"PluginInstallFailed": "Failed to install plugin {{pluginName}}: {{errorMessage}}",
+		"PluginNamesRequired": "Plugin names are required",
+		"PluginSystemUninstallForbidden": "Plugin {{name}} is a system plugin and cannot be uninstalled"
+	}
+}

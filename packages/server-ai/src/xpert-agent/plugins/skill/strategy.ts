@@ -6,6 +6,7 @@ import {
 	IWorkflowNode,
 	IXpertAgentExecution,
 	TAgentRunnableConfigurable,
+	TWorkflowNodeMeta,
 	TXpertGraph,
 	TXpertParameter,
 	TXpertTeamNode,
@@ -23,7 +24,7 @@ const OutputChannelName = 'output'
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.SKILL)
 export class WorkflowSkillNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta = {
+	readonly meta: TWorkflowNodeMeta = {
 		name: WorkflowNodeTypeEnum.SKILL,
 		label: {
 			en_US: 'Agent Skills',

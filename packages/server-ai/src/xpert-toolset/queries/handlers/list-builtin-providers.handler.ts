@@ -63,7 +63,7 @@ export class ListBuiltinToolProvidersHandler implements IQueryHandler<ListBuilti
 					name: provider.meta.name,
 					label: provider.meta.label,
 					description: provider.meta.description,
-					icon: provider.meta.icon.svg,
+					icon: provider.meta.icon?.value,
 				}
 			})
 		})

@@ -1,8 +1,8 @@
 import { ConfigService } from '@metad/server-config'
+import { IconDefinition } from '@metad/contracts'
 import { HttpException, HttpStatus, Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { RequestContext } from '@metad/server-core'
-import { AgentMiddlewareRegistry, ToolsetRegistry } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRegistry, RequestContext, ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync } from 'fs'
 import * as mime from 'mime-types'
 import * as path from 'path'
@@ -11,6 +11,8 @@ import { getBuiltinToolsetBaseUrl } from '../../provider/builtin'
 import { TToolsetProviderSchema } from '../../types'
 import { ToolProviderIconQuery } from '../get-provider-icon.query'
 import { ListBuiltinToolProvidersQuery } from '../list-builtin-providers.query'
+
+type ProviderIcon = IconDefinition | null | undefined
 
 @QueryHandler(ToolProviderIconQuery)
 export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQuery> {
@@ -36,53 +38,14 @@ export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQu
 
 		// Step 1: Try to get from plugin registry (npm installed plugins)
 		try {
-			let pluginProvider: any = null
-			
-			// If resolvedOrganizationId is undefined, try to find in all organizations
-			// This is because the icon endpoint is @Public(), which may not have authentication context,
-			// causing organizationId to be undefined
-			if (!resolvedOrganizationId) {
-				try {
-					const allStrategies = (this.toolsetRegistry as any).strategies
-					if (allStrategies) {
-						const orgKeys = Array.from(allStrategies.keys())
-						// Iterate through all organizations to find the plugin
-						for (const orgKey of orgKeys) {
-							const orgKeyStr = String(orgKey)
-							const orgStrategies = allStrategies.get(orgKey)
-							if (orgStrategies) {
-								const providerNames = Array.from(orgStrategies.keys())
-								if (providerNames.includes(provider)) {
-									try {
-										pluginProvider = this.toolsetRegistry.get(provider, orgKeyStr)
-										break
-									} catch (getErr) {
-										// Continue to try next organization
-									}
-								}
-							}
-						}
-					}
-				} catch (listErr) {
-					// If unable to access strategies, ignore error and continue to next step
-				}
-			} else {
-				// If organizationId is specified, lookup normally
-				pluginProvider = this.toolsetRegistry.get(provider, resolvedOrganizationId)
-			}
-			
+			const pluginProvider = this.toolsetRegistry.get(provider, resolvedOrganizationId)
 			if (pluginProvider) {
-				const icon = pluginProvider.meta.icon
-				if (icon.svg) {
-					return [Buffer.from(icon.svg), 'image/svg+xml']
-				} else if (icon.png) {
-					// Remove prefix (data:image/png;base64, image/png;base64,)
-					const base64Data = icon.png.replace(/^data:image\/[a-z]+;base64,|^image\/[a-z]+;base64,/, '')
-					const byteData = Buffer.from(base64Data, 'base64')
-					return [byteData, 'image/png']
+				const resolved = this.resolveIcon(pluginProvider.meta.icon)
+				if (resolved) {
+					return resolved
 				}
 
-				return [null, 'image/svg+xml']
+				return [null, null]
 			}
 		} catch (err) {
 			// If not found in plugin registry, continue to try builtin providers
@@ -107,23 +70,12 @@ export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQu
 
 		// Step 3: Try to get from middleware
 		try {
-			const middleware = this.agentMiddlewareRegistry.get(provider)
+			const middleware = this.agentMiddlewareRegistry.get(provider, resolvedOrganizationId)
 			if (middleware?.meta?.icon) {
-				const icon = middleware.meta.icon
-				let buffer: Buffer
-				let mimetype = 'image/svg+xml'
-				if (icon.type === 'svg') {
-					buffer = Buffer.from(icon.value, 'utf-8')
-				} else if (icon.type === 'image') {
-					buffer = Buffer.from(icon.value, 'base64')
-					mimetype = 'image/png'
-				} else {
-					throw new HttpException(
-						'Icon format not supported:' + icon.type,
-						HttpStatus.UNSUPPORTED_MEDIA_TYPE
-					)
+				const resolved = this.resolveIcon(middleware.meta.icon)
+				if (resolved) {
+					return resolved
 				}
-				return [buffer, mimetype]
 			}
 		} catch (err) {
 			//
@@ -135,5 +87,32 @@ export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQu
 
 	getProviderServerPath(name: string) {
 		return path.join(this.configService.assetOptions.serverRoot, getBuiltinToolsetBaseUrl(name), name)
+	}
+
+	private resolveIcon(icon: ProviderIcon): [Buffer, string] | null {
+		if (!icon) {
+			return null
+		}
+
+		// IconDefinition shape.
+		if (icon.type === 'svg' && icon.value) {
+			return [Buffer.from(icon.value, 'utf-8'), 'image/svg+xml']
+		}
+		if (icon.type === 'image' && icon.value) {
+			return this.decodeBase64Image(icon.value)
+		}
+
+		throw new HttpException('Icon format not supported:' + icon.type, HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+	}
+
+	private decodeBase64Image(value: string): [Buffer, string] {
+		const normalizedValue = value.trim()
+		const dataUrlMatch = normalizedValue.match(/^(?:data:)?(image\/[a-z0-9.+-]+);base64,([\s\S]+)$/i)
+
+		const mimeType = dataUrlMatch?.[1] ?? 'image/png'
+		const base64 = (dataUrlMatch?.[2] ?? normalizedValue).replace(/\s/g, '')
+		const byteData = Buffer.from(base64, 'base64')
+
+		return [byteData, mimeType]
 	}
 }

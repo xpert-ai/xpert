@@ -1,8 +1,6 @@
 import { BUILTIN_TOOLSET_REPOSITORY } from '@metad/server-ai'
 import {
-	ChatBILarkToolset,
 	ChatBIToolset,
-	ChatBIWeComToolset,
 	ChatDBToolset,
 	IndicatorsToolset,
 	SemanticModelToolset
@@ -13,11 +11,9 @@ BUILTIN_TOOLSET_REPOSITORY.splice(0, 0, {
 	providers: [
 		ChatBIToolset,
 		ChatDBToolset,
-		ChatBILarkToolset,
 		IndicatorsToolset,
-		ChatBIWeComToolset,
 		SemanticModelToolset
 	]
 })
 
-export { ChatBILarkToolset, ChatBIToolset, ChatBIWeComToolset, ChatDBToolset, IndicatorsToolset, SemanticModelToolset }
+export { ChatBIToolset, ChatDBToolset, IndicatorsToolset, SemanticModelToolset }

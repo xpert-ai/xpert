@@ -23,7 +23,7 @@ export class CompileGraphCommand extends Command<{graph: CompiledStateGraph<any,
 			rootExecutionId?: string
 			// Langgraph thread id
 			thread_id?: string
-			execution?: IXpertAgentExecution
+			execution: IXpertAgentExecution
 			/**
 			 * Control the entire graph
 			 */

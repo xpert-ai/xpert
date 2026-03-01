@@ -105,6 +105,10 @@ type JsonSchema7Meta = {
        * Additional inputs for the Custom UI component
        */
       inputs?: Record<string, unknown>
+      /**
+       * Whether this component supports selecting LangGraph state variables
+       */
+      variable?: boolean
 
       enumLabels?: Record<string, I18nObject | string>;
 

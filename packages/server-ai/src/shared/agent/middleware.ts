@@ -1,5 +1,6 @@
 import {
 	getAgentMiddlewareNodes,
+	isMiddlewareToolEnabled,
 	IWFNMiddleware,
 	IXpertAgent,
 	TXpertGraph,
@@ -58,6 +59,9 @@ export async function getAgentMiddlewares(
 		}
 
 		const middleware = await strategy.createMiddleware(entity.options, {...context, node: middlewareNode.entity as IWFNMiddleware })
+		if (middleware?.tools?.length) {
+			middleware.tools = middleware.tools.filter((tool) => isMiddlewareToolEnabled(entity?.tools?.[tool.name]))
+		}
 		if (middleware) result.push(middleware)
 	}
 

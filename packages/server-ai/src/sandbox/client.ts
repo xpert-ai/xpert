@@ -15,7 +15,7 @@ import { EventSource } from 'eventsource'
 import { ServerResponse } from 'http'
 import { t } from 'i18next'
 import { Observable } from 'rxjs'
-import { sandboxVolumeUrl } from '../shared'
+import { sandboxVolume, sandboxVolumeUrl } from '../shared'
 import { FilesSystem, TCreateFileReq, TCreateFileResp, TFileBaseReq, TListFilesReq, TListFilesResponse, TReadFileReq, TSandboxParams } from './types'
 
 /**
@@ -471,7 +471,7 @@ export class Sandbox {
 	git  = new GitClient(this.params)
 
 	static sandboxVolume(projectId: string, userId: string) {
-		return projectId ? `/projects/${projectId}` : `/users/${userId}`
+		return sandboxVolume(projectId, userId)
 	}
 
 	static sandboxFileUrl(volume: string, workspaceId: string, file: string) {

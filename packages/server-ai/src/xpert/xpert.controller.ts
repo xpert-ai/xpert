@@ -70,6 +70,9 @@ import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { EnvironmentService } from '../environment'
 import { XpertDeleteCommand } from './commands/delete.command'
+import { EnqueueAgentChatMessageCommand } from '../handoff/commands'
+import { XPERT_HANDOFF_QUEUE } from '../handoff/constants'
+import { AGENT_CHAT_MESSAGE_TYPE } from '../handoff/local-sync-task.service'
 
 
 @ApiTags('Xpert')
@@ -230,12 +233,18 @@ export class XpertController extends CrudController<Xpert> {
 		return this.service.publish(id, newVersion === 'true', body.environmentId, body.releaseNotes)
 	}
 
+	/**
+	 * @deprecated use workflow trigger instead
+	 */
 	@UseGuards(XpertGuard)
 	@Post(':id/publish/integration')
 	async publishIntegration(@Param('id') id: string, @Body() integration: Partial<IIntegration>) {
 		return this.commandBus.execute(new XpertPublishIntegrationCommand(id, integration))
 	}
 
+	/**
+	 * @deprecated use workflow trigger instead
+	 */
 	@UseGuards(XpertGuard)
 	@Delete(':id/publish/integration/:integration')
 	async deleteIntegration(@Param('id') id: string, @Param('integration') integration: string,) {
@@ -278,24 +287,24 @@ export class XpertController extends CrudController<Xpert> {
 		@Body()
 		body: {
 			request: TChatRequest
-			options: {
-				isDraft: boolean;
-				messageId: string;
-			}
+			options: TChatOptions
 		}
 	) {
 		let environment = null
 		if (body.request.environmentId) {
 			environment = await this.environmentService.findOne(body.request.environmentId)
 		}
-		const observable = await this.commandBus.execute(new XpertChatCommand(body.request, {
-			...body.options,
-			xpertId: id,
-			environment,
-			language,
-			timeZone,
-			from: 'debugger'
-		}))
+		const observable = await this.enqueueXpertChatTask(
+			body.request,
+			{
+				...body.options,
+				xpertId: id,
+				environment,
+				language,
+				timeZone,
+				from: 'debugger'
+			}
+		)
 		return observable.pipe(
 			// Add an operator to send a comment event periodically (30s) to keep the connection alive
 			keepAlive(30000),
@@ -750,16 +759,47 @@ export class XpertController extends CrudController<Xpert> {
 	async chatApp(@Res() res: Response, @Param('name') name: string, @I18nLang() language: LanguagesEnum,
 		@Body() body: { request: TChatRequest; options: TChatOptions }) {
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		const observable = await this.commandBus.execute(new XpertChatCommand(body.request, {
-			...body.options,
-			language,
-			from: 'webapp',
-			fromEndUserId
-		}))
+		const observable = await this.enqueueXpertChatTask(
+			body.request,
+			{
+				...body.options,
+				language,
+				from: 'webapp',
+				fromEndUserId
+			}
+		)
 		return observable.pipe(
 			// Add an operator to send a comment event periodically (30s) to keep the connection alive
 			keepAlive(30000),
 			takeUntilClose(res)
+		)
+	}
+
+	private async enqueueXpertChatTask(
+		request: TChatRequest,
+		options: NonNullable<ConstructorParameters<typeof XpertChatCommand>[1]>
+	) {
+		const queueTaskId = `xpert-chat-${uuidv4()}`
+		const sessionKey = request.conversationId ?? options.messageId ?? queueTaskId
+
+		return this.commandBus.execute(
+			new EnqueueAgentChatMessageCommand(
+				{
+					id: queueTaskId,
+					messageType: AGENT_CHAT_MESSAGE_TYPE,
+					tenantId: RequestContext.currentTenantId(),
+					organizationId: RequestContext.getOrganizationId(),
+					userId: RequestContext.currentUserId(),
+					sessionKey,
+					conversationId: request.conversationId,
+					executionId: options.execution?.id,
+					source: 'chat',
+					queueName: XPERT_HANDOFF_QUEUE,
+					businessKey: sessionKey,
+					traceId: options.messageId ?? queueTaskId
+				},
+				async () => this.commandBus.execute(new XpertChatCommand(request, options))
+			)
 		)
 	}
 

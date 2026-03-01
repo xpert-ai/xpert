@@ -47,6 +47,13 @@
     },
     "nx-release-publish": {
       "executor": "@nx/js:release-publish",
+      "dependsOn": [
+        {
+          "target": "nx-release-publish",
+          "dependencies": true,
+          "params": "forward"
+        }
+      ],
       "options": {
         "packageRoot": "packages/contracts/dist",
         "access": "public"

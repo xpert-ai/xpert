@@ -104,12 +104,12 @@ export class Contact extends TenantOrganizationBaseEntity implements IContact {
     |--------------------------------------------------------------------------
     */
 
-	/**
-	 * OrganizationContact
-	 */
-	@ApiProperty({ type: () => OrganizationContact, isArray: true })
-	@OneToMany(() => OrganizationContact, (organizationContact) => organizationContact.contact)
-	public organization_contacts?: IOrganizationContact[];
+	// /**
+	//  * OrganizationContact
+	//  */
+	// @ApiProperty({ type: () => OrganizationContact, isArray: true })
+	// @OneToMany(() => OrganizationContact, (organizationContact) => organizationContact.contact)
+	// public organization_contacts?: IOrganizationContact[];
 
 	// /**
 	//  * Employee

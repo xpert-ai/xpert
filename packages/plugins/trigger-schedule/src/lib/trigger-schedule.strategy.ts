@@ -1,5 +1,5 @@
 import { ChecklistItem, STATE_VARIABLE_HUMAN, TWorkflowTriggerMeta } from '@metad/contracts'
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { IWorkflowTriggerStrategy, TWorkflowTriggerParams, WorkflowTriggerStrategy } from '@xpert-ai/plugin-sdk'
 import { CronJob } from 'cron'
@@ -8,7 +8,11 @@ import { icon, ScheduleTrigger, TScheduleTriggerConfig } from './types'
 @Injectable()
 @WorkflowTriggerStrategy(ScheduleTrigger)
 export class ScheduleTriggerStrategy implements IWorkflowTriggerStrategy<TScheduleTriggerConfig> {
-  meta: TWorkflowTriggerMeta = {
+
+  @Inject(SchedulerRegistry)
+  private readonly schedulerRegistry: SchedulerRegistry
+
+  readonly meta: TWorkflowTriggerMeta = {
     name: ScheduleTrigger,
     label: {
       en_US: 'Schedule Trigger',
@@ -50,7 +54,10 @@ export class ScheduleTriggerStrategy implements IWorkflowTriggerStrategy<TSchedu
     }
   }
 
-  constructor(private schedulerRegistry: SchedulerRegistry) {}
+  readonly bootstrap = {
+    mode: 'replay_publish' as const,
+    critical: false
+  }
 
   async validate(payload: TWorkflowTriggerParams<TScheduleTriggerConfig>) {
     const { xpertId, node, config } = payload

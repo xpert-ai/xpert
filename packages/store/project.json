@@ -27,6 +27,17 @@
       "command": "node tools/scripts/publish.mjs store {args.ver} {args.tag}",
       "dependsOn": ["build"]
     },
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "dependsOn": [
+        {
+          "target": "nx-release-publish",
+          "dependencies": true,
+          "params": "forward"
+        }
+      ],
+      "options": {}
+    },
     "lint": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],

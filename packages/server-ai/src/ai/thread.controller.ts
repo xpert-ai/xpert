@@ -29,7 +29,7 @@ import { filter, lastValueFrom, map, Observable, reduce } from 'rxjs'
 import { IsNull } from 'typeorm'
 import { CopilotCheckpointGetTupleQuery } from '../copilot-checkpoint'
 import { UnimplementedException } from '../core'
-import { FindAgentExecutionsQuery, XpertAgentExecutionOneQuery } from '../xpert-agent-execution'
+import { FindAgentExecutionsQuery, GetThreadContextUsageQuery, XpertAgentExecutionOneQuery } from '../xpert-agent-execution'
 import { AiService } from './ai.service'
 import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from './commands'
 import { FindThreadQuery, SearchThreadsQuery } from './queries'
@@ -289,6 +289,11 @@ export class ThreadsController {
 	}
 
 	// Others
+	@Get(':thread_id/context-usage')
+	async getThreadContextUsage(@Param('thread_id') threadId: string, @Query('agentKey') agentKey?: string) {
+		return await this.queryBus.execute(new GetThreadContextUsageQuery(threadId, agentKey))
+	}
+
 	@Get(':thread_id/usage')
 	async getThreadUsage(@Param('thread_id') threadId: string, @Query('start') start: string,
 			@Query('end') end?: string) {

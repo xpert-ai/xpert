@@ -1,15 +1,8 @@
-import { IIntegration, IntegrationEnum, TIntegrationProvider } from '../integration.model'
+import { IntegrationEnum, TIntegrationProvider } from '../integration.model'
 
-export type TIntegrationLarkOptions = {
-  isLark?: boolean
-  appId: string
-  appSecret: string
-  verificationToken: string
-  encryptKey: string
-  xpertId: string
-  preferLanguage: string
-}
-
+/**
+ * @deprecated use plugin
+ */
 export const IntegrationLarkProvider: TIntegrationProvider = {
   name: IntegrationEnum.LARK,
   label: {

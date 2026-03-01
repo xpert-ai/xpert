@@ -63,9 +63,7 @@ export class VolumeClient {
 		this.projectId = params.projectId
 		
 		const subpath = params.catalog === 'knowledges' ? `/${params.catalog}/${params.knowledgeId}` :
-			  params.projectId ? `/projects/${params.projectId}` :
-			    `/users/${params.userId}`
-		// this.volumePath = VolumeClient.getSandboxVolumePath(this.tenantId, this.userId, this.projectId)
+			sandboxVolume(params.projectId, params.userId)
 		this.baseUrl = sandboxVolumeUrl(subpath)
 
 		const root = VolumeClient.getSandboxVolumeRoot(params.tenantId)

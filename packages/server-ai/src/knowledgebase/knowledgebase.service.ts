@@ -72,6 +72,7 @@ import { VolumeClient } from '../shared'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { PluginPermissionsCommand } from './commands'
+import { XpertEnqueueTriggerDispatchCommand } from '../xpert/commands'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -671,10 +672,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				)
 		await this.taskService.update(taskId, { status: 'running', executionId: execution.id })
 		const sources = inputs.sources ? Object.keys(inputs.sources) : null
-		await this.xpertService.addTriggerJob(
-			kb.pipelineId,
-			RequestContext.currentUserId(),
-			{
+
+		await this.commandBus.execute(
+			new XpertEnqueueTriggerDispatchCommand(kb.pipelineId, RequestContext.currentUserId(), {
 				[STATE_VARIABLE_HUMAN]: {
 					input: 'Process knowledges pipeline',
 				},
@@ -685,13 +685,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 					stage: inputs.stage
 				},
 				...(sources ?? []).reduce((obj, key) => ({ ...obj, [channelName(key)]: { documents: inputs.sources[key].documents } }), {})
-			},
-			{
-				trigger: null,
+			}, {
 				isDraft: inputs.isDraft,
 				from: 'knowledge',
 				executionId: execution.id
-			}
+			})
 		)
 	}
 
