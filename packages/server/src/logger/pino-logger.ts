@@ -9,7 +9,7 @@ const SERVICE_NAME = 'xpert-server';
 const resolveEnv = (): string => process.env.NODE_ENV || 'development';
 
 const resolveLogLevel = (): string => {
-  const level = process.env.LOG_LEVEL || 'warn';
+  const level = process.env.LOG_LEVEL || 'log';
   // Map NestJS log levels to pino levels
   const levelMap: Record<string, string> = {
     verbose: 'trace',
@@ -38,9 +38,15 @@ const normalizeHeaderValue = (
   return value;
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const isValidRequestId = (value: string | undefined): value is string => {
+  return !!value && UUID_PATTERN.test(value);
+};
+
 const resolvePathname = (url?: string): string => {
   if (!url) {
-    return '';
+    return '/';
   }
   const [pathname] = url.split('?');
   const normalized = pathname?.replace(/\/+$/, '');
@@ -96,8 +102,8 @@ export function buildPinoLoggerParams(): Params {
         targets: [buildConsoleTarget(logLevel, env), buildFileTarget(logLevel)],
       },
       genReqId: (req: IncomingMessage, res: ServerResponse) => {
-        const requestId =
-          normalizeHeaderValue(req.headers['x-request-id']) ?? randomUUID();
+        const headerValue = normalizeHeaderValue(req.headers['x-request-id']);
+        const requestId = isValidRequestId(headerValue) ? headerValue : randomUUID();
         res.setHeader('x-request-id', requestId);
         return requestId;
       },
