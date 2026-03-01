@@ -14,7 +14,7 @@ import {
 	SharedModule
 } from '@metad/server-core'
 import { IPluginConfig } from '@metad/server-common'
-import { ConflictException, DynamicModule, Logger, LogLevel, Module, Type } from '@nestjs/common'
+import { ConflictException, DynamicModule, Logger as NestLogger, Module, Type } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
@@ -26,14 +26,13 @@ import { json, text, urlencoded } from 'express'
 import expressSession from 'express-session'
 import i18next from 'i18next'
 import * as middleware from 'i18next-http-middleware'
+import { Logger } from 'nestjs-pino'
 import path from 'path'
 import { EntitySubscriberInterface } from 'typeorm'
 import { AnalyticsModule } from '../app.module'
 import { AnalyticsService } from '../app.service'
 import { BootstrapModule } from './bootstrap.module'
 
-const LOGGER_LEVELS = ['error', 'warn', 'log', 'debug', 'verbose'] as LogLevel[]
-const LoggerIndex = LOGGER_LEVELS.findIndex((value) => value === (process.env.LOG_LEVEL || 'warn'))
 
 export async function bootstrap(options: { title: string; version: string }) {
 	// Pre-bootstrap the application configuration
@@ -46,8 +45,10 @@ export async function bootstrap(options: { title: string; version: string }) {
 	class RootModule {}
 
 	const app = await NestFactory.create<NestExpressApplication>(RootModule, {
-		logger: LOGGER_LEVELS.slice(0, LoggerIndex + 1)
+		bufferLogs: true
 	})
+
+	app.useLogger(app.get(Logger))
 
 	// Set query parser to extended (In Express v5, query parameters are no longer parsed using the qs library by default.)
 	app.set('query parser', 'extended')
@@ -122,7 +123,7 @@ export async function bootstrap(options: { title: string; version: string }) {
 	// Listen App
 	const port = process.env.PORT || 3000
 	await app.listen(port, '0.0.0.0', () => {
-		Logger.log('Listening at http://localhost:' + port + '/' + globalPrefix)
+		NestLogger.log('Listening at http://localhost:' + port + '/' + globalPrefix)
 	})
 }
 
@@ -201,7 +202,7 @@ export async function preBootstrapPlugins() {
 			})
 			modules.push(...orgModules)
 		} catch (error) {
-			Logger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`)
+			NestLogger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`)
 		}
 	}
 
