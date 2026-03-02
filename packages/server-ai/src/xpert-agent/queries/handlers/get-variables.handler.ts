@@ -5,6 +5,7 @@ import {
 	getWorkflowTriggers,
 	IWFNKnowledgeRetrieval,
 	IWFNSubflow,
+	IWFNTrigger,
 	IWorkflowNode,
 	IXpert,
 	STATE_VARIABLE_FILES,
@@ -224,9 +225,6 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		if (stateVariables) {
 			variables.push(...stateVariables)
 		}
-		if (agentConfig?.parameters?.length) {
-			variables.push(...agentConfig.parameters)
-		}
 
 		// All agents output
 		const _graph = isDraft ? ({ ...(xpert.graph ?? {}), ...(xpert.draft ?? {}) } as TXpertGraph) : xpert.graph
@@ -236,6 +234,16 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			nodeKey = chatStarters.length ? chatStarters[0].key : nodeKey
 		}
 		const node = _graph.nodes?.find((_) => _.key === nodeKey)
+		// Chat trigger parameters are mirrored to agentConfig.parameters for runtime input schema.
+		// In workflow node variable selectors, they should only appear under the trigger output group.
+		const hideChatTriggerParametersInGlobal = node?.type === 'workflow'
+		const chatTriggerParameterNames = hideChatTriggerParametersInGlobal ? collectChatTriggerParameterNames(_graph) : new Set<string>()
+		if (agentConfig?.parameters?.length) {
+			const globalParameters = hideChatTriggerParametersInGlobal
+				? agentConfig.parameters.filter((parameter) => parameter?.name && !chatTriggerParameterNames.has(parameter.name))
+				: agentConfig.parameters
+			variables.push(...globalParameters)
+		}
 		const graphKeys = _graph.nodes && nodeKey ? collectGraphKeys(_graph, nodeKey) : [nodeKey]
 		const graphs = _graph.nodes
 			? graphKeys.length
@@ -449,4 +457,27 @@ function collectGraphKeys(graph: TXpertGraph, key: string, visited = new Set<str
 		return [key, ...collectGraphKeys(graph, node.parentId, visited)]
 	}
 	return [key]
+}
+
+function collectChatTriggerParameterNames(graph?: TXpertGraph) {
+	const parameterNames = new Set<string>()
+
+	graph?.nodes?.forEach((node) => {
+		if (node.type !== 'workflow' || node.entity?.type !== WorkflowNodeTypeEnum.TRIGGER) {
+			return
+		}
+
+		const trigger = node.entity as IWFNTrigger
+		if (trigger.from !== 'chat') {
+			return
+		}
+
+		trigger.parameters?.forEach((parameter) => {
+			if (parameter?.name) {
+				parameterNames.add(parameter.name)
+			}
+		})
+	})
+
+	return parameterNames
 }
