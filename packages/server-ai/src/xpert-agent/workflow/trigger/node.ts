@@ -1,15 +1,7 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import {
-	channelName,
-	IEnvironment,
-	IWFNTrigger,
-	IWorkflowNode,
-	TXpertGraph,
-	TXpertTeamNode
-} from '@metad/contracts'
+import { channelName, IEnvironment, IWFNTrigger, IWorkflowNode, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { Annotation } from '@langchain/langgraph'
-import { AgentStateAnnotation, nextWorkflowNodes } from '../../../shared'
+import { AgentStateAnnotation } from '../../../shared'
 
 export function createTriggerNode(
 	graph: TXpertGraph,
@@ -22,21 +14,16 @@ export function createTriggerNode(
 		conversationId: string
 	}
 ) {
-	// const { commandBus, queryBus, xpertId, environment, conversationId } = params
 	const entity = node.entity as IWFNTrigger
 
 	return {
 		workflowNode: {
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
-				// const configurable: TAgentRunnableConfigurable = config.configurable
-				//const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, projectId, agentKey } =
-				//	configurable
-				// const stateEnv = stateToParameters(state, environment)
-
+				const triggerValues = state[channelName(node.key)] as Record<string, any>
 				const values =
 					entity.parameters?.reduce((acc, param) => {
 						if (param.name) {
-							acc[param.name] = state[param.name] ?? null
+							acc[param.name] = triggerValues?.[param.name] ?? null
 						}
 						return acc
 					}, {}) ?? {}
@@ -46,10 +33,7 @@ export function createTriggerNode(
 				}
 			}),
 			ends: []
-		},
-		// navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-		// 	return nextWorkflowNodes(graph, node.key, state)
-		// },
+		}
 	}
 }
 
