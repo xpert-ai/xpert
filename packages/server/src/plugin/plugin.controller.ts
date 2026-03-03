@@ -1,9 +1,15 @@
 import { BadRequestException, Body, Controller, Delete, Get, Inject, Logger, Post, UseGuards } from '@nestjs/common'
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApiTags } from '@nestjs/swagger'
-import { getErrorMessage, GLOBAL_ORGANIZATION_SCOPE, RequestContext, STRATEGY_META_KEY, StrategyBus } from '@xpert-ai/plugin-sdk'
+import {
+	getErrorMessage,
+	GLOBAL_ORGANIZATION_SCOPE,
+	RequestContext,
+	STRATEGY_META_KEY,
+	StrategyBus
+} from '@xpert-ai/plugin-sdk'
 import { buildConfig } from './config'
-import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
+import { getOrganizationPluginPath, getOrganizationPluginRoot, stageWorkspacePlugin } from './organization-plugin.store'
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
 import { collectProvidersWithMetadata, hasLifecycleMethod, registerPluginsAsync } from './plugin.helper'
@@ -21,14 +27,17 @@ export class PluginController {
 		private readonly pluginInstanceService: PluginInstanceService,
 		private readonly strategyBus: StrategyBus,
 		private readonly lazyLoader: LazyModuleLoader,
-		private readonly moduleRef: ModuleRef,
+		private readonly moduleRef: ModuleRef
 	) {}
 
 	@Get()
 	getPlugins() {
 		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
 		return this.loadedPlugins
-			.filter((plugin) => plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE)
+			.filter(
+				(plugin) =>
+					plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
+			)
 			.map((plugin) => ({
 				organizationId: plugin.organizationId,
 				name: plugin.name,
@@ -44,37 +53,68 @@ export class PluginController {
 	 * @returns
 	 */
 	@Post()
-	async installPlugin(@Body() body: { pluginName: string; version?: string; source?: "marketplace" | "local" | "git" | "url"; config?: Record<string, any> }) {
+	async installPlugin(
+		@Body()
+		body: {
+			pluginName: string
+			version?: string
+			source?: 'marketplace' | 'local' | 'git' | 'url' | 'npm' | 'code'
+			config?: Record<string, any>
+			workspacePath?: string
+		}
+	) {
 		if (!body?.pluginName) {
 			throw new BadRequestException('Plugin package name is required')
+		}
+
+		if (body.workspacePath && body.source !== 'code') {
+			throw new BadRequestException('workspacePath is only supported when source is "code"')
 		}
 
 		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
 		const tenantId = RequestContext.currentTenantId()
 		const packageName = body.pluginName
+		const source = body.source || 'marketplace'
 		try {
 			await this.pluginInstanceService.uninstallByPackageName(tenantId, organizationId, packageName)
 
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
+			if (source === 'code' && body.workspacePath) {
+				stageWorkspacePlugin({
+					organizationId,
+					pluginName: packageNameWithVersion,
+					expectedPackageName: packageName,
+					workspacePath: body.workspacePath
+				})
+			}
 			// 1) Install and register into current module context (mirrors registerPluginsAsync logic)
 			const { modules } = await registerPluginsAsync({
 				module: this.moduleRef,
 				organizationId,
-				plugins: [{name: packageNameWithVersion, source: body.source}],
+				plugins: [{ name: packageNameWithVersion, source }],
 				configs: { [packageName]: body.config },
 				baseDir: organizationBaseDir
 			})
 
 			// 2) Load the module, scan and initialize the strategy class.
 			for await (const dynamicModule of modules) {
-				this.logger.debug(`Loading plugin module for ${packageNameWithVersion} into organization ${organizationId}`)
+				this.logger.debug(
+					`Loading plugin module for ${packageNameWithVersion} into organization ${organizationId}`
+				)
 				const loadedModuleRef = await this.lazyLoader.load(() => dynamicModule)
-				const strategyProviders = collectProvidersWithMetadata(loadedModuleRef, organizationId, body.pluginName, this.logger)
+				const strategyProviders = collectProvidersWithMetadata(
+					loadedModuleRef,
+					organizationId,
+					body.pluginName,
+					this.logger
+				)
 				for await (const instance of strategyProviders) {
 					const target = instance.metatype ?? instance.constructor
 					const strategyMeta = Reflect.getMetadata(STRATEGY_META_KEY, target)
-					this.logger.debug(`Registering strategy ${strategyMeta} for plugin ${body.pluginName} in organization ${organizationId}`)
+					this.logger.debug(
+						`Registering strategy ${strategyMeta} for plugin ${body.pluginName} in organization ${organizationId}`
+					)
 					if (strategyMeta) {
 						this.strategyBus.upsert(strategyMeta, {
 							instance,
@@ -102,7 +142,7 @@ export class PluginController {
 				pluginName,
 				packageName,
 				version: body.version,
-				source: body.source || 'marketplace',
+				source,
 				config
 			})
 
@@ -115,7 +155,10 @@ export class PluginController {
 				await this.pluginInstanceService.removePlugins(organizationId, [packageName])
 			} catch (cleanupError) {
 				errorMessage += `;\n\nadditionally failed to clean up plugin after installation failure: ${getErrorMessage(cleanupError)}`
-				this.logger.error(`Failed to clean up plugin ${body.pluginName} after installation failure`, cleanupError)
+				this.logger.error(
+					`Failed to clean up plugin ${body.pluginName} after installation failure`,
+					cleanupError
+				)
 			}
 			throw new BadRequestException(`Failed to install plugin ${body.pluginName}: ${errorMessage}`)
 		}
@@ -142,7 +185,7 @@ export class PluginController {
 		const tenantId = RequestContext.currentTenantId()
 
 		await this.pluginInstanceService.uninstall(tenantId, organizationId, body.names)
-		
+
 		return { success: true }
 	}
 }
