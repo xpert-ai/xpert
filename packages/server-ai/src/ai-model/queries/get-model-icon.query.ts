@@ -7,5 +7,6 @@ export class AIModelGetIconQuery implements IQuery {
 		public readonly provider: string,
 		public readonly iconType: string,
 		public readonly lang: string,
+		public readonly organizationId?: string,
 	) {}
 }

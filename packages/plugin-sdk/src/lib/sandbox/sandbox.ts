@@ -719,6 +719,14 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    */
   abstract execute(command: string): MaybePromise<ExecuteResponse>;
 
+  async streamExecute(command: string, onLine: (line: string) => void): Promise<ExecuteResponse> {
+    const result = await this.execute(command);
+    if (result.output) {
+      onLine(result.output);
+    }
+    return result;
+  }
+
   /**
    * Upload multiple files to the sandbox.
    * Implementations must support partial success.
