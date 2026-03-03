@@ -34,7 +34,11 @@ export function createMapStreamEvents(
 	let prevEvent = ''
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
 	const processFun = ({ event, tags, data, ...rest }: any) => {
-		const langgraph_node = rest.metadata.langgraph_node
+		const metadata = rest?.metadata ?? {}
+			if (metadata.internal === true) {
+  				return null
+			}
+		const langgraph_node = metadata.langgraph_node
 		const agentKey = isAgentKey(langgraph_node) && langgraph_node !== agent?.key ? langgraph_node : null
 		const xpert = xperts?.find((_) => _.agent?.key === agentKey)
 
