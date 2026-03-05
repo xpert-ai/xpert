@@ -101,14 +101,45 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 		}
 		const subgraphNodeKeys = new Set(subgraphNodes.map((n) => n.key))
 		const subgraphConnections = graph.connections.filter((conn) => {
-			if (!(conn.type === 'edge' || conn.type === 'workflow')) {
-				return false
-			}
 			const fromKey = conn.from.split('/')[0]
-			return subgraphNodeKeys.has(fromKey) && subgraphNodeKeys.has(conn.to)
+			if (conn.type === 'edge' || conn.type === 'workflow') {
+				return subgraphNodeKeys.has(fromKey) && subgraphNodeKeys.has(conn.to)
+			}
+			// For agent/xpert connections (subflow → agent/xpert), only require the source is in the
+			// subgraph. The target agent/xpert node may live outside the iterator container.
+			if (conn.type === 'agent' || conn.type === 'xpert') {
+				return subgraphNodeKeys.has(fromKey)
+			}
+			return false
 		})
+
+		// Include agent/xpert nodes referenced by subflow nodes inside the iterator.
+		// They may not have parentId === iteratorKey but are required by CreateWNSubflowHandler
+		// to look up which agent/xpert to execute.
+		const referencedNodeKeys = new Set(
+			subgraphConnections
+				.filter((conn) => conn.type === 'agent' || conn.type === 'xpert')
+				.map((conn) => conn.to)
+		)
+		const referencedNodes = graph.nodes.filter(
+			(n) => referencedNodeKeys.has(n.key) && !subgraphNodeKeys.has(n.key)
+		)
+
+		// Compute start nodes from the ORIGINAL iterator nodes only (i.e. nodes whose keys are in
+		// subgraphNodeKeys), so that referenced external agent/xpert nodes added above are never
+		// mistakenly treated as entry points by XpertWorkflowSubgraphHandler.
+		const incomingKeys = new Set<string>()
+		subgraphConnections
+			.filter((conn) => conn.type === 'edge' || conn.type === 'workflow')
+			.forEach((conn) => {
+				if (subgraphNodeKeys.has(conn.to)) {
+					incomingKeys.add(conn.to)
+				}
+			})
+		const startNodes = Array.from(subgraphNodeKeys).filter((key) => !incomingKeys.has(key))
+
 		const subgraphGraph: TXpertGraph = {
-			nodes: subgraphNodes,
+			nodes: [...subgraphNodes, ...referencedNodes],
 			connections: subgraphConnections
 		}
 
@@ -135,6 +166,10 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 						environment,
 						execution,
 						subscriber,
+						// Explicitly pass the start nodes derived from original iterator-contained nodes only,
+						// so that any external agent/xpert nodes included for subflow lookup are never
+						// mistakenly treated as entry points by XpertWorkflowSubgraphHandler.
+						startNodes,
 						variables: [
 							{
 								name: iteratorChannel,

@@ -2,10 +2,10 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, HostListener, inject, signal, ViewContainerRef } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, HostListener, inject, signal, ViewChild, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { ActivatedRoute, Router, RouterModule, RouterOutlet } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { groupConversations } from '@cloud/app/xpert/types'
 import { IChatConversation, injectUserPreferences, IXpertProject, IXpertTask, PaginationParams, PersistState } from '@metad/cloud/state'
@@ -59,6 +59,9 @@ type TMenuOverlayType = 'history' | 'project' | 'task'
   ]
 })
 export class ChatHomeComponent {
+  @ViewChild('chatOutlet', { read: RouterOutlet })
+  private readonly chatOutlet?: RouterOutlet
+
   DisplayBehaviour = DisplayBehaviour
 
   readonly homeService = inject(ChatHomeService)
@@ -176,11 +179,19 @@ export class ChatHomeComponent {
     }, 200)
   }
 
-  // Start a new conversation (same behavior as chat header's new chat button)
+  // Start a new conversation from sidebar and clear active chat context.
   newConversation() {
     this.homeService.conversationId.set(null)
     this.homeService.conversation.set(null)
     this.currentPage.set({ type: 'conversation' })
+
+    const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
+    if (typeof activeComponent?.newConv === 'function') {
+      activeComponent.newConv()
+      return
+    }
+
+    this.#router.navigate(['/chat'])
   }
 
   newProject() {

@@ -48,8 +48,12 @@
         }
 
         @if (!isMobile()) {
-          <div class="pac-home-title w-36 h-12 inline-block -ml-2" routerLink="/home">
-          </div>
+          <button
+            type="button"
+            class="pac-home-title w-36 h-12 inline-block -ml-2 bg-transparent border-0 p-0 outline-none"
+            aria-label="Xpert AI"
+            (click)="onBrandClick()"
+          ></button>
 
           <button (click)="back()" type="button" class="p-1 w-8 h-8 flex justify-center items-center rounded-lg text-xl
              text-text-tertiary hover:text-text-secondary hover:bg-white hover:shadow-lg active:shadow-sm">
