@@ -69,6 +69,12 @@ export function createAnswerNode(
 				const aiMessage = await AIMessagePromptTemplate.fromTemplate(entity.promptTemplate ?? '', {
 					templateFormat: 'mustache'
 				}).format(stateToParameters(state, environment))
+				const answerStreamId = `${thread_id}:${node.key}:${executionId}:answer`
+				const answerContent = aiMessage.content
+				const answerMessage = new AIMessage({
+					id: answerStreamId,
+					content: answerContent
+				})
 
 				const execution: IXpertAgentExecution = {
 					category: 'workflow',
@@ -80,25 +86,22 @@ export function createAnswerNode(
 					agentKey: node.key,
 					title: entity.title
 				}
+
 				return await wrapAgentExecution(
 					async () => {
 						if (!entity.mute) {
-							await new FakeStreamingChatModel({ responses: [aiMessage] }).invoke([], config)
+							await new FakeStreamingChatModel({ responses: [answerMessage] }).invoke([], config)
 						}
 						return {
 							state: {
 								[channelName(node.key)]: {
-									[WORKFLOW_ANSWER_MESSAGES_CHANNEL]: [aiMessage],
-									[WORKFLOW_ANSWER_MESSAGE_CHANNEL]: aiMessage.content
+									[WORKFLOW_ANSWER_MESSAGES_CHANNEL]: [answerMessage],
+									[WORKFLOW_ANSWER_MESSAGE_CHANNEL]: answerMessage.content
 								},
 								// Append to main message channel
-								messages: [
-									new AIMessage({
-										content: aiMessage.content
-									})
-								]
+								messages: [answerMessage]
 							},
-							output: aiMessage.content as string
+							output: answerMessage.content as string
 						}
 					},
 					{
@@ -117,10 +120,10 @@ export function createAnswerNode(
 						reducer: (a, b) => {
 							return b
 								? {
-									...a,
-									...b
-									// messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
-								}
+										...a,
+										...b
+										// messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+									}
 								: a
 						},
 						default: () => ({
@@ -129,6 +132,6 @@ export function createAnswerNode(
 					}
 				)
 			}
-		},
+		}
 	}
 }

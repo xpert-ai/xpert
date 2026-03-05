@@ -1,16 +1,18 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { BaseStore } from '@langchain/langgraph'
 import {
+	appendMessageContent,
+	appendMessagePlainText,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	CopilotChatMessage,
+	createMessageAppendContextTracker,
 	figureOutXpert,
 	IChatConversation,
 	IChatMessage,
 	IStorageFile,
 	IXpert,
 	LongTermMemoryTypeEnum,
-	messageContentText,
 	shortTitle,
 	STATE_VARIABLE_HUMAN,
 	TChatConversationStatus,
@@ -18,7 +20,6 @@ import {
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
-import { appendMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -40,7 +41,6 @@ import { CreateMemoryStoreCommand } from '../../../shared'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution'
 import { CopilotCheckpointService } from '../../../copilot-checkpoint'
 
-
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 	readonly #logger = new Logger(XpertChatHandler.name)
@@ -49,7 +49,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		private readonly xpertService: XpertService,
 		private readonly checkpointService: CopilotCheckpointService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
+		private readonly queryBus: QueryBus
 	) {}
 
 	public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
@@ -86,7 +86,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				}
 			)
 		)
-		
+
 		let memories = null
 
 		let conversation: IChatConversation
@@ -109,12 +109,17 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		} else {
 			// New message in conversation
 			if (conversationId) {
-				conversation = await this.commandBus.execute(new ChatConversationUpsertCommand({
-					id: conversationId,
-					status: 'busy',
-					error: null
-				}, ['messages']))
-						
+				conversation = await this.commandBus.execute(
+					new ChatConversationUpsertCommand(
+						{
+							id: conversationId,
+							status: 'busy',
+							error: null
+						},
+						['messages']
+					)
+				)
+
 				// Cancel summary job
 				if (memory?.enabled && memory.profile?.enabled) {
 					await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
@@ -122,17 +127,20 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			} else {
 				// New conversation
 				conversation = await this.commandBus.execute(
-					new ChatConversationUpsertCommand({
-						status: 'busy',
-						projectId,
-						taskId,
-						xpert,
-						options: {
-							parameters: input,
+					new ChatConversationUpsertCommand(
+						{
+							status: 'busy',
+							projectId,
+							taskId,
+							xpert,
+							options: {
+								parameters: input
+							},
+							from,
+							fromEndUserId
 						},
-						from,
-						fromEndUserId
-					}, ['messages'])
+						['messages']
+					)
 				)
 
 				// Remember
@@ -175,15 +183,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					role: 'human',
 					content: input.input,
 					conversationId: conversation.id,
-					...(input.files ? {
-						attachments: input.files as IStorageFile[],
-					} : {})
+					...(input.files
+						? {
+								attachments: input.files as IStorageFile[]
+							}
+						: {})
 				}
-				userMessage = await this.commandBus.execute(
-					new ChatMessageUpsertCommand(_humanMessage)
-				)
+				userMessage = await this.commandBus.execute(new ChatMessageUpsertCommand(_humanMessage))
 			}
-			
+
 			aiMessage = await this.commandBus.execute(
 				new ChatMessageUpsertCommand({
 					parent: userMessage,
@@ -218,7 +226,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					event: ChatMessageEventTypeEnum.ON_MESSAGE_START,
 					data: { ...aiMessage, status: 'thinking' }
 				}
-			} as MessageEvent);
+			} as MessageEvent)
 
 			const logger = this.#logger
 			RunnableLambda.from(async (input: TChatRequestHuman) => {
@@ -248,7 +256,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 				if (!agentObservable) {
 					// No memory reply then create agents graph
-					agentObservable = await this.commandBus.execute<XpertAgentChatCommand, Promise<Observable<MessageEvent>>>(
+					agentObservable = await this.commandBus.execute<
+						XpertAgentChatCommand,
+						Promise<Observable<MessageEvent>>
+					>(
 						new XpertAgentChatCommand(state, xpert.agent.key, xpert, {
 							...(options ?? {}),
 							store: memoryStore,
@@ -265,30 +276,36 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 				let _execution = null
 				let operation: TSensitiveOperation = null
+				const messageAppendContextTracker = createMessageAppendContextTracker()
 				concat(
 					agentObservable.pipe(
 						tap({
 							next: (event) => {
 								if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
-									appendMessageContent(aiMessage, event.data.data)
-									result += messageContentText(event.data.data)
-								} else if (
-									event.data.type === ChatMessageTypeEnum.EVENT
-								) {
-									switch(event.data.event) {
-										case (ChatMessageEventTypeEnum.ON_AGENT_END): {
+									const { messageContext } = messageAppendContextTracker.resolve({
+										incoming: event.data.data,
+										fallbackSource:
+											typeof event.data.data === 'string' ? 'memory_reply' : undefined,
+										fallbackStreamId: aiMessage?.id ?? executionId
+									})
+
+									appendMessageContent(aiMessage, event.data.data, messageContext)
+									result = appendMessagePlainText(result, event.data.data, messageContext)
+								} else if (event.data.type === ChatMessageTypeEnum.EVENT) {
+									switch (event.data.event) {
+										case ChatMessageEventTypeEnum.ON_AGENT_END: {
 											_execution = event.data.data
 											break
 										}
-										case (ChatMessageEventTypeEnum.ON_INTERRUPT): {
+										case ChatMessageEventTypeEnum.ON_INTERRUPT: {
 											operation = event.data.data
 											break
 										}
-										case (ChatMessageEventTypeEnum.ON_TOOL_MESSAGE): {
+										case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
 											appendMessageSteps(aiMessage, [event.data.data])
 											break
 										}
-										case (ChatMessageEventTypeEnum.ON_CHAT_EVENT): {
+										case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
 											if (event.data.data?.type === 'sandbox') {
 												conversation.options ??= {}
 												conversation.options.features ??= []
@@ -314,7 +331,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								// Record Execution
 								const timeEnd = Date.now()
 
-								const entity = _execution?.status === XpertAgentExecutionStatusEnum.ERROR ||
+								const entity =
+									_execution?.status === XpertAgentExecutionStatusEnum.ERROR ||
 									status === XpertAgentExecutionStatusEnum.ERROR
 										? {
 												id: executionId,
@@ -367,7 +385,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 										title: conversation.title || _execution?.title || shortTitle(input?.input),
 										operation,
 										error: _execution?.error,
-										options: conversation.options,
+										options: conversation.options
 									})
 								)
 
@@ -398,69 +416,75 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						})
 					)
 				)
-				.pipe(
-					tap({
-						/**
-						 * This function is triggered when the stream is unsubscribed
-						 */
-						unsubscribe: async () => {
-							this.#logger.debug(`Canceled by client!`)
-							try {
-								// Record Execution
-								const timeEnd = Date.now()
+					.pipe(
+						tap({
+							/**
+							 * This function is triggered when the stream is unsubscribed
+							 */
+							unsubscribe: async () => {
+								this.#logger.debug(`Canceled by client!`)
+								try {
+									// Record Execution
+									const timeEnd = Date.now()
 
-								await this.commandBus.execute(new XpertAgentExecutionUpsertCommand({
-									id: executionId,
-									elapsedTime: timeEnd - timeStart,
-									status: XpertAgentExecutionStatusEnum.ERROR,
-									error: 'Aborted!',
-									outputs: {
-										output: result
-									}
-								}))
+									await this.commandBus.execute(
+										new XpertAgentExecutionUpsertCommand({
+											id: executionId,
+											elapsedTime: timeEnd - timeStart,
+											status: XpertAgentExecutionStatusEnum.ERROR,
+											error: 'Aborted!',
+											outputs: {
+												output: result
+											}
+										})
+									)
 
-								await this.commandBus.execute(new ChatMessageUpsertCommand({
-									...aiMessage,
-									status: XpertAgentExecutionStatusEnum.SUCCESS,
-								}))
+									await this.commandBus.execute(
+										new ChatMessageUpsertCommand({
+											...aiMessage,
+											status: XpertAgentExecutionStatusEnum.SUCCESS
+										})
+									)
 
-								await this.commandBus.execute(
-									new ChatConversationUpsertCommand({
-										id: conversation.id,
-										status: 'idle',
-										title: conversation.title || _execution?.title || shortTitle(input?.input),
-										options: conversation.options,
-									})
-								)
-							} catch(err) {
-								this.#logger.error(err)
+									await this.commandBus.execute(
+										new ChatConversationUpsertCommand({
+											id: conversation.id,
+											status: 'idle',
+											title: conversation.title || _execution?.title || shortTitle(input?.input),
+											options: conversation.options
+										})
+									)
+								} catch (err) {
+									this.#logger.error(err)
+								}
+							}
+						})
+					)
+					.subscribe(subscriber)
+			})
+				.invoke(input, {
+					callbacks: [
+						{
+							handleCustomEvent(eventName, data, runId) {
+								if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
+									logger.debug(`========= handle custom event in xpert:`, eventName, runId)
+									subscriber.next({
+										data: {
+											type: ChatMessageTypeEnum.EVENT,
+											event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+											data: data
+										}
+									} as MessageEvent)
+								} else {
+									logger.warn(`Unprocessed custom event in xpert:`, eventName, runId)
+								}
 							}
 						}
-					})
-				)
-				.subscribe(subscriber)
-			}).invoke(input, {
-				callbacks: [
-					{
-						handleCustomEvent(eventName, data, runId) {
-							if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
-								logger.debug(`========= handle custom event in xpert:`, eventName, runId)
-								subscriber.next({
-									data: {
-										type: ChatMessageTypeEnum.EVENT,
-										event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-										data: data
-									}
-								} as MessageEvent)
-							} else {
-								logger.warn(`Unprocessed custom event in xpert:`, eventName, runId)
-							}
-						},
-					},
-				],
-			}).catch((err) => {
-				console.error(err)
-				subscriber.next({
+					]
+				})
+				.catch((err) => {
+					console.error(err)
+					subscriber.next({
 						data: {
 							type: ChatMessageTypeEnum.EVENT,
 							event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
@@ -471,8 +495,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							}
 						}
 					} as MessageEvent)
-				subscriber.error(err)
-			})
+					subscriber.error(err)
+				})
 
 			// It will be triggered when the subscription ends normally or is unsubscribed.
 			// This function can be used for cleanup work.

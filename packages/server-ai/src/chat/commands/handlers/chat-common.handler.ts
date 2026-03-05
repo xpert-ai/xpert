@@ -1,4 +1,11 @@
-import { AIMessage, isAIMessage, isBaseMessage, isToolMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
+import {
+	AIMessage,
+	isAIMessage,
+	isBaseMessage,
+	isToolMessage,
+	RemoveMessage,
+	ToolMessage
+} from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
@@ -16,10 +23,13 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import {
+	appendMessageContent,
+	appendMessagePlainText,
 	channelName,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	CopilotChatMessage,
+	createMessageAppendContextTracker,
 	GRAPH_NODE_TITLE_CONVERSATION,
 	IChatConversation,
 	IChatMessage,
@@ -29,7 +39,6 @@ import {
 	IXpertAgent,
 	IXpertAgentExecution,
 	IXpertProject,
-	messageContentText,
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
@@ -40,13 +49,13 @@ import {
 	TXpertAgentConfig,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
-import { appendMessageContent, isNil } from '@metad/copilot'
 import { getErrorMessage, pick } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
+import { isNil } from 'lodash'
 import { Observable, Subscriber, tap } from 'rxjs'
 import z from 'zod'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
@@ -60,7 +69,7 @@ import {
 	CompleteToolCallsQuery,
 	createMapStreamEvents,
 	CreateSummarizeTitleAgentCommand,
-	messageEvent,
+	messageEvent
 } from '../../../xpert-agent'
 import {
 	assignExecutionUsage,
@@ -81,7 +90,22 @@ import {
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
-import { CONFIG_KEY_CREDENTIALS, _BaseToolset, AgentStateAnnotation, BaseTool, createHumanMessage, CreateMemoryStoreCommand, rejectGraph, stateToParameters, stateVariable, TAgentSubgraphParams, ToolNode, translate, updateToolCalls, VolumeClient } from '../../../shared'
+import {
+	CONFIG_KEY_CREDENTIALS,
+	_BaseToolset,
+	AgentStateAnnotation,
+	BaseTool,
+	createHumanMessage,
+	CreateMemoryStoreCommand,
+	rejectGraph,
+	stateToParameters,
+	stateVariable,
+	TAgentSubgraphParams,
+	ToolNode,
+	translate,
+	updateToolCalls,
+	VolumeClient
+} from '../../../shared'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -93,12 +117,14 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		private readonly checkpointSaver: CopilotCheckpointSaver,
 		private readonly projectService: XpertProjectService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
+		private readonly queryBus: QueryBus
 	) {}
 
 	public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
 		const { tenantId, organizationId, user, from: chatFrom } = command.options
-		const { conversationId, projectId, input, retry, confirm, checkpointId } = command.request as { checkpointId?: string } & typeof command.request
+		const { conversationId, projectId, input, retry, confirm, checkpointId } = command.request as {
+			checkpointId?: string
+		} & typeof command.request
 		const userId = RequestContext.currentUserId()
 		const languageCode = command.options.language || user.preferredLanguage || 'en-US'
 
@@ -163,7 +189,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						role: 'human',
 						content: input.input,
 						conversationId: conversation.id,
-						attachments: input.files as IStorageFile[],
+						attachments: input.files as IStorageFile[]
 					})
 				)
 			}
@@ -191,6 +217,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		let error = null
 		// let _execution = null
 		let operation: TSensitiveOperation = null
+		const messageAppendContextTracker = createMessageAppendContextTracker()
 		return new Observable<MessageEvent>((subscriber) => {
 			// Send conversation start event
 			subscriber.next({
@@ -230,12 +257,20 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				let graph: CompiledStateGraph<any, any, any> = null
 				try {
 					// Vcs credentials
-					const vcsCredentials = projectId ? await this.commandBus.execute(
-						new GetVcsCredentialsCommand(projectId)
-					) : null
+					const vcsCredentials = projectId
+						? await this.commandBus.execute(new GetVcsCredentialsCommand(projectId))
+						: null
 					const thread_id = execution.threadId
 					const mute = [] as TXpertAgentConfig['mute']
-					graph = await this.createReactAgent(command, project, execution, abortController, subscriber, conversation.id, mute)
+					graph = await this.createReactAgent(
+						command,
+						project,
+						execution,
+						abortController,
+						subscriber,
+						conversation.id,
+						mute
+					)
 					// Run
 					const config = {
 						thread_id,
@@ -246,7 +281,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					let graphInput = null
 					// if (reject) {
 					// 	await rejectGraph(graph, config, command.request.command)
-					// } else 
+					// } else
 					if (command.request.command) {
 						if (command.request.command.toolCalls?.length) {
 							await updateToolCalls(graph, config, command.request.command)
@@ -254,22 +289,27 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						if (command.request.command.resume) {
 							graphInput = new Command(pick(command.request.command, 'resume', 'update'))
 						}
-					} else if(input?.input || retry) {
+					} else if (input?.input || retry) {
 						graphInput = {
-										...(input ?? {}),
-										messages: [
-											await createHumanMessage(this.commandBus, this.queryBus, {[STATE_VARIABLE_HUMAN]: input}, {enabled: true, resolution: 'low'})
-										],
-										[STATE_VARIABLE_SYS]: {
-											language: languageCode,
-											user_email: user.email,
-											timezone: user.timeZone || command.options.timeZone,
-											date: format(new Date(), 'yyyy-MM-dd'),
-											datetime: new Date().toLocaleString(),
-											workspace_path: conversation.options?.workspacePath,
-											workspace_url: conversation.options?.workspaceUrl,
-										}
-									}
+							...(input ?? {}),
+							messages: [
+								await createHumanMessage(
+									this.commandBus,
+									this.queryBus,
+									{ [STATE_VARIABLE_HUMAN]: input },
+									{ enabled: true, resolution: 'low' }
+								)
+							],
+							[STATE_VARIABLE_SYS]: {
+								language: languageCode,
+								user_email: user.email,
+								timezone: user.timeZone || command.options.timeZone,
+								date: format(new Date(), 'yyyy-MM-dd'),
+								datetime: new Date().toLocaleString(),
+								workspace_path: conversation.options?.workspacePath,
+								workspace_url: conversation.options?.workspaceUrl
+							}
+						}
 					}
 
 					const recordLastState = async () => {
@@ -333,7 +373,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							} else if (status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
 								convStatus = 'interrupted'
 							}
-							
+
 							// Interrupted event
 							if (state.tasks?.length) {
 								convStatus = 'interrupted'
@@ -373,49 +413,47 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					}
 
 					try {
-						const stream = graph.streamEvents(graphInput,
-								{
-									version: 'v2',
-									configurable: {
-										...config,
-										tenantId: tenantId,
-										organizationId: organizationId,
-										userId,
-										projectId: project?.id,
-										subscriber,
-										[CONFIG_KEY_CREDENTIALS]: {
-											...vcsCredentials
-										}
-									},
-									recursionLimit: GeneralAgentRecursionLimit,
-									signal: abortController.signal
+						const stream = graph.streamEvents(graphInput, {
+							version: 'v2',
+							configurable: {
+								...config,
+								tenantId: tenantId,
+								organizationId: organizationId,
+								userId,
+								projectId: project?.id,
+								subscriber,
+								[CONFIG_KEY_CREDENTIALS]: {
+									...vcsCredentials
 								}
-							)
+							},
+							recursionLimit: GeneralAgentRecursionLimit,
+							signal: abortController.signal
+						})
 						const transformGraphEvent = createMapStreamEvents(this.#logger, subscriber, {
-								xperts: project?.xperts,
-								// mute: [
-								// 	...mute,
-								// 	[GRAPH_NODE_TITLE_CONVERSATION]
-								// ],
-								unmutes: [],
-							})
+							xperts: project?.xperts,
+							// mute: [
+							// 	...mute,
+							// 	[GRAPH_NODE_TITLE_CONVERSATION]
+							// ],
+							unmutes: []
+						})
 						for await (const event of stream) {
 							const messageContent = transformGraphEvent(event)
 							if (!isNil(messageContent)) {
 								subscriber.next({
-										data: {
-											type: ChatMessageTypeEnum.MESSAGE,
-											data: messageContent
-										}
-									} as MessageEvent)
+									data: {
+										type: ChatMessageTypeEnum.MESSAGE,
+										data: messageContent
+									}
+								} as MessageEvent)
 							}
 						}
 
 						const state = await graph.getState({
-									configurable: {
-										...config
-									}
-								})
+							configurable: {
+								...config
+							}
+						})
 
 						execution.checkpointId = state.parentConfig?.configurable?.checkpoint_id
 
@@ -429,11 +467,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 						if (isToolMessage(lastMessage)) {
 							subscriber.next({
-										data: {
-											type: ChatMessageTypeEnum.MESSAGE,
-											data: lastMessage.content
-										}
-									} as MessageEvent)
+								data: {
+									type: ChatMessageTypeEnum.MESSAGE,
+									data: lastMessage.content
+								}
+							} as MessageEvent)
 						}
 					} catch (err) {
 						if (err instanceof NodeInterrupt) {
@@ -467,47 +505,53 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			})
 
 			const logger = this.#logger
-			reflect.invoke(input, {
-				callbacks: [
-					{
-						handleCustomEvent(eventName, data, runId) {
-							if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
-								logger.debug(`========= handle custom event in project:`, eventName, runId)
-								subscriber.next({
-									data: {
-										type: ChatMessageTypeEnum.EVENT,
-										event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-										data: data
-									}
-								} as MessageEvent)
-							} else {
-								logger.warn(`Unprocessed custom event in project:`, eventName, runId)
+			reflect
+				.invoke(input, {
+					callbacks: [
+						{
+							handleCustomEvent(eventName, data, runId) {
+								if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
+									logger.debug(`========= handle custom event in project:`, eventName, runId)
+									subscriber.next({
+										data: {
+											type: ChatMessageTypeEnum.EVENT,
+											event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+											data: data
+										}
+									} as MessageEvent)
+								} else {
+									logger.warn(`Unprocessed custom event in project:`, eventName, runId)
+								}
 							}
-						},
-					},
-				],
-			}).catch((err) => {
-				console.error(err)
-			})
+						}
+					]
+				})
+				.catch((err) => {
+					console.error(err)
+				})
 		}).pipe(
 			tap({
 				next: (event) => {
 					if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
-						appendMessageContent(aiMessage as CopilotChatMessage, event.data.data)
-						result += messageContentText(event.data.data)
-					} else if (
-						event.data.type === ChatMessageTypeEnum.EVENT
-					) {
-						switch(event.data.event) {
+						const { messageContext } = messageAppendContextTracker.resolve({
+							incoming: event.data.data,
+							fallbackSource: typeof event.data.data === 'string' ? 'chat_reply' : undefined,
+							fallbackStreamId: aiMessage?.id ?? executionId
+						})
+
+						appendMessageContent(aiMessage as CopilotChatMessage, event.data.data, messageContext)
+						result = appendMessagePlainText(result, event.data.data, messageContext)
+					} else if (event.data.type === ChatMessageTypeEnum.EVENT) {
+						switch (event.data.event) {
 							// case (ChatMessageEventTypeEnum.ON_AGENT_END): {
 							// 	_execution = event.data.data
 							// 	break
 							// }
-							case (ChatMessageEventTypeEnum.ON_INTERRUPT): {
+							case ChatMessageEventTypeEnum.ON_INTERRUPT: {
 								operation = event.data.data
 								break
 							}
-							case (ChatMessageEventTypeEnum.ON_TOOL_MESSAGE): {
+							case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
 								appendMessageSteps(aiMessage, [event.data.data])
 								break
 							}
@@ -553,7 +597,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				tokenCallback: (token) => {
 					// execution.embedTokens += token ?? 0
 				}
-			}))
+			})
+		)
 
 		// Create tools
 		const stateVariables: TStateVariable[] = []
@@ -566,10 +611,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		/**
 		 * The relationship between tool and toolset provider
 		 */
-		const toolsetsMap: Record<string, {provider: string; toolsetId: string;}> = {}
+		const toolsetsMap: Record<string, { provider: string; toolsetId: string }> = {}
 		// Project toolset for plan mode
 		if (project?.settings?.mode === 'plan') {
-			const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(new CreateProjectToolsetCommand(projectId))
+			const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(
+				new CreateProjectToolsetCommand(projectId)
+			)
 			const items = await projectToolset.initTools()
 			const _variables = await projectToolset.getVariables()
 			toolsetVarirables.push(...(_variables ?? []))
@@ -583,18 +630,21 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				tools.push(...items)
 			})
 		}
-		
+
 		// Custom toolsets
 		if (project?.toolsets.length > 0) {
 			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset<BaseTool>[]>(
-				new ToolsetGetToolsCommand(project.toolsets.map(({id}) => id), {
-					projectId: project.id,
-					conversationId,
-					xpertId: null,
-					signal: abortController.signal,
-					env: toEnvState(environment),
-					store: memoryStore
-				})
+				new ToolsetGetToolsCommand(
+					project.toolsets.map(({ id }) => id),
+					{
+						projectId: project.id,
+						conversationId,
+						xpertId: null,
+						signal: abortController.signal,
+						env: toEnvState(environment),
+						store: memoryStore
+					}
+				)
 			)
 			abortController.signal.addEventListener('abort', () => {
 				for (const toolset of toolsets) {
@@ -618,18 +668,20 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			}
 		}
 
-		this.#logger.debug(`Project general agent use tools:\n${[...tools].map((_, i) => `${i+1}. ` + _.name + ': ' + _.description).join('\n')}`)
+		this.#logger.debug(
+			`Project general agent use tools:\n${[...tools].map((_, i) => `${i + 1}. ` + _.name + ': ' + _.description).join('\n')}`
+		)
 
 		// Custom Knowledgebases
 		if (project?.knowledges?.length) {
-			const retrievers = project.knowledges.map(({id}) => createKnowledgeRetriever(this.queryBus, id))
+			const retrievers = project.knowledges.map(({ id }) => createKnowledgeRetriever(this.queryBus, id))
 			const retriever = new EnsembleRetriever({
 				retrievers: retrievers,
 				weights: retrievers.map(() => 0.5)
 			})
 			const knowledgeToolName = 'knowledge_retriever'
-			toolsTitleMap[knowledgeToolName] = translate({zh_Hans: '知识检索', en_US: 'Knowledge Retrieval'})
-			toolsetsMap[knowledgeToolName] = {provider: 'knowledge', toolsetId: null}
+			toolsTitleMap[knowledgeToolName] = translate({ zh_Hans: '知识检索', en_US: 'Knowledge Retrieval' })
+			toolsetsMap[knowledgeToolName] = { provider: 'knowledge', toolsetId: null }
 			tools.push(
 				retriever.asTool({
 					name: knowledgeToolName,
@@ -661,76 +713,77 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		const supervisorName = 'general_agent'
 		// Custom Xperts
-		const xperts: {name: string; agent; tool: DynamicStructuredTool}[] = []
+		const xperts: { name: string; agent; tool: DynamicStructuredTool }[] = []
 		if (project?.xperts.length) {
 			for await (const xpert of project.xperts) {
 				const agent = await this.createXpertAgent({
-					project, 
-					xpert, 
-					abortController, 
-					execution, 
-					subscriber, 
-					outputMode: 'last_message', 
-					addHandoffBackMessages: false, 
+					project,
+					xpert,
+					abortController,
+					execution,
+					subscriber,
+					outputMode: 'last_message',
+					addHandoffBackMessages: false,
 					supervisorName,
 					mute,
 					store: memoryStore,
 					isDraft: false,
 					environment
 				})
-				const tool = createHandoffTool({ agentName: agent.name, title: xpert.title, description: xpert.description })
-				xperts.push({name: agent.name, agent, tool })
-				toolsTitleMap[tool.name] = translate({en_US: 'Task handoff to:', zh_Hans: '任务移交给：'}) + (xpert.title || xpert.name)
-				toolsetsMap[tool.name] = {provider: 'transfer_to', toolsetId: null}
+				const tool = createHandoffTool({
+					agentName: agent.name,
+					title: xpert.title,
+					description: xpert.description
+				})
+				xperts.push({ name: agent.name, agent, tool })
+				toolsTitleMap[tool.name] =
+					translate({ en_US: 'Task handoff to:', zh_Hans: '任务移交给：' }) + (xpert.title || xpert.name)
+				toolsetsMap[tool.name] = { provider: 'transfer_to', toolsetId: null }
 			}
 		}
 		const shouldReturnDirect = new Set(
-			tools
-			  .filter((tool) => "returnDirect" in tool && tool.returnDirect)
-			  .map((tool) => tool.name)
-		  );
+			tools.filter((tool) => 'returnDirect' in tool && tool.returnDirect).map((tool) => tool.name)
+		)
 		const routeToolResponses = (state: typeof AgentStateAnnotation.State) => {
 			// Check the last consecutive tool calls
 			for (let i = state.messages.length - 1; i >= 0; i -= 1) {
-			  const message = state.messages[i];
-			  if (!isToolMessage(message)) {
-				break;
-			  }
-			  // Check if this tool is configured to return directly
-			  if (message.name !== undefined && shouldReturnDirect.has(message.name)) {
-				return END;
-			  }
-			  // Check if this tool is handoff tool
-			  const xpert = xperts.find((_) => _.tool.name === message.name)
-			  if (xpert) {
-				return xpert.name
-			  }
+				const message = state.messages[i]
+				if (!isToolMessage(message)) {
+					break
+				}
+				// Check if this tool is configured to return directly
+				if (message.name !== undefined && shouldReturnDirect.has(message.name)) {
+					return END
+				}
+				// Check if this tool is handoff tool
+				const xpert = xperts.find((_) => _.tool.name === message.name)
+				if (xpert) {
+					return xpert.name
+				}
 			}
 			return supervisorName
-		  };
+		}
 
 		const thread_id = execution.threadId
-		
-		const allTools = [...(tools ?? []), ...xperts.map(({tool}) => tool)]
+
+		const allTools = [...(tools ?? []), ...xperts.map(({ tool }) => tool)]
 
 		const agentNames = new Set<string>()
 		for (const xpert of xperts) {
 			const agent = xpert.agent
-			if (!agent.name || agent.name === "LangGraph") {
-			  throw new Error(
-				"Please specify a name when you create your agent, either via `createReactAgent({ ..., name: agentName })` " +
-				  "or via `graph.compile({ name: agentName })`."
-			  );
+			if (!agent.name || agent.name === 'LangGraph') {
+				throw new Error(
+					'Please specify a name when you create your agent, either via `createReactAgent({ ..., name: agentName })` ' +
+						'or via `graph.compile({ name: agentName })`.'
+				)
 			}
-		
+
 			if (agentNames.has(agent.name)) {
-			  throw new Error(
-				`Agent with name '${agent.name}' already exists. Agent names must be unique.`
-			  );
+				throw new Error(`Agent with name '${agent.name}' already exists. Agent names must be unique.`)
 			}
-		
-			agentNames.add(agent.name);
-		  }
+
+			agentNames.add(agent.name)
+		}
 
 		let supervisorLLM = llm
 		if (allTools.length && isChatModelWithBindTools(llm)) {
@@ -758,7 +811,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
 			const parameters = stateToParameters(state)
-			let systemTemplate = `Current time: ${new Date().toISOString()}\n` + (project?.settings?.instruction || supervisorPrompt) + '\n\n' + Instruction
+			let systemTemplate =
+				`Current time: ${new Date().toISOString()}\n` +
+				(project?.settings?.instruction || supervisorPrompt) +
+				'\n\n' +
+				Instruction
 
 			if (project?.settings?.mode === 'plan') {
 				systemTemplate += `\n\n` + PlanInstruction
@@ -782,11 +839,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				new RunnableLambda({ func: callModel }).withConfig({
 					runName: supervisorName,
 					tags: [thread_id, projectId]
-				}),
+				})
 			)
 			.addEdge(START, supervisorName)
-			.addNode('tools', new ToolNode(allTools, {toolsets: toolsetsMap}), {metadata: { ...toolsTitleMap }})
-			.addConditionalEdges("tools", routeToolResponses,)
+			.addNode('tools', new ToolNode(allTools, { toolsets: toolsetsMap }), { metadata: { ...toolsTitleMap } })
+			.addConditionalEdges('tools', routeToolResponses)
 			.addConditionalEdges(supervisorName, (state, config) => {
 				const { title } = state
 				const messages = state.messages ?? []
@@ -831,23 +888,44 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 	/**
 	 * Create agent graph for xpert
 	 */
-	async createXpertAgent(params: TAgentSubgraphParams & {
-		project: IXpertProject,
-		xpert: IXpert,
-		abortController: AbortController,
-		execution: IXpertAgentExecution,
-		subscriber: Subscriber<MessageEvent>,
-		outputMode: OutputMode,
-		addHandoffBackMessages: boolean,
-		supervisorName: string,
-	}) {
-		const { project, xpert, abortController, execution, subscriber, outputMode, addHandoffBackMessages, supervisorName, mute } = params
+	async createXpertAgent(
+		params: TAgentSubgraphParams & {
+			project: IXpertProject
+			xpert: IXpert
+			abortController: AbortController
+			execution: IXpertAgentExecution
+			subscriber: Subscriber<MessageEvent>
+			outputMode: OutputMode
+			addHandoffBackMessages: boolean
+			supervisorName: string
+		}
+	) {
+		const {
+			project,
+			xpert,
+			abortController,
+			execution,
+			subscriber,
+			outputMode,
+			addHandoffBackMessages,
+			supervisorName,
+			mute
+		} = params
 		const name = `xpert_` + xpert.slug
 		// Sub execution for xpert
 		const _execution: IXpertAgentExecution = {}
 		const { graph, agent } = await this.commandBus.execute<
 			CompileGraphCommand,
-			{ graph: CompiledStateGraph<unknown, unknown, string, typeof AgentStateAnnotation.spec, typeof AgentStateAnnotation.spec>; agent: IXpertAgent }
+			{
+				graph: CompiledStateGraph<
+					unknown,
+					unknown,
+					string,
+					typeof AgentStateAnnotation.spec,
+					typeof AgentStateAnnotation.spec
+				>
+				agent: IXpertAgent
+			}
 		>(
 			new CompileGraphCommand(xpert.agent.key, xpert, {
 				mute: params.mute,
@@ -859,10 +937,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				subscriber,
 				projectId: project?.id,
 				isDraft: false,
-				environment: params.environment,
+				environment: params.environment
 			})
 		)
-		
+
 		const runnable = new RunnableLambda({
 			func: async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
@@ -949,7 +1027,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						break
 					}
 				}
-				
+
 				try {
 					const output = await graph.invoke(
 						{
@@ -957,17 +1035,17 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							input: input,
 							[STATE_VARIABLE_HUMAN]: {
 								input,
-								files: state.human?.files || [],
+								files: state.human?.files || []
 							},
 							messages: [],
 							[primaryChannelName]: {
 								messages: []
 							}
 						},
-						{ 
-							...config, 
-							configurable: { 
-								...config.configurable, 
+						{
+							...config,
+							configurable: {
+								...config.configurable,
 								agentKey: '', // In the general agent, messages do not distinguish between Agents but only between Xperts.
 								xpertName: xpert.name
 							},
@@ -990,7 +1068,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							new ToolMessage({
 								name: tool_name,
 								content: result,
-								tool_call_id,
+								tool_call_id
 							})
 						]
 					}
@@ -998,7 +1076,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					if (addHandoffBackMessages) {
 						messages.push(...createHandoffBackMessages(agent.name, supervisorName))
 					}
-					return { ...output, messages: [new RemoveMessage({id: toolMessage.id}), ...messages] }
+					return { ...output, messages: [new RemoveMessage({ id: toolMessage.id }), ...messages] }
 				} catch (err) {
 					if (err instanceof GraphInterrupt) {
 						status = XpertAgentExecutionStatusEnum.INTERRUPTED
@@ -1012,9 +1090,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					await finalize()
 				}
 			}
-		}).withConfig({tags: [xpert.id]})
+		}).withConfig({ tags: [xpert.id] })
 		runnable.name = name
-		
+
 		if (xpert.agentConfig?.mute?.length) {
 			mute.push(...xpert.agentConfig.mute.map((_) => [xpert.id, ..._]))
 		}
@@ -1034,7 +1112,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					'workspace',
 					'workspace.environments',
 					'vcs'
-				] 
+				]
 			})
 		}
 		return null
@@ -1047,11 +1125,13 @@ function createStateAnnotation(stateVariables: TStateVariable[]) {
 		// Global conversation variables
 		...(stateVariables.reduce((acc, variable) => {
 			acc[variable.name] = Annotation({
-				...(variable.reducer ? {
-					reducer: variable.reducer,
-					default: variable.default,
-				} : stateVariable(variable)),
-				})
+				...(variable.reducer
+					? {
+							reducer: variable.reducer,
+							default: variable.default
+						}
+					: stateVariable(variable))
+			})
 			return acc
 		}, {}) ?? {})
 	})

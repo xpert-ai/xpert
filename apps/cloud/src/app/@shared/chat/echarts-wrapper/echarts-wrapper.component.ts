@@ -5,7 +5,15 @@ import { EchartsViewerComponent } from './echarts-viewer.component'
   selector: 'chat-echarts-wrapper',
   standalone: true,
   template: '',
-  styles: [`:host { display: block; min-width: 400px; width: 100%; }`]
+  styles: [
+    `
+      :host {
+        display: block;
+        min-width: 400px;
+        width: 100%;
+      }
+    `
+  ]
 })
 export class EchartsWrapperComponent implements AfterViewInit {
   @Input() code = ''
@@ -16,11 +24,15 @@ export class EchartsWrapperComponent implements AfterViewInit {
     if (this.code) {
       try {
         const decoded = decodeURIComponent(this.code)
-        const json = JSON.parse(decoded)
-        const componentRef = this.viewContainerRef.createComponent(EchartsViewerComponent)
-        componentRef.instance.options = json
+        try {
+          const json = JSON.parse(decoded)
+          const componentRef = this.viewContainerRef.createComponent(EchartsViewerComponent)
+          componentRef.instance.options = json
+        } catch (err) {
+          console.warn('Invalid echarts JSON:', decoded)
+        }
       } catch (err) {
-        console.error('Invalid echarts JSON', err)
+        console.warn('Failed to decode echarts code:', this.code)
       }
     }
   }

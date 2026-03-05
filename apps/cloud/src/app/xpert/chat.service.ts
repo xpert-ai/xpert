@@ -1,14 +1,15 @@
 import { HttpErrorResponse } from '@angular/common/http'
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
-import { appendMessageContent } from '@metad/copilot'
 import { linkedModel } from '@metad/core'
 import { omit, uniq } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, combineLatest, map, of, startWith, Subscription } from 'rxjs'
 import {
+  appendMessageContent,
   ChatMessageEventTypeEnum,
   ChatMessageTypeEnum,
+  createMessageAppendContextTracker,
   getErrorMessage,
   IChatConversation,
   IChatMessageFeedback,
@@ -22,6 +23,7 @@ import {
   TChatOptions,
   TChatRequest,
   TInterruptCommand,
+  TMessageAppendContext,
   TMessageContent,
   uuid,
   XpertAgentExecutionStatusEnum
@@ -159,6 +161,7 @@ export abstract class ChatService {
 
   readonly answering = signal<boolean>(false)
   protected chatSubscription: Subscription = null
+  private readonly messageAppendContextTracker = createMessageAppendContextTracker()
 
   readonly lang = this.appService.lang
 
@@ -192,17 +195,21 @@ export abstract class ChatService {
             )
           )
         ]).pipe(
-          map<[IChatConversation, Record<string, IChatMessageFeedback>], {loading: boolean}>(([conversation, feedbacks]) => {
-            return {
-              conversation: conversation ? {
-                ...conversation,
-                messages: filterLatestMessages(conversation.messages),
-                title: conversation.title || shortTitle(conversation.options?.parameters?.input)
-              } : null,
-              feedbacks,
-              loading: false
+          map<[IChatConversation, Record<string, IChatMessageFeedback>], { loading: boolean }>(
+            ([conversation, feedbacks]) => {
+              return {
+                conversation: conversation
+                  ? {
+                      ...conversation,
+                      messages: filterLatestMessages(conversation.messages),
+                      title: conversation.title || shortTitle(conversation.options?.parameters?.input)
+                    }
+                  : null,
+                feedbacks,
+                loading: false
+              }
             }
-          }),
+          ),
           catchError((error) => {
             this.#toastr.error(getErrorMessage(error))
             return of({ loading: false })
@@ -260,7 +267,7 @@ export abstract class ChatService {
   readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
 
   // Attachments
-  readonly attachments = signal<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
+  readonly attachments = signal<{ file?: File; url?: string; storageFile?: IStorageFile }[]>([])
   readonly recentAttachments = signal<IStorageFile[]>(null)
 
   constructor() {
@@ -284,7 +291,7 @@ export abstract class ChatService {
         // Update local data when remote conversation loaded
         const conversation = this.#conversation()?.conversation
         if (conversation) {
-          if (!this.conversation() || this.conversation()?.id && this.conversation().id !== conversation.id) {
+          if (!this.conversation() || (this.conversation()?.id && this.conversation().id !== conversation.id)) {
             this.conversation.set(conversation)
           }
         }
@@ -303,11 +310,14 @@ export abstract class ChatService {
       { allowSignalWrites: true }
     )
 
-    effect(() => {
-      if (!this.conversationId()) {
-        this.suggestionQuestions.set([])
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (!this.conversationId()) {
+          this.suggestionQuestions.set([])
+        }
+      },
+      { allowSignalWrites: true }
+    )
 
     // effect(() => {
     //   console.log('ChatService: conversation changed', this.conversation(), this.#messages())
@@ -316,7 +326,16 @@ export abstract class ChatService {
 
   fetchConversation(id: string) {
     return this.conversationService.getById(id, {
-      relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages', 'messages.attachments', 'task']
+      relations: [
+        'xpert',
+        'xpert.agent',
+        'xpert.agents',
+        'xpert.knowledgebases',
+        'xpert.toolsets',
+        'messages',
+        'messages.attachments',
+        'task'
+      ]
     })
   }
 
@@ -324,7 +343,7 @@ export abstract class ChatService {
     return this.feedbackService.getMyAll({ where: { conversationId: id } })
   }
 
-  ask(content: string, params: {files: {id: string}[]}) {
+  ask(content: string, params: { files: { id: string }[] }) {
     const id = uuid()
     const humanMessage: TCopilotChatMessage = {
       id,
@@ -375,6 +394,7 @@ export abstract class ChatService {
     }
 
     this.answering.set(true)
+    this.messageAppendContextTracker.reset()
     this.conversation.update((state) => ({ ...(state ?? {}), status: 'busy', error: null }) as IChatConversation)
 
     if (options.confirm) {
@@ -395,26 +415,24 @@ export abstract class ChatService {
     }
 
     const request = {
-      input: options.retry ? null : {
-        ...(this.parametersValue() ?? {}),
-        input: options.content,
-        files: options.files
-      },
+      input: options.retry
+        ? null
+        : {
+            ...(this.parametersValue() ?? {}),
+            input: options.content,
+            files: options.files
+          },
       conversationId: this.conversation()?.id,
       id: options.id,
       command: options.command,
       confirm: options.confirm,
-      retry: options.retry,
+      retry: options.retry
     } as TChatRequest
 
-    this.chatSubscription = this.chatRequest(
-      this.xpert()?.slug,
-      request,
-      {
-        xpertId: this.xpert()?.id,
-        messageId: options.messageId,
-      }
-    ).subscribe({
+    this.chatSubscription = this.chatRequest(this.xpert()?.slug, request, {
+      xpertId: this.xpert()?.id,
+      messageId: options.messageId
+    }).subscribe({
       next: (msg) => {
         if (msg.event === 'error') {
           this.#toastr.error(msg.data)
@@ -426,10 +444,17 @@ export abstract class ChatService {
             }
             const event = JSON.parse(msg.data)
             if (event.type === ChatMessageTypeEnum.MESSAGE) {
+              const latestMessageId = this.messages()[this.messages().length - 1]?.id
+              const { messageContext } = this.messageAppendContextTracker.resolve({
+                incoming: event.data,
+                fallbackSource: typeof event.data === 'string' ? 'chat_stream' : undefined,
+                fallbackStreamId: String(latestMessageId ?? this.conversation()?.id ?? 'chat_stream')
+              })
+
               if (typeof event.data === 'string') {
-                this.appendStreamMessage(event.data)
+                this.appendStreamMessage(event.data, messageContext)
               } else {
-                this.appendMessageComponent(event.data)
+                this.appendMessageComponent(event.data, messageContext)
               }
             } else if (event.type === ChatMessageTypeEnum.EVENT) {
               switch (event.event) {
@@ -510,7 +535,7 @@ export abstract class ChatService {
                         }
                       }
                     }
-                    
+
                     return {
                       ...message,
                       events: [...(message.events ?? []), event.data]
@@ -527,6 +552,7 @@ export abstract class ChatService {
       },
       error: (error) => {
         this.answering.set(false)
+        this.messageAppendContextTracker.reset()
         this.#toastr.error(getErrorMessage(error))
         this.updateLatestMessage((message) => {
           return {
@@ -538,6 +564,7 @@ export abstract class ChatService {
       },
       complete: () => {
         this.answering.set(false)
+        this.messageAppendContextTracker.reset()
         this.updateLatestMessage((message) => {
           return {
             ...message,
@@ -559,10 +586,13 @@ export abstract class ChatService {
 
     // Update conversation status to indicate it's no longer busy
     // This will stop the relativeTimes pipe from updating (condition: conversationStatus === 'busy')
-    this.conversation.update((state) => ({
-      ...(state ?? {}),
-      status: 'idle'
-    }) as IChatConversation)
+    this.conversation.update(
+      (state) =>
+        ({
+          ...(state ?? {}),
+          status: 'idle'
+        }) as IChatConversation
+    )
 
     // Update status of ai message
     this.updateLatestMessage((lastM) => {
@@ -609,42 +639,18 @@ export abstract class ChatService {
     )
   }
 
-  appendMessageComponent(content: TMessageContent) {
+  appendMessageComponent(content: TMessageContent, context?: TMessageAppendContext) {
     this.updateLatestMessage((lastM) => {
-      appendMessageContent(lastM as any, content)
+      appendMessageContent(lastM, content, context)
       return {
         ...lastM
       }
     })
   }
 
-  appendStreamMessage(text: string) {
+  appendStreamMessage(text: string, context?: TMessageAppendContext) {
     this.updateLatestMessage((lastM) => {
-      const content = lastM.content
-      lastM.status = 'answering'
-      if (typeof content === 'string') {
-        lastM.content = content + text
-      } else if (Array.isArray(content)) {
-        const lastContent = content[content.length - 1]
-        if (lastContent.type === 'text') {
-          content[content.length - 1] = {
-            ...lastContent,
-            text: lastContent.text + text
-          }
-          lastM.content = [...content]
-        } else {
-          lastM.content = [
-            ...content,
-            {
-              type: 'text',
-              text
-            }
-          ]
-        }
-      } else {
-        lastM.content = text
-      }
-
+      appendMessageContent(lastM, text, context)
       return {
         ...lastM
       }
@@ -694,8 +700,12 @@ export abstract class ChatService {
   abstract isPublic(): boolean
 
   // Attachments
-  onAttachCreated(file: IStorageFile): void {}
-  onAttachDeleted(fileId: string): void {}
+  onAttachCreated(file: IStorageFile): void {
+    //
+  }
+  onAttachDeleted(fileId: string): void {
+    //
+  }
   getRecentAttachmentsSignal() {
     return this.recentAttachments
   }
