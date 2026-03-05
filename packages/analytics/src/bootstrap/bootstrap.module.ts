@@ -5,6 +5,7 @@ import {
 	provideEventEmitterModule,
 	provideI18nModule,
 	provideScheduleModule,
+	providePinoLoggerModule,
 	RedisModule,
 	SeederModule,
 	ServerAppModule
@@ -20,6 +21,7 @@ const baseDir = getConfig().assetOptions.serverRoot
 	imports: [
 		ConfigModule,
 		RedisModule,
+		providePinoLoggerModule(),
 		provideCacheModule(),
 		provideBullModule(),
 		provideI18nModule(baseDir),
