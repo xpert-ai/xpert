@@ -1,0 +1,28 @@
+# Agent Middleware
+
+Agent Middleware 用于在不改动核心编排逻辑的前提下，为智能体生命周期注入横切能力。
+
+## 核心模型
+
+- `IAgentMiddlewareStrategy`：每个 provider 的策略接口。
+- `createMiddleware`：创建具体中间件实例。
+- 元数据：名称、国际化文案、图标、配置 Schema。
+- 工作流接线：将 middleware 节点连接到 Agent，并按顺序执行。
+
+## 生命周期钩子
+
+| 钩子            | 触发时机             | 常见用途                 |
+| --------------- | -------------------- | ------------------------ |
+| `beforeAgent`   | Agent 启动前，仅一次 | 初始化状态、注入系统提示 |
+| `beforeModel`   | 每次模型调用前       | 上下文整理、动态注入工具 |
+| `afterModel`    | 模型返回后           | 日志记录、参数修正       |
+| `afterAgent`    | Agent 完成后         | 结果落库、资源清理       |
+| `wrapModelCall` | 包裹模型调用         | 重试、缓存、防护策略     |
+| `wrapToolCall`  | 包裹工具调用         | 鉴权、限流、后处理       |
+
+## 最佳实践
+
+- 保持 hook 幂等，避免重型阻塞逻辑。
+- 用 `stateSchema` 明确持久化状态结构。
+- 在 wrapper 中优先调用传入 `handler`，再叠加自定义逻辑。
+- 将日志、审计、缓存、限流拆分为独立中间件，按顺序组合。

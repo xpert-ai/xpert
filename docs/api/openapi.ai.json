@@ -40,9 +40,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AIModel"
-        ]
+        "tags": ["AIModel"]
       }
     },
     "/api/ai/proxy/{copilotId}/{m}": {
@@ -76,9 +74,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Chat"
-        ]
+        "tags": ["AI/Chat"]
       },
       "post": {
         "operationId": "AIController_proxyModule",
@@ -110,9 +106,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Chat"
-        ]
+        "tags": ["AI/Chat"]
       }
     },
     "/api/ai/proxy/{copilotId}/{m}/{f}": {
@@ -154,9 +148,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Chat"
-        ]
+        "tags": ["AI/Chat"]
       }
     },
     "/api/ai/v1/chat": {
@@ -173,9 +165,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/v1"
-        ]
+        "tags": ["AI/v1"]
       }
     },
     "/api/ai/v1/kb": {
@@ -203,9 +193,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/v1"
-        ]
+        "tags": ["AI/v1"]
       }
     },
     "/api/ai/v1/kb/{id}": {
@@ -242,9 +230,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/v1"
-        ]
+        "tags": ["AI/v1"]
       },
       "delete": {
         "operationId": "AIV1Controller_deleteKnowledgebase",
@@ -268,9 +254,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/v1"
-        ]
+        "tags": ["AI/v1"]
       }
     },
     "/api/ai/v1/kb/{id}/bulk": {
@@ -310,9 +294,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/v1"
-        ]
+        "tags": ["AI/v1"]
       }
     },
     "/api/ai/v1/kb/{id}/process": {
@@ -351,9 +333,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/v1"
-        ]
+        "tags": ["AI/v1"]
       }
     },
     "/api/ai/v1/kb/{id}/status": {
@@ -379,9 +359,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/v1"
-        ]
+        "tags": ["AI/v1"]
       }
     },
     "/api/ai/v1/file": {
@@ -398,9 +376,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/v1"
-        ]
+        "tags": ["AI/v1"]
       }
     },
     "/api/ai/v1/chatkit/sessions": {
@@ -417,9 +393,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/v1"
-        ]
+        "tags": ["AI/v1"]
       }
     },
     "/api/ai/contexts/file": {
@@ -436,9 +410,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Contexts"
-        ]
+        "tags": ["AI/Contexts"]
       }
     },
     "/api/ai/contexts/file/{id}": {
@@ -464,9 +436,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Contexts"
-        ]
+        "tags": ["AI/Contexts"]
       }
     },
     "/api/ai/knowledges": {
@@ -494,9 +464,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Knowledges"
-        ]
+        "tags": ["AI/Knowledges"]
       }
     },
     "/api/ai/knowledges/{id}": {
@@ -533,9 +501,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Knowledges"
-        ]
+        "tags": ["AI/Knowledges"]
       },
       "delete": {
         "operationId": "KnowledgesController_deleteKnowledgebase",
@@ -559,9 +525,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Knowledges"
-        ]
+        "tags": ["AI/Knowledges"]
       }
     },
     "/api/ai/knowledges/{id}/bulk": {
@@ -601,9 +565,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Knowledges"
-        ]
+        "tags": ["AI/Knowledges"]
       }
     },
     "/api/ai/knowledges/{id}/process": {
@@ -642,9 +604,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Knowledges"
-        ]
+        "tags": ["AI/Knowledges"]
       }
     },
     "/api/ai/knowledges/{id}/status": {
@@ -670,9 +630,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Knowledges"
-        ]
+        "tags": ["AI/Knowledges"]
       }
     },
     "/api/ai/assistants/search": {
@@ -689,9 +647,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Assistants"
-        ]
+        "tags": ["AI/Assistants"]
       }
     },
     "/api/ai/assistants/count": {
@@ -708,9 +664,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Assistants"
-        ]
+        "tags": ["AI/Assistants"]
       }
     },
     "/api/ai/assistants/{id}": {
@@ -736,9 +690,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Assistants"
-        ]
+        "tags": ["AI/Assistants"]
       }
     },
     "/api/ai/threads": {
@@ -755,9 +707,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/search": {
@@ -774,9 +724,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}": {
@@ -802,9 +750,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       },
       "patch": {
         "operationId": "ThreadsController_patchThread",
@@ -828,9 +774,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       },
       "delete": {
         "operationId": "ThreadsController_deleteThread",
@@ -854,9 +798,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/state": {
@@ -882,9 +824,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       },
       "post": {
         "operationId": "ThreadsController_updateThreadState",
@@ -908,9 +848,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/history": {
@@ -936,9 +874,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/copy": {
@@ -964,9 +900,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/runs": {
@@ -1008,9 +942,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       },
       "post": {
         "operationId": "ThreadsController_createRun",
@@ -1034,9 +966,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/runs/stream": {
@@ -1070,9 +1000,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/runs/wait": {
@@ -1098,9 +1026,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/runs/{run_id}/stream": {
@@ -1142,9 +1068,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/runs/{run_id}": {
@@ -1178,9 +1102,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/runs/{run_id}/cancel": {
@@ -1214,9 +1136,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/threads/{thread_id}/usage": {
@@ -1258,9 +1178,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Threads"
-        ]
+        "tags": ["AI/Threads"]
       }
     },
     "/api/ai/conversations": {
@@ -1277,9 +1195,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       }
     },
     "/api/ai/conversations/search": {
@@ -1296,9 +1212,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       }
     },
     "/api/ai/conversations/{conversation_id}": {
@@ -1324,9 +1238,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       },
       "patch": {
         "operationId": "ConversationsController_updateConversation",
@@ -1350,9 +1262,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       },
       "delete": {
         "operationId": "ConversationsController_deleteConversation",
@@ -1376,9 +1286,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       }
     },
     "/api/ai/conversations/{conversation_id}/messages": {
@@ -1420,9 +1328,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       },
       "post": {
         "operationId": "ConversationsController_createMessage",
@@ -1446,9 +1352,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       }
     },
     "/api/ai/conversations/{conversation_id}/messages/search": {
@@ -1474,9 +1378,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       }
     },
     "/api/ai/conversations/{conversation_id}/messages/{message_id}": {
@@ -1510,9 +1412,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       },
       "patch": {
         "operationId": "ConversationsController_updateMessage",
@@ -1544,9 +1444,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       },
       "delete": {
         "operationId": "ConversationsController_deleteMessage",
@@ -1578,9 +1476,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       }
     },
     "/api/ai/conversations/{conversation_id}/messages/{message_id}/feedbacks": {
@@ -1630,9 +1526,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       },
       "post": {
         "operationId": "ConversationsController_createFeedback",
@@ -1664,9 +1558,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       }
     },
     "/api/ai/conversations/{conversation_id}/messages/{message_id}/feedbacks/search": {
@@ -1700,9 +1592,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       }
     },
     "/api/ai/conversations/{conversation_id}/messages/{message_id}/feedbacks/{feedback_id}": {
@@ -1744,9 +1634,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       },
       "patch": {
         "operationId": "ConversationsController_updateFeedback",
@@ -1786,9 +1674,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       },
       "delete": {
         "operationId": "ConversationsController_deleteFeedback",
@@ -1828,9 +1714,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Conversations"
-        ]
+        "tags": ["AI/Conversations"]
       }
     },
     "/api/ai/store/items": {
@@ -1872,9 +1756,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Store"
-        ]
+        "tags": ["AI/Store"]
       },
       "put": {
         "operationId": "StoreController_putItem",
@@ -1889,9 +1771,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Store"
-        ]
+        "tags": ["AI/Store"]
       },
       "delete": {
         "operationId": "StoreController_deleteItem",
@@ -1906,9 +1786,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Store"
-        ]
+        "tags": ["AI/Store"]
       }
     },
     "/api/ai/store/namespaces": {
@@ -1925,9 +1803,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Store"
-        ]
+        "tags": ["AI/Store"]
       }
     },
     "/api/ai/store/items/search": {
@@ -1944,9 +1820,7 @@
             "bearer": []
           }
         ],
-        "tags": [
-          "AI/Store"
-        ]
+        "tags": ["AI/Store"]
       }
     }
   },
@@ -1995,9 +1869,7 @@
             "minimum": 0
           }
         },
-        "required": [
-          "where"
-        ]
+        "required": ["where"]
       },
       "CreateUserDTO": {
         "type": "object",
@@ -2018,13 +1890,7 @@
             "type": "object"
           }
         },
-        "required": [
-          "email",
-          "firstName",
-          "lastName",
-          "imageUrl",
-          "role"
-        ]
+        "required": ["email", "firstName", "lastName", "imageUrl", "role"]
       },
       "RegisterUserDTO": {
         "type": "object",
@@ -2039,11 +1905,7 @@
             "$ref": "#/components/schemas/CreateUserDTO"
           }
         },
-        "required": [
-          "password",
-          "confirmPassword",
-          "user"
-        ]
+        "required": ["password", "confirmPassword", "user"]
       },
       "ChangePasswordRequestDTO": {
         "type": "object",
@@ -2058,11 +1920,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "token",
-          "password",
-          "confirmPassword"
-        ]
+        "required": ["token", "password", "confirmPassword"]
       },
       "ResetPasswordRequestDTO": {
         "type": "object",
@@ -2071,9 +1929,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "email"
-        ]
+        "required": ["email"]
       },
       "RolePermission": {
         "type": "object",
@@ -2111,16 +1967,7 @@
           },
           "permission": {
             "type": "string",
-            "enum": [
-              "SUPER_ADMIN",
-              "ADMIN",
-              "DATA_ENTRY",
-              "EMPLOYEE",
-              "CANDIDATE",
-              "MANAGER",
-              "VIEWER",
-              "TRIAL"
-            ]
+            "enum": ["SUPER_ADMIN", "ADMIN", "DATA_ENTRY", "EMPLOYEE", "CANDIDATE", "MANAGER", "VIEWER", "TRIAL"]
           },
           "enabled": {
             "type": "boolean",
@@ -2128,26 +1975,10 @@
           },
           "roleId": {
             "type": "string",
-            "enum": [
-              "SUPER_ADMIN",
-              "ADMIN",
-              "DATA_ENTRY",
-              "EMPLOYEE",
-              "CANDIDATE",
-              "MANAGER",
-              "VIEWER",
-              "TRIAL"
-            ]
+            "enum": ["SUPER_ADMIN", "ADMIN", "DATA_ENTRY", "EMPLOYEE", "CANDIDATE", "MANAGER", "VIEWER", "TRIAL"]
           }
         },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "tenant",
-          "tenantId",
-          "permission",
-          "roleId"
-        ]
+        "required": ["createdAt", "updatedAt", "tenant", "tenantId", "permission", "roleId"]
       },
       "Feature": {
         "type": "object",
@@ -2335,14 +2166,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "tenant",
-          "tenantId",
-          "name",
-          "value"
-        ]
+        "required": ["createdAt", "updatedAt", "tenant", "tenantId", "name", "value"]
       },
       "ImportRecord": {
         "type": "object",
@@ -2524,22 +2348,14 @@
           },
           "inviteStatus": {
             "type": "string",
-            "enum": [
-              "NOT_INVITED",
-              "INVITED",
-              "ACCEPTED"
-            ]
+            "enum": ["NOT_INVITED", "INVITED", "ACCEPTED"]
           },
           "notes": {
             "type": "string"
           },
           "contactType": {
             "type": "string",
-            "enum": [
-              "CLIENT",
-              "CUSTOMER",
-              "LEAD"
-            ]
+            "enum": ["CLIENT", "CUSTOMER", "LEAD"]
           },
           "imageUrl": {
             "type": "string",
@@ -2731,16 +2547,7 @@
           },
           "name": {
             "type": "string",
-            "enum": [
-              "SUPER_ADMIN",
-              "ADMIN",
-              "DATA_ENTRY",
-              "EMPLOYEE",
-              "CANDIDATE",
-              "MANAGER",
-              "VIEWER",
-              "TRIAL"
-            ]
+            "enum": ["SUPER_ADMIN", "ADMIN", "DATA_ENTRY", "EMPLOYEE", "CANDIDATE", "MANAGER", "VIEWER", "TRIAL"]
           },
           "isSystem": {
             "type": "boolean",
@@ -2759,16 +2566,7 @@
             }
           }
         },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "tenant",
-          "tenantId",
-          "name",
-          "isSystem",
-          "rolePermissions",
-          "users"
-        ]
+        "required": ["createdAt", "updatedAt", "tenant", "tenantId", "name", "isSystem", "rolePermissions", "users"]
       },
       "UserOrganization": {
         "type": "object",
@@ -2914,18 +2712,14 @@
           },
           "preferredLanguage": {
             "type": "string",
-            "enum": [
-              "zh-CN",
-              "zh-Hans",
-              "zh-Hant",
-              "en"
-            ]
+            "enum": ["zh-CN", "zh-Hans", "zh-Hant", "en"]
           },
           "emailVerified": {
             "type": "boolean"
           },
           "deletedAt": {
-            "type": "timestamptz"
+            "type": "string",
+            "format": "date-time"
           },
           "role": {
             "$ref": "#/components/schemas/Role"
@@ -3026,13 +2820,7 @@
           },
           "payPeriod": {
             "type": "string",
-            "enum": [
-              "NONE",
-              "BI_WEEKLY",
-              "WEEKLY",
-              "TWICE_PER_MONTH",
-              "MONTHLY"
-            ]
+            "enum": ["NONE", "BI_WEEKLY", "WEEKLY", "TWICE_PER_MONTH", "MONTHLY"]
           },
           "billRateValue": {
             "type": "number"
@@ -3496,15 +3284,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "name",
-          "code",
-          "is_system",
-          "description",
-          "color"
-        ]
+        "required": ["createdAt", "updatedAt", "name", "code", "is_system", "description", "color"]
       },
       "OrganizationLanguage": {
         "type": "object",
@@ -3630,12 +3410,7 @@
           },
           "category": {
             "type": "string",
-            "enum": [
-              "indicator",
-              "story",
-              "toolset",
-              "xpert"
-            ]
+            "enum": ["indicator", "story", "toolset", "xpert"]
           },
           "label": {
             "type": "object"
@@ -4032,11 +3807,7 @@
           },
           "defaultValueDateType": {
             "type": "string",
-            "enum": [
-              "TODAY",
-              "END_OF_MONTH",
-              "START_OF_MONTH"
-            ]
+            "enum": ["TODAY", "END_OF_MONTH", "START_OF_MONTH"]
           },
           "isActive": {
             "type": "boolean",
@@ -4062,15 +3833,7 @@
           },
           "startWeekOn": {
             "type": "string",
-            "enum": [
-              "MONDAY",
-              "TUESDAY",
-              "WEDNESDAY",
-              "THURSDAY",
-              "FRIDAY",
-              "SATURDAY",
-              "SUNDAY"
-            ]
+            "enum": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
           },
           "taxId": {
             "type": "string",
@@ -4081,21 +3844,11 @@
           },
           "minimumProjectSize": {
             "type": "string",
-            "enum": [
-              "1000+",
-              "5000+",
-              "10000+",
-              "25000+",
-              "50000+",
-              "100000+"
-            ]
+            "enum": ["1000+", "5000+", "10000+", "25000+", "50000+", "100000+"]
           },
           "bonusType": {
             "type": "string",
-            "enum": [
-              "PROFIT_BASED_BONUS",
-              "REVENUE_BASED_BONUS"
-            ]
+            "enum": ["PROFIT_BASED_BONUS", "REVENUE_BASED_BONUS"]
           },
           "bonusPercentage": {
             "type": "number"
@@ -4177,10 +3930,7 @@
           },
           "timeFormat": {
             "type": "number",
-            "enum": [
-              12,
-              24
-            ]
+            "enum": [12, 24]
           },
           "separateInvoiceItemTaxAndDiscount": {
             "type": "boolean"
@@ -4193,10 +3943,7 @@
           },
           "currencyPosition": {
             "type": "string",
-            "enum": [
-              "LEFT",
-              "RIGHT"
-            ]
+            "enum": ["LEFT", "RIGHT"]
           },
           "discountAfterTax": {
             "type": "boolean"
@@ -4218,12 +3965,7 @@
           },
           "preferredLanguage": {
             "type": "string",
-            "enum": [
-              "zh-CN",
-              "zh-Hans",
-              "zh-Hant",
-              "en"
-            ]
+            "enum": ["zh-CN", "zh-Hans", "zh-Hant", "en"]
           },
           "contact": {
             "$ref": "#/components/schemas/Contact"
@@ -4314,17 +4056,10 @@
         "properties": {
           "preferredLanguage": {
             "type": "string",
-            "enum": [
-              "zh-CN",
-              "zh-Hans",
-              "zh-Hant",
-              "en"
-            ]
+            "enum": ["zh-CN", "zh-Hans", "zh-Hant", "en"]
           }
         },
-        "required": [
-          "preferredLanguage"
-        ]
+        "required": ["preferredLanguage"]
       },
       "Object": {
         "type": "object",
@@ -4340,10 +4075,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "hash",
-          "password"
-        ]
+        "required": ["hash", "password"]
       },
       "EmailTemplate": {
         "type": "object",
@@ -4551,9 +4283,7 @@
           },
           "fromAddress": {
             "type": "string",
-            "examples": [
-              "noreply@domain.com"
-            ]
+            "example": "noreply@domain.com"
           },
           "host": {
             "type": "string"
@@ -4604,9 +4334,7 @@
         "properties": {
           "fromAddress": {
             "type": "string",
-            "examples": [
-              "noreply@domain.com"
-            ]
+            "example": "noreply@domain.com"
           },
           "host": {
             "type": "string"
@@ -4631,24 +4359,14 @@
             "type": "string"
           }
         },
-        "required": [
-          "fromAddress",
-          "host",
-          "port",
-          "secure",
-          "isValidate",
-          "username",
-          "password"
-        ]
+        "required": ["fromAddress", "host", "port", "secure", "isValidate", "username", "password"]
       },
       "CreateCustomSmtpDTO": {
         "type": "object",
         "properties": {
           "fromAddress": {
             "type": "string",
-            "examples": [
-              "noreply@domain.com"
-            ]
+            "example": "noreply@domain.com"
           },
           "host": {
             "type": "string"
@@ -4673,15 +4391,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "fromAddress",
-          "host",
-          "port",
-          "secure",
-          "isValidate",
-          "username",
-          "password"
-        ]
+        "required": ["fromAddress", "host", "port", "secure", "isValidate", "username", "password"]
       },
       "Country": {
         "type": "object",
@@ -4712,12 +4422,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "isoCode",
-          "country"
-        ]
+        "required": ["createdAt", "updatedAt", "isoCode", "country"]
       },
       "Currency": {
         "type": "object",
@@ -4748,12 +4453,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "isoCode",
-          "currency"
-        ]
+        "required": ["createdAt", "updatedAt", "isoCode", "currency"]
       },
       "CreateInviteDTO": {
         "type": "object",
@@ -4778,13 +4478,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "emailIds",
-          "roleId",
-          "invitedById",
-          "inviteType",
-          "startedWorkOn"
-        ]
+        "required": ["emailIds", "roleId", "invitedById", "inviteType", "startedWorkOn"]
       },
       "Invite": {
         "type": "object",
@@ -4842,10 +4536,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "INVITED",
-              "ACCEPTED"
-            ]
+            "enum": ["INVITED", "ACCEPTED"]
           },
           "expireDate": {
             "format": "date-time",
@@ -4946,10 +4637,12 @@
             "type": "string"
           },
           "recordedAt": {
-            "type": "timestamptz"
+            "type": "string",
+            "format": "date-time"
           },
           "deletedAt": {
-            "type": "timestamptz"
+            "type": "string",
+            "format": "date-time"
           },
           "size": {
             "type": "number"
@@ -4959,12 +4652,7 @@
           },
           "storageProvider": {
             "type": "string",
-            "enum": [
-              "LOCAL",
-              "S3",
-              "WASABI",
-              "OSS"
-            ]
+            "enum": ["LOCAL", "S3", "WASABI", "OSS"]
           }
         },
         "required": [
@@ -5008,9 +4696,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "where"
-        ]
+        "required": ["where"]
       },
       "CreateKnowledgebaseDTO": {
         "type": "object",
@@ -5029,21 +4715,14 @@
           },
           "permission": {
             "type": "string",
-            "enum": [
-              "private",
-              "organization",
-              "public"
-            ],
+            "enum": ["private", "organization", "public"],
             "example": "organization",
             "description": "Knowledgebase Permission",
             "default": "private"
           },
           "type": {
             "type": "string",
-            "enum": [
-              "standard",
-              "external"
-            ],
+            "enum": ["standard", "external"],
             "example": "standard",
             "description": "Knowledgebase Type",
             "default": "standard"
@@ -5274,18 +4953,11 @@
       },
       "KnowledgebaseTypeEnum": {
         "type": "string",
-        "enum": [
-          "standard",
-          "external"
-        ]
+        "enum": ["standard", "external"]
       },
       "KnowledgeStructureEnum": {
         "type": "string",
-        "enum": [
-          "general",
-          "parent-child",
-          "qa"
-        ]
+        "enum": ["general", "parent-child", "qa"]
       },
       "CopilotProviderModel": {
         "type": "object",
@@ -5586,15 +5258,7 @@
           },
           "modelType": {
             "type": "string",
-            "enum": [
-              "llm",
-              "text-embedding",
-              "rerank",
-              "speech2text",
-              "moderation",
-              "tts",
-              "text2img"
-            ]
+            "enum": ["llm", "text-embedding", "rerank", "speech2text", "moderation", "tts", "text2img"]
           },
           "model": {
             "type": "string"
@@ -5962,14 +5626,7 @@
           },
           "category": {
             "type": "string",
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video",
-              "sheet",
-              "other"
-            ],
+            "enum": ["text", "image", "audio", "video", "sheet", "other"],
             "description": "Category of the document"
           },
           "type": {
@@ -6229,11 +5886,7 @@
           },
           "permission": {
             "type": "string",
-            "enum": [
-              "private",
-              "organization",
-              "public"
-            ]
+            "enum": ["private", "organization", "public"]
           },
           "copilotModel": {
             "$ref": "#/components/schemas/CopilotModel"
@@ -6775,14 +6428,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "running",
-              "success",
-              "error",
-              "pending",
-              "timeout",
-              "interrupted"
-            ]
+            "enum": ["running", "success", "error", "pending", "timeout", "interrupted"]
           },
           "error": {
             "type": "string"
@@ -6969,7 +6615,8 @@
             "type": "object"
           },
           "deletedAt": {
-            "type": "timestamptz"
+            "type": "string",
+            "format": "date-time"
           },
           "conversation": {
             "$ref": "#/components/schemas/ChatConversation"
@@ -7425,11 +7072,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "paused",
-              "archived",
-              "scheduled"
-            ]
+            "enum": ["paused", "archived", "scheduled"]
           },
           "xpert": {
             "$ref": "#/components/schemas/Xpert"
@@ -7443,7 +7086,8 @@
             "readOnly": true
           },
           "deletedAt": {
-            "type": "timestamptz"
+            "type": "string",
+            "format": "date-time"
           },
           "conversations": {
             "type": "array",
@@ -8045,15 +7689,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "DRAFT",
-              "CHANGING",
-              "REVIEW",
-              "APPROVED",
-              "REJECTED",
-              "RELEASED",
-              "ARCHIVED"
-            ]
+            "enum": ["DRAFT", "CHANGING", "REVIEW", "APPROVED", "REJECTED", "RELEASED", "ARCHIVED"]
           },
           "collection": {
             "$ref": "#/components/schemas/Collection"
@@ -8182,10 +7818,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "Progressing",
-              "Archived"
-            ]
+            "enum": ["Progressing", "Archived"]
           },
           "deletedAt": {
             "type": "string",
@@ -8375,10 +8008,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "BASIC",
-              "DERIVE"
-            ]
+            "enum": ["BASIC", "DERIVE"]
           },
           "model": {
             "$ref": "#/components/schemas/SemanticModel"
@@ -8409,12 +8039,7 @@
           },
           "embeddingStatus": {
             "type": "string",
-            "enum": [
-              "processing",
-              "success",
-              "failed",
-              "required"
-            ]
+            "enum": ["processing", "success", "failed", "required"]
           },
           "error": {
             "type": "string"
@@ -8591,11 +8216,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "SEMANTIC_MODEL",
-              "STORY",
-              "INDICATOR"
-            ]
+            "enum": ["SEMANTIC_MODEL", "STORY", "INDICATOR"]
           },
           "name": {
             "type": "string"
@@ -8683,14 +8304,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "tenant",
-          "tenantId",
-          "model",
-          "modelId"
-        ]
+        "required": ["createdAt", "updatedAt", "tenant", "tenantId", "model", "modelId"]
       },
       "Favorite": {
         "type": "object",
@@ -8751,11 +8365,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "SEMANTIC_MODEL",
-              "STORY",
-              "INDICATOR"
-            ]
+            "enum": ["SEMANTIC_MODEL", "STORY", "INDICATOR"]
           },
           "modelId": {
             "type": "string"
@@ -8922,10 +8532,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "XMLA",
-              "SQL"
-            ]
+            "enum": ["XMLA", "SQL"]
           },
           "catalog": {
             "type": "string"
@@ -8938,10 +8545,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "progressing",
-              "archived"
-            ]
+            "enum": ["progressing", "archived"]
           },
           "owner": {
             "$ref": "#/components/schemas/User"
@@ -9127,10 +8731,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "XMLA",
-              "SQL"
-            ]
+            "enum": ["XMLA", "SQL"]
           },
           "catalog": {
             "type": "string"
@@ -9163,16 +8764,7 @@
             }
           }
         },
-        "required": [
-          "type",
-          "catalog",
-          "cube",
-          "ownerId",
-          "dataSourceId",
-          "businessAreaId",
-          "queries",
-          "roles"
-        ]
+        "required": ["type", "catalog", "cube", "ownerId", "dataSourceId", "businessAreaId", "queries", "roles"]
       },
       "UpdateSemanticModelDTO": {
         "type": "object",
@@ -9191,10 +8783,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "XMLA",
-              "SQL"
-            ]
+            "enum": ["XMLA", "SQL"]
           },
           "catalog": {
             "type": "string"
@@ -9227,16 +8816,7 @@
             }
           }
         },
-        "required": [
-          "type",
-          "catalog",
-          "cube",
-          "ownerId",
-          "dataSourceId",
-          "businessAreaId",
-          "queries",
-          "roles"
-        ]
+        "required": ["type", "catalog", "cube", "ownerId", "dataSourceId", "businessAreaId", "queries", "roles"]
       },
       "DataSource": {
         "type": "object",
@@ -9354,12 +8934,7 @@
             "readOnly": true
           }
         },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "tenant",
-          "tenantId"
-        ]
+        "required": ["createdAt", "updatedAt", "tenant", "tenantId"]
       },
       "SemanticModelEntity": {
         "type": "object",
@@ -9415,10 +8990,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "cube",
-              "dimension"
-            ]
+            "enum": ["cube", "dimension"]
           },
           "options": {
             "type": "object"
@@ -9434,11 +9006,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "paused",
-              "archived",
-              "scheduled"
-            ]
+            "enum": ["paused", "archived", "scheduled"]
           },
           "model": {
             "$ref": "#/components/schemas/SemanticModel"
@@ -9554,11 +9122,7 @@
             "readOnly": true
           }
         },
-        "required": [
-          "organization",
-          "organizationId",
-          "name"
-        ]
+        "required": ["organization", "organizationId", "name"]
       },
       "UpdateApprovalPolicyDTO": {
         "type": "object",
@@ -9587,11 +9151,7 @@
             "readOnly": true
           }
         },
-        "required": [
-          "organization",
-          "organizationId",
-          "name"
-        ]
+        "required": ["organization", "organizationId", "name"]
       },
       "PermissionApprovalUser": {
         "type": "object",
@@ -9722,14 +9282,7 @@
           },
           "permissionType": {
             "type": "string",
-            "enum": [
-              "TIME_OFF",
-              "EQUIPMENT_SHARING",
-              "BUSINESS_TRIP",
-              "INDICATOR",
-              "STORY",
-              "BUSINESS_AREA"
-            ]
+            "enum": ["TIME_OFF", "EQUIPMENT_SHARING", "BUSINESS_TRIP", "INDICATOR", "STORY", "BUSINESS_AREA"]
           },
           "approvalPolicy": {
             "$ref": "#/components/schemas/ApprovalPolicy"
@@ -9824,22 +9377,19 @@
             "type": "string"
           },
           "recordedAt": {
-            "type": "timestamptz"
+            "type": "string",
+            "format": "date-time"
           },
           "deletedAt": {
-            "type": "timestamptz"
+            "type": "string",
+            "format": "date-time"
           },
           "size": {
             "type": "number"
           },
           "storageProvider": {
             "type": "string",
-            "enum": [
-              "LOCAL",
-              "S3",
-              "WASABI",
-              "OSS"
-            ]
+            "enum": ["LOCAL", "S3", "WASABI", "OSS"]
           }
         },
         "required": [

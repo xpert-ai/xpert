@@ -1,0 +1,36 @@
+# Icon Schema
+
+建议使用统一 JSON 结构表达多种图标来源（`image`、`svg`、`font`、`emoji`、`lottie`）。
+
+## 推荐结构
+
+```json
+{
+  "icon": {
+    "type": "image",
+    "value": "https://example.com/icon.png",
+    "color": "#000000",
+    "size": 24,
+    "alt": "User avatar",
+    "style": {
+      "borderRadius": "50%",
+      "backgroundColor": "#f0f0f0"
+    }
+  }
+}
+```
+
+## TypeScript 类型
+
+```ts
+type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
+
+interface IconDefinition {
+  type: IconType
+  value: string
+  color?: string
+  size?: number
+  alt?: string
+  style?: Record<string, string>
+}
+```
