@@ -1,22 +1,22 @@
 {
   "name": "@metad/xpert-api",
-  "version": "3.8.0",
+  "version": "3.8.1",
   "description": "Xpert API",
   "license": "AGPL-3.0",
   "homepage": "https://xpertai.cn",
   "repository": {
-		"type": "git",
-		"url": "https://github.com/xpert-ai/xpert.git"
-	},
-	"bugs": {
-		"url": "https://github.com/xpert-ai/xpert/issues"
-	},
+    "type": "git",
+    "url": "https://github.com/xpert-ai/xpert.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xpert-ai/xpert/issues"
+  },
   "private": true,
   "author": {
-		"name": "XpertAI Co. LTD",
-		"email": "service@xpertai.cn",
-		"url": "https://xpertai.cn"
-	},
+    "name": "XpertAI Co. LTD",
+    "email": "service@xpertai.cn",
+    "url": "https://xpertai.cn"
+  },
   "scripts": {
     "ng": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=4096 yarn nx",
     "typeorm": "yarn ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json node_modules/.bin/typeorm",
