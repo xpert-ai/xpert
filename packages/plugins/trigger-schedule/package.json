@@ -1,6 +1,11 @@
 {
   "name": "@xpert-ai/plugin-trigger-schedule",
   "version": "0.0.1",
+  "xpert": {
+    "plugin": {
+      "level": "system"
+    }
+  },
   "main": "./index.cjs",
   "module": "./index.js",
   "dependencies": {},

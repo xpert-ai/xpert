@@ -1,14 +1,14 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In } from 'typeorm';
-import bcrypt from 'bcryptjs';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In } from 'typeorm'
+import bcrypt from 'bcryptjs'
 import { environment as env } from '@metad/server-config'
-import { User } from './user.entity';
-import { TenantAwareCrudService } from './../core/crud';
-import { IUser, LanguagesEnum, PermissionsEnum, RolesEnum } from '@metad/contracts';
-import { RequestContext } from '../core/context';
-import { EmailVerification } from './email-verification/email-verification.entity';
-import { UserPublicDTO } from './dto';
+import { User } from './user.entity'
+import { TenantAwareCrudService } from './../core/crud'
+import { ID, IUser, LanguagesEnum, PermissionsEnum, RolesEnum } from '@metad/contracts'
+import { RequestContext } from '../core/context'
+import { EmailVerification } from './email-verification/email-verification.entity'
+import { UserPublicDTO } from './dto'
 
 @Injectable()
 export class UserService extends TenantAwareCrudService<User> {
@@ -18,51 +18,48 @@ export class UserService extends TenantAwareCrudService<User> {
 		@InjectRepository(EmailVerification)
 		public emailVerificationRepository: Repository<EmailVerification>
 	) {
-		super(userRepository);
+		super(userRepository)
 	}
 
 	async getUserByEmail(email: string): Promise<User> {
-		const user = await this.repository
-			.createQueryBuilder('user')
-			.where('user.email = :email', { email })
-			.getOne();
-		return user;
+		const user = await this.repository.createQueryBuilder('user').where('user.email = :email', { email }).getOne()
+		return user
 	}
 
 	async getUserIdByEmail(email: string): Promise<string> {
-		const user = await this.getUserByEmail(email);
-		const userId = user.id;
-		return userId;
+		const user = await this.getUserByEmail(email)
+		const userId = user.id
+		return userId
 	}
 
 	async getIfExistsUser(user: IUser): Promise<IUser> {
 		let _user: IUser = null
 		if (user.email) {
-			const userExists = await this.findOneOrFailByOptions({where: {email: user.email}})
+			const userExists = await this.findOneOrFailByOptions({ where: { email: user.email } })
 			if (userExists.success) {
 				_user = userExists.record
 			}
 		}
-		
+
 		if (!_user && user.mobile) {
-			const userExists = await this.findOneOrFailByOptions({where: {mobile: user.mobile}})
+			const userExists = await this.findOneOrFailByOptions({ where: { mobile: user.mobile } })
 			if (userExists.success) {
 				_user = userExists.record
 			}
 		}
 		if (!_user && user.thirdPartyId) {
-			const userExists = await this.findOneOrFailByOptions({where: {thirdPartyId: user.thirdPartyId}})
+			const userExists = await this.findOneOrFailByOptions({ where: { thirdPartyId: user.thirdPartyId } })
 			if (userExists.success) {
 				_user = userExists.record
 			}
 		}
 		if (!_user && user.username) {
-			const userExists = await this.findOneOrFailByOptions({where: {username: user.username}})
+			const userExists = await this.findOneOrFailByOptions({ where: { username: user.username } })
 			if (userExists.success) {
 				_user = userExists.record
 			}
 		}
-		
+
 		return _user
 	}
 
@@ -70,24 +67,21 @@ export class UserService extends TenantAwareCrudService<User> {
 		const count = await this.repository
 			.createQueryBuilder('user')
 			.where('user.email = :email', { email })
-			.getCount();
-		return count > 0;
+			.getCount()
+		return count > 0
 	}
 
 	async checkIfExists(id: string): Promise<boolean> {
-		const count = await this.repository
-			.createQueryBuilder('user')
-			.where('user.id = :id', { id })
-			.getCount();
-		return count > 0;
+		const count = await this.repository.createQueryBuilder('user').where('user.id = :id', { id }).getCount()
+		return count > 0
 	}
 
 	async checkIfExistsThirdParty(thirdPartyId: string): Promise<boolean> {
 		const count = await this.repository
 			.createQueryBuilder('user')
 			.where('user.thirdPartyId = :thirdPartyId', { thirdPartyId })
-			.getCount();
-		return count > 0;
+			.getCount()
+		return count > 0
 	}
 
 	async getIfExists(id: string): Promise<User> {
@@ -97,7 +91,7 @@ export class UserService extends TenantAwareCrudService<User> {
 			.leftJoinAndSelect('user.role', 'role')
 			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
 			.leftJoinAndSelect('user.employee', 'employee')
-			.getOne();
+			.getOne()
 	}
 
 	async getIfExistsThirdParty(thirdPartyId: string): Promise<User> {
@@ -107,17 +101,17 @@ export class UserService extends TenantAwareCrudService<User> {
 			.leftJoinAndSelect('user.role', 'role')
 			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
 			.leftJoinAndSelect('user.employee', 'employee')
-			.getOne();
+			.getOne()
 	}
 
 	async createOne(user: User): Promise<InsertResult> {
-		return await this.repository.insert(user);
+		return await this.repository.insert(user)
 	}
 
 	async changePassword(id: string, hash: string) {
-		const user = await this.findOne(id);
-		user.hash = hash;
-		return await this.repository.save(user);
+		const user = await this.findOne(id)
+		user.hash = hash
+		return await this.repository.save(user)
 	}
 
 	async resetPassword(id: string, hash: string, password: string) {
@@ -125,11 +119,11 @@ export class UserService extends TenantAwareCrudService<User> {
 			throw new ForbiddenException()
 		}
 
-		const user = await this.findOne(id, {relations: ['role']});
+		const user = await this.findOne(id, { relations: ['role'] })
 		if (!user) {
-			throw new NotFoundException(`The user was not found`);
+			throw new NotFoundException(`The user was not found`)
 		}
-		
+
 		if (user.hash && !(await bcrypt.compare(hash, user.hash))) {
 			throw new ForbiddenException(`Current password not match`)
 		}
@@ -139,48 +133,76 @@ export class UserService extends TenantAwareCrudService<User> {
 		return await this.repository.save(user)
 	}
 
-	/*
-	 * Update user profile
+	/**
+	 * Updates the profile of a user.
+	 * Ensures the user has the necessary permissions and applies restrictions to role updates.
+	 *
+	 * @param id - The ID of the user to update.
+	 * @param entity - The user entity with updated data.
+	 * @returns The updated user entity.
+	 * @throws ForbiddenException if the user lacks the required permissions or attempts unauthorized updates.
 	 */
-	async updateProfile(
-		id: string | number,
-		partialEntity: User,
-		...options: any[]
-	): Promise<User> {
+	async updateProfile(id: ID | number, entity: User): Promise<IUser> {
+		// Retrieve the current user's role ID from the RequestContext
+		const currentRoleId = RequestContext.currentRoleId()
+		const currentUserId = RequestContext.currentUserId()
 
-		/**
-		 * If user has only own profile edit permission
-		 */
+		// Ensure the user has the appropriate permissions
 		if (
 			RequestContext.hasPermission(PermissionsEnum.PROFILE_EDIT) &&
 			!RequestContext.hasPermission(PermissionsEnum.ORG_USERS_EDIT)
 		) {
-			if (RequestContext.currentUserId() !== id) {
-				throw new ForbiddenException();
+			// Users can only edit their own profile
+			if (currentUserId !== id) {
+				throw new ForbiddenException()
 			}
 		}
+
+		let user: IUser
+
 		try {
-			const user = await this.findOne(id, {relations: ['role']});
-			if (!user) {
-				throw new NotFoundException(`The user was not found`);
+			// Fetch the user by ID if the ID is a string
+			if (typeof id == 'string') {
+				user = await this.findOneByIdString(id, { relations: { role: true } })
 			}
-	
-			/**
-			 * If user try to update Super Admin without permission
-			 */
+
+			// Restrict updates to Super Admin role without appropriate permission
 			if (user.role.name === RolesEnum.SUPER_ADMIN) {
 				if (!RequestContext.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT)) {
-					throw new ForbiddenException();
+					throw new ForbiddenException()
 				}
 			}
 
-			if (partialEntity['hash']) {
-				partialEntity['hash'] = await this.getPasswordHash(partialEntity['hash']);
+			// Restrict updates to Super Admin role without appropriate permission
+			if (user.role.name === RolesEnum.SUPER_ADMIN) {
+				if (!RequestContext.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT)) {
+					throw new ForbiddenException()
+				}
 			}
 
-			return await this.repository.save(partialEntity);
-		} catch (err) {
-			throw new NotFoundException(`The record was not found`, err);
+			// Restrict users from updating their own role
+
+			if (currentUserId === id) {
+				if (entity.role && entity.role.id !== currentRoleId) {
+					throw new ForbiddenException()
+				}
+			}
+
+			// Update password hash if provided
+			if (entity['hash']) {
+				entity['hash'] = await this.getPasswordHash(entity['hash'])
+			}
+
+			// Save the updated user entity
+			await this.save(entity)
+
+			// Return the updated user
+			return await this.findOneByWhereOptions({
+				id: id as string,
+				tenantId: RequestContext.currentTenantId()
+			})
+		} catch (error) {
+			throw new ForbiddenException()
 		}
 	}
 
@@ -190,33 +212,30 @@ export class UserService extends TenantAwareCrudService<User> {
 				alias: 'user',
 				leftJoin: {
 					role: 'user.role'
-				},
+				}
 			},
 			where: {
 				tenantId,
 				role: {
 					name: In([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])
 				}
-			},
-		});	
+			}
+		})
 	}
 
 	/*
 	 * Update user preferred language
 	 */
-	async updatePreferredLanguage(
-		id: string | number,
-		preferredLanguage: LanguagesEnum
-	): Promise<IUser> {
+	async updatePreferredLanguage(id: string | number, preferredLanguage: LanguagesEnum): Promise<IUser> {
 		try {
-			const user = await this.findOne(id);
+			const user = await this.findOne(id)
 			if (!user) {
-				throw new NotFoundException(`The user was not found`);
+				throw new NotFoundException(`The user was not found`)
 			}
-			user.preferredLanguage = preferredLanguage;
-			return await this.repository.save(user);
+			user.preferredLanguage = preferredLanguage
+			return await this.repository.save(user)
 		} catch (err) {
-			throw new NotFoundException(`The record was not found`, err);
+			throw new NotFoundException(`The record was not found`, err)
 		}
 	}
 
@@ -226,14 +245,11 @@ export class UserService extends TenantAwareCrudService<User> {
 			relations: ['user']
 		})
 
-		if (
-			emailVerification !== null
-			&& emailVerification.validUntil > new Date()
-		) {
-			await this.update(emailVerification.userId, {emailVerified: true})
+		if (emailVerification !== null && emailVerification.validUntil > new Date()) {
+			await this.update(emailVerification.userId, { emailVerified: true })
 		} else {
-			Logger.log(`Verify email called with invalid email token ${token}`);
-			throw new NotFoundException();
+			Logger.log(`Verify email called with invalid email token ${token}`)
+			throw new NotFoundException()
 		}
 	}
 
@@ -247,7 +263,7 @@ export class UserService extends TenantAwareCrudService<User> {
 		const condition = Like(`%${text.split('%').join('')}%`)
 
 		if (RequestContext.hasRole(RolesEnum.TRIAL)) {
-			return this.findAll({ where: {id: userId} }).then((result) => ({
+			return this.findAll({ where: { id: userId } }).then((result) => ({
 				...result,
 				items: result.items.map((item) => new UserPublicDTO(item))
 			}))
@@ -256,28 +272,35 @@ export class UserService extends TenantAwareCrudService<User> {
 				.createQueryBuilder('user')
 				.leftJoinAndSelect('user.organizations', 'organizations')
 				.leftJoinAndSelect('organizations.organization', 'organization')
-				.where(new Brackets((qb: WhereExpressionBuilder) => { 
-					qb.orWhere('user.email LIKE :searchText')
-					qb.orWhere('user.username LIKE :searchText')
-					qb.orWhere('user.firstName LIKE :searchText')
-					qb.orWhere('user.lastName LIKE :searchText')
-				}), { searchText: `%${text.split('%').join('')}%` })
+				.where(
+					new Brackets((qb: WhereExpressionBuilder) => {
+						qb.orWhere('user.email LIKE :searchText')
+						qb.orWhere('user.username LIKE :searchText')
+						qb.orWhere('user.firstName LIKE :searchText')
+						qb.orWhere('user.lastName LIKE :searchText')
+					}),
+					{ searchText: `%${text.split('%').join('')}%` }
+				)
 				.andWhere('user.tenantId = :tenantId', { tenantId })
 				.andWhere('organization.id = :organizationId', { organizationId })
-			
+
 			return query.getManyAndCount().then(([items, total]) => ({
 				total,
 				items: items.map((item) => new UserPublicDTO(item))
 			}))
 		}
 
-		const where: any[] = [{
-			email: condition
-		}, {
-			firstName: condition
-		}, {
-			lastName: condition
-		}]
+		const where: any[] = [
+			{
+				email: condition
+			},
+			{
+				firstName: condition
+			},
+			{
+				lastName: condition
+			}
+		]
 		return this.findAll({ where }).then((result) => ({
 			...result,
 			items: result.items.map((item) => new UserPublicDTO(item))
@@ -285,6 +308,6 @@ export class UserService extends TenantAwareCrudService<User> {
 	}
 
 	private async getPasswordHash(password: string): Promise<string> {
-		return bcrypt.hash(password, env.USER_PASSWORD_BCRYPT_SALT_ROUNDS);
+		return bcrypt.hash(password, env.USER_PASSWORD_BCRYPT_SALT_ROUNDS)
 	}
 }

@@ -37,6 +37,7 @@ import {
   XpertParameterTypeEnum,
   TSelectOption,
   TXpertTeamNode,
+  WorkflowNodeTypeEnum,
   CopilotServerService
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
@@ -122,6 +123,20 @@ export class XpertStudioPanelAgentComponent {
   readonly key = input<string>()
   readonly nodes = computed(() => this.apiService.viewModel()?.nodes)
   readonly node = computed(() => this.nodes()?.find((_) => _.key === this.key()))
+  readonly parentInputs = computed(
+    () => {
+      const parentId = this.node()?.parentId
+      if (!parentId) {
+        return undefined
+      }
+      const parent = this.nodes()?.find((node) => node.key === parentId)
+      if (parent?.type === 'workflow') {
+        return [parent.key]
+      }
+      return undefined
+    },
+    { equal: isEqual }
+  )
   readonly xpertAgent = computed(() => this.node()?.entity as IXpertAgent)
   readonly promptInputElement = viewChild('editablePrompt', { read: ElementRef<HTMLDivElement> })
 
@@ -313,6 +328,7 @@ export class XpertStudioPanelAgentComponent {
     agentKey: this.key(),
     environmentId: this.apiService.environmentId(),
     connections: this.connections(),
+    inputs: this.parentInputs(),
   }))
 
   readonly #variables = myRxResource({
@@ -321,6 +337,7 @@ export class XpertStudioPanelAgentComponent {
       agentKey: this.key(),
       environmentId: this.apiService.environmentId(),
       connections: this.connections(),
+      inputs: this.parentInputs(),
     } as TXpertVariablesOptions),
       loader: ({ request }) => {
         return request ? this.xpertAPI.getNodeVariables(request) : of(null)
@@ -401,6 +418,7 @@ export class XpertStudioPanelAgentComponent {
       },
       { allowSignalWrites: true }
     )
+
 
   }
 

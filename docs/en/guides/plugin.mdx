@@ -1,0 +1,19 @@
+# Plugins
+
+## Add plugins during development
+
+When adding plugins in development, make sure all three places are updated:
+
+- Add the plugin to the built-in `preBootstrapPlugins` list.
+- Add the plugin package to `apps/api/package.json` dependencies.
+- Add the plugin package to `.deploy/api/package-prod.json` dependencies.
+
+## Add plugins during deployment
+
+For deployment-time plugin injection, set the `PLUGINS` environment variable.
+
+- Use a comma-separated list when there are multiple plugins.
+
+## Related guide
+
+- See [Agent Middleware](/en/guides/agent-middleware) for middleware strategy registration and wiring.

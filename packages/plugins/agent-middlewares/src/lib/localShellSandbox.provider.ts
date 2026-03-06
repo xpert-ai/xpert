@@ -135,11 +135,21 @@ export class LocalShellSandbox extends BaseSandbox {
    * Captures both stdout and stderr, respects timeout.
    */
   async execute(command: string): Promise<ExecuteResponse> {
+    return this.runCommand(command);
+  }
+
+  override async streamExecute(command: string, onLine: (line: string) => void): Promise<ExecuteResponse> {
+    return this.runCommand(command, onLine);
+  }
+
+  private runCommand(command: string, onChunk?: (line: string) => void): Promise<ExecuteResponse> {
     return new Promise((resolve) => {
       const chunks: string[] = [];
       let truncated = false;
       const maxOutputBytes = 1024 * 1024; // 1MB output limit
       let totalBytes = 0;
+      let lineBuffer = "";
+      let settled = false;
 
       const child = cp.spawn("/bin/bash", ["-c", command], {
         cwd: this.workingDirectory,
@@ -155,6 +165,28 @@ export class LocalShellSandbox extends BaseSandbox {
         } else {
           truncated = true;
         }
+
+        if (onChunk) {
+          lineBuffer += str.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+          const lines = lineBuffer.split("\n");
+          lineBuffer = lines.pop() ?? "";
+          for (const line of lines) {
+            onChunk(line);
+          }
+        }
+      };
+
+      const finalize = (response: ExecuteResponse) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        if (onChunk && lineBuffer) {
+          onChunk(lineBuffer);
+          lineBuffer = "";
+        }
+        resolve(response);
       };
 
       child.stdout.on("data", collectOutput);
@@ -163,7 +195,7 @@ export class LocalShellSandbox extends BaseSandbox {
       // Handle timeout
       const timer = setTimeout(() => {
         child.kill("SIGTERM");
-        resolve({
+        finalize({
           output: chunks.join("") + "\n[Command timed out]",
           exitCode: null,
           truncated,
@@ -171,8 +203,7 @@ export class LocalShellSandbox extends BaseSandbox {
       }, this.timeout);
 
       child.on("close", (exitCode) => {
-        clearTimeout(timer);
-        resolve({
+        finalize({
           output: chunks.join(""),
           exitCode,
           truncated,
@@ -180,8 +211,7 @@ export class LocalShellSandbox extends BaseSandbox {
       });
 
       child.on("error", (err) => {
-        clearTimeout(timer);
-        resolve({
+        finalize({
           output: `Error spawning process: ${err.message}`,
           exitCode: 1,
           truncated: false,

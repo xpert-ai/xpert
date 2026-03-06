@@ -2,8 +2,9 @@
   <div class="flex h-full flex-col px-14">
     <div class="relative flex flex-col gap-y-0.5 pb-2 pt-4">
       <div class="flex items-center gap-x-2">
-        <span class="text-xs font-semibold uppercase bg-gradient-to-br from-[rgba(11,165,236,0.95)] to-[rgba(21,90,239,0.95)] bg-clip-text text-transparent"
-          >{{ 'PAC.Knowledgebase.AddDocuments' | translate: {Default: 'Add Documents'} }}</span
+        <span
+          class="text-xs font-semibold uppercase bg-gradient-to-br from-[rgba(11,165,236,0.95)] to-[rgba(21,90,239,0.95)] bg-clip-text text-transparent"
+          >{{ 'PAC.Knowledgebase.AddDocuments' | translate: { Default: 'Add Documents' } }}</span
         ><span class="system-2xs-regular text-divider-regular">/</span>
         <div class="flex gap-x-1">
           <div class="h-1 rounded-lg w-2 bg-primary-600"></div>
@@ -11,7 +12,9 @@
           <div class="h-1 w-1 rounded-lg bg-divider-deep"></div>
         </div>
       </div>
-      <div class="system-md-semibold text-text-primary">{{ 'PAC.Knowledgebase.ChooseADataSource' | translate: {Default: 'Choose a Data Source'} }}</div>
+      <div class="system-md-semibold text-text-primary">
+        {{ 'PAC.Knowledgebase.ChooseADataSource' | translate: { Default: 'Choose a Data Source' } }}
+      </div>
       <a [routerLink]="['../']" class="cursor-pointer">
         <button
           type="button"
@@ -26,21 +29,40 @@
       <div class="flex flex-col gap-y-5 pt-4">
         <div class="grid w-full grid-cols-4 gap-1">
           @for (item of sourceStrategies(); track item.source.key) {
-            <div class="flex cursor-pointer items-center gap-2 rounded-xl border p-3 shadow-sm
-              border-gray-100 bg-components-card-bg ring-[0.5px] ring-inset ring-gray-50 hover:border-gray-200"
+            <div
+              class="flex cursor-pointer items-center gap-2 rounded-xl border p-3 shadow-sm bg-components-card-bg ring-[0.5px] ring-inset hover:border-gray-200"
+              [class.border-gray-100]="item.strategy"
+              [class.ring-gray-50]="item.strategy"
+              [class.border-yellow-400]="!item.strategy"
+              [class.ring-yellow-400]="!item.strategy"
               [class.!border-primary-600]="selectedSource() && selectedSource().key === item.source.key"
               [class.!ring-primary-600]="selectedSource() && selectedSource().key === item.source.key"
-              (click)="selectedSource.set(item.source)">
-              <div
-                class="flex size-8 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-components-panel-border bg-background-default-dodge p-1.5"
-              >
-                <div class="flex items-center justify-center size-6 rounded-md shadow-xs">
-                  <xp-icon class="contents" [icon]="item.strategy.meta.icon" />
+              (click)="selectedSource.set(item.source)"
+            >
+              @if (item.strategy) {
+                <div
+                  class="flex size-8 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-components-panel-border bg-background-default-dodge p-1.5"
+                >
+                  <div class="flex items-center justify-center size-6 rounded-md shadow-xs">
+                    <xp-icon class="contents" [icon]="item.strategy.meta.icon" />
+                  </div>
                 </div>
-              </div>
-              <div class="system-sm-medium truncate grow text-text-primary" [title]="item.strategy.meta.label | i18n">
-                {{ item.strategy.meta.label | i18n }}
-              </div>
+                <div class="system-sm-medium truncate grow text-text-primary" [title]="item.strategy.meta.label | i18n">
+                  {{ item.strategy.meta.label | i18n }}
+                </div>
+              } @else {
+                <div
+                  class="system-sm-medium truncate grow text-text-tertiary italic"
+                  matTooltip="{{
+                    item.source.entity.provider +
+                      ' ' +
+                      ('PAC.Knowledgebase.PluginNotFound' | translate: { Default: 'plugin not found' })
+                  }}"
+                >
+                  {{ item.source.entity.provider }}
+                  {{ 'PAC.Knowledgebase.PluginNotFound' | translate: { Default: 'plugin not found' } }}
+                </div>
+              }
             </div>
           }
         </div>
@@ -49,15 +71,18 @@
             @if (integration(); as integration) {
               <div class="flex items-center gap-x-1 overflow-hidden">
                 <div class="grow overflow-hidden">
-                  <div class="flex cursor-pointer items-center gap-x-2 rounded-md p-1 pr-2 hover:bg-state-base-hover"
-                    >
+                  <div class="flex cursor-pointer items-center gap-x-2 rounded-md p-1 pr-2 hover:bg-state-base-hover">
                     <div class="flex grow items-center gap-x-1 overflow-hidden">
                       @if (selectedIntegration(); as selectedIntegration) {
-                        <span class="system-md-semibold grow truncate text-text-secondary">{{selectedIntegration.label | i18n}}</span>
+                        <span class="system-md-semibold grow truncate text-text-secondary">{{
+                          selectedIntegration.label | i18n
+                        }}</span>
                       } @else {
-                        <span class="system-md-semibold grow truncate text-text-secondary">{{integration.service}}</span>
+                        <span class="system-md-semibold grow truncate text-text-secondary">{{
+                          integration.service
+                        }}</span>
                       }
-                      
+
                       <!-- <i class="ri-arrow-down-s-line"></i> -->
                     </div>
                   </div>
@@ -65,10 +90,7 @@
                 <div class="w-[1px] bg-divider-regular mx-1 h-3.5 shrink-0"></div>
                 @if (selectedIntegration(); as selectedIntegration) {
                   <a [routerLink]="['/settings/integration', selectedIntegration.value]" class="cursor-pointer">
-                    <button
-                      type="button"
-                      class="btn disabled:btn-disabled btn-ghost btn-small size-6 shrink-0 px-1"
-                    >
+                    <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small size-6 shrink-0 px-1">
                       <i class="ri-equalizer-2-line"></i>
                     </button>
                   </a>
@@ -76,36 +98,46 @@
               </div>
 
               @if (selectedStrategy()?.meta.helpUrl; as url) {
-                <a [href]="url"
+                <a
+                  [href]="url"
                   class="system-xs-medium flex shrink-0 items-center gap-x-1 text-text-accent"
                   target="_blank"
                   rel="noopener noreferrer"
-                  >
+                >
                   <i class="ri-book-open-line"></i>
-                  {{ 'PAC.KEY_WORDS.Help' | translate: {Default: 'Help'} }}
+                  {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
                 </a>
               }
             }
           </div>
           @if (providerCategory(); as category) {
             @if (category === eDocumentSourceProviderCategoryEnum.LocalFile) {
-              <xp-knowledge-local-file class="w-full" [knowledgebaseId]="knowledgebaseId()"
+              <xp-knowledge-local-file
+                class="w-full"
+                [knowledgebaseId]="knowledgebaseId()"
                 [parentId]="parentId()"
-                [(files)]="files" 
+                [(files)]="files"
                 [(selected)]="selectedFile"
                 [accepts]="fileExtensions()"
               />
             } @else {
-              <div class="w-full mt-2 rounded-xl border border-components-panel-border bg-background-default-subtle ng-star-inserted">
+              <div
+                class="w-full mt-2 rounded-xl border border-components-panel-border bg-background-default-subtle ng-star-inserted"
+              >
                 <div class="flex items-center gap-x-1 px-4 py-2">
                   <div class="flex grow cursor-pointer select-none items-center gap-x-0.5">
-                    <span class="system-sm-semibold-uppercase text-text-secondary">{{ 'PAC.KEY_WORDS.Options' | translate: {Default: 'Options'} }}</span>
+                    <span class="system-sm-semibold-uppercase text-text-secondary">{{
+                      'PAC.KEY_WORDS.Options' | translate: { Default: 'Options' }
+                    }}</span>
                     <i class="ri-arrow-down-s-fill shrink-0 text-text-quaternary"></i>
                   </div>
-                  <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 gap-x-0.5"
-                    (click)="runStep()">
+                  <button
+                    type="button"
+                    class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 gap-x-0.5"
+                    (click)="runStep()"
+                  >
                     <i class="ri-play-line"></i>
-                    <span class="px-0.5">{{ 'PAC.ACTIONS.Run' | translate: {Default: 'Run'} }}</span>
+                    <span class="px-0.5">{{ 'PAC.ACTIONS.Run' | translate: { Default: 'Run' } }}</span>
                   </button>
                 </div>
                 <div class="flex flex-col gap-1 border-t border-divider-subtle px-4 py-3">
@@ -116,8 +148,11 @@
                     <bullet-list-content-loader></bullet-list-content-loader>
                   } @else if (error()) {
                     <div class="px-2 border border-solid border-divider-regular rounded-xl">
-                      <div class="py-2 text-text-destructive">{{ 'PAC.KEY_WORDS.Error' | translate: {Default: 'Error'} }}</div>
-                      <markdown class="ngm-copilot-markdown block overflow-x-hidden text-sm text-zinc-500"
+                      <div class="py-2 text-text-destructive">
+                        {{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Error' } }}
+                      </div>
+                      <markdown
+                        class="ngm-copilot-markdown block overflow-x-hidden text-sm text-zinc-500"
                         [disableSanitizer]="true"
                         lineNumbers
                         [start]="5"
@@ -126,9 +161,12 @@
                     </div>
                   } @else if (documents()) {
                     @for (doc of documents(); track doc.id) {
-                      <div class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover"
-                        (click)="selectedDocument.set(doc)">
-                        <ngm-checkbox class="shrink-0"
+                      <div
+                        class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover"
+                        (click)="selectedDocument.set(doc)"
+                      >
+                        <ngm-checkbox
+                          class="shrink-0"
                           [ngModel]="documentIds.isSelected(doc.id)"
                           (ngModelChange)="documentIds.toggle(doc.id)"
                         />
@@ -143,7 +181,7 @@
                       </div>
                     } @empty {
                       <div class="py-4 text-center text-text-tertiary">
-                        {{ 'PAC.Knowledgebase.NoPagesFetched' | translate: {Default: 'No pages fetched'} }}
+                        {{ 'PAC.Knowledgebase.NoPagesFetched' | translate: { Default: 'No pages fetched' } }}
                       </div>
                     }
                   }
@@ -152,7 +190,7 @@
             }
           } @else {
             <div class="p-4 text-text-tertiary">
-              {{ 'PAC.Knowledgebase.PleaseSelectADataSource' | translate: {Default: 'Please select a data source'} }}
+              {{ 'PAC.Knowledgebase.PleaseSelectADataSource' | translate: { Default: 'Please select a data source' } }}
             </div>
           }
         </div>
@@ -160,13 +198,16 @@
           <div class="flex grow items-center justify-end gap-x-2">
             <a [routerLink]="['../']" class="cursor-pointer">
               <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium px-3 py-2">
-                {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
+                {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
               </button>
             </a>
-            <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium gap-x-0.5"
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-primary btn-medium gap-x-0.5"
               [disabled]="!selectedSource() || !taskId() || testing()"
-              (click)="nextStep()">
-              <span class="px-0.5">{{ 'PAC.KEY_WORDS.Next' | translate: {Default: 'Next'} }}</span>
+              (click)="nextStep()"
+            >
+              <span class="px-0.5">{{ 'PAC.KEY_WORDS.Next' | translate: { Default: 'Next' } }}</span>
               <i class="ri-arrow-right-line"></i>
             </button>
           </div>
@@ -186,11 +227,15 @@
     @case (eDocumentSourceProviderCategoryEnum.WebCrawl) {
       <div class="flex h-full flex-col pl-2 pt-2">
         @if (selectedDocument(); as doc) {
-          <div class="flex h-full w-full flex-col rounded-t-xl border-l border-t border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5">
+          <div
+            class="flex h-full w-full flex-col rounded-t-xl border-l border-t border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5"
+          >
             <div class="flex gap-x-2 border-b border-divider-subtle pb-3 pl-6 pr-4 pt-4">
               <div class="flex grow flex-col gap-y-1">
-                <div class="system-2xs-semibold-uppercase text-text-accent">{{ 'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'} }}</div>
-                <div class="title-md-semi-bold text-tex-primary">{{doc.metadata.title}}</div>
+                <div class="system-2xs-semibold-uppercase text-text-accent">
+                  {{ 'PAC.KEY_WORDS.Preview' | translate: { Default: 'Preview' } }}
+                </div>
+                <div class="title-md-semi-bold text-tex-primary">{{ doc.metadata.title }}</div>
                 <div class="system-xs-medium flex items-center gap-x-1 text-text-tertiary">
                   <svg
                     viewBox="0 0 24 24"
@@ -206,12 +251,17 @@
                   </svg>
 
                   <p class="text-xs text-gray-500">
-                    <span class="truncate">{{ doc.metadata.source || 'WEB PAGE' }}</span> · {{ doc.metadata.characters || 0}} {{ 'PAC.KEY_WORDS.Characters' | translate: {Default: 'Characters'} }}
+                    <span class="truncate">{{ doc.metadata.source || 'WEB PAGE' }}</span> ·
+                    {{ doc.metadata.characters || 0 }}
+                    {{ 'PAC.KEY_WORDS.Characters' | translate: { Default: 'Characters' } }}
                   </p>
                 </div>
               </div>
-              <button type="button" class="btn btn-action flex h-8 w-8 shrink-0 items-center justify-center"
-                (click)="selectedDocument.set(null)">
+              <button
+                type="button"
+                class="btn btn-action flex h-8 w-8 shrink-0 items-center justify-center"
+                (click)="selectedDocument.set(null)"
+              >
                 <i class="ri-close-line"></i>
               </button>
             </div>

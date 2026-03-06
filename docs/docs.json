@@ -8,26 +8,83 @@
     "dark": "#15803D"
   },
   "favicon": "/images/logo.svg",
+  "logo": {
+    "light": "/images/logo.svg",
+    "dark": "/images/logo.svg"
+  },
   "navigation": {
-    "tabs": [
+    "languages": [
       {
-        "tab": "Plugin",
-        "groups": [
+        "language": "en",
+        "default": true,
+        "tabs": [
           {
-            "group": "Index",
-            "pages": [
-              "plugin/index"
+            "tab": "Guides",
+            "groups": [
+              {
+                "group": "Start Here",
+                "pages": ["en/index"]
+              },
+              {
+                "group": "Guides",
+                "pages": [
+                  "en/guides/plugin",
+                  "en/guides/agent-middleware",
+                  "en/guides/handoff",
+                  "en/guides/icon-schema",
+                  "en/guides/release",
+                  "en/guides/message-assembly-v2"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "OpenAPI",
+            "groups": [
+              {
+                "group": "AI",
+                "openapi": {
+                  "source": "/api/openapi.ai.json",
+                  "directory": "en/api-reference"
+                }
+              }
             ]
           }
         ]
       },
       {
-        "tab": "Guides",
-        "groups": [
+        "language": "zh-Hans",
+        "tabs": [
           {
-            "group": "Getting started",
-            "pages": [
-              "index"
+            "tab": "指南",
+            "groups": [
+              {
+                "group": "开始",
+                "pages": ["zh-hans/index"]
+              },
+              {
+                "group": "指南",
+                "pages": [
+                  "zh-hans/guides/plugin",
+                  "zh-hans/guides/agent-middleware",
+                  "zh-hans/guides/handoff",
+                  "zh-hans/guides/icon-schema",
+                  "zh-hans/guides/release",
+                  "zh-hans/guides/message-assembly-v2"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "OpenAPI",
+            "groups": [
+              {
+                "group": "AI",
+                "openapi": {
+                  "source": "/api/openapi.ai.json",
+                  "directory": "zh-hans/api-reference"
+                }
+              }
             ]
           }
         ]
@@ -36,52 +93,27 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "GitHub",
+          "href": "https://github.com/xpert-ai/xpert",
+          "icon": "github"
         }
       ]
     }
   },
-  "logo": {
-    "light": "/images/logo-light.svg",
-    "dark": "/images/logo-dark.svg"
-  },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "GitHub",
+        "href": "https://github.com/xpert-ai/xpert"
       }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
+    ]
   },
   "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+    "options": ["copy", "view", "chatgpt", "claude", "perplexity", "mcp", "cursor", "vscode"]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/xpert-ai/xpert"
     }
   }
 }

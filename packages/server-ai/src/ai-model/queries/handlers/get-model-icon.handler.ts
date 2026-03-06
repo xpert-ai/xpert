@@ -3,6 +3,7 @@ import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { existsSync, readFileSync } from 'fs'
 import * as mime from 'mime-types'
 import * as path from 'path'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AIProvidersService } from '../../ai-model.service'
 import { AIModelGetIconQuery } from '../get-model-icon.query'
 
@@ -14,9 +15,13 @@ export class AIModelGetIconHandler implements IQueryHandler<AIModelGetIconQuery>
 	) {}
 
 	public async execute(command: AIModelGetIconQuery): Promise<[Buffer, string]> {
-		const { provider, iconType, lang } = command
+		const { provider, iconType, lang, organizationId } = command
+		const resolvedOrganizationId = organizationId ?? RequestContext.getOrganizationId()
 
-		const modelProvider = this.service.getProvider(provider)
+		const modelProvider = this.service.getProvider(provider, false, resolvedOrganizationId)
+		if (!modelProvider) {
+			throw new NotFoundException(`Provider ${provider} is not found.`)
+		}
 		const providerSchema = modelProvider.getProviderSchema()
 
 		let fileName: string

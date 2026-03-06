@@ -42,6 +42,12 @@
       "Conversation": "Conversation",
       "SecretKey": "Key"
     },
+    "Common": {
+      "Tools": "Tools",
+      "Loading": "Loading...",
+      "Enabled": "Enabled",
+      "NoTools": "No tools"
+    },
     "MENU": {
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
@@ -374,8 +380,7 @@
   "STORY_DESIGNER": {
     "BUILDER_TITLE": "Builder",
     "STYLING_TITLE": "Styling",
-    "BUILDER": {
-    },
+    "BUILDER": {},
     "STYLING": {
       "ECHARTS": {
         "XAXIS_STYLE": {

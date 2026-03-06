@@ -1,6 +1,11 @@
 {
   "name": "@xpert-ai/plugin-vstore-weaviate",
   "version": "0.0.1",
+  "xpert": {
+    "plugin": {
+      "level": "organization"
+    }
+  },
   "dependencies": {},
   "main": "./index.cjs",
   "module": "./index.js"

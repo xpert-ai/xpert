@@ -1,0 +1,27 @@
+# Handoff Pipeline
+
+`handoff` is the async message pipeline in `server-ai` for decoupled execution between agents, plugins, and channels.
+
+## Main components
+
+- `HandoffQueueService`: enqueue and enqueue-and-wait APIs.
+- `HandoffQueueProcessor`: queue consumer.
+- `MessageDispatcherService`: envelope validation and dispatch by `type`.
+- `HandoffProcessorRegistry`: processor lookup and registration.
+- `ExecutionQueueService` + `RunRegistryService`: cancellation, timeout, and in-flight tracking.
+
+## Processing semantics
+
+- `ok`: execution succeeded; can continue with outbound messages.
+- `retry`: re-enqueue until `maxAttempts` is reached.
+- `dead`: write dead-letter record and stop retrying.
+
+## Envelope essentials
+
+A `HandoffMessage` should include at least:
+
+- `id`, `type`, `version`
+- `tenantId`, `sessionKey`
+- `businessKey`, `traceId`
+- `attempt`, `maxAttempts`, `enqueuedAt`
+- `payload`

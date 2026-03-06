@@ -12,6 +12,7 @@ import { NgxFloatUiModule, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { injectXpertAgentAPI, IWFNMiddleware, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 import { XpertExecutionService } from '../../../services/execution.service'
+import { map } from 'rxjs/operators'
 
 @Component({
   selector: 'xpert-workflow-node-middleware',
@@ -19,12 +20,21 @@ import { XpertExecutionService } from '../../../services/execution.service'
   styleUrls: ['./middleware.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, NgxFloatUiModule, NgxJsonViewerModule, NgmI18nPipe, NgmSpinComponent, IconComponent]
+  imports: [
+    FFlowModule,
+    MatTooltipModule,
+    TranslateModule,
+    NgxFloatUiModule,
+    NgxJsonViewerModule,
+    NgmI18nPipe,
+    NgmSpinComponent,
+    IconComponent
+  ]
 })
 export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eNgxFloatUiTriggers = NgxFloatUiTriggers
-  
+
   readonly agentAPI = injectXpertAgentAPI()
   readonly executionService = inject(XpertExecutionService)
 
@@ -55,30 +65,54 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
 
   readonly providerMeta = computed(() => this.agentMiddlewares()?.find((m) => m.meta?.name === this.provider())?.meta)
   readonly #providerName = computed(() => this.providerMeta()?.name)
-  readonly #options = computed(() => this.middlewareEntity()?.options ?? {}, {equal: isEqual})
+  readonly #options = computed(() => this.middlewareEntity()?.options ?? {}, { equal: isEqual })
   readonly #toolsRes = myRxResource({
-    options: {debounceTime: 500},
+    options: { debounceTime: 500 },
     request: () => ({
       provider: this.#providerName(),
-      options: this.#options(),
+      options: this.#options()
     }),
-    loader: ({request}) => {
-      return request.provider ?
-        this.agentAPI.getAgentMiddlewareTools(request.provider, request.options) :
-        null
+    loader: ({ request }) => {
+      return request.provider
+        ? this.agentAPI.getAgentMiddleware(request.provider, request.options).pipe(map((res) => res.tools))
+        : null
     }
   })
   readonly loading = computed(() => this.#toolsRes.status() === 'loading')
   readonly error = this.#toolsRes.error
 
-  readonly toolMessages = computed(() => this.executionService.toolMessages(), {equal: isEqual})
+  readonly toolMessages = computed(() => this.executionService.toolMessages(), { equal: isEqual })
   readonly tools = computed(() => {
-    const tools = this.#toolsRes.value()
-    const executions = this.toolMessages()
-    return tools?.map((tool) => ({
-      ...tool,
-      executions: executions?.map((_) => _.data).filter((e) => e.toolset === this.provider() && e.tool === tool.name),
-    }))
+    const tools = this.#toolsRes.value() ?? []
+    const provider = this.provider()
+    const executions =
+      this.toolMessages()
+        ?.map((_) => _.data)
+        .filter((e) => e.toolset === provider) ?? []
+    const toolMap = new Map<string, { name: string; description?: string; schema?: unknown; executions: any[] }>()
+
+    tools.forEach((tool) => {
+      toolMap.set(tool.name, {
+        ...tool,
+        executions: []
+      })
+    })
+
+    executions.forEach((execution) => {
+      const name = execution.tool || 'compression'
+      if (!toolMap.has(name)) {
+        toolMap.set(name, {
+          name,
+          executions: []
+        })
+      }
+      const toolEntry = toolMap.get(name)
+      if (toolEntry) {
+        toolEntry.executions.push(execution)
+      }
+    })
+
+    return Array.from(toolMap.values())
   })
 
   readonly notFound = computed(() => !this.#providerName() && !!this.provider())

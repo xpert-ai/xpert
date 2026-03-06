@@ -68,10 +68,11 @@ export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent
       options: this.options() ?? {}
     }),
     loader: ({ request }) => {
-      return request.provider ? this.agentAPI.getAgentMiddlewareTools(request.provider, request.options) : null
+      return request.provider ? this.agentAPI.getAgentMiddleware(request.provider, request.options) : null
     }
   })
-  readonly middlewareTools = computed(() => this.#middlewareToolsRes.value() ?? [])
+  readonly stateSchema = computed(() => this.#middlewareToolsRes.value()?.stateSchema)
+  readonly middlewareTools = computed(() => this.#middlewareToolsRes.value()?.tools ?? [])
   readonly middlewareToolItems = computed(() =>
     this.middlewareTools().map((tool) => ({
       ...tool,

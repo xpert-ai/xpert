@@ -1,4 +1,10 @@
-import { IWFNMiddleware, STATE_VARIABLE_HUMAN, TChatAgentParams, TChatOptions, WorkflowNodeTypeEnum } from '@metad/contracts'
+import {
+	IWFNMiddleware,
+	STATE_VARIABLE_HUMAN,
+	TChatAgentParams,
+	TChatOptions,
+	WorkflowNodeTypeEnum
+} from '@metad/contracts'
 import { TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -40,18 +46,23 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 			new FindXpertQuery({ id: xpertId }, { relations: ['agent'], isDraft: true })
 		)
 		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
-			new XpertAgentChatCommand({ [STATE_VARIABLE_HUMAN]: params.input, ...(params.state ?? {}) }, params.agentKey, xpert, {
-				...options,
-				isDraft: true,
-				store: null,
-				execution: {
-					id: params.executionId,
-					category: 'agent'
-				},
-				command: params.command,
-				reject: params.reject,
-				from: 'debugger'
-			})
+			new XpertAgentChatCommand(
+				{ [STATE_VARIABLE_HUMAN]: params.input, ...(params.state ?? {}) },
+				params.agentKey,
+				xpert,
+				{
+					...options,
+					isDraft: true,
+					store: null,
+					execution: {
+						id: params.executionId,
+						category: 'agent'
+					},
+					command: params.command,
+					reject: params.reject,
+					from: 'debugger'
+				}
+			)
 		)
 	}
 
@@ -95,16 +106,22 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 			node: this.createMiddlewareNode(provider, options),
 			tools: new Map()
 		})
-		return (
-			middleware.tools?.map((tool) => ({
-				name: tool.name,
-				description: tool.description,
-				schema: this.normalizeSchema(tool.schema)
-			})) ?? []
-		)
+		return {
+			stateSchema: this.normalizeSchema(middleware.stateSchema),
+			tools:
+				middleware.tools?.map((tool) => ({
+					name: tool.name,
+					description: tool.description,
+					schema: this.normalizeSchema(tool.schema)
+				})) ?? []
+		}
 	}
 
-	async testMiddlewareTool(provider: string, toolName: string, body: { options?: any; parameters?: Record<string, any> }) {
+	async testMiddlewareTool(
+		provider: string,
+		toolName: string,
+		body: { options?: any; parameters?: Record<string, any> }
+	) {
 		const strategy = this.agentMiddlewareRegistry.get(provider)
 		const middleware = await strategy.createMiddleware(body?.options, {
 			tenantId: RequestContext.currentTenantId(),

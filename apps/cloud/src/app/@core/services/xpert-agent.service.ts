@@ -36,21 +36,18 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
     return this.httpClient.get<{ meta: TAgentMiddlewareMeta }[]>(this.apiBaseUrl + `/middlewares`)
   }
 
-  getAgentMiddlewareTools(provider: string, options: any) {
-    return this.httpClient.post<{ name: string; description?: string; schema: JsonSchemaObjectType }[]>(
-      this.apiBaseUrl + `/middlewares/${provider}/tools`,
-      options
-    )
+  getAgentMiddleware(provider: string, options: any) {
+    return this.httpClient.post<{
+      stateSchema?: JsonSchemaObjectType
+      tools: { name: string; description?: string; schema: JsonSchemaObjectType }[]
+    }>(this.apiBaseUrl + `/middlewares/${provider}/tools`, options)
   }
 
   testAgentMiddlewareTool(provider: string, toolName: string, options: any, parameters: Record<string, any>) {
-    return this.httpClient.post(
-      this.apiBaseUrl + `/middlewares/${provider}/tools/${toolName}/test`,
-      {
-        options,
-        parameters
-      }
-    )
+    return this.httpClient.post(this.apiBaseUrl + `/middlewares/${provider}/tools/${toolName}/test`, {
+      options,
+      parameters
+    })
   }
 }
 

@@ -216,7 +216,7 @@ export class MCPServerFormComponent {
 
   updateType(types: MCPServerType[]) {
     this.value$.update((state) => ({ ...(state ?? {}), type: types[0] }))
-    if (this.value$().type === MCPServerType.SSE) {
+    if (this.value$().type === MCPServerType.SSE || this.value$().type === MCPServerType.HTTP) {
       this.views.set(['tools'])
     }
   }

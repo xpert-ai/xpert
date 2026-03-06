@@ -1,6 +1,11 @@
 {
   "name": "@xpert-ai/plugin-vlm-default",
   "version": "0.0.1",
+  "xpert": {
+    "plugin": {
+      "level": "system"
+    }
+  },
   "dependencies": {
     "sharp": "^0.34.4"
   },

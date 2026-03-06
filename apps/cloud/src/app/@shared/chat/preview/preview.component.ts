@@ -13,13 +13,14 @@ import {
   model,
   output,
   signal,
-  viewChild,
+  viewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { appendMessageContent, stringifyMessageContent } from '@metad/copilot'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  appendMessageContent,
+  appendMessagePlainText,
   Attachment_Type_Options,
   AudioRecorderService,
   ChatConversationService,
@@ -35,12 +36,14 @@ import {
   IChatMessageFeedback,
   IStorageFile,
   IXpert,
+  createMessageAppendContextTracker,
   SynthesizeService,
   TChatRequest,
   TInterruptCommand,
   ToastrService,
   TtsStreamPlayerService,
   TXpertParameter,
+  stringifyMessageContent,
   uuid,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
@@ -80,7 +83,7 @@ import { XpertAgentOperationComponent } from '../../agent'
   selector: 'xp-chat-conversation-preview',
   templateUrl: 'preview.component.html',
   styleUrls: ['preview.component.scss'],
-  providers: [TtsStreamPlayerService, AudioRecorderService, SynthesizeService],
+  providers: [TtsStreamPlayerService, AudioRecorderService, SynthesizeService]
 })
 export class ChatConversationPreviewComponent {
   eExecutionStatusEnum = XpertAgentExecutionStatusEnum
@@ -123,7 +126,7 @@ export class ChatConversationPreviewComponent {
   readonly chatStop = output<void>()
 
   // Children
-  readonly canvasRef = viewChild('waveCanvas', {read: ElementRef})
+  readonly canvasRef = viewChild('waveCanvas', { read: ElementRef })
 
   // States
   readonly conversation = signal<Partial<IChatConversation>>(null)
@@ -222,6 +225,7 @@ export class ChatConversationPreviewComponent {
     })
 
   private chatSubscription: Subscription
+  private readonly messageAppendContextTracker = createMessageAppendContextTracker()
 
   // Attachments
   readonly attachment = computed(() => this.xpert()?.features?.attachment)
@@ -230,12 +234,19 @@ export class ChatConversationPreviewComponent {
   readonly attachment_accept = computed(() => {
     const fileTypes = this.attachment()?.fileTypes
     if (fileTypes) {
-      return fileTypes.map((type) => Attachment_Type_Options.find((_) => _.key === type)?.value?.split(',').map((t) => `.${t.trim()}`)).flat().join(',')
+      return fileTypes
+        .map((type) =>
+          Attachment_Type_Options.find((_) => _.key === type)
+            ?.value?.split(',')
+            .map((t) => `.${t.trim()}`)
+        )
+        .flat()
+        .join(',')
     }
     return '*/*'
   })
-  readonly attachments = signal<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
-  readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
+  readonly attachments = signal<{ file?: File; url?: string; storageFile?: IStorageFile }[]>([])
+  readonly files = computed(() => this.attachments()?.map(({ storageFile }) => storageFile))
 
   constructor() {
     effect(
@@ -262,21 +273,22 @@ export class ChatConversationPreviewComponent {
   }
 
   chat(options?: {
-    input?: string;
-    confirm?: boolean;
-    files?: IStorageFile[];
-    messageId?: string;
-    command?: TInterruptCommand;
+    input?: string
+    confirm?: boolean
+    files?: IStorageFile[]
+    messageId?: string
+    command?: TInterruptCommand
     /**
      * @deprecated use confirm with command resume instead
      */
-    reject?: boolean;
+    reject?: boolean
     retry?: boolean
   }) {
     if (this.loading()) return
 
     this.suggestionQuestions.set([]) // Clear suggestions after selection
     this.loading.set(true)
+    this.messageAppendContextTracker.reset()
 
     const requestFiles = options?.files ?? this.files()
     const shouldClearAttachments = !options?.files
@@ -323,29 +335,36 @@ export class ChatConversationPreviewComponent {
     }
     // Include checkpointId to resume thread state when retrying
     const request = {
-      input: options.retry ? undefined : {
-        ...(this.parameterValue() ?? {}),
-        input: options?.input,
-        files: requestFiles?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()}))
-      },
+      input: options.retry
+        ? undefined
+        : {
+            ...(this.parameterValue() ?? {}),
+            input: options?.input,
+            files: requestFiles?.map((file) => ({
+              id: file.id,
+              originalName: file.originalName,
+              name: file.originalName,
+              filePath: file.file,
+              fileUrl: file.url,
+              mimeType: file.mimetype,
+              size: file.size,
+              extension: file.originalName.split('.').pop()
+            }))
+          },
       conversationId: this.conversation()?.id,
       // Reuse the original human message id to avoid duplicate replies
       id: options?.messageId,
       environmentId: this.environmentId(),
       command: options?.confirm ? this.command() : options.command,
       confirm: options?.confirm,
-      retry: options?.retry,
+      retry: options?.retry
     } as TChatRequest
 
     this.chatSubscription = this.xpertService
-      .chat(
-        this.xpert().id,
-        request,
-        {
-          isDraft: true,
-          messageId: options?.messageId
-        }
-      )
+      .chat(this.xpert().id, request, {
+        isDraft: true,
+        messageId: options?.messageId
+      })
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (msg) => {
@@ -359,13 +378,20 @@ export class ChatConversationPreviewComponent {
               }
               const event = JSON.parse(msg.data)
               if (event.type === ChatMessageTypeEnum.MESSAGE) {
+                const fallbackStreamId = this.currentMessage()?.id ?? this.conversation()?.id ?? 'chat_stream'
+                const { messageContext } = this.messageAppendContextTracker.resolve({
+                  incoming: event.data,
+                  fallbackSource: typeof event.data === 'string' ? 'chat_stream' : undefined,
+                  fallbackStreamId: String(fallbackStreamId)
+                })
+
                 this.currentMessage.update((message) => {
-                  appendMessageContent(message as any, event.data)
+                  appendMessageContent(message as any, event.data, messageContext)
                   return { ...message }
                 })
                 if (typeof event.data === 'string') {
                   // Update last AI message
-                  this.output.update((state) => state + event.data)
+                  this.output.update((state) => appendMessagePlainText(state, event.data, messageContext))
                 }
               } else if (event.type === ChatMessageTypeEnum.EVENT) {
                 this.chatEvent.emit(event)
@@ -406,9 +432,11 @@ export class ChatConversationPreviewComponent {
           }
         },
         error: (err) => {
+          this.messageAppendContextTracker.reset()
           this.onChatError(getErrorMessage(err))
         },
         complete: () => {
+          this.messageAppendContextTracker.reset()
           if (this.#destroyed) {
             return
           }
@@ -485,11 +513,11 @@ export class ChatConversationPreviewComponent {
       tap((message) => {
         this.#clipboard.copy(stringifyMessageContent(message.content))
         this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
-        this.copiedMessages.update((state) => ({...state, [message.id]: true}))
+        this.copiedMessages.update((state) => ({ ...state, [message.id]: true }))
       }),
-      switchMap((message) => timer(3000).pipe(
-        tap(() => this.copiedMessages.update((state) => ({...state, [message.id]: false})))
-      )),
+      switchMap((message) =>
+        timer(3000).pipe(tap(() => this.copiedMessages.update((state) => ({ ...state, [message.id]: false }))))
+      )
     )
   )
 
@@ -556,8 +584,10 @@ export class ChatConversationPreviewComponent {
   onRestart() {
     if (this.loading()) {
       this.confirmDel({
-        title: this.#translate.instant('PAC.Chat.StopGenerate', {Default: 'Stop generate'}),
-        information: this.#translate.instant('PAC.Chat.StopGenerateOnRestart', {Default: 'Restarting the conversation will stop current generating content'}),
+        title: this.#translate.instant('PAC.Chat.StopGenerate', { Default: 'Stop generate' }),
+        information: this.#translate.instant('PAC.Chat.StopGenerateOnRestart', {
+          Default: 'Restarting the conversation will stop current generating content'
+        })
       }).subscribe((confirm) => {
         if (confirm) {
           this.onStop()
@@ -580,7 +610,7 @@ export class ChatConversationPreviewComponent {
 
   onRetry() {
     this.conversation.update((state) => {
-      return{
+      return {
         ...state,
         status: 'busy',
         error: null
@@ -594,7 +624,7 @@ export class ChatConversationPreviewComponent {
 
   onConfirm() {
     this.conversation.update((state) => {
-      return{
+      return {
         ...state,
         status: 'busy',
         error: null
@@ -610,7 +640,7 @@ export class ChatConversationPreviewComponent {
    */
   onReject() {
     this.conversation.update((state) => {
-      return{
+      return {
         ...state,
         status: 'busy',
         error: null
@@ -624,8 +654,10 @@ export class ChatConversationPreviewComponent {
   onClose() {
     if (this.loading()) {
       this.confirmDel({
-        title: this.#translate.instant('PAC.Chat.StopGenerate', {Default: 'Stop generate'}),
-        information: this.#translate.instant('PAC.Chat.PreviewStopGenerate', {Default: 'Closing the panel will stop generating content'}),
+        title: this.#translate.instant('PAC.Chat.StopGenerate', { Default: 'Stop generate' }),
+        information: this.#translate.instant('PAC.Chat.PreviewStopGenerate', {
+          Default: 'Closing the panel will stop generating content'
+        })
       }).subscribe((confirm) => {
         if (confirm) {
           this.onStop()
@@ -661,8 +693,7 @@ export class ChatConversationPreviewComponent {
     this.chat({
       retry: true,
       command: {
-        resume: {
-        }
+        resume: {}
       },
       messageId: message.id
     })
@@ -694,12 +725,14 @@ export class ChatConversationPreviewComponent {
     this.attachments.update((state) => {
       while (state.length <= this.attachment_maxNum() && filesArray.length > 0) {
         if (state.length >= this.attachment_maxNum()) {
-          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {Default: 'Attachments exceed the maximum number allowed.'})
+          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {
+            Default: 'Attachments exceed the maximum number allowed.'
+          })
           return [...state]
         }
         const file = filesArray.shift()
         if (state.some((_) => _.file.name === file.name)) {
-          this.#toastr.error('PAC.Chat.AttachmentsAlreadyExists', '', {Default: 'Attachment already exists.'})
+          this.#toastr.error('PAC.Chat.AttachmentsAlreadyExists', '', { Default: 'Attachment already exists.' })
           continue
         }
         state.push({ file })

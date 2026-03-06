@@ -45,12 +45,11 @@
             matTooltipPosition="after"
             [matTooltipDisabled]="sidebarState() === 'expanded'"
           >
-            <a
+            <button
               class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 
                 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem]
                 text-zinc-600 hover:text-text-primary cursor-pointer"
-              tabindex="-1"
-              routerLink="/chat"
+              type="button"
               (click)="newConversation()"
               >
               <div data-sidebar="icon" class="w-5 h-5 flex items-center justify-center shrink-0 ms-[2px]">
@@ -59,7 +58,7 @@
               @if (sidebarState() === 'expanded') {
                 {{'PAC.Chat.NewChat' | translate: {Default: 'New Chat'} }}
               }
-            </a>
+            </button>
           </li>
         </ul>
       </div>
@@ -308,7 +307,7 @@
 </div>
 
 <div class="flex-1 h-full relative overflow-hidden" @routeAnimations>
-  <router-outlet #o="outlet"></router-outlet>
+  <router-outlet #chatOutlet="outlet"></router-outlet>
 </div>
 
 <ng-template

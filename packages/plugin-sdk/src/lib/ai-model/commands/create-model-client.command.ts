@@ -5,6 +5,8 @@ import { ICopilotModel, ILLMUsage } from '@metad/contracts'
 import { Command } from '@nestjs/cqrs'
 import { IRerank } from '../types'
 
+const COMMAND_METADATA = '__command__'
+
 /**
  * Get a Chat Model of copilot model and check it's token limitation, record the token usage
  */
@@ -21,3 +23,5 @@ export class CreateModelClientCommand<T = BaseLanguageModel | BaseChatModel | Em
     super()
   }
 }
+
+Reflect.defineMetadata(COMMAND_METADATA, { id: CreateModelClientCommand.type }, CreateModelClientCommand)

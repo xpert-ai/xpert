@@ -1,15 +1,15 @@
-import { z } from 'zod';
-import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
-import { TriggerSchedulePlugin } from './lib/trigger-schedule.plugin';
-import { icon } from './lib/types';
+import { z } from 'zod'
+import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
+import { TriggerSchedulePlugin } from './lib/trigger-schedule.plugin'
+import { icon } from './lib/types'
 
-const ConfigSchema = z.object({
-});
+const ConfigSchema = z.object({})
 
 const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
   meta: {
     name: '@xpert-ai/plugin-trigger-schedule',
     version: '1.0.0',
+    level: 'system',
     category: 'set',
     icon: {
       type: 'svg',
@@ -20,21 +20,21 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
     description: 'Provide Trigger Schedule functionality',
     keywords: ['trigger', 'schedule'],
     author: 'XpertAI Team',
-    homepage: 'https://xpertai.cloud',
+    homepage: 'https://xpertai.cloud'
   },
   config: {
-    schema: ConfigSchema,
+    schema: ConfigSchema
   },
   register(ctx) {
-    ctx.logger.log('register trigger schedule plugin');
-    return { module: TriggerSchedulePlugin, global: true };
+    ctx.logger.log('register trigger schedule plugin')
+    return { module: TriggerSchedulePlugin, global: true }
   },
   async onStart(ctx) {
-    ctx.logger.log('trigger schedule plugin started');
+    ctx.logger.log('trigger schedule plugin started')
   },
   async onStop(ctx) {
-    ctx.logger.log('trigger schedule plugin stopped');
-  },
-};
+    ctx.logger.log('trigger schedule plugin stopped')
+  }
+}
 
-export default plugin;
+export default plugin

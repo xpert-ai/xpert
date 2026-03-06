@@ -14,30 +14,47 @@
 
 <div class="p-4 space-y-4">
   <div class="font-bold mb-2">
-    {{ 'PAC.KEY_WORDS.Configuration' | translate: {Default: 'Configuration'} }}
+    {{ 'PAC.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' } }}
   </div>
   @if (configSchema(); as configSchema) {
-    <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="configSchema" 
+    <json-schema-form
+      class="mt-2 grid grid-cols-2 gap-2"
+      [schema]="configSchema"
       [(ngModel)]="options"
       [variables]="variables()"
       [context]="{
         draft: draft(),
-        entity: entity(),
+        entity: entity()
       }"
     />
+  } @else {
+    <div class="text-sm text-text-tertiary">
+      {{ 'PAC.Xpert.NoConfigurationRequired' | translate: { Default: 'No configuration required' } }}
+    </div>
   }
 </div>
+
+@if (stateSchema(); as stateSchema) {
+  <div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+  <div class="p-4 space-y-4">
+    <div class="font-bold mb-2">
+      {{ 'PAC.Xpert.StateSchema' | translate: { Default: 'State Schema' } }}
+    </div>
+    <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="stateSchema" [readonly]="true" />
+  </div>
+}
 
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
 
 <div class="p-4 space-y-3">
   <div class="font-bold mb-2">
-    {{ 'PAC.Common.Tools' | translate: {Default: 'Tools'} }}
+    {{ 'PAC.Common.Tools' | translate: { Default: 'Tools' } }}
   </div>
 
   @if (loadingTools()) {
     <div class="text-sm text-text-tertiary">
-      {{ 'PAC.Common.Loading' | translate: {Default: 'Loading...'} }}
+      {{ 'PAC.Common.Loading' | translate: { Default: 'Loading...' } }}
     </div>
   } @else if (toolError()) {
     <div class="text-sm text-red-500">
@@ -45,24 +62,29 @@
     </div>
   } @else if (!middlewareTools().length) {
     <div class="text-sm text-text-tertiary">
-      {{ 'PAC.Xpert.NoTools' | translate: {Default: 'No tools'} }}
+      {{ 'PAC.Common.NoTools' | translate: { Default: 'No tools' } }}
     </div>
   } @else {
     <div class="w-full flex flex-col gap-2">
       @for (item of middlewareToolItems(); track item.name) {
         <div class="w-full flex flex-col">
           <div class="w-full flex justify-start items-center">
-            <button class="w-7 h-7 shrink-0 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
+            <button
+              class="w-7 h-7 shrink-0 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
               (click)="toggleExpand(item.name)"
             >
-              <i class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
-                [ngClass]="{'rotate-90': !expandTools()[item.name]}"></i>
+              <i
+                class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
+                [ngClass]="{ 'rotate-90': !expandTools()[item.name] }"
+              ></i>
             </button>
 
             <span class="px-2 truncate" [title]="item.description || item.name">
               {{ item.name }}
             </span>
-            <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
+            <div
+              class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50"
+            >
               {{ item.name }}
             </div>
           </div>
@@ -72,7 +94,7 @@
 
             <div class="w-full flex justify-end px-2 mb-4">
               <label class="flex items-center gap-2 text-sm text-text-secondary">
-                <span>{{ 'PAC.Common.Enabled' | translate: {Default: 'Enabled'} }}</span>
+                <span>{{ 'PAC.Common.Enabled' | translate: { Default: 'Enabled' } }}</span>
                 <input
                   type="checkbox"
                   class="h-4 w-4"
@@ -82,11 +104,15 @@
               </label>
             </div>
 
-            <div class="px-2 font-semibold">{{ 'PAC.Xpert.ToolDescription' | translate: {Default: 'Tool Description'} }}</div>
-            <div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0 font-mono">
-              <textarea class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none
-                placeholder:text-gray-400 caret-[#295EFF]" 
-                placeholder="{{'PAC.Xpert.AddDescription' | translate: {Default: 'Add description'} }}..."
+            <div class="px-2 font-semibold">
+              {{ 'PAC.Xpert.ToolDescription' | translate: { Default: 'Tool Description' } }}
+            </div>
+            <div
+              class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0 font-mono"
+            >
+              <textarea
+                class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none placeholder:text-gray-400 caret-[#295EFF]"
+                placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
                 [ngModel]="getToolDescription(item.name, item.description)"
                 (ngModelChange)="updateToolDescription(item.name, $event)"
               ></textarea>
@@ -94,7 +120,7 @@
 
             <div class="w-full flex justify-end px-2 mb-4">
               <label class="flex items-center gap-2 text-sm text-text-secondary">
-                <span>{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</span>
+                <span>{{ 'PAC.Xpert.Sensitive' | translate: { Default: 'Sensitive' } }}</span>
                 <input
                   type="checkbox"
                   class="h-4 w-4"
@@ -106,7 +132,7 @@
 
             <div class="w-full flex justify-end px-2 mb-4">
               <label class="flex items-center gap-2 text-sm text-text-secondary">
-                <span>{{'PAC.Xpert.End' | translate: {Default: 'End'} }}</span>
+                <span>{{ 'PAC.Xpert.End' | translate: { Default: 'End' } }}</span>
                 <input
                   type="checkbox"
                   class="h-4 w-4"
@@ -118,7 +144,7 @@
 
             <div class="w-full flex justify-end px-2 mb-4">
               <label class="flex items-center gap-2 text-sm text-text-secondary">
-                <span>{{'PAC.Xpert.ToolMemory' | translate: {Default: 'Tool Memory'} }}</span>
+                <span>{{ 'PAC.Xpert.ToolMemory' | translate: { Default: 'Tool Memory' } }}</span>
                 <input
                   type="checkbox"
                   class="h-4 w-4"
@@ -129,9 +155,13 @@
             </div>
 
             @if (toolMemory(item.name)) {
-              <xpert-variables-assigner class="p-2"
-                [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
-                [tooltip]="'PAC.Xpert.WriteToolResultToMemoryTooltip' | translate: {Default: 'Write tool output to global memory of the digital expert'}"
+              <xpert-variables-assigner
+                class="p-2"
+                [title]="'PAC.Xpert.WritetoMemory' | translate: { Default: 'Write to memory' }"
+                [tooltip]="
+                  'PAC.Xpert.WriteToolResultToMemoryTooltip'
+                    | translate: { Default: 'Write tool output to global memory of the digital expert' }
+                "
                 type="tool"
                 [variables]="variables()"
                 [memories]="toolMemory(item.name)"

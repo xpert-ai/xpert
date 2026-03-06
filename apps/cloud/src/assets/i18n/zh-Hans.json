@@ -79,7 +79,7 @@
       "Cube": "多维数据集",
       "Tags": "标签",
       "DATA": "数据",
-      "DataSource":"数据源",
+      "DataSource": "数据源",
       "DATA_SOURCE": "数据源",
       "DATA_SOURCES": "数据源",
       "DELETE": "删除",
@@ -332,6 +332,12 @@
       "SearchTerm": "搜索词",
       "DataSourceTypes": "数据源类型"
     },
+    "Common": {
+      "Tools": "工具",
+      "Loading": "加载中",
+      "Enabled": "启用",
+      "NoTools": "无工具"
+    },
     "XProject": {
       "NoRecentFiles": "没有最近的文件",
       "NoToolset": "尚无工具集",
@@ -410,7 +416,7 @@
       "Binding": "绑定",
       "Import": "导入",
       "IntroduceExistToolset": "引入现有工具集",
-      "ImportDSL":"从 DSL 文件导入",
+      "ImportDSL": "从 DSL 文件导入",
       "EnterProjectName": "输入项目名",
       "Update": "更新",
       "Create": "创建",
@@ -1369,10 +1375,7 @@
         "Visibility_Secret": "秘密",
         "Visibility_Private": "私有",
         "RemoveDBInitScript": "删除数据库初始化脚本",
-        "CopilotDefaultPrompts": [
-          "将表创建为立方体",
-          "将表创建为维度"
-        ],
+        "CopilotDefaultPrompts": ["将表创建为立方体", "将表创建为维度"],
         "CopilotName": "建模",
         "ModelStructure": "模型结构"
       },
@@ -2587,6 +2590,7 @@
       "Pipeline": "流水线",
       "PleaseSelectADataSource": "请选择一个数据源",
       "NoPagesFetched": "没有抓取到任何页面",
+      "PluginNotFound": "插件未找到",
       "DocumentsDescription": "知识库的所有文件都在这里显示，整个知识库都可以应用到数字专家智能体或项目空间。",
       "ProcessingDocuments": "处理文档",
       "SelectDocumentForPreview": "选择一个文档以预览其内容",
@@ -2833,6 +2837,8 @@
       "DownloadTemplateHere": "在这里下载模板",
       "ToolParameters": "工具参数",
       "ToolName": "工具名称",
+      "StateSchema": "状态模式",
+      "NoConfigurationRequired": "无需配置",
       "ToolDescription": "工具描述",
       "OutputVariablesInfo": "按照预定义格式组织数据，便于程序自动解析和使用。",
       "TaskCreatedSuccessfully": "任务创建成功",
@@ -3796,7 +3802,6 @@
       "CANCEL": "取消",
       "DELETE": "删除"
     }
-
   },
   "STORY_DESIGNER": {
     "BUILDER_TITLE": "构建",
@@ -4428,7 +4433,7 @@
         },
         "SeriesStyle": {
           "Title": "系列属性",
-          "HasAll":"有 All 成员",
+          "HasAll": "有 All 成员",
           "FunnelAlign": "漏斗对齐",
           "BoundaryGap": "边界间隙"
         },
@@ -4732,24 +4737,13 @@
       "Indicator": "指标",
       "Calendar": "日历",
       "Address.Country": "国家"
-
     },
-    "ENTITY": {
+    "ENTITY": {},
+    "PROPERTY": {},
+    "CALCULATION": {},
 
-    },
-    "PROPERTY": {
-
-    },
-    "CALCULATION": {
-
-    },
-
-    "VALUE_HELP": {
-
-    },
-    "SELECTION": {
-
-    },
+    "VALUE_HELP": {},
+    "SELECTION": {},
     "COUNTDOWN_CONFIRMATION": {
       "CONFIRM": "确认",
       "WAS": "秒",
@@ -4773,9 +4767,7 @@
       "EDIT": "编辑"
     },
 
-    "Table": {
-
-    }
+    "Table": {}
   },
   "FORMLY": {
     "COMMON": {
@@ -4941,7 +4933,7 @@
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密码重置",
-			"welcome-user": "欢迎用户",
+      "welcome-user": "欢迎用户",
       "invite-user": "邀请用户",
       "TEMPLATE_NAMES": "模板名称"
     },
