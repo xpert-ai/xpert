@@ -42,6 +42,7 @@
     [schema]="schema()"
     [xUi]="xUi()"
     [ngModel]="value$()"
+    [ngModelOptions]="{ standalone: true }"
     (ngModelChange)="update($event)"
     [readonly]="readonly()"
     [required]="required()"
@@ -63,6 +64,7 @@
           (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
         "
         [(ngModel)]="value$"
+        [ngModelOptions]="{ standalone: true }"
       />
     }
     @default {
@@ -75,6 +77,7 @@
             (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
           "
           [(ngModel)]="value$"
+          [ngModelOptions]="{ standalone: true }"
           [multiple]="type() === 'array'"
         />
       } @else {
@@ -91,6 +94,7 @@
                   type="text"
                   [disabled]="readonly()"
                   [ngModel]="value$()"
+                  [ngModelOptions]="{ standalone: true }"
                   (ngModelChange)="update($event)"
                 ></textarea>
               }
@@ -105,6 +109,7 @@
                     [disabled]="readonly()"
                     [variables]="variables()"
                     [ngModel]="value$()"
+                    [ngModelOptions]="{ standalone: true }"
                     (ngModelChange)="update($event)"
                   />
                 } @else {
@@ -117,6 +122,7 @@
                     [type]="xUiInputType()"
                     [disabled]="readonly()"
                     [ngModel]="value$()"
+                    [ngModelOptions]="{ standalone: true }"
                     (ngModelChange)="update($event)"
                   />
                 }
@@ -133,6 +139,7 @@
               type="text"
               [disabled]="readonly()"
               [ngModel]="value$()"
+              [ngModelOptions]="{ standalone: true }"
               (ngModelChange)="update($event)"
             ></textarea>
           }
@@ -146,6 +153,7 @@
               type="number"
               [disabled]="readonly()"
               [ngModel]="value$()"
+              [ngModelOptions]="{ standalone: true }"
               (ngModelChange)="update($event)"
             />
           }
@@ -159,6 +167,7 @@
               type="number"
               [disabled]="readonly()"
               [ngModel]="value$()"
+              [ngModelOptions]="{ standalone: true }"
               (ngModelChange)="update($event)"
             />
           }
@@ -173,6 +182,7 @@
                     class="flex-1 overflow-hidden"
                     [schema]="arraySchema().items"
                     [ngModel]="item"
+                    [ngModelOptions]="{ standalone: true }"
                     (ngModelChange)="updateArray(i, $event)"
                   />
                   <div class="relative shrink-0 px-1 w-0 group-hover/item:w-8">
@@ -194,7 +204,12 @@
             </div>
           }
           @case ('boolean') {
-            <ngm-slide-toggle [disabled]="readonly()" [ngModel]="value$()" (ngModelChange)="update($event)">
+            <ngm-slide-toggle
+              [disabled]="readonly()"
+              [ngModel]="value$()"
+              [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="update($event)"
+            >
               @if (meta().description) {
                 <i
                   class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
@@ -213,6 +228,7 @@
                   [required]="isRequired(param.name)"
                   [variables]="variables()"
                   [ngModel]="value$()?.[param.name]"
+                  [ngModelOptions]="{ standalone: true }"
                   (ngModelChange)="updateValue(param.name, $event)"
                 />
               }
@@ -232,6 +248,7 @@
                   [disabled]="readonly()"
                   [variables]="variables()"
                   [ngModel]="value$()"
+                  [ngModelOptions]="{ standalone: true }"
                   (ngModelChange)="update($event)"
                 />
               } @else {
@@ -244,6 +261,7 @@
                   [type]="xUiInputType()"
                   [disabled]="readonly()"
                   [ngModel]="value$()"
+                  [ngModelOptions]="{ standalone: true }"
                   (ngModelChange)="update($event)"
                 />
               }

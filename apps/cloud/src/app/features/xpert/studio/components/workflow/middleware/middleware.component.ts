@@ -83,12 +83,36 @@ export class XpertWorkflowNodeMiddlewareComponent extends WorkflowBaseNodeCompon
 
   readonly toolMessages = computed(() => this.executionService.toolMessages(), { equal: isEqual })
   readonly tools = computed(() => {
-    const tools = this.#toolsRes.value()
-    const executions = this.toolMessages()
-    return tools?.map((tool) => ({
-      ...tool,
-      executions: executions?.map((_) => _.data).filter((e) => e.toolset === this.provider() && e.tool === tool.name)
-    }))
+    const tools = this.#toolsRes.value() ?? []
+    const provider = this.provider()
+    const executions =
+      this.toolMessages()
+        ?.map((_) => _.data)
+        .filter((e) => e.toolset === provider) ?? []
+    const toolMap = new Map<string, { name: string; description?: string; schema?: unknown; executions: any[] }>()
+
+    tools.forEach((tool) => {
+      toolMap.set(tool.name, {
+        ...tool,
+        executions: []
+      })
+    })
+
+    executions.forEach((execution) => {
+      const name = execution.tool || 'compression'
+      if (!toolMap.has(name)) {
+        toolMap.set(name, {
+          name,
+          executions: []
+        })
+      }
+      const toolEntry = toolMap.get(name)
+      if (toolEntry) {
+        toolEntry.executions.push(execution)
+      }
+    })
+
+    return Array.from(toolMap.values())
   })
 
   readonly notFound = computed(() => !this.#providerName() && !!this.provider())

@@ -8,6 +8,7 @@
       [required]="isRequired(param.name)"
       [variables]="variables()"
       [context]="context()"
+      [ngModelOptions]="{ standalone: true }"
       [ngModel]="value$()?.[param.name]"
       (ngModelChange)="updateValue(param.name, $event)"
     />
