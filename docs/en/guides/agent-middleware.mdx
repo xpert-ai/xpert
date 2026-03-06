@@ -1,0 +1,28 @@
+# Agent Middleware
+
+Agent middleware lets you inject cross-cutting logic into the Agent lifecycle without changing the core orchestration flow.
+
+## Core model
+
+- `IAgentMiddlewareStrategy`: Strategy contract for each provider.
+- `createMiddleware`: Factory that returns one middleware instance.
+- Middleware metadata: UI label, description, icon, and config schema.
+- Workflow binding: Attach middleware nodes to Agent nodes and control execution order.
+
+## Lifecycle hooks
+
+| Hook            | When it runs             | Typical use                                   |
+| --------------- | ------------------------ | --------------------------------------------- |
+| `beforeAgent`   | Once before agent starts | State initialization, system prompt injection |
+| `beforeModel`   | Before each model call   | Context shaping, dynamic tool injection       |
+| `afterModel`    | After model response     | Logging, call normalization                   |
+| `afterAgent`    | After agent completes    | Persistence, cleanup                          |
+| `wrapModelCall` | Around model call        | Retry, cache, guardrails                      |
+| `wrapToolCall`  | Around tool call         | Auth, rate limit, post-processing             |
+
+## Best practices
+
+- Keep hooks idempotent and lightweight.
+- Declare persistent state through `stateSchema`.
+- Call the provided `handler` first in wrappers, then layer custom logic.
+- Use middleware composition for logging, auditing, caching, and policy control.

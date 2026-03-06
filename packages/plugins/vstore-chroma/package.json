@@ -1,6 +1,11 @@
 {
   "name": "@xpert-ai/plugin-vstore-chroma",
   "version": "0.0.1",
+  "xpert": {
+    "plugin": {
+      "level": "organization"
+    }
+  },
   "main": "./index.cjs",
   "module": "./index.js",
   "dependencies": {

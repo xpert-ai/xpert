@@ -1,15 +1,36 @@
-import { isNotEmpty } from '@metad/server-common';
-import { getConfig } from '@metad/server-config';
-import { DynamicModule, Type, Logger } from '@nestjs/common';
-import { MODULE_METADATA } from '@nestjs/common/constants';
-import { ModuleRef, NestContainer } from '@nestjs/core';
-import { GLOBAL_ORGANIZATION_SCOPE, ORGANIZATION_METADATA_KEY, PLUGIN_METADATA, PLUGIN_METADATA_KEY, PluginLifecycleMethods } from '@xpert-ai/plugin-sdk';
-import { getOrganizationManifestPath, getOrganizationPluginPath, getOrganizationPluginRoot, installOrganizationPlugins, OrganizationPluginStoreOptions } from './organization-plugin.store';
-import { isClassProvider, isExistingProvider, isFactoryProvider, isValueProvider, LoadedPluginRecord, normalizePluginName } from './types';
-import { discoverPlugins } from './plugin-discovery';
-import { loadPlugin } from './plugin-loader';
-import { buildConfig } from './config';
-import { createPluginContext } from './lifecycle';
+import { isNotEmpty } from '@metad/server-common'
+import { getConfig } from '@metad/server-config'
+import { DynamicModule, Type, Logger } from '@nestjs/common'
+import { MODULE_METADATA } from '@nestjs/common/constants'
+import { ModuleRef, NestContainer } from '@nestjs/core'
+import { PluginLevel } from '@metad/contracts'
+import {
+	GLOBAL_ORGANIZATION_SCOPE,
+	ORGANIZATION_METADATA_KEY,
+	PLUGIN_METADATA,
+	PLUGIN_METADATA_KEY,
+	PluginLifecycleMethods
+} from '@xpert-ai/plugin-sdk'
+import {
+	getOrganizationManifestPath,
+	getOrganizationPluginPath,
+	getOrganizationPluginRoot,
+	installOrganizationPlugins,
+	OrganizationPluginStoreOptions
+} from './organization-plugin.store'
+import {
+	isClassProvider,
+	isExistingProvider,
+	isFactoryProvider,
+	isValueProvider,
+	LoadedPluginRecord,
+	normalizePluginName
+} from './types'
+import { discoverPlugins } from './plugin-discovery'
+import { loadPlugin } from './plugin-loader'
+import { buildConfig } from './config'
+import { createPluginContext } from './lifecycle'
+import { resolvePluginLevel } from './plugin-instance.entity'
 
 /**
  * Get plugin classes from an array of plugins by reflecting metadata.
@@ -19,10 +40,10 @@ import { createPluginContext } from './lifecycle';
  */
 function getClassesFromPlugins(plugins: Array<Type<any> | DynamicModule>, metadataKey: string): Array<Type<any>> {
 	if (!plugins) {
-		return [];
+		return []
 	}
 
-	return plugins.flatMap((plugin: Type<any> | DynamicModule) => reflectMetadata(plugin, metadataKey) ?? []);
+	return plugins.flatMap((plugin: Type<any> | DynamicModule) => reflectMetadata(plugin, metadataKey) ?? [])
 }
 
 /**
@@ -31,7 +52,7 @@ function getClassesFromPlugins(plugins: Array<Type<any> | DynamicModule>, metada
  * @returns An array of entity classes obtained from the provided plugins.
  */
 export function getEntitiesFromPlugins(plugins?: Array<Type<any> | DynamicModule>): Array<Type<any>> {
-	return getClassesFromPlugins(plugins, PLUGIN_METADATA.ENTITIES);
+	return getClassesFromPlugins(plugins, PLUGIN_METADATA.ENTITIES)
 }
 
 /**
@@ -40,7 +61,7 @@ export function getEntitiesFromPlugins(plugins?: Array<Type<any> | DynamicModule
  * @returns An array of subscriber classes obtained from the provided plugins.
  */
 export function getSubscribersFromPlugins(plugins?: Array<Type<any> | DynamicModule>): Array<Type<any>> {
-	return getClassesFromPlugins(plugins, PLUGIN_METADATA.SUBSCRIBERS);
+	return getClassesFromPlugins(plugins, PLUGIN_METADATA.SUBSCRIBERS)
 }
 
 /**
@@ -51,11 +72,11 @@ export function getSubscribersFromPlugins(plugins?: Array<Type<any> | DynamicMod
 export function getPluginModules(plugins: Array<Type<any> | DynamicModule>): Array<Type<any>> {
 	return plugins.map((plugin: Type<any> | DynamicModule) => {
 		if (isDynamicModule(plugin)) {
-			const { module } = plugin;
-			return module;
+			const { module } = plugin
+			return module
 		}
-		return plugin;
-	});
+		return plugin
+	})
 }
 
 /**
@@ -66,10 +87,10 @@ export function getPluginModules(plugins: Array<Type<any> | DynamicModule>): Arr
  */
 function reflectMetadata(metatype: Type<any> | DynamicModule, metadataKey: string) {
 	// Extract the module property if the metatype is a DynamicModule
-	const target = isDynamicModule(metatype) ? metatype.module : metatype;
+	const target = isDynamicModule(metatype) ? metatype.module : metatype
 
 	// Retrieve and return metadata for the specified key
-	return Reflect.getMetadata(metadataKey, target);
+	return Reflect.getMetadata(metadataKey, target)
 }
 
 /**
@@ -82,7 +103,7 @@ export function hasLifecycleMethod<M extends keyof PluginLifecycleMethods>(
 	plugin: any,
 	lifecycleMethod: M
 ): plugin is { [key in M]: PluginLifecycleMethods[M] } {
-	return typeof (plugin as any)[lifecycleMethod] === 'function';
+	return typeof (plugin as any)[lifecycleMethod] === 'function'
 }
 
 /**
@@ -91,7 +112,7 @@ export function hasLifecycleMethod<M extends keyof PluginLifecycleMethods>(
  * @returns True if the type is a DynamicModule, false otherwise.
  */
 export function isDynamicModule(type: Type<any> | DynamicModule): type is DynamicModule {
-	return !!(type as DynamicModule).module;
+	return !!(type as DynamicModule).module
 }
 
 /**
@@ -106,7 +127,7 @@ export function reflectDynamicModuleMetadata(module: Type<any>) {
 		providers: reflectMetadata(module, MODULE_METADATA.PROVIDERS) || [],
 		imports: reflectMetadata(module, MODULE_METADATA.IMPORTS) || [],
 		exports: reflectMetadata(module, MODULE_METADATA.EXPORTS) || []
-	};
+	}
 }
 
 /**
@@ -114,20 +135,20 @@ export function reflectDynamicModuleMetadata(module: Type<any>) {
  * @returns An array of DynamicModule instances extracted from the configuration.
  */
 export function getDynamicPluginsModules(): DynamicModule[] {
-	const plugins = getConfig().plugins;
+	const plugins = getConfig().plugins
 
 	return plugins
 		.map((plugin: Type<any> | DynamicModule) => {
-			const pluginModule = isDynamicModule(plugin) ? plugin.module : plugin;
-			const { imports, providers, exports } = reflectDynamicModuleMetadata(pluginModule);
+			const pluginModule = isDynamicModule(plugin) ? plugin.module : plugin
+			const { imports, providers, exports } = reflectDynamicModuleMetadata(pluginModule)
 			return {
 				module: pluginModule,
 				imports,
 				exports,
 				providers: [...providers]
-			};
+			}
 		})
-		.filter(isNotEmpty);
+		.filter(isNotEmpty)
 }
 
 export const loaded: LoadedPluginRecord[] = []
@@ -135,58 +156,58 @@ export const loaded: LoadedPluginRecord[] = []
  * Collect providers from modules tagged with PLUGIN_METADATA_KEY/ORGANIZATION_METADATA_KEY.
  */
 export function collectProvidersWithMetadata<TMeta = any>(
-  moduleRef: ModuleRef,
-  organizationId: string,
-  pluginName: string,
-  logger: Logger
+	moduleRef: ModuleRef,
+	organizationId: string,
+	pluginName: string,
+	logger: Logger
 ) {
+	logger.debug(`Collecting providers for plugin '${pluginName}' under organization '${organizationId}'`)
+	const container = (moduleRef as unknown as { container?: NestContainer }).container
+	if (!container?.getModules) return []
 
-  logger.debug(`Collecting providers for plugin '${pluginName}' under organization '${organizationId}'`);
-  const container = (moduleRef as unknown as { container?: NestContainer }).container;
-  if (!container?.getModules) return [];
+	const providers: any[] = []
+	const seen = new Set<any>()
 
-  const providers: any[] = [];
-  const seen = new Set<any>();
+	logger.debug(`Scanning modules in the NestJS container...`)
+	for (const module of container.getModules().values()) {
+		const target = module.metatype ?? module.constructor
+		const modPluginName = Reflect.getMetadata(PLUGIN_METADATA_KEY, target)
+		const modOrganization = Reflect.getMetadata(ORGANIZATION_METADATA_KEY, target)
 
-  logger.debug(`Scanning modules in the NestJS container...`);
-  for (const module of container.getModules().values()) {
-	const target = module.metatype ?? module.constructor;
-    const modPluginName = Reflect.getMetadata(PLUGIN_METADATA_KEY, target);
-    const modOrganization = Reflect.getMetadata(ORGANIZATION_METADATA_KEY, target);
+		if (modOrganization !== organizationId || modPluginName !== pluginName) {
+			continue
+		}
 
-    if (modOrganization !== organizationId || modPluginName !== pluginName) {
-      continue;
-    }
+		logger.debug(
+			`Module matches organization ${modOrganization} and plugin ${modPluginName} criteria. Collecting providers...`
+		)
+		for (const wrapper of module.providers?.values?.() ?? []) {
+			const instance = wrapper.instance
+			if (!instance || seen.has(instance)) continue
 
-	logger.debug(`Module matches organization ${modOrganization} and plugin ${modPluginName} criteria. Collecting providers...`);
-    for (const wrapper of module.providers?.values?.() ?? []) {
-      const instance = wrapper.instance;
-      if (!instance || seen.has(instance)) continue;
+			logger.debug(`Collecting provider instance: ${instance.constructor.name}`)
 
-	  logger.debug(`Collecting provider instance: ${instance.constructor.name}`);
-	  
-      providers.push(instance);
-      seen.add(instance);
-    }
-  }
+			providers.push(instance)
+			seen.add(instance)
+		}
+	}
 
-  return providers;
+	return providers
 }
-
 
 export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions {
 	/** The organization scope for plugin discovery/loading. Defaults to 'global'. */
-	organizationId?: string;
+	organizationId?: string
 	/** Nest module context for resolving dependencies during registration. */
-	module?: ModuleRef;
+	module?: ModuleRef
 	/** Override the plugin workspace root for the organization. Defaults to data/plugins/<orgId> when organizationId is set. */
-	baseDir?: string;
+	baseDir?: string
 	/** Explicit list of plugin package names (takes precedence) */
-	plugins?: {name: string; version?: string; source?: string}[];
+	plugins?: { name: string; version?: string; source?: string; level?: PluginLevel }[]
 	/** Auto-discovery options (effective when plugins are not explicitly provided) */
-	discovery?: { prefix?: string; manifestPath?: string };
+	discovery?: { prefix?: string; manifestPath?: string }
 	/** Configuration map injected by the main app (indexed by plugin name) */
-	configs?: Record<string, unknown>;
+	configs?: Record<string, unknown>
 }
 
 /**
@@ -195,94 +216,103 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
  * 2. Load each plugin and build its configuration.
  * 3. Create a plugin context and register the plugin module.
  * 4. Tag the module and its providers with organization and plugin metadata.
- * 
- * @param opts 
- * @returns 
+ *
+ * @param opts
+ * @returns
  */
 export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) {
-	const organizationId = opts.organizationId ?? GLOBAL_ORGANIZATION_SCOPE;
+	const organizationId = opts.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 	const baseDirRoot =
-		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, opts) : process.cwd());
+		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, opts) : process.cwd())
 
-	const discoveryOptions = { ...opts.discovery };
+	const discoveryOptions = { ...opts.discovery }
 	if (!discoveryOptions.manifestPath && opts.organizationId) {
-		discoveryOptions.manifestPath = getOrganizationManifestPath(organizationId, opts);
+		discoveryOptions.manifestPath = getOrganizationManifestPath(organizationId, opts)
 	}
 
-	const pluginNames = opts.plugins?.length
+	const pluginNames: Array<{ name: string; version?: string; source?: string; level?: PluginLevel }> = opts.plugins
+		?.length
 		? opts.plugins
 		: opts.discovery || opts.organizationId
-		? discoverPlugins(baseDirRoot, discoveryOptions)
-		: [];
+			? discoverPlugins(baseDirRoot, discoveryOptions).map((plugin) => ({
+					...plugin,
+					level: undefined
+				}))
+			: []
 
 	// 1) install into organization workspace (and update manifest)
-	installOrganizationPlugins(organizationId, pluginNames.filter(p => p.source !== 'code').map(p => p.name), opts);
+	installOrganizationPlugins(
+		organizationId,
+		pluginNames.filter((p) => p.source !== 'code').map((p) => p.name),
+		opts
+	)
 
-	const modules: DynamicModule[] = [];
+	const modules: DynamicModule[] = []
 
-	for (const {name} of pluginNames) {
+	for (const { name, level } of pluginNames) {
 		try {
 			const pluginBaseDir = opts.organizationId
 				? getOrganizationPluginPath(organizationId, name, opts)
-				: baseDirRoot;
+				: baseDirRoot
 			// 2) Load each plugin and build its configuration.
-			const plugin = await loadPlugin(name, { basedir: pluginBaseDir });
-			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {};
-			const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config);
+			const plugin = await loadPlugin(name, { basedir: pluginBaseDir })
+			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
+			const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config)
 
 			// 3) Create a plugin context and register the plugin module.
 			// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
-			const ctx = createPluginContext<any>(opts.module, plugin.meta.name, cfg, plugin.permissions ?? []);
-			const mod = plugin.register(ctx);
+			const ctx = createPluginContext<any>(opts.module, plugin.meta.name, cfg, plugin.permissions ?? [])
+			const mod = plugin.register(ctx)
 
 			// 4) Tag the module and its providers with organization and plugin metadata.
-			tagModuleWithOrganization(mod, organizationId, normalizePluginName(name));
-			modules.push(mod);
+			tagModuleWithOrganization(mod, organizationId, normalizePluginName(name))
+			modules.push(mod)
 			const existing = loaded.findIndex(
-				(item) => item.organizationId === organizationId && item.name === plugin.meta.name,
-			);
+				(item) => item.organizationId === organizationId && item.name === plugin.meta.name
+			)
 			if (existing >= 0) {
-				loaded.splice(existing, 1);
+				loaded.splice(existing, 1)
 			}
 			loaded.push({
 				organizationId,
 				name: plugin.meta.name,
 				packageName: name,
+				level: resolvePluginLevel(plugin.meta?.level ?? level),
 				instance: plugin,
 				ctx,
-				baseDir: pluginBaseDir,
-			});
+				baseDir: pluginBaseDir
+			})
 		} catch (error) {
-			Logger.error(`Failed to load/register plugin ${name} for organization ${organizationId}: ${error.message}`);
+			Logger.error(`Failed to load/register plugin ${name} for organization ${organizationId}: ${error.message}`)
 		}
 	}
 
 	return {
 		organizationId,
-		modules,
-	};
+		modules
+	}
 }
 
 function tagModuleWithOrganization(mod: DynamicModule, organizationId: string, pluginName: string) {
-	const target = mod.module;
-	Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, organizationId, target);
-	Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target);
-	tagModuleProvidersWithOrganization(mod, organizationId, pluginName);
+	const target = mod.module
+	Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, organizationId, target)
+	Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target)
+	tagModuleProvidersWithOrganization(mod, organizationId, pluginName)
 }
 
 function tagModuleProvidersWithOrganization(plugin: DynamicModule, organizationId: string, pluginName: string) {
-	const pluginModule = isDynamicModule(plugin) ? plugin.module : plugin;
-	const { imports, providers, exports } = reflectDynamicModuleMetadata(pluginModule);
+	const pluginModule = isDynamicModule(plugin) ? plugin.module : plugin
+	const { imports, providers, exports } = reflectDynamicModuleMetadata(pluginModule)
 	for (const provider of providers) {
 		const target =
 			(typeof provider === 'function' && provider) ||
 			(isClassProvider(provider) && provider.useClass) ||
 			(isFactoryProvider(provider) && provider.useFactory) ||
 			(isExistingProvider(provider) && provider.useExisting) ||
-			(isValueProvider(provider) && provider.useValue);
+			(isValueProvider(provider) && provider.useValue)
 		if (target) {
-			Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, organizationId, target);
-			Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target);
+			Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, organizationId, target)
+			Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target)
 		}
 	}
 }

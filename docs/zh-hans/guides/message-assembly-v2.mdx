@@ -1,0 +1,141 @@
+---
+title: Message Assembly V2
+description: Unified multi-source message assembly architecture for backend, frontend, and integrations
+---
+
+本文档说明 Xpert 在多来源消息拼接上的升级方案，目标是让后续开发者和 AI 智能体在扩展聊天链路时有统一、可复用、可验证的规则。
+
+## 背景问题
+
+聊天输出来自多个来源并交错到同一条 AI 消息中：
+
+- Answer 节点文本
+- Agent 模型流式文本
+- Tool 事件产生的 component/reasoning/text
+- 第三方通道（Lark/企微）文本聚合
+
+如果直接用字符串 `+` 拼接，会出现语义粘连问题，例如代码块结尾 `\`\`\`` 与后续正文连在同一行，造成 markdown 渲染和阅读语义错误。
+
+## 设计目标
+
+- 在 `@metad/contracts` 提供唯一组装规则，前后端共用。
+- 对跨来源文本默认采取“防粘连优先”策略。
+- 保留 `reasoning`、`component` 的既有按 `id` 更新行为。
+- 不依赖 `@metad/copilot`(废弃)。
+
+## 核心类型与 API
+
+位置：`packages/contracts/src/ai/message-content.utils.ts`
+
+- `appendMessageContent(message, incoming, context?)`
+- `appendMessagePlainText(acc, incoming, context?)`
+- `stringifyMessageContent(content)`
+- `filterMessageText(content)`
+- `inferMessageAppendContext(incoming, fallbackSource?)`
+- `resolveMessageAppendContext(options)`
+- `createMessageAppendContextTracker(initial?)`
+
+核心上下文类型：
+
+```ts
+type TMessageAppendContext = {
+  source?: string
+  streamId?: string
+  joinHint?: 'none' | 'space' | 'line' | 'paragraph'
+}
+```
+
+## 组装规则
+
+### 1) 归一化
+
+- `incoming: string` 先归一化为 text chunk（可带 `id=streamId`）。
+
+### 2) 直连条件
+
+- 仅当“同 `source` 且同 `streamId`”时，允许无分隔合并（`joinHint: 'none'`）。
+
+### 3) 跨段分隔策略（无显式 `joinHint`）
+
+- 上段以 `\`\`\``结尾，且下段无前导空白：插入`\n`
+- `component -> text`：插入 `\n\n`
+- 其它跨段文本：插入最小安全分隔（通常 `\n`）
+
+### 4) 非 text 行为
+
+- `reasoning`：同 `id` 连续追加
+- `component`：同 `id` upsert（保留已有 `created_date`）
+
+## 推荐调用模式：Tracker
+
+`lastMessageAppendContext` 的本质是“上一段组装上下文游标”。  
+V2 推荐用 `createMessageAppendContextTracker()` 封装这段状态推进，避免在每个调用点手写：
+
+- `previous -> resolve -> append -> previous = appendContext`
+
+示例：
+
+```ts
+const tracker = createMessageAppendContextTracker()
+
+const { messageContext } = tracker.resolve({
+  incoming: event.data,
+  fallbackSource: 'chat_stream',
+  fallbackStreamId: currentMessageId
+})
+
+appendMessageContent(aiMessage, event.data, messageContext)
+output = appendMessagePlainText(output, event.data, messageContext)
+```
+
+在每轮会话开始/结束时调用 `tracker.reset()`。
+
+## 稳定 streamId 策略
+
+为了避免不同回答误并，所有文本来源都应有稳定流标识：
+
+- Answer 节点输出使用 `answerStreamId = ${thread_id}:${node.key}:${executionId}:answer`
+  - 文件：`packages/server-ai/src/xpert-agent/workflow/answer/node.ts`
+- 模型流式文本统一通过 `createTextChunk(..., { streamId })` 写入
+  - 文件：`packages/server-ai/src/shared/agent/stream-text.ts`
+
+## 关键接入点
+
+### Server
+
+- `packages/server-ai/src/xpert/commands/handlers/chat.handler.ts`
+- `packages/server-ai/src/chat/commands/handlers/chat-common.handler.ts`
+- `packages/server-ai/src/ai/thread.controller.ts`（`runWait`）
+- `packages/server-ai/src/integration-lark/commands/handlers/chat-xpert.handler.ts`
+- `packages/server-ai/src/integration-wecom/commands/handlers/chat-xpert.handler.ts`
+
+### Cloud
+
+- `apps/cloud/src/app/xpert/chat.service.ts`
+- `apps/cloud/src/app/@shared/chat/preview/preview.component.ts`
+
+## 一致性约束（给开发者与 AI 智能体）
+
+新增消息来源时请遵守：
+
+1. 始终通过 contracts 提供的组装器，不做裸字符串拼接。
+2. 为新来源提供稳定 `source` 与 `streamId`（或 `fallbackStreamId`）。
+3. 会话边界必须 `reset` tracker，避免跨轮污染。
+4. 不要改写 `reasoning/component` 的 `id` 语义。
+5. 文本出口（UI/第三方回包/等待接口）尽量复用 `appendMessagePlainText`。
+
+## 已覆盖测试
+
+位置：`packages/contracts/src/ai/message-content.utils.spec.ts`
+
+- string/text 的同流合并
+- 多流交错顺序保持
+- 代码块 fence 后自动换行
+- `text + component + text` 分段
+- tracker 的 resolve/reset 行为
+- `reasoning` 合并与 `component` upsert
+
+## 非目标
+
+- 不做历史消息数据迁移
+- 不在本次任务中替换与该问题无关的旧工具函数

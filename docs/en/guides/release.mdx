@@ -1,18 +1,18 @@
-# How to publish npm packages
+# Release npm Packages
 
-Release new version of npm packages:
+## Bump package version
 
 ```bash
 npx nx release patch
 ```
 
-First, build the packages:
+## Build package
 
 ```bash
 npx nx build plugin-sdk
 ```
 
-Then publish the packages:
+## Publish package
 
 ```bash
 npx nx run plugin-sdk:nx-release-publish --access public --otp=<one-time-password-if-needed>

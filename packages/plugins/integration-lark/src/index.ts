@@ -1,3 +1,4 @@
+import { PLUGIN_LEVEL } from '@metad/contracts'
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { join } from 'node:path'
 import { IntegrationLarkPlugin } from './lib/integration-lark.module'
@@ -11,6 +12,7 @@ const plugin: XpertPlugin<IntegrationLarkPluginConfig> = {
     name: '@xpert-ai/plugin-integration-lark',
     version: '0.0.1',
     category: 'integration',
+    level: PLUGIN_LEVEL.SYSTEM,
     icon: {
       type: 'image',
       value: iconImage

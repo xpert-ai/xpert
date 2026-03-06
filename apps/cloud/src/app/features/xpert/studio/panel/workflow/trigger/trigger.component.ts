@@ -8,6 +8,7 @@ import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
+  channelName,
   IWFNTrigger,
   IWorkflowNode,
   WorkflowNodeTypeEnum,
@@ -27,7 +28,15 @@ import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
   styleUrls: ['./trigger.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, CdkMenuModule, MatTooltipModule, TranslateModule, JSONSchemaFormComponent, XpertParametersEditComponent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    CdkMenuModule,
+    MatTooltipModule,
+    TranslateModule,
+    JSONSchemaFormComponent,
+    XpertParametersEditComponent
+  ]
 })
 export class XpertWorkflowTriggerComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -60,18 +69,32 @@ export class XpertWorkflowTriggerComponent extends XpertWorkflowBaseComponent {
     compute: () => this.triggerEntity().parameters,
     update: (value) => {
       let from = null
+      let triggerKey = null
       this.triggerEntity.update((state) => {
         from = state.from
+        triggerKey = state.key
         return {
           ...state,
           parameters: value
         }
       })
       if (from === 'chat') {
+        const hasParameters = !!value?.length
+        const groupName = triggerKey ? channelName(triggerKey) : null
         this.studioService.agentConfig.update((state) => {
           return {
             ...(state ?? {}),
-            parameters: value
+            parameters:
+              hasParameters && groupName
+                ? [
+                    {
+                      type: XpertParameterTypeEnum.OBJECT,
+                      name: groupName,
+                      optional: true,
+                      item: value
+                    }
+                  ]
+                : null
           }
         })
       }

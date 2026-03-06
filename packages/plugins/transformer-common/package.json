@@ -1,6 +1,11 @@
 {
   "name": "@xpert-ai/plugin-transformer-common",
   "version": "0.0.1",
+  "xpert": {
+    "plugin": {
+      "level": "system"
+    }
+  },
   "dependencies": {
     "@langchain/community": "0.3.53",
     "mammoth": "^1.11.0",

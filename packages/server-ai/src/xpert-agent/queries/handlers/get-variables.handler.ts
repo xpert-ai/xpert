@@ -43,14 +43,13 @@ import { _BaseToolset, ARRAY_FILE_ITEMS } from '../../../shared'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
-	
 	@Inject(WorkflowNodeRegistry)
 	private readonly nodeRegistry: WorkflowNodeRegistry
 
 	constructor(
 		private readonly xpertService: XpertService,
 		private readonly environmentService: EnvironmentService,
-		private readonly commandBus: CommandBus,
+		private readonly commandBus: CommandBus
 	) {}
 
 	public async execute(command: XpertAgentVariablesQuery): Promise<TWorkflowVarGroup[]> {
@@ -218,6 +217,13 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			})
 		}
 
+		const _graph = isDraft ? ({ ...(xpert.graph ?? {}), ...(xpert.draft ?? {}) } as TXpertGraph) : xpert.graph
+		const triggerGroupNames = new Set(
+			(_graph?.nodes ?? [])
+				.filter((_) => _.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.TRIGGER)
+				.map((_) => channelName(_.key))
+		)
+
 		// Xpert state variables
 		const agentConfig = isDraft ? (xpert.draft?.team?.agentConfig ?? xpert.agentConfig) : xpert.agentConfig
 		const stateVariables = agentConfig?.stateVariables
@@ -225,11 +231,12 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			variables.push(...stateVariables)
 		}
 		if (agentConfig?.parameters?.length) {
-			variables.push(...agentConfig.parameters)
+			variables.push(
+				...agentConfig.parameters.filter((parameter) => !isTriggerParameterGroup(parameter, triggerGroupNames))
+			)
 		}
 
 		// All agents output
-		const _graph = isDraft ? ({ ...(xpert.graph ?? {}), ...(xpert.draft ?? {}) } as TXpertGraph) : xpert.graph
 		// Pure workflow mode
 		if (xpert.agent?.options?.hidden && xpert.agent?.key === nodeKey) {
 			const chatStarters = getWorkflowTriggers(_graph, 'chat')
@@ -382,8 +389,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						default: {
 							try {
 								const creator = this.nodeRegistry.get(entity.type)
-								const workflowVariables = (type === 'output' && inputKeys.has(entity.key) ||
-									type === 'input') && creator.inputVariables
+								const workflowVariables =
+									((type === 'output' && inputKeys.has(entity.key)) || type === 'input') &&
+									creator.inputVariables
 										? creator.inputVariables(entity, varGroups)
 										: creator.outputVariables(entity)
 								variables.push(...workflowVariables)
@@ -397,7 +405,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			}
 		}
-		
+
 		return varGroups
 	}
 
@@ -437,6 +445,12 @@ function xpertParameterToVariable(parameter: TXpertParameter) {
 }
 function toolsetVariableToVariable(variable: TStateVariable) {
 	return omit(variable, 'reducer', 'default') as TStateVariable
+}
+
+function isTriggerParameterGroup(parameter: TXpertParameter, triggerGroupNames: Set<string>) {
+	return (
+		parameter?.type === XpertParameterTypeEnum.OBJECT && !!parameter?.name && triggerGroupNames.has(parameter.name)
+	)
 }
 
 function collectGraphKeys(graph: TXpertGraph, key: string, visited = new Set<string>()): string[] {

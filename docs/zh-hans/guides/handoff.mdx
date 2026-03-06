@@ -1,0 +1,27 @@
+# Handoff 管道
+
+`handoff` 是 `server-ai` 内部的通用异步消息管道，用于在智能体、插件与渠道任务间解耦执行。
+
+## 主要组件
+
+- `HandoffQueueService`：入队与 `enqueueAndWait`。
+- `HandoffQueueProcessor`：消费队列并触发调度。
+- `MessageDispatcherService`：校验消息并按 `type` 分发。
+- `HandoffProcessorRegistry`：处理器注册与解析。
+- `ExecutionQueueService` + `RunRegistryService`：取消、超时与运行中追踪。
+
+## 处理语义
+
+- `ok`：执行成功，可继续投递 outbound。
+- `retry`：按 `maxAttempts` 重试。
+- `dead`：进入死信并停止重试。
+
+## 消息最小字段
+
+`HandoffMessage` 建议至少包含：
+
+- `id`, `type`, `version`
+- `tenantId`, `sessionKey`
+- `businessKey`, `traceId`
+- `attempt`, `maxAttempts`, `enqueuedAt`
+- `payload`

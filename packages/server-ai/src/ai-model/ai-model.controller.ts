@@ -1,5 +1,5 @@
 import { Public, TransformInterceptor } from '@metad/server-core'
-import { Controller, Get, HttpException, HttpStatus, Param, Res, UseInterceptors } from '@nestjs/common'
+import { Controller, Get, HttpException, HttpStatus, Param, Query, Res, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { ServerResponse } from 'http'
@@ -21,9 +21,12 @@ export class AIModelController {
 		@Param('name') provider: string,
 		@Param('iconType') iconType: string,
 		@Param('lang') lang: string,
+		@Query('organizationId') organizationId: string,
 		@Res() res: ServerResponse
 	) {
-		const [icon, mimetype] = await this.queryBus.execute(new AIModelGetIconQuery(provider, iconType, lang))
+		const [icon, mimetype] = await this.queryBus.execute(
+			new AIModelGetIconQuery(provider, iconType, lang, organizationId)
+		)
 
 		if (!icon) {
 			throw new HttpException('Icon not found', HttpStatus.NOT_FOUND)

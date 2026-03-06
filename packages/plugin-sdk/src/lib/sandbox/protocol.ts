@@ -381,6 +381,26 @@ export interface SandboxBackendProtocol extends BackendProtocol {
    */
   execute(command: string): MaybePromise<ExecuteResponse>;
 
+  /**
+   * Execute a command with line-by-line streaming output.
+   *
+   * When implemented, the middleware layer can push incremental output
+   * to the frontend as each line arrives, rather than waiting for the
+   * command to finish.  Implementations MUST buffer partial lines and
+   * only invoke `onLine` with complete lines (LF-terminated).
+   *
+   * The returned `ExecuteResponse.output` contains the full collected
+   * output, identical to what `execute()` would return.
+   *
+   * Falls back to `execute()` + single `onLine` call in `BaseSandbox`
+   * when a concrete backend does not override this method.
+   *
+   * @param command - Full shell command string to execute
+   * @param onLine  - Callback invoked once per complete output line
+   * @returns ExecuteResponse with combined output, exit code, and truncation flag
+   */
+  streamExecute?(command: string, onLine: (line: string) => void): MaybePromise<ExecuteResponse>;
+
   /** Unique identifier for the sandbox backend instance */
   readonly id: string;
 }

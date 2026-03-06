@@ -14,18 +14,19 @@ import {
 	SharedModule
 } from '@metad/server-core'
 import { IPluginConfig } from '@metad/server-common'
-import { ConflictException, DynamicModule, Logger, LogLevel, Module, Type } from '@nestjs/common'
+import { ConflictException, DynamicModule, Logger as NestLogger, Module, Type } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
-import { useContainer } from 'class-validator';
-import chalk from 'chalk';
+import { useContainer } from 'class-validator'
+import chalk from 'chalk'
 import cookieParser from 'cookie-parser'
 import { json, text, urlencoded } from 'express'
 import expressSession from 'express-session'
 import i18next from 'i18next'
 import * as middleware from 'i18next-http-middleware'
+import { Logger } from 'nestjs-pino'
 import path from 'path'
 import { EntitySubscriberInterface } from 'typeorm'
 import { AnalyticsModule } from '../app.module'
@@ -33,10 +34,7 @@ import { AnalyticsService } from '../app.service'
 import { BootstrapModule } from './bootstrap.module'
 
 
-const LOGGER_LEVELS = ['error', 'warn', 'log', 'debug', 'verbose'] as LogLevel[]
-const LoggerIndex = LOGGER_LEVELS.findIndex((value) => value === (process.env.LOG_LEVEL || 'warn'))
-
-export async function bootstrap(options: {title: string; version: string}) {
+export async function bootstrap(options: { title: string; version: string }) {
 	// Pre-bootstrap the application configuration
 	const config = await preBootstrapApplicationConfig({})
 
@@ -44,16 +42,18 @@ export async function bootstrap(options: {title: string; version: string}) {
 	await initI18next(path.join(baseDir, 'packages'))
 
 	@Module({ imports: [BootstrapModule, PluginModule.init()] })
-    class RootModule {}
-	
+	class RootModule {}
+
 	const app = await NestFactory.create<NestExpressApplication>(RootModule, {
-		logger: LOGGER_LEVELS.slice(0, LoggerIndex + 1)
+		bufferLogs: true
 	})
 
-	// Set query parser to extended (In Express v5, query parameters are no longer parsed using the qs library by default.)
-	app.set('query parser', 'extended');
+	app.useLogger(app.get(Logger))
 
-	app.use(middleware.handle(i18next)); // attach i18next middleware
+	// Set query parser to extended (In Express v5, query parameters are no longer parsed using the qs library by default.)
+	app.set('query parser', 'extended')
+
+	app.use(middleware.handle(i18next)) // attach i18next middleware
 
 	// This will lockdown all routes and make them accessible by authenticated users only.
 	const reflector = app.get(Reflector)
@@ -68,7 +68,7 @@ export async function bootstrap(options: {title: string; version: string}) {
 	)
 	app.use(json({ limit: '50mb' }))
 	app.use(urlencoded({ extended: true, limit: '50mb' }))
-	
+
 	// CORS
 	const headersForOpenAI =
 		'x-stainless-os, x-stainless-lang, x-stainless-package-version, x-stainless-runtime, x-stainless-arch, x-stainless-runtime-version, x-stainless-retry-count'
@@ -110,7 +110,7 @@ export async function bootstrap(options: {title: string; version: string}) {
 	/**
 	 * Dependency injection with class-validator
 	 */
-	useContainer(app.select(SharedModule), { fallbackOnErrors: true });
+	useContainer(app.select(SharedModule), { fallbackOnErrors: true })
 
 	// Setup Swagger Module
 	const swagger = new DocumentBuilder().setTitle(options.title).setVersion(options.version).addBearerAuth().build()
@@ -123,7 +123,7 @@ export async function bootstrap(options: {title: string; version: string}) {
 	// Listen App
 	const port = process.env.PORT || 3000
 	await app.listen(port, '0.0.0.0', () => {
-		Logger.log('Listening at http://localhost:' + port + '/' + globalPrefix)
+		NestLogger.log('Listening at http://localhost:' + port + '/' + globalPrefix)
 	})
 }
 
@@ -136,34 +136,34 @@ export async function bootstrap(options: {title: string; version: string}) {
  * @returns A promise that resolves to the final application configuration after pre-bootstrap operations.
  */
 export async function preBootstrapApplicationConfig(applicationConfig: Partial<IPluginConfig>) {
-	console.time(chalk.yellow('✔ Pre Bootstrap Application Config Time'));
+	console.time(chalk.yellow('✔ Pre Bootstrap Application Config Time'))
 
 	if (Object.keys(applicationConfig).length > 0) {
 		// Set initial configuration if any properties are provided
-		setConfig(applicationConfig);
+		setConfig(applicationConfig)
 	}
 
-	await preBootstrapPlugins();
+	await preBootstrapPlugins()
 
 	// Register core and plugin entities and subscribers
-	const entities = await preBootstrapRegisterEntities(applicationConfig);
-	const subscribers = await preBootstrapRegisterSubscribers(applicationConfig);
+	const entities = await preBootstrapRegisterEntities(applicationConfig)
+	const subscribers = await preBootstrapRegisterSubscribers(applicationConfig)
 
 	setConfig({
 		dbConnectionOptions: {
 			entities: entities as Array<Type<any>>, // Core and plugin entities
 			subscribers: subscribers as Array<Type<EntitySubscriberInterface>> // Core and plugin subscribers
-		},
-	});
-	
+		}
+	})
+
 	const config = getConfig()
-	
-	console.timeEnd(chalk.yellow('✔ Pre Bootstrap Application Config Time'));
-	return config;
+
+	console.timeEnd(chalk.yellow('✔ Pre Bootstrap Application Config Time'))
+	return config
 }
 
 export async function preBootstrapPlugins() {
-	const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || [];
+	const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || []
 	const defaultGlobalPlugins = [
 		'@xpert-ai/plugin-agent-middlewares',
 		'@xpert-ai/plugin-integration-github',
@@ -173,38 +173,44 @@ export async function preBootstrapPlugins() {
 		'@xpert-ai/plugin-textsplitter-common',
 		'@xpert-ai/plugin-retriever-common',
 		'@xpert-ai/plugin-transformer-common',
-		'@xpert-ai/plugin-vlm-default',
+		'@xpert-ai/plugin-vlm-default'
 		// '@xpert-ai/plugin-vstore-chroma',
 		// '@xpert-ai/plugin-vstore-weaviate',
-	];
+	]
 
-	const organizationPluginConfigs = await loadOrganizationPluginConfigs();
+	const organizationPluginConfigs = await loadOrganizationPluginConfigs()
+
+	const globalPlugins = [
+		...defaultGlobalPlugins.map((name) => ({ name, source: 'code' })),
+		...pluginsFromEnv.map((name) => ({ name, source: 'local' }))
+	]
 
 	// If there is no persisted configuration, fallback to defaults + env for the global scope
-	const groups = [...organizationPluginConfigs, { organizationId: GLOBAL_ORGANIZATION_SCOPE, plugins: [
-		...defaultGlobalPlugins.map(name => ({ name, source: 'code' })), ...pluginsFromEnv.map(name => ({ name, source: 'local' }))
-	], configs: {} }]
+	const groups = [
+		...organizationPluginConfigs,
+		{ organizationId: GLOBAL_ORGANIZATION_SCOPE, plugins: globalPlugins, configs: {} }
+	]
 
-	const modules: DynamicModule[] = [];
+	const modules: DynamicModule[] = []
 	for await (const group of groups) {
 		const mergedPlugins = group.plugins
 		try {
 			const { modules: orgModules } = await registerPluginsAsync({
 				organizationId: group.organizationId,
 				plugins: mergedPlugins,
-				configs: group.configs,
-			});
-			modules.push(...orgModules);
+				configs: group.configs
+			})
+			modules.push(...orgModules)
 		} catch (error) {
-			Logger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`);
+			NestLogger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`)
 		}
 	}
 
 	const existingEntities = Array.isArray(getConfig().dbConnectionOptions?.entities)
 		? (getConfig().dbConnectionOptions.entities as Array<any>)
 		: getConfig().dbConnectionOptions?.entities
-		? Object.values(getConfig().dbConnectionOptions.entities as Record<string, any>)
-		: []
+			? Object.values(getConfig().dbConnectionOptions.entities as Record<string, any>)
+			: []
 	const pluginEntities = getEntitiesFromPlugins(modules)
 	const mergedEntities = Array.from(new Set([...existingEntities, ...pluginEntities]))
 
@@ -218,18 +224,18 @@ export async function preBootstrapPlugins() {
 }
 
 function origins(...urls: string[]) {
-  const results = []
-  for (let url of urls) {
-	url = url.trim()
-	if (url.startsWith('http')) {
-		results.push(url)
-	} else if (url.startsWith('//')) {
-		results.push('http:' + url, 'https:' + url)
-	} else {
-		results.push('http://' + url, 'https://' + url)
+	const results = []
+	for (let url of urls) {
+		url = url.trim()
+		if (url.startsWith('http')) {
+			results.push(url)
+		} else if (url.startsWith('//')) {
+			results.push('http:' + url, 'https:' + url)
+		} else {
+			results.push('http://' + url, 'https://' + url)
+		}
 	}
-	}
-  return results.map((u) => u.replace(/\/+$/, ''))
+	return results.map((u) => u.replace(/\/+$/, ''))
 }
 
 /**
@@ -239,25 +245,22 @@ function origins(...urls: string[]) {
  * @param config - Plugin configuration containing plugin entities.
  * @returns A promise that resolves to an array of registered entity types.
  */
-export async function preBootstrapRegisterEntities(
-	config: Partial<IPluginConfig>
-): Promise<Array<Type<any>>> {
+export async function preBootstrapRegisterEntities(config: Partial<IPluginConfig>): Promise<Array<Type<any>>> {
 	try {
-		console.time(chalk.yellow('✔ Pre Bootstrap Register Entities Time'));
+		console.time(chalk.yellow('✔ Pre Bootstrap Register Entities Time'))
 		// Retrieve core entities and plugin entities
-		const coreEntitiesList = [...coreEntities] as Array<Type<any>>;
-		const pluginEntitiesList = getEntitiesFromPlugins(config.plugins);
+		const coreEntitiesList = [...coreEntities] as Array<Type<any>>
+		const pluginEntitiesList = getEntitiesFromPlugins(config.plugins)
 
 		// Check for conflicts and merge entities
-		const registeredEntities = mergeEntities(coreEntitiesList, pluginEntitiesList);
+		const registeredEntities = mergeEntities(coreEntitiesList, pluginEntitiesList)
 
-		console.timeEnd(chalk.yellow('✔ Pre Bootstrap Register Entities Time'));
-		return registeredEntities;
+		console.timeEnd(chalk.yellow('✔ Pre Bootstrap Register Entities Time'))
+		return registeredEntities
 	} catch (error) {
-		console.log(chalk.red('Error registering entities:'), error);
+		console.log(chalk.red('Error registering entities:'), error)
 	}
 }
-
 
 /**
  * Merges core entities and plugin entities, ensuring no conflicts.
@@ -269,18 +272,17 @@ export async function preBootstrapRegisterEntities(
  */
 function mergeEntities(coreEntities: Array<Type<any>>, pluginEntities: Array<Type<any>>): Array<Type<any>> {
 	for (const pluginEntity of pluginEntities) {
-		const entityName = pluginEntity.name;
+		const entityName = pluginEntity.name
 
 		if (coreEntities.some((entity) => entity.name === entityName)) {
-			throw new ConflictException({ message: `Entity conflict: ${entityName} conflicts with core entities.` });
+			throw new ConflictException({ message: `Entity conflict: ${entityName} conflicts with core entities.` })
 		}
 
-		coreEntities.push(pluginEntity);
+		coreEntities.push(pluginEntity)
 	}
 
-	return coreEntities;
+	return coreEntities
 }
-
 
 /**
  * Registers subscriber entities from core and plugin configurations, ensuring no conflicts.
@@ -291,36 +293,36 @@ function mergeEntities(coreEntities: Array<Type<any>>, pluginEntities: Array<Typ
 async function preBootstrapRegisterSubscribers(
 	config: Partial<IPluginConfig>
 ): Promise<Array<Type<EntitySubscriberInterface>>> {
-	console.time(chalk.yellow('✔ Pre Bootstrap Register Subscribers Time'));
+	console.time(chalk.yellow('✔ Pre Bootstrap Register Subscribers Time'))
 
 	try {
 		// List of core subscribers
-		const subscribers = coreSubscribers as Array<Type<EntitySubscriberInterface>>;
+		const subscribers = coreSubscribers as Array<Type<EntitySubscriberInterface>>
 
 		// Get plugin subscribers from the application configuration
-		const pluginSubscribersList = getSubscribersFromPlugins(config.plugins);
+		const pluginSubscribersList = getSubscribersFromPlugins(config.plugins)
 
 		// Check for conflicts and add new plugin subscribers
 		for (const pluginSubscriber of pluginSubscribersList) {
-			const subscriberName = pluginSubscriber.name;
+			const subscriberName = pluginSubscriber.name
 
 			// Check for name conflicts with core subscribers
 			if (subscribers.some((subscriber) => subscriber.name === subscriberName)) {
 				// Throw an exception if there's a conflict
 				throw new ConflictException({
 					message: `Error: ${subscriberName} conflicts with default subscribers.`
-				});
+				})
 			} else {
 				// Add the new plugin subscriber to the list if no conflict
-				subscribers.push(pluginSubscriber);
+				subscribers.push(pluginSubscriber)
 			}
 		}
 
-		console.timeEnd(chalk.yellow('✔ Pre Bootstrap Register Subscribers Time'));
+		console.timeEnd(chalk.yellow('✔ Pre Bootstrap Register Subscribers Time'))
 
 		// Return the updated list of subscribers
-		return subscribers;
+		return subscribers
 	} catch (error) {
-		console.log(chalk.red('Error registering subscribers:'), error);
+		console.log(chalk.red('Error registering subscribers:'), error)
 	}
 }

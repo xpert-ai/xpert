@@ -1,7 +1,8 @@
 export enum MCPServerType {
   SSE = 'sse',
   STDIO = 'stdio',
-  CODE = 'code'
+  CODE = 'code',
+  HTTP = 'http'
 }
 
 /**
@@ -24,6 +25,20 @@ export interface SSEConnection {
   url: string;
   headers?: Record<string, string>;
   useNodeEventSource?: boolean;
+}
+
+/**
+ * Configuration for Streamable HTTP transport connection
+ */
+export interface HttpConnection {
+  transport: "http";
+  url: string;
+  headers?: Record<string, string>;
+  /**
+   * Whether to automatically fallback to SSE if Streamable HTTP is not available.
+   * Defaults to true.
+   */
+  automaticSSEFallback?: boolean;
 }
 
 export type TMCPServerReconnect = {
@@ -56,6 +71,11 @@ export type TMCPServer = {
   url?: string,
   headers?: Record<string, string>
   useNodeEventSource?: boolean
+  /**
+   * Whether to automatically fallback to SSE if Streamable HTTP is not available.
+   * Defaults to true. Only applicable for HTTP transport.
+   */
+  automaticSSEFallback?: boolean
   /**
    * Default timeout in milliseconds for tool execution. Must be greater than 0.
    * If not specified, tools will use their own configured timeout values.

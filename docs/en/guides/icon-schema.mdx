@@ -1,0 +1,36 @@
+# Icon Schema
+
+Use a single JSON shape for all icon sources (`image`, `svg`, `font`, `emoji`, `lottie`).
+
+## Suggested schema
+
+```json
+{
+  "icon": {
+    "type": "image",
+    "value": "https://example.com/icon.png",
+    "color": "#000000",
+    "size": 24,
+    "alt": "User avatar",
+    "style": {
+      "borderRadius": "50%",
+      "backgroundColor": "#f0f0f0"
+    }
+  }
+}
+```
+
+## TypeScript type
+
+```ts
+type IconType = 'image' | 'svg' | 'font' | 'emoji' | 'lottie'
+
+interface IconDefinition {
+  type: IconType
+  value: string
+  color?: string
+  size?: number
+  alt?: string
+  style?: Record<string, string>
+}
+```

@@ -1,14 +1,14 @@
-import { z } from 'zod';
-import type { XpertPlugin } from '@xpert-ai/plugin-sdk';
-import { AgentMiddlewaresModule } from './lib/middlewares.module';
+import { z } from 'zod'
+import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewaresModule } from './lib/middlewares.module'
 
-const ConfigSchema = z.object({
-});
+const ConfigSchema = z.object({})
 
 const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
   meta: {
     name: '@xpert-ai/plugin-agent-middlewares',
     version: '0.0.1',
+    level: 'system',
     category: 'middleware',
     icon: {
       type: 'svg',
@@ -18,21 +18,21 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
     displayName: 'Built-in Agent Middlewares',
     description: 'Provide Built-in Agent Middlewares for XpertAI Agents',
     keywords: ['middleware', 'agent'],
-    author: 'XpertAI Team',
+    author: 'XpertAI Team'
   },
   config: {
-    schema: ConfigSchema,
+    schema: ConfigSchema
   },
   register(ctx) {
-    ctx.logger.log('register agent-middlewares plugin');
-    return { module: AgentMiddlewaresModule, global: true };
+    ctx.logger.log('register agent-middlewares plugin')
+    return { module: AgentMiddlewaresModule, global: true }
   },
   async onStart(ctx) {
-    ctx.logger.log('agent-middlewares plugin started');
+    ctx.logger.log('agent-middlewares plugin started')
   },
   async onStop(ctx) {
-    ctx.logger.log('agent-middlewares plugin stopped');
-  },
-};
+    ctx.logger.log('agent-middlewares plugin stopped')
+  }
+}
 
-export default plugin;
+export default plugin

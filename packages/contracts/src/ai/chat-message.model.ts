@@ -1,27 +1,32 @@
-import { MessageType } from '@langchain/core/messages';
+import { MessageType } from '@langchain/core/messages'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
-import { XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model';
-import { JSONValue } from '../core.model';
-import { IStorageFile } from '../storage-file.model';
-import { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types';
+import { XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
+import { JSONValue } from '../core.model'
+import { IStorageFile } from '../storage-file.model'
+import { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types'
 
-export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
-    jobId: number | string;
+export type TSummaryJob = Record<
+  LongTermMemoryTypeEnum,
+  {
+    jobId: number | string
     status: string
     progress?: number
     memoryKey?: string
-  }>
+  }
+>
 
 /**
  * Chat message entity type
  */
-export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
+export interface IChatMessage
+  extends IBasePerTenantAndOrganizationEntityModel,
+    Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
   parent?: IChatMessage | null
   children?: IChatMessage[]
   parentId?: string | null
-  
+
   /**
    * Files
    */
@@ -51,7 +56,6 @@ export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, 
   executionId?: string
 }
 
-
 /**
  * @deprecated
  */
@@ -64,10 +68,10 @@ export type ChatMessageStatusEnum = XpertAgentExecutionStatusEnum | 'thinking' |
  * BaseMessage or AIMessage in Langchain.js
  */
 export interface CopilotBaseMessage {
-  id: string
+  id?: string
   createdAt?: Date
   role: CopilotMessageType
-  
+
   /**
    * Status of the message:
    */
@@ -87,9 +91,8 @@ export interface CopilotBaseMessage {
 }
 
 export type CopilotChatMessage = CopilotBaseMessage & {
-
   tool_call_id?: string
-  
+
   /**
    * If the message has a role of `function`, the `name` field is the name of the function.
    * Otherwise, the name field should not be set.
@@ -115,5 +118,5 @@ export interface CopilotMessageGroup extends CopilotBaseMessage {
  * @deprecated use content in message
  */
 export function isMessageGroup(message: CopilotBaseMessage): message is CopilotMessageGroup {
-  return 'messages' in message;
+  return 'messages' in message
 }
