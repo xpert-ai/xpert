@@ -17,55 +17,75 @@
       {
         "language": "en",
         "default": true,
-        "groups": [
+        "tabs": [
           {
-            "group": "Start Here",
-            "pages": ["en/index"]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "en/guides/plugin",
-              "en/guides/agent-middleware",
-              "en/guides/handoff",
-              "en/guides/icon-schema",
-              "en/guides/release",
-              "en/guides/message-assembly-v2"
+            "tab": "Guides",
+            "groups": [
+              {
+                "group": "Start Here",
+                "pages": ["en/index"]
+              },
+              {
+                "group": "Guides",
+                "pages": [
+                  "en/guides/plugin",
+                  "en/guides/agent-middleware",
+                  "en/guides/handoff",
+                  "en/guides/icon-schema",
+                  "en/guides/release",
+                  "en/guides/message-assembly-v2"
+                ]
+              }
             ]
           },
           {
-            "group": "API",
-            "openapi": {
-              "source": "/api/openapi.ai.json",
-              "directory": "en/api-reference"
-            }
+            "tab": "OpenAPI",
+            "groups": [
+              {
+                "group": "AI",
+                "openapi": {
+                  "source": "/api/openapi.ai.json",
+                  "directory": "en/api-reference"
+                }
+              }
+            ]
           }
         ]
       },
       {
         "language": "zh-Hans",
-        "groups": [
+        "tabs": [
           {
-            "group": "开始",
-            "pages": ["zh-hans/index"]
-          },
-          {
-            "group": "指南",
-            "pages": [
-              "zh-hans/guides/plugin",
-              "zh-hans/guides/agent-middleware",
-              "zh-hans/guides/handoff",
-              "zh-hans/guides/icon-schema",
-              "zh-hans/guides/release",
-              "zh-hans/guides/message-assembly-v2"
+            "tab": "指南",
+            "groups": [
+              {
+                "group": "开始",
+                "pages": ["zh-hans/index"]
+              },
+              {
+                "group": "指南",
+                "pages": [
+                  "zh-hans/guides/plugin",
+                  "zh-hans/guides/agent-middleware",
+                  "zh-hans/guides/handoff",
+                  "zh-hans/guides/icon-schema",
+                  "zh-hans/guides/release",
+                  "zh-hans/guides/message-assembly-v2"
+                ]
+              }
             ]
           },
           {
-            "group": "API",
-            "openapi": {
-              "source": "/api/openapi.ai.json",
-              "directory": "zh-hans/api-reference"
-            }
+            "tab": "OpenAPI",
+            "groups": [
+              {
+                "group": "AI",
+                "openapi": {
+                  "source": "/api/openapi.ai.json",
+                  "directory": "zh-hans/api-reference"
+                }
+              }
+            ]
           }
         ]
       }

@@ -71,7 +71,7 @@
       "Cube": "多維數據集",
       "Tags": "標簽",
       "DATA": "數據",
-      "DataSource":"數據源",
+      "DataSource": "數據源",
       "DATA_SOURCE": "數據源",
       "DATA_SOURCES": "數據源",
       "DELETE": "刪除",
@@ -324,6 +324,13 @@
       "SearchTerm": "搜索詞",
       "DataSourceTypes": "數據源類型"
     },
+    "Common": {
+      "Tools": "工具",
+      "Loading": "加載中",
+      "Enabled": "啟用",
+      "NoTools": "無工具",
+      "NoFields": "暫無欄位"
+    },
     "XProject": {
       "NoRecentFiles": "沒有最近的文件",
       "NoToolset": "尚無工具集",
@@ -402,7 +409,7 @@
       "Binding": "綁定",
       "Import": "導入",
       "IntroduceExistToolset": "引入現有工具集",
-      "ImportDSL":"從 DSL 文件導入",
+      "ImportDSL": "從 DSL 文件導入",
       "EnterProjectName": "輸入項目名",
       "Update": "更新",
       "Create": "創建",
@@ -1229,10 +1236,7 @@
         "Visibility_Secret": "秘密",
         "Visibility_Private": "私有",
         "RemoveDBInitScript": "刪除數據庫初始化腳本",
-        "CopilotDefaultPrompts": [
-          "將表創建為立方體",
-          "將表創建為維度"
-        ],
+        "CopilotDefaultPrompts": ["將表創建為立方體", "將表創建為維度"],
         "CopilotName": "建模",
         "ModelStructure": "模型結構"
       },
@@ -2620,6 +2624,8 @@
       "DownloadTemplateHere": "在這裏下載模板",
       "ToolParameters": "工具參數",
       "ToolName": "工具名稱",
+      "StateSchema": "狀態模式",
+      "NoConfigurationRequired": "無需配置",
       "ToolDescription": "工具描述",
       "OutputVariablesInfo": "按照預定義格式組織數據，便於程序自動解析和使用。",
       "TaskCreatedSuccessfully": "任務創建成功",
@@ -3564,7 +3570,6 @@
       "CANCEL": "取消",
       "DELETE": "刪除"
     }
-
   },
   "STORY_DESIGNER": {
     "BUILDER_TITLE": "構建",
@@ -4196,7 +4201,7 @@
         },
         "SeriesStyle": {
           "Title": "系列屬性",
-          "HasAll":"有 All 成員",
+          "HasAll": "有 All 成員",
           "FunnelAlign": "漏鬥對齊",
           "BoundaryGap": "邊界間隙"
         },
@@ -4500,24 +4505,13 @@
       "Indicator": "指標",
       "Calendar": "日歷",
       "Address.Country": "國家"
-
     },
-    "ENTITY": {
+    "ENTITY": {},
+    "PROPERTY": {},
+    "CALCULATION": {},
 
-    },
-    "PROPERTY": {
-
-    },
-    "CALCULATION": {
-
-    },
-
-    "VALUE_HELP": {
-
-    },
-    "SELECTION": {
-
-    },
+    "VALUE_HELP": {},
+    "SELECTION": {},
     "COUNTDOWN_CONFIRMATION": {
       "CONFIRM": "確認",
       "WAS": "秒",
@@ -4541,9 +4535,7 @@
       "EDIT": "編輯"
     },
 
-    "Table": {
-
-    }
+    "Table": {}
   },
   "FORMLY": {
     "COMMON": {
@@ -4709,7 +4701,7 @@
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密碼重置",
-			"welcome-user": "歡迎用戶",
+      "welcome-user": "歡迎用戶",
       "invite-user": "邀請用戶",
       "TEMPLATE_NAMES": "模板名稱"
     },
