@@ -2590,6 +2590,7 @@
       "Pipeline": "流水线",
       "PleaseSelectADataSource": "请选择一个数据源",
       "NoPagesFetched": "没有抓取到任何页面",
+      "PluginNotFound": "插件未找到",
       "DocumentsDescription": "知识库的所有文件都在这里显示，整个知识库都可以应用到数字专家智能体或项目空间。",
       "ProcessingDocuments": "处理文档",
       "SelectDocumentForPreview": "选择一个文档以预览其内容",
