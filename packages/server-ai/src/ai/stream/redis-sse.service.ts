@@ -23,6 +23,32 @@ interface CreateSseStreamOptions {
 	runId: string
 	lastEventId?: string
 	mode: 'create' | 'join'
+	owner?: SseLockOwnerCandidate
+}
+
+export interface SseLockOwnerCandidate {
+	mode: 'create' | 'join'
+	requestId?: string | null
+	userId?: string | null
+	ip?: string | null
+	forwardedFor?: string | null
+	userAgent?: string | null
+	origin?: string | null
+	referer?: string | null
+	method?: string | null
+	endpoint?: string | null
+	lastEventId?: string | null
+}
+
+export interface SseLockOwner extends SseLockOwnerCandidate {
+	lockId: string
+	connectedAt: string
+}
+
+export interface SseLockSnapshot {
+	lockId: string | null
+	owner: SseLockOwner | null
+	ttlMs: number | null
 }
 
 @Injectable()
@@ -55,6 +81,10 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 		return `ai:sse:lock:thread:${threadId}:run:${runId}`
 	}
 
+	getLockOwnerKey(threadId: string, runId: string) {
+		return `ai:sse:lockmeta:thread:${threadId}:run:${runId}`
+	}
+
 	async appendEvent(threadId: string, runId: string, data: unknown) {
 		const streamKey = this.getStreamKey(threadId, runId)
 		const maxLen = this.getStreamMaxLen()
@@ -82,17 +112,22 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 		const { threadId, runId } = options
 		const streamKey = this.getStreamKey(threadId, runId)
 		const lockKey = this.getLockKey(threadId, runId)
+		const ownerKey = this.getLockOwnerKey(threadId, runId)
 		const lockTtl = this.getLockTtlMs()
 		const lockId = await this.acquireLock(lockKey, lockTtl)
 
 		if (!lockId) {
 			return {
 				lockId: null,
+				lock: await this.getLockSnapshot(threadId, runId),
 				stream: new Observable<SseMessageEvent>((subscriber) => {
 					subscriber.error(new Error('STREAM_LOCKED'))
 				})
 			}
 		}
+
+		const owner = this.buildLockOwner(lockId, options)
+		await this.persistLockOwner(ownerKey, owner, lockTtl)
 
 		const stream = new Observable<SseMessageEvent>((subscriber) => {
 			let active = true
@@ -118,11 +153,17 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 				return false
 			}
 
-			const refreshInterval = setInterval(() => {
-				this.refreshLock(lockKey, lockId, lockTtl).catch((err) => {
-					this.#logger.warn(`Failed to refresh SSE lock: ${err}`)
-				})
-			}, Math.max(Math.floor(lockTtl / 2), 1000))
+			const refreshInterval = setInterval(
+				() => {
+					this.refreshLock(lockKey, lockId, lockTtl).catch((err) => {
+						this.#logger.warn(`Failed to refresh SSE lock: ${err}`)
+					})
+					this.refreshOwnerLock(ownerKey, lockTtl).catch((err) => {
+						this.#logger.warn(`Failed to refresh SSE owner lock: ${err}`)
+					})
+				},
+				Math.max(Math.floor(lockTtl / 2), 1000)
+			)
 
 			const run = async () => {
 				try {
@@ -163,12 +204,29 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 			}
 		})
 
-		return { lockId, stream }
+		return { lockId, lock: { lockId, owner, ttlMs: lockTtl }, stream }
 	}
 
 	async releaseLock(threadId: string, runId: string, lockId: string) {
 		const lockKey = this.getLockKey(threadId, runId)
-		return this.releaseLockByKey(lockKey, lockId)
+		const ownerKey = this.getLockOwnerKey(threadId, runId)
+		return this.releaseLockByKey(lockKey, ownerKey, lockId)
+	}
+
+	async getLockSnapshot(threadId: string, runId: string): Promise<SseLockSnapshot> {
+		const lockKey = this.getLockKey(threadId, runId)
+		const ownerKey = this.getLockOwnerKey(threadId, runId)
+		const [lockId, ownerRaw, ttlMs] = await Promise.all([
+			this.redis.get(lockKey),
+			this.redis.get(ownerKey),
+			this.redis.pTTL(lockKey)
+		])
+
+		return {
+			lockId,
+			owner: this.parseLockOwner(ownerRaw),
+			ttlMs: ttlMs >= 0 ? ttlMs : null
+		}
 	}
 
 	private async readRange(streamKey: string, lastId: string, count: number): Promise<StreamEntry[]> {
@@ -181,7 +239,12 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 		return response.map(([id, fields]) => ({ id, data: this.extractData(fields) }))
 	}
 
-	private async readNewEntries(streamKey: string, lastId: string, count: number, blockMs: number): Promise<StreamEntry[]> {
+	private async readNewEntries(
+		streamKey: string,
+		lastId: string,
+		count: number,
+		blockMs: number
+	): Promise<StreamEntry[]> {
 		const client = this.readClient ?? this.redis
 		const args = ['XREAD', 'COUNT', `${count}`, 'BLOCK', `${blockMs}`, 'STREAMS', streamKey, lastId]
 		const response = (await client.sendCommand(args)) as Array<[string, Array<[string, string[]]>]> | null
@@ -233,6 +296,38 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 		return result ? lockId : null
 	}
 
+	private buildLockOwner(lockId: string, options: CreateSseStreamOptions): SseLockOwner {
+		const owner = options.owner ?? { mode: options.mode }
+		return {
+			lockId,
+			connectedAt: new Date().toISOString(),
+			mode: owner.mode ?? options.mode,
+			requestId: this.normalizeOwnerValue(owner.requestId),
+			userId: this.normalizeOwnerValue(owner.userId),
+			ip: this.normalizeOwnerValue(owner.ip),
+			forwardedFor: this.normalizeOwnerValue(owner.forwardedFor),
+			userAgent: this.normalizeOwnerValue(owner.userAgent),
+			origin: this.normalizeOwnerValue(owner.origin),
+			referer: this.normalizeOwnerValue(owner.referer),
+			method: this.normalizeOwnerValue(owner.method),
+			endpoint: this.normalizeOwnerValue(owner.endpoint),
+			lastEventId: this.normalizeOwnerValue(owner.lastEventId)
+		}
+	}
+
+	private normalizeOwnerValue(value?: string | null) {
+		const normalized = value?.trim()
+		return normalized ? normalized : null
+	}
+
+	private async persistLockOwner(key: string, owner: SseLockOwner, ttl: number) {
+		try {
+			await this.redis.set(key, JSON.stringify(owner), { PX: ttl })
+		} catch (error) {
+			this.#logger.warn(`Failed to persist SSE lock owner metadata: ${error}`)
+		}
+	}
+
 	private async refreshLock(key: string, lockId: string, ttl: number) {
 		const script = `
 			if redis.call("get", KEYS[1]) == ARGV[1] then
@@ -244,16 +339,34 @@ export class RedisSseStreamService implements OnModuleInit, OnModuleDestroy {
 		await this.redis.eval(script, { keys: [key], arguments: [lockId, `${ttl}`] })
 	}
 
-	private async releaseLockByKey(key: string, lockId: string) {
+	private async refreshOwnerLock(key: string, ttl: number) {
+		await this.redis.pExpire(key, ttl)
+	}
+
+	private async releaseLockByKey(key: string, ownerKey: string, lockId: string) {
 		const script = `
 			if redis.call("get", KEYS[1]) == ARGV[1] then
-				return redis.call("del", KEYS[1])
+				redis.call("del", KEYS[1])
+				redis.call("del", KEYS[2])
+				return 1
 			else
 				return 0
 			end
 		`
-		const result = await this.redis.eval(script, { keys: [key], arguments: [lockId] })
+		const result = await this.redis.eval(script, { keys: [key, ownerKey], arguments: [lockId] })
 		return result === 1
+	}
+
+	private parseLockOwner(raw: string | null): SseLockOwner | null {
+		if (!raw) {
+			return null
+		}
+		try {
+			return JSON.parse(raw) as SseLockOwner
+		} catch (error) {
+			this.#logger.warn(`Failed to parse SSE lock owner metadata: ${error}`)
+			return null
+		}
 	}
 
 	private getStreamMaxLen() {

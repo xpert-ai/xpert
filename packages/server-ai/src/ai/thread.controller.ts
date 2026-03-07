@@ -24,6 +24,7 @@ import {
 	Patch,
 	Post,
 	Query,
+	Req,
 	Res,
 	Sse,
 	UseGuards,
@@ -31,7 +32,7 @@ import {
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { Response } from 'express'
+import { Request, Response } from 'express'
 import { filter, lastValueFrom, map, Observable, reduce } from 'rxjs'
 import { IsNull } from 'typeorm'
 import { CopilotCheckpointGetTupleQuery } from '../copilot-checkpoint'
@@ -45,7 +46,7 @@ import { AiService } from './ai.service'
 import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from './commands'
 import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
-import { RedisSseStreamService } from './stream/redis-sse.service'
+import { RedisSseStreamService, SseLockOwnerCandidate, SseLockSnapshot } from './stream/redis-sse.service'
 import { CancelConversationCommand } from '../chat-conversation'
 import { CopilotUserUsageQuery } from '../copilot-user/queries'
 import { formatInUTC0 } from '../shared/utils'
@@ -186,6 +187,7 @@ export class ThreadsController {
 	@Post(':thread_id/runs/stream')
 	@Sse()
 	async runStream(
+		@Req() req: Request,
 		@Res() res: Response,
 		@Param('thread_id') thread_id: string,
 		@Body() body: components['schemas']['RunCreateStateful'],
@@ -197,14 +199,32 @@ export class ThreadsController {
 				console.error('Error in run stream:', err)
 			}
 		})
-		const { lockId, stream: sseStream } = await this.redisSseStreamService.createSseStream({
+		const contender = buildSseLockOwner(req, {
+			mode: 'create',
+			lastEventId
+		})
+		const {
+			lockId,
+			lock,
+			stream: sseStream
+		} = await this.redisSseStreamService.createSseStream({
 			threadId: thread_id,
 			runId: execution.id,
 			lastEventId,
-			mode: 'create'
+			mode: 'create',
+			owner: contender
 		})
 
 		if (!lockId) {
+			this.#logger.warn(
+				{
+					threadId: thread_id,
+					runId: execution.id,
+					holder: sseStreamOwnerPayload(lock),
+					contender
+				},
+				'SSE run stream lock conflict'
+			)
 			throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
 		}
 
@@ -269,19 +289,34 @@ export class ThreadsController {
 	@Get(':thread_id/runs/:run_id/stream')
 	@Sse()
 	async joinRunStream(
+		@Req() req: Request,
 		@Res() res: Response,
 		@Param('thread_id') thread_id: string,
 		@Param('run_id') run_id: string,
 		@Headers('last-event-id') lastEventId?: string
 	) {
-		const { lockId, stream } = await this.redisSseStreamService.createSseStream({
+		const contender = buildSseLockOwner(req, {
+			mode: 'join',
+			lastEventId
+		})
+		const { lockId, lock, stream } = await this.redisSseStreamService.createSseStream({
 			threadId: thread_id,
 			runId: run_id,
 			lastEventId,
-			mode: 'join'
+			mode: 'join',
+			owner: contender
 		})
 
 		if (!lockId) {
+			this.#logger.warn(
+				{
+					threadId: thread_id,
+					runId: run_id,
+					holder: sseStreamOwnerPayload(lock),
+					contender
+				},
+				'SSE run join lock conflict'
+			)
 			throw new HttpException('Stream already connected', HttpStatus.CONFLICT)
 		}
 
@@ -351,4 +386,62 @@ function transformThreadState(tuple: CheckpointTuple) {
 		metadata: tuple.metadata as Metadata,
 		created_at: tuple.checkpoint.ts
 	} as ThreadState
+}
+
+function buildSseLockOwner(
+	req: Request,
+	options: Pick<SseLockOwnerCandidate, 'mode' | 'lastEventId'>
+): SseLockOwnerCandidate {
+	return {
+		mode: options.mode,
+		requestId: readHeader(req, 'x-request-id'),
+		userId: readRequestUserId(req),
+		ip: readRequestIp(req),
+		forwardedFor: readHeader(req, 'x-forwarded-for'),
+		userAgent: readHeader(req, 'user-agent'),
+		origin: readHeader(req, 'origin'),
+		referer: readHeader(req, 'referer'),
+		method: req.method,
+		endpoint: req.originalUrl || req.url,
+		lastEventId: options.lastEventId?.trim() || null
+	}
+}
+
+function sseStreamOwnerPayload(lock?: SseLockSnapshot | null) {
+	if (!lock) {
+		return null
+	}
+
+	return {
+		lockId: lock.lockId,
+		ttlMs: lock.ttlMs,
+		owner: lock.owner
+	}
+}
+
+function readHeader(req: Request, name: string) {
+	const value = req.headers[name]
+	if (Array.isArray(value)) {
+		const first = value.find((item) => item?.trim())
+		return first?.trim() || null
+	}
+	return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function readRequestIp(req: Request) {
+	return (
+		readHeader(req, 'cf-connecting-ip') ||
+		readHeader(req, 'x-real-ip') ||
+		req.ip ||
+		req.socket?.remoteAddress ||
+		null
+	)
+}
+
+function readRequestUserId(req: Request) {
+	const user = (req as Request & { user?: Partial<IUser> }).user
+	if (typeof user?.id === 'string' && user.id.trim()) {
+		return user.id.trim()
+	}
+	return null
 }
