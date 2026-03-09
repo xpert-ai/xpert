@@ -3,4 +3,5 @@ export * from './directives/id.directive';
 export * from './provider/providezard';
 export * from './provider/event-manager-plugins/zard-debounce-event-manager-plugin';
 export * from './provider/event-manager-plugins/zard-event-manager-plugin';
+export * from './i18n/ui-i18n.service';
 export * from './tokens';

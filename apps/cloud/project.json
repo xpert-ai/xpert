@@ -96,6 +96,11 @@
             "input": "packages/echarts/src/i18n/",
             "output": "./assets/locales/echarts/"
           },
+          {
+            "glob": "**/*.json",
+            "input": "packages/ui/src/i18n/",
+            "output": "./assets/locales/xp-ui/"
+          },
           "apps/cloud/src/favicon.ico",
           "apps/cloud/src/assets",
           "apps/cloud/src/manifest.webmanifest"
