@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
@@ -18,7 +18,7 @@ import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@me
 import { TranslateModule } from '@ngx-translate/core'
 import { AnalyticsFeatures, FeatureEnum, Store, routeAnimations } from '../../@core'
 import { AppService } from '../../app.service'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -33,7 +33,7 @@ import { AppService } from '../../app.service'
 
     MatFormFieldModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatMenuModule,
     MatDialogModule,
     MatInputModule,

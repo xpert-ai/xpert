@@ -64,7 +64,6 @@ export class CopilotProviderModelComponent {
   // ViewChild
   readonly credentialForm = viewChild('credentialForm', { read: CopilotCredentialFormComponent })
 
-
   // Models
   readonly #model = myRxResource({
     request: () => {
@@ -105,7 +104,6 @@ export class CopilotProviderModelComponent {
   get invalid() {
     return this.credentialForm().invalid || !this.modelTypes()?.[0] || !this.modelName()
   }
-
 
   constructor() {
     effect(() => {

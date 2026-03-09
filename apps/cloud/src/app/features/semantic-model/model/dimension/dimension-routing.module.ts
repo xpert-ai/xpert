@@ -4,7 +4,6 @@ import { ModelDimensionComponent } from './dimension.component'
 import { ModelHierarchyComponent } from './hierarchy/hierarchy.component'
 import { NotFoundComponent } from 'apps/cloud/src/app/@shared/not-found'
 
-
 const routes: Routes = [
   {
     path: '404',

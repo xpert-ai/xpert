@@ -3,9 +3,7 @@
   <ngm-search [formControl]="searchControl"></ngm-search>
 
   <div ngmButtonGroup>
-    <button mat-raised-button color="primary" displayDensity="cosy"
-      (click)="openUserSelect()"
-      >
+    <button z-button zType="default" color="primary" displayDensity="cosy" (click)="openUserSelect()">
       <div class="flex items-center">
         <mat-icon fontSet="material-icons-outlined">add</mat-icon>
         {{ 'PAC.KEY_WORDS.ADD' | translate: {Default: 'Add'} }}
@@ -46,8 +44,7 @@
 </ng-template>
 
 <ng-template #actionTempl let-loading="loading" let-id="id" let-user="user">
-  <button mat-icon-button *ngIf="!loading" ngmAppearance="danger" displayDensity="cosy" class="text-slate-500"
-    (click)="removeUser(id, user)">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="!loading" ngmAppearance="danger" displayDensity="cosy" class="text-slate-500" (click)="removeUser(id, user)">
     <div class="flex items-center justify-center">
       <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
     </div>

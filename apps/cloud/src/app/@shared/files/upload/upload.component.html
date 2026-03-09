@@ -40,7 +40,7 @@
       @for (item of files(); track i; let i = $index) {
         <div class="flex justify-between items-center px-2 hover:bg-black/5 dark:hover:bg-white/10">
           {{ item.file.name }}
-          <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" (click)="removeFile(item)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" (click)="removeFile(item)">
             <mat-icon>close</mat-icon> 
           </button>
         </div>

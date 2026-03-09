@@ -4,14 +4,7 @@
   <ng-container *ngTemplateOutlet="inlineTable"></ng-container>
 </ng-container>
 
-<button
-  *ngIf="props?.type !== 'inline'"
-  mat-button
-  ngmAppearance="dashed"
-  displayDensity="cosy"
-  [class.mat-accent]="data.length"
-  (click)="open()"
->
+<button z-button zType="ghost" *ngIf="props?.type !== 'inline'" ngmAppearance="dashed" displayDensity="cosy" [color]="data.length ? 'accent' : null" (click)="open()">
   <mat-icon fontSet="material-icons-outlined">edit</mat-icon>{{props?.title ?? ('FORMLY.TABLE.Open' | translate:
   {Default: 'Open'} ) }}
 </button>
@@ -58,7 +51,7 @@
       <ng-container matColumnDef="_actions_">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let element; let i = index">
-          <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" (click)="deleteRow(i)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="deleteRow(i)">
             <mat-icon>close</mat-icon>
           </button>
         </td>
@@ -69,7 +62,7 @@
     </table>
   </div>
   <div class="my-2">
-    <button mat-button ngmAppearance="dashed" displayDensity="cosy" (click)="addRow()">
+    <button z-button zType="ghost" ngmAppearance="dashed" displayDensity="cosy" (click)="addRow()">
       <div class="flex items-center justify-start">
         <mat-icon fontSet="material-icons-outlined">add</mat-icon>
         {{'FORMLY.TABLE.AddRow' | translate: {Default: 'Add'} }}
@@ -91,12 +84,12 @@
 
   <mat-dialog-actions class="flex justify-between items-center">
     <div>
-      <button mat-button (click)="clear()">{{ 'FORMLY.COMMON.Clear' | translate: {Default: 'Clear'} }}</button>
+      <button z-button zType="ghost" (click)="clear()">{{ 'FORMLY.COMMON.Clear' | translate: {Default: 'Clear'} }}</button>
     </div>
 
     <div ngmButtonGroup>
-      <button mat-button mat-dialog-close>{{ 'FORMLY.COMMON.Cancel' | translate: {Default: 'Cancel'} }}</button>
-      <button mat-raised-button color="accent" cdkFocusInitial [mat-dialog-close]="true">
+      <button z-button zType="ghost" mat-dialog-close>{{ 'FORMLY.COMMON.Cancel' | translate: {Default: 'Cancel'} }}</button>
+      <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="true">
         {{ 'FORMLY.COMMON.Apply' | translate: {Default: 'Apply'} }}
       </button>
     </div>

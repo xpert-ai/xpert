@@ -6,7 +6,6 @@ import { TranslateService } from '@ngx-translate/core'
 import { map, startWith } from 'rxjs/operators'
 import { PacAuthService } from './services/auth.service'
 
-
 @Component({
   standalone: false,
   selector: 'pac-auth',

@@ -1,6 +1,6 @@
 <div class="relative w-full h-64 shrink-0 flex justify-start items-stretch p-1" ngmResizer [resizerHeight]="230">
     <!-- <div class="flex flex-col justify-start">
-        <button mat-stroked-button color="primary" (click)="back()">{{ 'Story.Common.Back' | translate: {Default: 'Back'} }}</button>
+        <button z-button zType="outline" color="primary" (click)="back()">{{ 'Story.Common.Back' | translate: {Default: 'Back'} }}</button>
     </div> -->
   <button type="button" class="absolute right-2 top-2 btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
     (click)="back()">
@@ -120,9 +120,7 @@
                                 cdkDrag
                                 [cdkDragData]="row"
                             >
-                                <button ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity"
-                                  displayDensity="compact" ngmAppearance="danger" mat-icon-button color="warn"
-                                  (click)="$event.stopPropagation();$event.preventDefault();removeRow(i)">
+                                <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity" displayDensity="compact" ngmAppearance="danger" color="warn" (click)="$event.stopPropagation();$event.preventDefault();removeRow(i)">
                                   <mat-icon>clear</mat-icon>
                                 </button>
                             </ngm-chart-property>
@@ -149,9 +147,7 @@
                                 cdkDrag
                                 [cdkDragData]="item"
                             >
-                                <button ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity"
-                                  displayDensity="compact" ngmAppearance="danger" mat-icon-button color="warn"
-                                  (click)="$event.stopPropagation();$event.preventDefault();removeColumn(i)">
+                                <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity" displayDensity="compact" ngmAppearance="danger" color="warn" (click)="$event.stopPropagation();$event.preventDefault();removeColumn(i)">
                                   <mat-icon>clear</mat-icon>
                                 </button>
                             </ngm-chart-property>
@@ -269,11 +265,11 @@
             </mat-button-toggle-group>
 
             <div ngmButtonGroup>
-                <button mat-button (click)="openExplain()">
+                <button z-button zType="ghost" (click)="openExplain()">
                     <mat-icon fontSet="material-icons-round">code</mat-icon>
                     {{ 'Story.Widget.Explain' | translate: {Default: "Explain"} }}
                 </button>
-                <button mat-raised-button color="primary" (click)="close()">
+                <button z-button zType="default" color="primary" (click)="close()">
                     {{ 'Story.Common.Apply' | translate: {Default: 'Apply'} }}
                 </button>
             </div>
@@ -314,15 +310,11 @@
   
     <div class="flex justify-end mt-2">
       <div ngmButtonGroup>
-        <button mat-button (click)="closeDimensions()">
+        <button z-button zType="ghost" (click)="closeDimensions()">
           {{ 'Story.Common.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
   
-        <button
-          mat-raised-button
-          color="accent"
-          (click)="addDimensions()"
-        >
+        <button z-button zType="default" color="accent" (click)="addDimensions()">
           {{ 'Story.Common.Confirm' | translate: { Default: 'Confirm' } }}
         </button>
       </div>

@@ -8,7 +8,8 @@
 .mat-tree-node {
   min-height: 30px;
 
-  .mat-mdc-icon-button.mat-mdc-button-base {
+  [z-button][data-icon-only],
+  z-button[data-icon-only] {
     --mdc-icon-button-state-layer-size: 30px;
     padding: 0;
   }

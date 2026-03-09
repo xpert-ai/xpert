@@ -13,7 +13,6 @@ import { TPlugin } from '@cloud/app/@shared/plugins'
 import { TPluginWithDownloads } from '../types'
 import { SettingsPluginComponent } from '../plugin/plugin.component'
 
-
 @Component({
   standalone: true,
   imports: [CommonModule, CdkMenuModule, CdkListboxModule, TranslateModule, FormsModule, NgmSelectComponent, SettingsPluginComponent],

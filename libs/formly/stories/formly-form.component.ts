@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, NgModule } from '@angular/core'
 import { FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { FormlyFormOptions, FormlyModule } from '@ngx-formly/core'
 import { FormlyMaterialModule } from '@ngx-formly/material'
 import { PACFormlyArrayModule } from '../array'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'pac-formly-form-pannel',
@@ -15,9 +16,9 @@ import { PACFormlyArrayModule } from '../array'
     (modelChange)="onModelChange($event)"
     [options]="options"
   ></formly-form>
-<button type="submit" mat-button color="primary" (click)="onSubmit()">Submit</button>
-<button type="button" mat-button (click)="options.resetModel()">Reset</button>
-<button type="button" mat-button (click)="options.updateInitialValue()">Update Intial Values</button>
+<button z-button zType="ghost" type="submit" color="primary" (click)="onSubmit()">Submit</button>
+<button z-button zType="ghost" type="button" (click)="options.resetModel()">Reset</button>
+<button z-button zType="ghost" type="button" (click)="options.updateInitialValue()">Update Intial Values</button>
 `,
   styles: [``],
 })
@@ -43,7 +44,7 @@ export class NxFormlyFormPannelComponent {
     ReactiveFormsModule,
     FormlyModule,
     FormlyMaterialModule,
-    MatButtonModule,
+    ZardButtonComponent,
     PACFormlyArrayModule
   ],
   exports: [NxFormlyFormPannelComponent]

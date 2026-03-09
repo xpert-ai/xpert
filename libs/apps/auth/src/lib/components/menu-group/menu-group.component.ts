@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, HostBinding, Input, Output, input, signal } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import {CdkMenuModule} from '@angular/cdk/menu'
@@ -9,6 +9,7 @@ import { DensityDirective } from '@metad/ocap-angular/core'
 import { isNil } from '@metad/ocap-core'
 import { PacMenuItem } from '../types'
 import { OverlayModule } from '@angular/cdk/overlay'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -19,7 +20,7 @@ import { OverlayModule } from '@angular/cdk/overlay'
     CommonModule,
     CdkMenuModule,
     OverlayModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatTooltipModule,
     RouterModule,

@@ -68,10 +68,7 @@
     
         <div ngmButtonGroup class="flex flex-wrap">
           <!-- <mat-slide-toggle [(ngModel)]="displayCompact" class="text-sm">{{ 'PAC.KEY_WORDS.Compact' | translate: {Default: 'Compact'}  }}</mat-slide-toggle> -->
-          <button mat-raised-button displayDensity="cosy" color="primary"
-            [disabled]="businessAreaAuth$ | async"
-            (click)="requestBusinessArea(businessArea.value)"
-          >{{ 'PAC.INDICATOR.MARKET.RequestBusinessArea' | translate: {Default: 'Request Business Area'} }}</button>
+          <button z-button zType="default" displayDensity="cosy" color="primary" [disabled]="businessAreaAuth$ | async" (click)="requestBusinessArea(businessArea.value)">{{ 'PAC.INDICATOR.MARKET.RequestBusinessArea' | translate: {Default: 'Request Business Area'} }}</button>
         </div>
       </div>
     </div>
@@ -163,7 +160,7 @@
             </div>
   
             <div ngmButtonGroup displayDensity="cosy" *ngIf="!item.permissionApproved && !item.permissionRequests">
-              <button mat-button displayDensity="compact" [disabled]="!!item.permissionRequests" (click)="requestPermission(item.id)">
+              <button z-button zType="ghost" displayDensity="compact" [disabled]="!!item.permissionRequests" (click)="requestPermission(item.id)">
                 <div class="flex justify-center items-center">
                   <mat-icon fontSet="material-icons-outlined">approval</mat-icon>
                   {{ 'PAC.INDICATOR.MARKET.REQUEST' | translate: {Default: 'Request'} }}

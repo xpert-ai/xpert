@@ -18,7 +18,6 @@ import { CopyComponent } from '@cloud/app/@shared/common'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertStudioApiService } from '../../../domain'
 
-
 @Component({
   selector: 'xpert-workflow-code-test',
   templateUrl: './code.component.html',

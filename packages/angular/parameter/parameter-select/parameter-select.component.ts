@@ -4,7 +4,7 @@ import { Component, effect, forwardRef, inject, input, Input, model, ViewContain
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatFormFieldAppearance } from '@angular/material/form-field'
@@ -25,6 +25,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { firstValueFrom, map } from 'rxjs'
 import { NgmParameterCreateComponent } from '../parameter-create/parameter-create.component'
 import { Dialog } from '@angular/cdk/dialog'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -45,7 +46,7 @@ import { Dialog } from '@angular/cdk/dialog'
     DragDropModule,
     CdkMenuModule,
     MatInputModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatDividerModule,
     MatAutocompleteModule,

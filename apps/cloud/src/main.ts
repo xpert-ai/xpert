@@ -2,11 +2,9 @@ import { enableProdMode } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 import * as Sentry from "@sentry/angular";
 import 'hammerjs';
-
 import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
 import { enableAkitaProdMode, persistState, akitaConfig } from '@datorama/akita';
-
 
 // Sentry.init({
 //   dsn: "https://ceec859e3292454e86c5fe2fc2685c57@o4504752442507264.ingest.sentry.io/4504752446636032",

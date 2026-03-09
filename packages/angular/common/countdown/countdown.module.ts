@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
-
 import { NgmCountdownComponent } from './countdown.component';
 import { CountdownTimer } from './countdown.timer';
 

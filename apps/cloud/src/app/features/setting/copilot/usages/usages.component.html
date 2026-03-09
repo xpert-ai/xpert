@@ -74,19 +74,11 @@
                   [disabled]="loading()" [(ngModel)]="tokenLimit" />
                 <ngm-input type="number" simple [placeholder]="'PAC.Copilot.PriceLimit' | translate: {Default: 'Price Limit'}"
                   [disabled]="loading()" [(ngModel)]="priceLimit" />
-                <button mat-icon-button class="text-gray-400"
-                  [disabled]="loading()"
-                  [matTooltip]="'PAC.ChatBI.Save' | translate: {Default: 'Save'}"
-                  (click)="save(item.id)"
-                >
+                <button z-button zType="ghost" zSize="icon" zShape="circle" class="text-gray-400" [disabled]="loading()" [matTooltip]="'PAC.ChatBI.Save' | translate: {Default: 'Save'}" (click)="save(item.id)">
                   <mat-icon fontSet="material-icons-outlined">save</mat-icon>
                 </button>
               } @else {
-                <button mat-icon-button class="text-gray-400"
-                  [disabled]="loading()"
-                  [matTooltip]="'PAC.ChatBI.RenewTokenLimit' | translate: {Default: 'Renew token limit'}"
-                  (click)="renewToken(item.id)"
-                >
+                <button z-button zType="ghost" zSize="icon" zShape="circle" class="text-gray-400" [disabled]="loading()" [matTooltip]="'PAC.ChatBI.RenewTokenLimit' | translate: {Default: 'Renew token limit'}" (click)="renewToken(item.id)">
                   <mat-icon fontSet="material-icons-outlined">autorenew</mat-icon>
                 </button>
               }

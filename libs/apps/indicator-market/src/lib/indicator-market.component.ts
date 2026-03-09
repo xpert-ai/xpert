@@ -34,7 +34,6 @@ import { IndicatorsStore } from './services/store'
 import { IndicatorState, IndicatorTagEnum, LookbackLimit } from './types'
 import { TIndicatorItemData } from '@metad/ocap-angular/indicator'
 
-
 @Component({
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,

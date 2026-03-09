@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { NgmSelectModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { PACFormlySemanticModelComponent } from './semantic-model.type'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [PACFormlySemanticModelComponent],
@@ -15,7 +16,7 @@ import { PACFormlySemanticModelComponent } from './semantic-model.type'
     CommonModule,
     ReactiveFormsModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     TranslateModule,
     NgmSelectModule,
     OcapCoreModule,

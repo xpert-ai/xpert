@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -19,6 +19,7 @@ import { CopilotExampleService, getErrorMessage, injectToastr, IXpert } from '..
 import { MatInputModule } from '@angular/material/input'
 import { CopilotCommandEnum } from '../types'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -30,7 +31,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
     CdkMenuModule,
     CdkListboxModule,
     MatTooltipModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule,
     NgmCommonModule,
     ButtonGroupDirective

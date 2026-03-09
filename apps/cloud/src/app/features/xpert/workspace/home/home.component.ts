@@ -51,7 +51,6 @@ import { AppService } from '../../../../app.service'
 import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
 
-
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
 @Component({

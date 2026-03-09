@@ -24,19 +24,15 @@
 </div>
 
 <div class="w-full flex justify-between items-center">
-  <button mat-button (click)="reset()">
+  <button z-button zType="ghost" (click)="reset()">
     {{ 'COMPONENTS.COMMON.RESET' | translate: {Default: 'Reset'} }}
   </button>
 
   <div ngmButtonGroup class="ml-8">
-    <button mat-flat-button (click)="onCancel()">
+    <button z-button zType="secondary" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent"
-      [disabled]="invalid"
-      cdkFocusInitial
-      (click)="onApply()"
-    >
+    <button z-button zType="default" color="accent" [disabled]="invalid" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>

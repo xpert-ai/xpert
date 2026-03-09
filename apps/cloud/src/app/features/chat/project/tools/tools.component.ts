@@ -137,7 +137,6 @@ export class ChatProjectToolsComponent {
     )
   })
 
-
   /**
    * Add toolset from workspace into project
    */

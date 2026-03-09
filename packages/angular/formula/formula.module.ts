@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSidenavModule } from '@angular/material/sidenav'
@@ -12,6 +11,7 @@ import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgmBaseEditorDirective } from './editor.directive'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
@@ -21,7 +21,7 @@ import { NgmBaseEditorDirective } from './editor.directive'
     MatMenuModule,
     MatSidenavModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     TranslateModule,
     

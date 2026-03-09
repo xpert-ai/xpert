@@ -53,7 +53,6 @@ export const DensityCosy = {
   }
 }
 
-
 export const DensityCompact = {
   render: (args) => ({
     props: args,

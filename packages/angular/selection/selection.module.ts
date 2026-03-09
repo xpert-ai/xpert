@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
@@ -23,6 +23,7 @@ import { NgmAdvancedSlicerComponent } from './advanced-slicer/advanced-slicer.co
 import { SlicerBarComponent } from './slicer-bar/slicer-bar.component'
 import { SlicerComponent } from './slicer/slicer.component'
 import { SlicersComponent } from './slicers/slicers.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [SlicerComponent, SlicersComponent, SlicerBarComponent],
@@ -33,7 +34,7 @@ import { SlicersComponent } from './slicers/slicers.component'
     CdkMenuModule,
     MatDialogModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule,
     MatChipsModule,
     MatSlideToggleModule,

@@ -43,7 +43,6 @@ export interface MemberListOptions extends ControlOptions {
   hideSingleSelectionIndicator?: boolean
 }
 
-
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

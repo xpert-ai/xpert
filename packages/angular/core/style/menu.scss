@@ -22,7 +22,9 @@
 }
 
 /** active status color for menu trigger icon button */
-.mat-mdc-menu-trigger.mat-mdc-icon-button.active {
+.mat-mdc-menu-trigger[z-button][data-icon-only].active,
+.mat-mdc-menu-trigger z-button[data-icon-only].active,
+.mat-mdc-menu-trigger[data-icon-only].active {
   @apply bg-black/5 dark:bg-white/10;
   opacity: 1;
 }
@@ -41,7 +43,8 @@
     height: 38px;
     min-height: 38px;
 
-    .mat-mdc-icon-button .mat-icon {
+    [z-button][data-icon-only] .mat-icon,
+    z-button[data-icon-only] .mat-icon {
       margin-right: 0;
     }
   }
@@ -58,7 +61,8 @@
     height: 40px;
     min-height: 40px;
 
-    .mat-mdc-icon-button .mat-icon {
+    [z-button][data-icon-only] .mat-icon,
+    z-button[data-icon-only] .mat-icon {
       margin-right: 0;
     }
   }
@@ -118,20 +122,20 @@
       margin-right: 10px;
     }
 
-    &.disabled, &.mat-button-disabled {
+    &.disabled,
+    &:disabled,
+    &[disabled],
+    &[data-disabled='true'] {
       @apply opacity-50 cursor-default;
     }
 
-    .mat-button-wrapper {
-      @apply w-full flex items-center;
+    &[z-button],
+    z-button {
+      @apply w-full justify-start;
 
       > .mat-icon:is(:first-child) {
         margin-right: 10px;
       }
-    }
-    
-    .mdc-button__label {
-      @apply flex-1;
     }
 
     .mat-icon {

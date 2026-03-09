@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, inject, model, OnDestroy, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { ActivatedRoute, Router } from '@angular/router'
 import { UserChangePasswordFormComponent } from '@cloud/app/@shared/user/forms'
 import { Store, UsersService } from '@metad/cloud/state'
@@ -15,6 +15,7 @@ import { getErrorMessage, injectToastr, RolesEnum, routeAnimations } from '../..
 import { PACUserOrganizationsComponent } from '../organizations/organizations.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
 import { PACUsersComponent } from '../users.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -26,7 +27,7 @@ import { PACUsersComponent } from '../users.component'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     NgmSpinComponent,
     UserBasicComponent,
     UserChangePasswordFormComponent,

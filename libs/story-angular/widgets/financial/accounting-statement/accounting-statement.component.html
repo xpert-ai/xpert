@@ -6,12 +6,11 @@
   <span style="flex: 1;"></span>
 
   <div class="pac-widget__action-toolbar flex justify-between items-center">
-    <button mat-icon-button [color]="(hasSlicers$ | async) ? 'accent':''" [matMenuTriggerFor]="filtersMenu">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="(hasSlicers$ | async) ? 'accent':''" [matMenuTriggerFor]="filtersMenu">
       <mat-icon fontSet="material-icons-outlined">filter_alt</mat-icon>
     </button>
     <!-- Internal Error -->
-    <button mat-icon-button *ngIf="error$ | async as error" color="error"
-      [matTooltip]="error">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="error$ | async as error" color="error" [matTooltip]="error">
       <mat-icon fontSet="material-icons-outlined">warning</mat-icon>
     </button>
     <!-- Loading spinner icon -->

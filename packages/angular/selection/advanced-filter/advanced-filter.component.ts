@@ -23,7 +23,6 @@ import { firstValueFrom } from 'rxjs'
 import { NgmPropertySelectComponent, PropertyCapacity } from '@metad/ocap-angular/entity'
 import { ISelectOption, KEYS } from '@metad/ocap-angular/core'
 
-
 /**
  * @hidden
  */

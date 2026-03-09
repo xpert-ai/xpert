@@ -9,7 +9,6 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
-
 @Component({
   standalone: true,
   imports: [CommonModule, TranslateModule, FormsModule, NgmSpinComponent, PluginComponent],

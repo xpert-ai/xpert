@@ -16,10 +16,10 @@
 
 <mat-dialog-actions align="end">
     <div ngmButtonGroup>
-        <button mat-flat-button mat-dialog-close>
+        <button z-button zType="secondary" mat-dialog-close>
             {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
         </button>
-        <button mat-raised-button color="accent" cdkFocusInitial [matDialogClose]="certificationId">
+        <button z-button zType="default" color="accent" cdkFocusInitial [matDialogClose]="certificationId">
             {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
         </button>
     </div>

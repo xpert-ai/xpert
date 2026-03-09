@@ -44,7 +44,6 @@ const noopDesignerPanelService: DesignerPanelService = {
   openSecondDesigner: () => of(null)
 }
 
-
 @Component({
   selector: 'pac-formly-property-select',
   standalone: false,

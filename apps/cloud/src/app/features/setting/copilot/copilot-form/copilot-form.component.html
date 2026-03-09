@@ -28,13 +28,10 @@
   </div>
 
   <div class="self-stretch flex justify-start items-center gap-2 mt-4">
-    <button mat-flat-button type="button" class="ngm-rounded-full" [disabled]="formGroup.pristine"
-      (click)="cancel()">
+    <button z-button zType="secondary" type="button" class="rounded-full" [disabled]="formGroup.pristine" (click)="cancel()">
       {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="primary" class="ngm-rounded-full"
-      [disabled]="formGroup.invalid || formGroup.pristine || saving()"
-    >
+    <button z-button zType="default" color="primary" class="rounded-full" [disabled]="formGroup.invalid || formGroup.pristine || saving()">
       <div class="flex items-center">
         <span>{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</span>
       </div>

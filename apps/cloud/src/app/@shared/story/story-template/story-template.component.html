@@ -66,13 +66,12 @@
         <pac-tags [tags]="template.tags" [selectable]="true" (selectedChange)="onTagsChange($event)" class="absolute bottom-0 left-0 w-full p-2 z-10"></pac-tags>
 
         <div class="w-full h-full absolute top-0 left-0 flex flex-col justify-center items-center gap-2 opacity-0 bg-slate-500/20 group-hover:opacity-100 group-hover:backdrop-blur-lg rounded-md overflow-hidden">
-          <button mat-raised-button color="primary" class="w-20" (click)="useTemplate(template.id)">
+          <button z-button zType="default" color="primary" class="w-20" (click)="useTemplate(template.id)">
             {{ 'Story.Template.Use' | translate: {Default: "Use"} }}
           </button>
-          <!-- <button mat-raised-button class="w-20">Preview</button> -->
+          <!-- <button z-button zType="default" class="w-20">Preview</button> -->
 
-          <button *ngIf="activedLink === 'my'" mat-icon-button class="pac-template__remove absolute right-2 top-2 text-white" displayDensity="cosy" ngmAppearance="danger"
-            (click)="deleteTemplate(template)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="activedLink === 'my'" class="pac-template__remove absolute right-2 top-2 text-white" displayDensity="cosy" ngmAppearance="danger" (click)="deleteTemplate(template)">
             <mat-icon>close</mat-icon>
           </button>
         </div>

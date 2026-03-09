@@ -8,12 +8,12 @@ import { uuid } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MatIconModule } from '@angular/material/icon'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { MatButtonModule } from '@angular/material/button'
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { MatTooltipModule } from '@angular/material/tooltip'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -22,7 +22,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     TranslateModule,
     DragDropModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     NgmTableComponent,
     NgmPrismHighlightComponent,

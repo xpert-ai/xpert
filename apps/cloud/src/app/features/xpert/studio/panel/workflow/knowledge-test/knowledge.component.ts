@@ -19,7 +19,6 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
-
 @Component({
   selector: 'xpert-workflow-knowledge-test',
   templateUrl: './knowledge.component.html',

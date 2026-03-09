@@ -57,7 +57,6 @@ import { TranslateService } from '@ngx-translate/core'
 import { SlicersCapacity } from '@metad/ocap-angular/selection'
 import { AnalyticalCardService } from './analytical-card.service'
 
-
 export interface DrillLevel {
   // 父级维度， 从哪个维度下钻来的
   parent: Dimension

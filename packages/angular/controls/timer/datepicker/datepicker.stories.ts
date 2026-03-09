@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/angular'
-
 import { applicationConfig, argsToTemplate, componentWrapperDecorator, moduleMetadata } from '@storybook/angular'
-
 import { provideHttpClient } from '@angular/common/http'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { provideOcapMock, provideTranslate } from '@metad/ocap-angular/mock'

@@ -32,7 +32,6 @@ export function createTableSuggestions(model: any, position: any, entitySets: Ar
   return null
 }
 
-
 export function createFieldSuggestions(range, entitySets: Array<EntitySet>): any[] {
   const proposals = []
   

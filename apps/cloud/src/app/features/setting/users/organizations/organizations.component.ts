@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, inject } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatButtonModule } from '@angular/material/button'
+
 import { injectConfirmDelete, NgmTableComponent } from '@metad/ocap-angular/common'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
@@ -12,6 +12,7 @@ import { map, switchMap } from 'rxjs/operators'
 import { IOrganization, OrganizationsService, ToastrService, UsersOrganizationsService } from '../../../../@core'
 import { PACEditUserComponent } from '../edit-user/edit-user.component'
 import { ActivatedRoute, Router } from '@angular/router'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -26,7 +27,7 @@ import { ActivatedRoute, Router } from '@angular/router'
       }
     `
   ],
-  imports: [SharedModule, CdkMenuModule, MatButtonModule, UserProfileInlineComponent, NgmTableComponent]
+  imports: [SharedModule, CdkMenuModule, ZardButtonComponent, UserProfileInlineComponent, NgmTableComponent]
 })
 export class PACUserOrganizationsComponent extends TranslationBaseComponent {
   readonly confirmDelete = injectConfirmDelete()

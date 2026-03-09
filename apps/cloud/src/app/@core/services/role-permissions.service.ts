@@ -4,7 +4,6 @@ import { IRolePermission, IRolePermissionCreateInput, IRolePermissionUpdateInput
 import { API_PREFIX } from '@metad/cloud/state'
 import { lastValueFrom, Observable } from 'rxjs'
 
-
 @Injectable({
   providedIn: 'root'
 })

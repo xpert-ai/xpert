@@ -47,10 +47,10 @@
 
   <div class="flex justify-start">
     <div ngmButtonGroup>
-        <button mat-raised-button color="accent" cdkFocusInitial [disabled]="formGroup.invalid" (click)="onApply()">
+        <button z-button zType="default" color="accent" cdkFocusInitial [disabled]="formGroup.invalid" (click)="onApply()">
           {{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}
         </button>
-        <button mat-button (click)="onCancel()">
+        <button z-button zType="ghost" (click)="onCancel()">
           {{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}
         </button>
     </div>
@@ -97,13 +97,13 @@
             <input matInput formControlName="caption">
           </mat-form-field>
 
-          <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="opacity-0 group-hover:opacity-100" (click)="remove(i)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="opacity-0 group-hover:opacity-100" (click)="remove(i)">
             <mat-icon>close</mat-icon>
           </button>
         </div>
       }
 
-      <button mat-stroked-button displayDensity="cosy" ngmAppearance="dashed" (click)="add()">
+      <button z-button zType="outline" displayDensity="cosy" ngmAppearance="dashed" (click)="add()">
         {{ 'Ngm.Property.ADD_PARAMETER_MEMBER' | translate: {Default: "Add Member"} }}
       </button>
     </div>

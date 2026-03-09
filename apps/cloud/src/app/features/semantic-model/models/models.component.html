@@ -8,11 +8,7 @@
       (click)="fileUpload.value=null;"
     >
   <div ngmButtonGroup>
-    <button mat-button displayDensity="cosy"
-      [matTooltip]="'PAC.MODEL.UploadSemanticModel' | translate: {Default: 'Upload Semantic Model File'}"
-      matTooltipPosition="above"
-      [disabled]="modelUploading()"
-      (click)="fileUpload.click()" >
+    <button z-button zType="ghost" displayDensity="cosy" [matTooltip]="'PAC.MODEL.UploadSemanticModel' | translate: {Default: 'Upload Semantic Model File'}" matTooltipPosition="above" [disabled]="modelUploading()" (click)="fileUpload.click()">
       @if (modelUploading()) {
         <ngm-spin class="inline-block"/>
         {{ 'PAC.ACTIONS.Uploading' | translate: {Default: "Uploading"} }}...
@@ -20,17 +16,14 @@
         {{ 'PAC.ACTIONS.UPLOAD' | translate: {Default: "Upload"} }}
       }
     </button>
-    <button mat-raised-button color="primary" displayDensity="cosy"
-      (click)="onNewModel()">
+    <button z-button zType="default" color="primary" displayDensity="cosy" (click)="onNewModel()">
       <div class="flex items-center">
         <i class="ri-add-line text-lg mr-1"></i>
         {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }}
       </div>
     </button>
 
-    <button mat-icon-button displayDensity="cosy"
-      [cdkMenuTriggerFor]="menu"
-    >
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="menu">
       <mat-icon>more_vert</mat-icon>
     </button>
   </div>
@@ -111,16 +104,10 @@
 <ng-template #actions let-item="raw" let-key="key">
   @if (item.__isModel__) {
     <div class="pac__table-actions flex items-center gap-2" >
-      <button mat-icon-button displayDensity="cosy"
-        [matTooltip]="'PAC.ACTIONS.Edit' | translate: {Default: '✒️Edit'}"
-        matTooltipPosition="above"
-        [routerLink]="['/models', key]">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.ACTIONS.Edit' | translate: {Default: '✒️Edit'}" matTooltipPosition="above" [routerLink]="['/models', key]">
         <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
       </button>      
-      <button mat-icon-button displayDensity="cosy"
-        [matTooltip]=" 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} "
-        matTooltipPosition="above"
-        (click)="onDownload(item.id)">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]=" 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} " matTooltipPosition="above" (click)="onDownload(item.id)">
         <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
       </button>
       <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg opacity-50 group-hover:opacity-100"
@@ -131,11 +118,7 @@
     </div>
   } @else {
     <div class="pac__table-actions flex items-center">
-      <button mat-icon-button displayDensity="cosy" 
-        [matTooltip]="'PAC.ACTIONS.CreateModel' | translate: {Default: 'Create Model'}"
-        matTooltipPosition="above"
-        (click)="onNewModel(key)"
-      >
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.ACTIONS.CreateModel' | translate: {Default: 'Create Model'}" matTooltipPosition="above" (click)="onNewModel(key)">
         <mat-icon fontSet="material-icons-outlined">add</mat-icon>
       </button>
     </div>

@@ -21,15 +21,15 @@
 </mat-dialog-content>
 
 <mat-dialog-actions>
-    <button mat-button>
+    <button z-button zType="ghost">
         {{ 'STORY.COMMON.RESET' | translate: { Default: 'Reset' } }}
       </button>
 
     <div ngmButtonGroup>
-        <button mat-button mat-dialog-close>
+        <button z-button zType="ghost" mat-dialog-close>
             {{ 'STORY.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
-        <button mat-raised-button color="accent" cdkFocusInitial [mat-dialog-close]="model">
+        <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="model">
             {{ 'STORY.COMMON.APPLY' | translate: { Default: 'Apply' } }}
         </button>
     </div>

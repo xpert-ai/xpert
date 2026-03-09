@@ -1,13 +1,11 @@
 <div class="flex justify-start items-center">
-  <button type="button" mat-icon-button *ngIf="editable()" [disabled]="disabled()" displayDensity="cosy"
-    (click)="editSlicer()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" *ngIf="editable()" [disabled]="disabled()" displayDensity="cosy" (click)="editSlicer()">
     <mat-icon>edit</mat-icon>
   </button>
 
   <span *ngIf="title$ | async as title">{{title}}</span>
 
-  <button *ngIf="editable()" mat-icon-button [disabled]="disabled()" displayDensity="cosy" class="ngm-slicer__remove"
-    (click)="remove()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="editable()" [disabled]="disabled()" displayDensity="cosy" class="ngm-slicer__remove" (click)="remove()">
     <mat-icon color="warn">remove_circle_outline</mat-icon>
   </button>
 </div>

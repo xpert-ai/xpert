@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatNativeDateModule } from '@angular/material/core'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -15,6 +15,7 @@ import { NgmMonthpickerComponent } from './monthpicker/monthpicker.component'
 import { NgmQuarterpickerComponent } from './quarterpicker/quarterpicker.component'
 import { NgmYearpickerComponent } from './yearpicker/yearpicker.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [NgmMemberDatepickerComponent],
@@ -27,7 +28,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     MatDatepickerModule,
     MatNativeDateModule,
     MatFormFieldModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule,
     MatRadioModule,
     MatIconModule,

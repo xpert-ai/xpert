@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, HostBinding, OnInit } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
@@ -13,6 +13,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { firstValueFrom } from 'rxjs'
 import { ModelQueryService, uuid } from '../../@core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -24,7 +25,7 @@ import { ModelQueryService, uuid } from '../../@core'
     ReactiveFormsModule,
     MatFormFieldModule,
     DragDropModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule,
     MatProgressBarModule,
 
@@ -71,13 +72,13 @@ import { ModelQueryService, uuid } from '../../@core'
 
     <div mat-dialog-actions>
       <div ngmButtonGroup>
-        <button mat-stroked-button mat-dialog-close cdkFocusInitial>
+        <button z-button zType="outline" mat-dialog-close cdkFocusInitial>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
       </div>
 
       <div ngmButtonGroup>
-        <button mat-raised-button color="accent" [disabled]="formGroup.invalid" (click)="create()">
+        <button z-button zType="default" color="accent" [disabled]="formGroup.invalid" (click)="create()">
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>

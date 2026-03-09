@@ -31,7 +31,6 @@ import { injectGetXpertTeam } from '../../utils'
 import { XpertComponent } from '../xpert.component'
 import { XpertService } from '../xpert.service'
 
-
 @Component({
   selector: 'xpert-basic',
   standalone: true,

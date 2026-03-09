@@ -7,7 +7,7 @@
       node.item.name === selectedHierarchy || node.item.hierarchy === selectedHierarchy || node.item.raw?.hierarchy === selectedHierarchy)"
     draggable="true"
   >
-    <button mat-icon-button disabled displayDensity="compact">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" disabled displayDensity="compact">
     </button>
 
     @if (node.error) {
@@ -43,7 +43,7 @@
     @if (node.isLoading) {
       <mat-spinner class="m-2" strokeWidth="1" diameter="15" />
     } @else {
-      <button mat-icon-button [attr.aria-label]="'Toggle ' + node.item" matTreeNodeToggle>
+      <button z-button zType="ghost" zSize="icon" zShape="circle" [attr.aria-label]="'Toggle ' + node.item" matTreeNodeToggle>
         <mat-icon class="mat-icon-rtl-mirror" fontSet="material-icons-round">
           {{treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'}}
         </mat-icon>

@@ -83,7 +83,6 @@ export class XpertStudioNodeToolsetComponent {
   readonly isSandbox = computed(() => this.toolset()?.options?.provider?.tags?.includes(ToolTagEnum.SANDBOX))
   readonly needSandbox = computed(() => this.toolsetDetail()?.options?.needSandbox)
 
-
   isSensitive(name: string) {
     return this.agentConfig()?.interruptBefore?.includes(name)
   }

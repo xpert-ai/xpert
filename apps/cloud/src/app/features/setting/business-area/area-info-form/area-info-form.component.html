@@ -3,9 +3,7 @@
 </form>
 
 <div class="flex justify-end">
-  <button mat-flat-button color="primary" displayDensity="cosy"
-    [disabled]="form.pristine || form.invalid"
-    (click)="save()">
+  <button z-button zType="default" color="primary" displayDensity="cosy" [disabled]="form.pristine || form.invalid" (click)="save()">
     {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
   </button>
 </div>

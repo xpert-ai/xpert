@@ -21,7 +21,7 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
   >
     <ng-template ngmOptionContent let-option>
       <div class="flex items-center whitespace-nowrap overflow-hidden">
-        <button mat-icon-button (click)="openSemanticModel(option.value)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" (click)="openSemanticModel(option.value)">
           <mat-icon>open_in_new</mat-icon>
         </button>
 

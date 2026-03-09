@@ -34,7 +34,6 @@ import { KnowledgeDocumentCreateStep1Component } from './step-1/step.component'
 import { KnowledgeDocumentCreateStep2Component } from './step-2/step.component'
 import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
 
-
 @Component({
   standalone: true,
   selector: 'xpert-knowledge-document-create',

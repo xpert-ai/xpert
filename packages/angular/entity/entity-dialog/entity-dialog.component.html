@@ -15,10 +15,10 @@
 
     <div class="flex justify-between">
       <div ngmButtonGroup>
-        <button mat-raised-button color="accent" cdkFocusInitial (click)="onApply()">
+        <button z-button zType="default" color="accent" cdkFocusInitial (click)="onApply()">
           {{ 'Ngm.Common.Apply' | translate: {Default: "Apply"} }}
         </button>
-        <button mat-button mat-dialog-close>
+        <button z-button zType="ghost" mat-dialog-close>
           {{ 'Ngm.Common.Cancel' | translate: {Default: "Cancel"} }}
         </button>
       </div>

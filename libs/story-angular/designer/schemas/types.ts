@@ -73,7 +73,6 @@ export function AccordionWrappers(
   ]
 }
 
-
 /**
  * @deprecated use `makeDataSettingsContent` instead
  */

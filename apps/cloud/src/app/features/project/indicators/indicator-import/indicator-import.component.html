@@ -23,7 +23,7 @@
 
   <div class="flex justify-start">
     <div ngmButtonGroup>
-      <button mat-raised-button color="accent" cdkFocusInitial (click)="bulkCreate()">
+      <button z-button zType="default" color="accent" cdkFocusInitial (click)="bulkCreate()">
         @if (uploading) {
           <mat-spinner color="accent" diameter="20" strokeWidth="2" class="m-2"></mat-spinner>
         } @else {

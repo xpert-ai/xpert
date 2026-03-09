@@ -6,7 +6,6 @@
 
 import { inject, TestBed, waitForAsync } from '@angular/core/testing';
 import { take } from 'rxjs/operators';
-
 import { PacTokenLocalStorage, PacTokenStorage } from './token-storage';
 import { NbAuthSimpleToken, PacAuthToken, nbAuthCreateToken } from './token';
 import { NbTokenService } from './token.service';

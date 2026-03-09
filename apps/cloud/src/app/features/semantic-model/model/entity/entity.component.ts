@@ -31,7 +31,6 @@ import { ModelCubeFactComponent } from './fact/fact.component'
 import { SemanticModelService } from '../model.service'
 import { ModelComponent } from '../model.component'
 
-
 @Component({
   standalone: true,
   selector: 'pac-model-entity',

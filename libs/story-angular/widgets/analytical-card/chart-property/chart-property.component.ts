@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, forwardRef, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
@@ -37,6 +37,7 @@ import { BehaviorSubject, distinctUntilChanged, from, map } from 'rxjs'
 import { NgmChartDimensionComponent } from './chart-dimension.component'
 import { NgmChartMeasureComponent } from './chart-measure.component'
 import { NgmReferenceLineComponent } from './reference-line.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -44,7 +45,7 @@ import { NgmReferenceLineComponent } from './reference-line.component'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatMenuModule,
     MatRadioModule,

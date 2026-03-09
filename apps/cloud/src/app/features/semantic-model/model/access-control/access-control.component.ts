@@ -2,17 +2,8 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, TemplateRef, ViewChild, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import {
-  AbstractControl,
-  FormControl,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
-  Validators
-} from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms'
+
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatListModule } from '@angular/material/list'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -28,6 +19,7 @@ import { SemanticModelService } from '../model.service'
 import { AccessControlStateService } from './access-control.service'
 import { ModelComponent } from '../model.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: false,
@@ -242,8 +234,8 @@ export class AccessControlComponent extends TranslationBaseComponent {
 
     <div mat-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button mat-button mat-dialog-close cdkFocusInitial>Cancel</button>
-        <button mat-raised-button color="accent" (click)="onApply()">Apply</button>
+        <button z-button zType="ghost" mat-dialog-close cdkFocusInitial>Cancel</button>
+        <button z-button zType="default" color="accent" (click)="onApply()">Apply</button>
       </div>
     </div>`,
   imports: [
@@ -252,7 +244,7 @@ export class AccessControlComponent extends TranslationBaseComponent {
     ReactiveFormsModule,
     DragDropModule,
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatListModule,
     NgmSearchComponent,
     NgmDisplayBehaviourComponent,

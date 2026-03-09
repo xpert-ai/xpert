@@ -1,4 +1,6 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+
 import { CommonModule } from '@angular/common'
 import { Component, forwardRef, Input } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
@@ -12,7 +14,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { MatIconModule } from '@angular/material/icon'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatButtonModule } from '@angular/material/button'
 
 @Component({
   standalone: true,
@@ -24,7 +25,7 @@ import { MatButtonModule } from '@angular/material/button'
     MatSidenavModule,
     MatIconModule,
     MatTooltipModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MonacoEditorModule,
 
     NgmEntitySchemaComponent,

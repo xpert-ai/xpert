@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, Input, Output } from '@angular/core'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { IInvite, ITag, ITenant, IUserRegistrationInput } from '@metad/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   imports: [
@@ -16,7 +17,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
     ReactiveFormsModule,
     TranslateModule,
     MatFormFieldModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule,
     MatCheckboxModule,
     MatProgressSpinnerModule

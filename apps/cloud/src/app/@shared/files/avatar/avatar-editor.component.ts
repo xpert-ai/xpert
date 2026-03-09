@@ -6,7 +6,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ScreenshotService } from '../../../@core'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 
-
 /**
  * @deprecated use EmojiAvatar
  */

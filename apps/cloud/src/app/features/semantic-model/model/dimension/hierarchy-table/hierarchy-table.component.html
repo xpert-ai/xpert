@@ -26,7 +26,7 @@
         <div class="flex items-center">
           @if (data.level === column.name) {
             @if (!last) {
-              <button mat-icon-button class="inline-block" (click)="toggleNode(data)">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" class="inline-block" (click)="toggleNode(data)">
                 @if (data.expanded) {
                   <mat-icon>expand_more</mat-icon>
                 } @else {

@@ -118,7 +118,6 @@ export class KnowledgeConfigurationComponent {
 
   readonly loading = signal(false)
 
-
   save() {
     this.loading.set(true)
     this.knowledgebaseService

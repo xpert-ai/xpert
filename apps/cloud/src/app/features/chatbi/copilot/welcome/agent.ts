@@ -1,5 +1,4 @@
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
-
 import { inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { AIMessage, HumanMessage } from '@langchain/core/messages'

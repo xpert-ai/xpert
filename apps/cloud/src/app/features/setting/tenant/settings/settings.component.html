@@ -1,6 +1,6 @@
 <div class="flex justify-start items-center">
     <div ngmButtonGroup displayDensity="cosy">
-        <button mat-raised-button color="primary" displayDensity="cosy" (click)="addNew()">
+        <button z-button zType="default" color="primary" displayDensity="cosy" (click)="addNew()">
             <mat-icon fontSet="material-icons-outlined" nxDensity="cosy">add</mat-icon>
             {{ 'PAC.ACTIONS.ADD' | translate: {Default: "Add"} }}
         </button>
@@ -64,13 +64,13 @@
 <ng-template #actionTempl let-id="id">
   <div class="flex items-center gap-2">
     @if (editCache[id]?.edit) {
-      <button mat-icon-button displayDensity="cosy" class="text-gray-500" (click)="saveEdit(id)">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-gray-500" (click)="saveEdit(id)">
         <div class="flex justify-center items-center">
           <mat-icon fontSet="material-icons-outlined">save</mat-icon>
         </div>
       </button>
     } @else {
-      <button mat-icon-button displayDensity="cosy" class="text-gray-500" (click)="startEdit(id)">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-gray-500" (click)="startEdit(id)">
         <div class="flex justify-center items-center">
           <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
         </div>
@@ -78,15 +78,13 @@
     }
       <mat-divider [vertical]="true" style="height: 20px;"></mat-divider>
     @if (editCache[id]?.edit) {
-      <button mat-icon-button displayDensity="cosy" class="text-gray-500"
-        (click)="cancelEdit(id)">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-gray-500" (click)="cancelEdit(id)">
         <div class="flex justify-center items-center">
           <mat-icon fontSet="material-icons-outlined">undo</mat-icon>
         </div>
       </button>
     } @else {
-      <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="text-gray-500"
-        (click)="deleteRow(id)">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="text-gray-500" (click)="deleteRow(id)">
         <div class="flex justify-center items-center">
           <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
         </div>

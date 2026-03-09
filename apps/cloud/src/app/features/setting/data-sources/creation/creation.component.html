@@ -27,20 +27,16 @@
 
   <div class="flex justify-between items-center p-4">
     <div ngmButtonGroup>
-      <button mat-raised-button color="accent"
-        [disabled]="loading() || formGroup.pristine || formGroup.invalid"
-        (click)="ping()">
+      <button z-button zType="default" color="accent" [disabled]="loading() || formGroup.pristine || formGroup.invalid" (click)="ping()">
         {{ 'PAC.ACTIONS.PING' | translate: {Default: 'Ping'} }}
       </button>
     </div>
     
     <div ngmButtonGroup>
-      <button mat-flat-button (click)="onCancel()">
+      <button z-button zType="secondary" (click)="onCancel()">
         {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
       </button>
-      <button mat-raised-button color="accent" cdkFocusInitial
-        [disabled]="formGroup.pristine || formGroup.invalid"
-        (click)="onSave()">
+      <button z-button zType="default" color="accent" cdkFocusInitial [disabled]="formGroup.pristine || formGroup.invalid" (click)="onSave()">
         {{ 'PAC.ACTIONS.CREATE' | translate: {Default: 'Create'} }}
       </button>
     </div>

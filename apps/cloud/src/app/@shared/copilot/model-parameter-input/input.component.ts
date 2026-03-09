@@ -9,7 +9,6 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { ParameterRule, ParameterType } from '../../../@core'
 
-
 /**
  * @todo Use JSON Schema to implement
  */

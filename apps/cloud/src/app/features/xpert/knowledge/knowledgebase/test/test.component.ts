@@ -23,7 +23,6 @@ import {
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 
-
 @Component({
   standalone: true,
   selector: 'xp-knowledgebase-test',

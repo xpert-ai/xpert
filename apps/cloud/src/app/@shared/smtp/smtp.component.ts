@@ -1,6 +1,6 @@
 import { AfterViewInit, ChangeDetectorRef, Component, DestroyRef, Input, OnChanges, OnInit, SimpleChanges, inject, signal } from '@angular/core'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { ActivatedRoute } from '@angular/router'
 import { ICustomSmtp, IOrganization, IUser, SMTPSecureEnum } from '@metad/contracts'
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
@@ -11,6 +11,7 @@ import { CustomSmtpService, Store, ToastrService } from '../../@core/services'
 import { patterns } from '../regex/regex-patterns.const'
 import { TranslationBaseComponent } from '../language/translation-base.component'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -20,7 +21,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
     TranslateModule,
 
     FormlyModule,
-    MatButtonModule,
+    ZardButtonComponent,
     ButtonGroupDirective,
 
     OcapCoreModule

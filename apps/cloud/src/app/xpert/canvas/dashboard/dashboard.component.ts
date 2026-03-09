@@ -99,7 +99,6 @@ export class ChatCanvasDashboardComponent {
     return uniq(this._contents()?.map((content) => content.data.type) || [])
   })
 
-
   toggleExpand() {
     this.expand.update((state) => !state)
   }

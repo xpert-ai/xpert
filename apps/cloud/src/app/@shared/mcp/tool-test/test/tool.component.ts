@@ -31,7 +31,6 @@ import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { isNil, omit } from 'lodash-es'
 import { Subscription } from 'rxjs'
 
-
 @Component({
   standalone: true,
   imports: [

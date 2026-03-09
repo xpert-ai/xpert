@@ -36,7 +36,6 @@ import { Dialog } from '@angular/cdk/dialog'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
 
-
 @Component({
   standalone: true,
   imports: [

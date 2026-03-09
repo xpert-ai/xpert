@@ -15,25 +15,15 @@
 
   <mat-icon *ngIf="to?.sortable" ngmPrefix cdkDragHandle class="mr-2" displayDensity="compact">drag_indicator</mat-icon>
 
-  <button *ngIf="showChartAttributes && (isDimension$ | async) === true" ngmSuffix mat-icon-button displayDensity="compact"
-    [matMenuTriggerFor]="chartMenu"
-    #mt="matMenuTrigger"
-    [class.active]="mt.menuOpen"
-    (click)="$event.stopPropagation();$event.preventDefault();">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="showChartAttributes && (isDimension$ | async) === true" ngmSuffix displayDensity="compact" [matMenuTriggerFor]="chartMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
     <mat-icon fontSet="material-icons-outlined">analytics</mat-icon>
   </button>
 
-  <button *ngIf="showMeasureStyle && (isMeasure$ | async) === true" ngmSuffix mat-icon-button displayDensity="compact"
-    [matMenuTriggerFor]="measureMenu"
-    #mt="matMenuTrigger"
-    [class.active]="mt.menuOpen"
-    (click)="$event.stopPropagation();$event.preventDefault();">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="showMeasureStyle && (isMeasure$ | async) === true" ngmSuffix displayDensity="compact" [matMenuTriggerFor]="measureMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
     <mat-icon fontSet="material-icons-outlined">adjust</mat-icon>
   </button>
 
-  <button ngmSuffix class="ngm-formly__remove" *ngIf="removable" displayDensity="compact"
-    mat-icon-button color="warn"
-    (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="ngm-formly__remove" *ngIf="removable" displayDensity="compact" color="warn" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
     <mat-icon>clear</mat-icon>
   </button>
 </ngm-property-select>

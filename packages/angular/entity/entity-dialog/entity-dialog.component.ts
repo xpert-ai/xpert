@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, OnInit, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
@@ -18,6 +18,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { catchError, combineLatestWith, distinctUntilChanged, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { EntitySelectResultType } from '../types'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export type EntitySelectDataType = {
   dataSources: ISelectOption<string>[]
@@ -38,7 +39,7 @@ export type EntitySelectDataType = {
     DragDropModule,
     TranslateModule,
     ScrollingModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatDialogModule,
     MatIconModule,
     MatRadioModule,

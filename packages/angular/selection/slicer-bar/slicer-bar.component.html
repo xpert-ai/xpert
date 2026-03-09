@@ -18,16 +18,16 @@
 </mat-dialog-content>
 
 <mat-dialog-actions style="display: flex; justify-content: space-between; align-items: center;">
-  <button mat-button color="primary" ngmAppearance="dashed" [matMenuTriggerFor]="menu">
+  <button z-button zType="ghost" color="primary" ngmAppearance="dashed" [matMenuTriggerFor]="menu">
     <mat-icon>add</mat-icon>
     {{ 'Ngm.Common.ADD' | translate: {Default: "Add"} }}
   </button>
 
   <div ngmButtonGroup>
-    <button mat-button mat-dialog-close cdkFocusInitial>
+    <button z-button zType="ghost" mat-dialog-close cdkFocusInitial>
       {{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent" cdkFocusInitial [mat-dialog-close]="slicers">
+    <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="slicers">
       {{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}
     </button>
   </div>

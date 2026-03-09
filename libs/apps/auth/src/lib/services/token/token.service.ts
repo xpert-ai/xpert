@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, of as observableOf } from 'rxjs';
 import { filter, share } from 'rxjs/operators';
-
 import { PacTokenStorage } from './token-storage';
 import { PacAuthToken } from './token';
 

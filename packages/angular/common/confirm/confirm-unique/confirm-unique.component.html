@@ -14,15 +14,15 @@
 </mat-dialog-content>
 
 <mat-dialog-actions >
-    <button mat-button (click)="reset()">
+    <button z-button zType="ghost" (click)="reset()">
         {{ 'COMPONENTS.COMMON.RESET' | translate: {Default: 'Reset'} }}
     </button>
 
     <div ngmButtonGroup class="ml-8">
-        <button mat-flat-button mat-dialog-close>
+        <button z-button zType="secondary" mat-dialog-close>
             {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
         </button>
-        <button mat-raised-button color="accent" cdkFocusInitial [mat-dialog-close]="value">
+        <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="value">
             {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
         </button>
     </div>

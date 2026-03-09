@@ -63,7 +63,6 @@ export class NgmCopilotEngineService implements CopilotEngine {
   //   model: DefaultModel
   // } as AIOptions)
 
-
   readonly agentConfig$ = signal<TAgentConfig>({
     recursionLimit: AgentRecursionLimit
   })

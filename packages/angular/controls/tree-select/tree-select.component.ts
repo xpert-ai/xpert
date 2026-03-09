@@ -1,21 +1,8 @@
 import { CommonModule } from '@angular/common'
-import {
-  Component,
-  computed,
-  effect,
-  EventEmitter,
-  forwardRef,
-  HostBinding,
-  inject,
-  Input,
-  Output,
-  signal,
-  SimpleChanges,
-  ViewContainerRef
-} from '@angular/core'
+import { Component, computed, effect, EventEmitter, forwardRef, HostBinding, inject, Input, Output, signal, SimpleChanges, ViewContainerRef } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
@@ -37,6 +24,7 @@ import { BehaviorSubject, delayWhen, filter, firstValueFrom } from 'rxjs'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'
 import { NgmValueHelpComponent } from '../value-help/value-help.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface MemberTreeSelectOptions extends TreeControlOptions {
   maxTagCount?: number
@@ -67,7 +55,7 @@ export interface MemberTreeSelectOptions extends TreeControlOptions {
     MatMenuModule,
     MatIconModule,
     MatRadioModule,
-    MatButtonModule,
+    ZardButtonComponent,
 
     NgmCommonModule,
     OcapCoreModule,

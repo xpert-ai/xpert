@@ -7,7 +7,6 @@ import { MatInputModule } from '@angular/material/input'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { getYear, setYear } from 'date-fns'
 
-
 @Component({
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatDatepickerModule, MatInputModule, OcapCoreModule],

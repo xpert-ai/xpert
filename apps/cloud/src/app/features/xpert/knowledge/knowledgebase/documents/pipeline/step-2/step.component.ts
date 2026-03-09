@@ -61,7 +61,6 @@ export class KnowledgeDocumentPipelineStep2Component {
   
   readonly parametersValue = model<Partial<Record<string, unknown>>>({})
 
-
   previousStep() {
     this.pipelineComponent.previousStep()
   }

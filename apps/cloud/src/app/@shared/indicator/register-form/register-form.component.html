@@ -126,7 +126,7 @@
           cdkTextareaAutosize
         ></textarea>
   
-        <button mat-icon-button matSuffix [disabled]="!entityType()" (click)="toggleFormula()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" matSuffix [disabled]="!entityType()" (click)="toggleFormula()">
           <mat-icon>code</mat-icon>
         </button>
       </mat-form-field>

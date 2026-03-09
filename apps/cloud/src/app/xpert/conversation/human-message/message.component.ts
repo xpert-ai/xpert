@@ -10,7 +10,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { TCopilotChatMessage } from '../../types'
 
-
 @Component({
   standalone: true,
   imports: [

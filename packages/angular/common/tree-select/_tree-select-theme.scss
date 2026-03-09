@@ -131,7 +131,8 @@
     }
 
     .mat-mdc-option {
-      .mat-mdc-icon-button {
+      [z-button][data-icon-only],
+      z-button[data-icon-only] {
         .mat-icon {
           margin: 0;
         }

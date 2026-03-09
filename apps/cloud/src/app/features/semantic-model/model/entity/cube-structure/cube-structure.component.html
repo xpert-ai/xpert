@@ -5,9 +5,7 @@
     <ngm-search [(ngModel)]="search" class="flex-1 ml-4" />
 
     @if (modelType() !== MODEL_TYPE.XMLA) {
-      <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
-        [matTooltip]=" 'PAC.MODEL.ENTITY.NewDimension' | translate: {Default: 'New Dimension'} "
-        (click)="$event.stopPropagation();$event.preventDefault();addNewItem({}, null);">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewDimension' | translate: {Default: 'New Dimension'} " (click)="$event.stopPropagation();$event.preventDefault();addNewItem({}, null);">
         <mat-icon>add</mat-icon>
       </button>
     }
@@ -46,9 +44,7 @@
     </span>
 
     @if (modelType() !== MODEL_TYPE.XMLA && editable()) {
-      <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
-        [matTooltip]=" 'PAC.MODEL.ENTITY.NewMeasure' | translate: {Default: 'New Measure'} "
-        (click)="$event.stopPropagation();$event.preventDefault();onAddMeasure($event)">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewMeasure' | translate: {Default: 'New Measure'} " (click)="$event.stopPropagation();$event.preventDefault();onAddMeasure($event)">
         <mat-icon>add</mat-icon>
       </button>
     }
@@ -93,13 +89,10 @@
 
     <span class="flex-1"></span>
 
-    <button mat-icon-button [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
-      (click)="aiCalculated()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " (click)="aiCalculated()">
       <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
     </button>
-    <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
-      [matTooltip]=" 'PAC.MODEL.ENTITY.NewCalculatedMember' | translate: {Default: 'New Calculated Member'} "
-      (click)="$event.stopPropagation();$event.preventDefault();onAddCalculatedMember($event)">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewCalculatedMember' | translate: {Default: 'New Calculated Member'} " (click)="$event.stopPropagation();$event.preventDefault();onAddCalculatedMember($event)">
       <mat-icon>add</mat-icon>
     </button>
   </div>
@@ -144,9 +137,7 @@
 
     <span class="flex-1"></span>
 
-    <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
-      [matTooltip]=" 'PAC.MODEL.ENTITY.NewCalculation' | translate: {Default: 'New Calculation'} "
-      (click)="$event.stopPropagation();$event.preventDefault();onEditCalculation()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewCalculation' | translate: {Default: 'New Calculation'} " (click)="$event.stopPropagation();$event.preventDefault();onEditCalculation()">
       <mat-icon>add</mat-icon>
     </button>
   </div>
@@ -213,9 +204,7 @@
 
     <span class="flex-1"></span>
 
-    <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
-      [matTooltip]=" 'PAC.MODEL.ENTITY.NewParameter' | translate: {Default: 'New Parameter'} "
-      (click)="$event.stopPropagation();$event.preventDefault();onEditParameter()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewParameter' | translate: {Default: 'New Parameter'} " (click)="$event.stopPropagation();$event.preventDefault();onEditParameter()">
       <mat-icon>add</mat-icon>
     </button>
   </div>

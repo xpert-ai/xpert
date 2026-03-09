@@ -90,19 +90,14 @@
     }
 
     <div class="w-full filter-bar p-2 flex justify-between items-center gap-4">
-      <button mat-flat-button type="button" [disabled]="!integrationProvider() || optionsInvalid" (click)="test()">
+      <button z-button zType="secondary" type="button" [disabled]="!integrationProvider() || optionsInvalid" (click)="test()">
         {{ 'PAC.KEY_WORDS.Test' | translate: {Default: 'Test'} }}
       </button>
       <div ngmButtonGroup class="flex items-center gap-2">
-        <button mat-flat-button type="button" (click)="cancel()">
+        <button z-button zType="secondary" type="button" (click)="cancel()">
           {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
         </button>
-        <button mat-raised-button color="primary"
-          [matTooltip]=" 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save' }"
-          matTooltipPosition="above"
-          [disabled]="formGroup.invalid || formGroup.pristine || optionsInvalid" 
-          (click)="upsert()"
-        >
+        <button z-button zType="default" color="primary" [matTooltip]=" 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save' }" matTooltipPosition="above" [disabled]="formGroup.invalid || formGroup.pristine || optionsInvalid" (click)="upsert()">
           <mat-icon fontSet="material-icons-outlined">save</mat-icon>
           {{ 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}
         </button>

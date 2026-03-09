@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -17,6 +17,7 @@ import { catchError, debounceTime, EMPTY, filter, of, switchMap, tap } from 'rxj
 import { EmployeesService, IEmployee } from '../../../@core'
 import { userLabel } from '../../pipes'
 import { SharedModule } from '../../shared.module'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -28,7 +29,7 @@ import { SharedModule } from '../../shared.module'
     ReactiveFormsModule,
 
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatAutocompleteModule,
     MatFormFieldModule,
     MatInputModule,

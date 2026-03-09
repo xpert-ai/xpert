@@ -41,7 +41,6 @@ import { MaterialModule } from '../../../../@shared/material.module'
 export class DesignerTextComponent implements ControlValueAccessor {
   private readonly formBuilder = inject(FormBuilder)
 
-
   fontFamilies = [
     "Lato, 'Noto Serif SC', monospace",
     "Arial, Helvetica, sans-serif",
@@ -89,7 +88,6 @@ export class DesignerTextComponent implements ControlValueAccessor {
     filter: null,
     opacity: null
   } as any)
-
 
   get color() {
     return this.formGroup.get('color') as FormControl
@@ -140,7 +138,6 @@ export class DesignerTextComponent implements ControlValueAccessor {
   registerOnTouched(fn: any): void {}
   setDisabledState?(isDisabled: boolean): void {}
 }
-
 
 @Component({
   standalone: true,

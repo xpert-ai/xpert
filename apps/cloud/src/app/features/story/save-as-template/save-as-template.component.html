@@ -45,7 +45,7 @@
 
   <div class="flex justify-start">
     <div ngmButtonGroup>
-      <button mat-raised-button color="accent" cdkFocusInitial [disabled]="(formGroup.invalid || formGroup.pristine) && !file" (click)="save()">
+      <button z-button zType="default" color="accent" cdkFocusInitial [disabled]="(formGroup.invalid || formGroup.pristine) && !file" (click)="save()">
         <mat-spinner *ngIf="uploading" diameter="20" strokeWidth="2" class="m-2"></mat-spinner>
         <span *ngIf="!uploading">
           {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
@@ -66,7 +66,7 @@
 
     <div class="flex flex-col justify-center items-center backdrop-blur-md bg-white/10 rounded-lg p-4">
       <div class="flex justify-center items-center">
-        <button mat-stroked-button ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="fileUpload.click()">
+        <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="fileUpload.click()">
           <div class="flex justify-start items-center">
             <mat-icon fontSet="material-icons-round">upload</mat-icon>
             <span *ngIf="!!imagePreview">
@@ -78,7 +78,7 @@
           </div>
         </button>
         
-        <button *ngIf="imagePreview" mat-icon-button displayDensity="cosy" ngmAppearance="danger" (click)="deletePreview()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="imagePreview" displayDensity="cosy" ngmAppearance="danger" (click)="deletePreview()">
           <mat-icon >delete_forever</mat-icon>
         </button>
       </div>

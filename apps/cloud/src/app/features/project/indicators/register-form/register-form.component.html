@@ -126,7 +126,7 @@
             cdkTextareaAutosize
           ></textarea>
     
-          <button mat-icon-button matSuffix [disabled]="!entityType()" (click)="toggleFormula()">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" matSuffix [disabled]="!entityType()" (click)="toggleFormula()">
             <mat-icon>code</mat-icon>
           </button>
         </mat-form-field>
@@ -140,9 +140,7 @@
         [entityType]="entityType()"
         formControlName="formula"
       >
-        <button mat-icon-button displayDensity="compact" class="ngm-copilot-command-button ngm-calculated-measure__action"
-          [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
-          (click)="aiFormula()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="ngm-copilot-command-button ngm-calculated-measure__action" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " (click)="aiFormula()">
           <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
         </button>
       </ngm-calculated-measure>

@@ -85,7 +85,6 @@ export class ChatComponentMessageComponent {
   })
   readonly conversationStatus = computed(() => this.chatService.conversation()?.status)
 
-
   openComponentMessage() {
     if (this.data()?.category === 'Computer') {
       this.openInCanvas(this.data())

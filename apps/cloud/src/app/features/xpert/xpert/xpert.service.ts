@@ -36,7 +36,6 @@ export class XpertService {
       this.xpert.set(value.draft?.team ?? value)
     })
 
-
   refresh() {
     this.#refresh$.next()
   }

@@ -6,7 +6,6 @@ import { DensityDirective } from '@metad/ocap-angular/core'
 import { ColorFormat, MtxColorpickerModule } from '@ng-matero/extensions/colorpicker'
 import { TranslateModule } from '@ngx-translate/core'
 
-
 @Component({
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MatInputModule, MtxColorpickerModule, DensityDirective],

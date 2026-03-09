@@ -117,12 +117,10 @@
 
                                       @if (editingMessageId() === message.id) {
                                         <div class="flex items-center gap-1 mt-2">
-                                          <button mat-stroked-button class="ngm-copilot__resubmit" displayDensity="compact"
-                                            (click)="cancelMessageContent(msgContent)">
+                                          <button z-button zType="outline" class="ngm-copilot__resubmit" displayDensity="compact" (click)="cancelMessageContent(msgContent)">
                                             {{ 'Copilot.Cancel' | translate: {Default: 'Cancel'} }}
                                           </button>
-                                          <button mat-flat-button class="ngm-copilot__resubmit" color="primary" displayDensity="compact"
-                                              (click)="resubmitMessage(msgContent, conversation.id, message, msgContent.textContent)">
+                                          <button z-button zType="default" class="ngm-copilot__resubmit" color="primary" displayDensity="compact" (click)="resubmitMessage(msgContent, conversation.id, message, msgContent.textContent)">
                                               {{ 'Copilot.Update' | translate: {Default: 'Update'} }}
                                           </button>
                                         </div>
@@ -137,8 +135,7 @@
                             </div>
                           }
         
-                            <!-- <button mat-icon-button displayDensity="compact" class="ngm-copilot__message-remove right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-100"
-                                (click)="deleteMessage(message)">
+                            <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="ngm-copilot__message-remove right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-100" (click)="deleteMessage(message)">
                                 <mat-icon>close</mat-icon>
                             </button> -->
                         </div>

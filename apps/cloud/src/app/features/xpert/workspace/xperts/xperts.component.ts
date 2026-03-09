@@ -117,7 +117,6 @@ export class XpertWorkspaceXpertsComponent {
 
   readonly loading = computed(() => this.#loading() || this.#xperts.status() === 'loading')
 
-
   refresh() {
     // this.refresh$.next()
     this.#xperts.reload()

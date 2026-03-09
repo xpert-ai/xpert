@@ -17,14 +17,13 @@
 
   <div class="flex justify-between">
     <div ngmButtonGroup>
-      <button mat-raised-button color="accent" (click)="close()">
+      <button z-button zType="default" color="accent" (click)="close()">
         {{ 'Story.Common.Close' | translate: { Default: 'Close' } }}
       </button>
     </div>
 
     <div>
-      <button mat-icon-button [matTooltip]="'PAC.Story.AddCube' | translate: { Default: 'Add Cube' }" matTooltipPosition="above"
-        [matMenuTriggerFor]="contextMenu">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'PAC.Story.AddCube' | translate: { Default: 'Add Cube' }" matTooltipPosition="above" [matMenuTriggerFor]="contextMenu">
         <mat-icon fontSet="material-icons-outlined">playlist_add</mat-icon>
       </button>
     </div>
@@ -35,9 +34,7 @@
   <div *ngIf="activeLink" class="flex-1 flex flex-col justify-start items-stretch overflow-x-hidden overflow-y-auto">
     <div class="flex justify-between items-center">
       <label class="text-lg p-2"> {{ 'Story.Common.Parameters' | translate: { Default: 'Parameters' } }} </label>
-      <button mat-icon-button class="opacity-60" [matTooltip]="'PAC.Story.CreateParameter' | translate: { Default: 'Create Parameter' }" matTooltipPosition="above"
-        [disabled]="!dataSettings()"
-        (click)="openCreateParameter()">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-60" [matTooltip]="'PAC.Story.CreateParameter' | translate: { Default: 'Create Parameter' }" matTooltipPosition="above" [disabled]="!dataSettings()" (click)="openCreateParameter()">
         <mat-icon fontSet="material-icons-outlined">add_circle_outline</mat-icon>
       </button>
     </div>
@@ -48,12 +45,10 @@
           <div class="flex items-center group">
             <ngm-display-behaviour class="flex-1" [option]="{key: parameter.name, caption: parameter.caption}" />
 
-            <button mat-icon-button displayDensity="cosy" class="opacity-0 group-hover:opacity-90"
-              (click)="openCreateParameter(parameter.name)">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openCreateParameter(parameter.name)">
                 <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
             </button>
-            <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90"
-              (click)="removeParameter(parameter.name)">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90" (click)="removeParameter(parameter.name)">
                 <mat-icon>close</mat-icon>
             </button>
           </div>
@@ -64,14 +59,10 @@
     <div class="flex justify-between items-center">
       <label class="text-lg p-2"> {{ 'Story.Common.Calculations' | translate: { Default: 'Calculations' } }} </label>
       <div class="flex items-center gap-1">
-        <button mat-icon-button displayDensity="cosy" class="ngm-copilot-command-button ngm-toolbar__action"
-          [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
-          (click)="aiCreateCalculation()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-copilot-command-button ngm-toolbar__action" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " (click)="aiCreateCalculation()">
           <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
         </button>
-        <button mat-icon-button class="opacity-60" [matTooltip]="'PAC.Story.CreateCalculationMeasure' | translate: { Default: 'Create Calculation Measure' }" matTooltipPosition="above"
-          [disabled]="!dataSettings()"
-          (click)="openCreateCalculation()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-60" [matTooltip]="'PAC.Story.CreateCalculationMeasure' | translate: { Default: 'Create Calculation Measure' }" matTooltipPosition="above" [disabled]="!dataSettings()" (click)="openCreateCalculation()">
           <mat-icon fontSet="material-icons-outlined">add_circle_outline</mat-icon>
         </button>
       </div>
@@ -82,12 +73,10 @@
         <mat-list-item>
           <div class="flex items-center group">
             <ngm-display-behaviour class="flex-1" [option]="{key: calculation.name, caption: calculation.caption}" />
-            <button mat-icon-button displayDensity="cosy" class="opacity-0 group-hover:opacity-90"
-              (click)="openEditCalculation(calculation)">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openEditCalculation(calculation)">
                 <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
             </button>
-            <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90"
-              (click)="removeCalculation(calculation)">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90" (click)="removeCalculation(calculation)">
                 <mat-icon>close</mat-icon>
             </button>
           </div>

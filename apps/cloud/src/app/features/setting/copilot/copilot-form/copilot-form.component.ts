@@ -3,7 +3,7 @@ import { DecimalPipe } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatSliderModule } from '@angular/material/slider'
 import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@metad/contracts'
 import { AiProvider } from '@metad/copilot'
@@ -24,6 +24,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { PACCopilotService } from '../../../services'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +37,7 @@ import { PACCopilotService } from '../../../services'
     FormsModule,
     ReactiveFormsModule,
     MatSliderModule,
-    MatButtonModule,
+    ZardButtonComponent,
     NgmSpinComponent,
     CopilotProviderComponent,
     CopilotModelSelectComponent

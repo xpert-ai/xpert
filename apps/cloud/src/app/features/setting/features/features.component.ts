@@ -6,7 +6,6 @@ import { TranslationBaseComponent } from '../../../@shared/language'
 import { SharedModule } from '../../../@shared/shared.module'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
-
 @Component({
   standalone: true,
   imports: [SharedModule, NgmSpinComponent],

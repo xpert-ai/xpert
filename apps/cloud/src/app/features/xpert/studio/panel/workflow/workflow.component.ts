@@ -147,7 +147,6 @@ export class XpertStudioPanelWorkflowComponent {
 
   readonly loading = signal(false)
 
-
   readonly testing = signal(false)
 
   // Workflow providers

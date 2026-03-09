@@ -3,7 +3,6 @@ import { DisplayBehaviour, PeriodFunctions } from '@metad/ocap-core'
 import { DataSettingsSchemaService, FORMLY_W_1_2 } from '@metad/story/designer'
 import { map } from 'rxjs/operators'
 
-
 @Injectable()
 export class AccountingStatementSchemaService extends DataSettingsSchemaService {
 

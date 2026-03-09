@@ -12,16 +12,13 @@
 }
 
 @if (editable() && !inline()) {
-  <button mat-button [disabled]="isDisabled" color="primary" displayDensity="cosy" ngmAppearance="dashed"
-    (click)="openSlicerBar($event)">
+  <button z-button zType="ghost" [disabled]="isDisabled" color="primary" displayDensity="cosy" ngmAppearance="dashed" (click)="openSlicerBar($event)">
     <mat-icon>edit</mat-icon>{{ 'Ngm.Common.Add' | translate: {Default: "Add"} }}
   </button>
 }
 
 @if (editable() && inline()) {
-  <button mat-stroked-button [disabled]="isDisabled" displayDensity="cosy" ngmAppearance="dashed"
-    [cdkMenuTriggerFor]="menu"
-  >
+  <button z-button zType="outline" [disabled]="isDisabled" displayDensity="cosy" ngmAppearance="dashed" [cdkMenuTriggerFor]="menu">
     <div class="flex items-center justify-center">
       <mat-icon>add</mat-icon>
       {{ 'Ngm.Common.Add' | translate: {Default: "Add"} }}

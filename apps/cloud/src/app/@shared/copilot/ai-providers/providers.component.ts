@@ -10,7 +10,6 @@ import { getErrorMessage, IAiProviderEntity, ICopilot, injectAiProviders, inject
 import { CopilotAiProviderAuthComponent } from '../provider-authorization/authorization.component'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
-
 @Component({
   standalone: true,
   selector: 'copilot-ai-providers-dialog',

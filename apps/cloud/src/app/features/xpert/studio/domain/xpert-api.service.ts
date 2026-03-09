@@ -66,7 +66,6 @@ import { genAgentKey, genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpert
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
 import { XpertService } from '../../xpert/xpert.service'
 
-
 const SaveDraftDebounceTime = 1 // s
 
 @Injectable()
@@ -123,7 +122,6 @@ export class XpertStudioApiService {
     return this.#reload.asObservable().pipe(filter((value) => value !== EReloadReason.MOVED))
   }
   readonly paramId$ = toObservable(this.xpertService.paramId)
-
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
   readonly savedEvent$ = new BehaviorSubject<boolean>(true)

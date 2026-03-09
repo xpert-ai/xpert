@@ -32,7 +32,7 @@
           {{ 'Ngm.TimeFilter.RANGE' | translate: {Default: "Range"} }} {{i + 1}}: {{range.value.result?.[0]}} - {{range.value.result?.[1]}}
         </mat-panel-title>
         <mat-panel-description class="">
-          <button mat-icon-button ngmAppearance="danger" (click)="ranges.controls.splice(i, 1)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" (click)="ranges.controls.splice(i, 1)">
             <mat-icon>close</mat-icon>
           </button>
         </mat-panel-description>
@@ -121,7 +121,7 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <button mat-stroked-button class="ngm-timer-editor__add" color="primary" ngmAppearance="dashed" (click)="addRange($event)">
+  <button z-button zType="outline" class="ngm-timer-editor__add" color="primary" ngmAppearance="dashed" (click)="addRange($event)">
     <mat-icon>add</mat-icon>{{ 'Ngm.TimeFilter.ADD_TIME_RANGE' | translate: {Default: "Add Time Range"} }}
   </button>
 
@@ -150,10 +150,10 @@
 
 <div mat-dialog-actions align="end">
   <div ngmButtonGroup>
-    <button mat-button mat-dialog-close>
+    <button z-button zType="ghost" mat-dialog-close>
       {{ 'Ngm.Common.Cancel' | translate: {Default: "Cancel"} }}
     </button>
-    <button mat-raised-button color="accent" (click)="onApply()" cdkFocusInitial>
+    <button z-button zType="default" color="accent" (click)="onApply()" cdkFocusInitial>
       {{ 'Ngm.Common.Apply' | translate: {Default: "Apply"} }}
     </button>
   </div>

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatIconModule } from '@angular/material/icon'
 import { C_URI_API_MODELS } from '@metad/cloud/state'
@@ -23,13 +23,14 @@ import { PublicRoutingModule } from './public-routing.module'
 import { PublicComponent } from './public.component'
 import { StoryViewerComponent } from './story/story.component'
 import { PublicWidgetComponent } from './widget/widget.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
     CommonModule,
     PublicRoutingModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatBottomSheetModule,
     MatDatepickerModule,
     ContentLoaderModule,

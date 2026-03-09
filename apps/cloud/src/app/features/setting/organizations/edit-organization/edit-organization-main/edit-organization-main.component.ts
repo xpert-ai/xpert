@@ -14,7 +14,6 @@ import { FORMLY_W_FULL } from '@metad/formly'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { CommonModule } from '@angular/common'
 
-
 @Component({
   standalone: true,
   imports: [SharedModule, CommonModule, FormlyModule],

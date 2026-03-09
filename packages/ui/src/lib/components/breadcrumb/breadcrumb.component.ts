@@ -123,7 +123,10 @@ export class ZardBreadcrumbItemComponent {
   readonly class = input<ClassValue>('');
 
   protected readonly separator = computed(() => this.breadcrumbComponent.zSeparator());
-  protected readonly isLast = computed<boolean>(() => this === this.breadcrumbComponent.items().at(-1));
+  protected readonly isLast = computed<boolean>(() => {
+    const items = this.breadcrumbComponent.items();
+    return items.length > 0 && this === items[items.length - 1];
+  });
   protected readonly isEllipsis = computed<boolean>(() => this.content() !== undefined);
 
   protected readonly classes = computed(() => mergeClasses(breadcrumbItemVariants(), this.class()));

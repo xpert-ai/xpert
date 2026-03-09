@@ -15,7 +15,6 @@ import { BehaviorSubject, filter, map } from 'rxjs'
 import { BaseSlicersComponent } from '../base-slicers'
 import { SlicersCapacity } from '../types'
 
-
 @Component({
   selector: 'ngm-slicer-bar',
   templateUrl: 'slicer-bar.component.html',

@@ -22,17 +22,15 @@
         (change)="handleUploadChange($event)"
         (click)="fileUpload.value=null;">
     <div ngmButtonGroup >
-        <button mat-icon-button [disabled]="loading()" [matTooltip]=" 'PAC.Copilot.Examples.DownloadTemplate' | translate: {Default: 'Download template'} "
-            (click)="downloadTemplate()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [disabled]="loading()" [matTooltip]=" 'PAC.Copilot.Examples.DownloadTemplate' | translate: {Default: 'Download template'} " (click)="downloadTemplate()">
             <mat-icon fontSet="material-icons-round">system_update_alt</mat-icon>
         </button>
 
-        <button mat-icon-button [disabled]="loading()" [matTooltip]=" 'PAC.Copilot.Examples.UploadExamples' | translate: {Default: 'Upload examples'} " (click)="fileUpload.click()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [disabled]="loading()" [matTooltip]=" 'PAC.Copilot.Examples.UploadExamples' | translate: {Default: 'Upload examples'} " (click)="fileUpload.click()">
             <mat-icon fontSet="material-icons-round">upload</mat-icon>
         </button>
 
-        <button mat-mini-fab [disabled]="loading()" [matTooltip]=" 'PAC.Copilot.Examples.AddExample' | translate: {Default: 'Add example'} "
-            (click)="addExample()">
+        <button z-button zType="default" zSize="icon-sm" zShape="circle" [disabled]="loading()" [matTooltip]=" 'PAC.Copilot.Examples.AddExample' | translate: {Default: 'Add example'} " (click)="addExample()">
             <mat-icon fontSet="material-icons-round">add</mat-icon>
         </button>
     </div>
@@ -55,15 +53,11 @@
 
 <ng-template #actionTemplate let-id="id" let-input="input">
     <div class="flex items-center">
-        <button mat-icon-button [matTooltip]="'PAC.Copilot.Examples.EditExample' | translate: {Default: 'Edit example'}"
-            (click)="editExample(id)"
-        >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'PAC.Copilot.Examples.EditExample' | translate: {Default: 'Edit example'}" (click)="editExample(id)">
             <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
         </button>
         <mat-divider vertical style="height: 20px;"></mat-divider>
-        <button mat-icon-button ngmAppearance="danger" [matTooltip]="'PAC.Copilot.Examples.DeleteExample' | translate: {Default: 'Delete example'}"
-            (click)="deleteExample(id, input)"
-        >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" [matTooltip]="'PAC.Copilot.Examples.DeleteExample' | translate: {Default: 'Delete example'}" (click)="deleteExample(id, input)">
             <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
         </button>
     </div>

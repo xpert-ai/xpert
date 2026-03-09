@@ -54,7 +54,6 @@ export class CopilotStoredMessageComponent {
     return text
   })
 
-
   readonly expandReason = signal(false)
 
   constructor() {

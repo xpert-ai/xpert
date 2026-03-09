@@ -1,48 +1,7 @@
 import { AfterViewInit, booleanAttribute, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, EventEmitter, forwardRef, HostBinding, inject, input, Output, signal, ViewChild, ViewContainerRef } from '@angular/core'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import {
-  AggregationRole,
-  CalculationProperty,
-  CalculationType,
-  C_MEASURES,
-  DataSettings,
-  Dimension,
-  DisplayBehaviour,
-  EntityType,
-  FilterSelectionType,
-  getEntityProperty,
-  getEntityProperty2,
-  isCalculationProperty,
-  isIndicatorMeasureProperty,
-  isMeasure,
-  isMeasureControlProperty,
-  isParameterProperty,
-  isVisible,
-  LevelMemberProperty,
-  Measure,
-  Member,
-  omit,
-  OrderDirection,
-  Property,
-  PropertyHierarchy,
-  Syntax,
-  ParameterControlEnum,
-  ParameterProperty,
-  PropertyDimension,
-  IntrinsicMemberProperties,
-  isEntitySet,
-  getEntityHierarchy,
-  isPropertyMeasure,
-  isPropertyDimension,
-  PropertyMeasure,
-  isVariableProperty,
-  RuntimeLevelType,
-  isPropertyHierarchy,
-  isPropertyLevel,
-  isDimension,
-  ISlicer,
-} from '@metad/ocap-core'
+import { AggregationRole, CalculationProperty, CalculationType, C_MEASURES, DataSettings, Dimension, DisplayBehaviour, EntityType, FilterSelectionType, getEntityProperty, getEntityProperty2, isCalculationProperty, isIndicatorMeasureProperty, isMeasure, isMeasureControlProperty, isParameterProperty, isVisible, LevelMemberProperty, Measure, Member, omit, OrderDirection, Property, PropertyHierarchy, Syntax, ParameterControlEnum, ParameterProperty, PropertyDimension, IntrinsicMemberProperties, isEntitySet, getEntityHierarchy, isPropertyMeasure, isPropertyDimension, PropertyMeasure, isVariableProperty, RuntimeLevelType, isPropertyHierarchy, isPropertyLevel, isDimension, ISlicer, } from '@metad/ocap-core'
 import { cloneDeep, includes, isEmpty, isEqual, isNil, isString, negate, pick, uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'
 import { distinctUntilChanged, filter, map, shareReplay, startWith, combineLatestWith, debounceTime, switchMap } from 'rxjs/operators'
@@ -56,7 +15,7 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatDividerModule } from '@angular/material/divider'
@@ -71,7 +30,7 @@ import { PropertyCapacity } from '../types'
 import { NgmEntityPropertyComponent, propertyIcon } from '../property/property.component'
 import { NgmFormattingComponent } from '../formatting/formatting.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -95,7 +54,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     MatInputModule,
     MatSelectModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatMenuModule,
     MatRadioModule,
     MatDividerModule,

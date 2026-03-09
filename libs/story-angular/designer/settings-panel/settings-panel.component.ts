@@ -1,23 +1,9 @@
 import { BooleanInput, coerceBooleanProperty } from '@angular/cdk/coercion'
 import { ComponentPortal, PortalModule } from '@angular/cdk/portal'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectorRef,
-  Component,
-  Injector,
-  Input,
-  OnChanges,
-  SimpleChanges,
-  ViewChild,
-  ViewContainerRef,
-  computed,
-  effect,
-  inject,
-  model,
-  signal
-} from '@angular/core'
+import { ChangeDetectorRef, Component, Injector, Input, OnChanges, SimpleChanges, ViewChild, ViewContainerRef, computed, effect, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatTabGroup } from '@angular/material/tabs'
 import { MatToolbarModule } from '@angular/material/toolbar'
@@ -28,13 +14,14 @@ import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, filter, map } from 'rxjs/operators'
 import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE, STORY_DESIGNER_SCHEMA } from '../types'
 import { NxSettingsPanelService } from './settings-panel.service'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'ngm-settings-panel',
   templateUrl: './settings-panel.component.html',
   styleUrls: ['./settings-panel.component.scss'],
-  imports: [CommonModule, PortalModule, MatButtonModule, MatIconModule, MatToolbarModule, MatTooltipModule, TranslateModule, OcapCoreModule],
+  imports: [CommonModule, PortalModule, ZardButtonComponent, MatIconModule, MatToolbarModule, MatTooltipModule, TranslateModule, OcapCoreModule],
   host: {
     class: 'ngm-settings-panel'
   }

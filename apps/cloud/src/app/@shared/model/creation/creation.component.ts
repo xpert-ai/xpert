@@ -3,16 +3,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, forwardRef, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import {
-  ControlValueAccessor,
-  FormControl,
-  FormGroup,
-  FormsModule,
-  NG_VALUE_ACCESSOR,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+import { ControlValueAccessor, FormControl, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, Validators } from '@angular/forms'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
@@ -27,6 +19,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, Subject, catchError, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { IDataSource, getErrorMessage } from '../../../@core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -43,7 +36,7 @@ import { IDataSource, getErrorMessage } from '../../../@core'
     DragDropModule,
     MatFormFieldModule,
     MatProgressBarModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule,
     MatCheckboxModule,
     DensityDirective,

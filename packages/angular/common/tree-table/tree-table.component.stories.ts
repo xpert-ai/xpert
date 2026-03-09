@@ -1,12 +1,12 @@
 import { AfterViewInit, Component, TemplateRef, ViewChild } from '@angular/core'
 import { RouterModule } from '@angular/router'
-import { MatButtonModule } from '@angular/material/button'
+
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { Meta, StoryObj, moduleMetadata } from '@storybook/angular'
 import { TreeTableComponent } from './tree-table.component'
 import { TreeTableModule } from './tree-table.module'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 const TREE_NODE_DATA = [
   {
@@ -42,7 +42,7 @@ const TREE_NODE_DATA = [
   selector: 'ngm-test-tree-table-cell-template',
   template: `
 <ng-template #cell let-data="name">
-  <button mat-button>
+  <button z-button zType="ghost">
     {{data}}
   </button>
 </ng-template>
@@ -80,7 +80,7 @@ export default {
   component: TreeTableComponent,
   decorators: [
     moduleMetadata({
-      imports: [BrowserAnimationsModule, MatButtonModule, RouterModule, TreeTableModule, OcapCoreModule],
+      imports: [BrowserAnimationsModule, ZardButtonComponent, RouterModule, TreeTableModule, OcapCoreModule],
       declarations: [ TestCellTemplate ]
     })
   ]

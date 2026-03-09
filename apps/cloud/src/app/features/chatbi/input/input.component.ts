@@ -1,17 +1,10 @@
-import {
-  CdkMenu,
-  CdkMenuGroup,
-  CdkMenuItem,
-  CdkMenuItemCheckbox,
-  CdkMenuItemRadio,
-  CdkMenuTrigger
-} from '@angular/cdk/menu'
+import { CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemCheckbox, CdkMenuItemRadio, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -24,6 +17,7 @@ import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, delay } from 'rxjs'
 import { ChatbiService } from '../chatbi.service'
 import { CHATBI_COMMAND_NAME } from '../copilot/'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +30,7 @@ import { CHATBI_COMMAND_NAME } from '../copilot/'
     TranslateModule,
     MatIconModule,
     MatTooltipModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatAutocompleteModule,
     MatInputModule,
 

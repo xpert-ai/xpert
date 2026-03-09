@@ -8,7 +8,6 @@ import { ToastrService } from 'apps/cloud/src/app/@core'
 import { createSubStore, write } from '../../../../store'
 import { RoleStateService } from '../role.service'
 
-
 @Injectable()
 export class CubeStateService {
   readonly #translate = inject(TranslateService)

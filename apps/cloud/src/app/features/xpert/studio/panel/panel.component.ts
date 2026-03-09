@@ -38,7 +38,6 @@ export class XpertStudioPanelComponent {
   readonly studioComponent = inject(XpertStudioComponent)
   readonly selectionService = inject(SelectionService)
 
-
   // Inputs
   readonly sidePanel = model<'preview' | 'variables' | 'environments'>(null)
   readonly executionId = model<string>()

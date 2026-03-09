@@ -15,7 +15,6 @@ import { Observable } from 'rxjs'
 import { map, tap } from 'rxjs/operators'
 import { PropertyCapacity } from '@metad/ocap-angular/entity'
 
-
 @Injectable()
 export class AnalyticalGridSchemaService extends DataSettingsSchemaService {
 

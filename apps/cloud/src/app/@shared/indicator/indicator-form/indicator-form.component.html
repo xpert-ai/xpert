@@ -71,7 +71,7 @@
     />
 
     <div class="w-full max-w-full flex flex-col items-center">
-      <button mat-flat-button (click)="togglePreview()">
+      <button z-button zType="secondary" (click)="togglePreview()">
         <mat-icon fontSet="material-icons-round">{{ preview() ? 'expand_less' : 'expand_more' }}</mat-icon>
         <span>
           {{ 'PAC.INDICATOR.DataPreview' | translate: {Default: 'Data Preview'} }}

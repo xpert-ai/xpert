@@ -6,6 +6,8 @@
     "class-variance-authority",
     "clsx",
     "lucide-angular",
+    "ngx-sonner",
+    "tailwindcss-animate",
     "tailwind-merge"
   ],
   "lib": {

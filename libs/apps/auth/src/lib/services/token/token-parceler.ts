@@ -1,5 +1,4 @@
 import { Inject, Injectable, InjectionToken } from '@angular/core';
-
 import { pacAuthCreateToken, PacAuthToken, PacAuthTokenClass } from './token';
 import { PAC_AUTH_TOKENS } from '../../auth.options';
 

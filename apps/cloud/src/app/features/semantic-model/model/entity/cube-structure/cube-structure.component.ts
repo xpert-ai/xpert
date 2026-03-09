@@ -1,62 +1,25 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Output,
-  ViewChildren,
-  ViewContainerRef,
-  booleanAttribute,
-  computed,
-  effect,
-  inject,
-  input,
-  model
-} from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Output, ViewChildren, ViewContainerRef, booleanAttribute, computed, effect, inject, input, model } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { CdkConfirmDeleteComponent, injectConfirmOptions, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
 import { NgmCalculationEditorComponent, NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
-import {
-  AggregationRole,
-  CalculatedMember,
-  CalculatedProperty,
-  CalculationProperty,
-  CalculationType,
-  DimensionUsage,
-  ParameterProperty,
-  PropertyMeasure,
-  Syntax,
-  VariableProperty,
-  getEntityDimensions,
-  getEntityMeasures,
-  getEntityVariables,
-  isEntityType,
-  isVisible
-} from '@metad/ocap-core'
+import { AggregationRole, CalculatedMember, CalculatedProperty, CalculationProperty, CalculationType, DimensionUsage, ParameterProperty, PropertyMeasure, Syntax, VariableProperty, getEntityDimensions, getEntityMeasures, getEntityVariables, isEntityType, isVisible } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { DeepPartial, injectToastr, uuid } from '@cloud/app/@core'
 import { NGXLogger } from 'ngx-logger'
 import { combineLatest, combineLatestWith, filter, map, switchMap, withLatestFrom } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
-import {
-  CdkDragDropContainers,
-  MODEL_TYPE,
-  ModelDesignerType,
-  ModelDimensionState,
-  SemanticModelEntity,
-  SemanticModelEntityType
-} from '../../types'
+import { CdkDragDropContainers, MODEL_TYPE, ModelDesignerType, ModelDimensionState, SemanticModelEntity, SemanticModelEntityType } from '../../types'
 import { InlineDimensionComponent, UsageDimensionComponent } from '../dimension'
 import { ModelEntityService } from '../entity.service'
 import { CubeEventType } from '../types'
 import { CubeVariableFormComponent } from '@cloud/app/@shared/model'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
@@ -66,6 +29,7 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { ModelEntityComponent } from '../entity.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * Display and edit the field list of the multidimensional analysis model
@@ -84,7 +48,7 @@ import { ModelEntityComponent } from '../entity.component'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     MatIconModule,
     MatListModule,

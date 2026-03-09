@@ -34,10 +34,10 @@
 <mat-dialog-actions class="flex justify-between items-center">
     <div></div>
     <div ngmButtonGroup>
-        <button mat-flat-button mat-dialog-close>
+        <button z-button zType="secondary" mat-dialog-close>
             {{ 'Story.Common.Cancel' | translate: {Default: 'Cancel'} }}
         </button>
-        <button mat-raised-button color="accent" cdkFocusInitial [matDialogClose]="formGroup.value">
+        <button z-button zType="default" color="accent" cdkFocusInitial [matDialogClose]="formGroup.value">
             {{ 'Story.Common.Apply' | translate: {Default: 'Apply'} }}
         </button>
     </div>

@@ -25,10 +25,11 @@ import { serializePropertyUniqueName } from '../../utils'
 import { ModelEntityService } from '../entity.service'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { getSemanticModelKey } from '@metad/story/core'
 import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
 import { typeOfObj } from '@cloud/app/@shared/model/types'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -43,7 +44,7 @@ import { typeOfObj } from '@cloud/app/@shared/model/types'
     DragDropModule,
     MatTooltipModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     NgmCommonModule,
     NgmMDXEditorComponent,
     NgmSQLEditorComponent,

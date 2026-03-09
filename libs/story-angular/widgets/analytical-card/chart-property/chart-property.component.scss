@@ -28,11 +28,10 @@
 }
 
 ::ng-deep {
-  .ngm-chart-property__palette-trigger.mat-mdc-menu-trigger {
+  .ngm-chart-property__palette-trigger[z-button],
+  z-button.ngm-chart-property__palette-trigger {
     @apply my-2;
-    .mdc-button__label {
-      @apply w-full;
-    }
+    @apply w-full;
   }
 }
 

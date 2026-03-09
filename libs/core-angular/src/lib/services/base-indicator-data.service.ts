@@ -2,7 +2,6 @@ import { SmartBusinessState, PeriodFunctions, SmartBusinessService, Indicator, P
 import { isString } from 'lodash-es'
 import { BehaviorSubject, EMPTY, filter, map, Observable, switchMap, tap, withLatestFrom } from 'rxjs'
 
-
 export interface IndicatorBusinessState extends SmartBusinessState {
   indicatorId: string
   /**

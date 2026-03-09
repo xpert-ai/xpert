@@ -10,7 +10,6 @@ import {
 import { map } from 'rxjs/operators'
 import { YoyType } from './types'
 
-
 @Injectable()
 export class IndicatorCardSchemaService extends DataSettingsSchemaService {
   public fields: any

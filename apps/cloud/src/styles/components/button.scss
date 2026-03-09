@@ -6,8 +6,8 @@
     --mdc-icon-button-icon-color: white;
     --mat-icon-color: white;
     
-    &.mat-mdc-button-base.mat-mdc-unelevated-button {
-      --mdc-filled-button-label-text-color: white;
+    &[data-z-type='default'] {
+      color: white;
     }
     &[disabled] {
       opacity: 0.5;
@@ -21,8 +21,8 @@
     --mdc-icon-button-icon-color: white;
     --mat-icon-color: white;
 
-    &.mat-mdc-button-base.mat-mdc-unelevated-button {
-      --mdc-filled-button-label-text-color: white;
+    &[data-z-type='default'] {
+      color: white;
     }
     &[disabled] {
       opacity: 0.5;

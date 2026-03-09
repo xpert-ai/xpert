@@ -21,7 +21,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <div ngmButtonGroup>
-    <button mat-button color="accent" mat-dialog-close>{{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}</button>
-    <button mat-raised-button color="accent" (click)="continue()">{{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}</button>
+    <button z-button zType="ghost" color="accent" mat-dialog-close>{{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}</button>
+    <button z-button zType="default" color="accent" (click)="continue()">{{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}</button>
   </div>
 </mat-dialog-actions>

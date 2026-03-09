@@ -33,11 +33,7 @@
           </button>
         } -->
         
-        <button mat-icon-button displayDensity="cosy"
-          [cdkMenuTriggerFor]="menu"
-          #mt="cdkMenuTriggerFor"
-          [class.active]="mt.isOpen()"
-        >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="menu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()">
           <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
         </button>
       </div>
@@ -93,7 +89,7 @@
         @if (indicator.name) {
           <span class="overflow-hidden text-ellipsis max-w-[200px]" [title]="indicator.name">{{indicator.name}}</span>
         }
-        <button mat-icon-button class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink(indicator)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink(indicator)">
           <mat-icon>cancel</mat-icon>
         </button>
       </span>

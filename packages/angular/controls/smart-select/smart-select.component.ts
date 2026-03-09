@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, EventEmitter, forwardRef, inject, input, Input, Output } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -35,6 +35,7 @@ import {
 } from 'rxjs'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface SmartSelectOptions extends ControlOptions {
   /**
@@ -54,7 +55,7 @@ export interface SmartSelectOptions extends ControlOptions {
     MatFormFieldModule,
     MatSelectModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatProgressSpinnerModule,
     DensityDirective,
     AppearanceDirective,

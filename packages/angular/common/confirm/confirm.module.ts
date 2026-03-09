@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
@@ -13,6 +13,7 @@ import { NgmConfirmSnackBar } from './confirm-snackbar/confirm-snack-bar.compone
 import { NgmCountdownConfirmationComponent } from './countdown/countdown.component'
 import { NgmCountdownModule } from '../countdown'
 import { NgmConfirmOptionsComponent } from './confirm-options/confirm-options.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [ NgmConfirmDeleteComponent, NgmCountdownConfirmationComponent, NgmConfirmSnackBar ],
@@ -21,7 +22,7 @@ import { NgmConfirmOptionsComponent } from './confirm-options/confirm-options.co
     FormsModule,
     DragDropModule,
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatFormFieldModule,
     MatInputModule,
     NgmCountdownModule,

@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTabsModule } from '@angular/material/tabs'
@@ -27,6 +27,7 @@ import { ManageEntityBaseComponent } from '../../../@shared/directives'
 import { ProjectService } from '../project.service'
 import { NewIndicatorCodePlaceholder } from '../types'
 import { IndicatorImportComponent } from './indicator-import/indicator-import.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +37,7 @@ import { IndicatorImportComponent } from './indicator-import/indicator-import.co
     TranslateModule,
     CdkMenuModule,
     MatTooltipModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatTabsModule,
     MatDividerModule,

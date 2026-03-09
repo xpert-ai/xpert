@@ -6,7 +6,6 @@ import { IOrganization, OrganizationsService, ToastrService, routeAnimations } f
 import { OrganizationMutationComponent } from './organization-mutation/organization-mutation.component'
 import { ManageEntityBaseComponent } from '../../../@shared/directives'
 
-
 @Component({
   standalone: false,
   selector: 'pac-organizations',

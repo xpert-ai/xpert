@@ -20,8 +20,6 @@ import { throwIfAlreadyLoaded } from './module-import-guard'
 import { HttpLoaderFactory } from './theme'
 import { NgmMissingTranslationHandler } from '@metad/ocap-angular/core'
 
-
-
 @NgModule({
   imports: [
     CommonModule,

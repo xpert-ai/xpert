@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -17,7 +17,7 @@ import { TranslationBaseComponent } from '../../../@shared/language'
 import { userLabel } from '../../../@shared/pipes'
 import { UserProfileComponent, UserProfileInlineComponent, UserRoleSelectComponent } from '../../../@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -25,7 +25,7 @@ import { Dialog } from '@angular/cdk/dialog'
     CommonModule,
     ReactiveFormsModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     TranslateModule,
     UserProfileComponent,
     UserProfileInlineComponent,
@@ -42,7 +42,8 @@ import { Dialog } from '@angular/cdk/dialog'
   width: 100%;
   overflow: auto;
 }
-.rounded-full.mat-stroked-button {
+.rounded-full[z-button],
+z-button.rounded-full {
   border-radius: 50%;
 }
 `

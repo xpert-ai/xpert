@@ -5,7 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http'
 import { AfterViewInit, Component, inject, Inject, signal, TemplateRef, viewChild, ViewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -42,6 +42,7 @@ import { CreatedByPipe } from '../../../@shared/pipes'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { BusinessAreaSelectComponent } from '@cloud/app/@shared/business-area'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -51,7 +52,7 @@ import { BusinessAreaSelectComponent } from '@cloud/app/@shared/business-area'
     CdkMenuModule,
     TranslateModule,
     MatTooltipModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     RouterModule,
 

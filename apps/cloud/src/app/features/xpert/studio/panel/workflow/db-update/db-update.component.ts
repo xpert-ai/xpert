@@ -9,7 +9,6 @@ import { XpertVariableInputComponent } from '@cloud/app/@shared/agent/'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { XpertWorkflowPanelDBBaseComponent } from '../db/db.component'
 
-
 @Component({
   selector: 'xp-workflow-panel-db-update',
   templateUrl: './db-update.component.html',

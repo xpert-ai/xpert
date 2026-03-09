@@ -6,19 +6,13 @@ import { AuthenticationEnum, IDataSource, IDataSourceType } from '@cloud/app/@co
 import { isEmpty, omit } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom, map } from 'rxjs'
-import {
-  LocalAgent,
-  ServerAgent,
-  ToastrService,
-  convertConfigurationSchema,
-  getErrorMessage
-} from '@cloud/app/@core/index'
+import { LocalAgent, ServerAgent, ToastrService, convertConfigurationSchema, getErrorMessage } from '@cloud/app/@core/index'
 import { environment } from '@cloud/environments/environment'
 import { CommonModule } from '@angular/common'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { MatListModule } from '@angular/material/list'
 import { ContentLoaderModule } from '@ngneat/content-loader'
-import { MatButtonModule } from '@angular/material/button'
+
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { FormlyModule } from '@ngx-formly/core'
@@ -26,6 +20,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -37,7 +32,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
     FormsModule,
     ReactiveFormsModule,
     MatListModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatSlideToggleModule,
     MatButtonToggleModule,
     MatTooltipModule,

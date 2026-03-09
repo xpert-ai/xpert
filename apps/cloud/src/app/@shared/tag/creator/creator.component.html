@@ -43,10 +43,10 @@
 
 <div class="flex justify-end p-4">
   <div ngmButtonGroup>
-    <button mat-flat-button mat-dialog-close cdkFocusInitial>
+    <button z-button zType="secondary" mat-dialog-close cdkFocusInitial>
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button mat-raised-button color="accent" [disabled]="formGroup.invalid || formGroup.pristine" (click)="apply()">
+    <button z-button zType="default" color="accent" [disabled]="formGroup.invalid || formGroup.pristine" (click)="apply()">
       <span>
         {{ 'PAC.ACTIONS.Create' | translate: { Default: 'Create' } }}
       </span>

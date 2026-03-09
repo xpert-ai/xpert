@@ -7,7 +7,7 @@
   
     <div class="flex justify-start">
       <div ngmButtonGroup>
-        <button mat-raised-button color="primary" (click)="createCertification()">
+        <button z-button zType="default" color="primary" (click)="createCertification()">
           {{ 'PAC.ACTIONS.New' | translate: {Default: 'New'} }}
         </button>
       </div>
@@ -52,10 +52,10 @@
 
           <div class="w-full flex justify-end">
             <div ngmButtonGroup displayDensity="cosy">
-              <button mat-icon-button displayDensity="cosy" class="text-text-secondary" (click)="editCertification(certification)">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-text-secondary" (click)="editCertification(certification)">
                 <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
               </button>
-              <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="text-text-secondary" (click)="removeCertification(certification)">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-secondary" (click)="removeCertification(certification)">
                 <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
               </button>
             </div>
@@ -87,10 +87,10 @@
         </ngm-mat-select>
 
         <div class="flex items-center gap-2">
-          <button mat-raised-button color="primary">
+          <button z-button zType="default" color="primary">
             {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
           </button>
-          <button mat-button (click)="cancel($event)">
+          <button z-button zType="ghost" (click)="cancel($event)">
             {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
           </button>
         </div>

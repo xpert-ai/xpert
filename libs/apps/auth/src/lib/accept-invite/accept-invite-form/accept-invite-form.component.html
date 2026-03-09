@@ -20,9 +20,6 @@
   </div>
 
   <div class="mt-4">
-    <button mat-raised-button color="primary"
-            [disabled]="form.invalid"
-            (click)="saveInvites()"
-    >{{ 'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.COMPLETE_REGISTRATION' | translate: {Default: 'Complete Registration'} }}</button>
+    <button z-button zType="default" color="primary" [disabled]="form.invalid" (click)="saveInvites()">{{ 'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.COMPLETE_REGISTRATION' | translate: {Default: 'Complete Registration'} }}</button>
   </div>
 </form>

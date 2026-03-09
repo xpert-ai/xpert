@@ -23,8 +23,7 @@
 
 <div *ngIf="active && editable" class="ngm-responsive__fab-menu" [ngClass]="{rightSide: rightSide}"
     fxLayout="column" fxLayoutAlign="space-around center" fxLayoutGap="0.25rem">
-    <button mat-mini-fab [matMenuTriggerFor]="menu"
-        (click)="$event.stopPropagation()">
+    <button z-button zType="default" zSize="icon-sm" zShape="circle" [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
       <mat-icon>menu</mat-icon>
     </button>
 </div>

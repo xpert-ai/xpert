@@ -3,13 +3,14 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use CdkConfirmUniqueComponent
@@ -22,7 +23,7 @@ import { isString } from 'lodash-es'
     FormsModule,
     DragDropModule,
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatFormFieldModule,
     MatInputModule,
     TranslateModule,

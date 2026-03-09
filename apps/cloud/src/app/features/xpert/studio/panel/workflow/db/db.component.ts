@@ -6,7 +6,6 @@ import { IWorkflowNodeDBOperation, TXpertTableColumn } from '@metad/contracts'
 import { AiModelTypeEnum, IXpertTable, ModelFeature, injectXpertTableAPI } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
-
 @Component({
   selector: '',
   template: ''

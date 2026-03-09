@@ -78,19 +78,17 @@
 
   <div class="flex justify-start items-center">
     <div ngmButtonGroup>
-      <button mat-raised-button color="accent" cdkFocusInitial
-        [disabled]="stepper.selected?.stepControl?.invalid || error"
-        (click)="onAppy()">
+      <button z-button zType="default" color="accent" cdkFocusInitial [disabled]="stepper.selected?.stepControl?.invalid || error" (click)="onAppy()">
         {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
       </button>
-      <button *ngIf="stepper.selectedIndex < 1 && type !== 'parquet' " mat-raised-button color="accent"
+      <button *ngIf="stepper.selectedIndex < 1 && type !== 'parquet' " z-button zType="default" color="accent"
         [disabled]="stepper.selected?.stepControl?.invalid"
         (click)="stepper.next()"
       >
         {{ 'PAC.ACTIONS.NEXT' | translate: {Default: "Next"} }}
       </button>
 
-      <button mat-button mat-dialog-close>
+      <button z-button zType="ghost" mat-dialog-close>
         {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
     </div>
@@ -137,7 +135,7 @@
       <div *ngIf="storageFile" class="flex justify-end items-center">
         {{storageFile.originalName}}
 
-        <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" (click)="removeStorageFile()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" (click)="removeStorageFile()">
           <mat-icon>close</mat-icon> 
         </button>
       </div>

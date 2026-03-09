@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject, LOCALE_ID, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -22,6 +22,7 @@ import {
   OrderTypeEnum,
   ToastrService
 } from '../../../../@core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -35,7 +36,7 @@ import {
     FormsModule,
     MatTooltipModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     WaIntersectionObserver,
     NgmCommonModule,
     OrgAvatarComponent,

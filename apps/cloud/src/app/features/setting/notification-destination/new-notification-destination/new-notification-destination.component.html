@@ -52,14 +52,12 @@
 
 <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
 
-    <button mat-stroked-button [disabled]="configurationFormGroup.pristine" (click)="onReset()">Reset</button>
+    <button z-button zType="outline" [disabled]="configurationFormGroup.pristine" (click)="onReset()">Reset</button>
 
     <div>
-        <button mat-button mat-dialog-close cdkFocusInitial>Cancel</button>
+        <button z-button zType="ghost" mat-dialog-close cdkFocusInitial>Cancel</button>
 
-        <button mat-raised-button color="accent"
-            [disabled]="configurationFormGroup.invalid || creating"
-            (click)="onSave()">Save</button>
+        <button z-button zType="default" color="accent" [disabled]="configurationFormGroup.invalid || creating" (click)="onSave()">Save</button>
     </div>
     
 </div>

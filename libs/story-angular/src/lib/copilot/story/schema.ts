@@ -33,12 +33,10 @@ export const StoryPagesSchema = z.object({
   )
 })
 
-
 export const StoryWidgetGridSchema = z.object({
   rows: z.array(DimensionSchema),
   columns: z.array(MeasureSchema)
 })
-
 
 export const discoverStory = {
   ...CopilotDefaultOptions,

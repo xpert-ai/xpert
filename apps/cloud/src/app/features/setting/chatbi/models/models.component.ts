@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -16,6 +16,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { ChatBIModelService, ToastrService, getErrorMessage, routeAnimations } from '../../../../@core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -27,7 +28,7 @@ import { ChatBIModelService, ToastrService, getErrorMessage, routeAnimations } f
     RouterModule,
     TranslateModule,
     ReactiveFormsModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatTooltipModule,
     MatDividerModule,

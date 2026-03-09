@@ -53,7 +53,6 @@ import {
 import { KnowledgeDocIdComponent, KnowledgeTaskComponent } from '../../../../../@shared/knowledge'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 
-
 const REFRESH_DEBOUNCE_TIME = 5000
 
 @Component({

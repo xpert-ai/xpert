@@ -14,22 +14,22 @@
 
 <div class="flex justify-between items-center">
   <div ngmButtonGroup>
-    <button mat-button (click)="onReset()">
+    <button z-button zType="ghost" (click)="onReset()">
       {{ 'COMPONENTS.COMMON.RESET' | translate: {Default: 'Reset'} }}
     </button>
-    <button mat-button (click)="onClear()">
+    <button z-button zType="ghost" (click)="onClear()">
       {{ 'COMPONENTS.COMMON.CLEAR' | translate: {Default: 'Clear'} }}
     </button>
   </div>
     
   <div ngmButtonGroup>
-    <button mat-button (click)="onCancel()">
+    <button z-button zType="ghost" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-button color="accent" cdkFocusInitial (click)="onApply()">
+    <button z-button zType="ghost" color="accent" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
-    <button mat-raised-button color="accent" cdkFocusInitial (click)="onOk()">
+    <button z-button zType="default" color="accent" cdkFocusInitial (click)="onOk()">
       {{ 'COMPONENTS.COMMON.CONFIRM' | translate: {Default: 'Confirm'} }}
     </button>
   </div>

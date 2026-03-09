@@ -10,7 +10,6 @@ import zodToJsonSchema from 'zod-to-json-schema'
 import { isObject } from './utils/shared-utils'
 export { nonBlank, nonNullable } from '@metad/ocap-core'
 
-
 export const filterNil = filter(negate(isNil))
 export const isNotEqual = negate(isEqual)
 export const isNotEmpty = negate(isEmpty)
@@ -345,7 +344,6 @@ export function makeid(length) {
 }
 
 export const mkenum = <T extends { [index: string]: U }, U extends string>(x: T) => x;
-
 
 // Search options
 export function includeIgnoreCase(text, target) {

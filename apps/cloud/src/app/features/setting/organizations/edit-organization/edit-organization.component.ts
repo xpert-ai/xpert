@@ -14,7 +14,6 @@ import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { TagMaintainComponent } from 'apps/cloud/src/app/@shared/tag'
 import { EditOrganizationMainComponent } from './edit-organization-main/edit-organization-main.component'
 
-
 @Component({
   standalone: true,
   templateUrl: './edit-organization.component.html',

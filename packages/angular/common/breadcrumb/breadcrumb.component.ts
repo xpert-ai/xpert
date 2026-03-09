@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, HostBinding, Input, OnChanges, Output, SimpleChanges } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface Step {
   value: any
@@ -24,7 +25,7 @@ export interface Step {
   imports: [
     CommonModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatTooltipModule,
     OcapCoreModule

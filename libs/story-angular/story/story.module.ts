@@ -15,7 +15,6 @@ import { NxStoryWidgetComponent } from './story-widget/story-widget.component'
 import { NxStoryComponent } from './story/story.component'
 import { SinglePageStoryComponent } from './single-page-story/sps.component'
 
-
 @NgModule({
   declarations: [],
   imports: [

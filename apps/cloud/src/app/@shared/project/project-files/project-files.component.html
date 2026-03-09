@@ -17,8 +17,7 @@
             <div class="flex items-center">
                 <span class="flex-1 text-ellipsis overflow-hidden whitespace-nowrap"> {{ file.originalName }} </span>
 
-                <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="opacity-0 group-hover/item:opacity-100"
-                    (click)="deleteFile($event, file)">
+                <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="opacity-0 group-hover/item:opacity-100" (click)="deleteFile($event, file)">
                     <mat-icon fontSet="material-icons-round">delete</mat-icon>
                 </button>
             </div>
@@ -31,7 +30,7 @@
     <div class="flex justify-end items-center">
       @if (activedFile()) {
         <div ngmButtonGroup>
-            <button mat-stroked-button ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="fileUpload.click()">
+            <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="fileUpload.click()">
                 <div class="flex justify-start items-center">
                   <mat-icon fontSet="material-icons-round">upload</mat-icon>
                   {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}
@@ -53,9 +52,7 @@
       }
     </div>
   } @else {
-    <button mat-stroked-button ngmAppearance="dashed" color="accent"
-        (click)="fileUpload.click()"
-    >
+    <button z-button zType="outline" ngmAppearance="dashed" color="accent" (click)="fileUpload.click()">
         <div class="flex justify-start items-center">
           <mat-icon fontSet="material-icons-round">upload</mat-icon>
           {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}

@@ -5,7 +5,6 @@ import { AuthService } from '@metad/cloud/state'
 import { map, startWith, switchMap } from 'rxjs/operators'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
-
 @Component({
   standalone: false,
   selector: 'pac-auth-varify-email',

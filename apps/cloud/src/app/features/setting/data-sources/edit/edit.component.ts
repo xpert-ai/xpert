@@ -1,20 +1,10 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  HostBinding,
-  inject,
-  Inject,
-  Optional,
-  signal
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, HostBinding, inject, Inject, Optional, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
@@ -39,6 +29,7 @@ import {
   ServerAgent,
   ToastrService
 } from '../../../../@core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -50,7 +41,7 @@ import {
     MatInputModule,
     MatFormFieldModule,
     MatTooltipModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatSlideToggleModule,
 
     FormlyModule,

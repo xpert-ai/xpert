@@ -17,7 +17,6 @@ import {
 } from '@cloud/app/@shared/model'
 import { CubeSchemaService } from './cube.schema'
 
-
 @Injectable()
 export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
 

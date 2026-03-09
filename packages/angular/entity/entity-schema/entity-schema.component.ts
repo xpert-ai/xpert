@@ -3,19 +3,9 @@ import { ScrollingModule } from '@angular/cdk/scrolling'
 import { FlatTreeControl } from '@angular/cdk/tree'
 import { A11yModule } from '@angular/cdk/a11y'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  HostBinding,
-  Input,
-  OnInit,
-  booleanAttribute,
-  effect,
-  inject,
-  input
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, booleanAttribute, effect, inject, input } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
@@ -29,7 +19,7 @@ import { DataSettings, DIMENSION_MEMBER_FIELDS, DisplayBehaviour, IDimensionMemb
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EntitySchemaDataSource, EntitySchemaFlatNode, EntitySchemaNode } from './data-source'
 import { EntityCapacity, EntitySchemaType } from './types'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -41,7 +31,7 @@ import { EntityCapacity, EntitySchemaType } from './types'
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     DragDropModule,
     ScrollingModule,
     TranslateModule,

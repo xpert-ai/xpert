@@ -1,27 +1,11 @@
 import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop'
-import {
-  AfterViewInit,
-  ChangeDetectorRef,
-  Component,
-  DestroyRef,
-  ViewChildren,
-  computed,
-  effect,
-  inject,
-  model,
-  signal
-} from '@angular/core'
+import { AfterViewInit, ChangeDetectorRef, Component, DestroyRef, ViewChildren, computed, effect, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute } from '@angular/router'
 import { nonNullable } from '@metad/core'
 import { NgmCommonModule, ResizerModule, SplitterModule, SplitterType } from '@metad/ocap-angular/common'
 import { debouncedSignal, OcapCoreModule } from '@metad/ocap-angular/core'
-import {
-  EntityCapacity,
-  EntitySchemaNode,
-  EntitySchemaType,
-  NgmEntitySchemaComponent
-} from '@metad/ocap-angular/entity'
+import { EntityCapacity, EntitySchemaNode, EntitySchemaType, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
 import { C_MEASURES, Dimension, DisplayBehaviour, OrderDirection, PropertyLevel, QueryOptions, Table } from '@metad/ocap-core'
 import { C_MEASURES_ROW_COUNT, serializeMeasureName, serializeMemberCaption, serializeUniqueName } from '@metad/ocap-sql'
 import { NxSettingsPanelService } from '@metad/story/designer'
@@ -31,20 +15,7 @@ import { NgmError, ToastrService, uuid } from 'apps/cloud/src/app/@core'
 import { isEqual } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, of } from 'rxjs'
-import {
-  combineLatestWith,
-  debounceTime,
-  delayWhen,
-  distinctUntilChanged,
-  filter,
-  first,
-  map,
-  shareReplay,
-  startWith,
-  switchMap,
-  tap,
-  withLatestFrom
-} from 'rxjs/operators'
+import { combineLatestWith, debounceTime, delayWhen, distinctUntilChanged, filter, first, map, shareReplay, startWith, switchMap, tap, withLatestFrom } from 'rxjs/operators'
 import { TablesJoinComponent } from '../../../tables-join'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
@@ -60,9 +31,10 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatListModule } from '@angular/material/list'
 import { MatToolbarModule } from '@angular/material/toolbar'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -82,7 +54,7 @@ import { MatToolbarModule } from '@angular/material/toolbar'
     MatButtonToggleModule,
     MatTooltipModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatListModule,
     MatToolbarModule,
     OcapCoreModule,

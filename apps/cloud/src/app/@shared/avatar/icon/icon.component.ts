@@ -3,7 +3,6 @@ import { Component, computed, input, numberAttribute } from '@angular/core'
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
 import { IconDefinition } from '@cloud/app/@core'
 
-
 @Component({
   selector: 'xp-icon',
   standalone: true,

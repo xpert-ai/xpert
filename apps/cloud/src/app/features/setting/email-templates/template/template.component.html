@@ -75,8 +75,7 @@
 
 		<div class="w-full flex justify-end">
 		  <div ngmButtonGroup displayDensity="cosy">
-			<button mat-raised-button color="primary" class="shrink-0 w-24" [disabled]="form.invalid || form.pristine"
-			  (click)="submitForm()">
+			<button z-button zType="default" color="primary" class="shrink-0 w-24" [disabled]="form.invalid || form.pristine" (click)="submitForm()">
 			  <div class="flex items-center">
 				<mat-icon fontSet="material-icons-outlined">save</mat-icon>
 				{{ 'PAC.ACTIONS.Save' | translate: {Default: "Save"} }}

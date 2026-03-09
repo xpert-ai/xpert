@@ -12,7 +12,7 @@
                 <span class="text-ellipsis">
                     {{ file.file.name }}
                 </span>
-                <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" (click)="removeFile(i)">
+                <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" (click)="removeFile(i)">
                   <mat-icon>close</mat-icon> 
                 </button>
             </div>
@@ -59,37 +59,31 @@
 
     <div class="flex justify-between items-center">
         <div>
-            <button mat-button mat-dialog-close cdkFocusInitial>
+            <button z-button zType="ghost" mat-dialog-close cdkFocusInitial>
                 {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: "Cancel"} }}
             </button>
         </div>
     
         <div ngmButtonGroup>
           @if (stepper.selectedIndex > 0) {
-            <button mat-raised-button
-                [disabled]="uploading()"
-                (click)="stepper.previous()"
-            >
+            <button z-button zType="default" [disabled]="uploading()" (click)="stepper.previous()">
                 {{ 'PAC.ACTIONS.PREVIOUS' | translate: {Default: "Previous"} }}
             </button>
           }
 
           @if (stepper.selectedIndex < 2) {
-            <button mat-raised-button color="accent"
-                [disabled]="stepper.selected?.stepControl?.invalid || !fileList.length"
-                (click)="stepper.next()"
-            >
+            <button z-button zType="default" color="accent" [disabled]="stepper.selected?.stepControl?.invalid || !fileList.length" (click)="stepper.next()">
                 {{ 'PAC.ACTIONS.NEXT' | translate: {Default: "Next"} }}
             </button>
           }
     
           @if (stepper.selectedIndex===2) {
             @if (done) {
-                <button mat-raised-button color="accent" [disabled]="uploading()" mat-dialog-close>
+                <button z-button zType="default" color="accent" [disabled]="uploading()" mat-dialog-close>
                     {{ 'PAC.MODEL.UPLOAD.Done' | translate: {Default: 'Done'} }}
                 </button>
             } @else {
-                <button mat-raised-button color="accent" (click)="upload()">
+                <button z-button zType="default" color="accent" (click)="upload()">
                     {{ 'PAC.MODEL.UPLOAD.Import' | translate: {Default: 'Import'} }}
                 </button>
             }
@@ -184,8 +178,7 @@
                         <span class="mr-2">❌</span>
                     }
                     @default {
-                        <button mat-icon-button ngmAppearance="danger" displayDensity="compact"
-                            (click)="remove(sheet)">
+                        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="compact" (click)="remove(sheet)">
                             <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
                         </button>
                     }

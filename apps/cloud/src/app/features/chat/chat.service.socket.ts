@@ -37,7 +37,6 @@ import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { ChatWebsocketServer } from '../../@core/services/chat.service.socket'
 
-
 @Injectable()
 export class ChatWebsocketService {
   readonly chatService = inject(ChatWebsocketServer)

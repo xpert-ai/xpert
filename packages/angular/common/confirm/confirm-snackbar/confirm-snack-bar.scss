@@ -30,14 +30,16 @@ $button-vertical-margin: -(math.div($button-height - $line-height, 2));
     }
   }
   
-  .mat-mdc-button.mat-unthemed:not(:disabled) {
+  [z-button]:not(:disabled):not([data-disabled]),
+  z-button:not(:disabled):not([data-disabled]) {
     --mdc-text-button-label-text-color: theme('colors.gray.200');
   }
 }
 
 .dark {
   .ngm-confirm-snackbar {
-    .mat-mdc-button.mat-unthemed:not(:disabled) {
+    [z-button]:not(:disabled):not([data-disabled]),
+    z-button:not(:disabled):not([data-disabled]) {
       --mdc-text-button-label-text-color: theme('colors.neutral.800');
     }
   }

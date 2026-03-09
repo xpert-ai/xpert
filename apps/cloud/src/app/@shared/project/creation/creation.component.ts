@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -15,6 +15,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectToastr, ISemanticModel, ProjectAPIService } from 'apps/cloud/src/app/@core'
 import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
 import { combineLatest, debounceTime, map, startWith } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -25,7 +26,7 @@ import { combineLatest, debounceTime, map, startWith } from 'rxjs'
     TranslateModule,
     DragDropModule,
     MatFormFieldModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule,
     MatIconModule,
     MatListModule,

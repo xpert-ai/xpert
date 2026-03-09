@@ -17,11 +17,7 @@
     <pac-user-change-password-form #password [(ngModel)]="newPassword" class="block max-w-lg m-auto ng-untouched ng-pristine ng-valid" />
 
     <div class="w-full flex justify-end p-2">
-      <button
-        mat-flat-button
-        color="primary"
-        (click)="changePassword()"
-      >
+      <button z-button zType="default" color="primary" (click)="changePassword()">
         {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
       </button>
     </div>

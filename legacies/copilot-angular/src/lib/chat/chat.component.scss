@@ -10,7 +10,8 @@
   --mdc-chip-with-avatar-avatar-size: 20px;
 }
 
-.mat-mdc-icon-button.mat-mdc-button-base {
+[z-button][data-icon-only],
+z-button[data-icon-only] {
   --mdc-icon-button-state-layer-size: 32px;
 }
 
@@ -44,7 +45,8 @@
   }
 }
 
-.ngm-copilot__message-remove.mat-mdc-icon-button {
+.ngm-copilot__message-remove[z-button],
+z-button.ngm-copilot__message-remove {
   background-color: var(--ngm-copilot-bg-color, theme('colors.white'));
   @apply absolute z-[101] text-slate-500 hover:text-red-500 hover:bg-slate-50 dark:bg-neutral-100/10;
 }

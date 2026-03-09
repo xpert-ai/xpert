@@ -88,9 +88,7 @@
                         }"
                       >
                         <div class="flex-1 flex justify-start">
-                          <button mat-icon-button displayDensity="cosy" class="shrink-0" [matTooltip]=" 'PAC.ChatBI.ShowChart' | translate: {Default: 'Show Chart'} "
-                            (click)="answer.visualType = 'chart'"
-                          >
+                          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="shrink-0" [matTooltip]=" 'PAC.ChatBI.ShowChart' | translate: {Default: 'Show Chart'} " (click)="answer.visualType = 'chart'">
                             <mat-icon fontSet="material-icons-outlined">pie_chart</mat-icon>
                           </button>
                         </div>
@@ -106,29 +104,19 @@
                         (explain)="setExplains($event)"
                       >
                         <div class="flex-1 flex justify-start">
-                          <button mat-icon-button displayDensity="cosy" class="shrink-0" [matTooltip]=" 'PAC.ChatBI.ShowTable' | translate: {Default: 'Show Table'} "
-                            (click)="answer.visualType = 'table'"
-                          >
+                          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="shrink-0" [matTooltip]=" 'PAC.ChatBI.ShowTable' | translate: {Default: 'Show Table'} " (click)="answer.visualType = 'table'">
                             <mat-icon fontSet="material-icons-outlined">table_view</mat-icon>
                           </button>
                         </div>
-                        <button mat-icon-button ngmAction displayDensity="compact" class="shrink-0" [matTooltip]=" 'PAC.ChatBI.AddtoStory' | translate: {Default: 'Add to Story'} "
-                          (click)="$event.stopPropagation();$event.preventDefault();addToStory(answer)">
+                        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAction displayDensity="compact" class="shrink-0" [matTooltip]=" 'PAC.ChatBI.AddtoStory' | translate: {Default: 'Add to Story'} " (click)="$event.stopPropagation();$event.preventDefault();addToStory(answer)">
                           <mat-icon fontSet="material-icons-outlined"
                             [matTooltip]="''"
                           >addchart</mat-icon>
                         </button>
-                        <button mat-icon-button ngmAction displayDensity="compact" class="shrink-0"
-                          [matTooltip]=" 'Story.Widget.Explore' | translate: {Default: 'Explore'} "
-                          (click)="$event.stopPropagation();$event.preventDefault();openExplore(item)">
+                        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAction displayDensity="compact" class="shrink-0" [matTooltip]=" 'Story.Widget.Explore' | translate: {Default: 'Explore'} " (click)="$event.stopPropagation();$event.preventDefault();openExplore(item)">
                           <mat-icon fontSet="material-icons-outlined">explore</mat-icon>
                         </button>
-                        <button mat-icon-button ngmAction displayDensity="cosy" class="ngm-menu-trigger"
-                          [color]="answer.slicers ? 'accent':''"
-                          [matMenuTriggerFor]="filtersMenu"
-                          #mt="matMenuTrigger"
-                          [class.active]="mt.menuOpen"
-                          >
+                        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAction displayDensity="cosy" class="ngm-menu-trigger" [color]="answer.slicers ? 'accent':''" [matMenuTriggerFor]="filtersMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen">
                           <mat-icon fontSet="material-icons-outlined">filter_alt</mat-icon>
                         </button>
                       </ngm-analytical-card>
@@ -181,9 +169,7 @@
   </div>
 </div>
 
-<button mat-icon-button displayDensity="cosy" class="ngm-fullscreen-button opacity-20 group-hover:opacity-100 transition-opacity"
-  (click)="toggleFullScreen()"
-  >
+<button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-fullscreen-button opacity-20 group-hover:opacity-100 transition-opacity" (click)="toggleFullScreen()">
   @if (fullscreen()) {
     <mat-icon fontSet="material-icons-round">fullscreen_exit</mat-icon>
   } @else {
@@ -192,9 +178,8 @@
 </button>
 
 <ng-template #buttonTemplate>
-  <!-- <button mat-flat-button displayDensity="compact" class="ngm-rounded-full"
-      (click)="run($event)">run</button> -->
-  <button #copyButton mat-flat-button displayDensity="compact" class="ngm-rounded-full" (click)="onCopy(copyButton)">
+  <!-- <button z-button zType="secondary" displayDensity="compact" class="rounded-full" (click)="run($event)">run</button> -->
+  <button z-button zType="secondary" #copyButton displayDensity="compact" class="rounded-full" (click)="onCopy(copyButton)">
     @if ($any(copyButton).copied) {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-md">
         <path fill-rule="evenodd" clip-rule="evenodd" d="M18.0633 5.67375C18.5196 5.98487 18.6374 6.607 18.3262 7.06331L10.8262 18.0633C10.6585 18.3093 10.3898 18.4678 10.0934 18.4956C9.79688 18.5234 9.50345 18.4176 9.29289 18.2071L4.79289 13.7071C4.40237 13.3166 4.40237 12.6834 4.79289 12.2929C5.18342 11.9023 5.81658 11.9023 6.20711 12.2929L9.85368 15.9394L16.6738 5.93664C16.9849 5.48033 17.607 5.36263 18.0633 5.67375Z" fill="currentColor">

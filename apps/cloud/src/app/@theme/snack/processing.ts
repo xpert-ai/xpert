@@ -1,15 +1,16 @@
 import { CommonModule } from '@angular/common'
 import { Component, Inject } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBarRef, MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { timer } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatProgressSpinnerModule, MatIconModule, MatButtonModule, DensityDirective],
+  imports: [CommonModule, MatProgressSpinnerModule, MatIconModule, ZardButtonComponent, DensityDirective],
   template: `<div class="flex justify-start items-center">
     <ng-container [ngSwitch]="status">
       <mat-spinner *ngSwitchCase="'processing'" [diameter]="20"></mat-spinner>
@@ -21,7 +22,7 @@ import { timer } from 'rxjs'
       {{ information }}
     </div>
 
-    <button mat-icon-button displayDensity="cosy" (click)="cancel()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="cancel()">
       <mat-icon>close</mat-icon>
     </button>
   </div>`,

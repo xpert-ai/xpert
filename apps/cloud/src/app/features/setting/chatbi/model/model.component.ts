@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatInputModule } from '@angular/material/input'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
@@ -17,6 +17,7 @@ import { injectParams } from 'ngxtension/inject-params'
 import { catchError, EMPTY, map, of, pipe, startWith, switchMap } from 'rxjs'
 import { ChatBIModelService, getErrorMessage, injectToastr, OrderTypeEnum, routeAnimations } from '../../../../@core'
 import { ChatBIModelsComponent } from '../models/models.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -29,7 +30,7 @@ import { ChatBIModelsComponent } from '../models/models.component'
     RouterModule,
     TranslateModule,
     NgmCommonModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule
   ],
   animations: [routeAnimations]

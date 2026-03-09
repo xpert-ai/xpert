@@ -74,7 +74,6 @@ export class ChatMessageContentComponent {
     }
   })
 
-
   onCopy(copyButton) {
     copyButton.copied = true
     setTimeout(() => {

@@ -61,14 +61,12 @@
     }
 
     <div class="flex justify-end items-start gap-2">
-      <button mat-icon-button [color]="favour() ? 'accent' : ''"
-        (click)="toggleFavorite(indicator)">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="favour() ? 'accent' : ''" (click)="toggleFavorite(indicator)">
         <mat-icon>star</mat-icon>
       </button>
 
       @if (isMobile$ | async) {
-        <button mat-icon-button class="pac-indicator-app__close bg-white/10"
-          (click)="onClose($event)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-indicator-app__close bg-white/10" (click)="onClose($event)">
           <mat-icon>close</mat-icon>
         </button>
       }
@@ -204,8 +202,7 @@
           </div>
         </div>
 
-        <button mat-icon-button displayDensity="compact" class="pac-indicator-app__comment-remove right-0 top-0"
-          (click)="messages.splice(i, 1)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-indicator-app__comment-remove right-0 top-0" (click)="messages.splice(i, 1)">
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -227,11 +224,11 @@
               {{ 'IndicatorApp.IsPeriodRelated' | translate: {Default: 'Period Related'} }}
             </mat-checkbox>
 
-            <!-- <button mat-button color="accent" class="ngm-accent" [disabled]="!copilotEnabled() || !prompt || answering" (click)="askCopilot()">
+            <!-- <button z-button zType="ghost" color="accent" class="ngm-accent" [disabled]="!copilotEnabled() || !prompt || answering" (click)="askCopilot()">
               {{ 'IndicatorApp.AskCopilot' | translate: {Default: 'Ask Copilot'} }}
             </button> -->
     
-            <button mat-button color="accent" class="ngm-accent" [disabled]="!prompt || answering" (click)="saveAsComment(indicator.id, prompt, relative)">
+            <button z-button zType="ghost" color="accent" class="ngm-accent" [disabled]="!prompt || answering" (click)="saveAsComment(indicator.id, prompt, relative)">
               {{ 'IndicatorApp.SaveAsComment' | translate: {Default: 'Save as Comment'} }}
             </button>
           </div>
@@ -247,8 +244,7 @@
           </div>
 
           @if (isModeler()) {
-            <button mat-icon-button displayDensity="compact" class="pac-indicator-app__comment-remove"
-              (click)="deleteComment(comment)">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-indicator-app__comment-remove" (click)="deleteComment(comment)">
               <mat-icon>close</mat-icon>
             </button>
           }

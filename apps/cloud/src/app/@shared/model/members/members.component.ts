@@ -45,7 +45,6 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
   readonly #dialog = inject(Dialog)
   readonly #vcr = inject(ViewContainerRef)
 
-
   // Inputs
   readonly data = input<TMessageContentMembers>()
 

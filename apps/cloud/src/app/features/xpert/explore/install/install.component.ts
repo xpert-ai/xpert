@@ -74,7 +74,6 @@ export class XpertInstallComponent {
 
   readonly loading = signal(false)
 
-
   close() {
     this.#dialogRef.close()
   }

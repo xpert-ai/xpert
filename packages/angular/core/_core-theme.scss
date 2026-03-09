@@ -3,7 +3,7 @@
 @use './style/card-theme' as card;
 @use './style/mat-list-theme' as mat-list;
 @use './style/mat-form-field-theme' as mat-formfield;
-@use './style/mat-button-theme' as mat-button;
+@use './style/button-theme' as button-theme;
 @use './style/mat-viewport-theme' as mat-viewport;
 @use './style/density-theme' as mat-density;
 @use './style/mat-tab-theme' as mat-tab;
@@ -19,7 +19,7 @@
   @include card.color($config-or-theme);
   @include mat-list.color($config-or-theme);
   @include mat-formfield.color($config-or-theme);
-  @include mat-button.color($config-or-theme);
+  @include button-theme.color($config-or-theme);
   @include mat-paginator.color($config-or-theme);
   @include mat-dialog.color($config-or-theme);
   @include mat-checkbox.color($config-or-theme);
@@ -34,7 +34,7 @@
   @include card.density($config-or-theme);
   @include mat-list.density($config-or-theme);
   @include mat-formfield.density($config-or-theme);
-  @include mat-button.density($config-or-theme);
+  @include button-theme.density($config-or-theme);
   @include mat-viewport.density($config-or-theme);
   @include mat-density.density($config-or-theme);
   @include mat-tab.density($config-or-theme);

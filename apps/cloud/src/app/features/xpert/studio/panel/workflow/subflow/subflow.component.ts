@@ -83,7 +83,6 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
     }
   })
 
-
   addInput() {
     this.inputParams.update((state) => {
       return [...(state ?? []), { name: 'arg' + ((state?.length ?? 0) + 1) }]

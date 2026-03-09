@@ -37,7 +37,11 @@ import { ZardIconComponent } from '../icon/icon.component';
   encapsulation: ViewEncapsulation.None,
   host: {
     '[class]': 'classes()',
+    '[attr.data-color]': 'legacyColor()',
     '[attr.data-icon-only]': 'iconOnly() || null',
+    '[attr.data-z-shape]': 'zShape()',
+    '[attr.data-z-size]': 'zSize()',
+    '[attr.data-z-type]': 'zType()',
     '[attr.data-disabled]': 'isNotInsideOfButtonOrLink() && zDisabled() || null',
     '[attr.aria-disabled]': 'isNotInsideOfButtonOrLink() && zDisabled() || null',
     '[attr.disabled]': 'isNotInsideOfButtonOrLink() && zDisabled() ? "" : null',
@@ -52,6 +56,7 @@ export class ZardButtonComponent implements OnDestroy {
   readonly zType = input<ZardButtonTypeVariants>('default');
   readonly zSize = input<ZardButtonSizeVariants>('default');
   readonly zShape = input<ZardButtonShapeVariants>('default');
+  readonly color = input<string | null>(null);
   readonly class = input<ClassValue>('');
   readonly zFull = input(false, { transform: booleanAttribute });
   readonly zLoading = input(false, { transform: booleanAttribute });
@@ -119,6 +124,15 @@ export class ZardButtonComponent implements OnDestroy {
       this.class(),
     ),
   );
+
+  protected readonly legacyColor = computed(() => {
+    const color = this.color()?.trim();
+    if (!color) {
+      return null;
+    }
+
+    return color;
+  });
 
   protected readonly isNotInsideOfButtonOrLink = computed(() => {
     // Evaluated once; assumes component parent doesn't change after mount

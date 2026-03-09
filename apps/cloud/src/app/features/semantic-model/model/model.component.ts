@@ -1,18 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragRelease } from '@angular/cdk/drag-drop'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  DestroyRef,
-  HostBinding,
-  HostListener,
-  TemplateRef,
-  ViewChild,
-  ViewContainerRef,
-  computed,
-  inject,
-  model,
-  signal
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, DestroyRef, HostBinding, HostListener, TemplateRef, ViewChild, ViewContainerRef, computed, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog'
@@ -31,7 +18,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -80,7 +67,7 @@ import {
   TOOLBAR_ACTION_CATEGORY
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -94,7 +81,7 @@ import { markdownTableData, stringifyTableType } from './utils'
     ContentLoaderModule,
     ScrollingModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatSidenavModule,
     MatTooltipModule,
     MatProgressBarModule,
@@ -338,7 +325,6 @@ export class ModelComponent {
   })
 
   #modelerCommand = injectModelerCommand()
-
 
   ngOnInit() {
     this.model = this.route.snapshot.data['storyModel']

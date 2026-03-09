@@ -9,7 +9,6 @@ import { EChartsOption } from 'echarts'
 import { maxBy } from 'lodash-es'
 import { NgxEchartsDirective } from 'ngx-echarts'
 
-
 @Component({
   standalone: true,
   imports: [

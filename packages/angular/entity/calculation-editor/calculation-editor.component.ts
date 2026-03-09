@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, OnInit, computed, effect, inject, input, output, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
@@ -31,6 +31,7 @@ import { NgmCalculationVarianceComponent } from '../calculation-variance/varianc
 import { NgmConditionalAggregationComponent } from '../conditional-aggregation/conditional-aggregation.component'
 import { NgmMeasureControlComponent } from '../measure-control/measure-control.component'
 import { NgmRestrictedMeasureComponent } from '../restricted-measure/restricted-measure.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface CalculationEditorData {
   dataSettings: DataSettings
@@ -50,7 +51,7 @@ export interface CalculationEditorData {
     MatFormFieldModule,
     MatSelectModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatRadioModule,
     MatInputModule,
 

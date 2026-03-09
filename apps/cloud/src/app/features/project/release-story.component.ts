@@ -85,16 +85,11 @@ import { nonNullable } from '@metad/core'
 
 <mat-dialog-actions align="end">
   <div ngmButtonGroup>
-    <button mat-button mat-dialog-close>
+    <button z-button zType="ghost" mat-dialog-close>
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
 
-    <button
-      mat-raised-button
-      color="accent"
-      [disabled]="form.invalid || notAllPublic()"
-      (click)="release()"
-    >
+    <button z-button zType="default" color="accent" [disabled]="form.invalid || notAllPublic()" (click)="release()">
       {{ 'PAC.Project.Release' | translate: { Default: 'Release' } }}
     </button>
   </div>

@@ -143,7 +143,6 @@ export class TableItemSizeDirective implements OnChanges, AfterContentInit, OnDe
     this.scrollStrategy.setConfig(config);
   }
 
-
   setSticky(offset) {
     this.scrollStrategy.viewport.elementRef.nativeElement.querySelectorAll(stickyHeaderSelector)
       .forEach((el: Element) => {

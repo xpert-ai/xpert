@@ -1,18 +1,8 @@
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  Inject,
-  Input,
-  OnInit,
-  Optional,
-  computed,
-  inject,
-  signal
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, Inject, Input, OnInit, Optional, computed, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
@@ -43,7 +33,7 @@ import { filter, map, switchMap } from 'rxjs'
 import { NgmMemberListComponent } from '../member-list/member-list.component'
 import { NgmMemberTreeComponent } from '../member-tree/member-tree.component'
 import { ControlOptions, TreeControlOptions } from '../types'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -67,7 +57,7 @@ import { ControlOptions, TreeControlOptions } from '../types'
     MatListModule,
     MatFormFieldModule,
     MatSelectModule,
-    MatButtonModule,
+    ZardButtonComponent,
     NgmCommonModule,
     OcapCoreModule,
     NgmMemberListComponent,

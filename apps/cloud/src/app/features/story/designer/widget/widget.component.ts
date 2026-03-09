@@ -24,7 +24,6 @@ import { NgmInputComponent, NgmSliderInputComponent } from '@metad/ocap-angular/
 import { BackdropFilterEnum, FilterEnum } from '@metad/core'
 import { DesignerTextComponent } from '../text/text.component'
 
-
 @Component({
   standalone: true,
   imports: [
@@ -629,7 +628,6 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
     this.toastrService.info({code: 'Story.Toolbar.CopiedtoClipboard', default: 'Copied to clipboard'})
   }
 }
-
 
 @Component({
   standalone: true,

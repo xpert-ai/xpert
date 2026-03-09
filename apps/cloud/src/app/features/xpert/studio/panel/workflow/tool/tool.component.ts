@@ -36,7 +36,6 @@ import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
 
-
 @Component({
   selector: 'xpert-workflow-tool',
   templateUrl: './tool.component.html',

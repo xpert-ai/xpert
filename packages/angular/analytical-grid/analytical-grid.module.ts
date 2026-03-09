@@ -2,9 +2,8 @@ import { A11yModule } from '@angular/cdk/a11y'
 import { OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCardModule } from '@angular/material/card'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDividerModule } from '@angular/material/divider'
@@ -24,6 +23,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { AnalyticalGridComponent } from './analytical-grid.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
@@ -34,7 +34,7 @@ import { AnalyticalGridComponent } from './analytical-grid.component'
     CdkMenuModule,
     MatTableModule,
     MatPaginatorModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatMenuModule,
     MatProgressSpinnerModule,

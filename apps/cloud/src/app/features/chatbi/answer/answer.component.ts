@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, HostBinding, inject, input, model, signal, viewChild, ViewContainerRef } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -35,6 +35,7 @@ import { ChatbiChatComponent } from '../chat/chat.component'
 import { ChatbiInputComponent } from '../input/input.component'
 import { ChatLoadingComponent } from '../../../@shared/copilot'
 import { StorySelectorComponent } from '../../../@shared/story'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use ChatBI toolset.
@@ -52,7 +53,7 @@ import { StorySelectorComponent } from '../../../@shared/story'
     MarkdownModule,
     MatIconModule,
     MatTooltipModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule,
     MatMenuModule,
     DensityDirective,

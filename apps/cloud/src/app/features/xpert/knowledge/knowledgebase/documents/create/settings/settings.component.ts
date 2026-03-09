@@ -18,7 +18,6 @@ import { IntegrationSelectComponent } from "@cloud/app/@shared/integration";
 import { CopilotModelSelectComponent } from "@cloud/app/@shared/copilot";
 import { KnowledgebaseComponent } from "../../../knowledgebase.component";
 
-
 @Component({
   standalone: true,
   selector: 'xp-knowledge-document-create-settings',
@@ -54,7 +53,6 @@ export class KnowledgeDocumentCreateSettingsComponent {
   // Input Models
   readonly documents = model<Partial<IKnowledgeDocument>[]>()
   readonly parserConfig = model<DocumentTextParserConfig>()
-
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   

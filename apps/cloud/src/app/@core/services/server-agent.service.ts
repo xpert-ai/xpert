@@ -56,7 +56,6 @@ export class ServerAgent extends AbstractAgent implements Agent {
   readonly request$ = new Subject<{ id: UUID; url: string; request: any; forceRefresh: boolean }>()
   batchSize = 10
 
-
   constructor(
     @Inject(PAC_SERVER_AGENT_DEFAULT_OPTIONS)
     private options: PacServerAgentDefaultOptions,

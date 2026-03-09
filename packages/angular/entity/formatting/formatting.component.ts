@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, OnInit, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -10,6 +10,7 @@ import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmEntityPropertyComponent } from '../property/property.component'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -17,7 +18,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatTooltipModule,
     MatDialogModule,

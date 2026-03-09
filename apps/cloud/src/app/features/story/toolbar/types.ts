@@ -2,7 +2,6 @@
 import { StoryPoint, StoryPointType, WidgetComponentType } from '@metad/story/core'
 import { DisplayGrid } from 'angular-gridster2'
 
-
 export const COMPONENTS: {
   code: string
   label: string

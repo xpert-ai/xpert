@@ -15,12 +15,10 @@
 
 <div class="w-full flex justify-end p-2">
   <div ngmButtonGroup>
-    <button mat-button cdkFocusInitial (click)="cancel()">
+    <button z-button zType="ghost" cdkFocusInitial (click)="cancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent"
-      [disabled]="!formValid"
-      (click)="add()">
+    <button z-button zType="default" color="accent" [disabled]="!formValid" (click)="add()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>

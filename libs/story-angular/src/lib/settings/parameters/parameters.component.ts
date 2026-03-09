@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, ViewContainerRef, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
@@ -16,6 +16,7 @@ import { NxCoreService } from '@metad/core'
 import { NxStoryService } from '@metad/story/core'
 import { firstValueFrom } from 'rxjs'
 import { Dialog } from '@angular/cdk/dialog'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated
@@ -26,7 +27,7 @@ import { Dialog } from '@angular/cdk/dialog'
     CommonModule,
     DragDropModule,
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatListModule,
     MatDividerModule,

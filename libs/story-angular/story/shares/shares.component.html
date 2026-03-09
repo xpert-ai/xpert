@@ -52,13 +52,13 @@
 
     <div class="flex justify-between my-2">
       <div ngmButtonGroup>
-        <button mat-raised-button color="accent" (click)="generate()">
+        <button z-button zType="default" color="accent" (click)="generate()">
           {{ 'Story.Shares.Generate' | translate: {Default: 'Generate'} }}
         </button>
       </div>
 
       <div *ngIf="applicationUrl()" class="flex justify-end items-center">
-        <button mat-icon-button displayDensity="cosy" (click)="togglePreview()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="togglePreview()">
           <mat-icon [ngStyle]="showPreview ? {
             'transform': 'rotate(180deg)',
             'transition': 'transform 0.2s ease-in-out'
@@ -75,10 +75,7 @@
       [ngModel]="applicationUrl()"
     >
       <div ngmSuffix class="block rounded-full bg-gray-500">
-        <button mat-icon-button displayDensity="cosy"
-          [matTooltip]="'Story.Shares.CopyURL' | translate: {Default: 'Copy URL'}"
-          [disabled]="!applicationUrl()"
-          (click)="copy(applicationUrl())">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'Story.Shares.CopyURL' | translate: {Default: 'Copy URL'}" [disabled]="!applicationUrl()" (click)="copy(applicationUrl())">
           <mat-icon>content_copy</mat-icon>
         </button>
       </div>

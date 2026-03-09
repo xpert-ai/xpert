@@ -104,7 +104,8 @@
 }
 
 .join-fields-form {
-  .fit-form-field.mat-button {
+  .fit-form-field[z-button],
+  z-button.fit-form-field {
     min-width: unset;
   }
 }

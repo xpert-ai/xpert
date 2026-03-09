@@ -13,11 +13,10 @@
   (entityTypeChange)="entityType.set($event)"
 >
   <div ngmAction class="flex items-center">
-    <button mat-icon-button displayDensity="cosy" *ngIf="pin" (click)="unlinkAnalysis()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" *ngIf="pin" (click)="unlinkAnalysis()">
       <mat-icon fontSet="material-icons-outlined">push_pin</mat-icon>
     </button>
-    <button mat-icon-button displayDensity="cosy" [color]="(hasSlicers$ | async) ? 'accent':''"
-      [matMenuTriggerFor]="filtersMenu">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [color]="(hasSlicers$ | async) ? 'accent':''" [matMenuTriggerFor]="filtersMenu">
       <mat-icon fontSet="material-icons-outlined">filter_alt</mat-icon>
     </button>
   </div>  

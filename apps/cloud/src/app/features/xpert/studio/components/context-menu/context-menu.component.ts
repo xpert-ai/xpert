@@ -96,7 +96,6 @@ import { FormsModule } from '@angular/forms'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NgmCommonModule } from "@metad/ocap-angular/common";
 
-
 @Component({
   selector: 'xpert-studio-context-menu',
   exportAs: 'menuComponent',

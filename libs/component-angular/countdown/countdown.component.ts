@@ -16,7 +16,6 @@ import {
   TemplateRef,
   NgZone,
 } from '@angular/core';
-
 import { CountdownConfig, CountdownStatus, CountdownEvent, CountdownEventAction, CountdownItem } from './interfaces';
 import { CountdownTimer } from './countdown.timer';
 import { CountdownGlobalConfig } from './countdown.config';

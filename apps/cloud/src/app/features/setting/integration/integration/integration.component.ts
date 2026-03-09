@@ -2,7 +2,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -33,6 +33,7 @@ import {
   Store,
   ToastrService
 } from '../../../../@core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -49,7 +50,7 @@ import {
     MatTooltipModule,
     MatIconModule,
     MatInputModule,
-    MatButtonModule,
+    ZardButtonComponent,
     ContentLoaderModule,
     ButtonGroupDirective,
     NgmSelectComponent,

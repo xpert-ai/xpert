@@ -45,7 +45,6 @@ import {
 import { AppService } from '../app.service'
 import { getFeatureMenus } from './menus'
 
-
 @Component({
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,6 +56,7 @@ import { getFeatureMenus } from './menus'
 export class FeaturesComponent implements OnInit {
   MENU_CATALOG = MenuCatalog
   AbilityActions = AbilityActions
+  readonly mainOutlet = viewChild<RouterOutlet>('o')
 
   readonly #destroyRef = inject(DestroyRef)
   readonly #preferences = injectUserPreferences()
@@ -137,7 +137,6 @@ export class FeaturesComponent implements OnInit {
   readonly user$ = toSignal(this.#store.user$)
 
   readonly selectedOrganization$ = this.#store.selectedOrganization$
-
 
   /**
   |--------------------------------------------------------------------------
@@ -290,12 +289,12 @@ export class FeaturesComponent implements OnInit {
 
   onBrandClick() {
     const activeComponent = this.mainOutlet()?.component as { newConversation?: () => void } | undefined
-    if (this.router.url.startsWith('/chat') && typeof activeComponent?.newConversation === 'function') {
+    if (this.#router.url.startsWith('/chat') && typeof activeComponent?.newConversation === 'function') {
       activeComponent.newConversation()
       return
     }
 
-    this.router.navigate(['/chat'])
+    this.#router.navigate(['/chat'])
   }
 
   // Shows and hides the loading spinner during RouterEvent changes

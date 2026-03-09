@@ -2,7 +2,7 @@ import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, Input, ViewChild, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { MtxButtonModule } from '@ng-matero/extensions/button'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,13 +12,14 @@ import { ICreateEmailInvitesOutput, InvitationTypeEnum } from '../../../@core/ty
 import { TranslationBaseComponent } from '../../language/translation-base.component'
 import { EmailInviteFormComponent } from '../forms'
 import { InviteFormsModule } from '../forms/invite-forms.module'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     FormsModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     DragDropModule,
     MtxButtonModule,
     ButtonGroupDirective,

@@ -4,10 +4,11 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiAuthType } from 'apps/cloud/src/app/@core/types'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -19,7 +20,7 @@ import { ApiAuthType } from 'apps/cloud/src/app/@core/types'
     CdkListboxModule,
     DragDropModule,
     MatTooltipModule,
-    MatButtonModule
+    ZardButtonComponent
   ],
   selector: 'xpert-tool-authorization',
   templateUrl: 'authorization.component.html',

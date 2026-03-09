@@ -16,11 +16,12 @@ import { injectOrganization } from '@metad/cloud/state'
 import { LanguagesEnum } from '@metad/contracts'
 import { EmailTemplateComponent } from './template/template.component'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { CardCreateComponent } from '../../../@shared/card'
 import { LanguageSelectorComponent } from '../../../@shared/language'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -33,7 +34,7 @@ import { LanguageSelectorComponent } from '../../../@shared/language'
     CdkMenuModule,
 
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
 
     NgmSelectComponent,
     NgmTagsComponent,

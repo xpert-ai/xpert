@@ -1,7 +1,8 @@
 import { Component, inject } from "@angular/core";
-import { MatButtonModule } from "@angular/material/button";
+
 import { MatIconModule } from "@angular/material/icon";
 import { MAT_SNACK_BAR_DATA, MatSnackBarRef } from "@angular/material/snack-bar";
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
     selector: 'ngm-snack-notification',
@@ -9,7 +10,7 @@ import { MAT_SNACK_BAR_DATA, MatSnackBarRef } from "@angular/material/snack-bar"
     <div class="ngm-snack-notification__message text-lg">{{data?.message}}</div>
     <div class="ngm-snack-notification__description opacity-80">{{data?.description}}</div>
 </div>
-<button mat-icon-button class="ngm-snack-notification__close ngm-density__cosy" (click)="close()">
+<button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-snack-notification__close ngm-density__cosy" (click)="close()">
     <mat-icon>close</mat-icon>
 </button>
 `,
@@ -28,7 +29,7 @@ import { MAT_SNACK_BAR_DATA, MatSnackBarRef } from "@angular/material/snack-bar"
     ],
     standalone: true,
     imports: [
-        MatButtonModule,
+        ZardButtonComponent,
         MatIconModule
     ]
   })

@@ -2,20 +2,9 @@ import { Clipboard } from '@angular/cdk/clipboard'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { HttpParams } from '@angular/common/http'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  Inject,
-  OnInit,
-  TemplateRef,
-  ViewChild,
-  computed,
-  inject,
-  model,
-  signal
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, Inject, OnInit, TemplateRef, ViewChild, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
@@ -31,6 +20,7 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NX_STORY_STORE, NxStoryService, NxStoryStore, StoryPoint, StoryWidget } from '@metad/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -42,7 +32,7 @@ import { firstValueFrom } from 'rxjs'
     MatRadioModule,
     MatFormFieldModule,
     MatInputModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatTooltipModule,
     MatSlideToggleModule,

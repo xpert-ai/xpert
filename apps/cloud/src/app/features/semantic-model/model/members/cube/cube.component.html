@@ -6,19 +6,11 @@
         <span class="text-sm">{{ 'PAC.MODEL.LastSyncTime' | translate: {Default: 'Last sync time'} }}:</span>
         <span class="text-sm font-mono">{{entity().job.endAt | date:'short'}}</span>
       }
-      <button mat-icon-button class="ml-2" [disabled]="loading() || !entity()?.id"
-        [matTooltip]="'PAC.MODEL.RetrievalTesting' | translate: {Default: 'Retrieval Testing'}"
-        matTooltipPosition="above"
-        (click)="$event.stopPropagation();retrievalTesting()"
-      >
+      <button z-button zType="ghost" zSize="icon" zShape="circle" class="ml-2" [disabled]="loading() || !entity()?.id" [matTooltip]="'PAC.MODEL.RetrievalTesting' | translate: {Default: 'Retrieval Testing'}" matTooltipPosition="above" (click)="$event.stopPropagation();retrievalTesting()">
         <i class="ri-focus-2-line"></i>
       </button>
 
-      <button mat-icon-button [disabled]="loading() || !entity()?.id"
-        [matTooltip]="'PAC.MODEL.ScheduledSyncTask' | translate: {Default: 'Scheduled synchronization task'}"
-        matTooltipPosition="above"
-        (click)="$event.stopPropagation();scheduledSyncTask()"
-      >
+      <button z-button zType="ghost" zSize="icon" zShape="circle" [disabled]="loading() || !entity()?.id" [matTooltip]="'PAC.MODEL.ScheduledSyncTask' | translate: {Default: 'Scheduled synchronization task'}" matTooltipPosition="above" (click)="$event.stopPropagation();scheduledSyncTask()">
         @if (entity()?.schedule) {
           <i class="ri-calendar-schedule-fill text-accent-700"></i>
         } @else {
@@ -45,41 +37,23 @@
           <i class="ri-error-warning-fill text-xl text-text-destructive"
             [matTooltip]="entity().job.error" matTooltipPosition="above"></i>
         } @else if (job()?.status === 'processing') {
-          <button mat-icon-button [disabled]="loading()" ngmAppearance="danger"
-            [matTooltip]="'PAC.MODEL.StopSyncJob' | translate: {Default: 'Stop the synchronization job'}"
-            matTooltipPosition="above"
-            (click)="$event.stopPropagation();stopJob()"
-          >
+          <button z-button zType="ghost" zSize="icon" zShape="circle" [disabled]="loading()" ngmAppearance="danger" [matTooltip]="'PAC.MODEL.StopSyncJob' | translate: {Default: 'Stop the synchronization job'}" matTooltipPosition="above" (click)="$event.stopPropagation();stopJob()">
             <i class="ri-stop-circle-line"></i>
           </button>
         }
       }
 
       @if (entity()?.id && job()?.status !== 'processing') {
-        <button mat-icon-button [disabled]="loading()" ngmAppearance="danger"
-          [matTooltip]="'PAC.MODEL.DeleteEmbeddedDimensionMembers' | translate: {Default: 'Delete Embedded Dimension Members'}"
-          matTooltipPosition="above"
-          (click)="$event.stopPropagation();deleteMembers(entity().id)"
-        >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [disabled]="loading()" ngmAppearance="danger" [matTooltip]="'PAC.MODEL.DeleteEmbeddedDimensionMembers' | translate: {Default: 'Delete Embedded Dimension Members'}" matTooltipPosition="above" (click)="$event.stopPropagation();deleteMembers(entity().id)">
           <i class="ri-delete-bin-7-line"></i>
         </button>
       }
       
-        <button mat-icon-button class="flex justify-center items-center"
-          [disabled]="loading() || !selectedDims()?.length"
-          [matTooltip]="'PAC.MODEL.RefreshMembers' | translate: {Default: 'Refresh members'}"
-          matTooltipPosition="above"
-          (click)="$event.stopPropagation();refresh()"
-        >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" class="flex justify-center items-center" [disabled]="loading() || !selectedDims()?.length" [matTooltip]="'PAC.MODEL.RefreshMembers' | translate: {Default: 'Refresh members'}" matTooltipPosition="above" (click)="$event.stopPropagation();refresh()">
           <i class="ri-refresh-line" [class.animate-spin]="refreshing()"></i>
         </button>
 
-        <button mat-icon-button class="flex justify-center items-center"
-          [disabled]="loading() || !loaded() || entity()?.job?.status === 'processing' || !selectedDims()?.length"
-          [matTooltip]="'PAC.MODEL.UploadDimensionMembers' | translate: {Default: 'Upload Dimension Members'}"
-          matTooltipPosition="above"
-          (click)="$event.stopPropagation();createModelEntity(selectedDims())"
-        >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" class="flex justify-center items-center" [disabled]="loading() || !loaded() || entity()?.job?.status === 'processing' || !selectedDims()?.length" [matTooltip]="'PAC.MODEL.UploadDimensionMembers' | translate: {Default: 'Upload Dimension Members'}" matTooltipPosition="above" (click)="$event.stopPropagation();createModelEntity(selectedDims())">
           <i class="ri-git-repository-commits-line"></i>
         </button>
     </mat-panel-description>

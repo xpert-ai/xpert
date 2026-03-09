@@ -10,17 +10,11 @@
       (click)="fileUpload.value=null;"> -->
   
     <div ngmButtonGroup class="flex-wrap">
-      <!-- <button mat-raised-button displayDensity="cosy" color="primary"
-        [disabled]="register_form.formGroup.invalid || register_form.formGroup.pristine || !dirty()"
-        (click)="onSubmit()">
+      <!-- <button z-button zType="default" displayDensity="cosy" color="primary" [disabled]="register_form.formGroup.invalid || register_form.formGroup.pristine || !dirty()" (click)="onSubmit()">
         {{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}
       </button> -->
 
-      <button mat-icon-button displayDensity="cosy"
-        [cdkMenuTriggerFor]="menu"
-        #mt="cdkMenuTriggerFor"
-        [class.active]="mt.isOpen()"
-      >
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="menu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()">
         <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
       </button>
     </div>
@@ -41,7 +35,7 @@
   }
 
   <div class="w-full flex flex-col items-center">
-    <button mat-flat-button (click)="togglePreview()">
+    <button z-button zType="secondary" (click)="togglePreview()">
       <mat-icon fontSet="material-icons-round">{{ preview() ? 'expand_less' : 'expand_more' }}</mat-icon>
       <span>
         {{ 'PAC.INDICATOR.DataPreview' | translate: {Default: 'Data Preview'} }}

@@ -13,14 +13,12 @@
           <span *ngIf="name.value" class="">:{{name.value}}</span>
         </div>
 
-        <button *ngIf="type!==ChartTypeEnum.Custom" matSuffix mat-icon-button displayDensity="compact"
-          (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="type!==ChartTypeEnum.Custom" matSuffix displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
           <mat-icon *ngIf="!showMore()">expand_more</mat-icon>
           <mat-icon *ngIf="showMore()">expand_less</mat-icon>
         </button>
   
-        <button *ngIf="type===ChartTypeEnum.Custom" matSuffix mat-icon-button displayDensity="compact"
-          (click)="$event.stopPropagation();$event.preventDefault();showCustomCode.set(!showCustomCode())">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="type===ChartTypeEnum.Custom" matSuffix displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();showCustomCode.set(!showCustomCode())">
           <mat-icon fontSet="material-icons-outlined"
             [color]="showCustomCode()?'accent':''"
           >code</mat-icon>
@@ -38,9 +36,7 @@
       </mat-optgroup>
     </mat-select>
 
-    <button matSuffix *ngIf="removable" class="ngm-formly__remove" displayDensity="compact"
-      mat-icon-button color="warn"
-      (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" matSuffix *ngIf="removable" class="ngm-formly__remove" displayDensity="compact" color="warn" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
       <mat-icon>clear</mat-icon>
     </button>
   </div>
@@ -113,10 +109,10 @@
       </ngm-select>
 
       <div ngmButtonGroup class="self-end">
-        <button mat-flat-button [disabled]="mapFormGroup.pristine" (click)="confirmMap()">
+        <button z-button zType="secondary" [disabled]="mapFormGroup.pristine" (click)="confirmMap()">
           {{ 'FORMLY.COMMON.Reset' | translate: {Default: 'Reset'} }}
         </button>
-        <button mat-raised-button color="primary" [disabled]="mapFormGroup.invalid || mapFormGroup.pristine" (click)="confirmMap(true)">
+        <button z-button zType="default" color="primary" [disabled]="mapFormGroup.invalid || mapFormGroup.pristine" (click)="confirmMap(true)">
           {{ 'FORMLY.COMMON.Apply' | translate: {Default: 'Apply'} }}
         </button>
       </div>
@@ -146,10 +142,7 @@
       <ngm-input [formControl]="name" [label]="'FORMLY.CHART.ChartName' | translate: {Default: 'Chart name'} " displayDensity="compact" placeholder="{{ 'FORMLY.CHART.CustomCode' | translate: {Default: 'Custom Code'} }}" />
     
       <div class="flex items-center gap-2">
-        <button mat-icon-button displayDensity="compact" class="ngm-copilot-command-button"
-          [disabled]="!scripts || answering"
-          [matTooltip]=" 'FORMLY.CHART.AutomaticallyGenerateCode' | translate: {Default: 'Automatically generate code by comments'} "
-          (click)="aiGenerate()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="ngm-copilot-command-button" [disabled]="!scripts || answering" [matTooltip]=" 'FORMLY.CHART.AutomaticallyGenerateCode' | translate: {Default: 'Automatically generate code by comments'} " (click)="aiGenerate()">
           <mat-icon fontSet="material-icons-outlined">auto_awesome</mat-icon>
         </button>
       </div>

@@ -23,7 +23,7 @@
               <ngm-entity-property class="flex-1 text-lg font-bold" [property]="dimension" [role]="AggregationRole.dimension"/>
 
               @if (dimension.isUsage) {
-                <button mat-icon-button displayDensity="compact" class="opacity-50 group-hover:opacity-90" (click)="toDimensionUsage(dimension.__id__)">
+                <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="opacity-50 group-hover:opacity-90" (click)="toDimensionUsage(dimension.__id__)">
                     <mat-icon displayDensity="compact" fontSet="material-icons-round" >share</mat-icon>
                 </button>
               }
@@ -51,7 +51,7 @@
                     [class.selected]="selected()?.key === hierarchy.__id__"
                     (click)="dimension.isUsage ? null : select($event, ModelDesignerType.hierarchy, hierarchy.__id__)"
                 >
-                    <button mat-icon-button displayDensity="compact" (click)="toggleHierarchy(dimension.__id__ + hierarchy.__id__)">
+                    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="toggleHierarchy(dimension.__id__ + hierarchy.__id__)">
                       @if (expandStatus()[dimension.__id__ + hierarchy.__id__]) {
                         <mat-icon fontSet="material-icons-round">expand_more</mat-icon>
                       } @else {
@@ -138,19 +138,17 @@
 
 <div class="flex items-center absolute top-0 right-0 p-1">
   <div ngmButtonGroup displayDensity="cosy">
-    <button mat-icon-button (click)="zoomIn()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" (click)="zoomIn()">
       <mat-icon fontSet="material-icons-round">zoom_in</mat-icon>
     </button>
     <span>
       {{ areaScale() * 100 | number: '1.0-0' }}%
     </span>
-    <button mat-icon-button (click)="zoomOut()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" (click)="zoomOut()">
       <mat-icon fontSet="material-icons-round">zoom_out</mat-icon>
     </button>
   </div>
-  <button mat-icon-button color="primary" displayDensity="cosy"
-    [matTooltip]="'PAC.MODEL.AutoArrange' | translate: {Default: 'Auto Arrange'}"
-    (click)="autoLayout()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" color="primary" displayDensity="cosy" [matTooltip]="'PAC.MODEL.AutoArrange' | translate: {Default: 'Auto Arrange'}" (click)="autoLayout()">
     <i class="ri-align-vertically"></i>
   </button>
 </div>

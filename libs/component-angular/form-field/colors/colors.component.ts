@@ -3,13 +3,14 @@ import { animate, query, stagger, style, transition, trigger } from '@angular/an
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Subject, debounceTime } from 'rxjs'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 const listEnterAnimation = trigger('listEnterAnimation', [
   transition('* <=> *', [
@@ -29,7 +30,7 @@ const listEnterAnimation = trigger('listEnterAnimation', [
     MatInputModule,
     MatAutocompleteModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     DensityDirective
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

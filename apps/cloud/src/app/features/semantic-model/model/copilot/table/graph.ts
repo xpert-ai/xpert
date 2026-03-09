@@ -10,7 +10,6 @@ import { RunnableLambda } from '@langchain/core/runnables'
 import { TABLE_COMMAND_NAME } from './types'
 import { injectAgentFewShotTemplate } from 'apps/cloud/src/app/@core/copilot'
 
-
 function createSystemPrompt(dialect: string) {
   return (
     `You are a cube modeling expert. Let's create or edit the pyhsical table!

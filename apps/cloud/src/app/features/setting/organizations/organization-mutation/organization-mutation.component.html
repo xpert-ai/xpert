@@ -11,11 +11,11 @@
 
 <div mat-dialog-actions align="end">
   <div ngmButtonGroup>
-    <button mat-button mat-dialog-close cdkFocusInitial>
+    <button z-button zType="ghost" mat-dialog-close cdkFocusInitial>
       {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
     
-    <button mat-raised-button color="accent" [mat-dialog-close]="organization">
+    <button z-button zType="default" color="accent" [mat-dialog-close]="organization">
       {{ 'PAC.ACTIONS.APPLY' | translate: {Default: 'Apply'} }} 
     </button>
   </div>

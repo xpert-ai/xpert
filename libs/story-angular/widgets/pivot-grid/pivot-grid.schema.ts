@@ -191,7 +191,6 @@ export class PivotGridSchemaService extends DataSettingsSchemaService {
   }
 }
 
-
 export function GridOptionsSchema(BUILDER) {
 
   return [

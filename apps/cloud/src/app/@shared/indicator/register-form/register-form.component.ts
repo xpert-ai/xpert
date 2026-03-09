@@ -1,15 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, computed, effect, forwardRef, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import {
-  ControlValueAccessor,
-  FormControl,
-  FormGroup,
-  FormsModule,
-  NG_VALUE_ACCESSOR,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms'
+import { ControlValueAccessor, FormControl, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@metad/cloud/state'
 import { nonBlank, nonNullable } from '@metad/core'
@@ -18,37 +10,14 @@ import { ISelectOption, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import {
-  ISlicer,
-  Indicator,
-  IndicatorType,
-  Syntax,
-  getEntityDimensions,
-  getEntityMeasures,
-  isEntityType,
-  isSemanticCalendar
-} from '@metad/ocap-core'
+import { ISlicer, Indicator, IndicatorType, Syntax, getEntityDimensions, getEntityMeasures, isEntityType, isSemanticCalendar } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud/src/app/@core'
 import { isEqual } from 'lodash-es'
-import {
-  BehaviorSubject,
-  EMPTY,
-  catchError,
-  combineLatest,
-  debounceTime,
-  distinctUntilChanged,
-  filter,
-  map,
-  shareReplay,
-  startWith,
-  switchMap,
-  take,
-  tap
-} from 'rxjs'
+import { BehaviorSubject, EMPTY, catchError, combineLatest, debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap, take, tap } from 'rxjs'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatDatepickerModule } from '@angular/material/datepicker'
@@ -57,6 +26,7 @@ import { MatSelectModule } from '@angular/material/select'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
 import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -69,7 +39,7 @@ import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
     FormsModule,
     ReactiveFormsModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     MatRadioModule,
     MatFormFieldModule,

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, HostBinding, Inject, Input, Optional, computed, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
@@ -21,6 +21,7 @@ import { AdvancedSlicerOperator, DataSettings, DisplayBehaviour, EntityType, non
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, Observable } from 'rxjs'
 import { filter, map, startWith, switchMap } from 'rxjs/operators'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 const ADVANCED_SLICER_OPERATORS = [
   {
@@ -97,7 +98,7 @@ const ADVANCED_SLICER_OPERATORS = [
     DragDropModule,
     MatDialogModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatInputModule,
     MatChipsModule,
     MatSlideToggleModule,

@@ -10,7 +10,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IChatMessage } from '@cloud/app/@core'
 import { ChatAttachmentsComponent } from '../../attachments/attachments.component'
 
-
 @Component({
   standalone: true,
   imports: [

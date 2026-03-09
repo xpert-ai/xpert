@@ -1,33 +1,11 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  DestroyRef,
-  effect,
-  forwardRef,
-  HostBinding,
-  inject,
-  input,
-  Input,
-  OnChanges,
-  OnInit,
-  signal,
-  SimpleChanges
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, forwardRef, HostBinding, inject, input, Input, OnChanges, OnInit, signal, SimpleChanges } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
-import {
-  ControlValueAccessor,
-  FormControl,
-  FormsModule,
-  NG_VALUE_ACCESSOR,
-  ReactiveFormsModule,
-  ValidatorFn
-} from '@angular/forms'
+import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, ValidatorFn } from '@angular/forms'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
 import { ThemePalette } from '@angular/material/core'
 import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
@@ -39,6 +17,7 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { combineLatestWith, debounceTime, distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 import { isEqual } from 'lodash-es'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead
@@ -72,7 +51,7 @@ import { isEqual } from 'lodash-es'
     MatProgressSpinnerModule,
     MatIconModule,
     MatInputModule,
-    MatButtonModule,
+    ZardButtonComponent,
     NgmDisplayBehaviourComponent,
     OcapCoreModule
   ]

@@ -106,19 +106,19 @@ formly-wrapper-mat-form-field {
 }
 
 // 会造成很多地方的样式问题如 table 内的 button
-*:not(.mat-cell) > .mat-icon-button.mat-button-base {
-  .mat-button-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+*:not(.mat-cell) > [z-button][data-icon-only],
+*:not(.mat-cell) > z-button[data-icon-only] {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 html.cdk-global-scrollblock {
   overflow-y: auto;
 }
 
-.mat-mdc-button-base.mat-mdc-icon-button {
+[z-button][data-icon-only],
+z-button[data-icon-only] {
   @apply flex justify-center items-center;
 }
 

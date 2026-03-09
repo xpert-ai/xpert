@@ -1,17 +1,8 @@
 import { CommonModule } from '@angular/common'
-import {
-  AfterViewInit,
-  ChangeDetectorRef,
-  Component,
-  computed,
-  inject,
-  output,
-  SecurityContext,
-  signal
-} from '@angular/core'
+import { AfterViewInit, ChangeDetectorRef, Component, computed, inject, output, SecurityContext, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
@@ -24,6 +15,7 @@ import { debounceTime, distinctUntilChanged, filter, map, tap } from 'rxjs/opera
 import { EmailTemplateService, Store, ToastrService } from '../../../../@core/'
 import { EmailTemplateNameEnum, IOrganization, LanguagesMap } from '../../../../@core/types'
 import { EmailTemplatesComponent } from '../email-templates.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -33,7 +25,7 @@ import { EmailTemplatesComponent } from '../email-templates.component'
     ReactiveFormsModule,
     TranslateModule,
 
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MonacoEditorModule,
 

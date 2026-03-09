@@ -5,7 +5,6 @@
  */
 
 import { inject, TestBed, waitForAsync } from '@angular/core/testing';
-
 import { NbAuthSimpleToken, nbAuthCreateToken, NbAuthJWTToken } from './token';
 import { PAC_AUTH_FALLBACK_TOKEN, PacAuthTokenParceler } from './token-parceler';
 import { PAC_AUTH_TOKENS } from '../../auth.options';

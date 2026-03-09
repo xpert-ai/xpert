@@ -29,7 +29,6 @@ import { WaterfallCapacity } from './series/waterfall'
 import { TitleCapacity } from './title'
 import { TooltipCapacity } from './tooltip'
 
-
 export const SeriesCapacityMatrix: any = {
   [NxChartType.Bar]: [BarCapacity],
   [NxChartType.Waterfall]: [WaterfallCapacity],

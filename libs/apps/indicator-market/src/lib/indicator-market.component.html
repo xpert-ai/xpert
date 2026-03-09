@@ -37,8 +37,7 @@
         >
       </div>
 
-      <button mat-button class="pac-indicator-market__search-done rounded-lg mx-1"
-        (click)="onSearchDone()">
+      <button z-button zType="ghost" class="pac-indicator-market__search-done rounded-lg mx-1" (click)="onSearchDone()">
         {{ 'IndicatorApp.Done' | translate: {Default: 'Done'} }}
       </button>
     </div>
@@ -120,7 +119,7 @@
 
     <mat-divider></mat-divider>
 
-    <button cdkMenuItem mat-button disableRipple (click)="refresh()">
+    <button z-button zType="ghost" cdkMenuItem (click)="refresh()">
       <mat-icon>refresh</mat-icon>
       <span>
         {{ 'IndicatorApp.Refresh' | translate: {Default: 'Refresh'} }}

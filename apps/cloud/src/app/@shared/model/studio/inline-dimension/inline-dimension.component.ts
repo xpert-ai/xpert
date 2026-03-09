@@ -9,7 +9,6 @@ import { CubeStudioComponent } from '../studio.component'
 import { CubeStudioHierarchyComponent } from '../hierarchy/hierarchy.component'
 import { TCubeNode, THierarchyNode } from '../types'
 
-
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

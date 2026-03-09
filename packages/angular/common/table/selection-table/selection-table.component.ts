@@ -3,7 +3,7 @@ import { SelectionModel } from '@angular/cdk/collections'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, forwardRef, input, Input, model, OnInit, TemplateRef, ViewChild } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -14,6 +14,7 @@ import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { NgmSearchComponent } from '../../search/search.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export type SelectionTableColumn = {
   value: string
@@ -40,7 +41,7 @@ export type SelectionTableColumn = {
     MatTableModule,
     MatPaginatorModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatSortModule,
     MatInputModule,
     DensityDirective,

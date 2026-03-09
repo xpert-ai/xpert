@@ -18,7 +18,7 @@
         <span class="">
           {{ 'PAC.Project.Bookmarks' | translate: {Default: 'Bookmarks'} }}
         </span>
-        <button mat-icon-button displayDensity="cosy" (click)="unfoldBookmarks=!unfoldBookmarks">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="unfoldBookmarks=!unfoldBookmarks">
           <mat-icon *ngIf="!unfoldBookmarks" fontSet="material-icons-outlined">chevron_right</mat-icon>
           <mat-icon *ngIf="unfoldBookmarks" fontSet="material-icons-outlined">expand_more</mat-icon>
         </button>
@@ -39,10 +39,7 @@
             </span>
 
             <span class="flex flex-1"></span>
-            <button mat-icon-button displayDensity="cosy" class="opacity-0 group-hover:opacity-50"
-              matTooltip="{{ 'PAC.Project.RemoveBookmark' | translate: {Default: 'Remove Bookmark'} }}" matTooltipPosition="right"
-              (click)="$event.stopPropagation();removeBookmark(bookmark)"
-            >
+            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-50" matTooltip="{{ 'PAC.Project.RemoveBookmark' | translate: {Default: 'Remove Bookmark'} }}" matTooltipPosition="right" (click)="$event.stopPropagation();removeBookmark(bookmark)">
               <mat-icon fontSet="material-icons-outlined">bookmark</mat-icon>
             </button>
           </div>
@@ -53,10 +50,7 @@
         <span class="">
           {{ 'PAC.Project.Collections' | translate: {Default: 'Collections'} }}
         </span>
-        <button  mat-icon-button displayDensity="cosy" [cdkMenuTriggerFor]="collectionsMenu"
-          #mt="cdkMenuTriggerFor"
-          [class.active]="mt.isOpen()"
-        ><i class="ri-more-line"></i>
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="collectionsMenu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()"><i class="ri-more-line"></i>
         </button>
       </div>
 
@@ -69,7 +63,7 @@
           [class.active]="rla.isActive"
         >
           <!-- use a disabled button to provide padding for tree leaf -->
-          <button mat-icon-button disabled displayDensity="cosy" class="ml-2"></button>
+          <button z-button zType="ghost" zSize="icon" zShape="circle" disabled displayDensity="cosy" class="ml-2"></button>
 
           @switch (node.raw.__type__) {
             @case('collection') {
@@ -79,14 +73,7 @@
               </span>
 
               <span class="flex flex-1"></span>
-              <button class="opacity-0 group-hover:opacity-50"
-                mat-icon-button displayDensity="cosy"
-                [cdkMenuTriggerFor]="collectionMenu"
-                [cdkMenuTriggerData]="node"
-                #mt="cdkMenuTriggerFor"
-                [class.active]="mt.isOpen()"
-                (click)="$event.stopPropagation()"
-              >
+              <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-0 group-hover:opacity-50" displayDensity="cosy" [cdkMenuTriggerFor]="collectionMenu" [cdkMenuTriggerData]="node" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()" (click)="$event.stopPropagation()">
               <i class="ri-more-line"></i>
               </button>
             }
@@ -97,14 +84,7 @@
               </span>
 
               <span class="flex flex-1"></span>
-              <button class="opacity-0 group-hover:opacity-50"
-                mat-icon-button displayDensity="cosy"
-                [cdkMenuTriggerFor]="storyMenu"
-                [cdkMenuTriggerData]="node"
-                #mt="cdkMenuTriggerFor"
-                [class.active]="mt.isOpen()"
-                (click)="$event.stopPropagation()"
-                >
+              <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-0 group-hover:opacity-50" displayDensity="cosy" [cdkMenuTriggerFor]="storyMenu" [cdkMenuTriggerData]="node" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()" (click)="$event.stopPropagation()">
                 <i class="ri-more-line"></i>
               </button>
             }
@@ -113,10 +93,7 @@
         <!-- This is the tree node template for expandable nodes -->
         <cdk-tree-node *cdkTreeNodeDef="let node; when: hasChild" cdkTreeNodePadding cdkTreeNodePaddingIndent="20px"
           class="flex items-center group cursor-pointer rounded-md">
-          <button mat-icon-button cdkTreeNodeToggle displayDensity="cosy" class="ml-2"
-                  [attr.aria-label]="'Toggle ' + node.caption"
-                  (click)="node.isExpanded = !node.isExpanded"
-                  [style.visibility]="node.expandable ? 'visible' : 'hidden'">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" cdkTreeNodeToggle displayDensity="cosy" class="ml-2" [attr.aria-label]="'Toggle ' + node.caption" (click)="node.isExpanded = !node.isExpanded" [style.visibility]="node.expandable ? 'visible' : 'hidden'">
             <mat-icon class="mat-icon-rtl-mirror">
               {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
             </mat-icon>
@@ -126,13 +103,7 @@
             {{node.caption}}
           </span>
           <span class="flex flex-1"></span>
-          <button *ngIf="node.raw.__type__ === 'collection'" class="opacity-0 group-hover:opacity-50"
-            mat-icon-button displayDensity="cosy"
-            [cdkMenuTriggerFor]="collectionMenu"
-            [cdkMenuTriggerData]="node"
-            #mt="cdkMenuTriggerFor"
-            [class.active]="mt.isOpen()"
-          >
+          <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="node.raw.__type__ === 'collection'" class="opacity-0 group-hover:opacity-50" displayDensity="cosy" [cdkMenuTriggerFor]="collectionMenu" [cdkMenuTriggerData]="node" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()">
             <i class="ri-more-line"></i>
           </button>
         </cdk-tree-node>
@@ -144,14 +115,11 @@
         </span>
 
         <span class="flex flex-1"></span>
-        <button *ngIf="isOwner" mat-icon-button displayDensity="cosy"
-          matTooltip="{{ 'PAC.Project.AddModel' | translate: {Default: 'Add Model'} }}"
-          matTooltipPosition="above"
-          (click)="addModel()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="isOwner" displayDensity="cosy" matTooltip="{{ 'PAC.Project.AddModel' | translate: {Default: 'Add Model'} }}" matTooltipPosition="above" (click)="addModel()">
           <mat-icon>add_link</mat-icon>
         </button>
 
-        <button mat-icon-button displayDensity="cosy" (click)="modelsExpand=!modelsExpand">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="modelsExpand=!modelsExpand">
           <mat-icon *ngIf="!modelsExpand" fontSet="material-icons-outlined">chevron_right</mat-icon>
           <mat-icon *ngIf="modelsExpand" fontSet="material-icons-outlined">expand_more</mat-icon>
         </button>
@@ -172,10 +140,7 @@
             </span>
   
             <span class="flex flex-1"></span>
-            <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="mx-1 opacity-0 group-hover:opacity-80 "
-              matTooltip="{{ 'PAC.Project.RemoveModel' | translate: {Default: 'Remove Model'} }}" matTooltipPosition="right"
-              (click)="$event.stopPropagation();removeModel(model)"
-            >
+            <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="mx-1 opacity-0 group-hover:opacity-80" matTooltip="{{ 'PAC.Project.RemoveModel' | translate: {Default: 'Remove Model'} }}" matTooltipPosition="right" (click)="$event.stopPropagation();removeModel(model)">
               <mat-icon>delete</mat-icon>
             </button>
           </div>
@@ -335,16 +300,11 @@
 
     <mat-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button mat-button mat-dialog-close>
+        <button z-button zType="ghost" mat-dialog-close>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button
-          mat-raised-button
-          color="accent"
-          [disabled]="form.invalid"
-          (click)="createCollection()"
-        >
+        <button z-button zType="default" color="accent" [disabled]="form.invalid" (click)="createCollection()">
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>
@@ -374,15 +334,11 @@
 
     <mat-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button mat-button mat-dialog-close>
+        <button z-button zType="ghost" mat-dialog-close>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button
-          mat-raised-button
-          color="accent"
-          [matDialogClose]="moveToCollectionId"
-        >
+        <button z-button zType="default" color="accent" [matDialogClose]="moveToCollectionId">
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>

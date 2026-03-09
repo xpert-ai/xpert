@@ -55,10 +55,10 @@
 
 <div class="w-full flex justify-end">
   <div ngmButtonGroup>
-    <button mat-flat-button (click)="onCancel()">
+    <button z-button zType="secondary" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent" cdkFocusInitial (click)="onApply()">
+    <button z-button zType="default" color="accent" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>

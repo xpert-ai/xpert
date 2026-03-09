@@ -13,7 +13,6 @@ import {
 } from '../../../../../../../@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 
-
 @Component({
   standalone: true,
   selector: 'xpert-knowledge-document-webpages',

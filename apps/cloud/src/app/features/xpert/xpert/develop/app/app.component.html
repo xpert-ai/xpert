@@ -22,10 +22,10 @@
 
 <div class="flex justify-end p-4">
   <div ngmButtonGroup>
-    <button mat-flat-button (click)="close()">
+    <button z-button zType="secondary" (click)="close()">
       {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent" (click)="apply()">
+    <button z-button zType="default" color="accent" (click)="apply()">
       {{ 'PAC.ACTIONS.Apply' | translate: {Default: 'Apply'} }}
     </button>
   </div>

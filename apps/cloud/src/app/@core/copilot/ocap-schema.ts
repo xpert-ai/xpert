@@ -1,7 +1,6 @@
 import { FormulaSchema } from "@metad/ocap-core"
 import { z } from 'zod'
 
-
 export const CalculationSchema = z.object({
   __id__: z.string().optional().describe(`Key of the calculation measure`),
   name: z.string().optional().describe(`Name of the calculation measure, should be unique`),

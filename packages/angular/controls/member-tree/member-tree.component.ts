@@ -1,23 +1,10 @@
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
-import {
-  booleanAttribute,
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  EventEmitter,
-  forwardRef,
-  HostBinding,
-  inject,
-  input,
-  Output,
-  signal
-} from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, effect, EventEmitter, forwardRef, HostBinding, inject, input, Output, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -47,7 +34,7 @@ import { uniq } from 'lodash-es'
 import { combineLatestWith, debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   checked?: boolean
@@ -73,7 +60,7 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
     MatIconModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     ScrollingModule,
     OcapCoreModule,

@@ -4,7 +4,6 @@ import { IUserOrganization, IUserOrganizationCreateInput, IUserOrganizationFindI
 import { API_PREFIX } from '@metad/cloud/state'
 import { firstValueFrom, Observable } from 'rxjs'
 
-
 @Injectable({
   providedIn: 'root'
 })

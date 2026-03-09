@@ -27,7 +27,7 @@
 
           <div class="flex items-center" displayDensity="compact">
 
-            <button matSuffix mat-icon-button (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" matSuffix (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
               @if (showMore()) {
                 <mat-icon>expand_less</mat-icon>
               } @else {
@@ -35,29 +35,17 @@
               }
             </button>
             @if (showAttributes()) {
-              <button mat-icon-button [displayDensity]="displayDensity()"
-                [matMenuTriggerFor]="dimensionMenu"
-                #mt="matMenuTrigger"
-                [class.active]="mt.menuOpen"
-                (click)="$event.stopPropagation();$event.preventDefault();">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [matMenuTriggerFor]="dimensionMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
                   <mat-icon>more_vert</mat-icon>
               </button>
             }
             @if (hierarchies$ | async) {
-              <button mat-icon-button [displayDensity]="displayDensity()"
-                [cdkMenuTriggerFor]="hierarchyMenu"
-                #mt="cdkMenuTriggerFor"
-                [class.active]="mt.isOpen()"
-                (click)="$event.stopPropagation();$event.preventDefault();">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [cdkMenuTriggerFor]="hierarchyMenu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault();">
                   <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
               </button>
             }
             @if (membersSignal()) {
-              <button mat-icon-button [displayDensity]="displayDensity()"
-                [matMenuTriggerFor]="membersMenu"
-                #mt="matMenuTrigger"
-                [class.active]="mt.menuOpen"
-                (click)="$event.stopPropagation();$event.preventDefault();">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [matMenuTriggerFor]="membersMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
                   <mat-icon>straighten</mat-icon>
               </button>
             }
@@ -96,8 +84,7 @@
         @if (editable()) {
           <mat-option class="ngm-property-select__action mt-2" [value]="null"
             (click)="$event.stopPropagation();$event.preventDefault();">
-            <button mat-button color="primary" ngmAppearance="dashed" class="ngm-property-select__create-calculation w-full"
-              (click)="$event.stopPropagation();onCreateCalculation($event)">
+            <button z-button zType="ghost" color="primary" ngmAppearance="dashed" class="ngm-property-select__create-calculation w-full" (click)="$event.stopPropagation();onCreateCalculation($event)">
               <div class="flex justify-center items-center whitespace-nowrap text-ellipsis overflow-hidden">
                 <mat-icon>add</mat-icon>
                 <span>{{ 'Ngm.Property.CREATE_CALCULATION' | translate: {Default: 'Create Calculation'} }}</span>
@@ -117,7 +104,7 @@
 
         @if (editable()) {
           <mat-option class="mt-2">
-            <button mat-button class="flex-1" color="primary" ngmAppearance="dashed" (click)="onCreateCalculation($event, CalculationType.MeasureControl)">
+            <button z-button zType="ghost" class="flex-1" color="primary" ngmAppearance="dashed" (click)="onCreateCalculation($event, CalculationType.MeasureControl)">
               <mat-icon>add</mat-icon>
               {{ 'Ngm.Property.CREATE_MEASURE_CONTROL' | translate: {Default: 'Create Measure Control'} }}
             </button>
@@ -401,7 +388,7 @@
         [cdkMenuItemChecked]="parameter === option.name"
         (cdkMenuItemTriggered)="parameter = option.name">
         <span class="grow">{{ option.caption || option.name }}</span>
-        <button mat-icon-button displayDensity="cosy" (click)="openEditParameter(option.name)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="openEditParameter(option.name)">
           <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
         </button>
       </button>

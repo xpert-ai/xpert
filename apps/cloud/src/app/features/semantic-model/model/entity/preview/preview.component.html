@@ -4,12 +4,10 @@
     <mat-slide-toggle labelPosition="before" class="text-sm" ngm-density small [(ngModel)]="manualRefresh">
       {{ 'PAC.MENU.MANUAL_REFRESH' | translate: {Default: "Manual Refresh"} }}
     </mat-slide-toggle>
-    <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Refresh' | translate: {Default: 'Refresh'} "
-      (click)="refresh()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Refresh' | translate: {Default: 'Refresh'} " (click)="refresh()">
       <mat-icon fontSet="material-icons-outlined">refresh</mat-icon>
     </button>
-    <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Pivot' | translate: {Default: 'Pivot'} "
-      [color]="reverse?'accent':''" (click)="reverse=!reverse;refresh()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Pivot' | translate: {Default: 'Pivot'} " [color]="reverse?'accent':''" (click)="reverse=!reverse;refresh()">
       <mat-icon fontSet="material-icons-outlined">pivot_table_chart</mat-icon>
     </button>
   </div>
@@ -51,8 +49,7 @@
           </mat-panel-title>
 
           <div class="flex justify-end items-center">
-            <button mat-icon-button displayDensity="cosy"
-              (click)="$event.stopPropagation();$event.preventDefault();add('rows')">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="$event.stopPropagation();$event.preventDefault();add('rows')">
               <mat-icon>add</mat-icon>
             </button>
           </div>
@@ -77,8 +74,7 @@
               cdkDrag
             >
               <mat-icon ngmPrefix cdkDragHandle displayDensity="compact">drag_indicator</mat-icon>
-              <button ngmSuffix mat-icon-button ngmAppearance="danger" displayDensity="compact"
-                (click)="$event.stopPropagation();$event.preventDefault();removeRow(i)">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix ngmAppearance="danger" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();removeRow(i)">
                 <mat-icon>clear</mat-icon>
               </button>
 
@@ -97,8 +93,7 @@
             {{ 'PAC.MODEL.ENTITY.CALCULATION.COLUMNS' | translate: {Default: "Columns"} }}
           </mat-panel-title>
           <div class="flex justify-end items-center">
-            <button mat-icon-button displayDensity="cosy"
-              (click)="$event.stopPropagation();$event.preventDefault();add('columns')">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="$event.stopPropagation();$event.preventDefault();add('columns')">
               <mat-icon>add</mat-icon>
             </button>
           </div>
@@ -121,8 +116,7 @@
               cdkDrag
               >
               <mat-icon ngmPrefix cdkDragHandle displayDensity="compact">drag_indicator</mat-icon>
-              <button ngmSuffix mat-icon-button ngmAppearance="danger" displayDensity="compact"
-                (click)="$event.stopPropagation();$event.preventDefault();removeColumn(i)">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix ngmAppearance="danger" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();removeColumn(i)">
                 <mat-icon>clear</mat-icon>
               </button>
               <div class="property-modeling-custom-placeholder" *cdkDragPlaceholder></div>
@@ -141,8 +135,7 @@
             {{ 'PAC.MODEL.ENTITY.CALCULATION.FILTERS' | translate: {Default: "Slicers"}  }}
           </mat-panel-title>
           <div class="flex justify-end items-center">
-            <!-- <button mat-icon-button displayDensity="cosy"
-              (click)="$event.stopPropagation();$event.preventDefault();newSlicer()">
+            <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="$event.stopPropagation();$event.preventDefault();newSlicer()">
               <mat-icon>add</mat-icon>
             </button> -->
           </div>
@@ -163,8 +156,7 @@
               [ngModel]="slicer"
               (ngModelChange)="onSlicerChange($event, i)"
               cdkDrag>
-              <button ngmSuffix mat-icon-button ngmAppearance="danger" displayDensity="compact"
-                (click)="$event.stopPropagation();$event.preventDefault();removeSlicer(i)">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix ngmAppearance="danger" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();removeSlicer(i)">
                 <mat-icon>clear</mat-icon>
               </button>
             </ngm-smart-filter>

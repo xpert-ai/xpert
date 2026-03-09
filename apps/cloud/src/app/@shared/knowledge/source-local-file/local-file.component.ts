@@ -3,7 +3,6 @@ import { Component, computed, inject, input, model } from '@angular/core'
 import { KnowledgebaseService, KnowledgeFileUploader } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 
-
 @Component({
   standalone: true,
   imports: [CommonModule, TranslateModule],

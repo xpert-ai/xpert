@@ -1079,4 +1079,3 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   }
 }
 
-

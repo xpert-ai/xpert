@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
@@ -12,6 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { SlicerSelectComponent } from './select/select.component'
 import { NgmSlicerPipe } from './slicer/slicer.pipe'
 import { SortByComponent } from './sort-by/sort-by.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
@@ -22,7 +22,7 @@ import { SortByComponent } from './sort-by/sort-by.component'
     TranslateModule,
     MatFormFieldModule,
     MatSelectModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatMenuModule,
     MatIconModule,
     OcapCoreModule,

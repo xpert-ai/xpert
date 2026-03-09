@@ -13,7 +13,6 @@ import { LazyImgDirective } from '../../directives/lazy-img.directive'
 import { MaterialModule } from '../../material.module'
 import { CreatedByPipe } from '../../pipes'
 
-
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -99,7 +98,6 @@ export class StorySelectorComponent {
         ]
       })
     )
-
 
   public readonly stories$ = this.projectControl.valueChanges.pipe(
     map((project) => project?.id),

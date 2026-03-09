@@ -1,16 +1,7 @@
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  ElementRef,
-  HostListener,
-  inject,
-  OnDestroy,
-  signal,
-  viewChild
-} from '@angular/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, OnDestroy, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
@@ -20,22 +11,7 @@ import { createSubStore, dirtyCheckWith, IsDirty, nonBlank, saveAsYaml } from '@
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { CdkConfirmDeleteComponent, NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective, PERIODS } from '@metad/ocap-angular/core'
-import {
-  C_MEASURES,
-  ChartDimensionRoleType,
-  ChartOrient,
-  ChartSettings,
-  DataSettings,
-  FilterOperator,
-  getIndicatorEntityCalendar,
-  IFilter,
-  isEqual,
-  negate,
-  TimeRangeType,
-  Indicator as OCAPIndicator,
-  ChartTypeEnum,
-  calcOffsetRange, 
-} from '@metad/ocap-core'
+import { C_MEASURES, ChartDimensionRoleType, ChartOrient, ChartSettings, DataSettings, FilterOperator, getIndicatorEntityCalendar, IFilter, isEqual, negate, TimeRangeType, Indicator as OCAPIndicator, ChartTypeEnum, calcOffsetRange, } from '@metad/ocap-core'
 import { withProps } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { cloneDeep } from 'lodash-es'
@@ -53,8 +29,6 @@ import { Dialog } from '@angular/cdk/dialog'
 import { ExplainComponent } from '@metad/story/story'
 import { exportIndicator } from '@cloud/app/@shared/indicator'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
-
 
 // AOA : array of array
 type AOA = any[][]
@@ -69,7 +43,7 @@ type AOA = any[][]
     TranslateModule,
     CdkMenuModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
 
     ButtonGroupDirective,
     DensityDirective,

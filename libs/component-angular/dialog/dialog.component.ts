@@ -1,18 +1,19 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialogModule } from '@angular/material/dialog'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FormGroup } from '@angular/forms'
 import { CommonModule } from '@angular/common'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     DragDropModule,
     TranslateModule,
     ButtonGroupDirective
@@ -28,10 +29,10 @@ import { CommonModule } from '@angular/common'
 
     <div mat-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button mat-button mat-dialog-close cdkFocusInitial (click)="cancel.emit()">
+        <button z-button zType="ghost" mat-dialog-close cdkFocusInitial (click)="cancel.emit()">
           {{ cancelLabel ?? ('COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'}) }}
         </button>
-        <button mat-raised-button color="accent" [disabled]="form?.invalid" (click)="onApply()">
+        <button z-button zType="default" color="accent" [disabled]="form?.invalid" (click)="onApply()">
           {{ applyLabel ?? ('COMPONENTS.COMMON.Apply' | translate: {Default: 'Apply'}) }}
         </button>
       </div>

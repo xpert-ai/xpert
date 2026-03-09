@@ -5,7 +5,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { NgmCheckboxComponent, NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmVariableComponent } from '@metad/ocap-angular/controls'
 import { ButtonGroupDirective, isNotNil, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -14,6 +14,7 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectApiBaseUrl, injectToastr, TSelectOption } from '../../../@core'
 import { NgmSelectComponent } from '../../common'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -26,7 +27,7 @@ import { NgmSelectComponent } from '../../common'
     TextFieldModule,
     TranslateModule,
     ContentLoaderModule,
-    MatButtonModule,
+    ZardButtonComponent,
     ButtonGroupDirective,
     NgmInputComponent,
     NgmSpinComponent,

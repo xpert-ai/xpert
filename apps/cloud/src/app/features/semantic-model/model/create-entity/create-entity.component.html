@@ -83,10 +83,10 @@
 
   <div class="w-full flex justify-end">
     <div ngmButtonGroup>
-      <button mat-flat-button (click)="cancel()">
+      <button z-button zType="secondary" (click)="cancel()">
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
-      <button mat-raised-button color="accent" [disabled]="formGroup.invalid" (click)="apply()">
+      <button z-button zType="default" color="accent" [disabled]="formGroup.invalid" (click)="apply()">
         {{ 'PAC.ACTIONS.APPLY' | translate: { Default: 'Apply' } }}
       </button>
     </div>

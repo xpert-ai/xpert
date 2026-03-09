@@ -8,6 +8,5 @@ export const pageAgentState: StateGraphArgs<PageAgentState>['channels'] = {
   ...createCopilotAgentState()
 }
 
-
 export const MinCols = 20
 export const MinRows = 20

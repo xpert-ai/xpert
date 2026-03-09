@@ -70,7 +70,6 @@ export class XpertParametersFormComponent {
     })
   }
 
-
   /**
    * Get parameter value for input fields.
    * Returns empty string for object values to prevent "[object Object]" display.

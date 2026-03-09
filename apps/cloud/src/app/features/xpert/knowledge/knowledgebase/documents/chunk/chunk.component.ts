@@ -1,7 +1,7 @@
 import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -28,6 +28,7 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -38,7 +39,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     MatIconModule,
     WaIntersectionObserver,

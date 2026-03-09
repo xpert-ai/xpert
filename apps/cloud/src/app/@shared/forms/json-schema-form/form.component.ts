@@ -56,7 +56,6 @@ export class JSONSchemaFormComponent {
     return false
   })
 
-
   updateValue(name: string, value: unknown) {
     this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))
   }

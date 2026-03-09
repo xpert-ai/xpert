@@ -21,7 +21,7 @@
 </div>
 
 <div class="flex items-center gap-2">
-  <button mat-raised-button color="primary" [disabled]="loading() || !source.value && !fileUrl.value" (click)="generate()">
+  <button z-button zType="default" color="primary" [disabled]="loading() || !source.value && !fileUrl.value" (click)="generate()">
     <div class="flex justify-center items-center">
       @if (loading()) {
         <mat-spinner color="accent" diameter="18"></mat-spinner>
@@ -35,7 +35,7 @@
     </div>
   </button>
   @if (loading()) {
-    <button mat-flat-button (click)="cancel()">
+    <button z-button zType="secondary" (click)="cancel()">
       {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
     </button>
   }

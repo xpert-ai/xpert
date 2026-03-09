@@ -4,7 +4,6 @@ import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, Reac
 import { MatInputModule } from '@angular/material/input'
 import { TranslateModule } from '@ngx-translate/core'
 
-
 @Component({
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MatInputModule],

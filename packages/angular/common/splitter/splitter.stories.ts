@@ -70,7 +70,6 @@ export default {
 //   type: SplitterType.Vertical
 // }
 
-
 // const NestedPanesTemplate: Story<SplitterComponent> = (args: SplitterComponent) => ({
 //   template: `<ngm-splitter [type]="type" style='height: 400px;' [style.width]='"100%"'>
 //   <ngm-splitter-pane>

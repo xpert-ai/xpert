@@ -3,27 +3,12 @@ import { SelectionModel } from '@angular/cdk/collections'
 import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling'
 import { FlatTreeControl } from '@angular/cdk/tree'
-import {
-  booleanAttribute,
-  ChangeDetectionStrategy,
-  Component,
-  DestroyRef,
-  ElementRef,
-  forwardRef,
-  inject,
-  input,
-  Input,
-  model,
-  OnChanges,
-  output,
-  SimpleChanges,
-  ViewChild
-} from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, DestroyRef, ElementRef, forwardRef, inject, input, Input, model, OnChanges, output, SimpleChanges, ViewChild } from '@angular/core'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, ValidatorFn } from '@angular/forms'
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 import { MatCheckboxChange } from '@angular/material/checkbox'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -55,6 +40,7 @@ import { CommonModule } from '@angular/common'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ThemePalette } from '@angular/material/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead
@@ -72,7 +58,7 @@ import { ThemePalette } from '@angular/material/core'
     FormsModule,
     ReactiveFormsModule,
     NgmSearchComponent,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatFormFieldModule,
     MatSelectModule,
@@ -362,7 +348,6 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
       this.allSelect = this.treeControl.dataNodes.length === this.multipleSelection.selected.length
       this.onChange?.(this.multipleSelection.selected)
     })
-
 
   ngOnChanges({ displayDensity, validators }: SimpleChanges): void {
     if (displayDensity) {

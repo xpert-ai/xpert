@@ -47,9 +47,7 @@
   }
 
   <div matSuffix class="flex items-center">
-    <button *ngIf="(isInitial$ | async) === false" mat-icon-button [disabled]="disabled" aria-label="Clear"
-      ngmAppearance="danger"
-      (click)="$event.stopPropagation();setMembers(null)">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="(isInitial$ | async) === false" [disabled]="disabled" aria-label="Clear" ngmAppearance="danger" (click)="$event.stopPropagation();setMembers(null)">
       <mat-icon>close</mat-icon>
     </button>
 

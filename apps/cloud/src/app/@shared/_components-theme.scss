@@ -74,15 +74,15 @@
 
   // 公共样式, 需要抽取统一
   /* button */
-  .mat-button,
-  .mat-mdc-icon-button,
-  .mat-stroked-button {
+  [z-button],
+  z-button {
     &.mat-success {
       color: mat.m2-get-color-from-palette(variables.$success-palette);
     }
   }
 
-  .mat-mdc-icon-button {
+  [z-button][data-icon-only],
+  z-button[data-icon-only] {
     .mat-icon {
       // display: block;
       // margin: auto;
@@ -168,10 +168,8 @@
     }
   }
 
-  // .mat-mdc-icon-button.mat-mdc-button-base {
-  //   &:hover:not(.mat-button-disabled):not(.cdk-menu-item) {
-  //     @apply bg-gray-400/20;
-  //   }
+  // [z-button][data-icon-only]:hover:not([disabled]):not(.cdk-menu-item) {
+  //   @apply bg-gray-400/20;
   // }
 
   .mat-accordion.ngm-density__compact {
@@ -252,7 +250,8 @@
     }
   }
   // @deprecated
-  .ngm-rounded-full.mat-mdc-button-base {
+  .ngm-rounded-full[z-button],
+  z-button.ngm-rounded-full {
     @apply rounded-full;
   }
 

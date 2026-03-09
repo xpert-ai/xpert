@@ -11,7 +11,6 @@ import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
 
-
 @Component({
   standalone: false,
   selector: 'pac-model-access-role-overview',

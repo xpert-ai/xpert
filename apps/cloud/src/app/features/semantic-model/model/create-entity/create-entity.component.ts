@@ -12,7 +12,7 @@ import { uuid } from '@cloud/app/@core'
 import { debouncedSignal, ISelectOption } from '@metad/ocap-angular/core'
 import { CommonModule } from '@angular/common'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
@@ -24,6 +24,7 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatSelectModule } from '@angular/material/select'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export type CreateEntityColumnType = {
   name: string
@@ -80,7 +81,7 @@ export type CreateEntityDialogRetType = {
     FormsModule,
     ReactiveFormsModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatButtonToggleModule,
     MatFormFieldModule,
     MatInputModule,

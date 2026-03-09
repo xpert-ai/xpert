@@ -2,7 +2,6 @@ import { SortDirection } from '@angular/material/sort'
 import { AnalyticsMeasure, Dimension, IMember, Measure, Property } from '@metad/ocap-core'
 import { Parser } from 'expr-eval'
 
-
 export type SemanticExpression = {
       negative?: string
       critical?: string

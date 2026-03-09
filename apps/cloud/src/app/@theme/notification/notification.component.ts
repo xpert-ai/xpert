@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
@@ -12,6 +12,7 @@ import { DensityDirective, NgmAgentService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { TranslateModule } from '@ngx-translate/core'
 import { merge } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -28,7 +29,7 @@ import { merge } from 'rxjs'
     CdkMenuModule,
     MatIconModule,
     MatTooltipModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatMenuModule,
     MatListModule,
     DensityDirective

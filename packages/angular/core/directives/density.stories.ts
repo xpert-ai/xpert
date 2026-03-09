@@ -1,5 +1,5 @@
 import { provideHttpClient } from '@angular/common/http'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatIconModule } from '@angular/material/icon'
@@ -11,6 +11,7 @@ import { StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { DensityDirective } from './displayDensity'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Core/DisplayDensity',
@@ -24,7 +25,7 @@ export default {
         TranslateModule,
         OcapCoreModule,
         MatIconModule,
-        MatButtonModule,
+        ZardButtonComponent,
         MatChipsModule,
         MatCheckboxModule,
         MatMenuModule,
@@ -50,13 +51,13 @@ export const Primary: Story = {
     </div>
     
     <div>
-      <button mat-icon-button>
+      <button z-button zType="ghost" zSize="icon" zShape="circle">
         <mat-icon>share</mat-icon>
       </button>
-      <button mat-icon-button displayDensity="cosy">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy">
         <mat-icon>share</mat-icon>
       </button>
-      <button mat-icon-button displayDensity="compact">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact">
         <mat-icon>share</mat-icon>
       </button>
     </div>
@@ -135,11 +136,7 @@ export const Menu: Story = {
     template: `
 <div class="flex flex-col">
   <label>Comfortable</label>
-  <button mat-icon-button displayDensity="comfortable" class="pac-model__nav-action"
-    [matMenuTriggerFor]="menu1"
-    #mt="matMenuTrigger"
-    [class.active]="mt.menuOpen"
-    (click)="$event.stopPropagation();$event.preventDefault()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="comfortable" class="pac-model__nav-action" [matMenuTriggerFor]="menu1" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault()">
     <mat-icon>more_vert</mat-icon>
   </button>
 
@@ -155,11 +152,7 @@ export const Menu: Story = {
   </mat-menu>
 
   <label>Cosy</label>
-  <button mat-icon-button displayDensity="cosy" class="pac-model__nav-action"
-    [matMenuTriggerFor]="menu2"
-    #mt="matMenuTrigger"
-    [class.active]="mt.menuOpen"
-    (click)="$event.stopPropagation();$event.preventDefault()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="pac-model__nav-action" [matMenuTriggerFor]="menu2" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault()">
     <mat-icon>more_vert</mat-icon>
   </button>
 
@@ -176,11 +169,7 @@ export const Menu: Story = {
 
   <label>Compact</label>
 
-  <button mat-icon-button displayDensity="compact" class="pac-model__nav-action"
-    [matMenuTriggerFor]="menu3"
-    #mt="matMenuTrigger"
-    [class.active]="mt.menuOpen"
-    (click)="$event.stopPropagation();$event.preventDefault()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-model__nav-action" [matMenuTriggerFor]="menu3" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault()">
     <mat-icon>more_vert</mat-icon>
   </button>
 

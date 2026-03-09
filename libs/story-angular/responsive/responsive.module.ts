@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { NxFlexLayoutComponent } from './flex-layout/flex-layout.component'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [
@@ -12,7 +12,7 @@ import { NxFlexLayoutComponent } from './flex-layout/flex-layout.component'
   ],
   imports: [
     CommonModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatMenuModule,
   ],

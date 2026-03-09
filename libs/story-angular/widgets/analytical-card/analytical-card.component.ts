@@ -23,7 +23,6 @@ import { isArray, isEmpty, isNil, negate } from 'lodash-es'
 import { Observable, combineLatest, combineLatestWith, distinctUntilChanged, filter, map, shareReplay, startWith } from 'rxjs'
 import { WidgetOrderMenu } from './types'
 
-
 export interface WidgetAnalyticalCardOptions extends AnalyticalCardOptions {
   showDownloadButton?: boolean
   showDataButton?: boolean

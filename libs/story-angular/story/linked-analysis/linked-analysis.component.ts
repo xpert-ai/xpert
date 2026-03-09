@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, Inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
 import { MatListModule } from '@angular/material/list'
 import { MatRadioModule } from '@angular/material/radio'
@@ -10,6 +10,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { LinkedAnalysisSettings, LinkedInteractionApplyTo } from '@metad/story/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -19,7 +20,7 @@ import { LinkedAnalysisSettings, LinkedInteractionApplyTo } from '@metad/story/c
     ReactiveFormsModule,
     DragDropModule,
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     ButtonGroupDirective,
     MatRadioModule,
     MatListModule,

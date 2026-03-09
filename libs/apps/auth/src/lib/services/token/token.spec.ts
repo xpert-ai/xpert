@@ -6,7 +6,6 @@
 
 import { NbAuthOAuth2Token, NbAuthJWTToken, NbAuthSimpleToken, NbAuthOAuth2JWTToken } from './token';
 
-
 describe('auth token', () => {
   describe('NbAuthJWTToken', () => {
     const now = new Date();
@@ -52,7 +51,6 @@ describe('auth token', () => {
       // tslint:disable-next-line
         .toEqual(JSON.parse('{"iss":"cerema.fr","iat":1532350800,"exp":2532350800,"sub":"Alain CHARLES","admin":true}'));
     });
-
 
     it('getCreatedAt success : now for simpleToken', () => {
       // we consider dates are the same if differing from minus than 10 ms
@@ -108,7 +106,6 @@ describe('auth token', () => {
       // without token
       expect(new NbAuthJWTToken('', 'strategy', new Date()).isValid()).toBeFalsy();
 
-
       // expired date
       expect(expiredJWTToken.isValid()).toBeFalsy();
     });
@@ -159,7 +156,6 @@ describe('auth token', () => {
       token_type: 'bearer',
       example_parameter: 'example_value',
     };
-
 
     let validToken = new NbAuthOAuth2Token(token, 'strategy');
 

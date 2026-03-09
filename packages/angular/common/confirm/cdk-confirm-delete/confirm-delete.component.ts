@@ -2,10 +2,11 @@ import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, computed, HostBinding, inject } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, isObservable, Observable, of, switchMap } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export type TConfirmDeleteInfo = {
   title?: string;
@@ -18,7 +19,7 @@ export type TConfirmDeleteInfo = {
   selector: 'cdk-confirm-delete',
   templateUrl: './confirm-delete.component.html',
   styleUrls: ['./confirm-delete.component.scss'],
-  imports: [TranslateModule, A11yModule, DragDropModule, MatButtonModule, ButtonGroupDirective],
+  imports: [TranslateModule, A11yModule, DragDropModule, ZardButtonComponent, ButtonGroupDirective],
   host: {
     'class': 'cdk-dialog-card'
   }

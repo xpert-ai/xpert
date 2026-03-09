@@ -14,7 +14,6 @@ import { serializeName } from '@metad/ocap-sql'
 import { TranslateService } from '@ngx-translate/core'
 import { injectAgentFewShotTemplate } from '../../../../../@core/copilot'
 import { NGXLogger } from 'ngx-logger'
-
 import { ModelEntityService } from '../../entity/entity.service'
 import { SemanticModelService } from '../../model.service'
 import { injectSelectTablesTool } from '../tools'

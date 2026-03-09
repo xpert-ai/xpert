@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { PickerComponent } from '@ctrl/ngx-emoji-mart'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
 import { AppearanceDirective, ButtonGroupDirective } from '@metad/ocap-angular/core'
@@ -11,6 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { ScreenshotService, TAvatar } from '../../../@core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -22,7 +23,7 @@ import { ScreenshotService, TAvatar } from '../../../@core'
     CommonModule,
     CdkListboxModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatDialogModule,
     TranslateModule,
     ButtonGroupDirective,

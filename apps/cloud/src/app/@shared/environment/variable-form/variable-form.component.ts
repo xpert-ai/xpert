@@ -6,7 +6,6 @@ import { NgmSelectComponent } from '../../common'
 import { TEnvironmentVariable, VariableOperationEnum } from '../../../@core/types'
 import { VariableTypeOptions } from '../types'
 
-
 @Component({
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, NgmSelectComponent,

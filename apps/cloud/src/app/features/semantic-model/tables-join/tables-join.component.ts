@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
 import { MatSelectModule } from '@angular/material/select'
@@ -12,6 +12,7 @@ import { Join, Table } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { cloneDeep, isEqual, values } from 'lodash-es'
 import { BehaviorSubject, EMPTY, map, shareReplay } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -23,7 +24,7 @@ import { BehaviorSubject, EMPTY, map, shareReplay } from 'rxjs'
     MatIconModule,
     MatSelectModule,
     MatDividerModule,
-    MatButtonModule,
+    ZardButtonComponent,
     TranslateModule,
 
     OcapCoreModule,

@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCardModule } from '@angular/material/card'
 import { MatCheckboxModule } from '@angular/material/checkbox'
@@ -35,6 +35,7 @@ import { ReplaceNullWithTextPipe } from './shared/replace-null-with-text.pipe'
 import { AppSparkLineDirective } from './shared/sparkline.directive'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [
@@ -56,7 +57,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     MatListModule,
     MatCardModule,
     MatCheckboxModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatRippleModule,
     MatMenuModule,

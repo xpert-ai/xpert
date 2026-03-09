@@ -1,4 +1,6 @@
 import { CommonModule } from '@angular/common'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatIconModule } from '@angular/material/icon'
@@ -13,7 +15,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
 import { AppService } from '../../../app.service'
 import { ChatbiHomeComponent } from '../home.component'
-import { MatButtonModule } from '@angular/material/button'
 
 @Component({
   standalone: true,
@@ -27,7 +28,7 @@ import { MatButtonModule } from '@angular/material/button'
     ScrollingModule,
     MatSelectModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatProgressSpinnerModule,
     DensityDirective,
     NgmSearchComponent,

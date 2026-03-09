@@ -1,18 +1,9 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectorRef,
-  Component,
-  computed,
-  DestroyRef,
-  effect,
-  inject,
-  signal,
-  ViewContainerRef
-} from '@angular/core'
+import { ChangeDetectorRef, Component, computed, DestroyRef, effect, inject, signal, ViewContainerRef } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { RouterModule } from '@angular/router'
 import { exportIndicator, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
@@ -33,6 +24,7 @@ import {
 import { ProjectService } from '../../project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -41,7 +33,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     RouterModule,
     FormsModule,
     MatCheckboxModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     TranslateModule,
     NgmSpinComponent,

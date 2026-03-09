@@ -28,7 +28,6 @@ export class XpertWorkflowPanelDBDeleteComponent extends XpertWorkflowPanelDBBas
     }
   })
 
-
   readonly dbDeleteExpand = signal(false)
 
   readonly toggleDBDeleteExpand = () => {

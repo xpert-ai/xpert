@@ -17,8 +17,6 @@ export function serializePropertyUniqueName(property: PropertyLevel, dialect: st
   }
 }
 
-
-
 // convert to Postgres default ISO 8601 format
 function formatDate(date: string) {
   date = date.replace('T', ' ')
@@ -38,7 +36,6 @@ function arrayToList(useSpace: boolean, array, formatter) {
 
   return sql
 }
-
 
 // Ported from PostgreSQL 9.2.4 source code in src/interfaces/libpq/fe-exec.c
 export function quoteLiteral(value: any) {

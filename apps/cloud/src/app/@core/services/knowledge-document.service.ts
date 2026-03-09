@@ -13,7 +13,6 @@ import {
   TRagWebResult
 } from '../types'
 
-
 @Injectable({ providedIn: 'root' })
 export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowledgeDocument> {
   readonly #logger = inject(NGXLogger)

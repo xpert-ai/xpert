@@ -20,10 +20,10 @@
 
   <div class="flex justify-end items-center">
     <div ngmButtonGroup displayDensity="cosy">
-      <button mat-flat-button type="button" displayDensity="cosy" (click)="onCancel()">
+      <button z-button zType="secondary" type="button" displayDensity="cosy" (click)="onCancel()">
         {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
       </button>
-      <button mat-raised-button color="primary" displayDensity="cosy">
+      <button z-button zType="default" color="primary" displayDensity="cosy">
         {{ 'PAC.KEY_WORDS.Confirm' | translate: {Default: 'Confirm'} }}
       </button>
     </div>

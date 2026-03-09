@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common'
 import { Component, booleanAttribute, input, output } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { NgmDndDirective } from '@metad/core'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export type UploadFile = {
   file: File
@@ -18,7 +19,7 @@ export type UploadFile = {
   imports: [
     CommonModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatProgressBarModule,
     AppearanceDirective,
@@ -42,7 +43,6 @@ export class FilesUploadComponent {
   // Outputs
   readonly filesChange = output<FileList>()
   readonly removeFileChange = output<UploadFile[]>()
-
 
   /**
    * on file drop handler

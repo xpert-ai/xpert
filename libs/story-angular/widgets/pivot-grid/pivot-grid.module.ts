@@ -10,7 +10,6 @@ import { PACWidgetPivotGridComponent } from './pivot-grid.component'
 import { PivotGridSchemaService } from './pivot-grid.schema'
 import { WidgetDesignerType } from './types'
 
-
 @NgModule({
   declarations: [PACWidgetPivotGridComponent],
   imports: [

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -22,6 +22,7 @@ import {
 import { uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, map, switchMap } from 'rxjs'
 import { ModelComponent } from '../model.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -29,7 +30,7 @@ import { ModelComponent } from '../model.component'
     CommonModule,
     ReactiveFormsModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     TranslateModule,
     UserProfileComponent,
     UserProfileInlineComponent,

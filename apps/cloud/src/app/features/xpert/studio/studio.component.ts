@@ -91,7 +91,6 @@ import { XpertStudioFeaturesComponent } from './features/features.component'
 import { XpertService } from '../xpert/xpert.service'
 import { GROUP_NODE_TYPES, provideJsonSchemaWidgets, readClipboardNode } from './types'
 
-
 @Component({
   standalone: true,
   imports: [

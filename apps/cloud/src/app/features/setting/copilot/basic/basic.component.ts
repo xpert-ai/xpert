@@ -20,7 +20,6 @@ import { map, Observable, switchMap } from 'rxjs'
 import { PACCopilotService } from '../../../services'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
 
-
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-basic',

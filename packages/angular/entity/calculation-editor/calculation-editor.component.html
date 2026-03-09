@@ -70,13 +70,10 @@
 
     <div class="flex justify-start">
       <div ngmButtonGroup>
-        <button mat-raised-button color="accent" [disabled]="formGroup.invalid || calculation.invalid ||
-          (formGroup.pristine && formula.pristine && calculation.pristine)"
-          (click)="onApply()"
-        >
+        <button z-button zType="default" color="accent" [disabled]="formGroup.invalid || calculation.invalid || (formGroup.pristine && formula.pristine && calculation.pristine)" (click)="onApply()">
           {{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}
         </button>
-        <button mat-button (click)="onCancel()">
+        <button z-button zType="ghost" (click)="onCancel()">
           {{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}
         </button>
       </div>

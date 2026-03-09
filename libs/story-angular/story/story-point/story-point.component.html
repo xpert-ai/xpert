@@ -68,7 +68,7 @@
 @if (quickStart$ | async;) {
     <div class="ngm-story-point__quick-start absolute top-0 left-0 w-full h-full flex justify-center items-center z-10">
         <div class="container relative p-12 mx-8 rounded-xl flex flex-col justify-center items-center">
-            <button mat-icon-button style="position: absolute;" class="absolute right-1 top-1" (click)="closeQuickStart()">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" style="position: absolute;" class="absolute right-1 top-1" (click)="closeQuickStart()">
                 <mat-icon class="mr-1">close</mat-icon>
             </button>
             

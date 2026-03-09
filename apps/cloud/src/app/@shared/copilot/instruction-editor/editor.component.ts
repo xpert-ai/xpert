@@ -24,7 +24,6 @@ import { timer } from 'rxjs'
 import { switchMap, tap } from 'rxjs/operators'
 import { agentLabel } from '../../../@core'
 
-
 @Component({
   selector: 'copilot-instruction-editor',
   templateUrl: './editor.component.html',

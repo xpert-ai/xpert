@@ -84,7 +84,6 @@ export class XpertVariableInputComponent {
   })
   readonly loading = computed(() => this.#variables.status() === 'loading')
 
-
   constructor() {
     effect(() => {
       if (this.#variables.value()) {

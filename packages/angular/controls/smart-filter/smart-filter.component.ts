@@ -2,28 +2,11 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling'
 import { FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ElementRef,
-  EventEmitter,
-  Output,
-  ViewChild,
-  ViewContainerRef,
-  booleanAttribute,
-  computed,
-  effect,
-  forwardRef,
-  inject,
-  input,
-  model,
-  signal
-} from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, Output, ViewChild, ViewContainerRef, booleanAttribute, computed, effect, forwardRef, inject, input, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
@@ -69,6 +52,7 @@ import { NgmValueHelpComponent } from '../value-help/value-help.component'
 import { MatRadioModule } from '@angular/material/radio'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmTimeFilterEditorComponent } from '../timer'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface SmartFilterOptions extends ControlOptions {
   maxTagCount?: number
@@ -103,7 +87,7 @@ export interface SmartFilterState {
     TranslateModule,
     ReactiveFormsModule,
     CdkMenuModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatProgressSpinnerModule,
     MatAutocompleteModule,

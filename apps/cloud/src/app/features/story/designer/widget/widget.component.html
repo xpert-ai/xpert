@@ -55,10 +55,7 @@
             [style.background-image]="'url(' + bg.backgroundImageObj.url + ')'"
             (click)="onBackgroundImageSelected(bg)"
         >
-            <button mat-icon-button class="pac-image-tile__copy absolute top-0 right-0 opacity-0 group-hover:opacity-100" displayDensity="compact"
-                [cdkCopyToClipboard]="bg.backgroundImageObj.url"
-                (click)="$event.stopPropagation()"
-                (cdkCopyToClipboardCopied)="onCopyToClipboardCopied($event)">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-image-tile__copy absolute top-0 right-0 opacity-0 group-hover:opacity-100" displayDensity="compact" [cdkCopyToClipboard]="bg.backgroundImageObj.url" (click)="$event.stopPropagation()" (cdkCopyToClipboardCopied)="onCopyToClipboardCopied($event)">
                 <mat-icon>content_copy</mat-icon>
             </button>
         </div>
@@ -87,10 +84,7 @@
             [style.background-image]="'url(' + bg.url + ')'"
             (click)="onBackgroundImageSelected({backgroundImageObj: bg})"
         >
-            <button mat-icon-button class="pac-image-tile__copy absolute top-0 right-0 opacity-0 group-hover:opacity-100" displayDensity="compact"
-                [cdkCopyToClipboard]="bg.url"
-                (click)="$event.stopPropagation()"
-                (cdkCopyToClipboardCopied)="onCopyToClipboardCopied($event)">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-image-tile__copy absolute top-0 right-0 opacity-0 group-hover:opacity-100" displayDensity="compact" [cdkCopyToClipboard]="bg.url" (click)="$event.stopPropagation()" (cdkCopyToClipboardCopied)="onCopyToClipboardCopied($event)">
                 <mat-icon>content_copy</mat-icon>
             </button>
         </div>
@@ -208,8 +202,7 @@
             }"
         >
             <input #fileUpload type="file" class="file-input h-0 w-0 invisible" accept="image/*" (change)="onBorderFile($event)" (click)="fileUpload.value=null;">
-            <button mat-stroked-button ngmAppearance="dashed" displayDensity="cosy" color="accent" class="backdrop-blur-md"
-                (click)="fileUpload.click()">
+            <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" color="accent" class="backdrop-blur-md" (click)="fileUpload.click()">
                 <div class="flex justify-start items-center">
                 <mat-icon fontSet="material-icons-round">upload</mat-icon>
                 {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}

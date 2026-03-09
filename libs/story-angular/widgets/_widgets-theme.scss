@@ -39,7 +39,8 @@
     @apply px-4 max-w-[600px];
   }
   .pac-widget__action-toolbar {
-    .mat-icon-button {
+    [z-button][data-icon-only],
+    z-button[data-icon-only] {
       width: 24px;
       height: 24px;
       line-height: 24px;
@@ -57,7 +58,8 @@
   .ngm-story-widget {
     &.ngm-story-widget__active, &:hover {
       .pac-widget__action-toolbar {
-        .mat-icon-button {
+        [z-button][data-icon-only],
+        z-button[data-icon-only] {
           opacity: 1;
         }
       }

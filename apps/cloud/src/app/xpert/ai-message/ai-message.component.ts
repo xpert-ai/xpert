@@ -46,7 +46,6 @@ import { TCopilotChatMessage } from '../types'
 import { ChatMessageContentComponent } from './content/content.component'
 import { ChatMessageAvatarComponent } from './avatar/avatar.component'
 
-
 @Component({
   standalone: true,
   imports: [

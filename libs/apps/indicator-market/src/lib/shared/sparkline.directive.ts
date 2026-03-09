@@ -17,7 +17,6 @@ import { TranslateService } from '@ngx-translate/core'
 import { NgmLanguageEnum } from '@metad/ocap-angular/core'
 import { IndicatorState, StatisticalType, Trend, TrendColor, TrendReverseColor } from '../types'
 
-
 /**
  * @deprecated use the individual `NgmIndicatorComponent` for indicator
  */

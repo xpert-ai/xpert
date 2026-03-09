@@ -12,12 +12,10 @@
 
 <div class="w-full flex justify-end">
   <div ngmButtonGroup>
-    <button mat-stroked-button (click)="cancel()">
+    <button z-button zType="outline" (click)="cancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent" cdkFocusInitial
-      [disabled]="emailInviteForm.form.invalid"
-      (click)="onApply()">
+    <button z-button zType="default" color="accent" cdkFocusInitial [disabled]="emailInviteForm.form.invalid" (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>

@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
@@ -10,7 +10,7 @@ import { ButtonGroupDirective, NgmThemeService, ThemesEnum } from '@metad/ocap-a
 import { EditorThemeMap } from '@metad/ocap-angular/formula'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -21,7 +21,7 @@ import { MonacoEditorModule } from 'ngx-monaco-editor'
     TranslateModule,
     MatDialogModule,
     MatListModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MonacoEditorModule,
     ButtonGroupDirective

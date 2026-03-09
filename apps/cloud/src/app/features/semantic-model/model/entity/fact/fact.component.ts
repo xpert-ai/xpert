@@ -48,7 +48,6 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 
-
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.Default,

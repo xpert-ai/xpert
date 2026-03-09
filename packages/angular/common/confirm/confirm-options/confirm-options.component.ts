@@ -2,12 +2,12 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import { Component, HostBinding, inject, signal } from '@angular/core';
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
+
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ButtonGroupDirective } from '@metad/ocap-angular/core';
 import { FormlyModule } from '@ngx-formly/core';
 import { TranslateModule } from '@ngx-translate/core';
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated CdkConfirmOptionsComponent
@@ -16,7 +16,7 @@ import { TranslateModule } from '@ngx-translate/core';
   standalone: true,
   imports: [
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     CommonModule, FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule,
     DragDropModule,
 

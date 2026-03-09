@@ -96,7 +96,6 @@ function confirmChanges(
   ).pipe(take(1));
 }
 
-
 function toObservable<T>(source: T | Observable<T>): Observable<T> {
   return isObservable(source) ? source : of(source)
 }

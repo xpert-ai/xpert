@@ -6,26 +6,10 @@ import { OverlayModule } from '@angular/cdk/overlay'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  EventEmitter,
-  Input,
-  Output,
-  TemplateRef,
-  ViewChild,
-  computed,
-  effect,
-  inject,
-  input,
-  model,
-  signal,
-  viewChild
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, TemplateRef, ViewChild, computed, effect, inject, input, model, signal, viewChild } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatInputModule } from '@angular/material/input'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
@@ -71,6 +55,7 @@ import { CopilotAgentConfigComponent } from './agent-config/config.component'
 import { CopilotAIMessageComponent } from './ai-message/ai-message.component'
 import { CopilotChatTokenComponent } from './token/token.component'
 import { PlaceholderMessages } from './types'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export const AUTO_SUGGESTION_DEBOUNCE_TIME = 1000
 export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
@@ -95,7 +80,7 @@ export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
     CdkMenuModule,
     A11yModule,
     MatInputModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     MatProgressBarModule,
     MatListModule,

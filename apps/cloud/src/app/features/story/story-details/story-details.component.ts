@@ -4,7 +4,7 @@ import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angul
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
@@ -21,6 +21,7 @@ import { Story, StoryModel, StoryOptions } from '@metad/story/core'
 import { Subject, combineLatestWith, filter, firstValueFrom, map, startWith, switchMap, tap } from 'rxjs'
 import { ISemanticModel, ProjectAPIService, ScreenshotService, ToastrService } from '../../../@core'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -30,7 +31,7 @@ import { NgmHighlightDirective } from '@metad/ocap-angular/common'
     ReactiveFormsModule,
     TranslateModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatListModule,
     MatFormFieldModule,
     MatInputModule,

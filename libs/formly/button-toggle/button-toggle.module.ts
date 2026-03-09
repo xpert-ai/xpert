@@ -7,7 +7,6 @@ import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { PACFormlyButtonToggleComponent } from './button-toggle.type';
 
-
 @NgModule({
   declarations: [PACFormlyButtonToggleComponent],
   imports: [

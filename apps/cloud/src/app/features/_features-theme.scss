@@ -36,7 +36,8 @@ $sidebar-collapsed-width: 40px;
       height: $shell-bar-height;
     }
 
-    .mat-mdc-icon-button {
+    [z-button][data-icon-only],
+    z-button[data-icon-only] {
       background-color: unset;
     }
 
@@ -54,7 +55,8 @@ $sidebar-collapsed-width: 40px;
         margin: auto;
       }
 
-      .mat-button {
+      [z-button],
+      z-button {
         padding-right: 0;
       }
     }
@@ -133,7 +135,8 @@ $sidebar-collapsed-width: 40px;
             opacity: 0;
           }
       
-          .mat-mdc-icon-button.mat-accent {
+          [z-button][data-icon-only][data-color='accent'],
+          z-button[data-icon-only][data-color='accent'] {
             opacity: 1;
           }
         }
@@ -220,13 +223,14 @@ $sidebar-collapsed-width: 40px;
     }
 
     &.ngm-density__compact {
-      .mat-button {
+      [z-button],
+      z-button {
         min-width: unset;
         border-radius: 0;
         line-height: 32px;
         height: 32px;
 
-        &.mat-accent {
+        &[data-color='accent'] {
           background-color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.1);
         }
       }

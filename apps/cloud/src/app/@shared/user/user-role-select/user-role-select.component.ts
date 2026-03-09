@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { Component, ElementRef, inject, Input, ViewChild } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatChipsModule } from '@angular/material/chips'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
@@ -18,6 +18,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, of, switchMap, tap } from 'rxjs'
 import { IUser } from '../../../@core'
 import { userLabel, UserPipe } from '../../pipes'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -26,7 +27,7 @@ import { userLabel, UserPipe } from '../../pipes'
     FormsModule,
     ReactiveFormsModule,
 
-    MatButtonModule,
+    ZardButtonComponent,
     MatAutocompleteModule,
     MatFormFieldModule,
     MatInputModule,

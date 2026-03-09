@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, inject } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatExpansionModule } from '@angular/material/expansion'
@@ -23,6 +23,7 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, map, Observable, shareReplay, startWith } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * 时间维度的 Filter 编辑界面
@@ -41,7 +42,7 @@ import { BehaviorSubject, combineLatest, map, Observable, shareReplay, startWith
     MatIconModule,
     MatDividerModule,
     MatInputModule,
-    MatButtonModule,
+    ZardButtonComponent,
 
     OcapCoreModule
   ],

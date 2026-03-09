@@ -47,7 +47,6 @@ export class SinglePageStoryComponent {
   readonly storyService = inject(NxStoryService)
   readonly #renderer = inject(Renderer2)
 
-
   readonly story = input<Story>(null)
   readonly pointKey = input<string>(null)
 

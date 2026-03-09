@@ -2,7 +2,7 @@
 >
 
   @if (isEmpty) {
-    <button mat-button color="primary" ngmAppearance="dashed" (click)="add()">
+    <button z-button zType="ghost" color="primary" ngmAppearance="dashed" (click)="add()">
       <mat-icon fontSet="material-icons-round">playlist_add</mat-icon>
       {{ 'Ngm.Property.ADD_DIMENSION' | translate: {Default: 'Add Dimension'} }}
     </button>
@@ -17,8 +17,7 @@
       [capacities]="capacities"
     >
       <i class="ri-draggable text-lg" ngmPrefix></i>
-      <button ngmSuffix mat-icon-button color="warn" class="opacity-0 group-hover:opacity-100" displayDensity="compact"
-        (click)="remove(i); $event.stopPropagation(); $event.preventDefault()">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix color="warn" class="opacity-0 group-hover:opacity-100" displayDensity="compact" (click)="remove(i); $event.stopPropagation(); $event.preventDefault()">
         <mat-icon>clear</mat-icon>
       </button>
     </ngm-property-select>
@@ -26,7 +25,7 @@
 </div>
 
 @if (!isEmpty) {
-  <button class="add" mat-button color="primary" ngmAppearance="dashed" (click)="add()">
+  <button z-button zType="ghost" class="add" color="primary" ngmAppearance="dashed" (click)="add()">
     <mat-icon fontSet="material-icons-round">playlist_add</mat-icon>
     {{ 'Ngm.Property.ADD_DIMENSION' | translate: {Default: 'Add Dimension'} }}
   </button>

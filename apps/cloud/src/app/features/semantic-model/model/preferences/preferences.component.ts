@@ -11,14 +11,15 @@ import { map } from 'rxjs'
 import { getErrorMessage, LANGUAGES, Visibility } from '../../../../@core/types'
 import { CommonModule } from '@angular/common'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { MatButtonModule } from '@angular/material/button'
+
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { TranslateModule } from '@ngx-translate/core'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormlyModule, TranslateModule, DragDropModule, MatButtonModule, ButtonGroupDirective, NgmSpinComponent],
+  imports: [CommonModule, FormlyModule, TranslateModule, DragDropModule, ZardButtonComponent, ButtonGroupDirective, NgmSpinComponent],
   selector: 'pac-model-preferences',
   templateUrl: './preferences.component.html',
   styleUrls: ['./preferences.component.scss']

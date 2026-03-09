@@ -46,13 +46,12 @@
       height: unset;
       font-size: 1rem;
 
-      .mat-button {
+      [z-button],
+      z-button {
         min-width: unset;
         border-radius: 0;
-        &.mat-accent {
-          .mat-button-ripple {
-            background-color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.1);
-          }
+        &[data-color='accent'] {
+          background-color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.1);
         }
       }
 
@@ -127,7 +126,8 @@
       flex: 1;
     }
   }
-  .pac-cdk-drop__recycle-bin.mat-mdc-icon-button {
+  .pac-cdk-drop__recycle-bin[z-button],
+  z-button.pac-cdk-drop__recycle-bin {
     opacity: 0;
     visibility: hidden;
     border: 1px dashed transparent;

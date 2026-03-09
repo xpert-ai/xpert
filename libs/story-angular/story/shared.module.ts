@@ -4,7 +4,7 @@ import { PortalModule } from '@angular/cdk/portal'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCardModule } from '@angular/material/card'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialogModule } from '@angular/material/dialog'
@@ -22,10 +22,11 @@ import { MatTabsModule } from '@angular/material/tabs'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import {MatExpansionModule} from '@angular/material/expansion'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 const MAT_MODULES = [
   MatIconModule,
-  MatButtonModule,
+  ZardButtonComponent,
   MatListModule,
   MatTabsModule,
   MatFormFieldModule,

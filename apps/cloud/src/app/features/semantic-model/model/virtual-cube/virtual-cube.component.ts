@@ -23,7 +23,6 @@ import { VirtualCubeStateService } from './virtual-cube.service'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
-
 @Component({
   standalone: true,
   selector: 'pac-model-virtual-cube',

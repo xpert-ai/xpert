@@ -1,6 +1,5 @@
 import { animate, style, transition, trigger } from '@angular/animations'
 
-
 export const OverlayAnimation1 = trigger('overlayAnimation1', [
     transition(':enter', [
       style({ opacity: 0, transform: 'scale(0.95)' }), 

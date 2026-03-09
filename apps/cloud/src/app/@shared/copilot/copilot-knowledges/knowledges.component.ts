@@ -152,7 +152,6 @@ export class CopilotKnowledgesComponent {
 
   
 
-
   constructor() {
     effect(
       () => {

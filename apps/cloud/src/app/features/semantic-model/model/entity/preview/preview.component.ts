@@ -21,7 +21,7 @@ import { CdkDragDropContainers } from '../../types'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { getErrorMessage } from '@cloud/app/@core'
 import { MatIconModule } from '@angular/material/icon'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { Dialog } from '@angular/cdk/dialog'
@@ -29,6 +29,7 @@ import { ExplainComponent } from '@metad/story/story'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmPresentationComponent } from '@metad/ocap-angular/selection'
 import { NgmParameterComponent } from '@metad/ocap-angular/parameter'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -46,7 +47,7 @@ import { NgmParameterComponent } from '@metad/ocap-angular/parameter'
     ContentLoaderModule,
     DragDropModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     MatExpansionModule,
     MatSlideToggleModule,

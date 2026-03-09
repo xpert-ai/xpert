@@ -7,8 +7,6 @@ import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { NxFormlyMemberSelectModule } from '../member-select/member-select.module'
 import { NxFormlyFormPannelComponent } from './formly-form.component'
 
-
-
 export default {
   title: 'Components/Formly/Member Select',
   component: NxFormlyFormPannelComponent,

@@ -2,25 +2,10 @@ import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { SelectionModel } from '@angular/cdk/collections'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  Injectable,
-  Injector,
-  afterNextRender,
-  effect,
-  inject,
-  input,
-  isSignal,
-  output,
-  runInInjectionContext,
-  signal,
-  viewChild
-} from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Injectable, Injector, afterNextRender, effect, inject, input, isSignal, output, runInInjectionContext, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -37,6 +22,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { Subject } from 'rxjs'
 import { TableColumn } from '../types'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Injectable()
 export class MyCustomPaginatorIntl implements MatPaginatorIntl {
@@ -116,7 +102,7 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
     MatTableModule,
     MatPaginatorModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatSortModule,
     MatInputModule,
     TranslateModule,

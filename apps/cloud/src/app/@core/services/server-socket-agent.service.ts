@@ -14,7 +14,6 @@ import { PAC_SERVER_AGENT_DEFAULT_OPTIONS, PacServerAgentDefaultOptions } from '
 import { injectToastr } from './toastr.service'
 import { PAC_SERVER_DEFAULT_OPTIONS, PacServerDefaultOptions } from '../providers'
 
-
 /**
  * Responsible for proxying the olap data requests of page components to the server through the websocket interface
  */

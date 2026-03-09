@@ -5,7 +5,6 @@
  */
 
 import { inject, TestBed, waitForAsync } from '@angular/core/testing';
-
 import { PacTokenLocalStorage, PacTokenStorage } from './token-storage';
 import { PAC_AUTH_TOKENS } from '../../auth.options';
 import { NbAuthSimpleToken, nbAuthCreateToken } from './token';
@@ -42,7 +41,6 @@ describe('token-storage', () => {
   afterEach(() => {
     localStorage.removeItem(testTokenKey);
   });
-
 
   it('set test token', () => {
     const token = nbAuthCreateToken(NbAuthSimpleToken, testTokenValue, ownerStrategyName);

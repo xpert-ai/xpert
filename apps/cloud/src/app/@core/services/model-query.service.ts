@@ -22,7 +22,6 @@ export class ModelQueryService {
   private httpClient = inject(HttpClient)
   private modelsService = inject(SemanticModelServerService)
 
-
   create(input: Partial<ModelQuery>) {
     return this.httpClient.post<IModelQuery>(API_PREFIX + '/model-query', convertModelQueryInput(input))
   }

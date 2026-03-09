@@ -70,10 +70,10 @@
     </ngm-slider-input>
 
     <div class="flex justify-end gap-2">
-      <button mat-flat-button type="button" (click)="cancel()">
+      <button z-button zType="secondary" type="button" (click)="cancel()">
         {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
       </button>
-      <button mat-raised-button color="primary" [disabled]="loading() || formGroup.invalid || formGroup.pristine" (click)="save()">
+      <button z-button zType="default" color="primary" [disabled]="loading() || formGroup.invalid || formGroup.pristine" (click)="save()">
         {{ 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}
       </button>
     </div>

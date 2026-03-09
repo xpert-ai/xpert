@@ -24,18 +24,15 @@
            </span>
 
            <div class="flex justify-around items-center gap-2">
-                <!-- <button mat-icon-button displayDensity="cosy" [matTooltip]="'Ngm.Formula.Editor.Format' | translate: {Default: 'Format'}"
-                    (click)="formatDocument()">
+                <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'Ngm.Formula.Editor.Format' | translate: {Default: 'Format'}" (click)="formatDocument()">
                     <mat-icon >text_format</mat-icon>
                 </button> -->
 
-                <button mat-icon-button *ngIf="helpLink" displayDensity="cosy" (click)="openHelpLink()" [matTooltip]="'Ngm.Formula.Editor.Help' | translate: {Default: 'Help'}" >
+                <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="helpLink" displayDensity="cosy" (click)="openHelpLink()" [matTooltip]="'Ngm.Formula.Editor.Help' | translate: {Default: 'Help'}">
                     <mat-icon>help_outline</mat-icon>
                 </button>
 
-                <button mat-icon-button displayDensity="cosy" class="ngm-formula-editor__drawer-anchor"
-                    (click)="drawer.toggle()"
-                >
+                <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-formula-editor__drawer-anchor" (click)="drawer.toggle()">
                     <mat-icon *ngIf="drawer.opened">chevron_right</mat-icon>
                     <mat-icon *ngIf="!drawer.opened">menu_open</mat-icon>
                 </button>

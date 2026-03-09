@@ -4,7 +4,7 @@
 
     <span class="flex-1"></span>
 
-    <button *ngIf="value" mat-icon-button displayDensity="compact" [disabled]="!value" (click)="swapColors($event)">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="value" displayDensity="compact" [disabled]="!value" (click)="swapColors($event)">
       <mat-icon class="m-0" style="margin: 0;">swap_horiz</mat-icon>
     </button>
 
@@ -29,7 +29,7 @@
       (blur)="onBlur($event, acTrigger);"
     />
 
-    <button *ngIf="value" class="ngm-colors__clear right-0" mat-icon-button displayDensity="compact" (click)="clear()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="value" class="ngm-colors__clear right-0" displayDensity="compact" (click)="clear()">
       <mat-icon>close</mat-icon>
     </button>
   </div>

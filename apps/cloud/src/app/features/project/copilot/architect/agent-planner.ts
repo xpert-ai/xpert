@@ -8,7 +8,6 @@ import { IndicatorArchitectState, markdownIndicators } from './types'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
-
 const plan = zodToJsonSchema(
   z.object({
     steps: z.array(z.string()).describe('different indicators to create, should be in sorted order')

@@ -8,7 +8,6 @@ import { StoryWidgetComponent } from './widget/widget.component'
 import { StoryCalculationComponent } from './calculations/calculation/calculation.component'
 import { StoryCalculationsComponent } from './calculations/calculations.component'
 
-
 const routes: Routes = [
   {
     path: 'point/:id',

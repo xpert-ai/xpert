@@ -47,7 +47,6 @@ export class OnboardingComponent {
   
   Languages = Object.values(LanguagesEnum).filter((lang) => lang !== LanguagesEnum.Chinese)
 
-
   selectLang(selectLang: LanguagesEnum) {
     this.translate.use(selectLang)
   }

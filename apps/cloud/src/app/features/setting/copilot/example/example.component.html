@@ -33,10 +33,8 @@
 <div class="flex justify-between items-center p-4">
     <div></div>
     <div ngmButtonGroup>
-        <button mat-button (click)="close()">{{'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}</button>
-        <button mat-raised-button color="primary" [disabled]="loading() || formGroup.invalid || formGroup.pristine"
-            (click)="upsert()"
-        >{{'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}</button>
+        <button z-button zType="ghost" (click)="close()">{{'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}</button>
+        <button z-button zType="default" color="primary" [disabled]="loading() || formGroup.invalid || formGroup.pristine" (click)="upsert()">{{'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}</button>
     </div>
 </div>
 

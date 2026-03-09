@@ -91,7 +91,6 @@ import {
 } from './types'
 import { NgmTreeFlatDataSource } from './tree-flat-data-source'
 
-
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-analytical-grid',
@@ -138,7 +137,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
 
   @Input() appearance: NgmAppearance
   @Input() styling: any
-
 
   readonly columns = input<Record<string, AnalyticalGridColumnOptions>>({})
   readonly _columns$ = toObservable(this.columns)
@@ -1287,7 +1285,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     this._focusMonitor.stopMonitoring(this.elementRef)
   }
 }
-
 
 function downloadData(fileName: string, analytics: DataSettings['analytics'], entityType: EntityType, data: any[]) {
   const fields = [...analytics.rows, ...analytics.columns].map((item) => {

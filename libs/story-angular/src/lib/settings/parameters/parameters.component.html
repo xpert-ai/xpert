@@ -17,13 +17,13 @@
 
   <div class="flex justify-between">
     <div ngmButtonGroup>
-      <button mat-raised-button color="accent" cdkFocusInitial [mat-dialog-close]="true">
+      <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="true">
         {{ 'Story.Common.Close' | translate: { Default: 'Close' } }}
       </button>
     </div>
 
     <div>
-      <!-- <button mat-icon-button></button> -->
+      <!-- <button z-button zType="ghost" zSize="icon" zShape="circle"></button> -->
     </div>
   </div>
 </div>
@@ -32,7 +32,7 @@
   <div *ngIf="activeLink" class="flex-1 flex flex-col justify-start items-stretch overflow-auto">
     <div class="flex justify-between items-center">
       <label class="text-lg p-2"> {{ 'Story.Common.Parameters' | translate: { Default: 'Parameters' } }} </label>
-      <button mat-icon-button class="opacity-60" (click)="openCreateParameter()">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-60" (click)="openCreateParameter()">
         <mat-icon fontSet="material-icons-outlined">add_circle_outline</mat-icon>
       </button>
     </div>
@@ -42,12 +42,10 @@
         <div class="flex item-center group">
           <ngm-display-behaviour class="flex-1" [option]="{value: parameter.name, label: parameter.caption}"></ngm-display-behaviour>
 
-          <button mat-icon-button displayDensity="cosy" class="opacity-0 group-hover:opacity-90"
-            (click)="openCreateParameter(parameter.name)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openCreateParameter(parameter.name)">
               <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
           </button>
-          <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90"
-            (click)="removeParameter(parameter.name)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90" (click)="removeParameter(parameter.name)">
               <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -56,7 +54,7 @@
 
     <div class="flex justify-between items-center">
       <label class="text-lg p-2"> {{ 'Story.Common.Calculations' | translate: { Default: 'Calculations' } }} </label>
-      <button mat-icon-button class="opacity-60" (click)="openCreateCalculation()">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-60" (click)="openCreateCalculation()">
         <mat-icon fontSet="material-icons-outlined">add_circle_outline</mat-icon>
       </button>
     </div>
@@ -65,12 +63,10 @@
       <mat-list-item *ngFor="let calculation of calculations">
         <div class="flex items-center group">
           <ngm-display-behaviour class="flex-1" [option]="{value: calculation.name, label: calculation.caption}"></ngm-display-behaviour>
-          <button mat-icon-button displayDensity="cosy" class="opacity-0 group-hover:opacity-90"
-            (click)="openEditCalculation(calculation)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openEditCalculation(calculation)">
               <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
           </button>
-          <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90"
-            (click)="removeCalculation(calculation)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90" (click)="removeCalculation(calculation)">
               <mat-icon>close</mat-icon>
           </button>
         </div>

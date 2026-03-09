@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, forwardRef, HostBinding, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MAT_DATE_FORMATS } from '@angular/material/core'
 import { MatDatepicker } from '@angular/material/datepicker'
 import { MatIconModule } from '@angular/material/icon'
@@ -13,7 +13,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { getMonth, getYear, isDate, setMonth, setYear } from 'date-fns'
 import { filter } from 'rxjs/operators'
 import { NgmMemberDatepickerModule } from '../datepicker'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -22,7 +22,7 @@ import { NgmMemberDatepickerModule } from '../datepicker'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatMenuModule,
     MatRadioModule,

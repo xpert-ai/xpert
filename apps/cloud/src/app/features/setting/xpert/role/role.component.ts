@@ -26,7 +26,6 @@ import { UpsertEntityComponent } from 'apps/cloud/src/app/@shared/common'
 import { AvatarEditorComponent } from 'apps/cloud/src/app/@shared/files'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
-
 @Component({
   standalone: true,
   selector: 'pac-settings-xpert-role',

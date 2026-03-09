@@ -2,13 +2,14 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, forwardRef, inject, input, model } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { DataSettings, getMemberKey, IMember, isArray, ISlicer, VariableProperty } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSmartFilterService } from '../smart-filter.service'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -33,7 +34,7 @@ import { NgmSmartFilterService } from '../smart-filter.service'
     TranslateModule,
     ReactiveFormsModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     OcapCoreModule,
     NgmCommonModule
   ]

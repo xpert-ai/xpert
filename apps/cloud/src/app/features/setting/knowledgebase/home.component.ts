@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
@@ -25,6 +25,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { CardCreateComponent } from '../../../@shared/card'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { UserProfileInlineComponent } from '../../../@shared/user'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -35,7 +36,7 @@ import { UserProfileInlineComponent } from '../../../@shared/user'
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     AppearanceDirective,
     DensityDirective,

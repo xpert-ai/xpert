@@ -2,7 +2,7 @@
 @use 'sass:color';
 @use '@angular/material' as mat;
 
-// Applies a property to an mat-button element for each of the supported palettes.
+// Applies a property to button-like elements for each of the supported palettes.
 @mixin _theme-property($theme, $property, $hue) {
   $primary: map.get($theme, primary);
   $accent: map.get($theme, accent);
@@ -53,6 +53,34 @@
   }
 }
 
+@mixin _legacy-button-color($name, $palette) {
+  [z-button][data-color='#{$name}'][data-z-type='default'],
+  z-button[data-color='#{$name}'][data-z-type='default'] {
+    background-color: mat.m2-get-color-from-palette($palette);
+    border-color: mat.m2-get-color-from-palette($palette);
+    color: mat.m2-get-color-from-palette($palette, default-contrast);
+  }
+
+  [z-button][data-color='#{$name}'][data-z-type='secondary'],
+  z-button[data-color='#{$name}'][data-z-type='secondary'] {
+    background-color: color.change(mat.m2-get-color-from-palette($palette), $alpha: 0.12);
+    color: mat.m2-get-color-from-palette($palette);
+  }
+
+  [z-button][data-color='#{$name}'][data-z-type='ghost'],
+  [z-button][data-color='#{$name}'][data-z-type='outline'],
+  z-button[data-color='#{$name}'][data-z-type='ghost'],
+  z-button[data-color='#{$name}'][data-z-type='outline'] {
+    color: mat.m2-get-color-from-palette($palette);
+  }
+
+  [z-button][data-color='#{$name}'][data-z-type='outline'],
+  z-button[data-color='#{$name}'][data-z-type='outline'] {
+    border-color: color.change(mat.m2-get-color-from-palette($palette), $alpha: 0.28);
+    background-color: color.change(mat.m2-get-color-from-palette($palette), $alpha: 0.06);
+  }
+}
+
 @mixin color($config-or-theme) {
   $color-config: mat.m2-get-color-config($config-or-theme);
   $primary: map.get($color-config, 'primary');
@@ -86,7 +114,8 @@
   }
 
   // appearance dashed
-  .mat-mdc-button-base,
+  [z-button],
+  z-button,
   .mat-mdc-menu-item,
   .mat-mdc-option {
     &.ngm-appearance-dashed {
@@ -94,7 +123,8 @@
     }
   }
 
-  .mat-mdc-button-base:not(.mat-mdc-button-disabled),
+  [z-button]:not([disabled]):not([data-disabled]),
+  z-button:not([disabled]):not([data-disabled]),
   .mat-mdc-menu-item,
   .mat-mdc-option {
     &.ngm-appearance-dashed:hover,
@@ -108,7 +138,8 @@
   }
 
   // danger
-  .mat-mdc-button-base,
+  [z-button],
+  z-button,
   .mat-mdc-menu-item,
   .mat-mdc-option {
     &.ngm-appearance-danger:hover {
@@ -118,6 +149,10 @@
       }
     }
   }
+
+  @include _legacy-button-color('primary', $primary);
+  @include _legacy-button-color('accent', $accent);
+  @include _legacy-button-color('warn', $warn);
 
   .ngm-appearance-opacity {
     opacity: 0.5;

@@ -33,7 +33,6 @@ import {
 } from 'rxjs'
 import { NgmSmartFilterService } from '../../smart-filter.service'
 
-
 @Component({
   selector: 'ngm-member-datepicker',
   templateUrl: './datepicker.component.html',

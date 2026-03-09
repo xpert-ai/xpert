@@ -38,7 +38,6 @@ import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { combineLatestWith, map } from 'rxjs/operators'
 
-
 @Component({
   standalone: true,
   imports: [

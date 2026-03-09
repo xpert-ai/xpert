@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
@@ -11,14 +11,14 @@ import { WidgetAnalyticalCardComponent } from './analytical-card.component'
 import { AnalyticalChartPlaceholderComponent } from './chart-placeholder/chart-placeholder.component'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
 import { MatTooltipModule } from '@angular/material/tooltip'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
     CommonModule,
     AnalyticalCardModule,
     MatMenuModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatTooltipModule,
     TranslateModule,

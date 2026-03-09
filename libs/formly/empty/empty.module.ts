@@ -4,7 +4,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { FormlyModule } from '@ngx-formly/core'
 import { PACFormlyEmptyComponent } from './empty.type'
 
-
 @NgModule({
   declarations: [PACFormlyEmptyComponent],
   imports: [

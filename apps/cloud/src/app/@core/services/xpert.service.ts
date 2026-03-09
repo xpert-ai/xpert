@@ -30,7 +30,6 @@ import {
 import { injectFetchEventSource } from './fetch-event-source'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
-
 export type TXpertVariablesOptions = {
   environmentId: string;
   xpertId: string;
@@ -46,7 +45,6 @@ export type TSandboxProvider = {
   type: string
   meta: TSandboxProviderMeta
 }
-
 
 @Injectable({ providedIn: 'root' })
 export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {

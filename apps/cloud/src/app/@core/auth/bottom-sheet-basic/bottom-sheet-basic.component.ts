@@ -2,13 +2,14 @@ import { CommonModule } from '@angular/common'
 import { Component, Inject, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { ToastrService } from '@metad/cloud/state'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { AuthInfoType } from '../types'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -16,7 +17,7 @@ import { AuthInfoType } from '../types'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatCheckboxModule,
     TranslateModule,
 

@@ -9,7 +9,6 @@ import { PAC_AUTH_OPTIONS } from '../auth.options';
 import { getDeepFromObject } from '../helpers';
 import { PacAuthResult, PacAuthService } from '../services';
 
-
 @Component({
   standalone: false,
   selector: 'pac-logout',

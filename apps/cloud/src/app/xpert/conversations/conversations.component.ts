@@ -40,7 +40,6 @@ import { AppService } from '../../app.service'
 import { XpertHomeService } from '../home.service'
 import { groupConversations } from '../types'
 
-
 @Component({
   standalone: true,
   imports: [

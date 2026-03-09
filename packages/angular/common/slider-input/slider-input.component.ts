@@ -14,7 +14,6 @@ import { ThemePalette } from '@angular/material/core'
 import { MatInputModule } from '@angular/material/input'
 import { MatSlider, MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
 
-
 /**
  * @deprecated use headless components instead
  */

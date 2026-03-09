@@ -1,6 +1,5 @@
 <div class="flex justify-start items-center gap-1">
-  <button mat-icon-button [displayDensity]="appearance()?.displayDensity"
-    (click)="$event.stopPropagation();toggleExpand()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance()?.displayDensity" (click)="$event.stopPropagation();toggleExpand()">
     @if (unfold) {
       <mat-icon>unfold_less</mat-icon>
     } @else {
@@ -28,15 +27,13 @@
     <div class="tree-node group/member rounded-md" [style.padding-left]="node.level * treeNodePaddingIndent + 'px'" [displayDensity]="appearance()?.displayDensity">
       <!-- Note that treeControl.toggle(node) is essentially what cdkTreeNodeToggle is doing under the hood -->
       @if (node.expandable) {
-        <button mat-icon-button [displayDensity]="appearance()?.displayDensity"
-          (click)="treeControl.toggle(node)"
-        >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance()?.displayDensity" (click)="treeControl.toggle(node)">
           <mat-icon class="mat-icon-rtl-mirror">
             {{ treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right' }}
           </mat-icon>
         </button>
       } @else {
-        <button mat-icon-button disabled [displayDensity]="appearance()?.displayDensity"></button>
+        <button z-button zType="ghost" zSize="icon" zShape="circle" disabled [displayDensity]="appearance()?.displayDensity"></button>
       }
 
       <mat-checkbox

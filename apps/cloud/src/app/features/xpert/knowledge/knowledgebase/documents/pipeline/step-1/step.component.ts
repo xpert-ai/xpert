@@ -34,7 +34,6 @@ import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
 
-
 @Component({
   standalone: true,
   selector: 'xp-knowledge-document-pipeline-step-1',

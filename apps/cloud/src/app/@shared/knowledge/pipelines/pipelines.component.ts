@@ -26,7 +26,6 @@ import {
 import { IconComponent } from '../../avatar'
 import { injectI18nService } from '../../i18n'
 
-
 @Component({
   standalone: true,
   selector: 'xp-pipelines',
@@ -171,7 +170,6 @@ export class XpertPipelinesComponent {
         }
       })
   }
-
 
   /**
    * handle file from browsing

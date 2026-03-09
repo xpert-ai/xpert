@@ -2,7 +2,7 @@ import { CdkDrag, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
@@ -33,7 +33,7 @@ import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChecklistComponent } from '../../common'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -47,7 +47,7 @@ import { ChecklistComponent } from '../../common'
     CdkMenuModule,
     MatTooltipModule,
     MatSelectModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatSidenavModule,
     MatFormFieldModule,

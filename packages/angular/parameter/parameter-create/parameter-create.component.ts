@@ -3,18 +3,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, inject, input, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import {
-  AbstractControl,
-  FormArray,
-  FormBuilder,
-  FormControl,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  ValidatorFn,
-  Validators
-} from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
+
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
@@ -39,6 +29,7 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter, map, startWith } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -51,7 +42,7 @@ import { filter, map, startWith } from 'rxjs'
     ReactiveFormsModule,
     DragDropModule,
     MatInputModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatFormFieldModule,
     MatButtonToggleModule,
     MatIconModule,

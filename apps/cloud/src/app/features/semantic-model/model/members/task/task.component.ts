@@ -17,7 +17,6 @@ import { attrModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 
-
 @Component({
   selector: 'model-sync-task',
   standalone: true,

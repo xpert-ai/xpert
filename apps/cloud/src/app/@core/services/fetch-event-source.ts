@@ -10,7 +10,6 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
   const auth = inject(AuthStrategy)
   const lang = injectLanguage()
 
-
   return (params: string | {url: string; method: 'POST' | 'GET'; headers?: Record<string, any>; params?: Record<string, any>}, data?: T) => {
     const url: string = typeof params === 'string' ? params : params.url
     const method = typeof params === 'object' && params.method ? params.method : 'POST'

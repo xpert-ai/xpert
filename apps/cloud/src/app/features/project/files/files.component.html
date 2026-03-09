@@ -4,8 +4,7 @@
   </div>
 
   <div class="flex">
-    <button mat-flat-button color="primary"
-      (click)="openMaterials()">
+    <button z-button zType="default" color="primary" (click)="openMaterials()">
       <mat-icon fontSet="material-icons-outlined">attach_file</mat-icon>
       <span>{{'PAC.Project.UploadFiles' | translate: {Default: 'Upload Files'} }}</span>
     </button>
@@ -21,7 +20,7 @@
     <ng-container matColumnDef="expand">
       <th mat-header-cell *matHeaderCellDef aria-label="row actions">&nbsp;</th>
       <td mat-cell *matCellDef="let element">
-        <button mat-icon-button aria-label="expand row" (click)="(expandedElement = expandedElement === element ? null : element); $event.stopPropagation()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" aria-label="expand row" (click)="(expandedElement = expandedElement === element ? null : element); $event.stopPropagation()">
           @if (expandedElement === element) {
             <mat-icon>keyboard_arrow_up</mat-icon>
           } @else {

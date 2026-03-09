@@ -12,7 +12,6 @@ import { getErrorMessage, ITag, TagCategoryEnum, TagService, ToastrService } fro
 import { TagCreatorComponent } from '../creator/creator.component'
 import { TagComponent } from '../tag/tag.component'
 
-
 @Component({
   standalone: true,
   imports: [CommonModule, FormsModule, TranslateModule, CdkListboxModule, MatInputModule, TagComponent],

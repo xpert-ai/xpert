@@ -24,7 +24,8 @@
   @apply text-zinc-700 dark:text-zinc-300;
 }
 
-.ngm-fullscreen-button.mat-mdc-icon-button {
+.ngm-fullscreen-button[z-button],
+z-button.ngm-fullscreen-button {
   @apply absolute right-4 top-4;
 }
 

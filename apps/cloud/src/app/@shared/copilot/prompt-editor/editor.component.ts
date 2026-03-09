@@ -33,7 +33,6 @@ import { agentLabel, TWorkflowVarGroup } from '../../../@core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../../agent/variable-panel/variable.component'
 
-
 declare var monaco: any
 
 @Component({

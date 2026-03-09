@@ -9,7 +9,6 @@ import { AuthStrategy } from '../auth'
 import { ChatGatewayEvent, ChatGatewayMessage } from '../types'
 import { getWebSocketUrl } from '../utils'
 
-
 @Injectable({ providedIn: 'root' })
 export class ChatWebsocketServer {
   static readonly namespace = 'chat'

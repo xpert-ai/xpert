@@ -2,7 +2,6 @@ import { Component, computed, input } from '@angular/core'
 import { IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
 
-
 @Component({
   standalone: true,
   selector: 'xpert-inline-profile',

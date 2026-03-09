@@ -63,8 +63,7 @@
                         </mat-button-toggle-group>
                     </div>
                     
-                    <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close"
-                        (click)="removeHierarchy(hierarchyGrant.hierarchy)">
+                    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeHierarchy(hierarchyGrant.hierarchy)">
                         <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
                     </button>
                 </mat-panel-description>
@@ -78,7 +77,7 @@
                         <label>{{ 'PAC.MODEL.AccessControl.TopLevel' | translate: {Default: 'Top Level'} }}:</label>
                         <div *ngIf="hierarchyGrant.topLevel" class="flex-1 flex justify-around items-center">
                             <ngm-display-behaviour style="flex: 1;" [option]="{value: hierarchyGrant.topLevel, label: hierarchyGrant.topLevelCaption}"></ngm-display-behaviour>
-                            <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" (click)="removeTopLevel(hierarchyGrant.hierarchy)">
+                            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeTopLevel(hierarchyGrant.hierarchy)">
                                 <mat-icon fontSet="material-icons-outlined">cancel</mat-icon></button>
                         </div>
                     </div>
@@ -89,7 +88,7 @@
                         <label>{{ 'PAC.MODEL.AccessControl.BottomLevel' | translate: {Default: 'Bottom Level'} }}:</label>
                         <div *ngIf="hierarchyGrant.bottomLevel" class="flex-1 flex justify-around items-center">
                             <ngm-display-behaviour [option]="{value: hierarchyGrant.bottomLevel, label: hierarchyGrant.bottomLevelCaption}" style="flex: 1;"></ngm-display-behaviour>
-                            <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" (click)="removeBottomLevel(hierarchyGrant.hierarchy)">
+                            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeBottomLevel(hierarchyGrant.hierarchy)">
                                 <mat-icon fontSet="material-icons-outlined">cancel</mat-icon></button>
                         </div>
                     </div>
@@ -101,8 +100,7 @@
                     (cdkDropListDropped)="dropMember($event, hierarchyGrant)">
                     <div class="flex justify-between items-center p-2">
                         <div class="flex items-center">
-                            <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close"
-                                (click)="clearMembers(hierarchyGrant.hierarchy)">
+                            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="clearMembers(hierarchyGrant.hierarchy)">
                                 <mat-icon fontSet="material-icons-outlined">clear_all</mat-icon>
                             </button>
                             <span >{{ 'PAC.KEY_WORDS.Member' | translate: {Default: 'Member'} }}</span>
@@ -117,8 +115,7 @@
                             *ngFor="let memberGrant of hierarchyGrant.memberGrants" cdkDrag>
                             <div class="flex justify-between items-center">
                                 <div class="flex-1 flex justify-between items-center mr-4">
-                                    <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close"
-                                        (click)="removeMember(hierarchyGrant.hierarchy, memberGrant.member)">
+                                    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeMember(hierarchyGrant.hierarchy, memberGrant.member)">
                                         <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
                                     </button>
                                     <ngm-display-behaviour class="flex-1"

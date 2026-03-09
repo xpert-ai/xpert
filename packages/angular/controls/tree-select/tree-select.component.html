@@ -27,18 +27,12 @@
       <mat-spinner [color]="appearance?.color" strokeWidth="1" diameter="20"></mat-spinner>
     }
     @if (hierarchies()?.length > 1) {
-      <button mat-icon-button class="ngm-actionable-opacity"
-        [matMenuTriggerFor]="hierarchiesMenu"
-        #mt="matMenuTrigger"
-        [class.active]="mt.menuOpen"
-        (click)="$event.stopPropagation();$event.preventDefault();">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-actionable-opacity" [matMenuTriggerFor]="hierarchiesMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
         <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
       </button>
     }
 
-    <button mat-icon-button type="button" [disabled]="disabled" class="ngm-smart-filter__help ngm-actionable-opacity"
-      (click)="$event.stopPropagation();$event.preventDefault();openValueHelp($event)"
-    >
+    <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" [disabled]="disabled" class="ngm-smart-filter__help ngm-actionable-opacity" (click)="$event.stopPropagation();$event.preventDefault();openValueHelp($event)">
       <mat-icon>help_outline</mat-icon>
     </button>
   </div>

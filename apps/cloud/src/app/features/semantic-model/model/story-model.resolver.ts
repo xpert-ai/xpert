@@ -32,7 +32,6 @@ export class StoryModelResolver  {
   }
 }
 
-
 export const semanticModelResolver: ResolveFn<ISemanticModel> = (
   route: ActivatedRouteSnapshot,
   state: RouterStateSnapshot,

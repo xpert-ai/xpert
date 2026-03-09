@@ -85,7 +85,6 @@ const actionsData = {
   loadingChanging: action('loadingChanging'),
 };
 
-
 type Story = StoryObj<NgmMemberTreeComponent>
 
 export const Primary: Story = {
@@ -136,7 +135,6 @@ export const Appearance: Story = {
     }
   },
 };
-
 
 export const AutoActiveFirst: Story = {
   args: {

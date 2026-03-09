@@ -171,10 +171,8 @@
 
         @if (type) {
           <div class="flex justify-end items-center gap-4">
-            <button mat-flat-button matStepperNext>{{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}</button>
-            <button mat-flat-button color="primary" [disabled]="dataSourceTypeFormGroup.invalid || loading()"
-              (click)="connectDatabase()"
-            >{{ 'PAC.Onboarding.ConnectDatabase' | translate: {Default: 'Connect database'} }}</button>
+            <button z-button zType="secondary" matStepperNext>{{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}</button>
+            <button z-button zType="default" color="primary" [disabled]="dataSourceTypeFormGroup.invalid || loading()" (click)="connectDatabase()">{{ 'PAC.Onboarding.ConnectDatabase' | translate: {Default: 'Connect database'} }}</button>
           </div>
         }
 

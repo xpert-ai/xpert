@@ -15,14 +15,13 @@
     cdkDrag
     [cdkDragData]="node"
   >
-    <button mat-icon-button displayDensity="cosy" disabled></button>
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" disabled></button>
 
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
     <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
       @if (node.role==='dimension') {
-        <button mat-icon-button displayDensity="cosy" color="warn"
-          (click)="onDelete($event, node)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" color="warn" (click)="onDelete($event, node)">
           <mat-icon>delete</mat-icon>
         </button>
       }
@@ -39,7 +38,7 @@
     cdkDrag
     [cdkDragData]="node"
   >
-    <button mat-icon-button matTreeNodeToggle displayDensity="cosy">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" matTreeNodeToggle displayDensity="cosy">
       <mat-icon class="mat-icon-rtl-mirror" fontSet="material-icons-round">
         {{ treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right' }}
       </mat-icon>

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, effect, input, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { ActivatedRoute } from '@angular/router'
 import { UsersService } from '@metad/cloud/state'
 import { IUserUpdateInput, LanguagesEnum } from '@metad/contracts'
@@ -11,6 +11,7 @@ import { CreatedByPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { ToastrService, User } from '../../../../@core'
 import { BasicInfoFormComponent, UserFormsModule } from '../../../../@shared/user/forms'
 import { PACEditUserComponent } from '../edit-user/edit-user.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -26,7 +27,7 @@ import { PACEditUserComponent } from '../edit-user/edit-user.component'
       }
     `
   ],
-  imports: [CommonModule, FormsModule, TranslateModule, MatButtonModule, NgmCommonModule, UserFormsModule]
+  imports: [CommonModule, FormsModule, TranslateModule, ZardButtonComponent, NgmCommonModule, UserFormsModule]
 })
 export class UserBasicComponent {
   // Inputs

@@ -5,7 +5,6 @@ import { IndicatorsStore } from '../services/store'
 import { IndicatorState, IndicatorTagEnum, StatisticalType, Trend } from '../types'
 import { IndicatorItemDataService } from './indicator-item.service'
 
-
 /**
  * @deprecated use the individual `NgmIndicatorComponent` for indicator
  */

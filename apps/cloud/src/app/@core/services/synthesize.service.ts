@@ -15,7 +15,6 @@ export class SynthesizeService {
   readonly chatService = inject(ChatService)
   readonly #translate = inject(TranslateService)
 
-
   private synthesizeSub: Subscription
   readonly synthesizeLoading = signal(false)
   readAloud(id: string, message: IChatMessage) {

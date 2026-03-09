@@ -5,7 +5,7 @@ import { Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatAutocomplete, MatAutocompleteActivatedEvent, MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatInputModule } from '@angular/material/input'
@@ -22,6 +22,7 @@ import { NgmSearchComponent } from '../common/search/search.component'
 import { NgmHighlightDirective } from '../core/directives'
 import { getCtrlCharacter, getOperatingSystem } from '../core/index'
 import { NgmCopilotEngineService, NgmCopilotService } from '../services'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use ChatKit instead
@@ -36,7 +37,7 @@ import { NgmCopilotEngineService, NgmCopilotService } from '../services'
     TranslateModule,
     FormsModule,
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatChipsModule,
     MatInputModule,
     TextFieldModule,

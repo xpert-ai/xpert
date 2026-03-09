@@ -9,7 +9,6 @@ import { KnowledgebaseCardComponent } from '../../copilot'
 import { ToolsetCardComponent } from '../toolset-card/toolset.component'
 import { EmojiAvatarComponent } from "../../avatar/emoji-avatar/avatar.component";
 
-
 @Component({
   standalone: true,
   selector: 'pac-about-xpert',

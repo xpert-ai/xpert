@@ -79,7 +79,6 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
     copilotModelId: new FormControl(null),
   })
 
-
   // readonly copilots = computed(() =>
   //   this.copilotService.copilots()?.filter((item) => item.enabled && item.organizationId === this.organizationId())
   // )

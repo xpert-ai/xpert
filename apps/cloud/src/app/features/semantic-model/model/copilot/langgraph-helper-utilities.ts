@@ -1,6 +1,5 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
-
 import { StructuredTool } from '@langchain/core/tools'
 import { AgentExecutor, createOpenAIToolsAgent } from 'langchain/agents'
 

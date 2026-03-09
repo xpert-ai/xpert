@@ -4,7 +4,6 @@ import { Indicator } from '@metad/cloud/state'
 import { FlatTreeNode, TreeNodeInterface, isString, omitBlank } from '@metad/ocap-core'
 import { DefaultCollection, ICollection } from '../../@core'
 
-
 export type ProjectIndicatorsState = {
   indicators: Indicator[]
 }

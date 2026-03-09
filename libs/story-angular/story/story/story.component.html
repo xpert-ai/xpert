@@ -25,13 +25,7 @@
 
                     <span [ngClass]="{'ngm-story--point-hidden': point.hidden && editable()}">{{ point.name }}</span>
                     
-                    <button *ngIf="editable()" mat-icon-button disableRipple displayDensity="cosy" class="ngm-story-point__tab-menu-trigger"
-                        (click)="$event.preventDefault();$event.stopPropagation()"
-                        [cdkMenuTriggerFor]="pageMenu"
-                        [cdkMenuTriggerData]="{point: point, component: story_point}"
-                        #mt="cdkMenuTriggerFor"
-                        [class.active]="mt.isOpen()"
-                    >
+                    <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="editable()" displayDensity="cosy" class="ngm-story-point__tab-menu-trigger" (click)="$event.preventDefault();$event.stopPropagation()" [cdkMenuTriggerFor]="pageMenu" [cdkMenuTriggerData]="{point: point, component: story_point}" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()">
                         <mat-icon>more_vert</mat-icon>
                     </button>
                 </div>
@@ -57,13 +51,7 @@
     </mat-tab-group>
 
     <!-- 暂时没时间实现 global filters 功能
-    <button mat-icon-button class="ngm-story__global-filter z-[100]"
-        [popper]="gFilters"
-        [popperTrigger]="NgxPopperjsTriggers.click"
-        [popperHideOnClickOutside]="true"
-        [popperHideOnScroll]="true"
-        [popperHideOnMouseLeave]="false"
-        [popperPlacement]="NgxPopperjsPlacements.TOPEND">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-story__global-filter z-[100]" [popper]="gFilters" [popperTrigger]="NgxPopperjsTriggers.click" [popperHideOnClickOutside]="true" [popperHideOnScroll]="true" [popperHideOnMouseLeave]="false" [popperPlacement]="NgxPopperjsPlacements.TOPEND">
         <mat-icon fontSet="material-icons-round">filter</mat-icon>
     </button> -->
 </div>

@@ -1,4 +1,3 @@
-<button mat-button type="button" ngmAppearance="dashed" [color]="field.formControl.value ? 'accent' : ''"
-    (click)="openCodeEditorDialog()">
+<button z-button zType="ghost" type="button" ngmAppearance="dashed" [color]="field.formControl.value ? 'accent' : ''" (click)="openCodeEditorDialog()">
     <mat-icon>code</mat-icon> {{to?.label || 'Open Editor'}}
 </button>

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, viewChild, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog } from '@angular/material/dialog'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatIconModule } from '@angular/material/icon'
@@ -27,6 +27,7 @@ import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 import { ModelTaskDialogComponent } from '../task/task.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +37,7 @@ import { ModelTaskDialogComponent } from '../task/task.component'
     TranslateModule,
     MatIconModule,
     MatExpansionModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     MatProgressSpinnerModule,
     DensityDirective,

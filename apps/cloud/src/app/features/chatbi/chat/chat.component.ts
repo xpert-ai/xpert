@@ -1,17 +1,8 @@
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  ElementRef,
-  inject,
-  model,
-  signal,
-  viewChild
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -28,6 +19,7 @@ import { ChatbiInputComponent } from '../input/input.component'
 import { ChatLoadingComponent } from '../../../@shared/copilot'
 import { AppService } from '../../../app.service'
 import { UserAvatarComponent } from '../../../@shared/user'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -40,7 +32,7 @@ import { UserAvatarComponent } from '../../../@shared/user'
     MarkdownModule,
     MatIconModule,
     MatTooltipModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatDividerModule,
     UserAvatarComponent,
 

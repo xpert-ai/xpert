@@ -343,7 +343,6 @@ export const DrillDimensions = {
   }
 }
 
-
 export const ChartTypes = {
   args: {
     title: 'Chart Types',

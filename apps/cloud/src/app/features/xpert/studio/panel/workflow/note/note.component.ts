@@ -16,7 +16,6 @@ import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { CodeEditorCardComponent } from '@cloud/app/@shared/editors'
 
-
 @Component({
   selector: 'xpert-workflow-note',
   templateUrl: './note.component.html',

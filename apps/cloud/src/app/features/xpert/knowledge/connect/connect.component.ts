@@ -73,7 +73,6 @@ export class XpertConnectKnowledgeComponent {
   // Status
   // readonly integration = computed(() => this.integrations()?.find((item) => item.value === this.integrationId()))
 
-
   create() {
     this.loading.set(true)
     this.knowledgebaseService

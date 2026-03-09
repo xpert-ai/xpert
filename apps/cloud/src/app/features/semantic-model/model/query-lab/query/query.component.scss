@@ -50,7 +50,8 @@
   font-size: 2rem;
 }
 
-.mat-mdc-icon-button {
+[z-button][data-icon-only],
+z-button[data-icon-only] {
   .emoji-loader::before {
     font-size: .75rem;
     line-height: .75rem;

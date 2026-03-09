@@ -1,22 +1,9 @@
 import { CdkDrag, CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import {
-  Component,
-  ElementRef,
-  EventEmitter,
-  HostBinding,
-  Input,
-  Output,
-  TemplateRef,
-  ViewChild,
-  computed,
-  effect,
-  inject,
-  signal
-} from '@angular/core'
+import { Component, ElementRef, EventEmitter, HostBinding, Input, Output, TemplateRef, ViewChild, computed, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -68,7 +55,7 @@ import { firstValueFrom } from 'rxjs'
 import { ExplainComponent } from '@metad/story/story'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -78,7 +65,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
     ReactiveFormsModule,
     TranslateModule,
     CdkListboxModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatButtonToggleModule,
     MatDividerModule,
     MatTooltipModule,

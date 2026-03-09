@@ -2,14 +2,8 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, forwardRef, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import {
-  AbstractControl,
-  ControlValueAccessor,
-  FormBuilder,
-  NG_VALUE_ACCESSOR,
-  ReactiveFormsModule
-} from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+import { AbstractControl, ControlValueAccessor, FormBuilder, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
+
 import { MatIconModule } from '@angular/material/icon'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
@@ -18,6 +12,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { filter } from 'rxjs/operators'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'
 import { PropertyCapacity } from '../types'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * The component `PropertySelect` array.
@@ -40,7 +35,7 @@ import { PropertyCapacity } from '../types'
     CommonModule,
     ReactiveFormsModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     TranslateModule,
     NgmCommonModule,
 

@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http'
 import { Component, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -16,12 +16,13 @@ import { cloneDeep } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { HttpStatus, Store, ToastrService, User, getErrorMessage } from '../../../@core'
 import { UserFormsModule } from '../../../@shared/user/forms'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatTabsModule,
     MatFormFieldModule,

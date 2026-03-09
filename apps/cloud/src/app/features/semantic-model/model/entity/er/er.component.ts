@@ -1,19 +1,8 @@
 import { CdkDrag, CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import {
-  Component,
-  DestroyRef,
-  ElementRef,
-  HostListener,
-  afterNextRender,
-  computed,
-  inject,
-  signal,
-  viewChild,
-  viewChildren
-} from '@angular/core'
+import { Component, DestroyRef, ElementRef, HostListener, afterNextRender, computed, inject, signal, viewChild, viewChildren } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDisplayBehaviourComponent } from '@metad/ocap-angular/common'
@@ -26,6 +15,7 @@ import { debounceTime } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
 import { ModelDesignerType } from '../../types'
 import { ModelEntityService } from '../entity.service'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -33,7 +23,7 @@ import { ModelEntityService } from '../entity.service'
     CommonModule,
     TranslateModule,
     DragDropModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatTooltipModule,
     ButtonGroupDirective,
     MatIconModule,

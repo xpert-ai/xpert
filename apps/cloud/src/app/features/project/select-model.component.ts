@@ -37,11 +37,11 @@ import { MaterialModule } from '../../@shared/material.module'
     </div>
     <mat-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button mat-button mat-dialog-close>
+        <button z-button zType="ghost" mat-dialog-close>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button mat-raised-button color="accent" [matDialogClose]="models">
+        <button z-button zType="default" color="accent" [matDialogClose]="models">
           {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
         </button>
       </div>

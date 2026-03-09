@@ -85,7 +85,8 @@ $prefix: (ngm, story-designer);
   }
 }
 
-.mat-mdc-icon-button.mat-mdc-button-base {
+[z-button][data-icon-only],
+z-button[data-icon-only] {
   --mdc-icon-button-state-layer-size: 40px;
   padding: 0;
 }

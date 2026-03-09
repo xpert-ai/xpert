@@ -20,7 +20,6 @@ import {
   language
 } from '../providers/index'
 
-
 @Component({
   standalone: true,
   imports: [CommonModule, FormsModule, MonacoEditorModule],

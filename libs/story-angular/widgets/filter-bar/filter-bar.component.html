@@ -88,28 +88,17 @@
 
     <div class="ngm-smart-filter-bar_go flex flex-wrap justify-end items-end gap-2 mx-2">
       @if (syntax() === Syntax.SQL) {
-        <button type="button" mat-stroked-button color="accent" ngmAppearance="dashed"
-          class="focus:outline outline-offset-2"
-          [displayDensity]="styling?.appearance?.displayDensity"
-          (click)="openCombinationSlicer()"
-        >
+        <button z-button zType="outline" type="button" color="accent" ngmAppearance="dashed" class="focus:outline outline-offset-2" [displayDensity]="styling?.appearance?.displayDensity" (click)="openCombinationSlicer()">
           {{ 'Story.Widgets.FilterBar.CombinationSlicer' | translate: {Default: 'Combination Slicer'} }}
         </button>
       }
 
-      <button type="submit" mat-raised-button color="primary"
-        [displayDensity]="styling?.appearance?.displayDensity"
-        [disabled]="!form.valid || loading"
-      >
+      <button z-button zType="default" type="submit" color="primary" [displayDensity]="styling?.appearance?.displayDensity" [disabled]="!form.valid || loading">
         {{ 'Story.Widgets.FilterBar.Query' | translate: {Default: 'Query'} }}
       </button>
 
       @if (editableSignal()) {
-        <button type="button" mat-stroked-button color="accent" ngmAppearance="dashed"
-          class="focus:outline outline-offset-2"
-          [displayDensity]="styling?.appearance?.displayDensity"
-          (click)="saveAsDefaultMembers()"
-        >
+        <button z-button zType="outline" type="button" color="accent" ngmAppearance="dashed" class="focus:outline outline-offset-2" [displayDensity]="styling?.appearance?.displayDensity" (click)="saveAsDefaultMembers()">
           {{ 'Story.Widgets.FilterBar.SaveAsDefaultMembers' | translate: {Default: 'Save as default members'} }}
         </button>
       }

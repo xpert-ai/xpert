@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialogModule } from '@angular/material/dialog'
@@ -17,6 +17,7 @@ import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { PACFormlyChartTypeComponent } from './chart-type.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [PACFormlyChartTypeComponent],
@@ -26,7 +27,7 @@ import { PACFormlyChartTypeComponent } from './chart-type.component'
     ReactiveFormsModule,
     DragDropModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatSelectModule,
     MatMenuModule,
     MatDialogModule,

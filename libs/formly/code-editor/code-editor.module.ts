@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { PACFormlyCodeEditorComponent } from './code-editor.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [PACFormlyCodeEditorComponent],
@@ -14,7 +15,7 @@ import { PACFormlyCodeEditorComponent } from './code-editor.component'
     FormsModule,
     ReactiveFormsModule,
     MatIconModule,
-    MatButtonModule,
+    ZardButtonComponent,
     AppearanceDirective,
     
     FormlyModule.forChild({

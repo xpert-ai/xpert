@@ -33,7 +33,6 @@ import { PropertyCapacity } from '../types'
 import { NgmMeasureSelectComponent } from '../measure-select/measure-select.component'
 import { NgmPropertyArrayComponent } from '../property-array/property-array.component'
 
-
 @Component({
   standalone: true,
   selector: 'ngm-conditional-aggregation',

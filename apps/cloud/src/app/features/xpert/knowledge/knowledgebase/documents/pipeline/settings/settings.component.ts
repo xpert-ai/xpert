@@ -84,7 +84,6 @@ export class KnowledgeDocumentPipelineSettingsComponent {
     }, { allowSignalWrites: true })
   }
 
-
   previewChunks() {
     this.previewing.set(true)
     this.kbAPI

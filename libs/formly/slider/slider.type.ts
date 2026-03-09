@@ -26,7 +26,6 @@ export interface FormlySliderFieldConfig extends FormlyFieldConfig<SliderProps> 
   type: 'slider' | Type<FormlyFieldSliderComponent>
 }
 
-
 @Component({
   standalone: true,
   selector: 'pac-formly-mat-slider',

@@ -44,29 +44,16 @@
     }
 
     @if (hierarchies()?.length > 1) {
-      <button mat-icon-button class="ngm-actionable-opacity"
-        displayDensity="compact"
-        [disabled]="disabled$()"
-        [cdkMenuTriggerFor]="hierarchiesMenu"
-        #mt="cdkMenuTriggerFor"
-        [class.active]="mt.isOpen()"
-        (click)="$event.stopPropagation();$event.preventDefault();">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-actionable-opacity" displayDensity="compact" [disabled]="disabled$()" [cdkMenuTriggerFor]="hierarchiesMenu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault();">
         <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
       </button>
     }
-    <button mat-icon-button type="button" class="ngm-actionable-opacity" displayDensity="compact"
-      [disabled]="disabled$()"
-      (click)="$event.stopPropagation();$event.preventDefault();openValueHelp()"
-    >
+    <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" class="ngm-actionable-opacity" displayDensity="compact" [disabled]="disabled$()" (click)="$event.stopPropagation();$event.preventDefault();openValueHelp()">
       <mat-icon>help_outline</mat-icon>
     </button>
 
     @if (isCalendar()) {
-      <button mat-icon-button type="button" class="ngm-actionable-opacity" displayDensity="compact"
-        [disabled]="disabled$()"
-        [cdkMenuTriggerFor]="calendarMenu"
-        (click)="$event.stopPropagation();$event.preventDefault();"
-      >
+      <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" class="ngm-actionable-opacity" displayDensity="compact" [disabled]="disabled$()" [cdkMenuTriggerFor]="calendarMenu" (click)="$event.stopPropagation();$event.preventDefault();">
         <i class="ri-time-line"></i>
       </button>
     }
@@ -87,10 +74,7 @@
       [class.mat-selected]="isSelected(option)"
     >
       <div class="flex-1 flex justify-start items-center" >
-        <button mat-icon-button [displayDensity]="_displayDensity()"
-          [style.visibility]="!option.expandable ? 'hidden' : ''"
-          [style.marginLeft.px]="option.level * treeNodePaddingIndent"
-          (click)="$event.stopPropagation(); treeControl.toggle(option)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="_displayDensity()" [style.visibility]="!option.expandable ? 'hidden' : ''" [style.marginLeft.px]="option.level * treeNodePaddingIndent" (click)="$event.stopPropagation(); treeControl.toggle(option)">
           <mat-icon class="mat-icon-rtl-mirror">
             {{treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'}}
           </mat-icon>

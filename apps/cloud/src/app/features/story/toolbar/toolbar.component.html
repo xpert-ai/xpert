@@ -8,11 +8,7 @@
             <mat-spinner color="accent" [diameter]="22" [strokeWidth]="2" />
         </div>
       } @else {
-        <button mat-icon-button [color]="(isDirty$ | async)?'accent':''"
-            [matTooltip]="'Story.Toolbar.SAVE.SAVE' | translate: {Default: 'Save'}"
-            matTooltipPosition="after"
-            [disabled]="disableSave()"
-            (click)="storyService.saveStory()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="(isDirty$ | async)?'accent':''" [matTooltip]="'Story.Toolbar.SAVE.SAVE' | translate: {Default: 'Save'}" matTooltipPosition="after" [disabled]="disableSave()" (click)="storyService.saveStory()">
           @if (isDirty$ | async) {
             <span class="absolute top-2 left-2 w-2 h-2 bg-yellow-500 rounded-full"></span>
           }
@@ -20,31 +16,19 @@
         </button>
       }
 
-        <button mat-icon-button [color]="showDetails()==='preferences'?'accent':''"
-            [matTooltip]="'Story.Toolbar.PREFERENCES.TITLE' | translate: {Default: 'Preferences'}"
-            matTooltipPosition="after"
-            (click)="togglePreferences()"
-        >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="showDetails()==='preferences'?'accent':''" [matTooltip]="'Story.Toolbar.PREFERENCES.TITLE' | translate: {Default: 'Preferences'}" matTooltipPosition="after" (click)="togglePreferences()">
             <mat-icon fontSet="material-icons-outlined">settings_applications</mat-icon>
         </button>
 
-        <button mat-icon-button [color]="showDetails()==='storyDesigner'?'accent':''"
-            [matTooltip]=" 'Story.Toolbar.GlobalStyles' | translate: {Default: 'Global Styles'} "
-            matTooltipPosition="after"
-            (click)="toggleStoryDesigner()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="showDetails()==='storyDesigner'?'accent':''" [matTooltip]=" 'Story.Toolbar.GlobalStyles' | translate: {Default: 'Global Styles'} " matTooltipPosition="after" (click)="toggleStoryDesigner()">
             <mat-icon fontSet="material-icons-round">format_color_fill</mat-icon>
         </button>
 
-        <button mat-icon-button [color]="showDetails()==='devices'?'accent':''"
-            [matTooltip]=" 'Story.Toolbar.Devices' | translate: {Default: 'Devices'} "
-            matTooltipPosition="after"
-            (click)="toggleDevices()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="showDetails()==='devices'?'accent':''" [matTooltip]=" 'Story.Toolbar.Devices' | translate: {Default: 'Devices'} " matTooltipPosition="after" (click)="toggleDevices()">
             <mat-icon fontSet="material-icons-round">devices</mat-icon>
         </button>
 
-        <button mat-icon-button [matTooltip]="editable() ? ('Story.Toolbar.Preview' | translate: {Default: 'Preview'}) : ('Story.Toolbar.Editable' | translate: {Default: 'Editable'})"
-            matTooltipPosition="after"
-            (click)="toggleEditable(!editable())">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="editable() ? ('Story.Toolbar.Preview' | translate: {Default: 'Preview'}) : ('Story.Toolbar.Editable' | translate: {Default: 'Editable'})" matTooltipPosition="after" (click)="toggleEditable(!editable())">
           @if (editable()) {
             <mat-icon fontSet="material-icons-round">edit_off</mat-icon>
           } @else {
@@ -52,9 +36,7 @@
           }
         </button>
 
-        <button mat-icon-button [matTooltip]="_fullscreen ? ('Story.Toolbar.ExitFullscreen' | translate: {Default: 'Exit Fullscreen'}) : 'Story.Toolbar.Fullscreen' | translate: {Default: 'Fullscreen'}"
-            matTooltipPosition="after"
-            (click)="_fullscreen=!_fullscreen;fullscreen.emit(_fullscreen)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="_fullscreen ? ('Story.Toolbar.ExitFullscreen' | translate: {Default: 'Exit Fullscreen'}) : 'Story.Toolbar.Fullscreen' | translate: {Default: 'Fullscreen'}" matTooltipPosition="after" (click)="_fullscreen=!_fullscreen;fullscreen.emit(_fullscreen)">
           @if (_fullscreen) {
             <mat-icon fontSet="material-icons-round">fullscreen_exit</mat-icon>
           } @else {
@@ -66,67 +48,24 @@
             {{ 'Story.Toolbar.Widgets' | translate: {Default: "Widget"} }}
         </div>
 
-        <button mat-icon-button [color]="creatingWidget() === ComponentType.AnalyticalCard?'accent':''"
-            [matTooltip]="'Story.Toolbar.INSERT.ChartCard' | translate: {Default: 'Chart'}"
-            matTooltipPosition="after"
-            [class.active]="creatingWidget() === ComponentType.AnalyticalCard"
-            draggable="true"
-            (dragstart)="dragStartHandler($event, {
-                component: ComponentType.AnalyticalCard
-            })"
-            (click)="createWidget({
-                component: ComponentType.AnalyticalCard
-            })">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="creatingWidget() === ComponentType.AnalyticalCard?'accent':''" [matTooltip]="'Story.Toolbar.INSERT.ChartCard' | translate: {Default: 'Chart'}" matTooltipPosition="after" [class.active]="creatingWidget() === ComponentType.AnalyticalCard" draggable="true" (dragstart)="dragStartHandler($event, { component: ComponentType.AnalyticalCard })" (click)="createWidget({ component: ComponentType.AnalyticalCard })">
             <mat-icon fontSet="material-icons-outlined">addchart</mat-icon>
         </button>
-        <button mat-icon-button [color]="creatingWidget() === ComponentType.AnalyticalGrid?'accent':''"
-            [matTooltip]="'Story.Toolbar.INSERT.Table' | translate: {Default: 'Table'}"
-            matTooltipPosition="after"
-            [class.active]="creatingWidget() === ComponentType.AnalyticalGrid"
-            draggable="true"
-            (dragstart)="dragStartHandler($event, { component: ComponentType.AnalyticalGrid })"
-            (click)="createWidget({
-                component: ComponentType.AnalyticalGrid
-            })">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="creatingWidget() === ComponentType.AnalyticalGrid?'accent':''" [matTooltip]="'Story.Toolbar.INSERT.Table' | translate: {Default: 'Table'}" matTooltipPosition="after" [class.active]="creatingWidget() === ComponentType.AnalyticalGrid" draggable="true" (dragstart)="dragStartHandler($event, { component: ComponentType.AnalyticalGrid })" (click)="createWidget({ component: ComponentType.AnalyticalGrid })">
             <mat-icon fontSet="material-icons-outlined">pivot_table_chart</mat-icon>
         </button>
-        <button mat-icon-button [color]="creatingWidget() === ComponentType.InputControl?'accent':''"
-            [matTooltip]="'Story.Toolbar.INSERT.InputControl' | translate: {Default: 'Input Control'}"
-            matTooltipPosition="after"
-            [class.active]="creatingWidget() === ComponentType.InputControl"
-            draggable="true"
-            (dragstart)="dragStartHandler($event, {component: ComponentType.InputControl})"
-            (click)="createWidget({
-                component: ComponentType.InputControl
-            })" >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="creatingWidget() === ComponentType.InputControl?'accent':''" [matTooltip]="'Story.Toolbar.INSERT.InputControl' | translate: {Default: 'Input Control'}" matTooltipPosition="after" [class.active]="creatingWidget() === ComponentType.InputControl" draggable="true" (dragstart)="dragStartHandler($event, {component: ComponentType.InputControl})" (click)="createWidget({ component: ComponentType.InputControl })">
             <mat-icon fontSet="material-icons-outlined">toggle_on</mat-icon>
         </button>
-        <button mat-icon-button [color]="creatingWidget() === ComponentType.KpiCard?'accent':''"
-            [matTooltip]="'Story.Toolbar.INSERT.KPI' | translate: {Default: 'KPI'}"
-            matTooltipPosition="after"
-            [class.active]="creatingWidget() === ComponentType.KpiCard"
-            draggable="true"
-            (dragstart)="dragStartHandler($event, {component: ComponentType.KpiCard})"
-            (click)="createWidget({
-                component: ComponentType.KpiCard
-            })">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="creatingWidget() === ComponentType.KpiCard?'accent':''" [matTooltip]="'Story.Toolbar.INSERT.KPI' | translate: {Default: 'KPI'}" matTooltipPosition="after" [class.active]="creatingWidget() === ComponentType.KpiCard" draggable="true" (dragstart)="dragStartHandler($event, {component: ComponentType.KpiCard})" (click)="createWidget({ component: ComponentType.KpiCard })">
             <mat-icon fontSet="material-icons-outlined">percent</mat-icon>
         </button>
-        <button mat-icon-button [color]="showDetails()==='widgets'?'accent':''"
-            matTooltipPosition="after"
-            [matTooltip]="showDetails()==='widgets' ?
-                ('Story.Toolbar.Less' | translate: {Default: 'Less'}) :
-                ('Story.Toolbar.More' | translate: {Default: 'More'})"
-            (click)="toggleWidgets()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="showDetails()==='widgets'?'accent':''" matTooltipPosition="after" [matTooltip]="showDetails()==='widgets' ? ('Story.Toolbar.Less' | translate: {Default: 'Less'}) : ('Story.Toolbar.More' | translate: {Default: 'More'})" (click)="toggleWidgets()">
             <mat-icon *ngIf="showDetails()!=='widgets'&&!onRight||showDetails()==='widgets'&&onRight">keyboard_arrow_right</mat-icon>
             <mat-icon *ngIf="showDetails()==='widgets'&&!onRight||showDetails()!=='widgets'&&onRight">keyboard_arrow_left</mat-icon>
         </button>
 
-        <button mat-icon-button displayDensity="cosy" class="ngm-copilot-command-button"
-            [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
-            matTooltipPosition="after"
-            (click)="aiChatStory()"
-            >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-copilot-command-button" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="after" (click)="aiChatStory()">
             <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
         </button>
 
@@ -137,7 +76,7 @@
   }
 
   @if (collapsible()) {
-    <button mat-icon-button (click)="toggleExpand()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" (click)="toggleExpand()">
       @if (expandLess()) {
         <mat-icon fontSet="material-icons-round">expand_less</mat-icon>
       } @else {
@@ -151,46 +90,31 @@
     [ngClass]="onRight?'border-r':'border-l'"
 >
     <div class="flex-1 flex flex-col p-2 overflow-y-auto overflow-x-hidden">
-        <button mat-icon-button [matTooltip]="'Story.Toolbar.NewPage' | translate: {Default: 'New Page'}"
-            matTooltipPosition="after"
-            (click)="showDetails.set('newPages')"
-            >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.NewPage' | translate: {Default: 'New Page'}" matTooltipPosition="after" (click)="showDetails.set('newPages')">
             <mat-icon class="ngm-story--tab-icon">add</mat-icon>
         </button>
 
-        <button mat-icon-button [matTooltip]="'Story.Toolbar.PREFERENCES.DETAILS' | translate: {Default: 'Story Details'}"
-            matTooltipPosition="after"
-            (click)="openStoryDetails()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.PREFERENCES.DETAILS' | translate: {Default: 'Story Details'}" matTooltipPosition="after" (click)="openStoryDetails()">
             <mat-icon fontSet="material-icons-outlined">settings</mat-icon>
         </button>
         <!-- <button cdkMenuItem (click)="openPreferences()">
             <mat-icon fontSet="material-icons-outlined">tune</mat-icon>
             {{ 'Story.Toolbar.PREFERENCES.PREFERENCES' | translate: {Default: "Preferences"} }}
         </button> -->
-        <button mat-icon-button [matTooltip]="'Story.Toolbar.PREFERENCES.ADVANCED_STYLE' | translate: {Default: 'Advanced Style'}"
-            matTooltipPosition="after"
-            (click)="openAdvancedStyle()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.PREFERENCES.ADVANCED_STYLE' | translate: {Default: 'Advanced Style'}" matTooltipPosition="after" (click)="openAdvancedStyle()">
             <mat-icon fontSet="material-icons-outlined">css</mat-icon>
         </button>
-        <button mat-icon-button [matTooltip]="'Story.Toolbar.PREFERENCES.Calculations' | translate: {Default: 'Calculations'}"
-            matTooltipPosition="after"
-            (click)="openCalculations()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.PREFERENCES.Calculations' | translate: {Default: 'Calculations'}" matTooltipPosition="after" (click)="openCalculations()">
             <mat-icon fontSet="material-icons-outlined">functions</mat-icon>
         </button>
-        <button mat-icon-button [matTooltip]="'Story.Toolbar.PREFERENCES.ThemeBuilder' | translate: {Default: 'Theme Builder'}"
-            matTooltipPosition="after"
-            (click)="openThemeBuilder()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.PREFERENCES.ThemeBuilder' | translate: {Default: 'Theme Builder'}" matTooltipPosition="after" (click)="openThemeBuilder()">
             <mat-icon fontSet="material-icons-outlined">palette</mat-icon>
         </button>
-        <button mat-icon-button [matTooltip]="'Story.Toolbar.PREFERENCES.Templates' | translate: {Default: 'Templates'}"
-            matTooltipPosition="after"
-            (click)="toolbarService.openTemplates()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.PREFERENCES.Templates' | translate: {Default: 'Templates'}" matTooltipPosition="after" (click)="toolbarService.openTemplates()">
             <mat-icon fontSet="material-icons-outlined">category</mat-icon>
         </button>
 
-        <button mat-icon-button [matTooltip]=" 'PAC.Project.Files' | translate: { Default: 'Files' } "
-            matTooltipPosition="after"
-            (click)="openMaterials()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]=" 'PAC.Project.Files' | translate: { Default: 'Files' } " matTooltipPosition="after" (click)="openMaterials()">
             <mat-icon fontSet="material-icons-outlined">attach_file</mat-icon>
         </button>
 
@@ -207,63 +131,34 @@
             {{ 'Story.Toolbar.PREFERENCES.SUBSCRIPTION' | translate: {Default: "Subscription"} }}
         </button> -->
 
-        <button mat-icon-button [cdkMenuTriggerFor]="saveMenu" [cdkMenuPosition]="[{
-                originX: 'end',
-                originY: 'center',
-                overlayX: 'start',
-                overlayY: 'center'
-            }]"
-            [matTooltip]="'Story.Toolbar.Edit.Title' | translate: {Default: 'Edit'}"
-            matTooltipPosition="after">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [cdkMenuTriggerFor]="saveMenu" [cdkMenuPosition]="[{ originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center' }]" [matTooltip]="'Story.Toolbar.Edit.Title' | translate: {Default: 'Edit'}" matTooltipPosition="after">
             <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
         </button>
 
-        <!-- <button mat-button cdkMenuItem [cdkMenuTriggerFor]="copyMenu">
+        <!-- <button z-button zType="ghost" cdkMenuItem [cdkMenuTriggerFor]="copyMenu">
             <mat-icon fontSet="material-icons-outlined">content_copy</mat-icon>
             {{ 'Story.Toolbar.COPY.COPY' | translate: {Default: "Copy"} }}
         </button> -->
 
-        <button mat-icon-button [matTooltip]="'Story.Toolbar.SHARE.SHARE' | translate: {Default: 'Share'}"
-            matTooltipPosition="after"
-            (click)="openShare()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.SHARE.SHARE' | translate: {Default: 'Share'}" matTooltipPosition="after" (click)="openShare()">
             <mat-icon fontSet="material-icons-outlined">share</mat-icon>
         </button>
 
-        <button mat-icon-button [matTooltip]="'Story.Toolbar.SAVE.EXPORT' | translate: {Default: 'Export'}"
-            matTooltipPosition="after"
-            [disabled]="exporting"
-            (click)="export()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.SAVE.EXPORT' | translate: {Default: 'Export'}" matTooltipPosition="after" [disabled]="exporting" (click)="export()">
             <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
         </button>
 
-        <button mat-icon-button [color]="isPanMode() ? 'accent' : ''"
-            [matTooltip]="'Story.Toolbar.PanMode' | translate: {Default: 'Pan mode (Alt)'}"
-            matTooltipPosition="after"
-            (click)="togglePanTool()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="isPanMode() ? 'accent' : ''" [matTooltip]="'Story.Toolbar.PanMode' | translate: {Default: 'Pan mode (Alt)'}" matTooltipPosition="after" (click)="togglePanTool()">
             <mat-icon fontSet="material-icons-outlined">pan_tool</mat-icon>
         </button>
 
-        <button mat-icon-button
-            [matTooltip]="'Story.Toolbar.ZoomIn' | translate: {Default: 'Zoom In (Alt +)'}"
-            matTooltipPosition="after"
-            (click)="zoomIn()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.ZoomIn' | translate: {Default: 'Zoom In (Alt +)'}" matTooltipPosition="after" (click)="zoomIn()">
             <mat-icon fontSet="material-icons-outlined">zoom_in</mat-icon>
         </button>
-        <button mat-icon-button [cdkMenuTriggerFor]="scaleMenu" [cdkMenuPosition]="[{
-                originX: 'end',
-                originY: 'center',
-                overlayX: 'start',
-                overlayY: 'center'
-            }]"
-            [matTooltip]="scale() ?? ('Story.Toolbar.Scale' | translate: {Default: 'Scale'})"
-            matTooltipPosition="after"
-        >
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [cdkMenuTriggerFor]="scaleMenu" [cdkMenuPosition]="[{ originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center' }]" [matTooltip]="scale() ?? ('Story.Toolbar.Scale' | translate: {Default: 'Scale'})" matTooltipPosition="after">
             <span class="text-xs">{{ scale() }}%</span>
         </button>
-        <button mat-icon-button
-            [matTooltip]="'Story.Toolbar.ZoomOut' | translate: {Default: 'Zoom Out (Alt -)'}"
-            matTooltipPosition="after"
-            (click)="zoomOut()">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Story.Toolbar.ZoomOut' | translate: {Default: 'Zoom Out (Alt -)'}" matTooltipPosition="after" (click)="zoomOut()">
             <mat-icon fontSet="material-icons-outlined">zoom_out</mat-icon>
         </button>
     </div>
@@ -271,7 +166,7 @@
 
 <div *ngIf="showDetails() === 'newPages'" @inOut class="pac-story-bar__detail-card relative w-96 h-full flex flex-col p-2" >
 
-    <button mat-icon-button style="position: absolute;" class="absolute right-1 top-1" (click)="showDetails.set(null)">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" style="position: absolute;" class="absolute right-1 top-1" (click)="showDetails.set(null)">
         <mat-icon>close</mat-icon>
     </button>
 
@@ -443,10 +338,7 @@
             {{ 'Story.Toolbar.DeviceFold' | translate: {Default: 'Device Fold'} }}
         </div>
         <div class="w-full flex justify-center items-center">
-            <button mat-button  [color]="deviceFold?'accent':''"
-                [matTooltip]=""
-                matTooltipPosition="after"
-                (click)="toggleDeviceFold()">
+            <button z-button zType="ghost" [color]="deviceFold?'accent':''" [matTooltip]="" matTooltipPosition="after" (click)="toggleDeviceFold()">
                 <mat-icon fontSet="material-icons-outlined">flip</mat-icon>
             </button>
         </div>
@@ -476,8 +368,8 @@
 
 <ng-template #saveMenu>
     <div cdkMenu displayDensity="cosy">
-        <button cdkMenuItem [disabled]="isNotDirty$ | async"
-            [class.mat-accent]="isDirty$ | async"
+        <button z-button zType="ghost" cdkMenuItem [disabled]="isNotDirty$ | async"
+            [color]="(isDirty$ | async) ? 'accent' : null"
             (click)="storyService.saveStory()">
             {{ 'Story.Toolbar.SAVE.SAVE' | translate: {Default: "Save"} }}
         </button>

@@ -8,11 +8,7 @@
                     </span>
 
                     <span class="flex flex-1"></span>
-                    <button mat-icon-button color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin"
-                        cdkDropList
-                        [cdkDropListEnterPredicate]="levelRemovePredicate"
-                        (cdkDropListDropped)="removeLevel($event)"
-                    >
+                    <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="levelRemovePredicate" (cdkDropListDropped)="removeLevel($event)">
                         <mat-icon color="warn" fontSet="material-icons-round">delete</mat-icon>
                     </button>
                 </mat-toolbar>
@@ -48,11 +44,7 @@
                         {{ 'PAC.MODEL.DIMENSION.DimensionTables' | translate: {Default: 'Dimension Tables'} }}
                     </span>
                     
-                    <button mat-icon-button color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin"
-                        cdkDropList
-                        [cdkDropListEnterPredicate]="tableRemovePredicate"
-                        (cdkDropListDropped)="removeTable($event)"
-                        >
+                    <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="tableRemovePredicate" (cdkDropListDropped)="removeTable($event)">
                         <mat-icon color="warn" fontSet="material-icons-round">delete</mat-icon>
                     </button>
                 </mat-toolbar>
@@ -112,9 +104,7 @@
                             </mat-button-toggle>
                         </mat-button-toggle-group>
 
-                        <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
-                            (click)="refresh()"
-                        >
+                        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action" (click)="refresh()">
                             <mat-icon fontSet="material-icons-round">refresh</mat-icon>
                         </button>
                     </div>

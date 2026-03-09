@@ -47,7 +47,6 @@ import {
 } from 'rxjs'
 import { EntityCapacity, EntitySchemaType } from './types'
 
-
 export interface EntitySchemaNode extends EntityProperty {
   type?: EntitySchemaType
   raw?: any

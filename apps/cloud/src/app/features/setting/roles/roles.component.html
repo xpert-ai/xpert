@@ -15,15 +15,14 @@
               {{ option.name }}
             </span>
 
-            <button *ngIf="!option.isSystem" mat-icon-button displayDensity="compact" class="pac-tab-close"
-              (click)="remove(option)">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="!option.isSystem" displayDensity="compact" class="pac-tab-close" (click)="remove(option)">
               <mat-icon>cancel</mat-icon>
             </button>
         </span>
       }
     </nav>
 
-    <button mat-icon-button displayDensity="cosy" class="shrink-0" (click)="create()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="shrink-0" (click)="create()">
       <mat-icon>add_circle_outline</mat-icon>
     </button>
   </div>

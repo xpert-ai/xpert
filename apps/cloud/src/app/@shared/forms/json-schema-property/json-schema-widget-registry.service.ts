@@ -2,7 +2,6 @@ import { Inject, Injectable, InjectionToken, Optional, Provider, Type, signal, W
 import { JsonSchema7TypeUnion } from 'zod-to-json-schema'
 import { TWorkflowVarGroup } from '../../../@core'
 
-
 export interface JsonSchemaWidgetStrategy {
   /**
    * Unique name of widget

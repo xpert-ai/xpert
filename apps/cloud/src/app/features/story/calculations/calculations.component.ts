@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common'
 import { Component, ViewContainerRef, computed, effect, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
@@ -27,6 +27,7 @@ import {
 import { NxStoryService } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareReplay, switchMap, tap } from 'rxjs'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +37,7 @@ import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareRepla
     DragDropModule,
     RouterModule,
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatListModule,
     MatDividerModule,

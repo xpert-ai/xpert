@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, ElementRef, HostListener, inject, input, model, output, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatIconModule } from '@angular/material/icon'
 import { getErrorMessage, injectToastr, ProjectAPIService } from '@cloud/app/@core'
 import { convertIndicatorResult, ICertification, IIndicator, IndicatorsService, IndicatorStatusEnum, ISemanticModel, Store, TIndicatorDraft, TMessageContentIndicator } from '@metad/cloud/state'
@@ -35,6 +35,7 @@ import { injectI18nService } from '../../i18n'
 import { XpIndicatorRegisterFormComponent } from '../register-form/register-form.component'
 import { exportIndicator } from '../types'
 import { ChecklistComponent } from '../../common'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -46,7 +47,7 @@ import { ChecklistComponent } from '../../common'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatTooltipModule,
     NgmSpinComponent,

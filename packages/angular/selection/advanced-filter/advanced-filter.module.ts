@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
+
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -13,6 +13,7 @@ import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@me
 import { NgmEntityModule } from '@metad/ocap-angular/entity'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmAdvancedFilterComponent } from './advanced-filter.component'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * "Advanced Filter" 同 "Combination Slicer"
@@ -24,7 +25,7 @@ import { NgmAdvancedFilterComponent } from './advanced-filter.component'
     FormsModule,
     DragDropModule,
     MatDialogModule,
-    MatButtonModule,
+    ZardButtonComponent,
     MatIconModule,
     MatFormFieldModule,
     MatSelectModule,

@@ -47,7 +47,7 @@
 
   <div class="flex justify-start">
     <div ngmButtonGroup>
-      <button mat-raised-button color="accent" cdkFocusInitial [disabled]="formGroup.invalid || formGroup.pristine" (click)="create()">
+      <button z-button zType="default" color="accent" cdkFocusInitial [disabled]="formGroup.invalid || formGroup.pristine" (click)="create()">
         <span>
           {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
         </span>
