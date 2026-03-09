@@ -134,6 +134,17 @@ export class XpertChatAppComponent {
 
     effect(
       () => {
+        this.paramRole()
+        // Reset staged parameters when switching role in "new chat" context.
+        if (!this.paramConvId()) {
+          this.parametersValue.set({})
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
         if (this.parametersValue()) {
           this.chatService.parametersValue.set(this.parametersValue())
         }

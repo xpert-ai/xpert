@@ -1,0 +1,141 @@
+---
+title: Message Assembly V2
+description: Unified multi-source message assembly architecture for backend, frontend, and integrations
+---
+
+This document explains Xpert's upgrade solution for multi-source message assembly, aiming to provide developers and AI agents with unified, reusable, and verifiable rules when extending chat workflows.
+
+## Background
+
+Chat output comes from multiple sources and interleaves into a single AI message:
+
+- Answer node text
+- Agent model streaming text
+- Tool events producing component/reasoning/text
+- Third-party channels (Lark/WeCom) text aggregation
+
+Direct string concatenation causes semantic adhesion issues—for example, code block closing `` ` `` attached to following text on the same line, breaking markdown rendering and reading semantics.
+
+## Design Goals
+
+- Provide a single assembly rule in `@metad/contracts` for shared frontend/backend use.
+- Default to "adhesion prevention first" strategy for cross-source text.
+- Preserve existing id-based update behavior for `reasoning` and `component`.
+- No dependency on `@metad/copilot` (deprecated).
+
+## Core Types and API
+
+Location: `packages/contracts/src/ai/message-content.utils.ts`
+
+- `appendMessageContent(message, incoming, context?)`
+- `appendMessagePlainText(acc, incoming, context?)`
+- `stringifyMessageContent(content)`
+- `filterMessageText(content)`
+- `inferMessageAppendContext(incoming, fallbackSource?)`
+- `resolveMessageAppendContext(options)`
+- `createMessageAppendContextTracker(initial?)`
+
+Core context type:
+
+```ts
+type TMessageAppendContext = {
+  source?: string
+  streamId?: string
+  joinHint?: 'none' | 'space' | 'line' | 'paragraph'
+}
+```
+
+## Assembly Rules
+
+### 1) Normalization
+
+- `incoming: string` is normalized to a text chunk (optionally with `id=streamId`).
+
+### 2) Direct Concatenation Conditions
+
+- Only merge without separators (`joinHint: 'none'`) when source and streamId match.
+
+### 3) Cross-segment Separation Strategy (no explicit `joinHint`)
+
+- If prior segment ends with `` ` `` and next segment has no leading whitespace: insert `\n`
+- `component -> text`: insert `\n\n`
+- Other cross-segment text: insert minimal safe separator (typically `\n`)
+
+### 4) Non-text Behavior
+
+- `reasoning`: append consecutively by same `id`
+- `component`: upsert by same `id` (preserve existing `created_date`)
+
+## Recommended Pattern: Tracker
+
+The essence of `lastMessageAppendContext` is "the append context cursor of the prior segment."  
+V2 recommends using `createMessageAppendContextTracker()` to encapsulate this state progression, avoiding manual tracking at each call:
+
+- `previous -> resolve -> append -> previous = appendContext`
+
+Example:
+
+```ts
+const tracker = createMessageAppendContextTracker()
+
+const { messageContext } = tracker.resolve({
+  incoming: event.data,
+  fallbackSource: 'chat_stream',
+  fallbackStreamId: currentMessageId
+})
+
+appendMessageContent(aiMessage, event.data, messageContext)
+output = appendMessagePlainText(output, event.data, messageContext)
+```
+
+Call `tracker.reset()` at session start/end boundaries.
+
+## Stable streamId Strategy
+
+To prevent merging different responses, all text sources should have stable stream identifiers:
+
+- Answer node output uses `answerStreamId = ${thread_id}:${node.key}:${executionId}:answer`
+  - File: `packages/server-ai/src/xpert-agent/workflow/answer/node.ts`
+- Model streaming text consistently written via `createTextChunk(..., { streamId })`
+  - File: `packages/server-ai/src/shared/agent/stream-text.ts`
+
+## Key Integration Points
+
+### Server
+
+- `packages/server-ai/src/xpert/commands/handlers/chat.handler.ts`
+- `packages/server-ai/src/chat/commands/handlers/chat-common.handler.ts`
+- `packages/server-ai/src/ai/thread.controller.ts` (`runWait`)
+- `packages/server-ai/src/integration-lark/commands/handlers/chat-xpert.handler.ts`
+- `packages/server-ai/src/integration-wecom/commands/handlers/chat-xpert.handler.ts`
+
+### Cloud
+
+- `apps/cloud/src/app/xpert/chat.service.ts`
+- `apps/cloud/src/app/@shared/chat/preview/preview.component.ts`
+
+## Consistency Constraints (for developers and AI agents)
+
+When adding new message sources, follow:
+
+1. Always use the assembler provided by contracts; never do raw string concatenation.
+2. Provide stable `source` and `streamId` (or `fallbackStreamId`) for new sources.
+3. Reset tracker at session boundaries to avoid cross-turn contamination.
+4. Do not modify the `id` semantics of `reasoning/component`.
+5. Text outlets (UI/third-party responses/wait interfaces) should reuse `appendMessagePlainText` when possible.
+
+## Test Coverage
+
+Location: `packages/contracts/src/ai/message-content.utils.spec.ts`
+
+- Same-stream merging of string/text
+- Multi-stream interleave order preservation
+- Auto line-break after code block fence
+- `text + component + text` segmentation
+- Tracker resolve/reset behavior
+- `reasoning` merging and `component` upsert
+
+## Out of Scope
+
+- No historical message data migration
+- No replacement of unrelated legacy functions in this task

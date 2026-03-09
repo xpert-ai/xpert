@@ -27,11 +27,11 @@ export class AIProvidersService {
 	 * @param throwError 
 	 * @returns 
 	 */
-	getProvider(name: string, throwError = false): IAIModelProviderStrategy | undefined {
+	getProvider(name: string, throwError = false, organizationId?: string): IAIModelProviderStrategy | undefined {
 		let provider: IAIModelProviderStrategy | undefined = null
 		if (name) {
 			try {
-				provider = this.strategyRegistry.get(name)
+				provider = this.strategyRegistry.get(name, organizationId)
 			} catch (error) {
 				provider = this.registry.getProvider(name)
 			}

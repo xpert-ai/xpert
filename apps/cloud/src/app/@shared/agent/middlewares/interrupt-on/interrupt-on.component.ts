@@ -1,5 +1,16 @@
 import { CommonModule } from '@angular/common'
-import { afterNextRender, booleanAttribute, ChangeDetectorRef, Component, computed, effect, inject, input, Signal, signal } from '@angular/core'
+import {
+  afterNextRender,
+  booleanAttribute,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  Signal,
+  signal
+} from '@angular/core'
 import { ControlValueAccessor, FormsModule } from '@angular/forms'
 import { JSON_SCHEMA_WIDGET_CONTEXT } from '@cloud/app/@shared/forms'
 import { myRxResource } from '@metad/ocap-angular/core'
@@ -98,8 +109,7 @@ export class AgentInterruptOnComponent implements ControlValueAccessor {
     }
 
     const middlewareConnections = (draft.connections ?? []).filter(
-      (connection) =>
-        connection.type === 'workflow' && normalizeKey(connection.from) === normalizeKey(agentNode.key)
+      (connection) => connection.type === 'workflow' && normalizeKey(connection.from) === normalizeKey(agentNode.key)
     )
 
     const unique = new Map<string, { provider: string; options: Record<string, any> }>()
@@ -132,8 +142,8 @@ export class AgentInterruptOnComponent implements ControlValueAccessor {
 
       return combineLatest(
         request.map((item) =>
-          this.agentAPI.getAgentMiddlewareTools(item.provider, item.options).pipe(
-            map((tools) => tools?.map((tool) => ({ name: tool.name, description: tool.description })) ?? []),
+          this.agentAPI.getAgentMiddleware(item.provider, item.options).pipe(
+            map(({ tools }) => tools?.map((tool) => ({ name: tool.name, description: tool.description })) ?? []),
             catchError(() => of<ToolOption[]>([]))
           )
         )
@@ -271,7 +281,7 @@ export class AgentInterruptOnComponent implements ControlValueAccessor {
     afterNextRender(() => {
       setTimeout(() => {
         this.#cdr.detectChanges()
-      }, 1000);
+      }, 1000)
     })
   }
 

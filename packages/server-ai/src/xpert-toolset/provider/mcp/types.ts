@@ -23,12 +23,27 @@ export async function createMCPClient(
 	const mcpServers = {}
 	let server: TMCPServer = null
 	const servers = schema.servers ?? schema.mcpServers
-	// Connect to a remote server via SSE
+	// Connect to a remote server via SSE or HTTP
 	for await (const serverName of Object.keys(servers)) {
 		server = servers[serverName]
 		const name = serverName || toolset.name || 'default'
 		const transport = server.type?.toLowerCase()
-		if (transport === MCPServerType.SSE || (!transport && server.url)) {
+		if (transport === MCPServerType.HTTP) {
+			const headers = server.headers ?? {}
+			for await (const name of Object.keys(headers)) {
+				headers[name] = await PromptTemplate.fromTemplate(headers[name], {
+					templateFormat: 'mustache'
+				}).format(envState)
+			}
+			mcpServers[name] = omitBy(
+				{
+					...server,
+					transport: 'http',
+					headers,
+				},
+				isNil
+			)
+		} else if (transport === MCPServerType.SSE || (!transport && server.url)) {
 			const headers = server.headers ?? {}
 			for await (const name of Object.keys(headers)) {
 				headers[name] = await PromptTemplate.fromTemplate(headers[name], {

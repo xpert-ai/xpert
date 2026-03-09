@@ -4,55 +4,79 @@ import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
 import { CompiledStateGraph, isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentComponent, TMessageContentReasoning, TMessageContentText, TXpertAgentConfig, TXpertTeamNode} from '@metad/contracts'
+import {
+	agentLabel,
+	ChatMessageEventTypeEnum,
+	ChatMessageStepCategory,
+	ChatMessageTypeEnum,
+	isAgentKey,
+	IXpert,
+	IXpertAgent,
+	TMessageChannel,
+	TMessageComponent,
+	TMessageComponentStep,
+	TMessageContentComponent,
+	TMessageContentReasoning,
+	TXpertAgentConfig,
+	TXpertTeamNode
+} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
-import { AgentStateAnnotation } from '../shared'
+import { AgentStateAnnotation, createTextChunk } from '../shared'
 
 /**
- * Create an operator function that intercepts Langgraph events, 
+ * Create an operator function that intercepts Langgraph events,
  * passes the message content through, and sends other events to client by sse subscriber.
- * 
- * @param logger 
- * @param subscriber 
- * @param options 
- * @returns 
+ *
+ * `metadata.internal` usage:
+ * - Upstream runnables can mark an event or node with `metadata.internal = true`.
+ * - Internal events are treated as server-only signals and are not forwarded to client streams.
+ *
+ * @param logger
+ * @param subscriber
+ * @param options
+ * @returns
  */
 export function createMapStreamEvents(
 	logger: Logger,
 	subscriber: Subscriber<MessageEvent>,
 	options?: {
-		agent?: IXpertAgent;
+		agent?: IXpertAgent
 		unmutes: TXpertAgentConfig['mute']
 		xperts?: IXpert[]
 	}
 ) {
 	const { agent, unmutes, xperts } = options ?? {}
-	// let collectingResult = ''
 	const eventStack: string[] = []
 	let prevEvent = ''
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
+
 	const processFun = ({ event, tags, data, ...rest }: any) => {
-		const langgraph_node = rest.metadata.langgraph_node
+		const metadata = rest?.metadata ?? {}
+		if (metadata.internal === true) {
+			return null
+		}
+		const langgraph_node = metadata.langgraph_node
 		const agentKey = isAgentKey(langgraph_node) && langgraph_node !== agent?.key ? langgraph_node : null
 		const xpert = xperts?.find((_) => _.agent?.key === agentKey)
+		const xpertName = metadata.xpertName || xpert?.name
 
 		if (Logger.isLevelEnabled('debug')) {
 			if (event === 'on_chat_model_stream') {
 				if (prevEvent === 'on_chat_model_stream') {
 					process.stdout.write('.')
 				} else {
-					logger.debug(`on_chat_model_stream [${ agent ? agentLabel(agent) : 'common'}]`)
+					logger.debug(`on_chat_model_stream [${agent ? agentLabel(agent) : 'common'}]`)
 				}
 			} else {
 				if (prevEvent === 'on_chat_model_stream') {
 					process.stdout.write('\n')
 				}
-				logger.debug(`${event} [${ agent ? agentLabel(agent) : 'common'}]`)
+				logger.debug(`${event} [${agent ? agentLabel(agent) : 'common'}]`)
 			}
 		} else {
-			logger.verbose(`${event} [${ agent ? agentLabel(agent) : 'common'}]`)
+			logger.verbose(`${event} [${agent ? agentLabel(agent) : 'common'}]`)
 		}
 
 		switch (event) {
@@ -63,7 +87,7 @@ export function createMapStreamEvents(
 			case 'on_chain_end': {
 				let _event = eventStack.pop()
 				if (_event === 'on_tool_start') {
-					// 当调用 Tool 报错异常时会跳过 on_tool_end 事件，直接到此事件
+					// When an error occurs during the Tool call, the on_tool_end event is skipped, and the call proceeds directly to this event.
 					while (_event === 'on_tool_start') {
 						_event = eventStack.pop()
 					}
@@ -87,7 +111,11 @@ export function createMapStreamEvents(
 				if (prevEvent !== 'on_chat_model_stream') {
 					if (!isMute(tags, unmutes)) {
 						const msg = data.output as AIMessageChunk
-						return msg.content
+						return createTextChunk(msg?.content ?? '', {
+							streamId: msg?.id || rest?.run_id,
+							agentKey,
+							xpertName
+						})
 					}
 				}
 				return null
@@ -99,58 +127,30 @@ export function createMapStreamEvents(
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
-							const chunk = {
-								type: "text",
-								text: '',
-								id: msg.id,
-								created_date: new Date()
-							} as TMessageContentText
-							if (agentKey) {
-								chunk.agentKey = agentKey
-							}
-							if (rest.metadata.xpertName) {
-								chunk.xpertName = rest.metadata.xpertName
-							} else if (xpert) {
-								chunk.xpertName = xpert.name
-							}
-							
-							if (typeof msg.content === 'string') {
-								chunk.text += msg.content
-							} else {
-								chunk.text += msg.content.map((_) => (_.type === 'text' || _.type === 'text_delta') ? _.text : '').join('')
-							}
-							return chunk
+							return createTextChunk(msg.content, {
+								streamId: msg.id || rest?.run_id,
+								agentKey,
+								xpertName
+							})
 						}
 
 						// Reasoning content in additional_kwargs
 						if (msg.additional_kwargs?.reasoning_content) {
 							const chunk = {
-								type: "reasoning",
+								type: 'reasoning',
 								text: '',
-								id: msg.id,
+								id: msg.id || rest?.run_id,
 								created_date: new Date()
 							} as TMessageContentReasoning
 							if (agentKey) {
 								chunk.agentKey = agentKey
 							}
-							if (rest.metadata.xpertName) {
-								chunk.xpertName = rest.metadata.xpertName
-							} else if (xpert) {
-								chunk.xpertName = xpert.name
+							if (xpertName) {
+								chunk.xpertName = xpertName
 							}
-							
+
 							chunk.text += msg.additional_kwargs.reasoning_content
 							return chunk
-
-							// subscriber.next({
-							// 	data: {
-							// 		type: ChatMessageTypeEnum.MESSAGE,
-							// 		data: {
-							// 			type: 'reasoning',
-							// 			content: msg.additional_kwargs.reasoning_content
-							// 		}
-							// 	}
-							// } as MessageEvent)
 						}
 					}
 				}
@@ -159,11 +159,36 @@ export function createMapStreamEvents(
 
 			case 'on_chain_stream': {
 				if (!isMute(tags, unmutes)) {
-					const msg = data.chunk as AIMessageChunk
-					if (!msg.tool_call_chunks?.length) {
-						if (msg.content) {
-							return msg.content
-						}
+					const chunk = data?.chunk as unknown
+
+					if (typeof chunk === 'string') {
+						return createTextChunk(chunk, {
+							streamId: rest?.run_id,
+							agentKey,
+							xpertName
+						})
+					}
+
+					if (!chunk || typeof chunk !== 'object') {
+						break
+					}
+
+					const message = chunk as {
+						id?: string
+						content?: unknown
+						tool_call_chunks?: unknown[]
+					}
+
+					if (Array.isArray(message.tool_call_chunks) && message.tool_call_chunks.length) {
+						break
+					}
+
+					if (typeof message.content === 'string' || Array.isArray(message.content)) {
+						return createTextChunk(message.content, {
+							streamId: message.id ?? rest?.run_id,
+							agentKey,
+							xpertName
+						})
 					}
 				}
 				break
@@ -212,7 +237,7 @@ export function createMapStreamEvents(
 				// logger.verbose(data, rest)
 				const _event = eventStack.pop()
 				if (_event !== 'on_tool_start') {
-					// 应该不会出现这种情况吧？
+					// That shouldn't happen, right?
 					eventStack.pop()
 				}
 
@@ -224,25 +249,14 @@ export function createMapStreamEvents(
 						output = toolMessage
 					}
 				}
-				// subscriber.next({
-				// 	data: {
-				// 		type: ChatMessageTypeEnum.EVENT,
-				// 		event: ChatMessageEventTypeEnum.ON_TOOL_END,
-				// 		data: {
-				// 			data: { ...data, output },
-				// 			tags,
-				// 			...rest
-				// 		}
-				// 	}
-				// } as MessageEvent)
 
 				const tool_call_id = data.output?.tool_call_id || data.id || rest.metadata.tool_call_id
 				if (tool_call_id) {
 					const component: any = {
-									// category: 'Computer',
-									status: 'success',
-									end_date: new Date(),
-								}
+						// category: 'Computer',
+						status: 'success',
+						end_date: new Date()
+					}
 					if (isBaseMessage(output) && isToolMessage(output)) {
 						if (output.content) {
 							component.output = output.content
@@ -302,7 +316,7 @@ export function createMapStreamEvents(
 								category: 'Computer',
 								end_date: new Date(),
 								status: 'success',
-								data: data.output,
+								data: data.output
 							} as Partial<TMessageComponent<TMessageComponentStep>>
 						} as TMessageContentComponent
 					}
@@ -313,19 +327,6 @@ export function createMapStreamEvents(
 				// logger.verbose(data, rest)
 				switch (rest.name) {
 					case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
-						// subscriber.next({
-						// 	data: {
-						// 		type: ChatMessageTypeEnum.EVENT,
-						// 		event: ChatMessageEventTypeEnum.ON_TOOL_ERROR,
-						// 		data: {
-						// 			...rest,
-						// 			...data,
-						// 			name: toolsMap[data.toolCall.name] ?? data.toolCall.name,
-						// 			tags
-						// 		}
-						// 	}
-						// } as MessageEvent)
-
 						subscriber.next({
 							data: {
 								type: ChatMessageTypeEnum.MESSAGE,
@@ -338,7 +339,7 @@ export function createMapStreamEvents(
 										toolset_id: rest.metadata.toolsetId,
 										tool: data.toolCall?.name,
 										status: 'fail',
-										end_date: new Date(),
+										end_date: new Date()
 									} as TMessageComponent<TMessageComponentStep>
 								}
 							}
@@ -375,28 +376,13 @@ export function createMapStreamEvents(
 											...data,
 											category: data.category,
 											type: data.type,
-											data: data.data,
+											data: data.data
 										} as TMessageComponent<TMessageComponentStep>
 									} as TMessageContentComponent
 								}
 							} as MessageEvent)
 						} else {
 							logger.warn(`Unsupported custom_event & tool message category: ${data.category}`, data)
-							/**
-							 * Others are displayed as execution steps (event) temporarily
-							 */
-							// subscriber.next({
-							// 	data: {
-							// 		type: ChatMessageTypeEnum.EVENT,
-							// 		event: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
-							// 		data: {
-							// 			tags,
-							// 			...rest,
-							// 			...data,
-							// 			created_date: new Date()
-							// 		}
-							// 	}
-							// } as MessageEvent)
 						}
 						break
 					}
@@ -426,14 +412,13 @@ export function createMapStreamEvents(
 
 	return (event) => {
 		const content = processFun(event)
-		// collectingResult += messageContentText(content)
 		return content
 	}
 }
 
 /**
  * Nodes without tags will default to unmute output. If you want to mute certain nodes, please add tags.
- * 
+ *
  * @param tags Tags of graph node
  * @param unmutes List of unmute tag groups
  * @returns Is mute
@@ -447,81 +432,85 @@ function isMute(tags: string[], unmutes: TXpertAgentConfig['mute']) {
 }
 
 export class FakeStreamingChatModel extends BaseChatModel {
-	sleep?: number = 50;
-  
-	responses?: BaseMessage[];
-  
-	thrownErrorString?: string;
-  
+	sleep?: number = 50
+
+	responses?: BaseMessage[]
+
+	thrownErrorString?: string
+
 	constructor(
-	  fields: {
-		sleep?: number;
-		responses?: BaseMessage[];
-		thrownErrorString?: string;
-	  } & BaseLLMParams
+		fields: {
+			sleep?: number
+			responses?: BaseMessage[]
+			thrownErrorString?: string
+		} & BaseLLMParams
 	) {
-	  super(fields);
-	  this.sleep = fields.sleep ?? this.sleep;
-	  this.responses = fields.responses;
-	  this.thrownErrorString = fields.thrownErrorString;
+		super(fields)
+		this.sleep = fields.sleep ?? this.sleep
+		this.responses = fields.responses
+		this.thrownErrorString = fields.thrownErrorString
 	}
-  
+
 	_llmType() {
-	  return "fake";
+		return 'fake'
 	}
-  
+
 	async _generate(
-	  messages: BaseMessage[],
-	  _options: this["ParsedCallOptions"],
-	  _runManager?: CallbackManagerForLLMRun
+		messages: BaseMessage[],
+		_options: this['ParsedCallOptions'],
+		_runManager?: CallbackManagerForLLMRun
 	): Promise<ChatResult> {
-	  if (this.thrownErrorString) {
-		throw new Error(this.thrownErrorString);
-	  }
-  
-	  const content = this.responses?.[0].content ?? messages[0].content;
-	  const generation: ChatResult = {
-		generations: [
-		  {
-			text: "",
-			message: new AIMessage({
-			  content,
-			}),
-		  },
-		],
-	  };
-  
-	  return generation;
+		if (this.thrownErrorString) {
+			throw new Error(this.thrownErrorString)
+		}
+
+		const response = this.responses?.[0] ?? messages[0]
+		const content = response?.content
+		const responseId = response?.id
+		const generation: ChatResult = {
+			generations: [
+				{
+					text: '',
+					message: new AIMessage({
+						id: responseId,
+						content
+					})
+				}
+			]
+		}
+
+		return generation
 	}
-  
+
 	async *_streamResponseChunks(
-	  messages: BaseMessage[],
-	  _options: this["ParsedCallOptions"],
-	  _runManager?: CallbackManagerForLLMRun
+		messages: BaseMessage[],
+		_options: this['ParsedCallOptions'],
+		_runManager?: CallbackManagerForLLMRun
 	): AsyncGenerator<ChatGenerationChunk> {
-	  if (this.thrownErrorString) {
-		throw new Error(this.thrownErrorString);
-	  }
-	  const content = this.responses?.[0].content ?? messages[0].content;
-	  if (typeof content !== "string") {
-		for (const _ of this.responses ?? messages) {
-		  yield new ChatGenerationChunk({
-			text: "",
-			message: new AIMessageChunk({
-			  content,
-			}),
-		  });
+		if (this.thrownErrorString) {
+			throw new Error(this.thrownErrorString)
 		}
-	  } else {
-		for (const _ of this.responses ?? messages) {
-		  yield new ChatGenerationChunk({
-			text: content,
-			message: new AIMessageChunk({
-			  content,
-			}),
-		  });
+		for (const response of this.responses ?? messages) {
+			const content = response.content
+			const responseId = response.id
+			if (typeof content !== 'string') {
+				yield new ChatGenerationChunk({
+					text: '',
+					message: new AIMessageChunk({
+						id: responseId,
+						content
+					})
+				})
+			} else {
+				yield new ChatGenerationChunk({
+					text: content,
+					message: new AIMessageChunk({
+						id: responseId,
+						content
+					})
+				})
+			}
 		}
-	  }
 	}
 }
 
@@ -540,9 +529,9 @@ export function getChannelState(state, channel: string): TMessageChannel {
 }
 
 export type TAgentSubgraphResult = {
-	agent: IXpertAgent; 
-	graph: CompiledStateGraph<unknown, unknown, any, typeof AgentStateAnnotation.spec, typeof AgentStateAnnotation.spec>;
-	nextNodes: TXpertTeamNode[];
+	agent: IXpertAgent
+	graph: CompiledStateGraph<unknown, unknown, any, typeof AgentStateAnnotation.spec, typeof AgentStateAnnotation.spec>
+	nextNodes: TXpertTeamNode[]
 	failNode: TXpertTeamNode
 	mute?: TXpertAgentConfig['mute']
 }

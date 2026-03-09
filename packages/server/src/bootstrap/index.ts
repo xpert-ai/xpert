@@ -3,6 +3,7 @@ import { INestApplication, Type } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 // import { SentryService } from '@ntegral/nestjs-sentry';
+import { Logger } from 'nestjs-pino';
 import expressSession from 'express-session';
 import helmet from 'helmet';
 import chalk from 'chalk';
@@ -23,8 +24,10 @@ export async function bootstrap(
 	
 	const { BootstrapModule } = await import('./bootstrap.module');
 	const app = await NestFactory.create<NestExpressApplication>(BootstrapModule, {
-		logger: ['error', 'warn']
+		bufferLogs: true
 	});
+
+	app.useLogger(app.get(Logger));
 
 	// This will lockdown all routes and make them accessible by authenticated users only.
 	const reflector = app.get(Reflector);

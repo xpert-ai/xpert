@@ -1,5 +1,8 @@
 import { tool } from '@langchain/core/tools'
-import { TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@metad/contracts'
+import {
+  TAgentMiddlewareMeta,
+  TAgentRunnableConfigurable
+} from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   AgentMiddleware,
@@ -10,6 +13,7 @@ import {
   PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
+import { getToolCallId, withStreamingToolMessage } from './toolMessageUtils'
 
 const SANDBOX_SHELL_MIDDLEWARE_NAME = 'SandboxShell'
 const SANDBOX_SHELL_TOOL_NAME = 'sandbox_shell'
@@ -54,7 +58,17 @@ export class SandboxShellMiddleware implements IAgentMiddlewareStrategy {
           throw new Error('Sandbox backend is not available for SandboxShell.')
         }
 
-        return backend.execute(command)
+        const result = await withStreamingToolMessage(
+          getToolCallId(config),
+          SANDBOX_SHELL_TOOL_NAME,
+          command,
+          backend
+        )
+
+        if (result.exitCode !== 0) {
+          return `Exit code ${result.exitCode}\n${result.output}`
+        }
+        return result.output
       },
       {
         name: SANDBOX_SHELL_TOOL_NAME,

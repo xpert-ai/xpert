@@ -21,7 +21,8 @@ import {
   NavigationError,
   NavigationStart,
   Router,
-  RouterEvent
+  RouterEvent,
+  RouterOutlet
 } from '@angular/router'
 import { PacMenuItem } from '@metad/cloud/auth'
 import { injectUserPreferences, UsersService } from '@metad/cloud/state'
@@ -285,6 +286,16 @@ export class FeaturesComponent implements OnInit {
         this.#router.navigate(['/settings'])
         break
     }
+  }
+
+  onBrandClick() {
+    const activeComponent = this.mainOutlet()?.component as { newConversation?: () => void } | undefined
+    if (this.router.url.startsWith('/chat') && typeof activeComponent?.newConversation === 'function') {
+      activeComponent.newConversation()
+      return
+    }
+
+    this.router.navigate(['/chat'])
   }
 
   // Shows and hides the loading spinner during RouterEvent changes

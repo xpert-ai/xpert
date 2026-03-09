@@ -10,6 +10,10 @@ export function markedOptionsFactory(): MarkedOptions {
       const escaped = encodeURIComponent(token.text)
       return `<echarts-wrapper code="${escaped}"></echarts-wrapper>`
     }
+    if (token.lang === 'mermaid') {
+      const escaped = encodeURIComponent(token.text)
+      return `<mermaid-wrapper code="${escaped}"></mermaid-wrapper>`
+    }
     return originalCode(token as any)
   }
 

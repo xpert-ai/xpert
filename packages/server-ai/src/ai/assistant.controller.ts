@@ -120,7 +120,7 @@ function transformAssistant(xpert: IXpert) {
 	} as Assistant
 }
 
-function transformMetadata2Where(metadata: any) {
+function transformMetadata2Where(metadata: Record<string, any> | undefined) {
 	const where = {}
 	if (metadata?.slug) {
 		where['slug'] = metadata.slug
@@ -130,6 +130,12 @@ function transformMetadata2Where(metadata: any) {
 	}
 	if (metadata?.type) {
 		where['type'] = metadata.type
+	}
+	if (!isNil(metadata?.latest)) {
+		where['latest'] = metadata.latest
+	}
+	if (!isNil(metadata?.version)) {
+		where['version'] = metadata.version
 	}
 	return where
 }

@@ -1,9 +1,20 @@
-@for (param of properties(); track param.name) {
-  <json-schema-property class="mb-1" [readonly]="readonly()" [schema]="param" [name]="param.name"
-    [required]="isRequired(param.name)"
-    [variables]="variables()"
-    [context]="context()"
-    [ngModel]="value$()?.[param.name]"
-    (ngModelChange)="updateValue(param.name, $event)" 
-  />
+@if (properties()?.length) {
+  @for (param of properties(); track param.name) {
+    <json-schema-property
+      class="mb-1"
+      [readonly]="readonly()"
+      [schema]="param"
+      [name]="param.name"
+      [required]="isRequired(param.name)"
+      [variables]="variables()"
+      [context]="context()"
+      [ngModelOptions]="{ standalone: true }"
+      [ngModel]="value$()?.[param.name]"
+      (ngModelChange)="updateValue(param.name, $event)"
+    />
+  }
+} @else {
+  <div class="col-span-full text-sm text-text-tertiary">
+    {{ 'PAC.Common.NoFields' | translate: { Default: 'No fields' } }}
+  </div>
 }

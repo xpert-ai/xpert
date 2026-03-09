@@ -1,6 +1,6 @@
-import { ID, IPagination } from '@metad/contracts';
-import { getErrorMessage } from '@metad/server-common';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ID, IPagination } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 import {
 	DeepPartial,
 	DeleteResult,
@@ -11,45 +11,44 @@ import {
 	SaveOptions,
 	SelectQueryBuilder,
 	UpdateResult
-} from 'typeorm';
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import moment from 'moment';
-import { BaseEntity } from '../entities/internal';
-import { ICrudService, IFindOneOptions, IFindWhereOptions } from './icrud.service';
-import { ITryRequest } from './try-request';
-import { filterQuery } from './query-builder';
-import { RequestContext } from '../context';
-import { transformWhere } from './transform-where';
-import { isForeignKeyConstraintError } from '../utils/db';
+} from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
+import moment from 'moment'
+import { BaseEntity } from '../entities/internal'
+import { ICrudService, IFindOneOptions, IFindWhereOptions, IPartialEntity } from './icrud.service'
+import { ITryRequest } from './try-request'
+import { filterQuery } from './query-builder'
+import { RequestContext } from '../context'
+import { transformWhere } from './transform-where'
+import { isForeignKeyConstraintError } from '../utils/db'
 
-export abstract class CrudService<T extends BaseEntity>
-	implements ICrudService<T> {
+export abstract class CrudService<T extends BaseEntity> implements ICrudService<T> {
 	/**
 	 * Alias (default we used table name) for pagination crud
 	 */
 	protected get alias(): string {
-		return this.repository.metadata.tableName;
+		return this.repository.metadata.tableName
 	}
 
-	protected constructor(
-		protected readonly repository: Repository<T>
-	) {}
+	protected constructor(protected readonly repository: Repository<T>) {}
 
 	async findMyAll(filter?: FindManyOptions<T>): Promise<IPagination<T>> {
-		throw new Error('Method not implemented.');
+		throw new Error('Method not implemented.')
 	}
-	
+
 	public async count(filter?: FindManyOptions<T>): Promise<number> {
-		return await this.repository.count(filter);
+		return await this.repository.count(filter)
 	}
 
 	public async countBy(filter?: FindOptionsWhere<T>): Promise<number> {
-		return await this.repository.countBy(filter);
+		return await this.repository.countBy(filter)
 	}
 
 	public async findAll(filter?: FindManyOptions<T>): Promise<IPagination<T>> {
 		if (filter?.where) {
-			filter.where = Array.isArray(filter.where) ? filter.where.map(item => transformWhere(item)) : transformWhere(filter.where);
+			filter.where = Array.isArray(filter.where)
+				? filter.where.map((item) => transformWhere(item))
+				: transformWhere(filter.where)
 		}
 		const [items, total] = await this.repository.findAndCount(filter)
 		return { items, total }
@@ -57,22 +56,22 @@ export abstract class CrudService<T extends BaseEntity>
 
 	public async paginate(filter?: any): Promise<IPagination<T>> {
 		try {
-			const options: FindManyOptions = {};
-			options.skip = filter && filter.skip ? (filter.take * (filter.skip - 1)) : 0;
-			options.take = filter && filter.take ? (filter.take) : 10;
+			const options: FindManyOptions = {}
+			options.skip = filter && filter.skip ? filter.take * (filter.skip - 1) : 0
+			options.take = filter && filter.take ? filter.take : 10
 			if (filter) {
 				if (filter.orderBy && filter.order) {
 					options.order = {
 						[filter.orderBy]: filter.order
 					}
 				} else if (filter.orderBy) {
-					options.order = filter.orderBy;
+					options.order = filter.orderBy
 				}
 				if (filter.relations) {
-					options.relations = filter.relations;
+					options.relations = filter.relations
 				}
 				if (filter.join) {
-					options.join = filter.join;
+					options.join = filter.join
 				}
 			}
 			options.where = (qb: SelectQueryBuilder<T>) => {
@@ -81,21 +80,21 @@ export abstract class CrudService<T extends BaseEntity>
 						const wheres: any = {}
 						for (const field in filter.where) {
 							if (Object.prototype.hasOwnProperty.call(filter.where, field)) {
-								wheres[field] = filter.where[field];
+								wheres[field] = filter.where[field]
 							}
 						}
-						filterQuery(qb, wheres);
+						filterQuery(qb, wheres)
 					}
 				}
-				const tenantId = RequestContext.currentTenantId();
-				qb.andWhere(`"${qb.alias}"."tenantId" = :tenantId`, { tenantId });
-				console.log(qb.getQueryAndParameters(), moment().format('DD.MM.YYYY HH:mm:ss'));
+				const tenantId = RequestContext.currentTenantId()
+				qb.andWhere(`"${qb.alias}"."tenantId" = :tenantId`, { tenantId })
+				console.log(qb.getQueryAndParameters(), moment().format('DD.MM.YYYY HH:mm:ss'))
 			}
-			console.log(filter, moment().format('DD.MM.YYYY HH:mm:ss'));
-			const [items, total] = await this.repository.findAndCount(options);
-			return { items, total };
+			console.log(filter, moment().format('DD.MM.YYYY HH:mm:ss'))
+			const [items, total] = await this.repository.findAndCount(options)
+			return { items, total }
 		} catch (error) {
-			throw new BadRequestException(error);
+			throw new BadRequestException(error)
 		}
 	}
 
@@ -110,7 +109,7 @@ export abstract class CrudService<T extends BaseEntity>
 	 */
 	protected async _findOneOrFailByIdString(id: string, options?: IFindOneOptions<T>): Promise<ITryRequest<T>> {
 		try {
-			options = options as FindOneOptions<T>;
+			options = options as FindOneOptions<T>
 			const record = await this.repository.findOneOrFail({
 				where: {
 					id,
@@ -119,16 +118,16 @@ export abstract class CrudService<T extends BaseEntity>
 				...(options && options.select ? { select: options.select } : {}),
 				...(options && options.relations ? { relations: options.relations } : []),
 				...(options && options.order ? { order: options.order } : {})
-			} as FindOneOptions<T>);
+			} as FindOneOptions<T>)
 			return {
 				success: true,
 				record
-			};
+			}
 		} catch (error) {
 			return {
 				success: false,
 				error
-			};
+			}
 		}
 	}
 
@@ -141,7 +140,7 @@ export abstract class CrudService<T extends BaseEntity>
 	 * @returns
 	 */
 	public async findOneOrFailByIdString(id: string, options?: IFindOneOptions<T>): Promise<ITryRequest<T>> {
-		return this._findOneOrFailByIdString(id, options);
+		return this._findOneOrFailByIdString(id, options)
 	}
 
 	/**
@@ -149,16 +148,16 @@ export abstract class CrudService<T extends BaseEntity>
 	 */
 	protected async _findOneOrFailByOptions(options: IFindOneOptions<T>): Promise<ITryRequest<T>> {
 		try {
-			const record = await this.repository.findOneOrFail(options as FindOneOptions<T>);
+			const record = await this.repository.findOneOrFail(options as FindOneOptions<T>)
 			return {
 				success: true,
 				record: record
-			};
+			}
 		} catch (error) {
 			return {
 				success: false,
 				error
-			};
+			}
 		}
 	}
 
@@ -170,7 +169,7 @@ export abstract class CrudService<T extends BaseEntity>
 	 * @returns
 	 */
 	public async findOneOrFailByOptions(options: IFindOneOptions<T>): Promise<ITryRequest<T>> {
-		return this._findOneOrFailByOptions(options);
+		return this._findOneOrFailByOptions(options)
 	}
 
 	// /**
@@ -217,17 +216,17 @@ export abstract class CrudService<T extends BaseEntity>
 	 */
 	public async findOneOrFailByWhereOptions(options: IFindWhereOptions<T>): Promise<ITryRequest<T>> {
 		try {
-			const record = await this.repository.findOneByOrFail(options);
+			const record = await this.repository.findOneByOrFail(options)
 
 			return {
 				success: true,
 				record: record
-			};
+			}
 		} catch (error) {
 			return {
 				success: false,
 				error
-			};
+			}
 		}
 	}
 
@@ -246,44 +245,41 @@ export abstract class CrudService<T extends BaseEntity>
 	 */
 	public async findOneByIdString(id: ID, options?: IFindOneOptions<T>): Promise<T> {
 		const record = await this.repository.findOne({
-					where: {
-						id,
-						...(options && options.where ? options.where : {})
-					},
-					...(options && options.select ? { select: options.select } : {}),
-					...(options && options.relations ? { relations: options.relations } : []),
-					...(options && options.order ? { order: options.order } : {}),
-					...(options && options.withDeleted ? { withDeleted: options.withDeleted } : {})
-				} as FindOneOptions<T>);
+			where: {
+				id,
+				...(options && options.where ? options.where : {})
+			},
+			...(options && options.select ? { select: options.select } : {}),
+			...(options && options.relations ? { relations: options.relations } : []),
+			...(options && options.order ? { order: options.order } : {}),
+			...(options && options.withDeleted ? { withDeleted: options.withDeleted } : {})
+		} as FindOneOptions<T>)
 		if (!record) {
-			throw new NotFoundException(`The requested record was not found`);
+			throw new NotFoundException(`The requested record was not found`)
 		}
 		return record
 	}
 
-	public async findOne(
-		id: string | number | FindOneOptions<T>,
-		options?: FindOneOptions<T>
-	): Promise<T> {
+	public async findOne(id: string | number | FindOneOptions<T>, options?: FindOneOptions<T>): Promise<T> {
 		let _options: FindOneOptions<T> = options ?? {}
 		if (typeof id === 'string' || typeof id === 'number') {
 			_options = {
-						where: {
-							id,
-							...(options && options.where ? options.where : {})
-						},
-						...(options && options.select ? { select: options.select } : {}),
-						...(options && options.relations ? { relations: options.relations } : []),
-						...(options && options.order ? { order: options.order } : {})
-					} as FindOneOptions<T>
+				where: {
+					id,
+					...(options && options.where ? options.where : {})
+				},
+				...(options && options.select ? { select: options.select } : {}),
+				...(options && options.relations ? { relations: options.relations } : []),
+				...(options && options.order ? { order: options.order } : {})
+			} as FindOneOptions<T>
 		} else {
 			_options = id as FindOneOptions<T>
 		}
-		const record = await this.repository.findOne(_options);
+		const record = await this.repository.findOne(_options)
 		if (!record) {
-			throw new NotFoundException(`The requested record was not found`);
+			throw new NotFoundException(`The requested record was not found`)
 		}
-		return record;
+		return record
 	}
 
 	/**
@@ -292,16 +288,12 @@ export abstract class CrudService<T extends BaseEntity>
 	 * @param options
 	 * @returns
 	 */
-	public async findOneByOptions(
-		options: FindOneOptions<T>
-	): Promise<T> {
-		const record = await this.repository.findOne(
-			options
-		);
+	public async findOneByOptions(options: FindOneOptions<T>): Promise<T> {
+		const record = await this.repository.findOne(options)
 		if (!record) {
-			throw new NotFoundException(`The requested record was not found`);
+			throw new NotFoundException(`The requested record was not found`)
 		}
-		return record;
+		return record
 	}
 
 	/**
@@ -315,14 +307,13 @@ export abstract class CrudService<T extends BaseEntity>
 		const record: T = await this.repository.findOneBy(options as FindOptionsWhere<T>)
 
 		if (!record) {
-			throw new NotFoundException(`The requested record was not found`);
+			throw new NotFoundException(`The requested record was not found`)
 		}
 		return record
 	}
-	
 
 	public async create(entity: DeepPartial<T>, ...options: any[]): Promise<T> {
-		const obj = this.repository.create(entity);
+		const obj = this.repository.create(entity)
 		// createBy user
 		const userId = RequestContext.currentUserId()
 		if (userId) {
@@ -337,12 +328,28 @@ export abstract class CrudService<T extends BaseEntity>
 				id: userId
 			}
 		}
-		
+
 		try {
 			// https://github.com/Microsoft/TypeScript/issues/21592
-			return await this.repository.save(obj as any);
+			return await this.repository.save(obj as any)
 		} catch (err /*: WriteError*/) {
-			throw new BadRequestException(err);
+			throw new BadRequestException(err)
+		}
+	}
+
+	/**
+	 * Saves a given entity in the database.
+	 * If entity does not exist in the database then inserts, otherwise updates.
+	 *
+	 * @param entity
+	 * @returns
+	 */
+	public async save(entity: IPartialEntity<T>): Promise<T> {
+		try {
+			return await this.repository.save(entity as DeepPartial<T>)
+		} catch (error) {
+			console.error('Error in crud service save method:', error)
+			throw new BadRequestException(error)
 		}
 	}
 
@@ -366,15 +373,15 @@ export abstract class CrudService<T extends BaseEntity>
 				partialEntity = {
 					...partialEntity,
 					// Ensure entity id in typeorm `UpdateEvent`
-					id,
+					id
 				}
 			}
 			return await this.repository.update(id, {
 				...partialEntity,
 				updatedById: userId ?? (partialEntity as any).updatedById
-			});
+			})
 		} catch (err /*: WriteError*/) {
-			throw new BadRequestException(getErrorMessage(err));
+			throw new BadRequestException(getErrorMessage(err))
 		}
 	}
 
@@ -385,18 +392,16 @@ export abstract class CrudService<T extends BaseEntity>
 	 * @param criteria - Identifier or condition to delete specific record(s).
 	 * @returns {Promise<DeleteResult>} - Result indicating the number of affected records.
 	 */
-	public async delete(
-		criteria: string | number | FindOptionsWhere<T>
-	): Promise<DeleteResult> {
+	public async delete(criteria: string | number | FindOptionsWhere<T>): Promise<DeleteResult> {
 		await this.checkUpdateAuthorization(criteria)
 		try {
-			return await this.repository.delete(criteria);
+			return await this.repository.delete(criteria)
 		} catch (err) {
 			if (isForeignKeyConstraintError(err)) {
-				throw new BadRequestException('Cannot delete: record is still referenced by another table.');
+				throw new BadRequestException('Cannot delete: record is still referenced by another table.')
 			}
-			console.error(err);
-			throw new NotFoundException(`The record was not found`, err);
+			console.error(err)
+			throw new NotFoundException(`The record was not found`, err)
 		}
 	}
 
@@ -409,17 +414,15 @@ export abstract class CrudService<T extends BaseEntity>
 	 * @param options - Additional options for the operation.
 	 * @returns {Promise<UpdateResult | DeleteResult>} - Result indicating success or failure.
 	 */
-	public async softDelete(
-		criteria: string | number | FindOptionsWhere<T>
-	): Promise<UpdateResult | T> {
+	public async softDelete(criteria: string | number | FindOptionsWhere<T>): Promise<UpdateResult | T> {
 		try {
 			// Perform soft delete using TypeORM
 			return await this.repository.softDelete(criteria)
 		} catch (error) {
 			if (isForeignKeyConstraintError(error)) {
-				throw new BadRequestException('Cannot delete: record is still referenced by another table.');
+				throw new BadRequestException('Cannot delete: record is still referenced by another table.')
 			}
-			throw new NotFoundException(`The record was not found or could not be soft-deleted`, error);
+			throw new NotFoundException(`The record was not found or could not be soft-deleted`, error)
 		}
 	}
 
@@ -434,12 +437,12 @@ export abstract class CrudService<T extends BaseEntity>
 	public async softRemove(id: T['id'], options?: FindOneOptions<T>, saveOptions?: SaveOptions): Promise<T> {
 		try {
 			// Ensure the employee exists before attempting soft deletion
-			const entity = await this.findOneByIdString(id, options);
+			const entity = await this.findOneByIdString(id, options)
 			// TypeORM soft removes entities via its repository
-			return await this.repository.softRemove<DeepPartial<T>>(entity as DeepPartial<T>, saveOptions);
+			return await this.repository.softRemove<DeepPartial<T>>(entity as DeepPartial<T>, saveOptions)
 		} catch (error) {
 			// If any error occurs, rethrow it as a NotFoundException with additional context.
-			throw new NotFoundException(`An error occurred during soft removal: ${error.message}`, error);
+			throw new NotFoundException(`An error occurred during soft removal: ${error.message}`, error)
 		}
 	}
 
@@ -455,12 +458,12 @@ export abstract class CrudService<T extends BaseEntity>
 	public async softRecover(id: T['id'], options?: FindOneOptions<T>, saveOptions?: SaveOptions): Promise<T> {
 		try {
 			// Ensure the entity exists before attempting soft recover
-			const entity = await this.findOneByIdString(id, options);
+			const entity = await this.findOneByIdString(id, options)
 			// Use TypeORM's recover method to restore the entity
-			return await this.repository.recover(entity as DeepPartial<T>, saveOptions);
+			return await this.repository.recover(entity as DeepPartial<T>, saveOptions)
 		} catch (error) {
 			// If any error occurs, rethrow it as a NotFoundException with additional context.
-			throw new NotFoundException(`An error occurred during restoring entity: ${error.message}`);
+			throw new NotFoundException(`An error occurred during restoring entity: ${error.message}`)
 		}
 	}
 }

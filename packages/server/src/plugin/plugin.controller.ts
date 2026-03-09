@@ -11,7 +11,7 @@ import {
 	StrategyBus
 } from '@xpert-ai/plugin-sdk'
 import { buildConfig } from './config'
-import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
+import { getOrganizationPluginPath, getOrganizationPluginRoot, stageWorkspacePlugin } from './organization-plugin.store'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
@@ -64,24 +64,38 @@ export class PluginController {
 		body: {
 			pluginName: string
 			version?: string
-			source?: 'marketplace' | 'local' | 'git' | 'url' | 'npm' | 'env'
-			config?: Record<string, unknown>
+			source?: 'marketplace' | 'local' | 'git' | 'url' | 'npm' | 'env' | 'code'
+			config?: Record<string, any>
+			workspacePath?: string
 		}
 	) {
 		if (!body?.pluginName) {
 			throw new BadRequestException(t('server:Error.PluginPackageNameRequired'))
 		}
 
+		if (body.workspacePath && body.source !== 'code') {
+			throw new BadRequestException('workspacePath is only supported when source is "code"')
+		}
+
 		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
 		const canManageSystemPlugins = this.canManageSystemPlugins(organizationId)
 		const tenantId = RequestContext.currentTenantId()
 		const packageName = body.pluginName
+		const source = body.source || 'marketplace'
 		const level = PLUGIN_LEVEL.ORGANIZATION
 		try {
 			await this.uninstallByPackageNameWithGuard(tenantId, organizationId, packageName, canManageSystemPlugins)
 
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
+			if (source === 'code' && body.workspacePath) {
+				stageWorkspacePlugin({
+					organizationId,
+					pluginName: packageNameWithVersion,
+					expectedPackageName: packageName,
+					workspacePath: body.workspacePath
+				})
+			}
 			// 1) Install and register into current module context (mirrors registerPluginsAsync logic)
 			const { modules } = await registerPluginsAsync({
 				module: this.moduleRef,
@@ -153,7 +167,7 @@ export class PluginController {
 				pluginName,
 				packageName,
 				version: body.version,
-				source: body.source || 'marketplace',
+				source,
 				level: resolvedLevel,
 				config
 			})
@@ -201,6 +215,8 @@ export class PluginController {
 		const canManageSystemPlugins = this.canManageSystemPlugins(organizationId)
 		const tenantId = RequestContext.currentTenantId()
 		await this.uninstallByNamesWithGuard(tenantId, organizationId, body.names, canManageSystemPlugins)
+
+		await this.pluginInstanceService.uninstall(tenantId, organizationId, body.names)
 
 		return { success: true }
 	}

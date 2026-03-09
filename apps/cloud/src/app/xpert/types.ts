@@ -6,18 +6,10 @@ import { subDays } from 'date-fns/subDays'
 import { IChatConversation, IChatMessage, IXpertAgentExecution } from '../@core/types'
 
 export type TCopilotChatMessage = IChatMessage & {
-  /**
-   * Events generated during the process are not stored
-   */
-  // event?: {
-  //   name: string
-  //   message: string
-  // }
   error?: string
   expanded?: boolean
   executions?: IXpertAgentExecution[]
 }
-
 
 export function groupConversations(conversations: IChatConversation[]) {
   // 定义分组时间段

@@ -28,6 +28,18 @@ export const Samples = {
         maxAttempts: 3,
         delayMs: 1000
       }
+    },
+    'server-name3': {
+      transport: 'http',
+      url: 'http://localhost:8000/mcp',
+      headers: {
+        Authorization: 'Bearer token'
+      },
+      reconnect: {
+        enabled: true,
+        maxAttempts: 3,
+        delayMs: 1000
+      }
     }
   }
 }

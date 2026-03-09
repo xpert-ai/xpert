@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigModule, getConfig } from '@metad/server-config';
 import { ServerAppModule } from './../server.module';
-import { Logger, LoggerModule } from '../logger';
+import { Logger, LoggerModule, providePinoLoggerModule } from '../logger';
 import { provideCacheModule } from './cache';
 import { provideBullModule } from './bull';
 import { provideEventEmitterModule } from './event';
@@ -17,6 +17,7 @@ const baseDir = getConfig().assetOptions.serverRoot
 
 @Module({
 	imports: [
+		providePinoLoggerModule(),
 		provideCacheModule(),
 		provideBullModule(),
 		provideEventEmitterModule(),

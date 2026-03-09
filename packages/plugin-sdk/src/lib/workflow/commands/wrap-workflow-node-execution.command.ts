@@ -2,6 +2,8 @@ import { IXpertAgentExecution, JSONValue } from '@metad/contracts'
 import { Command } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
+const COMMAND_METADATA = '__command__'
+
 /**
  * Wrap Workflow Node Execution Command
  */
@@ -21,3 +23,9 @@ export class WrapWorkflowNodeExecutionCommand<T = any> extends Command<T> {
     super()
   }
 }
+
+Reflect.defineMetadata(
+  COMMAND_METADATA,
+  { id: WrapWorkflowNodeExecutionCommand.type },
+  WrapWorkflowNodeExecutionCommand
+)

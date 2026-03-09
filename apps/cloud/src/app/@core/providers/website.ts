@@ -10,7 +10,7 @@ import { injectLanguage } from './translate'
 export function injectHelpWebsite(url?: string) {
   const lang = injectLanguage()
 
-  const website = 'https://xpertai.cn'
+  const website = 'https://docs.xpertai.cn'
 
   return computed(() => {
     const language = lang()
@@ -24,16 +24,16 @@ export function injectHelpWebsite(url?: string) {
 
 /**
  * Build a complete help link based on the official website URL.
- * 
+ *
  * Example:
  * ```ts
  * helpUrl = derivedHelpUrl(() => this.provider()?.help_url)
  * ```
- * 
+ *
  * @param helpUrl a function or Signal that return a url string
- * @returns 
+ * @returns
  */
-export function derivedHelpUrl(helpUrl: (() => string)) {
+export function derivedHelpUrl(helpUrl: () => string) {
   const helpBaseUrl = injectHelpWebsite()
   return computed(() => {
     const url = helpUrl()

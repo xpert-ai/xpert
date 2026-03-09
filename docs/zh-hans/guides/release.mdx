@@ -1,0 +1,19 @@
+# 发布 npm 包
+
+## 升级版本号
+
+```bash
+npx nx release patch
+```
+
+## 构建包
+
+```bash
+npx nx build plugin-sdk
+```
+
+## 发布包
+
+```bash
+npx nx run plugin-sdk:nx-release-publish --access public --otp=<one-time-password-if-needed>
+```
