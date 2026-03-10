@@ -2,11 +2,11 @@
   <div class="pac-page-title">{{ 'PAC.KEY_WORDS.Role&Permissions' | translate: {Default: 'Role & Permissions'} }}</div>
 
   <div class="max-w-full flex items-center overflow-hidden">
-    <nav mat-tab-nav-bar color="accent" mat-align-tabs="start" mat-stretch-tabs="false" disableRipple class="pac-tab-nav-bar flex-1"
+    <nav z-tab-nav-bar color="accent" alignTabs="start" stretchTabs="false" disableRipple class="pac-tab-nav-bar flex-1"
       [tabPanel]="tabPanel"
     >
       @for (option of roles$ | async; track option.id) {
-        <span mat-tab-link
+        <span z-tab-link
           [active]="role?.name === option.name"
           (click)="onSelectedRole(option)">
             <span class="pac-nav-tab__label"
@@ -68,6 +68,6 @@
   </div>
 </div>
 
-<mat-tab-nav-panel #tabPanel >
+<z-tab-nav-panel #tabPanel >
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</z-tab-nav-panel>

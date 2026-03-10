@@ -34,33 +34,33 @@
 }
 
 .ngm-story__pagination {
-  &[mat-align-tabs="start"] {
+  &[data-tab-align="start"] {
     @apply justify-start;
-    &[mat-stretch-tabs] {
+    &[data-stretch-tabs] {
       .ngm-story__pagination-horizontal {
         @apply justify-start;
       }
     }
   }
-  &[mat-align-tabs="center"] {
+  &[data-tab-align="center"] {
     @apply justify-center;
-    &[mat-stretch-tabs] {
+    &[data-stretch-tabs] {
       .ngm-story__pagination-horizontal {
         @apply justify-center;
       }
     }
   }
-  &[mat-align-tabs="end"] {
+  &[data-tab-align="end"] {
     @apply justify-end;
 
-    &[mat-stretch-tabs=true] {
+    &[data-stretch-tabs="true"] {
       .ngm-story__pagination-horizontal {
         @apply justify-end;
       }
     }
   }
 
-  &[mat-stretch-tabs=true] {
+  &[data-stretch-tabs="true"] {
     .ngm-story__pagination-horizontal {
       @apply flex-1;
     }
@@ -91,7 +91,7 @@
 }
 
 :host::ng-deep {
-  .ngm-story__point-tab > .mat-mdc-tab-body-content {
+  .ngm-story__point-tab.z-tab-group__panel {
     overflow: hidden;
   }
 }

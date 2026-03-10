@@ -1,11 +1,10 @@
 import { BooleanInput, coerceBooleanProperty } from '@angular/cdk/coercion'
 import { ComponentPortal, PortalModule } from '@angular/cdk/portal'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, Injector, Input, OnChanges, SimpleChanges, ViewChild, ViewContainerRef, computed, effect, inject, model, signal } from '@angular/core'
+import { ChangeDetectorRef, Component, Injector, Input, OnChanges, SimpleChanges, ViewContainerRef, computed, effect, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 
 import { MatIconModule } from '@angular/material/icon'
-import { MatTabGroup } from '@angular/material/tabs'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { nonNullable } from '@metad/core'
@@ -43,8 +42,6 @@ export class NgmSettingsPanelComponent implements OnChanges {
     this.settingsService.liveMode = this._liveMode
   }
   private _liveMode = false
-
-  @ViewChild('tabGroup') tabGroup: MatTabGroup
 
   settingsPortal: ComponentPortal<unknown>
 
@@ -215,10 +212,6 @@ export class NgmSettingsPanelComponent implements OnChanges {
   submitDrawer() {
     this.settingsService.drawerSubmit$.next(false)
     this.closeDrawer()
-  }
-
-  onResize() {
-    this.tabGroup?.realignInkBar()
   }
 
   remove() {

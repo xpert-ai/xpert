@@ -5,7 +5,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatIconModule } from '@angular/material/icon'
 import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
-import { MatTabsModule } from '@angular/material/tabs'
 import { matchValidator, matchWithValidator } from '@metad/cloud/auth'
 import { UsersService } from '@metad/cloud/state'
 import { pick } from '@metad/ocap-core'
@@ -18,7 +17,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ZardButtonComponent, MatIconModule, MatTabsModule, ...ZardFormImports, ZardInputDirective, FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
+  imports: [CommonModule, ZardButtonComponent, MatIconModule, ...ZardFormImports, ZardInputDirective, FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
   selector: 'pac-account-password',
   template: `<form
     class="flex flex-col items-start justify-start p-4 m-auto w-96"

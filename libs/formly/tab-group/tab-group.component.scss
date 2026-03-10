@@ -3,12 +3,12 @@
   max-width: 100%;
 }
 
-.mat-tab-group {
+.z-tab-group {
   height: 100%;
 }
 
 :host::ng-deep {
-  .mat-tab-label-content {
+  .z-tab-group__trigger {
     .mat-icon {
       margin-right: 1rem;
     }

@@ -24,16 +24,15 @@ import { MatSliderModule } from '@angular/material/slider'
 import { MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatStepperModule } from '@angular/material/stepper'
 import { MatTableModule } from '@angular/material/table'
-import { MatTabsModule } from '@angular/material/tabs'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeModule } from '@angular/material/tree'
 import {MatDatepickerModule} from '@angular/material/datepicker'
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
 import { MatPaginatorModule } from '@angular/material/paginator'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
-const MATERIAL_MODULES = [DragDropModule, MatIconModule, MatDividerModule, MatMenuModule, MatDialogModule, MatToolbarModule, ZardButtonComponent, MatButtonToggleModule, ...ZardFormImports, MatSelectModule, MatListModule, MatTabsModule, MatStepperModule, MatSnackBarModule, ZardInputDirective, MatCardModule, MatSlideToggleModule, MatProgressBarModule, MatSidenavModule, MatCheckboxModule, MatRadioModule, MatExpansionModule, MatAutocompleteModule, MatChipsModule, MatTooltipModule, MatRippleModule, MatTreeModule, MatBadgeModule, MatSliderModule, MatTableModule, MatProgressSpinnerModule, MatDatepickerModule, MatBottomSheetModule, MatNativeDateModule, MatPaginatorModule]
+const MATERIAL_MODULES = [DragDropModule, MatIconModule, MatDividerModule, MatMenuModule, MatDialogModule, MatToolbarModule, ZardButtonComponent, MatButtonToggleModule, ...ZardFormImports, MatSelectModule, MatListModule, ...ZardTabsImports, MatStepperModule, MatSnackBarModule, ZardInputDirective, MatCardModule, MatSlideToggleModule, MatProgressBarModule, MatSidenavModule, MatCheckboxModule, MatRadioModule, MatExpansionModule, MatAutocompleteModule, MatChipsModule, MatTooltipModule, MatRippleModule, MatTreeModule, MatBadgeModule, MatSliderModule, MatTableModule, MatProgressSpinnerModule, MatDatepickerModule, MatBottomSheetModule, MatNativeDateModule, MatPaginatorModule]
 
 /**
  * @deprecated Use separate modules so they can be deprecated in the future.

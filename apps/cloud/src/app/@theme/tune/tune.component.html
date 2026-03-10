@@ -48,9 +48,9 @@
 <ng-template #agentMenu>
   <div cdkMenu class="cdk-menu__large">
     <div class="pac-status-bar__local-agent h-60" (click)="$event.stopPropagation()">
-      <mat-tab-group mat-stretch-tabs fitInkBarToContent class="h-full">
+      <z-tab-group stretchTabs fitInkBarToContent class="h-full">
   
-        <mat-tab class="p-4" [label]=" 'PAC.KEY_WORDS.ServerAgent' | translate: {Default: 'Server Agent'} ">
+        <z-tab bodyClass="p-4" [label]=" 'PAC.KEY_WORDS.ServerAgent' | translate: {Default: 'Server Agent'} ">
           <div class="flex justify-between items-center">
             <span></span>
             <span>{{'PAC.KEY_WORDS.Progress' | translate: {Default: 'Progress'} }}: {{progress()}}%</span>
@@ -61,10 +61,10 @@
             <span><span>{{'PAC.KEY_WORDS.Complete' | translate: {Default: 'Complete'} }}:</span> {{serverAgent.completeSize()}}</span>
             <span><span>{{'PAC.KEY_WORDS.Request' | translate: {Default: 'Request'} }}:</span>{{serverAgent.bufferSize()}}</span>
           </div>
-        </mat-tab>
+        </z-tab>
   
         @if (enableLocalAgent) {
-          <mat-tab class="p-4" [label]=" 'PAC.MENU.LOCAL_AGENT' | translate: {Default: 'Local Agent'} ">
+          <z-tab bodyClass="p-4" [label]=" 'PAC.MENU.LOCAL_AGENT' | translate: {Default: 'Local Agent'} ">
             <div>
               {{'PAC.KEY_WORDS.STATUS' | translate: {Default: 'Status'} }}: {{ localStatus()?.icon }} {{localStatus()?.status | translate}}
             </div>
@@ -82,10 +82,10 @@
                 </button>
               </div>
             </div>
-          </mat-tab>
+          </z-tab>
         }
   
-        <mat-tab [label]=" 'PAC.MENU.Authentication' | translate: {Default: 'Authentication'} ">
+        <z-tab [label]=" 'PAC.MENU.Authentication' | translate: {Default: 'Authentication'} ">
           <mat-list role="list">
             @if (enableLocalAgent && localAgent) {
               @for (item of localAgent.auth() | keyvalue | filter: valueIsNotNil; track $index) {
@@ -103,8 +103,8 @@
               </mat-list-item>
             }
           </mat-list>
-        </mat-tab>
-      </mat-tab-group>
+        </z-tab>
+      </z-tab-group>
     </div>
   </div>
 </ng-template>

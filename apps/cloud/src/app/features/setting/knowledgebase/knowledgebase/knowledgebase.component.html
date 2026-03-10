@@ -12,17 +12,17 @@
   </div>
 
   <nav
-    mat-tab-nav-bar
+    z-tab-nav-bar
     class="pac-tab-nav-bar"
     displayDensity="cosy"
     color="accent"
-    mat-align-tabs="start"
-    mat-stretch-tabs="false"
+    alignTabs="start"
+    stretchTabs="false"
     disableRipple
     [tabPanel]="tabPanel"
   >
     <span
-      mat-tab-link
+      z-tab-link
       [routerLink]="['./documents']"
       routerLinkActive
       #rla1="routerLinkActive"
@@ -33,7 +33,7 @@
       {{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
     </span>
     <span
-      mat-tab-link
+      z-tab-link
       [routerLink]="['./test']"
       routerLinkActive
       #rla2="routerLinkActive"
@@ -44,7 +44,7 @@
       {{ 'PAC.Knowledgebase.Test' | translate: { Default: 'Test' } }}
     </span>
     <span
-      mat-tab-link
+      z-tab-link
       [routerLink]="['./configuration']"
       routerLinkActive
       #rla3="routerLinkActive"
@@ -59,7 +59,7 @@
 
 <mat-divider></mat-divider>
   
-<mat-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
+<z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</z-tab-nav-panel>

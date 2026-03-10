@@ -9,7 +9,7 @@ import { FORMLY_W_1_2 } from '@metad/story/designer'
 import { FormlyFieldConfig, FormlyFormOptions, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { combineLatest, debounceTime, map, startWith } from 'rxjs'
-import { MatTabsModule } from '@angular/material/tabs'
+import { ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -18,7 +18,7 @@ import { MatTabsModule } from '@angular/material/tabs'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTabsModule,
+    ...ZardTabsImports,
     FormlyModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

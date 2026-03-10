@@ -99,8 +99,8 @@
         @switch (visualPanel) {
           @case ('options') {
             <div class="surface h-full rounded-xl flex flex-col justify-start items-stretch overflow-hidden" >
-                <mat-tab-group class="overflow-hidden" fitInkBarToContent preserveContent>
-                    <mat-tab [label]="'Story.Explorer.Data' | translate: {Default: 'Data'} ">
+                <z-tab-group class="overflow-hidden" fitInkBarToContent preserveContent>
+                    <z-tab [label]="'Story.Explorer.Data' | translate: {Default: 'Data'} ">
                         <div class="font-bold px-2 py-1 mt-2">{{ 'Story.Explorer.Dimensions' | translate: {Default: 'Dimensions'} }}</div>
                         <div class="pac-cdk-drop__list min-h-28 w-full flex flex-col justify-start items-stretch overflow-auto gap-1 p-2"
                             id="ngm-story-explorer__drop-list-rows"
@@ -153,8 +153,8 @@
                             </ngm-chart-property>
                           }
                         </div>
-                    </mat-tab>
-                    <mat-tab [label]="'Story.Explorer.Display' | translate: {Default: 'Display'} ">
+                    </z-tab>
+                    <z-tab [label]="'Story.Explorer.Display' | translate: {Default: 'Display'} ">
                       @switch (component().component) {
                         @case (ComponentType.AnalyticalCard) {
                           <ngm-chart-settings class="w-full text-sm" displayDensity="compact"
@@ -171,8 +171,8 @@
                           />
                         }
                       }
-                    </mat-tab>
-                </mat-tab-group>
+                    </z-tab>
+                </z-tab-group>
             </div>
           }
           @case ('visual') {

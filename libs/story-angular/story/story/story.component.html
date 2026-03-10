@@ -4,9 +4,9 @@
     ngmTransformScale
     [ngmTransformDisabled]="editable()"
     >
-    <mat-tab-group #pageTabs class="ngm-story__point-tab-group w-full h-full" disableRipple preserveContent
-        [attr.mat-align-tabs]="pageHeaderAlignTabs()"
-        [mat-stretch-tabs]="pageHeaderStretchTabs()"
+    <z-tab-group #pageTabs="zTabGroup" class="ngm-story__point-tab-group w-full h-full" disableRipple preserveContent
+        [alignTabs]="pageHeaderAlignTabs()"
+        [stretchTabs]="pageHeaderStretchTabs()"
         [ngStyle]="storyStyle()"
         [class.tabBarHidden]="tabHidden()"
         [selectedIndex]="currentPageIndex()"
@@ -16,8 +16,8 @@
         (click)="onSelectedIndex(pageTabs.selectedIndex)"
     >
       @for (point of displayPoints(); track point.key; let i = $index; let isLast = $last; let isFirst = $first;) {
-        <mat-tab bodyClass="ngm-story__point-tab">
-            <ng-template matTabLabel>
+        <z-tab bodyClass="ngm-story__point-tab">
+            <ng-template zTabLabel>
                 <div class="relative flex items-center">
                   @if (story_point.dirtySignal()) {
                     <span class="absolute top-0 -left-2 w-2 h-2 bg-yellow-500 rounded-full"></span>
@@ -46,9 +46,9 @@
                 (navToPointIndex)="onSelectedIndex($event)"
             >
             </ngm-story-point>
-        </mat-tab>
+        </z-tab>
       }
-    </mat-tab-group>
+    </z-tab-group>
 
     <!-- 暂时没时间实现 global filters 功能
     <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-story__global-filter z-[100]" [popper]="gFilters" [popperTrigger]="NgxPopperjsTriggers.click" [popperHideOnClickOutside]="true" [popperHideOnScroll]="true" [popperHideOnMouseLeave]="false" [popperPlacement]="NgxPopperjsPlacements.TOPEND">
@@ -126,8 +126,8 @@
 
 <div *ngIf="tabIsPoint()" class="ngm-story__pagination ngm-story__pagination-bullets px-8"
     [class.ngm-story__pagination-header-below]="pageHeaderPosition() === 'below'"
-    [attr.mat-align-tabs]="pageHeaderAlignTabs()"
-    [attr.mat-stretch-tabs]="pageHeaderStretchTabs()"
+    [attr.data-tab-align]="pageHeaderAlignTabs()"
+    [attr.data-stretch-tabs]="pageHeaderStretchTabs() ? 'true' : null"
 >
     <div class="ngm-story__pagination-horizontal overflow-auto whitespace-nowrap pointer-events-auto flex flex-wrap justify-start items-center
         rounded-lg px-2 py-1 bg-slate-500/10 backdrop-blur-md">

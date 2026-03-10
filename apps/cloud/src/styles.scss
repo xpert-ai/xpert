@@ -124,14 +124,14 @@ z-button[data-icon-only] {
 
 .metad-formly-tab-group {
   display: flex;
-  .mat-mdc-tab-group {
+  .z-tab-group {
     flex: 1;
   }
 }
 
 .ngm-settings-panel__drawer-content {
-  .mat-mdc-tab-header {
-    --mdc-secondary-navigation-tab-container-height: 38px;
+  .z-tab-group__nav {
+    min-height: 38px;
   }
 }
 
@@ -146,7 +146,7 @@ z-button[data-icon-only] {
   }
 }
 
-.mat-mdc-tab-nav-panel {
+.z-tab-nav-panel {
   @apply flex-1 flex flex-col;
 }
 

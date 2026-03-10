@@ -8,13 +8,13 @@
   }
 
   @if (roles?.length) {
-    <nav mat-tab-nav-bar color="accent" disableRipple mat-stretch-tabs="false" mat-align-tabs="start"
+    <nav z-tab-nav-bar color="accent" disableRipple stretchTabs="false" alignTabs="start"
       class="pac-model-access__nav flex-1"
       [tabPanel]="tabPanel"
       cdkDropList cdkDropListOrientation="horizontal"
       [cdkDropListData]="roles"
       (cdkDropListDropped)="drop($event)">
-      <span mat-tab-link *ngFor="let role of roles; trackBy: trackByKey"
+      <span z-tab-link *ngFor="let role of roles; trackBy: trackByKey"
         [routerLink]="[role.key]"
         routerLinkActive #rla="routerLinkActive"
         [active]="rla.isActive"
@@ -47,9 +47,9 @@
   </button>
 </mat-toolbar>
 
-<mat-tab-nav-panel #tabPanel class="overflow-hidden">
+<z-tab-nav-panel #tabPanel class="overflow-hidden">
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</z-tab-nav-panel>
 
 <ng-template #roleMenu let-role="role">
   <div cdkMenu class="cdk-menu__medium">

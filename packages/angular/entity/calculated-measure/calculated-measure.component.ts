@@ -10,7 +10,6 @@ import { MatExpansionModule } from '@angular/material/expansion'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTabsModule } from '@angular/material/tabs'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
@@ -36,7 +35,7 @@ import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.compone
 import { EntityCapacity } from '../entity-schema/types'
 import { NgmEntityPropertyComponent } from '../property/property.component'
 import { Dialog } from '@angular/cdk/dialog'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -46,7 +45,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     DragDropModule,
     MatSidenavModule,
-    MatTabsModule,
+    ...ZardTabsImports,
     MatIconModule,
     ZardButtonComponent,
     MatListModule,

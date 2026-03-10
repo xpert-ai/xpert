@@ -13,12 +13,12 @@ import {
   output,
   signal
 } from '@angular/core'
-import { MatTabGroup, MatTabHeaderPosition } from '@angular/material/tabs'
-import { NgmAppearance, NgmFieldColor } from '@metad/ocap-angular/core'
+import { NgmAppearance, NgmFieldColor, NgmTabHeaderPosition } from '@metad/ocap-angular/core'
 import { DataSettings, IAdvancedFilter, ISlicer, nonNullable } from '@metad/ocap-core'
 import { IStoryWidget } from '@metad/core'
 import { WidgetComponentType } from '@metad/story/core'
 import { WidgetComponentType as IndicatorCardWidgetType } from '@metad/story/widgets/indicator-card'
+import { ZardTabGroupComponent } from '@xpert-ai/headless-ui'
 
 export interface NxWidgetTabsetOptions {
   slides?: Array<{
@@ -43,9 +43,9 @@ export interface NxWidgetTabsetOptions {
   disableRipple?: boolean
   preserveContent?: boolean
   animationDuration?: string
-  alignTabs?: string
+  alignTabs?: 'start' | 'center' | 'end'
   stretchTabs?: boolean
-  headerPosition?: MatTabHeaderPosition
+  headerPosition?: NgmTabHeaderPosition
   color?: NgmFieldColor
   disablePagination?: boolean
 }
@@ -124,7 +124,7 @@ export class NxWidgetTabGroupComponent implements IStoryWidget<NxWidgetTabsetOpt
   readonly slicersChange = output<ISlicer[]>()
   readonly linkSlicersChange = output<ISlicer[]>()
 
-  @ViewChild(MatTabGroup) _tabGroup: MatTabGroup
+  @ViewChild(ZardTabGroupComponent) _tabGroup: ZardTabGroupComponent
 
   /** Focuses the widget. */
   focus(origin?: FocusOrigin, options?: FocusOptions): void {
@@ -142,7 +142,7 @@ export class NxWidgetTabGroupComponent implements IStoryWidget<NxWidgetTabsetOpt
     return el?.key
   }
 
-  onResize(event) {
+  onResize() {
     this._tabGroup.realignInkBar()
   }
 

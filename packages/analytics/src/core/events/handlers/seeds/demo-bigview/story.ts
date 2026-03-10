@@ -34,7 +34,7 @@ export const STORY_OPTIONS = {
 			control: { color: '' },
 		},
 		advancedStyle:
-			'nx-breadcrumb-bar .mat-tab-nav-bar.breadcrumb {\r\n    border-bottom: unset;\r\n}',
+			'nx-breadcrumb-bar .z-tab-nav-bar.breadcrumb {\r\n    border-bottom: unset;\r\n}',
 	},
 	filterBar: {
 		dataSettings: {

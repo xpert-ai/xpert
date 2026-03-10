@@ -6,11 +6,10 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardInputDirective, ZardFormImports, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTabsModule } from '@angular/material/tabs'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -21,21 +20,21 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, MatTabsModule, ...ZardFormImports, MatIconModule, ZardButtonComponent, MatMenuModule, MatDialogModule, ZardInputDirective, MatSidenavModule, MatListModule, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, ...ZardTabsImports, ...ZardFormImports, MatIconModule, ZardButtonComponent, MatMenuModule, MatDialogModule, ZardInputDirective, MatSidenavModule, MatListModule, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
   selector: 'pac-home',
   template: `
     <nav
-      mat-tab-nav-bar
+      z-tab-nav-bar
       [tabPanel]="tabPanel"
-      mat-stretch-tabs="false"
-      mat-align-tabs="start"
+      stretchTabs="false"
+      alignTabs="start"
       color="accent"
       disableRipple
       displayDensity="cosy"
       class="pac-home__navigation p-0 sm:px-2 md:px-8"
     >
       <span
-        mat-tab-link
+        z-tab-link
         routerLink="."
         routerLinkActive
         #rla="routerLinkActive"
@@ -45,7 +44,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
         {{ 'PAC.MENU.HOME.TODAY' | translate: { Default: 'Today' } }}
       </span>
       <span *ngIf="hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_CATALOG)"
-        mat-tab-link
+        z-tab-link
         routerLink="./catalog"
         routerLinkActive
         #rla2="routerLinkActive"
@@ -56,7 +55,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       </span>
       <span
         *ngIf="hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_TREND)"
-        mat-tab-link
+        z-tab-link
         routerLink="./trending"
         routerLinkActive
         #rla3="routerLinkActive"
@@ -67,7 +66,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       </span>
       <!-- <span
         *ngIf="copilotEnabled() && hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_INSIGHT)"
-        mat-tab-link
+        z-tab-link
         routerLink="./insight"
         routerLinkActive
         #rla4="routerLinkActive"
@@ -77,13 +76,13 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
         {{ 'PAC.MENU.HOME.Insight' | translate: { Default: 'Insight' } }}
       </span> -->
     </nav>
-    <mat-tab-nav-panel
+    <z-tab-nav-panel
       #tabPanel
       class="relative flex-1 overflow-auto"
       [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
     >
       <router-outlet #o="outlet"></router-outlet>
-    </mat-tab-nav-panel>
+    </z-tab-nav-panel>
   `,
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],

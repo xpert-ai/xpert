@@ -57,7 +57,11 @@
 }
 
 .ngm-formly-tab-group {
-  .mat-tab-body-wrapper {
+  .z-tab-group {
+    flex: 1;
+  }
+
+  .z-tab-group__content {
     flex: 1;
   }
 }

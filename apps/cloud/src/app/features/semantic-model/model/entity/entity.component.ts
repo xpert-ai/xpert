@@ -19,7 +19,6 @@ import { debounceTime, distinctUntilChanged, filter, map, pairwise, startWith, s
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTabsModule } from '@angular/material/tabs'
 import { AggregationRole, isEntitySet, markdownModelCube, PropertyAttributes } from '@metad/ocap-core'
 import { NgmOcapCoreService } from '@metad/ocap-angular/core'
 import { AppService } from '../../../../app.service'
@@ -30,6 +29,7 @@ import { ModelEntityService } from './entity.service'
 import { ModelCubeFactComponent } from './fact/fact.component'
 import { SemanticModelService } from '../model.service'
 import { ModelComponent } from '../model.component'
+import { ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -48,7 +48,7 @@ import { ModelComponent } from '../model.component'
     MatTooltipModule,
     MatIconModule,
     MatSidenavModule,
-    MatTabsModule,
+    ...ZardTabsImports,
     NgmCommonModule,
     NxDesignerModule,
     ModelCubeStructureComponent,

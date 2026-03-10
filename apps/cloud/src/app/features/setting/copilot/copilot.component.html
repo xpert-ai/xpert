@@ -1,10 +1,10 @@
 <div class="pac-page-header">
   <div class="pac-page-title">{{ 'PAC.Copilot.AICopilot' | translate: {Default: 'AI Copilot'} }}</div>
       
-  <nav mat-tab-nav-bar class="pac-tab-nav-bar" displayDensity="cosy" color="accent" mat-align-tabs="start" mat-stretch-tabs="false" disableRipple
+  <nav z-tab-nav-bar class="pac-tab-nav-bar" displayDensity="cosy" color="accent" alignTabs="start" stretchTabs="false" disableRipple
     [tabPanel]="tabPanel"
   >
-    <span mat-tab-link [routerLink]="['./basic']"
+    <span z-tab-link [routerLink]="['./basic']"
       routerLinkActive #rla1="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla1.isActive"
@@ -13,7 +13,7 @@
       {{ 'PAC.KEY_WORDS.Basic' | translate: {Default: "Basic"} }}
     </span>
     @if (!organization()) {
-      <span mat-tab-link [routerLink]="['./examples']"
+      <span z-tab-link [routerLink]="['./examples']"
         routerLinkActive #rla2="routerLinkActive"
         [active]="rla2.isActive"
       >
@@ -23,7 +23,7 @@
     }
 
     @if (organization()) {
-      <span mat-tab-link [routerLink]="['./users']"
+      <span z-tab-link [routerLink]="['./users']"
         routerLinkActive #rla4="routerLinkActive"
         [active]="rla4.isActive"
       >
@@ -31,7 +31,7 @@
         {{ 'PAC.Copilot.UserUsage' | translate: {Default: "User Usage"} }}
       </span>
     } @else {
-      <span mat-tab-link [routerLink]="['./usages']"
+      <span z-tab-link [routerLink]="['./usages']"
         routerLinkActive #rla4="routerLinkActive"
         [active]="rla4.isActive"
       >
@@ -41,7 +41,7 @@
     }
 
     @if (organization()) {
-      <span mat-tab-link [routerLink]="['./overview']"
+      <span z-tab-link [routerLink]="['./overview']"
         routerLinkActive #rla4="routerLinkActive"
         [active]="rla4.isActive"
       >
@@ -54,7 +54,7 @@
 
 <mat-divider></mat-divider>
   
-<mat-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
+<z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</z-tab-nav-panel>

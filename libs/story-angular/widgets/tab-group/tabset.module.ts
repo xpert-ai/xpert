@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common'
 import { ModuleWithProviders, NgModule } from '@angular/core'
-import { MatTabsModule } from '@angular/material/tabs'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NxCoreModule } from '@metad/core'
@@ -13,12 +12,13 @@ import { AccountingStatementModule } from '@metad/story/widgets/financial/accoun
 import { AccountingIndicatorCardModule } from '@metad/story/widgets/indicator-card'
 import { NxWidgetTabGroupComponent } from './tabset.component'
 import { TabGroupSchemaService } from './tabset.schema'
+import { ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [NxWidgetTabGroupComponent],
   imports: [
     CommonModule,
-    MatTabsModule,
+    ...ZardTabsImports,
     TranslateModule,
 
     NxCoreModule,

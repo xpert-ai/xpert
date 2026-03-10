@@ -10,9 +10,9 @@
   $accent: map.get($config, accent);
 
   .pac-model-query-lab {
-    .mat-mdc-tab-group {
+    .z-tab-group {
       height: 100%;
-      .mat-tab-body-wrapper {
+      .z-tab-group__content {
         height: 100%;
       }
     }

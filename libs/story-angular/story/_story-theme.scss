@@ -28,24 +28,24 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
     .ngm-story__point-tab-group {
       height: 100%;
       
-      & > .mat-mdc-tab-header {
-        --mdc-secondary-navigation-tab-container-height: 38px;
-        .mdc-tab {
+      & > .z-tab-group__nav {
+        min-height: 38px;
+        .z-tab-group__trigger {
           min-width: unset;
         }
       }
 
-      &.tabBarHidden > .mat-mdc-tab-header {
+      &.tabBarHidden > .z-tab-group__nav {
         display: none;
       }
 
-      &:not(.tabBarHidden) > .mat-mdc-tab-body-wrapper {
+      &:not(.tabBarHidden) > .z-tab-group__content {
         max-height: calc(100% - 2.5rem);
       }
 
-      .mat-mdc-tab-body-wrapper {
+      .z-tab-group__content {
         flex: 1;
-        .mat-tab-body.mat-tab-body-active {
+        .z-tab-group__panel[data-active="true"] {
           overflow: hidden;
         }
       }

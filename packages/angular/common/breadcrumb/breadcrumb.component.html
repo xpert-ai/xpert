@@ -1,6 +1,6 @@
-<nav mat-tab-nav-bar disableRipple class="breadcrumb" headerPosition="above" mat-stretch-tabs="false" mat-align-tabs="start">
+<nav z-tab-nav-bar disableRipple class="breadcrumb" headerPosition="above" stretchTabs="false" alignTabs="start">
   @for (step of steps; track step; let i = $index; let first = $first; let last = $last) {
-    <div mat-tab-link class="breadcrumb__step"
+    <div z-tab-link class="breadcrumb__step"
       [ngClass]="{
         'breadcrumb__step--active': step.active,
         'first': first,

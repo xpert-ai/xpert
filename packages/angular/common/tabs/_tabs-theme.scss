@@ -6,8 +6,8 @@
   $accent: map.get($config, accent);
   $background: map.get($config, background);
 
-  .ngm-appearance-desktop.mat-tab-group {
-    .mat-tab-label {
+  .ngm-appearance-desktop.z-tab-group {
+    .z-tab-group__trigger {
       min-width: unset;
       &:hover {
         background-color: mat.m2-get-color-from-palette($background, hover);

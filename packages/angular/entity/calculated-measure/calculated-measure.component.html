@@ -3,8 +3,8 @@
     mode="side" position="end" ngmResizer [resizerWidth]="330"
     [(opened)]="drawerOpened"
     (openedChange)="$event?helper.realignInkBar():''">
-    <mat-tab-group #helper class="ngm-calculated-measure__helpers" mat-stretch-tabs="false" >
-      <mat-tab [label]="'Ngm.Calculation.DIMENSION_MEMBERS' | translate: {Default: 'Dimension Members'}"
+    <z-tab-group #helper="zTabGroup" class="ngm-calculated-measure__helpers" [stretchTabs]="false" >
+      <z-tab [label]="'Ngm.Calculation.DIMENSION_MEMBERS' | translate: {Default: 'Dimension Members'}"
         id="ngm-calculated-measure__entity-schema"
         cdkDropList
         [cdkDropListData]="[]"
@@ -16,9 +16,9 @@
             EntityCapacity.Dimension,
             EntityCapacity.Measure
           ]" />
-      </mat-tab>
+      </z-tab>
 
-      <mat-tab [label]="'Ngm.Calculation.CALCULATED_MEMBERS' | translate: {Default: 'Calculated Members'}">
+      <z-tab [label]="'Ngm.Calculation.CALCULATED_MEMBERS' | translate: {Default: 'Calculated Members'}">
         <div class="max-w-full w-full flex flex-col justify-start items-stretch p-2 overflow-hidden">
           <ngm-search class="" [formControl]="calculatedMemberSearch" />
           <mat-list role="list" class="flex-1 max-w-full w-full overflow-auto" displayDensity="cosy"
@@ -39,11 +39,11 @@
           </mat-list>
         </div>
 
-      </mat-tab>
+      </z-tab>
 
     @if (story()) {
-      <mat-tab [label]="'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'}">
-        <ng-template matTabContent>
+      <z-tab [label]="'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'}">
+        <ng-template zTabContent>
           <div class="w-full flex flex-col justify-start items-stretch p-4">
             <button z-button zType="ghost" displayDensity="cosy" ngmAppearance="dashed" (click)="openCreateParameter()">
               <div class="flex justify-center items-center">
@@ -70,14 +70,14 @@
 
                 <div *cdkDragPlaceholder></div>
               </mat-list-item>
-            </mat-list>
+              </mat-list>
           </div>
         </ng-template>
-      </mat-tab>
+      </z-tab>
     }
 
-      <mat-tab [label]="'Ngm.Calculation.Formulas' | translate: {Default: 'Formulas'}">
-        <ng-template matTabContent>
+      <z-tab [label]="'Ngm.Calculation.Formulas' | translate: {Default: 'Formulas'}">
+        <ng-template zTabContent>
           <div class="flex-1 flex flex-col justify-start items-stretch overflow-auto">
             <ngm-search class="m-2" [formControl]="fnSearchControl" />
             <mat-accordion id="ngm-calculated-functions" cdkDropList
@@ -104,8 +104,8 @@
             </mat-accordion>
           </div>
         </ng-template>
-      </mat-tab>
-    </mat-tab-group>
+      </z-tab>
+    </z-tab-group>
 
     <div ngmResizerBar resizerBarPosition="left" style="z-index: 1;" class="absolute top-0"
       cdkDrag

@@ -7,11 +7,11 @@
     </button>
   }
   
-  <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple mat-stretch-tabs="false" mat-align-tabs="start" class="pac-model-query__nav flex-1"
+  <nav z-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple stretchTabs="false" alignTabs="start" class="pac-model-query__nav flex-1"
     cdkDropList cdkDropListOrientation="horizontal"
     [cdkDropListData]="queries()"
     (cdkDropListDropped)="sortQueries($event)">
-    <span mat-tab-link *ngFor="let query of queries(); index as i; trackBy: trackByKey"
+    <span z-tab-link *ngFor="let query of queries(); index as i; trackBy: trackByKey"
       [routerLink]="query.key"
       routerLinkActive #rla="routerLinkActive"
       [active]="rla.isActive"
@@ -48,9 +48,9 @@
   </nav>
 </mat-toolbar>
 
-<mat-tab-nav-panel #tabPanel class="flex-1 overflow-hidden">
+<z-tab-nav-panel #tabPanel class="flex-1 overflow-hidden">
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</z-tab-nav-panel>
 
 <ng-template #menu let-key="key">
   <div cdkMenu class="cdk-menu__medium">

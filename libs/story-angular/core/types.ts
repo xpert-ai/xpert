@@ -1,6 +1,5 @@
 import { ComponentType } from '@angular/cdk/portal'
 import { InjectionToken, TemplateRef, Type } from '@angular/core'
-import { MatTabHeaderPosition } from '@angular/material/tabs'
 import {
   Accessibility,
   IDataSource,
@@ -11,7 +10,7 @@ import {
   IStory,
   ISubscription
 } from '@metad/contracts'
-import { DisplayDensity, NgmAppearance, ThemesEnum } from '@metad/ocap-angular/core'
+import { DisplayDensity, NgmAppearance, NgmTabHeaderPosition, ThemesEnum } from '@metad/ocap-angular/core'
 import {
   DataSettings,
   DataSourceOptions,
@@ -97,7 +96,7 @@ export interface StoryPreferences {
   storyStyling?: ComponentStyling
   story?: {
     tabBar?: 'fixed' | 'point' | 'hidden' | null
-    pageHeaderPosition?: MatTabHeaderPosition
+    pageHeaderPosition?: NgmTabHeaderPosition
     pageHeaderStretchTabs?: boolean
     pageHeaderAlignTabs?: 'start' | 'center' | 'end'
     pageHeaderShowLabel?: boolean | PageHeaderLabelEnum

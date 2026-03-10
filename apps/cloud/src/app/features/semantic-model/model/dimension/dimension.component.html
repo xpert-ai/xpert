@@ -2,9 +2,9 @@
   <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [color]="mt.isOpen() ? 'accent':''" [cdkMenuTriggerFor]="menu" #mt="cdkMenuTriggerFor">
     <mat-icon [color]="mt.isOpen() ? 'accent':''">more_vert</mat-icon>
   </button> -->
-  <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple class="flex-1" mat-stretch-tabs="false" mat-align-tabs="start">
+  <nav z-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple class="flex-1" stretchTabs="false" alignTabs="start">
     @for (tab of hierarchies(); track tab.__id__; let i = $index) {
-      <span mat-tab-link class="relative"
+      <span z-tab-link class="relative"
         [routerLink]="['hierarchy', tab.__id__]"
         routerLinkActive #rla="routerLinkActive"
         [active]="rla.isActive"
@@ -86,9 +86,9 @@
     ></div>
   </mat-drawer>
   <mat-drawer-content>
-    <mat-tab-nav-panel #tabPanel class="h-full w-full flex-1 overflow-hidden">
+    <z-tab-nav-panel #tabPanel class="h-full w-full flex-1 overflow-hidden">
       <router-outlet #o="outlet"></router-outlet>
-    </mat-tab-nav-panel>
+    </z-tab-nav-panel>
   </mat-drawer-content>
 </mat-drawer-container>
 

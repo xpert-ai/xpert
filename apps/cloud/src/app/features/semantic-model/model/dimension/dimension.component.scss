@@ -25,11 +25,11 @@
 
 .xp-nav-toolbar {
   &.ngm-density__compact {
-    .mat-mdc-tab-header {
-      --mdc-secondary-navigation-tab-container-height: 32px;
+    .z-tab-nav-bar {
+      min-height: 32px;
     }
 
-    .mdc-tab {
+    .z-tab-link {
       @apply px-2;
     }
   }

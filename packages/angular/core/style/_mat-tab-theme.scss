@@ -11,16 +11,16 @@
 }
 
 @mixin density($config-or-theme) {
-  .mat-tab-nav-bar.mat-tab-header {
+  .z-tab-nav-bar {
     &.ngm-density__cosy {
-      .mat-tab-link {
+      .z-tab-link {
         height: 38px;
         min-width: 100px;
       }
     }
 
     &.ngm-density__compact {
-      .mat-tab-link {
+      .z-tab-link {
         height: 30px;
         min-width: 60px;
       }

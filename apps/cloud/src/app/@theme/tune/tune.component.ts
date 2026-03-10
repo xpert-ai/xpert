@@ -7,7 +7,6 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSliderModule } from '@angular/material/slider'
-import { MatTabsModule } from '@angular/material/tabs'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgFilterPipeModule } from '@metad/core'
 import { ButtonGroupDirective, DensityDirective, NgmDSCacheService } from '@metad/ocap-angular/core'
@@ -18,7 +17,7 @@ import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, of } from 'rxjs'
 import { AbstractAgent, LocalAgent, ServerSocketAgent, Store, ToastrService } from '../../@core'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +35,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatIconModule,
     MatTooltipModule,
     ZardButtonComponent,
-    MatTabsModule,
+    ...ZardTabsImports,
     MatListModule,
     MatSliderModule,
     MatProgressBarModule,

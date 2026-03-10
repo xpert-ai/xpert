@@ -5,7 +5,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTabsModule } from '@angular/material/tabs'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
@@ -14,7 +13,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NxComponentSettingsComponent } from './component-form/formly-form.component'
 import { DesignerPanelComponent } from './panel/panel.component'
 import { NgmSettingsPanelComponent } from './settings-panel/settings-panel.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
@@ -25,7 +24,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatSidenavModule,
     ZardButtonComponent,
     MatIconModule,
-    MatTabsModule,
+    ...ZardTabsImports,
     MatToolbarModule,
     MatTooltipModule,
     FormlyModule,

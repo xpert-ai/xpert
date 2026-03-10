@@ -22,10 +22,10 @@
     </div>
   </div>
 
-  <nav mat-tab-nav-bar class="pac-tab-nav-bar self-stretch max-w-full overflow-hidden" color="accent" mat-align-tabs="start" mat-stretch-tabs="false" disableRipple displayDensity="cosy"
+  <nav z-tab-nav-bar class="pac-tab-nav-bar self-stretch max-w-full overflow-hidden" color="accent" alignTabs="start" stretchTabs="false" disableRipple displayDensity="cosy"
     [tabPanel]="tabPanel"
   >
-    <span mat-tab-link [routerLink]="['.']"
+    <span z-tab-link [routerLink]="['.']"
       routerLinkActive #rla="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla.isActive"
@@ -34,7 +34,7 @@
       {{ 'PAC.MENU.USERS' | translate: {Default: "Users"} }}
     </span>
     @if (invitesAllowed()) {
-      <span mat-tab-link [routerLink]="['invites']"
+      <span z-tab-link [routerLink]="['invites']"
         routerLinkActive #rla2="routerLinkActive"
         [routerLinkActiveOptions]="{exact: true}"
         [active]="rla2.isActive"
@@ -45,7 +45,7 @@
     }
 
   @for (link of openedLinks(); track link.id) {
-    <span mat-tab-link [routerLink]="[link.id]"
+    <span z-tab-link [routerLink]="[link.id]"
         [active]="link.id === currentLink()?.id">
         <mat-icon class="mr-1" fontSet="material-icons-outlined" displayDensity="cosy">face</mat-icon>
         {{ userLabel(link) }}
@@ -59,7 +59,7 @@
 
 <mat-divider></mat-divider>
 
-<mat-tab-nav-panel #tabPanel class="pac-page-body"
+<z-tab-nav-panel #tabPanel class="pac-page-body"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</z-tab-nav-panel>

@@ -20,13 +20,13 @@
 .pac-page-body-toolbar {
   @apply flex justify-between items-center;
 }
-.pac-tab-nav-bar.mat-mdc-tab-header {
-  --mdc-secondary-navigation-tab-container-height: 38px;
+.pac-tab-nav-bar.z-tab-nav-bar {
+  min-height: 38px;
 
   .pac-tab-close {
     @apply opacity-0 invisible absolute -right-6;
   }
-  .mdc-tab.mdc-tab--active {
+  .z-tab-link[data-active='true'] {
     .pac-tab-close {
       @apply opacity-100 visible;
     }

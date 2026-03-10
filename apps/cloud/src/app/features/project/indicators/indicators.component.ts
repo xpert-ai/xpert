@@ -5,7 +5,6 @@ import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
-import { MatTabsModule } from '@angular/material/tabs'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { injectFetchModelDetails, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
@@ -27,7 +26,7 @@ import { ManageEntityBaseComponent } from '../../../@shared/directives'
 import { ProjectService } from '../project.service'
 import { NewIndicatorCodePlaceholder } from '../types'
 import { IndicatorImportComponent } from './indicator-import/indicator-import.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -39,7 +38,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatTooltipModule,
     ZardButtonComponent,
     MatIconModule,
-    MatTabsModule,
+    ...ZardTabsImports,
     MatDividerModule,
 
     ButtonGroupDirective,

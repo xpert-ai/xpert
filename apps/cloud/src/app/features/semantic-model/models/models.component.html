@@ -30,12 +30,12 @@
 </div>
 
 <!-- <div>
-  <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple displayDensity="cosy" mat-stretch-tabs="false" mat-align-tabs="start">
-    <span mat-tab-link [active]="type === 'my'" (click)="type='my'">
+  <nav z-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple displayDensity="cosy" stretchTabs="false" alignTabs="start">
+    <span z-tab-link [active]="type === 'my'" (click)="type='my'">
       {{ 'PAC.MENU.MODEL.MY' | translate: {Default: "My"} }}
     </span>
 
-    <span mat-tab-link [active]="type === 'all'" *ngxPermissionsOnly="[AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT]"
+    <span z-tab-link [active]="type === 'all'" *ngxPermissionsOnly="[AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT]"
       (click)="type='all'">
       {{ 'PAC.MENU.MODEL.ALL' | translate: {Default: "All"} }}
     </span>

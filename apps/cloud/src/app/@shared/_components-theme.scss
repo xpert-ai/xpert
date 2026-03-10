@@ -367,10 +367,10 @@
   }
 
   // Status bar
-  .pac-status-bar__local-agent .mat-mdc-tab-body-wrapper {
+  .pac-status-bar__local-agent .z-tab-group__content {
     @apply flex-1;
 
-    .mat-mdc-tab-body-content {
+    .z-tab-group__panel {
       @apply p-4 flex flex-col;
     }
   }

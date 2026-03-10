@@ -26,10 +26,10 @@
 
 @mixin density($theme) {
   .pac-indicator-register__form {
-    .mat-tab-label {
+    .z-tab-group__trigger {
       min-width: unset;
     }
-    .mat-tab-body-content {
+    .z-tab-group__panel {
       padding-top: 1rem;
     }
     .mat-radio-label {

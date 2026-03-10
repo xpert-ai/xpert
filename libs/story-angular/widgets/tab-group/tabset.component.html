@@ -1,15 +1,15 @@
-<mat-tab-group [disableRipple]="options?.disableRipple"
+<z-tab-group [disableRipple]="options?.disableRipple"
   [preserveContent]="options?.preserveContent"
   [animationDuration]="options?.animationDuration ?? 500"
   [disablePagination]="options?.disablePagination"
-  [attr.mat-align-tabs]="options?.alignTabs"
-  [attr.mat-stretch-tabs]="options?.stretchTabs ? true : null"
+  [alignTabs]="options?.alignTabs"
+  [stretchTabs]="options?.stretchTabs"
   [headerPosition]="options?.headerPosition"
   [color]="options?.color"
   [displayDensity]="styling?.appearance?.displayDensity"
-  resizeObserver  (sizeChange)="onResize($event)"
+  resizeObserver  (sizeChange)="onResize()"
 >
-  <mat-tab *ngFor="let slide of slides$(); trackBy:trackByKey" [label]="slide.title"
+  <z-tab *ngFor="let slide of slides$(); trackBy:trackByKey" [label]="slide.title"
     [disabled]="slide.disabled"
     [ngSwitch]=""
     >
@@ -72,8 +72,8 @@
       />
     }
   }
-  </mat-tab>
-</mat-tab-group>
+  </z-tab>
+</z-tab-group>
 
 <div *ngIf="editable && placeholder$()" class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
   <pac-placeholder-add></pac-placeholder-add>

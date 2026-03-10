@@ -17,13 +17,12 @@ import { MatSelectModule } from '@angular/material/select'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTableModule } from '@angular/material/table'
-import { MatTabsModule } from '@angular/material/tabs'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import {MatExpansionModule} from '@angular/material/expansion'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
-const MAT_MODULES = [MatIconModule, ZardButtonComponent, MatListModule, MatTabsModule, ...ZardFormImports, ZardInputDirective, MatDialogModule, MatSidenavModule, MatTableModule, MatCheckboxModule, MatToolbarModule, MatTooltipModule, MatSelectModule, MatProgressBarModule, DragDropModule, PortalModule, LayoutModule, MatSlideToggleModule, MatProgressSpinnerModule, MatCardModule, MatExpansionModule]
+const MAT_MODULES = [MatIconModule, ZardButtonComponent, MatListModule, ...ZardTabsImports, ...ZardFormImports, ZardInputDirective, MatDialogModule, MatSidenavModule, MatTableModule, MatCheckboxModule, MatToolbarModule, MatTooltipModule, MatSelectModule, MatProgressBarModule, DragDropModule, PortalModule, LayoutModule, MatSlideToggleModule, MatProgressSpinnerModule, MatCardModule, MatExpansionModule]
 @NgModule({
   declarations: [],
   imports: [

@@ -40,10 +40,10 @@
     </div>
   </div>
 
-  <nav mat-tab-nav-bar class="pac-tab-nav-bar max-w-full self-stretch" color="accent" disableRipple displayDensity="cosy" mat-stretch-tabs="false" mat-align-tabs="start"
+  <nav z-tab-nav-bar class="pac-tab-nav-bar max-w-full self-stretch" color="accent" disableRipple displayDensity="cosy" stretchTabs="false" alignTabs="start"
     [tabPanel]="tabPanel"
   >
-    <span mat-tab-link [routerLink]="['.']"
+    <span z-tab-link [routerLink]="['.']"
       routerLinkActive #rla="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla.isActive"
@@ -52,7 +52,7 @@
       {{ 'PAC.INDICATOR.All' | translate: {Default: "All"} }}
     </span>
 
-    <!-- <span mat-tab-link [routerLink]="['./all']"
+    <!-- <span z-tab-link [routerLink]="['./all']"
       routerLinkActive #rla2="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla2.isActive"
@@ -61,7 +61,7 @@
       {{ 'PAC.INDICATOR.MY_INDICATORS.ALL' | translate: {Default: "All"} }}
     </span> -->
 
-    <span mat-tab-link [routerLink]="['approvals']"
+    <span z-tab-link [routerLink]="['approvals']"
       routerLinkActive #rla3="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla3.isActive"
@@ -71,7 +71,7 @@
     </span>
 
     @for (indicator of openedLinks(); track indicator) {
-      <span mat-tab-link [routerLink]="[indicator.id || indicator.code]"
+      <span z-tab-link [routerLink]="[indicator.id || indicator.code]"
         [active]="indicator.id === currentLink()?.id || indicator.code === currentLink()?.code">
 
         @if (isDirty(indicator.id)) {
@@ -98,10 +98,10 @@
 </div>
 <mat-divider></mat-divider>
 
-<mat-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
+<z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
   <router-outlet #o="outlet"></router-outlet>
-</mat-tab-nav-panel>
+</z-tab-nav-panel>
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__medium">

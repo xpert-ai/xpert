@@ -149,12 +149,12 @@
                       </button>
                     }
 
-                    <nav mat-tab-nav-bar id="pac-model__query-results" color="accent" mat-stretch-tabs="false" mat-align-tabs="start" class="flex-1"
+                    <nav z-tab-nav-bar id="pac-model__query-results" color="accent" stretchTabs="false" alignTabs="start" class="flex-1"
                         [tabPanel]="tabPanel"
                         cdkDropList
                         [cdkDropListData]="results"
                     >
-                        <span mat-tab-link (click)="activeResult = result"
+                        <span z-tab-link (click)="activeResult = result"
                             [active]="activeResult === result"
                             *ngFor="let result of results; index as i"
                             cdkDrag
@@ -183,7 +183,7 @@
                 <mat-progress-bar mode="query" class="pac-model-query__progress-bar z-[102]" />
               }
 
-                <mat-tab-nav-panel #tabPanel class="pac-cdk-drop__list pac-cdk-drop__area flex flex-col overflow-hidden"
+                <z-tab-nav-panel #tabPanel class="pac-cdk-drop__list pac-cdk-drop__area flex flex-col overflow-hidden"
                     cdkDropList
                     [cdkDropListEnterPredicate]="editorDropPredicate"
                     (cdkDropListDropped)="dropTable($event)">
@@ -236,7 +236,7 @@
                       <span class="text-sm">{{ 'PAC.MODEL.QUERY.DragDropFieldPreview' | translate: {Default: "Drag table, field, dimension, measure, etc. here to preview the data"} }}</span>
                     </div>
                   }
-                </mat-tab-nav-panel>
+                </z-tab-nav-panel>
             </ngm-splitter-pane>
         </ngm-splitter>
         

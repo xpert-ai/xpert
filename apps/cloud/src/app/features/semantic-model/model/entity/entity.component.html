@@ -48,21 +48,21 @@
 
   <span class="flex-1 flex"></span>
   
-  <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple mat-stretch-tabs="false" mat-align-tabs="start">
-    <span mat-tab-link [routerLink]="['./structure']" routerLinkActive #rlaStructure="routerLinkActive"
+  <nav z-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple stretchTabs="false" alignTabs="start">
+    <span z-tab-link [routerLink]="['./structure']" routerLinkActive #rlaStructure="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rlaStructure.isActive"
     >{{ 'PAC.MENU.STRUCTURE' | translate: {Default: "Structure"} }}</span>
-    <span mat-tab-link [routerLink]="['./preview']" routerLinkActive #rlaPreview="routerLinkActive"
+    <span z-tab-link [routerLink]="['./preview']" routerLinkActive #rlaPreview="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rlaPreview.isActive"
     >{{ 'PAC.MENU.Preview' | translate: {Default: "Preview"} }}</span>
-    <span mat-tab-link [routerLink]="['./query']" routerLinkActive #rlaQuery="routerLinkActive"
+    <span z-tab-link [routerLink]="['./query']" routerLinkActive #rlaQuery="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rlaQuery.isActive"
     >{{ 'PAC.MENU.QL_LAB' | translate: {Default: "Query Lab"} }}</span>
     
-    <span mat-tab-link [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
+    <span z-tab-link [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
       matTooltipPosition="left"
       [active]="detailsOpen()"
       (click)="toggleDesignPanel()"
@@ -83,10 +83,10 @@
         [modelType]="modelType$ | async" editable
         (editChange)="onPropertyEdit($event)"
       />
-      <mat-tab-nav-panel #tabPanel class="pac-model-entity__workspace-router ngm-layout-container-secondary flex-1"
+      <z-tab-nav-panel #tabPanel class="pac-model-entity__workspace-router ngm-layout-container-secondary flex-1"
         [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
         <router-outlet #o="outlet"></router-outlet>
-      </mat-tab-nav-panel>
+      </z-tab-nav-panel>
     </div>
 
     <div class="absolute top-0 bottom-0 right-0 m-1 flex gap-2 z-10"

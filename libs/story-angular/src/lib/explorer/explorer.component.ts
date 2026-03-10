@@ -7,7 +7,6 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatTabsModule } from '@angular/material/tabs'
 import { MatRadioModule } from '@angular/material/radio'
 import { nonBlank } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
@@ -55,7 +54,7 @@ import { firstValueFrom } from 'rxjs'
 import { ExplainComponent } from '@metad/story/story'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -70,7 +69,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatDividerModule,
     MatTooltipModule,
     MatIconModule,
-    MatTabsModule,
+    ...ZardTabsImports,
     MatRadioModule,
     DragDropModule,
     OcapCoreModule,
