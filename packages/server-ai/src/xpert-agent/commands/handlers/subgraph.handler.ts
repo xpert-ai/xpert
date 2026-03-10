@@ -40,7 +40,7 @@ import { FakeStreamingChatModel, getChannelState, messageEvent, TAgentSubgraphPa
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs, getAgentMiddlewares, orderNodesByKeyOrder, createAgentChannel } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable, identifyAgent, createParameters, TGraphTool, TSubAgent, TWorkflowGraphNode, TStateChannel, hasMultipleInputs, getAgentMiddlewares, orderNodesByKeyOrder, createAgentChannel, sanitizeMessagesForLLM } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { AgenticWorkflowTypes } from '../../types'
@@ -832,8 +832,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				const systemMsg = request.systemMessage ?? systemMessage
 				systemMessageContent = systemMsg.content
 				const finalMessages = systemMsg ? [systemMsg, ...reqMessages] : reqMessages
+				const sanitizedMessages = sanitizeMessagesForLLM(finalMessages, this.#logger)
 				const response = await model.invoke(
-					finalMessages,
+					sanitizedMessages,
 					{...config, signal: abortController.signal}
 				)
 				if (isBaseMessage(response) && isAIMessage(response)) {

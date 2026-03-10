@@ -3,6 +3,7 @@ import { HumanMessage, isHumanMessage, RemoveMessage } from '@langchain/core/mes
 import { channelName, TMessageChannel, TSummarize } from '@metad/contracts'
 import { v4 as uuidv4 } from 'uuid'
 import { AgentStateAnnotation } from './state'
+import { sanitizeMessagesForLLM } from './sanitize-messages-for-llm'
 
 /**
  * Create summarize node function for agent's message channel.
@@ -38,7 +39,9 @@ export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize
 				content: summaryMessage
 			})
 		]
-		const response = await model.invoke(allMessages, { tags: ['summarize_conversation'] })
+		const response = await model.invoke(sanitizeMessagesForLLM(allMessages), {
+			tags: ['summarize_conversation']
+		})
 		// We now need to delete messages that we no longer want to show up
 		const summarizedMessages = messages.slice(0, -summarize.retainMessages)
 		const retainMessages = messages.slice(-summarize.retainMessages)
