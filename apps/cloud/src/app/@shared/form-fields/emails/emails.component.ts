@@ -2,14 +2,14 @@ import { CommonModule } from '@angular/common'
 import { Component, Input, OnInit, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormControl, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips'
-import { ThemePalette } from '@angular/material/core'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { distinctUntilChanged } from 'rxjs'
+import { NgmFieldAppearance, NgmFieldColor } from "@metad/ocap-angular/core";
+import { ZardFormImports } from "@xpert-ai/headless-ui";
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatChipsModule, MatFormFieldModule, MatIconModule, ReactiveFormsModule],
+  imports: [CommonModule, MatChipsModule, ...ZardFormImports, MatIconModule, ReactiveFormsModule],
   selector: 'pac-form-field-emails',
   templateUrl: 'emails.component.html',
   providers: [
@@ -22,10 +22,10 @@ import { distinctUntilChanged } from 'rxjs'
 })
 export class FormFieldEmailsComponent implements ControlValueAccessor, OnInit {
   
-  @Input() appearance: MatFormFieldAppearance
+  @Input() appearance: NgmFieldAppearance
   @Input() label: string
   @Input() placeholder: string
-  @Input() color: ThemePalette = undefined
+  @Input() color: NgmFieldColor = undefined
   @Input() removable: boolean
 
   addOnBlur = true

@@ -8,9 +8,8 @@ import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatSelectModule } from '@angular/material/select'
@@ -39,36 +38,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     NxYearFilterComponent,
     
   ],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatTableModule,
-    MatCheckboxModule,
-    MatInputModule,
-    MatFormFieldModule,
-    ZardButtonComponent,
-    MatSelectModule,
-    MatExpansionModule,
-    MatIconModule,
-    MatDividerModule,
-    MatDatepickerModule,
-    MatRadioModule,
-    MatMenuModule,
-    DragDropModule,
-    TranslateModule,
-
-    DensityDirective,
-    ButtonGroupDirective,
-    AppearanceDirective,
-    NgmMonthpickerComponent,
-    NgmQuarterpickerComponent,
-    NgmYearpickerComponent,
-    NgmDatepickerComponent,
-    NgmTimeFilterEditorComponent,
-    NgmTodayFilterComponent
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatTableModule, MatCheckboxModule, ZardInputDirective, ...ZardFormImports, ZardButtonComponent, MatSelectModule, MatExpansionModule, MatIconModule, MatDividerModule, MatDatepickerModule, MatRadioModule, MatMenuModule, DragDropModule, TranslateModule, DensityDirective, ButtonGroupDirective, AppearanceDirective, NgmMonthpickerComponent, NgmQuarterpickerComponent, NgmYearpickerComponent, NgmDatepickerComponent, NgmTimeFilterEditorComponent, NgmTodayFilterComponent],
   exports: [NgmTimeFilterEditorComponent, NgmTodayFilterComponent, NxYearFilterComponent]
 })
 export class NgmTimeFilterModule {}

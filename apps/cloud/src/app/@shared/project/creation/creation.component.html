@@ -9,21 +9,21 @@
 
   <div class="flex-1">
     <form class="flex flex-col justify-start items-stretch" [formGroup]="form">
-      <mat-form-field appearance="fill" floatLabel="always" color="accent">
-        <mat-label>{{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}</mat-label>
-        <input matInput formControlName="name" required
+      <z-form-field appearance="fill" floatLabel="always" color="accent">
+        <z-form-label>{{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}</z-form-label>
+        <input z-input formControlName="name" required
           placeholder="{{ 'PAC.Project.WhatIsTheName' | translate: { Default: 'What is the name of your project' } }}?"
         />
-      </mat-form-field>
+      </z-form-field>
 
-      <mat-form-field appearance="fill" floatLabel="always" color="accent">
-        <mat-label>
+      <z-form-field appearance="fill" floatLabel="always" color="accent">
+        <z-form-label>
           {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
-        </mat-label>
-        <textarea matInput formControlName="description"
+        </z-form-label>
+        <textarea z-input formControlName="description"
           placeholder="{{ 'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the project' } }}"
         ></textarea>
-      </mat-form-field>
+      </z-form-field>
 
       <button></button>
     </form>

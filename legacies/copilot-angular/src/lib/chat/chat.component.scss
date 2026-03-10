@@ -58,7 +58,7 @@ z-button.ngm-copilot__message-remove {
   @apply rounded-full;
 }
 
-.ngm-colpilot__input.mat-mdc-input-element {
+.ngm-colpilot__input[z-input] {
   @apply outline-none bg-transparent;
 }
 

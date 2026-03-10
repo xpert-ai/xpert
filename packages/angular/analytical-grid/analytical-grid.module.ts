@@ -7,9 +7,8 @@ import { FormsModule } from '@angular/forms'
 import { MatCardModule } from '@angular/material/card'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDividerModule } from '@angular/material/divider'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatPaginatorModule } from '@angular/material/paginator'
@@ -26,33 +25,7 @@ import { AnalyticalGridComponent } from './analytical-grid.component'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
-  imports: [
-    CommonModule,
-    FormsModule,
-    
-    A11yModule,
-    CdkMenuModule,
-    MatTableModule,
-    MatPaginatorModule,
-    ZardButtonComponent,
-    MatIconModule,
-    MatMenuModule,
-    MatProgressSpinnerModule,
-    MatDividerModule,
-    MatTooltipModule,
-    MatSortModule,
-    OverlayModule,
-    MatCardModule,
-    MatListModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatCheckboxModule,
-
-    TranslateModule,
-    OcapCoreModule,
-    NgmCommonModule,
-    NgmSelectionModule
-  ],
+  imports: [CommonModule, FormsModule, A11yModule, CdkMenuModule, MatTableModule, MatPaginatorModule, ZardButtonComponent, MatIconModule, MatMenuModule, MatProgressSpinnerModule, MatDividerModule, MatTooltipModule, MatSortModule, OverlayModule, MatCardModule, MatListModule, ...ZardFormImports, ZardInputDirective, MatCheckboxModule, TranslateModule, OcapCoreModule, NgmCommonModule, NgmSelectionModule],
   exports: [AnalyticalGridComponent],
   declarations: [AnalyticalGridComponent],
   providers: []

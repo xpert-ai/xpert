@@ -12,38 +12,38 @@
       <div class="description mb-4">{{ 'PAC.Onboarding.CreateAdminAndOrg' | translate: {Default: 'Create your super admin account and default organization.'} }}</div>
 
       <div class="relative grid grid-cols-2 gap-2">
-        <mat-form-field>
-          <mat-label>{{ 'PAC.Onboarding.FirstName' | translate: {Default: 'First name'} }}</mat-label>
-          <input matInput formControlName="firstName" />
-        </mat-form-field>
+        <z-form-field>
+          <z-form-label>{{ 'PAC.Onboarding.FirstName' | translate: {Default: 'First name'} }}</z-form-label>
+          <input z-input formControlName="firstName" />
+        </z-form-field>
 
-        <mat-form-field>
-          <mat-label>{{ 'PAC.Onboarding.LastName' | translate: {Default: 'Last name'} }}</mat-label>
-          <input matInput formControlName="lastName" />
-        </mat-form-field>
+        <z-form-field>
+          <z-form-label>{{ 'PAC.Onboarding.LastName' | translate: {Default: 'Last name'} }}</z-form-label>
+          <input z-input formControlName="lastName" />
+        </z-form-field>
 
-        <mat-form-field class="col-span-2">
-          <mat-label>{{ 'PAC.Onboarding.Email' | translate: {Default: 'Email'} }}</mat-label>
-          <input matInput placeholder="email" formControlName="email" autocomplete="email" />
-        </mat-form-field>
+        <z-form-field class="col-span-2">
+          <z-form-label>{{ 'PAC.Onboarding.Email' | translate: {Default: 'Email'} }}</z-form-label>
+          <input z-input placeholder="email" formControlName="email" autocomplete="email" />
+        </z-form-field>
 
-        <mat-form-field class="col-span-2">
-          <mat-label>{{ 'PAC.Onboarding.CompanyTeamName' | translate: {Default: 'Company or team name'} }}</mat-label>
-          <input matInput formControlName="organizationName" />
-        </mat-form-field>
+        <z-form-field class="col-span-2">
+          <z-form-label>{{ 'PAC.Onboarding.CompanyTeamName' | translate: {Default: 'Company or team name'} }}</z-form-label>
+          <input z-input formControlName="organizationName" />
+        </z-form-field>
 
-        <mat-form-field class="col-span-2">
-          <mat-label>{{ 'PAC.Onboarding.CreateAPassword' | translate: {Default: 'Create a password'} }}</mat-label>
-          <input matInput type="password" placeholder="*******" formControlName="password" autocomplete="password" />
-          <mat-error *ngIf="minlengthError() as error">
-            {{ 'PAC.Onboarding.Minlength' | translate: {Default: 'Min length'} }} {{error.requiredLength}} {{ 'PAC.Onboarding.Actuallength' | translate: {Default: 'actual length'} }} {{error.actualLength}}</mat-error>
-        </mat-form-field>
+        <z-form-field class="col-span-2">
+          <z-form-label>{{ 'PAC.Onboarding.CreateAPassword' | translate: {Default: 'Create a password'} }}</z-form-label>
+          <input z-input type="password" placeholder="*******" formControlName="password" autocomplete="password" />
+          <z-form-message zType="error" *ngIf="minlengthError() as error">
+            {{ 'PAC.Onboarding.Minlength' | translate: {Default: 'Min length'} }} {{error.requiredLength}} {{ 'PAC.Onboarding.Actuallength' | translate: {Default: 'actual length'} }} {{error.actualLength}}</z-form-message>
+        </z-form-field>
 
-        <mat-form-field class="col-span-2">
-          <mat-label>{{ 'PAC.Onboarding.ConfirmYourPassword' | translate: {Default: 'Confirm your password'} }}</mat-label>
-          <input matInput type="password" placeholder="*******" formControlName="confirmPassword" autocomplete="password" />
-          <mat-error *ngIf="mustMatchError()">{{ 'PAC.Onboarding.PasswordMustMatch' | translate: {Default: 'Password must match'} }}</mat-error>
-        </mat-form-field>
+        <z-form-field class="col-span-2">
+          <z-form-label>{{ 'PAC.Onboarding.ConfirmYourPassword' | translate: {Default: 'Confirm your password'} }}</z-form-label>
+          <input z-input type="password" placeholder="*******" formControlName="confirmPassword" autocomplete="password" />
+          <z-form-message zType="error" *ngIf="mustMatchError()">{{ 'PAC.Onboarding.PasswordMustMatch' | translate: {Default: 'Password must match'} }}</z-form-message>
+        </z-form-field>
 
         @if (loading()) {
           <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
@@ -98,7 +98,7 @@
 
       <div class="flex justify-center items-center w-full h-24">
         <mat-progress-bar *ngIf="loading()" class="w-full" mode="query"></mat-progress-bar>
-        <mat-error *ngIf="demoError()" class="max-h-full max-w-full overflow-auto">{{demoError()}}</mat-error>
+        <z-form-message zType="error" *ngIf="demoError()" class="max-h-full max-w-full overflow-auto">{{demoError()}}</z-form-message>
       </div>
 
       <div class="flex items-center gap-4">
@@ -150,15 +150,15 @@
               <img src="assets/images/db-logos/{{type.type}}.png" width="64" height="64" class="m-0 inline-block">
               <div class="text-lg">{{type.name}}</div>
             </div>
-            <mat-form-field appearance="fill">
-                <mat-label>
+            <z-form-field appearance="fill">
+                <z-form-label>
                     {{ 'PAC.Onboarding.DisplayName' | translate: {Default: 'Display Name'} }}
-                </mat-label>
-                <input matInput formControlName="name">
-                <mat-error *ngIf="dataSourceNameError()">
+                </z-form-label>
+                <input z-input formControlName="name">
+                <z-form-message zType="error" *ngIf="dataSourceNameError()">
                     {{ 'PAC.Onboarding.NameRequired' | translate: {Default: 'Name Required'} }}
-                </mat-error>
-            </mat-form-field>
+                </z-form-message>
+            </z-form-field>
 
             <formly-form
               [form]="dataSourceTypeFormGroup"

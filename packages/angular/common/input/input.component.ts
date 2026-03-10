@@ -14,7 +14,7 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatInputModule } from '@angular/material/input'
+import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { DisplayDensity, ISelectOption, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, startWith, switchMap } from 'rxjs'
@@ -28,7 +28,16 @@ import { NgmHighlightDirective } from '../directives'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MatInputModule, MatAutocompleteModule, NgmHighlightDirective],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardInputDirective,
+    ...ZardFormImports,
+    MatAutocompleteModule,
+    NgmHighlightDirective
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-input',
   templateUrl: './input.component.html',

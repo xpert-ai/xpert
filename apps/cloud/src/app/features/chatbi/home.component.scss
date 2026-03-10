@@ -12,12 +12,12 @@
 
 :host::ng-deep {
   .title {
-    .ngm-select {
-      display: inline-block;
-      .mat-mdc-form-field-error {
-        display: none;
+      .ngm-select {
+        display: inline-block;
+        z-form-message {
+          display: none;
+        }
       }
-    }
   }
 
   &.full-screen {

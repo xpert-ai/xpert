@@ -8,10 +8,10 @@
 
   @if (source.value === null) {
     <div class="flex items-center gap-2">
-      <mat-form-field appearance="fill" class="w-full">
-        <mat-label>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: {Default: 'File Url'} }}</mat-label>
-        <input matInput [formControl]="fileUrl" />
-      </mat-form-field>
+      <z-form-field appearance="fill" class="w-full">
+        <z-form-label>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: {Default: 'File Url'} }}</z-form-label>
+        <input z-input [formControl]="fileUrl" />
+      </z-form-field>
     </div>
   }
 

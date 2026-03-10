@@ -7,11 +7,10 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatDialog } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
-import { MatFormFieldAppearance } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@metad/ocap-angular/common'
-import { DisplayDensity, ISelectOption, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -45,7 +44,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     DragDropModule,
     CdkMenuModule,
-    MatInputModule,
+    ZardInputDirective,
     ZardButtonComponent,
     MatIconModule,
     MatDividerModule,
@@ -64,7 +63,7 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
   readonly #dialog = inject(Dialog, { optional: true })
   readonly #viewContainerRef = inject(ViewContainerRef)
 
-  @Input() appearance: MatFormFieldAppearance = 'fill'
+  @Input() appearance: NgmFieldAppearance = 'fill'
   @Input() label = 'Parameter'
   @Input() placeholder = '@'
 

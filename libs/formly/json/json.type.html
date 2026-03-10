@@ -1,6 +1,6 @@
 <label class="p-1 text-sm text-ellipsis whitespace-nowrap overflow-hidden">{{to?.label}}</label>
   
-<textarea matInput class="ngm-input-element" [formControl]="fControl" [placeholder]="to?.placeholder"
+<textarea z-input class="ngm-input-element" [formControl]="fControl" [placeholder]="to?.placeholder"
     [formlyAttributes]="field"
     [id]="id"
     [readonly]="to.readonly"
@@ -14,8 +14,8 @@
     [class.cdk-textarea-autosize]="to.autosize"
 ></textarea>
   
-<mat-error class="text-xs h-4">
+<z-form-message zType="error" class="text-xs h-4">
     <ng-container *ngIf="fControl.invalid">
         <span *ngFor="let item of fControl.errors | keyvalue">{{item.value.message}}</span>
     </ng-container>
-</mat-error>
+</z-form-message>

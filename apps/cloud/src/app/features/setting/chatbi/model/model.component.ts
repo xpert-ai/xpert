@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
 
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { IsDirty } from '@metad/core'
@@ -31,7 +31,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     NgmCommonModule,
     ZardButtonComponent,
-    MatInputModule
+    ZardInputDirective
   ],
   animations: [routeAnimations]
 })

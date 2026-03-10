@@ -8,7 +8,7 @@ import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSelectModule } from '@angular/material/select'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
@@ -99,7 +99,7 @@ const ADVANCED_SLICER_OPERATORS = [
     MatDialogModule,
     MatIconModule,
     ZardButtonComponent,
-    MatInputModule,
+    ZardInputDirective,
     MatChipsModule,
     MatSlideToggleModule,
     MatTooltipModule,

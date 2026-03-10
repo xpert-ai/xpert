@@ -6,9 +6,8 @@ import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } f
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatSelectModule } from '@angular/material/select'
 import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
@@ -30,22 +29,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
  */
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    TranslateModule,
-    ReactiveFormsModule,
-    DragDropModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatExpansionModule,
-    MatIconModule,
-    MatDividerModule,
-    MatInputModule,
-    ZardButtonComponent,
-
-    OcapCoreModule
-  ],
+  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, MatSelectModule, MatExpansionModule, MatIconModule, MatDividerModule, ZardInputDirective, ZardButtonComponent, OcapCoreModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-time-filter-editor',
   templateUrl: './time-filter-editor.component.html',

@@ -7,13 +7,12 @@ import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormsM
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatRadioModule } from '@angular/material/radio'
 import { NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { NgmControlsModule, TreeControlOptions } from '@metad/ocap-angular/controls'
-import { DisplayDensity, EntityUpdateEvent, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DisplayDensity, EntityUpdateEvent, NgmOcapCoreService, OcapCoreModule, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -36,25 +35,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   selector: 'ngm-parameter-create',
   templateUrl: 'parameter-create.component.html',
   styleUrls: ['parameter-create.component.scss'],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    DragDropModule,
-    MatInputModule,
-    ZardButtonComponent,
-    MatFormFieldModule,
-    MatButtonToggleModule,
-    MatIconModule,
-    MatRadioModule,
-    MatCheckboxModule,
-    TranslateModule,
-    OcapCoreModule,
-    NgmControlsModule,
-    NgmInputModule,
-    NgmHierarchySelectComponent,
-    NgmCheckboxComponent
-  ]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DragDropModule, ZardInputDirective, ZardButtonComponent, ...ZardFormImports, MatButtonToggleModule, MatIconModule, MatRadioModule, MatCheckboxModule, TranslateModule, OcapCoreModule, NgmControlsModule, NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent]
 })
 export class NgmParameterCreateComponent {
   eCubeParameterEnum = CubeParameterEnum
@@ -72,7 +53,7 @@ export class NgmParameterCreateComponent {
   readonly _formBuilder = inject(FormBuilder)
 
   // Inputs
-  readonly appearance = input<MatFormFieldAppearance>('fill')
+  readonly appearance = input<NgmFieldAppearance>('fill')
   readonly dataSettings = model<DataSettings>()
   readonly entityType = model<EntityType>()
 

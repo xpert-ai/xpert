@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -27,7 +27,7 @@ import { EmojiAvatarComponent } from '../../avatar'
     TranslateModule,
     ContentLoaderModule,
     FormlyModule,
-    MatInputModule,
+    ZardInputDirective,
     EmojiAvatarComponent,
     NgmInputComponent,
     NgmSpinComponent

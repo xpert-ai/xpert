@@ -1,8 +1,7 @@
 import { Component, computed, effect, forwardRef, inject, input, Input, model, OnInit, output } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatFormFieldAppearance } from '@angular/material/form-field'
-import { DisplayDensity, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@metad/ocap-angular/core'
+import { DisplayDensity, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -60,7 +59,7 @@ export class NgmMemberDatepickerComponent implements OnInit, ControlValueAccesso
 
   @Input() label: string
   @Input() placeholder: string
-  @Input() appearance: MatFormFieldAppearance
+  @Input() appearance: NgmFieldAppearance
   @Input() displayDensity: DisplayDensity
 
   // @Input() dataSettings: DataSettings

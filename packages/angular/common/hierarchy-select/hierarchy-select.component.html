@@ -12,7 +12,7 @@
   }
 </mat-select>
 @if (error()) {
-  <mat-error>
+  <z-form-message zType="error">
     <span class="text-xs h-4">{{error()}}</span>
-  </mat-error>
+  </z-form-message>
 }

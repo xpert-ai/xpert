@@ -1,7 +1,6 @@
 import { Component, ChangeDetectionStrategy, Type } from '@angular/core';
 import { FieldTypeConfig, FormlyFieldConfig } from '@ngx-formly/core';
 import { FieldType, FormlyFieldProps } from '@ngx-formly/material/form-field';
-import { MAT_INPUT_VALUE_ACCESSOR } from '@angular/material/input';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { EntitySchemaType } from '@metad/ocap-angular/entity';
 
@@ -22,12 +21,11 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
   template: `
 <label *ngIf="props?.label" class="p-1 text-ellipsis whitespace-nowrap overflow-hidden">{{to.label}}</label>
 <textarea class="ngm-input-element"
-  matInput
+  z-input
   [id]="id"
   [readonly]="props.readonly"
   [required]="required"
   [formControl]="formControl"
-  [errorStateMatcher]="errorStateMatcher"
   [cols]="props.cols"
   [rows]="props.rows"
   [formlyAttributes]="field"
@@ -44,17 +42,12 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
   (cdkDropListDropped)="drop($event)"
 >
 </textarea>
-<mat-error class="text-xs h-4">
+<z-form-message zType="error" class="text-xs h-4">
   <ng-container *ngIf="formControl.invalid">
     <span *ngFor="let item of formControl.errors | keyvalue">{{item.value.message}}</span>
   </ng-container>
-</mat-error>
+</z-form-message>
   `,
-  providers: [
-    // fix for https://github.com/ngx-formly/ngx-formly/issues/1688
-    // rely on formControl value instead of elementRef which return empty value in Firefox.
-    { provide: MAT_INPUT_VALUE_ACCESSOR, useExisting: FormlyFieldTextAreaComponent },
-  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./textarea.type.scss'],
   host: {

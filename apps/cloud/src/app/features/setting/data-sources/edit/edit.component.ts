@@ -4,9 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, HostBinding, inject, Inject, Optional, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { environment } from '@cloud/environments/environment'
@@ -33,24 +31,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    TranslateModule,
-    ReactiveFormsModule,
-    DragDropModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatTooltipModule,
-    ZardButtonComponent,
-    MatSlideToggleModule,
-
-    FormlyModule,
-    ContentLoaderModule,
-    ButtonGroupDirective,
-    NgmDensityDirective,
-    NgmInputComponent,
-    NgmRadioSelectComponent
-  ],
+  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, ZardInputDirective, ...ZardFormImports, MatTooltipModule, ZardButtonComponent, MatSlideToggleModule, FormlyModule, ContentLoaderModule, ButtonGroupDirective, NgmDensityDirective, NgmInputComponent, NgmRadioSelectComponent],
   selector: 'pac-data-source-edit',
   templateUrl: 'edit.component.html',
   styleUrls: ['edit.component.scss'],

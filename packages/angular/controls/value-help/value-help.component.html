@@ -20,10 +20,10 @@
 
       <div [ngStyle]="{height: expandAvailables ? '120px' : '0' }" class="ngm-value-help__options flex flex-col justify-start items-start gap-2">
         <div class="flex flex-wrap justify-start items-center gap-2">
-          <mat-form-field appearance="fill">
-              <mat-label>
+          <z-form-field appearance="fill">
+              <z-form-label>
                 {{ 'Ngm.Controls.ValueHelp.DisplayBehaviour' | translate: {Default: "Display Behaviour"} }}
-              </mat-label>
+              </z-form-label>
               <mat-select [ngModel]="displayBehaviour()" (ngModelChange)="setDisplayBehaviour($event)">
                 <mat-option [value]="DISPLAY_BEHAVIOUR.descriptionOnly">
                     {{ 'Ngm.Common.DisplayBehaviour_Description' | translate: {Default: "Description"} }}
@@ -42,18 +42,18 @@
                     {{ 'Ngm.Common.DisplayBehaviour_Auto' | translate: {Default: "Auto"} }}
                 </mat-option>
               </mat-select>
-          </mat-form-field>
+          </z-form-field>
 
-          <mat-form-field appearance="fill">
-            <mat-label>
+          <z-form-field appearance="fill">
+            <z-form-label>
                 {{ 'Ngm.Controls.ValueHelp.Hierarchy' | translate: {Default: "Hierarchy"} }}
-            </mat-label>
+            </z-form-label>
             <mat-select [ngModel]="hierarchy()" (ngModelChange)="setHierarchy($event)">
               @for (hierarchy of hierarchies(); track hierarchy.name) {
                 <mat-option [value]="hierarchy.name">{{hierarchy.caption}}</mat-option>
               }
             </mat-select>
-          </mat-form-field>
+          </z-form-field>
         </div>
 
         <div class="flex flex-wrap justify-start items-center gap-2 mx-2">
@@ -149,10 +149,10 @@
     </div>
 
     <div class="ngm-value-help__settings grid grid-cols-1 md:grid-cols-2 gap-2">
-      <mat-form-field class="col-span-1" appearance="fill">
-        <mat-label>
+      <z-form-field class="col-span-1" appearance="fill">
+        <z-form-label>
           {{ 'Ngm.Controls.ValueHelp.SelectionType' | translate: {Default: "Selection Type"} }}
-        </mat-label>
+        </z-form-label>
         <mat-select [(ngModel)]="selectionType">
           <mat-option [value]="FilterSelectionType.Single">
             {{ 'Ngm.Common.SelectionType_Single' | translate: {Default: "Single"} }}
@@ -164,12 +164,12 @@
             {{ 'Ngm.Common.SelectionType_SingleRange' | translate: {Default: "Single Range"} }}
           </mat-option>
         </mat-select>
-      </mat-form-field>
+      </z-form-field>
 
-      <mat-form-field class="col-span-1" appearance="fill">
-        <mat-label>
+      <z-form-field class="col-span-1" appearance="fill">
+        <z-form-label>
           {{ 'Ngm.Controls.ValueHelp.Presentation' | translate: {Default: "Presentation"} }}
-        </mat-label>
+        </z-form-label>
         <mat-select [(ngModel)]="presentation">
           <mat-option [value]="PresentationEnum.Flat">
             {{ 'Ngm.Common.Presentation_Flat' | translate: {Default: "Flat"} }}
@@ -178,12 +178,12 @@
             {{ 'Ngm.Common.Presentation_Hierarchy' | translate: {Default: "Hierarchy"} }}
           </mat-option>
         </mat-select>
-      </mat-form-field>
+      </z-form-field>
       @if (presentation === PresentationEnum.Hierarchy && selectionType === FilterSelectionType.Multiple) {
-        <mat-form-field class="col-span-2" appearance="fill">
-          <mat-label>
+        <z-form-field class="col-span-2" appearance="fill">
+          <z-form-label>
             {{ 'Ngm.Controls.ValueHelp.HierarchySelectionMode' | translate: {Default: "Hierarchy Selection Mode"} }}
-          </mat-label>
+          </z-form-label>
           <mat-select [(ngModel)]="treeSelectionMode">
             <mat-option [value]="TreeSelectionMode.Individual">
                 {{ 'Ngm.Common.HierarchySelectionMode_Individual' | translate: {Default: "Individual"} }}
@@ -201,7 +201,7 @@
                 {{ 'Ngm.Common.HierarchySelectionMode_ChildrenOnly' | translate: {Default: "Children Only"} }}
             </mat-option>
           </mat-select>
-        </mat-form-field>
+        </z-form-field>
       }
     </div>
   </div>

@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, effect, inject } from '@angular/core'
 import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
@@ -29,7 +29,7 @@ import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
     DragDropModule,
     MatTooltipModule,
     MatSlideToggleModule,
-    MatInputModule,
+    ZardInputDirective,
 
     NgmDensityDirective
   ],

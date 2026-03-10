@@ -4,7 +4,7 @@
   --mdc-filled-button-container-shape: .75rem;
 }
 
-.mat-mdc-input-element {
+[z-input] {
   background-color: var(--mdc-dialog-container-color, white);
 }
 
@@ -16,6 +16,6 @@
   @apply flex flex-col;
 }
 
-.mat-mdc-form-field-error {
+z-form-message {
   color: var(--mdc-theme-error);
 }

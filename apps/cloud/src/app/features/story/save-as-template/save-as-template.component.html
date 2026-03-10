@@ -8,14 +8,14 @@
 
   <div class="flex-1">
     <form [formGroup]="formGroup">
-      <mat-form-field class="w-full" appearance="fill" color="accent">
-        <mat-label>{{ 'Story.Common.Name' | translate: { Default: 'Name' } }}</mat-label>
-        <input matInput formControlName="name">
-      </mat-form-field>
-      <mat-form-field class="w-full" appearance="fill" color="accent">
-        <mat-label>{{ 'Story.Common.Description' | translate: { Default: 'Description' } }}</mat-label>
-        <textarea matInput formControlName="description"></textarea>
-      </mat-form-field>
+      <z-form-field class="w-full" appearance="fill" color="accent">
+        <z-form-label>{{ 'Story.Common.Name' | translate: { Default: 'Name' } }}</z-form-label>
+        <input z-input formControlName="name">
+      </z-form-field>
+      <z-form-field class="w-full" appearance="fill" color="accent">
+        <z-form-label>{{ 'Story.Common.Description' | translate: { Default: 'Description' } }}</z-form-label>
+        <textarea z-input formControlName="description"></textarea>
+      </z-form-field>
 
       <div class="m-2">
         <label for="templateType" class="mr-2">
@@ -83,9 +83,9 @@
         </button>
       </div>
       
-      <mat-error *ngIf="error">
+      <z-form-message zType="error" *ngIf="error">
         {{error}}
-      </mat-error>
+      </z-form-message>
     </div>
   </div>
 </div>

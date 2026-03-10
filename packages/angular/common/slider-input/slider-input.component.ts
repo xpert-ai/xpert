@@ -10,9 +10,9 @@ import {
   signal
 } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { ThemePalette } from '@angular/material/core'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatSlider, MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
+import { NgmFieldColor } from "@metad/ocap-angular/core";
 
 /**
  * @deprecated use headless components instead
@@ -34,12 +34,12 @@ import { MatSlider, MatSliderDragEvent, MatSliderModule } from '@angular/materia
       useExisting: forwardRef(() => NgmSliderInputComponent)
     }
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatInputModule, MatSliderModule]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardInputDirective, MatSliderModule]
 })
 export class NgmSliderInputComponent implements ControlValueAccessor {
   @Input() disabled = false
   @Input() disableRipple = false
-  @Input() color: ThemePalette = null
+  @Input() color: NgmFieldColor = null
   @HostBinding('class.ngm-slider-input') _isSliderInputComponent = true
 
   @Input() label: string

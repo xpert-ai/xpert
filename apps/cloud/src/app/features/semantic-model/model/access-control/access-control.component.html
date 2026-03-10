@@ -80,18 +80,18 @@
         </mat-radio-group>
       </div>
 
-      <mat-form-field appearance="fill">
-        <mat-label>{{ 'PAC.MODEL.AccessControl.Name' | translate: {Default: 'Name'} }}</mat-label>
-        <input matInput formControlName="name">
-        <mat-error *ngIf="name.invalid">
+      <z-form-field appearance="fill">
+        <z-form-label>{{ 'PAC.MODEL.AccessControl.Name' | translate: {Default: 'Name'} }}</z-form-label>
+        <input z-input formControlName="name">
+        <z-form-message zType="error" *ngIf="name.invalid">
           <span *ngIf="name.errors?.['forbiddenName']">
             {{ 'PAC.MESSAGE.NameAlreadyExist' | translate: {Default: 'Name Already Exist'} }}
           </span>
           <span *ngIf="name.errors?.['required']">
             {{ 'PAC.MESSAGE.Required' | translate: {Default: 'Required'} }}
           </span>
-        </mat-error>
-      </mat-form-field>
+        </z-form-message>
+      </z-form-field>
     </form>
   </ngm-dialog>
 </ng-template>

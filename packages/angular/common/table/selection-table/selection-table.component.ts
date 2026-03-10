@@ -6,7 +6,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModu
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'
 import { MatSort, MatSortModule } from '@angular/material/sort'
 import { MatTableDataSource, MatTableModule } from '@angular/material/table'
@@ -43,7 +43,7 @@ export type SelectionTableColumn = {
     MatIconModule,
     ZardButtonComponent,
     MatSortModule,
-    MatInputModule,
+    ZardInputDirective,
     DensityDirective,
     NgmSearchComponent
   ],

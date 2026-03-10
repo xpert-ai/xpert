@@ -18,7 +18,7 @@
       
       .searchable {
         @apply ml-2 ;
-        .mat-mdc-input-element {
+        [z-input] {
           width: 0;
           max-width: 0;
           overflow: hidden;
@@ -28,7 +28,7 @@
         &.searching {
           @apply rounded-md bg-black/10 dark:bg-white/10;
           
-          .mat-mdc-input-element {
+          [z-input] {
             width: 100px;
             max-width: unset;
             outline: none;
@@ -47,7 +47,7 @@
   }
 }
 
-.searchable .mat-mdc-input-element {
+.searchable [z-input] {
   @apply bg-transparent;
 }
 

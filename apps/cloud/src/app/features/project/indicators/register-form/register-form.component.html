@@ -1,15 +1,15 @@
 <form [formGroup]="formGroup" class="pac-indicator-register__form pac-page__body flex flex-col w-full" >
 
     <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
-      <mat-form-field [appearance]="appearance">
-        <mat-label>{{ 'PAC.INDICATOR.REGISTER.NAME' | translate: {Default: 'Name'} }}</mat-label>
-        <input matInput formControlName="name" placeholder="{{ 'PAC.INDICATOR.REGISTER.NAME_PLACEHOLDER' | translate: {Default: 'Indicator Name'} }}">
-      </mat-form-field>
+      <z-form-field [appearance]="appearance">
+        <z-form-label>{{ 'PAC.INDICATOR.REGISTER.NAME' | translate: {Default: 'Name'} }}</z-form-label>
+        <input z-input formControlName="name" placeholder="{{ 'PAC.INDICATOR.REGISTER.NAME_PLACEHOLDER' | translate: {Default: 'Indicator Name'} }}">
+      </z-form-field>
   
-      <mat-form-field [appearance]="appearance">
-        <mat-label>{{ 'PAC.INDICATOR.REGISTER.CODE' | translate: {Default: 'Code'} }}</mat-label>
-        <input matInput formControlName="code" placeholder="{{ 'PAC.INDICATOR.REGISTER.CODE_PLACEHOLDER' | translate: {Default: 'Indicator Unique Code'} }}">
-      </mat-form-field>
+      <z-form-field [appearance]="appearance">
+        <z-form-label>{{ 'PAC.INDICATOR.REGISTER.CODE' | translate: {Default: 'Code'} }}</z-form-label>
+        <input z-input formControlName="code" placeholder="{{ 'PAC.INDICATOR.REGISTER.CODE_PLACEHOLDER' | translate: {Default: 'Indicator Unique Code'} }}">
+      </z-form-field>
     </div>
   
     <div class="section text-lg p-2 mb-4">
@@ -30,38 +30,38 @@
         formControlName="certificationId"
       ></ngm-mat-select>
   
-      <mat-form-field [appearance]="appearance">
-        <mat-label>{{ 'PAC.INDICATOR.REGISTER.CREATED_BY' | translate: {Default: 'Created By'} }}</mat-label>
-        <input matInput formControlName="createdByName">
-      </mat-form-field>
+      <z-form-field [appearance]="appearance">
+        <z-form-label>{{ 'PAC.INDICATOR.REGISTER.CREATED_BY' | translate: {Default: 'Created By'} }}</z-form-label>
+        <input z-input formControlName="createdByName">
+      </z-form-field>
   
-      <mat-form-field [appearance]="appearance">
-        <mat-label>{{ 'PAC.INDICATOR.REGISTER.PRINCIPAL' | translate: {Default: 'Principal'} }}</mat-label>
-        <input matInput formControlName="principal" placeholder="{{ 'PAC.INDICATOR.REGISTER.PRINCIPAL_PLACEHOLDER' | translate: {Default: 'Business Principal'} }}">
-      </mat-form-field>
+      <z-form-field [appearance]="appearance">
+        <z-form-label>{{ 'PAC.INDICATOR.REGISTER.PRINCIPAL' | translate: {Default: 'Principal'} }}</z-form-label>
+        <input z-input formControlName="principal" placeholder="{{ 'PAC.INDICATOR.REGISTER.PRINCIPAL_PLACEHOLDER' | translate: {Default: 'Business Principal'} }}">
+      </z-form-field>
   
-      <mat-form-field [appearance]="appearance">
-        <mat-label>{{ 'PAC.INDICATOR.REGISTER.UNIT' | translate: {Default: 'Unit'} }}</mat-label>
-        <input matInput formControlName="unit" placeholder="{{ 'PAC.INDICATOR.REGISTER.UNIT_PLACEHOLDER' | translate: {Default: 'Measure Unit of Indicator'} }}">
-      </mat-form-field>
+      <z-form-field [appearance]="appearance">
+        <z-form-label>{{ 'PAC.INDICATOR.REGISTER.UNIT' | translate: {Default: 'Unit'} }}</z-form-label>
+        <input z-input formControlName="unit" placeholder="{{ 'PAC.INDICATOR.REGISTER.UNIT_PLACEHOLDER' | translate: {Default: 'Measure Unit of Indicator'} }}">
+      </z-form-field>
   
-      <mat-form-field [appearance]="appearance">
-        <mat-label>{{ 'PAC.INDICATOR.REGISTER.VALIDITY' | translate: {Default: 'Validity'} }}</mat-label>
-        <input matInput [matDatepicker]="picker" formControlName="validity">
+      <z-form-field [appearance]="appearance">
+        <z-form-label>{{ 'PAC.INDICATOR.REGISTER.VALIDITY' | translate: {Default: 'Validity'} }}</z-form-label>
+        <input z-input [matDatepicker]="picker" formControlName="validity">
         <mat-hint>YYYY/MM/DD</mat-hint>
-        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker-toggle zFormSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
-      </mat-form-field>
+      </z-form-field>
 
       <mat-checkbox formControlName="isActive" class="my-4">{{ 'PAC.INDICATOR.REGISTER.IsActive' | translate: {Default: 'Is Active'} }}</mat-checkbox>
       <mat-checkbox formControlName="isApplication" class="my-4">{{ 'PAC.INDICATOR.REGISTER.AvailableInApplication' | translate: {Default: 'Available in App'} }}</mat-checkbox>
       
-      <mat-form-field [appearance]="appearance" class="col-span-1 sm:col-span-2">
-        <mat-label>
+      <z-form-field [appearance]="appearance" class="col-span-1 sm:col-span-2">
+        <z-form-label>
           {{ 'PAC.INDICATOR.REGISTER.BUSINESS' | translate: {Default: 'Business'} }}
-        </mat-label>
-        <textarea matInput formControlName="business" placeholder="{{ 'PAC.INDICATOR.REGISTER.BUSINESS_PLACEHOLDER' | translate: {Default: 'Business Description'} }}"></textarea>
-      </mat-form-field>
+        </z-form-label>
+        <textarea z-input formControlName="business" placeholder="{{ 'PAC.INDICATOR.REGISTER.BUSINESS_PLACEHOLDER' | translate: {Default: 'Business Description'} }}"></textarea>
+      </z-form-field>
 
       <pac-tag-editor class="col-span-1 sm:col-span-2" formControlName="tags" [category]="eTagCategoryEnum.INDICATOR"></pac-tag-editor>
     </div>
@@ -118,18 +118,18 @@
           formControlName="measure"
         ></ngm-mat-select>
       } @else if (typeControl.value === IndicatorType.DERIVE) {
-        <mat-form-field class="col-span-1 sm:col-span-2" [appearance]="appearance">
-          <mat-label>
+        <z-form-field class="col-span-1 sm:col-span-2" [appearance]="appearance">
+          <z-form-label>
             {{ 'PAC.INDICATOR.REGISTER.FORMULA' | translate: {Default: 'Formula'} }}
-          </mat-label>
-          <textarea matInput formControlName="formula" placeholder="{{ 'PAC.INDICATOR.REGISTER.FORMULA_PLACEHOLDER' | translate: {Default: 'Calculation Formula'} }}"
+          </z-form-label>
+          <textarea z-input formControlName="formula" placeholder="{{ 'PAC.INDICATOR.REGISTER.FORMULA_PLACEHOLDER' | translate: {Default: 'Calculation Formula'} }}"
             cdkTextareaAutosize
           ></textarea>
     
-          <button z-button zType="ghost" zSize="icon" zShape="circle" matSuffix [disabled]="!entityType()" (click)="toggleFormula()">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [disabled]="!entityType()" (click)="toggleFormula()">
             <mat-icon>code</mat-icon>
           </button>
-        </mat-form-field>
+        </z-form-field>
       }
     </div>
       

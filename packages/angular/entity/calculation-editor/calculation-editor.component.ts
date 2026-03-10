@@ -5,13 +5,12 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatSelectModule } from '@angular/material/select'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
+import { NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
   CalculatedProperty,
   CalculationProperty,
@@ -43,25 +42,7 @@ export interface CalculationEditorData {
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    DragDropModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatIconModule,
-    ZardButtonComponent,
-    MatRadioModule,
-    MatInputModule,
-
-    NgmCommonModule,
-    NgmCalculatedMeasureComponent,
-    NgmCalculationVarianceComponent,
-    NgmConditionalAggregationComponent,
-    NgmRestrictedMeasureComponent,
-    NgmMeasureControlComponent
-  ],
+  imports: [CommonModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, MatSelectModule, MatIconModule, ZardButtonComponent, MatRadioModule, ZardInputDirective, NgmCommonModule, NgmCalculatedMeasureComponent, NgmCalculationVarianceComponent, NgmConditionalAggregationComponent, NgmRestrictedMeasureComponent, NgmMeasureControlComponent],
   selector: 'ngm-calculation-editor',
   templateUrl: './calculation-editor.component.html',
   styleUrls: ['./calculation-editor.component.scss']
@@ -104,7 +85,7 @@ export class NgmCalculationEditorComponent implements OnInit {
   | Inputs & Outputs
   |--------------------------------------------------------------------------
   */
-  readonly appearance = input<MatFormFieldAppearance>('fill')
+  readonly appearance = input<NgmFieldAppearance>('fill')
   readonly dataSettings = input<DataSettings>()
   readonly value = input<CalculationProperty>()
 

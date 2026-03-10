@@ -3,10 +3,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { SemanticModelServerService, Store } from '@metad/cloud/state'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
@@ -19,22 +17,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    DragDropModule,
-    MatFormFieldModule,
-    ZardButtonComponent,
-    MatInputModule,
-    MatIconModule,
-    MatListModule,
-    DensityDirective,
-    ButtonGroupDirective,
-    NgmHighlightDirective,
-    InlineSearchComponent
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, ZardButtonComponent, ZardInputDirective, MatIconModule, MatListModule, DensityDirective, ButtonGroupDirective, NgmHighlightDirective, InlineSearchComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-project-creation',
   templateUrl: `./creation.component.html`,

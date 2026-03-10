@@ -16,7 +16,7 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { EMPTY, pipe, switchMap } from 'rxjs'
 import { CopilotExampleService, getErrorMessage, injectToastr, IXpert } from '../../../@core'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { CopilotCommandEnum } from '../types'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
@@ -32,7 +32,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     MatTooltipModule,
     ZardButtonComponent,
-    MatInputModule,
+    ZardInputDirective,
     NgmCommonModule,
     ButtonGroupDirective
   ],

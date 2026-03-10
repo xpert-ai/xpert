@@ -11,8 +11,7 @@ import { DisplayDensity, NgmDSCoreService, NgmOcapCoreService } from '@metad/oca
 import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { MatIconModule } from '@angular/material/icon'
 
@@ -45,27 +44,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       useExisting: forwardRef(() => NgmPropertySelectComponent),
     },
   ],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    CdkMenuModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatIconModule,
-    ZardButtonComponent,
-    MatMenuModule,
-    MatRadioModule,
-    MatDividerModule,
-    MatListModule,
-    MatCheckboxModule,
-    MatBadgeModule,
-    MatProgressSpinnerModule,
-    TranslateModule,
-    NgmCommonModule,
-    NgmEntityPropertyComponent
-  ]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardInputDirective, MatSelectModule, MatIconModule, ZardButtonComponent, MatMenuModule, MatRadioModule, MatDividerModule, MatListModule, MatCheckboxModule, MatBadgeModule, MatProgressSpinnerModule, TranslateModule, NgmCommonModule, NgmEntityPropertyComponent]
 })
 export class NgmPropertySelectComponent implements ControlValueAccessor, AfterViewInit {
   AggregationRole = AggregationRole

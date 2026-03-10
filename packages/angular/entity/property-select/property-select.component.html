@@ -27,7 +27,7 @@
 
           <div class="flex items-center" displayDensity="compact">
 
-            <button z-button zType="ghost" zSize="icon" zShape="circle" matSuffix (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
               @if (showMore()) {
                 <mat-icon>expand_less</mat-icon>
               } @else {

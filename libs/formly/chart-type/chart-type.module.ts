@@ -7,7 +7,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSelectModule } from '@angular/material/select'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -31,7 +31,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatSelectModule,
     MatMenuModule,
     MatDialogModule,
-    MatInputModule,
+    ZardInputDirective,
     MatCheckboxModule,
     MatTooltipModule,
     MatButtonToggleModule,

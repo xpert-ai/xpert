@@ -13,9 +13,8 @@ import {
   output,
   signal
 } from '@angular/core'
-import { ThemePalette } from '@angular/material/core'
 import { MatTabGroup, MatTabHeaderPosition } from '@angular/material/tabs'
-import { NgmAppearance } from '@metad/ocap-angular/core'
+import { NgmAppearance, NgmFieldColor } from '@metad/ocap-angular/core'
 import { DataSettings, IAdvancedFilter, ISlicer, nonNullable } from '@metad/ocap-core'
 import { IStoryWidget } from '@metad/core'
 import { WidgetComponentType } from '@metad/story/core'
@@ -47,7 +46,7 @@ export interface NxWidgetTabsetOptions {
   alignTabs?: string
   stretchTabs?: boolean
   headerPosition?: MatTabHeaderPosition
-  color?: ThemePalette
+  color?: NgmFieldColor
   disablePagination?: boolean
 }
 

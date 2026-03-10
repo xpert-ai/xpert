@@ -3,13 +3,13 @@ import { Component, forwardRef, input } from '@angular/core'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
 import { MatDatepicker, MatDatepickerInputEvent, MatDatepickerModule } from '@angular/material/datepicker'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { getMonth, getYear, setMonth, setYear } from 'date-fns'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatDatepickerModule, MatInputModule, OcapCoreModule],
+  imports: [CommonModule, ReactiveFormsModule, MatDatepickerModule, ZardInputDirective, OcapCoreModule],
   selector: 'ngm-monthpicker',
   templateUrl: './monthpicker.component.html',
   styleUrls: ['./monthpicker.component.scss'],

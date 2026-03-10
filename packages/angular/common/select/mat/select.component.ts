@@ -7,12 +7,10 @@ import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, Reac
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
-import { ThemePalette } from '@angular/material/core'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { DisplayDensity, ISelectOption, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance, NgmFieldColor } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { combineLatestWith, debounceTime, distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
@@ -39,33 +37,18 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       useExisting: forwardRef(() => NgmMatSelectComponent)
     }
   ],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-
-    ScrollingModule,
-    MatFormFieldModule,
-    MatAutocompleteModule,
-    MatCheckboxModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
-    MatInputModule,
-    ZardButtonComponent,
-    NgmDisplayBehaviourComponent,
-    OcapCoreModule
-  ]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ScrollingModule, ...ZardFormImports, MatAutocompleteModule, MatCheckboxModule, MatProgressSpinnerModule, MatIconModule, ZardInputDirective, ZardButtonComponent, NgmDisplayBehaviourComponent, OcapCoreModule]
 })
 export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAccessor {
   readonly #destroyRef = inject(DestroyRef)
 
   @Input() disabled = false
   @Input() disableRipple = false
-  @Input() color: ThemePalette = null
+  @Input() color: NgmFieldColor = null
 
   @HostBinding('class.ngm-mat-select') _isSelectComponent = true
 
-  @Input() appearance: MatFormFieldAppearance
+  @Input() appearance: NgmFieldAppearance
   @Input() displayBehaviour: DisplayBehaviour | string
   @Input() displayDensity: DisplayDensity | string
   @Input() label: string

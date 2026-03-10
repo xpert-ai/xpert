@@ -2,12 +2,12 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { DensityDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isObservable, startWith } from 'rxjs'
+import { ZardFormImports } from "@xpert-ai/headless-ui";
 
 @Component({
   standalone: true,
@@ -18,15 +18,7 @@ import { isObservable, startWith } from 'rxjs'
   host: {
     class: 'pac-formly-input'
   },
-  imports: [
-    CommonModule,
-    FormsModule,
-    TranslateModule,
-    MatFormFieldModule,
-    FormlyModule,
-    DensityDirective,
-    NgmInputComponent
-  ]
+  imports: [CommonModule, FormsModule, TranslateModule, ...ZardFormImports, FormlyModule, DensityDirective, NgmInputComponent]
 })
 export class PACFormlyInputComponent extends FieldType implements OnInit {
   readonly #destroyRef = inject(DestroyRef)

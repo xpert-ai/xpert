@@ -10,30 +10,30 @@
         {{ 'PAC.KEY_WORDS.STORY' | translate: { Default: 'Story' } }}
       </span>
     </div>
-    <mat-form-field appearance="fill" floatLabel="always" color="accent">
-      <mat-label>{{ 'PAC.MENU.STORY.STORY_NAME' | translate: { Default: 'Name' } }}</mat-label>
+    <z-form-field appearance="fill" floatLabel="always" color="accent">
+      <z-form-label>{{ 'PAC.MENU.STORY.STORY_NAME' | translate: { Default: 'Name' } }}</z-form-label>
       <input
-        matInput
+        z-input
         placeholder="{{
           'PAC.MENU.STORY.WhatIsTheName' | translate: { Default: 'What is the name of your story' }
         }}?"
         formControlName="name"
         required  
       />
-    </mat-form-field>
+    </z-form-field>
 
-    <mat-form-field appearance="fill" floatLabel="always" color="accent">
-      <mat-label>
+    <z-form-field appearance="fill" floatLabel="always" color="accent">
+      <z-form-label>
         {{ 'PAC.MENU.STORY.Description' | translate: { Default: 'Description' } }}
-      </mat-label>
+      </z-form-label>
       <textarea
-        matInput
+        z-input
         formControlName="description"
         placeholder="{{
           'PAC.MENU.STORY.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the story' }
         }}"
       ></textarea>
-    </mat-form-field>
+    </z-form-field>
   
     @if (collections?.length) {
       <ngm-tree-select

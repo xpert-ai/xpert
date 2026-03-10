@@ -5,10 +5,10 @@ import { LanguagesService, Store } from '../../../@core';
 import { filter, tap } from 'rxjs/operators';
 import { FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { MatFormFieldAppearance } from '@angular/material/form-field';
 import { TranslationBaseComponent } from '../translation-base.component';
 import { NgmSelectComponent, NgmSpinComponent } from '@metad/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgmFieldAppearance } from "@metad/ocap-angular/core";
 
 @Component({
 	standalone: true,
@@ -40,7 +40,7 @@ export class LanguageSelectorComponent extends TranslationBaseComponent implemen
 
 	languagesOptions = computed(() => this.languages().map((language: ILanguage) => ({key: language.code, caption: language.name})))
 
-	@Input() appearance: MatFormFieldAppearance
+	@Input() appearance: NgmFieldAppearance
 
 	/*
 	* Getter & Setter for dynamic placeholder

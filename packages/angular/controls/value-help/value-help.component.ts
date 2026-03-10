@@ -5,7 +5,6 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatDividerModule } from '@angular/material/divider'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatSelectModule } from '@angular/material/select'
@@ -13,7 +12,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmCommonModule, NgmResizableDirective } from '@metad/ocap-angular/common'
-import { DisplayDensity, NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DisplayDensity, NgmAppearance, NgmDSCoreService, OcapCoreModule, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -33,7 +32,7 @@ import { filter, map, switchMap } from 'rxjs'
 import { NgmMemberListComponent } from '../member-list/member-list.component'
 import { NgmMemberTreeComponent } from '../member-tree/member-tree.component'
 import { ControlOptions, TreeControlOptions } from '../types'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -44,26 +43,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   host: {
     class: 'ngm-value-help'
   },
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    CdkMenuModule,
-    MatDialogModule,
-    MatIconModule,
-    MatSlideToggleModule,
-    MatDividerModule,
-    MatListModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    ZardButtonComponent,
-    NgmCommonModule,
-    OcapCoreModule,
-    NgmMemberListComponent,
-    NgmMemberTreeComponent,
-    NgmResizableDirective
-  ]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkMenuModule, MatDialogModule, MatIconModule, MatSlideToggleModule, MatDividerModule, MatListModule, ...ZardFormImports, MatSelectModule, ZardButtonComponent, NgmCommonModule, OcapCoreModule, NgmMemberListComponent, NgmMemberTreeComponent, NgmResizableDirective]
 })
 export class NgmValueHelpComponent implements OnInit {
   DISPLAY_BEHAVIOUR = DisplayBehaviour
@@ -104,7 +84,7 @@ export class NgmValueHelpComponent implements OnInit {
   } as ControlOptions
   @Input() appearance: NgmAppearance = {
     displayDensity: DisplayDensity.cosy,
-    appearance: 'standard' as MatFormFieldAppearance
+    appearance: 'standard' as NgmFieldAppearance
   }
 
   slicer: ISlicer = {}

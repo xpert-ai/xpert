@@ -19,7 +19,7 @@
         </button>
         <div class="flex items-center flex-grow overflow-x-hidden">
 
-          <input #userInput matInput class="ngm-colpilot__input w-full px-1.5 z-10 resize-none overflow-visible outline-none"
+          <input #userInput z-input class="ngm-colpilot__input w-full px-1.5 z-10 resize-none overflow-visible outline-none"
             [ngClass]="{disabled: answering() ||!cube()}"
             id="userInput" onInput="this.parentNode.dataset.replicatedValue = this.value"
             [placeholder]="'PAC.ChatBI.InputPlaceholder' | translate: {Default: 'Ask a question about the dataset, press Enter to send'} "

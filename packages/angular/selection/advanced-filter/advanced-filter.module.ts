@@ -5,9 +5,8 @@ import { FormsModule } from '@angular/forms'
 
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialogModule } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatSelectModule } from '@angular/material/select'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { NgmEntityModule } from '@metad/ocap-angular/entity'
@@ -20,25 +19,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
  */
 @NgModule({
   declarations: [NgmAdvancedFilterComponent],
-  imports: [
-    CommonModule,
-    FormsModule,
-    DragDropModule,
-    MatDialogModule,
-    ZardButtonComponent,
-    MatIconModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatInputModule,
-    MatChipsModule,
-    TranslateModule,
-
-    ButtonGroupDirective,
-    DensityDirective,
-    AppearanceDirective,
-
-    NgmEntityModule
-  ],
+  imports: [CommonModule, FormsModule, DragDropModule, MatDialogModule, ZardButtonComponent, MatIconModule, ...ZardFormImports, MatSelectModule, ZardInputDirective, MatChipsModule, TranslateModule, ButtonGroupDirective, DensityDirective, AppearanceDirective, NgmEntityModule],
   exports: [NgmAdvancedFilterComponent]
 })
 export class NgmAdvancedFilterModule {}

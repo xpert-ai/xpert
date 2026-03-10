@@ -15,7 +15,7 @@
   
       <emoji-avatar editable formControlName="avatar" class="rounded-lg overflow-hidden shadow-sm" />
   
-      <input matInput
+      <input z-input
         class="grow h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs"
         [value]="name"
         disabled
@@ -25,13 +25,13 @@
   
   <div class="pt-2">
     <div class="py-2 font-medium leading-[20px] text-gray-900">{{ 'PAC.Xpert.Title' | translate: {Default: 'Title'} }}</div>
-    <input matInput [placeholder]="'PAC.Xpert.EnterTitle' | translate: {Default: 'Enter title'}" class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs"
+    <input z-input [placeholder]="'PAC.Xpert.EnterTitle' | translate: {Default: 'Enter title'}" class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs"
       formControlName="title">
   </div>
   
   <div class="pt-2">
     <div class="py-2 font-medium leading-[20px] text-gray-900">{{ 'PAC.Xpert.Description' | translate: {Default: 'Description'} }}</div>
-    <textarea matInput class="w-full px-3 py-2 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs h-[80px] resize-none"
+    <textarea z-input class="w-full px-3 py-2 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs h-[80px] resize-none"
       [placeholder]="'PAC.Xpert.EnterXpertDesc' | translate: {Default: 'Enter xpert description'}"
       formControlName="description"
     ></textarea>

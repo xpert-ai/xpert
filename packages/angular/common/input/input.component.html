@@ -1,50 +1,47 @@
-<div>
+<z-form-field class="w-full">
   @if (label()) {
-    <label class="ngm-input-label shrink-0" [title]="label()">
-      @if (required()) {
-        <span class="text-red-500">*</span>
-      }
+    <z-form-label class="ngm-input-label shrink-0" [title]="label()" [zRequired]="required()">
       {{ label() }}
-    </label>
+    </z-form-label>
   }
   <ng-content select="[ngmLabel]"></ng-content>
-</div>
 
-<div class="relative">
-  <input matInput class="ngm-input-element ngm-w-full"
-    [type]="type() || 'text'"
-    [value]="defaultValue"
-    [placeholder]="placeholder()"
-    [ngModel]="value"
-    (ngModelChange)="onChange($event)"
-    [disabled]="disabled() || _disabled()"
-    [matAutocomplete]="auto"
-    (blur)="blur.emit($event)"
-    (focus)="focus.emit($event)"
+  <z-form-control>
+    <input z-input class="ngm-input-element ngm-w-full"
+      [type]="type() || 'text'"
+      [value]="defaultValue"
+      [placeholder]="placeholder()"
+      [ngModel]="value"
+      (ngModelChange)="onChange($event)"
+      [disabled]="disabled() || _disabled()"
+      [matAutocomplete]="auto"
+      (blur)="blur.emit($event)"
+      (focus)="focus.emit($event)"
+    >
+
+    <div class="absolute right-0 top-0 h-full flex items-center">
+      <ng-content select="[ngmSuffix]"></ng-content>
+    </div>
+  </z-form-control>
+
+  <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete" class="ngm-autocomplete-panel"
+    [class]="(displayDensity() === 'compact' ? 'ngm-density__compact' : '') + ' ' + (displayDensity() === 'cosy' ? 'ngm-density__cosy' : '')"
+    (optionSelected)="onOptionSelected($event)"
   >
+    @for (option of options$ | async; track option.key) {
+      <mat-option [value]="option[valueKey]">
+        @if (_explicitContent) {
+          <ng-container *ngTemplateOutlet="_explicitContent; context: {$implicit: option, value: option.value, caption: option.caption, key: option.key}"></ng-container>
+        } @else {
+          <span [ngmHighlight]="highlight" [content]="option.caption || option.label || option[valueKey]"></span>
+        }
+      </mat-option>
+    }
+  </mat-autocomplete>
 
-  <div class="absolute right-0 top-0 h-full flex items-center">
-    <ng-content select="[ngmSuffix]"></ng-content>
-  </div>
-</div>
-
-<mat-autocomplete autoActiveFirstOption #auto="matAutocomplete" class="ngm-autocomplete-panel"
-  [class]="(displayDensity() === 'compact' ? 'ngm-density__compact' : '') + ' ' + (displayDensity() === 'cosy' ? 'ngm-density__cosy' : '')"
-  (optionSelected)="onOptionSelected($event)"
->
-  @for (option of options$ | async; track option.key) {
-    <mat-option [value]="option[valueKey]">
-      @if (_explicitContent) {
-        <ng-container *ngTemplateOutlet="_explicitContent; context: {$implicit: option, value: option.value, caption: option.caption, key: option.key}"></ng-container>
-      } @else {
-        <span [ngmHighlight]="highlight" [content]="option.caption || option.label || option[valueKey]"></span>
-      }
-    </mat-option>
+  @if (!simple()) {
+    <z-form-message zType="error" class="ngm-input__message text-xs h-4">
+      <ng-content select="[ngmError]"></ng-content>
+    </z-form-message>
   }
-</mat-autocomplete>
-
-@if (!simple()) {
-  <mat-error class="text-xs h-4">
-    <ng-content select="[ngmError]"></ng-content>
-  </mat-error>
-}
+</z-form-field>

@@ -1,8 +1,8 @@
 import { Component, Input, OnInit } from '@angular/core'
 import { FormControl, FormGroup } from '@angular/forms'
-import { MatFormFieldAppearance } from '@angular/material/form-field'
 import { AggregationRole, EntitySet, getEntityDimensions, OrderDirection } from '@metad/ocap-core'
 import { BehaviorSubject, map } from 'rxjs'
+import { NgmFieldAppearance } from "@metad/ocap-angular/core";
 
 @Component({
   selector: 'ngm-sort-by',
@@ -13,7 +13,7 @@ import { BehaviorSubject, map } from 'rxjs'
 export class SortByComponent implements OnInit {
   AggregationRole = AggregationRole
   
-  @Input() appearance: MatFormFieldAppearance = 'fill'
+  @Input() appearance: NgmFieldAppearance = 'fill'
   @Input() get entitySet(): EntitySet {
     return this.entitySet$.value
   }

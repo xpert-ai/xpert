@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, ViewChild, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatRadioModule } from '@angular/material/radio'
@@ -43,23 +42,7 @@ import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
   selector: 'ngm-tenant-details',
   templateUrl: './tenant-details.component.html',
   styleUrls: ['./tenant-details.component.scss'],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    CdkListboxModule,
-    MatStepperModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatListModule,
-    MatRadioModule,
-    MatProgressBarModule,
-    FormlyModule,
-    FeatureCategoryComponent,
-
-    NgmCommonModule,
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, MatStepperModule, ...ZardFormImports, ZardInputDirective, MatListModule, MatRadioModule, MatProgressBarModule, FormlyModule, FeatureCategoryComponent, NgmCommonModule],
   providers: [FeatureService]
 })
 export class TenantDetailsComponent {

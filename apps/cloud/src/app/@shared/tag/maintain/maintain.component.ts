@@ -4,7 +4,7 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject,
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -14,7 +14,7 @@ import { TagComponent } from '../tag/tag.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, CdkListboxModule, MatInputModule, TagComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, CdkListboxModule, ZardInputDirective, TagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-maintain',
   templateUrl: './maintain.component.html',

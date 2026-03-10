@@ -34,7 +34,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { XpertToolBuiltinCredentialComponent } from './credential/credential.component'
 import { isNil } from 'lodash-es'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TextFieldModule } from '@angular/cdk/text-field'
 
 @Component({
@@ -49,7 +49,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
     MatSlideToggleModule,
     NgmI18nPipe,
     NgmSpinComponent,
-    MatInputModule,
+    ZardInputDirective,
     TextFieldModule,
 
     XpertToolBuiltinCredentialComponent

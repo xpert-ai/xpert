@@ -1,5 +1,5 @@
-<mat-form-field class="w-full" [appearance]="appearance">
-  <mat-label>{{ label }}</mat-label>
+<z-form-field class="w-full" [appearance]="appearance">
+  <z-form-label>{{ label }}</z-form-label>
 
   <mat-chip-grid #chipGrid [attr.aria-label]="label" multiple [formControl]="formControl">
     <mat-chip-row
@@ -20,4 +20,4 @@
     [matChipInputAddOnBlur]="addOnBlur"
     (matChipInputTokenEnd)="addKeywordFromInput($event)"
     >
-</mat-form-field>
+</z-form-field>

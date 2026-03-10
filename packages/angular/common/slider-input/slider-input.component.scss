@@ -3,7 +3,7 @@
   @apply block overflow-hidden;
 }
 
-.mat-mdc-input-element {
+[z-input] {
   @apply outline-none text-right max-w-[50%];
 }
 :host::ng-deep {

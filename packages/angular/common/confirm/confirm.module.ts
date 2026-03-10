@@ -4,8 +4,7 @@ import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { MatDialogModule } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmConfirmDeleteComponent } from './confirm-delete/confirm-delete.component'
@@ -17,20 +16,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [ NgmConfirmDeleteComponent, NgmCountdownConfirmationComponent, NgmConfirmSnackBar ],
-  imports: [
-    CommonModule,
-    FormsModule,
-    DragDropModule,
-    MatDialogModule,
-    ZardButtonComponent,
-    MatFormFieldModule,
-    MatInputModule,
-    NgmCountdownModule,
-    TranslateModule,
-
-    ButtonGroupDirective,
-    NgmConfirmOptionsComponent
-  ],
+  imports: [CommonModule, FormsModule, DragDropModule, MatDialogModule, ZardButtonComponent, ...ZardFormImports, ZardInputDirective, NgmCountdownModule, TranslateModule, ButtonGroupDirective, NgmConfirmOptionsComponent],
   exports: [ NgmConfirmDeleteComponent, NgmCountdownConfirmationComponent, NgmConfirmSnackBar, NgmConfirmOptionsComponent ]
 })
 export class NgmConfirmModule {}

@@ -3,14 +3,14 @@
   @apply flex flex-col;
 }
 
-.mat-input-element {
+[z-input] {
   @apply w-12 text-xs bg-gray-200 text-gray-700 border-2 border-solid border-gray-200 rounded focus:outline-none focus:bg-white focus:border-slate-500 py-1 px-2;
 }
 
 .pac-widget-designer__color {
   @apply relative;
 
-  .mat-input-element {
+  [z-input] {
     @apply pr-8 w-full;
   }
   .mtx-colorpicker-toggle {

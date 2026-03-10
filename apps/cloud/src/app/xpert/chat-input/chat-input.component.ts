@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model, output, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { Attachment_Type_Options, AudioRecorderService, DateRelativePipe, injectToastr, IStorageFile, uuid } from '@cloud/app/@core'
@@ -28,7 +28,7 @@ import { FileIconComponent } from '@cloud/app/@shared/files'
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
-    MatInputModule,
+    ZardInputDirective,
     MatTooltipModule,
     NgmCommonModule,
     DateRelativePipe,

@@ -5,8 +5,7 @@ import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
@@ -17,19 +16,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
  */
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    A11yModule,
-    FormsModule,
-    DragDropModule,
-    MatDialogModule,
-    ZardButtonComponent,
-    MatFormFieldModule,
-    MatInputModule,
-    TranslateModule,
-
-    ButtonGroupDirective
-  ],
+  imports: [CommonModule, A11yModule, FormsModule, DragDropModule, MatDialogModule, ZardButtonComponent, ...ZardFormImports, ZardInputDirective, TranslateModule, ButtonGroupDirective],
   selector: 'ngm-confirm-unique',
   templateUrl: './confirm-unique.component.html',
   styleUrls: ['./confirm-unique.component.scss']

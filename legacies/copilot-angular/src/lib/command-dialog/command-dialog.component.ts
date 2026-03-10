@@ -8,7 +8,7 @@ import { MatAutocomplete, MatAutocompleteActivatedEvent, MatAutocompleteModule }
 
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatInputModule } from '@angular/material/input'
+import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
@@ -39,7 +39,8 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatDialogModule,
     ZardButtonComponent,
     MatChipsModule,
-    MatInputModule,
+    ZardInputDirective,
+    ...ZardFormImports,
     TextFieldModule,
     MatProgressBarModule,
     MatAutocompleteModule,

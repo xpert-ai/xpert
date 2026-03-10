@@ -1,9 +1,8 @@
 import { Component, DestroyRef, Input, OnInit, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, UntypedFormArray } from '@angular/forms'
-import { MatFormFieldAppearance } from '@angular/material/form-field'
 import { NgmFormlyArrayComponent } from '@metad/formly/array'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
+import { NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
   AggregationRole,
   CalculationProperty,
@@ -99,7 +98,7 @@ export class PACFormlyPropertySelectComponent extends FieldType implements OnIni
    */
   _formControl = new FormControl()
 
-  @Input() appearance: MatFormFieldAppearance = 'fill'
+  @Input() appearance: NgmFieldAppearance = 'fill'
   get capacities() {
     return this.props.capacities
   }

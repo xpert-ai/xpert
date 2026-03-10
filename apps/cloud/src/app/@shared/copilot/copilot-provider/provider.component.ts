@@ -13,7 +13,7 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -46,7 +46,7 @@ import { CopilotAiProviderAuthComponent } from '../provider-authorization/author
     TranslateModule,
     DragDropModule,
     MatTooltipModule,
-    MatInputModule,
+    ZardInputDirective,
     MatSlideToggleModule,
     NgmI18nPipe,
     NgmSpinComponent

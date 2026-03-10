@@ -6,7 +6,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
@@ -54,7 +54,8 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatIconModule,
     MatTooltipModule,
     ZardButtonComponent,
-    MatInputModule,
+    ZardInputDirective,
+    ...ZardFormImports,
     MatMenuModule,
     DensityDirective,
     NgmDisplayBehaviourComponent,

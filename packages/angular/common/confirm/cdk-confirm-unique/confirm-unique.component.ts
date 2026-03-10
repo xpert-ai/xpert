@@ -4,9 +4,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormsModule, ReactiveFormsModule, ValidationErrors } from '@angular/forms'
-
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, Observable, switchMap } from 'rxjs'
@@ -21,20 +19,7 @@ export type TConfirmUniqueInfo = {
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    A11yModule,
-    FormsModule,
-    ReactiveFormsModule,
-    DragDropModule,
-    DialogModule,
-    ZardButtonComponent,
-    MatFormFieldModule,
-    MatInputModule,
-    TranslateModule,
-
-    ButtonGroupDirective
-  ],
+  imports: [CommonModule, A11yModule, FormsModule, ReactiveFormsModule, DragDropModule, DialogModule, ZardButtonComponent, ...ZardFormImports, ZardInputDirective, TranslateModule, ButtonGroupDirective],
   selector: 'cdk-confirm-unique',
   templateUrl: './confirm-unique.component.html',
   styleUrls: ['./confirm-unique.component.scss'],

@@ -1,10 +1,10 @@
 <div class="text-lg font-medium mb-4"> {{ 'Ngm.Calculation.MEASURE_CONTROL' | translate: {Default: "Measure Control"} }} </div>
 
 <div>
-  <mat-form-field appearance="fill">
-      <mat-label>
+  <z-form-field appearance="fill">
+      <z-form-label>
         {{ 'Ngm.Common.DisplayBehaviour' | translate: {Default: 'Display Behaviour'} }}
-      </mat-label>
+      </z-form-label>
       <mat-select [formControl]="displayBehaviour">
           <mat-option [value]="DISPLAY_BEHAVIOUR.descriptionOnly">
             {{ 'Ngm.Common.DisplayBehaviour_Description' | translate: {Default: 'Description'} }}
@@ -22,7 +22,7 @@
             {{ 'Ngm.Common.DisplayBehaviour_Auto' | translate: {Default: 'Auto'} }}
           </mat-option>
         </mat-select>
-  </mat-form-field>
+  </z-form-field>
 </div>
 
 <div class="text-base my-4">

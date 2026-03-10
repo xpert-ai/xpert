@@ -3,6 +3,6 @@
   @apply w-full flex flex-col;
 }
 
-.mat-mdc-input-element.cdk-textarea-autosize {
+[z-input].cdk-textarea-autosize {
   @apply whitespace-nowrap;
 }

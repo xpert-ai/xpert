@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
@@ -49,7 +49,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TextFieldModule,
     MatTooltipModule,
     MatIconModule,
-    MatInputModule,
+    ZardInputDirective,
     ZardButtonComponent,
     ContentLoaderModule,
     ButtonGroupDirective,

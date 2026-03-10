@@ -1,6 +1,5 @@
-import { FloatLabelType, MatFormFieldAppearance } from '@angular/material/form-field'
 import { SmartFilterOptions } from '@metad/ocap-angular/controls'
-import { DisplayDensity } from '@metad/ocap-angular/core'
+import { DisplayDensity, NgmFieldAppearance, NgmFloatLabel } from '@metad/ocap-angular/core'
 import { FilterRestrictions } from '@metad/ocap-core'
 import { FilterControlType, StoryFilterBarOptions } from '@metad/story/core'
 
@@ -35,7 +34,7 @@ export interface ISmartFilterBarOptions extends StoryFilterBarOptions {
 
   filters?: { [key: string]: FilterBarFieldOptions }
   filterRestrictions?: FilterRestrictions
-  appearance?: MatFormFieldAppearance
-  floatLabel?: FloatLabelType
+  appearance?: NgmFieldAppearance
+  floatLabel?: NgmFloatLabel
   displayDensity?: DisplayDensity
 }

@@ -20,8 +20,7 @@ import {
   Validators
 } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatSelectModule } from '@angular/material/select'
 import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import {
@@ -37,18 +36,11 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, firstValueFrom, startWith } from 'rxjs'
+import { NgmFieldAppearance } from "@metad/ocap-angular/core";
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatInputModule
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, MatSelectModule, ZardInputDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-compare-member-select',
   templateUrl: './member-select.component.html',
@@ -72,7 +64,7 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
   private readonly _dialog? = inject(MatDialog, { optional: true })
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
-  @Input() appearance: MatFormFieldAppearance = 'fill'
+  @Input() appearance: NgmFieldAppearance = 'fill'
   @Input() label: string
 
   readonly dataSettings = input<DataSettings>()

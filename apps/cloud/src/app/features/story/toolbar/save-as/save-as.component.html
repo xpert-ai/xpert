@@ -5,19 +5,19 @@
 </header>
 
 <mat-dialog-content class="mat-typography" fxLayout="column" fxLayoutAlign="start stretch">
-    <mat-form-field appearance="fill">
-        <mat-label>
+    <z-form-field appearance="fill">
+        <z-form-label>
             {{ 'Story.Common.Name' | translate: {Default: 'Name'} }}
-        </mat-label>
-        <input matInput [(ngModel)]="model.name" required>
-    </mat-form-field>
+        </z-form-label>
+        <input z-input [(ngModel)]="model.name" required>
+    </z-form-field>
 
-    <mat-form-field appearance="fill">
-        <mat-label>
+    <z-form-field appearance="fill">
+        <z-form-label>
             {{ 'Story.Common.Description' | translate: {Default: 'Description'} }}
-        </mat-label>
-        <textarea matInput [(ngModel)]="model.description"></textarea>
-    </mat-form-field>
+        </z-form-label>
+        <textarea z-input [(ngModel)]="model.description"></textarea>
+    </z-form-field>
 </mat-dialog-content>
 
 <mat-dialog-actions>

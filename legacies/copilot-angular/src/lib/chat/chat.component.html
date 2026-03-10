@@ -248,7 +248,7 @@
       }
 
       <div class="ngm-colpilot__input-wrapper mt-2 relative flex">
-        <textarea #userInput matInput class="ngm-colpilot__input w-full px-1.5 z-10 resize-none overflow-visible"
+        <textarea #userInput z-input class="ngm-colpilot__input w-full px-1.5 z-10 resize-none overflow-visible"
           id="userInput" onInput="this.parentNode.dataset.replicatedValue = this.value"
           [placeholder]="_placeholder || (('Copilot.Placeholder' | translate: {Default: 'Ask Copilot or type / for commands'}) + '\nEnter ' + ('Copilot.SendPrompt' | translate: {Default: 'send prompt'}))"
           [formControl]="promptControl"

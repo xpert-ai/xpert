@@ -1,8 +1,8 @@
 <div class="blocks four">
   <div class="icon-form-field">
       <mat-icon color="primary">translate</mat-icon>
-      <mat-form-field>
-        <mat-label>{{'PAC.MENU.GENERAL.LANGUAGE' | translate: {Default: "Language"} }}</mat-label>
+      <z-form-field>
+        <z-form-label>{{'PAC.MENU.GENERAL.LANGUAGE' | translate: {Default: "Language"} }}</z-form-label>
         <mat-select [placeholder]="'PAC.MENU.GENERAL.LANGUAGE_PLACEHOLDER' | translate: {Default: 'Select Language'} "
                     [ngModel]="preferredLanguage$ | async"
                     (selectionChange)="onLanguageSelect($event)"
@@ -18,12 +18,12 @@
             </mat-option>
           </ng-container>
         </mat-select>
-      </mat-form-field>
+      </z-form-field>
     </div>
   <div class="icon-form-field">
     <mat-icon color="primary">color_lens</mat-icon>
-    <mat-form-field>
-      <mat-label>{{'PAC.MENU.GENERAL.THEME' | translate: {Default: "Theme"} }}</mat-label>
+    <z-form-field>
+      <z-form-label>{{'PAC.MENU.GENERAL.THEME' | translate: {Default: "Theme"} }}</z-form-label>
       <mat-select [ngModel]="preferredTheme$()"
                   (selectionChange)="onThemeSelect($event)"
                   name="theme">
@@ -36,6 +36,6 @@
           </mat-option>
         </ng-container>
       </mat-select>
-    </mat-form-field>
+    </z-form-field>
   </div>
 </div>

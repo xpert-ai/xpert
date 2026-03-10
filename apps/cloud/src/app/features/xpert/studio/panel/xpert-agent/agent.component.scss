@@ -4,7 +4,7 @@
   min-width: 0; // Allow flex children to shrink properly
 }
 
-.mat-mdc-input-element {
+[z-input] {
   field-sizing: content;
   &.ngm-error {
     @apply border-red-500;

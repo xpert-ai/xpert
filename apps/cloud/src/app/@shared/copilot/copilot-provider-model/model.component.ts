@@ -15,7 +15,7 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { KebabToCamelCasePipe } from '@metad/core'
 import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -38,7 +38,7 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
     DragDropModule,
     CdkListboxModule,
     MatTooltipModule,
-    MatInputModule,
+    ZardInputDirective,
     NgmI18nPipe,
     KebabToCamelCasePipe,
     NgmSpinComponent,

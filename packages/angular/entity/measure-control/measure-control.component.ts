@@ -10,7 +10,6 @@ import {
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule
 } from '@angular/forms'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatListModule, MatSelectionListChange } from '@angular/material/list'
 import { MatSelectModule } from '@angular/material/select'
 import { NgmPropertyComponent } from '@metad/ocap-angular/common'
@@ -27,21 +26,11 @@ import {
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
 import { map } from 'rxjs/operators'
+import { ZardFormImports } from "@xpert-ai/headless-ui";
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    DragDropModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatListModule,
-
-    NgmPropertyComponent
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, MatSelectModule, MatListModule, NgmPropertyComponent],
   selector: 'ngm-measure-control',
   templateUrl: './measure-control.component.html',
   styleUrl: './measure-control.component.scss',

@@ -106,9 +106,9 @@ export class NgmTodayFilterComponent implements OnInit, OnChanges, ControlValueA
 
 @Component({
   selector: 'ngm-quarter-filter',
-  template: `<mat-form-field [appearance]="appearance?.appearance" [displayDensity]="appearance?.displayDensity">
-    <mat-label>{{ 'Ngm.TimeFilter.TODAY' | translate: {Default: 'Today'} }}</mat-label>
-    <input matInput [matDatepicker]="dp" [formControl]="date" />
+  template: `<z-form-field [appearance]="appearance?.appearance" [displayDensity]="appearance?.displayDensity">
+    <z-form-label>{{ 'Ngm.TimeFilter.TODAY' | translate: {Default: 'Today'} }}</z-form-label>
+    <input z-input [matDatepicker]="dp" [formControl]="date" />
     <mat-datepicker
       #dp
       startView="multi-year"
@@ -116,11 +116,11 @@ export class NgmTodayFilterComponent implements OnInit, OnChanges, ControlValueA
       (monthSelected)="chosenMonthHandler($event, dp)"
     ></mat-datepicker>
 
-    <div matSuffix class="flex items-center">
+    <div zFormSuffix class="flex items-center">
       <mat-datepicker-toggle class="ngm-actionable-opacity" [for]="dp"></mat-datepicker-toggle>
       <ng-content></ng-content>
     </div>
-  </mat-form-field> `,
+  </z-form-field> `,
   styleUrls: ['./today-filter.component.scss'],
   standalone: false,
   providers: [
@@ -187,7 +187,7 @@ export class NxQuarterFilterComponent implements ControlValueAccessor {
 
 @Component({
   selector: 'ngm-month-filter',
-  template: `<input matInput [matDatepicker]="dp" [formControl]="date" />
+  template: `<input z-input [matDatepicker]="dp" [formControl]="date" />
 <mat-datepicker
   #dp
   startView="multi-year"
@@ -195,7 +195,7 @@ export class NxQuarterFilterComponent implements ControlValueAccessor {
   (monthSelected)="chosenMonthHandler($event, dp)"
 ></mat-datepicker>
 
-<div matSuffix class="abs flex items-center">
+<div zFormSuffix class="abs flex items-center">
   <mat-datepicker-toggle class="ngm-actionable-opacity" [for]="dp"/>
   <ng-content></ng-content>
 </div>
@@ -266,20 +266,20 @@ export class NxMonthFilterComponent implements ControlValueAccessor {
 
 @Component({
   selector: 'ngm-year-filter',
-  template: `<mat-form-field [appearance]="appearance?.appearance" [displayDensity]="appearance?.displayDensity">
-    <mat-label>{{ 'Ngm.TimeFilter.TODAY' | translate: {Default: 'Today'} }}</mat-label>
-    <input matInput [matDatepicker]="dp" [formControl]="date" />
+  template: `<z-form-field [appearance]="appearance?.appearance" [displayDensity]="appearance?.displayDensity">
+    <z-form-label>{{ 'Ngm.TimeFilter.TODAY' | translate: {Default: 'Today'} }}</z-form-label>
+    <input z-input [matDatepicker]="dp" [formControl]="date" />
     <mat-datepicker
       #dp
       startView="multi-year"
       (yearSelected)="chosenYearHandler($event, dp)"
     ></mat-datepicker>
 
-    <div matSuffix class="flex items-center">
+    <div zFormSuffix class="flex items-center">
       <mat-datepicker-toggle class="ngm-actionable-opacity" [for]="dp"></mat-datepicker-toggle>
       <ng-content></ng-content>
     </div>
-  </mat-form-field>`,
+  </z-form-field>`,
   styleUrls: ['./today-filter.component.scss'],
   standalone: false,
   providers: [

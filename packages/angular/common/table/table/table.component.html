@@ -34,7 +34,7 @@
             </span>
 
             <div class="searchable flex-1 flex justify-between items-center" [class.searching]="searchingColumn===column.name">
-              <input matInput placeholder="{{ 'PAC.KEY_WORDS.SEARCH' | translate: {Default: 'Search'} }}" type="text" class="flex-1 text-left text-sm"
+              <input z-input zBorderless placeholder="{{ 'PAC.KEY_WORDS.SEARCH' | translate: {Default: 'Search'} }}" type="text" class="flex-1 text-left text-sm"
                 value="" [formControl]="searchControl"
                 (click)="$event.stopPropagation();"
                 (keyup)="escapeSearching($event)">

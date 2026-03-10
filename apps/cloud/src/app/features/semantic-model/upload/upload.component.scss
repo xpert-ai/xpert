@@ -28,11 +28,11 @@ mat-stepper.mat-stepper-vertical {
   margin-right: 1rem;
 }
 
-input.mat-mdc-input-element {
+input[z-input] {
   @apply caret-yellow-500 bg-transparent outline-none;
 }
 
-.ngm-input.mat-mdc-input-element {
+.ngm-input[z-input] {
   @apply p-2 rounded-md hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-slate-300 dark:focus:bg-white/20
     focus:ring-2 focus:ring-yellow-200 focus:ring-offset-2;
 }

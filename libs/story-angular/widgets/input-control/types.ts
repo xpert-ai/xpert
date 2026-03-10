@@ -1,4 +1,3 @@
-import { ThemePalette } from '@angular/material/core'
 import { ControlOptions } from '@metad/ocap-angular/controls'
 import { ParameterOptions } from '@metad/ocap-angular/parameter'
 import {
@@ -17,9 +16,10 @@ import {
   TimeGranularity
 } from '@metad/ocap-core'
 import { FilterControlType } from '@metad/story/core'
+import { NgmFieldColor } from "@metad/ocap-angular/core";
 
 export interface MeasureControlOptions {
-  chipColor?: ThemePalette
+  chipColor?: NgmFieldColor
 }
 
 /**

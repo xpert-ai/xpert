@@ -6,9 +6,8 @@ import { ChangeDetectionStrategy, Component, Inject, OnInit, TemplateRef, ViewCh
 import { FormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatSliderModule } from '@angular/material/slider'
@@ -24,23 +23,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    DragDropModule,
-
-    MatRadioModule,
-    MatFormFieldModule,
-    MatInputModule,
-    ZardButtonComponent,
-    MatIconModule,
-    MatTooltipModule,
-    MatSlideToggleModule,
-    MatSliderModule,
-
-    TranslateModule,
-    NgmCommonModule
-  ],
+  imports: [CommonModule, FormsModule, DragDropModule, MatRadioModule, ...ZardFormImports, ZardInputDirective, ZardButtonComponent, MatIconModule, MatTooltipModule, MatSlideToggleModule, MatSliderModule, TranslateModule, NgmCommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-story-shares-dialog',
   templateUrl: 'shares.component.html',

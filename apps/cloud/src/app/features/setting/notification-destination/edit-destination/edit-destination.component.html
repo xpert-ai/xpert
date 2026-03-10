@@ -1,10 +1,10 @@
 <div *ngIf="destination$ | async as item" fxLayout="column" fxLayoutAlign="start stretch" class="pac-edit-destination__editor">
     <form [formGroup]="formGroup">
-        <mat-form-field appearance="fill">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" required>
-            <mat-error *ngIf="nameCtrl.invalid">Name required</mat-error>
-        </mat-form-field>
+        <z-form-field appearance="fill">
+            <z-form-label>Name</z-form-label>
+            <input z-input formControlName="name" required>
+            <z-form-message zType="error" *ngIf="nameCtrl.invalid">Name required</z-form-message>
+        </z-form-field>
     </form>
 
     <formly-form

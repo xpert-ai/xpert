@@ -16,21 +16,14 @@ import { IRole, IUser, RolesEnum } from '@metad/contracts';
 import { RoleService, Store } from './../../../../../@core/services';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgmFieldAppearance } from "@metad/ocap-angular/core";
+import { ZardFormImports } from "@xpert-ai/headless-ui";
 
 @Component({
 	standalone: true,
-	imports: [
-		CommonModule,
-		FormsModule,
-		ReactiveFormsModule,
-		TranslateModule,
-
-		MatFormFieldModule,
-		MatSelectModule
-	],
+	imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, MatSelectModule],
 	selector: 'pac-role-form-field',
 	templateUrl: './role.component.html',
 	styleUrls: [],
@@ -50,7 +43,7 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 	onChange: any = () => {};
 	onTouched: any = () => {};
 
-	@Input() appearance: MatFormFieldAppearance
+	@Input() appearance: NgmFieldAppearance
 
 	/**
 	 * Getter & Setter for dynamic remove role from options

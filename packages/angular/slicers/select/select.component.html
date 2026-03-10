@@ -1,5 +1,5 @@
-<mat-form-field fxFlex="100" [appearance]="appearance">
-  <mat-label>Select</mat-label>
+<z-form-field fxFlex="100" [appearance]="appearance">
+  <z-form-label>Select</z-form-label>
   <mat-select [formControl]="formControl">
     <mat-option *ngFor="let property of dimensions$ | async" [value]="property.__id__">
         <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="property.role === AggregationRole.hierarchy" displayDensity="compact" disabled></button>
@@ -7,19 +7,19 @@
     </mat-option>
   </mat-select>
 
-  <div matSuffix>
+  <div zFormSuffix>
     <button z-button zType="ghost" zSize="icon" zShape="circle" [matMenuTriggerFor]="operatorMenu" (click)="$event.stopPropagation();$event.preventDefault();">
         <mat-icon>drag_handle</mat-icon>
     </button>
 
-    <button z-button zType="ghost" zSize="icon" zShape="circle" matSuffix [matMenuTriggerFor]="slicerMenu" (click)="$event.stopPropagation();$event.preventDefault();">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [matMenuTriggerFor]="slicerMenu" (click)="$event.stopPropagation();$event.preventDefault();">
         <mat-icon>more_vert</mat-icon>
     </button>
 
     <ng-content></ng-content>
   </div>
   
-</mat-form-field>
+</z-form-field>
 
 <mat-menu #operatorMenu="matMenu" class="ngm-density__compact">
     <button mat-menu-item disableRipple >

@@ -257,7 +257,7 @@
         <div>
           <div class="leading-8 text-[13px] font-medium">{{ 'PAC.Xpert.ParameterName' | translate: {Default: 'Parameter name'} }}</div>
           <div>
-            <input matInput class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+            <input z-input class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
               placeholder="{{'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} }}" type="text"
               formControlName="name"
             >
@@ -266,7 +266,7 @@
         <div>
           <div class="leading-8 text-[13px] font-medium text-gray-700">{{ 'PAC.Xpert.ParameterDescription' | translate: {Default: 'Parameter description'} }}</div>
           <div>
-            <textarea matInput class="w-full px-3 text-sm text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+            <textarea z-input class="w-full px-3 text-sm text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
               placeholder="{{'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} }}" type="text"
               formControlName="description"
             ></textarea>
@@ -276,7 +276,7 @@
         <div>
           <div class="leading-8 text-[13px] font-medium text-gray-700">{{ 'PAC.Xpert.ParameterDefault' | translate: {Default: 'Default value'} }}</div>
 
-          <input matInput class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+          <input z-input class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
               placeholder="{{'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} }}" type="text"
               formControlName="default"
             >
@@ -328,7 +328,7 @@
             <div class="leading-8 text-[13px] font-medium text-gray-700"> {{ 'PAC.Xpert.MaxLength' | translate: {Default: 'Max length'} }}</div>
             <div>
               <div>
-                <input matInput max="256" min="1" class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200" type="number"
+                <input z-input max="256" min="1" class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200" type="number"
                   formControlName="maximum"
                   (input)="onMaximumInput(index, $event)"
                 >

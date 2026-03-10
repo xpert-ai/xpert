@@ -12,7 +12,7 @@
     
         <div class="flex-1 min-w-full flex flex-col">
             <label class="ngm-input-label shrink-0">{{'PAC.Copilot.Examples.Input' | translate: {Default: 'Input'} }}</label>
-            <textarea class="ngm-input-element" matInput formControlName="input"
+            <textarea class="ngm-input-element" z-input formControlName="input"
                 cdkTextareaAutosize
                 cdkAutosizeMinRows="1"
                 cdkAutosizeMaxRows="5">
@@ -21,7 +21,7 @@
 
         <div class="flex-1 min-w-full flex flex-col">
             <label class="ngm-input-label shrink-0">{{'PAC.Copilot.Examples.Output' | translate: {Default: 'Output'} }}</label>
-            <textarea class="ngm-input-element" matInput formControlName="output"
+            <textarea class="ngm-input-element" z-input formControlName="output"
                 cdkTextareaAutosize
                 cdkAutosizeMinRows="2"
                 cdkAutosizeMaxRows="8"

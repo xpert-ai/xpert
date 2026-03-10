@@ -11,15 +11,13 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSelectModule } from '@angular/material/select'
 import { MatTreeModule } from '@angular/material/tree'
-import { DensityDirective, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DensityDirective, OcapCoreModule, NgmFieldAppearance, NgmFieldColor, NgmFloatLabel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { FloatLabelType, MatFormFieldAppearance } from '@angular/material/form-field'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { DisplayDensity } from '@metad/ocap-angular/core'
 import { DisplayBehaviour, filterTreeNodes, findTreeNode, FlatTreeNode, TreeNodeInterface } from '@metad/ocap-core'
@@ -39,7 +37,6 @@ import { NgmSearchComponent } from '../search/search.component'
 import { CommonModule } from '@angular/common'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { ThemePalette } from '@angular/material/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
@@ -52,29 +49,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
  */
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    
-    FormsModule,
-    ReactiveFormsModule,
-    NgmSearchComponent,
-    ZardButtonComponent,
-    MatIconModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    ScrollingModule,
-    MatCheckboxModule,
-    MatProgressSpinnerModule,
-    MatInputModule,
-    MatChipsModule,
-    MatTreeModule,
-    TranslateModule,
-
-    OcapCoreModule,
-    NgmDisplayBehaviourComponent,
-    DensityDirective
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgmSearchComponent, ZardButtonComponent, MatIconModule, ...ZardFormImports, MatSelectModule, MatAutocompleteModule, ScrollingModule, MatCheckboxModule, MatProgressSpinnerModule, ZardInputDirective, MatChipsModule, MatTreeModule, TranslateModule, OcapCoreModule, NgmDisplayBehaviourComponent, DensityDirective],
   selector: 'ngm-tree-select',
   templateUrl: 'tree-select.component.html',
   styleUrls: ['tree-select.component.scss'],
@@ -101,8 +76,8 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
   readonly #destroyRef = inject(DestroyRef)
   _animationMode: 'NoopAnimations' | 'BrowserAnimations' = 'BrowserAnimations'
   
-  @Input() appearance: MatFormFieldAppearance
-  @Input() floatLabel: FloatLabelType
+  @Input() appearance: NgmFieldAppearance
+  @Input() floatLabel: NgmFloatLabel
   @Input() displayBehaviour: DisplayBehaviour | string
   @Input() displayDensity: DisplayDensity | string
   @Input() label: string
@@ -176,7 +151,7 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
   private _autoSelectActiveOption: boolean;
 
   readonly disabled = model<boolean>(false)
-  readonly color = input<ThemePalette>()
+  readonly color = input<NgmFieldColor>()
   readonly loading = input(false)
 
   readonly focus = output<FocusEvent>()

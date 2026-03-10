@@ -281,12 +281,12 @@
     <div mat-dialog-content class="mat-dialog-content mat-typography w-96">
       <form class="flex flex-col justify-start items-stretch" [formGroup]="form"
         (ngSubmit)="createCollection()">
-        <mat-form-field appearance="fill" floatLabel="always" displayDensity="cosy">
-          <mat-label>{{ 'PAC.Project.CollectionName' | translate: { Default: 'Name' } }}</mat-label>
-          <input matInput formControlName="name" required
+        <z-form-field appearance="fill" floatLabel="always" displayDensity="cosy">
+          <z-form-label>{{ 'PAC.Project.CollectionName' | translate: { Default: 'Name' } }}</z-form-label>
+          <input z-input formControlName="name" required
             placeholder="{{ 'PAC.Project.WhatIsTheCollectionName' | translate: { Default: 'What is the name of your collection' } }}?"
           />
-        </mat-form-field>
+        </z-form-field>
 
         <ngm-tree-select appearance="fill" floatLabel="always" formControlName="parentId"
           label="{{ 'PAC.Project.ParentCollection' | translate: { Default: 'Parent Collection' } }}"

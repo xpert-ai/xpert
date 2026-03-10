@@ -8,9 +8,8 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatSelectModule } from '@angular/material/select'
 import { Router } from '@angular/router'
@@ -25,25 +24,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    MatIconModule,
-    ZardButtonComponent,
-    MatListModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatDialogModule,
-    MatCheckboxModule,
-    MatSelectModule,
-    MatAutocompleteModule,
-    MatChipsModule,
-    DragDropModule,
-    OcapCoreModule,
-    NgmHighlightDirective
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MatIconModule, ZardButtonComponent, MatListModule, ...ZardFormImports, ZardInputDirective, MatDialogModule, MatCheckboxModule, MatSelectModule, MatAutocompleteModule, MatChipsModule, DragDropModule, OcapCoreModule, NgmHighlightDirective],
   selector: 'ngm-story-details',
   templateUrl: './story-details.component.html',
   styleUrls: ['./story-details.component.scss']

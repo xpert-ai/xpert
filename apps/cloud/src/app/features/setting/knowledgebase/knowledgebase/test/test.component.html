@@ -20,7 +20,7 @@
   <div class="flex flex-col items-end gap-4">
     <div class="flex-1 min-w-full flex flex-col">
       <label class="ngm-input-label shrink-0">{{'PAC.Knowledgebase.Input' | translate: {Default: 'Input'} }}</label>
-      <textarea class="ngm-input-element" matInput [(ngModel)]="query" [disabled]="loading()"
+      <textarea class="ngm-input-element" z-input [(ngModel)]="query" [disabled]="loading()"
         cdkTextareaAutosize
         cdkAutosizeMinRows="2"
         cdkAutosizeMaxRows="5">

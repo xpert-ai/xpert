@@ -159,7 +159,7 @@
           <pac-chat-loading class="w-10 h-10" />
         }
         @case ('error') {
-          <mat-error>{{message().error}}</mat-error>
+          <z-form-message zType="error">{{message().error}}</z-form-message>
         }
       }
     </div>

@@ -1,17 +1,17 @@
 <form [formGroup]="form" class="accept-invite-form flex flex-col justify-start items-stretch gap-2">
   <div>
     <label>{{ 'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.FULL_NAME' | translate: {Default: 'Full Name'} }}</label>
-    <input matInput formControlName="fullName" class="ngm-input-element" type="text"
+    <input z-input formControlName="fullName" class="ngm-input-element" type="text"
         [placeholder]="'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.ENTER_YOUR_FULL_NAME' | translate: {Default: 'Enter Your Full Name'}">
   </div>
   <div>
     <label>{{ 'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.PASSWORD' | translate: {Default: 'Password'} }}</label>
-    <input matInput formControlName="password" class="ngm-input-element" type="password">
+    <input z-input formControlName="password" class="ngm-input-element" type="password">
   </div>
 
   <div>
     <label>{{ 'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.REPEAT_PASSWORD' | translate: {Default: 'Repeat Password'} }}</label>
-    <input matInput formControlName="repeatPassword" class="ngm-input-element" type="password">
+    <input z-input formControlName="repeatPassword" class="ngm-input-element" type="password">
   </div>
 
   <div class="flex justify-between items-center">

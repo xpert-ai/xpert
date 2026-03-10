@@ -12,9 +12,8 @@
   }
 }
 
-.mat-mdc-form-field-error {
+.ngm-select__message {
   display: inline-flex;
-  color: var(--mat-form-field-error-text-color);
 }
 
 :host::ng-deep {

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatSelectModule } from '@angular/material/select'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatSliderModule } from '@angular/material/slider'
@@ -19,7 +19,7 @@ import { ParameterRule, ParameterType } from '../../../@core'
     FormsModule,
     MatSliderModule,
     MatSelectModule,
-    MatInputModule,
+    ZardInputDirective,
     MatSlideToggleModule,
     NgmDensityDirective
   ],

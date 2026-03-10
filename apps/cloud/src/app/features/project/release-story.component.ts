@@ -50,9 +50,9 @@ import { nonNullable } from '@metad/core'
     </mat-radio-group>
 
     <div *ngIf="notAllPublic()" class="flex flex-col mb-2">
-      <mat-error>
+      <z-form-message zType="error">
         {{ 'PAC.Project.AllModelsMustBePublic' | translate: { Default: 'All models must be public' } }}
-      </mat-error>
+      </z-form-message>
 
       <ul class="pl-4">
         <li *ngFor="let model of noPublicModels()">{{model.name}}</li>
@@ -65,21 +65,21 @@ import { nonNullable } from '@metad/core'
       [treeNodes]="businessArea$ | async"
     ></ngm-tree-select>
 
-    <mat-form-field appearance="fill" floatLabel="always" >
-      <mat-label>{{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}</mat-label>
-      <input matInput formControlName="name" required
+    <z-form-field appearance="fill" floatLabel="always" >
+      <z-form-label>{{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}</z-form-label>
+      <input z-input formControlName="name" required
         placeholder="{{ 'PAC.Project.WhatIsTheName' | translate: { Default: 'What is the name of your project' } }}?"
       />
-    </mat-form-field>
+    </z-form-field>
 
-    <mat-form-field appearance="fill" floatLabel="always">
-      <mat-label>
+    <z-form-field appearance="fill" floatLabel="always">
+      <z-form-label>
           {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
-      </mat-label>
-      <textarea matInput formControlName="description"
+      </z-form-label>
+      <textarea z-input formControlName="description"
           placeholder="{{ 'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the project' } }}"
       ></textarea>
-    </mat-form-field>
+    </z-form-field>
   </form>
 </div>
 

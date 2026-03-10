@@ -4,8 +4,7 @@ import { Component, HostBinding, OnInit } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSelectModule } from '@angular/material/select'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -17,23 +16,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    MatDialogModule,
-    TranslateModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatFormFieldModule,
-    DragDropModule,
-    ZardButtonComponent,
-    MatInputModule,
-    MatProgressBarModule,
-
-    MatSelectModule,
-
-    ButtonGroupDirective,
-    DensityDirective
-  ],
+  imports: [CommonModule, MatDialogModule, TranslateModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, DragDropModule, ZardButtonComponent, ZardInputDirective, MatProgressBarModule, MatSelectModule, ButtonGroupDirective, DensityDirective],
   selector: 'pac-query-creation',
   template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <h4 style="pointer-events: none;">
@@ -44,17 +27,17 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     <div mat-dialog-content>
       <form class="flex flex-col justify-start items-stretch" 
         [formGroup]="formGroup" (ngSubmit)="create()">
-        <mat-form-field appearance="fill" floatLabel="always">
-          <mat-label>
+        <z-form-field appearance="fill" floatLabel="always">
+          <z-form-label>
             {{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
-          </mat-label>
-          <input matInput formControlName="name" placeholder="{{ 'PAC.MODEL.QueryName' | translate: { Default: 'Short name of query' } }}" />
-        </mat-form-field>
+          </z-form-label>
+          <input z-input formControlName="name" placeholder="{{ 'PAC.MODEL.QueryName' | translate: { Default: 'Short name of query' } }}" />
+        </z-form-field>
 
-        <mat-form-field appearance="fill" floatLabel="always">
-          <mat-label>
+        <z-form-field appearance="fill" floatLabel="always">
+          <z-form-label>
             {{ 'PAC.KEY_WORDS.Model' | translate: { Default: 'Model' } }}
-          </mat-label>
+          </z-form-label>
           <mat-select formControlName="modelId"
             placeholder="{{
               'PAC.MODEL.QueryBaseModelPlaceholder' | translate: { Default: 'Which model space do you want query' }
@@ -64,7 +47,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
               {{ model.name }}
             </mat-option>
           </mat-select>
-        </mat-form-field>
+        </z-form-field>
 
         <button type="submit"></button>
       </form>

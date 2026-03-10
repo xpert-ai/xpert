@@ -3,7 +3,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -27,7 +27,7 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
     CommonModule,
     TranslateModule,
     DragDropModule,
-    MatInputModule,
+    ZardInputDirective,
     FormsModule,
     CdkListboxModule,
     NgmSpinComponent,

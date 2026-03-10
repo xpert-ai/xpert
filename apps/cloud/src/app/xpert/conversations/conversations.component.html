@@ -46,7 +46,7 @@
                 [ngClass]="{active: item.id === conversationId()}"
               >
                 @if (editingConversation()  === item.id) {
-                  <input matInput [(ngModel)]="editingTitle" (keydown.enter)="updateTitle(item)" 
+                  <input z-input [(ngModel)]="editingTitle" (keydown.enter)="updateTitle(item)" 
                     (keydown.esc)="exitEdit($event)">
                 } @else {
                   <a class="truncate cursor-pointer" [ngmHighlight]="searchValue" [content]="(item.title | i18n) || item.id"

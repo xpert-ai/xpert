@@ -28,7 +28,7 @@ $prefix: (ngm, color);
 }
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
-  .ngm-input-element.mat-mdc-input-element {
+  .ngm-input-element[z-input] {
     background-color: var(#{token-utils.get-token-variable(surface-container-high)});
     &:hover:not(:disabled) {
       --tw-ring-color: rgb(234 179 8 / 0.5); /* ring-yellow-500/50 */
@@ -45,7 +45,7 @@ $prefix: (ngm, color);
   }
 }
 
-.ngm-input-element.mat-mdc-input-element {
+.ngm-input-element[z-input] {
   @apply min-w-[6rem] block box-border w-full max-w-full p-2 rounded-lg border border-solid border-transparent
     text-gray-700 ring-offset-1 ring-offset-transparent ring-2 ring-transparent
     focus:ring-yellow-500 focus:z-10 focus:outline-none
@@ -65,7 +65,7 @@ $prefix: (ngm, color);
 }
 
 .ngm-density__cosy {
-  .ngm-input-element.mat-mdc-input-element {
+  .ngm-input-element[z-input] {
     @apply py-1 px-2 text-sm rounded;
   }
   .ngm-input__suffix {
@@ -83,7 +83,7 @@ $prefix: (ngm, color);
   .ngm-input-label {
     @apply text-sm;
   }
-  .ngm-input-element.mat-mdc-input-element {
+  .ngm-input-element[z-input] {
     @apply py-1 px-2 text-xs rounded;
   }
   .ngm-input__suffix {
@@ -91,7 +91,7 @@ $prefix: (ngm, color);
   }
 }
 
-.ngm-input-element.mat-mdc-input-element.ngm-w-full {
+.ngm-input-element[z-input].ngm-w-full {
   @apply w-full;
 }
 

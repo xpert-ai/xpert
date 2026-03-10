@@ -6,9 +6,8 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
@@ -21,28 +20,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    SharedModule,
-
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-
-    MatDialogModule,
-    ZardButtonComponent,
-    MatAutocompleteModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatChipsModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-
-    TranslateModule,
-
-    ButtonGroupDirective,
-
-    NgmCommonModule
-  ],
+  imports: [SharedModule, CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, MatIconModule, MatProgressSpinnerModule, TranslateModule, ButtonGroupDirective, NgmCommonModule],
   selector: 'pac-employee-search',
   templateUrl: 'employee-search.component.html',
   styleUrls: ['employee-search.component.scss']

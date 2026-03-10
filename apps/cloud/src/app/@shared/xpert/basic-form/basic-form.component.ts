@@ -4,7 +4,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
   convertToUrlPath,
@@ -27,7 +27,7 @@ import { CopilotModelSelectComponent } from '../../copilot'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatInputModule,
+    ZardInputDirective,
     CdkMenuModule,
     CdkListboxModule,
     TextFieldModule,

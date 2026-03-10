@@ -76,7 +76,7 @@
   <div>
     <div class="leading-8 text-[13px] font-medium">{{ 'PAC.Xpert.ParameterName' | translate: {Default: 'Parameter name'} }}</div>
     <div>
-      <input matInput class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+      <input z-input class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
         placeholder="{{'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} }}" 
         type="text"
         [ngModel]="name()"
@@ -89,7 +89,7 @@
   <!-- <div>
     <div class="leading-8 text-[13px] font-medium text-gray-700">{{ 'PAC.Xpert.ParameterTitle' | translate: {Default: 'Parameter title'} }}</div>
     <div>
-      <input matInput class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+      <input z-input class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
         placeholder="{{'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} }}" type="text"
         [ngModel]="title()"
         [ngModelOptions]="{standalone: true}"
@@ -101,7 +101,7 @@
   <div>
     <div class="leading-8 text-[13px] font-medium text-gray-700">{{ 'PAC.Xpert.ParameterDescription' | translate: {Default: 'Parameter description'} }}</div>
     <div>
-      <textarea matInput class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+      <textarea z-input class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
         placeholder="{{'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} }}" type="text"
         [ngModel]="description()"
         [ngModelOptions]="{standalone: true}"
@@ -173,7 +173,7 @@
             <div class="w-full flex justify-start items-start">
               <div class="grow flex items-center gap-1 bg-gray-100 rounded-lg p-1 pl-2 group/item">
                 <xpert-parameter-icon [type]="param.type"/>
-                <input matInput placeholder="name" maxlength="30"
+                <input z-input placeholder="name" maxlength="30"
                   class="h-6 leading-6 block w-full rounded-md border-0 px-1 py-1.5 text-gray-900  placeholder:text-gray-400 focus:outline-none
                         bg-transparent hover:bg-white focus:bg-white" type="text"
                   [ngModel]="param.name"
@@ -203,7 +203,7 @@
         <div class="leading-8 text-[13px] font-medium text-gray-700"> {{ 'PAC.Xpert.MaxLength' | translate: {Default: 'Max length'} }}</div>
         <div>
           <div>
-            <input matInput max="256" min="1" class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200" type="number"
+            <input z-input max="256" min="1" class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200" type="number"
               [ngModel]="maximum()"
               [ngModelOptions]="{standalone: true}"
               (ngModelChange)="updateParameter('maximum', $event)"

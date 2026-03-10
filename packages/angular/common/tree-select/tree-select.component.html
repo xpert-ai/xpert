@@ -1,6 +1,6 @@
 @if (!treeViewer()) {
-  <mat-form-field class="flex-1" [appearance]="appearance" [floatLabel]="floatLabel" [color]="color()">
-    <mat-label>{{ label }}</mat-label>
+  <z-form-field class="flex-1" [appearance]="appearance" [floatLabel]="floatLabel" [color]="color()">
+    <z-form-label>{{ label }}</z-form-label>
 
     @if (useAutocomplete) {
       <mat-chip-grid #chipGrid >
@@ -174,7 +174,7 @@
     }
 
     @if (useAutocomplete) {
-      <div matPrefix class="flex justify-start items-center">
+      <div zFormPrefix class="flex justify-start items-center">
 
         <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-actionable-opacity" [displayDensity]="displayDensity" (click)="$event.stopPropagation();toggleExpand()">
           <mat-icon *ngIf="!unfold">unfold_more</mat-icon>
@@ -188,17 +188,17 @@
       </div>
     }
 
-    <div matSuffix class="flex justify-start items-center" >
+    <div zFormSuffix class="flex justify-start items-center" >
       <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="isNotInitial" class="ngm-actionable-opacity" displayDensity="cosy" ngmAppearance="danger" [disabled]="disabled()" (click)="clear($event)">
         <mat-icon>close</mat-icon>
       </button>
 
-      <ng-content select="[matSuffix]"></ng-content>
+      <ng-content select="[zFormSuffix]"></ng-content>
       
     </div>
 
-    <mat-error *ngIf="formControl.invalid">{{getErrorMessage()}}</mat-error>
-  </mat-form-field>
+    <z-form-message zType="error" *ngIf="formControl.invalid">{{getErrorMessage()}}</z-form-message>
+  </z-form-field>
 } @else {
   <ngm-search *ngIf="searchable()" class="w-full shrink-0 p-2" [formControl]="autoControl"></ngm-search>
 

@@ -2,11 +2,10 @@ import { CommonModule } from '@angular/common'
 import { Component, Input, computed, effect, forwardRef, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@metad/cloud/state'
 import { nonBlank, nonNullable } from '@metad/core'
 import { NgmHierarchySelectComponent, NgmMatSelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
-import { ISelectOption, NgmDSCoreService } from '@metad/ocap-angular/core'
+import { ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
@@ -21,7 +20,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatSelectModule } from '@angular/material/select'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
@@ -33,27 +32,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   selector: 'xp-indicator-register-form',
   templateUrl: 'register-form.component.html',
   styleUrls: ['register-form.component.scss'],
-  imports: [
-    CommonModule,
-    TranslateModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatIconModule,
-    ZardButtonComponent,
-    MatTooltipModule,
-    MatRadioModule,
-    MatFormFieldModule,
-    MatDatepickerModule,
-    MatInputModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    NgmMatSelectComponent,
-    NgmTreeSelectComponent,
-    TagEditorComponent,
-    NgmHierarchySelectComponent,
-    NgmCalculatedMeasureComponent,
-    NgmSelectionModule
-  ],
+  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, MatIconModule, ZardButtonComponent, MatTooltipModule, MatRadioModule, ...ZardFormImports, MatDatepickerModule, ZardInputDirective, MatSelectModule, MatCheckboxModule, NgmMatSelectComponent, NgmTreeSelectComponent, TagEditorComponent, NgmHierarchySelectComponent, NgmCalculatedMeasureComponent, NgmSelectionModule],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -79,7 +58,7 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
   SlicersCapacity = SlicersCapacity
   eTagCategoryEnum = TagCategoryEnum
   AGGREGATORS = INDICATOR_AGGREGATORS
-  appearance: MatFormFieldAppearance = 'fill'
+  appearance: NgmFieldAppearance = 'fill'
 
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly wasmAgent = inject(WasmAgentService)

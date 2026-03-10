@@ -58,8 +58,8 @@
         <mat-checkbox formControlName="absBaseValue">
             {{ 'Ngm.Calculation.AbsoluteBaseValue' | translate: {Default: "Absolute Base Value"} }}
         </mat-checkbox>
-        <mat-form-field appearance="fill" class="w-5/12">
-            <mat-label>{{ 'Ngm.Calculation.DivideBy' | translate: {Default: "Divide By"} }}</mat-label>
+        <z-form-field appearance="fill" class="w-5/12">
+            <z-form-label>{{ 'Ngm.Calculation.DivideBy' | translate: {Default: "Divide By"} }}</z-form-label>
             <mat-select formControlName="divideBy">
               <mat-option value="A">
                 {{ 'Ngm.Calculation.CompareValueA' | translate: {Default: "Compare Value (A)"} }}
@@ -67,7 +67,7 @@
               <mat-option value="B">{{ 'Ngm.Calculation.ToValueB' | translate: {Default: "To Value (B)"} }}
               </mat-option>
             </mat-select>
-        </mat-form-field>
+        </z-form-field>
     </div>
 
 </form>

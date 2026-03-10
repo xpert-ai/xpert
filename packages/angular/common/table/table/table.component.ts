@@ -8,7 +8,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import {
   MatPaginator,
   MatPaginatorDefaultOptions,
@@ -104,7 +104,7 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
     MatIconModule,
     ZardButtonComponent,
     MatSortModule,
-    MatInputModule,
+    ZardInputDirective,
     TranslateModule,
 
     //OCAP Modules

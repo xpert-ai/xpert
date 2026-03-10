@@ -5,26 +5,15 @@ import { CompareToEnum, DataSettings, EntityType } from '@metad/ocap-core'
 import { PropertyCapacity } from '../types'
 import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatSelectModule } from '@angular/material/select'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'
 import { NgmCompareMemberSelectComponent } from '../compare-member-select/member-select.component'
 import { MatCheckboxModule } from '@angular/material/checkbox'
+import { ZardFormImports } from "@xpert-ai/headless-ui";
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatCheckboxModule,
-
-    NgmPropertySelectComponent,
-    NgmCompareMemberSelectComponent
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, MatSelectModule, MatCheckboxModule, NgmPropertySelectComponent, NgmCompareMemberSelectComponent],
   selector: 'ngm-calculation-variance',
   templateUrl: 'variance.component.html',
   styleUrls: ['variance.component.scss'],

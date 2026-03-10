@@ -14,37 +14,37 @@
       </ng-template>
 
       <form [formGroup]="form" class="grid grid-cols-2 gap-x-4">
-        <mat-form-field class="col-span-2" appearance="fill" color="accent">
-          <mat-label>{{ 'PAC.MODEL.CREATE_TABLE.Name' | translate: {Default: 'Name'} }}</mat-label>
-          <input matInput formControlName="name" />
-          <mat-error *ngIf="name.invalid">{{getErrorMessage()}}</mat-error>
-        </mat-form-field>
+        <z-form-field class="col-span-2" appearance="fill" color="accent">
+          <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Name' | translate: {Default: 'Name'} }}</z-form-label>
+          <input z-input formControlName="name" />
+          <z-form-message zType="error" *ngIf="name.invalid">{{getErrorMessage()}}</z-form-message>
+        </z-form-field>
 
-        <mat-form-field class="col-span-2" appearance="fill" color="accent">
-          <mat-label>{{ 'PAC.MODEL.CREATE_TABLE.Type' | translate: {Default: 'Type'} }}</mat-label>
+        <z-form-field class="col-span-2" appearance="fill" color="accent">
+          <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Type' | translate: {Default: 'Type'} }}</z-form-label>
           <mat-select formControlName="type">
             <mat-option value="csv">CSV</mat-option>
             <mat-option value="json">JSON</mat-option>
             <mat-option value="parquet">Parquet</mat-option>
             <mat-option value="excel">Excel</mat-option>
           </mat-select>
-        </mat-form-field>
+        </z-form-field>
 
         <ng-container *ngIf="type === 'csv'">
           <div class="flex items-center">
             <mat-checkbox formControlName="header" >{{ 'PAC.MODEL.CREATE_TABLE.HasHeader' | translate: {Default: 'Has Header'} }}</mat-checkbox>
           </div>
 
-          <mat-form-field *ngIf="type === 'csv'" appearance="fill" color="accent">
-            <mat-label>{{ 'PAC.MODEL.CREATE_TABLE.Delimiter' | translate: {Default: 'Delimiter'} }}</mat-label>
-            <input matInput formControlName="delimiter" [placeholder]=" 'PAC.MODEL.CREATE_TABLE.DefaultDelimiter' | translate: {Default: 'Default: ,'} "/>
-          </mat-form-field>
+          <z-form-field *ngIf="type === 'csv'" appearance="fill" color="accent">
+            <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Delimiter' | translate: {Default: 'Delimiter'} }}</z-form-label>
+            <input z-input formControlName="delimiter" [placeholder]=" 'PAC.MODEL.CREATE_TABLE.DefaultDelimiter' | translate: {Default: 'Default: ,'} "/>
+          </z-form-field>
         </ng-container>
     
-        <mat-form-field appearance="fill" color="accent" class="col-span-2">
-          <mat-label>{{ 'PAC.MODEL.CREATE_TABLE.Url' | translate: {Default: 'Url'} }}</mat-label>
-          <input matInput formControlName="sourceUrl" />
-        </mat-form-field>
+        <z-form-field appearance="fill" color="accent" class="col-span-2">
+          <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Url' | translate: {Default: 'Url'} }}</z-form-label>
+          <input z-input formControlName="sourceUrl" />
+        </z-form-field>
     
       </form>
     </mat-step>
@@ -65,7 +65,7 @@
         <mat-list-item *ngFor="let sheet of sheets$ | async" [class.active]="activeLink === sheet.name"
           (click)="activeSheet(sheet)">
           <span class="w-full p-2 ">
-            <input matInput [(ngModel)]="sheet.tableName" class="w-full "
+            <input z-input [(ngModel)]="sheet.tableName" class="w-full "
               [placeholder]=" 'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: {Default: 'Input Table Name'} "
               (keydown)="onKeyup($event)"/>
           </span>
@@ -158,7 +158,7 @@
                   <mat-option value="Date">Date</mat-option>
                 </mat-select>
 
-                <input matInput [(ngModel)]="header.fieldName" class="ngm-input hover:bg-slate-100 dark:hover:bg-neutral-700" />
+                <input z-input [(ngModel)]="header.fieldName" class="ngm-input hover:bg-slate-100 dark:hover:bg-neutral-700" />
               </div>
             </th>
             <td mat-cell *matCellDef="let element"> {{element[header.name]}} </td>

@@ -24,18 +24,18 @@
       </mat-button-toggle-group>
     </div>
 
-    <mat-form-field appearance="fill" color="accent">
-      <mat-label>{{ 'PAC.MODEL.CREATE_ENTITY.NAME' | translate: { Default: 'Name' } }}</mat-label>
-      <input matInput formControlName="name"/>
+    <z-form-field appearance="fill" color="accent">
+      <z-form-label>{{ 'PAC.MODEL.CREATE_ENTITY.NAME' | translate: { Default: 'Name' } }}</z-form-label>
+      <input z-input formControlName="name"/>
       @if (name.invalid) {
-        <mat-error>{{getErrorMessage() | translate}}</mat-error>
+        <z-form-message zType="error">{{getErrorMessage() | translate}}</z-form-message>
       }
-    </mat-form-field>
+    </z-form-field>
 
-    <mat-form-field appearance="fill" color="accent">
-      <mat-label>{{ 'PAC.MODEL.CREATE_ENTITY.LABEL' | translate: { Default: 'Caption' } }}</mat-label>
-      <input matInput formControlName="caption" />
-    </mat-form-field>
+    <z-form-field appearance="fill" color="accent">
+      <z-form-label>{{ 'PAC.MODEL.CREATE_ENTITY.LABEL' | translate: { Default: 'Caption' } }}</z-form-label>
+      <input z-input formControlName="caption" />
+    </z-form-field>
 
     @if (expression) {
       <code>
@@ -44,11 +44,11 @@
     }
 
     @if (!expression && !hiddenTable && type.value !== SemanticModelEntityType.VirtualCube) {
-      <mat-form-field appearance="fill" color="accent">
-        <mat-label>{{ 'PAC.MODEL.CREATE_ENTITY.TABLE' | translate: { Default: 'Table' } }}</mat-label>
+      <z-form-field appearance="fill" color="accent">
+        <z-form-label>{{ 'PAC.MODEL.CREATE_ENTITY.TABLE' | translate: { Default: 'Table' } }}</z-form-label>
         <input [placeholder]=" 'PAC.MODEL.CREATE_ENTITY.PICK_ONE_TABLE' | translate: { Default: 'pick one table' } "
               aria-label="Table"
-              matInput
+              z-input
               [matAutocomplete]="auto"
               formControlName="table"
               >
@@ -57,14 +57,14 @@
             <ngm-display-behaviour [option]="{value: option.name, label: option.label}" displayBehaviour="descriptionAndId"></ngm-display-behaviour>
           </mat-option>
         </mat-autocomplete>
-      </mat-form-field>
+      </z-form-field>
     }
 
     @if (type.value === SemanticModelEntityType.DIMENSION && factFields()?.length) {
-      <mat-form-field appearance="fill" color="accent">
-        <mat-label>{{ 'PAC.MODEL.CREATE_ENTITY.ForeignKeyOfFact' | translate: { Default: 'Foreign key of fact table' } }}</mat-label>
+      <z-form-field appearance="fill" color="accent">
+        <z-form-label>{{ 'PAC.MODEL.CREATE_ENTITY.ForeignKeyOfFact' | translate: { Default: 'Foreign key of fact table' } }}</z-form-label>
         <input [placeholder]=" 'PAC.MODEL.CREATE_ENTITY.PickForeignKeyField' | translate: { Default: 'Pick foreign key field' } "
-               matInput
+               z-input
                [matAutocomplete]="auto"
                formControlName="foreignKey"
                >
@@ -75,7 +75,7 @@
             </mat-option>
           }
         </mat-autocomplete>
-      </mat-form-field>
+      </z-form-field>
     }
 
     <button type="submit"></button>

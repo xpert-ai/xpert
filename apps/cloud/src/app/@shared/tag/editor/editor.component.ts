@@ -16,7 +16,6 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 import { MatChipInputEvent } from '@angular/material/chips'
-import { ThemePalette } from '@angular/material/core'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { isString } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -24,6 +23,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { startWith } from 'rxjs'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
 import { MaterialModule } from '../../material.module'
+import { NgmFieldColor } from "@metad/ocap-angular/core";
 
 @Component({
   standalone: true,
@@ -48,7 +48,7 @@ export class TagEditorComponent implements ControlValueAccessor {
   private store = inject(Store)
 
   disabled = false
-  @Input() color: ThemePalette
+  @Input() color: NgmFieldColor
   // @Input() category: string
   readonly category = input<TagCategoryEnum>(null)
 

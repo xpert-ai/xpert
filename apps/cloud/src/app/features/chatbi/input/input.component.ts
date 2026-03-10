@@ -6,7 +6,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { NgmCopilotEngineService, NgmCopilotService } from '@metad/copilot-angular'
@@ -32,7 +32,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatTooltipModule,
     ZardButtonComponent,
     MatAutocompleteModule,
-    MatInputModule,
+    ZardInputDirective,
 
     CdkMenuTrigger,
     CdkMenu,

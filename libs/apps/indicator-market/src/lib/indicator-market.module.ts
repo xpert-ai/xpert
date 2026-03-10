@@ -12,7 +12,7 @@ import { MatChipsModule } from '@angular/material/chips'
 import { MatRippleModule } from '@angular/material/core'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSliderModule } from '@angular/material/slider'
@@ -66,7 +66,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatDatepickerModule,
     MatSliderModule,
     MatChipsModule,
-    MatInputModule,
+    ZardInputDirective,
     MatTooltipModule,
     MarkdownModule,
     AppearanceDirective,

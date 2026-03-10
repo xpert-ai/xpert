@@ -27,7 +27,7 @@
       </div>
     </div>
   }
-  <textarea matInput [(ngModel)]="prompt" class="w-[500px] p-2 focus:outline-none" [placeholder]="command()?.description"
+  <textarea z-input [(ngModel)]="prompt" class="w-[500px] p-2 focus:outline-none" [placeholder]="command()?.description"
     cdkTextareaAutosize
     cdkAutosizeMinRows="5"
     cdkAutosizeMaxRows="8"
@@ -66,7 +66,7 @@
   </mat-autocomplete>
 
   @if (error()) {
-    <mat-error>{{error()}}</mat-error>
+    <z-form-message zType="error">{{error()}}</z-form-message>
   }
   @if (creating()) {
     <mat-progress-bar class="absolute left-0 right-0 bottom-0" mode="buffer"></mat-progress-bar>

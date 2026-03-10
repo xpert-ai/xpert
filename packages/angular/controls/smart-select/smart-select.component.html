@@ -12,13 +12,13 @@
 
 <label *ngIf="appearance?.displayDensity === 'cosy' || appearance?.displayDensity === 'compact'">{{label$ | async}}</label>
 
-<mat-form-field class="flex-1"
+<z-form-field class="flex-1"
   [appearance]="appearance?.appearance"
   [floatLabel]="appearance?.floatLabel"
   [color]="appearance?.color"
   [displayDensity]="appearance?.displayDensity"
 >
-  <mat-label>{{label$ | async}}</mat-label>
+  <z-form-label>{{label$ | async}}</z-form-label>
   @if (multiple$ | async) {
     <mat-select [placeholder]="placeholder$ | async"
       [disabled]="disabled"
@@ -46,7 +46,7 @@
   </mat-select>
   }
 
-  <div matSuffix class="flex items-center">
+  <div zFormSuffix class="flex items-center">
     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="(isInitial$ | async) === false" [disabled]="disabled" aria-label="Clear" ngmAppearance="danger" (click)="$event.stopPropagation();setMembers(null)">
       <mat-icon>close</mat-icon>
     </button>
@@ -55,4 +55,4 @@
 
     <ng-content></ng-content>
   </div>
-</mat-form-field> -->
+</z-form-field> -->

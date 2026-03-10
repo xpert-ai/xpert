@@ -10,7 +10,7 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -91,7 +91,7 @@ export interface SmartFilterState {
     MatIconModule,
     MatProgressSpinnerModule,
     MatAutocompleteModule,
-    MatInputModule,
+    ZardInputDirective,
     MatTooltipModule,
     MatMenuModule,
     MatRadioModule,

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {Dialog, DialogRef, DIALOG_DATA} from '@angular/cdk/dialog';
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -16,7 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
   templateUrl: './providers.component.html',
   styleUrls: ['./providers.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TranslateModule, DragDropModule, MatInputModule, MatTooltipModule, NgmI18nPipe]
+  imports: [CommonModule, FormsModule, TranslateModule, DragDropModule, ZardInputDirective, MatTooltipModule, NgmI18nPipe]
 })
 export class CopilotAiProvidersComponent {
   readonly #dialogRef = inject(DialogRef)

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, HostBinding, Input, forwardRef, signal } from '@angular/core'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { DisplayDensity } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MatInputModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective],
   selector: 'ngm-search',
   templateUrl: 'search.component.html',
   styleUrls: ['search.component.scss'],

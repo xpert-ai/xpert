@@ -12,15 +12,13 @@ import {
 } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ThemePalette } from '@angular/material/core'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { attrModel, linkedModel, NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmAppearance, NgmDSCoreService, OcapCoreModule, NgmFieldColor } from '@metad/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -57,26 +55,12 @@ export interface ParameterOptions {
   sliderMax?: number
   showThumbLabel?: boolean
   showTickMarks?: boolean
-  sliderColor?: ThemePalette
+  sliderColor?: NgmFieldColor
 }
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    CdkListboxModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatRadioModule,
-    MatListModule,
-    MatSliderModule,
-
-    OcapCoreModule,
-    NgmCommonModule,
-    NgmControlsModule
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardFormImports, ZardInputDirective, MatRadioModule, MatListModule, MatSliderModule, OcapCoreModule, NgmCommonModule, NgmControlsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-parameter',
   templateUrl: 'parameter.component.html',

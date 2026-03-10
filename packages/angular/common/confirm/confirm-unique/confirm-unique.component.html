@@ -6,10 +6,10 @@
 
 <mat-dialog-content class="mat-typography" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
     <form (ngSubmit)="onSubmit()">
-        <mat-form-field appearance="fill" class="w-full">
-            <mat-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: {Default: 'Name'} }}</mat-label>
-            <input cdkFocusInitial matInput name="value" [(ngModel)]="value" />
-        </mat-form-field>
+        <z-form-field appearance="fill" class="w-full">
+            <z-form-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: {Default: 'Name'} }}</z-form-label>
+            <input cdkFocusInitial z-input name="value" [(ngModel)]="value" />
+        </z-form-field>
     </form>
 </mat-dialog-content>
 

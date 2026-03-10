@@ -2,26 +2,20 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, forwardRef, inject, input, Input, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field'
 import { MatSelectModule } from '@angular/material/select'
 import { nonNullable, PropertyDimension } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, startWith } from 'rxjs'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour'
+import { NgmFieldAppearance } from "@metad/ocap-angular/core";
+import { ZardFormImports } from "@xpert-ai/headless-ui";
 
 /**
  * @deprecated use headless components instead
  */
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    NgmDisplayBehaviourComponent
-  ],
+  imports: [CommonModule, ...ZardFormImports, MatSelectModule, ReactiveFormsModule, TranslateModule, NgmDisplayBehaviourComponent],
   selector: 'ngm-hierarchy-select',
   templateUrl: './hierarchy-select.component.html',
   styles: [],
@@ -40,7 +34,7 @@ export class NgmHierarchySelectComponent implements ControlValueAccessor {
   readonly #translate = inject(TranslateService)
 
   @Input() label: string
-  @Input() appearance: MatFormFieldAppearance
+  @Input() appearance: NgmFieldAppearance
   readonly dimensions = input<PropertyDimension[]>()
 
   formControl = new FormControl<string>(null)

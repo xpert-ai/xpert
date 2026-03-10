@@ -26,7 +26,7 @@ import {
 } from '@angular/forms'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatSelectModule } from '@angular/material/select'
 import { DisplayDensity, ISelectOption, NgmDensityDirective, OcapCoreModule } from '@metad/ocap-angular/core'
 import { DisplayBehaviour, isNil, nonNullable } from '@metad/ocap-core'
@@ -70,7 +70,8 @@ import { NgmOptionContent } from '../../input/option-content'
     ReactiveFormsModule,
     MatSelectModule,
     MatAutocompleteModule,
-    MatInputModule,
+    ZardInputDirective,
+    ...ZardFormImports,
     MatIconModule,
     ScrollingModule,
 

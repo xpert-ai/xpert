@@ -42,7 +42,7 @@
       #searInput type="text"
       [disabled]="isDisabled"
       [placeholder]="placeholder()"
-      matInput
+      z-input
       [matAutocomplete]="auto"
       [matAutocompleteDisabled]="isDisabled"
       [ngModel]="autoInput()"
@@ -90,12 +90,12 @@
 
 <div class="flex items-center">
   <ng-content select="[help]"></ng-content>
-  <mat-error class="text-xs h-4">
+  <z-form-message zType="error" class="ngm-select__message text-xs h-4">
     @if (formControl.invalid) {
       <span>{{formControl.getError('error')}}</span>
     }
     <ng-content select="[ngmError]"></ng-content>
-  </mat-error>
+  </z-form-message>
 </div>
 
 

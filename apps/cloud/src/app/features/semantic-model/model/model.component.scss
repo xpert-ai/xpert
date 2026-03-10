@@ -138,7 +138,7 @@ $prefix: (ngm, model);
   line-height: 12px;
   margin: 5px 0;
 
-  .mat-mdc-input-element {
+  [z-input] {
     @apply flex-1 outline-none bg-transparent border-none;
   }
 }

@@ -16,11 +16,11 @@
   }
 }
 
-input.mat-mdc-input-element {
+input[z-input] {
   @apply caret-yellow-500;
 }
 
-.ngm-input.mat-mdc-input-element {
+.ngm-input[z-input] {
   @apply p-2 rounded-sm;
 
   &:focus {
@@ -40,11 +40,11 @@ input.mat-mdc-input-element {
   --mat-stepper-container-color: transparent;
 }
 
-input.mat-mdc-input-element {
+input[z-input] {
   @apply caret-yellow-500 bg-transparent outline-none;
 }
 
-.ngm-input.mat-mdc-input-element {
+.ngm-input[z-input] {
   @apply p-2 rounded-sm hover:bg-slate-200;
 
   &:focus {

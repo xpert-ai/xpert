@@ -3,7 +3,7 @@ import { Component, forwardRef, input } from '@angular/core'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatNativeDateModule } from '@angular/material/core'
 import { MatDatepickerInputEvent, MatDatepickerModule } from '@angular/material/datepicker'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 
 @Component({
@@ -12,7 +12,7 @@ import { OcapCoreModule } from '@metad/ocap-angular/core'
     CommonModule,
     ReactiveFormsModule,
     MatDatepickerModule,
-    MatInputModule,
+    ZardInputDirective,
     MatNativeDateModule,
     OcapCoreModule,
   ],

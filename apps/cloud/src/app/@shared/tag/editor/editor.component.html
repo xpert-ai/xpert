@@ -1,7 +1,7 @@
-<mat-form-field class="flex-1" appearance="fill" [color]="color">
-  <mat-label>
+<z-form-field class="flex-1" appearance="fill" [color]="color">
+  <z-form-label>
     {{ 'PAC.KEY_WORDS.Tags' | translate: {Default: 'Tags'} }}
-  </mat-label>
+  </z-form-label>
   <mat-chip-grid #chipGrid aria-label="Tag selection">
     <mat-chip-row *ngFor="let tag of tags()" [ngClass]="'bg-'+tag.color+'-100'" class="bg-blue-100" (removed)="remove(tag)">
       {{tag.name}}
@@ -29,4 +29,4 @@
       </div>
     </mat-option>
   </mat-autocomplete>
-</mat-form-field>
+</z-form-field>

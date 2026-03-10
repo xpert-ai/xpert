@@ -7,7 +7,7 @@
   $foreground: map.get($config, foreground);
 
   .mat-mdc-form-field:not(.mat-form-field-hide-placeholder) {
-    .mat-mdc-input-element::placeholder, .mat-mdc-select-placeholder {
+    [z-input]::placeholder, .mat-mdc-select-placeholder {
       opacity: .3;
       font-style: oblique;
     }

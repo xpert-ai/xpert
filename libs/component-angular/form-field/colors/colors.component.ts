@@ -5,7 +5,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModu
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete'
 
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Subject, debounceTime } from 'rxjs'
@@ -27,7 +27,7 @@ const listEnterAnimation = trigger('listEnterAnimation', [
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatInputModule,
+    ZardInputDirective,
     MatAutocompleteModule,
     MatIconModule,
     ZardButtonComponent,

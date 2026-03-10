@@ -13,12 +13,12 @@
           <span *ngIf="name.value" class="">:{{name.value}}</span>
         </div>
 
-        <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="type!==ChartTypeEnum.Custom" matSuffix displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="type!==ChartTypeEnum.Custom" zFormSuffix displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
           <mat-icon *ngIf="!showMore()">expand_more</mat-icon>
           <mat-icon *ngIf="showMore()">expand_less</mat-icon>
         </button>
   
-        <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="type===ChartTypeEnum.Custom" matSuffix displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();showCustomCode.set(!showCustomCode())">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="type===ChartTypeEnum.Custom" zFormSuffix displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();showCustomCode.set(!showCustomCode())">
           <mat-icon fontSet="material-icons-outlined"
             [color]="showCustomCode()?'accent':''"
           >code</mat-icon>
@@ -36,7 +36,7 @@
       </mat-optgroup>
     </mat-select>
 
-    <button z-button zType="ghost" zSize="icon" zShape="circle" matSuffix *ngIf="removable" class="ngm-formly__remove" displayDensity="compact" color="warn" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix *ngIf="removable" class="ngm-formly__remove" displayDensity="compact" color="warn" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
       <mat-icon>clear</mat-icon>
     </button>
   </div>

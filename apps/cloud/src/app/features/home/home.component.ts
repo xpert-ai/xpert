@@ -5,9 +5,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialogModule } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSidenavModule } from '@angular/material/sidenav'
@@ -22,29 +21,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    RouterModule,
-    DragDropModule,
-    RouterModule,
-    MatTabsModule,
-
-    MatFormFieldModule,
-    MatIconModule,
-    ZardButtonComponent,
-    MatMenuModule,
-    MatDialogModule,
-    MatInputModule,
-    MatSidenavModule,
-    MatListModule,
-    TranslateModule,
-    DensityDirective,
-    ButtonGroupDirective,
-    NgmCommonModule,
-    AppearanceDirective
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, MatTabsModule, ...ZardFormImports, MatIconModule, ZardButtonComponent, MatMenuModule, MatDialogModule, ZardInputDirective, MatSidenavModule, MatListModule, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
   selector: 'pac-home',
   template: `
     <nav

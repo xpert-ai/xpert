@@ -20,7 +20,7 @@
 
     <div class="flex-1 min-w-full flex flex-col">
       <label class="ngm-input-label shrink-0">{{'PAC.Copilot.Roles.Prompt' | translate: {Default: 'Prompt'} }}</label>
-      <textarea class="ngm-input-element" matInput formControlName="prompt"
+      <textarea class="ngm-input-element" z-input formControlName="prompt"
           cdkTextareaAutosize
           cdkAutosizeMinRows="2"
           cdkAutosizeMaxRows="8"
@@ -64,7 +64,7 @@
 
     <div class="flex-1 min-w-full flex flex-col">
       <label class="my-2 p-2 text-lg shrink-0">{{'PAC.Copilot.Roles.ToolOptions' | translate: {Default: 'Tool Options'} }}</label>
-      <textarea class="ngm-input-element" matInput [formControl]="options"
+      <textarea class="ngm-input-element" z-input [formControl]="options"
           cdkTextareaAutosize
           cdkAutosizeMinRows="2"
           cdkAutosizeMaxRows="8"

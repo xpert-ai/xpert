@@ -15,9 +15,9 @@
 
 <div class="flex-1 relative flex flex-col justify-start items-center p-1 overflow-visible">
   @if (error()) {
-    <mat-error class="whitespace-normal overflow-auto">
+    <z-form-message zType="error" class="whitespace-normal overflow-auto">
       {{error()}}
-    </mat-error>
+    </z-form-message>
   } @else {
     @switch (propertyType()) {
       @case (INPUT_CONTROL_TYPE.Datepicker) {

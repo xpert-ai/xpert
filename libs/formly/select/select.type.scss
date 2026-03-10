@@ -2,7 +2,7 @@
 :host {
   @apply relative flex flex-col items-stretch min-w-[100px] w-full;
 }
-.mat-mdc-input-element {
+[z-input] {
   @apply block w-full max-w-full box-border px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-700;
 }
 .mat-mdc-select {

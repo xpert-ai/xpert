@@ -14,8 +14,7 @@ import { CommonModule } from '@angular/common'
 import { MatIconModule } from '@angular/material/icon'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -76,23 +75,7 @@ export type CreateEntityDialogRetType = {
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatIconModule,
-    ZardButtonComponent,
-    MatButtonToggleModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatAutocompleteModule,
-    MatListModule,
-    MatProgressSpinnerModule,
-    MatCheckboxModule,
-    MatSelectModule,
-    TranslateModule,
-    NgmCommonModule
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatIconModule, ZardButtonComponent, MatButtonToggleModule, ...ZardFormImports, ZardInputDirective, MatAutocompleteModule, MatListModule, MatProgressSpinnerModule, MatCheckboxModule, MatSelectModule, TranslateModule, NgmCommonModule],
   selector: 'pac-model-create-entity',
   templateUrl: 'create-entity.component.html',
   styleUrls: ['create-entity.component.scss']

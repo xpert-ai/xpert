@@ -22,7 +22,7 @@
   (ngModelChange)="onModelChange($event)"
   (focus)="onFocus($event)"
 >
-  <div matSuffix style="display: flex; align-items: center;">
+  <div zFormSuffix style="display: flex; align-items: center;">
     @if (loading$ | async) {
       <mat-spinner [color]="appearance?.color" strokeWidth="1" diameter="20"></mat-spinner>
     }

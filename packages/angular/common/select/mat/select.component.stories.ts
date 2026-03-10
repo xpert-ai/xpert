@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule, ValidatorFn } from '@angular/forms'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatInputModule } from '@angular/material/input'
+import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { DisplayBehaviour, TreeNodeInterface } from '@metad/ocap-core'
@@ -62,15 +61,7 @@ const meta: Meta<NgmMatSelectComponent> = {
   component: NgmMatSelectComponent,
   decorators: [
     moduleMetadata({
-      imports: [
-        CommonModule,
-        BrowserAnimationsModule,
-        FormsModule,
-        ReactiveFormsModule,
-        OcapCoreModule,
-        MatFormFieldModule,
-        MatInputModule
-      ],
+      imports: [CommonModule, BrowserAnimationsModule, FormsModule, ReactiveFormsModule, OcapCoreModule, ...ZardFormImports, ZardInputDirective],
       declarations: [TestSelectComponent]
     })
   ]
