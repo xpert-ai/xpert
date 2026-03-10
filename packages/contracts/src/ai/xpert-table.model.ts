@@ -132,6 +132,15 @@ export function genXpertDBInsertKey() {
   return letterStartSUID('DBInsert_')
 }
 
+/**
+ * WHERE condition for database operations
+ */
+export type TDBWhereCondition = {
+  name: string
+  value?: any
+  valueSelector?: string
+}
+
 export interface IWFNDBUpdate extends IWorkflowNodeDBOperation {
   type: WorkflowNodeTypeEnum.DB_UPDATE
   columns?: Record<string, {
@@ -139,6 +148,7 @@ export interface IWFNDBUpdate extends IWorkflowNodeDBOperation {
     value?: any
     valueSelector?: string
   }>
+  where?: TDBWhereCondition[]
 }
 
 export function genXpertDBUpdateKey() {
@@ -147,14 +157,24 @@ export function genXpertDBUpdateKey() {
 
 export interface IWFNDBDelete extends IWorkflowNodeDBOperation {
   type: WorkflowNodeTypeEnum.DB_DELETE,
+  where?: TDBWhereCondition[]
 }
 
 export function genXpertDBDeleteKey() {
   return letterStartSUID('DBDelete_')
 }
 
+export type TDBOrderBy = {
+  column: string
+  direction?: 'ASC' | 'DESC'
+}
+
 export interface IWFNDBQuery extends IWorkflowNodeDBOperation {
   type: WorkflowNodeTypeEnum.DB_QUERY,
+  columns?: string[]
+  where?: TDBWhereCondition[]
+  orderBy?: TDBOrderBy[]
+  limit?: number
 }
 
 export function genXpertDBQueryKey() {

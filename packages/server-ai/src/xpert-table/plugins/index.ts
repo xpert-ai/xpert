@@ -1,5 +1,8 @@
 import { WorkflowDBInsertNodeStrategy, WorkflowDBInsertNodeValidator } from './insert/index'
 import { WorkflowDBSQLNodeStrategy, WorkflowDBSqlNodeValidator } from './sql'
+import { WorkflowDBUpdateNodeStrategy } from './update/strategy'
+import { WorkflowDBDeleteNodeStrategy } from './delete/strategy'
+import { WorkflowDBQueryNodeStrategy } from './query/strategy'
 
 export const Validators = [
     WorkflowDBInsertNodeValidator,
@@ -8,5 +11,8 @@ export const Validators = [
 
 export const Strategies = [
     WorkflowDBInsertNodeStrategy,
-    WorkflowDBSQLNodeStrategy
+    WorkflowDBSQLNodeStrategy,
+    WorkflowDBUpdateNodeStrategy,
+    WorkflowDBDeleteNodeStrategy,
+    WorkflowDBQueryNodeStrategy
 ]
