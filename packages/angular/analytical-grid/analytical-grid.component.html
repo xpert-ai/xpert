@@ -127,7 +127,7 @@
                         <ngm-search class="shrink-0" [(ngModel)]="column.search" (ngModelChange)="onColumnMemberSearch(column, $event)"></ngm-search>
                       </div>
                       <div class="ngm-analytical-grid__filtering">
-                        <mat-divider ngmAppearance="dashed"></mat-divider>
+                        <z-divider zVariant="dashed"></z-divider>
                         
                         <cdk-virtual-scroll-viewport [itemSize]="virtualScrollItemSize" minBufferPx="200" maxBufferPx="400" class="ngm-analytical-grid__viewport">
                           @if (subscribeColumnFilteredMembers(column) | async; as members) {
@@ -152,7 +152,7 @@
                           }
                         </cdk-virtual-scroll-viewport>
                       </div>
-                      <mat-divider ngmAppearance="dashed"></mat-divider>
+                      <z-divider zVariant="dashed"></z-divider>
                       <div class="ngm-analytical-grid__filtering-actions pt-2">
                         <div ngmButtonGroup displayDensity="cosy">
                           <button z-button zType="secondary" displayDensity="cosy" (click)="column.isFilterOpen=false;column._selections=column.selections">

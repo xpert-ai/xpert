@@ -419,3 +419,41 @@ Validation notes:
 - `MatTabsModule` and `@angular/material/tabs` should be fully removed after the nav-bar migration is complete
 - `.mat-tab*`, `.mat-mdc-tab*`, and `.mdc-tab*` should no longer be used for tabs styling
 - `pnpm nx build story-angular` is still blocked by unrelated repo issues listed above
+
+## Family Record: Divider
+
+### Target
+
+Divider migration is based on:
+
+- [packages/ui/src/lib/components/divider/divider.component.ts](/Users/xpertai03/GitHub/xpert/packages/ui/src/lib/components/divider/divider.component.ts)
+- [packages/ui/src/lib/components/divider/divider.variants.ts](/Users/xpertai03/GitHub/xpert/packages/ui/src/lib/components/divider/divider.variants.ts)
+
+### Canonical Mapping
+
+- `<mat-divider>` -> `<z-divider>`
+- `MatDividerModule` -> `ZardDividerComponent`
+- `vertical` -> `vertical` compatibility input on `z-divider`
+- `ngmAppearance="dashed"` on divider -> `zVariant="dashed"`
+
+### Special Rules
+
+- `z-divider` defaults to Material-like spacing behavior: no implicit outer margin
+- orientation is exposed through `data-orientation="horizontal|vertical"`; migrated styles should target that instead of `.mat-divider-horizontal` or `.mat-divider-vertical`
+- vertical dividers render with the left border in the repo primitive, so migrated custom styles should change border width/color on the left side, not the right side
+- divider rendering should use repo or theme tokens such as `var(--border)`; do not keep `--mat-divider-color`
+- local spacing and sizing should remain in template classes or feature styles, not in the primitive default
+
+### Static Checks
+
+```sh
+rg -n "<mat-divider|\\bMatDividerModule\\b|@angular/material/divider|\\bMatDivider\\b" apps packages libs legacies
+rg -n "\\.mat-divider|mat-divider-horizontal|mat-divider-vertical|--mat-divider-color|mat-divider-color" apps packages libs legacies
+```
+
+### Validation Status
+
+Validated during migration:
+
+- `pnpm nx build ui`
+- `pnpm nx build cloud`

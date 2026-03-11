@@ -5,7 +5,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatRadioModule } from '@angular/material/radio'
 import { nonBlank } from '@metad/core'
@@ -66,7 +66,7 @@ import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     ZardButtonComponent,
     MatButtonToggleModule,
-    MatDividerModule,
+    ZardDividerComponent,
     MatTooltipModule,
     MatIconModule,
     ...ZardTabsImports,

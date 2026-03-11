@@ -66,7 +66,7 @@
           <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
         </button>
   
-        <mat-divider *ngSwitchCase="WIDGET_MENU_TYPE.Divider"></mat-divider>
+        <z-divider *ngSwitchCase="WIDGET_MENU_TYPE.Divider"></z-divider>
       </ng-container>
     </ng-container>
 
@@ -236,7 +236,7 @@
 <ng-template #subMenu>
   <div cdkMenu class="cdk-menu__medium space-y-1">
     <ng-container *ngFor="let menu of customSubMenus; trackBy: trackByMenu">
-      <mat-divider *ngIf="menu.type === WIDGET_MENU_TYPE.Divider"></mat-divider>
+      <z-divider *ngIf="menu.type === WIDGET_MENU_TYPE.Divider"></z-divider>
       <button cdkMenuItem *ngIf="menu.type !== WIDGET_MENU_TYPE.Divider"
         [ngClass]="menu.type"
         (click)="onClickMenu(menu)">

@@ -6,7 +6,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatIconModule } from '@angular/material/icon'
 import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
@@ -38,7 +38,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     NxYearFilterComponent,
     
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatTableModule, MatCheckboxModule, ZardInputDirective, ...ZardFormImports, ZardButtonComponent, MatSelectModule, MatExpansionModule, MatIconModule, MatDividerModule, MatDatepickerModule, MatRadioModule, MatMenuModule, DragDropModule, TranslateModule, DensityDirective, ButtonGroupDirective, AppearanceDirective, NgmMonthpickerComponent, NgmQuarterpickerComponent, NgmYearpickerComponent, NgmDatepickerComponent, NgmTimeFilterEditorComponent, NgmTodayFilterComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatTableModule, MatCheckboxModule, ZardInputDirective, ...ZardFormImports, ZardButtonComponent, MatSelectModule, MatExpansionModule, MatIconModule, ZardDividerComponent, MatDatepickerModule, MatRadioModule, MatMenuModule, DragDropModule, TranslateModule, DensityDirective, ButtonGroupDirective, AppearanceDirective, NgmMonthpickerComponent, NgmQuarterpickerComponent, NgmYearpickerComponent, NgmDatepickerComponent, NgmTimeFilterEditorComponent, NgmTodayFilterComponent],
   exports: [NgmTimeFilterEditorComponent, NgmTodayFilterComponent, NxYearFilterComponent]
 })
 export class NgmTimeFilterModule {}

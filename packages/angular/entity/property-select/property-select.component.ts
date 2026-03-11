@@ -17,7 +17,7 @@ import { MatIconModule } from '@angular/material/icon'
 
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatBadgeModule } from '@angular/material/badge'
@@ -44,7 +44,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       useExisting: forwardRef(() => NgmPropertySelectComponent),
     },
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardInputDirective, MatSelectModule, MatIconModule, ZardButtonComponent, MatMenuModule, MatRadioModule, MatDividerModule, MatListModule, MatCheckboxModule, MatBadgeModule, MatProgressSpinnerModule, TranslateModule, NgmCommonModule, NgmEntityPropertyComponent]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardInputDirective, MatSelectModule, MatIconModule, ZardButtonComponent, MatMenuModule, MatRadioModule, ZardDividerComponent, MatListModule, MatCheckboxModule, MatBadgeModule, MatProgressSpinnerModule, TranslateModule, NgmCommonModule, NgmEntityPropertyComponent]
 })
 export class NgmPropertySelectComponent implements ControlValueAccessor, AfterViewInit {
   AggregationRole = AggregationRole

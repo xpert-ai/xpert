@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { MatSelectModule } from '@angular/material/select'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -23,7 +23,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
     MatIconModule,
     MatSelectModule,
-    MatDividerModule,
+    ZardDividerComponent,
     ZardButtonComponent,
     TranslateModule,
 

@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -39,7 +39,7 @@ import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     MatIconModule,
     ...ZardTabsImports,
-    MatDividerModule,
+    ZardDividerComponent,
 
     ButtonGroupDirective,
     DensityDirective

@@ -1,10 +1,14 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 
-export const dividerVariants = cva('bg-border block', {
+export const dividerVariants = cva('z-divider block shrink-0 border-border', {
   variants: {
     zOrientation: {
-      horizontal: 'h-px w-full',
-      vertical: 'w-px h-full inline-block',
+      horizontal: 'w-full border-t',
+      vertical: 'inline-block h-full border-l',
+    },
+    zVariant: {
+      solid: 'border-solid',
+      dashed: 'border-dashed',
     },
     zSpacing: {
       none: '',
@@ -15,7 +19,8 @@ export const dividerVariants = cva('bg-border block', {
   },
   defaultVariants: {
     zOrientation: 'horizontal',
-    zSpacing: 'default',
+    zVariant: 'solid',
+    zSpacing: 'none',
   },
   compoundVariants: [
     {

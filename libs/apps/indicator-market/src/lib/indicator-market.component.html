@@ -63,7 +63,7 @@
           <!-- <pac-indicator-item class="flex-1 overflow-hidden" [indicator]="item" [tag]="tagType()"/> -->
           <div class="pac-indicator__placeholder" *cdkDragPlaceholder></div>
         </mat-list-item>
-        <mat-divider></mat-divider>
+        <z-divider></z-divider>
       </ng-container>
     </mat-list>
   </cdk-virtual-scroll-viewport>
@@ -105,7 +105,7 @@
       </mat-button-toggle>
     </mat-button-toggle-group>
 
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
 
     <label>{{ 'IndicatorApp.LookbackPeriods' | translate: {Default: 'Lookback Periods'} }}</label>
     <mat-slider class="w-full" discrete color="accent"
@@ -117,7 +117,7 @@
       <input matSliderThumb [ngModel]="lookBack()" (valueChange)="onLookback($event)">
     </mat-slider>
 
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
 
     <button z-button zType="ghost" cdkMenuItem (click)="refresh()">
       <mat-icon>refresh</mat-icon>

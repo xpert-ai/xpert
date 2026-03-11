@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, model
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -33,7 +33,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatIconModule,
     MatTooltipModule,
     ZardButtonComponent,
-    MatDividerModule,
+    ZardDividerComponent,
     UserAvatarComponent,
 
     ChatbiInputComponent,

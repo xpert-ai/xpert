@@ -4,7 +4,7 @@ import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -31,7 +31,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     MatIconModule,
     MatTooltipModule,
-    MatDividerModule,
+    ZardDividerComponent,
     AppearanceDirective,
     NgmTableComponent,
     NgmSearchComponent

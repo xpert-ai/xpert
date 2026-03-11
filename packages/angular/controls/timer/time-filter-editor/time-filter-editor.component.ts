@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, inject 
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatIconModule } from '@angular/material/icon'
 import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
@@ -29,7 +29,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, MatSelectModule, MatExpansionModule, MatIconModule, MatDividerModule, ZardInputDirective, ZardButtonComponent, OcapCoreModule],
+  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, MatSelectModule, MatExpansionModule, MatIconModule, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-time-filter-editor',
   templateUrl: './time-filter-editor.component.html',

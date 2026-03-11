@@ -227,7 +227,7 @@
         </div>
     </ng-container>
     
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
     <div class="text-base text-center my-2">
         {{ 'Story.Toolbar.Widgets' | translate: {Default: "Widgets"} }}
     </div>
@@ -253,7 +253,7 @@
         </button> -->
 
         <!-- <button>Shape</button>
-        <mat-divider></mat-divider>
+        <z-divider></z-divider>
         <button>Symbol</button> -->
 
         <!-- <button (click)="createWidget(ComponentType.Table)"
@@ -301,7 +301,7 @@
         </ngm-input>
     </div>
 
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
     <div class="text-base text-center my-2">{{ 'Story.Toolbar.Fit' | translate: {Default: 'Fit'} }}</div>
     <div class="grid grid-cols-3 gap-2">
         <button *ngFor="let zoom of DeviceZooms" class="h-16 m-2 flex flex-col justify-center items-center rounded-lg overflow-hidden
@@ -313,7 +313,7 @@
         </button>
     </div>
     
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
     <div class="text-base text-center my-2">
         {{ 'Story.Toolbar.Orientation' | translate: {Default: 'Orientation'} }}
     </div>
@@ -333,7 +333,7 @@
     </div>
 
     <ng-container *ngIf="emulatedDevice?.isFold">
-        <mat-divider></mat-divider>
+        <z-divider></z-divider>
         <div class="text-base text-center my-2">
             {{ 'Story.Toolbar.DeviceFold' | translate: {Default: 'Device Fold'} }}
         </div>
@@ -381,7 +381,7 @@
             {{ 'Story.Toolbar.SAVE.SAVE_AS_TEMPLATE' | translate: {Default: "Save As Template"} }}...
         </button> -->
 
-        <mat-divider></mat-divider>
+        <z-divider></z-divider>
 
         <button cdkMenuItem [cdkMenuItemDisabled]="isWidgetSelected()"
             [class.ngm-cdk-menu-item__disabled]="isWidgetSelected()"
@@ -398,7 +398,7 @@
             (click)="duplicateWidget()">
             {{ 'Story.Toolbar.COPY.DUPLICATE' | translate: {Default: "Duplicate"} }}
         </button>
-        <mat-divider></mat-divider>
+        <z-divider></z-divider>
         <button cdkMenuItem
             [cdkMenuItemDisabled]="!isCopyWidgetSelected$()"
             [class.ngm-cdk-menu-item__disabled]="!isCopyWidgetSelected$()"
@@ -406,7 +406,7 @@
             {{ 'Story.Toolbar.COPY.PASTE' | translate: {Default: "Paste"} }}
         </button>
         
-        <mat-divider></mat-divider>
+        <z-divider></z-divider>
 
         <button cdkMenuItem (click)="saveAsTemplate()">
             {{ 'Story.Toolbar.SaveAsTemplate' | translate: {Default: "Save As Template"} }}
@@ -431,7 +431,7 @@
             (click)="duplicateWidget()">
             {{ 'Story.Toolbar.COPY.DUPLICATE' | translate: {Default: "Duplicate"} }}
         </button>
-        <mat-divider></mat-divider>
+        <z-divider></z-divider>
         <button cdkMenuItem
             [cdkMenuItemDisabled]="!isCopyWidgetSelected$()"
             [class.ngm-cdk-menu-item__disabled]="!isCopyWidgetSelected$()"
@@ -456,7 +456,7 @@
             {{ 'Story.Toolbar.New_Responsive_Page' | translate: {Default: "New Responsive Page"} }}
         </button>
     
-        <mat-divider></mat-divider>
+        <z-divider></z-divider>
       @for (point of pointList(); track point.key) {
         <button cdkMenuItem
             (click)="onCopyTo(point.key)">{{ point.name }}</button>

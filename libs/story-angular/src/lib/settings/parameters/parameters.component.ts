@@ -4,7 +4,7 @@ import { Component, ViewContainerRef, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
@@ -30,7 +30,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     MatIconModule,
     MatListModule,
-    MatDividerModule,
+    ZardDividerComponent,
     TranslateModule,
     NgmCommonModule
   ],

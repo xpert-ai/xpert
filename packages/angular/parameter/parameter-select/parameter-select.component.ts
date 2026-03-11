@@ -6,7 +6,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModu
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@metad/ocap-angular/common'
@@ -47,7 +47,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ZardInputDirective,
     ZardButtonComponent,
     MatIconModule,
-    MatDividerModule,
+    ZardDividerComponent,
     MatAutocompleteModule,
     TranslateModule,
 

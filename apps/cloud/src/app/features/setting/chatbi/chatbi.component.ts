@@ -3,7 +3,7 @@ import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { Store, ToastrService, routeAnimations } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { ZardTabsImports } from '@xpert-ai/headless-ui'
 
@@ -12,7 +12,7 @@ import { ZardTabsImports } from '@xpert-ai/headless-ui'
   selector: 'pac-settings-chatbi',
   templateUrl: './chatbi.component.html',
   styleUrls: ['./chatbi.component.scss'],
-  imports: [RouterModule, TranslateModule, MatDividerModule, ...ZardTabsImports, MatIconModule],
+  imports: [RouterModule, TranslateModule, ZardDividerComponent, ...ZardTabsImports, MatIconModule],
   animations: [routeAnimations]
 })
 export class ChatBIComponent extends TranslationBaseComponent {

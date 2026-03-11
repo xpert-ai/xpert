@@ -7,6 +7,11 @@
 }
 
 :root .default, :root .light {
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --ngm-app-background-color: white;
   --ngm-color-main-container-background: white;
   --ngm-color-on-surface: #1f1f1f;
@@ -74,9 +79,42 @@
   --color-danger-bg: theme('colors.red.50');
   --color-state-destructive-hover: theme('colors.red.50');
   --color-state-success-solid: theme('colors.green.600');
+
+  --background: var(--ngm-app-background-color);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-components-card-bg);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-components-panel-bg);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-components-button-primary-bg);
+  --primary-foreground: var(--color-components-button-primary-text);
+  --secondary: var(--ngm-color-surface-container-low);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--ngm-color-surface-container-low);
+  --muted-foreground: var(--color-text-secondary);
+  --accent: var(--main-surface-secondary);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: theme('colors.red.500');
+  --destructive-foreground: theme('colors.white');
+  --border: var(--color-divider-regular);
+  --input: var(--border);
+  --ring: theme('colors.blue.500');
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 :root .dark {
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --ngm-app-background-color: #1e1f20;
   --ngm-color-main-container-background: #1e1f20;
   --ngm-color-on-surface: #e3e3e3;
@@ -131,4 +169,32 @@
   --color-hover-bg: oklch(1 0 0 / 0.1);
   --color-danger-bg: #991b1b52;
   --color-danger-content: #ffd4d4;
+
+  --background: var(--ngm-app-background-color);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-components-card-bg);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-components-panel-bg);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-components-button-primary-bg);
+  --primary-foreground: var(--color-components-button-primary-text);
+  --secondary: var(--main-surface-secondary);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--main-surface-secondary);
+  --muted-foreground: var(--color-text-secondary);
+  --accent: var(--main-surface-secondary);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: theme('colors.red.400');
+  --destructive-foreground: theme('colors.white');
+  --border: var(--color-divider-regular);
+  --input: var(--border-medium);
+  --ring: theme('colors.blue.400');
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }

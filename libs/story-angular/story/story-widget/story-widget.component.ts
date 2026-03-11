@@ -72,6 +72,7 @@ import { NxSettingsPanelService } from '@metad/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { select } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { cloneDeep, isEmpty, isEqual, pick } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, from, Observable, of } from 'rxjs'
@@ -113,6 +114,7 @@ import { NxStoryWidgetService } from './story-widget.service'
     ContentLoaderModule,
     NxCoreModule,
     NgmCommonModule,
+    ZardDividerComponent,
   ]
 })
 export class NxStoryWidgetComponent implements OnInit, AfterViewInit {

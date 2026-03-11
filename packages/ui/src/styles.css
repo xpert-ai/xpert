@@ -1,21 +1,27 @@
 .xp-ui-shell {
   border-radius: 1rem;
-  border: 1px solid rgb(var(--ui-border) / 0.9);
-  background: linear-gradient(135deg, rgb(var(--ui-bg) / 0.96), rgb(var(--ui-surface) / 0.96));
-  box-shadow: var(--ui-shadow-sm);
+  border: 1px solid color-mix(in oklab, var(--border) 90%, transparent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--background) 96%, transparent),
+    color-mix(in oklab, var(--card) 96%, transparent)
+  );
+  box-shadow: 0 20px 48px -28px color-mix(in oklab, var(--foreground) 18%, transparent);
 }
 
 .xp-ui-code-card {
   border-radius: 0.75rem;
-  border: 1px solid rgb(var(--ui-border) / 0.9);
+  border: 1px solid color-mix(in oklab, var(--border) 90%, transparent);
   padding: 1rem;
-  background-color: rgb(var(--ui-bg) / 0.75);
+  background-color: color-mix(in oklab, var(--background) 75%, transparent);
   backdrop-filter: blur(10px);
 }
 
 .xp-ui-focus-ring:focus-visible {
   outline: 2px solid transparent;
-  box-shadow: 0 0 0 2px rgb(var(--ui-bg)), 0 0 0 4px rgb(var(--ui-ring) / 0.7);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px color-mix(in oklab, var(--ring) 70%, transparent);
 }
 
 @import 'tailwindcss';

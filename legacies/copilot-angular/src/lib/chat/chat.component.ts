@@ -10,7 +10,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Ou
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardDividerComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -79,6 +79,7 @@ export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
     CdkListboxModule,
     CdkMenuModule,
     A11yModule,
+    ZardDividerComponent,
     ZardInputDirective,
     ZardButtonComponent,
     MatTooltipModule,

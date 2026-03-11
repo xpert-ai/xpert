@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
@@ -21,7 +21,7 @@ import { InputControlPlaceholderComponent } from './placeholder/placeholder.comp
 
 @NgModule({
   declarations: [NxInputControlComponent],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatChipsModule, MatMenuModule, MatIconModule, MatDividerModule, MatListModule, MatChipsModule, MatProgressSpinnerModule, ...ZardFormImports, ZardInputDirective, MatRadioModule, TranslateModule, DensityDirective, NgmMemberDatepickerModule, NgmCommonModule, NgmParameterComponent, NgmEntityPropertyComponent, NgmControlsModule, InputControlPlaceholderComponent, SlicerLabelComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatChipsModule, MatMenuModule, MatIconModule, ZardDividerComponent, MatListModule, MatChipsModule, MatProgressSpinnerModule, ...ZardFormImports, ZardInputDirective, MatRadioModule, TranslateModule, DensityDirective, NgmMemberDatepickerModule, NgmCommonModule, NgmParameterComponent, NgmEntityPropertyComponent, NgmControlsModule, InputControlPlaceholderComponent, SlicerLabelComponent],
   exports: [NxInputControlComponent]
 })
 export class InputControlModule {}

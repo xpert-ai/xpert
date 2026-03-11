@@ -3,7 +3,7 @@ pac-story-toolbar.pac-story-toolbar {
   --mat-expansion-container-background-color: transparent;
   // @apply bg-bluegray-800;
 
-  .mat-divider.mat-divider-vertical {
+  .z-divider[data-orientation='vertical'] {
     @apply mx-4 h-8;
   }
 

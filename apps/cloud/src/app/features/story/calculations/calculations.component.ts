@@ -7,7 +7,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
@@ -40,7 +40,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     MatIconModule,
     MatListModule,
-    MatDividerModule,
+    ZardDividerComponent,
     MatMenuModule,
     MatProgressBarModule,
     MatTooltipModule,
