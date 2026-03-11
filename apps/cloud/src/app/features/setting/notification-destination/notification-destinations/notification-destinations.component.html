@@ -3,7 +3,7 @@
         {{ 'PAC.KEY_WORDS.NOTIFICATION_DESTINATION' | translate: {Default: "Notification Destinations"} }}
     </h2>
     <button z-button zType="default" color="primary" (click)="openCreate()">
-        <mat-icon>add</mat-icon>{{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} {{ 'PAC.KEY_WORDS.NOTIFICATION_DESTINATION' | translate: {Default: "Notification Destinations"} }}
+        <z-icon zType="add"></z-icon>{{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} {{ 'PAC.KEY_WORDS.NOTIFICATION_DESTINATION' | translate: {Default: "Notification Destinations"} }}
     </button>
 </div>
 
@@ -23,7 +23,7 @@
             </mat-card-header>
 
             <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" class="pac-sketch-card__remove" (click)="remove(destination)">
-                <mat-icon>remove</mat-icon>
+                <z-icon zType="remove"></z-icon>
             </button>
         </mat-card>
     </div>

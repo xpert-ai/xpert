@@ -4,8 +4,7 @@ import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardDividerComponent } from '@xpert-ai/headless-ui'
-import { MatIconModule } from '@angular/material/icon'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
@@ -16,7 +15,6 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { ChatBIModelService, ToastrService, getErrorMessage, routeAnimations } from '../../../../@core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -29,7 +27,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ReactiveFormsModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
     ZardDividerComponent,
     AppearanceDirective,

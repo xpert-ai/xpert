@@ -5,7 +5,7 @@
 </ng-container>
 
 <button z-button zType="ghost" *ngIf="props?.type !== 'inline'" ngmAppearance="dashed" displayDensity="cosy" [color]="data.length ? 'accent' : null" (click)="open()">
-  <mat-icon fontSet="material-icons-outlined">edit</mat-icon>{{props?.title ?? ('FORMLY.TABLE.Open' | translate:
+  <z-icon zType="edit"></z-icon>{{props?.title ?? ('FORMLY.TABLE.Open' | translate:
   {Default: 'Open'} ) }}
 </button>
 
@@ -52,7 +52,7 @@
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let element; let i = index">
           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="deleteRow(i)">
-            <mat-icon>close</mat-icon>
+            <z-icon zType="close"></z-icon>
           </button>
         </td>
       </ng-container>
@@ -64,7 +64,7 @@
   <div class="my-2">
     <button z-button zType="ghost" ngmAppearance="dashed" displayDensity="cosy" (click)="addRow()">
       <div class="flex items-center justify-start">
-        <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+        <z-icon zType="add"></z-icon>
         {{'FORMLY.TABLE.AddRow' | translate: {Default: 'Add'} }}
       </div>
     </button>

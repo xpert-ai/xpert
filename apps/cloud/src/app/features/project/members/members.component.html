@@ -8,7 +8,7 @@
     <div *ngIf="isOwner" ngmButtonGroup>
       <button z-button zType="outline" color="accent" displayDensity="cosy" (click)="transferOwner()">
         <div class="flex items-center whitespace-nowrap overflow-hidden text-ellipsis">
-          <mat-icon fontSet="material-icons-outlined">local_shipping</mat-icon>
+          <z-icon zType="local_shipping"></z-icon>
           {{ 'PAC.Project.TransferOwnership' | translate: { Default: 'Transfer Ownership' } }}
         </div>
       </button>
@@ -25,7 +25,7 @@
     <div ngmButtonGroup *ngIf="isOwner">
       <button z-button zType="default" color="primary" displayDensity="cosy" (click)="openMemberSelect()">
         <div class="flex justify-center items-center">
-          <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+          <z-icon zType="add"></z-icon>
           {{ 'PAC.KEY_WORDS.ADD' | translate: { Default: 'Add' } }}
         </div>
       </button>
@@ -56,7 +56,7 @@
     <div ngmButtonGroup *ngIf="isOwner">
       <button z-button zType="default" color="primary" displayDensity="cosy" (click)="openCertificationSelect()">
         <div class="flex justify-center items-center">
-          <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+          <z-icon zType="add"></z-icon>
           {{ 'PAC.KEY_WORDS.ADD' | translate: { Default: 'Add' } }}
         </div>
       </button>
@@ -96,7 +96,7 @@
             <div ngmButtonGroup class="pac-confirm-card__delete-actions h-0 overflow-hidden group-hover:h-10 transition-all duration-300">
                 <button z-button zType="outline" color="warn" displayDensity="cosy" (click)="deleteProject()">
                     <div class="flex items-center">
-                        <mat-icon fontSet="material-icons-outlined">delete_outline</mat-icon>
+                        <z-icon zType="delete_outline"></z-icon>
                         {{ 'PAC.Project.ConfirmDelete' | translate: { Default: 'Confirm delete' } }}
                     </div>
                 </button>
@@ -106,7 +106,6 @@
   }
 </div>
 
-
 <ng-template #userTempl let-owner>
   <pac-user-profile-inline [user]="owner"></pac-user-profile-inline>
 </ng-template>
@@ -114,7 +113,7 @@
 <ng-template #actionTempl let-loading="loading" let-id="id">
   <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="isOwner" ngmAppearance="danger" displayDensity="cosy" class="text-gray-400" [disabled]="loading" (click)="removeMember(id)">
     <div class="flex justify-center items-center">
-      <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+      <z-icon zType="delete"></z-icon>
     </div>
   </button>
 </ng-template>
@@ -122,7 +121,7 @@
 <ng-template #certActionTempl let-loading="loading" let-id="id">
   <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="isOwner" ngmAppearance="danger" displayDensity="cosy" class="text-gray-400" [disabled]="loading" (click)="removeCertification(id)">
     <div class="flex justify-center items-center">
-      <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+      <z-icon zType="delete"></z-icon>
     </div>
   </button>
 </ng-template>

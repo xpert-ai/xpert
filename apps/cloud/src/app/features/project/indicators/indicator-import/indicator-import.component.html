@@ -1,6 +1,6 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 ">
   <div class="w-full flex justify-start items-center mb-4 group cursor-pointer" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-xl font-semibold pointer-events-none">
       {{ 'PAC.INDICATOR.Indicators' | translate: { Default: 'Indicators' } }}
     </span>
@@ -13,9 +13,9 @@
         (click)="activeLink(i, indicator)">
         <div class="flex justify-between items-center">
           <span class="flex-1"> {{ indicator.name }} </span>
-          <mat-icon class="cursor-pointer rounded-full invisible hover:bg-white/20 group-hover/item:visible"
+          <z-icon class="cursor-pointer rounded-full invisible hover:bg-white/20 group-hover/item:visible"
             ngmAppearance="danger"
-            (click)="removeIndicator(i)">close</mat-icon>
+            (click)="removeIndicator(i)" zType="close"></z-icon>
         </div>
       </mat-list-item>
     }

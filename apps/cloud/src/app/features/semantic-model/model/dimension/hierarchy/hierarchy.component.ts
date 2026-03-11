@@ -30,11 +30,10 @@ import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatIconModule } from '@angular/material/icon'
 
 import { MatListModule } from '@angular/material/list'
 import { MatToolbarModule } from '@angular/material/toolbar'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -53,7 +52,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatCheckboxModule,
     MatButtonToggleModule,
     MatTooltipModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     MatListModule,
     MatToolbarModule,

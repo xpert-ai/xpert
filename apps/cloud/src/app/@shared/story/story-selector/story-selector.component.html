@@ -7,9 +7,9 @@
             <ngm-select [formControl]="projectControl" [selectOptions]="projectOptions$ | async">
               <ng-template ngmOptionContent let-project>
                 <div class="flex items-center">
-                    <mat-icon *ngIf="project.modelNotInProject" displayDensity="compact" class="shrink-0"
+                    <z-icon *ngIf="project.modelNotInProject" zSize="sm" class="shrink-0"
                         matTooltip="Semantic model not in this project"
-                    >block</mat-icon> {{project.label}}
+                     zType="block"></z-icon> {{project.label}}
                 </div>
               </ng-template>
             </ngm-select>
@@ -22,9 +22,9 @@
             <ngm-select [formControl]="storyControl" [selectOptions]="storyOptions$ | async">
               <ng-template ngmOptionContent let-story>
                 <div class="flex items-center ">
-                    <mat-icon *ngIf="story.modelNotInStory" displayDensity="compact" class="shrink-0"
+                    <z-icon *ngIf="story.modelNotInStory" zSize="sm" class="shrink-0"
                         matTooltip="Semantic model not in this story"
-                    >block</mat-icon> {{story.label}}
+                     zType="block"></z-icon> {{story.label}}
                 </div>
               </ng-template>
             </ngm-select>

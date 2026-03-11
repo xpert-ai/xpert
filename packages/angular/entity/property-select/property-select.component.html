@@ -4,7 +4,7 @@
   }
   @if (label$ | async; as label) {
     @if (label.icon) {
-      <mat-icon displayDensity="compact">{{ label.icon }}</mat-icon>
+      <z-icon zSize="sm" [zType]="label.icon"></z-icon>
     }
     <span>
       {{ 'Ngm.Property.'+(label?.label ?? 'DIMENSION_MEASURE') | translate: {Default: label?.label ?? 'Dimension/Measure'} }}
@@ -29,24 +29,24 @@
     <div class="ml-2 flex items-center" displayDensity="compact">
       <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
         @if (showMore()) {
-          <mat-icon>expand_less</mat-icon>
+          <z-icon zType="expand_less"></z-icon>
         } @else {
-          <mat-icon>expand_more</mat-icon>
+          <z-icon zType="expand_more"></z-icon>
         }
       </button>
       @if (showAttributes()) {
         <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [matMenuTriggerFor]="dimensionMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
-            <mat-icon>more_vert</mat-icon>
+            <z-icon zType="more_vert"></z-icon>
         </button>
       }
       @if (hierarchies$ | async) {
         <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [cdkMenuTriggerFor]="hierarchyMenu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault();">
-            <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
+            <z-icon zType="account_tree"></z-icon>
         </button>
       }
       @if (membersSignal()) {
         <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [matMenuTriggerFor]="membersMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
-            <mat-icon>straighten</mat-icon>
+            <z-icon zType="straighten"></z-icon>
         </button>
       }
     </div>
@@ -76,14 +76,14 @@
 <mat-menu #dimensionMenu="matMenu" class="ngm-formly ngm-density__compact">
   @if (showDisplayAs()) {
     <button mat-menu-item disableRipple [matMenuTriggerFor]="displayMenu">
-      <mat-icon class="shrink-0">dvr</mat-icon>
+      <z-icon class="shrink-0" zType="dvr"></z-icon>
       <span>{{ 'Ngm.Property.DisplayAs' | translate: {Default: "Display As"} }}...</span>
     </button>
   }
 
   @if (labels$ | async; as labels) {
     <button mat-menu-item disableRipple [matMenuTriggerFor]="labelMenu">
-      <mat-icon class="shrink-0" fontSet="material-icons-outlined">label</mat-icon>
+      <z-icon class="shrink-0" zType="label"></z-icon>
       <span>{{ 'Ngm.Property.Label' | translate: {Default: "Label"} }}</span>
     </button>
   }
@@ -99,7 +99,7 @@
   @if (isMeasure$ | async) {
     @if (showMeasureAttributes()) {
       <button mat-menu-item (click)="openFormatting($event)">
-        <mat-icon class="shrink-0">monetization_on</mat-icon>
+        <z-icon class="shrink-0" zType="monetization_on"></z-icon>
         <span>{{ 'Ngm.Property.Formatter' | translate: {Default: "Formatter"} }}</span>
       </button>
     }
@@ -107,8 +107,8 @@
     @if (calculationProperty(); as calculationProperty) {
       <button mat-menu-item
         (click)="$event.preventDefault();openEditCalculation(calculationProperty)">
-          <mat-icon class="shrink-0">functions</mat-icon>
-          <span fontSet="material-icons-outlined">
+          <z-icon class="shrink-0" zType="functions"></z-icon>
+          <span>
             {{ 'Ngm.Property.EditFormula' | translate: {Default: "Edit Formula"} }}
           </span>
       </button>
@@ -117,7 +117,7 @@
 
   @if (isParameter()) {
     <button mat-menu-item (click)="openEditParameter()">
-      <mat-icon class="shrink-0" fontSet="material-icons-outlined">edit</mat-icon>
+      <z-icon class="shrink-0" zType="edit"></z-icon>
       <span>{{ 'Ngm.Property.PARAMETER' | translate: {Default: "Parameter"} }}</span>
     </button>
   }
@@ -139,7 +139,7 @@
 
   @if (showOrder()) {
     <button mat-menu-item disableRipple [matMenuTriggerFor]="orderMenu">
-      <mat-icon class="shrink-0" fontSet="material-icons-round">sort_by_alpha</mat-icon>
+      <z-icon class="shrink-0" zType="sort_by_alpha"></z-icon>
       <span>{{ 'Ngm.Property.Order' | translate: {Default: "Order"} }}</span>
     </button>
   }
@@ -181,7 +181,7 @@
   <ng-template #hierarchyMenu>
     <div cdkMenu class="cdk-menu__large">
       <button cdkMenuItem [cdkMenuTriggerFor]="hierarchiesMenu">
-        <mat-icon class="shrink-0 mr-1" fontSet="material-icons-outlined">account_tree</mat-icon>
+        <z-icon class="shrink-0 mr-1" zType="account_tree"></z-icon>
         <span>{{ 'Ngm.Property.HIERARCHY' | translate: {Default: "Hierarchy"} }}...</span>
       </button>
     
@@ -205,7 +205,7 @@
       <hr class="my-1" />
     
       <button cdkMenuItem disableRipple (click)="selectMembers($event)">
-        <mat-icon class="shrink-0 mr-1" fontSet="material-icons-outlined">people_outline</mat-icon>
+        <z-icon class="shrink-0 mr-1" zType="people_outline"></z-icon>
         <span [matBadgeHidden]="!members?.length" [matBadge]="members?.length" matBadgeColor="accent" matBadgeOverlap="false"
           [class.line-through.decoration-pink-500]="exclude"
         >
@@ -214,14 +214,14 @@
       </button>
 
       <button cdkMenuItem [cdkMenuTriggerFor]="memberMenu">
-        <mat-icon class="shrink-0 mr-1" fontSet="material-icons-outlined">alternate_email</mat-icon>
+        <z-icon class="shrink-0 mr-1" zType="alternate_email"></z-icon>
         <span [matBadge]="parameter ? 1 : null" matBadgeColor="accent" matBadgeOverlap="false">
           {{ 'Ngm.Property.PARAMETER' | translate: {Default: "Parameter"} }}
         </span>
       </button>
       @if (showAttributes()) {
         <button cdkMenuItem disableRipple [cdkMenuTriggerFor]="propertiesMenu">
-          <mat-icon class="shrink-0 mr-1" fontSet="material-icons-outlined">extension</mat-icon>
+          <z-icon class="shrink-0 mr-1" zType="extension"></z-icon>
           {{ 'Ngm.Property.PropertyList' | translate: {Default: "Property List"} }}
         </button>
 
@@ -297,7 +297,7 @@
         (cdkMenuItemTriggered)="parameter = option.name">
         <span class="grow">{{ option.caption || option.name }}</span>
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="openEditParameter(option.name)">
-          <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+          <z-icon zType="edit"></z-icon>
         </button>
       </button>
     }
@@ -305,7 +305,7 @@
     <hr class="my-1" />
 
     <button cdkMenuItem ngmAppearance="dashed" (click)="$event.stopPropagation();openCreateParameter()">
-      <mat-icon class="shrink-0" fontSet="material-icons-outlined">add</mat-icon>
+      <z-icon class="shrink-0" zType="add"></z-icon>
       <span>{{ 'Ngm.Property.CreateParameter' | translate: {Default: "Create Parameter"} }}</span>
     </button>
   </div>

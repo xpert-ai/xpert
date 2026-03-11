@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, effect, inject, isSignal, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
@@ -11,7 +10,7 @@ import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
 import { EMPTY, Observable, catchError, startWith } from 'rxjs'
-import { ZardFormImports } from "@xpert-ai/headless-ui";
+import { ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 const isNonNullable = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined
 
@@ -30,7 +29,7 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
   host: {
     class: 'pac-formly-select'
   },
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, MatIconModule, MatTooltipModule, MatProgressSpinnerModule, FormlyModule, TranslateModule, OcapCoreModule, NgmSelectComponent]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, ZardIconComponent, MatTooltipModule, MatProgressSpinnerModule, FormlyModule, TranslateModule, OcapCoreModule, NgmSelectComponent]
 })
 export class PACFormlySelectComponent extends FieldType implements OnInit {
   DisplayDensity = DisplayDensity

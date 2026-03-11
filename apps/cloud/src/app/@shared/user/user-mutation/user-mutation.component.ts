@@ -3,20 +3,19 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, HostBinding, inject, Inject, Input, OnInit, ViewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
 import { ITag, IUser } from '@metad/contracts'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from '../../../@core'
 import { Store } from '../../../@core/services/store.service'
 import { BasicInfoFormComponent, UserFormsModule } from '../forms'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     FormsModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     DragDropModule,
     TranslateModule,

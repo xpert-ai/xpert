@@ -4,7 +4,7 @@ import { Component, HostBinding, OnInit } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -12,7 +12,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { firstValueFrom } from 'rxjs'
 import { ModelQueryService, uuid } from '../../@core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

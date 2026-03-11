@@ -9,7 +9,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla1.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" class="mr-1">generating_tokens</mat-icon>
+      <z-icon class="mr-1" zType="generating_tokens"></z-icon>
       {{ 'PAC.KEY_WORDS.Basic' | translate: {Default: "Basic"} }}
     </span>
     @if (!organization()) {
@@ -17,7 +17,7 @@
         routerLinkActive #rla2="routerLinkActive"
         [active]="rla2.isActive"
       >
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">tips_and_updates</mat-icon>
+        <z-icon class="mr-1" zType="tips_and_updates"></z-icon>
         {{ 'PAC.KEY_WORDS.Examples' | translate: {Default: "Examples"} }}
       </span>
     }
@@ -27,7 +27,7 @@
         routerLinkActive #rla4="routerLinkActive"
         [active]="rla4.isActive"
       >
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">data_usage</mat-icon>
+        <z-icon class="mr-1" zType="data_usage"></z-icon>
         {{ 'PAC.Copilot.UserUsage' | translate: {Default: "User Usage"} }}
       </span>
     } @else {
@@ -35,7 +35,7 @@
         routerLinkActive #rla4="routerLinkActive"
         [active]="rla4.isActive"
       >
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">data_usage</mat-icon>
+        <z-icon class="mr-1" zType="data_usage"></z-icon>
         {{ 'PAC.Copilot.OrgUsage' | translate: {Default: "Organization Usage"} }}
       </span>
     }
@@ -45,7 +45,7 @@
         routerLinkActive #rla4="routerLinkActive"
         [active]="rla4.isActive"
       >
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">browse_activity</mat-icon>
+        <z-icon class="mr-1" zType="browse_activity"></z-icon>
         {{ 'PAC.Copilot.Monitoring' | translate: {Default: "Monitoring"} }}
       </span>
     }

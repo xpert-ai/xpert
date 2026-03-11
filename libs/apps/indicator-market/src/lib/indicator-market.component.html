@@ -56,7 +56,7 @@
             (dataChange)="onIndicatorChange($event)"
           > 
             @if (item.favour) {
-              <mat-icon action class="shrink-0" color="accent" displayDensity="compact">star</mat-icon>
+              <z-icon action class="shrink-0" color="accent" zSize="sm" zType="star"></z-icon>
             }
           </ngm-indicator>
 
@@ -120,7 +120,7 @@
     <z-divider></z-divider>
 
     <button z-button zType="ghost" cdkMenuItem (click)="refresh()">
-      <mat-icon>refresh</mat-icon>
+      <z-icon zType="refresh"></z-icon>
       <span>
         {{ 'IndicatorApp.Refresh' | translate: {Default: 'Refresh'} }}
       </span>

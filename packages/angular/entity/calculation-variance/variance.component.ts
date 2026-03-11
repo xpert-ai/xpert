@@ -9,7 +9,7 @@ import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'
 import { NgmCompareMemberSelectComponent } from '../compare-member-select/member-select.component'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardFormImports } from "@xpert-ai/headless-ui";
+import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

@@ -56,7 +56,7 @@
             (click)="onBackgroundImageSelected(bg)"
         >
             <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-image-tile__copy absolute top-0 right-0 opacity-0 group-hover:opacity-100" displayDensity="compact" [cdkCopyToClipboard]="bg.backgroundImageObj.url" (click)="$event.stopPropagation()" (cdkCopyToClipboardCopied)="onCopyToClipboardCopied($event)">
-                <mat-icon>content_copy</mat-icon>
+                <z-icon zType="content_copy"></z-icon>
             </button>
         </div>
     </div>
@@ -85,7 +85,7 @@
             (click)="onBackgroundImageSelected({backgroundImageObj: bg})"
         >
             <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-image-tile__copy absolute top-0 right-0 opacity-0 group-hover:opacity-100" displayDensity="compact" [cdkCopyToClipboard]="bg.url" (click)="$event.stopPropagation()" (cdkCopyToClipboardCopied)="onCopyToClipboardCopied($event)">
-                <mat-icon>content_copy</mat-icon>
+                <z-icon zType="content_copy"></z-icon>
             </button>
         </div>
     </div>
@@ -204,7 +204,7 @@
             <input #fileUpload type="file" class="file-input h-0 w-0 invisible" accept="image/*" (change)="onBorderFile($event)" (click)="fileUpload.value=null;">
             <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" color="accent" class="backdrop-blur-md" (click)="fileUpload.click()">
                 <div class="flex justify-start items-center">
-                <mat-icon fontSet="material-icons-round">upload</mat-icon>
+                <z-icon zType="upload"></z-icon>
                 {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}
                 </div>
             </button>

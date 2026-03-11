@@ -1,6 +1,6 @@
 <div class="xp-nav-toolbar flex items-center px-2" displayDensity="compact">
   <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [color]="mt.isOpen() ? 'accent':''" [cdkMenuTriggerFor]="menu" #mt="cdkMenuTriggerFor">
-    <mat-icon [color]="mt.isOpen() ? 'accent':''">more_vert</mat-icon>
+    <z-icon [color]="mt.isOpen() ? 'accent':''" zType="more_vert"></z-icon>
   </button> -->
   <nav z-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple class="flex-1" stretchTabs="false" alignTabs="start">
     @for (tab of hierarchies(); track tab.__id__; let i = $index) {

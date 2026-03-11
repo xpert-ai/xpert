@@ -7,7 +7,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, startWith } from 'rxjs'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour'
 import { NgmFieldAppearance } from "@metad/ocap-angular/core";
-import { ZardComboboxGroup, ZardComboboxOption, ZardComboboxComponent, ZardFormImports } from "@xpert-ai/headless-ui";
+import { ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardFormImports } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead

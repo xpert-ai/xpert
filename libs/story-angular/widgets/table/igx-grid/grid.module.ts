@@ -2,13 +2,13 @@ import { CommonModule } from '@angular/common'
 import { ModuleWithProviders, NgModule } from '@angular/core'
 import { STORY_WIDGET_COMPONENT } from '@metad/story/core'
 import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 import {
   IgxActionStripModule,
   IgxChipsModule,
   IgxComboModule,
   IgxDragDropModule,
   IgxGridModule,
-  IgxIconModule,
   IgxInputGroupModule,
   IgxListModule,
   IgxProgressBarModule,
@@ -27,7 +27,6 @@ import { WidgetDesignerType } from './types'
 const IGX_MODULES = [
   IgxGridModule,
   IgxTreeGridModule,
-  IgxIconModule,
   IgxComboModule,
   IgxProgressBarModule,
   IgxSplitterModule,
@@ -41,7 +40,7 @@ const IGX_MODULES = [
 
 @NgModule({
   declarations: [StoryWidgetSmartGridComponent, SmartGridSearchBarComponent, ContextMenuComponent],
-  imports: [CommonModule, ...IGX_MODULES, GridActionsModule],
+  imports: [CommonModule, ZardIconComponent, ...IGX_MODULES, GridActionsModule],
   exports: [StoryWidgetSmartGridComponent]
 })
 export class NxWidgetSmartGridModule {

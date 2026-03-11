@@ -12,28 +12,10 @@
 
 .pac-formly-chart-type {
   .pac-formly-chart-type__trigger {
-    .mat-icon-no-color {
-      @apply text-gray-500;
-      svg {
-        g,
-        path {
-          fill: currentColor;
-        }
-      }
-    }
   }
 }
 
 .pac-formly-chart-type__prefix {
-  .mat-icon-no-color {
-    @apply text-gray-600;
-    svg {
-      g,
-      path {
-        fill: currentColor;
-      }
-    }
-  }
 }
 
 .cdk-overlay-pane {

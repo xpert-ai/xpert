@@ -20,13 +20,6 @@
       line-height: 40px;
       font-size: 14px;
 
-      .mat-mdc-list-item-content > .mat-icon {
-        font-size: 18px;
-        line-height: 20px;
-        width: 20px;
-        height: 20px;
-      }
-
       &.mdc-list-item--with-trailing-meta .mdc-list-item__end {
         margin-right: 0;
       }
@@ -41,13 +34,6 @@
 
       .mat-mdc-list-item-content {
         padding: 0 6px;
-      }
-
-      .mat-mdc-list-item-content > .mat-icon {
-        font-size: 16px;
-        line-height: 18px;
-        width: 18px;
-        height: 18px;
       }
 
       &.mdc-list-item--with-trailing-meta .mdc-list-item__end {

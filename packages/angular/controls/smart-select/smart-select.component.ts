@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, EventEmitter, forwardRef, inject, input, Input, Output } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmMatSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective, NgmAppearance } from '@metad/ocap-angular/core'
@@ -32,7 +31,7 @@ import {
 } from 'rxjs'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
-import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export interface SmartSelectOptions extends ControlOptions {
   /**
@@ -46,7 +45,7 @@ export interface SmartSelectOptions extends ControlOptions {
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ...ZardFormImports, MatIconModule, ZardButtonComponent, MatProgressSpinnerModule, DensityDirective, AppearanceDirective, NgmMatSelectComponent],
+  imports: [CommonModule, FormsModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, MatProgressSpinnerModule, DensityDirective, AppearanceDirective, NgmMatSelectComponent],
   selector: 'ngm-smart-select',
   templateUrl: 'smart-select.component.html',
   styleUrls: ['smart-select.component.scss'],

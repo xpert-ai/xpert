@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -12,6 +11,7 @@ import { combineLatest, debounceTime, map, startWith, switchMap, tap } from 'rxj
 import { IBusinessArea, IStory, listAnimation } from '../../../@core'
 import { StoryCardComponent } from '../../../@shared/story'
 import { InlineSearchComponent } from '../../../@shared/form-fields'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -19,7 +19,7 @@ import { InlineSearchComponent } from '../../../@shared/form-fields'
     CommonModule,
     ReactiveFormsModule,
     RouterModule,
-    MatIconModule,
+    ZardIconComponent,
     TranslateModule,
     DensityDirective,
     ButtonGroupDirective,

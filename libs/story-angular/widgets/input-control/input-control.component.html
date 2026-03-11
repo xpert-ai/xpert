@@ -5,10 +5,10 @@
       <ngm-slicer-label class="inline-block text-sm px-1 truncate py-[0.5px] rounded-lg border-[0.5px] border-solid border-divider-deep"
         [slicer]="_slicer()" [entityType]="entityType()" />
       <!-- <span class="flex-1 whitespace-nowrap text-ellipsis overflow-hidden">{{displayMembers()}}</span> -->
-      <mat-icon class="members-clear shrink-0 cursor-pointer rounded-full hover:bg-gray-500/10 dark:hover:bg-white/20"
+      <z-icon class="members-clear shrink-0 cursor-pointer rounded-full hover:bg-gray-500/10 dark:hover:bg-white/20"
         displayDensity="compact"
         ngmAppearance="danger"
-        (click)="clearSelectedMembers()">close</mat-icon>
+        (click)="clearSelectedMembers()" zType="close"></z-icon>
     </div>
   }
 </div>
@@ -150,7 +150,6 @@
     <ngm-display-behaviour [option]="entity"></ngm-display-behaviour>
   </button> -->
 </mat-menu>
-
 
 <mat-menu #Dimensions="matMenu" class="ngm-density__compact">
   <button mat-menu-item *ngFor="let dimension of dimensions$ | async"

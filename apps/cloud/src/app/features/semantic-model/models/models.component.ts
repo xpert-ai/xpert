@@ -7,7 +7,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { ModelCreationComponent } from '@cloud/app/@shared/model'
@@ -42,7 +41,7 @@ import { CreatedByPipe } from '../../../@shared/pipes'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { BusinessAreaSelectComponent } from '@cloud/app/@shared/business-area'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -53,7 +52,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     MatTooltipModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     RouterModule,
 
     // OCAP Modles

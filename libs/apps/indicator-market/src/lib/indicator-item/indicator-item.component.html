@@ -4,7 +4,7 @@
 >
   <div class="pac-item-meta-title text-lg flex justify-start items-center overflow-hidden">
     <span class="flex-1 font-semibold whitespace-nowrap text-ellipsis overflow-hidden">{{ indicator.code }}</span>
-    <mat-icon *ngIf="indicator.favour" class="shrink-0" color="accent" displayDensity="compact">star</mat-icon>
+    <z-icon *ngIf="indicator.favour" class="shrink-0" color="accent" zSize="sm" zType="star"></z-icon>
   </div>
   <div class="pac-item-meta-description text-base">
     <span>{{ indicator.name }}</span>

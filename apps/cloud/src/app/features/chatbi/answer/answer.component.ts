@@ -5,8 +5,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
@@ -35,7 +34,6 @@ import { ChatbiChatComponent } from '../chat/chat.component'
 import { ChatbiInputComponent } from '../input/input.component'
 import { ChatLoadingComponent } from '../../../@shared/copilot'
 import { StorySelectorComponent } from '../../../@shared/story'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use ChatBI toolset.
@@ -51,7 +49,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ClipboardModule,
     CdkMenuModule,
     MarkdownModule,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
     ZardButtonComponent,
     ZardInputDirective,

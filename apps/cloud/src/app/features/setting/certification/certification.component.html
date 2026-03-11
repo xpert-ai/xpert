@@ -23,7 +23,7 @@
       [active]="rla.isActive"
     >
 
-      <mat-icon class="mr-1" fontSet="material-icons-outlined" displayDensity="cosy">account_tree</mat-icon>
+      <z-icon class="mr-1" zSize="default" zType="account_tree"></z-icon>
       {{ 'PAC.BUSINESS_AREA.All' | translate: {Default: "All"} }}
     </span>
   </nav>
@@ -53,10 +53,10 @@
           <div class="w-full flex justify-end">
             <div ngmButtonGroup displayDensity="cosy">
               <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-text-secondary" (click)="editCertification(certification)">
-                <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+                <z-icon zType="edit"></z-icon>
               </button>
               <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-secondary" (click)="removeCertification(certification)">
-                <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
+                <z-icon zType="delete_forever"></z-icon>
               </button>
             </div>
           </div>

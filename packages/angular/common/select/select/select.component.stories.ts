@@ -1,13 +1,12 @@
 import { provideHttpClient } from '@angular/common/http'
 
-import { MatIconModule } from '@angular/material/icon'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { provideTranslate } from '@metad/ocap-angular/mock'
 import { Meta, StoryObj, applicationConfig, argsToTemplate, moduleMetadata } from '@storybook/angular'
 import { NgmSelectModule } from '../select.module'
 import { NgmSelectComponent } from './select.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 const meta: Meta<NgmSelectComponent> = {
   title: 'Common/Select',
@@ -18,7 +17,7 @@ const meta: Meta<NgmSelectComponent> = {
     }),
     moduleMetadata({
       declarations: [],
-      imports: [ZardButtonComponent, MatIconModule, OcapCoreModule, NgmSelectModule]
+      imports: [ZardButtonComponent, ZardIconComponent, OcapCoreModule, NgmSelectModule]
     })
   ]
 }
@@ -87,7 +86,7 @@ export const SuffixSearchable = {
     template: `
 <ngm-select searchable [selectOptions]="selectOptions" ${argsToTemplate(args)}>
   <div ngmSuffix>
-    <mat-icon>search</mat-icon>
+    <z-icon zType="search"></z-icon>
   </div>
 </ngm-select>    
     `
@@ -145,13 +144,13 @@ export const Density: Story = {
   <ngm-select label="Fruit" placeholder="Select an option" [selectOptions]="selectOptions"
     [valueKey]="valueKey">
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix>
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   </ngm-select>
   <ngm-select searchable label="Fruit" placeholder="Select an option" [selectOptions]="selectOptions"
     [valueKey]="valueKey">
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix>
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   </ngm-select>
 </div>
@@ -167,13 +166,13 @@ export const Density: Story = {
   <ngm-select label="Fruit" placeholder="Select an option" [selectOptions]="selectOptions"
     [valueKey]="valueKey">
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix>
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   </ngm-select>
   <ngm-select searchable label="Fruit" placeholder="Select an option" [selectOptions]="selectOptions"
     [valueKey]="valueKey">
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix>
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   </ngm-select>
 </div>
@@ -190,13 +189,13 @@ export const Density: Story = {
   <ngm-select label="Fruit" placeholder="Select an option" [selectOptions]="selectOptions" displayDensity="compact"
     [valueKey]="valueKey">
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix>
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   </ngm-select>
   <ngm-select searchable label="Fruit" placeholder="Select an option" [selectOptions]="selectOptions"
     [valueKey]="valueKey">
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix>
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   </ngm-select>
 </div>

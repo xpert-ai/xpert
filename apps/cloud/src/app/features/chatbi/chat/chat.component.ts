@@ -3,8 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, model
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardDividerComponent } from '@xpert-ai/headless-ui'
-import { MatIconModule } from '@angular/material/icon'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { CopilotChatMessage, stringifyMessageContent } from '@metad/copilot'
@@ -19,7 +18,6 @@ import { ChatbiInputComponent } from '../input/input.component'
 import { ChatLoadingComponent } from '../../../@shared/copilot'
 import { AppService } from '../../../app.service'
 import { UserAvatarComponent } from '../../../@shared/user'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -30,7 +28,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     RouterModule,
     TranslateModule,
     MarkdownModule,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
     ZardButtonComponent,
     ZardDividerComponent,

@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, booleanAttribute, effect, input, signal } from '@angular/core'
-import { MatIconModule } from '@angular/material/icon'
+import { ChangeDetectionStrategy, Component, booleanAttribute, computed, effect, input, signal } from '@angular/core'
 import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import {
   AggregationRole,
@@ -15,10 +14,11 @@ import {
   isSemanticCalendar
 } from '@metad/ocap-core'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour/display-behaviour.component'
+import { type ZardIconSizeVariants, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatIconModule, DensityDirective, NgmDisplayBehaviourComponent],
+  imports: [CommonModule, ZardIconComponent, DensityDirective, NgmDisplayBehaviourComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-property',
   templateUrl: './property.component.html',
@@ -44,6 +44,9 @@ export class NgmPropertyComponent {
   readonly role = input<AggregationRole | null>(null)
 
   readonly icon = signal<string | null>(null)
+  readonly iconSize = computed<ZardIconSizeVariants>(() =>
+    this.displayDensity() === DisplayDensity.compact ? 'lg' : 'xl'
+  )
 
   constructor() {
     effect(() => {

@@ -1,5 +1,5 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 import { CommonModule } from '@angular/common'
 import { Component, forwardRef, Input } from '@angular/core'
@@ -11,7 +11,6 @@ import { MatSidenavModule } from '@angular/material/sidenav'
 import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.component'
 import { ResizerModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatIconModule } from '@angular/material/icon'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
@@ -23,7 +22,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     TranslateModule,
     DragDropModule,
     MatSidenavModule,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
     ZardButtonComponent,
     MonacoEditorModule,

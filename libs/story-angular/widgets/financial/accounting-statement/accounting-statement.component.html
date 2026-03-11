@@ -7,11 +7,11 @@
 
   <div class="pac-widget__action-toolbar flex justify-between items-center">
     <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="(hasSlicers$ | async) ? 'accent':''" [matMenuTriggerFor]="filtersMenu">
-      <mat-icon fontSet="material-icons-outlined">filter_alt</mat-icon>
+      <z-icon zType="filter_alt"></z-icon>
     </button>
     <!-- Internal Error -->
     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="error$ | async as error" color="error" [matTooltip]="error">
-      <mat-icon fontSet="material-icons-outlined">warning</mat-icon>
+      <z-icon zType="warning"></z-icon>
     </button>
     <!-- Loading spinner icon -->
     <mat-spinner class="ngm-analytical-card--loading"

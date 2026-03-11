@@ -5,8 +5,7 @@ import { ChangeDetectionStrategy, Component, effect, forwardRef, input, Input, m
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'
 import { MatSort, MatSortModule } from '@angular/material/sort'
 import { MatTableDataSource, MatTableModule } from '@angular/material/table'
@@ -14,7 +13,6 @@ import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { NgmSearchComponent } from '../../search/search.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export type SelectionTableColumn = {
   value: string
@@ -40,7 +38,7 @@ export type SelectionTableColumn = {
     MatCheckboxModule,
     MatTableModule,
     MatPaginatorModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     MatSortModule,
     ZardInputDirective,

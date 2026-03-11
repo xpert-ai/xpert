@@ -12,11 +12,11 @@
   <div ngmAction class="flex items-center">
     @if (pin) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="unlinkAnalysis()">
-        <mat-icon fontSet="material-icons-outlined">push_pin</mat-icon>
+        <z-icon zType="push_pin"></z-icon>
       </button>
     }
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-menu-trigger opacity-20 group-hover:opacity-100 duration-200" [color]="(hasSlicers$ | async) ? 'accent':''" [matMenuTriggerFor]="filtersMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}" matTooltipPosition="above">
-      <mat-icon fontSet="material-icons-outlined">filter_alt</mat-icon>
+      <z-icon zType="filter_alt"></z-icon>
     </button>
   </div>
 </ngm-analytical-card>

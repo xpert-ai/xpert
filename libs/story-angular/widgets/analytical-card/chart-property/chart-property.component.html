@@ -19,7 +19,7 @@
     @if (showChartAttributes() && isDimension()) {
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
-          <mat-icon class="shrink-0" fontSet="material-icons-outlined" displayDensity="compact">category</mat-icon>
+          <z-icon class="shrink-0" zSize="sm" zType="category"></z-icon>
           <span>{{ 'Story.ChartProperty.Role' | translate: {Default: 'Role'} }}</span>
         </label>
 
@@ -32,7 +32,7 @@
 
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
-          <mat-icon class="shrink-0" fontSet="material-icons-outlined" displayDensity="compact">analytics</mat-icon>
+          <z-icon class="shrink-0" zSize="sm" zType="analytics"></z-icon>
           <span>{{ 'Story.ChartProperty.ChartOptions' | translate: {Default: 'Chart Options'} }}</span>
         </label>
 
@@ -42,7 +42,7 @@
     @if (showMeasureRole()) {
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
-          <mat-icon class="shrink-0" fontSet="material-icons-outlined" displayDensity="compact">category</mat-icon>
+          <z-icon class="shrink-0" zSize="sm" zType="category"></z-icon>
           <span>{{ 'Story.ChartProperty.Role' | translate: {Default: 'Role'} }}</span>
         </label>
 
@@ -57,7 +57,7 @@
     @if (showMeasureShape()) {
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
-          <mat-icon class="shrink-0" fontSet="material-icons-outlined" displayDensity="compact">interests</mat-icon>
+          <z-icon class="shrink-0" zSize="sm" zType="interests"></z-icon>
           <span>{{ 'Story.ChartProperty.Shape' | translate: {Default: 'Shape'} }}...</span>
         </label>
 
@@ -74,7 +74,7 @@
     @if (showMeasurePalettePattern()) {
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
-          <mat-icon class="shrink-0" fontSet="material-icons-outlined" displayDensity="compact">texture</mat-icon>
+          <z-icon class="shrink-0" zSize="sm" zType="texture"></z-icon>
           <span>{{ 'Story.ChartProperty.Pattern' | translate: {Default: 'Pattern'} }}</span>
         </label>
 
@@ -92,17 +92,17 @@
     @if (showColorPalette()) {
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
-          <mat-icon class="shrink-0" fontSet="material-icons-outlined" displayDensity="compact">style</mat-icon>
+          <z-icon class="shrink-0" zSize="sm" zType="style"></z-icon>
           <span>{{ 'Story.ChartProperty.Style' | translate: {Default: 'Style'} }}</span>
         </label>
 
         <button z-button zType="secondary" displayDensity="comfortable" class="ngm-chart-property__palette-trigger w-full" [matMenuTriggerFor]="paletteMenu">
           <div class="w-full flex items-center">
-            <mat-icon fontSet="material-icons-outlined">palette</mat-icon>
+            <z-icon zType="palette"></z-icon>
             <span>{{ 'Story.ChartProperty.Palette' | translate: {Default: 'Palette'} }}</span>
             <span class="flex-1"></span>
             
-            <mat-icon fontSet="material-icons-outlined">arrow_right</mat-icon>
+            <z-icon zType="arrow_right"></z-icon>
           </div>
         </button>
 
@@ -122,7 +122,7 @@
       <div class="ngm-chart-property__card">
         <mat-checkbox [(ngModel)]="bar">
           <div class="flex-1 flex items-center">
-            <mat-icon class="shrink-0" fontSet="material-icons-outlined">sort</mat-icon>
+            <z-icon class="shrink-0" zType="sort"></z-icon>
             <span>{{ 'Story.ChartProperty.BarChart' | translate: {Default: 'Bar Chart'} }}</span>
           </div>
         </mat-checkbox>
@@ -132,7 +132,7 @@
     @if (showMeasureReferenceLine()) {
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
-          <mat-icon class="shrink-0" fontSet="material-icons-outlined" displayDensity="compact">trending_flat</mat-icon>
+          <z-icon class="shrink-0" zSize="sm" zType="trending_flat"></z-icon>
           <span>{{ 'Story.ChartProperty.ReferenceLine' | translate: {Default: 'Reference Line'} }}</span>
         </label>
 
@@ -143,7 +143,7 @@
     @if (showMeasureChartOptions()) {
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
-          <mat-icon class="shrink-0" fontSet="material-icons-outlined" displayDensity="compact">analytics</mat-icon>
+          <z-icon class="shrink-0" zSize="sm" zType="analytics"></z-icon>
           <span>{{ 'Story.ChartProperty.ChartOptions' | translate: {Default: 'Chart Options'} }}</span>
         </label>
 
@@ -155,7 +155,6 @@
     }
   </div>
 </ngm-property-select>
-
 
 <mat-radio-group [(ngModel)]="palette" displayDensity="cosy">
   <mat-menu #paletteMenu="matMenu" class="ngm-density__compact">

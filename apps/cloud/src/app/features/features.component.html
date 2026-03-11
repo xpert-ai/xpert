@@ -61,7 +61,7 @@
             <span class="font-bold flex items-center cursor-pointer
             text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-200"
               (click)="navigate(navigation.catalog)">
-              <mat-icon fontSet="material-icons-outlined" displayDensity="compact" class="mx-1">{{navigation.icon}}</mat-icon>
+              <z-icon zSize="sm" class="mx-1" [zType]="navigation.icon"></z-icon>
               @if (!isMobile()) {
                 <span>{{ navigation.catalogName }}</span>
               }

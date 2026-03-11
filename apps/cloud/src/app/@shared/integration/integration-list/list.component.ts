@@ -2,10 +2,10 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, input, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
 import { TranslateModule } from '@ngx-translate/core'
 import { IIntegration, INTEGRATION_PROVIDERS } from '../../../@core/types'
 import { EmojiAvatarComponent } from '../../avatar'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -15,7 +15,7 @@ import { EmojiAvatarComponent } from '../../avatar'
     ReactiveFormsModule,
     CdkListboxModule,
     TranslateModule,
-    MatIconModule,
+    ZardIconComponent,
     EmojiAvatarComponent
   ],
   selector: 'pac-integration-list',

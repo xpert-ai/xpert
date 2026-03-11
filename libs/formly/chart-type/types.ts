@@ -1,5 +1,41 @@
 import { ChartTypeEnum as NxChartType } from '@metad/ocap-core'
 
+const chartIconUrl = (name: string) => `/assets/icons/${name}.svg`
+
+export const CHART_ICON_ASSETS = {
+  bar: chartIconUrl('bar'),
+  boxplot: chartIconUrl('boxplot'),
+  bullet: chartIconUrl('bullet'),
+  bubble: chartIconUrl('bubble'),
+  'cluster-bubble': chartIconUrl('cluster-bubble'),
+  column: chartIconUrl('column'),
+  combination: chartIconUrl('combination'),
+  'combination-stacked': chartIconUrl('combination'),
+  custom: chartIconUrl('custom'),
+  donut: chartIconUrl('donut'),
+  earth: chartIconUrl('earth'),
+  funnel: chartIconUrl('funnel'),
+  gauge: chartIconUrl('gauge'),
+  gl: chartIconUrl('gl'),
+  'heat-map': chartIconUrl('heat-map'),
+  histogram: chartIconUrl('histogram'),
+  line: chartIconUrl('line'),
+  lines: chartIconUrl('lines'),
+  'packed-bubble': chartIconUrl('packed-bubble'),
+  pie: chartIconUrl('pie'),
+  radar: chartIconUrl('radar'),
+  rose: chartIconUrl('rose'),
+  sankey: chartIconUrl('sankey'),
+  scatter: chartIconUrl('scatter'),
+  'stacked-bar': chartIconUrl('stacked-bar'),
+  'stacked-column': chartIconUrl('stacked-column'),
+  sunburst: chartIconUrl('sunburst'),
+  tree: chartIconUrl('tree'),
+  'tree-map': chartIconUrl('tree-map'),
+  waterfall: chartIconUrl('waterfall'),
+  area: chartIconUrl('area')
+} as const
+
 export const CHART_TYPE_ICONS = {
   [NxChartType.Pie]: {
     '': 'pie',

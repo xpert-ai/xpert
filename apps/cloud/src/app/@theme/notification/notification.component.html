@@ -1,5 +1,5 @@
 <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-80 hover:opacity-100 hover:scale-110 transition-transform duration-200" [matTooltip]="'PAC.KEY_WORDS.Notification' | translate: {Default: 'Notification'}" matTooltipPosition="right" [cdkMenuTriggerFor]="statusNotifMenu">
-  <mat-icon fontSet="material-icons-round">notifications</mat-icon>
+  <z-icon zType="notifications"></z-icon>
 </button>
 
 @if (errors().length > 0) {
@@ -20,7 +20,7 @@
       </h5>
 
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ml-6" [matTooltip]="'PAC.KEY_WORDS.ClearAll' | translate: {Default: 'Clear All'}" matTooltipPosition="above" (click)="clearErrors()">
-        <mat-icon fontSet="material-icons-round">clear_all</mat-icon>
+        <z-icon zType="clear_all"></z-icon>
       </button>
     </div>
 
@@ -32,7 +32,7 @@
 
             <div matListItemMeta>
               <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-0 group-hover:opacity-100 transition-opacity duration-200" color="warn" (click)="clearError(i)">
-                <mat-icon fontSet="material-icons-round">close</mat-icon>
+                <z-icon zType="close"></z-icon>
               </button>
             </div>
           </mat-list-item>

@@ -3,7 +3,6 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, firstValueFrom, map, switchMap } from 'rxjs'
@@ -17,14 +16,14 @@ import { TranslationBaseComponent } from '../../../@shared/language'
 import { userLabel } from '../../../@shared/pipes'
 import { UserProfileComponent, UserProfileInlineComponent, UserRoleSelectComponent } from '../../../@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     TranslateModule,
     UserProfileComponent,

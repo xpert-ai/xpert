@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, OnDestroy, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
@@ -28,7 +28,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Dialog } from '@angular/cdk/dialog'
 import { ExplainComponent } from '@metad/story/story'
 import { exportIndicator } from '@cloud/app/@shared/indicator'
-import { MatIconModule } from '@angular/material/icon'
 
 // AOA : array of array
 type AOA = any[][]
@@ -42,7 +41,7 @@ type AOA = any[][]
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
 
     ButtonGroupDirective,

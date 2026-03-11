@@ -7,11 +7,11 @@
 
   <div zFormSuffix>
     <button z-button zType="ghost" zSize="icon" zShape="circle" [matMenuTriggerFor]="operatorMenu" (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon>drag_handle</mat-icon>
+        <z-icon zType="drag_handle"></z-icon>
     </button>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [matMenuTriggerFor]="slicerMenu" (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon>more_vert</mat-icon>
+        <z-icon zType="more_vert"></z-icon>
     </button>
 
     <ng-content></ng-content>
@@ -21,33 +21,33 @@
 
 <mat-menu #operatorMenu="matMenu" class="ngm-density__compact">
     <button mat-menu-item disableRipple >
-      <mat-icon>dvr</mat-icon>
+      <z-icon zType="dvr"></z-icon>
       <span>Equal</span>
     </button>
     <button mat-menu-item disableRipple >
-        <mat-icon>chevron_left</mat-icon>
+        <z-icon zType="chevron_left"></z-icon>
         <span>Less than</span>
     </button>
 
     <button mat-menu-item disableRipple >
-        <mat-icon>first_page</mat-icon>
+        <z-icon zType="first_page"></z-icon>
         <span>Less Equal</span>
     </button>
 
     <button mat-menu-item disableRipple >
-        <mat-icon>chevron_right</mat-icon>
+        <z-icon zType="chevron_right"></z-icon>
         <span>Greater than</span>
     </button>
     
     <button mat-menu-item disableRipple >
-        <mat-icon>last_page</mat-icon>
+        <z-icon zType="last_page"></z-icon>
         <span>Greater Equal</span>
     </button>
 </mat-menu>
 
 <mat-menu #slicerMenu="matMenu" class="ngm-density__compact">
     <button mat-menu-item disableRipple >
-      <mat-icon>dvr</mat-icon>
+      <z-icon zType="dvr"></z-icon>
       <span>显示为...</span>
     </button>
 </mat-menu>

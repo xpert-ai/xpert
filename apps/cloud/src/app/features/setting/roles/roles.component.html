@@ -16,14 +16,14 @@
             </span>
 
             <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="!option.isSystem" displayDensity="compact" class="pac-tab-close" (click)="remove(option)">
-              <mat-icon>cancel</mat-icon>
+              <z-icon zType="cancel"></z-icon>
             </button>
         </span>
       }
     </nav>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="shrink-0" (click)="create()">
-      <mat-icon>add_circle_outline</mat-icon>
+      <z-icon zType="add_circle_outline"></z-icon>
     </button>
   </div>
 </div>

@@ -98,7 +98,7 @@
           {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
         </button>
         <button z-button zType="default" color="primary" [matTooltip]=" 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save' }" matTooltipPosition="above" [disabled]="formGroup.invalid || formGroup.pristine || optionsInvalid" (click)="upsert()">
-          <mat-icon fontSet="material-icons-outlined">save</mat-icon>
+          <z-icon zType="save"></z-icon>
           {{ 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}
         </button>
       </div>

@@ -1,11 +1,11 @@
 <div displayDensity="compact" class="flex justify-start items-center gap-2 p-2 ">
   <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="drawer.toggle()">
-    <mat-icon fontSet="material-icons-round">segment</mat-icon>
+    <z-icon zType="segment"></z-icon>
   </button>
   <span class="truncate">{{ 'PAC.MODEL.VirtualCube.VirtualCube' | translate: {Default: 'Virtual Cube'} }}:</span>
   <span class="truncate">{{ virtualCube()?.caption }} ({{ virtualCube()?.name }})</span>
   <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="editVirtualCube(virtualCube())">
-    <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+    <z-icon zType="edit"></z-icon>
   </button>
 
   <div class="flex-1"></div>
@@ -50,7 +50,7 @@
         <span>{{ 'PAC.MODEL.VirtualCube.CubeUsages' | translate: {Default: "Cube Usages"} }}</span>
         <span class="flex-1 flex"></span>
         <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="cubeRemovePredicate" (cdkDropListDropped)="removeCube($event.item.data.name)">
-          <mat-icon color="warn" fontSet="material-icons-round">delete</mat-icon>
+          <z-icon color="warn" zType="delete"></z-icon>
         </button>
       </div>
 
@@ -122,7 +122,7 @@
                   (change)="changeIgnoreUnrelatedDimensions($event, cube)"
                 >{{ 'PAC.MODEL.VirtualCube.IgnoreUnrelatedDimensions' | translate: {Default: 'Ignore Unrelated Dimensions'} }}</mat-slide-toggle>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeCube(cube.cubeName)">
-                  <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                  <z-icon zType="cancel"></z-icon>
                 </button>
               </div>
             </mat-list-item>
@@ -164,7 +164,7 @@
                   [ngModel]="dimension.__shared__"
                   (change)="changeDimensionShared($event, dimension.name)">{{ 'PAC.MODEL.VirtualCube.SharedDimension' | translate: {Default: 'Shared Dimension'} }}</mat-slide-toggle>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeDimension(dimension.name)">
-                  <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                  <z-icon zType="cancel"></z-icon>
                 </button>
               </div>
             </mat-list-item>
@@ -202,7 +202,7 @@
                   />
                 </div>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeMeasure(measure.name)">
-                  <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                  <z-icon zType="cancel"></z-icon>
                 </button>
               </div>
             </mat-list-item>
@@ -216,7 +216,7 @@
           <mat-panel-description>
           </mat-panel-description>
           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.MODEL.VirtualCube.NewCalculatedMember' | translate: {Default: 'New Calculated Member'}" (click)="createCalculatedMember();$event.stopPropagation()">
-            <mat-icon>add_circle_outline</mat-icon>
+            <z-icon zType="add_circle_outline"></z-icon>
           </button>
         </mat-expansion-panel-header>
 
@@ -230,10 +230,10 @@
                     label: measure.caption + '(' + measure.name + ')'
                   }" />
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="pac-nav-tab__close" (click)="editCalculatedMember(measure)">
-                  <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+                  <z-icon zType="edit"></z-icon>
                 </button>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeCalculatedMember(measure.name)">
-                  <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                  <z-icon zType="cancel"></z-icon>
                 </button>
               </div>
             </mat-list-item>
@@ -269,7 +269,7 @@
               <textarea z-input formControlName="formula" cdkTextareaAutosize></textarea>
 
               <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix (click)="toggleFormula()">
-                <mat-icon>code</mat-icon>
+                <z-icon zType="code"></z-icon>
               </button>
             </z-form-field>
 
@@ -298,7 +298,6 @@
     </mat-accordion>
   </mat-drawer-content>
 </mat-drawer-container>
-
 
 <ng-template #checklistMenu>
   <xp-checklist cdkMenu class="cdk-menu__large rounded-xl" [checklist]="checklist()" />

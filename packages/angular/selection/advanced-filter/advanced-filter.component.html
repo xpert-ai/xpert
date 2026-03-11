@@ -16,12 +16,12 @@
     <ng-container *ngIf="!rootGroup">
         <div class="flex gap-2">
             <button z-button zType="outline" #addRootAndGroupButton color="accent" ngmAppearance="dashed" (click)="addAndGroup()">
-                <mat-icon>add</mat-icon>
+                <z-icon zType="add"></z-icon>
                 <span>"{{ 'Ngm.AdvancedFilter.AND' | translate: {Default: 'AND'} }}" {{ 'Ngm.AdvancedFilter.GROUP' | translate: {Default: 'GROUP'} }}</span>
             </button>
 
             <button z-button zType="outline" color="accent" ngmAppearance="dashed" (click)="addOrGroup()">
-                <mat-icon>add</mat-icon>
+                <z-icon zType="add"></z-icon>
                 <span>"{{ 'Ngm.AdvancedFilter.OR' | translate: {Default: 'OR'} }}" {{ 'Ngm.AdvancedFilter.GROUP' | translate: {Default: 'GROUP'} }}</span>
             </button>
         </div>
@@ -45,7 +45,7 @@
                     (removed)="onChipRemove(expressionItem)">
                     <mat-chip-avatar>
                         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="enterExpressionEdit(expressionItem)">
-                            <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+                            <z-icon zType="edit"></z-icon>
                         </button>
                     </mat-chip-avatar>
                     <span class="pac-filter-tree__expression-column">{{ expressionItem.columnHeader || expressionItem.expression.dimension?.dimension }}</span>
@@ -61,7 +61,7 @@
                     </span>
 
                     <button matChipRemove>
-                        <mat-icon>cancel</mat-icon>
+                        <z-icon zType="cancel"></z-icon>
                     </button>
                 </mat-chip-option>
               </mat-chip-listbox>
@@ -100,7 +100,7 @@
                 <z-form-label>{{ 'Ngm.AdvancedFilter.Value' | translate: {Default: 'Value'} }}</z-form-label>
                 <input z-input [(ngModel)]="searchValue" [disabled]="!selectedDimension" required>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [disabled]="!selectedDimension" (click)="openLowValueHelp(selectedDimension)">
-                    <mat-icon>help_outline</mat-icon>
+                    <z-icon zType="help_outline"></z-icon>
                 </button>
             </z-form-field>
 
@@ -108,16 +108,16 @@
                 <z-form-label>{{ 'Ngm.AdvancedFilter.Value' | translate: {Default: 'Value'} }}</z-form-label>
                 <input z-input [(ngModel)]="highValue" [disabled]="!selectedDimension" required>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [disabled]="!selectedDimension" (click)="openHighValueHelp(selectedDimension)">
-                    <mat-icon>help_outline</mat-icon>
+                    <z-icon zType="help_outline"></z-icon>
                 </button>
             </z-form-field>
 
             <div class="pac-filter-tree__inputs-actions">
                 <button z-button zType="ghost" zSize="icon" zShape="circle" color="primary" [disabled]="!operandCanBeCommitted()" (click)="commitOperandEdit()">
-                    <mat-icon>check</mat-icon>
+                    <z-icon zType="check"></z-icon>
                 </button>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" (click)="cancelOperandEdit()">
-                    <mat-icon>close</mat-icon>
+                    <z-icon zType="close"></z-icon>
                 </button>
             </div>
         </div>
@@ -125,17 +125,17 @@
     
     <ng-template #addExpressionsTemplate let-expressionItem let-afterExpression="afterExpression">
         <button z-button zType="outline" #addConditionButton color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addCondition(expressionItem, afterExpression)">
-            <mat-icon>add</mat-icon>
+            <z-icon zType="add"></z-icon>
             <span>{{ 'Ngm.AdvancedFilter.Condition' | translate: {Default: 'Condition'} }}</span>
         </button>
 
         <button z-button zType="outline" color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addAndGroup(expressionItem, afterExpression)">
-                <mat-icon>add</mat-icon>
+                <z-icon zType="add"></z-icon>
             <span>{{ 'Ngm.AdvancedFilter.AddGroup' | translate: {Default: '"ADD" GROUP'} }}</span>
         </button>
 
         <button z-button zType="outline" color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addOrGroup(expressionItem, afterExpression)">
-            <mat-icon>add</mat-icon>
+            <z-icon zType="add"></z-icon>
             <span>{{ 'Ngm.AdvancedFilter.OrGroup' | translate: {Default: '"OR" GROUP'} }}</span>
         </button>
     </ng-template>

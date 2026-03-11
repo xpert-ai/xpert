@@ -4,7 +4,7 @@
     
     <div ngmButtonGroup displayDensity="cosy">
       <button z-button zType="default" color="primary" displayDensity="cosy" (click)="addOrganization()">
-        <mat-icon fontSet="material-icons-outlined" nxDensity="cosy">add</mat-icon>{{ 'PAC.ACTIONS.ADD' | translate: {Default: "Add"} }}
+        <z-icon nxDensity="cosy" zType="add"></z-icon>{{ 'PAC.ACTIONS.ADD' | translate: {Default: "Add"} }}
       </button>
     </div>
   </div>
@@ -23,10 +23,10 @@
     @for (link of openedLinks(); track link.id) {
       <span z-tab-link [routerLink]="[link.id]"
         [active]="link.id === currentLink()?.id">
-        <mat-icon class="mr-1" fontSet="material-icons-outlined" displayDensity="cosy">face</mat-icon>
+        <z-icon class="mr-1" zSize="default" zType="face"></z-icon>
         {{ link.name }}
         <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink(link)">
-          <mat-icon>cancel</mat-icon>
+          <z-icon zType="cancel"></z-icon>
         </button>
       </span>
     }

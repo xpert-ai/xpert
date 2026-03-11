@@ -25,7 +25,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
 import { map } from 'rxjs/operators'
-import { ZardFormImports } from "@xpert-ai/headless-ui";
+import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

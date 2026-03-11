@@ -2,7 +2,6 @@ import { Component, computed, effect, HostListener, inject, model, signal } from
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectConfirmDelete, NgmCommonModule } from '@metad/ocap-angular/common'
@@ -28,7 +27,7 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -41,7 +40,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ZardButtonComponent,
     MatTooltipModule,
-    MatIconModule,
+    ZardIconComponent,
     WaIntersectionObserver,
     NgmCommonModule,
     NgmI18nPipe,

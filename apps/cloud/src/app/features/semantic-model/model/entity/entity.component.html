@@ -67,7 +67,7 @@
       [active]="detailsOpen()"
       (click)="toggleDesignPanel()"
     >
-      <mat-icon fontSet="material-icons-outlined" [color]="detailsOpen() ? 'accent' : ''">edit_attributes</mat-icon>
+      <z-icon [color]="detailsOpen() ? 'accent' : ''" zType="edit_attributes"></z-icon>
       @if (!isMobile()) {
         <span>{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
       }

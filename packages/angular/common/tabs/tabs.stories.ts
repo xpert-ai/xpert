@@ -1,16 +1,15 @@
-import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { Meta, StoryObj, moduleMetadata } from '@storybook/angular'
-import { ZardButtonComponent, ZardTabGroupComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardTabGroupComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Common/ZardTabs',
   component: ZardTabGroupComponent,
   decorators: [
     moduleMetadata({
-      imports: [BrowserAnimationsModule, ZardButtonComponent, MatMenuModule, MatIconModule, ...ZardTabsImports, OcapCoreModule]
+      imports: [BrowserAnimationsModule, ZardButtonComponent, MatMenuModule, ZardIconComponent, ...ZardTabsImports, OcapCoreModule]
     })
   ]
 } as Meta<ZardTabGroupComponent>
@@ -29,7 +28,7 @@ export const CloseButton = ((args: any) => ({
   <z-tab label="First">
     <ng-template zTabLabel>First
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-appearance-desktop ngm-tab-button-right" [matMenuTriggerFor]="pointMenu" [matMenuTriggerData]="{point: point}">
-          <mat-icon>more_vert</mat-icon>
+          <z-icon zType="more_vert"></z-icon>
       </button>
     </ng-template>
    Content 1 </z-tab>

@@ -6,7 +6,7 @@
     <mat-chip-row *ngFor="let tag of tags()" [ngClass]="'bg-'+tag.color+'-100'" class="bg-blue-100" (removed)="remove(tag)">
       {{tag.name}}
       <button matChipRemove>
-        <mat-icon>cancel</mat-icon>
+        <z-icon zType="cancel"></z-icon>
       </button>
     </mat-chip-row>
   </mat-chip-grid>

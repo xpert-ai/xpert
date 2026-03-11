@@ -23,15 +23,15 @@
         (click)="fileUpload.value=null;">
     <div ngmButtonGroup >
         <button z-button zType="ghost" zSize="icon" zShape="circle" [disabled]="loading()" [matTooltip]=" 'PAC.Copilot.Examples.DownloadTemplate' | translate: {Default: 'Download template'} " (click)="downloadTemplate()">
-            <mat-icon fontSet="material-icons-round">system_update_alt</mat-icon>
+            <z-icon zType="system_update_alt"></z-icon>
         </button>
 
         <button z-button zType="ghost" zSize="icon" zShape="circle" [disabled]="loading()" [matTooltip]=" 'PAC.Copilot.Examples.UploadExamples' | translate: {Default: 'Upload examples'} " (click)="fileUpload.click()">
-            <mat-icon fontSet="material-icons-round">upload</mat-icon>
+            <z-icon zType="upload"></z-icon>
         </button>
 
         <button z-button zType="default" zSize="icon-sm" zShape="circle" [disabled]="loading()" [matTooltip]=" 'PAC.Copilot.Examples.AddExample' | translate: {Default: 'Add example'} " (click)="addExample()">
-            <mat-icon fontSet="material-icons-round">add</mat-icon>
+            <z-icon zType="add"></z-icon>
         </button>
     </div>
     
@@ -47,18 +47,18 @@
 
 <ng-template #vector let-vector>
   @if (vector) {
-    <mat-icon fontSet="material-icons-round">text_rotation_angleup</mat-icon>
+    <z-icon zType="text_rotation_angleup"></z-icon>
   }
 </ng-template>
 
 <ng-template #actionTemplate let-id="id" let-input="input">
     <div class="flex items-center">
         <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'PAC.Copilot.Examples.EditExample' | translate: {Default: 'Edit example'}" (click)="editExample(id)">
-            <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+            <z-icon zType="edit"></z-icon>
         </button>
         <z-divider vertical style="height: 20px;"></z-divider>
         <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" [matTooltip]="'PAC.Copilot.Examples.DeleteExample' | translate: {Default: 'Delete example'}" (click)="deleteExample(id, input)">
-            <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+            <z-icon zType="delete"></z-icon>
         </button>
     </div>
 </ng-template>

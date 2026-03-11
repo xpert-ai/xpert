@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, booleanAttribute, effect, input, signal } from '@angular/core'
-import { MatIconModule } from '@angular/material/icon'
+import { ChangeDetectionStrategy, Component, booleanAttribute, computed, effect, input, signal } from '@angular/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
+import { type ZardIconSizeVariants, ZardIconComponent } from '@xpert-ai/headless-ui'
 import {
   AggregationRole,
   DisplayBehaviour,
@@ -18,7 +18,7 @@ import {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatIconModule, DensityDirective, NgmCommonModule],
+  imports: [CommonModule, ZardIconComponent, DensityDirective, NgmCommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-entity-property',
   templateUrl: './property.component.html',
@@ -44,6 +44,9 @@ export class NgmEntityPropertyComponent {
   readonly role = input<AggregationRole>(null)
 
   readonly icon = signal<string | null>(null)
+  readonly iconSize = computed<ZardIconSizeVariants>(() =>
+    this.displayDensity() === DisplayDensity.compact ? 'lg' : 'xl'
+  )
 
   constructor() {
     effect(() => {

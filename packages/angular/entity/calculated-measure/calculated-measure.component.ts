@@ -7,7 +7,6 @@ import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, Reac
 
 import { MatDialog } from '@angular/material/dialog'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -35,7 +34,7 @@ import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.compone
 import { EntityCapacity } from '../entity-schema/types'
 import { NgmEntityPropertyComponent } from '../property/property.component'
 import { Dialog } from '@angular/cdk/dialog'
-import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -46,7 +45,7 @@ import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
     DragDropModule,
     MatSidenavModule,
     ...ZardTabsImports,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     MatListModule,
     MatTooltipModule,

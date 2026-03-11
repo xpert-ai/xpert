@@ -77,9 +77,9 @@
                 @if (column.name === rowTreeProperty()) {
                   <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance?.displayDensity" (click)="toggleRowUnfold($event)">
                     @if (rowUnfold) {
-                      <mat-icon>unfold_less</mat-icon>
+                      <z-icon zType="unfold_less"></z-icon>
                     } @else {
-                      <mat-icon>unfold_more</mat-icon>
+                      <z-icon zType="unfold_more"></z-icon>
                     }
                   </button>
                 }
@@ -87,7 +87,7 @@
                 <span>{{column.caption || column.name}}</span>
         
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" [color]="column.selections?.length ? 'accent' : ''" cdkOverlayOrigin #trigger="cdkOverlayOrigin" (click)="$event.stopPropagation();$event.preventDefault();column.isFilterOpen=!column.isFilterOpen">
-                  <mat-icon [color]="column.selections?.length ? 'accent' : ''">more_vert</mat-icon>
+                  <z-icon [color]="column.selections?.length ? 'accent' : ''" zType="more_vert"></z-icon>
                 </button>
                 <ng-template
                   cdkConnectedOverlay cdkConnectedOverlayHasBackdrop
@@ -105,23 +105,23 @@
                         <div>{{'Ngm.AnalyticalGrid.SORT' | translate: {Default: 'SORT'} }}</div>
                         <div class="flex justify-between items-center">
                           <button z-button zType="ghost" displayDensity="cosy" [color]="matSortActive===column.name && matSortDirection==='asc' ? 'accent' : ''" (click)="matSortActive===column.name && matSortDirection==='asc' ? ((matSortActive=null)&&matSortDirection=null) : ((matSortActive=column.name)&&matSortDirection='asc')">
-                            <mat-icon>arrow_upward</mat-icon>
+                            <z-icon zType="arrow_upward"></z-icon>
                             {{ 'Ngm.AnalyticalGrid.ASCENDING' | translate: {Default: 'ASCENDING'} }}
                           </button>
-                          <button z-button zType="ghost" displayDensity="cosy" [color]="matSortActive===column.name && matSortDirection==='desc' ? 'accent' : ''" (click)="matSortActive===column.name && matSortDirection==='desc' ? ((matSortActive=null)&&matSortDirection=null) : ((matSortActive=column.name)&&matSortDirection='desc')"><mat-icon>arrow_downward</mat-icon>
+                          <button z-button zType="ghost" displayDensity="cosy" [color]="matSortActive===column.name && matSortDirection==='desc' ? 'accent' : ''" (click)="matSortActive===column.name && matSortDirection==='desc' ? ((matSortActive=null)&&matSortDirection=null) : ((matSortActive=column.name)&&matSortDirection='desc')"><z-icon zType="arrow_downward"></z-icon>
                             {{ 'Ngm.AnalyticalGrid.DESCENDGING' | translate: {Default: 'DESCENDGING'} }}
                           </button>
                         </div>
                         <div>{{'Ngm.AnalyticalGrid.MOVE' | translate: {Default: 'MOVE'} }}</div>
                         <div class="flex justify-between items-center">
-                          <button z-button zType="ghost" displayDensity="cosy" (click)="moveLeft(column.name)"><mat-icon>arrow_back</mat-icon>
+                          <button z-button zType="ghost" displayDensity="cosy" (click)="moveLeft(column.name)"><z-icon zType="arrow_back"></z-icon>
                             {{ 'Ngm.AnalyticalGrid.MOVELEFT' | translate: {Default: 'MOVE LEFT'} }}
                           </button>
-                          <button z-button zType="ghost" displayDensity="cosy" (click)="moveRight(column.name)">{{ 'Ngm.AnalyticalGrid.MOVERIGHT' | translate: {Default: 'MOVE RIGHT'} }}<mat-icon>arrow_forward</mat-icon></button>
+                          <button z-button zType="ghost" displayDensity="cosy" (click)="moveRight(column.name)">{{ 'Ngm.AnalyticalGrid.MOVERIGHT' | translate: {Default: 'MOVE RIGHT'} }}<z-icon zType="arrow_forward"></z-icon></button>
                         </div>
 
                         <button z-button zType="ghost" class="w-full" displayDensity="cosy" [color]="column.sticky?'accent':''" (click)="column.sticky=!column.sticky">
-                          <mat-icon>push_pin</mat-icon>{{ 'Ngm.AnalyticalGrid.Pin' | translate: {Default: 'Pin'} }}
+                          <z-icon zType="push_pin"></z-icon>{{ 'Ngm.AnalyticalGrid.Pin' | translate: {Default: 'Pin'} }}
                         </button>
           
                         <ngm-search class="shrink-0" [(ngModel)]="column.search" (ngModelChange)="onColumnMemberSearch(column, $event)"></ngm-search>
@@ -178,9 +178,7 @@
                 <div class="flex justify-start items-center">
                   @if (column.name === rowTreeProperty()) {
                     <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance?.displayDensity" [style.visibility]="!element.expandable ? 'hidden' : ''" [style.marginLeft.px]="element.level * treeNodePadding" (click)="toggleRowTree($event, element)">
-                      <mat-icon class="mat-icon-rtl-mirror">
-                        {{rowTreeControl.isExpanded(element) ? 'expand_more' : 'chevron_right'}}
-                      </mat-icon>
+                      <z-icon class="z-icon-rtl-mirror" [zType]="rowTreeControl.isExpanded(element) ? 'expand_more' : 'chevron_right'"></z-icon>
                     </button>
                   }
                   
@@ -202,18 +200,18 @@
             <ng-container *ngFor="let columnAxis of tableConfig.columnAxes; let i = index" [matColumnDef]="columnAxis.dimension">
               <th *matHeaderCellDef mat-header-cell>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="columnAxis.displayHierarchy" [displayDensity]="appearance?.displayDensity" (click)="toggleColumnUnfold($event)">
-                  <mat-icon *ngIf="!columnUnfold">unfold_more</mat-icon>
-                  <mat-icon *ngIf="columnUnfold">unfold_less</mat-icon>
+                  <z-icon *ngIf="!columnUnfold" zType="unfold_more"></z-icon>
+                  <z-icon *ngIf="columnUnfold" zType="unfold_less"></z-icon>
                 </button>
                 {{columnAxis.caption || columnAxis.dimension}}
                 
                 <ng-container *ngIf="options()?.sortable && columnAxis.dimension !== C_MEASURES">
                   <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="columnAxis.sortDirection" displayDensity="compact" (click)="toggleColumnOrder(i)">
-                    <mat-icon *ngIf="columnAxis.sortDirection==='asc'">arrow_left</mat-icon>
-                    <mat-icon *ngIf="columnAxis.sortDirection==='desc'">arrow_right</mat-icon>
+                    <z-icon *ngIf="columnAxis.sortDirection==='asc'" zType="arrow_left"></z-icon>
+                    <z-icon *ngIf="columnAxis.sortDirection==='desc'" zType="arrow_right"></z-icon>
                   </button>
                   <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="!columnAxis.sortDirection" displayDensity="compact" class="ngm-analytical-grid__want-order" (click)="toggleColumnOrder(i)">
-                    <mat-icon>arrow_left</mat-icon>
+                    <z-icon zType="arrow_left"></z-icon>
                   </button>
                 </ng-container>
               </th>
@@ -235,9 +233,7 @@
                 >
                 <div class="flex justify-start items-center" [style.marginTop.px]="column.treeLevel * treeNodePadding">
                   <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="column.expandable" [displayDensity]="appearance?.displayDensity" [style.visibility]="!column.expandable ? 'hidden' : ''" (click)="toggleColumnTree(column)">
-                    <mat-icon class="mat-icon-rtl-mirror">
-                      {{columnTreeControl.isExpanded(column) ? 'expand_more' : 'chevron_right'}}
-                    </mat-icon>
+                    <z-icon class="z-icon-rtl-mirror" [zType]="columnTreeControl.isExpanded(column) ? 'expand_more' : 'chevron_right'"></z-icon>
                   </button>
 
                   <div class="pivot-column-header-content">
@@ -326,7 +322,6 @@
     [pageSize]="options()?.pageSize" [pageSizeOptions]="[20, 50, 100]" showFirstLastButtons
   />
 }
-
 
 <ng-template #filtersMenu let-trigger="trigger">
   <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">

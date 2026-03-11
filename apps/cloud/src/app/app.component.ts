@@ -1,12 +1,7 @@
 import { Platform } from '@angular/cdk/platform'
 import { DOCUMENT } from '@angular/common'
 import { ChangeDetectionStrategy, Component, Inject, Renderer2, effect } from '@angular/core'
-import { MatIconRegistry } from '@angular/material/icon'
-import { DomSanitizer, Title } from '@angular/platform-browser'
-import {
-  ICONS,
-  UpdateService,
-} from './@core'
+import { Title } from '@angular/platform-browser'
 import { AppService } from './app.service'
 
 @Component({
@@ -22,19 +17,12 @@ export class AppComponent {
 
   constructor(
     public readonly appService: AppService,
-    // public readonly updateService: UpdateService,
     @Inject(DOCUMENT)
     private document: Document,
     private renderer: Renderer2,
-    private matIconRegistry: MatIconRegistry,
-    private domSanitizer: DomSanitizer,
     private platform: Platform,
     private title: Title,
   ) {
-    ICONS.forEach((icon) => {
-      this.matIconRegistry.addSvgIcon(icon.name, this.domSanitizer.bypassSecurityTrustResourceUrl(icon.resourceUrl))
-    })
-
     effect(() => {
       const isMobile = this.isMobile$()
       // const { preferredTheme, primary } = this.appService.theme$()

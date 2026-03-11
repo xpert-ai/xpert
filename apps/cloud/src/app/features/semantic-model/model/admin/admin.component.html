@@ -18,7 +18,7 @@
       <div ngmButtonGroup>
         <button z-button zType="outline" color="accent" displayDensity="cosy" (click)="transferOwner()">
           <div class="flex items-center whitespace-nowrap text-ellipsis overflow-hidden">
-            <mat-icon fontSet="material-icons-outlined">local_shipping</mat-icon>
+            <z-icon zType="local_shipping"></z-icon>
             {{ 'PAC.MODEL.TransferOwnership' | translate: { Default: 'Transfer Ownership' } }}
           </div>
         </button>
@@ -36,7 +36,7 @@
   
     <div ngmButtonGroup>
       <button z-button zType="default" color="primary" displayDensity="cosy" (click)="openMemberSelect()">
-        <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+        <z-icon zType="add"></z-icon>
         {{ 'PAC.KEY_WORDS.ADD' | translate: { Default: 'Add' } }}
       </button>
     </div>
@@ -94,7 +94,7 @@
 <ng-template #actionTempl let-loading="loading" let-id="id">
   <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-gray-400" [disabled]="loading" (click)="removeMember(id)">
     <div class="flex justify-center items-center">
-      <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+      <z-icon zType="delete"></z-icon>
     </div>
   </button>
 </ng-template>

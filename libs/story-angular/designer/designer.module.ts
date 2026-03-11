@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -13,7 +12,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NxComponentSettingsComponent } from './component-form/formly-form.component'
 import { DesignerPanelComponent } from './panel/panel.component'
 import { NgmSettingsPanelComponent } from './settings-panel/settings-panel.component'
-import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
@@ -23,7 +22,7 @@ import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
     PortalModule,
     MatSidenavModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     ...ZardTabsImports,
     MatToolbarModule,
     MatTooltipModule,

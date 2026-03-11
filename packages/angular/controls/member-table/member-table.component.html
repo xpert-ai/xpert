@@ -26,7 +26,6 @@
       </td>
     </ng-container>
 
-
     <ng-container [matColumnDef]="col.name" *ngFor="let col of columns$ | async">
       <th mat-header-cell *matHeaderCellDef> {{col.caption || col.name}} </th>
       <td mat-cell *matCellDef="let element"> {{element[col.name]}} </td>

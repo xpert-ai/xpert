@@ -7,7 +7,7 @@
 
     <div class="flex flex-1 items-center gap-2">
       @if (type) {
-        <mat-icon class="text-slate-500" displayDensity="compact" [svgIcon]="getChartType(type)?.icon"></mat-icon>
+        <z-icon class="text-slate-500" zSize="sm" [svgIcon]="getChartType(type)?.icon"></z-icon>
       }
 
       <z-combobox
@@ -20,18 +20,18 @@
     </div>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="type && type!==ChartTypeEnum.Custom" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
-      <mat-icon *ngIf="!showMore()">expand_more</mat-icon>
-      <mat-icon *ngIf="showMore()">expand_less</mat-icon>
+      <z-icon *ngIf="!showMore()" zType="expand_more"></z-icon>
+      <z-icon *ngIf="showMore()" zType="expand_less"></z-icon>
     </button>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="type===ChartTypeEnum.Custom" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();showCustomCode.set(!showCustomCode())">
-      <mat-icon fontSet="material-icons-outlined"
+      <z-icon
         [color]="showCustomCode()?'accent':''"
-      >code</mat-icon>
+       zType="code"></z-icon>
     </button>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix *ngIf="removable" class="ngm-formly__remove" displayDensity="compact" color="warn" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
-      <mat-icon>clear</mat-icon>
+      <z-icon zType="clear"></z-icon>
     </button>
   </div>
 
@@ -39,7 +39,7 @@
 
     <div class="surface-content flex flex-col justify-start items-start gap-2 rounded-lg p-2" >
       <div class="flex items-center text-sm">
-        <mat-icon fontSet="material-icons-outlined" displayDensity="compact" >edit_attributes</mat-icon>
+        <z-icon zSize="sm"  zType="edit_attributes"></z-icon>
         <span>{{ 'FORMLY.CHART.ChartType' | translate: {Default: 'Chart Type'} }}</span>
       </div>
 
@@ -79,7 +79,7 @@
     <form *ngIf="type===ChartTypeEnum.GeoMap" class="surface-content flex flex-col justify-start items-start gap-2 rounded-lg p-2"
       [formGroup]="mapFormGroup" >
       <div class="flex items-center text-sm">
-        <mat-icon fontSet="material-icons-outlined" displayDensity="compact" class="text-slate-900">map</mat-icon>
+        <z-icon zSize="sm" class="text-slate-900" zType="map"></z-icon>
         <span>{{ 'FORMLY.CHART.GeoMapConfig' | translate: {Default: 'GeoMap Config'} }}</span>
       </div>
 
@@ -114,7 +114,7 @@
 
     <div class="surface-content w-full rounded-lg">
       <div class="flex items-center text-sm p-2">
-        <mat-icon fontSet="material-icons-outlined" displayDensity="compact" class="text-slate-900">analytics</mat-icon>
+        <z-icon zSize="sm" class="text-slate-900" zType="analytics"></z-icon>
         <span>{{ 'FORMLY.CHART.ChartOptions' | translate: {Default: 'Chart Options'} }}</span>
       </div>
 
@@ -137,7 +137,7 @@
     
       <div class="flex items-center gap-2">
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="ngm-copilot-command-button" [disabled]="!scripts || answering" [matTooltip]=" 'FORMLY.CHART.AutomaticallyGenerateCode' | translate: {Default: 'Automatically generate code by comments'} " (click)="aiGenerate()">
-          <mat-icon fontSet="material-icons-outlined">auto_awesome</mat-icon>
+          <z-icon zType="auto_awesome"></z-icon>
         </button>
       </div>
     </header>

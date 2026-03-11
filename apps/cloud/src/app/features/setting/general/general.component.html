@@ -1,6 +1,6 @@
 <div class="blocks four">
   <div class="icon-form-field">
-      <mat-icon color="primary">translate</mat-icon>
+      <z-icon color="primary" zType="translate"></z-icon>
       <z-form-field>
       <z-form-label>{{'PAC.MENU.GENERAL.LANGUAGE' | translate: {Default: "Language"} }}</z-form-label>
         <ngm-select [placeholder]="'PAC.MENU.GENERAL.LANGUAGE_PLACEHOLDER' | translate: {Default: 'Select Language'} "
@@ -12,7 +12,7 @@
       </z-form-field>
     </div>
   <div class="icon-form-field">
-    <mat-icon color="primary">color_lens</mat-icon>
+    <z-icon color="primary" zType="color_lens"></z-icon>
     <z-form-field>
       <z-form-label>{{'PAC.MENU.GENERAL.THEME' | translate: {Default: "Theme"} }}</z-form-label>
       <ngm-select [ngModel]="preferredTheme$()"

@@ -19,7 +19,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { NgmSelectComponent } from '@metad/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgmFieldAppearance } from "@metad/ocap-angular/core";
-import { ZardFormImports } from "@xpert-ai/headless-ui";
+import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
 	standalone: true,

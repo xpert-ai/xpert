@@ -51,8 +51,7 @@
                     <a routerLink="/models" class="hover:underline">
                         <span class="text-lg font-bold italic">{{quickGuides().model.quantity}}</span>
                         {{ 'PAC.KEY_WORDS.SemanticModels' | translate: {
-                            Default: 'Semantic Models',
-                        } }}
+                            Default: 'Semantic Models' } }}
                     </a>
                 </span>
             </div>
@@ -121,19 +120,19 @@
             <div class="flex items-center gap-2">
               @if (editable()) {
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.KEY_WORDS.RestoreLayout' |translate: {Default: 'Restore layout'}" (click)="restore()">
-                    <mat-icon fontSet="material-icons-outlined">restart_alt</mat-icon>
+                    <z-icon zType="restart_alt"></z-icon>
                 </button>
                 @if (dirty()) {
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.KEY_WORDS.Undo' |translate: {Default: 'Undo'}" (click)="undoEdit()">
-                        <mat-icon fontSet="material-icons-outlined">undo</mat-icon>
+                        <z-icon zType="undo"></z-icon>
                     </button>
                 }
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.KEY_WORDS.Commit' |translate: {Default: 'Commit'}" (click)="commitEdit()">
-                    <mat-icon fontSet="material-icons-outlined">done</mat-icon>
+                    <z-icon zType="done"></z-icon>
                 </button>
               } @else {
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.KEY_WORDS.Edit' |translate: {Default: 'Edit'}" (click)="toggleEdit()">
-                    <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+                    <z-icon zType="edit"></z-icon>
                 </button>
               }
             </div>
@@ -156,12 +155,12 @@
                 <div class="pac-home__widget-actions">
                   @if (editable()) {
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="pac-home__widget-remove" (click)="$event.preventDefault();$event.stopPropagation();removeWidget(feed)">
-                        <mat-icon>close</mat-icon>
+                        <z-icon zType="close"></z-icon>
                     </button>
                   }
                   @if (feed.type ==='StoryWidget') {
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [routerLink]="['/story', feed.options.storyId]" [queryParams]="{pageKey: feed.options.pageKey, widgetKey: feed.options.widgetKey}">
-                        <mat-icon fontSet="material-icons-round">launch</mat-icon>
+                        <z-icon zType="launch"></z-icon>
                     </button>
                   }
                 </div>

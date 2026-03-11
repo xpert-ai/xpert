@@ -3,7 +3,6 @@ import { AfterViewInit, ChangeDetectorRef, Component, computed, inject, output, 
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { EditorThemeMap } from '@metad/ocap-angular/formula'
@@ -15,7 +14,7 @@ import { debounceTime, distinctUntilChanged, filter, map, tap } from 'rxjs/opera
 import { EmailTemplateService, Store, ToastrService } from '../../../../@core/'
 import { EmailTemplateNameEnum, IOrganization, LanguagesMap } from '../../../../@core/types'
 import { EmailTemplatesComponent } from '../email-templates.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -26,7 +25,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
 
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     MonacoEditorModule,
 
     ButtonGroupDirective

@@ -24,12 +24,11 @@ import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { serializePropertyUniqueName } from '../../utils'
 import { ModelEntityService } from '../entity.service'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatIconModule } from '@angular/material/icon'
 
 import { getSemanticModelKey } from '@metad/story/core'
 import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
 import { typeOfObj } from '@cloud/app/@shared/model/types'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -43,7 +42,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     DragDropModule,
     MatTooltipModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     NgmCommonModule,
     NgmMDXEditorComponent,

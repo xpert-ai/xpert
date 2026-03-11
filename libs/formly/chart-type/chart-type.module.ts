@@ -2,12 +2,9 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialogModule } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardComboboxComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
@@ -15,8 +12,15 @@ import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
+import {
+  ZardButtonComponent,
+  ZardComboboxComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  provideZardIconAssets
+} from '@xpert-ai/headless-ui'
 import { PACFormlyChartTypeComponent } from './chart-type.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { CHART_ICON_ASSETS } from './types'
 
 @NgModule({
   declarations: [PACFormlyChartTypeComponent],
@@ -25,7 +29,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     ZardComboboxComponent,
     MatMenuModule,
@@ -50,6 +54,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       ]
     })
   ],
+  providers: [provideZardIconAssets(CHART_ICON_ASSETS)],
   exports: [PACFormlyChartTypeComponent]
 })
 export class PACFormlyChartTypeModule {}

@@ -93,14 +93,13 @@
   </z-form-message>
 </div>
 
-
 <ng-template #optionTemplate let-option>
   <ng-template [ngIf]="_explicitContent" [ngIfElse]="optionTextLabel">
     <ng-container *ngTemplateOutlet="_explicitContent; context: {$implicit: option, value: option.value, caption: option.caption, key: option.key, highlight: highlight()}"></ng-container>
   </ng-template>
   <ng-template #optionTextLabel>
     @if (option.icon) {
-      <mat-icon [fontSet]="option.fontSet">{{option.icon}}</mat-icon>
+      <z-icon [zType]="option.icon"></z-icon>
     }
     <ngm-display-behaviour class="flex-1 overflow-hidden" [displayBehaviour]="displayBehaviour()"
       [option]="option"

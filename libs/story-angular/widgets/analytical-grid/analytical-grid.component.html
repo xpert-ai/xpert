@@ -14,10 +14,10 @@
 >
   <div ngmAction class="flex items-center">
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" *ngIf="pin" (click)="unlinkAnalysis()">
-      <mat-icon fontSet="material-icons-outlined">push_pin</mat-icon>
+      <z-icon zType="push_pin"></z-icon>
     </button>
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [color]="(hasSlicers$ | async) ? 'accent':''" [matMenuTriggerFor]="filtersMenu">
-      <mat-icon fontSet="material-icons-outlined">filter_alt</mat-icon>
+      <z-icon zType="filter_alt"></z-icon>
     </button>
   </div>  
   

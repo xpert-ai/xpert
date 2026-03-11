@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { SemanticModelServerService } from '@metad/cloud/state'
@@ -27,7 +26,7 @@ import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 import { ModelTaskDialogComponent } from '../task/task.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -35,7 +34,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatIconModule,
+    ZardIconComponent,
     MatExpansionModule,
     ZardButtonComponent,
     MatTooltipModule,

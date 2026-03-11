@@ -1,9 +1,9 @@
 <div class="flex justify-start items-center gap-1">
   <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance()?.displayDensity" (click)="$event.stopPropagation();toggleExpand()">
     @if (unfold) {
-      <mat-icon>unfold_less</mat-icon>
+      <z-icon zType="unfold_less"></z-icon>
     } @else {
-      <mat-icon>unfold_more</mat-icon>
+      <z-icon zType="unfold_more"></z-icon>
     }
   </button>
   @if (options()?.searchable ?? true) {
@@ -28,9 +28,7 @@
       <!-- Note that treeControl.toggle(node) is essentially what cdkTreeNodeToggle is doing under the hood -->
       @if (node.expandable) {
         <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance()?.displayDensity" (click)="treeControl.toggle(node)">
-          <mat-icon class="mat-icon-rtl-mirror">
-            {{ treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right' }}
-          </mat-icon>
+          <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'"></z-icon>
         </button>
       } @else {
         <button z-button zType="ghost" zSize="icon" zShape="circle" disabled [displayDensity]="appearance()?.displayDensity"></button>

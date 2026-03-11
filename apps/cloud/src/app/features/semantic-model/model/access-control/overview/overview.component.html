@@ -28,7 +28,7 @@
         <th mat-header-cell *matHeaderCellDef> {{ 'PAC.KEY_WORDS.Action' | translate: {Default: 'Action'} }} </th>
         <td mat-cell *matCellDef="let element">
           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" ngmAppearance="danger" (click)="removeRole(element.key)">
-            <mat-icon>close</mat-icon>
+            <z-icon zType="close"></z-icon>
           </button>
         </td>
       </ng-container>
@@ -83,7 +83,7 @@
         <td mat-cell *matCellDef="let element">
 
           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeUser(element.user.id)">
-            <mat-icon>close</mat-icon>
+            <z-icon zType="close"></z-icon>
           </button>
         </td>
       </ng-container>

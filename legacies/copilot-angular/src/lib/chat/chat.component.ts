@@ -10,7 +10,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Ou
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardDividerComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDividerComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -55,7 +55,6 @@ import { CopilotAgentConfigComponent } from './agent-config/config.component'
 import { CopilotAIMessageComponent } from './ai-message/ai-message.component'
 import { CopilotChatTokenComponent } from './token/token.component'
 import { PlaceholderMessages } from './types'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export const AUTO_SUGGESTION_DEBOUNCE_TIME = 1000
 export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']

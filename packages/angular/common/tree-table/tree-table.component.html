@@ -6,8 +6,8 @@
     <th mat-header-cell *matHeaderCellDef>
       <div class="flex items-center">
         <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity" (click)="toggleUnfold()">
-          <mat-icon *ngIf="!unfold">unfold_more</mat-icon>
-          <mat-icon *ngIf="unfold">unfold_less</mat-icon>
+          <z-icon *ngIf="!unfold" zType="unfold_more"></z-icon>
+          <z-icon *ngIf="unfold" zType="unfold_less"></z-icon>
         </button>
         <span> {{nameLabel}} </span>
       </div>
@@ -15,9 +15,7 @@
     <td mat-cell *matCellDef="let data">
       <div class="flex justify-start items-center">
         <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity" [style.visibility]="!data.expandable ? 'hidden' : ''" [style.marginLeft.px]="data.level * treeNodePadding" (click)="treeControl.toggle(data)">
-          <mat-icon class="mat-icon-rtl-mirror">
-            {{treeControl.isExpanded(data) ? 'expand_more' : 'chevron_right'}}
-          </mat-icon>
+          <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(data) ? 'expand_more' : 'chevron_right'"></z-icon>
         </button>
         <ng-container *ngIf="nameCellTemplate">
           <ng-container *ngTemplateOutlet="nameCellTemplate; context: data"></ng-container>

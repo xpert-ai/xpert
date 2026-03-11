@@ -15,7 +15,6 @@ export interface ISelectOption<T = unknown> {
   caption?: string
   selected?: boolean
   icon?: string
-  fontSet?: string
 }
 
 /**

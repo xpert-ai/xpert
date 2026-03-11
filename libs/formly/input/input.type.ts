@@ -7,7 +7,7 @@ import { DensityDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isObservable, startWith } from 'rxjs'
-import { ZardFormImports } from "@xpert-ai/headless-ui";
+import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

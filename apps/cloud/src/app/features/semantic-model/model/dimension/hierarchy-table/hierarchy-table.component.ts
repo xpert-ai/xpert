@@ -1,5 +1,5 @@
 import { Component, afterNextRender, booleanAttribute, effect, input, signal, viewChild } from '@angular/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 import { MatPaginator, MatPaginatorDefaultOptions, MatPaginatorModule } from '@angular/material/paginator'
 import { MatTableDataSource, MatTableModule } from '@angular/material/table'
@@ -11,7 +11,6 @@ import { findIndex, get } from 'lodash-es'
 import { HierarchyTableDataType } from '../types'
 import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatIconModule } from '@angular/material/icon'
 
 type LevelTableColumn = TableColumn & { captionName: string }
 
@@ -27,7 +26,7 @@ type LevelTableColumn = TableColumn & { captionName: string }
   imports: [
     CommonModule,
     MatTableModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     MatPaginatorModule,
     TranslateModule,

@@ -8,11 +8,11 @@
 >
   @if (removeable) {
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity duration-100" displayDensity="compact" ngmAppearance="danger" color="warn" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
-      <mat-icon>clear</mat-icon>
+      <z-icon zType="clear"></z-icon>
     </button>
   } @else {
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity duration-100" displayDensity="compact" ngmAppearance="danger" color="warn" (click)="$event.stopPropagation();$event.preventDefault();clear()">
-      <mat-icon>clear</mat-icon>
+      <z-icon zType="clear"></z-icon>
     </button>
   }
 </ngm-chart-property>

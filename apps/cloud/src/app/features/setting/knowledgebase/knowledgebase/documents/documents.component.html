@@ -3,7 +3,7 @@
   
   <div ngmButtonGroup >
     <button z-button zType="default" zSize="icon-sm" zShape="circle" [matTooltip]=" 'PAC.Knowledgebase.NewFiles' | translate: {Default: 'New Files' }" (click)="uploadDocuments()">
-        <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+        <z-icon zType="add"></z-icon>
     </button>
   </div>
 </div>
@@ -56,29 +56,29 @@
         <div class="flex items-center gap-2" displayDensity="cosy" >
           <button z-button zType="ghost" zSize="icon" zShape="circle" aria-label="expand row" (click)="(expandedElement = expandedElement?.id === element.id ? null : element); $event.stopPropagation()">
             @if (expandedElement?.id === element.id) {
-              <mat-icon>keyboard_arrow_up</mat-icon>
+              <z-icon zType="keyboard_arrow_up"></z-icon>
             } @else {
-              <mat-icon>keyboard_arrow_down</mat-icon>
+              <z-icon zType="keyboard_arrow_down"></z-icon>
             }
           </button>
 
           @if (element.status === 'finish') {
             <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'PAC.Knowledgebase.RestartParsing' | translate: {Default: 'Restart parsing'}" matTooltipPosition="above" (click)="restartParsing(element.id)">
-              <mat-icon fontSet="material-icons-outlined">restart_alt</mat-icon>
+              <z-icon zType="restart_alt"></z-icon>
             </button>
           } @else if(element.status === 'running') {
             <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'PAC.Knowledgebase.StopParsing' | translate: {Default: 'Stop parsing'}" matTooltipPosition="above" (click)="stopParsing(element.id)">
-              <mat-icon fontSet="material-icons-outlined">stop_circle</mat-icon>
+              <z-icon zType="stop_circle"></z-icon>
             </button>
           } @else {
             <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'PAC.Knowledgebase.StartParsing' | translate: {Default: 'Start parsing'}" matTooltipPosition="above" (click)="startParsing(element)">
-              <mat-icon fontSet="material-icons-outlined">play_circle</mat-icon>
+              <z-icon zType="play_circle"></z-icon>
             </button>
           }
 
           <z-divider vertical style="height: 20px;" />
           <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" [matTooltip]="'PAC.Knowledgebase.DeleteKnowledgeDocument' | translate: {Default: 'Delete Knowledge Document'}" matTooltipPosition="above" (click)="deleteDocument(element.id, element.storageFile)">
-            <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+            <z-icon zType="delete"></z-icon>
           </button>
         </div>
       </td>

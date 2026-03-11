@@ -3,7 +3,6 @@ import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
 import { injectConfirmDelete, injectConfirmUnique } from '@metad/ocap-angular/common'
@@ -24,7 +23,7 @@ import {
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { UserProfileInlineComponent } from '../../../@shared/user'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +35,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     AppearanceDirective,
     DynamicGridDirective,
     EmojiAvatarComponent,

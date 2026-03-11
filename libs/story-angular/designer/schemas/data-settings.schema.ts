@@ -98,9 +98,7 @@ export abstract class DataSettingsSchemaService<
           ? 'star_outline'
           : cube.cubeType === 'VIRTUAL CUBE'
             ? 'dataset_linked'
-            : null,
-        fontSet: 'material-icons-outlined'
-      }))
+            : null }))
     })
   )
 
@@ -302,9 +300,7 @@ export abstract class DataSettingsSchemaService<
                         ? 'star_outline'
                         : cube.cubeType === 'VIRTUAL CUBE'
                           ? 'dataset_linked'
-                          : null,
-                      fontSet: 'material-icons-outlined'
-                    }))
+                          : null }))
                   }),
                   tap(() => (field.className = field.className.split('formly-loader').join('')))
                 )

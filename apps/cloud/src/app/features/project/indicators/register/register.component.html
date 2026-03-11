@@ -15,7 +15,7 @@
       </button> -->
 
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="menu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()">
-        <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+        <z-icon zType="more_horiz"></z-icon>
       </button>
     </div>
   </div>
@@ -36,7 +36,7 @@
 
   <div class="w-full flex flex-col items-center">
     <button z-button zType="secondary" (click)="togglePreview()">
-      <mat-icon fontSet="material-icons-round">{{ preview() ? 'expand_less' : 'expand_more' }}</mat-icon>
+      <z-icon [zType]="preview() ? 'expand_less' : 'expand_more'"></z-icon>
       <span>
         {{ 'PAC.INDICATOR.DataPreview' | translate: {Default: 'Data Preview'} }}
       </span>
@@ -54,8 +54,7 @@
           [chartOptions]="chartOptions()"
           [chartSettings]="chartSettings()"
           [options]="{
-            realtimeLinked: true,
-          }"
+            realtimeLinked: true }"
           (explain)="setExplains($event)"
           >
           <div class="flex-1 flex items-center md:gap-2">

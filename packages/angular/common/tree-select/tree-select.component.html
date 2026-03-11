@@ -9,7 +9,7 @@
             [displayBehaviour]="displayBehaviour">
           </ngm-display-behaviour>
           <button matChipRemove >
-            <mat-icon>cancel</mat-icon>
+            <z-icon zType="cancel"></z-icon>
           </button>
         </mat-chip-row>
 
@@ -45,9 +45,7 @@
 
             <div class="flex-1 flex justify-start items-center" >
               <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity" [style.visibility]="!option.expandable ? 'hidden' : ''" [style.marginLeft.px]="option.level * treeNodePaddingIndent" (click)="$event.stopPropagation(); treeControl.toggle(option)">
-                <mat-icon class="mat-icon-rtl-mirror">
-                  {{treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'}}
-                </mat-icon>
+                <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'"></z-icon>
               </button>
 
               <mat-checkbox *ngIf="multiple" class="flex-1"
@@ -76,9 +74,7 @@
             (click)="$event.stopPropagation();$event.preventDefault()">
             <div class="flex-1 flex justify-start items-center">
               <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity" [style.visibility]="!option.expandable ? 'hidden' : ''" [style.marginLeft.px]="option.level * treeNodePaddingIndent" (click)="$event.stopPropagation(); treeControl.toggle(option)">
-                <mat-icon class="mat-icon-rtl-mirror">
-                  {{treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'}}
-                </mat-icon>
+                <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'"></z-icon>
               </button>
 
               <mat-checkbox *ngIf="multiple" class="flex-1"
@@ -108,8 +104,8 @@
       <div zFormPrefix class="flex justify-start items-center">
 
         <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-actionable-opacity" [displayDensity]="displayDensity" (click)="$event.stopPropagation();toggleExpand()">
-          <mat-icon *ngIf="!unfold">unfold_more</mat-icon>
-          <mat-icon *ngIf="unfold">unfold_less</mat-icon>
+          <z-icon *ngIf="!unfold" zType="unfold_more"></z-icon>
+          <z-icon *ngIf="unfold" zType="unfold_less"></z-icon>
         </button>
 
         <mat-checkbox *ngIf="multiple" class="mat-option-pseudo-checkbox"
@@ -121,7 +117,7 @@
 
     <div zFormSuffix class="flex justify-start items-center" >
       <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="isNotInitial" class="ngm-actionable-opacity" displayDensity="cosy" ngmAppearance="danger" [disabled]="disabled()" (click)="clear($event)">
-        <mat-icon>close</mat-icon>
+        <z-icon zType="close"></z-icon>
       </button>
 
       <ng-content select="[zFormSuffix]"></ng-content>
@@ -159,9 +155,7 @@
       [disabled]="disabled()"
       (click)="disabled() || toggleNode(node)">
       <button z-button zType="ghost" zSize="icon" zShape="circle" matTreeNodeToggle [displayDensity]="displayDensity" [attr.aria-label]="'Toggle ' + node.name">
-        <mat-icon class="mat-icon-rtl-mirror">
-          {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
-        </mat-icon>
+        <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'"></z-icon>
       </button>
 
       <ngm-display-behaviour class="flex-1" [option]="{value: node.key, label: node.label}"

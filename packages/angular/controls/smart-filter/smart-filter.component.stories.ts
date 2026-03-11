@@ -1,5 +1,4 @@
 import { provideHttpClient } from '@angular/common/http'
-import { MatIconModule } from '@angular/material/icon'
 import { BrowserAnimationsModule, provideAnimations } from '@angular/platform-browser/animations'
 import {
   DisplayDensity,
@@ -18,6 +17,7 @@ import { MockAgent } from '../../mock/agent-mock.service'
 import { NgmControlsModule } from '../controls.module'
 import { NgmSmartFilterComponent } from './smart-filter.component'
 import { FormsModule } from '@angular/forms'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Controls/SmartFilter',
@@ -28,7 +28,7 @@ export default {
       providers: [provideAnimations(), provideHttpClient(), provideTranslate()]
     }),
     moduleMetadata({
-      imports: [BrowserAnimationsModule, FormsModule, MatIconModule, NgmControlsModule, OcapCoreModule, TranslateModule],
+      imports: [BrowserAnimationsModule, FormsModule, ZardIconComponent, NgmControlsModule, OcapCoreModule, TranslateModule],
       providers: [
         provideOcapCore(),
         NgmDSCoreService,
@@ -245,7 +245,7 @@ export const Prefix = {
     template: `
 <ngm-smart-filter [dataSettings]="dataSettings" [dimension]="dimension" [options]="options">
     <div ngmPrefix>
-      <mat-icon>search</mat-icon>
+      <z-icon zType="search"></z-icon>
     </div>
 </ngm-smart-filter>
     `
@@ -268,7 +268,7 @@ export const Suffix = {
     template: `
 <ngm-smart-filter [dataSettings]="dataSettings" [dimension]="dimension" [options]="options">
     <div ngmSuffix>
-      <mat-icon>search</mat-icon>
+      <z-icon zType="search"></z-icon>
     </div>
 </ngm-smart-filter>
     `

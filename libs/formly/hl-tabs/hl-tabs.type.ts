@@ -1,15 +1,15 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, Injector, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 /**
  * 
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, FormlyModule],
+  imports: [CommonModule, FormsModule, ZardIconComponent, FormlyModule],
   selector: 'hl-formly-tabs',
   templateUrl: `hl-tabs.type.html`,
   host: {

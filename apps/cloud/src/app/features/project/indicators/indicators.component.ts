@@ -3,8 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 
-import { ZardDividerComponent } from '@xpert-ai/headless-ui'
-import { MatIconModule } from '@angular/material/icon'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { injectFetchModelDetails, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
@@ -26,7 +25,6 @@ import { ManageEntityBaseComponent } from '../../../@shared/directives'
 import { ProjectService } from '../project.service'
 import { NewIndicatorCodePlaceholder } from '../types'
 import { IndicatorImportComponent } from './indicator-import/indicator-import.component'
-import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -37,7 +35,7 @@ import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     MatTooltipModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     ...ZardTabsImports,
     ZardDividerComponent,
 

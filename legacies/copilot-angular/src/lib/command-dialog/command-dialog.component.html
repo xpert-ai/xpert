@@ -100,7 +100,7 @@
   } @else {
     <div class="flex items-center">
       {{ 'Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'} }}
-      <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">arrow_forward</mat-icon>
+      <z-icon zSize="default" zType="arrow_forward"></z-icon>
     </div>
   }
   </button>
@@ -116,7 +116,6 @@
     </button>
   }
 </mat-dialog-actions>
-
 
 <mat-menu #contextMenu="matMenu" class="ngm-menu__copilot-context-popper ngm-density__compact">
   <ng-template matMenuContent let-word="word">

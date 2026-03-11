@@ -4,8 +4,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardDividerComponent } from '@xpert-ai/headless-ui'
-import { MatIconModule } from '@angular/material/icon'
+import { ZardButtonComponent, ZardDividerComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -31,7 +30,6 @@ import { filter, map, switchMap } from 'rxjs'
 import { NgmMemberListComponent } from '../member-list/member-list.component'
 import { NgmMemberTreeComponent } from '../member-tree/member-tree.component'
 import { ControlOptions, TreeControlOptions } from '../types'
-import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -42,7 +40,7 @@ import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
   host: {
     class: 'ngm-value-help'
   },
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkMenuModule, MatDialogModule, MatIconModule, MatSlideToggleModule, ZardDividerComponent, MatListModule, ...ZardFormImports, ZardButtonComponent, NgmCommonModule, OcapCoreModule, NgmMemberListComponent, NgmMemberTreeComponent, NgmResizableDirective, NgmSelectComponent]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkMenuModule, MatDialogModule, ZardIconComponent, MatSlideToggleModule, ZardDividerComponent, MatListModule, ...ZardFormImports, ZardButtonComponent, NgmCommonModule, OcapCoreModule, NgmMemberListComponent, NgmMemberTreeComponent, NgmResizableDirective, NgmSelectComponent]
 })
 export class NgmValueHelpComponent implements OnInit {
   DISPLAY_BEHAVIOUR = DisplayBehaviour

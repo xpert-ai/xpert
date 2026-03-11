@@ -25,16 +25,16 @@
 
            <div class="flex justify-around items-center gap-2">
                 <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'Ngm.Formula.Editor.Format' | translate: {Default: 'Format'}" (click)="formatDocument()">
-                    <mat-icon >text_format</mat-icon>
+                    <z-icon  zType="text_format"></z-icon>
                 </button> -->
 
                 <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="helpLink" displayDensity="cosy" (click)="openHelpLink()" [matTooltip]="'Ngm.Formula.Editor.Help' | translate: {Default: 'Help'}">
-                    <mat-icon>help_outline</mat-icon>
+                    <z-icon zType="help_outline"></z-icon>
                 </button>
 
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-formula-editor__drawer-anchor" (click)="drawer.toggle()">
-                    <mat-icon *ngIf="drawer.opened">chevron_right</mat-icon>
-                    <mat-icon *ngIf="!drawer.opened">menu_open</mat-icon>
+                    <z-icon *ngIf="drawer.opened" zType="chevron_right"></z-icon>
+                    <z-icon *ngIf="!drawer.opened" zType="menu_open"></z-icon>
                 </button>
            </div>
         </div>

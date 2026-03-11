@@ -24,7 +24,7 @@
     </button>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="menu">
-      <mat-icon>more_vert</mat-icon>
+      <z-icon zType="more_vert"></z-icon>
     </button>
   </div>
 </div>
@@ -64,7 +64,7 @@
       <a [routerLink]="['/models', key]" class="flex justify-start items-center hover:underline">
         <i class="ri-instance-line mr-1 text-lg text-text-secondary group-hover:text-text-primary"></i>
         @if (item.agentType === 'wasm') {
-          <mat-icon fontSet="material-icons-round" displayDensity="compact" class="shrink-0 text-emerald-600">memory</mat-icon>
+          <z-icon zSize="sm" class="shrink-0 text-emerald-600" zType="memory"></z-icon>
         }
         <span class="text-ellipsis overflow-hidden">{{name}}</span>
       </a>
@@ -105,10 +105,10 @@
   @if (item.__isModel__) {
     <div class="pac__table-actions flex items-center gap-2" >
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.ACTIONS.Edit' | translate: {Default: '✒️Edit'}" matTooltipPosition="above" [routerLink]="['/models', key]">
-        <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+        <z-icon zType="edit"></z-icon>
       </button>      
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]=" 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} " matTooltipPosition="above" (click)="onDownload(item.id)">
-        <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
+        <z-icon zType="file_download"></z-icon>
       </button>
       <button type="button" class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg opacity-50 group-hover:opacity-100"
         [cdkMenuTriggerFor]="moreActions"
@@ -119,7 +119,7 @@
   } @else {
     <div class="pac__table-actions flex items-center">
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.ACTIONS.CreateModel' | translate: {Default: 'Create Model'}" matTooltipPosition="above" (click)="onNewModel(key)">
-        <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+        <z-icon zType="add"></z-icon>
       </button>
     </div>
   }

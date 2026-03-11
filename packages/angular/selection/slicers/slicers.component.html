@@ -13,14 +13,14 @@
 
 @if (editable() && !inline()) {
   <button z-button zType="ghost" [disabled]="isDisabled" color="primary" displayDensity="cosy" ngmAppearance="dashed" (click)="openSlicerBar($event)">
-    <mat-icon>edit</mat-icon>{{ 'Ngm.Common.Add' | translate: {Default: "Add"} }}
+    <z-icon zType="edit"></z-icon>{{ 'Ngm.Common.Add' | translate: {Default: "Add"} }}
   </button>
 }
 
 @if (editable() && inline()) {
   <button z-button zType="outline" [disabled]="isDisabled" displayDensity="cosy" ngmAppearance="dashed" [cdkMenuTriggerFor]="menu">
     <div class="flex items-center justify-center">
-      <mat-icon>add</mat-icon>
+      <z-icon zType="add"></z-icon>
       {{ 'Ngm.Common.Add' | translate: {Default: "Add"} }}
     </div>
   </button>
@@ -59,13 +59,13 @@
   
     @if (showCombinationSlicer()) {
       <button cdkMenuItem (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.CombinationSlicer)">
-        <mat-icon>tune</mat-icon>
+        <z-icon zType="tune"></z-icon>
         {{ 'Ngm.Selection.CombinationSlicer' | translate: {Default: "Combination Slicer"} }}
       </button>
     }
     @if (showAdvancedSlicer()) {
       <button cdkMenuItem (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.AdvancedSlicer)">
-        <mat-icon>data_array</mat-icon>
+        <z-icon zType="data_array"></z-icon>
         {{ 'Ngm.Selection.AdvancedSlicer' | translate: {Default: 'Advanced Slicer'} }}
       </button>
     }
@@ -75,7 +75,7 @@
 <ng-template #calendarMenu let-property="property">
   <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="openValueHelp(property)">
-      <mat-icon fontSet="material-icons-outlined" class="mr-1">people_outline</mat-icon>
+      <z-icon class="mr-1" zType="people_outline"></z-icon>
       {{ 'Ngm.Selection.DimensionMembers' | translate: {Default: 'Dimension Members'} }}
     </button>
     

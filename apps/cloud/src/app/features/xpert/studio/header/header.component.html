@@ -422,7 +422,6 @@
   </div>
 </ng-template>
 
-
 <ng-template #diagramMenu>
   <div cdkMenu @overlayAnimation1 class="min-w-[100px] min-h-[200px] max-w-xl max-h-[600px] p-4 relative bg-components-panel-bg-blur">
     @if (diagram$ | async; as diagram) {
@@ -442,7 +441,6 @@
     </button>
   </div>
 </ng-template>
-
 
 <ng-template #checklistMenu>
   <xp-checklist cdkMenu class="cdk-menu__large rounded-xl" [checklist]="checklist()" (clickItem)="onCheckItem($event)" />

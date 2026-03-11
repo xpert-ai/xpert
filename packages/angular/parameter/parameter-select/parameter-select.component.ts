@@ -6,9 +6,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModu
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatDialog } from '@angular/material/dialog'
-import { ZardDividerComponent } from '@xpert-ai/headless-ui'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@metad/ocap-angular/common'
 import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
@@ -24,7 +22,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { firstValueFrom, map } from 'rxjs'
 import { NgmParameterCreateComponent } from '../parameter-create/parameter-create.component'
 import { Dialog } from '@angular/cdk/dialog'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -46,7 +43,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ZardInputDirective,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     ZardDividerComponent,
     MatAutocompleteModule,
     TranslateModule,

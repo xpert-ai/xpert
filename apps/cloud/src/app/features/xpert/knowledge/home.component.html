@@ -43,9 +43,9 @@
           <div class="flex flex-col items-start overflow-hidden">
             <p class="text-xs flex items-center text-token-text-secondary opacity-80">
               @if (item.permission === KnowledgebasePermission.Public || item.permission === KnowledgebasePermission.Organization) {
-                <mat-icon class="mr-1 scale-75" displayDensity="compact" fontSet="material-icons-round">public</mat-icon> {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
+                <z-icon class="mr-1 scale-75" zSize="sm" zType="public"></z-icon> {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
               } @else {
-                <mat-icon class="mr-1 scale-75" displayDensity="compact" fontSet="material-icons-round">lock</mat-icon> {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}
+                <z-icon class="mr-1 scale-75" zSize="sm" zType="lock"></z-icon> {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}
               }
             </p>
             <div class="max-w-full font-bold text-base truncate" [title]="item.name">{{item.name}}</div>

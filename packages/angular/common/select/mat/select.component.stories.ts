@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule, ValidatorFn } from '@angular/forms'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { DisplayBehaviour, TreeNodeInterface } from '@metad/ocap-core'

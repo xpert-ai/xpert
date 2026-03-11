@@ -6,8 +6,7 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
@@ -16,11 +15,10 @@ import { catchError, debounceTime, EMPTY, filter, of, switchMap, tap } from 'rxj
 import { EmployeesService, IEmployee } from '../../../@core'
 import { userLabel } from '../../pipes'
 import { SharedModule } from '../../shared.module'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [SharedModule, CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, MatIconModule, MatProgressSpinnerModule, TranslateModule, ButtonGroupDirective, NgmCommonModule],
+  imports: [SharedModule, CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, ZardIconComponent, MatProgressSpinnerModule, TranslateModule, ButtonGroupDirective, NgmCommonModule],
   selector: 'pac-employee-search',
   templateUrl: 'employee-search.component.html',
   styleUrls: ['employee-search.component.scss']

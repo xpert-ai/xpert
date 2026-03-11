@@ -9,7 +9,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">manage_accounts</mat-icon>
+      <z-icon zSize="default" zType="manage_accounts"></z-icon>
       {{ 'PAC.MENU.Tenant' | translate: {Default: "Tenant"} }}
     </span>
     <span z-tab-link [routerLink]="['organization']"
@@ -17,7 +17,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla2.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">corporate_fare</mat-icon>
+      <z-icon zSize="default" zType="corporate_fare"></z-icon>
       {{ 'PAC.MENU.Organization' | translate: {Default: "Organization"} }}
   
       {{ organiztionName$ | async }}

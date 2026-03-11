@@ -85,8 +85,7 @@ export function DataSettingsSchema(
   return {
     wrappers: ['accordion'],
     props: {
-      elevationZ: true,
-    },
+      elevationZ: true },
     fieldGroup: [
       {
         key: 'dataSettings',
@@ -107,8 +106,7 @@ export function DataSettingsSchema(
                   label: BUILDER?.SemanticModel ?? 'Semantic Model',
                   required: true,
                   options: dataSources$,
-                  panelWidth: '300px',
-                }
+                  panelWidth: '300px' }
               },
               {
                 key: 'entitySet',
@@ -118,8 +116,7 @@ export function DataSettingsSchema(
                   label: BUILDER?.Entity ?? 'Entity',
                   searchable: true,
                   required: true,
-                  panelWidth: '300px',
-                },
+                  panelWidth: '300px' },
                 expressions: {
                   hide: `!model || !model.dataSource`
                 },
@@ -149,9 +146,7 @@ export function DataSettingsSchema(
                             ? 'star_outline'
                             : cube.cubeType === 'VIRTUAL CUBE'
                             ? 'dataset_linked'
-                            : null,
-                          fontSet: 'material-icons-outlined'
-                        }))
+                            : null }))
                       }),
                       catchError((err) => {
                         field.className = field.className.split('formly-loader').join('')

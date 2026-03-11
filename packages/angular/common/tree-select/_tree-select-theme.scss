@@ -46,7 +46,7 @@
   .ngm-tree-select {
     &.mat-accent {
       .cdk-tree.selection {
-        .mat-icon-rtl-mirror {
+        .z-icon-rtl-mirror {
           color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.3);
         }
         .cdk-tree-node {
@@ -66,7 +66,7 @@
 
     &.mat-primary {
       .cdk-tree.selection {
-        .mat-icon-rtl-mirror {
+        .z-icon-rtl-mirror {
           color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.3);
         }
         .cdk-tree-node {
@@ -133,7 +133,7 @@
     .mat-mdc-option {
       [z-button][data-icon-only],
       z-button[data-icon-only] {
-        .mat-icon {
+        .z-icon {
           margin: 0;
         }
       }

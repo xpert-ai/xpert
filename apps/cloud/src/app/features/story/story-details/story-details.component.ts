@@ -8,8 +8,7 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { Router } from '@angular/router'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
@@ -19,11 +18,10 @@ import { Story, StoryModel, StoryOptions } from '@metad/story/core'
 import { Subject, combineLatestWith, filter, firstValueFrom, map, startWith, switchMap, tap } from 'rxjs'
 import { ISemanticModel, ProjectAPIService, ScreenshotService, ToastrService } from '../../../@core'
 import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/common'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MatIconModule, ZardButtonComponent, MatListModule, ...ZardFormImports, ZardInputDirective, MatDialogModule, MatCheckboxModule, MatAutocompleteModule, MatChipsModule, DragDropModule, OcapCoreModule, NgmHighlightDirective, NgmSelectComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ZardIconComponent, ZardButtonComponent, MatListModule, ...ZardFormImports, ZardInputDirective, MatDialogModule, MatCheckboxModule, MatAutocompleteModule, MatChipsModule, DragDropModule, OcapCoreModule, NgmHighlightDirective, NgmSelectComponent],
   selector: 'ngm-story-details',
   templateUrl: './story-details.component.html',
   styleUrls: ['./story-details.component.scss']

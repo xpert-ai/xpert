@@ -30,7 +30,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" displayDensity="cosy" class="mr-1">account_circle</mat-icon>
+      <z-icon zSize="default" class="mr-1" zType="account_circle"></z-icon>
       {{ 'PAC.MENU.USERS' | translate: {Default: "Users"} }}
     </span>
     @if (invitesAllowed()) {
@@ -39,7 +39,7 @@
         [routerLinkActiveOptions]="{exact: true}"
         [active]="rla2.isActive"
       >
-        <mat-icon fontSet="material-icons-outlined" displayDensity="cosy" class="mr-1">person_add</mat-icon>
+        <z-icon zSize="default" class="mr-1" zType="person_add"></z-icon>
         {{ 'PAC.ACTIONS.ManageInvites' | translate: {Default: "Manage Invites"} }}
       </span>
     }
@@ -47,10 +47,10 @@
   @for (link of openedLinks(); track link.id) {
     <span z-tab-link [routerLink]="[link.id]"
         [active]="link.id === currentLink()?.id">
-        <mat-icon class="mr-1" fontSet="material-icons-outlined" displayDensity="cosy">face</mat-icon>
+        <z-icon class="mr-1" zSize="default" zType="face"></z-icon>
         {{ userLabel(link) }}
         <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink(link)">
-            <mat-icon>cancel</mat-icon>
+            <z-icon zType="cancel"></z-icon>
         </button>
     </span>
   }

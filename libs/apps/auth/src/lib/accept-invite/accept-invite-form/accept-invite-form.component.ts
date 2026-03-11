@@ -3,11 +3,10 @@ import { Component, EventEmitter, Input, Output } from '@angular/core'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { IInvite, ITag, ITenant, IUserRegistrationInput } from '@metad/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, ZardButtonComponent, ZardInputDirective, MatCheckboxModule, MatProgressSpinnerModule],

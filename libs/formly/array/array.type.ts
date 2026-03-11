@@ -30,7 +30,7 @@ import { FieldArrayType } from '@ngx-formly/core';
   @if (!field.fieldGroup?.length) {
     <button z-button zType="ghost" color="primary" type="button" (click)="add()">
       <div class="flex items-center">
-        <mat-icon>add</mat-icon>{{ 'FORMLY.COMMON.ADD' | translate: {Default: 'Add'} }} {{to.label}}
+        <z-icon zType="add"></z-icon>{{ 'FORMLY.COMMON.ADD' | translate: {Default: 'Add'} }} {{to.label}}
       </div>
     </button>
   }
@@ -45,7 +45,7 @@ import { FieldArrayType } from '@ngx-formly/core';
 
       @if (!to.hideDelete) {
         <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-formly__remove" color="warn" displayDensity="compact" (click)="remove(i)">
-          <mat-icon>clear</mat-icon>
+          <z-icon zType="clear"></z-icon>
         </button>
       }
       <formly-field class="flex-1" cdkDropList [field]="field"></formly-field>
@@ -57,7 +57,7 @@ import { FieldArrayType } from '@ngx-formly/core';
 @if (field.fieldGroup?.length) {
   <button z-button zType="ghost" color="primary" type="button" class="w-full" (click)="add()">
     <div class="flex items-center">
-      <mat-icon>add</mat-icon>
+      <z-icon zType="add"></z-icon>
       <span>{{ 'FORMLY.COMMON.ADD' | translate: {Default: 'Add'} }} {{to.label}}</span>
     </div>
   </button>

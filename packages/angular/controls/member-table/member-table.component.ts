@@ -15,7 +15,6 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTableModule } from '@angular/material/table'
 import { NgmCommonModule, TableVirtualScrollDataSource } from '@metad/ocap-angular/common'
@@ -35,6 +34,7 @@ import { isEmpty, isEqual } from 'lodash-es'
 import { debounceTime, distinctUntilChanged, map, shareReplay } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export interface MemberTableOptions extends ControlOptions {
   label?: string
@@ -67,7 +67,7 @@ export interface MemberTableState {
     CommonModule,
     TranslateModule,
     ReactiveFormsModule,
-    MatIconModule,
+    ZardIconComponent,
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatTableModule,

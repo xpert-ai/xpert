@@ -73,7 +73,8 @@ $prefix: (ngm, color);
   }
   .ngm-input-element__clear {
     @apply w-6 h-6;
-    .material-icons {
+    .z-icon,
+    i {
       font-size: 20px;
     }
   }

@@ -10,13 +10,11 @@ import { DisplayDensity, NgmDSCoreService, NgmOcapCoreService } from '@metad/oca
 import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
-import { ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { MatIconModule } from '@angular/material/icon'
 
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
-import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatBadgeModule } from '@angular/material/badge'
@@ -28,7 +26,6 @@ import { PropertyCapacity } from '../types'
 import { NgmEntityPropertyComponent, propertyIcon } from '../property/property.component'
 import { NgmFormattingComponent } from '../formatting/formatting.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -43,7 +40,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       useExisting: forwardRef(() => NgmPropertySelectComponent),
     },
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardInputDirective, ZardComboboxComponent, MatIconModule, ZardButtonComponent, MatMenuModule, MatRadioModule, ZardDividerComponent, MatListModule, MatCheckboxModule, MatBadgeModule, MatProgressSpinnerModule, TranslateModule, NgmCommonModule, NgmEntityPropertyComponent]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardInputDirective, ZardComboboxComponent, ZardIconComponent, ZardButtonComponent, MatMenuModule, MatRadioModule, ZardDividerComponent, MatListModule, MatCheckboxModule, MatBadgeModule, MatProgressSpinnerModule, TranslateModule, NgmCommonModule, NgmEntityPropertyComponent]
 })
 export class NgmPropertySelectComponent implements ControlValueAccessor, AfterViewInit {
   private readonly createCalculationAction = '__create_calculation__'

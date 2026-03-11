@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, Input } from '@angular/core'
 
-import { MatIconModule } from '@angular/material/icon'
 import { RouterModule } from '@angular/router'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -10,7 +9,7 @@ import { formatRelative } from 'date-fns'
 import { getDateLocale, IStory } from '../../../@core'
 import { LazyImgDirective } from '../../directives/lazy-img.directive'
 import { CreatedByPipe } from '../../pipes'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -21,7 +20,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   imports: [
     CommonModule,
     RouterModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     TranslateModule,
     DensityDirective,

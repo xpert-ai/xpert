@@ -1,11 +1,11 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, inject, input } from '@angular/core'
-import { MatIconModule } from '@angular/material/icon'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { IOrganization, OrganizationsService, ScreenshotService, Store } from '../../@core'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -14,7 +14,7 @@ import { IOrganization, OrganizationsService, ScreenshotService, Store } from '.
   styles: [``],
   imports: [
     CommonModule,
-    MatIconModule,
+    ZardIconComponent,
     CdkMenuModule,
     TranslateModule,
     DensityDirective,

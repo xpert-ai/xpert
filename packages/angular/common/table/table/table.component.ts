@@ -7,8 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import {
   MatPaginator,
   MatPaginatorDefaultOptions,
@@ -22,7 +21,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { Subject } from 'rxjs'
 import { TableColumn } from '../types'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Injectable()
 export class MyCustomPaginatorIntl implements MatPaginatorIntl {
@@ -101,7 +99,7 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
     MatCheckboxModule,
     MatTableModule,
     MatPaginatorModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     MatSortModule,
     ZardInputDirective,

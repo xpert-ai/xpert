@@ -5,8 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete'
 
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { NgmCopilotEngineService, NgmCopilotService } from '@metad/copilot-angular'
@@ -17,7 +16,6 @@ import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, delay } from 'rxjs'
 import { ChatbiService } from '../chatbi.service'
 import { CHATBI_COMMAND_NAME } from '../copilot/'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -28,7 +26,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     RouterModule,
     RouterModule,
     TranslateModule,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
     ZardButtonComponent,
     MatAutocompleteModule,

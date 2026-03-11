@@ -1,7 +1,7 @@
 <div class="flex justify-start items-center">
     <div ngmButtonGroup displayDensity="cosy">
         <button z-button zType="default" color="primary" displayDensity="cosy" (click)="addNew()">
-            <mat-icon fontSet="material-icons-outlined" nxDensity="cosy">add</mat-icon>
+            <z-icon nxDensity="cosy" zType="add"></z-icon>
             {{ 'PAC.ACTIONS.ADD' | translate: {Default: "Add"} }}
         </button>
     </div>
@@ -66,13 +66,13 @@
     @if (editCache[id]?.edit) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-gray-500" (click)="saveEdit(id)">
         <div class="flex justify-center items-center">
-          <mat-icon fontSet="material-icons-outlined">save</mat-icon>
+          <z-icon zType="save"></z-icon>
         </div>
       </button>
     } @else {
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-gray-500" (click)="startEdit(id)">
         <div class="flex justify-center items-center">
-          <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+          <z-icon zType="edit"></z-icon>
         </div>
       </button>
     }
@@ -80,13 +80,13 @@
     @if (editCache[id]?.edit) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-gray-500" (click)="cancelEdit(id)">
         <div class="flex justify-center items-center">
-          <mat-icon fontSet="material-icons-outlined">undo</mat-icon>
+          <z-icon zType="undo"></z-icon>
         </div>
       </button>
     } @else {
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="text-gray-500" (click)="deleteRow(id)">
         <div class="flex justify-center items-center">
-          <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+          <z-icon zType="delete"></z-icon>
         </div>
       </button>
     }

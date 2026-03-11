@@ -130,7 +130,7 @@
 <ng-template #contextMenu let-slicers="slicers">
   <div cdkMenu class="cdk-menu__large">
     <button cdkMenuItem (click)="onLinkAnalysis(slicers)">
-      <mat-icon displayDensity="cosy">add_link</mat-icon>
+      <z-icon zSize="default" zType="add_link"></z-icon>
       {{ 'Ngm.AnalyticalCard.LinkAnalysis' | translate: {Default: "Link Analysis"} }}
     </button>
 
@@ -145,7 +145,7 @@
           [cdkMenuTriggerFor]="drillLevelsMenu"
           [cdkMenuTriggerData]="{slicer: drill.slicer, levels: drill.levels}"
         >
-          <mat-icon displayDensity="cosy">format_list_numbered</mat-icon>
+          <z-icon zSize="default" zType="format_list_numbered"></z-icon>
           <div class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
             {{drill.property.caption || drill.property.name}}:{{drill.slicerCaption}}
           </div>
@@ -164,7 +164,7 @@
           [cdkMenuTriggerFor]="drillDimensionsMenu"
           [cdkMenuTriggerData]="{slicer: item.value}"
         >
-          <mat-icon displayDensity="cosy">tag</mat-icon>{{ item.label }}
+          <z-icon zSize="default" zType="tag"></z-icon>{{ item.label }}
         </button>
       }
     }
@@ -172,7 +172,7 @@
     @if (dilldown$ | async; as slicer) {
       <div class="border-b border-solid border-divider-regular my-1"></div>
       <button cdkMenuItem (click)="drillDown(slicer)">
-        <mat-icon displayDensity="cosy">arrow_drop_down</mat-icon>
+        <z-icon zSize="default" zType="arrow_drop_down"></z-icon>
         {{ 'Ngm.AnalyticalCard.DrillDown' | translate: {Default: "Drill Down"} }}
       </button>
     }
@@ -202,7 +202,6 @@
     }
   </div>
 </ng-template>
-
 
 <ng-template #filtersMenu let-trigger="trigger">
   <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">

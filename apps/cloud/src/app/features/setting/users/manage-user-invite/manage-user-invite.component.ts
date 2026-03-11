@@ -3,7 +3,6 @@ import { Component, Inject, inject, LOCALE_ID } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { InviteService, Store, ToastrService } from '@metad/cloud/state'
 import { InvitationExpirationEnum, InvitationTypeEnum } from '@metad/contracts'
 import { injectConfirmDelete, NgmTableComponent } from '@metad/ocap-angular/common'
@@ -17,7 +16,7 @@ import { BehaviorSubject, combineLatestWith, firstValueFrom, map, switchMap, wit
 import { InviteMutationComponent } from '../../../../@shared/invite'
 import { PACUsersComponent } from '../users.component'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -27,7 +26,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   imports: [
     CommonModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     TranslateModule,
     // Standard components
     ButtonGroupDirective,
