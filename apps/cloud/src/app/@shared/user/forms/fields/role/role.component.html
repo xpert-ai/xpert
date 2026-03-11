@@ -1,6 +1,4 @@
 <z-form-field class="w-full" [appearance]="appearance">
 	<z-form-label>{{ (label || 'FORM.LABELS.ROLE') | translate }}</z-form-label>
-	<mat-select [formControl]="ctrl" [(ngModel)]="roleId">
-	  <mat-option *ngFor="let role of roles$ | async" [value]="role.id">{{ role.name }}</mat-option>
-	</mat-select>
+	<ngm-select [formControl]="ctrl" [(ngModel)]="roleId" [selectOptions]="roleOptions" />
 </z-form-field>

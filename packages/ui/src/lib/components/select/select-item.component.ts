@@ -21,8 +21,8 @@ import { mergeClasses, noopFn } from '@/shared/utils/merge-classes';
 
 // Interface to avoid circular dependency
 interface SelectHost {
-  selectedValue(): string[];
-  selectItem(value: string, label: string): void;
+  selectedValue(): Array<string | number>;
+  selectItem(value: string | number, label: string): void;
   navigateTo(): void;
 }
 
@@ -56,7 +56,7 @@ interface SelectHost {
 export class ZardSelectItemComponent {
   readonly elementRef = inject(ElementRef<HTMLElement>);
 
-  readonly zValue = input.required<string>();
+  readonly zValue = input.required<string | number>();
   readonly zDisabled = input(false, { transform: booleanAttribute });
   readonly class = input<string>('');
 

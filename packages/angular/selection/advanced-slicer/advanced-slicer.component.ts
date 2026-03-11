@@ -10,7 +10,6 @@ import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatSelectModule } from '@angular/material/select'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -105,7 +104,6 @@ const ADVANCED_SLICER_OPERATORS = [
     MatTooltipModule,
     ZardDividerComponent,
     MatMenuModule,
-    MatSelectModule,
     TranslateModule,
 
     NgmCommonModule,

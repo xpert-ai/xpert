@@ -26,7 +26,6 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
-import { MatSelectModule } from '@angular/material/select'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shared/indicator/'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
@@ -39,7 +38,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   selector: 'pac-indicator-register-form',
   templateUrl: 'register-form.component.html',
   styleUrls: ['register-form.component.scss'],
-  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, MatIconModule, ZardButtonComponent, MatTooltipModule, MatRadioModule, ...ZardFormImports, MatDatepickerModule, ZardInputDirective, MatSelectModule, MatCheckboxModule, DensityDirective, NgmMatSelectComponent, NgmTreeSelectComponent, TagEditorComponent, NgmHierarchySelectComponent, NgmCalculatedMeasureComponent, NgmSelectionModule],
+  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, MatIconModule, ZardButtonComponent, MatTooltipModule, MatRadioModule, ...ZardFormImports, MatDatepickerModule, ZardInputDirective, MatCheckboxModule, DensityDirective, NgmMatSelectComponent, NgmTreeSelectComponent, TagEditorComponent, NgmHierarchySelectComponent, NgmCalculatedMeasureComponent, NgmSelectionModule],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

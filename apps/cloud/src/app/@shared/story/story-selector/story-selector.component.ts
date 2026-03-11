@@ -1,17 +1,21 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, Inject, inject, Input, Optional } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { RouterModule } from '@angular/router'
+import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { StoriesService, WidgetsService } from '@metad/cloud/state'
 import { NgmDialogComponent } from '@metad/components/dialog'
-import { BehaviorSubject, distinctUntilChanged, firstValueFrom, map, of, switchMap, tap } from 'rxjs'
+import { BehaviorSubject, combineLatest, distinctUntilChanged, firstValueFrom, map, of, startWith, switchMap, tap } from 'rxjs'
 import { DefaultProject, ISemanticModel, IStory, ProjectAPIService } from '../../../@core'
 import { LazyImgDirective } from '../../directives/lazy-img.directive'
 import { MaterialModule } from '../../material.module'
 import { CreatedByPipe } from '../../pipes'
+
+type SelectableStory = IStory & { modelNotInStory: boolean }
 
 @Component({
   standalone: true,
@@ -36,6 +40,7 @@ import { CreatedByPipe } from '../../pipes'
     DensityDirective,
     ButtonGroupDirective,
     AppearanceDirective,
+    NgmSelectComponent,
     CreatedByPipe,
     NgmDialogComponent,
 
@@ -61,9 +66,9 @@ export class StorySelectorComponent {
   }
 
   formGroup = new FormGroup({
-    projectControl: new FormControl(null, [Validators.required]),
-    storyControl: new FormControl(null, [Validators.required]),
-    pointControl: new FormControl(null, [Validators.required])
+    projectControl: new FormControl<string>(null, [Validators.required]),
+    storyControl: new FormControl<string>(null, [Validators.required]),
+    pointControl: new FormControl<string>(null, [Validators.required])
   })
   get projectControl() {
     return this.formGroup.get('projectControl') as FormControl
@@ -75,7 +80,7 @@ export class StorySelectorComponent {
     return this.formGroup.get('pointControl') as FormControl
   }
   
-  projectStories = new Map<string, IStory[]>()
+  projectStories = new Map<string, SelectableStory[]>()
 
   public readonly projects$ = this.projectService.getMy(['models'])
     .pipe(
@@ -98,25 +103,55 @@ export class StorySelectorComponent {
         ]
       })
     )
+  public readonly projectOptions$ = this.projects$.pipe(
+    map((projects) => projects.map((project) => ({
+      value: project.id,
+      label: project.name,
+      modelNotInProject: project.modelNotInProject
+    })))
+  )
 
   public readonly stories$ = this.projectControl.valueChanges.pipe(
-    map((project) => project?.id),
+    startWith(this.projectControl.value),
     distinctUntilChanged(),
-    switchMap((id) =>
-      this.projectStories.get(id) ? of(this.projectStories.get(id)) :
-      this.storiesService.getAllByProject(id === DefaultProject.id ? null : id, ['points', 'models'])
-        .pipe(tap((stories) => this.projectStories.set(id, stories)))
-    ),
+    switchMap((id) => {
+      const cachedStories = this.projectStories.get(id)
+      if (cachedStories) {
+        return of(cachedStories)
+      }
+
+      return this.storiesService.getAllByProject(id === DefaultProject.id ? null : id, ['points', 'models']).pipe(
+        tap((stories) => this.projectStories.set(id, stories as SelectableStory[]))
+      )
+    }),
     switchMap((stories) => this._model$.pipe(
-      map((model) => stories.map((story) => ({
+      map((model) => (stories ?? []).map((story) => ({
         ...story,
         modelNotInStory: !story.models.find((item) => item.id === model?.id)
       }))),
     ))
   )
-
-  public readonly points$ = this.storyControl.valueChanges.pipe(
-    map((story) => story?.points)
+  public readonly storiesSignal = toSignal(this.stories$, { initialValue: [] as SelectableStory[] })
+  public readonly storyOptions$ = this.stories$.pipe(
+    map((stories) => stories.map((story) => ({
+      value: story.id,
+      label: story.name,
+      modelNotInStory: story.modelNotInStory
+    })))
+  )
+  public readonly points$ = combineLatest([
+    this.storyControl.valueChanges.pipe(startWith(this.storyControl.value)),
+    this.stories$
+  ]).pipe(
+    map(([storyId, stories]) => stories.find((story) => story.id === storyId)?.points ?? [])
+  )
+  public readonly pointsSignal = toSignal(this.points$, { initialValue: [] })
+  public readonly pointOptions$ = this.points$.pipe(
+    map((points) => points.map((point) => ({
+      value: point.id,
+      label: point.name,
+      key: point.key
+    })))
   )
   constructor(@Optional() @Inject(MAT_DIALOG_DATA) private data,
     @Optional()
@@ -124,20 +159,18 @@ export class StorySelectorComponent {
     this.model = this.data?.model
   }
 
-  compareWith(a, b) {
-    return a?.id === b?.id
-  }
-
   async onApply() {
+    const selectedStory = this.storiesSignal().find((story) => story.id === this.storyControl.value)
+    const selectedPoint = this.pointsSignal().find((point) => point.id === this.pointControl.value)
     const widget = await firstValueFrom(this.widgetsService.create({
-      storyId: this.storyControl.value.id,
-      pointId: this.pointControl.value.id,
+      storyId: selectedStory?.id,
+      pointId: selectedPoint?.id,
       ...(this.data.widget),
       dataSettings: {
         ...(this.data.widget.dataSettings ?? {}),
       }
     }))
 
-    this.dialogRef?.close({...widget, pageKey: this.pointControl.value.key})
+    this.dialogRef?.close({...widget, pageKey: selectedPoint?.key})
   }
 }

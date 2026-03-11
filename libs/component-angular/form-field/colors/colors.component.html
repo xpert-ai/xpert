@@ -43,13 +43,16 @@
   (optionSelected)="onOptionSelected($event)"
 >
   <mat-option [value]="null">--</mat-option>
-  <mat-optgroup *ngFor="let group of options" [label]="group.label">
-    <mat-option *ngFor="let color of group.colors" [value]="color.colors">
+  @for (group of options; track group.label) {
+    <mat-option disabled>{{ group.label }}</mat-option>
+    @for (color of group.colors; track color.colors.join(',')) {
+      <mat-option [value]="color.colors">
       <div class="flex justify-start items-center">
         <div *ngFor="let color of color.colors" class="w-4 h-4"
             [style.background-color]="color"
         ></div>
       </div>
-    </mat-option>
-  </mat-optgroup>
+      </mat-option>
+    }
+  }
 </mat-autocomplete>

@@ -44,6 +44,7 @@ import { CHART_TYPES, GeoProjections } from './types'
 })
 export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
   @HostBinding('class.pac-formly-chart-type') readonly _hostClass = true
+  readonly noneChartTypeValue = '__none__'
 
   ChartTypeEnum = ChartTypeEnum
   GeoProjections = [
@@ -137,6 +138,14 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
   }
 
   chartTypeGroups = CHART_TYPES
+  readonly chartTypeOptionGroups = CHART_TYPES.map((group) => ({
+    label: this.#translate.instant(`FORMLY.CHART.${group.name}`, { Default: group.name }),
+    options: group.charts.map((chart) => ({
+      value: chart.value,
+      label: this.#translate.instant(`FORMLY.CHART.${chart.label}`, { Default: chart.label }),
+      disabled: group.disabled
+    }))
+  }))
 
   get orient() {
     return this.chartTypeForm.get('orient').value
@@ -217,6 +226,12 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
   }
 
   ngOnInit(): void {
+    this.chartTypeControl.valueChanges.subscribe((value) => {
+      if (value === this.noneChartTypeValue) {
+        this.chartTypeControl.setValue(null)
+      }
+    })
+
     if (isNil(this.field.formControl.value) || isString(this.field.formControl.value)) {
       this.chartTypeForm.patchValue({ type: this.field.formControl.value })
     } else {

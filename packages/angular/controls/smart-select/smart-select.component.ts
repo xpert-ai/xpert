@@ -4,8 +4,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSelectModule } from '@angular/material/select'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
+import { NgmMatSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective, NgmAppearance } from '@metad/ocap-angular/core'
 import {
   DataSettings,
@@ -47,7 +46,7 @@ export interface SmartSelectOptions extends ControlOptions {
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ...ZardFormImports, MatSelectModule, MatIconModule, ZardButtonComponent, MatProgressSpinnerModule, DensityDirective, AppearanceDirective, NgmSelectComponent],
+  imports: [CommonModule, FormsModule, ...ZardFormImports, MatIconModule, ZardButtonComponent, MatProgressSpinnerModule, DensityDirective, AppearanceDirective, NgmMatSelectComponent],
   selector: 'ngm-smart-select',
   templateUrl: 'smart-select.component.html',
   styleUrls: ['smart-select.component.scss'],

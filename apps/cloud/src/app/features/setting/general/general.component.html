@@ -2,40 +2,24 @@
   <div class="icon-form-field">
       <mat-icon color="primary">translate</mat-icon>
       <z-form-field>
-        <z-form-label>{{'PAC.MENU.GENERAL.LANGUAGE' | translate: {Default: "Language"} }}</z-form-label>
-        <mat-select [placeholder]="'PAC.MENU.GENERAL.LANGUAGE_PLACEHOLDER' | translate: {Default: 'Select Language'} "
+      <z-form-label>{{'PAC.MENU.GENERAL.LANGUAGE' | translate: {Default: "Language"} }}</z-form-label>
+        <ngm-select [placeholder]="'PAC.MENU.GENERAL.LANGUAGE_PLACEHOLDER' | translate: {Default: 'Select Language'} "
                     [ngModel]="preferredLanguage$ | async"
-                    (selectionChange)="onLanguageSelect($event)"
+                    (ngModelChange)="onLanguageSelect({ value: $event })"
+                    [selectOptions]="languages.map(l => ({ value: l.value, label: l.label }))"
                     name="language">
-          <ng-container  *ngFor="let l of languages">
-            <!-- ngFor hack of missing ngLet of Angular -->
-            <mat-option *ngFor="let title of ['PAC.SETTINGS.GENERAL.LANGUAGE.' + l.value | translate: {Default: l.label} ]"
-              [value]="l.value"
-              [title]="title !== l.label
-                ? title
-                : ''">
-              {{ l.label }}
-            </mat-option>
-          </ng-container>
-        </mat-select>
+        </ngm-select>
       </z-form-field>
     </div>
   <div class="icon-form-field">
     <mat-icon color="primary">color_lens</mat-icon>
     <z-form-field>
       <z-form-label>{{'PAC.MENU.GENERAL.THEME' | translate: {Default: "Theme"} }}</z-form-label>
-      <mat-select [ngModel]="preferredTheme$()"
-                  (selectionChange)="onThemeSelect($event)"
+      <ngm-select [ngModel]="preferredTheme$()"
+                  (ngModelChange)="onThemeSelect({ value: $event })"
+                  [selectOptions]="themes.map(l => ({ value: l.value, label: l.label }))"
                   name="theme">
-        <ng-container  *ngFor="let l of themes">
-          <!-- ngFor hack of missing ngLet of Angular -->
-          <mat-option
-            [value]="l.value"
-            [title]="l.label">
-            {{ l.label }}
-          </mat-option>
-        </ng-container>
-      </mat-select>
+      </ngm-select>
     </z-form-field>
   </div>
 </div>

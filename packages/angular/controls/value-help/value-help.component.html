@@ -24,35 +24,22 @@
               <z-form-label>
                 {{ 'Ngm.Controls.ValueHelp.DisplayBehaviour' | translate: {Default: "Display Behaviour"} }}
               </z-form-label>
-              <mat-select [ngModel]="displayBehaviour()" (ngModelChange)="setDisplayBehaviour($event)">
-                <mat-option [value]="DISPLAY_BEHAVIOUR.descriptionOnly">
-                    {{ 'Ngm.Common.DisplayBehaviour_Description' | translate: {Default: "Description"} }}
-                </mat-option>
-                <mat-option [value]="DISPLAY_BEHAVIOUR.descriptionAndId">
-                    {{ 'Ngm.Common.DisplayBehaviour_DescriptionID' | translate: {Default: "Description ID"} }}
-                </mat-option>
-                <mat-option [value]="DISPLAY_BEHAVIOUR.idAndDescription">
-                    {{ 'Ngm.Common.DisplayBehaviour_IDDescription' | translate: {Default: "ID Description"} }}
-                </mat-option>
-                <mat-option [value]="DISPLAY_BEHAVIOUR.idOnly">
-                    {{ 'Ngm.Common.DisplayBehaviour_ID' | translate: {Default: "ID"} }}
-                </mat-option>
-                <!-- null can't be selected in mat-select, so use '' as default value -->
-                <mat-option [value]="''">
-                    {{ 'Ngm.Common.DisplayBehaviour_Auto' | translate: {Default: "Auto"} }}
-                </mat-option>
-              </mat-select>
+              <ngm-select
+                [ngModel]="displayBehaviour() ?? autoDisplayBehaviour"
+                (ngModelChange)="setDisplayBehaviour($event === autoDisplayBehaviour ? null : $event)"
+                [selectOptions]="displayBehaviourOptions"
+              />
           </z-form-field>
 
           <z-form-field appearance="fill">
             <z-form-label>
                 {{ 'Ngm.Controls.ValueHelp.Hierarchy' | translate: {Default: "Hierarchy"} }}
             </z-form-label>
-            <mat-select [ngModel]="hierarchy()" (ngModelChange)="setHierarchy($event)">
-              @for (hierarchy of hierarchies(); track hierarchy.name) {
-                <mat-option [value]="hierarchy.name">{{hierarchy.caption}}</mat-option>
-              }
-            </mat-select>
+            <ngm-select
+              [ngModel]="hierarchy()"
+              (ngModelChange)="setHierarchy($event)"
+              [selectOptions]="hierarchyOptions()"
+            />
           </z-form-field>
         </div>
 
@@ -153,54 +140,43 @@
         <z-form-label>
           {{ 'Ngm.Controls.ValueHelp.SelectionType' | translate: {Default: "Selection Type"} }}
         </z-form-label>
-        <mat-select [(ngModel)]="selectionType">
-          <mat-option [value]="FilterSelectionType.Single">
-            {{ 'Ngm.Common.SelectionType_Single' | translate: {Default: "Single"} }}
-          </mat-option>
-          <mat-option [value]="FilterSelectionType.Multiple">
-            {{ 'Ngm.Common.SelectionType_Multiple' | translate: {Default: "Multiple"} }}
-          </mat-option>
-          <mat-option [value]="FilterSelectionType.SingleRange">
-            {{ 'Ngm.Common.SelectionType_SingleRange' | translate: {Default: "Single Range"} }}
-          </mat-option>
-        </mat-select>
+        <ngm-select
+          [(ngModel)]="selectionType"
+          [selectOptions]="[
+            { value: FilterSelectionType.Single, label: ('Ngm.Common.SelectionType_Single' | translate: {Default: 'Single'}) },
+            { value: FilterSelectionType.Multiple, label: ('Ngm.Common.SelectionType_Multiple' | translate: {Default: 'Multiple'}) },
+            { value: FilterSelectionType.SingleRange, label: ('Ngm.Common.SelectionType_SingleRange' | translate: {Default: 'Single Range'}) }
+          ]"
+        />
       </z-form-field>
 
       <z-form-field class="col-span-1" appearance="fill">
         <z-form-label>
           {{ 'Ngm.Controls.ValueHelp.Presentation' | translate: {Default: "Presentation"} }}
         </z-form-label>
-        <mat-select [(ngModel)]="presentation">
-          <mat-option [value]="PresentationEnum.Flat">
-            {{ 'Ngm.Common.Presentation_Flat' | translate: {Default: "Flat"} }}
-          </mat-option>
-          <mat-option [value]="PresentationEnum.Hierarchy">
-            {{ 'Ngm.Common.Presentation_Hierarchy' | translate: {Default: "Hierarchy"} }}
-          </mat-option>
-        </mat-select>
+        <ngm-select
+          [(ngModel)]="presentation"
+          [selectOptions]="[
+            { value: PresentationEnum.Flat, label: ('Ngm.Common.Presentation_Flat' | translate: {Default: 'Flat'}) },
+            { value: PresentationEnum.Hierarchy, label: ('Ngm.Common.Presentation_Hierarchy' | translate: {Default: 'Hierarchy'}) }
+          ]"
+        />
       </z-form-field>
       @if (presentation === PresentationEnum.Hierarchy && selectionType === FilterSelectionType.Multiple) {
         <z-form-field class="col-span-2" appearance="fill">
           <z-form-label>
             {{ 'Ngm.Controls.ValueHelp.HierarchySelectionMode' | translate: {Default: "Hierarchy Selection Mode"} }}
           </z-form-label>
-          <mat-select [(ngModel)]="treeSelectionMode">
-            <mat-option [value]="TreeSelectionMode.Individual">
-                {{ 'Ngm.Common.HierarchySelectionMode_Individual' | translate: {Default: "Individual"} }}
-            </mat-option>
-            <mat-option [value]="TreeSelectionMode.SelfDescendants">
-                {{ 'Ngm.Common.HierarchySelectionMode_SelfDescendants' | translate: {Default: "Self & Descendants"} }}
-            </mat-option>
-            <mat-option [value]="TreeSelectionMode.DescendantsOnly">
-                {{ 'Ngm.Common.HierarchySelectionMode_DescendantsOnly' | translate: {Default: "Descendants Only"} }}
-            </mat-option>
-            <mat-option [value]="TreeSelectionMode.SelfChildren">
-                {{ 'Ngm.Common.HierarchySelectionMode_SelfChildren' | translate: {Default: "Self & Children"} }}
-            </mat-option>
-            <mat-option [value]="TreeSelectionMode.ChildrenOnly">
-                {{ 'Ngm.Common.HierarchySelectionMode_ChildrenOnly' | translate: {Default: "Children Only"} }}
-            </mat-option>
-          </mat-select>
+          <ngm-select
+            [(ngModel)]="treeSelectionMode"
+            [selectOptions]="[
+              { value: TreeSelectionMode.Individual, label: ('Ngm.Common.HierarchySelectionMode_Individual' | translate: {Default: 'Individual'}) },
+              { value: TreeSelectionMode.SelfDescendants, label: ('Ngm.Common.HierarchySelectionMode_SelfDescendants' | translate: {Default: 'Self & Descendants'}) },
+              { value: TreeSelectionMode.DescendantsOnly, label: ('Ngm.Common.HierarchySelectionMode_DescendantsOnly' | translate: {Default: 'Descendants Only'}) },
+              { value: TreeSelectionMode.SelfChildren, label: ('Ngm.Common.HierarchySelectionMode_SelfChildren' | translate: {Default: 'Self & Children'}) },
+              { value: TreeSelectionMode.ChildrenOnly, label: ('Ngm.Common.HierarchySelectionMode_ChildrenOnly' | translate: {Default: 'Children Only'}) }
+            ]"
+          />
         </z-form-field>
       }
     </div>

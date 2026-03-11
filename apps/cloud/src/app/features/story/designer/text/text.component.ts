@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormBuilder, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { NgmInputComponent, NgmSliderInputComponent } from '@metad/ocap-angular/common'
+import { NgmInputComponent, NgmSelectComponent, NgmSliderInputComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { ComponentStyling } from '@metad/story/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
@@ -23,6 +23,7 @@ import { MaterialModule } from '../../../../@shared/material.module'
     DensityDirective,
     NgmSliderInputComponent,
     NgmInputComponent,
+    NgmSelectComponent,
     ColorInputComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -76,6 +77,10 @@ export class DesignerTextComponent implements ControlValueAccessor {
     '800',
     '900'
   ]
+  fontWeightOptions = this.fontWeights.map((fontWeight) => ({
+    value: fontWeight,
+    label: fontWeight
+  }))
 
   formGroup = this.formBuilder.group<ComponentStyling>({
     color: null,

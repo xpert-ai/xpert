@@ -48,9 +48,9 @@
     <z-form-field [appearance]="appearance">
       <z-form-label>{{ 'PAC.INDICATOR.REGISTER.VALIDITY' | translate: {Default: 'Validity'} }}</z-form-label>
       <input z-input [matDatepicker]="picker" formControlName="validity">
-      <mat-hint>YYYY/MM/DD</mat-hint>
       <mat-datepicker-toggle zFormSuffix [for]="picker"></mat-datepicker-toggle>
       <mat-datepicker #picker></mat-datepicker>
+      <z-form-message>YYYY/MM/DD</z-form-message>
     </z-form-field>
 
     <!-- <mat-checkbox formControlName="isActive" class="my-4">{{ 'PAC.INDICATOR.REGISTER.IsActive' | translate: {Default: 'Is Active'} }}</mat-checkbox> -->

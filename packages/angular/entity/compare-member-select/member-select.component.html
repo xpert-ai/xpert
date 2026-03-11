@@ -3,42 +3,12 @@
     <span>{{ label }}</span>
   </z-form-label>
 
-  <mat-select [(ngModel)]="type" [disabled]="disabled" panelClass="ngm-property-select__panel">
-    <mat-select-trigger>
-      <span>{{ triggerLabel() }}</span>
-    </mat-select-trigger>
-    
-    <!-- <ng-container *ngIf="isCalendar">
-      <mat-option [value]="COMPARE_TO_ENUM.CurrentMember">Current Member</mat-option>
-      <mat-option [value]="COMPARE_TO_ENUM.Lag">Prev</mat-option>
-    </ng-container> -->
-    
-    <mat-option [value]="COMPARE_TO_ENUM.CurrentMember">
-      {{ 'Ngm.Property.CurrentMember' | translate: {Default: "Current Member"} }}
-    </mat-option>
-
-    <mat-option [value]="COMPARE_TO_ENUM.Lag">
-      {{ 'Ngm.Property.PreviousNMember' | translate: {Default: "Previous 'N' Member"} }}
-    </mat-option>
-    <mat-option [value]="COMPARE_TO_ENUM.Lead">
-      {{ 'Ngm.Property.NextNMember' | translate: {Default: "Next 'N' Member"} }}
-    </mat-option>
-    <mat-option [value]="COMPARE_TO_ENUM.Parallel">
-      {{ 'Ngm.Property.ParallelMember' | translate: {Default: "Parallel Member"} }}
-    </mat-option>
-
-    <mat-option [value]="COMPARE_TO_ENUM.Ancestor">
-      {{ 'Ngm.Property.AncestorMember' | translate: {Default: "Ancestor Member"} }}
-    </mat-option>
-
-    <mat-option [value]="COMPARE_TO_ENUM.SelectedMember" ngmAppearance="dashed" (click)="selectByMember($event)">
-      {{ 'Ngm.Property.SelectByMembers' | translate: {Default: "Select by Members"} }}...</mat-option>
-
-    <!-- 暂时未支持
-    <mat-option value="two" ngmAppearance="dashed">
-      {{ 'Ngm.Property.NewCalculationInputControl' | translate: {Default: "New Calculation Input"} }}
-    </mat-option> -->
-  </mat-select>
+  <ngm-select
+    [(ngModel)]="type"
+    [disabled]="disabled"
+    [selectOptions]="compareOptions()"
+    [placeholder]="triggerLabel()"
+  />
 
 </z-form-field>
 

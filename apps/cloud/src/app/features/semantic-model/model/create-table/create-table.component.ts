@@ -4,6 +4,7 @@ import { HttpEventType, HttpResponse } from '@angular/common/http'
 import { ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
+import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { NGM_WASM_AGENT_WORKER } from '@metad/ocap-angular/wasm-agent'
 import { TableEntity, isEqual, pick } from '@metad/ocap-core'
@@ -35,7 +36,8 @@ import { SemanticModelService } from '../model.service'
     ButtonGroupDirective,
     AppearanceDirective,
     DensityDirective,
-    NgmDndDirective
+    NgmDndDirective,
+    NgmSelectComponent
   ],
   selector: 'pac-model-create-table',
   templateUrl: 'create-table.component.html',

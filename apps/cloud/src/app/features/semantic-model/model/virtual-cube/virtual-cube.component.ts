@@ -8,7 +8,7 @@ import { MatSlideToggleChange } from '@angular/material/slide-toggle'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute } from '@angular/router'
 import { calcEntityTypePrompt, nonBlank } from '@metad/core'
-import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
 import { injectCopilotCommand } from '@metad/copilot-angular'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
@@ -33,6 +33,7 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     CommonModule,
     SharedModule,
     MaterialModule,
+    NgmSelectComponent,
 
     OcapCoreModule,
     NgmEntitySchemaComponent,

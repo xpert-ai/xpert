@@ -18,132 +18,40 @@
     <div class="flex items-center">
       <ng-content select="[ngmPrefix]"></ng-content>
     </div>
-    <mat-select #propertySelect [formControl]="keyControl" class="overflow-hidden flex-1"
-      panelClass="ngm-property-select__panel ngm-select-panel ngm-density__cosy" 
-      [required]="required()">
-      @if (selectTrigger()) {
-        <mat-select-trigger class="flex items-center overflow-hidden pl-2">
-          <ngm-entity-property hiddenIcon [property]="selectTrigger()" class="flex-1" />
+    <z-combobox
+      [formControl]="keyControl"
+      class="flex-1"
+      zWidth="full"
+      [groups]="propertyGroups()"
+      [placeholder]="selectTrigger()?.caption || ('Ngm.Property.DIMENSION_MEASURE' | translate: { Default: 'Dimension/Measure' })"
+    />
 
-          <div class="flex items-center" displayDensity="compact">
-
-            <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
-              @if (showMore()) {
-                <mat-icon>expand_less</mat-icon>
-              } @else {
-                <mat-icon>expand_more</mat-icon>
-              }
-            </button>
-            @if (showAttributes()) {
-              <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [matMenuTriggerFor]="dimensionMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
-                  <mat-icon>more_vert</mat-icon>
-              </button>
-            }
-            @if (hierarchies$ | async) {
-              <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [cdkMenuTriggerFor]="hierarchyMenu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault();">
-                  <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
-              </button>
-            }
-            @if (membersSignal()) {
-              <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [matMenuTriggerFor]="membersMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
-                  <mat-icon>straighten</mat-icon>
-              </button>
-            }
-          </div>
-        </mat-select-trigger>
+    <div class="ml-2 flex items-center" displayDensity="compact">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix (click)="$event.stopPropagation();$event.preventDefault();showMore.set(!showMore())">
+        @if (showMore()) {
+          <mat-icon>expand_less</mat-icon>
+        } @else {
+          <mat-icon>expand_more</mat-icon>
+        }
+      </button>
+      @if (showAttributes()) {
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [matMenuTriggerFor]="dimensionMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
+            <mat-icon>more_vert</mat-icon>
+        </button>
       }
-
-      <ngm-search class="w-full px-1" displayDensity="cosy" [formControl]="searchControl"
-        (keydown)="onSearchKeydown($event)"
-        (click)="$event.stopPropagation()"/>
-
-    @if (showDimension()) {
-      <mat-optgroup [label]=" 'Ngm.Property.DIMENSIONS' | translate: {Default: 'Dimensions'} ">
-        @for (property of dimensions$ | async; track property.name) {
-          <mat-option class="" [value]="property.name"
-            [ngClass]="{
-              'ngm-option__dimension': property.role === AggregationRole.dimension,
-              'ngm-option__hierarchy': property.role === AggregationRole.hierarchy,
-              'ngm-option__level': property.role === AggregationRole.level,
-              'ngm-option__hidden': property.visible === false
-            }"
-          >
-            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [displayDensity]="DisplayDensity.cosy" [highlight]="search" />
-          </mat-option>
-        }
-      </mat-optgroup>
-    }
-
-    @if (showMeasure()) {
-      <mat-optgroup [label]=" 'Ngm.Property.CALCULATIONS' | translate: {Default: 'Calculations'} ">
-        @for (property of calculations(); track property.name) {
-          <mat-option class="ngm-option__measure" [value]="property.name">
-            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
-          </mat-option>
-        }
-        @if (editable()) {
-          <mat-option class="ngm-property-select__action mt-2" [value]="null"
-            (click)="$event.stopPropagation();$event.preventDefault();">
-            <button z-button zType="ghost" color="primary" ngmAppearance="dashed" class="ngm-property-select__create-calculation w-full" (click)="$event.stopPropagation();onCreateCalculation($event)">
-              <div class="flex justify-center items-center whitespace-nowrap text-ellipsis overflow-hidden">
-                <mat-icon>add</mat-icon>
-                <span>{{ 'Ngm.Property.CREATE_CALCULATION' | translate: {Default: 'Create Calculation'} }}</span>
-              </div>
-            </button>
-          </mat-option>
-        }
-      </mat-optgroup>
-    }
-    @if (showMeasureControl()) {
-      <mat-optgroup [label]=" 'Ngm.Property.MEASURE_CONTROLS' | translate: {Default: 'Measure Controls'} ">
-        @for (property of measureControls(); track property.name) {
-          <mat-option [value]="property.name">
-            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
-          </mat-option>
-        }
-
-        @if (editable()) {
-          <mat-option class="mt-2">
-            <button z-button zType="ghost" class="flex-1" color="primary" ngmAppearance="dashed" (click)="onCreateCalculation($event, CalculationType.MeasureControl)">
-              <mat-icon>add</mat-icon>
-              {{ 'Ngm.Property.CREATE_MEASURE_CONTROL' | translate: {Default: 'Create Measure Control'} }}
-            </button>
-          </mat-option>
-        }
-      </mat-optgroup>
-    }
+      @if (hierarchies$ | async) {
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [cdkMenuTriggerFor]="hierarchyMenu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault();">
+            <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
+        </button>
+      }
+      @if (membersSignal()) {
+        <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity()" [matMenuTriggerFor]="membersMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
+            <mat-icon>straighten</mat-icon>
+        </button>
+      }
+    </div>
     
-    @if (showMeasure()) {
-      <mat-optgroup [label]=" 'Ngm.Property.MEASURES' | translate: {Default: 'Measures'} ">
-        @for (property of notCalculations$ | async; track property.name) {
-          <mat-option class="ngm-option__measure" [value]="property.name">
-            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
-          </mat-option>
-        }
-      </mat-optgroup>
-    }
-    @if (showParameter()) {
-      <mat-optgroup [label]=" 'Ngm.Property.PARAMETERS' | translate: {Default: 'Parameters'} ">
-        @for (property of parameters$ | async; track property.name) {
-          <mat-option [value]="property.name">
-            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
-          </mat-option>
-        }
-      </mat-optgroup>
-    }
-    
-    @if (showMeasure()) {
-      <mat-optgroup [label]=" 'Ngm.Property.INDICATORS' | translate: {Default: 'Indicators'} ">
-        @for (property of indicators$ | async; track property.name) {
-          <mat-option class="ngm-option__measure" [value]="property.name">
-            <ngm-entity-property class="flex-1" [property]="property" [displayBehaviour]="DISPLAY_BEHAVIOUR.auto" [highlight]="search" />
-          </mat-option>
-        }
-      </mat-optgroup>
-    }
-    </mat-select>
-    
-    <div class="absolute left-0 top-0 h-full max-w-full flex items-center overflow-hidden pointer-events-none">
+    <div class="absolute left-2 top-0 h-full max-w-full flex items-center overflow-hidden pointer-events-none">
       @if (entityTypeLoading()) {
         <mat-spinner
           [diameter]="20"

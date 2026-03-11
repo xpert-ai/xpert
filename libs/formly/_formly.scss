@@ -11,7 +11,7 @@
 }
 
 .pac-formly-chart-type {
-  mat-select-trigger {
+  .pac-formly-chart-type__trigger {
     .mat-icon-no-color {
       @apply text-gray-500;
       svg {
@@ -67,8 +67,10 @@
 }
 
 /* 为 pac-formly-select 扩大一些 select panel 组件高度 */
-.mat-select-panel-wrap {
-  .mat-select-panel {
+.ngm-select__autocomplete-panel,
+.ngm-select-panel {
+  &.mat-mdc-autocomplete-panel,
+  &.ngm-select-panel {
     max-height: 450px;
   }
 }

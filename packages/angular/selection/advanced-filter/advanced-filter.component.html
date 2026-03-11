@@ -88,12 +88,12 @@
                 <z-form-label>
                     {{ 'Ngm.AdvancedFilter.Operator' | translate: {Default: 'Operator'} }}
                 </z-form-label>
-                <mat-select required [(ngModel)]="selectedCondition"
-                    [disabled]="!selectedDimension">
-                  <mat-option *ngFor="let operator of operators" [value]="operator.value">
-                    <span class="pac-grid__filtering-dropdown-text">{{operator.label}}</span>
-                  </mat-option>
-                </mat-select>
+                <ngm-select
+                    required
+                    [(ngModel)]="selectedCondition"
+                    [disabled]="!selectedDimension"
+                    [selectOptions]="operators">
+                </ngm-select>
             </z-form-field>
             
             <z-form-field *ngIf="selectedDimension" appearance="fill" floatLabel="always" displayDensity="cosy">

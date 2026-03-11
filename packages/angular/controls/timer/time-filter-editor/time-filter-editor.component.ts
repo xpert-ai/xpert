@@ -8,8 +8,8 @@ import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatIconModule } from '@angular/material/icon'
 import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
-import { MatSelectModule } from '@angular/material/select'
-import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmSelectComponent } from '@metad/ocap-angular/common'
+import { ISelectOption, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   calcOffsetRange,
   DataSettings,
@@ -29,7 +29,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, MatSelectModule, MatExpansionModule, MatIconModule, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule],
+  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, MatExpansionModule, MatIconModule, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule, NgmSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-time-filter-editor',
   templateUrl: './time-filter-editor.component.html',
@@ -79,6 +79,15 @@ export class NgmTimeFilterEditorComponent implements OnInit {
 
   public hierarchies$ = this.property$.pipe(
     map((property) => property?.hierarchies)
+  )
+  public readonly hierarchyOptions$ = this.hierarchies$.pipe(
+    map(
+      (hierarchies) =>
+        (hierarchies ?? []).map((hierarchy) => ({
+          value: hierarchy.name,
+          label: hierarchy.caption
+        })) as ISelectOption[]
+    )
   )
 
   forControl = false

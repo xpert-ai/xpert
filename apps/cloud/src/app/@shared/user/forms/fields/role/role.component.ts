@@ -16,14 +16,14 @@ import { IRole, IUser, RolesEnum } from '@metad/contracts';
 import { RoleService, Store } from './../../../../../@core/services';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
-import { MatSelectModule } from '@angular/material/select';
+import { NgmSelectComponent } from '@metad/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgmFieldAppearance } from "@metad/ocap-angular/core";
 import { ZardFormImports } from "@xpert-ai/headless-ui";
 
 @Component({
 	standalone: true,
-	imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, MatSelectModule],
+	imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, NgmSelectComponent],
 	selector: 'pac-role-form-field',
 	templateUrl: './role.component.html',
 	styleUrls: [],
@@ -123,6 +123,13 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 
 	@Output()
 	selectedChange = new EventEmitter<IRole>();
+
+	get roleOptions() {
+		return this.roles.map((role) => ({
+			value: role.id,
+			label: role.name
+		}));
+	}
 
 	constructor(
 		private readonly store: Store,

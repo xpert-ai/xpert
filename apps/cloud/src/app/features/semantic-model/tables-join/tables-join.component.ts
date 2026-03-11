@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms'
 
 import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
-import { MatSelectModule } from '@angular/material/select'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { Join, Table } from '@metad/ocap-core'
@@ -22,7 +21,6 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     CdkMenuModule,
 
     MatIconModule,
-    MatSelectModule,
     ZardDividerComponent,
     ZardButtonComponent,
     TranslateModule,

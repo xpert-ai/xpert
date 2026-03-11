@@ -11,8 +11,7 @@ import {
   ReactiveFormsModule
 } from '@angular/forms'
 import { MatListModule, MatSelectionListChange } from '@angular/material/list'
-import { MatSelectModule } from '@angular/material/select'
-import { NgmPropertyComponent } from '@metad/ocap-angular/common'
+import { NgmPropertyComponent, NgmSelectComponent } from '@metad/ocap-angular/common'
 import {
   CalculationProperty,
   CalculationType,
@@ -30,7 +29,7 @@ import { ZardFormImports } from "@xpert-ai/headless-ui";
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, MatSelectModule, MatListModule, NgmPropertyComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, MatListModule, NgmPropertyComponent, NgmSelectComponent],
   selector: 'ngm-measure-control',
   templateUrl: './measure-control.component.html',
   styleUrl: './measure-control.component.scss',
@@ -44,6 +43,14 @@ import { ZardFormImports } from "@xpert-ai/headless-ui";
 })
 export class NgmMeasureControlComponent implements ControlValueAccessor {
   DISPLAY_BEHAVIOUR = DisplayBehaviour
+  readonly autoDisplayBehaviour = '__auto__'
+  readonly displayBehaviourOptions = [
+    { value: DisplayBehaviour.descriptionOnly, label: 'Description' },
+    { value: DisplayBehaviour.descriptionAndId, label: 'Description ID' },
+    { value: DisplayBehaviour.idAndDescription, label: 'ID Description' },
+    { value: DisplayBehaviour.idOnly, label: 'ID Only' },
+    { value: this.autoDisplayBehaviour, label: 'Auto' }
+  ]
 
   @Input() get entityType(): EntityType {
     return this.entityType$.value
@@ -93,13 +100,19 @@ export class NgmMeasureControlComponent implements ControlValueAccessor {
       .subscribe(this.measures$)
 
     this.formGroup.valueChanges.subscribe((value) => {
-      this._onChange?.(value)
+      this._onChange?.({
+        ...value,
+        displayBehaviour: value.displayBehaviour === this.autoDisplayBehaviour ? null : value.displayBehaviour
+      })
     })
   }
 
   writeValue(obj: MeasureControlProperty): void {
     if (obj) {
-      this.formGroup.patchValue(obj)
+      this.formGroup.patchValue({
+        ...obj,
+        displayBehaviour: obj.displayBehaviour ?? this.autoDisplayBehaviour
+      })
       this.selectedMeasures = obj.availableMembers?.map((member) => member.key)
     }
   }

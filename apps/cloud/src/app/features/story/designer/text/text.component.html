@@ -43,17 +43,12 @@
     </label>
 
     <div class="w-2/3 flex justify-start items-center">
-        <mat-select id="fontWeight" class="max-w-full p-2 overflow-hidden text-ellipsis bg-gray-100 border-0 text-gray-900 text-xs rounded-lg
-            focus:ring-blue-500 focus:border-blue-500 block w-full dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            [panelClass]="'ngm-select-panel ngm-density__compact'"
+        <ngm-select id="fontWeight" class="max-w-full"
             [formControl]="fontWeight"
             placeholder="{{ 'PAC.Story.ChooseFontWeight' | translate: {Default: 'Choose a font weight'} }}"
+            [selectOptions]="fontWeightOptions"
         >
-            <mat-option selected [value]="null">--</mat-option>
-          @for (fWeight of fontWeights; track fWeight) {
-            <mat-option [value]="fWeight">{{fWeight}}</mat-option>
-          }
-        </mat-select>
+        </ngm-select>
     </div>
 </div>
 <ngm-input class="w-full" 

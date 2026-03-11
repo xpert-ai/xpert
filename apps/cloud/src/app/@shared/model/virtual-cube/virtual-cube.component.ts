@@ -7,13 +7,12 @@ import { MatExpansionModule } from '@angular/material/expansion'
 import { MatIconModule } from '@angular/material/icon'
 import { ZardDividerComponent, ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
-import { MatSelectModule } from '@angular/material/select'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectToastr } from '@cloud/app/@core'
 import { TMessageContentVirtualCube } from '@metad/contracts'
-import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, myRxResource, NgmDSCoreService, NgmI18nPipe, OcapCoreModule } from '@metad/ocap-angular/core'
 import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
 import {
@@ -39,7 +38,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   selector: 'xp-model-virtual-cube',
   templateUrl: 'virtual-cube.component.html',
   styleUrls: ['virtual-cube.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, MatTooltipModule, MatSelectModule, ZardButtonComponent, ZardDividerComponent, MatIconModule, MatSidenavModule, ...ZardFormImports, MatExpansionModule, MatListModule, MatSlideToggleModule, ZardInputDirective, TranslateModule, OcapCoreModule, NgmEntitySchemaComponent, ResizerModule, NgmCommonModule, NgmCalculatedMeasureComponent, ChecklistComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, MatTooltipModule, ZardButtonComponent, ZardDividerComponent, MatIconModule, MatSidenavModule, ...ZardFormImports, MatExpansionModule, MatListModule, MatSlideToggleModule, ZardInputDirective, TranslateModule, OcapCoreModule, NgmEntitySchemaComponent, ResizerModule, NgmCommonModule, NgmCalculatedMeasureComponent, ChecklistComponent, NgmSelectComponent],
   providers: [NgmDSCoreService, ModelStudioService]
 })
 export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {

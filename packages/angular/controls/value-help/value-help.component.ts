@@ -7,11 +7,10 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
-import { MatSelectModule } from '@angular/material/select'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { NgmCommonModule, NgmResizableDirective } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmResizableDirective, NgmSelectComponent } from '@metad/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, NgmDSCoreService, OcapCoreModule, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
   DataSettings,
@@ -43,7 +42,7 @@ import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
   host: {
     class: 'ngm-value-help'
   },
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkMenuModule, MatDialogModule, MatIconModule, MatSlideToggleModule, ZardDividerComponent, MatListModule, ...ZardFormImports, MatSelectModule, ZardButtonComponent, NgmCommonModule, OcapCoreModule, NgmMemberListComponent, NgmMemberTreeComponent, NgmResizableDirective]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkMenuModule, MatDialogModule, MatIconModule, MatSlideToggleModule, ZardDividerComponent, MatListModule, ...ZardFormImports, ZardButtonComponent, NgmCommonModule, OcapCoreModule, NgmMemberListComponent, NgmMemberTreeComponent, NgmResizableDirective, NgmSelectComponent]
 })
 export class NgmValueHelpComponent implements OnInit {
   DISPLAY_BEHAVIOUR = DisplayBehaviour
@@ -52,6 +51,14 @@ export class NgmValueHelpComponent implements OnInit {
   PresentationEnum = PresentationEnum
   eFilterOperator = FilterOperator
   eDisplayBehaviour = DisplayBehaviour
+  readonly autoDisplayBehaviour = '__auto__'
+  readonly displayBehaviourOptions = [
+    { value: DisplayBehaviour.descriptionOnly, label: 'Description' },
+    { value: DisplayBehaviour.descriptionAndId, label: 'Description ID' },
+    { value: DisplayBehaviour.idAndDescription, label: 'ID Description' },
+    { value: DisplayBehaviour.idOnly, label: 'ID' },
+    { value: this.autoDisplayBehaviour, label: 'Auto' }
+  ]
 
   private dsCoreService? = inject(NgmDSCoreService, { optional: true })
   readonly #data = inject<{
@@ -185,6 +192,12 @@ export class NgmValueHelpComponent implements OnInit {
     }
     return []
   })
+  readonly hierarchyOptions = computed(() =>
+    (this.hierarchies() ?? []).map((hierarchy) => ({
+      value: hierarchy.name,
+      label: hierarchy.caption
+    }))
+  )
 
   get selectedMembers() {
     return this.slicer?.members

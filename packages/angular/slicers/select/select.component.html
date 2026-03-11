@@ -1,11 +1,9 @@
 <z-form-field fxFlex="100" [appearance]="appearance">
   <z-form-label>Select</z-form-label>
-  <mat-select [formControl]="formControl">
-    <mat-option *ngFor="let property of dimensions$ | async" [value]="property.__id__">
-        <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="property.role === AggregationRole.hierarchy" displayDensity="compact" disabled></button>
-        {{property.caption || property.name}}
-    </mat-option>
-  </mat-select>
+  <ngm-select
+    [formControl]="formControl"
+    [selectOptions]="(dimensions$ | async)?.map(property => ({ value: property.__id__, label: property.caption || property.name }))">
+  </ngm-select>
 
   <div zFormSuffix>
     <button z-button zType="ghost" zSize="icon" zShape="circle" [matMenuTriggerFor]="operatorMenu" (click)="$event.stopPropagation();$event.preventDefault();">

@@ -11,26 +11,21 @@
   <ng-content select="[ngmLabel]"></ng-content>
 </div>
 
-@if (!searchable()) {
+@if (!searchable() || multiple()) {
   <div class="relative">
-    <mat-select class="ngm-select-element relative" [panelClass]="'ngm-select-panel ' + (displayDensity() === 'compact' ? 'ngm-density__compact' : '') + ' ' + (displayDensity() === 'cosy' ? 'ngm-density__cosy' : '')"
+    <z-select class="ngm-select-element relative"
       [attr.disabled]="isDisabled"
       [formControl]="formControl"
-      [placeholder]="placeholder()"
-      [panelWidth]="panelWidth() || 'auto'"
-      [multiple]="multiple()"
+      [zDisabled]="isDisabled"
+      [zPlaceholder]="placeholder() || ''"
+      [zMultiple]="multiple()"
     >
-      <mat-select-trigger *ngIf="selectTrigger()" class="flex items-center overflow-hidden">
-        <span class="flex-1">
-          {{selectTrigger().caption || selectTrigger().label || selectTrigger()[valueKey()] || placeholder()}}
-        </span>
-      </mat-select-trigger>
       @for (option of selectOptions(); track option[valueKey()]) {
-        <mat-option [value]="option[valueKey()]">
+        <z-select-item [zValue]="option[valueKey()]">
           <ng-container *ngTemplateOutlet="optionTemplate; context: {$implicit: option}"></ng-container>
-        </mat-option>
+        </z-select-item>
       }
-    </mat-select>
+    </z-select>
 
     <div class="absolute right-6 top-0 h-full flex items-center">
       <ng-container *ngTemplateOutlet="suffixTemplate"></ng-container>

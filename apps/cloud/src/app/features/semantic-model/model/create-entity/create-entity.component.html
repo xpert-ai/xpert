@@ -140,29 +140,21 @@
               </div>
               <div style="width: 140px;" class="shrink-0">
                 @if (!column.isMeasure) {
-                  <mat-select
-                    class="ngm-density__compact p-1 rounded-md hover:bg-slate-500/10 dark:hover:bg-white/10 focus:bg-slate-500/20 dark:focus:bg-white/20 dark:caret-slate-100"
-                    panelClass="ngm-select-panel ngm-density__compact"
-                    [(ngModel)]="column.dimension"
+                  <z-select
+                    class="ngm-density__compact p-1"
+                    [ngModel]="column.dimension?.name ?? noDimensionValue"
+                    (ngModelChange)="selectDimension(column, $event)"
+                    [zPlaceholder]="'PAC.MODEL.CREATE_ENTITY.AssociatedDimension' | translate: { Default: 'Dimension' }"
                   >
-                    <mat-select-trigger>
-                      @if (column.dimension) {
-                        <ngm-display-behaviour class="flex-1" [option]="{key: column.dimension.name, caption: column.dimension.caption}" />
-                      } @else {
-                        <span>
-                          {{ 'PAC.MODEL.CREATE_ENTITY.AssociatedDimension' | translate: { Default: 'Dimension' } }}
-                        </span>
-                      }
-                    </mat-select-trigger>
-                    <mat-option [value]="null">
+                    <z-select-item [zValue]="noDimensionValue">
                       {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
-                    </mat-option>
+                    </z-select-item>
                     @for (dimension of sharedDimensions(); track dimension.name) {
-                      <mat-option [value]="dimension">
+                      <z-select-item [zValue]="dimension.name">
                         <ngm-display-behaviour class="flex-1" [option]="{key: dimension.name, caption: dimension.caption}" />
-                      </mat-option>
+                      </z-select-item>
                     }
-                  </mat-select>
+                  </z-select>
                 }
               </div>
             </div>

@@ -7,9 +7,8 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardComboboxComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatSelectModule } from '@angular/material/select'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -28,7 +27,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     DragDropModule,
     MatIconModule,
     ZardButtonComponent,
-    MatSelectModule,
+    ZardComboboxComponent,
     MatMenuModule,
     MatDialogModule,
     ZardInputDirective,

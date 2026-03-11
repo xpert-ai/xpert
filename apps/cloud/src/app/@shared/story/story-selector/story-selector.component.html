@@ -4,45 +4,37 @@
             <z-form-label>
               {{ 'PAC.KEY_WORDS.Project' | translate: {Default: 'Project'} }}
             </z-form-label>
-            <mat-select [formControl]="projectControl" [compareWith]="compareWith"
-              panelClass="ngm-select-panel ngm-density__cosy"
-            >
-              <mat-option *ngFor="let project of projects$ | async" [value]="project">
+            <ngm-select [formControl]="projectControl" [selectOptions]="projectOptions$ | async">
+              <ng-template ngmOptionContent let-project>
                 <div class="flex items-center">
                     <mat-icon *ngIf="project.modelNotInProject" displayDensity="compact" class="shrink-0"
                         matTooltip="Semantic model not in this project"
-                    >block</mat-icon> {{project.name}}
+                    >block</mat-icon> {{project.label}}
                 </div>
-              </mat-option>
-            </mat-select>
+              </ng-template>
+            </ngm-select>
         </z-form-field>
     
         <z-form-field appearance="fill">
             <z-form-label>
               {{ 'PAC.KEY_WORDS.Story' | translate: {Default: 'Story'} }}
             </z-form-label>
-            <mat-select [formControl]="storyControl" [compareWith]="compareWith"
-              panelClass="ngm-select-panel ngm-density__cosy">
-              <mat-option *ngFor="let story of stories$ | async" [value]="story">
+            <ngm-select [formControl]="storyControl" [selectOptions]="storyOptions$ | async">
+              <ng-template ngmOptionContent let-story>
                 <div class="flex items-center ">
                     <mat-icon *ngIf="story.modelNotInStory" displayDensity="compact" class="shrink-0"
                         matTooltip="Semantic model not in this story"
-                    >block</mat-icon> {{story.name}}
+                    >block</mat-icon> {{story.label}}
                 </div>
-              </mat-option>
-            </mat-select>
+              </ng-template>
+            </ngm-select>
         </z-form-field>
     
         <z-form-field *ngIf="points$ | async as points" appearance="fill" >
             <z-form-label>
               {{ 'PAC.KEY_WORDS.StoryPoint' | translate: {Default: 'Story Point'} }}
             </z-form-label>
-            <mat-select [formControl]="pointControl" [compareWith]="compareWith"
-              panelClass="ngm-select-panel ngm-density__cosy">
-              <mat-option *ngFor="let point of points" [value]="point">
-                {{point.name}}
-              </mat-option>
-            </mat-select>
+            <ngm-select [formControl]="pointControl" [selectOptions]="pointOptions$ | async" />
         </z-form-field>
     </div>
     

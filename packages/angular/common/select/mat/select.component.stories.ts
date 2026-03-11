@@ -57,7 +57,7 @@ class TestSelectComponent<T> implements OnChanges {
 }
 
 const meta: Meta<NgmMatSelectComponent> = {
-  title: 'Common/MatSelect',
+  title: 'Common/LegacySelect',
   component: NgmMatSelectComponent,
   decorators: [
     moduleMetadata({

@@ -1,4 +1,3 @@
-import { SelectionModel } from '@angular/cdk/collections'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
 import {
@@ -26,8 +25,7 @@ import {
 } from '@angular/forms'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatIconModule } from '@angular/material/icon'
-import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatSelectModule } from '@angular/material/select'
+import { ZardFormImports, ZardInputDirective, ZardSelectImports } from '@xpert-ai/headless-ui'
 import { DisplayDensity, ISelectOption, NgmDensityDirective, OcapCoreModule } from '@metad/ocap-angular/core'
 import { DisplayBehaviour, isNil, nonNullable } from '@metad/ocap-core'
 import { distinctUntilChanged, filter } from 'rxjs/operators'
@@ -35,7 +33,7 @@ import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 import { NgmOptionContent } from '../../input/option-content'
 
 /**
- * Select component is a wrapper of mat-select, you can use it to create a select component.
+ * Shared select wrapper for flat option lists.
  * You can use the following custom elements to customize the select:
  * - ngmLabel: the custom label elements of the select
  * - ngmError: the custom error message of the select
@@ -68,7 +66,7 @@ import { NgmOptionContent } from '../../input/option-content'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatSelectModule,
+    ...ZardSelectImports,
     MatAutocompleteModule,
     ZardInputDirective,
     ...ZardFormImports,
@@ -116,10 +114,8 @@ export class NgmSelectComponent implements ControlValueAccessor
   _explicitContent: TemplateRef<any> = undefined!
   readonly searInput = viewChild('searInput', { read: ElementRef })
 
-  formControl = new FormControl<string>(null)
-  readonly value = signal<string | number>(null)
-
-  selection = new SelectionModel<string>(true)
+  formControl = new FormControl<string | number | Array<string | number>>(null)
+  readonly value = signal<string | number | Array<string | number>>(null)
   // searchControl = new FormControl<string>(null)
   // readonly highlight = toSignal(this.searchControl.valueChanges, { initialValue: '' })
 
@@ -138,10 +134,6 @@ export class NgmSelectComponent implements ControlValueAccessor
     return this.selectOptions()
   })
 
-  public selectTrigger = computed(() => {
-    return this.selectOptions()?.find((option) => option[this.valueKey()] === this.value())
-  })
-
   readonly inputDirty = signal(false)
 
   onChange: (input: any) => void
@@ -149,23 +141,12 @@ export class NgmSelectComponent implements ControlValueAccessor
 
   private valueSub = this.formControl.valueChanges
     .pipe(
-      filter(() => !this.multiple()),
       distinctUntilChanged(),
-      filter((value) => this.value() !== value),
       takeUntilDestroyed()
     )
     .subscribe((value) => {
       this.value.set(value)
       this.onChange?.(value)
-    })
-
-  private selectionSub = this.selection.changed
-    .pipe(
-      filter(() => this.multiple()),
-      takeUntilDestroyed()
-    )
-    .subscribe(() => {
-      this.onChange?.(this.selection.selected)
     })
 
   constructor() {
@@ -184,9 +165,8 @@ export class NgmSelectComponent implements ControlValueAccessor
   }
 
   writeValue(obj: any): void {
-    // this.formControl.setValue(obj, {emitEvent: false}) // 不发出去会导致 formControl.valueChanges distinctUntilChanged 检测不到本次变化
     this.value.set(obj)
-    this.formControl.setValue(obj)
+    this.formControl.setValue(obj, { emitEvent: false })
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -198,7 +178,7 @@ export class NgmSelectComponent implements ControlValueAccessor
     isDisabled ? this.formControl.disable() : this.formControl.enable()
   }
   trackByValue(index: number, item) {
-    return item?.key
+    return item?.[this.valueKey()] ?? item?.key
   }
 
   displayWith(option: ISelectOption) {

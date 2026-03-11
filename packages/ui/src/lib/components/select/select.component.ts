@@ -43,7 +43,8 @@ import {
 import { mergeClasses } from '@/shared/utils/merge-classes';
 
 type OnTouchedType = () => void;
-type OnChangeType = (value: string) => void;
+export type ZardSelectValue = string | number;
+type OnChangeType = (value: ZardSelectValue | ZardSelectValue[]) => void;
 
 const COMPACT_MODE_WIDTH_THRESHOLD = 100;
 
@@ -133,9 +134,9 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
   readonly zMultiple = input<boolean>(false);
   readonly zPlaceholder = input<string>('Select an option...');
   readonly zSize = input<ZardSelectSizeVariants>('default');
-  readonly zValue = model<string | string[]>(this.zMultiple() ? [] : '');
+  readonly zValue = model<ZardSelectValue | ZardSelectValue[]>(this.zMultiple() ? [] : '');
 
-  readonly zSelectionChange = output<string | string[]>();
+  readonly zSelectionChange = output<ZardSelectValue | ZardSelectValue[]>();
 
   readonly isOpen = signal(false);
   readonly focusedIndex = signal<number>(-1);
@@ -155,10 +156,10 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
       return this.provideLabelsForMultiselectMode(selectedValue);
     }
 
-    return this.provideLabelForSingleSelectMode(selectedValue as string);
+    return this.provideLabelForSingleSelectMode(selectedValue as ZardSelectValue);
   });
 
-  private onChange: OnChangeType = (_value: string) => {
+  private onChange: OnChangeType = (_value: ZardSelectValue | ZardSelectValue[]) => {
     // ControlValueAccessor onChange callback
   };
 
@@ -182,8 +183,8 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
     let i = 0;
     for (const item of this.selectItems()) {
       item.setSelectHost({
-        selectedValue: () => (this.zMultiple() ? (this.zValue() as string[]) : [this.zValue() as string]),
-        selectItem: (value: string, label: string) => this.selectItem(value, label),
+        selectedValue: () => (this.zMultiple() ? (this.zValue() as ZardSelectValue[]) : [this.zValue() as ZardSelectValue]),
+        selectItem: (value: ZardSelectValue, label: string) => this.selectItem(value, label),
         navigateTo: () => this.navigateTo(item, i),
       });
       item.zSize.set(this.zSize());
@@ -259,7 +260,7 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
     }
   }
 
-  selectItem(value: string, label: string) {
+  selectItem(value: ZardSelectValue, label: string) {
     if (value === undefined || value === null || value === '') {
       console.warn('Attempted to select item with invalid value:', { value, label });
       return;
@@ -300,7 +301,7 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
     }, 0);
   }
 
-  private provideLabelsForMultiselectMode(selectedValue: string[]): string[] {
+  private provideLabelsForMultiselectMode(selectedValue: ZardSelectValue[]): string[] {
     const labelsToShowCount = selectedValue.length - this.zMaxLabelCount();
     const labels = [];
     let index = 0;
@@ -318,7 +319,7 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
     return labels;
   }
 
-  private provideLabelForSingleSelectMode(selectedValue: string): string[] {
+  private provideLabelForSingleSelectMode(selectedValue: ZardSelectValue): string[] {
     const manualLabel = this.zLabel();
     if (manualLabel) {
       return [manualLabel];
@@ -329,7 +330,9 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
       return [matchingItem.label()];
     }
 
-    return selectedValue ? [selectedValue] : [];
+    return selectedValue !== undefined && selectedValue !== null && selectedValue !== ''
+      ? [String(selectedValue)]
+      : [];
   }
 
   private open() {
@@ -383,7 +386,7 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
     }
   }
 
-  private getMatchingItem(value: string): ZardSelectItemComponent | undefined {
+  private getMatchingItem(value: ZardSelectValue): ZardSelectItemComponent | undefined {
     return this.selectItems()?.find(item => item.zValue() === value);
   }
 
@@ -592,13 +595,14 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
 
     // Find the index of the currently selected item
     let selectedValue;
-    if (Array.isArray(this.zValue()) && this.zValue().length) {
-      [selectedValue] = this.zValue();
+    const currentValue = this.zValue();
+    if (Array.isArray(currentValue) && currentValue.length) {
+      [selectedValue] = currentValue;
     } else {
-      selectedValue = this.zValue();
+      selectedValue = currentValue;
     }
 
-    let selectedIndex = items.findIndex(item => item.getAttribute('value') === selectedValue);
+    let selectedIndex = items.findIndex(item => item.getAttribute('value') === String(selectedValue));
 
     // If no item is selected, focus the first item
     if (selectedIndex === -1) {
@@ -610,7 +614,7 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
   }
 
   // ControlValueAccessor implementation
-  writeValue(value: string | string[] | null): void {
+  writeValue(value: ZardSelectValue | ZardSelectValue[] | null): void {
     if (this.zMultiple() && Array.isArray(value)) {
       this.zValue.set(value);
     } else {
@@ -618,7 +622,7 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
     }
   }
 
-  registerOnChange(fn: (value: string) => void): void {
+  registerOnChange(fn: (value: ZardSelectValue | ZardSelectValue[]) => void): void {
     this.onChange = fn;
   }
 

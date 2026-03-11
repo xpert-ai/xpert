@@ -21,7 +21,7 @@ import {
 } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
-import { MatSelectModule } from '@angular/material/select'
+import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import {
   AggregationRole,
@@ -34,13 +34,13 @@ import {
   getEntityProperty,
   isSemanticCalendar
 } from '@metad/ocap-core'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, firstValueFrom, startWith } from 'rxjs'
 import { NgmFieldAppearance } from "@metad/ocap-angular/core";
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, MatSelectModule, ZardInputDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, ZardInputDirective, NgmSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-compare-member-select',
   templateUrl: './member-select.component.html',
@@ -63,6 +63,7 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
 
   private readonly _dialog? = inject(MatDialog, { optional: true })
   private readonly _viewContainerRef = inject(ViewContainerRef)
+  private readonly translate = inject(TranslateService)
 
   @Input() appearance: NgmFieldAppearance = 'fill'
   @Input() label: string
@@ -119,6 +120,32 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
   })
 
   readonly isCalendar = computed(() => isSemanticCalendar(this.property()))
+  readonly compareOptions = computed(() => [
+    {
+      value: CompareToEnum.CurrentMember,
+      label: this.getTranslation('Ngm.Property.CurrentMember', { Default: 'Current Member' })
+    },
+    {
+      value: CompareToEnum.Lag,
+      label: this.getTranslation('Ngm.Property.PreviousNMember', { Default: "Previous 'N' Member" })
+    },
+    {
+      value: CompareToEnum.Lead,
+      label: this.getTranslation('Ngm.Property.NextNMember', { Default: "Next 'N' Member" })
+    },
+    {
+      value: CompareToEnum.Parallel,
+      label: this.getTranslation('Ngm.Property.ParallelMember', { Default: 'Parallel Member' })
+    },
+    {
+      value: CompareToEnum.Ancestor,
+      label: this.getTranslation('Ngm.Property.AncestorMember', { Default: 'Ancestor Member' })
+    },
+    {
+      value: CompareToEnum.SelectedMember,
+      label: this.getTranslation('Ngm.Property.SelectByMembers', { Default: 'Select by Members' }) + '...'
+    }
+  ])
 
   /**
   |--------------------------------------------------------------------------
@@ -131,6 +158,8 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
     .subscribe((type) => {
       if (type === CompareToEnum.CurrentMember) {
         this.value = null
+      } else if (type === CompareToEnum.SelectedMember) {
+        this.selectByMember()
       }
     })
 
@@ -153,8 +182,8 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
     this.disabled = isDisabled
   }
 
-  async selectByMember(event) {
-    event.stopPropagation()
+  async selectByMember(event?: Event) {
+    event?.stopPropagation()
     const slicer = await firstValueFrom(
       this._dialog
         .open(NgmValueHelpComponent, {
@@ -181,5 +210,9 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
         value: slicer.members?.[0]?.value
       })
     }
+  }
+
+  private getTranslation(key: string, params?: Record<string, unknown>) {
+    return this.translate.instant(key, params)
   }
 }
