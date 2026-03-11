@@ -70,23 +70,24 @@
         </span>
       </div>
 
-      <mat-nav-list cdkTrapFocus cdkTrapFocusAutoCapture>
-        <mat-list-item
-          *ngFor="let sheet of sheets$ | async"
-          [class.active]="activeLink === sheet.name"
-          (click)="activeSheet(sheet)"
-        >
-          <span class="w-full p-2">
-            <input
-              z-input
-              [(ngModel)]="sheet.tableName"
-              class="w-full"
-              [placeholder]="'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: { Default: 'Input Table Name' }"
-              (keydown)="onKeyup($event)"
-            />
-          </span>
-        </mat-list-item>
-      </mat-nav-list>
+      <ul cdkTrapFocus cdkTrapFocusAutoCapture class="ngm-nav-list">
+        @for (sheet of sheets$ | async; track sheet.name) {
+          <li
+            [class.active]="activeLink === sheet.name"
+            (click)="activeSheet(sheet)"
+          >
+            <span class="block w-full p-2">
+              <input
+                z-input
+                [(ngModel)]="sheet.tableName"
+                class="w-full"
+                [placeholder]="'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: { Default: 'Input Table Name' }"
+                (keydown)="onKeyup($event)"
+              />
+            </span>
+          </li>
+        }
+      </ul>
     </mat-step>
   </mat-horizontal-stepper>
 

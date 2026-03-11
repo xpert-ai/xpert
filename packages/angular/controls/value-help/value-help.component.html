@@ -103,9 +103,9 @@
       </div>
 
       <div class="ngm-value-help__selected-members-list" displayDensity="compact">
-        <mat-list class="ngm-list">
+        <ul role="list" class="ngm-list">
           @for (member of selectedMembers; track member.key; let i = $index) {
-            <mat-list-item class="group">
+            <li role="listitem" class="group">
               <div class="flex items-center overflow-hidden">
                 @if (member.operator) {
                   <span class="border-[0.5px] border-solid border-divider-regular rounded-md mr-1 text-xs leading-3 p-1 font-mono bg-neutral-50"
@@ -125,9 +125,9 @@
                   </button>
                 </div>
                 <z-divider></z-divider>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
       </div>
       
       <button z-button zType="ghost" color="accent" (click)="clearSelection()">

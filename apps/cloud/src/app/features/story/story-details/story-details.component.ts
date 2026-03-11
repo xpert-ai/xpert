@@ -14,7 +14,6 @@ import {
   ZardInputDirective,
   ZardCheckboxComponent
 } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
 import { Router } from '@angular/router'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
@@ -33,7 +32,6 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
     TranslateModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatListModule,
     ...ZardFormImports,
     ZardInputDirective,
     MatDialogModule,

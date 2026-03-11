@@ -1,4 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { NgModule } from '@angular/core'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatBadgeModule } from '@angular/material/badge'
@@ -17,7 +18,6 @@ import {
   ZardCheckboxComponent
 } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -36,6 +36,7 @@ import { MatPaginatorModule } from '@angular/material/paginator'
 
 const MATERIAL_MODULES = [
   DragDropModule,
+  CdkListboxModule,
   ZardIconComponent,
   ZardDividerComponent,
   MatMenuModule,
@@ -44,7 +45,6 @@ const MATERIAL_MODULES = [
   ZardButtonComponent,
   MatButtonToggleModule,
   ...ZardFormImports,
-  MatListModule,
   ...ZardTabsImports,
   MatStepperModule,
   MatSnackBarModule,

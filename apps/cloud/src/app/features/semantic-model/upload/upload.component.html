@@ -36,22 +36,23 @@
         </span>
       </div>
 
-      <mat-nav-list cdkTrapFocus cdkTrapFocusAutoCapture>
-        <mat-list-item
-          *ngFor="let sheet of sheets$ | async"
-          class="mt-1"
-          [class.active]="activeLink === sheet.name"
-          (click)="activeSheet(sheet)"
-        >
-          <ngm-input
-            [label]="'PAC.KEY_WORDS.TableName' | translate: { Default: 'Table Name' }"
-            [(ngModel)]="sheet.name"
-            class="w-full"
-            [placeholder]="'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: { Default: 'Input Table Name' }"
-            (keydown)="activeSheet(sheet); onKeyup($event)"
-          />
-        </mat-list-item>
-      </mat-nav-list>
+      <ul cdkTrapFocus cdkTrapFocusAutoCapture class="ngm-nav-list">
+        @for (sheet of sheets$ | async; track sheet.name) {
+          <li
+            class="mt-1"
+            [class.active]="activeLink === sheet.name"
+            (click)="activeSheet(sheet)"
+          >
+            <ngm-input
+              [label]="'PAC.KEY_WORDS.TableName' | translate: { Default: 'Table Name' }"
+              [(ngModel)]="sheet.name"
+              class="w-full"
+              [placeholder]="'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: { Default: 'Input Table Name' }"
+              (keydown)="activeSheet(sheet); onKeyup($event)"
+            />
+          </li>
+        }
+      </ul>
 
       <span class="mt-4 flex items-center">
         *{{ 'PAC.MODEL.UPLOAD.Preview50' | translate: { Default: 'Preview Top 50 Records' } }}
@@ -203,13 +204,13 @@
       }
     }
     @case (2) {
-      <mat-list role="list">
-        <mat-list-item
+      <ul role="list" class="ngm-list">
+        @for (sheet of sheets; track sheet.name) {
+        <li
           role="listitem"
-          *ngFor="let sheet of sheets"
           class="hover:bg-slate-500/10 text-ellipsis overflow-hidden"
         >
-          <div class="flex items-center justify-start">
+          <div class="flex items-center justify-start px-3 py-2">
             @switch (sheet.status) {
               @case ('uploading') {
                 <span class="mr-2">
@@ -251,8 +252,9 @@
               </span>
             }
           </div>
-        </mat-list-item>
-      </mat-list>
+        </li>
+        }
+      </ul>
     }
   }
 

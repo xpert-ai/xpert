@@ -1,4 +1,5 @@
 import { A11yModule } from '@angular/cdk/a11y'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
@@ -13,7 +14,6 @@ import {
   ZardInputDirective,
   ZardCheckboxComponent
 } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatPaginatorModule } from '@angular/material/paginator'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -44,7 +44,7 @@ import { AnalyticalGridComponent } from './analytical-grid.component'
     MatSortModule,
     OverlayModule,
     MatCardModule,
-    MatListModule,
+    CdkListboxModule,
     ...ZardFormImports,
     ZardInputDirective,
     ZardCheckboxComponent,

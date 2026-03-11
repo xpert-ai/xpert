@@ -8,7 +8,6 @@ import { FormsModule } from '@angular/forms'
 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -37,7 +36,6 @@ import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareRepla
     MatDialogModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatListModule,
     ZardDividerComponent,
     MatMenuModule,
     MatProgressBarModule,

@@ -21,22 +21,22 @@
       <z-tab [label]="'Ngm.Calculation.CALCULATED_MEMBERS' | translate: {Default: 'Calculated Members'}">
         <div class="max-w-full w-full flex flex-col justify-start items-stretch p-2 overflow-hidden">
           <ngm-search class="" [formControl]="calculatedMemberSearch" />
-          <mat-list role="list" class="flex-1 max-w-full w-full overflow-auto" displayDensity="cosy"
+          <ul role="list" class="ngm-list flex-1 max-w-full w-full overflow-auto"
             id="ngm-calculated-calculations"
             cdkDropList
             [cdkDropListData]="calculations"
             (cdkDropListDropped)="drop($event)"
-            >
+          >
             @for (property of calculations$ | async; track property.name) {
-              <mat-list-item role="listitem" class="hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              <li role="listitem" class="hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 cdkDrag
                 [cdkDragData]="property"
               >
                 <ngm-entity-property class="flex-1" [property]="property" [highlight]="calculatedMemberHighlight" />
                 <div *cdkDragPlaceholder></div>
-              </mat-list-item>
+              </li>
             }
-          </mat-list>
+          </ul>
         </div>
 
       </z-tab>
@@ -52,25 +52,27 @@
               </div>
             </button>
 
-            <mat-list role="list" displayDensity="compact"
+            <ul role="list" class="ngm-list"
               id="ngm-calculated-parameters"
               cdkDropList
               [cdkDropListData]="calculations"
             >
-              <mat-list-item role="listitem" *ngFor="let property of parameters$ | async" class="rounded-lg overflow-hidden hover:bg-gray-100"
-                cdkDrag
-                [cdkDragData]="property"
-              >
-                <div class="flex justify-between items-center">
-                  <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property>
-                  <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-calculated-measure__parameter-edit" (click)="openCreateParameter(property)">
-                    <z-icon zType="edit"></z-icon>
-                  </button>
-                </div>
+              @for (property of parameters$ | async; track property.name) {
+                <li role="listitem" class="rounded-lg overflow-hidden hover:bg-gray-100"
+                  cdkDrag
+                  [cdkDragData]="property"
+                >
+                  <div class="flex justify-between items-center">
+                    <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property>
+                    <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-calculated-measure__parameter-edit" (click)="openCreateParameter(property)">
+                      <z-icon zType="edit"></z-icon>
+                    </button>
+                  </div>
 
-                <div *cdkDragPlaceholder></div>
-              </mat-list-item>
-              </mat-list>
+                  <div *cdkDragPlaceholder></div>
+                </li>
+              }
+            </ul>
           </div>
         </ng-template>
       </z-tab>

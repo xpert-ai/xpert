@@ -6,7 +6,14 @@ import { booleanAttribute, Component, computed, inject, input, output } from '@a
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { getErrorMessage, NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import {
+  buildListboxOptions,
+  formatSelectOptionValue,
+  getErrorMessage,
+  hasSelectOptionValue,
+  NgmI18nPipe,
+  TSelectOption
+} from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -92,6 +99,14 @@ export class XpertRemoteSelectComponent {
 
     return deduped
   })
+  readonly listboxOptions = computed<TSelectOption<TSelectOptionValue>[]>(() =>
+    buildListboxOptions(
+      this.selectOptions(),
+      this.values(),
+      this.compareWith,
+      'Current value not found, please reselect or clear'
+    )
+  )
 
   readonly searchText = toSignal<string>(
     this.searchControl.valueChanges.pipe(debounceTime(300), startWith(null))
@@ -100,17 +115,20 @@ export class XpertRemoteSelectComponent {
   readonly filteredSelectOptions = computed(() => {
     const text = this.searchText()?.trim().toLowerCase()
     return text
-      ? this.selectOptions()?.filter((_) => {
-          const label = this.i18n.transform(_.label)?.toLowerCase() ?? ''
-          const description = this.i18n.transform(_.description)?.toLowerCase() ?? ''
-          return label.includes(text) || description.includes(text)
+      ? this.listboxOptions()?.filter((option) => {
+          const label = this.i18n.transform(option.label)?.toLowerCase() ?? ''
+          const description = this.i18n.transform(option.description)?.toLowerCase() ?? ''
+          return label.includes(text)
+            || description.includes(text)
+            || formatSelectOptionValue(option.value).toLowerCase().includes(text)
+            || hasSelectOptionValue(this.values(), option.value, this.compareWith)
         })
-      : this.selectOptions()
+      : this.listboxOptions()
   })
 
   readonly selectedOptions = computed(() => {
     return this.values()?.map(
-      (value) => this.selectOptions()?.find((_) => this.compareWith(_.value, value)) ?? { value }
+      (value) => this.listboxOptions()?.find((_) => this.compareWith(_.value, value)) ?? { value }
     )
   })
 

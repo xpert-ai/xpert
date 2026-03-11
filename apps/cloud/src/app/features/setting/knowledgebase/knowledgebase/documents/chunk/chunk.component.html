@@ -8,20 +8,18 @@
 <div class="p-4 overflow-auto"
   waIntersectionObserver
   waIntersectionThreshold="0.5">
-  <mat-list class="example-list-wrapping m-2">
+  <ul role="list" class="example-list-wrapping m-2">
     @for (chunk of chunks(); track chunk.id) {
-      <mat-list-item lines="5" class="p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
-        <span matListItemTitle>
-          <div class="flex justify-between items-center" >
-            <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="compact" [matTooltip]="'PAC.Knowledgebase.DeleteChunk' | translate: {Default:'Delete Chunk'} " (click)="deleteChunk(chunk)">
-              <z-icon zType="delete"></z-icon>
-            </button>
-          </div>
-        </span>
+      <li role="listitem" class="p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
+        <div class="mb-2 flex justify-between items-center" >
+          <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="compact" [matTooltip]="'PAC.Knowledgebase.DeleteChunk' | translate: {Default:'Delete Chunk'} " (click)="deleteChunk(chunk)">
+            <z-icon zType="delete"></z-icon>
+          </button>
+        </div>
         <span>{{chunk.content}}</span>
-      </mat-list-item>
+      </li>
     }
 
     <div (waIntersectionObservee)="onIntersection()" class="p-4"></div>
-  </mat-list>
+  </ul>
 </div>

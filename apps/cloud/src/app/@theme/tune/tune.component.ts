@@ -3,7 +3,6 @@ import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -35,7 +34,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-
     MatTooltipModule,
     ZardButtonComponent,
     ...ZardTabsImports,
-    MatListModule,
     MatSliderModule,
     MatProgressBarModule,
     ButtonGroupDirective,

@@ -72,7 +72,6 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
-import { MatListModule } from '@angular/material/list'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { ZardButtonComponent, ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
@@ -95,7 +94,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardCheckboxComponent } from '@
     MatTooltipModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatListModule,
     MatToolbarModule,
     OcapCoreModule,
     ResizerModule,

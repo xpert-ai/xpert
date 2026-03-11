@@ -19,6 +19,7 @@ import { MODEL_TYPE, SemanticModelEntityType } from '../types'
 import { uuid } from '@cloud/app/@core'
 import { debouncedSignal, ISelectOption } from '@metad/ocap-angular/core'
 import { CommonModule } from '@angular/common'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import {
@@ -30,11 +31,11 @@ import {
   ZardCheckboxComponent
 } from '@xpert-ai/headless-ui'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { mergeSelectedValues } from '@metad/ocap-angular/core'
 
 export type CreateEntityColumnType = {
   name: string
@@ -96,8 +97,8 @@ export type CreateEntityDialogRetType = {
     ...ZardFormImports,
     ZardInputDirective,
     ...ZardSelectImports,
+    CdkListboxModule,
     MatAutocompleteModule,
-    MatListModule,
     MatProgressSpinnerModule,
     ZardCheckboxComponent,
     TranslateModule,
@@ -132,7 +133,7 @@ export class ModelCreateEntityComponent {
     )
   })
 
-  cubes: Cube[] = []
+  private readonly _cubes = signal<Cube[]>([])
   table = new FormControl(null)
   type = new FormControl<SemanticModelEntityType>(null, [Validators.required])
   name = new FormControl(null, [Validators.required, this.forbiddenNameValidator()])
@@ -175,6 +176,8 @@ export class ModelCreateEntityComponent {
   )
 
   public readonly cubes$ = this.modelService.cubeStates$.pipe(map((states) => states.map((state) => state.cube)))
+  readonly cubeOptions = toSignal(this.cubes$, { initialValue: [] })
+  readonly listboxCubes = computed(() => mergeSelectedValues(this.cubeOptions(), this.cubes, this.compareWithCube))
 
   private readonly entityColumns = toSignal(
     this.tableName$.pipe(
@@ -265,6 +268,13 @@ export class ModelCreateEntityComponent {
       },
       { allowSignalWrites: true }
     )
+  }
+
+  get cubes() {
+    return this._cubes()
+  }
+  set cubes(value: Cube[]) {
+    this._cubes.set(value ?? [])
   }
 
   forbiddenNameValidator(): ValidatorFn {

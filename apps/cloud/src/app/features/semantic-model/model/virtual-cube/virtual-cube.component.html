@@ -82,8 +82,9 @@
                     <mat-panel-title>{{ 'PAC.KEY_WORDS.Cubes' | translate: {Default: 'Cubes'} }}</mat-panel-title>
                     <mat-panel-description></mat-panel-description>
                 </mat-expansion-panel-header>
-                <mat-list displayDensity="compact">
-                    <mat-list-item role="listitem" *ngFor="let cube of cubes$ | async">
+                <ul role="list" class="ngm-list">
+                    @for (cube of cubes$ | async; track cube.cubeName) {
+                    <li role="listitem">
                         <div class="flex items-center">
                             <div class="flex-1 flex mr-4">{{ cube.cubeName }}</div>
                         
@@ -93,8 +94,9 @@
                                 <z-icon zType="cancel"></z-icon>
                             </button>
                         </div>
-                    </mat-list-item>
-                </mat-list>
+                    </li>
+                    }
+                </ul>
             </mat-expansion-panel>
 
             <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
@@ -102,14 +104,15 @@
                     <mat-panel-title>{{ 'PAC.KEY_WORDS.Dimensions' | translate: {Default: 'Dimensions'} }}</mat-panel-title>
                     <mat-panel-description></mat-panel-description>
                 </mat-expansion-panel-header>
-                <mat-list role="list" class="pac-cdk-drop__list min-h-[60px]" displayDensity="compact"
+                <ul role="list" class="ngm-list pac-cdk-drop__list min-h-[60px]"
                     cdkDropList
                     [cdkDropListData]="dimensions$()"
                     [cdkDropListEnterPredicate]="dropDimensionPredicate"
                     (cdkDropListDropped)="dropDimension($event)"
                     >
-                    <mat-list-item role="listitem" class="pac-cdk-drop-item"
-                        *ngFor="let dimension of dimensions$()" cdkDrag>
+                    @for (dimension of dimensions$(); track dimension.name) {
+                    <li role="listitem" class="pac-cdk-drop-item"
+                        cdkDrag>
                         <div class="flex items-center">
                             <div class="flex-1 flex mr-4">
                                 <ngm-display-behaviour class="flex-1"
@@ -133,8 +136,9 @@
                                 <z-icon zType="cancel"></z-icon>
                             </button>
                         </div>
-                    </mat-list-item>
-                </mat-list>
+                    </li>
+                    }
+                </ul>
             </mat-expansion-panel>
 
             <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
@@ -143,13 +147,14 @@
                     <mat-panel-description></mat-panel-description>
                 </mat-expansion-panel-header>
 
-                <mat-list role="list" class="pac-cdk-drop__list min-h-[60px]" displayDensity="compact"
+                <ul role="list" class="ngm-list pac-cdk-drop__list min-h-[60px]"
                     cdkDropList
                     [cdkDropListEnterPredicate]="dropMeasurePredicate"
                     (cdkDropListDropped)="dropMeasure($event)"
                     >
-                    <mat-list-item role="listitem" class="pac-cdk-drop-item"
-                        *ngFor="let measure of measures$ | async" cdkDrag>
+                    @for (measure of measures$ | async; track measure.name) {
+                    <li role="listitem" class="pac-cdk-drop-item"
+                        cdkDrag>
                         <div class="flex items-center">
                             <div class="flex-1 flex">
                                 <ngm-display-behaviour style="flex: 1;"
@@ -170,8 +175,9 @@
                                 <z-icon zType="cancel"></z-icon>
                             </button>
                         </div>
-                    </mat-list-item>
-                </mat-list>
+                    </li>
+                    }
+                </ul>
             </mat-expansion-panel>
 
             <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
@@ -184,8 +190,9 @@
                     </button>
                 </mat-expansion-panel-header>
 
-                <mat-list role="list" class="pac-cdk-drop-list" displayDensity="compact">
-                    <mat-list-item role="listitem" *ngFor="let measure of calculatedMembers$ | async">
+                <ul role="list" class="ngm-list pac-cdk-drop-list">
+                    @for (measure of calculatedMembers$ | async; track measure.name) {
+                    <li role="listitem">
                         <div class="flex items-center">
                             <ngm-display-behaviour class="flex-1 overflow-hidden"
                                 [option]="{
@@ -200,8 +207,9 @@
                                 <z-icon zType="cancel"></z-icon>
                             </button>
                         </div>
-                    </mat-list-item>
-                </mat-list>
+                    </li>
+                    }
+                </ul>
 
                 <z-divider></z-divider>
 

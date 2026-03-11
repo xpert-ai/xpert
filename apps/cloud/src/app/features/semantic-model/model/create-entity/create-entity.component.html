@@ -149,9 +149,9 @@
           {{ 'PAC.MODEL.CREATE_ENTITY.AssociatedDimension' | translate: { Default: 'Associated' } }}
         </div>
       </div>
-      <mat-list role="list" class="block overflow-auto">
+      <ul role="list" class="ngm-list block overflow-auto">
         @for (column of filteredColumns(); track column.name) {
-          <mat-list-item role="listitem" class="group rounded-lg">
+          <li role="listitem" class="group rounded-lg">
             <div class="flex items-center">
               <ngm-display-behaviour
                 class="flex-1 ml-4 overflow-hidden"
@@ -188,9 +188,9 @@
                 }
               </div>
             </div>
-          </mat-list-item>
+          </li>
         }
-      </mat-list>
+      </ul>
       @if (modelType === MODEL_TYPE.XMLA) {
         <div class="flex-1 w-full flex justify-center items-center gap-1">
           <i class="ri-information-2-line text-lg"></i>
@@ -218,9 +218,9 @@
         </span>
       </div>
       <div class="overflow-auto">
-        <mat-list role="list" cdkDropList (cdkDropListDropped)="drop($event)">
+        <ul role="list" class="ngm-list" cdkDropList (cdkDropListDropped)="drop($event)">
           @for (column of filteredColumns(); track column.name; let i = $index) {
-            <mat-list-item cdkDrag cdkDragLockAxis="y" role="listitem" class="group rounded-lg">
+            <li cdkDrag cdkDragLockAxis="y" role="listitem" class="group rounded-lg">
               <div class="w-full h-full flex items-center">
                 <div
                   class="flex justify-center items-center w-12 h-full group-hover:opacity-100"
@@ -252,24 +252,31 @@
                   displayBehaviour="descriptionAndId"
                 />
               </div>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
       </div>
     }
     @case (SemanticModelEntityType.VirtualCube) {
       <div class="px-4 overflow-auto">
-        <mat-selection-list [compareWith]="compareWithCube" [(ngModel)]="cubes">
-          @for (cube of cubes$ | async; track cube.name) {
-            <mat-list-option class="rounded-lg" [value]="cube">
+        <ul
+          class="ngm-cdk-listbox"
+          cdkListbox
+          [cdkListboxMultiple]="true"
+          [cdkListboxCompareWith]="compareWithCube"
+          [cdkListboxValue]="cubes"
+          (cdkListboxValueChange)="cubes = [...$event.value]"
+        >
+          @for (cube of listboxCubes(); track cube.name) {
+            <li class="ngm-cdk-option rounded-lg" [cdkOption]="cube">
               <ngm-display-behaviour
                 class="flex-1"
                 [option]="{ key: cube.name, caption: cube.caption }"
                 displayBehaviour="descriptionAndId"
               />
-            </mat-list-option>
+            </li>
           }
-        </mat-selection-list>
+        </ul>
       </div>
     }
   }

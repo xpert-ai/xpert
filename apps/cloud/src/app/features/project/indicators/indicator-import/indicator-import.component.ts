@@ -5,7 +5,6 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { XpIndicatorRegisterFormComponent } from '@cloud/app/@shared/indicator'
 import {
@@ -29,7 +28,6 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     CommonModule,
     FormsModule,
     DragDropModule,
-    MatListModule,
     ZardIconComponent,
     MatProgressSpinnerModule,
     ZardButtonComponent,

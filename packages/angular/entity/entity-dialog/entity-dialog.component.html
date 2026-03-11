@@ -36,16 +36,16 @@
 
   <cdk-virtual-scroll-viewport class="flex-1 h-full overflow-hidden hover:overflow-y-auto"
     itemSize="30" minBufferPx="360" maxBufferPx="1000">
-    <mat-selection-list [(ngModel)]="entities" [multiple]="false" class="overflow-auto">
-      <mat-list-option *cdkVirtualFor="let entity of entitiesList(); trackBy: trackByKey" [value]="entity.key">
+    <ul cdkListbox [(ngModel)]="entities" [cdkListboxMultiple]="false" class="ngm-cdk-listbox overflow-auto">
+      <li *cdkVirtualFor="let entity of entitiesList(); trackBy: trackByKey" class="ngm-cdk-option flex items-center gap-2 rounded-lg" [cdkOption]="entity.key">
         @if ($any(entity.value).annotated) {
-          <z-icon matListItemIcon class="opacity-60" zSize="lg"
+          <z-icon class="shrink-0 opacity-60" zSize="lg"
             [matTooltip]="'Ngm.Entity.AnnotatedCube' | translate: {Default: 'Annotated Cube'}"
             matTooltipPosition="before"
            zType="tips_and_updates"></z-icon>
         }
         <ngm-display-behaviour [option]="entity" [highlight]="search.value" />
-      </mat-list-option>
-    </mat-selection-list>
+      </li>
+    </ul>
   </cdk-virtual-scroll-viewport>
 </div>

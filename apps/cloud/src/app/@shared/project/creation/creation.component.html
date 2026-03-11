@@ -49,17 +49,16 @@
       [formControl]="searchControl" (click)="$event.stopPropagation()" />
   </div>
   <div class="flex-1 overflow-auto">
-    <mat-selection-list displayDensity="cosy" [formControl]="models"
-      [compareWith]="compareWith">
+    <ul class="ngm-cdk-listbox" cdkListbox [formControl]="models"
+      [cdkListboxMultiple]="true" [cdkListboxCompareWith]="compareWith">
       @for (model of models$ | async; track model.id;) {
-        <mat-list-option class="rounded-md overflow-hidden"
-          [value]="model">
-          <span matListItemTitle class="truncate" [ngmHighlight]="highlight" [content]="model.name">{{ model.name }}</span>
+        <li class="ngm-cdk-option rounded-md overflow-hidden" [cdkOption]="model">
+          <span class="truncate block" [ngmHighlight]="highlight" [content]="model.name">{{ model.name }}</span>
           @if (model.description) {
-            <span matListItemLine class="line-clamp-2 text-sm text-text-secondary" [ngmHighlight]="highlight" [content]="model.description">{{ model.description }}</span>
+            <span class="line-clamp-2 text-sm text-text-secondary block" [ngmHighlight]="highlight" [content]="model.description">{{ model.description }}</span>
           }
-        </mat-list-option>
+        </li>
       }
-    </mat-selection-list>
+    </ul>
   </div>
 </div>

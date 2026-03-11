@@ -208,11 +208,14 @@
                           class="ngm-analytical-grid__viewport"
                         >
                           @if (subscribeColumnFilteredMembers(column) | async; as members) {
-                            <mat-selection-list
-                              [displayDensity]="appearance?.displayDensity"
-                              [(ngModel)]="column._selections"
+                            <ul
+                              class="ngm-cdk-listbox"
+                              cdkListbox
+                              [cdkListboxMultiple]="true"
+                              [cdkListboxValue]="column._selections ?? []"
+                              (cdkListboxValueChange)="column._selections = [...$event.value]"
                             >
-                              <div matSubheader class="ngm-selection-list__select-all flex">
+                              <li class="ngm-selection-list__select-all flex list-none">
                                 <z-checkbox
                                   class="flex-1"
                                   labelPosition="before"
@@ -223,11 +226,11 @@
                                     'Ngm.AnalyticalGrid.SelectAll' | translate: { Default: 'Select All' }
                                   }}</z-checkbox
                                 >
-                              </div>
-                              <mat-list-option
+                              </li>
+                              <li
                                 *cdkVirtualFor="let member of members"
-                                class="rounded-lg"
-                                [value]="member.value"
+                                class="ngm-cdk-option rounded-lg"
+                                [cdkOption]="member.value"
                               >
                                 <ngm-display-behaviour
                                   class="max-w-xs truncate"
@@ -235,8 +238,8 @@
                                   [displayBehaviour]="column.displayBehaviour"
                                 >
                                 </ngm-display-behaviour>
-                              </mat-list-option>
-                            </mat-selection-list>
+                              </li>
+                            </ul>
                           }
                         </cdk-virtual-scroll-viewport>
                       </div>

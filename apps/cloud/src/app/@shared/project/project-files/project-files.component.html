@@ -8,9 +8,9 @@
   
     <ngm-search class="my-2" [formControl]="searchControl"></ngm-search>
   
-    <mat-nav-list class="ngm-nav-list flex-1 overflow-auto">
+    <ul class="ngm-nav-list flex-1 overflow-auto">
       @for (file of filteredFiles(); track file.id) {
-        <mat-list-item class="group/item"
+        <li class="group/item"
             [class.active]="activedFile()?.id === file.id" 
             (click)="activeLink(file)"
         >
@@ -21,9 +21,9 @@
                     <z-icon zType="delete"></z-icon>
                 </button>
             </div>
-        </mat-list-item>
+        </li>
       }
-    </mat-nav-list>
+    </ul>
 
     <input #fileUpload type="file" class="file-input h-0 invisible" (change)="onFileSelected($event)" (click)="fileUpload.value=null;" accept="*">
 

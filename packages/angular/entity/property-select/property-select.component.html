@@ -330,17 +330,27 @@
 
 <ng-template #propertiesMenu>
   <div cdkMenu class="cdk-menu__large">
-    <mat-selection-list [(ngModel)]="properties" [ngModelOptions]="{ standalone: true }" displayDensity="compact">
-      @for (property of properties$ | async; track property.name) {
-        <mat-list-option [value]="property.name" (click)="$event.stopPropagation()">
-          {{ property.caption }}
-        </mat-list-option>
+    <ul
+      class="ngm-cdk-listbox"
+      cdkListbox
+      [cdkListboxMultiple]="true"
+      [cdkListboxValue]="properties ?? []"
+      (cdkListboxValueChange)="properties = $event.value"
+    >
+      @for (property of propertiesOptions(); track property.value) {
+        <li
+          class="ngm-cdk-option"
+          [cdkOption]="property.value ?? property.name"
+          (click)="$event.stopPropagation()"
+        >
+          {{ property.caption ?? property.value }}
+        </li>
       } @empty {
         <div class="text-sm text-text-secondary">
           {{ 'Ngm.Property.NoProperties' | translate: { Default: 'No Properties' } }}
         </div>
       }
-    </mat-selection-list>
+    </ul>
   </div>
 </ng-template>
 

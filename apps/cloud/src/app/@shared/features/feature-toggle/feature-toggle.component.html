@@ -24,9 +24,9 @@
       </mat-expansion-panel-header>
 
       @if (feature.children?.length > 0) {
-        <mat-list displayDensity="cosy">
+        <ul role="list" class="ngm-list">
           @for (child of feature.children; track child.code) {
-            <mat-list-item>
+            <li role="listitem" class="rounded-lg px-3 py-2 hover:bg-hover-bg">
               <z-checkbox [ngModel]="enabledFeature(child)" (checkChange)="featureChanged($event, child)">
                 <div class="flex items-center gap-4">
                   <span>{{ 'PAC.Feature.Features.' + child.code + '.Name' | translate: { Default: child.name } }}</span>
@@ -35,9 +35,9 @@
                   }}</span>
                 </div>
               </z-checkbox>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
       }
     </mat-expansion-panel>
 

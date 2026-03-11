@@ -15,6 +15,7 @@ import {
   signal,
   ViewContainerRef
 } from '@angular/core'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import {
   ControlValueAccessor,
   FormControl,
@@ -79,7 +80,7 @@ import {
   switchMap
 } from 'rxjs/operators'
 import { getEntityMeasures, PropertyAttributes } from '@metad/ocap-core'
-import { DisplayDensity, NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
+import { DisplayDensity, mergeSelectedValues, NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
 import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
@@ -97,7 +98,6 @@ import {
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 
 import { MatMenuModule } from '@angular/material/menu'
-import { MatListModule } from '@angular/material/list'
 import { MatBadgeModule } from '@angular/material/badge'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
@@ -133,7 +133,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     ZardButtonComponent,
     MatMenuModule,
     ZardDividerComponent,
-    MatListModule,
+    CdkListboxModule,
     ZardCheckboxComponent,
     MatBadgeModule,
     MatProgressSpinnerModule,
@@ -746,6 +746,18 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   readonly showOrder = computed(() => this.capacities()?.includes(PropertyCapacity.Order))
 
   readonly showMore = signal(false)
+  readonly propertiesOptions = computed(() =>
+    mergeSelectedValues(
+      (this.entityProperties() ?? [])
+        .filter(isVisible)
+        .map((property) => ({
+          ...property,
+          value: property.name,
+          caption: property.caption ?? property.name
+        })),
+      this.properties ?? []
+    )
+  )
 
   private onChange: any
   private onTouched: any

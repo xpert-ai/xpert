@@ -4,7 +4,6 @@ import { Component, DestroyRef, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { IFeature, IFeatureOrganization } from '@metad/contracts'
 import { TranslateModule } from '@ngx-translate/core'
@@ -25,7 +24,6 @@ import { injectI18nService } from '../../i18n'
     TranslateModule,
     CdkMenuModule,
     MatExpansionModule,
-    MatListModule,
     ZardCheckboxComponent,
     MatProgressSpinnerModule
   ],

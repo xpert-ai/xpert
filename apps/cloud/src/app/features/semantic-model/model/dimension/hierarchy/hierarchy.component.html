@@ -31,11 +31,11 @@
           (cdkDropListDropped)="dropLevel($event)"
           [cdkDropListEnterPredicate]="levelPredicate"
         >
-          <mat-nav-list class="max-h-full overflow-hidden hover:overflow-y-auto" displayDensity="compact">
+          <ul class="ngm-nav-list max-h-full overflow-hidden hover:overflow-y-auto">
             @for (level of levels(); track level.__id__; let i = $index) {
-              <mat-list-item
+              <li
                 class="group relative"
-                [activated]="(level.__id__ ?? i) === designerComponentId()"
+                [class.active]="(level.__id__ ?? i) === designerComponentId()"
                 cdkDrag
                 [cdkDragData]="level"
                 (click)="onLevelSelect(level.__id__ ?? i)"
@@ -50,9 +50,9 @@
                 >
                   <i class="ri-delete-bin-3-line"></i>
                 </button>
-              </mat-list-item>
+              </li>
             }
-          </mat-nav-list>
+          </ul>
         </div>
       </ngm-splitter-pane>
 

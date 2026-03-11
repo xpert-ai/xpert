@@ -111,9 +111,9 @@
         <mat-expansion-panel-header>
           <mat-panel-title class="truncate">{{ 'PAC.KEY_WORDS.Cubes' | translate: {Default: 'Cubes'} }}</mat-panel-title>
         </mat-expansion-panel-header>
-        <mat-list displayDensity="compact">
+        <ul role="list" class="ngm-list">
           @for (cube of cubeUsages(); track cube.cubeName) {
-            <mat-list-item role="listitem">
+            <li role="listitem">
               <div class="flex items-center">
                 <div class="flex-1 flex mr-4">{{ cube.cubeName }}</div>
               
@@ -125,23 +125,23 @@
                   <z-icon zType="cancel"></z-icon>
                 </button>
               </div>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
       </mat-expansion-panel>
 
       <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
         <mat-expansion-panel-header>
           <mat-panel-title class="truncate">{{ 'PAC.KEY_WORDS.Dimensions' | translate: {Default: 'Dimensions'} }}</mat-panel-title>
         </mat-expansion-panel-header>
-        <mat-list role="list" class="pac-cdk-drop__list min-h-[60px]" displayDensity="compact"
+        <ul role="list" class="ngm-list pac-cdk-drop__list min-h-[60px]"
           cdkDropList
           [cdkDropListData]="dimensions()"
           [cdkDropListEnterPredicate]="dropDimensionPredicate"
           (cdkDropListDropped)="dropDimension($event)"
         >
           @for (dimension of dimensions(); track dimension.name) {
-            <mat-list-item role="listitem" class="pac-cdk-drop-item"
+            <li role="listitem" class="pac-cdk-drop-item"
               cdkDrag>
               <div class="flex items-center">
                 <div class="flex-1 flex mr-4">
@@ -167,9 +167,9 @@
                   <z-icon zType="cancel"></z-icon>
                 </button>
               </div>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
       </mat-expansion-panel>
 
       <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
@@ -177,13 +177,13 @@
           <mat-panel-title class="truncate">{{ 'PAC.KEY_WORDS.Measures' | translate: {Default: 'Measures'} }}</mat-panel-title>
         </mat-expansion-panel-header>
 
-        <mat-list role="list" class="pac-cdk-drop__list min-h-[60px]" displayDensity="compact"
+        <ul role="list" class="ngm-list pac-cdk-drop__list min-h-[60px]"
           cdkDropList
           [cdkDropListEnterPredicate]="dropMeasurePredicate"
           (cdkDropListDropped)="dropMeasure($event)"
           >
           @for (measure of measures(); track measure.name) {
-            <mat-list-item role="listitem" class="pac-cdk-drop-item"
+            <li role="listitem" class="pac-cdk-drop-item"
               cdkDrag>
               <div class="flex items-center">
                 <div class="flex-1 flex gap-4">
@@ -205,9 +205,9 @@
                   <z-icon zType="cancel"></z-icon>
                 </button>
               </div>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
       </mat-expansion-panel>
 
       <mat-expansion-panel hideToggle class="mat-elevation-z" expanded>
@@ -220,9 +220,9 @@
           </button>
         </mat-expansion-panel-header>
 
-        <mat-list role="list" class="pac-cdk-drop-list" displayDensity="compact">
+        <ul role="list" class="ngm-list pac-cdk-drop-list">
           @for (measure of calculatedMembers(); track measure.name) {
-            <mat-list-item role="listitem">
+            <li role="listitem">
               <div class="flex items-center">
                 <ngm-display-behaviour class="flex-1 overflow-hidden"
                   [option]="{
@@ -236,9 +236,9 @@
                   <z-icon zType="cancel"></z-icon>
                 </button>
               </div>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
 
         <z-divider></z-divider>
 

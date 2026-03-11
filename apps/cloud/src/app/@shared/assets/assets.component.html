@@ -24,62 +24,68 @@
   </div>
 }
 
-<mat-list class="assets-list" displayDensity="cosy">
-  <ng-container *ngFor="let asset of searchAssets$ | async">
-    <mat-list-item *ngIf="asset.type === 'story'" class="cursor-pointer group" [routerLink]="['/story', asset.id]">
-      <span matListItemIcon class="text-lg font-notoColorEmoji">📖</span>
-      <div matListItemTitle class="flex flex-col">
-        <a class="text-base text-ellipsis overflow-hidden" [routerLink]="['/story', asset.id]">{{ asset.name }}</a>
-        <div class="flex-1 flex justify-between items-baseline text-xs  text-opacity-60 group-hover:text-opacity-80
-          text-slate-500 dark:text-slate-300">
-          <span class="flex-1 basis-1/2">
-            {{ 'PAC.KEY_WORDS.Story' | translate: { Default: 'Story' } }}
-          </span>
-          <div class="flex-1 basis-0"></div>
-        </div>
-        <div *ngIf="asset.description" class="description text-sm border-l-2 text-opacity-60 group-hover:text-opacity-80
-          border-l-bluegray-100 text-slate-500 dark:text-slate-300 dark:border-l-bluegray-300">
-          {{ asset.description }}
-        </div>
-      </div>
-    </mat-list-item>
-
-    <mat-list-item *ngIf="asset.type === 'indicator'" class="cursor-pointer group" [routerLink]="['/indicator/viewer', asset.id]">
-      <span matListItemIcon class="text-lg">💹</span>
-      <div matListItemTitle class="flex flex-col">
-        <a class="text-base" [routerLink]="['/indicator/viewer', asset.id]">{{ asset.name }}</a>
-        <div class="flex-1 flex justify-between items-baseline text-xs text-opacity-60 group-hover:text-opacity-80
-          text-slate-500 dark:text-slate-300" >
-          <div class="mr-2">
-            {{ 'PAC.KEY_WORDS.Indicator' | translate: { Default: 'Indicator' } }}
+@if (searchAssets$ | async; as assets) {
+  <ul class="assets-list space-y-1" role="list">
+    @for (asset of assets; track asset.id) {
+      @if (asset.type === 'story') {
+        <li role="listitem" class="cursor-pointer group flex items-start gap-3 rounded-lg px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5" [routerLink]="['/story', asset.id]">
+          <span class="shrink-0 text-lg font-notoColorEmoji">📖</span>
+          <div class="min-w-0 flex flex-1 flex-col">
+            <div class="text-base text-ellipsis overflow-hidden">{{ asset.name }}</div>
+            <div class="flex-1 flex justify-between items-baseline text-xs text-opacity-60 group-hover:text-opacity-80 text-slate-500 dark:text-slate-300">
+              <span class="flex-1 basis-1/2">
+                {{ 'PAC.KEY_WORDS.Story' | translate: { Default: 'Story' } }}
+              </span>
+              <div class="flex-1 basis-0"></div>
+            </div>
+            @if (asset.description) {
+              <div class="description text-sm border-l-2 text-opacity-60 group-hover:text-opacity-80 border-l-bluegray-100 text-slate-500 dark:text-slate-300 dark:border-l-bluegray-300">
+                {{ asset.description }}
+              </div>
+            }
           </div>
-          <div class="flex-1 text-ellipsis overflow-hidden text-right">{{ asset.code }}</div>
-        </div>
-        <div *ngIf="asset.business" class="description text-xs border-l-2
-          border-l-bluegray-100 dark:text-slate-300 dark:border-l-bluegray-300">
-          {{ asset.business }}
-        </div>
-      </div>
-    </mat-list-item>
+        </li>
+      }
 
-    <mat-list-item *ngIf="asset.type === 'semanticModel'" class="cursor-pointer group" [routerLink]="['/models', asset.id]">
-      <span matListItemIcon class="text-lg font-notoColorEmoji">🧊</span>
-      <div matListItemTitle class="flex flex-col">
-        <a class="text-base" [routerLink]="['/models', asset.id]">{{ asset.name }}</a>
+      @if (asset.type === 'indicator') {
+        <li role="listitem" class="cursor-pointer group flex items-start gap-3 rounded-lg px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5" [routerLink]="['/indicator/viewer', asset.id]">
+          <span class="shrink-0 text-lg">💹</span>
+          <div class="min-w-0 flex flex-1 flex-col">
+            <div class="text-base">{{ asset.name }}</div>
+            <div class="flex-1 flex justify-between items-baseline text-xs text-opacity-60 group-hover:text-opacity-80 text-slate-500 dark:text-slate-300">
+              <div class="mr-2">
+                {{ 'PAC.KEY_WORDS.Indicator' | translate: { Default: 'Indicator' } }}
+              </div>
+              <div class="flex-1 text-ellipsis overflow-hidden text-right">{{ asset.code }}</div>
+            </div>
+            @if (asset.business) {
+              <div class="description text-xs border-l-2 border-l-bluegray-100 dark:text-slate-300 dark:border-l-bluegray-300">
+                {{ asset.business }}
+              </div>
+            }
+          </div>
+        </li>
+      }
 
-        <div class="flex-1 flex justify-between items-baseline text-xs text-opacity-60 group-hover:text-opacity-80
-          text-slate-500 dark:text-slate-300">
-          <span class="flex-1 basis-1/2">
-            {{ 'PAC.KEY_WORDS.SemanticModel' | translate: { Default: 'Semantic Model' } }}
-          </span>
-          <div class="flex-1 basis-0"></div>
-        </div>
-
-        <div *ngIf="asset.description" class="description text-xs border-l-2
-          border-l-bluegray-100 dark:text-slate-300 dark:border-l-bluegray-300">
-          {{ asset.description }}
-        </div>
-      </div>
-    </mat-list-item>
-  </ng-container>
-</mat-list>
+      @if (asset.type === 'semanticModel') {
+        <li role="listitem" class="cursor-pointer group flex items-start gap-3 rounded-lg px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5" [routerLink]="['/models', asset.id]">
+          <span class="shrink-0 text-lg font-notoColorEmoji">🧊</span>
+          <div class="min-w-0 flex flex-1 flex-col">
+            <div class="text-base">{{ asset.name }}</div>
+            <div class="flex-1 flex justify-between items-baseline text-xs text-opacity-60 group-hover:text-opacity-80 text-slate-500 dark:text-slate-300">
+              <span class="flex-1 basis-1/2">
+                {{ 'PAC.KEY_WORDS.SemanticModel' | translate: { Default: 'Semantic Model' } }}
+              </span>
+              <div class="flex-1 basis-0"></div>
+            </div>
+            @if (asset.description) {
+              <div class="description text-xs border-l-2 border-l-bluegray-100 dark:text-slate-300 dark:border-l-bluegray-300">
+                {{ asset.description }}
+              </div>
+            }
+          </div>
+        </li>
+      }
+    }
+  </ul>
+}

@@ -13,11 +13,18 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
 import { MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { attrModel, linkedModel, NgmAppearance, NgmDSCoreService, OcapCoreModule, NgmFieldColor } from '@metad/ocap-angular/core'
+import {
+  attrModel,
+  linkedModel,
+  mergeSelectedValues,
+  NgmAppearance,
+  NgmDSCoreService,
+  OcapCoreModule,
+  NgmFieldColor
+} from '@metad/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -59,7 +66,7 @@ export interface ParameterOptions {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardFormImports, ZardInputDirective, MatListModule, MatSliderModule, OcapCoreModule, NgmCommonModule, NgmControlsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardFormImports, ZardInputDirective, MatSliderModule, OcapCoreModule, NgmCommonModule, NgmControlsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-parameter',
   templateUrl: 'parameter.component.html',
@@ -136,6 +143,7 @@ export class NgmParameterComponent {
     distinctUntilChanged(),
     switchMap((availableMembers) => (availableMembers?.length ? of(availableMembers) : this.members$))
   )
+  readonly dimensionAvailableMembers = toSignal(this.availableMembers$, { initialValue: [] })
 
   readonly variableProperty = toSignal(this.parameter$.pipe(map((parameter) => isVariableProperty(parameter) ? parameter : null)))
 
@@ -170,6 +178,16 @@ export class NgmParameterComponent {
     }
     return availableMembers
   })
+  readonly selectedDimensionMembers = computed(() => {
+    const value = this.parameterValue()
+    if (Array.isArray(value)) {
+      return value
+    }
+    return value == null ? [] : [value]
+  })
+  readonly listboxAvailableMembers = computed(() =>
+    mergeSelectedValues(this.dimensionAvailableMembers(), this.selectedDimensionMembers(), this.compareWith)
+  )
 
   slicer = {}
 

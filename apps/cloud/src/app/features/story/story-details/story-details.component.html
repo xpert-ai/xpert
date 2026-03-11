@@ -17,15 +17,15 @@
     accept="image/*"
   />
 
-  <mat-nav-list class="ngm-nav-list">
-    <mat-list-item class="mt-2" [class.active]="activeLink === c_details" (click)="activeLink = c_details">
+  <ul class="ngm-nav-list">
+    <li class="mt-2 rounded-lg px-3 py-2 cursor-pointer" [class.active]="activeLink === c_details" (click)="activeLink = c_details">
       <span> {{ 'Story.StoryDetails.General' | translate: { Default: 'General' } }} </span>
-    </mat-list-item>
+    </li>
 
-    <mat-list-item class="mt-2" [class.active]="activeLink === c_thumbnail" (click)="activeLink = c_thumbnail">
+    <li class="mt-2 rounded-lg px-3 py-2 cursor-pointer" [class.active]="activeLink === c_thumbnail" (click)="activeLink = c_thumbnail">
       <span> {{ 'Story.StoryDetails.Thumbnail' | translate: { Default: 'Thumbnail' } }} </span>
-    </mat-list-item>
-  </mat-nav-list>
+    </li>
+  </ul>
 
   <div class="flex-1">
     <div *ngIf="activeLink === c_thumbnail" class="flex-1 flex flex-col justify-start items-end gap-2 my-2">

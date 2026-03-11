@@ -6,14 +6,16 @@
     </span>
   </div>
     
-  <mat-nav-list class="ngm-nav-list flex-1 overflow-auto">
-    <mat-list-item *ngFor="let entity of entities()" class="flex rounded-l-xl overflow-hidden mt-2"
-      [class.active]="activeLink()?.dataSource === entity.value.dataSource && activeLink()?.entity === entity.key"
-      (click)="activeEntity(entity.value.dataSource, entity.key)"
-    >
-      <ngm-display-behaviour class="flex-1" [option]="entity"></ngm-display-behaviour>
-    </mat-list-item>
-  </mat-nav-list>
+  <ul class="ngm-nav-list flex-1 overflow-auto" role="list">
+    @for (entity of entities(); track entity.key) {
+      <li role="listitem" class="mt-2 flex cursor-pointer rounded-l-xl overflow-hidden px-3 py-2"
+        [class.active]="activeLink()?.dataSource === entity.value.dataSource && activeLink()?.entity === entity.key"
+        (click)="activeEntity(entity.value.dataSource, entity.key)"
+      >
+        <ngm-display-behaviour class="flex-1" [option]="entity"></ngm-display-behaviour>
+      </li>
+    }
+  </ul>
 
   <div class="flex justify-between">
     <div ngmButtonGroup>
@@ -39,10 +41,10 @@
       </button>
     </div>
     
-    <mat-list class="divide-y ml-4 dark:divide-neutral-800" displayDensity="cosy">
+    <ul class="ml-4 divide-y dark:divide-neutral-800" role="list">
       @for (parameter of parameters(); track parameter.name) {
-        <mat-list-item>
-          <div class="flex items-center group">
+        <li role="listitem" class="py-2">
+          <div class="group flex items-center">
             <ngm-display-behaviour class="flex-1" [option]="{key: parameter.name, caption: parameter.caption}" />
 
             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openCreateParameter(parameter.name)">
@@ -52,9 +54,9 @@
                 <z-icon zType="close"></z-icon>
             </button>
           </div>
-        </mat-list-item>
+        </li>
       }
-    </mat-list>
+    </ul>
 
     <div class="flex justify-between items-center">
       <label class="text-lg p-2"> {{ 'Story.Common.Calculations' | translate: { Default: 'Calculations' } }} </label>
@@ -68,10 +70,10 @@
       </div>
     </div>
     
-    <mat-list class="divide-y ml-4 dark:divide-neutral-800" displayDensity="cosy">
+    <ul class="ml-4 divide-y dark:divide-neutral-800" role="list">
       @for (calculation of calculations(); track calculation.name) {
-        <mat-list-item>
-          <div class="flex items-center group">
+        <li role="listitem" class="py-2">
+          <div class="group flex items-center">
             <ngm-display-behaviour class="flex-1" [option]="{key: calculation.name, caption: calculation.caption}" />
             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openEditCalculation(calculation)">
                 <z-icon zType="edit"></z-icon>
@@ -80,9 +82,9 @@
                 <z-icon zType="close"></z-icon>
             </button>
           </div>
-        </mat-list-item>
+        </li>
       }
-    </mat-list>
+    </ul>
   </div>
 </div>
 

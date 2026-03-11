@@ -1,3 +1,4 @@
+import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
 import {
@@ -17,10 +18,9 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatListModule, MatSelectionListChange } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DisplayDensity, mergeSelectedValues, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -59,7 +59,7 @@ export interface MemberListOptions extends ControlOptions {
   imports: [
     CommonModule,
     ScrollingModule,
-    MatListModule,
+    CdkListboxModule,
     MatProgressSpinnerModule,
     NgmCommonModule,
     OcapCoreModule,
@@ -144,6 +144,7 @@ export class NgmMemberListComponent implements OnChanges, ControlValueAccessor {
     ),
     { initialValue: [] }
   )
+  readonly listboxOptions = computed(() => mergeSelectedValues(this.selectOptions(), this.members ?? [], this.compareWith))
 
   onChange: (input: any) => void
   //
@@ -222,9 +223,13 @@ export class NgmMemberListComponent implements OnChanges, ControlValueAccessor {
     return a.value === b.value
   }
 
-  onSelectionChange(selection: MatSelectionListChange) {
-    const members = selection.source.selectedOptions.selected.map((item) => ({
-      ...item.value
+  trackByValue(index: number, item: IMember) {
+    return item?.value ?? item?.key ?? index
+  }
+
+  onSelectionChange(selection: ListboxValueChangeEvent<IMember>) {
+    const members = selection.value.map((item) => ({
+      ...item
     }))
 
     this.slicer$.next({

@@ -108,11 +108,12 @@
                         <span>{{ 'PAC.MODEL.AccessControl.Access' | translate: {Default: 'Access'} }}</span>
                     </div>
                     <z-divider></z-divider>
-                    <mat-list role="list" class="pac-cdk-drop__list" displayDensity="compact"
+                    <ul role="list" class="ngm-list pac-cdk-drop__list"
                         cdkDropList
                         (cdkDropListDropped)="dropSortMember($event, hierarchyGrant)">
-                        <mat-list-item role="listitem" class="pac-cdk-drop-item" [class.pac-model-access__member-hidden]="memberGrant.access===Access.none"
-                            *ngFor="let memberGrant of hierarchyGrant.memberGrants" cdkDrag>
+                        @for (memberGrant of hierarchyGrant.memberGrants; track memberGrant.member) {
+                        <li role="listitem" class="pac-cdk-drop-item" [class.pac-model-access__member-hidden]="memberGrant.access===Access.none"
+                            cdkDrag>
                             <div class="flex justify-between items-center">
                                 <div class="flex-1 flex justify-between items-center mr-4">
                                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeMember(hierarchyGrant.hierarchy, memberGrant.member)">
@@ -130,8 +131,9 @@
                                     (change)="changeMemberAccess($event, hierarchyGrant.hierarchy, memberGrant.member)">
                                 </mat-slide-toggle>
                             </div>
-                        </mat-list-item>
-                    </mat-list>
+                        </li>
+                        }
+                    </ul>
 
                 </div>
             </ng-container>

@@ -4,7 +4,14 @@ import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, contentChild, inject, input, model, output, TemplateRef, ViewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { debouncedSignal, NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import {
+  buildListboxOptions,
+  debouncedSignal,
+  formatSelectOptionValue,
+  hasSelectOptionValue,
+  NgmI18nPipe,
+  TSelectOption
+} from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
@@ -57,8 +64,9 @@ export class NgmSelectPanelComponent {
   // States
   readonly search = model<string>()
   readonly searchTerm = debouncedSignal(this.search, 300)
+  readonly listboxOptions = computed(() => buildListboxOptions(this.selectOptions(), this.values()))
   readonly filteredOptions = computed(() => {
-    const options = this.selectOptions() ?? []
+    const options = this.listboxOptions()
     const searchTerm = this.searchTerm()?.toLowerCase()
     if (!searchTerm) {
       return options
@@ -67,13 +75,16 @@ export class NgmSelectPanelComponent {
     return options.filter((option) => {
       const label = this.i18n.transform(option.label)
       const description = this.i18n.transform(option.description)
-      return label?.toLowerCase().includes(searchTerm) || description?.toLowerCase().includes(searchTerm) || option.value?.toLowerCase().includes(searchTerm)
-        || this.values().includes(option.value)
+      const value = formatSelectOptionValue(option.value).toLowerCase()
+      return label?.toLowerCase().includes(searchTerm)
+        || description?.toLowerCase().includes(searchTerm)
+        || value.includes(searchTerm)
+        || hasSelectOptionValue(this.values(), option.value)
     })
   })
 
   readonly selectedOptions = computed(() =>
-    this.values()?.map((value) => this.selectOptions()?.find((_) => _.value === value) ?? { value })
+    this.values()?.map((value) => this.listboxOptions().find((_) => _.value === value) ?? { value })
   )
 
   readonly values = computed(() => {

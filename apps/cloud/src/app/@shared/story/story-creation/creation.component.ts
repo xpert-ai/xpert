@@ -67,9 +67,18 @@ export class StoryCreationComponent {
       startWith(''),
       distinctUntilChanged(),
       debounceTime(300),
-      map((search) =>
-        this._models.filter((model) => model.name.toLowerCase().includes(search.toLowerCase()))
-      )
+      map((search) => {
+        const filteredModels = this._models.filter((model) => model.name.toLowerCase().includes(search.toLowerCase()))
+        const selectedModels = this.modelsControl.value ?? []
+
+        selectedModels.forEach((selected) => {
+          if (!filteredModels.some((model) => this.compareWithModel(model, selected))) {
+            filteredModels.push(selected)
+          }
+        })
+
+        return filteredModels
+      })
     )
   )
 
@@ -114,7 +123,7 @@ export class StoryCreationComponent {
     }
   }
 
-  compareWithModel(a: SemanticModel, b: SemanticModel) {
+  compareWithModel(a: { id?: string }, b: { id?: string }) {
     return a?.id === b?.id
   }
 

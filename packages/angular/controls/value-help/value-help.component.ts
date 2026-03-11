@@ -5,7 +5,6 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardDividerComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
@@ -40,7 +39,7 @@ import { ControlOptions, TreeControlOptions } from '../types'
   host: {
     class: 'ngm-value-help'
   },
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkMenuModule, MatDialogModule, ZardIconComponent, MatSlideToggleModule, ZardDividerComponent, MatListModule, ...ZardFormImports, ZardButtonComponent, NgmCommonModule, OcapCoreModule, NgmMemberListComponent, NgmMemberTreeComponent, NgmResizableDirective, NgmSelectComponent]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkMenuModule, MatDialogModule, ZardIconComponent, MatSlideToggleModule, ZardDividerComponent, ...ZardFormImports, ZardButtonComponent, NgmCommonModule, OcapCoreModule, NgmMemberListComponent, NgmMemberTreeComponent, NgmResizableDirective, NgmSelectComponent]
 })
 export class NgmValueHelpComponent implements OnInit {
   DISPLAY_BEHAVIOUR = DisplayBehaviour
