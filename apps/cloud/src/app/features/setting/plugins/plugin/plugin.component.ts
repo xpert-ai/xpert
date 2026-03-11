@@ -36,6 +36,7 @@ export class SettingsPluginComponent {
       data: {
         plugin: this.plugin(),
         reload: this.pluginsComponent.reload.bind(this.pluginsComponent),
+        refreshStrategies: this.pluginsComponent.refreshStrategyCaches.bind(this.pluginsComponent),
       },
       disableClose: true,
     }).closed.subscribe({

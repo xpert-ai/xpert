@@ -32,14 +32,35 @@ const API_KNOWLEDGEBASE = API_PREFIX + '/knowledgebase'
 export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowledgebase> {
   readonly #logger = inject(NGXLogger)
 
-  // Package into hot stream + cache the last value
-  readonly documentSourceStrategies$ = this.getDocumentSourceStrategies().pipe(shareReplay(1))
-  readonly documentTransformerStrategies$ = this.getDocumentTransformerStrategies().pipe(shareReplay(1))
-  readonly understandingStrategies$ = this.getUnderstandingStrategies().pipe(shareReplay(1))
-  readonly textSplitterStrategies$ = this.getTextSplitterStrategies().pipe(shareReplay(1))
+  readonly #refresh$ = new BehaviorSubject<void>(null)
+
+  // Package into hot stream + cache the last value (refreshable via refresh$)
+  readonly documentSourceStrategies$ = this.#refresh$.pipe(
+    switchMap(() => this.getDocumentSourceStrategies()),
+    shareReplay(1)
+  )
+  readonly documentTransformerStrategies$ = this.#refresh$.pipe(
+    switchMap(() => this.getDocumentTransformerStrategies()),
+    shareReplay(1)
+  )
+  readonly understandingStrategies$ = this.#refresh$.pipe(
+    switchMap(() => this.getUnderstandingStrategies()),
+    shareReplay(1)
+  )
+  readonly textSplitterStrategies$ = this.#refresh$.pipe(
+    switchMap(() => this.getTextSplitterStrategies()),
+    shareReplay(1)
+  )
 
   constructor() {
     super(API_KNOWLEDGEBASE)
+  }
+
+  /**
+   * Refresh cached strategy data (e.g., after plugin install/uninstall)
+   */
+  refresh() {
+    this.#refresh$.next()
   }
 
   getMyAllInOrg(options?: PaginationParams<IKnowledgebase>) {
