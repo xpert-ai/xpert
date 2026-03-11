@@ -1,5 +1,13 @@
 import { Component, forwardRef, inject, Input } from '@angular/core'
-import { ControlValueAccessor, FormBuilder, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, Validators } from '@angular/forms'
+import {
+  ControlValueAccessor,
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { CompareToEnum, DataSettings, EntityType } from '@metad/ocap-core'
 import { PropertyCapacity } from '../types'
@@ -8,12 +16,21 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'
 import { NgmCompareMemberSelectComponent } from '../compare-member-select/member-select.component'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardFormImports, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, MatCheckboxModule, NgmPropertySelectComponent, NgmCompareMemberSelectComponent, NgmSelectComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ...ZardFormImports,
+    ZardCheckboxComponent,
+    NgmPropertySelectComponent,
+    NgmCompareMemberSelectComponent,
+    NgmSelectComponent
+  ],
   selector: 'ngm-calculation-variance',
   templateUrl: 'variance.component.html',
   styleUrls: ['variance.component.scss'],

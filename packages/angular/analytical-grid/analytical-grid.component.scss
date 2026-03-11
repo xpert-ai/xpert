@@ -73,12 +73,14 @@
 
 .ngm-analytical-grid__filtering-card {
   min-width: 360px;
-  
+
   .ngm-analytical-grid__filtering {
     .ngm-selection-list__select-all {
-      .mat-mdc-checkbox {
-        .mdc-form-field {
-          width: 100%;
+      z-checkbox {
+        width: 100%;
+
+        .z-checkbox__label {
+          flex: 1;
         }
       }
     }

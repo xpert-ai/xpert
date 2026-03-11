@@ -2,35 +2,40 @@
   <div class="ngm-card-header flex justify-between items-center" [ngStyle]="styling?.bar">
     <div class="truncate">{{ title }}</div>
 
-    <div style="flex: 1; display: flex; place-content: center flex-end; align-items: center;">
+    <div style="flex: 1; display: flex; place-content: center flex-end; align-items: center">
       <ng-content></ng-content>
     </div>
 
     <div class="actions flex justify-around items-center">
-
       <ng-content select="[ngmAction]"></ng-content>
 
       <!-- data download -->
-    @if (!options()?.hideDataDownload) {
-      <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
-        bg-transparent hover:bg-hover-bg"
-        [matTooltip]=" 'Ngm.AnalyticalGrid.DataDownload' | translate: {Default: 'Data Download'} "
-        matTooltipPosition="above"
-        (click)="downloadData()">
-        <i class="ri-download-2-line"></i>
-      </button>
-    }
+      @if (!options()?.hideDataDownload) {
+        <button
+          class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
+          [matTooltip]="'Ngm.AnalyticalGrid.DataDownload' | translate: { Default: 'Data Download' }"
+          matTooltipPosition="above"
+          (click)="downloadData()"
+        >
+          <i class="ri-download-2-line"></i>
+        </button>
+      }
 
-      <button ngmAction class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
+      <button
+        ngmAction
+        class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
         [cdkMenuTriggerFor]="filtersMenu"
-        [cdkMenuTriggerData]="{trigger: mt}"
+        [cdkMenuTriggerData]="{ trigger: mt }"
         #mt="cdkMenuTriggerFor"
         [class.active]="mt.isOpen()"
-        [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
-        matTooltipPosition="above">
+        [matTooltip]="'Story.Common.Slicers' | translate: { Default: 'Slicers' }"
+        matTooltipPosition="above"
+      >
         <i class="ri-filter-line"></i>
         @if (slicers?.length) {
-          <span class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"></span>
+          <span
+            class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"
+          ></span>
         }
       </button>
 
@@ -40,11 +45,12 @@
           <i class="ri-loader-2-line animate-spin"></i>
         </div>
       } @else {
-        <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
-          bg-transparent hover:bg-hover-bg"
-          [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
+        <button
+          class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
+          [matTooltip]="'Ngm.AnalyticalCard.Refresh' | translate: { Default: 'Refresh' }"
           matTooltipPosition="above"
-          (click)="refresh(true)">
+          (click)="refresh(true)"
+        >
           <i class="ri-refresh-line"></i>
         </button>
       }
@@ -56,26 +62,41 @@
   @if (error$ | async) {
     <div class="ngm-card-error">
       <span class="text-2xl font-notoColorEmoji">🐞</span>
-      <span>{{error$ | async}}</span>
+      <span>{{ error$ | async }}</span>
     </div>
   } @else {
     <div class="max-h-full overflow-auto">
-      @for (tableConfig of tablesConfig(); track tableConfig;) {
-        <table mat-table [class.ngm-table-grid]="options()?.grid" [displayDensity]="appearance?.displayDensity"
+      @for (tableConfig of tablesConfig(); track tableConfig) {
+        <table
+          mat-table
+          [class.ngm-table-grid]="options()?.grid"
+          [displayDensity]="appearance?.displayDensity"
           [dataSource]="dataSource"
-          matSort [matSortDisabled]="!options()?.sortable"
+          matSort
+          [matSortDisabled]="!options()?.sortable"
           [matSortActive]="matSortActive"
           [matSortDirection]="matSortDirection"
-          >
+        >
           <!-- rows -->
           @for (column of tableConfig.rowAxes; track column.name + column.caption; let j = $index; let last = $last) {
             <ng-container [matColumnDef]="column.name" [sticky]="column.sticky">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header [attr.rowspan]="pivotColumnRowCount"
+              <th
+                mat-header-cell
+                *matHeaderCellDef
+                mat-sort-header
+                [attr.rowspan]="pivotColumnRowCount"
                 class="ngm-analytical-grid__dimension"
                 [class.ngm-analytical-grid__measure]="column.property?.role === AggregationRole.measure"
               >
                 @if (column.name === rowTreeProperty()) {
-                  <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance?.displayDensity" (click)="toggleRowUnfold($event)">
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    [displayDensity]="appearance?.displayDensity"
+                    (click)="toggleRowUnfold($event)"
+                  >
                     @if (rowUnfold) {
                       <z-icon zType="unfold_less"></z-icon>
                     } @else {
@@ -83,69 +104,136 @@
                     }
                   </button>
                 }
-        
-                <span>{{column.caption || column.name}}</span>
-        
-                <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" [color]="column.selections?.length ? 'accent' : ''" cdkOverlayOrigin #trigger="cdkOverlayOrigin" (click)="$event.stopPropagation();$event.preventDefault();column.isFilterOpen=!column.isFilterOpen">
+
+                <span>{{ column.caption || column.name }}</span>
+
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  displayDensity="compact"
+                  [color]="column.selections?.length ? 'accent' : ''"
+                  cdkOverlayOrigin
+                  #trigger="cdkOverlayOrigin"
+                  (click)="
+                    $event.stopPropagation(); $event.preventDefault(); column.isFilterOpen = !column.isFilterOpen
+                  "
+                >
                   <z-icon [color]="column.selections?.length ? 'accent' : ''" zType="more_vert"></z-icon>
                 </button>
                 <ng-template
-                  cdkConnectedOverlay cdkConnectedOverlayHasBackdrop
+                  cdkConnectedOverlay
+                  cdkConnectedOverlayHasBackdrop
                   [cdkConnectedOverlayOrigin]="trigger"
                   [cdkConnectedOverlayOpen]="column.isFilterOpen"
-                  (backdropClick)="column.isFilterOpen=false"
+                  (backdropClick)="column.isFilterOpen = false"
                 >
                   @if (subscribeColumnMembers(column) | async; as members) {
-                    <mat-card class="ngm-analytical-grid__filtering-card"
-                      [displayDensity]="appearance?.displayDensity" >
+                    <mat-card class="ngm-analytical-grid__filtering-card" [displayDensity]="appearance?.displayDensity">
                       <mat-card-title class="text-lg p-2">
-                        <ngm-display-behaviour [option]="{value: column.name, label: column.caption}"></ngm-display-behaviour>
+                        <ngm-display-behaviour
+                          [option]="{ value: column.name, label: column.caption }"
+                        ></ngm-display-behaviour>
                       </mat-card-title>
                       <div class="flex flex-col justify-start items-stretch gap-1 px-2">
-                        <div>{{'Ngm.AnalyticalGrid.SORT' | translate: {Default: 'SORT'} }}</div>
+                        <div>{{ 'Ngm.AnalyticalGrid.SORT' | translate: { Default: 'SORT' } }}</div>
                         <div class="flex justify-between items-center">
-                          <button z-button zType="ghost" displayDensity="cosy" [color]="matSortActive===column.name && matSortDirection==='asc' ? 'accent' : ''" (click)="matSortActive===column.name && matSortDirection==='asc' ? ((matSortActive=null)&&matSortDirection=null) : ((matSortActive=column.name)&&matSortDirection='asc')">
+                          <button
+                            z-button
+                            zType="ghost"
+                            displayDensity="cosy"
+                            [color]="matSortActive === column.name && matSortDirection === 'asc' ? 'accent' : ''"
+                            (click)="
+                              matSortActive === column.name && matSortDirection === 'asc'
+                                ? (matSortActive = null) && (matSortDirection = null)
+                                : (matSortActive = column.name) && (matSortDirection = 'asc')
+                            "
+                          >
                             <z-icon zType="arrow_upward"></z-icon>
-                            {{ 'Ngm.AnalyticalGrid.ASCENDING' | translate: {Default: 'ASCENDING'} }}
+                            {{ 'Ngm.AnalyticalGrid.ASCENDING' | translate: { Default: 'ASCENDING' } }}
                           </button>
-                          <button z-button zType="ghost" displayDensity="cosy" [color]="matSortActive===column.name && matSortDirection==='desc' ? 'accent' : ''" (click)="matSortActive===column.name && matSortDirection==='desc' ? ((matSortActive=null)&&matSortDirection=null) : ((matSortActive=column.name)&&matSortDirection='desc')"><z-icon zType="arrow_downward"></z-icon>
-                            {{ 'Ngm.AnalyticalGrid.DESCENDGING' | translate: {Default: 'DESCENDGING'} }}
+                          <button
+                            z-button
+                            zType="ghost"
+                            displayDensity="cosy"
+                            [color]="matSortActive === column.name && matSortDirection === 'desc' ? 'accent' : ''"
+                            (click)="
+                              matSortActive === column.name && matSortDirection === 'desc'
+                                ? (matSortActive = null) && (matSortDirection = null)
+                                : (matSortActive = column.name) && (matSortDirection = 'desc')
+                            "
+                          >
+                            <z-icon zType="arrow_downward"></z-icon>
+                            {{ 'Ngm.AnalyticalGrid.DESCENDGING' | translate: { Default: 'DESCENDGING' } }}
                           </button>
                         </div>
-                        <div>{{'Ngm.AnalyticalGrid.MOVE' | translate: {Default: 'MOVE'} }}</div>
+                        <div>{{ 'Ngm.AnalyticalGrid.MOVE' | translate: { Default: 'MOVE' } }}</div>
                         <div class="flex justify-between items-center">
-                          <button z-button zType="ghost" displayDensity="cosy" (click)="moveLeft(column.name)"><z-icon zType="arrow_back"></z-icon>
-                            {{ 'Ngm.AnalyticalGrid.MOVELEFT' | translate: {Default: 'MOVE LEFT'} }}
+                          <button z-button zType="ghost" displayDensity="cosy" (click)="moveLeft(column.name)">
+                            <z-icon zType="arrow_back"></z-icon>
+                            {{ 'Ngm.AnalyticalGrid.MOVELEFT' | translate: { Default: 'MOVE LEFT' } }}
                           </button>
-                          <button z-button zType="ghost" displayDensity="cosy" (click)="moveRight(column.name)">{{ 'Ngm.AnalyticalGrid.MOVERIGHT' | translate: {Default: 'MOVE RIGHT'} }}<z-icon zType="arrow_forward"></z-icon></button>
+                          <button z-button zType="ghost" displayDensity="cosy" (click)="moveRight(column.name)">
+                            {{ 'Ngm.AnalyticalGrid.MOVERIGHT' | translate: { Default: 'MOVE RIGHT' }
+                            }}<z-icon zType="arrow_forward"></z-icon>
+                          </button>
                         </div>
 
-                        <button z-button zType="ghost" class="w-full" displayDensity="cosy" [color]="column.sticky?'accent':''" (click)="column.sticky=!column.sticky">
-                          <z-icon zType="push_pin"></z-icon>{{ 'Ngm.AnalyticalGrid.Pin' | translate: {Default: 'Pin'} }}
+                        <button
+                          z-button
+                          zType="ghost"
+                          class="w-full"
+                          displayDensity="cosy"
+                          [color]="column.sticky ? 'accent' : ''"
+                          (click)="column.sticky = !column.sticky"
+                        >
+                          <z-icon zType="push_pin"></z-icon
+                          >{{ 'Ngm.AnalyticalGrid.Pin' | translate: { Default: 'Pin' } }}
                         </button>
-          
-                        <ngm-search class="shrink-0" [(ngModel)]="column.search" (ngModelChange)="onColumnMemberSearch(column, $event)"></ngm-search>
+
+                        <ngm-search
+                          class="shrink-0"
+                          [(ngModel)]="column.search"
+                          (ngModelChange)="onColumnMemberSearch(column, $event)"
+                        ></ngm-search>
                       </div>
                       <div class="ngm-analytical-grid__filtering">
                         <z-divider zVariant="dashed"></z-divider>
-                        
-                        <cdk-virtual-scroll-viewport [itemSize]="virtualScrollItemSize" minBufferPx="200" maxBufferPx="400" class="ngm-analytical-grid__viewport">
+
+                        <cdk-virtual-scroll-viewport
+                          [itemSize]="virtualScrollItemSize"
+                          minBufferPx="200"
+                          maxBufferPx="400"
+                          class="ngm-analytical-grid__viewport"
+                        >
                           @if (subscribeColumnFilteredMembers(column) | async; as members) {
-                            <mat-selection-list [displayDensity]="appearance?.displayDensity"
-                              [(ngModel)]="column._selections">
+                            <mat-selection-list
+                              [displayDensity]="appearance?.displayDensity"
+                              [(ngModel)]="column._selections"
+                            >
                               <div matSubheader class="ngm-selection-list__select-all flex">
-                                <mat-checkbox class="flex-1" labelPosition="before"
-                                  [checked]="allFiltering(column, members)"
+                                <z-checkbox
+                                  class="flex-1"
+                                  labelPosition="before"
+                                  [ngModel]="allFiltering(column, members)"
                                   [indeterminate]="someFiltering(column, members)"
-                                  (change)="onFilterSelectAll($event, column, members)"
-                                >{{ 'Ngm.AnalyticalGrid.SelectAll' | translate: {Default: 'Select All'} }}</mat-checkbox>
-                              </div>
-                              <mat-list-option *cdkVirtualFor="let member of members" class="rounded-lg"
-                                [value]="member.value"
+                                  (checkChange)="onFilterSelectAll($event, column, members)"
+                                  >{{
+                                    'Ngm.AnalyticalGrid.SelectAll' | translate: { Default: 'Select All' }
+                                  }}</z-checkbox
                                 >
-                                <ngm-display-behaviour class="max-w-xs truncate"
+                              </div>
+                              <mat-list-option
+                                *cdkVirtualFor="let member of members"
+                                class="rounded-lg"
+                                [value]="member.value"
+                              >
+                                <ngm-display-behaviour
+                                  class="max-w-xs truncate"
                                   [option]="member"
-                                  [displayBehaviour]="column.displayBehaviour">
+                                  [displayBehaviour]="column.displayBehaviour"
+                                >
                                 </ngm-display-behaviour>
                               </mat-list-option>
                             </mat-selection-list>
@@ -155,11 +243,23 @@
                       <z-divider zVariant="dashed"></z-divider>
                       <div class="ngm-analytical-grid__filtering-actions pt-2">
                         <div ngmButtonGroup displayDensity="cosy">
-                          <button z-button zType="secondary" displayDensity="cosy" (click)="column.isFilterOpen=false;column._selections=column.selections">
-                            {{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}
+                          <button
+                            z-button
+                            zType="secondary"
+                            displayDensity="cosy"
+                            (click)="column.isFilterOpen = false; column._selections = column.selections"
+                          >
+                            {{ 'Ngm.Common.Cancel' | translate: { Default: 'Cancel' } }}
                           </button>
-                          <button z-button zType="default" color="accent" displayDensity="cosy" [disabled]="!column._selections?.length" (click)="column.isFilterOpen=false;onFilterApply(column, members)">
-                            {{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}
+                          <button
+                            z-button
+                            zType="default"
+                            color="accent"
+                            displayDensity="cosy"
+                            [zDisabled]="!column._selections?.length"
+                            (click)="column.isFilterOpen = false; onFilterApply(column, members)"
+                          >
+                            {{ 'Ngm.Common.Apply' | translate: { Default: 'Apply' } }}
                           </button>
                         </div>
                       </div>
@@ -167,8 +267,11 @@
                   }
                 </ng-template>
               </th>
-              
-              <td mat-cell *matCellDef="let element;" [attr.colspan]="last && pivotColumnRowCount > 1 ? 2 : 1"
+
+              <td
+                mat-cell
+                *matCellDef="let element"
+                [attr.colspan]="last && pivotColumnRowCount > 1 ? 2 : 1"
                 class="ngm-analytical-grid__dimension"
                 [class.ngm-analytical-grid__measure]="column.property?.role === AggregationRole.measure"
                 [class.selected-member]="isRowCell(element, column, j)"
@@ -177,67 +280,125 @@
               >
                 <div class="flex justify-start items-center">
                   @if (column.name === rowTreeProperty()) {
-                    <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance?.displayDensity" [style.visibility]="!element.expandable ? 'hidden' : ''" [style.marginLeft.px]="element.level * treeNodePadding" (click)="toggleRowTree($event, element)">
-                      <z-icon class="z-icon-rtl-mirror" [zType]="rowTreeControl.isExpanded(element) ? 'expand_more' : 'chevron_right'"></z-icon>
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      zShape="circle"
+                      [displayDensity]="appearance?.displayDensity"
+                      [style.visibility]="!element.expandable ? 'hidden' : ''"
+                      [style.marginLeft.px]="element.level * treeNodePadding"
+                      (click)="toggleRowTree($event, element)"
+                    >
+                      <z-icon
+                        class="z-icon-rtl-mirror"
+                        [zType]="rowTreeControl.isExpanded(element) ? 'expand_more' : 'chevron_right'"
+                      ></z-icon>
                     </button>
                   }
-                  
+
                   @if (column.name === C_MEASURES) {
                     <div>{{ element['[Measures].[MEMBER_CAPTION]'] || element['[Measures]'] }}</div>
-                  }
-                  @else if (column.property?.role !== AggregationRole.measure) {
-                    <ngm-display-behaviour class="flex-1"
-                      [option]="{key: element[column.name], value: element[column.name], caption: element[column.memberCaption]}"
-                      [displayBehaviour]="column.displayBehaviour">
+                  } @else if (column.property?.role !== AggregationRole.measure) {
+                    <ngm-display-behaviour
+                      class="flex-1"
+                      [option]="{
+                        key: element[column.name],
+                        value: element[column.name],
+                        caption: element[column.memberCaption]
+                      }"
+                      [displayBehaviour]="column.displayBehaviour"
+                    >
                     </ngm-display-behaviour>
                   }
                 </div>
               </td>
             </ng-container>
           }
-          
+
           @if (pivotColumnRowCount > 1) {
-            <ng-container *ngFor="let columnAxis of tableConfig.columnAxes; let i = index" [matColumnDef]="columnAxis.dimension">
+            <ng-container
+              *ngFor="let columnAxis of tableConfig.columnAxes; let i = index"
+              [matColumnDef]="columnAxis.dimension"
+            >
               <th *matHeaderCellDef mat-header-cell>
-                <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="columnAxis.displayHierarchy" [displayDensity]="appearance?.displayDensity" (click)="toggleColumnUnfold($event)">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  *ngIf="columnAxis.displayHierarchy"
+                  [displayDensity]="appearance?.displayDensity"
+                  (click)="toggleColumnUnfold($event)"
+                >
                   <z-icon *ngIf="!columnUnfold" zType="unfold_more"></z-icon>
                   <z-icon *ngIf="columnUnfold" zType="unfold_less"></z-icon>
                 </button>
-                {{columnAxis.caption || columnAxis.dimension}}
-                
+                {{ columnAxis.caption || columnAxis.dimension }}
+
                 <ng-container *ngIf="options()?.sortable && columnAxis.dimension !== C_MEASURES">
-                  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="columnAxis.sortDirection" displayDensity="compact" (click)="toggleColumnOrder(i)">
-                    <z-icon *ngIf="columnAxis.sortDirection==='asc'" zType="arrow_left"></z-icon>
-                    <z-icon *ngIf="columnAxis.sortDirection==='desc'" zType="arrow_right"></z-icon>
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    *ngIf="columnAxis.sortDirection"
+                    displayDensity="compact"
+                    (click)="toggleColumnOrder(i)"
+                  >
+                    <z-icon *ngIf="columnAxis.sortDirection === 'asc'" zType="arrow_left"></z-icon>
+                    <z-icon *ngIf="columnAxis.sortDirection === 'desc'" zType="arrow_right"></z-icon>
                   </button>
-                  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="!columnAxis.sortDirection" displayDensity="compact" class="ngm-analytical-grid__want-order" (click)="toggleColumnOrder(i)">
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    *ngIf="!columnAxis.sortDirection"
+                    displayDensity="compact"
+                    class="ngm-analytical-grid__want-order"
+                    (click)="toggleColumnOrder(i)"
+                  >
                     <z-icon zType="arrow_left"></z-icon>
                   </button>
                 </ng-container>
               </th>
 
-              <td mat-cell *matCellDef="let element;">
-              </td>
+              <td mat-cell *matCellDef="let element"></td>
             </ng-container>
           }
 
           <!-- columns -->
           @for (columns of tableConfig.pivotColumns; track columns; let i = $index; let last = $last) {
-            <ng-container [matColumnDef]="column.name" *ngFor="let column of columns; let j = index;">
-              <th mat-header-cell *matHeaderCellDef 
+            <ng-container [matColumnDef]="column.name" *ngFor="let column of columns; let j = index">
+              <th
+                mat-header-cell
+                *matHeaderCellDef
                 [attr.colspan]="column.colspan"
                 [class.ngm-analytical-grid__measure]="last"
                 [class.selected-member]="selected.columnMembers?.[column.name]"
                 [class.selected]="selected.column?.name === column.name"
                 (click)="onClickColumnHeader($event, column)"
-                >
+              >
                 <div class="flex justify-start items-center" [style.marginTop.px]="column.treeLevel * treeNodePadding">
-                  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="column.expandable" [displayDensity]="appearance?.displayDensity" [style.visibility]="!column.expandable ? 'hidden' : ''" (click)="toggleColumnTree(column)">
-                    <z-icon class="z-icon-rtl-mirror" [zType]="columnTreeControl.isExpanded(column) ? 'expand_more' : 'chevron_right'"></z-icon>
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    *ngIf="column.expandable"
+                    [displayDensity]="appearance?.displayDensity"
+                    [style.visibility]="!column.expandable ? 'hidden' : ''"
+                    (click)="toggleColumnTree(column)"
+                  >
+                    <z-icon
+                      class="z-icon-rtl-mirror"
+                      [zType]="columnTreeControl.isExpanded(column) ? 'expand_more' : 'chevron_right'"
+                    ></z-icon>
                   </button>
 
                   <div class="pivot-column-header-content">
-                    {{column.caption || column.name}}
+                    {{ column.caption || column.name }}
                   </div>
 
                   @if (last) {
@@ -247,14 +408,19 @@
               </th>
 
               @if (last) {
-                <td mat-cell *matCellDef="let element;" class="ngm-analytical-grid__measure"
+                <td
+                  mat-cell
+                  *matCellDef="let element"
+                  class="ngm-analytical-grid__measure"
                   [class.selected-cell]="selected.column?.name === column.name"
                   [class.ngm-analytical-grid__cell-empty]="isNil(element[column.name]?.value)"
                   [ngStyle]="element[column.name]?.cellStyles"
                   [ngClass]="element[column.name]?.classes"
-                  (mousedown)="selectCell(column)">
+                  (mousedown)="selectCell(column)"
+                >
                   @if (column.bar) {
-                    <div [ngStyle]="element[column.name]?.barStyles"
+                    <div
+                      [ngStyle]="element[column.name]?.barStyles"
                       [ngClass]="element[column.name]?.barClasses"
                       class="ngm-analytical-grid__cell-bar"
                     ></div>
@@ -264,22 +430,34 @@
                   } @else {
                     @if (column.formatting?.currencyCode || options()?.currencyCode) {
                       <span class="cell-value">
-                        {{element[column.name]?.value | currency: column.formatting?.currencyCode || options()?.currencyCode:'symbol':column.formatting?.digitsInfo || options()?.digitsInfo}}
+                        {{
+                          element[column.name]?.value
+                            | currency
+                              : column.formatting?.currencyCode || options()?.currencyCode
+                              : 'symbol'
+                              : column.formatting?.digitsInfo || options()?.digitsInfo
+                        }}
                       </span>
                     } @else {
                       <span class="cell-value">
                         @if ((column.formatting?.unit ?? options()?.unit) === '%'; as isPercentage) {
                           <span class="ngm-analytical-grid__measure-value">
-                            {{element[column.name].value * 100 | number: column.formatting?.digitsInfo || options()?.digitsInfo || '0.0-2'}}
+                            {{
+                              element[column.name].value * 100
+                                | number: column.formatting?.digitsInfo || options()?.digitsInfo || '0.0-2'
+                            }}
                           </span>
                         } @else {
                           <span class="ngm-analytical-grid__measure-value">
-                            {{element[column.name]?.value | number: column.formatting?.digitsInfo || options()?.digitsInfo || '0.0-2'}}
+                            {{
+                              element[column.name]?.value
+                                | number: column.formatting?.digitsInfo || options()?.digitsInfo || '0.0-2'
+                            }}
                           </span>
                         }
                         @if (column.formatting?.unit || options()?.unit; as unit) {
                           <span class="ngm-analytical-grid__measure-unit">
-                            {{unit}}
+                            {{ unit }}
                           </span>
                         }
                       </span>
@@ -289,22 +467,37 @@
               }
             </ng-container>
           }
-          
+
           <!-- 单独设置一行抬头是因为全部放在下面循环里创建的话没有被识别出来, 还未找到原因 -->
-          <tr mat-header-row *matHeaderRowDef="tableConfig.matHeaders; sticky:options()?.sticky" [ngStyle]="styling?.bar"></tr>
-          <tr mat-header-row *matHeaderRowDef="tableConfig.matRestHeaders[0]; sticky:options()?.sticky" [class.empty]="!tableConfig.matRestHeaders[0]" [ngStyle]="styling?.bar"></tr>
-          <tr mat-header-row *matHeaderRowDef="tableConfig.matRestHeaders[1]; sticky:options()?.sticky;" [class.empty]="!tableConfig.matRestHeaders[1]" [ngStyle]="styling?.bar"></tr>
+          <tr
+            mat-header-row
+            *matHeaderRowDef="tableConfig.matHeaders; sticky: options()?.sticky"
+            [ngStyle]="styling?.bar"
+          ></tr>
+          <tr
+            mat-header-row
+            *matHeaderRowDef="tableConfig.matRestHeaders[0]; sticky: options()?.sticky"
+            [class.empty]="!tableConfig.matRestHeaders[0]"
+            [ngStyle]="styling?.bar"
+          ></tr>
+          <tr
+            mat-header-row
+            *matHeaderRowDef="tableConfig.matRestHeaders[1]; sticky: options()?.sticky"
+            [class.empty]="!tableConfig.matRestHeaders[1]"
+            [ngStyle]="styling?.bar"
+          ></tr>
 
           <!-- 循环里的 mat-header-row 当变化时没有被识别出来, 所以固定写死几行 header row 用 empty class 的方式将空行其隐藏 -->
           <!-- <ng-container *ngFor="let columns of displayedColumns;">
             <tr mat-header-row *matHeaderRowDef="columns; sticky:options()?.sticky"></tr>
           </ng-container> -->
 
-          <tr mat-row *matRowDef="let row; columns: tableConfig.matRowColumns; let i = index"
+          <tr
+            mat-row
+            *matRowDef="let row; columns: tableConfig.matRowColumns; let i = index"
             [class.selected]="isRowSelected(row, i)"
             (click)="selectRow(i, row)"
-          >
-          </tr>
+          ></tr>
         </table>
       }
     </div>
@@ -318,15 +511,21 @@
 </div>
 
 @if (options()?.paging) {
-  <mat-paginator [displayDensity]="appearance?.displayDensity"
-    [pageSize]="options()?.pageSize" [pageSizeOptions]="[20, 50, 100]" showFirstLastButtons
+  <mat-paginator
+    [displayDensity]="appearance?.displayDensity"
+    [pageSize]="options()?.pageSize"
+    [pageSizeOptions]="[20, 50, 100]"
+    showFirstLastButtons
   />
 }
 
 <ng-template #filtersMenu let-trigger="trigger">
   <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">
-    <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
-    <ngm-slicers class="overflow-hidden" inline editable
+    <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: { Default: 'Slicers' } }}</div>
+    <ngm-slicers
+      class="overflow-hidden"
+      inline
+      editable
       [slicers]="slicers"
       [dataSettings]="dataSettings"
       [limit]="5"
@@ -335,8 +534,11 @@
       (click)="$event.stopPropagation()"
     />
 
-    <button type="button" class="btn-close btn btn-secondary absolute right-2 top-2 flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-      (click)="trigger.close()">
+    <button
+      type="button"
+      class="btn-close btn btn-secondary absolute right-2 top-2 flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+      (click)="trigger.close()"
+    >
       <i class="ri-close-line"></i>
     </button>
   </div>

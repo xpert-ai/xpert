@@ -4,7 +4,7 @@ import { NgmFormlyAccordionModule } from '@metad/formly/accordion'
 import { NgmFormlyArrayModule } from '@metad/formly/array'
 import { PACFormlyButtonToggleModule } from '@metad/formly/button-toggle'
 import { PACFormlyChartTypeModule } from '@metad/formly/chart-type'
-import { NgmFormlyMatCheckboxModule } from '@metad/formly/checkbox'
+import { NgmFormlyCheckboxModule } from '@metad/formly/checkbox'
 import { PACFormlyCodeEditorModule } from '@metad/formly/code-editor'
 import { PACFormlyColorPickerModule } from '@metad/formly/color-picker'
 import { PACFormlyDesignerModule } from '@metad/formly/designer'
@@ -42,7 +42,7 @@ import { HLFormlyTabsModule } from '@metad/formly/hl-tabs'
     PACFormlyInputModule,
     PACFormlySelectModule,
     NgmFormlyRadioModule,
-    NgmFormlyMatCheckboxModule,
+    NgmFormlyCheckboxModule,
     PACFormlyTextAreaModule,
     PACFormlySemanticModelModule,
     PACFormlySortModule,

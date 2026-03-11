@@ -13,15 +13,12 @@
 }
 
 :host::ng-deep {
-  .mat-mdc-checkbox {
+  z-checkbox {
     @apply overflow-hidden;
-    
-    .mat-internal-form-field {
-      width: 100%;
-    }
 
-    .mdc-form-field > label {
+    .z-checkbox__label {
       flex: 1;
+      overflow: hidden;
     }
   }
 }

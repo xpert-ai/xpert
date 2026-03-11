@@ -1,5 +1,12 @@
 <div class="flex justify-start items-center gap-1">
-  <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance()?.displayDensity" (click)="$event.stopPropagation();toggleExpand()">
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon"
+    zShape="circle"
+    [displayDensity]="appearance()?.displayDensity"
+    (click)="$event.stopPropagation(); toggleExpand()"
+  >
     @if (unfold) {
       <z-icon zType="unfold_less"></z-icon>
     } @else {
@@ -8,14 +15,22 @@
   </button>
   @if (options()?.searchable ?? true) {
     <div class="relative flex-1">
-      <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
-      <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
-        [placeholder]="'Ngm.Controls.ValueHelp.Search' | translate: {Default: 'Search (supports multiple words and * wildcard, e.g. st*, *st, *st*)'}"
+      <i
+        class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"
+      ></i>
+      <input
+        class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+        [placeholder]="
+          'Ngm.Controls.ValueHelp.Search'
+            | translate: { Default: 'Search (supports multiple words and * wildcard, e.g. st*, *st, *st*)' }
+        "
         [formControl]="searchControl"
-      >
+      />
       @if (searchControl.value) {
-        <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
-          (click)="searchControl.setValue('')"></i>
+        <i
+          class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+          (click)="searchControl.setValue('')"
+        ></i>
       }
     </div>
   }
@@ -24,47 +39,70 @@
 <cdk-virtual-scroll-viewport class="flex-1" [itemSize]="itemSize">
   <ng-container *cdkVirtualFor="let node of dataSource">
     <!-- Note that the [style.padding-left] is essentially what cdkTreeNodePadding is doing under the hood -->
-    <div class="tree-node group/member rounded-md" [style.padding-left]="node.level * treeNodePaddingIndent + 'px'" [displayDensity]="appearance()?.displayDensity">
+    <div
+      class="tree-node group/member rounded-md"
+      [style.padding-left]="node.level * treeNodePaddingIndent + 'px'"
+      [displayDensity]="appearance()?.displayDensity"
+    >
       <!-- Note that treeControl.toggle(node) is essentially what cdkTreeNodeToggle is doing under the hood -->
       @if (node.expandable) {
-        <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="appearance()?.displayDensity" (click)="treeControl.toggle(node)">
-          <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'"></z-icon>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          [displayDensity]="appearance()?.displayDensity"
+          (click)="treeControl.toggle(node)"
+        >
+          <z-icon
+            class="z-icon-rtl-mirror"
+            [zType]="treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'"
+          ></z-icon>
         </button>
       } @else {
-        <button z-button zType="ghost" zSize="icon" zShape="circle" disabled [displayDensity]="appearance()?.displayDensity"></button>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          disabled
+          [displayDensity]="appearance()?.displayDensity"
+        ></button>
       }
 
-      <mat-checkbox
-        [checked]="isSelected(node.raw)"
+      <z-checkbox
+        [ngModel]="isSelected(node.raw)"
         [indeterminate]="isPartiallySelected(node)"
-        (change)="itemSelectionToggle(node, $event)"
+        (checkChange)="itemSelectionToggle(node, $event)"
       >
         <div class="flex gap-1 pr-1 items-center">
-          <ngm-display-behaviour class="flex-1"
+          <ngm-display-behaviour
+            class="flex-1"
             [displayBehaviour]="displayBehaviour"
-            [option]="{key: node.key, caption: node.caption}"
+            [option]="{ key: node.key, caption: node.caption }"
             [highlight]="highlightKeyword()"
           />
-          <i class="ri-information-2-fill text-text-tertiary opacity-0 group-hover/member:opacity-100"
+          <i
+            class="ri-information-2-fill text-text-tertiary opacity-0 group-hover/member:opacity-100"
             [matTooltip]="memberTooltip(node.raw)"
             matTooltipPosition="above"
             matTooltipClass="whitespace-pre-line text-left"
           ></i>
         </div>
-      </mat-checkbox>
+      </z-checkbox>
     </div>
   </ng-container>
 </cdk-virtual-scroll-viewport>
 
 @if (loading$ | async) {
   <div class="absolute top-0 left-0 w-full h-full flex justify-center items-center">
-    <mat-spinner strokeWidth="2" diameter="30"/>
+    <mat-spinner strokeWidth="2" diameter="30" />
   </div>
 }
 
 @if (error()) {
-  <div class="ngm-card-error absolute left-0 top-0 w-full h-full overflow-auto 
-    flex flex-col justify-center items-center"
+  <div
+    class="ngm-card-error absolute left-0 top-0 w-full h-full overflow-auto flex flex-col justify-center items-center"
   >
     <span class="text-2xl font-notoColorEmoji">🐞</span>
     <div class="whitespace-pre-wrap max-w-full text-red-500">

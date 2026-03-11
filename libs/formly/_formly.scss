@@ -131,29 +131,29 @@
 
 /* 默认 field group 纵向排列 */
 formly-group {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    max-width: 100%;
-  }
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  max-width: 100%;
+}
 
-  .mat-mdc-menu-panel.ngm-formly {
-    .mat-menu-item {
-      z-radio {
-        max-width: 100%;
-        width: 100%;
-        .z-radio__label {
-          flex: 1;
-          overflow: hidden;
-        }
+.mat-mdc-menu-panel.ngm-formly {
+  .mat-menu-item {
+    z-radio {
+      max-width: 100%;
+      width: 100%;
+      .z-radio__label {
+        flex: 1;
+        overflow: hidden;
       }
-      .mat-checkbox {
-        .mat-checkbox-layout {
-          width: 100%;
-        }
-        .mat-checkbox-label {
-          flex: 1;
-        }
+    }
+    z-checkbox {
+      max-width: 100%;
+      width: 100%;
+      .z-checkbox__label {
+        flex: 1;
+        overflow: hidden;
       }
     }
   }
+}

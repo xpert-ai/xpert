@@ -1,6 +1,5 @@
 import { provideHttpClient } from '@angular/common/http'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatMenuModule } from '@angular/material/menu'
 import { provideAnimations } from '@angular/platform-browser/animations'
@@ -10,7 +9,7 @@ import { StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { DensityDirective } from './displayDensity'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Core/DisplayDensity',
@@ -26,7 +25,7 @@ export default {
         ZardIconComponent,
         ZardButtonComponent,
         MatChipsModule,
-        MatCheckboxModule,
+        ZardCheckboxComponent,
         MatMenuModule,
         DensityDirective,
         NgmSearchComponent
@@ -62,7 +61,7 @@ export const Primary: Story = {
     </div>
     
     <div displayDensity="comfort">
-      <mat-checkbox>Check me!</mat-checkbox>
+      <z-checkbox>Check me!</z-checkbox>
       <ngm-search></ngm-search>
       <mat-chip-grid #chipGrid aria-label="Fruit selection">
         <mat-chip-row>fruit
@@ -73,7 +72,7 @@ export const Primary: Story = {
       </mat-chip-grid>
     </div>
     <div displayDensity="cosy">
-      <mat-checkbox>Check me!</mat-checkbox>
+      <z-checkbox displayDensity="cosy">Check me!</z-checkbox>
       <ngm-search></ngm-search>
       <mat-chip-grid #chipGrid aria-label="Fruit selection">
         <mat-chip-row>fruit
@@ -84,7 +83,7 @@ export const Primary: Story = {
       </mat-chip-grid>
     </div>
     <div displayDensity="compact">
-      <mat-checkbox>Check me!</mat-checkbox>
+      <z-checkbox displayDensity="compact">Check me!</z-checkbox>
       <ngm-search></ngm-search>
       <mat-chip-grid #chipGrid aria-label="Fruit selection">
         <mat-chip-row>fruit

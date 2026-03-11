@@ -1,7 +1,15 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, computed, effect, forwardRef, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, Validators } from '@angular/forms'
+import {
+  ControlValueAccessor,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms'
 import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@metad/cloud/state'
 import { nonBlank, nonNullable } from '@metad/core'
 import { NgmHierarchySelectComponent, NgmMatSelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
@@ -9,17 +17,45 @@ import { ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap
 import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { ISlicer, Indicator, IndicatorType, Syntax, getEntityDimensions, getEntityMeasures, isEntityType, isSemanticCalendar } from '@metad/ocap-core'
+import {
+  ISlicer,
+  Indicator,
+  IndicatorType,
+  Syntax,
+  getEntityDimensions,
+  getEntityMeasures,
+  isEntityType,
+  isSemanticCalendar
+} from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud/src/app/@core'
 import { isEqual } from 'lodash-es'
-import { BehaviorSubject, EMPTY, catchError, combineLatest, debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap, take, tap } from 'rxjs'
+import {
+  BehaviorSubject,
+  EMPTY,
+  catchError,
+  combineLatest,
+  debounceTime,
+  distinctUntilChanged,
+  filter,
+  map,
+  shareReplay,
+  startWith,
+  switchMap,
+  take,
+  tap
+} from 'rxjs'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatCheckboxModule } from '@angular/material/checkbox'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
 import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
 
@@ -28,7 +64,25 @@ import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
   selector: 'xp-indicator-register-form',
   templateUrl: 'register-form.component.html',
   styleUrls: ['register-form.component.scss'],
-  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, ZardIconComponent, ZardButtonComponent, MatTooltipModule, ...ZardFormImports, MatDatepickerModule, ZardInputDirective, MatCheckboxModule, NgmMatSelectComponent, NgmTreeSelectComponent, TagEditorComponent, NgmHierarchySelectComponent, NgmCalculatedMeasureComponent, NgmSelectionModule],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    MatTooltipModule,
+    ...ZardFormImports,
+    MatDatepickerModule,
+    ZardInputDirective,
+    ZardCheckboxComponent,
+    NgmMatSelectComponent,
+    NgmTreeSelectComponent,
+    TagEditorComponent,
+    NgmHierarchySelectComponent,
+    NgmCalculatedMeasureComponent,
+    NgmSelectionModule
+  ],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -36,16 +90,16 @@ import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
       useExisting: forwardRef(() => XpIndicatorRegisterFormComponent)
     },
     provideDateFnsAdapter({
-          parse: {
-            dateInput: 'yyyy-MM-dd'
-          },
-          display: {
-            dateInput: 'yyyy-MM-dd',
-            monthYearLabel: 'LLL y',
-            dateA11yLabel: 'MMMM d y',
-            monthYearA11yLabel: 'MMMM y'
-          }
-        })
+      parse: {
+        dateInput: 'yyyy-MM-dd'
+      },
+      display: {
+        dateInput: 'yyyy-MM-dd',
+        monthYearLabel: 'LLL y',
+        dateA11yLabel: 'MMMM d y',
+        monthYearA11yLabel: 'MMMM y'
+      }
+    })
   ]
 })
 export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
@@ -93,7 +147,7 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
       aggregator: new FormControl<string>(null),
       calendar: new FormControl<string>(null),
       dimensions: new FormControl<string[]>(null),
-      filters: new FormControl<ISlicer[]>(null),
+      filters: new FormControl<ISlicer[]>(null)
     }),
     tags: new FormControl<ITag[]>([])
   })
@@ -187,7 +241,9 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
   public readonly measures$ = this.entityType$.pipe(
     map(getEntityMeasures),
     // filter myself
-    map((measures) => measures.filter((item) => item.name !== this.indicator().code && item.name !== this.indicator().name)),
+    map((measures) =>
+      measures.filter((item) => item.name !== this.indicator().code && item.name !== this.indicator().name)
+    ),
     map((items) => items.map((item) => ({ key: item.name, caption: item.caption })))
   )
   public readonly dimensions$ = this.entityType$.pipe(
@@ -236,7 +292,12 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
         const indicator = this.indicator()
         const semanticModel = this.semanticModel()
         if (semanticModel && indicator) {
-          const _indicator = {...indicator, visible: false, name: indicator.name?.trim() || '', code: indicator.code?.trim() || ''}
+          const _indicator = {
+            ...indicator,
+            visible: false,
+            name: indicator.name?.trim() || '',
+            code: indicator.code?.trim() || ''
+          }
           const indicators = [...semanticModel.indicators]
           const index = indicators.findIndex((item) => item.id === _indicator.id)
           if (index >= 0) {
@@ -259,7 +320,7 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
         }
       },
       { allowSignalWrites: true }
-    )      
+    )
   }
 
   writeValue(obj: any): void {
@@ -282,5 +343,4 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
   toggleFormula() {
     this.showFormula.update((state) => !state)
   }
-
 }

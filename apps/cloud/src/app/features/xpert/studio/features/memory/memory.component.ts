@@ -10,10 +10,10 @@ import { TranslateModule } from '@ngx-translate/core'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { injectTranslate } from 'apps/cloud/src/app/@core'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { NgmTooltipDirective } from '@metad/ocap-angular/core'
 import { isNil } from '@metad/copilot'
+import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-features-memory',
@@ -25,7 +25,7 @@ import { isNil } from '@metad/copilot'
     TranslateModule,
     MatSliderModule,
     MatTooltipModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
 
     NgmTooltipDirective,
     CopilotPromptEditorComponent,
@@ -83,15 +83,18 @@ export class XpertStudioFeaturesMemoryComponent {
   }
 
   constructor() {
-    effect(() => {
-      if (this.profile()?.enabled && isNil(this.profile().afterSeconds)) {
-        this.afterSeconds = 10
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.profile()?.enabled && isNil(this.profile().afterSeconds)) {
+          this.afterSeconds = 10
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   formatLabel(value: number): string {
-    return `${value}s`;
+    return `${value}s`
   }
 
   updateMemory(memory: Partial<TLongTermMemory>) {
@@ -100,13 +103,13 @@ export class XpertStudioFeaturesMemoryComponent {
         ...xpert,
         memory: {
           ...(xpert.memory ?? {}),
-          ...memory,
+          ...memory
         }
       }
     })
   }
 
-  updateProfile(value: Partial<TLongTermMemoryConfig> & {afterSeconds?: number}) {
+  updateProfile(value: Partial<TLongTermMemoryConfig> & { afterSeconds?: number }) {
     this.updateMemory({
       profile: {
         ...(this.profile() ?? {}),

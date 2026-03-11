@@ -1,15 +1,48 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, forwardRef, HostBinding, inject, input, Input, OnChanges, OnInit, signal, SimpleChanges } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  forwardRef,
+  HostBinding,
+  inject,
+  input,
+  Input,
+  OnChanges,
+  OnInit,
+  signal,
+  SimpleChanges
+} from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, ValidatorFn } from '@angular/forms'
+import {
+  ControlValueAccessor,
+  FormControl,
+  FormsModule,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  ValidatorFn
+} from '@angular/forms'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
-import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance, NgmFieldColor } from '@metad/ocap-angular/core'
+import {
+  DisplayDensity,
+  ISelectOption,
+  OcapCoreModule,
+  NgmFieldAppearance,
+  NgmFieldColor
+} from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { combineLatestWith, debounceTime, distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
@@ -35,7 +68,21 @@ import { isEqual } from 'lodash-es'
       useExisting: forwardRef(() => NgmMatSelectComponent)
     }
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ScrollingModule, ...ZardFormImports, MatAutocompleteModule, MatCheckboxModule, MatProgressSpinnerModule, ZardIconComponent, ZardInputDirective, ZardButtonComponent, NgmDisplayBehaviourComponent, OcapCoreModule]
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ScrollingModule,
+    ...ZardFormImports,
+    MatAutocompleteModule,
+    ZardCheckboxComponent,
+    MatProgressSpinnerModule,
+    ZardIconComponent,
+    ZardInputDirective,
+    ZardButtonComponent,
+    NgmDisplayBehaviourComponent,
+    OcapCoreModule
+  ]
 })
 export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAccessor {
   readonly #destroyRef = inject(DestroyRef)
@@ -79,7 +126,7 @@ export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAcc
   formControl = new FormControl<ISelectOption | string[] | string>(null)
   // selection = new SelectionModel<string>(true)
   readonly selectionSignal = selectionModel<string>()
-  readonly selectedValues = computed(() => this.selectionSignal(), { equal: isEqual})
+  readonly selectedValues = computed(() => this.selectionSignal(), { equal: isEqual })
   get highlight() {
     return typeof this.formControl.value === 'string' ? this.formControl.value.trim() : null
   }
@@ -104,12 +151,15 @@ export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAcc
   onTouched: () => void
 
   constructor() {
-    effect(() => {
-      if (this.multiple) {
-        // this._updateLabel()
-        this.onChange?.(this.selectedValues())
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.multiple) {
+          // this._updateLabel()
+          this.onChange?.(this.selectedValues())
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   ngOnInit() {
@@ -190,7 +240,9 @@ export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAcc
     if (this.multiple) {
       this.formControl.setValue(
         // this.selection.selected.map((value) => this.selectOptions?.find((item) => item.key === value)?.caption || value)
-        this.selectionSignal().map((value) => this.selectOptions()?.find((item) => item.key === value)?.caption || value)
+        this.selectionSignal().map(
+          (value) => this.selectOptions()?.find((item) => item.key === value)?.caption || value
+        )
       )
     } else {
       let option: any = this.formControl.value
@@ -212,9 +264,9 @@ export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAcc
     return this.selectionSignal().includes(option.key)
   }
 
-  onSelect(event: MatCheckboxChange, option: ISelectOption) {
+  onSelect(event: boolean, option: ISelectOption) {
     if (this.multiple) {
-      if (event.checked) {
+      if (event) {
         // this.selection.select(option.key as string)
         // this.value.update((value) => [...(value ?? []), option.key])
         this.selectionSignal.select(option.key)
@@ -236,7 +288,7 @@ export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAcc
 }
 
 export function selectionModel<T>() {
-  const m = signal<T[]>([])  // multiple ? : signal<T>(null)
+  const m = signal<T[]>([]) // multiple ? : signal<T>(null)
   const sig = (): T[] => {
     return m()
   }

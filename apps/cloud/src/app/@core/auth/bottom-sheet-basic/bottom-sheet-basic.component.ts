@@ -3,13 +3,12 @@ import { Component, Inject, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { ToastrService } from '@metad/cloud/state'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { AuthInfoType } from '../types'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -18,7 +17,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     ZardButtonComponent,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     TranslateModule,
 
     ButtonGroupDirective,
@@ -50,7 +49,9 @@ export class BottomSheetBasicAuthComponent {
       await this.data.ping({ ...this.form.value } as AuthInfoType)
       this._bottomSheetRef.dismiss(this.form.value)
     } catch (err) {
-      this.toastrService.error(this.#translate.instant('PAC.MESSAGE.UserAuthenticationFailure', {Default: 'User authentication failure'}))
+      this.toastrService.error(
+        this.#translate.instant('PAC.MESSAGE.UserAuthenticationFailure', { Default: 'User authentication failure' })
+      )
     }
   }
 

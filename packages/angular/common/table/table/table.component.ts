@@ -2,12 +2,31 @@ import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { SelectionModel } from '@angular/cdk/collections'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Injectable, Injector, afterNextRender, effect, inject, input, isSignal, output, runInInjectionContext, signal, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  Injectable,
+  Injector,
+  afterNextRender,
+  effect,
+  inject,
+  input,
+  isSignal,
+  output,
+  runInInjectionContext,
+  signal,
+  viewChild
+} from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import {
   MatPaginator,
   MatPaginatorDefaultOptions,
@@ -96,7 +115,7 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
     DragDropModule,
     FormsModule,
     ReactiveFormsModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     MatTableModule,
     MatPaginatorModule,
     ZardIconComponent,
@@ -106,8 +125,8 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
     TranslateModule,
 
     //OCAP Modules
-    OcapCoreModule,
-  ],
+    OcapCoreModule
+  ]
   // providers: [{provide: MatPaginatorIntl, useClass: MyCustomPaginatorIntl}],
 })
 export class NgmTableComponent {
@@ -145,7 +164,7 @@ export class NgmTableComponent {
    * A cell or row was selected.
    */
   readonly rowSelectionChanging = output<any[]>()
-  
+
   /**
   |--------------------------------------------------------------------------
   | Child Components
@@ -198,24 +217,30 @@ export class NgmTableComponent {
       }
 
       runInInjectionContext(this.#injector, () => {
-        effect(() => {
-          this.dataSource.data = this.data()
-        }, { allowSignalWrites: true })
+        effect(
+          () => {
+            this.dataSource.data = this.data()
+          },
+          { allowSignalWrites: true }
+        )
       })
     })
 
-    effect(() => {
-      const columns = this.columns()
-      if (columns) {
-        this.displayedColumns.set(columns.map(({ name }) => name))
-        if (this.selectable()) {
-          this.displayedColumns.update((columns) => {
-            columns.unshift('select')
-            return [...columns]
-          }) 
+    effect(
+      () => {
+        const columns = this.columns()
+        if (columns) {
+          this.displayedColumns.set(columns.map(({ name }) => name))
+          if (this.selectable()) {
+            this.displayedColumns.update((columns) => {
+              columns.unshift('select')
+              return [...columns]
+            })
+          }
         }
-      }
-    }, { allowSignalWrites: true })
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   _context(data: Record<string, unknown>, column: TableColumn) {

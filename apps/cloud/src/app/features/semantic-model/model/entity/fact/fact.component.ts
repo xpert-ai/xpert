@@ -44,9 +44,8 @@ import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { ModelEntityService } from '../entity.service'
 import { newDimensionFromColumn } from '../types'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -60,9 +59,9 @@ import { ZardIconComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ZardIconComponent,
     MatTooltipModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     NgmCommonModule,
-    NgmEntityPropertyComponent,
+    NgmEntityPropertyComponent
   ]
 })
 export class ModelCubeFactComponent {
@@ -97,7 +96,9 @@ export class ModelCubeFactComponent {
   readonly dimensions = computed(() => {
     const term = this.searchTerm()?.toLowerCase()
     if (term) {
-      return this._dimensions()?.filter((item) => item.name.toLowerCase().includes(term) || item.caption?.toLowerCase().includes(term))
+      return this._dimensions()?.filter(
+        (item) => item.name.toLowerCase().includes(term) || item.caption?.toLowerCase().includes(term)
+      )
     }
     return this._dimensions()
   })
@@ -105,11 +106,12 @@ export class ModelCubeFactComponent {
   readonly measures = computed(() => {
     const term = this.searchTerm()?.toLowerCase()
     if (term) {
-      return this._measures()?.filter((item) => item.name.toLowerCase().includes(term) || item.caption?.toLowerCase().includes(term))
+      return this._measures()?.filter(
+        (item) => item.name.toLowerCase().includes(term) || item.caption?.toLowerCase().includes(term)
+      )
     }
     return this._measures()
   })
-  
 
   readonly visibleIndeterminate = computed(
     () =>
@@ -126,24 +128,24 @@ export class ModelCubeFactComponent {
 
   readonly cube$ = this.entityService.cube$
   readonly tables$ = this.entityService.tables$
-  readonly factTable$ = this.cube$.pipe(map((cube) => {
-    if (cube?.fact?.type === 'table') {
-      return cube.fact.table?.name
-    } else if (cube?.fact?.type === 'view') {
-      return cube.fact.view?.alias
-    } else {
-      return cube.tables?.[0]?.name
-    }
-  }))
+  readonly factTable$ = this.cube$.pipe(
+    map((cube) => {
+      if (cube?.fact?.type === 'table') {
+        return cube.fact.table?.name
+      } else if (cube?.fact?.type === 'view') {
+        return cube.fact.view?.alias
+      } else {
+        return cube.tables?.[0]?.name
+      }
+    })
+  )
 
   readonly fectTableFields = derivedAsync(() => {
     return this.factTable$.pipe(
       filter(nonBlank),
       switchMap((tableName) => {
         this.loading.set(true)
-        return this.modelService.selectOriginalEntityProperties(tableName).pipe(
-          tap(() => this.loading.set(false))
-        )
+        return this.modelService.selectOriginalEntityProperties(tableName).pipe(tap(() => this.loading.set(false)))
       })
     )
   })
@@ -158,21 +160,23 @@ export class ModelCubeFactComponent {
   private _tableTypes = {}
 
   // Subscribers
-  private _originEntityTypeSub$ = this.isXmla$.pipe(
-    switchMap(() => {
-      this.loading.set(true)
-      return this.entityService.originalEntityType$.pipe(
-        tap(() => this.loading.set(false)),
-      )
-    }),
-    filter(() => isEmpty(this._dimensions()) && isEmpty(this._measures())),
-    takeUntilDestroyed()
-  ).subscribe((entityType) => {
-    this._dimensions.set(
-      structuredClone(getEntityDimensions(entityType).map((item) => ({ ...item, dataType: 'dimension' })))
+  private _originEntityTypeSub$ = this.isXmla$
+    .pipe(
+      switchMap(() => {
+        this.loading.set(true)
+        return this.entityService.originalEntityType$.pipe(tap(() => this.loading.set(false)))
+      }),
+      filter(() => isEmpty(this._dimensions()) && isEmpty(this._measures())),
+      takeUntilDestroyed()
     )
-    this._measures.set(structuredClone(getEntityMeasures(entityType).map((item) => ({ ...item, dataType: 'measure' }))))
-  })
+    .subscribe((entityType) => {
+      this._dimensions.set(
+        structuredClone(getEntityDimensions(entityType).map((item) => ({ ...item, dataType: 'dimension' })))
+      )
+      this._measures.set(
+        structuredClone(getEntityMeasures(entityType).map((item) => ({ ...item, dataType: 'measure' })))
+      )
+    })
 
   constructor() {
     effect(
@@ -218,13 +222,18 @@ export class ModelCubeFactComponent {
   }
 
   dropEnterPredicate(item: CdkDrag<any>) {
-    return item.dropContainer.id === CdkDragDropContainers.FactTableMeasures || item.dropContainer.id === CdkDragDropContainers.FactTableDimensions
+    return (
+      item.dropContainer.id === CdkDragDropContainers.FactTableMeasures ||
+      item.dropContainer.id === CdkDragDropContainers.FactTableDimensions
+    )
   }
 
   async dropProperty(event: CdkDragDrop<Property[]>) {
     if (
-      (event.previousContainer.id === CdkDragDropContainers.FactTableDimensions && event.container.id === CdkDragDropContainers.FactTableMeasures) ||
-      (event.previousContainer.id === CdkDragDropContainers.FactTableMeasures && event.container.id === CdkDragDropContainers.FactTableDimensions)
+      (event.previousContainer.id === CdkDragDropContainers.FactTableDimensions &&
+        event.container.id === CdkDragDropContainers.FactTableMeasures) ||
+      (event.previousContainer.id === CdkDragDropContainers.FactTableMeasures &&
+        event.container.id === CdkDragDropContainers.FactTableDimensions)
     ) {
       transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex)
     } else if (event.previousContainer === event.container) {
@@ -304,15 +313,15 @@ export class ModelCubeFactComponent {
 
   createDimension() {
     const levels = this._dimensions().filter((item) => item.visible)
-    this.confirmOptions<{name: string; caption: string;}>({
-      information: this.i18n.translate('PAC.MODEL.ENTITY.CreateDimension', {Default: 'Create an dimension'}),
+    this.confirmOptions<{ name: string; caption: string }>({
+      information: this.i18n.translate('PAC.MODEL.ENTITY.CreateDimension', { Default: 'Create an dimension' }),
       formFields: [
         {
           key: 'name',
           type: 'input',
           defaultValue: levels.length === 1 ? levels[0].name : '',
           props: {
-            label: this.i18n.translate('PAC.KEY_WORDS.Name', {Default: 'Name'}),
+            label: this.i18n.translate('PAC.KEY_WORDS.Name', { Default: 'Name' }),
             required: true
           }
         },
@@ -321,7 +330,7 @@ export class ModelCubeFactComponent {
           type: 'input',
           defaultValue: levels.length === 1 ? levels[0].caption : '',
           props: {
-            label: this.i18n.translate('PAC.KEY_WORDS.Caption', {Default: 'Caption'}),
+            label: this.i18n.translate('PAC.KEY_WORDS.Caption', { Default: 'Caption' })
           }
         }
       ]
@@ -392,7 +401,7 @@ export class ModelCubeFactComponent {
           ({
             ...pick(measure, 'name', 'caption'),
             __id__: uuid()
-          } as PropertyMeasure)
+          }) as PropertyMeasure
       )
 
     // Set cube defination
@@ -458,5 +467,4 @@ export class ModelCubeFactComponent {
       })
     )
   })
-
 }

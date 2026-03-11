@@ -120,13 +120,12 @@
       display: flex;
     }
 
-    .mat-mdc-checkbox {
+    z-checkbox {
       display: flex;
-      .mdc-form-field {
+
+      .z-checkbox__label {
         flex: 1;
-        .mdc-label {
-          flex: 1;
-        }
+        overflow: hidden;
       }
     }
 

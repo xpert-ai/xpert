@@ -9,7 +9,6 @@
 @use './style/mat-tab-theme' as mat-tab;
 @use './style/mat-paginator-theme' as mat-paginator;
 @use './style/mat-dialog-theme' as mat-dialog;
-@use './style/mat-checkbox-theme' as mat-checkbox;
 @use './directives/appearance-theme' as appearance;
 @use './directives/button-group-theme' as button-group;
 
@@ -22,7 +21,6 @@
   @include button-theme.color($config-or-theme);
   @include mat-paginator.color($config-or-theme);
   @include mat-dialog.color($config-or-theme);
-  @include mat-checkbox.color($config-or-theme);
   @include appearance.color($config-or-theme);
   @include button-group.color($config-or-theme);
 }
@@ -40,7 +38,6 @@
   @include mat-tab.density($config-or-theme);
   @include mat-paginator.density($config-or-theme);
   @include mat-dialog.density($config-or-theme);
-  @include mat-checkbox.density($config-or-theme);
   @include appearance.density($config-or-theme);
   @include button-group.density($config-or-theme);
 }

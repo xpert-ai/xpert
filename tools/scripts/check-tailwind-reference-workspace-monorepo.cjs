@@ -20,7 +20,6 @@ const globalChainReferenceFiles = new Set([
   'packages/angular/common/table/_table-theme.scss',
   'packages/angular/controls/member-list/_member-list-theme.scss',
   'packages/angular/core/directives/_appearance.scss',
-  'packages/angular/core/style/_mat-checkbox-theme.scss',
   'packages/angular/core/style/_mat-list-theme.scss',
   'packages/angular/core/style/card.scss',
   'packages/angular/core/style/cdk-dialog.scss',

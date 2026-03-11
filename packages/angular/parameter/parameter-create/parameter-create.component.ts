@@ -3,14 +3,35 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, inject, input, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
+import {
+  AbstractControl,
+  FormArray,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidatorFn,
+  Validators
+} from '@angular/forms'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import { NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { NgmControlsModule, TreeControlOptions } from '@metad/ocap-angular/controls'
-import { DisplayDensity, EntityUpdateEvent, NgmOcapCoreService, OcapCoreModule, NgmFieldAppearance } from '@metad/ocap-angular/core'
+import {
+  DisplayDensity,
+  EntityUpdateEvent,
+  NgmOcapCoreService,
+  OcapCoreModule,
+  NgmFieldAppearance
+} from '@metad/ocap-angular/core'
 import {
   CubeParameterEnum,
   DataSettings,
@@ -22,7 +43,7 @@ import {
   IMember,
   isNil,
   ParameterProperty,
-  suuid,
+  suuid
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter, map, startWith } from 'rxjs'
@@ -32,7 +53,24 @@ import { filter, map, startWith } from 'rxjs'
   selector: 'ngm-parameter-create',
   templateUrl: 'parameter-create.component.html',
   styleUrls: ['parameter-create.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DragDropModule, ZardInputDirective, ZardButtonComponent, ...ZardFormImports, MatButtonToggleModule, ZardIconComponent, MatCheckboxModule, TranslateModule, OcapCoreModule, NgmControlsModule, NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    DragDropModule,
+    ZardInputDirective,
+    ZardButtonComponent,
+    ...ZardFormImports,
+    MatButtonToggleModule,
+    ZardIconComponent,
+    ZardCheckboxComponent,
+    TranslateModule,
+    OcapCoreModule,
+    NgmControlsModule,
+    NgmInputModule,
+    NgmHierarchySelectComponent,
+    NgmCheckboxComponent
+  ]
 })
 export class NgmParameterCreateComponent {
   eCubeParameterEnum = CubeParameterEnum
@@ -41,12 +79,12 @@ export class NgmParameterCreateComponent {
   readonly #coreService = inject(NgmOcapCoreService)
   readonly #dialogRef = inject(DialogRef, { optional: true })
   readonly #data = inject<{
-      name: string
-      dataSettings: DataSettings
-      entityType: EntityType
-      dimension: Dimension
-      parameter?: ParameterProperty
-    }>(DIALOG_DATA, { optional: true })
+    name: string
+    dataSettings: DataSettings
+    entityType: EntityType
+    dimension: Dimension
+    parameter?: ParameterProperty
+  }>(DIALOG_DATA, { optional: true })
   readonly _formBuilder = inject(FormBuilder)
 
   // Inputs
@@ -125,10 +163,12 @@ export class NgmParameterCreateComponent {
     }))
   )
 
-  readonly inputType = toSignal(this.dataType.valueChanges.pipe(
-    startWith(this.dataType.value),
-    map((type) => type === 'string' ? 'text' : type)
-  ))
+  readonly inputType = toSignal(
+    this.dataType.valueChanges.pipe(
+      startWith(this.dataType.value),
+      map((type) => (type === 'string' ? 'text' : type))
+    )
+  )
 
   constructor() {
     if (this.#data) {

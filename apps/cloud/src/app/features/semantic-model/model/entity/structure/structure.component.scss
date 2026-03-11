@@ -116,13 +116,10 @@
 }
 
 :host::ng-deep {
-  .mat-mdc-checkbox {
-    .mat-internal-form-field {
-      width: 100%;
-    }
-
-    .mdc-form-field > label {
+  z-checkbox {
+    .z-checkbox__label {
       flex: 1;
+      overflow: hidden;
     }
   }
 }

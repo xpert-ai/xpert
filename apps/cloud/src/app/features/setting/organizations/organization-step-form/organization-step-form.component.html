@@ -1,35 +1,46 @@
 <mat-stepper #stepper>
-    <mat-step [stepControl]="basic" [label]=" 'PAC.ORGANIZATIONS_PAGE.Organization.BasicInfo' | translate: {Default: 'Basic Info'} ">
-        <form [formGroup]="basic" class="flex flex-wrap gap-2">
-            <z-form-field appearance="fill">
-                <z-form-label>{{ 'PAC.KEY_WORDS.NAME' | translate: {Default: 'Name'} }}</z-form-label>
-                <input z-input formControlName="name">
-            </z-form-field>
+  <mat-step
+    [stepControl]="basic"
+    [label]="'PAC.ORGANIZATIONS_PAGE.Organization.BasicInfo' | translate: { Default: 'Basic Info' }"
+  >
+    <form [formGroup]="basic" class="flex flex-wrap gap-2">
+      <z-form-field appearance="fill">
+        <z-form-label>{{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}</z-form-label>
+        <input z-input formControlName="name" />
+      </z-form-field>
 
-            <z-form-field appearance="fill">
-                <z-form-label>{{ 'PAC.KEY_WORDS.CURRENCY' | translate: {Default: 'Currency'} }}</z-form-label>
-                <input z-input formControlName="currency">
-            </z-form-field>
+      <z-form-field appearance="fill">
+        <z-form-label>{{ 'PAC.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}</z-form-label>
+        <input z-input formControlName="currency" />
+      </z-form-field>
 
-            <z-form-field appearance="fill">
-                <z-form-label>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType' | translate: {Default: 'Default Value Date Type'} }}</z-form-label>
-                <input z-input formControlName="defaultValueDateType">
-            </z-form-field>
-        </form>
-    </mat-step>
+      <z-form-field appearance="fill">
+        <z-form-label>{{
+          'PAC.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType' | translate: { Default: 'Default Value Date Type' }
+        }}</z-form-label>
+        <input z-input formControlName="defaultValueDateType" />
+      </z-form-field>
+    </form>
+  </mat-step>
 
-    <mat-step [stepControl]="orgSettingsForm" [label]=" 'PAC.ORGANIZATIONS_PAGE.Organization.OtherInfo' | translate: {Default: 'Other Info'} ">
-        <form [formGroup]="orgSettingsForm" class="flex flex-wrap gap-2">
-            <mat-checkbox formControlName="invitesAllowed">
-                {{ 'PAC.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate: {Default: 'Invites Allowed'} }}
-            </mat-checkbox>
+  <mat-step
+    [stepControl]="orgSettingsForm"
+    [label]="'PAC.ORGANIZATIONS_PAGE.Organization.OtherInfo' | translate: { Default: 'Other Info' }"
+  >
+    <form [formGroup]="orgSettingsForm" class="flex flex-wrap gap-2">
+      <z-checkbox formControlName="invitesAllowed">
+        {{ 'PAC.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate: { Default: 'Invites Allowed' } }}
+      </z-checkbox>
 
-            <z-form-field appearance="fill">
-                <z-form-label>
-                    {{ 'PAC.ORGANIZATIONS_PAGE.Organization.InviteExpiryPeriod' | translate: {Default: 'Invite Expiry Period (in Days)'} }}
-                </z-form-label>
-                <input z-input formControlName="inviteExpiryPeriod" type="number">
-            </z-form-field>
-        </form>
-    </mat-step>
+      <z-form-field appearance="fill">
+        <z-form-label>
+          {{
+            'PAC.ORGANIZATIONS_PAGE.Organization.InviteExpiryPeriod'
+              | translate: { Default: 'Invite Expiry Period (in Days)' }
+          }}
+        </z-form-label>
+        <input z-input formControlName="inviteExpiryPeriod" type="number" />
+      </z-form-field>
+    </form>
+  </mat-step>
 </mat-stepper>

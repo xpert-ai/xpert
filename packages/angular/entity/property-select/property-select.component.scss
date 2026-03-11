@@ -21,6 +21,14 @@
 }
 
 ::ng-deep {
+  .ngm-checkbox__property {
+    @apply block w-60;
+
+    .z-checkbox__label {
+      @apply flex-1 overflow-hidden;
+    }
+  }
+
   .ngm-property-select__parameter-menu {
     .mat-mdc-menu-item .mat-mdc-menu-item-text {
       display: flex;

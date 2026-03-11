@@ -1,10 +1,18 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, computed, DestroyRef, effect, inject, signal, ViewContainerRef } from '@angular/core'
+import {
+  ChangeDetectorRef,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  signal,
+  ViewContainerRef
+} from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { RouterModule } from '@angular/router'
 import { exportIndicator, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
 import { EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
@@ -24,7 +32,7 @@ import {
 import { ProjectService } from '../../project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -32,7 +40,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     CommonModule,
     RouterModule,
     FormsModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     ZardButtonComponent,
     MatTooltipModule,
     TranslateModule,
@@ -99,15 +107,17 @@ export class AllIndicatorComponent {
         debounceTime(100),
         switchMap(() => {
           this.loading.set(true)
-          return this.indicatorAPI.getByProject(this.projectService.project().id, {
-            select: ['id', 'code', 'name', 'embeddingStatus']
-          }).pipe(
-            catchError((error) => {
-              this.toastrService.error(getErrorMessage(error))
-              this.loading.set(false)
-              return of(null)
+          return this.indicatorAPI
+            .getByProject(this.projectService.project().id, {
+              select: ['id', 'code', 'name', 'embeddingStatus']
             })
-          )
+            .pipe(
+              catchError((error) => {
+                this.toastrService.error(getErrorMessage(error))
+                this.loading.set(false)
+                return of(null)
+              })
+            )
         }),
         map((data) => {
           // Flip flag to show that loading has finished.

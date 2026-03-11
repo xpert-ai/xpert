@@ -4,7 +4,6 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatMenuModule } from '@angular/material/menu'
 import { NgmColorsComponent } from '@metad/components/form-field'
 import {
@@ -35,7 +34,7 @@ import { BehaviorSubject, distinctUntilChanged, from, map } from 'rxjs'
 import { NgmChartDimensionComponent } from './chart-dimension.component'
 import { NgmChartMeasureComponent } from './chart-measure.component'
 import { NgmReferenceLineComponent } from './reference-line.component'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -47,7 +46,7 @@ import { ZardButtonComponent, ZardFormImports, ZardIconComponent } from '@xpert-
     ZardIconComponent,
     ...ZardFormImports,
     MatMenuModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     MatButtonToggleModule,
     TranslateModule,
 

@@ -5,10 +5,15 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { Router } from '@angular/router'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
@@ -21,7 +26,25 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ZardIconComponent, ZardButtonComponent, MatListModule, ...ZardFormImports, ZardInputDirective, MatDialogModule, MatCheckboxModule, MatAutocompleteModule, MatChipsModule, DragDropModule, OcapCoreModule, NgmHighlightDirective, NgmSelectComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    MatListModule,
+    ...ZardFormImports,
+    ZardInputDirective,
+    MatDialogModule,
+    ZardCheckboxComponent,
+    MatAutocompleteModule,
+    MatChipsModule,
+    DragDropModule,
+    OcapCoreModule,
+    NgmHighlightDirective,
+    NgmSelectComponent
+  ],
   selector: 'ngm-story-details',
   templateUrl: './story-details.component.html',
   styleUrls: ['./story-details.component.scss']
@@ -121,8 +144,9 @@ export class StoryDetailsComponent implements OnInit {
       const reader = new FileReader()
       reader.onload = () => {
         const result = reader.result as string
-        if (result.length > 3*(2**20)) { // Note: 2*2**20 = 2MB
-          this.error = `${this.translate.instant('Story.StoryDetails.PreviewExceedsMaximum', {Default: 'File exceeds the maximum size'})} 2MB`
+        if (result.length > 3 * 2 ** 20) {
+          // Note: 2*2**20 = 2MB
+          this.error = `${this.translate.instant('Story.StoryDetails.PreviewExceedsMaximum', { Default: 'File exceeds the maximum size' })} 2MB`
           this.file = null
         } else {
           this.imagePreview = result
@@ -159,7 +183,7 @@ export class StoryDetailsComponent implements OnInit {
     // If new thumbnail file
     if (this.file) {
       const screenshot = await this.uploadScreenshot(this.file)
-      ;(story.previewId = screenshot.id), (story.thumbnail = screenshot.url)
+      ;((story.previewId = screenshot.id), (story.thumbnail = screenshot.url))
     }
     this.dialogRef.close(story)
   }
